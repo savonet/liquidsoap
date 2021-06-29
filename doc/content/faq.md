@@ -1,8 +1,11 @@
 Frequently Asked Questions
 ==========================
+
 What does this message means?
 -----------------------------
+
 ### Type error
+
 Liquidsoap might also reject a script with a series of errors of the form ```
 this value has type ... but it should be a subtype of ...```
 . Usually the last error tells you what the problem is, but the previous errors might provide a better information as to where the error comes from.
@@ -13,29 +16,25 @@ A type error can also show that you're trying to use a source of a certain conte
 
 ```
 At ...:
-  this value has type
-    source(audio=?A+1,video=0,midi=0)
-    where ?A is a fixed arity type
-  but it should be a subtype of
-    source(audio=0,video=1,midi=0)
+Error 5: this value has type
+  source(audio=none,...)
+but it should be a subtype of
+  source(audio=pcm(_),...)
 ```
 
 Sometimes, the type error actually indicates a mistake in the order or labels of arguments. For example, given `output.icecast(mount="foo.ogg",source)` liquidsoap will complain that the second argument is a source (`source(?A)`) but should be a format (`format(?A)`): indeed, the first unlabelled argument is expected to be the encoding format, e.g., `%vorbis`, and the source comes only second.
 
-Finally, a type error can indicate that you have forgotten to pass a mandatory parameter to some function. For example, on the code `fallback([crossfade(x),...])`, liquidsoap will complain as follows:
+Finally, a type error can indicate that you have forgotten to pass a mandatory parameter to some function. For example, on the code `fallback([mux_audio(x),...])`, liquidsoap will complain as follows:
 
 ```
 At line ...:
-  this value has type
-    (?id:string, ~start_next:float, ~fade_in:float,
-     ~fade_out:float)->source(audio=?A,video=?B,midi=0)
-    where ?B, ?A is a fixed arity type
-  but it should be a subtype of
-    source(audio=?A,video=?B,midi=0)
-    where ?B, ?A is a fixed arity type
+Error 5: this value has type
+  [(?id : _, audio : _) -> _]
+but it should be a subtype of the type of the value at ../libs/switches.liq, line 11, char 11-18
+  [source(_)] (inferred at ../libs/list.liq, line 102, char 29)
 ```
 
-Indeed, `fallback` expects a source, but `crossfade(x)` is still a function expecting the parameters `start_next`, `fade_in` and `fade_out`.
+Indeed, `fallback` expects a source, but `mux_audio(x)` is still a function expecting the `audio` parameter.
 
 ### That source is fallible!
 
@@ -77,20 +76,16 @@ produce a clean script and back it up into a file, independently of
 its output to icecast (which again is sensitive to network lags).
 For more details on those techniques, read about [clocks](clocks.html).
 
-### Unable to decode ``file'' as {audio=2;video=0;midi=0}!
+### Unable to decode ``file'' as {audio=pcm;video=none;midi=none}!
 
 This log message informs you that liquidsoap failed to decode a file, not 
 necessarily because it cannot handle the file, but also possibly because
-the file does not contain the expected media type. For example, if video
-is expected, an audio file will be rejected.
+the file does not contain the expected media type. For example, if audio and video
+is expected, an audio file with no video will be rejected.
 
-The case of mono files is often surprising. Since liquidsoap does not
-implicitly convert between media formats, input files must be stereo
-if the output expects stereo data. As a result, people often get this
-error message on files which they expected to play correctly. The
-simple way to fix this is to use the `audio_to_stereo()` operator
-to allow any kind of audio on its input, and produce stereo as expected
-on its output.
+Liquidsoap is also able to convert audio channels in most situations. Typically,
+if stereo data is expected but the file contains mono audio, liquidsoap will use
+the single audio channel as both left and right channels.
 
 ### Exceptions
 

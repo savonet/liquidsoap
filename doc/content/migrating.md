@@ -7,6 +7,10 @@ Liquidsoap.
 From 1.4.x to 2.0.0
 -------------------
 
+### `audio_to_stereo`
+
+`audio_to_stereo` should not be required in most typicaly situations anymore. `liquidsoap` can handle channels conversions transparently now! 
+
 ### Http input and operators
 
 In order to provide as much compatibility with the different HTTP procotols and implementation, we have decided
