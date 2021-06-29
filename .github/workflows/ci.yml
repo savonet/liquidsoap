@@ -22,6 +22,7 @@ jobs:
       is_release: ${{ steps.build_details.outputs.is_release }}
       docker_release: ${{ steps.build_details.outputs.docker_release }}
       should_build_code: ${{ steps.build_details.outputs.should_build_code }}
+      s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -111,7 +112,7 @@ jobs:
             runs-on: self-hosted
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
-      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian -v ${{ github.workspace }}/alpine:/tmp/alpine
     env:
       HOME: /home/opam
     steps:
@@ -156,12 +157,91 @@ jobs:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/debian
           if-no-files-found: error
+      - name: Build alpine package
+        if: matrix.os == 'alpine'
+        id: build_apk
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          apk add alpine-sdk
+          adduser opam abuild
+          mkdir -p /tmp/alpine
+          rm -rf /tmp/alpine/*
+          chown -R opam /tmp/alpine 
+          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.platform }}
+      - name: Upload alpine packages artifacts
+        if: matrix.os == 'alpine'
+        uses: savonet/aws-s3-docker-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE: ${{ github.workspace }}/alpine
+          TARGET: ${{ needs.build_details.outputs.s3-artifact-basepath }}
       - name: Export potential core dumps
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
           path: ${{ github.workspace }}/core
+
+  fetch_s3_artifacts:
+    runs-on: ubuntu-latest
+    needs: [build_details, build_posix]
+    steps:
+      - name: Prepare directory
+        run: |
+          rm -rf ${{ github.workspace }}/s3-artifacts
+          mkdir -p ${{ github.workspace }}/s3-artifacts
+      - name: Fetch S3 artifacts
+        uses: savonet/aws-s3-docker-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE: ${{ needs.build_details.outputs.s3-artifact-basepath }}
+          TARGET: ${{ github.workspace }}/s3-artifacts
+      - name: Get alpine amd64 package name
+        id: apk_amd64
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64 | xargs basename)"
+      - name: Upload alpine amd64 package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_amd64.outputs.name }}
+          path: ${{ steps.apk_amd64.outputs.path }}
+          if-no-files-found: error
+      - name: Get alpine amd64 debug package name
+        id: apk_amd64_dbg
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64 | xargs basename)"
+      - name: Upload alpine amd64 debug package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_amd64_dbg.outputs.name }}
+          path: ${{ steps.apk_amd64_dbg.outputs.path }}
+          if-no-files-found: error
+      - name: Get alpine arm64 package name
+        id: apk_arm64
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64 | xargs basename)"
+      - name: Upload alpine amd64 package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_arm64.outputs.name }}
+          path: ${{ steps.apk_arm64.outputs.path }}
+          if-no-files-found: error
+      - name: Get alpine arm64 debug package name
+        id: apk_arm64_dbg
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64 | xargs basename)"
+      - name: Upload alpine amd64 debug package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_arm64_dbg.outputs.name }}
+          path: ${{ steps.apk_arm64_dbg.outputs.path }}
+          if-no-files-found: error
 
   build_win32:
     runs-on: ubuntu-latest
@@ -249,9 +329,41 @@ jobs:
       - name: Build docker image
         run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
+  build_docker_alpine:
+    runs-on: ${{ matrix.runs-on }}
+    needs: [build_details, fetch_s3_artifacts]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        include:
+          - platform: amd64
+            runs-on: ubuntu-latest
+            alpine-arch: x86_64
+          - platform: arm64
+            runs-on: self-hosted
+            alpine-arch: aarch64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Download all artifact
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts/${{ needs.build_details.outputs.sha }}
+      - name: Get alpine package
+        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})"
+        id: alpine_package
+      - name: Get alpine debug package
+        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})"
+        id: alpine_dbg_package
+      - name: Build docker image
+        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+
   build_docker_release:
     runs-on: ubuntu-latest
-    needs: [build_details, build_docker]
+    needs: [build_details, build_docker, build_docker_alpine]
     if: ${{ needs.build_details.outputs.docker_release }}
     steps:
       - name: Checkout code

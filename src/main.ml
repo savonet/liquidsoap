@@ -76,8 +76,8 @@ let deprecated = ref true
 let interactive = ref false
 
 (** [load_libs] should be called before loading a script or looking up
-  * the documentation, to make sure that pervasive libraries have been loaded,
-  * unless the user explicitly opposed to it. *)
+  * the documentation, to make sure that pervasive libraries have been
+  * loaded, unless the user explicitly opposed to it. *)
 let load_libs =
   let loaded = ref false in
   fun () ->
