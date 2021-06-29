@@ -1,9 +1,9 @@
 Cookbook
 ========
-The recipes show how to build a source with a particular feature. You can try short snippets by wrapping the code in an `out(..)` operator and passing it directly to liquidsoap:
+The recipes show how to build a source with a particular feature. You can try short snippets by wrapping the code in an `output(..)` operator and passing it directly to liquidsoap:
 
 ```liquidsoap
-liquidsoap -v 'out(recipe)'
+liquidsoap -v 'output(recipe)'
 ```
 
 For longer recipes, you might want to create a short script:
@@ -15,10 +15,10 @@ set("log.file.path","/tmp/<script>.log")
 set("log.stdout",true)
 
 recipe = # <fill this>
-out(recipe)
+output(recipe)
 ```
 
-See the [quickstart guide](quick_start.html) for more information on how to run [Liquidsoap](index.html), on what is this `out(..)` operator, etc.
+See the [quickstart guide](quick_start.html) for more information on how to run [Liquidsoap](index.html), on what is this `output(..)` operator, etc.
 
 Files
 -----
@@ -40,16 +40,16 @@ playlist(mode="normal", "/my/pl.m3u")
 playlist(reload=600,"http://my/playlist.txt")
 ```
 
-When building your stream, you'll often need to make it unfallible. Usually, you achieve that using a fallback switch (see below) with a branch made of a safe `single` or `playlist.safe`. Roughly, a single is safe when it is given a valid local audio file. A `playlist.safe` behaves just like a playlist but will check that all files in the playlist are valid local audio files. This is quite an heavy check, you don't want to have large safe playlists.
+When building your stream, you'll often need to make it unfallible. Usually, you achieve that using a fallback switch (see below) with a branch made of a safe `single`. Roughly, a single is safe when it is given a valid local audio file.
 
 Transcoding
 -----------
-[Liquidsoap](index.html) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. Also keep in mind a limitation inherent to OCaml: one [Liquidsoap](index.html) instance can only use a single processor or core. You can easily work around this limitation by launching multiple [Liquidsoap](index.html) instances, and thus take advantage of that 8-core Xeon server laying around in the dust in your garage.
+[Liquidsoap](index.html) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. If you want to get the best use of CPUs (multicore, memory footprint etc.) when encoding media with Liquidsoap, we recommend using the `%ffmpeg` encoders.
 
 ```liquidsoap
 # Input the stream,
 # from an Icecast server or any other source
-url = "http://streaming.example.com:8000/your-stream.ogg"
+url = "https://icecast.radiofrance.fr/fip-hifi.aac"
 input = mksafe(input.http(url))
 
 # First transcoder: MP3 32 kbps
@@ -60,9 +60,10 @@ output.icecast(
   mount="/your-stream-32.mp3",
   host="streaming.example.com", port=8000, password="xxx",
   mean(input))
-# Second transcoder : MP3 128 kbps
+
+# Second transcoder : MP3 128 kbps using %ffmpeg
 output.icecast(
-  %mp3(bitrate=128), 
+  %ffmpeg(format="mp3", %audio(b="128k")), 
   mount="/your-stream-128.mp3",
   host="streaming.example.com", port=8000, password="xxx",
   input)
@@ -100,12 +101,45 @@ output.file(%vorbis, output,fallible=true,
                      on_stop=shutdown,source)
 ```
 
+Relaying without re-encoding
+----------------------------
+
+Liquidsoap can also relay encoded streams without re-encoding them, making it possible to re-send a stream to multiple destinations. This requires
+the `%ffmpeg` encoder. Here's an example:
+
+```liquidsoap
+# Input the stream,
+# from an Icecast server or any other source
+encoded_source = input.http("https://icecast.radiofrance.fr/fip-hifi.aac")
+
+# Send to one server here:
+output.icecast(
+  %ffmpeg(format="adts", %audio.copy),
+  fallible=true,
+  mount="/restream",
+  host="streaming.example.com", port=8000, password="xxx",
+  encoded_source)
+
+# An another one here:
+output.icecast(
+  %ffmpeg(format="adts", %audio.copy),
+  fallible=true,
+  mount="/restream",
+  host="streaming2.example.com", port=8000, password="xxx",
+  encoded_source)
+```
+
+We cannot use `mksafe` here because the content is not plain `pcm` samples, which this operator is designed to produce. There
+are several ways to make the source infallible, however, either by providing a `single(...)` source with the same encoded content
+as we expect from `encoded_source` or by creating an infallible source using `ffmpeg.encode.audio`.   
+
 Scheduling
 ----------
 ```liquidsoap
 # A fallback switch
 fallback([playlist("http://my/playlist"),
           single("/my/jingle.ogg")])
+
 # A scheduler,
 # assuming you have defined the night and day sources
 switch([ ({0h-7h}, night), ({7h-24h}, day) ])
@@ -146,6 +180,7 @@ radio = switch([(predicate.activates({ 0m-5m }), jingles), ({ true }, playlist)]
 
 Handle special events: mix or switch
 ------------------------------------
+
 ```liquidsoap
 # Add a jingle to your normal source
 # at the beginning of every hour:
@@ -193,6 +228,7 @@ When resolving the URI `beets:David Bowie`, liquidsoap will call the function, w
 
 Dynamic input with harbor
 -------------------------
+
 The operator `input.harbor` allows you to receive a source stream directly inside a running liquidsoap.
 
 It starts a listening server on where any Icecast2-compatible source client can connect. When a source is connected, its input if fed to the corresponding source in the script, which becomes available.
@@ -219,39 +255,15 @@ radio = fallback(track_sensitive=false,
                  [live,playlist,emergency])
 
 # output it
-output.icecast(%vorbis, radio,mount="test",host="host")
+output.icecast(
+  %vorbis,
+  mount="test",
+  host="host",
+  radio)
 ```
 
 This script, when launched, will start a local server, here bound to "0.0.0.0". This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point "/live" to login.
 Then if you start a source client and tell it to stream to your server, on port 8080, with password "hackme", the live source will become available and the radio will stream it immediately.
-
-Adding new commands
--------------------
-You can add more commands to interact with your script through telnet or the server socket.
-
-For instance, the following code, available in the standard API, attaches a `source.skip` command 
-to a source. It is useful when the original source do not have a built-in skip command.
-
-```liquidsoap
-# Add a skip function to a source
-# when it does not have one
-# by default
-def add_skip_command(s) =
- # A command to skip
- def skip(_) =
-   source.skip(s)
-   "Done!"
- end
- # Register the command:
- server.register(namespace="#{source.id(s)}",
-                 usage="skip",
-                 description="Skip the current song.",
-                 "skip",skip)
-end
-
-# Attach a skip command to the source s:
-add_skip_command(s)
-```
 
 Dump a stream into segmented files
 ----------------------------------
@@ -283,7 +295,7 @@ regularly call `find` to cleanup the folder ; if we can to keep 31 days of
 recording :
 
 ```liquidsoap
-exec_at(freq=3600., pred={ true },
+thread.when(every=3600., pred={ true },
     fun () -> list.iter(fun(msg) -> log(msg, label="archive_cleaner"),
         list.append(
             get_process_lines("find /archive/* -type f -mtime +31 -delete"),
@@ -293,148 +305,53 @@ exec_at(freq=3600., pred={ true },
 )
 ```
 
-Manually dump a stream
-----------------------
-You may want to dump the content of 
-a stream. The following code adds 
-two server/telnet commands, `dump.start <filename>`
-and `dump.stop` to dump the content of source s
-into the file given as argument
-
-```liquidsoap
-# A source to dump
-# s = (...) 
-
-# A function to stop
-# the current dump source
-stop_f = ref (fun () -> ())
-# You should make sure you never
-# do a start when another dump
-# is running.
-
-# Start to dump
-def start_dump(file_name) =
-  # We create a new file output
-  # source
-  s = output.file(%vorbis,
-            fallible=true,
-            on_start={log("Starting dump with file #{file_name}.ogg")},
-            reopen_on_metadata=false,
-            "#{file_name}",
-            s)
-  # We update the stop function
-  stop_f := fun () -> source.shutdown(s)
-end
-
-# Stop dump
-def stop_dump() =
-  f = !stop_f
-  f ()
-end
-
-# Some telnet/server command
-server.register(namespace="dump",
-                description="Start dumping.",
-                usage="dump.start <filename>",
-                "start",
-                fun (s) ->  begin start_dump(s) "Done!" end)
-server.register(namespace="dump",
-                description="Stop dumping.",
-                usage="dump.stop",
-                "stop",
-                fun (s) -> begin stop_dump() "Done!" end)
-```
-
 Transitions
 -----------
-There are two kinds of transitions. Transitions between two different children of a switch are not problematic. Transitions between different tracks of the same source are more tricky, since they involve a fast forward computation of the end of a track before feeding it to the transition function: such a thing is only possible when only one operator is using the source, otherwise it'll get out of sync.
+
+There are two kinds of transitions. Transitions between two different children of a switch or fallback and transitions between tracks of the same source.
 
 ### Switch-based transitions
-The switch-based operators (`switch`, `fallback` and `random`) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two `source` parameters: the child which is about to be left, and the new selected child. The default transition is `fun (a,b) -> b`, it simply relays the new selected child source.
 
-Transitions have limited duration, defined by the `transition_length` parameter. Transition duration can be overridden by passing a metadata. Default field for it is `"liq_transition_length"` but it can also be set to a different value via the `override` parameter. 
+The switch-based operators (`switch`, `fallback` and `random`) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two `source` parameters: the child which is about to be left, and the new selected child. The default transition is `fun (a,b) -> b`, it simply relays the new selected child source. 
 
-Here are some possible transition functions:
+One limitation of these transitions, however, is that if the transition happen right at the end of a track, which is the detault with `track_sensitive=true`, then there is no more data available for the old source, which makes it impossible to fade it out. If that is what you are expecting, you should look at crossfade-based transitions
+
+### Crossfade-based transitions
+
+Crossfade-based transitions are more complex and involve buffering source data in advance to be able to compute a transition where ending and starting track potentially overlap. This does not work with all type of sources since some of them, such as `input.http` may only receive data at real-time rate and cannot be accelerated to buffer their data or else we risk running out of data.
+
+We provide a default operator named `smart_cross` which may be suitable for most usage. But you can also create your own customized crossfade transitions. This is in particular true if you are expecting crossfade transitions between tracks of your `music` source but not between a `music` track and e.g. some jingles. Here's how to do it in this case:
 
 ```liquidsoap
-# A simple (long) cross-fade
-# Use metadata override to make sure transition is long enough.
-def crossfade(a,b)
-  def add_transition_length(_) =
-    [("liq_transition_length","15.")]
+# A function to add a source_tag metadata to a source:
+def source_tag(s,tag) =
+  def f(_)
+    [("source_tag",tag)]
   end
-
-  transition =
-    add(normalize=false,
-          [ sequence([ blank(duration=5.),
-                       fade.in(duration=10.,b) ]),
-            fade.out(duration=10.,a) ])
-
-  # Transition can have multiple tracks so only pass the metadata
-  # once.
-  map_first_track(map_metadata(add_transition_length),transition)
+  map_metadata(id=tag,insert_missing=true,f,s)
 end
 
-# Partially apply next to give it a jingle source.
-# It will fade out the old source, then play the jingle.
-# At the same time it fades in the new source.
-# Use metadata override to make sure transition is long enough.
-def next(j,a,b)
-  # This assumes that the jingle is 6 seconds long
-  def add_transition_length(_) =
-    [("liq_transition_length","15.")]
+# Tag our sources
+music = source_tag(..., "music")
+jingles = source_tag(..., "jingles")
+
+# Combine them with one jingle every 3 music tracks
+radio = rotate(weights = [1,3],[jingles,music])
+
+# Now a custom crossfade function:
+def transition(a,b)
+  # If old or new source is not music, no fade
+  if a.metadata["source_tag"] != "music" or a.metadata["source_tag"] != "music" then
+    sequence([a.source, b.source])
+  else
+    # Else, apply the standard fade
+    cross.smart(fade_in=3., fade_out=2., a, b)
   end
-
-  transition =
-    add(normalize=false,
-      [ sequence(merge=true,
-                 [ blank(duration=3.),
-                   fade.in(duration=6.,b) ]),
-        sequence([fade.out(duration=9.,a),
-                  j,blank()]) ])
-
-  map_first_track(map_metadata(add_transition_length),transition)
 end
 
-# A transition, which does a cross-fading from A to B
-# No need to override duration as default value (5 seconds)
-# is over crossade duration (3 seconds)
-def transition(j,a,b)
-  add(normalize=false,
-      [ fade.in(duration=3.,b),
-        fade.out(duration=3.,a) ])
-end
+# Apply it!
+radio = cross(duration=5., transition, radio)
 ```
-
-Finally, we build a source which plays a playlist, and switches to the live show as soon as it starts, using the `transition` function as a transition. At the end of the live, the playlist comes back with a cross-fading.
-
-```liquidsoap
-fallback(track_sensitive=false,
-         transitions=[ crossfade, transition(jingle) ],
-         [ input.http("http://localhost:8000/live.ogg"),
-           playlist("playlist.pls") ])
-```
-
-### Cross-based transitions
-The `cross()` operator allows arbitrary transitions between tracks of a same source. Here is how to use it in order to get a cross-fade:
-
-```liquidsoap
-def crossfade(~start_next,~fade_in,~fade_out,s)
-  fade.in = fade.in(duration=fade_in)
-  fade.out = fade.out(duration=fade_out)
-  fader = fun (_,_,_,_,a,b) -> add(normalize=false,[fade.in(b),fade.out(a)])
-  cross(duration=start_next,fader,s)
-end
-my_source =
-  crossfade(start_next=1.,fade_out=1.,fade_in=1.,my_source)
-```
-
-The `crossfade()` function is already in liquidsoap. Unless you need a custom one, you should never have to copy the above example. It is implemented in the scripting language, much like this example. You can find its code in `utils.liq`.
-
-The fade-in and fade-out parameters indicate the duraction of the fading effects. The start-next parameters tells how much overlap there will be between the two tracks. If you want a long cross-fading with a smaller overlap, you should use a sequence to stick some blank section before the beginning of `b` in `fader`.
-The three parameters given here are only default values, and will be overridden by values coming from the metadata tags `liq_fade_in`, `liq_fade_out` and `liq_start_next`.
-
-For an advanced crossfading function, you can see the [crossfade documentation](crossfade.html)
 
 Alsa unbuffered output 
 -----------------------
@@ -458,6 +375,11 @@ The solution is then to fix the captured frame size to this value, which seems s
 
 ```liquidsoap
 # Set correct frame size:
+# This makes it possible to set any audio frame size.
+# Make sure that you do NOT use video in this case!
+set("frame.video.rate", 0)
+
+# Now set the audio frame size exactly as required:
 set("frame.audio.size",2048)
 
 input = input.alsa(bufferize=false)
