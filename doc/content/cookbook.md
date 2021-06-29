@@ -191,9 +191,10 @@ Switch to a live show as soon as one is available. Make the show unavailable whe
 
 ```liquidsoap
 stripped_stream = 
-  strip_blank(input.http("http://myicecast:8080/live.ogg"))
+  blank.strip(input.http("http://myicecast:8080/live.ogg"))
+
 fallback(track_sensitive=false,
-         [stripped_stream,skip_blank(normal)])
+         [stripped_stream,blank.strip(normal)])
 ```
 
 Without the `track_sensitive=false` the fallback would wait the end of a track to switch to the live. When using the blank detection operators, make sure to fine-tune their `threshold` and `length` (float) parameters.
@@ -209,7 +210,7 @@ For instance, the following snippet defines a source which repeatedly plays the 
 request.dynamic.list(
   { [request.create("bar:foo",
       indicators=
-        get_process_lines("cat "^quote("playlist.pls")))] })
+        process.read.lines("cat "^quote("playlist.pls")))] })
 ```
 
 Of course a more interesting behaviour is obtained with a more interesting program than `cat`, see [Beets](beet.html) for example.
@@ -218,7 +219,7 @@ Another way of using an external program is to define a new protocol which uses 
 
 ```liquidsoap
 add_protocol("beets", fun(~rlog,~maxtime,arg) ->
-  get_process_lines(
+  process.read.lines(
     "/home/me/path/to/beet random -f '$path' #{arg}"
   )
 )
