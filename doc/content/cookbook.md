@@ -133,6 +133,40 @@ We cannot use `mksafe` here because the content is not plain `pcm` samples, whic
 are several ways to make the source infallible, however, either by providing a `single(...)` source with the same encoded content
 as we expect from `encoded_source` or by creating an infallible source using `ffmpeg.encode.audio`.   
 
+Shared encoding
+---------------
+
+Liquidsoap can also encode in one place and share the encoded with data with multiple outputs, making it possible to 
+minimize CPU resources. Here's an example adapted from the previous one:
+
+```liquidsoap
+# Input the stream,
+# from an Icecast server or any other source
+source = input.http("https://icecast.radiofrance.fr/fip-hifi.aac")
+
+# Make it infallible:
+source = mksafe(source)
+
+# Encode it in mp3:
+source = ffmpeg.encode.audio(
+  %ffmpeg(%audio(codec="libmp3lame")),
+  source)
+
+# Send to one server here:
+output.icecast(
+  %ffmpeg(format="mp3", %audio.copy),
+  mount="/restream",
+  host="streaming.example.com", port=8000, password="xxx",
+  source)
+
+# An another one here:
+output.icecast(
+  %ffmpeg(format="mp3", %audio.copy),
+  mount="/restream",
+  host="streaming2.example.com", port=8000, password="xxx",
+  source)
+```
+
 Scheduling
 ----------
 ```liquidsoap
