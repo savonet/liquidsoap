@@ -48,9 +48,9 @@ module Buffer = struct
   let proceed control f = Tutils.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~kind c =
+  class producer ~id ~kind c =
     object (self)
-      inherit Source.source kind ~name:"warp_prod"
+      inherit Source.source kind ~name:id
 
       method self_sync = (`Static, false)
 
@@ -71,15 +71,15 @@ module Buffer = struct
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
 
-  class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
+  class consumer ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
     ~max_buffer ~kind source_val c =
     let prebuf = Frame.main_of_seconds pre_buffer in
     let maxbuf = Frame.main_of_seconds max_buffer in
     object
       inherit
         Output.output
-          ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
-            ~on_stop source_val autostart
+          ~output_kind:id ~content_kind:kind ~infallible ~on_start ~on_stop
+            source_val autostart
 
       method reset = ()
 
@@ -102,8 +102,8 @@ module Buffer = struct
                   (Generator.length c.generator - maxbuf) ))
     end
 
-  let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
-      ~kind source_val =
+  let create ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
+      ~max_buffer ~kind source_val =
     let control =
       {
         generator = Generator.create ();
@@ -114,10 +114,11 @@ module Buffer = struct
     in
     let _ =
       new consumer
+        ~id:(Printf.sprintf "%s.consumer" id)
         ~autostart ~infallible ~on_start ~on_stop ~kind source_val ~pre_buffer
         ~max_buffer control
     in
-    new producer ~kind control
+    new producer ~id:(Printf.sprintf "%s.producer" id) ~kind control
 end
 
 let () =
@@ -145,6 +146,10 @@ let () =
     ~return_t:k ~category:Lang.Liquidsoap
     ~descr:"Create a buffer between two different clocks."
     (fun p ->
+      let id =
+        Lang.to_default_option ~default:"buffer" Lang.to_string
+          (List.assoc "id" p)
+      in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start = List.assoc "on_start" p in
@@ -156,7 +161,7 @@ let () =
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let kind = Source.Kind.of_kind kind in
-      Buffer.create ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
+      Buffer.create ~id ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
         ~max_buffer ~kind s)
 
 module AdaptativeBuffer = struct
