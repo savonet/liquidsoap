@@ -142,6 +142,8 @@ let add_http_request ~stream_body ~descr ~request name =
               ("HTTP/1.0", 522, "Connection timed out", [])
           | Curl.(CurlException (CURLE_COULDNT_RESOLVE_HOST, _, _)) ->
               ("HTTP/1.0", 523, "Origin is unreachable", [])
+          | Curl.(CurlException (CURLE_GOT_NOTHING, _, _)) ->
+              ("HTTP/1.0", 523, "Remote server did not return any data", [])
           | e ->
               let bt = Printexc.get_raw_backtrace () in
               log#severe "Could not perform http request: %s."
