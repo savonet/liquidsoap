@@ -21,6 +21,31 @@ if you have installed `liquidsoap` using `opam`:
 * You need to install the `ffmpeg` package (version `1.0.0` or above) to enable `input.http`
 * You do not need to install the `ssl` package anymore to enable their `https` counter-part. These operators have been deprecated.
 
+### Crossfade
+
+The parameters for `crossfade` transitions was changed to take advantage of the new module system. Instead of passing multiple arguments
+related to the ending and starting track, those are regrouped into a single record. So, if you had a transition like this:
+
+```liquidsoap
+def transition(
+  ending_dB_level, starting_dB_level,
+  ending_metadata, starting_metadata,
+  ending_source,   starting_source) =
+...
+end
+```
+
+You would now do:
+
+```liauidsoap
+def transition(ending, starting) =
+  # Now you can use:
+  #  - ending.db_level, ending.metadata, ending.source
+  #  - starting.db_level, starting.metadata, starting.source
+...
+end
+```
+
 ### Deprecated operators
 
 Some operators have been deprecated. For most of them, we provide a backward-compatible support 
