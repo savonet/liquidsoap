@@ -76,7 +76,7 @@ The windows binary is statically built and, for this reason, we cannot enable bo
 uses the same underlying libraries, for instance `libmp3lame` for `mp3` encoding. The technical reason is that both libraries
 import the same C symbols, which makes compilation fail.
 
-The `%ffmpeg` encoder provides all the functionalities of the internal encoders that conflict with along with more format
+The `%ffmpeg` encoder provides all the functionalities of the internal encoders that conflict with it along with many more format
 we do not support otherwise. For this reason, it was decided to enable the `%ffmpeg` encoder and disable all other encoders.
 
 This means that, if you were previously using a different encoder than `%ffmpeg`, you will need to adapt your script to
