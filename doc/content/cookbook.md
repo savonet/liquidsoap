@@ -406,7 +406,7 @@ Unless you're lucky, the logs are full of lines like the following:
 Could not set buffer size to 'frame.size' (1920 samples), got 2048.
 ```
 
-The solution is then to fix the captured frame size to this value, which seems specific to your hardware. Let's try this script:
+The solution is then to set liquidsoap's internal frame size to this value, which is most likely specific to your hardware. Let's try this script:
 
 ```liquidsoap
 # Set correct frame size:
@@ -421,10 +421,13 @@ input = input.alsa(bufferize=false)
 output.alsa(bufferize=false,input)
 ```
 
-If everything goes right, you may hear on your output the captured sound without any delay ! If you want to test the difference, just run the same script with `bufferize=true` (or without this parameter since it is the default). The setting will be acknowledged in the log as follows:
+The setting will be acknowledged in the log as follows:
+
 ```
 Targeting 'frame.audio.size': 2048 audio samples = 2048 ticks.
 ```
+
+If everything goes right, you may hear on your output the captured sound without any delay! If you want to test the difference, just run the same script with `bufferize=true`.
 
 If you experience problems it might be a good idea to double the value of the frame size. This increases stability, but also latency.
 
