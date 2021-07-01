@@ -412,7 +412,7 @@ The solution is then to set liquidsoap's internal frame size to this value, whic
 # Set correct frame size:
 # This makes it possible to set any audio frame size.
 # Make sure that you do NOT use video in this case!
-set("frame.video.rate", 0)
+set("frame.video.framerate", 0)
 
 # Now set the audio frame size exactly as required:
 set("frame.audio.size",2048)
