@@ -70,3 +70,18 @@ deprecated operatords. Here's a list of the most important ones:
 * `empty` is replaced by: `source.fail`
 * `file.unlink` is replaced by: `file.remove`
 
+### Windows build
+
+The windows binary is statically built and, for this reason, we cannot enable both the `%ffmpeg` encoder and any encoder that
+uses the same underlying libraries, for instance `libmp3lame` for `mp3` encoding. The technical reason is that both libraries
+import the same C symbols, which makes compilation fail.
+
+The `%ffmpeg` encoder provides all the functionalities of the internal encoders that conflict with along with more format
+we do not support otherwise. For this reason, it was decided to enable the `%ffmpeg` encoder and disable all other encoders.
+
+This means that, if you were previously using a different encoder than `%ffmpeg`, you will need to adapt your script to
+use it. For instance, for mp3 encoding with variable bitrate:
+
+```liquidsoap
+%ffmpeg(format="mp3", %audio(codec="libmp3lame", q=7))
+```
