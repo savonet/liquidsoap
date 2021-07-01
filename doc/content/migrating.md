@@ -23,7 +23,7 @@ if you have installed `liquidsoap` using `opam`:
 
 ### Crossfade
 
-The parameters for `crossfade` transitions was changed to take advantage of the new module system. Instead of passing multiple arguments
+The parameters for `cross` transitions was changed to take advantage of the new module system. Instead of passing multiple arguments
 related to the ending and starting track, those are regrouped into a single record. So, if you had a transition like this:
 
 ```liquidsoap
@@ -37,7 +37,7 @@ end
 
 You would now do:
 
-```liauidsoap
+```liquidsoap
 def transition(ending, starting) =
   # Now you can use:
   #  - ending.db_level, ending.metadata, ending.source
