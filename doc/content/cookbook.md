@@ -168,7 +168,7 @@ output.icecast(
 ```
 
 Shared encoding is even more useful when dealing with video encoding, which is very costly. Here's a fun example
-sharing audio and video encoding and sending to different destination, both via Icecast and to YouTube/Facebook
+sharing audio and video encoding and sending to different destinations, both via Icecast and to YouTube/Facebook
 via the rtmp protocol:
 
 ```liquidsoap
@@ -209,12 +209,12 @@ enc = %ffmpeg(
 # Send to YouTube
 key = "..."
 url = "rtmp://a.rtmp.youtube.com/live2/#{key}"
-output.url(fallible=true, url=url, enc, stream)
+output.url(url=url, enc, stream)
 
 # Send to Facebook
 key = "..."
 url = "rtmps://live-api-s.facebook.com:443/rtmp/#{key}"
-output.url(fallible=true, url=url, enc, stream)
+output.url(url=url, enc, stream)
 ```
 
 Scheduling
