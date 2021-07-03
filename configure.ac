@@ -1,7 +1,7 @@
 # Liquidsoap autoconf setup
 
 AC_INIT([liquidsoap],
-        m4_esyscmd([cat liquidsoap.opam | grep ^version | sed 's/version: "\([^"]*\)"/\1/' | tr -d '\r\n']),
+        m4_esyscmd([cat liquidsoap.opam | grep ^version | sed 's/version: "\([^"]*\)"/\1/' | tr -d '\r\n' | sed -e 's#~#-#g']),
         [savonet-users@lists.sourceforge.net],
         [liquidsoap],
         [https://github.com/savonet/liquidsoap])
