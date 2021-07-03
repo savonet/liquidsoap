@@ -7,7 +7,7 @@ ARCH=$2
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-APK_VERSION=`opam show -f version .`
+APK_VERSION=`opam show -f version . | cut -d'~' -f 1`
 
 TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
 
