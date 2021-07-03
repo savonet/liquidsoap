@@ -153,7 +153,6 @@ let rec token lexbuf =
         let r = String.rindexp matched (fun c -> c <> ' ') in
         let cmp = String.sub matched n1 (n2 - n1) in
         let ver = String.sub matched n3 (r - n3 + 1) in
-        Printf.printf "IFVERSION: %s / %s\n%!" cmp ver;
         let cmp =
           match cmp with
             | "==" -> `Eq

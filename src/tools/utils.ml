@@ -707,12 +707,10 @@ module Version = struct
 
   (* We assume something like, 2.0.0+git@7e211ffd *)
   let of_string s : t =
-    let num, str =
-      match String.split_on_char '+' s with
-        | [num; str] -> (num, str)
-        | [num] -> (num, "")
-        | _ -> assert false
-    in
+    let rex = Pcre.regexp "([\\.\\d]+)([^\\.]+)?" in
+    let sub = Pcre.exec ~rex s in
+    let num = Pcre.get_substring sub 1 in
+    let str = try Pcre.get_substring sub 2 with Not_found -> "" in
     let num = String.split_on_char '.' num |> List.map int_of_string in
     (num, str)
 
@@ -720,17 +718,40 @@ module Version = struct
   let num (v : t) = fst v
 
   (** String part. *)
-  let srt (v : t) = snd v
+  let str (v : t) = snd v
 
-  (** Compare two versions. *)
+  (** Compare two versions. 2.0.0~foo is less than 2.0.0 *)
   let compare v w =
-    (* Compare numbers. *)
+    let compare_suffixes =
+      match (str v, str w) with
+        | v, w
+          when String.length v > 1
+               && String.length w > 1
+               && v.[0] = '~'
+               && w.[0] = '~' ->
+            String.compare v w
+        | v, w
+          when String.length v > 1
+               && String.length w > 1
+               && v.[0] = '~'
+               && w.[0] <> '~' ->
+            -1
+        | v, w
+          when String.length v > 1
+               && String.length w > 1
+               && v.[0] <> '~'
+               && w.[0] = '~' ->
+            1
+        | v, "" when String.length v > 1 && v.[0] = '~' -> -1
+        | "", w when String.length w > 1 && w.[0] = '~' -> 1
+        | v, w -> String.compare v w
+    in
     let rec aux v w =
       match (v, w) with
         | m :: _, n :: _ when m < n -> -1
         | m :: _, n :: _ when m > n -> 1
         | _ :: v, _ :: w -> aux v w
-        | [], [] -> 0
+        | [], [] -> compare_suffixes
         | [], _ -> -1
         | _, [] -> 1
     in
