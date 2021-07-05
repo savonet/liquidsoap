@@ -142,7 +142,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
        this requires some run-time info from underlying sources
        (mostly ctype to be set). The only case that matters if no
        sources are selected is to know if we are [`Static, false] for
-       any caller sus as [cross]. Since the source is not ready, we
+       any caller such as [cross]. Since the source is not ready, we
        can return anything so we check if any source might be not
        self_sync in this case *)
     method self_sync =
