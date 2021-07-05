@@ -138,14 +138,18 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 
     method is_ready = need_eot || selected <> None || self#cached_select <> None
 
+    (* This one is tricky. We do not want to call #cached_select as
+       this requires some run-time info from underlying sources
+       (mostly ctype to be set). The only case that matters if no
+       sources are selected is to know if we are [`Static, false] for
+       any caller such as [cross]. Since the source is not ready, we
+       can return anything so we check if any source might be not
+       self_sync in this case *)
     method self_sync =
       ( Lazy.force self_sync_type,
         match selected with
           | Some (_, source) -> snd source#self_sync
-          | None -> (
-              match self#cached_select with
-                | Some { source } -> snd source#self_sync
-                | None -> false ) )
+          | None -> List.exists (fun c -> snd c.source#self_sync) cases )
 
     method private get_frame ab =
       (* Choose the next child to be played.
