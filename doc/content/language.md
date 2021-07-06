@@ -300,7 +300,7 @@ You can extract list elements through _splats_ such as
 
 ```liquidsoap
 l = [1, 5, 7, 8, 9]
-let [x, _, z, ...t = l
+let [x, _, z, ...t] = l
 ```
 
 In this example, the value of `x` is `1`, the value of `z` is `7` and the value of `t`
