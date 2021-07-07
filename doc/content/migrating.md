@@ -13,7 +13,7 @@ From 1.4.x to 2.0.0
 
 ### Http input and operators
 
-In order to provide as much compatibility with the different HTTP procotols and implementation, we have decided
+In order to provide as much compatibility as possible with the different HTTP procotols and implementation, we have decided
 to delegate HTTP support to external libraries which have large scale support and implementation. This means that,
 if you have installed `liquidsoap` using `opam`:
 
