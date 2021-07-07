@@ -9,7 +9,7 @@ From 1.4.x to 2.0.0
 
 ### `audio_to_stereo`
 
-`audio_to_stereo` should not be required in most typicaly situations anymore. `liquidsoap` can handle channels conversions transparently now! 
+`audio_to_stereo` should not be required in most situations anymore. `liquidsoap` can handle channels conversions transparently now! 
 
 ### Http input and operators
 
