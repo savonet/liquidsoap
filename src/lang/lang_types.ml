@@ -191,7 +191,8 @@ let rec meths ?pos ?level l v t =
 (** Split the methods from the type. *)
 let split_meths t =
   let rec aux hide t =
-    match (deref t).descr with
+    let t = deref t in
+    match t.descr with
       | Meth (l, v, d, t) ->
           let m, t = aux (l :: hide) t in
           let m = if List.mem l hide then m else (l, (v, d)) :: m in
@@ -635,12 +636,20 @@ let rec bind a0 b =
             (function
               | Ord ->
                   let rec check b =
-                    let b = demeth b in
+                    let m, b = split_meths b in
                     match b.descr with
                       | Ground _ -> ()
                       | EVar (j, c) ->
                           if List.mem Ord c then ()
                           else b.descr <- EVar (j, Ord :: c)
+                      | Tuple [] ->
+                          (* For records, we want to ensure that all fields are ordered. *)
+                          List.iter
+                            (fun (_, ((v, a), _)) ->
+                              if v <> [] then
+                                raise (Unsatisfied_constraint (Ord, a));
+                              check a)
+                            m
                       | Tuple l -> List.iter (fun b -> check b) l
                       | List b -> check b
                       | Nullable b -> check b
