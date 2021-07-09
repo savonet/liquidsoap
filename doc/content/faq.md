@@ -87,7 +87,24 @@ Liquidsoap is also able to convert audio channels in most situations. Typically,
 if stereo data is expected but the file contains mono audio, liquidsoap will use
 the single audio channel as both left and right channels.
 
-### Exceptions
+### Runtime exceptions
+
+Liquidsoap scrips can raise runtime errors of the form:
+
+```
+At line 3, char 45:
+Error 14: Uncaught runtime error:
+type: not_found, message: "File not found!"
+```
+
+These are errors that the script programmer can catch and decide what to do when they
+occur. Such errors will typically occur when trying to read a file that does not 
+exist and etc.
+
+The [language page](language.html) has more details about errors, how to raise them
+and how to catch them. You can head over there to get more information.
+
+### Crashes
 
 Liquidsoap dies with messages such as these by the end of the log:
 
