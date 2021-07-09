@@ -27,6 +27,7 @@ run_test() {
   on_timeout() {
     echo -e "\033[1;34m[timeout]\033[0m"
     cat "${LOG_FILE}"
+    kill -9 "$PID"
     exit 1
   }
 
