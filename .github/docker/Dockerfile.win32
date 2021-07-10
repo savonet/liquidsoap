@@ -11,9 +11,6 @@ USER opam
 
 ENV CC ""
 
-# This is until https://github.com/ocaml/dune/pull/3751 is merged:
-RUN eval `opam config env` && cd /tmp && git clone https://github.com/toots/dune.git && cd dune && git checkout host-ppx.exe-bis && opam install -y ./dune.opam
-
 ENV OPAMSOLVERTIMEOUT=480
 
 RUN eval `opam config env` && opam update && opam reinstall -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` liquidsoap-windows
