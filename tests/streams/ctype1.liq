@@ -6,7 +6,7 @@
 
 %include "test.liq"
 
-set("log.level", 4)
+log.level.set(4)
 
 def f()
   sine(id="sineF",880.)

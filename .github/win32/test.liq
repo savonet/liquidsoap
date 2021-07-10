@@ -1,5 +1,5 @@
-set("log.stdout",true)
-set("log.file",false)
+log.stdout.set(true)
+log.file.set(false)
 
 # Examples
 

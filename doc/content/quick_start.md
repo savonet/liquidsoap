@@ -200,7 +200,7 @@ Before reading the code of the corresponding liquidsoap script, it might be usef
 ```liquidsoap
 #!/usr/bin/liquidsoap
 # Log dir
-set("log.file.path","/tmp/basic-radio.log")
+log.file.path.set("/tmp/basic-radio.log")
 
 # Music
 myplaylist = playlist("~/radio/music.m3u")

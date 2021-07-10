@@ -4,9 +4,8 @@
 
 %include "test.liq"
 
-set("log.level",5)
-
-set("clock.allow_streaming_errors", true)
+log.level.set(5)
+settings.clock.allow_streaming_errors.set(true)
 
 s = source.fail.init()
 

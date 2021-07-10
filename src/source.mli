@@ -219,7 +219,7 @@ class virtual source :
          string ->
          Request.t
 
-       method private log : Log.t
+       method log : Log.t
 
        method add_watcher : watcher -> unit
      end

@@ -31,5 +31,17 @@ end
 # Get and set the log level.
 # @category Liquidsoap
 def log.level =
-  setting.getter.int("log.level")
+  settings.log.level
+end
+
+# Get and set the file logging
+# @category Liquidsoap
+def log.file =
+  settings.log.file
+end
+
+# Get and set logging to stdout
+# @category Liquidsoap
+def log.stdout =
+  settings.log.stdout
 end

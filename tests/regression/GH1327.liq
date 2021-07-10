@@ -2,7 +2,7 @@
 
 %include "test.liq"
 
-set("log.level",5)
+log.level.set(5)
 
 selected = ref([])
 

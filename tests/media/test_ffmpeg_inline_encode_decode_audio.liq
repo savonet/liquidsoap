@@ -1,9 +1,8 @@
 #!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
-set("log.level",5)
-
-set("decoder.decoders",["FFMPEG"])
+log.level.set(5)
+settings.decoder.decoders.set(["FFMPEG"])
 
 out_copy = "files/copy.mp4"
 

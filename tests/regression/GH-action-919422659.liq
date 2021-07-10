@@ -8,7 +8,7 @@
 # failing in the github action run & serves as regresstion test
 # for this case.
 
-set("decoder.decoders",["FFMPEG"])
+settings.decoder.decoders.set(["FFMPEG"])
 
 s = single("../media/files/audio/@flac(stereo).flac")
 

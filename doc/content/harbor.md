@@ -20,7 +20,7 @@ If enabled using `ssl`, `input.harbor.ssl` will be available. If enabled with `o
 Parameters
 ----------
 The global parameters for harbor can be retrieved using
-`liquidsoap --conf-descr-key harbor`. They are:
+`liquidsoap --list-settings`. They are:
 
 * `harbor.bind_addr`: IP address on which the HTTP stream receiver should listen. The default is `"0.0.0.0"`. You can use this parameter to restrict connections only to your LAN.
 * `harbor.timeout`: Timeout for source connection, in seconds. Defaults to `30.`.
@@ -108,7 +108,7 @@ The source client may use any of the recognized audio input codec. Hence, when u
 A sample code can be:
 
 ```liquidsoap
-set("harbor.bind_addr","0.0.0.0")
+settings.harbor.bind_addr.set("0.0.0.0")
 
 # Some code...
 

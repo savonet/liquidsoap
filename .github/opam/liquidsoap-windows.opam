@@ -43,7 +43,7 @@ osx-secure-transport package." {success & !ssl-enabled & !secure-transport-enabl
 depends: [
   "ocaml-windows" {>= "4.08.0"}
   "camomile-windows" {>= "1.0.0"}
-  "dtools-windows" {>= "0.4.2"}
+  "dtools-windows" {>= "0.4.4"}
   "duppy-windows" {>= "0.8.1"}
   "menhir-windows"
   "mm-windows" {>= "0.6.0"}

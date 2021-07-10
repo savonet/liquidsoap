@@ -110,16 +110,25 @@ it this way or can in our [build page](build.html).
 
 Settings
 --------
-Liquidsoap scripts contain expression like `set("log.stdout",true)`.
+Liquidsoap scripts contain expression like `settings.log.stdout.set(true)`.
 These are *settings*, global variables affecting the behaviour of the 
 application.
-Here, the first parameter identifies a setting its path,
-and the second one specifies its new value.
+
+Some common settings have shortcut for convenience. These are all shortcuts to their respective `settings` values:
+
+```liquidsoap
+log.level.set(4)
+log.file.set(true)
+log.stdout.set(true)
+init.daemon.set(true)
+audio.samplerate.set(48000)
+audio.channels.set(2)
+video.frame.width.set(720)
+video.frame.height.set(1280)
+```
 
 You can have a list of available settings, with their documentation,
-by running `liquidsoap --conf-descr`.
-If you are interested in a particular settings section,
-for example server-related stuff, use `liquidsoap --conf-descr-key server`.
+by running `liquidsoap --list-settings`.
 
 The output of these commands is a valid liquidsoap script,
 which you can edit to set the values that you want,

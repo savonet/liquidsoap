@@ -1,6 +1,6 @@
 #!liquidsoap -v
 
-set("log.stdout",true)
+log.stdout.set(true)
 
 pl = on_metadata(fun (m)->log(string_of(m)),single("chord.txt"))
 pl = mux_audio(pl,audio=blank())

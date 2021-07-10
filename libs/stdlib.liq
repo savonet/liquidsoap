@@ -5,7 +5,7 @@
 %include "math.liq"
 %include "getter.liq"
 %include "predicate.liq"
-%include "setting.liq"
+%include "settings.liq"
 %include "log.liq"
 %include "thread.liq"
 %include "process.liq"
@@ -21,9 +21,9 @@
 %include "playlist.liq"
 %include "source.liq"
 %include "sound.liq"
-%include "resolvers.liq"
 %include "fades.liq"
 %include "protocols.liq"
+%include "resolvers.liq"
 %include "externals.liq"
 %include "shoutcast.liq"
 %include "lastfm.liq"
@@ -39,3 +39,4 @@
 %include "profiler.liq"
 %include "io.liq"
 
+set_settings_ref(settings)
