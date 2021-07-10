@@ -1,4 +1,4 @@
-SUBDIRS= src examples doc gui scripts tests libs
+SUBDIRS= src examples doc scripts tests libs
 DISTFILES = CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.h.in \
 	Makefile Makefile.defs.in Makefile.rules install-sh \
@@ -13,7 +13,7 @@ distclean: pre-distclean
 pre-distclean: clean
 	rm -rf config.log config.status config.h autom4te.cache \
 	       src/configure.ml scripts/liquidsoap.logrotate \
-	       gui/liguidsoap liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
+	       liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
 	@$(MAKE) -C src/test test

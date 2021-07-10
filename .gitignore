@@ -1,5 +1,4 @@
 *.exe
-gui/liguidsoap
 Makefile.defs
 aclocal.m4
 autom4te.cache/

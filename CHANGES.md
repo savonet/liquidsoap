@@ -203,6 +203,9 @@ Fixed:
 - Fixed fade-out in crossfades when crossfade duration is the same as fade-out duration (#1351).
 - Fixed osc server not workin when daemonized (#1365).
 
+Removed:
+- LiGuidsoap, the old Liquidsoap GUI. 🪦
+
 1.4.4 (27-02-2021)
 =====
 
