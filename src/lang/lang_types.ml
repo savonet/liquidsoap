@@ -149,6 +149,17 @@ let dummy = make ~pos:None (EVar (-1, []))
     type. *)
 let rec deref t = match t.descr with Link x -> deref x | _ -> t
 
+(** Remove shadowed methods. *)
+let rec uniq_meth ~cur t =
+  let t = deref t in
+  match t.descr with
+    | Meth (n, _, _, t) when List.mem n cur -> uniq_meth ~cur t
+    | Meth (n, x, y, t) ->
+        { t with descr = Meth (n, x, y, uniq_meth ~cur:(n :: cur) t) }
+    | _ -> t
+
+let uniq_meth = uniq_meth ~cur:[]
+
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
   let t = deref t in

@@ -209,7 +209,7 @@ let print_settings () =
       value = Lang_values.V.Tuple [];
     }
   in
-  let descr = grab_descr descr !settings.Lang.value in
+  let descr = grab_descr descr (Lang.uniq_meth !settings).Lang.value in
   let filter_children =
     List.filter (fun (_, { description }) ->
         not (List.mem description filtered_settings))
