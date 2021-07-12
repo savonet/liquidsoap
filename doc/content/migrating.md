@@ -84,6 +84,37 @@ video.frame.height.set(1280)
 The `register` operator could not be adapted to this new API and had to be removed, however, backward-compatible
 `set` and `get` operators are provided. Make sure to replace them as they should be removed in a future version.
 
+### Metadata insertion
+
+The function `insert_metadata` does not return a pair anymore, but a source with
+a method named `insert_metadata`. This means that you should change the code
+
+```liquidsoap
+fs = insert_metadata(s)
+# The function to insert metadata
+f = fst(ms)
+# The source with inserted metadata
+s = snd(ms)
+...
+# Using the function
+f([("artist", "Bob")])
+...
+# Using the source
+output.pulseaudio(s)
+```
+
+to
+
+```liquidsoap
+s = insert_metadata(s)
+...
+# Using the function
+s.insert_metadata([("artist", "Bob")])
+...
+# Using the source
+output.pulseaudio(s)
+```
+
 ### Deprecated operators
 
 Some operators have been deprecated. For most of them, we provide a backward-compatible support 
