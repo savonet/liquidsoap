@@ -134,17 +134,18 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # Remove after liquidsoap 2.0 release
           sudo -u opam -E opam install -y posix-time2
+          export CPU_CORES=${{ matrix.cpu-cores }}
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ matrix.cpu-cores }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
       - name: Build doc
         if: matrix.os != 'alpine'
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-doc.sh ${{ matrix.cpu-cores }}
+          sudo -u opam -E ./.github/scripts/build-doc.sh
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.cpu-cores }}
+          sudo -u opam -E ./.github/scripts/test-posix.sh
       - name: Build debian package
         if: matrix.os != 'alpine'
         id: build_deb
