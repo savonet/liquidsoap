@@ -9,7 +9,7 @@ build: [
   ["./configure" "--enable-custom-path" "--host=%{conf-gcc-windows:host}%"
                  "--prefix=%{prefix}%" "--with-libs-dir=%{prefix}%/lib/liquidsoap"
                  "LDFLAGS=-lssp" "OCAMLFIND_TOOLCHAIN=windows"]
-  ["env" "OCAMLFIND_TOOLCHAIN=windows" make]
+  ["env" "OCAMLFIND_TOOLCHAIN=windows" make "-j" jobs]
 ]
 install: [
   ["env" "OCAMLFIND_TOOLCHAIN=windows" make "install"]

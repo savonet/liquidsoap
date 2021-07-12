@@ -6,7 +6,7 @@ audio.samplerate.set(48000)
 settings.decoder.priorities.ffmpeg.set(-1)
 
 fname = argv(default="",1)
-out = "files/test.wav"
+out = "files/test_stereo.wav"
 
 if file.exists(out) then
   file.remove(out)

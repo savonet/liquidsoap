@@ -5,7 +5,7 @@ log.level.set(4)
 settings.ffmpeg.log.level.set(12)
 audio.samplerate.set(48000)
 
-out = "files/test.mp4"
+out = "files/test_stream_video.mp4"
 
 if file.exists(out) then
   file.remove(out)
