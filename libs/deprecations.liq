@@ -447,3 +447,10 @@ def input.https(%argsof(input.http), url)
   input.http(%argsof(input.http), url)
 end
 %endif
+
+# Deprecated: use `source.say_metadata` instead
+# @flag deprecated
+def say_metadata(s, ~pattern) =
+  def pattern(m) = pattern % m end
+  source.say_metadata(pattern=pattern, s)
+end

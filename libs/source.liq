@@ -184,10 +184,20 @@ end
 # @category Source / Track Processing
 # @param ~pattern Pattern to use
 # @param s The source to use
-def say_metadata
-  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
-  fun (s,~pattern=p) ->
-    append(s, fun (m) -> once(single(pattern % m)))
+def source.say_metadata =
+  def pattern(m) =
+    artist = m["artist"]
+    title = m["title"]
+    artist_predicate =
+      if artist != "" then
+        "It was #{artist} playing "
+      else
+        ""
+      end
+    "say:#{artist_predicate}#{title}"
+  end
+  fun (~id=null(), ~pattern=pattern, s) ->
+    append(id=id, s, fun (m) -> once(single(pattern(m))))
 end
 
 # Run a function regularly. This is similar to `thread.run` but based on a
