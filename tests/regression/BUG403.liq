@@ -1,3 +1,4 @@
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 # This is the test for bug #403 from our old trac.
 #
 # Make a switch() declare itself ready and arrange to use it for the next
@@ -21,7 +22,7 @@ end
 thread.run(delay=2., { r := true })
 
 mixer = fallback(id="mixer", track_sensitive=false,
-  [at(pred, sine(duration=3.)), blank()])
+  [source.available(sine(duration=3.), pred), blank()])
 
 output.dummy(mixer)
 thread.run(delay=3., { test.pass() ; shutdown()})
