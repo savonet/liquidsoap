@@ -23,7 +23,6 @@ jobs:
       docker_release: ${{ steps.build_details.outputs.docker_release }}
       should_build_code: ${{ steps.build_details.outputs.should_build_code }}
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
-      cpu-cores: ${{ steps.cpu-cores.outputs.count }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -32,9 +31,6 @@ jobs:
       - name: Get build details
         run: .github/scripts/build-details.sh
         id: build_details
-      - name: Get number of CPU cores
-        uses: SimenB/github-actions-cpu-cores@v1
-        id: cpu-cores
 
   export_tarball:
     runs-on: ubuntu-latest
@@ -112,8 +108,10 @@ jobs:
         include:
           - platform: amd64
             runs-on: ubuntu-latest
+            cpu-cores: 2
           - platform: arm64
             runs-on: self-hosted
+            cpu-cores: 8
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian -v ${{ github.workspace }}/alpine:/tmp/alpine
@@ -136,17 +134,17 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # Remove after liquidsoap 2.0 release
           sudo -u opam -E opam install -y posix-time2
-          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ needs.build_details.outputs.cpu-cores }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ matrix.cpu-cores }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
       - name: Build doc
         if: matrix.os != 'alpine'
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-doc.sh
+          sudo -u opam -E ./.github/scripts/build-doc.sh ${{ matrix.cpu-cores }}
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/test-posix.sh
+          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.cpu-cores }}
       - name: Build debian package
         if: matrix.os != 'alpine'
         id: build_deb
