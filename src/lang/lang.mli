@@ -71,7 +71,6 @@ and in_value = Lang_values.V.in_value =
      value. *)
   | FFI of (string * string * value option) list * env * (env -> value)
 
-val uniq_meth : value -> value
 val demeth : value -> value
 
 (** Get a string representation of a value. *)

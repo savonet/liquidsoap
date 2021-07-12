@@ -1,5 +1,5 @@
 # @flag hidden
-def mk_protocol_setting(name) =
+def settings.make.protocol(name) =
   settings.make.void(
     "Settings for the #{name} protocol"
   )
@@ -9,7 +9,7 @@ let settings.protocol = settings.make.void(
   "Settings for registered protocols"
 ) 
 
-let settings.protocol.replaygain = mk_protocol_setting("ReplayGain")
+let settings.protocol.replaygain = settings.make.protocol("ReplayGain")
 let settings.protocol.replaygain.path = settings.make(
   description="ReplayGain path",
   "#{configure.bindir}/extract-replaygain"
@@ -48,7 +48,7 @@ add_protocol("replaygain", replaygain_protocol,
              doc="Compute replaygain value using the extract-replaygain script. \
                   Adds returned value as `\"replaygain_track_gain\"` metadata")
 
-let settings.protocol.process = mk_protocol_setting("process")
+let settings.protocol.process = settings.make.protocol("process")
 
 let settings.protocol.process.env = settings.make(
   description="List of environment variables \
@@ -210,7 +210,7 @@ end
 list.iter(add_http_protocol,["http","https"])
 %endif
 
-let settings.protocol.youtube_dl = mk_protocol_setting("youtube-dl")
+let settings.protocol.youtube_dl = settings.make.protocol("youtube-dl")
 
 let settings.protocol.youtube_dl.path = settings.make(
   description="Path of the youtube-dl binary",
@@ -279,7 +279,7 @@ add_protocol("tmp",tmp_protocol,
              doc="Mark the given uri as temporary. Useful when chaining protocols",
              temporary=true,syntax="tmp:uri")
 
-let settings.protocol.ffmpeg = mk_protocol_setting("FFmpeg")
+let settings.protocol.ffmpeg = settings.make.protocol("FFmpeg")
 
 let settings.protocol.ffmpeg.path = settings.make(
   description="Path to the ffmpeg binary",
@@ -504,7 +504,7 @@ def stereo_protocol(~rlog, ~maxtime, arg)
 end
 add_protocol(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
 
-let settings.protocol.text2wave = mk_protocol_setting("text2wave")
+let settings.protocol.text2wave = settings.make.protocol("text2wave")
 
 let settings.protocol.text2wave.path = settings.make(
   description="Path to the text2wave binary",
@@ -521,7 +521,7 @@ add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
              syntax="text2wave:Text to read")
 
-let settings.protocol.gtts = mk_protocol_setting("gtts")
+let settings.protocol.gtts = settings.make.protocol("gtts")
 
 let settings.protocol.gtts.path = settings.make(
   description="Path to the gtts binary",
@@ -547,7 +547,7 @@ add_protocol(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave. Result is always stereo.",
              syntax="say:Text to read")
 
-let settings.protocol.aws = mk_protocol_setting("AWS")
+let settings.protocol.aws = settings.make.protocol("AWS")
 
 let settings.protocol.aws.profile = settings.make(
   description="Use a specific profile from your credential file.",
@@ -569,7 +569,7 @@ let settings.protocol.aws.path = settings.make(
   "aws"
 )
 
-let settings.protocol.aws.polly = mk_protocol_setting("polly")
+let settings.protocol.aws.polly = settings.make.protocol("polly")
 
 let settings.protocol.aws.polly.format = settings.make(
   description="Output format",

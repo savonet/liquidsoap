@@ -184,6 +184,8 @@ let print_settings () =
     | Lang_values.V.Meth ("comments", c, v) ->
         grab_descr { cur with comments = Lang.to_string c } v.Lang.value
     | Lang_values.V.Meth ("set", _, v) -> grab_descr cur v.Lang.value
+    | Lang_values.V.Meth (key, _, v) when List.mem_assoc key cur.children ->
+        grab_descr cur v.Lang.value
     | Lang_values.V.Meth (key, c, v) ->
         let descr =
           {
@@ -209,7 +211,7 @@ let print_settings () =
       value = Lang_values.V.Tuple [];
     }
   in
-  let descr = grab_descr descr (Lang.uniq_meth !settings).Lang.value in
+  let descr = grab_descr descr !settings.Lang.value in
   let filter_children =
     List.filter (fun (_, { description }) ->
         not (List.mem description filtered_settings))

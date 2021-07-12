@@ -577,14 +577,6 @@ module V = struct
     in
     aux [] e
 
-  let rec uniq_meth ~cur v =
-    match v.value with
-      | Meth (n, _, v) when List.mem n cur -> uniq_meth ~cur v
-      | Meth (n, x, v) ->
-          { v with value = Meth (n, x, uniq_meth ~cur:(n :: cur) v) }
-      | _ -> v
-
-  let uniq_meth = uniq_meth ~cur:[]
   let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
 
   let rec remeth t u =

@@ -111,9 +111,6 @@ val meth :
 (** Add a submethod to a type. *)
 val meths : ?pos:pos option -> ?level:int -> string list -> scheme -> t -> t
 
-(** Remove shadowed methods. *)
-val uniq_meth : t -> t
-
 (** Remove all methods in a type. *)
 val demeth : t -> t
 
