@@ -109,7 +109,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             input
         in
         Generator.set_rewrite_metadata generator (fun m ->
-            Hashtbl.add m "source_url" url;
+            Hashtbl.replace m "source_url" url;
             m);
         let get_metadata () =
           normalize_metadata
@@ -186,7 +186,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let m = get_metadata () in
         if last_metadata <> m then (
           let meta = Hashtbl.create (List.length m) in
-          List.iter (fun (lbl, v) -> Hashtbl.add meta lbl v) m;
+          List.iter (fun (lbl, v) -> Hashtbl.replace meta lbl v) m;
           Generator.add_metadata generator meta;
           if new_track_on_metadata then Generator.add_break generator;
           last_metadata <- m )
@@ -209,9 +209,9 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
   ~max_buffer ~log_overfull ~kind ~on_connect ~on_disconnect ?format ~opts
   ~user_agent ~timeout ~on_start ~on_stop ~new_track_on_metadata url =
   let () =
-    Hashtbl.add opts "icy" (`Int 1);
-    Hashtbl.add opts "user_agent" (`String user_agent);
-    Hashtbl.add opts "rw_timeout"
+    Hashtbl.replace opts "icy" (`Int 1);
+    Hashtbl.replace opts "user_agent" (`String user_agent);
+    Hashtbl.replace opts "rw_timeout"
       (`Int64 (Int64.of_float (timeout *. 1000000.)))
   in
   let on_connect input =
@@ -254,7 +254,7 @@ let parse_args ~t name p opts =
   let args = Lang.to_list args in
   let extract_pair extractor v =
     let label, value = Lang.to_product v in
-    Hashtbl.add opts (Lang.to_string label) (extractor value)
+    Hashtbl.replace opts (Lang.to_string label) (extractor value)
   in
   let extract =
     match t with
