@@ -25,9 +25,19 @@ module Generated = Generated.Make (Generator)
 
 exception Not_connected
 
+let normalize_metadata =
+  List.map (fun (lbl, v) ->
+      let lbl =
+        match lbl with
+          | "StreamTitle" -> "title"
+          | "StreamUrl" -> "url"
+          | _ -> lbl
+      in
+      (lbl, v))
+
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   ~clock_safe ~max_buffer ~log_overfull ~kind ~on_stop ~on_start ~on_connect
-  ~on_disconnect ?format ~opts url =
+  ~on_disconnect ~new_track_on_metadata ?format ~opts url =
   let max_ticks = Frame.main_of_seconds max_buffer in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
@@ -101,7 +111,20 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         Generator.set_rewrite_metadata generator (fun m ->
             Hashtbl.add m "source_url" url;
             m);
-        container <- Some (input, decoder);
+        let get_metadata () =
+          normalize_metadata
+            ( Av.get_input_metadata input
+            @ ( match audio with
+                | Some (`Packet (_, stream, _)) -> Av.get_metadata stream
+                | Some (`Frame (_, stream, _)) -> Av.get_metadata stream
+                | None -> [] )
+            @
+            match video with
+              | Some (`Packet (_, stream, _)) -> Av.get_metadata stream
+              | Some (`Frame (_, stream, _)) -> Av.get_metadata stream
+              | None -> [] )
+        in
+        container <- Some (input, decoder, get_metadata);
         source_status <- `Connected url;
         on_connect input;
         -1.
@@ -131,7 +154,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         (fun () ->
           match container with
             | None -> ()
-            | Some (input, _) ->
+            | Some (input, _, _) ->
                 ( try Av.close input
                   with exn ->
                     let bt = Printexc.get_backtrace () in
@@ -147,15 +170,26 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       self#disconnect;
       self#connect
 
+    val mutable last_metadata = []
+
     method private get_frame frame =
       let pos = Frame.position frame in
       try
-        let _, decoder = self#mutexify (fun () -> Option.get container) () in
+        let _, decoder, get_metadata =
+          self#mutexify (fun () -> Option.get container) ()
+        in
         let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
         while Generator.length generator < Lazy.force Frame.size do
           decoder buffer
         done;
-        Generator.fill generator frame
+        Generator.fill generator frame;
+        let m = get_metadata () in
+        if last_metadata <> m then (
+          let meta = Hashtbl.create (List.length m) in
+          List.iter (fun (lbl, v) -> Hashtbl.add meta lbl v) m;
+          Generator.add_metadata generator meta;
+          if new_track_on_metadata then Generator.add_break generator;
+          last_metadata <- m )
       with exn ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
@@ -206,71 +240,12 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
     in
     on_connect icy_headers
   in
-  let parse_icy_metadata chunk =
-    let h = Hashtbl.create 10 in
-    let rec parse chunk =
-      try
-        let mid = String.index chunk '=' in
-        let close = String.index chunk ';' in
-        let key = Configure.recode_tag (String.sub chunk 0 mid) in
-        let value =
-          Configure.recode_tag (String.sub chunk (mid + 2) (close - mid - 3))
-        in
-        let key =
-          match key with
-            | "StreamTitle" -> "title"
-            | "StreamUrl" -> "url"
-            | _ -> key
-        in
-        Hashtbl.add h key value;
-        parse (String.sub chunk (close + 1) (String.length chunk - close - 1))
-      with _ -> ()
-    in
-    parse chunk;
-    h
-  in
-  object (self)
+  object
     inherit
       input
         ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
           ~max_buffer ~log_overfull ~kind ~on_stop ~on_start ~on_disconnect
-          ~on_connect ?format ~opts url as super
-
-    val mutable latest_metadata = ""
-
-    method private insert_metadata chunk =
-      let m = parse_icy_metadata chunk in
-      self#log#important "New metadata chunk: %s -- %s."
-        (try Hashtbl.find m "artist" with _ -> "?")
-        (try Hashtbl.find m "title" with _ -> "?");
-      Generator.add_metadata generator m;
-      if new_track_on_metadata then Generator.add_break generator
-
-    method get_frame frame =
-      super#get_frame frame;
-      try
-        let input =
-          self#mutexify
-            (fun () ->
-              match container with
-                | None -> raise Not_connected
-                | Some (input, _) -> input)
-            ()
-        in
-        let m =
-          Avutil.Options.get_string ~search_children:true
-            ~name:"icy_metadata_packet" (Av.input_obj input)
-        in
-        if latest_metadata <> m && m <> "" then (
-          latest_metadata <- m;
-          self#insert_metadata m )
-      with
-        | Not_connected -> ()
-        | exn ->
-            let bt = Printexc.get_backtrace () in
-            Utils.log_exception ~log:self#log ~bt
-              (Printf.sprintf "Error while fetching metadata: %s"
-                 (Printexc.to_string exn))
+          ~on_connect ?format ~opts ~new_track_on_metadata url
   end
 
 let parse_args ~t name p opts =
@@ -312,10 +287,6 @@ let register_input is_http =
             Lang.string_t,
             Some (Lang.string Http.user_agent),
             Some "User agent." );
-          ( "new_track_on_metadata",
-            Lang.bool_t,
-            Some (Lang.bool true),
-            Some "Treat new metadata as new track." );
           ( "timeout",
             Lang.float_t,
             Some (Lang.float 10.),
@@ -342,6 +313,10 @@ let register_input is_http =
         args ~t:Lang.int_t "int";
         args ~t:Lang.float_t "float";
         args ~t:Lang.string_t "string";
+        ( "new_track_on_metadata",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Treat new metadata as new track." );
         ( "on_disconnect",
           Lang.fun_t [] Lang.unit_t,
           Some (Lang.val_cst_fun [] Lang.unit),
@@ -449,15 +424,15 @@ let register_input is_http =
       let on_disconnect () =
         ignore (Lang.apply (List.assoc "on_disconnect" p) [])
       in
+      let new_track_on_metadata =
+        Lang.to_bool (List.assoc "new_track_on_metadata" p)
+      in
       let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
       let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
       let kind = Source.Kind.of_kind kind in
       if is_http then (
         let timeout = Lang.to_float (List.assoc "timeout" p) in
         let user_agent = Lang.to_string (List.assoc "user_agent" p) in
-        let new_track_on_metadata =
-          Lang.to_bool (List.assoc "new_track_on_metadata" p)
-        in
         let on_connect l =
           let l =
             List.map
@@ -478,7 +453,7 @@ let register_input is_http =
         new input
           ~kind ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_start
           ~on_stop ~on_connect ~on_disconnect ~max_buffer ~log_overfull ?format
-          ~opts url ))
+          ~opts ~new_track_on_metadata url ))
 
 let () =
   register_input true;

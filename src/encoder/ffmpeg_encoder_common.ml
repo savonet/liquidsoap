@@ -59,13 +59,6 @@ let encode ~encoder frame start len =
   ignore
     (Option.map (fun { encode } -> encode frame start len) encoder.video_stream)
 
-let insert_metadata ~encoder m =
-  let m =
-    Hashtbl.fold (fun lbl v l -> (lbl, v) :: l) (Meta_format.to_metadata m) []
-  in
-  if not (Av.output_started encoder.output) then
-    Av.set_output_metadata encoder.output m
-
 (* Convert ffmpeg-specific options. *)
 let convert_options opts =
   let convert name fn =
@@ -188,7 +181,18 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
     encode ~encoder:!encoder frame start len;
     Strings.Mutable.flush buf
   in
-  let insert_metadata m = insert_metadata ~encoder:!encoder m in
+  let insert_metadata m =
+    let m =
+      Hashtbl.fold (fun lbl v l -> (lbl, v) :: l) (Meta_format.to_metadata m) []
+    in
+    match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
+      | _ when not !encoder.started -> Av.set_output_metadata !encoder.output m
+      | `Stream, Some "ogg" ->
+          Av.close !encoder.output;
+          encoder := make ();
+          Av.set_output_metadata !encoder.output m
+      | _ -> ()
+  in
   insert_metadata meta;
   let stop () =
     Av.close !encoder.output;
