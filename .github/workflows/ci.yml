@@ -34,6 +34,7 @@ jobs:
         id: build_details
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
+        id: cpu-cores
 
   export_tarball:
     runs-on: ubuntu-latest
