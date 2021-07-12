@@ -240,6 +240,7 @@ end
 # @category Source / Track Processing
 # @param ~every How often to skip tracks.
 # @param s The stream.
+# @flag extra
 def skipper(~every=getter(5.), s) =
   start_time = ref(0.)
   def f() =
