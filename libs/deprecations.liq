@@ -378,6 +378,13 @@ def mkavailable(~id="mkavailable", ~track_sensitive=getter(true), ~active=getter
   switch(id=id,track_sensitive=getter.function(track_sensitive),[(getter.function(available),s)])
 end
 
+# Deprecated: use `at` instead.
+# @flag deprecated
+def at(pred,s)
+  deprecated("at", "source.available")
+  source.available(s,pred)
+end
+
 # Deprecated: use `source.on_end` instead.
 # @flag deprecated
 def on_end(%argsof(source.on_end), s, f)

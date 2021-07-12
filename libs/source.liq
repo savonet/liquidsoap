@@ -45,14 +45,6 @@ def map_first_track(~id=null(),fn,s)
   fallback(id=id,track_sensitive=true,[fn((once(s):source)),s])
 end
 
-# Restrict a source to play only when a predicate is true.
-# @category Source / Track Processing
-# @param pred The predicate, typically a time interval such as \
-#             `{10h-10h30}`.
-def at(pred,s)
-  switch([(pred,s)])
-end
-
 # Skip track when detecting a blank.
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
