@@ -23,6 +23,7 @@ jobs:
       docker_release: ${{ steps.build_details.outputs.docker_release }}
       should_build_code: ${{ steps.build_details.outputs.should_build_code }}
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
+      cpu-cores: ${{ steps.cpu-cores.outputs.count }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -31,6 +32,8 @@ jobs:
       - name: Get build details
         run: .github/scripts/build-details.sh
         id: build_details
+      - name: Get number of CPU cores
+        uses: SimenB/github-actions-cpu-cores@v1
 
   export_tarball:
     runs-on: ubuntu-latest
@@ -132,7 +135,7 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # Remove after liquidsoap 2.0 release
           sudo -u opam -E opam install -y posix-time2
-          sudo -u opam -E ./.github/scripts/build-posix.sh
+          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ needs.build_details.outputs.cpu-cores }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
       - name: Build doc
         if: matrix.os != 'alpine'
