@@ -108,10 +108,8 @@ jobs:
         include:
           - platform: amd64
             runs-on: ubuntu-latest
-            cpu-cores: 2
           - platform: arm64
             runs-on: self-hosted
-            cpu-cores: 8
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian -v ${{ github.workspace }}/alpine:/tmp/alpine
@@ -134,8 +132,7 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # Remove after liquidsoap 2.0 release
           sudo -u opam -E opam install -y posix-time2
-          export CPU_CORES=${{ matrix.cpu-cores }}
-          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ matrix.cpu-cores }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
       - name: Build doc
         if: matrix.os != 'alpine'
