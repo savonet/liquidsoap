@@ -272,7 +272,7 @@ jobs:
           cd liquidsoap
           git init
           git remote add origin https://github.com/${{ github.repository }}.git
-          git fetch --depth 1 origin ${{ github.event.pull_request.head.sha }}
+          git fetch --depth 1 origin ${{ github.sha }}
           git checkout FETCH_HEAD
           chown -R opam /workspace
       - name: Add local packages
