@@ -2,6 +2,8 @@
 
 set -e
 
+export CPU_CORES=$1
+
 eval $(opam config env)
 
 cd /tmp/liquidsoap-full
@@ -37,4 +39,4 @@ echo "\n### Compiling\n"
             CFLAGS=-g
 
 cd liquidsoap
-make
+make -j $CPU_CORES

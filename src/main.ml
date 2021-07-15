@@ -30,7 +30,7 @@ let () =
   Configure.conf#plug "init" Dtools.Init.conf;
   Configure.conf#plug "log" Dtools.Log.conf
 
-(* Set log to stdout by default *)
+(* Set log to stdout by default. *)
 let () =
   Dtools.Log.conf_stdout#set_d (Some true);
   Dtools.Log.conf_file#set_d (Some false);

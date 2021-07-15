@@ -116,6 +116,9 @@ jobs:
     env:
       HOME: /home/opam
     steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@v1
+        id: cpu_cores
       - name: Enable core dump
         run: |
           ulimit -c unlimited
@@ -132,7 +135,8 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # Remove after liquidsoap 2.0 release
           sudo -u opam -E opam install -y posix-time2
-          sudo -u opam -E ./.github/scripts/build-posix.sh
+          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
       - name: Build doc
         if: matrix.os != 'alpine'
@@ -142,7 +146,7 @@ jobs:
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/test-posix.sh
+          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build debian package
         if: matrix.os != 'alpine'
         id: build_deb
@@ -251,19 +255,43 @@ jobs:
       fail-fast: false
       matrix:
         system: [x64]
+    container:
+      image: savonet/liquidsoap-win32-deps-${{ matrix.system }}
+      options: --user root  -v ${{ github.workspace }}:/workspace
+    env:
+      OPAM_DEPS: ao-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-avutil-windows,ffmpeg-avcodec-windows,ffmpeg-av-windows,ffmpeg-avfilter-windows,ffmpeg-swresample-windows,ffmpeg-swscale-windows,menhir.20181113,menhir-windows,mm-windows,ocurl-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows.0.2.0,taglib-windows,winsvc-windows,yojson-windows
     steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@v1
+        id: cpu_cores
       - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Build
-        run: .github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }}
+        run: |
+          cd /workspace
+          rm -rf *
+          mkdir liquidsoap
+          cd liquidsoap
+          git init
+          git remote add origin https://github.com/${{ github.repository }}.git
+          git fetch --depth 1 origin ${{ github.event.pull_request.head.sha }}
+          git checkout FETCH_HEAD
+          chown -R opam /workspace
+      - name: Add local packages
+        run: |
+          gosu opam:root /workspace/liquidsoap/.github/scripts/add-local-opam-packages.sh
+      - name: Build mxe dependencies
+        run : |
+          cd /usr/src/mxe/
+          cat /home/opam/mxe-deps | xargs make
+      - name: Build windows binary
+        run: |
+          gosu opam:root /workspace/liquidsoap/.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
         id: build
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build.outputs.basename }}
-          path: ${{ steps.build.outputs.basename }}.zip
+          path: ${{ github.workspace }}/win32
+          if-no-files-found: error
 
   update_release:
     runs-on: ubuntu-latest

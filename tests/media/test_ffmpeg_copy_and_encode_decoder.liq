@@ -5,7 +5,7 @@ log.level.set(5)
 settings.decoder.decoders.set(["FFMPEG"])
 
 fname = argv(default="",1)
-out = "files/test.mp4"
+out = "files/test_ffmpeg_copy_and_encode_decoder.mp4"
 
 if file.exists(out) then
   file.remove(out)

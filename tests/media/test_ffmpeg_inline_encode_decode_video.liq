@@ -4,13 +4,13 @@
 log.level.set(5)
 settings.decoder.decoders.set(["FFMPEG"])
 
-out_copy = "files/copy.mp4"
+out_copy = "files/test_ffmpeg_inline_encode_decode_video_copy.mp4"
 
 if file.exists(out_copy) then
   file.remove(out_copy)
 end
 
-out_encode = "files/encode.mp4"
+out_encode = "files/test_ffmpeg_inline_encode_decode_video_encode.mp4"
 if file.exists(out_encode) then
   file.remove(out_encode)
 end

@@ -44,13 +44,15 @@ ENCODED_FILES=$(ENCODED_AUDIO_FILES) $(ENCODED_VIDEO_FILES)
 $(ENCODED_FILES): ENCODER = $(subst @,%,$(word 1,$(subst ., ,$*)))
 
 define generate_audio
-        @./mk_encoder_test.sh "$1" sine
-        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $2" media/test_encoder.liq "$1 encoder" || exit
+	@$(eval PREFIX := $(shell /bin/bash -c "echo $$RANDOM"))
+        @./mk_encoder_test.sh "$1" sine $(PREFIX)
+        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $2" media/files/$(PREFIX)/test_encoder.liq "$1 encoder" || exit
 endef
 
 define generate_video
-        @./mk_encoder_test.sh "$1" noise
-        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $2" media/test_encoder.liq "$1 encoder" || exit
+	@$(eval PREFIX := $(shell /bin/bash -c "echo $$RANDOM"))
+        @./mk_encoder_test.sh "$1" noise $(PREFIX)
+        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $2" media/files/$(PREFIX)/test_encoder.liq "$1 encoder" || exit
 endef
 
 test_encoder: files/audio files/video $(ENCODED_FILES)
@@ -137,3 +139,6 @@ test_ffmpeg_raw_hls:
 	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_raw_hls.liq
 
 include $(top_srcdir)/Makefile.rules
+
+clean:
+	rm -rf files/
