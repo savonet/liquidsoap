@@ -68,7 +68,4 @@ on_term() {
 
 trap on_term INT
 
-timeout -s 15 "${TIMEOUT}" bash -c "run_test \"$PWD\" \"$1\" \"$2\" \"$3\"" &
-
-pid=$!
-wait $pid
+timeout -s 15 "${TIMEOUT}" bash -c "run_test \"$PWD\" \"$1\" \"$2\" \"$3\""
