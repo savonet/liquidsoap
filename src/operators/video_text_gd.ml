@@ -23,27 +23,31 @@
 let init () = ()
 
 let render_text ~font ~size text =
-  let size = float size in
+  let h = size in
+  let size = (float size) *. 3. /. 4. in
   let fname = font in
   let angle = 0. in
   let bounds = Gd.ft_bbox ~fname ~size ~angle ~x:0 ~y:0 text in
-  let x1, y1 = (bounds.(6), bounds.(7)) in
-  let x2, y2 = (bounds.(2), bounds.(3)) in
-  let w, h = (x2 - x1, y2 - y1) in
-  (* Double height in order to account for text below the baseline. *)
-  let h = 2 * h in
-  (* Double the size of the image in order to perform anti-aliasing. *)
-  let w, h = (2 * w, 2 * h) in
-  let size = 2. *. size in
+  let lowlineRef = Gd.ft_bbox ~fname ~size ~angle ~x:0 ~y:0 "j" in
+  let y = h - lowlineRef.(1) in
+  let w = bounds.(2) - bounds.(0) in
+
+  (* Anti-aliasing. *)
+  let h = h * 2 in
+  let size = size *. 2. in
+  let y = y * 2 in
+  let w = w * 2 in
+  
   let img = Gd.create ~x:w ~y:h in
-  let ca = img#colors in
-  img#filled_rectangle ~x1:0 ~y1:0 ~x2:(w - 1) ~y2:(h - 1) ca#black;
+  let ca = img#colors in  
+  img#filled_rectangle ~x1:0 ~y1:0 ~x2:(w) ~y2:(h) ca#black;
   ignore
-    (img#string_ft ~fname ~size ~angle:0. ~x:0 ~y:(h / 2) ~fg:ca#white text);
+    (img#string_ft ~fname ~size ~angle:0. ~x:0 ~y:(y) ~fg:ca#white text);
   let get_pixel x y =
     let c = img#get_pixel ~x ~y in
     if c = ca#white then 0xff else 0
   in
+
   (* Anti-aliasing. *)
   let get_pixel x y =
     ( get_pixel (2 * x) (2 * y)
