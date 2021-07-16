@@ -85,6 +85,10 @@ let url_proto kind =
   Output.proto
   @ [
       ("url", Lang.string_t, None, Some "Url to output to.");
+      ( "restart_on_error",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Restart output on errors" );
       ("", Lang.format_t kind, None, Some "Encoding format.");
       ("", Lang.source_t kind, None, None);
     ]
@@ -102,6 +106,7 @@ class url_output p =
   let format = Encoder.with_url_output format url in
   let kind = Source.Kind.of_kind (Encoder.kind_of_format format) in
   let source = Lang.assoc "" 2 p in
+  let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
   let name = "output.url" in
   object (self)
     inherit base p ~kind ~source ~name as super
@@ -110,7 +115,7 @@ class url_output p =
 
     method encode frame ofs len =
       try super#encode frame ofs len
-      with e ->
+      with e when restart_on_error ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
           (Printf.sprintf "Error when encoding data: %s" (Printexc.to_string e));
