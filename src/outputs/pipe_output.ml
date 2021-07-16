@@ -69,10 +69,6 @@ class virtual base ~kind ~source ~name p =
 
     method reset = ()
 
-    val mutable need_reset = false
-
-    val mutable reopening = false
-
     method encode frame ofs len =
       let enc = Option.get encoder in
       enc.Encoder.encode frame ofs len
@@ -84,7 +80,7 @@ class virtual base ~kind ~source ~name p =
     method insert_metadata m = (Option.get encoder).Encoder.insert_metadata m
   end
 
-(** url output: discard encoded data. *)
+(** url output: discard encoded data, try to restart on encoding error (can be networking issues etc.) *)
 let url_proto kind =
   Output.proto
   @ [
@@ -107,10 +103,20 @@ class url_output p =
   let kind = Source.Kind.of_kind (Encoder.kind_of_format format) in
   let source = Lang.assoc "" 2 p in
   let name = "output.url" in
-  object
-    inherit base p ~kind ~source ~name
+  object (self)
+    inherit base p ~kind ~source ~name as super
 
     method private encoder_factory = encoder_factory ~format format_val
+
+    method encode frame ofs len =
+      try super#encode frame ofs len
+      with e ->
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log:self#log ~bt
+          (Printf.sprintf "Error when encoding data: %s" (Printexc.to_string e));
+        self#stop;
+        self#start;
+        self#encode frame ofs len
 
     method write_pipe _ _ _ = ()
   end
@@ -173,6 +179,10 @@ class virtual piped_output ~kind p =
     method reopen_cmd = self#reopen
 
     val mutable open_date = 0.
+
+    val mutable need_reset = false
+
+    val mutable reopening = false
 
     method virtual open_pipe : unit
 
