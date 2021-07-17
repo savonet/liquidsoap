@@ -66,8 +66,11 @@ let stdlib_native = native
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
 def playlist.list(~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type=null(), ~mode="normal", ~native=false, ~on_done={()}, ~timeout=20., playlist)
-  id = string.id.default(default="playlist.list.reloadable", id)
-  mode = if not list.mem(mode, ["normal", "random", "randomize"]) then log.severe(label=id, "Invalid mode: #{mode}"); "randomize" else mode end
+  id = string.id.default(default="playlist.list", id)
+  mode =
+    if not list.mem(mode, ["normal", "random", "randomize"]) then
+      log.severe(label=id, "Invalid mode: #{mode}"); "randomize"
+    else mode end
 
   # Original playlist when loaded
   playlist_orig = ref(playlist)
@@ -190,6 +193,7 @@ end
 #  ("random" mode).
 # @param ~native Use native implementation.
 # @param ~on_done Function executed when the playlist is finished.
+# @param ~on_reload Callback called after playlist has reloaded.
 # @param ~prefix Add a constant prefix to all requests. Useful for passing extra \
 #  information using annotate, or for resolution through a particular protocol, \
 #  such as replaygain.
@@ -197,7 +201,10 @@ end
 # @param uri Playlist URI.
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
-def playlist.reloadable(~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type=null(), ~mode="randomize", ~native=false, ~on_done={()}, ~prefix="", ~timeout=20., uri)
+def playlist.reloadable(
+  ~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30.,
+  ~length=10., ~loop=true, ~mime_type=null(), ~mode="randomize", ~native=false,
+  ~on_done={()}, ~on_reload=(fun (_) -> ()), ~prefix="", ~timeout=20., uri) =
   id = string.id.default(default="playlist.reloadable", id)
   # URI of the current playlist
   playlist_uri=ref(uri)
@@ -231,6 +238,7 @@ def playlist.reloadable(~id=null(), ~check_next=null(), ~conservative=false, ~de
     log(label=id,"Reloading playlist with URI #{!playlist_uri}.")
     files := load_playlist()
     s.reload(!files)
+    on_reload(!playlist_uri)
   end
 
   def length() =
@@ -277,7 +285,7 @@ end
 def replaces playlist(
   ~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30.,
   ~length=10., ~loop=true, ~mime_type=null(), ~mode="randomize", ~native=false,
-  ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri) =
+  ~on_reload=(fun (_) -> ()), ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri) =
   id = string.id.default(default="playlist", id)
 
   reload_mode =
@@ -291,11 +299,11 @@ def replaces playlist(
   round = ref(0)
 
   # Will be filled with the actual reload function
-  rreloader = ref(fun()->())
+  reloader_ref = ref(fun()->())
 
   # Reload when the playlist is done
   def on_done()
-    reloader = !rreloader
+    reloader = !reloader_ref
     if reload_mode == "rounds" and reload > 0 then
       round := !round + 1
       if !round >= reload then
@@ -305,62 +313,57 @@ def replaces playlist(
     end
   end
 
+  watcher_reload_ref = ref(fun (_) -> ())
+
+  def on_reload(uri) =
+    watcher_reload = !watcher_reload_ref
+    watcher_reload(uri)
+    on_reload(uri)
+  end 
+
   s = playlist.reloadable(
     id=id, check_next=check_next, conservative=conservative,
     default_duration=default_duration, length=length, loop=loop,
     mime_type=mime_type, mode=mode, native=native, on_done=on_done,
-    prefix=prefix, timeout=timeout,
+    prefix=prefix, timeout=timeout, on_reload=on_reload,
     !uri)
 
+  reloader_ref := s.reload
+
   source.set_name(s, "playlist")
-
-  wwatcher_reload = ref(fun (~uri) -> ())
-
-  def reloader(~uri=null()) =
-    s.reload(uri=uri)
-
-    watcher_reload = !wwatcher_reload
-    watcher_reload(uri=uri)
-
-    on_reload ()
-  end
-  rreloader := {reloader()}
 
   # Set up reloading for seconds and watch
   if reload_mode == "seconds" and reload > 0 then
     n = float_of_int(reload)
-    thread.run(delay=n, every=n, reloader)
+    thread.run(delay=n, every=n, s.reload)
   elsif reload_mode == "watch" then
     watcher =
       if file.exists(!uri) then
-         ref(null(file.watch(!uri, reloader)))
+         ref(null(file.watch(!uri, s.reload)))
       else
          ref(null())
       end
 
     watched_uri = ref(!uri)
 
-    def watcher_reload(~uri) =
-      if null.defined(uri) then
-        uri = null.get(uri)
-        if uri != !watched_uri then
-          w = !watcher
+    def watcher_reload(uri) =
+      if uri != !watched_uri then
+        w = !watcher
           
-          if null.defined(w) then
-            null.get(w).unwatch()
-          end
-
-          watched_uri := uri
-          watcher :=
-             if file.exists(uri) then
-               null(file.watch(uri, reloader))
-             else
-               null()
-             end
+        if null.defined(w) then
+          null.get(w).unwatch()
         end
+
+        watched_uri := uri
+        watcher :=
+           if file.exists(uri) then
+             null(file.watch(uri, s.reload))
+           else
+             null()
+           end
       end
     end
-    wwatcher_reload := watcher_reload
+    watcher_reload_ref := watcher_reload
 
     def watcher_shutdown() =
       w = !watcher
@@ -374,7 +377,7 @@ def replaces playlist(
   # Set up telnet commands
   server.register(namespace=id, description="Skip current song in the playlist.", usage="skip", "skip", fun (_) -> begin s.skip(); "OK" end)
   server.register(namespace=id, description="Skip current song in the playlist (this command is DEPRECATED and present only for backward compatibility).", usage="next", "next", fun (_) -> begin s.skip(); log.important("Please use `skip` instead of `next` as telnet command for playlists. It is deprecated and will be removed in a future version."); "OK" end)
-  server.register(namespace=id, description="Reload the playlist, unless already being loaded.", usage="reload", "reload", fun (_) -> begin reloader(); "OK" end)
+  server.register(namespace=id, description="Reload the playlist, unless already being loaded.", usage="reload", "reload", fun (_) -> begin s.reload(); "OK" end)
 
   def uri_cmd (uri') =
     if uri' == "" then !uri
@@ -383,7 +386,7 @@ def replaces playlist(
         log.important(label=id, "Warning: the watched file is not updated for now when changing the uri!")
       end # TODO
       uri := uri'
-      reloader(uri=uri')
+      s.reload(uri=uri')
       "OK"
     end
   end
