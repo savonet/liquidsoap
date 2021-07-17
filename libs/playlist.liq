@@ -214,13 +214,19 @@ def playlist.reloadable(~id=null(), ~check_next=null(), ~conservative=false, ~de
 
   # Create the source
   files := load_playlist()
-  s = playlist.list(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, native=native, on_done=on_done, timeout=timeout, !files)
+
+  s = playlist.list(
+    id=id, check_next=check_next, conservative=conservative,
+    default_duration=default_duration, length=length, loop=loop,
+    mime_type=mime_type, mode=mode, native=native, on_done=on_done,
+    timeout=timeout, !files)
+
   source.set_name(s, "playlist.reloadable")
 
   # The reload function
-  def reload(~uri="") =
-    if uri != "" then
-      playlist_uri := uri
+  def reload(~uri=null()) =
+    if null.defined(uri)  then
+      playlist_uri := null.get(uri)
     end
     log(label=id,"Reloading playlist with URI #{!playlist_uri}.")
     files := load_playlist()
@@ -308,8 +314,14 @@ def replaces playlist(
 
   source.set_name(s, "playlist")
 
-  def reloader (~uri="") =
+  wwatcher_reload = ref(fun (~uri) -> ())
+
+  def reloader(~uri=null()) =
     s.reload(uri=uri)
+
+    watcher_reload = !wwatcher_reload
+    watcher_reload(uri=uri)
+
     on_reload ()
   end
   rreloader := {reloader()}
@@ -319,8 +331,44 @@ def replaces playlist(
     n = float_of_int(reload)
     thread.run(delay=n, every=n, reloader)
   elsif reload_mode == "watch" then
-    w = file.watch(!uri, reloader)
-    s.on_shutdown(w.unwatch)
+    watcher =
+      if file.exists(!uri) then
+         ref(null(file.watch(!uri, reloader)))
+      else
+         ref(null())
+      end
+
+    watched_uri = ref(!uri)
+
+    def watcher_reload(~uri) =
+      if null.defined(uri) then
+        uri = null.get(uri)
+        if uri != !watched_uri then
+          w = !watcher
+          
+          if null.defined(w) then
+            null.get(w).unwatch()
+          end
+
+          watched_uri := uri
+          watcher :=
+             if file.exists(uri) then
+               null(file.watch(uri, reloader))
+             else
+               null()
+             end
+        end
+      end
+    end
+    wwatcher_reload := watcher_reload
+
+    def watcher_shutdown() =
+      w = !watcher
+      if null.defined(w) then
+        null.get(w).unwatch()
+      end
+    end
+    s.on_shutdown(watcher_shutdown)
   end
 
   # Set up telnet commands
