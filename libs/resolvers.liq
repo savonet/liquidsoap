@@ -36,4 +36,4 @@ def youtube_playlist_parser(~pwd="",url) =
     []
   end
 end
-add_playlist_parser(format="youtube-dl",strict=true,youtube_playlist_parser)
+playlist.parse.register(format="youtube-dl",strict=true,youtube_playlist_parser)

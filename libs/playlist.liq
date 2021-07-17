@@ -1,9 +1,10 @@
 # Retrieve the list of files contained in a playlist.
 # @category Liquidsoap
-# @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
+# @param ~mime_type Default MIME type for the playlist. `null` means automatic \
+#  detection.
 # @param ~timeout Timeout for resolving the playlist
 # @param uri Path to the playlist
-def playlist.files(~id=null(), ~mime_type="", ~timeout=20., uri) =
+def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
   id = string.id.default(default="playlist.files", id)
   if file.is_directory(uri) then
     log.info(label=id, "Playlist is a directory.")
@@ -42,19 +43,29 @@ let stdlib_native = native
 # Play a list of files.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
-# @param ~check_next Function used to filter next tracks. A candidate track is only validated if the function returns true on it. The function is called before resolution, hence metadata will only be available for requests corresponding to local files. This is typically used to avoid repetitions, but be careful: if the function rejects all attempts, the playlist will enter into a consuming loop and stop playing anything.
-# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
+# @param ~check_next Function used to filter next tracks. A candidate track is \
+#   only validated if the function returns true on it. The function is called \
+#   before resolution, hence metadata will only be available for requests \
+#   corresponding to local files. This is typically used to avoid repetitions, \
+#   but be careful: if the function rejects all attempts, the playlist will \
+#   enter into a consuming loop and stop playing anything.
+# @param ~conservative If true, estimated remaining time on the current track \
+#   is not considered when computing queue length.
 # @param ~default_duration When unknown, assume this duration (in sec.) for files.
 # @param ~length How much audio (in sec.) should be queued in advance.
 # @param ~loop Loop on the playlist.
-# @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
-# @param ~mode Play the files in the playlist either in the order ("normal" mode), or shuffle the playlist each time it is loaded, and play it in this order for a whole round ("randomize" mode), or pick a random file in the playlist each time ("random" mode).
+# @param ~mime_type Default MIME type for the playlist. Empty string means \
+#  automatic detection.
+# @param ~mode Play the files in the playlist either in the order ("normal" mode), \
+#  or shuffle the playlist each time it is loaded, and play it in this order for a \
+#  whole round ("randomize" mode), or pick a random file in the playlist each time \
+#  ("random" mode).
 # @param ~native Use native implementation.
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
-def playlist.list(~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~native=false, ~on_done={()}, ~timeout=20., playlist)
+def playlist.list(~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type=null(), ~mode="normal", ~native=false, ~on_done={()}, ~timeout=20., playlist)
   id = string.id.default(default="playlist.list.reloadable", id)
   mode = if not list.mem(mode, ["normal", "random", "randomize"]) then log.severe(label=id, "Invalid mode: #{mode}"); "randomize" else mode end
 
@@ -160,21 +171,33 @@ end
 # it reloads the previous URI.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
-# @param ~check_next Function used to filter next tracks. A candidate track is only validated if the function returns true on it. The function is called before resolution, hence metadata will only be available for requests corresponding to local files. This is typically used to avoid repetitions, but be careful: if the function rejects all attempts, the playlist will enter into a consuming loop and stop playing anything.
-# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
+# @param ~check_next Function used to filter next tracks. A candidate track is \
+#   only validated if the function returns true on it. The function is called \
+#   before resolution, hence metadata will only be available for requests \
+#   corresponding to local files. This is typically used to avoid repetitions, \
+#   but be careful: if the function rejects all attempts, the playlist will \
+#   enter into a consuming loop and stop playing anything.
+# @param ~conservative If true, estimated remaining time on the current track \
+#   is not considered when computing queue length.
 # @param ~default_duration When unknown, assume this duration (in sec.) for files.
 # @param ~length How much audio (in sec.) should be queued in advance.
 # @param ~loop Loop on the playlist.
-# @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
-# @param ~mode Play the files in the playlist either in the order ("normal" mode), or shuffle the playlist each time it is loaded, and play it in this order for a whole round ("randomize" mode), or pick a random file in the playlist each time ("random" mode).
+# @param ~mime_type Default MIME type for the playlist. `null` means \
+#  automatic detection.
+# @param ~mode Play the files in the playlist either in the order ("normal" mode), \
+#  or shuffle the playlist each time it is loaded, and play it in this order for a \
+#  whole round ("randomize" mode), or pick a random file in the playlist each time \
+#  ("random" mode).
 # @param ~native Use native implementation.
 # @param ~on_done Function executed when the playlist is finished.
-# @param ~prefix Add a constant prefix to all requests. Useful for passing extra information using annotate, or for resolution through a particular protocol, such as replaygain.
+# @param ~prefix Add a constant prefix to all requests. Useful for passing extra \
+#  information using annotate, or for resolution through a particular protocol, \
+#  such as replaygain.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
-def playlist.reloadable(~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~native=false, ~on_done={()}, ~prefix="", ~timeout=20., uri)
+def playlist.reloadable(~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type=null(), ~mode="randomize", ~native=false, ~on_done={()}, ~prefix="", ~timeout=20., uri)
   id = string.id.default(default="playlist.reloadable", id)
   # URI of the current playlist
   playlist_uri=ref(uri)
@@ -214,25 +237,50 @@ end
 # Read a playlist or a directory and play all files.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
-# @param ~check_next Function used to filter next tracks. A candidate track is only validated if the function returns true on it. The function is called before resolution, hence metadata will only be available for requests corresponding to local files. This is typically used to avoid repetitions, but be careful: if the function rejects all attempts, the playlist will enter into a consuming loop and stop playing anything.
-# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
+# @param ~check_next Function used to filter next tracks. A candidate track is \
+#   only validated if the function returns true on it. The function is called \
+#   before resolution, hence metadata will only be available for requests \
+#   corresponding to local files. This is typically used to avoid repetitions, \
+#   but be careful: if the function rejects all attempts, the playlist will \
+#   enter into a consuming loop and stop playing anything.
+# @param ~conservative If true, estimated remaining time on the current track \
+#   is not considered when computing queue length.
 # @param ~default_duration When unknown, assume this duration (in sec.) for files.
 # @param ~length How much audio (in sec.) should be queued in advance.
 # @param ~loop Loop on the playlist.
-# @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
-# @param ~mode Play the files in the playlist either in the order ("normal" mode), or shuffle the playlist each time it is loaded, and play it in this order for a whole round ("randomize" mode), or pick a random file in the playlist each time ("random" mode).
+# @param ~mime_type Default MIME type for the playlist. `null` means automatic \
+#  detection.
+# @param ~mode Play the files in the playlist either in the order ("normal" mode), \
+#  or shuffle the playlist each time it is loaded, and play it in this order for a \
+#  whole round ("randomize" mode), or pick a random file in the playlist each time \
+#  ("random" mode).
 # @param ~native Use native implementation.
 # @param ~on_reload Callback called after playlist has reloaded.
-# @param ~prefix Add a constant prefix to all requests. Useful for passing extra information using annotate, or for resolution through a particular protocol, such as replaygain.
-# @param ~reload Amount of time (in seconds or rounds), when applicable, before which the playlist is reloaded; 0 means never.
-# @param ~reload_mode Unit of the reload parameter, either "never" (never reload the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is changed).
+# @param ~prefix Add a constant prefix to all requests. Useful for passing extra \
+#  information using annotate, or for resolution through a particular protocol, \
+#  such as replaygain.
+# @param ~reload Amount of time (in seconds or rounds), when applicable, before \
+#  which the playlist is reloaded; 0 means never.
+# @param ~reload_mode Unit of the reload parameter, either "never" (never reload \
+#  the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is \
+#  changed).
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
-def replaces playlist(~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~native=false, ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri)
+def replaces playlist(
+  ~id=null(), ~check_next=null(), ~conservative=false, ~default_duration=30.,
+  ~length=10., ~loop=true, ~mime_type=null(), ~mode="randomize", ~native=false,
+  ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri) =
   id = string.id.default(default="playlist", id)
-  reload_mode = if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then log.severe(label=id, "Invalid reload mode: #{mode}"); "seconds" else reload_mode end
+
+  reload_mode =
+    if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then
+      log.severe(label=id, "Invalid reload mode: #{mode}"); "seconds"
+    else
+      reload_mode
+    end
+
   uri = ref(uri)
   round = ref(0)
 
@@ -251,9 +299,19 @@ def replaces playlist(~id=null(), ~check_next=null(), ~conservative=false, ~defa
     end
   end
 
-  s = playlist.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, native=native, on_done=on_done, prefix=prefix, timeout=timeout, !uri)
+  s = playlist.reloadable(
+    id=id, check_next=check_next, conservative=conservative,
+    default_duration=default_duration, length=length, loop=loop,
+    mime_type=mime_type, mode=mode, native=native, on_done=on_done,
+    prefix=prefix, timeout=timeout,
+    !uri)
+
   source.set_name(s, "playlist")
-  def reloader (~uri="") = s.reload(uri=uri); on_reload () end
+
+  def reloader (~uri="") =
+    s.reload(uri=uri)
+    on_reload ()
+  end
   rreloader := {reloader()}
 
   # Set up reloading for seconds and watch
@@ -269,10 +327,13 @@ def replaces playlist(~id=null(), ~check_next=null(), ~conservative=false, ~defa
   server.register(namespace=id, description="Skip current song in the playlist.", usage="skip", "skip", fun (_) -> begin s.skip(); "OK" end)
   server.register(namespace=id, description="Skip current song in the playlist (this command is DEPRECATED and present only for backward compatibility).", usage="next", "next", fun (_) -> begin s.skip(); log.important("Please use `skip` instead of `next` as telnet command for playlists. It is deprecated and will be removed in a future version."); "OK" end)
   server.register(namespace=id, description="Reload the playlist, unless already being loaded.", usage="reload", "reload", fun (_) -> begin reloader(); "OK" end)
+
   def uri_cmd (uri') =
     if uri' == "" then !uri
     else
-      if reload_mode == "watch" then log.important(label=id, "Warning: the watched file is not updated for now when changing the uri!") end # TODO
+      if reload_mode == "watch" then
+        log.important(label=id, "Warning: the watched file is not updated for now when changing the uri!")
+      end # TODO
       uri := uri'
       reloader(uri=uri')
       "OK"

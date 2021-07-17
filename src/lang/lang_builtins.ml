@@ -605,8 +605,8 @@ let () =
         Some (Lang.string ""),
         Some "Default path for files." );
       ( "mime",
-        Lang.string_t,
-        Some (Lang.string ""),
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some "Mime type for the playlist" );
       ("", Lang.string_t, None, None);
     ]
@@ -622,16 +622,18 @@ let () =
         let pwd = Lang.to_string (List.assoc "path" p) in
         if pwd = "" then Filename.dirname f else pwd
       in
-      let mime = Lang.to_string (List.assoc "mime" p) in
+      let mime = Lang.to_valued_option Lang.to_string (List.assoc "mime" p) in
       try
         let _, l =
-          if mime = "" then Playlist_parser.search_valid ~pwd content
-          else (
-            match Playlist_parser.parsers#get mime with
-              | Some plugin -> (mime, plugin.Playlist_parser.parser ~pwd content)
-              | None ->
-                  log#important "Unknown mime type, trying autodetection.";
-                  Playlist_parser.search_valid ~pwd content )
+          match mime with
+            | None -> Playlist_parser.search_valid ~pwd content
+            | Some mime -> (
+                match Playlist_parser.parsers#get mime with
+                  | Some plugin ->
+                      (mime, plugin.Playlist_parser.parser ~pwd content)
+                  | None ->
+                      log#important "Unknown mime type, trying autodetection.";
+                      Playlist_parser.search_valid ~pwd content )
         in
         let process m =
           let f (n, v) = Lang.product (Lang.string n) (Lang.string v) in
