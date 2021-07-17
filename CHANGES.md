@@ -38,6 +38,7 @@ New:
 - Add `validate` parameter to `register`, which allows to validate a value
   before setting it (#1046, @CyberDomovoy)
 - Add `string.null_terminated` (#960).
+- Add `string.unescape` and `string.utf8.unescape`.
 - Add `file.metadata` (#1058).
 - Add `predicate.activates`, `predicate.changes`, `predicate.first`,
   `predicate.once`, `predicate.signal` (#1075).

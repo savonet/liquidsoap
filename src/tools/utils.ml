@@ -243,6 +243,21 @@ let escape_string escape s =
   Format.pp_print_flush f ();
   Buffer.contents b
 
+let unescape_utf8 =
+  let utf8encode s =
+    let prefs = [| 0x0; 0xc0; 0xe0 |] in
+    let s1 n = String.make 1 (Char.chr n) in
+    let rec ienc k sofar resid =
+      let bct = if k = 0 then 7 else 6 - k in
+      if resid < 1 lsl bct then s1 (prefs.(k) + resid) ^ sofar
+      else ienc (k + 1) (s1 (0x80 + (resid mod 64)) ^ sofar) (resid / 64)
+    in
+    ienc 0 "" (int_of_string ("0x" ^ s))
+  in
+  fun s ->
+    let rex = Pcre.regexp "\\\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]" in
+    Pcre.substitute ~rex ~subst:(fun s -> utf8encode (String.sub s 2 4)) s
+
 (** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
 let unbreak_md md =
   let must_break = function
