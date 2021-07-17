@@ -15,17 +15,21 @@ def f() =
 
   s = playlist(on_reload=on_reload, reload_mode="watch", "invalid uri")
 
-  s.reload(uri="playlist")
+  playlist = file.temp("foo", "bar")
 
-  if !reloaded != "playlist" then
+  on_shutdown({file.remove(playlist)})
+
+  s.reload(uri=playlist)
+
+  if !reloaded != playlist then
     test.fail()
   end
 
   reloaded := ""
 
-  ignore(process.run("touch playlist"))
+  ignore(process.run("echo bla >> #{playlist} && sleep 0.1"))
 
-  if !reloaded != "playlist" then
+  if !reloaded != playlist then
     test.fail()
   end
 
