@@ -210,33 +210,16 @@ let get_type ~ctype ~url container =
     (Frame.string_of_content_type ctype);
   ctype
 
-let seek ~audio ~video ~target_position ticks =
+let seek ~target_position ~container ticks =
   let tpos = Frame.seconds_of_main ticks in
   log#debug "Setting target position to %f" tpos;
   target_position := Some tpos;
-  let position = Int64.of_float (tpos *. 1000.) in
-  let seek ~any stream =
-    let flags =
-      [Av.Seek_flag_backward] @ if any then [Av.Seek_flag_any] else []
-    in
-    try
-      Av.seek stream `Millisecond position (Array.of_list flags);
-      ticks
-    with Avutil.Error _ -> 0
-  in
-  let audio_seek =
-    match audio with
-      | Some (`Packet (_, s, _)) -> seek ~any:true s
-      | Some (`Frame (_, s, _)) -> seek ~any:true s
-      | _ -> 0
-  in
-  let video_seek =
-    match video with
-      | Some (`Packet (_, s, _)) -> seek ~any:false s
-      | Some (`Frame (_, s, _)) -> seek ~any:false s
-      | _ -> 0
-  in
-  min audio_seek video_seek
+  let ts = Int64.of_float (tpos *. 1000.) in
+  let frame_duration = Lazy.force Frame.duration in
+  let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
+  let max_ts = ts in
+  Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
+  ticks
 
 let mk_decoder ?audio ?video ~target_position container =
   let no_decoder = (-1, [], fun ~buffer:_ _ -> assert false) in
@@ -397,7 +380,7 @@ let create_decoder ~ctype fname =
                 let target =
                   ticks + Frame.main_of_seconds d - get_remaining ()
                 in
-                match seek ~audio ~video ~target_position target with
+                match seek ~target_position ~container target with
                   | 0 -> 0
                   | _ -> ticks ));
       decode = mk_decoder ?audio ?video ~target_position container;
@@ -419,7 +402,7 @@ let create_stream_decoder ~ctype _ input =
   let audio, video = mk_streams ~ctype container in
   let target_position = ref None in
   {
-    Decoder.seek = seek ~audio ~video ~target_position;
+    Decoder.seek = seek ~target_position ~container;
     decode = mk_decoder ?audio ?video ~target_position container;
   }
 
