@@ -36,35 +36,94 @@ let mime_types =
     "Mime-types used for decoding with ffmpeg"
     ~d:
       [
+        "application/f4v";
+        "application/ffmpeg";
+        "application/mp4";
+        "application/mxf";
+        "application/octet-stream";
+        "application/octet-stream";
+        "application/ogg";
+        "application/vnd.pg.format";
+        "application/vnd.rn-realmedia";
+        "application/vnd.smaf";
+        "application/x-mpegURL";
+        "application/x-ogg";
+        "application/x-pgs";
+        "application/x-shockwave-flash";
+        "application/x-subrip";
+        "application/xml";
+        "audio/G722";
+        "audio/MP4A-LATM";
+        "audio/MPA";
+        "audio/aac";
+        "audio/aacp";
+        "audio/aiff";
+        "audio/amr";
+        "audio/basic";
+        "audio/bit";
+        "audio/flac";
+        "audio/g723";
+        "audio/iLBC";
+        "audio/mp4";
+        "audio/mpeg";
+        "audio/ogg";
         "audio/vnd.wave";
         "audio/wav";
         "audio/wave";
-        "audio/x-wav";
-        "audio/aac";
-        "audio/aacp";
-        "audio/x-hx-aac-adts";
-        "audio/flac";
-        "audio/x-flac";
-        "audio/mpeg";
-        "audio/MPA";
-        "video/x-ms-asf";
-        "video/x-msvideo";
-        "audio/mp4";
         "audio/webm";
-        "application/mp4";
-        "video/mp4";
-        "video/3gpp";
-        "video/webm";
-        "video/x-matroska";
-        "video/mp2t";
-        "video/MP2T";
-        "application/ogg";
-        "application/x-ogg";
+        "audio/x-ac3";
+        "audio/x-adpcm";
+        "audio/x-caf";
+        "audio/x-dca";
+        "audio/x-eac3";
+        "audio/x-flac";
+        "audio/x-gsm";
+        "audio/x-hx-aac-adts";
         "audio/x-ogg";
-        "audio/ogg";
+        "audio/x-oma";
+        "audio/x-tta";
+        "audio/x-voc";
+        "audio/x-wav";
+        "audio/x-wavpack";
+        "image/gif";
+        "image/jpeg";
+        "image/png";
+        "image/vnd.microsoft.icon";
+        "image/webp";
+        "multipart/x-mixed-replace;boundary=ffserver";
+        "text/vtt";
+        "text/x-ass";
+        "text/x-jacosub";
+        "text/x-microdvd";
+        "video/3gpp";
+        "video/3gpp2";
+        "video/MP2T";
+        "video/mp2t";
+        "video/mp4";
+        "video/mpeg";
         "video/ogg";
         "video/webm";
-        "application/ffmpeg";
+        "video/x-flv";
+        "video/x-h261";
+        "video/x-h263";
+        "video/x-m4v";
+        "video/x-matroska";
+        "video/x-mjpeg";
+        "video/x-ms-asf";
+        "video/x-msvideo";
+        "video/x-nut";
+      ]
+
+let image_mime_types =
+  Dtools.Conf.list ~p:(mime_types#plug "images")
+    "Mime-types used for decoding images with ffmpeg"
+    ~d:
+      [
+        "image/gif";
+        "image/jpeg";
+        "image/png";
+        "image/vnd.microsoft.icon";
+        "image/webp";
       ]
 
 let file_extensions =
@@ -73,31 +132,419 @@ let file_extensions =
     "File extensions used for decoding with ffmpeg"
     ~d:
       [
-        "mp1";
-        "mp2";
-        "mp3";
+        "264";
+        "265";
+        "302";
+        "3g2";
+        "3gp";
+        "669";
+        "722";
+        "A64";
+        "a64";
+        "aa";
+        "aa3";
+        "aac";
+        "aax";
+        "ac3";
+        "acm";
+        "adf";
+        "adp";
+        "ads";
+        "adts";
+        "adx";
+        "aea";
+        "afc";
+        "aif";
+        "aifc";
+        "aiff";
+        "aix";
+        "amf";
+        "amr";
+        "ams";
+        "amv";
+        "ape";
+        "apl";
+        "apm";
+        "apng";
+        "aptx";
+        "aptxhd";
+        "aqt";
+        "asf";
+        "ass";
+        "ast";
+        "au";
+        "aud";
+        "avi";
+        "avr";
+        "avs";
+        "avs2";
+        "bcstm";
+        "bfstm";
+        "binka";
+        "bit";
+        "bmp";
+        "bmv";
+        "brstm";
+        "c2";
+        "caf";
+        "cavs";
+        "cdata";
+        "cdg";
+        "cdxl";
+        "cgi";
+        "chk";
+        "cif";
+        "cpk";
+        "cri";
+        "cvg";
+        "dat";
+        "daud";
+        "dav";
+        "dbm";
+        "dds";
+        "dif";
+        "digi";
+        "dmf";
+        "dng";
+        "dnxhd";
+        "dnxhr";
+        "dpx";
+        "drc";
+        "dsm";
+        "dss";
+        "dtk";
+        "dtm";
+        "dts";
+        "dtshd";
+        "dv";
+        "dvd";
+        "eac3";
+        "exr";
+        "f4v";
+        "fap";
+        "far";
+        "ffmeta";
+        "fits";
+        "flac";
+        "flm";
+        "flv";
+        "fsb";
+        "fwse";
+        "g722";
+        "g723_1";
+        "g729";
+        "gdm";
+        "genh";
+        "gif";
+        "gsm";
+        "gxf";
+        "h261";
+        "h263";
+        "h264";
+        "h265";
+        "hca";
+        "hevc";
+        "ice";
+        "ico";
+        "idf";
+        "idx";
+        "ifv";
+        "im1";
+        "im24";
+        "im32";
+        "im8";
+        "imf";
+        "imx";
+        "ipu";
+        "ircam";
+        "ism";
+        "isma";
+        "ismv";
+        "it";
+        "ivf";
+        "ivr";
+        "j2b";
+        "j2c";
+        "j2k";
+        "jls";
+        "jls";
+        "jp2";
+        "jpc";
+        "jpeg";
+        "jpg";
+        "jps";
+        "jss";
+        "kux";
+        "latm";
+        "lbc";
+        "ljpg";
+        "loas";
+        "lrc";
+        "lvf";
+        "m15";
+        "m1v";
+        "m2a";
+        "m2t";
+        "m2ts";
+        "m2v";
+        "m3u8";
         "m4a";
         "m4b";
-        "m4p";
         "m4v";
-        "m4r";
-        "mov";
-        "3gp";
-        "mp4";
-        "wav";
-        "flac";
-        "ogv";
-        "oga";
-        "ogx";
-        "ogg";
-        "opus";
-        "wma";
-        "webm";
-        "wmv";
-        "avi";
+        "mac";
+        "mca";
+        "mcc";
+        "mdl";
+        "med";
+        "mj2";
+        "mjpeg";
+        "mjpg";
+        "mk3d";
+        "mka";
+        "mks";
         "mkv";
-        "aac";
-        "osb";
+        "mlp";
+        "mmcmp";
+        "mmf";
+        "mms";
+        "mng";
+        "mo3";
+        "mod";
+        "mods";
+        "moflex";
+        "mov";
+        "mp2";
+        "mp3";
+        "mp4";
+        "mpa";
+        "mpc";
+        "mpd";
+        "mpeg";
+        "mpg";
+        "mpg1-img";
+        "mpg2-img";
+        "mpg4-img";
+        "mpl2";
+        "mpo";
+        "mptm";
+        "msbc";
+        "msf";
+        "mt2";
+        "mtaf";
+        "mtm";
+        "mts";
+        "musx";
+        "mvi";
+        "mxf";
+        "mxg";
+        "nist";
+        "nsp";
+        "nst";
+        "nut";
+        "obu";
+        "oga";
+        "ogg";
+        "ogv";
+        "okt";
+        "oma";
+        "omg";
+        "opus";
+        "paf";
+        "pam";
+        "pbm";
+        "pcd";
+        "pcm";
+        "pct";
+        "pcx";
+        "pfm";
+        "pgm";
+        "pgmyuv";
+        "pic";
+        "pict";
+        "pix";
+        "pjs";
+        "plm";
+        "png";
+        "pnm";
+        "pns";
+        "ppm";
+        "psm";
+        "psp";
+        "pt36";
+        "ptm";
+        "ptx";
+        "pvf";
+        "qcif";
+        "ra";
+        "ras";
+        "raw";
+        "rco";
+        "rcv";
+        "rgb";
+        "rm";
+        "roq";
+        "rs";
+        "rsd";
+        "rso";
+        "rt";
+        "s3m";
+        "sami";
+        "sbc";
+        "sbg";
+        "scc";
+        "sdr2";
+        "sds";
+        "sdx";
+        "ser";
+        "sf";
+        "sfx";
+        "sfx2";
+        "sga";
+        "sgi";
+        "shn";
+        "sln";
+        "smi";
+        "son";
+        "sox";
+        "spdif";
+        "sph";
+        "spx";
+        "srt";
+        "ss2";
+        "ssa";
+        "st26";
+        "stk";
+        "stl";
+        "stm";
+        "stp";
+        "str";
+        "sub";
+        "sun";
+        "sunras";
+        "sup";
+        "svag";
+        "svg";
+        "svgz";
+        "svs";
+        "swf";
+        "tak";
+        "tco";
+        "tga";
+        "thd";
+        "tif";
+        "tiff";
+        "ts";
+        "tta";
+        "ttml";
+        "tun";
+        "txt";
+        "ty";
+        "ty+";
+        "ult";
+        "umx";
+        "v";
+        "v210";
+        "vag";
+        "vb";
+        "vc1";
+        "vc2";
+        "viv";
+        "vob";
+        "voc";
+        "vpk";
+        "vqe";
+        "vqf";
+        "vql";
+        "vtt";
+        "w64";
+        "wav";
+        "webm";
+        "webp";
+        "wma";
+        "wmv";
+        "wow";
+        "wsd";
+        "wtv";
+        "wv";
+        "xl";
+        "xm";
+        "xml";
+        "xmv";
+        "xpk";
+        "xpm";
+        "xvag";
+        "xwd";
+        "y";
+        "y4m";
+        "yop";
+        "yuv";
+        "yuv10";
+      ]
+
+let image_file_extensions =
+  Dtools.Conf.list
+    ~p:(file_extensions#plug "images")
+    "File extensions used for decoding images with ffmpeg"
+    ~d:
+      [
+        "bmp";
+        "cri";
+        "dds";
+        "dng";
+        "dpx";
+        "exr";
+        "im1";
+        "im24";
+        "im32";
+        "im8";
+        "j2c";
+        "j2k";
+        "jls";
+        "jp2";
+        "jpc";
+        "jpeg";
+        "jpg";
+        "jps";
+        "ljpg";
+        "mng";
+        "mpg1-img";
+        "mpg2-img";
+        "mpg4-img";
+        "mpo";
+        "pam";
+        "pbm";
+        "pcd";
+        "pct";
+        "pcx";
+        "pfm";
+        "pgm";
+        "pgmyuv";
+        "pic";
+        "pict";
+        "pix";
+        "png";
+        "pnm";
+        "pns";
+        "ppm";
+        "ptx";
+        "ras";
+        "raw";
+        "rs";
+        "sgi";
+        "sun";
+        "sunras";
+        "svg";
+        "svgz";
+        "tga";
+        "tif";
+        "tiff";
+        "webp";
+        "xbm";
+        "xface";
+        "xpm";
+        "xwd";
+        "y";
+        "yuv10";
       ]
 
 let priority =
@@ -335,7 +782,12 @@ let create_decoder ~ctype fname =
     Tutils.mutexify m (fun () ->
         match !remaining with None -> -1 | Some r -> Frame.main_of_seconds r)
   in
-  let container = Av.open_input fname in
+  let opts = Hashtbl.create 10 in
+  let ext = Filename.extension fname in
+  if List.exists (fun s -> ext = "." ^ s) image_file_extensions#get then (
+    Hashtbl.add opts "loop" (`Int 1);
+    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)) );
+  let container = Av.open_input ~opts fname in
   let audio, video = mk_streams ~ctype container in
   let audio =
     match audio with
@@ -392,13 +844,19 @@ let create_file_decoder ~metadata:_ ~ctype filename =
   let decoder, close, remaining = create_decoder ~ctype filename in
   Decoder.file_decoder ~filename ~close ~remaining ~ctype decoder
 
-let create_stream_decoder ~ctype _ input =
+let create_stream_decoder ~ctype mime input =
   let seek_input =
     match input.Decoder.lseek with
       | None -> None
       | Some fn -> Some (fun len _ -> fn len)
   in
-  let container = Av.open_input_stream ?seek:seek_input input.Decoder.read in
+  let opts = Hashtbl.create 10 in
+  if List.exists (fun s -> mime = s) image_mime_types#get then (
+    Hashtbl.add opts "loop" (`Int 1);
+    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)) );
+  let container =
+    Av.open_input_stream ?seek:seek_input ~opts input.Decoder.read
+  in
   let audio, video = mk_streams ~ctype container in
   let target_position = ref None in
   {
