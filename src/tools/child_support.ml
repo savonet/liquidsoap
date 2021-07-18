@@ -69,6 +69,7 @@ class virtual base ~check_self_sync children_val =
 
     method private child_tick =
       (Clock.get self#child_clock)#end_tick;
+      List.iter (fun c -> c#after_output) children;
       needs_tick <- false
 
     (* This methods always set [need_tick] to true. If the source is not
