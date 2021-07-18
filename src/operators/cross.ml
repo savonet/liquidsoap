@@ -297,14 +297,16 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
     method private analyze_after =
       let before_len = Generator.length gen_before in
       let rec f () =
-        let start = Frame.position buf_frame in
+        let start = AFrame.position buf_frame in
         let stop =
           source#get buf_frame;
-          Frame.position buf_frame
+          AFrame.position buf_frame
         in
         Generator.feed gen_after
           ~metadata:(Frame.get_all_metadata buf_frame)
-          buf_frame.Frame.content start (stop - start);
+          buf_frame.Frame.content
+          (Frame.main_of_audio start)
+          (Frame.main_of_audio (stop - start));
         let after_len = Generator.length gen_after in
         if after_len <= rms_width then (
           let pcm = AFrame.pcm buf_frame in
