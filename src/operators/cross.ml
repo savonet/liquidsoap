@@ -258,16 +258,18 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
       (* For the first call, the position is the old position in the main
        * frame. After that it'll always be 0. *)
       if not (Frame.is_partial buf_frame) then self#child_tick;
-      let start = Frame.position buf_frame in
+      let start = AFrame.position buf_frame in
       let stop =
         source#get buf_frame;
-        Frame.position buf_frame
+        AFrame.position buf_frame
       in
       self#save_last_metadata `Before buf_frame;
       self#update_cross_length buf_frame start;
       Generator.feed gen_before
         ~metadata:(Frame.get_all_metadata buf_frame)
-        buf_frame.Frame.content start (stop - start);
+        buf_frame.Frame.content
+        (Frame.main_of_audio start)
+        (Frame.main_of_audio (stop - start));
 
       (* Analyze them *)
       let pcm = AFrame.pcm buf_frame in
