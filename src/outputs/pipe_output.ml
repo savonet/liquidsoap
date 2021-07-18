@@ -89,6 +89,12 @@ let url_proto kind =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Restart output on errors" );
+      ( "self_sync",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Should the source control its own synchronization? Set to `true` \
+           for output to e.g. `rtmp` output using `%ffmpeg` and etc." );
       ("", Lang.format_t kind, None, Some "Encoding format.");
       ("", Lang.source_t kind, None, None);
     ]
@@ -107,6 +113,7 @@ class url_output p =
   let kind = Source.Kind.of_kind (Encoder.kind_of_format format) in
   let source = Lang.assoc "" 2 p in
   let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
+  let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let name = "output.url" in
   object (self)
     inherit base p ~kind ~source ~name as super
@@ -124,6 +131,8 @@ class url_output p =
         self#encode frame ofs len
 
     method write_pipe _ _ _ = ()
+
+    method self_sync = (`Static, self_sync)
   end
 
 let () =
