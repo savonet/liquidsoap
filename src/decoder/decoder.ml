@@ -220,7 +220,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
             let ret =
               try List.mem (Utils.get_ext fname) extensions with _ -> false
             in
-            if not ret then log#info "Invalid file extension for %S!" fname;
+            if not ret then log#info "Unsupported file extension for %S!" fname;
             ret
     in
     let mime_ok =
@@ -235,7 +235,8 @@ let test_file ?(log = log) ?mimes ?extensions fname =
                 mimes
             in
             let ret = List.mem mime mimes in
-            if not ret then log#info "Invalid MIME type for %S: %s!" fname mime;
+            if not ret then
+              log#info "Unsupported MIME type for %S: %s!" fname mime;
             ret
     in
     ext_ok || mime_ok )
