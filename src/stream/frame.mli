@@ -50,10 +50,10 @@ type content_type = Frame_content.format fields
 
 type content = Frame_content.data fields
 
-(** [blit_content c1 o1 c2 o2 l] copies [l] data from [c1] starting at offset
-    [o1] into [c2] starting at offset [o2]. All numerical values are in
+(** [blit_content c1 o1 c2 o2 l] fills [l] data from [c1] starting at offset
+    [o1] into [c2] starting at offset [o2], avoiding copy when possible. All numerical values are in
     ticks. *)
-val blit_content : content -> int -> content -> int -> int -> unit
+val fill_content : content -> int -> content -> int -> int -> unit
 
 (** Make a copy of the content of a frame. *)
 val copy : content -> content

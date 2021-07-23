@@ -307,7 +307,7 @@ module From_frames = struct
     List.iter
       (fun (block, o, o', size) ->
         let dst = frame.Frame.content in
-        Frame.blit_content block o dst (offset + o') size)
+        Frame.fill_content block o dst (offset + o') size)
       blocks;
     List.iter
       (fun (p, m) -> if p < needed then Frame.set_metadata frame (offset + p) m)

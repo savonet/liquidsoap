@@ -52,7 +52,14 @@ module type ContentSpecs = sig
 
   (* Size is in main ticks. *)
   val make : size:int -> params -> data
+
+  (* [blit src src_pos dst dst_pos len] copies data from [src] 
+   * into [dst]. *)
   val blit : data -> int -> data -> int -> int -> unit
+
+  (* [fill src src_pos dst dst_pos len] assigns data from [src]
+   * into [dst] without copying when possible. *)
+  val fill : data -> int -> data -> int -> int -> unit
   val sub : data -> int -> int -> data
   val copy : data -> data
   val clear : data -> unit
@@ -112,6 +119,7 @@ type data = Contents.data
 
 val make : size:int -> format -> data
 val blit : data -> int -> data -> int -> int -> unit
+val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
 val copy : data -> data
 val clear : data -> unit

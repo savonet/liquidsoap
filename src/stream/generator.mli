@@ -21,8 +21,13 @@
  *****************************************************************************)
 
 (** Operations on generators, which are like FIFO for multimedia data. They are
-    efficiently handling small chunks of data (as found in frames) without copy,
-    and also metadata. *)
+    efficiently handling small chunks of data (as found in frames) with minimal copy,
+    and also metadata.
+
+    Data coming from frames is copied when added to the buffer because frame content
+    are reused during each streaming loop. However, data is only assigned exiting the
+    buffer. This means that we expect the buffer to feed a single source on the way
+    out. *)
 
 (** Raised when trying to feed a generator with data of incorrect type (wrong
     number of audio channels, etc.). *)
