@@ -291,4 +291,6 @@ let get_chunk ab from =
   in
   aux 0 (List.rev from.breaks)
 
+let copy_audio c = { c with audio = copy c.audio }
+let copy_video c = { c with video = copy c.video }
 let copy = map_fields copy

@@ -58,6 +58,9 @@ val blit_content : content -> int -> content -> int -> int -> unit
 (** Make a copy of the content of a frame. *)
 val copy : content -> content
 
+val copy_audio : content -> content
+val copy_video : content -> content
+
 (** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
 

@@ -145,7 +145,7 @@ module From_frames : sig
   (** Feed the generator with data. *)
   val feed :
     t ->
-    ?copy:bool ->
+    ?copy:[ `None | `Audio | `Video | `Both ] ->
     ?breaks:int list ->
     ?metadata:(int * Frame.metadata) list ->
     Frame.content ->
@@ -155,7 +155,8 @@ module From_frames : sig
 
   (** Feed the generator with the contents of a frame (the contents is
       copied). *)
-  val feed_from_frame : t -> Frame.t -> unit
+  val feed_from_frame :
+    ?copy:[ `None | `Audio | `Video | `Both ] -> t -> Frame.t -> unit
 
   (** Fill a frame from the generator. *)
   val fill : t -> Frame.t -> unit
@@ -246,7 +247,12 @@ module From_audio_video : sig
 
   (** Feed from a frame, only copying data according to the mode.
       Defaults to the generator's mode. *)
-  val feed_from_frame : ?mode:mode -> t -> Frame.t -> unit
+  val feed_from_frame :
+    ?copy:[ `None | `Audio | `Video | `Both ] ->
+    ?mode:mode ->
+    t ->
+    Frame.t ->
+    unit
 
   (** Fill a frame from the generator. *)
   val fill : t -> Frame.t -> unit

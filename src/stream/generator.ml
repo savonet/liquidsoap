@@ -248,20 +248,28 @@ module From_frames = struct
   (** Only the breaks and metadata in the considered portion of the
     * content will be taken into account. This includes position
     * ofs but excludes ofs+len for metadata and the opposite for breaks. *)
-  let feed fg ?(copy = true) ?(breaks = []) ?(metadata = []) content ofs len =
+  let feed fg ?(copy : [ `None | `Audio | `Video | `Both ] = `Both)
+      ?(breaks = []) ?(metadata = []) content ofs len =
     let breaks = List.filter (fun p -> ofs < p && p <= ofs + len) breaks in
     let metadata =
       List.filter (fun (p, _) -> ofs <= p && p < ofs + len) metadata
     in
-    let content = if copy then Frame.copy content else content in
+    let content =
+      match copy with
+        | `None -> content
+        | `Audio -> Frame.copy_audio content
+        | `Video -> Frame.copy_video content
+        | `Both -> Frame.copy content
+    in
     fg.breaks <- fg.breaks @ List.map (fun p -> length fg + p - ofs) breaks;
     fg.metadata <-
       fg.metadata @ List.map (fun (p, m) -> (length fg + p - ofs, m)) metadata;
     Generator.put fg.generator content ofs len
 
   (** Take all data from a frame: breaks, metadata and available content. *)
-  let feed_from_frame fg frame =
-    let size = Lazy.force Frame.size in
+  let feed_from_frame ?(copy : [ `None | `Audio | `Video | `Both ] = `Both) fg
+      frame =
+    let position = Frame.position frame in
     fg.metadata <-
       fg.metadata
       @ List.map
@@ -273,10 +281,18 @@ module From_frames = struct
           (fun p -> length fg + p)
           (* Filter out the last break, which only marks the end
            * of frame, not a track limit (doesn't mean is_partial). *)
-          (List.filter (fun x -> x < size) (Frame.breaks frame));
+          (List.filter (fun x -> x < position) (Frame.breaks frame));
 
     (* Feed all content layers into the generator. *)
-    Generator.put fg.generator (Frame.copy frame.Frame.content) 0 size
+    let content = frame.Frame.content in
+    let content =
+      match copy with
+        | `None -> content
+        | `Audio -> Frame.copy_audio content
+        | `Video -> Frame.copy_video content
+        | `Both -> Frame.copy content
+    in
+    Generator.put fg.generator content 0 position
 
   (* Fill a frame from the generator's data. *)
   let fill fg frame =
@@ -555,7 +571,8 @@ module From_audio_video = struct
     sync_content t
 
   (** Take all data from a frame: breaks, metadata and available content. *)
-  let feed_from_frame ?mode t frame =
+  let feed_from_frame ?(copy : [ `None | `Audio | `Video | `Both ] = `Both)
+      ?mode t frame =
     let size = Lazy.force Frame.size in
     t.metadata <-
       t.metadata
@@ -573,21 +590,34 @@ module From_audio_video = struct
     (* Feed all content layers into the generator. *)
     let pts = Frame.pts frame in
     let mode = match mode with Some mode -> mode | None -> t.mode in
+    let pos = Frame.position frame in
+    let content = frame.Frame.content in
 
     match mode with
       | `Audio ->
-          put_audio ~pts t
-            (Frame_content.copy (AFrame.content frame))
-            0 (Lazy.force Frame.size)
+          let content =
+            match copy with
+              | `Audio | `Both -> Frame.copy_audio content
+              | _ -> content
+          in
+          put_audio ~pts t content.Frame.audio 0 pos
       | `Video ->
-          put_video ~pts t
-            (Frame_content.copy (VFrame.content frame))
-            0 (Lazy.force Frame.size)
+          let content =
+            match copy with
+              | `Video | `Both -> Frame.copy_video content
+              | _ -> content
+          in
+          put_video ~pts t content.Frame.video 0 pos
       | `Both ->
-          put_audio ~pts t
-            (Frame_content.copy (AFrame.content frame))
-            0 (Lazy.force Frame.size);
-          put_video ~pts t (VFrame.content frame) 0 (Lazy.force Frame.size)
+          let content =
+            match copy with
+              | `None -> content
+              | `Audio -> Frame.copy_audio content
+              | `Video -> Frame.copy_video content
+              | `Both -> Frame.copy content
+          in
+          put_audio ~pts t content.Frame.audio 0 pos;
+          put_video ~pts t content.Frame.video 0 pos
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)
