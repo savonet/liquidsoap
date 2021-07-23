@@ -43,7 +43,7 @@ let conf_verbosity =
     "Verbosity" ~d:"warning"
     ~comments:
       [
-        "Set FFMPEG log level, one of: \"quiet\", \"panic\", \"fatal\"";
+        "Set FFMPEG log level, one of: \"quiet\", \"panic\", \"fatal\", ";
         "\"error\", \"warning\", \"info\", \"verbose\" or \"debug\"";
       ]
 

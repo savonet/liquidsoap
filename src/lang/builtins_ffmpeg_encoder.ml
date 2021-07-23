@@ -160,7 +160,8 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
 
   function
   | `Frame frame ->
-      let frame = InternalResampler.convert resampler (AFrame.pcm frame) in
+      let pcm = Audio.sub (AFrame.pcm frame) 0 (AFrame.position frame) in
+      let frame = InternalResampler.convert resampler pcm in
       encode_ffmpeg_frame frame
   | `Flush -> encode_frame `Flush
 
@@ -332,7 +333,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
   function
   | `Frame frame ->
       let vstart = 0 in
-      let vstop = Frame.video_of_main (Lazy.force Frame.size) in
+      let vstop = VFrame.position frame in
       let vbuf = VFrame.yuva420p frame in
       for i = vstart to vstop - 1 do
         let f = Video.get vbuf i in
