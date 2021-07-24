@@ -30,7 +30,7 @@ Copyright 2003-2021 Savonet team
 Installation
 ------------
 
-See the [install.md](doc/content/install.md) file.
+See the [here](https://www.liquidsoap.info/doc.html?path=install.html).
 
 Documentation
 -------------
