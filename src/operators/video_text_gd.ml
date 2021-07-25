@@ -29,8 +29,8 @@ let render_text ~font ~size text =
   let fname = font in
   let angle = 0. in
   let bounds = Gd.ft_bbox ~fname ~size ~angle ~x:0 ~y:0 text in
-  let lowlineRef = Gd.ft_bbox ~fname ~size ~angle ~x:0 ~y:0 "j" in
-  let y = h - lowlineRef.(1) in
+  let lowline_reference = Gd.ft_bbox ~fname ~size ~angle ~x:0 ~y:0 "j" in
+  let y = h - lowline_reference.(1) in
   let w = bounds.(2) - bounds.(0) in
 
   (* Anti-aliasing. *)
