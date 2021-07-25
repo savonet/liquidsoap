@@ -24,7 +24,8 @@ let init () = ()
 
 let render_text ~font ~size text =
   let h = size in
-  let size = (float size) *. 3. /. 4. in
+  (* Scale because gd is using 96 DPI instead of the default 72 DPI. *)
+  let size = (float size) *. 72. /. 96. in
   let fname = font in
   let angle = 0. in
   let bounds = Gd.ft_bbox ~fname ~size ~angle ~x:0 ~y:0 text in
