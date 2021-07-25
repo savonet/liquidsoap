@@ -214,7 +214,7 @@ output.url(url=url, enc, stream)
 # Send to Facebook
 key = "..."
 url = "rtmps://live-api-s.facebook.com:443/rtmp/#{key}"
-output.url(url=url, enc, stream)
+output.url(self_sync=true, url=url, enc, stream)
 ```
 
 Scheduling

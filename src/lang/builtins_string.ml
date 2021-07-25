@@ -140,6 +140,22 @@ let () =
     ~escape_char:Utils.escape_utf8_char
 
 let () =
+  add_builtin "string.unescape"
+    ~descr:"Unescape strings. This function is the inverse of `string.escape`."
+    ~cat:String [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+      let s = Lang.to_string (List.assoc "" p) in
+      Lang.string (Scanf.unescaped s))
+
+let () =
+  add_builtin "string.utf8.unescape"
+    ~descr:
+      "Unescape UTF8 strings. This function is the inverse of \
+       `string.utf8.escape`." ~cat:String [("", Lang.string_t, None, None)]
+    Lang.string_t (fun p ->
+      let s = Lang.to_string (List.assoc "" p) in
+      Lang.string (Utils.unescape_utf8 s))
+
+let () =
   add_builtin "string.escape_annotation" ~cat:String
     ~descr:
       "Escape a string so that it is suitable for use as value for the \

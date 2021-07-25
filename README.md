@@ -18,18 +18,19 @@ Copyright 2003-2021 Savonet team
 [![Install with Opam !](https://img.shields.io/badge/Install%20with-Opam-1abc9c.svg)](http://opam.ocaml.org/packages/liquidsoap/)
 [![Chat on slack !](https://img.shields.io/badge/Chat%20on-Slack-1a1f9c.svg)](http://slack.liquidsoap.info/)
 
-|              |                                              |
-| ------------ | -------------------------------------------- |
-| Slack Chat   | http://slack.liquidsoap.info                 |
-| IRC          | #savonet on [irc.libera.chat](https://libera.chat/) (slack bridge)  |
-| Mailing list | savonet-users@lists.sourceforge.net          |
-| Homepage     | http://liquidsoap.info                       |
-| Bug reports  | https://github.com/savonet/liquidsoap/issues |
+|                |                                              |
+| -------------- | -------------------------------------------- |
+| Slack Chat     | http://slack.liquidsoap.info                 |
+| IRC            | #savonet on [irc.libera.chat](https://libera.chat/) (slack bridge)  |
+| Mailing list.  | savonet-users@lists.sourceforge.net          |
+| Homepage       | http://liquidsoap.info                       |
+| Bug reports    | https://github.com/savonet/liquidsoap/issues |
+| User questions | https://github.com/savonet/liquidsoap/discussions |
 
 Installation
 ------------
 
-See the [install.md](doc/content/install.md) file.
+See the [here](https://www.liquidsoap.info/doc.html?path=install.html).
 
 Documentation
 -------------

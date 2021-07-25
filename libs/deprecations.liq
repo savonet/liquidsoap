@@ -454,3 +454,10 @@ def say_metadata(s, ~pattern) =
   def pattern(m) = pattern % m end
   source.say_metadata(pattern=pattern, s)
 end
+
+# Deprecated: use `playlist.parse.register` instead
+# @flag deprecated
+def add_playlist_parser(%argsof(playlist.parse.register), s) =
+  deprecated("add_playlist_parser", "playlist.parse.register")
+  playlist.parse.register(%argsof(playlist.parse.register), s)
+end

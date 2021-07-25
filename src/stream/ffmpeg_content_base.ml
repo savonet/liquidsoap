@@ -37,7 +37,7 @@ let sub c ofs len =
     data = List.filter (fun (pos, _) -> ofs <= pos && pos < ofs + len) c.data;
   }
 
-let blit src src_pos dst dst_pos len =
+let fill src src_pos dst dst_pos len =
   (* No compatibility check here, it's
      assumed to have been done beforehand. *)
   dst.params <- src.params;
@@ -53,5 +53,8 @@ let blit src src_pos dst dst_pos len =
   in
   dst.data <- List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') data
 
+(* FFmpeg content is currently opaque and immutable. Therefore, it
+   is safe to pass it around without copying. *)
+let blit = fill
 let copy { data; params } = { data; params }
 let params { params } = params

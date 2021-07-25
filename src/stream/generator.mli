@@ -21,8 +21,13 @@
  *****************************************************************************)
 
 (** Operations on generators, which are like FIFO for multimedia data. They are
-    efficiently handling small chunks of data (as found in frames) without copy,
-    and also metadata. *)
+    efficiently handling small chunks of data (as found in frames) with minimal copy,
+    and also metadata.
+
+    Data coming from frames is copied when added to the buffer because frame content
+    are reused during each streaming loop. However, data is only assigned exiting the
+    buffer. This means that we expect the buffer to feed a single source on the way
+    out. *)
 
 (** Raised when trying to feed a generator with data of incorrect type (wrong
     number of audio channels, etc.). *)
@@ -145,7 +150,7 @@ module From_frames : sig
   (** Feed the generator with data. *)
   val feed :
     t ->
-    ?copy:bool ->
+    ?copy:[ `None | `Audio | `Video | `Both ] ->
     ?breaks:int list ->
     ?metadata:(int * Frame.metadata) list ->
     Frame.content ->
@@ -155,7 +160,8 @@ module From_frames : sig
 
   (** Feed the generator with the contents of a frame (the contents is
       copied). *)
-  val feed_from_frame : t -> Frame.t -> unit
+  val feed_from_frame :
+    ?copy:[ `None | `Audio | `Video | `Both ] -> t -> Frame.t -> unit
 
   (** Fill a frame from the generator. *)
   val fill : t -> Frame.t -> unit
@@ -246,7 +252,12 @@ module From_audio_video : sig
 
   (** Feed from a frame, only copying data according to the mode.
       Defaults to the generator's mode. *)
-  val feed_from_frame : ?mode:mode -> t -> Frame.t -> unit
+  val feed_from_frame :
+    ?copy:[ `None | `Audio | `Video | `Both ] ->
+    ?mode:mode ->
+    t ->
+    Frame.t ->
+    unit
 
   (** Fill a frame from the generator. *)
   val fill : t -> Frame.t -> unit

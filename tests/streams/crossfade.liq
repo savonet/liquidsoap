@@ -2,6 +2,8 @@
 
 %include "test.liq"
 
+video.frame.rate.set(24)
+
 a = sine(duration=5., 440.)
 b = sine(880.)
 s = sequence([a,b])

@@ -217,6 +217,8 @@ let size =
       let target =
         log#important "Using %dHz audio, %dHz video, %dHz main." audio video
           main;
+        log#important "Video frame size set to: %dx%d" conf_video_width#get
+          conf_video_height#get;
         log#important
           "Frame size must be a multiple of %d ticks = %d audio samples = %d \
            video samples."

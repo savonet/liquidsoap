@@ -85,7 +85,7 @@ class resample ~kind ~ratio source_val =
       let metadata =
         List.map (fun (i, m) -> (convert i, m)) (Frame.get_all_metadata frame)
       in
-      Generator.feed generator ~metadata ~copy:false content 0 len;
+      Generator.feed generator ~metadata ~copy:`None content 0 len;
       if Frame.is_partial frame then Generator.add_break generator
 
     method private get_frame frame =

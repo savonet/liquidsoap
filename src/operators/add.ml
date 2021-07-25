@@ -98,7 +98,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
       in
       let weight = if power then sqrt weight else weight in
       (* Sum contributions. *)
-      let offset = Frame.position buf in
+      let offset = AFrame.position buf in
       let _, end_offset =
         List.fold_left
           (fun (rank, end_offset) (w, s) ->
@@ -112,7 +112,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                 tmp )
             in
             s#get buffer;
-            let already = Frame.position buffer in
+            let already = AFrame.position buffer in
             let c = if renorm then w /. weight else w in
             if c <> 1. then (
               try

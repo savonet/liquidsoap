@@ -200,6 +200,12 @@ let set_all_metadata b l = b.metadata <- l
 let get_past_metadata b =
   try Some (List.assoc (-1) b.metadata) with Not_found -> None
 
+let fill_content src src_pos dst dst_pos len =
+  let fill src dst = fill src src_pos dst dst_pos len in
+  fill src.audio dst.audio;
+  fill src.video dst.video;
+  fill src.midi dst.midi
+
 let blit_content src src_pos dst dst_pos len =
   let blit src dst = blit src src_pos dst dst_pos len in
   blit src.audio dst.audio;
@@ -291,4 +297,6 @@ let get_chunk ab from =
   in
   aux 0 (List.rev from.breaks)
 
+let copy_audio c = { c with audio = copy c.audio }
+let copy_video c = { c with video = copy c.video }
 let copy = map_fields copy
