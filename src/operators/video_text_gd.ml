@@ -41,7 +41,7 @@ let render_text ~font ~size text =
   
   let img = Gd.create ~x:w ~y:h in
   let ca = img#colors in
-  img#filled_rectangle ~x1:0 ~y1:0 ~x2:(w) ~y2:(h) ca#black;
+  img#filled_rectangle ~x1:0 ~y1:0 ~x2:w ~y2:h ca#black;
   ignore
     (img#string_ft ~fname ~size ~angle:0. ~x:0 ~y:(y) ~fg:ca#white text);
   let get_pixel x y =
