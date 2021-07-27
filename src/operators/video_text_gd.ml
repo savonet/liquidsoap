@@ -25,7 +25,7 @@ let init () = ()
 let render_text ~font ~size text =
   let h = size in
   (* Scale because gd is using 96 DPI instead of the default 72 DPI. *)
-  let size = (float size) *. 72. /. 96. in
+  let size = float size *. 72. /. 96. in
   let fname = font in
   let angle = 0. in
   let bounds = Gd.ft_bbox ~fname ~size ~angle ~x:0 ~y:0 text in
@@ -38,12 +38,11 @@ let render_text ~font ~size text =
   let size = size *. 2. in
   let y = y * 2 in
   let w = w * 2 in
-  
+
   let img = Gd.create ~x:w ~y:h in
   let ca = img#colors in
   img#filled_rectangle ~x1:0 ~y1:0 ~x2:w ~y2:h ca#black;
-  ignore
-    (img#string_ft ~fname ~size ~angle:0. ~x:0 ~y ~fg:ca#white text);
+  ignore (img#string_ft ~fname ~size ~angle:0. ~x:0 ~y ~fg:ca#white text);
   let get_pixel x y =
     let c = img#get_pixel ~x ~y in
     if c = ca#white then 0xff else 0
