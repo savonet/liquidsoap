@@ -30,7 +30,7 @@ Copyright 2003-2021 Savonet team
 Installation
 ------------
 
-See the [here](https://www.liquidsoap.info/doc.html?path=install.html).
+See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.html).
 
 Documentation
 -------------
