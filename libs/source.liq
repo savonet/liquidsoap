@@ -53,7 +53,7 @@ end
 # @param ~min_noise Minimum duration of noise required to end silence, in seconds.
 # @param ~track_sensitive Reset blank counter at each track.
 def blank.skip(~id=null(),~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
-  blank.detect({s.skip()},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
+  blank.detect(id=id,{s.skip()},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
 
 # Same operator as rotate but merges tracks from each sources.
