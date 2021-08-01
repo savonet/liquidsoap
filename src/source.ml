@@ -741,8 +741,12 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
         else (
           let b = Frame.breaks buf in
           self#instrumented_get_frame buf;
-          if List.length b + 1 <> List.length (Frame.breaks buf) then (
-            self#log#severe "#get_frame didn't add exactly one break!";
+          if List.length b + 1 > List.length (Frame.breaks buf) then (
+            self#log#severe "#get_frame added too many breaks!";
+            assert false );
+          if List.length b + 1 < List.length (Frame.breaks buf) then (
+            self#log#severe
+              "#get_frame returned a buffer without enough breaks!";
             assert false ) )
       else (
         let memo = self#memo in
