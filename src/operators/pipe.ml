@@ -287,7 +287,8 @@ let () =
         Some
           "Replay track marks and metadata from the input source on the output \
            after a given delay. If `null` (default) close and flush the \
-           process on each track and metadata to get an exact timing." );
+           process on each track and metadata to get an exact timing. This \
+           parameter is typically used when integrating with `stereotool`." );
       ( "data_length",
         Lang.nullable_t Lang.int_t,
         Some Lang.null,
