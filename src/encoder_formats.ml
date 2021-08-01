@@ -46,6 +46,7 @@ let conf_export_metadata =
         "year";
         "dj";
         "next";
+        "apic";
       ]
     ~comments:["The list of labels of exported metadata."]
 
