@@ -150,12 +150,23 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
     method private get_handler =
       match handler with Some h -> h | None -> raise Process_handler.Finished
 
+    val mutable tmp = None
+
+    method tmp =
+      match tmp with
+        | Some t -> t
+        | None ->
+            let t = Frame.create self#ctype in
+            tmp <- Some t;
+            t
+
     method private get_to_write =
       if source#is_ready then (
-        let tmp = Frame.create self#ctype in
-        source#get tmp;
+        Frame.clear self#tmp;
+        source#get self#tmp;
         self#child_tick;
-        let buf = AFrame.pcm tmp in
+        needs_tick <- false;
+        let buf = AFrame.pcm self#tmp in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in
         let slen = slen_of_len blen in
@@ -164,7 +175,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let metadata =
           List.sort
             (fun (pos, _) (pos', _) -> compare pos pos')
-            (Frame.get_all_metadata tmp)
+            (Frame.get_all_metadata self#tmp)
         in
         let ofs =
           List.fold_left
@@ -172,7 +183,8 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               let pos = slen_of_len pos in
               let len = pos - ofs in
               let next =
-                if pos = slen && Frame.is_partial tmp then `Break_and_metadata m
+                if pos = slen && Frame.is_partial self#tmp then
+                  `Break_and_metadata m
                 else `Metadata m
               in
               Queue.push { sbuf; next; ofs; len } to_write;
@@ -181,7 +193,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         in
         if ofs < slen then (
           let len = slen - ofs in
-          let next = if Frame.is_partial tmp then `Break else `Nothing in
+          let next = if Frame.is_partial self#tmp then `Break else `Nothing in
           Queue.push { sbuf; next; ofs; len } to_write ) )
 
     method private on_stdin pusher =
@@ -272,7 +284,8 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
     method after_output =
       super#after_output;
-      child_support#after_output
+      (* As long as we have a process, we let it drive the child source entirely. *)
+      if handler = None then child_support#after_output
   end
 
 let () =
