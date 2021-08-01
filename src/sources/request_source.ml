@@ -153,28 +153,27 @@ class virtual unqueued ~kind ~name =
     method self_sync = (`Static, false)
 
     (** How to unload a request. *)
-    method private end_track forced =
-      Mutex.lock plock;
-      begin
-        match current with
-        | None -> ()
-        | Some cur ->
-            begin
-              match Request.get_filename cur.req with
-              | None ->
-                  self#log#severe
-                    "Finished with a non-existent file?! Something may have \
-                     been moved or destroyed during decoding. It is VERY \
-                     dangerous, avoid it!"
-              | Some f -> self#log#info "Finished with %S." f
-            end;
-            cur.close ();
-            Request.destroy cur.req;
-            must_fail <- forced
-      end;
-      current <- None;
-      remaining <- 0;
-      Mutex.unlock plock
+    method private end_track =
+      Tutils.mutexify plock (fun forced ->
+          begin
+            match current with
+            | None -> ()
+            | Some cur ->
+                begin
+                  match Request.get_filename cur.req with
+                  | None ->
+                      self#log#severe
+                        "Finished with a non-existent file?! Something may \
+                         have been moved or destroyed during decoding. It is \
+                         VERY dangerous, avoid it!"
+                  | Some f -> self#log#info "Finished with %S." f
+                end;
+                cur.close ();
+                Request.destroy cur.req;
+                must_fail <- forced
+          end;
+          current <- None;
+          remaining <- 0)
 
     (** Load a request. Should be called within critical section, when there is no
       ready request. *)
@@ -219,33 +218,36 @@ class virtual unqueued ~kind ~name =
     (** Now we can write the source's methods. *)
 
     method is_ready =
-      Mutex.lock plock;
-      let ans = current <> None || must_fail || self#begin_track in
-      Mutex.unlock plock;
-      ans
+      Tutils.mutexify plock
+        (fun () -> current <> None || must_fail || self#begin_track)
+        ()
 
     method remaining = remaining
 
     method private get_frame buf =
-      if must_fail then (
-        must_fail <- false;
-        Frame.add_break buf (Frame.position buf) )
-      else (
-        let try_get () =
-          match current with
-            | None ->
-                (* We're supposed to be ready so this shouldn't be reached. *)
-                assert false
-            | Some cur ->
-                if send_metadata then (
-                  Request.on_air cur.req;
-                  let m = Request.get_all_metadata cur.req in
-                  Frame.set_metadata buf (Frame.position buf) m;
-                  send_metadata <- false );
-                cur.fill buf
-        in
-        Tutils.mutexify plock try_get ();
-        if Frame.is_partial buf then self#end_track false )
+      let end_track =
+        Tutils.mutexify plock
+          (fun () ->
+            if must_fail then (
+              must_fail <- false;
+              Frame.add_break buf (Frame.position buf);
+              false )
+            else (
+              match current with
+                | None ->
+                    (* We're supposed to be ready so this shouldn't be reached. *)
+                    assert false
+                | Some cur ->
+                    if send_metadata then (
+                      Request.on_air cur.req;
+                      let m = Request.get_all_metadata cur.req in
+                      Frame.set_metadata buf (Frame.position buf) m;
+                      send_metadata <- false );
+                    cur.fill buf;
+                    Frame.is_partial buf ))
+          ()
+      in
+      if end_track then self#end_track false
 
     method seek x = match current with None -> 0 | Some cur -> cur.seek x
 
