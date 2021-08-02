@@ -85,11 +85,6 @@ let mime_types =
         "audio/x-voc";
         "audio/x-wav";
         "audio/x-wavpack";
-        "image/gif";
-        "image/jpeg";
-        "image/png";
-        "image/vnd.microsoft.icon";
-        "image/webp";
         "multipart/x-mixed-replace;boundary=ffserver";
         "text/vtt";
         "text/x-ass";
@@ -114,22 +109,10 @@ let mime_types =
         "video/x-nut";
       ]
 
-let image_mime_types =
-  Dtools.Conf.list ~p:(mime_types#plug "images")
-    "Mime-types used for decoding images with ffmpeg"
-    ~d:
-      [
-        "image/gif";
-        "image/jpeg";
-        "image/png";
-        "image/vnd.microsoft.icon";
-        "image/webp";
-      ]
-
 let file_extensions =
   Dtools.Conf.list
     ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
-    "File extensions used for decoding with ffmpeg"
+    "File extensions used for decoding videos with ffmpeg"
     ~d:
       [
         "264";
@@ -182,7 +165,6 @@ let file_extensions =
         "bfstm";
         "binka";
         "bit";
-        "bmp";
         "bmv";
         "brstm";
         "c2";
@@ -195,20 +177,16 @@ let file_extensions =
         "chk";
         "cif";
         "cpk";
-        "cri";
         "cvg";
         "dat";
         "daud";
         "dav";
         "dbm";
-        "dds";
         "dif";
         "digi";
         "dmf";
-        "dng";
         "dnxhd";
         "dnxhr";
-        "dpx";
         "drc";
         "dsm";
         "dss";
@@ -219,7 +197,6 @@ let file_extensions =
         "dv";
         "dvd";
         "eac3";
-        "exr";
         "f4v";
         "fap";
         "far";
@@ -249,10 +226,6 @@ let file_extensions =
         "idf";
         "idx";
         "ifv";
-        "im1";
-        "im24";
-        "im32";
-        "im8";
         "imf";
         "imx";
         "ipu";
@@ -264,20 +237,10 @@ let file_extensions =
         "ivf";
         "ivr";
         "j2b";
-        "j2c";
-        "j2k";
-        "jls";
-        "jls";
-        "jp2";
-        "jpc";
-        "jpeg";
-        "jpg";
-        "jps";
         "jss";
         "kux";
         "latm";
         "lbc";
-        "ljpg";
         "loas";
         "lrc";
         "lvf";
@@ -307,7 +270,6 @@ let file_extensions =
         "mmcmp";
         "mmf";
         "mms";
-        "mng";
         "mo3";
         "mod";
         "mods";
@@ -321,11 +283,7 @@ let file_extensions =
         "mpd";
         "mpeg";
         "mpg";
-        "mpg1-img";
-        "mpg2-img";
-        "mpg4-img";
         "mpl2";
-        "mpo";
         "mptm";
         "msbc";
         "msf";
@@ -350,40 +308,21 @@ let file_extensions =
         "omg";
         "opus";
         "paf";
-        "pam";
-        "pbm";
-        "pcd";
         "pcm";
-        "pct";
-        "pcx";
-        "pfm";
-        "pgm";
-        "pgmyuv";
-        "pic";
-        "pict";
-        "pix";
         "pjs";
         "plm";
-        "png";
-        "pnm";
-        "pns";
-        "ppm";
         "psm";
         "psp";
         "pt36";
         "ptm";
-        "ptx";
         "pvf";
         "qcif";
         "ra";
-        "ras";
-        "raw";
         "rco";
         "rcv";
         "rgb";
         "rm";
         "roq";
-        "rs";
         "rsd";
         "rso";
         "rt";
@@ -400,7 +339,6 @@ let file_extensions =
         "sfx";
         "sfx2";
         "sga";
-        "sgi";
         "shn";
         "sln";
         "smi";
@@ -419,20 +357,13 @@ let file_extensions =
         "stp";
         "str";
         "sub";
-        "sun";
-        "sunras";
         "sup";
         "svag";
-        "svg";
-        "svgz";
         "svs";
         "swf";
         "tak";
         "tco";
-        "tga";
         "thd";
-        "tif";
-        "tiff";
         "ts";
         "tta";
         "ttml";
@@ -459,7 +390,6 @@ let file_extensions =
         "w64";
         "wav";
         "webm";
-        "webp";
         "wma";
         "wmv";
         "wow";
@@ -471,80 +401,10 @@ let file_extensions =
         "xml";
         "xmv";
         "xpk";
-        "xpm";
         "xvag";
-        "xwd";
-        "y";
         "y4m";
         "yop";
         "yuv";
-        "yuv10";
-      ]
-
-let image_file_extensions =
-  Dtools.Conf.list
-    ~p:(file_extensions#plug "images")
-    "File extensions used for decoding images with ffmpeg"
-    ~d:
-      [
-        "bmp";
-        "cri";
-        "dds";
-        "dng";
-        "dpx";
-        "exr";
-        "im1";
-        "im24";
-        "im32";
-        "im8";
-        "j2c";
-        "j2k";
-        "jls";
-        "jp2";
-        "jpc";
-        "jpeg";
-        "jpg";
-        "jps";
-        "ljpg";
-        "mng";
-        "mpg1-img";
-        "mpg2-img";
-        "mpg4-img";
-        "mpo";
-        "pam";
-        "pbm";
-        "pcd";
-        "pct";
-        "pcx";
-        "pfm";
-        "pgm";
-        "pgmyuv";
-        "pic";
-        "pict";
-        "pix";
-        "png";
-        "pnm";
-        "pns";
-        "ppm";
-        "ptx";
-        "ras";
-        "raw";
-        "rs";
-        "sgi";
-        "sun";
-        "sunras";
-        "svg";
-        "svgz";
-        "tga";
-        "tif";
-        "tiff";
-        "webp";
-        "xbm";
-        "xface";
-        "xpm";
-        "xwd";
-        "y";
-        "yuv10";
       ]
 
 let priority =
@@ -600,7 +460,7 @@ let get_type ~ctype ~url container =
           | Some f -> (
               match Avutil.Pixel_format.to_string f with
                 | None -> "none"
-                | Some s -> s )
+                | Some s -> s)
       in
       let codec_name =
         Avcodec.Video.string_of_id (Avcodec.Video.get_params_id params)
@@ -775,19 +635,14 @@ let create_decoder ~ctype fname =
               in
               match !remaining with
                 | None -> remaining := Some (d -. position)
-                | Some r -> remaining := Some (max (d -. position) r) ))
+                | Some r -> remaining := Some (max (d -. position) r)))
       ()
   in
   let get_remaining =
     Tutils.mutexify m (fun () ->
         match !remaining with None -> -1 | Some r -> Frame.main_of_seconds r)
   in
-  let opts = Hashtbl.create 10 in
-  let ext = Filename.extension fname in
-  if List.exists (fun s -> ext = "." ^ s) image_file_extensions#get then (
-    Hashtbl.add opts "loop" (`Int 1);
-    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)) );
-  let container = Av.open_input ~opts fname in
+  let container = Av.open_input fname in
   let audio, video = mk_streams ~ctype container in
   let audio =
     match audio with
@@ -834,7 +689,7 @@ let create_decoder ~ctype fname =
                 in
                 match seek ~target_position ~container target with
                   | 0 -> 0
-                  | _ -> ticks ));
+                  | _ -> ticks));
       decode = mk_decoder ?audio ?video ~target_position container;
     },
     close,
@@ -844,19 +699,13 @@ let create_file_decoder ~metadata:_ ~ctype filename =
   let decoder, close, remaining = create_decoder ~ctype filename in
   Decoder.file_decoder ~filename ~close ~remaining ~ctype decoder
 
-let create_stream_decoder ~ctype mime input =
+let create_stream_decoder ~ctype _ input =
   let seek_input =
     match input.Decoder.lseek with
       | None -> None
       | Some fn -> Some (fun len _ -> fn len)
   in
-  let opts = Hashtbl.create 10 in
-  if List.exists (fun s -> mime = s) image_mime_types#get then (
-    Hashtbl.add opts "loop" (`Int 1);
-    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)) );
-  let container =
-    Av.open_input_stream ?seek:seek_input ~opts input.Decoder.read
-  in
+  let container = Av.open_input_stream ?seek:seek_input input.Decoder.read in
   let audio, video = mk_streams ~ctype container in
   let target_position = ref None in
   {
