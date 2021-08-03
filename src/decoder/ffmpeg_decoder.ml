@@ -112,7 +112,7 @@ let mime_types =
 let file_extensions =
   Dtools.Conf.list
     ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
-    "File extensions used for decoding videos with ffmpeg"
+    "File extensions used for decoding media files (except images) with ffmpeg"
     ~d:
       [
         "264";
