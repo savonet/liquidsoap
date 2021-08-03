@@ -85,11 +85,10 @@ end
 # Deprecated: this function has been replaced with `playlist`, setting
 # `reload_mode` argument to `"never"` and `loop` to `false`.
 def playlist.once(~id=null(),~random=false,~reload_mode="",
-                  ~default_duration=30.,~length=10.,~conservative=false,
-                  ~filter=fun(_)->true,uri)
+                  ~length=2,~filter=fun(_)->true,uri)
   deprecated("playlist.once", "playlist")
   mode = if random then "randomize" else "normal" end
-  playlist(reload_mode="never", loop=false, id=id, mode=mode, conservative=conservative, default_duration=default_duration, check_next=filter, uri)
+  playlist(reload_mode="never", loop=false, id=id, mode=mode, length=length, check_next=filter, uri)
 end
 
 # Deprecated: this function has been replaced by `map_metadata`.
