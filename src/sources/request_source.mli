@@ -29,19 +29,12 @@ class once :
   -> Request.t
   -> object
        inherit Source.source
-
        method stype : Source.source_t
-
        method self_sync : Source.self_sync
-
        method is_ready : bool
-
        method remaining : int
-
        method private get_frame : Frame.t -> unit
-
        method resolve : bool
-
        method abort_track : unit
      end
 
@@ -54,31 +47,22 @@ class virtual unqueued :
        method virtual get_next_file : Request.t option
 
        inherit Source.source
-
        method is_ready : bool
-
        method private get_frame : Frame.t -> unit
-
        method abort_track : unit
-
        method copy_queue : Request.t list
-
        method remaining : int
-
        method self_sync : Source.self_sync
      end
 
 class virtual queued :
   kind:Source.Kind.t
   -> name:string
-  -> ?length:float
-  -> ?default_duration:float
-  -> ?conservative:bool
+  -> ?length:int
   -> ?timeout:float
   -> unit
   -> object
        method copy_queue : Request.t list
-
        method stype : Source.source_t
 
        (** You should only define this. *)
@@ -104,10 +88,7 @@ class virtual queued :
 
        (** Number of requests in the queue. *)
        method queue_size : int
-
-       (** Size of the queue. *)
-       method queue_length : float
      end
 
 val queued_proto : Lang.proto
-val extract_queued_params : Lang.env -> float * float * float * bool
+val extract_queued_params : Lang.env -> int * float

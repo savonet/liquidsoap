@@ -73,11 +73,10 @@ class unqueued ~kind ~timeout request =
     method get_next_file = Some request
   end
 
-class queued ~kind uri length default_duration timeout conservative =
+class queued ~kind uri length timeout =
   object (self)
     inherit
-      Request_source.queued
-        ~name:"single" ~kind ~length ~default_duration ~conservative ~timeout () as super
+      Request_source.queued ~name:"single" ~kind ~length ~timeout () as super
 
     method wake_up x =
       if String.length uri < 15 then self#set_id uri;
@@ -107,13 +106,13 @@ let () =
     (fun p ->
       let val_uri = List.assoc "" p in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
-      let l, d, t, c = extract_queued_params p in
+      let l, t = extract_queued_params p in
       let uri = Lang.to_string val_uri in
       let kind = Source.Kind.of_kind kind in
       if (not fallible) && Request.is_static uri then (
         let request = Request.create ~persistent:true uri in
         (new unqueued ~kind ~timeout:t request :> source))
-      else (new queued uri ~kind l d t c :> source))
+      else (new queued uri ~kind l t :> source))
 
 let () =
   let kind = Lang.any in
@@ -128,13 +127,11 @@ let () =
       let kind = Source.Kind.of_kind kind in
       (new unqueued ~kind ~timeout:60. request :> source))
 
-class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
-  default_duration timeout conservative =
+class dynamic ~kind ~retry_delay ~available (f : Lang.value) length timeout =
   object (self)
     inherit
       Request_source.queued
-        ~kind ~name:"request.dynamic.list" ~length ~default_duration ~timeout
-          ~conservative () as super
+        ~kind ~name:"request.dynamic.list" ~length ~timeout () as super
 
     val mutable retry_status = None
 
@@ -221,16 +218,12 @@ let () =
           ([], Lang.fun_t [] Lang.int_t),
           "Number of requests in the queue.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.int s#queue_size) );
-        ( "queue_length",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Size of the queue in seconds.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#queue_length) );
       ]
     ~return_t:t
     (fun p ->
       let f = List.assoc "" p in
       let available = Lang.to_bool_getter (List.assoc "available" p) in
       let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in
-      let l, d, t, c = extract_queued_params p in
+      let l, t = extract_queued_params p in
       let kind = Source.Kind.of_kind kind in
-      new dynamic ~kind ~available ~retry_delay f l d t c)
+      new dynamic ~kind ~available ~retry_delay f l t)

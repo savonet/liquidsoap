@@ -79,7 +79,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
   end
   find_stream ()
 
-  source = request.dynamic.list(id=id,default_duration=0.5,length=5.,next)
+  source = request.dynamic.list(id=id,length=10,next)
 
   source = merge_tracks(source)
 

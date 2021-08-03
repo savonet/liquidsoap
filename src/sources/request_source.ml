@@ -248,7 +248,6 @@ class virtual unqueued ~kind ~name =
 
 type queue_item = {
   request : Request.t;
-  duration : float;
   (* in seconds *)
   mutable expired : bool;
 }
@@ -259,47 +258,20 @@ let priority = Tutils.Maybe_blocking
 (** Same thing, with a queue in which we prefetch files, which requests are
     given by [get_next_request]. Heuristical settings determining how the source
     feeds its queue:
-    - the source tries to have more than [length] seconds in queue
-    - if the duration of a file is unknown we use [default_duration] seconds
+    - the source tries to have more than [length] requests in queue
     - downloading a file is required to take less than [timeout] seconds
    *)
-class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
-  ?(conservative = false) ?(timeout = 20.) () =
+class virtual queued ~kind ~name ?(length = 2) ?(timeout = 20.) () =
   object (self)
     inherit unqueued ~kind ~name as super
     method stype = Fallible
     method virtual get_next_request : Request.t option
-
-    (** Management of the queue of files waiting to be played. *)
-    val min_queue_length = length
-
     val qlock = Mutex.create ()
     val retrieved : queue_item Queue.t = Queue.create ()
-    val mutable queue_length = 0.
-    method queue_length = queue_length
     method queue_size = Queue.length retrieved
 
     (* Seconds *)
     val mutable resolving = None
-
-    (** [available_length] is the length of the queue plus the remaining time in
-      the current track (0 in conservative mode). Although [queue_length]
-      should be accessed under [qlock] we don't do it here, and more
-      importantly, all the instances of "if self#available_length <
-      min_queue_length then ..." are not run within [qlock]'s critical
-      section. The potential race condition (there seems to be enough, then the
-      length decreases but we have already decided to take no action) is
-      harmless because all the portions of the code that decrease the length
-      trigger the appropriate action (feeding) themselves. *)
-    method private available_length =
-      if conservative then queue_length
-      else (
-        let remaining = self#remaining in
-        if remaining < 0 then
-          (* There is a track available but we don't know its duration at this
-             point. Hence, using default_duration. *)
-          queue_length +. default_duration
-        else queue_length +. Frame.seconds_of_main remaining)
 
     (** State should be `Sleeping on awakening, and is then turned to `Running.
       Eventually #sleep puts it to `Tired, then waits for it to be `Sleeping,
@@ -417,13 +389,11 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
                    *    emptied, but Sleeping saves us). *)
                   false)
           ()
-        && self#available_length < min_queue_length
+        && self#queue_size < length
       then (
         match self#prefetch with
           | `Finished ->
-              (* Retry again in order to make sure that we have enough data (in
-                 particular, when being conservative and starting on empty we need
-                 to fetch two requests). *)
+              (* Retry again in order to make sure that we have enough data *)
               0.5
           | `Retry -> adaptative_delay ()
           | `Empty -> -1.)
@@ -440,12 +410,6 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
             resolving <- Some req;
             match Request.resolve ~ctype:(Some self#ctype) req timeout with
               | Request.Resolved ->
-                  let len =
-                    match Request.get_metadata req "duration" with
-                      | Some f -> (
-                          try float_of_string f with _ -> default_duration)
-                      | None -> default_duration
-                  in
                   let rec remove_expired n =
                     if n = 0 then ()
                     else (
@@ -458,14 +422,8 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
                   in
                   Mutex.lock qlock;
                   remove_expired (Queue.length retrieved);
-                  Queue.add
-                    { request = req; duration = len; expired = false }
-                    retrieved;
-                  self#log#info
-                    "Remaining: %.1fs, queued: %.1fs, adding: %.1fs (RID %d)"
-                    (Frame.seconds_of_main self#remaining)
-                    queue_length len (Request.get_id req);
-                  queue_length <- queue_length +. len;
+                  Queue.add { request = req; expired = false } retrieved;
+                  self#log#info "Queued %d requests" self#queue_size;
                   Mutex.unlock qlock;
                   resolving <- None;
                   `Finished
@@ -481,10 +439,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
       let ans =
         try
           let r = Queue.take retrieved in
-          self#log#info "Remaining: %.1fs, queued: %.1fs, taking: %.1fs"
-            (Frame.seconds_of_main self#remaining)
-            queue_length r.duration;
-          if not r.expired then queue_length <- queue_length -. r.duration;
+          self#log#info "Remaining %d requests" self#queue_size;
           Some r.request
         with Queue.Empty ->
           self#log#debug "Queue is empty!";
@@ -494,24 +449,17 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
 
       (* A request has been taken off the queue, there is a chance that the
          queue should be refilled: awaken the feeding task. However, we can wait
-         that this file is played, and this need will be noticed in #get_frame.
-         This is critical in non-conservative mode because at this point
-         remaining is still 0 (we're inside #begin_track) which would lead to
-         too early prefetching; if we wait that a frame has been produced, we'll
-         get the first non-infinite remaining time estimations. *)
+         that this file is played, and this need will be noticed in #get_frame. *)
       ans
 
     method private expire test =
-      let already_short = self#available_length < min_queue_length in
+      let already_short = self#queue_size < length in
       Mutex.lock qlock;
       Queue.iter
-        (fun r ->
-          if test r.request && not r.expired then (
-            r.expired <- true;
-            queue_length <- queue_length -. r.duration))
+        (fun r -> if test r.request && not r.expired then r.expired <- true)
         retrieved;
       Mutex.unlock qlock;
-      if self#available_length < min_queue_length then (
+      if self#queue_size < length then (
         if not already_short then
           self#log#info "Expirations made the queue too short, feeding...";
 
@@ -523,7 +471,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
 
       (* At an end of track, we always have unqueued#remaining=0, so there's
          nothing special to do. *)
-      if self#available_length < min_queue_length then self#notify_new_request
+      if self#queue_size < length then self#notify_new_request
 
     method copy_queue =
       Mutex.lock qlock;
@@ -537,19 +485,9 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
 let queued_proto =
   [
     ( "length",
-      Lang.float_t,
-      Some (Lang.float 40.),
-      Some "How much audio (in sec.) should be queued in advance." );
-    ( "default_duration",
-      Lang.float_t,
-      Some (Lang.float 30.),
-      Some "When unknown, assume this duration (in sec.) for files." );
-    ( "conservative",
-      Lang.bool_t,
-      Some (Lang.bool false),
-      Some
-        "If true, estimated remaining time on the current track is not \
-         considered when computing queue length." );
+      Lang.int_t,
+      Some (Lang.int 2),
+      Some "How many requests should be queued in advance." );
     ( "timeout",
       Lang.float_t,
       Some (Lang.float 20.),
@@ -557,8 +495,6 @@ let queued_proto =
   ]
 
 let extract_queued_params p =
-  let l = Lang.to_float (List.assoc "length" p) in
-  let d = Lang.to_float (List.assoc "default_duration" p) in
+  let l = Lang.to_int (List.assoc "length" p) in
   let t = Lang.to_float (List.assoc "timeout" p) in
-  let c = Lang.to_bool (List.assoc "conservative" p) in
-  (l, d, t, c)
+  (l, t)
