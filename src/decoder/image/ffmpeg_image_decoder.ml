@@ -106,14 +106,15 @@ let load_image fname =
   in
   match Av.read_input ~video_frame:[stream] container with
     | `Video_frame (_, frame) ->
-        Ffmpeg_utils.unpack_image ~width ~height (Scaler.convert scaler frame)
-    | _ -> failwith "Failed to decode image!"
+        Some
+          (Ffmpeg_utils.unpack_image ~width ~height
+             (Scaler.convert scaler frame))
+    | _ -> None
 
 let () =
   Decoder.image_file_decoders#register "ffmpeg"
     ~sdoc:"Decode images using Ffmpeg." (fun filename ->
       let ext = Filename.extension filename in
-      if List.exists (fun s -> ext = "." ^ s) image_file_extensions#get then (
-        let img = load_image filename in
-        Some img)
+      if List.exists (fun s -> ext = "." ^ s) image_file_extensions#get then
+        load_image filename
       else None)
