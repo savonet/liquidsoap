@@ -89,6 +89,7 @@ New:
   should be printed.
 - Added `input.rtmp` (#1640).
 - Added `%ifversion` and `%else` preprocessing commands (#1682).
+- Added `dtmf` to generate DTMF tones (#1796).
 
 Changed:
 

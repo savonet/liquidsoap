@@ -196,3 +196,56 @@ end
 def dry_wet(~power=false, wetness, dry, wet)
   add(power=power, weights=[getter.map(fun(x) -> 1.-x, wetness), wetness], [dry, wet])
 end
+
+# Generate DTMF tones.
+# @category Source / Sound Synthesis
+# @param ~duration Duration of a tone (in seconds).
+# @param ~delay Dealy between two successive tones (in seconds).
+# @param dtmf String describing DTMF tones to generates: it should contains characters 0 to 9, A to D, or * or #.
+def dtmf(~duration=0.1, ~delay=0.05, dtmf)
+  l = ref([])
+  for i = 0 to string.length(dtmf) - 1 do
+    c = string.sub(dtmf, start=i, length=1)
+    let (row, col) =
+      if c == "1" then
+        (697., 1209.)
+      elsif c == "2" then
+        (697., 1336.)
+      elsif c == "3" then
+        (697., 1477.)
+      elsif c == "A" then
+        (697., 1633.)
+      elsif c == "4" then
+        (770., 1209.)
+      elsif c == "5" then
+        (770., 1336.)
+      elsif c == "6" then
+        (770., 1477.)
+      elsif c == "B" then
+        (770., 1633.)
+      elsif c == "7" then
+        (852., 1209.)
+      elsif c == "8" then
+        (852., 1336.)
+      elsif c == "9" then
+        (852., 1477.)
+      elsif c == "C" then
+        (852., 1633.)
+      elsif c == "*" then
+        (941., 1209.)
+      elsif c == "0" then
+        (941., 1336.)
+      elsif c == "#" then
+        (941., 1477.)
+      elsif c == "D" then
+        (941., 1633.)
+      else
+        (0., 0.)
+      end
+    s = add([sine(row, duration=duration), sine(col, duration=duration)])
+    l := list.add(blank(duration=delay), !l)
+    l := list.add(s, !l)
+  end
+  l = list.rev(!l)
+  sequence(l)
+end
