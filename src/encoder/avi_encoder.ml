@@ -40,7 +40,7 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
           Audio_converter.Samplerate.resample converter ratio
             (Audio.sub pcm astart alen)
         in
-        (pcm, 0, Audio.length pcm) )
+        (pcm, 0, Audio.length pcm))
     in
     let data = Bytes.create (2 * channels * alen) in
     Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
@@ -77,7 +77,7 @@ let encoder avi =
     let ans = encode_frame ~channels ~samplerate ~converter frame start len in
     if !need_header then (
       need_header := false;
-      Strings.dda header ans )
+      Strings.dda header ans)
     else ans
   in
   let hls =

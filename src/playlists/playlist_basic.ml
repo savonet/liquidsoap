@@ -32,7 +32,7 @@ let test_text s =
           log#important "Wrong mime type %s for playlist!" mime;
 
           (* TODO this shouldn't be an assert false, it can happen *)
-          assert false )
+          assert false)
 
 let parse_extinf s =
   try
@@ -152,7 +152,7 @@ let find_file l =
     match rem with
       | x :: rem -> (
           try parse_file x (fun title -> (title, cur, rem))
-          with Not_found -> find (x :: cur) rem )
+          with Not_found -> find (x :: cur) rem)
       | [] -> raise Not_found
   in
   let title, cur, rem = find [] l in
@@ -191,7 +191,7 @@ let parse_tracks index lines =
               try parse_index x (Hashtbl.add track.indexes)
               with Not_found -> ()
             end;
-            parse tracks track rem )
+            parse tracks track rem)
   in
   let track =
     {
@@ -228,7 +228,7 @@ let parse_cue ?pwd string =
           try
             parse_track x (fun index ->
                 { sheet with tracks = parse_tracks index rem })
-          with Not_found -> parse sheet rem )
+          with Not_found -> parse sheet rem)
   in
   let sheet = { file; performer = None; title = None; tracks = [] } in
   let sheet = parse sheet strings in
@@ -245,8 +245,8 @@ let parse_cue ?pwd string =
     let metadata = maybe "title" track.track_title metadata in
     let metadata =
       maybe Playlist_parser.conf_cue_in_metadata#get
-        ( try Some (string_of_float (Hashtbl.find track.indexes 1))
-          with _ -> None )
+        (try Some (string_of_float (Hashtbl.find track.indexes 1))
+         with _ -> None)
         metadata
     in
     ( maybe Playlist_parser.conf_cue_out_metadata#get cue_out metadata,
@@ -263,7 +263,7 @@ let parse_cue ?pwd string =
             try Some (string_of_float (Hashtbl.find track'.indexes 0))
             with _ -> (
               try Some (string_of_float (Hashtbl.find track'.indexes 1))
-              with _ -> None )
+              with _ -> None)
           in
           export_tracks (export_track ?cue_out track :: cur) (track' :: tracks)
   in

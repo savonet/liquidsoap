@@ -27,19 +27,12 @@ class delay ~kind (source : source) duration =
   let length () = Frame.audio_of_seconds (duration ()) in
   object (self)
     inherit operator ~name:"amplify" kind [source] as super
-
     val mutable override = None
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method abort_track = source#abort_track
-
     method seek = source#seek
-
     method self_sync = source#self_sync
 
     (** Length of the buffer in samples. *)
@@ -55,7 +48,7 @@ class delay ~kind (source : source) duration =
     method prepare n =
       if buffer_length <> n then (
         buffer <- Audio.create self#audio_channels n;
-        buffer_length <- n )
+        buffer_length <- n)
 
     method wake_up a =
       super#wake_up a;

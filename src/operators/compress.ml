@@ -33,36 +33,25 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
   let lookahead () = Frame.audio_of_seconds (lookahead ()) in
   object (self)
     inherit operator ~name:"compress" kind [source] as super
-
     val mutable effect = None
-
     method private wake_up a = super#wake_up a
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
 
     (* Current gain in dB. *)
     val mutable gain = 0.
-
     method gain = gain
 
     (* Position in ringbuffer. *)
     val mutable ringbuffer_pos = 0
-
     val mutable ringbuffer = [||]
 
     (* Averaged mean of squares. *)
     val mutable ms = 0.
-
     method rms = sqrt ms
 
     (* Make sure that the ringbuffer can hold this much. *)
@@ -116,7 +105,7 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
                 else (
                   let old = ringbuffer.(c).{ringbuffer_pos} in
                   ringbuffer.(c).{ringbuffer_pos} <- buf.(c).{i};
-                  old )
+                  old)
               in
               x := max !x (abs_float old)
             done;
@@ -124,7 +113,7 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
               ringbuffer_pos <- (ringbuffer_pos + 1) mod lookahead;
             let x = !x in
             ms <- x *. x;
-            x )
+            x)
           else (
             (* Smoothed RMS mode. *)
             let x = ref 0. in
@@ -134,14 +123,14 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
                 else (
                   let old = ringbuffer.(c).{ringbuffer_pos} in
                   ringbuffer.(c).{ringbuffer_pos} <- buf.(c).{i};
-                  old )
+                  old)
               in
               x := !x +. (old *. old)
             done;
             if lookahead > 0 then
               ringbuffer_pos <- (ringbuffer_pos + 1) mod lookahead;
             ms <- ms +. (window_coef *. ((!x /. float chans) -. ms));
-            sqrt ms )
+            sqrt ms)
         in
         (* From now on, we work in the dB domain, which gives better fidelity
            than the linear domain. *)
@@ -153,7 +142,7 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
             else if x < threshold +. (knee /. 2.) then (
               (* Second order interpolation for the knee. *)
               let a = x -. threshold +. (knee /. 2.) in
-              x +. (((1. /. ratio) -. 1.) *. a *. a /. (2. *. knee)) )
+              x +. (((1. /. ratio) -. 1.) *. a *. a /. (2. *. knee)))
             else threshold +. ((x -. threshold) /. ratio)
           in
           x'

@@ -42,9 +42,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
           ~content_kind:(Source.Kind.of_kind kind) () as active_source
 
     inherit [Frame_content.Audio.data] IoRing.input ~nb_blocks as ioring
-
     val mutable initialized = false
-
     method self_sync = (`Static, true)
 
     method private wake_up l =
@@ -57,7 +55,6 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
       ioring#sleep
 
     method abort_track = ()
-
     method remaining = -1
 
     (* val mutable alsa_fmt = *)
@@ -134,7 +131,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover..";
-          Pcm.recover dev e )
+          Pcm.recover dev e)
         else raise e
 
     method get_frame buf =

@@ -62,15 +62,10 @@ class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
       self#init
 
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
 
     method private get_frame buf =
@@ -103,7 +98,7 @@ class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
           vold <- v;
           v <- max gmin (min gmax v);
           rms <- 0.;
-          rmsc <- 0 )
+          rmsc <- 0)
       done;
 
       (* Reset values if it is the end of the track. *)

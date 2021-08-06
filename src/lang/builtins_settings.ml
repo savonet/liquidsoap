@@ -136,13 +136,13 @@ let settings_module =
          with Found v -> v
        in
        Lang.meth get_v
-         ( (if set_v <> None then [("set", Option.get set_v)] else [])
+         ((if set_v <> None then [("set", Option.get set_v)] else [])
          @ [
              ("description", Lang.string (String.trim conf#descr));
              ( "comments",
                Lang.string (String.trim (String.concat "" conf#comments)) );
            ]
-         @ leaf_values conf @ sub )
+         @ leaf_values conf @ sub)
      and leaf_values conf =
        List.map
          (fun label ->
@@ -220,7 +220,7 @@ let print_settings () =
     | Lang_values.V.Tuple [] -> []
     | value ->
         [
-          ( match Lang.apply { Lang_values.V.pos = None; value } [] with
+          (match Lang.apply { Lang_values.V.pos = None; value } [] with
             | v when v.Lang_values.V.value = Lang_values.V.Null ->
                 Printf.sprintf {|
 ```liquidsoap
@@ -233,7 +233,7 @@ let print_settings () =
 %s.set(%s)
 ```
 |} path
-                  (Lang_values.V.print_value v) );
+                  (Lang_values.V.print_value v));
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -242,12 +242,12 @@ let print_settings () =
 %s|} (String.make level '#')
       (String.capitalize_ascii descr.description)
       (String.concat ""
-         ( (match descr.comments with "" -> [] | v -> ["\n"; v; "\n"])
+         ((match descr.comments with "" -> [] | v -> ["\n"; v; "\n"])
          @ print_set ~path descr.value
          @ List.map
              (fun (k, d) ->
                print_descr ~level:(level + 1) ~path:(path ^ "." ^ k) d)
-             (filter_children descr.children) ))
+             (filter_children descr.children)))
   in
   print_descr ~level:1 ~path:"settings" descr
 
@@ -282,16 +282,15 @@ let () =
          Please use `settings.path.to.key.set(value)`";
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let value = Lang.assoc "" 2 p in
-      ( try
-          let set = grab (path ^ ".set") !settings in
-          try ignore (Lang.apply (Lang.demeth set) [("", value)])
-          with _ ->
-            log#severe
-              "WARNING: Error while setting value %s for setting %S. Is that \
-               the right type for it?"
-              (Lang.print_value value) path
-        with Not_found ->
-          log#severe "WARNING: setting %S does not exist!" path );
+      (try
+         let set = grab (path ^ ".set") !settings in
+         try ignore (Lang.apply (Lang.demeth set) [("", value)])
+         with _ ->
+           log#severe
+             "WARNING: Error while setting value %s for setting %S. Is that \
+              the right type for it?"
+             (Lang.print_value value) path
+       with Not_found -> log#severe "WARNING: setting %S does not exist!" path);
       Lang.unit);
 
   let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] () in

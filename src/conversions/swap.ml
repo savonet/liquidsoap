@@ -25,17 +25,11 @@ open Source
 class swap ~kind (source : source) =
   object
     inherit operator kind [source] ~name:"swap"
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method abort_track = source#abort_track
-
     method seek = source#seek
-
     method self_sync = source#self_sync
 
     method private get_frame buf =
@@ -47,7 +41,7 @@ class swap ~kind (source : source) =
       if offset = 0 then (
         let tmp = buffer.(1) in
         buffer.(1) <- buffer.(2);
-        buffer.(2) <- tmp )
+        buffer.(2) <- tmp)
       else
         for i = offset to AFrame.position buf - 1 do
           let tmp = buffer.(0).{i} in

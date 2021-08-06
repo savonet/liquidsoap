@@ -149,7 +149,7 @@ module Register (Lame : Lame_t) = struct
         match mp3.Mp3_format.stereo_mode with
           | Mp3_format.Default -> ()
           | Mp3_format.Stereo -> Lame.set_mode enc Lame.Stereo
-          | Mp3_format.Joint_stereo -> Lame.set_mode enc Lame.Joint_stereo );
+          | Mp3_format.Joint_stereo -> Lame.set_mode enc Lame.Joint_stereo);
       begin
         let apply_constaints enc
             {
@@ -208,7 +208,7 @@ module Register (Lame : Lame_t) = struct
                 bset enc (bit_at msg !msg_position)
                   (bit_at msg (!msg_position + 1));
                 msg_position := (!msg_position + 2) mod msg_len;
-                if !msg_position mod 8 = 0 then is_sync := false );
+                if !msg_position mod 8 = 0 then is_sync := false);
         let encoded () =
           has_started := true;
 
@@ -224,11 +224,11 @@ module Register (Lame : Lame_t) = struct
           in
           if channels = 1 then (
             let buf = scale (Audio.Mono.sub b.(0) start len) in
-            Lame.encode_buffer_float_ba enc buf buf )
+            Lame.encode_buffer_float_ba enc buf buf)
           else (
             let bufl = scale (Audio.Mono.sub b.(0) start len) in
             let bufr = scale (Audio.Mono.sub b.(1) start len) in
-            Lame.encode_buffer_float_ba enc bufl bufr )
+            Lame.encode_buffer_float_ba enc bufl bufr)
         in
         match !id3v2 with
           | Rendered s when not !has_started ->
@@ -246,7 +246,7 @@ module Register (Lame : Lame_t) = struct
                   | Waiting ->
                       if not (Meta_format.is_empty m) then
                         id3v2 := Rendered (Strings.of_string (f m))
-                  | _ -> () )
+                  | _ -> ())
           | None -> fun _ -> ()
       in
       (* Try to insert initial metadata now.. *)

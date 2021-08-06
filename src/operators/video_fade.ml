@@ -31,17 +31,11 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
   =
   object
     inherit operator ~name:"video.fade.in" kind [source]
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method remaining = source#remaining
-
     method self_sync = source#self_sync
-
     val mutable state = `Idle
 
     method private get_frame ab =
@@ -61,8 +55,8 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
                   | Some m -> (
                       match Utils.hashtbl_get m meta with
                         | Some d -> (
-                            try float_of_string d with _ -> duration )
-                        | None -> duration )
+                            try float_of_string d with _ -> duration)
+                        | None -> duration)
               in
               let length = Frame.video_of_seconds duration in
               let fade = fader length in
@@ -91,19 +85,14 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
   source =
   object
     inherit operator ~name:"video.fade.out" kind [source]
-
     method stype = source#stype
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     (* Fade-out length (in video frames) for the current track.
      * The value is set at the beginning of every track, depending on metadata. *)
     val mutable cur_length = None
-
     method remaining = source#remaining
-
     method is_ready = source#is_ready
 
     method private get_frame ab =
@@ -123,7 +112,7 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
                       match Utils.hashtbl_get m meta with
                         | None -> duration
                         | Some d -> (
-                            try float_of_string d with _ -> duration ) )
+                            try float_of_string d with _ -> duration))
               in
               let l = Frame.video_of_seconds duration in
               let f = fader l in
@@ -138,14 +127,14 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
       match video_content with
         | Some (rgb, off, len) -> (
             (* Process the buffer *)
-              match if n >= 0 && n < length then Some n else None with
+            match if n >= 0 && n < length then Some n else None with
               | Some n ->
                   let rgb = Frame_content.Video.get_data rgb in
                   for i = 0 to len - 1 do
                     let m = fade (n - i) in
                     fadefun (Video.get rgb (off + i)) m
                   done
-              | None -> () )
+              | None -> ())
         | _ -> ()
   end
 
@@ -283,11 +272,11 @@ let override_doc =
 
 let () =
   Lang.add_operator "video.fade.in"
-    ( ( "override",
-        Lang.string_t,
-        Some (Lang.string "liq_video_fade_in"),
-        override_doc )
-    :: proto )
+    (( "override",
+       Lang.string_t,
+       Some (Lang.string "liq_video_fade_in"),
+       override_doc )
+     :: proto)
     ~return_t ~category:Lang.VideoProcessing
     ~descr:
       "Fade the beginning of tracks. Metadata 'liq_video_fade_in' can be used \
@@ -298,11 +287,11 @@ let () =
       let kind = Source.Kind.of_kind kind in
       new fade_in ~kind ~meta d f t s);
   Lang.add_operator "video.fade.out"
-    ( ( "override",
-        Lang.string_t,
-        Some (Lang.string "liq_video_fade_out"),
-        override_doc )
-    :: proto )
+    (( "override",
+       Lang.string_t,
+       Some (Lang.string "liq_video_fade_out"),
+       override_doc )
+     :: proto)
     ~return_t ~category:Lang.VideoProcessing
     ~descr:
       "Fade the end of tracks. Metadata 'liq_video_fade_out' can be used to \

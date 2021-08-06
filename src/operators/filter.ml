@@ -28,25 +28,15 @@ class filter ~kind (source : source) freq q wet mode =
   let rate = float (Lazy.force Frame.audio_rate) in
   object (self)
     inherit operator ~name:"filter" kind [source] as super
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
-
     val mutable low = [||]
-
     val mutable high = [||]
-
     val mutable band = [||]
-
     val mutable notch = [||]
 
     method wake_up a =
@@ -83,13 +73,13 @@ class filter ~kind (source : source) freq q wet mode =
           band.(c) <- (f *. high.(c)) +. band.(c);
           notch.(c) <- high.(c) +. low.(c);
           b_c.{i} <-
-            ( wet
+            (wet
             *.
             match mode with
               | Low_pass -> low.(c)
               | High_pass -> high.(c)
               | Band_pass -> band.(c)
-              | Notch -> notch.(c) )
+              | Notch -> notch.(c))
             +. ((1. -. wet) *. b_c.{i})
         done
       done

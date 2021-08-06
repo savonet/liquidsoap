@@ -24,7 +24,6 @@
 class virtual source =
   object (self)
     val mutable latest_metadata = Hashtbl.create 0
-
     method virtual private on_new_metadata : unit
 
     method private save_latest_metadata frame =
@@ -32,7 +31,7 @@ class virtual source =
       let l = List.sort compare (Frame.get_all_metadata frame) in
       if List.length l > 0 then (
         latest_metadata <- Hashtbl.copy (snd (List.hd l));
-        self#on_new_metadata )
+        self#on_new_metadata)
 
     method private clear_latest_metadata = latest_metadata <- Hashtbl.create 0
   end

@@ -26,8 +26,8 @@ let () =
   let t = ("", Lang.int_t, None, None) in
   add_builtin "time_in_mod" ~cat:Other ~flags:[Lang.Hidden]
     ~descr:
-      ( "INTERNAL: time_in_mod(a,b,c) checks that the unix time T "
-      ^ "satisfies a <= T mod c < b" ) [t; t; t] Lang.bool_t (fun p ->
+      ("INTERNAL: time_in_mod(a,b,c) checks that the unix time T "
+     ^ "satisfies a <= T mod c < b") [t; t; t] Lang.bool_t (fun p ->
       match List.map (fun (_, x) -> Lang.to_int x) p with
         | [a; b; c] ->
             let t = Unix.localtime (Unix.time ()) in

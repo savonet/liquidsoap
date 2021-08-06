@@ -40,7 +40,7 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
       let flags = Packet.get_flags packet in
       if List.mem `Corrupt flags then (
         log#important "Corrupted packet in stream!";
-        raise Corrupt );
+        raise Corrupt);
       let packets = Ffmpeg_utils.Duration.push duration_converter packet in
       if packets = None then raise Empty;
       let duration, packets = Option.get packets in

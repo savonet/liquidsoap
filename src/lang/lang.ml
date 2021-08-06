@@ -202,9 +202,9 @@ let doc_of_prototype_item ~generalized t d doc =
   let item = new Doc.item doc in
   item#add_subsection "type" (T.doc_of_type ~generalized t);
   item#add_subsection "default"
-    ( match d with
+    (match d with
       | None -> Doc.trivial "None"
-      | Some d -> Doc.trivial (print_value d) );
+      | Some d -> Doc.trivial (print_value d));
   item
 
 type doc_flag = Hidden | Deprecated | Experimental | Extra
@@ -324,9 +324,9 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
             let v = List.assoc v env in
             if Lazy.is_val v then (
               let v = Lazy.force v in
-              iter_value v )
+              iter_value v)
             else ()
-          with Not_found -> () )
+          with Not_found -> ())
       | Term.App (a, l) ->
           iter_term env a;
           List.iter (fun (_, v) -> iter_term env v) l
@@ -391,7 +391,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
                         "WARNING! Found a reference, potentially containing \
                          sources, inside a dynamic source-producing function. \
                          Static analysis cannot be performed: make sure you \
-                         are not sharing sources contained in references!" ) ) )
+                         are not sharing sources contained in references!")))
   in
   iter_value v
 
@@ -412,7 +412,7 @@ let to_bool_getter t =
         fun () ->
           match (apply t []).value with
             | Ground (Bool b) -> b
-            | _ -> assert false )
+            | _ -> assert false)
     | _ -> assert false
 
 let to_fun f =
@@ -430,7 +430,7 @@ let to_string_getter t =
         fun () ->
           match (apply t []).value with
             | Ground (String s) -> s
-            | _ -> assert false )
+            | _ -> assert false)
     | _ -> assert false
 
 let to_float t =
@@ -443,7 +443,7 @@ let to_float_getter t =
         fun () ->
           match (apply t []).value with
             | Ground (Float s) -> s
-            | _ -> assert false )
+            | _ -> assert false)
     | _ -> assert false
 
 let to_source t =
@@ -465,7 +465,7 @@ let to_int_getter t =
         fun () ->
           match (apply t []).value with
             | Ground (Int n) -> n
-            | _ -> assert false )
+            | _ -> assert false)
     | _ -> assert false
 
 let to_num t =
@@ -577,7 +577,7 @@ let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true) () =
   let file = Filename.concat dir "stdlib.liq" in
   if not (Sys.file_exists file) then (
     if error_on_no_stdlib then
-      failwith "Could not find default stdlib.liq library!" )
+      failwith "Could not find default stdlib.liq library!")
   else from_file ?parse_only ~ns:(Some file) ~lib:true file;
   let file = Filename.concat dir "deprecations.liq" in
   if deprecated && Sys.file_exists file then
@@ -926,7 +926,7 @@ let add_operator =
         let ret = f env in
         if category = Output then (
           let m, _ = Lang_values.V.split_meths ret in
-          _meth unit m )
+          _meth unit m)
         else ret
       with
         | Source.Clock_conflict (a, b) ->
@@ -944,7 +944,7 @@ let add_operator =
       if category = Output then (
         let m, _ = Lang_types.split_meths return_t in
         let m = List.map (fun (x, (y, z)) -> (x, y, z)) m in
-        method_t unit_t m )
+        method_t unit_t m)
       else return_t
     in
     let category = string_of_category category in

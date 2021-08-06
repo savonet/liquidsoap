@@ -223,7 +223,7 @@ module Make (T : T) = struct
       let ret = Bytes.unsafe_to_string ret in
       if ret <> c.latest_meta then (
         c.latest_meta <- ret;
-        ret )
+        ret)
       else "\000"
     in
     let get_meta () =
@@ -246,10 +246,10 @@ module Make (T : T) = struct
         let after = Strings.sub data next_meta_pos (len - next_meta_pos) in
         let cur = Strings.concat [cur; before; Strings.of_string meta] in
         c.metapos <- 0;
-        process cur after )
+        process cur after)
       else (
         c.metapos <- c.metapos + len;
-        Strings.concat [cur; data] )
+        Strings.concat [cur; data])
     in
     if c.metaint > 0 then process Strings.empty data else data
 
@@ -269,13 +269,13 @@ module Make (T : T) = struct
     in
     Duppy.Monad.bind __pa_duppy_0 (fun data ->
         Duppy.Monad.bind
-          ( if Strings.is_empty data then
-            Duppy.Monad.bind (Duppy_m.lock c.condition_m) (fun () ->
-                Duppy.Monad.bind (Duppy_c.wait c.condition c.condition_m)
-                  (fun () -> Duppy_m.unlock c.condition_m))
+          (if Strings.is_empty data then
+           Duppy.Monad.bind (Duppy_m.lock c.condition_m) (fun () ->
+               Duppy.Monad.bind (Duppy_c.wait c.condition c.condition_m)
+                 (fun () -> Duppy_m.unlock c.condition_m))
           else
             Duppy.Monad.Io.write ?timeout:(Some c.timeout)
-              ~priority:Tutils.Non_blocking c.handler (Strings.to_bytes data) )
+              ~priority:Tutils.Non_blocking c.handler (Strings.to_bytes data))
           (fun () ->
             let __pa_duppy_0 =
               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
@@ -396,7 +396,7 @@ module Make (T : T) = struct
               | _, None -> false
               | None, _ -> false
               | Some default_user, Some default_password ->
-                  user = default_user && password = default_password )
+                  user = default_user && password = default_password)
     in
     let dumpfile =
       Lang.to_valued_option Lang.to_string (List.assoc "dumpfile" p)
@@ -416,21 +416,13 @@ module Make (T : T) = struct
             ~infallible ~autostart ~on_start ~on_stop ~name:mount source
 
       val mutable dump = None
-
       val mutable encoder = None
-
       val mutable clients = Queue.create ()
-
       val clients_m = Mutex.create ()
-
       val duppy_c = Duppy_c.create ()
-
       val duppy_m = Duppy_m.create ()
-
       val mutable chunk_len = 0
-
       val burst_data = Strings.Mutable.empty ()
-
       val metadata = { metadata = None; metadata_m = Mutex.create () }
 
       method encode frame ofs len =
@@ -521,15 +513,15 @@ module Make (T : T) = struct
         self#log#info "Serving client %s." ip;
         Duppy.Monad.bind
           (Duppy.Monad.catch
-             ( if
-               (default_user <> None && default_password <> None)
-               || auth_function <> None
+             (if
+              (default_user <> None && default_password <> None)
+              || auth_function <> None
              then (
-               let default_user = Option.value default_user ~default:"" in
-               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
-                 (Harbor.http_auth_check ~args ~login:(default_user, login) s
-                    headers) )
-             else Duppy.Monad.return () )
+              let default_user = Option.value default_user ~default:"" in
+              Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
+                (Harbor.http_auth_check ~args ~login:(default_user, login) s
+                   headers))
+             else Duppy.Monad.return ())
              (function
                | Harbor.Relay _ -> assert false
                | Harbor.Close s ->
@@ -554,15 +546,15 @@ module Make (T : T) = struct
           let wake_up =
             if chunk_len >= chunk then (
               chunk_len <- 0;
-              true )
+              true)
             else false
           in
           Strings.Mutable.append_strings burst_data b;
           Strings.Mutable.keep burst_data burst;
           let new_clients = Queue.create () in
-          ( match dump with
+          (match dump with
             | Some s -> Strings.iter (output_substring s) b
-            | None -> () );
+            | None -> ());
           Tutils.mutexify clients_m
             (fun () ->
               Queue.iter
@@ -597,7 +589,7 @@ module Make (T : T) = struct
                   (Duppy_c.broadcast duppy_c)
               else ();
               clients <- new_clients)
-            () )
+            ())
         else ()
 
       method start =

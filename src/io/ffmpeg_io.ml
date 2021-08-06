@@ -54,13 +54,9 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           ~autostart () as super
 
     val mutable connect_task = None
-
     val mutable container = None
-
     val generator = generator
-
     method remaining = -1
-
     method abort_track = Generator.add_break generator
 
     method is_ready =
@@ -70,15 +66,10 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       (`Dynamic, self_sync && self#mutexify (fun () -> container <> None) ())
 
     method private start = self#connect
-
     method private stop = self#disconnect
-
     val mutable url = url
-
     method url = url ()
-
     method set_url u = url <- u
-
     method buffer_length = Frame.seconds_of_audio (Generator.length generator)
 
     val mutable source_status : [ `Stopped | `Polling | `Connected of string ] =
@@ -113,16 +104,16 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             m);
         let get_metadata () =
           normalize_metadata
-            ( Av.get_input_metadata input
-            @ ( match audio with
+            (Av.get_input_metadata input
+            @ (match audio with
                 | Some (`Packet (_, stream, _)) -> Av.get_metadata stream
                 | Some (`Frame (_, stream, _)) -> Av.get_metadata stream
-                | None -> [] )
+                | None -> [])
             @
             match video with
               | Some (`Packet (_, stream, _)) -> Av.get_metadata stream
               | Some (`Frame (_, stream, _)) -> Av.get_metadata stream
-              | None -> [] )
+              | None -> [])
         in
         container <- Some (input, decoder, get_metadata);
         source_status <- `Connected url;
@@ -146,7 +137,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                       self#connect_fn
                   in
                   connect_task <- Some t;
-                  Duppy.Async.wake_up t ))
+                  Duppy.Async.wake_up t))
         ()
 
     method private disconnect =
@@ -155,12 +146,12 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           match container with
             | None -> ()
             | Some (input, _, _) ->
-                ( try Av.close input
-                  with exn ->
-                    let bt = Printexc.get_backtrace () in
-                    Utils.log_exception ~log:self#log ~bt
-                      (Printf.sprintf "Error while disconnecting: %s"
-                         (Printexc.to_string exn)) );
+                (try Av.close input
+                 with exn ->
+                   let bt = Printexc.get_backtrace () in
+                   Utils.log_exception ~log:self#log ~bt
+                     (Printf.sprintf "Error while disconnecting: %s"
+                        (Printexc.to_string exn)));
                 container <- None;
                 source_status <- `Stopped;
                 on_disconnect ())
@@ -189,7 +180,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           List.iter (fun (lbl, v) -> Hashtbl.replace meta lbl v) m;
           Generator.add_metadata generator meta;
           if new_track_on_metadata then Generator.add_break generator;
-          last_metadata <- m )
+          last_metadata <- m)
       with exn ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
@@ -228,7 +219,7 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
               try
                 let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
                 (Pcre.get_substring res 1, Pcre.get_substring res 2) :: ret
-              with Not_found -> ret )
+              with Not_found -> ret)
             else ret)
           [] icy_headers
       with exn ->
@@ -280,35 +271,35 @@ let register_input is_http =
     else ("input.ffmpeg", "Create a stream using ffmpeg")
   in
   Lang.add_operator name ~descr ~category:Lang.Input
-    ( Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
-    @ ( if is_http then
-        [
-          ( "user_agent",
-            Lang.string_t,
-            Some (Lang.string Http.user_agent),
-            Some "User agent." );
-          ( "timeout",
-            Lang.float_t,
-            Some (Lang.float 10.),
-            Some "Timeout for source connection." );
-        ]
-      else [] )
-    @ ( if is_http then
-        [
-          ( "on_connect",
-            Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
-            Some (Lang.val_cst_fun [("", None)] Lang.unit),
-            Some
-              "Function to execute when a source is connected. Its receives \
-               the list of ICY-specific headers, if available." );
-        ]
+    (Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
+    @ (if is_http then
+       [
+         ( "user_agent",
+           Lang.string_t,
+           Some (Lang.string Http.user_agent),
+           Some "User agent." );
+         ( "timeout",
+           Lang.float_t,
+           Some (Lang.float 10.),
+           Some "Timeout for source connection." );
+       ]
+      else [])
+    @ (if is_http then
+       [
+         ( "on_connect",
+           Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
+           Some (Lang.val_cst_fun [("", None)] Lang.unit),
+           Some
+             "Function to execute when a source is connected. Its receives the \
+              list of ICY-specific headers, if available." );
+       ]
       else
         [
           ( "on_connect",
             Lang.fun_t [] Lang.unit_t,
             Some (Lang.val_cst_fun [] Lang.unit),
             Some "Function to execute when a source is connected." );
-        ] )
+        ])
     @ [
         args ~t:Lang.int_t "int";
         args ~t:Lang.float_t "float";
@@ -351,7 +342,7 @@ let register_input is_http =
             "Force a specific input format. Autodetected when passed a null \
              argument" );
         ("", Lang.getter_t Lang.string_t, None, Some "URL to decode.");
-      ] )
+      ])
     ~return_t:k
     ~meth:
       Lang.(
@@ -378,10 +369,10 @@ let register_input is_http =
               fun s ->
                 val_fun [] (fun _ ->
                     string
-                      ( match s#source_status with
+                      (match s#source_status with
                         | `Stopped -> "stopped"
                         | `Polling -> "polling"
-                        | `Connected url -> Printf.sprintf "connected %s" url ))
+                        | `Connected url -> Printf.sprintf "connected %s" url))
             );
             ( "buffer_length",
               ([], fun_t [] float_t),
@@ -442,18 +433,18 @@ let register_input is_http =
           let arg = Lang.list l in
           ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
         in
-        ( new http_input
-            ~kind ~debug ~autostart ~self_sync ~clock_safe ~poll_delay
-            ~on_connect ~on_disconnect ~user_agent ~new_track_on_metadata
-            ~max_buffer ~log_overfull ?format ~opts ~timeout ~on_start ~on_stop
-            url
-          :> input ) )
+        (new http_input
+           ~kind ~debug ~autostart ~self_sync ~clock_safe ~poll_delay
+           ~on_connect ~on_disconnect ~user_agent ~new_track_on_metadata
+           ~max_buffer ~log_overfull ?format ~opts ~timeout ~on_start ~on_stop
+           url
+          :> input))
       else (
         let on_connect _ = ignore (Lang.apply (List.assoc "on_connect" p) []) in
         new input
           ~kind ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_start
           ~on_stop ~on_connect ~on_disconnect ~max_buffer ~log_overfull ?format
-          ~opts ~new_track_on_metadata url ))
+          ~opts ~new_track_on_metadata url))
 
 let () =
   register_input true;

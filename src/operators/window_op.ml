@@ -32,15 +32,10 @@ class window ~kind mode duration source =
         ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
 
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     (** Accumulator (e.g. sum of squares). *)
@@ -59,7 +54,6 @@ class window ~kind mode duration source =
       value <- Array.make channels 0.
 
     val m = Mutex.create ()
-
     method value = Tutils.mutexify m (fun () -> value) ()
 
     method private get_frame buf =
@@ -93,8 +87,8 @@ class window ~kind mode duration source =
                         v)
             in
             acc_dur <- 0;
-            Tutils.mutexify m (fun () -> value <- value') () )
-        done )
+            Tutils.mutexify m (fun () -> value <- value') ())
+        done)
   end
 
 let declare mode suffix kind fun_ret_t f_ans =
@@ -111,10 +105,10 @@ let declare mode suffix kind fun_ret_t f_ans =
       ]
     ~return_t
     ~descr:
-      ( "Get current " ^ doc
-      ^ " of the source. Returns the source with a method `" ^ name
-      ^ "` to compute the current " ^ doc ^ " of the source, with `0.0 <= "
-      ^ doc ^ " <= 1.0`." )
+      ("Get current " ^ doc
+     ^ " of the source. Returns the source with a method `" ^ name
+     ^ "` to compute the current " ^ doc ^ " of the source, with `0.0 <= " ^ doc
+     ^ " <= 1.0`.")
     [
       ( "duration",
         Lang.getter_t Lang.float_t,

@@ -202,7 +202,7 @@ let pack_image f =
   if conf_alpha#get then (
     Image.YUV420.ensure_alpha f;
     let a = Option.get (Image.YUV420.alpha f) in
-    [| (y, sy); (u, s); (v, s); (a, s) |] )
+    [| (y, sy); (u, s); (v, s); (a, s) |])
   else [| (y, sy); (u, s); (v, s) |]
 
 let unpack_image ~width ~height f =
@@ -244,7 +244,7 @@ let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
             "Codec %s has internal hardware capabilities that should work \
              without specific settings."
             codec_name;
-          raise (Found (None, target_pixel_format)) ));
+          raise (Found (None, target_pixel_format))));
     find `Hw_device_ctx (fun { Avcodec.device_type; _ } ->
         log#info
           "Codec %s has device context-based hardware capabilities. Enabling \
@@ -308,10 +308,10 @@ module Duration = struct
     let packets = packets in
     if duration > 0 then (
       t.packets <- [(0, packet)];
-      Some (duration, packets) )
+      Some (duration, packets))
     else (
       t.packets <- packets @ [(0, packet)];
-      None )
+      None)
 
   let flush { packets } = packets
 end
@@ -330,7 +330,7 @@ let find_pixel_format codec pixel_format =
       | [] ->
           failwith
             (Printf.sprintf "No suitable pixel format for codec %s!"
-               (Avcodec.name codec)) )
+               (Avcodec.name codec)))
 
 let pixel_format codec = function
   | Some p -> Avutil.Pixel_format.of_string p

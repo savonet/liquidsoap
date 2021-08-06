@@ -34,13 +34,9 @@ type state = [ `Started | `Stopped | `Idle ]
 class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
   object (self)
     val mutable state : state = `Idle
-
     method state = state
-
     method virtual private start : unit
-
     method virtual private stop : unit
-
     method virtual stype : Source.source_t
 
     (* Default [reset] method. Can be overriden if necessary. *)
@@ -75,17 +71,11 @@ class virtual active_source ?get_clock ~name ~content_kind ~clock_safe
   in
   object (self)
     inherit Source.active_source ~name content_kind as super
-
     inherit base ~on_start ~on_stop as base
-
     method stype = if fallible then Source.Fallible else Source.Infallible
-
     method private wake_up _ = if autostart then base#transition_to `Started
-
     method private sleep = base#transition_to `Stopped
-
     method is_ready = state = `Started
-
     val mutable clock = None
 
     method private get_clock =
@@ -103,7 +93,6 @@ class virtual active_source ?get_clock ~name ~content_kind ~clock_safe
           (Clock.create_known (self#get_clock :> Clock.clock))
 
     method virtual private get_frame : Frame.t -> unit
-
     method virtual private memo : Frame.t
 
     method private output =

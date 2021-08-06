@@ -87,9 +87,9 @@ let to_string v =
     (string_of_bitrate v.bitrate)
     v.channels
     (string_of_application v.application)
-    ( match v.complexity with
+    (match v.complexity with
       | None -> ""
-      | Some i -> Printf.sprintf "complexity=\"%d\"," i )
+      | Some i -> Printf.sprintf "complexity=\"%d\"," i)
     (string_of_bandwidth v.max_bandwidth)
     (string_of_signal v.signal)
     v.samplerate v.frame_size v.dtx v.phase_inversion

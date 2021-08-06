@@ -90,7 +90,7 @@ let load_libs =
       Lang.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
         ~parse_only:!parse_only ();
       loaded := true;
-      Configure.display_types := save )
+      Configure.display_types := save)
 
 (** Evaluate a script or expression.
   * This used to be done immediately, which made it possible to
@@ -192,62 +192,62 @@ let log = Log.make ["main"]
 
 let options =
   ref
-    ( [
-        ( ["-"],
-          Arg.Unit (fun () -> eval `StdIn),
-          "Read script from standard input." );
-        (["-r"], Arg.String process_request, "Process a request.");
-        ( ["-h"],
-          Arg.String lang_doc,
-          "Get help about a scripting value: source, operator, builtin or \
-           library function, etc." );
-        ( ["-c"; "--check"],
-          Arg.Unit (fun () -> run_streams := false),
-          "Check and evaluate scripts but do not perform any streaming." );
-        ( ["-cl"; "--check-lib"],
-          Arg.Unit
-            (fun () ->
-              last_item_lib := true;
-              run_streams := false),
-          "Like --check but treats all scripts and expressions as libraries, \
-           so that unused toplevel variables are not reported." );
-        ( ["-p"; "--parse-only"],
-          Arg.Unit
-            (fun () ->
-              run_streams := false;
-              parse_only := true),
-          "Parse scripts but do not type-check and run them." );
-        ( ["-q"; "--quiet"],
-          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
-          "Do not print log messages on standard output." );
-        ( ["-v"; "--verbose"],
-          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set true),
-          "Print log messages on standard output." );
-        ( ["-f"; "--force-start"],
-          Arg.Unit (fun () -> force_start#set true),
-          "For advanced dynamic uses: force liquidsoap to start even when no \
-           active source is initially defined." );
-        ( ["--debug"],
-          Arg.Unit
-            (fun () ->
-              Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
-          "Print debugging log messages." );
-        ( ["--debug-errors"],
-          Arg.Unit (fun () -> Lang_values.conf_debug_errors#set true),
-          "Debug errors (show stacktrace instead of printing a message)." );
-        ( ["--debug-lang"],
-          Arg.Unit
-            (fun () ->
-              Lang_types.debug := true;
-              Lang_values.conf_debug#set true),
-          "Debug language implementation." );
-        (["--profile"], Arg.Set Lang_values.profile, "Profile execution.");
-        ( ["--strict"],
-          Arg.Set Lang_errors.strict,
-          "Execute script code in strict mode, issuing fatal errors instead of \
-           warnings in some cases. Currently: unused variables and ignored \
-           expressions. " );
-      ]
+    ([
+       ( ["-"],
+         Arg.Unit (fun () -> eval `StdIn),
+         "Read script from standard input." );
+       (["-r"], Arg.String process_request, "Process a request.");
+       ( ["-h"],
+         Arg.String lang_doc,
+         "Get help about a scripting value: source, operator, builtin or \
+          library function, etc." );
+       ( ["-c"; "--check"],
+         Arg.Unit (fun () -> run_streams := false),
+         "Check and evaluate scripts but do not perform any streaming." );
+       ( ["-cl"; "--check-lib"],
+         Arg.Unit
+           (fun () ->
+             last_item_lib := true;
+             run_streams := false),
+         "Like --check but treats all scripts and expressions as libraries, so \
+          that unused toplevel variables are not reported." );
+       ( ["-p"; "--parse-only"],
+         Arg.Unit
+           (fun () ->
+             run_streams := false;
+             parse_only := true),
+         "Parse scripts but do not type-check and run them." );
+       ( ["-q"; "--quiet"],
+         Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
+         "Do not print log messages on standard output." );
+       ( ["-v"; "--verbose"],
+         Arg.Unit (fun () -> Dtools.Log.conf_stdout#set true),
+         "Print log messages on standard output." );
+       ( ["-f"; "--force-start"],
+         Arg.Unit (fun () -> force_start#set true),
+         "For advanced dynamic uses: force liquidsoap to start even when no \
+          active source is initially defined." );
+       ( ["--debug"],
+         Arg.Unit
+           (fun () ->
+             Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
+         "Print debugging log messages." );
+       ( ["--debug-errors"],
+         Arg.Unit (fun () -> Lang_values.conf_debug_errors#set true),
+         "Debug errors (show stacktrace instead of printing a message)." );
+       ( ["--debug-lang"],
+         Arg.Unit
+           (fun () ->
+             Lang_types.debug := true;
+             Lang_values.conf_debug#set true),
+         "Debug language implementation." );
+       (["--profile"], Arg.Set Lang_values.profile, "Profile execution.");
+       ( ["--strict"],
+         Arg.Set Lang_errors.strict,
+         "Execute script code in strict mode, issuing fatal errors instead of \
+          warnings in some cases. Currently: unused variables and ignored \
+          expressions. " );
+     ]
     @ Dtools.Init.args
     @ [
         ( ["-t"; "--enable-telnet"],
@@ -359,7 +359,7 @@ let options =
                 (Builtins_settings.print_settings ());
               exit 0),
           "Display configuration keys in markdown format." );
-      ] )
+      ])
 
 let expand_options options =
   let options = List.sort (fun (x, _, _) (y, _, _) -> compare x y) options in
@@ -440,7 +440,7 @@ let () =
         Dtools.Log.conf_file_path#set_d (Some default_log);
         Dtools.Log.conf_file#set true;
         Dtools.Log.conf_stdout#set false;
-        Lifecycle.on_core_shutdown (fun _ -> Sys.remove default_log) );
+        Lifecycle.on_core_shutdown (fun _ -> Sys.remove default_log));
 
       (* Allow frame settings to be evaluated here: *)
       Frame_settings.lazy_config_eval := true;
@@ -454,7 +454,7 @@ let initial_cleanup () =
   if Tutils.has_started () then (
     log#important "Waiting for main threads to terminate...";
     Tutils.join_all ();
-    log#important "Main threads terminated." )
+    log#important "Main threads terminated.")
 
 let final_cleanup () =
   log#important "Cleaning downloaded files...";
@@ -479,7 +479,7 @@ let () =
       if code <> 0 then exit code;
       if !Configure.restart then (
         log#important "Restarting...";
-        Unix.execv Sys.executable_name Sys.argv ))
+        Unix.execv Sys.executable_name Sys.argv))
 
 (** Main procedure *)
 
@@ -501,11 +501,11 @@ let check_directories () =
         \  set(%S, \"<path>\")\n"
         kind dir
         (Dtools.Conf.string_of_path (List.hd routes));
-      exit 1 )
+      exit 1)
   in
   if Dtools.Log.conf_file#get then (
     subst Dtools.Log.conf_file_path;
-    check_dir Dtools.Log.conf_file_path "Log" );
+    check_dir Dtools.Log.conf_file_path "Log");
   if Dtools.Init.conf_daemon#get && Dtools.Init.conf_daemon_pidfile#get then
     check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
 
@@ -517,7 +517,7 @@ let () =
          * crashes the program.. *)
         if not Sys.win32 then (
           Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
-          ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]) );
+          ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]));
 
         (* On Windows we need to initiate shutdown ourselves by catching INT
          * since dtools doesn't do it. *)
@@ -539,7 +539,7 @@ let () =
           load_libs ();
           check_directories ();
           ignore (Thread.create Lang.interactive ());
-          Dtools.Init.init main )
+          Dtools.Init.init main)
         else if Source.has_outputs () || force_start#get then (
           check_directories ();
           let msg_of_err = function
@@ -556,11 +556,11 @@ let () =
             exit (-1)
           in
           try Dtools.Init.init ~prohibit_root:(not allow_root#get) main
-          with Dtools.Init.Root_prohibited e -> on_error e )
+          with Dtools.Init.Root_prohibited e -> on_error e)
         else (
           final_cleanup ();
           Printf.printf "No output defined, nothing to do.\n";
-          exit 1 ))
+          exit 1))
 
 (* Here we go! *)
 let start () = Dtools.Init.exec Lifecycle.init_atom

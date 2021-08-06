@@ -41,13 +41,9 @@ class audio_output ~name ~kind source_val =
           ~output_kind:"ffmpeg.filter.input" source_val true as super
 
     initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
-
     val mutable input = fun _ -> assert false
-
     method set_input fn = input <- fn
-
     val mutable init = lazy ()
-
     method set_init v = init <- v
 
     method private wake_up a =
@@ -55,9 +51,7 @@ class audio_output ~name ~kind source_val =
       Lazy.force init
 
     method start = ()
-
     method stop = ()
-
     method reset = ()
 
     method send_frame memo =
@@ -88,19 +82,12 @@ class video_output ~kind ~name source_val =
           ~output_kind:"ffmpeg.filter.input" source_val true
 
     initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
-
     val mutable input : Swscale.Frame.t -> unit = fun _ -> assert false
-
     method set_input fn = input <- fn
-
     val mutable init = lazy ()
-
     method set_init v = init <- v
-
     method start = Lazy.force init
-
     method stop = ()
-
     method reset = ()
 
     method send_frame memo =
@@ -131,9 +118,7 @@ class audio_input ~bufferize kind =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
-
     val mutable config = None
-
     val mutable output = None
 
     method set_output v =
@@ -150,9 +135,7 @@ class audio_input ~bufferize kind =
       output <- Some v
 
     method self_sync = (`Static, false)
-
     method stype = Source.Fallible
-
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
@@ -204,13 +187,13 @@ class audio_input ~bufferize kind =
         | `Not_ready ->
             if Generator.length generator >= min_buf then (
               state <- `Ready;
-              true )
+              true)
             else false
         | `Ready ->
             if Generator.length generator > 0 then true
             else (
               state <- `Not_ready;
-              false )
+              false)
 
     method private get_frame frame =
       self#flush_buffer;
@@ -234,7 +217,6 @@ class video_input ~bufferize ~fps kind =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
-
     val mutable output = None
 
     method set_output v =
@@ -251,9 +233,7 @@ class video_input ~bufferize ~fps kind =
       output <- Some v
 
     method self_sync = (`Static, false)
-
     method stype = Source.Fallible
-
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
@@ -296,13 +276,13 @@ class video_input ~bufferize ~fps kind =
         | `Not_ready ->
             if Generator.length generator >= min_buf then (
               state <- `Ready;
-              true )
+              true)
             else false
         | `Ready ->
             if Generator.length generator > 0 then true
             else (
               state <- `Not_ready;
-              false )
+              false)
 
     method private get_frame frame =
       self#flush_buffer;

@@ -109,11 +109,11 @@ let add_http_request ~stream_body ~descr ~request name =
                 match s with None -> Lang.null | Some s -> Lang.string s
               in
               ignore (Lang.apply on_body_data [("", v)])),
-            fun _ -> assert false ) )
+            fun _ -> assert false ))
         else (
           let body = Buffer.create 1024 in
           ( (fun s -> ignore (Option.map (Buffer.add_string body) s)),
-            fun () -> Buffer.contents body ) )
+            fun () -> Buffer.contents body ))
       in
       let protocol_version, status_code, status_message, headers =
         try

@@ -59,9 +59,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
            (List.filter (fun (_, s) -> s#is_ready) sources))
 
     method abort_track = List.iter (fun (_, s) -> s#abort_track) sources
-
     method is_ready = List.exists (fun (_, s) -> s#is_ready) sources
-
     method seek n = match sources with [(_, s)] -> s#seek n | _ -> 0
 
     (* We fill the buffer as much as possible, removing internal breaks.
@@ -109,7 +107,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
               else (
                 Frame.clear tmp;
                 Frame.set_breaks tmp [offset];
-                tmp )
+                tmp)
             in
             s#get buffer;
             let already = AFrame.position buffer in
@@ -120,22 +118,22 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                   (Audio.sub (AFrame.pcm buffer)
                      (Frame.audio_of_main offset)
                      (Frame.audio_of_main (already - offset)))
-              with Frame_content.Invalid -> () );
+              with Frame_content.Invalid -> ());
             if rank > 0 then (
               (* The region grows, make sure it is clean before adding.
                * TODO the same should be done for video. *)
-              ( try
-                  if already > end_offset then
-                    Audio.clear
-                      (Audio.sub (AFrame.pcm buf)
-                         (Frame.audio_of_main end_offset)
-                         (Frame.audio_of_main (already - end_offset)));
+              (try
+                 if already > end_offset then
+                   Audio.clear
+                     (Audio.sub (AFrame.pcm buf)
+                        (Frame.audio_of_main end_offset)
+                        (Frame.audio_of_main (already - end_offset)));
 
-                  (* Add to the main buffer. *)
-                  Audio.add
-                    (Audio.sub (AFrame.pcm buf) offset (already - offset))
-                    (Audio.sub (AFrame.pcm tmp) offset (already - offset))
-                with Frame_content.Invalid -> () );
+                 (* Add to the main buffer. *)
+                 Audio.add
+                   (Audio.sub (AFrame.pcm buf) offset (already - offset))
+                   (Audio.sub (AFrame.pcm tmp) offset (already - offset))
+               with Frame_content.Invalid -> ());
 
               try
                 let vbuf = VFrame.yuva420p buf in
@@ -144,7 +142,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                 for i = !offset to !already - 1 do
                   video_loop rank (Video.get vbuf i) (Video.get vtmp i)
                 done
-              with Frame_content.Invalid -> () )
+              with Frame_content.Invalid -> ())
             else (
               try
                 let vbuf = VFrame.yuva420p buf in
@@ -152,7 +150,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                 for i = !offset to !already - 1 do
                   video_init (Video.get vbuf i)
                 done
-              with Frame_content.Invalid -> () );
+              with Frame_content.Invalid -> ());
             (rank + 1, max end_offset already))
           (0, offset) sources
       in
@@ -209,12 +207,12 @@ let () =
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
       let kind = Source.Kind.of_kind kind in
-      ( new add
-          ~kind ~renorm ~power
-          (List.map2 (fun w s -> (w, s)) weights sources)
-          (fun _ -> ())
-          (fun _ buf tmp -> Video.Image.add tmp buf)
-        :> Source.source ))
+      (new add
+         ~kind ~renorm ~power
+         (List.map2 (fun w s -> (w, s)) weights sources)
+         (fun _ -> ())
+         (fun _ buf tmp -> Video.Image.add tmp buf)
+        :> Source.source))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -224,7 +222,7 @@ let tile_pos n =
       let x = ref (x - dx) in
       Array.init l (fun _ ->
           x := !x + dx;
-          (!x, y, dx, y' - y)) )
+          (!x, y, dx, y' - y)))
   in
   let x' = Lazy.force Frame.video_width in
   let y' = Lazy.force Frame.video_height in
@@ -278,10 +276,10 @@ let () =
             let sw, sh = (Video.Image.width buf, Video.Image.height buf) in
             if w * sh < sw * h then (
               let h' = sh * w / sw in
-              (x, y + ((h - h') / 2), w, h') )
+              (x, y + ((h - h') / 2), w, h'))
             else (
               let w' = sw * h / sh in
-              (x + ((w - w') / 2), y, w', h) ) )
+              (x + ((w - w') / 2), y, w', h)))
           else (x, y, w, h)
         in
         let tmp' = Video.Image.create w h in
@@ -295,8 +293,8 @@ let () =
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
       let kind = Source.Kind.of_kind kind in
-      ( new add
-          ~kind ~renorm ~power
-          (List.map2 (fun w s -> (w, s)) weights sources)
-          video_init video_loop
-        :> Source.source ))
+      (new add
+         ~kind ~renorm ~power
+         (List.map2 (fun w s -> (w, s)) weights sources)
+         video_init video_loop
+        :> Source.source))

@@ -38,7 +38,7 @@ let check_samplerate ?t i =
      if not (List.mem i allowed) then (
        match t with
          | Some t -> raise (Error (t, "invalid samplerate value"))
-         | None -> failwith "invalid samplerate value" );
+         | None -> failwith "invalid samplerate value");
      i)
 
 let mp3_base_defaults () =
@@ -79,7 +79,7 @@ let mp3_base f = function
       match !Mp3_format.id3v2_export with
         | None ->
             raise (Error (t, "no id3v2 support available for the mp3 encoder"))
-        | Some g -> { f with Mp3_format.id3v2 = Some g } )
+        | Some g -> { f with Mp3_format.id3v2 = Some g })
   | "id3v2", { term = Ground (Bool false); _ } ->
       { f with Mp3_format.id3v2 = None }
   | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
@@ -107,7 +107,8 @@ let make_cbr params =
         | "bitrate", ({ term = Ground (Int i); _ } as t) ->
             if not (List.mem i allowed_bitrates) then
               raise (Error (t, "invalid bitrate value"));
-            set_bitrate f i | x -> mp3_base f x)
+            set_bitrate f i
+        | x -> mp3_base f x)
       defaults params
   in
   Encoder.MP3 mp3
@@ -211,7 +212,8 @@ let make_abr_vbr ~default params =
         | "max_bitrate", ({ term = Ground (Int i); _ } as t) ->
             if not (List.mem i allowed_bitrates) then
               raise (Error (t, "invalid bitrate value"));
-            set_max_bitrate f (Some i) | x -> mp3_base f x)
+            set_max_bitrate f (Some i)
+        | x -> mp3_base f x)
       default params
   in
   Encoder.MP3 mp3

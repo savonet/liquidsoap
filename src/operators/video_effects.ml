@@ -26,17 +26,11 @@ open Source
 class effect ~name ~kind effect (source : source) =
   object
     inherit operator ~name kind [source]
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
 
     method private get_frame buf =
@@ -44,7 +38,7 @@ class effect ~name ~kind effect (source : source) =
         | Some (rgb, offset, length) -> (
             try
               Video.iter effect (Frame_content.Video.get_data rgb) offset length
-            with Frame_content.Invalid -> () )
+            with Frame_content.Invalid -> ())
         | _ -> ()
   end
 
@@ -263,7 +257,7 @@ let () =
               if width < 0 && height < 0 then (owidth, oheight)
               else if width < 0 then (owidth * height / oheight, height)
               else if height < 0 then (width, oheight * width / owidth)
-              else assert false )
+              else assert false)
           in
           let dst = Video.Image.create width height in
           Video.Image.scale buf dst;

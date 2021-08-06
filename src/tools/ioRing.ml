@@ -38,7 +38,6 @@ class virtual ['a] base ~nb_blocks =
       buffer <- Some (Array.init nb_blocks (fun _ -> blank ()))
 
     val mutable read = 0
-
     val mutable write = 0
 
     (* First, consider read and write as positions on an infinite string:
@@ -63,7 +62,6 @@ class virtual ['a] base ~nb_blocks =
 
     (* Accesses to read/write must be protected by wait_m. *)
     val wait_m = Mutex.create ()
-
     val wait_c = Condition.create ()
 
     (* State of the I/O process:
@@ -93,15 +91,10 @@ class virtual ['a] base ~nb_blocks =
 class virtual ['a] input ~nb_blocks =
   object (self)
     inherit ['a] base ~nb_blocks
-
     method virtual pull_block : 'a -> unit
-
     method virtual id : string
-
     method virtual close : unit
-
     method private sleep = self#sourcering_stop
-
     method private stop = self#sourcering_stop
 
     method private start =
@@ -171,13 +164,9 @@ class virtual ['a] input ~nb_blocks =
 class virtual ['a] output ~nb_blocks =
   object (self)
     inherit ['a] base ~nb_blocks
-
     method virtual id : string
-
     method virtual push_block : 'a -> unit
-
     method virtual close : unit
-
     method stop = self#sourcering_stop
 
     method start =

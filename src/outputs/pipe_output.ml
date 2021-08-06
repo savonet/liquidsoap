@@ -51,9 +51,7 @@ class virtual base ~kind ~source ~name p =
           ~name ~content_kind:kind source
 
     val mutable encoder = None
-
     val mutable current_metadata = None
-
     method virtual private encoder_factory : Encoder.factory
 
     method start =
@@ -66,7 +64,6 @@ class virtual base ~kind ~source ~name p =
       encoder <- Some (enc meta)
 
     method stop = encoder <- None
-
     method reset = ()
 
     method encode frame ofs len =
@@ -74,9 +71,7 @@ class virtual base ~kind ~source ~name p =
       enc.Encoder.encode frame ofs len
 
     method virtual write_pipe : string -> int -> int -> unit
-
     method send b = Strings.iter self#write_pipe b
-
     method insert_metadata m = (Option.get encoder).Encoder.insert_metadata m
   end
 
@@ -117,7 +112,6 @@ class url_output p =
   let name = "output.url" in
   object (self)
     inherit base p ~kind ~source ~name as super
-
     method private encoder_factory = encoder_factory ~format format_val
 
     method encode frame ofs len =
@@ -131,7 +125,6 @@ class url_output p =
         self#encode frame ofs len
 
     method write_pipe _ _ _ = ()
-
     method self_sync = (`Static, self_sync)
   end
 
@@ -173,9 +166,9 @@ let pipe_proto kind arg_doc =
         Lang.getter_t Lang.string_t,
         None,
         Some
-          ( arg_doc
-          ^ " Some strftime conversion specifiers are available: `%SMHdmY`. \
-             You can also use `$(..)` interpolation notation for metadata." ) );
+          (arg_doc
+         ^ " Some strftime conversion specifiers are available: `%SMHdmY`. You \
+            can also use `$(..)` interpolation notation for metadata.") );
       ("", Lang.source_t kind, None, None);
     ]
 
@@ -189,19 +182,12 @@ class virtual piped_output ~kind p =
   let source = Lang.assoc "" 3 p in
   object (self)
     inherit base ~kind ~source ~name p as super
-
     method reopen_cmd = self#reopen
-
     val mutable open_date = 0.
-
     val mutable need_reset = false
-
     val mutable reopening = false
-
     method virtual open_pipe : unit
-
     method virtual close_pipe : unit
-
     method virtual is_open : bool
 
     method interpolate ?(subst = fun x -> x) s =
@@ -221,7 +207,7 @@ class virtual piped_output ~kind p =
       if self#is_open then (
         let flush = (Option.get encoder).Encoder.stop () in
         self#send flush;
-        self#close_pipe );
+        self#close_pipe);
       super#stop
 
     val m = Mutex.create ()
@@ -241,10 +227,10 @@ class virtual piped_output ~kind p =
 
     method send b =
       if not self#is_open then self#prepare_pipe;
-      ( try super#send b
-        with e when reload_on_error ->
-          self#log#important "Reopening on error: %s." (Printexc.to_string e);
-          need_reset <- true );
+      (try super#send b
+       with e when reload_on_error ->
+         self#log#important "Reopening on error: %s." (Printexc.to_string e);
+         need_reset <- true);
       if not reopening then
         if
           need_reset
@@ -255,7 +241,7 @@ class virtual piped_output ~kind p =
     method insert_metadata m =
       if reload_on_metadata then (
         current_metadata <- Some m;
-        need_reset <- true )
+        need_reset <- true)
       else super#insert_metadata m
   end
 
@@ -276,11 +262,8 @@ class virtual chan_output p =
   let flush = Lang.to_bool (List.assoc "flush" p) in
   object (self)
     val mutable chan = None
-
     method virtual open_chan : out_channel
-
     method virtual close_chan : out_channel -> unit
-
     method open_pipe = chan <- Some self#open_chan
 
     method write_pipe b ofs len =
@@ -303,7 +286,6 @@ class virtual file_output_base p =
   let on_close s = Lang.to_unit (Lang.apply on_close [("", Lang.string s)]) in
   object (self)
     val mutable current_filename = None
-
     method virtual interpolate : ?subst:(string -> string) -> string -> string
 
     method private filename =
@@ -323,17 +305,14 @@ class file_output ~format_val ~kind p =
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
   object (self)
     inherit piped_output ~kind p
-
     inherit chan_output p
-
     inherit file_output_base p
-
     method encoder_factory = encoder_factory format_val
 
     method open_chan =
       let mode =
-        Open_wronly :: Open_creat
-        :: (if append then [Open_append] else [Open_trunc])
+        Open_wronly
+        :: Open_creat :: (if append then [Open_append] else [Open_trunc])
       in
       let filename = self#filename in
       Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
@@ -352,7 +331,6 @@ class file_output_using_encoder ~format_val ~kind p =
   let format = Lang.to_format format_val in
   object (self)
     inherit piped_output ~kind p
-
     inherit file_output_base p
 
     method encoder_factory name meta =
@@ -360,11 +338,8 @@ class file_output_using_encoder ~format_val ~kind p =
       encoder_factory ~format format_val name meta
 
     method is_open = true
-
     method open_pipe = ()
-
     method close_pipe = ()
-
     method write_pipe _ _ _ = ()
   end
 
@@ -423,11 +398,8 @@ class external_output p =
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
     inherit piped_output ~kind p
-
     inherit chan_output p
-
     method encoder_factory = encoder_factory format_val
-
     method self_sync = (`Static, self_sync)
 
     method open_chan =

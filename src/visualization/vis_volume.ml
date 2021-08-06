@@ -31,15 +31,10 @@ let f_group_size = float group_size
 class vumeter ~kind source =
   object (self)
     inherit operator ~name:"visu.volume" kind [source] as super
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     method private sleep =
@@ -48,13 +43,11 @@ class vumeter ~kind source =
 
     (* Ringbuffer for previous values, with its current position *)
     val mutable vol = [||]
-
     val mutable pos = 0
 
     (* Another buffer for accumulating RMS over [group_size] samples,
      * with its current position. *)
     val mutable cur_rms = [||]
-
     val mutable group = 0
 
     method private wake_up act =
@@ -76,7 +69,7 @@ class vumeter ~kind source =
           vol.(c).(pos) <- sqrt (cur_rms.(c) /. f_group_size);
           cur_rms.(c) <- 0.
         done;
-        pos <- (pos + 1) mod backpoints )
+        pos <- (pos + 1) mod backpoints)
 
     method private get_frame buf =
       let channels = self#audio_channels in
@@ -114,11 +107,11 @@ class vumeter ~kind source =
           for i = 1 to backpoints - 1 do
             Graphics.lineto
               (int_of_float (volwidth *. float i))
-              ( chan_height
-              + int_of_float (volheight *. vol.((i + pos) mod backpoints)) )
+              (chan_height
+              + int_of_float (volheight *. vol.((i + pos) mod backpoints)))
           done
         done;
-        Graphics.synchronize () )
+        Graphics.synchronize ())
   end
 
 let () =

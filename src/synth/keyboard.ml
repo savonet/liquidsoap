@@ -55,21 +55,13 @@ let note_of_char c = array_index c + 72
 class keyboard ~kind =
   object (self)
     inherit Source.active_source ~name:"input.keyboard" kind
-
     method stype = Source.Infallible
-
     method is_ready = true
-
     method remaining = -1
-
     method abort_track = ()
-
     method self_sync = (`Static, false)
-
     method output = if AFrame.is_partial self#memo then self#get_frame self#memo
-
     val mutable ev = MIDI.create (MFrame.size ())
-
     val ev_m = Mutex.create ()
 
     method private add_event (t : int) (e : MIDI.event) =
@@ -87,7 +79,6 @@ class keyboard ~kind =
     (* Unique ID for runs (a run is delimited by get_ready/sleep,
      * used to manage the asynchronous task. *)
     val mutable run_id = 0
-
     val lock = Mutex.create ()
 
     method private wake_up _ =
@@ -112,7 +103,7 @@ class keyboard ~kind =
               priority = Tutils.Non_blocking;
               events = [`Read Unix.stdin];
             };
-          ] )
+          ])
       in
       Duppy.Task.add Tutils.scheduler
         {

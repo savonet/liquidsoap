@@ -26,17 +26,11 @@ class base ?(audio = false) ?(video = false) ?(midi = false) ~converter
   (source : Source.source) =
   object (self)
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     val mutable tmp_frame = None
 
     (* The tmp_frame is intended to be filled by the underlying source. Content

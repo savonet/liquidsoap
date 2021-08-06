@@ -155,14 +155,14 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
              (List.map (fun (k, v) -> Printf.sprintf "%s: %s" k v) headers))
          headers);
     connection#set_httpversion
-      ( match http_version with
+      (match http_version with
         | None -> Curl.HTTP_VERSION_NONE
         | Some "1.0" -> Curl.HTTP_VERSION_1_0
         | Some "1.1" -> Curl.HTTP_VERSION_1_1
         | Some "2.0" -> Curl.HTTP_VERSION_2
-        | Some v -> fail (Printf.sprintf "Unsupported http version %s" v) );
+        | Some v -> fail (Printf.sprintf "Unsupported http version %s" v));
     connection#set_timeout timeout;
-    ( match request with
+    (match request with
       | `Get -> connection#set_httpget true
       | `Post data ->
           connection#set_post true;
@@ -173,7 +173,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
           connection#set_postfieldsize (String.length data);
           connection#set_postfields data
       | `Head -> connection#set_nobody true
-      | `Delete -> connection#set_customrequest "DELETE" );
+      | `Delete -> connection#set_customrequest "DELETE");
     let response_headers = Buffer.create 1024 in
     connection#set_headerfunction (fun s ->
         Buffer.add_string response_headers s;
@@ -201,7 +201,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
                     ( String.lowercase_ascii (Pcre.get_substring res 1),
                       Pcre.get_substring res 2 )
                     :: ret
-                  with Not_found -> ret )
+                  with Not_found -> ret)
                 else ret)
               [] (List.tl response_headers)
           in

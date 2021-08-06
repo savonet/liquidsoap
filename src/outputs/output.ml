@@ -52,17 +52,11 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
       raise (Lang_errors.Invalid_value (val_source, "That source is fallible"))
 
     inherit active_operator ~name:output_kind content_kind [source] as super
-
     inherit Start_stop.base ~on_start ~on_stop as start_stop
-
     method virtual private start : unit
-
     method virtual private stop : unit
-
     method virtual private send_frame : Frame.t -> unit
-
     method self_sync = source#self_sync
-
     method stype = if infallible then Source.Infallible else Source.Fallible
 
     (* Registration of Telnet commands must be delayed because some operators
@@ -99,18 +93,16 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
             if r < 0 then "(undef)"
             else (
               let t = Frame.seconds_of_main r in
-              Printf.sprintf "%.2f" t )) )
+              Printf.sprintf "%.2f" t)))
 
     method is_ready =
       if infallible then (
         assert source#is_ready;
-        true )
+        true)
       else source#is_ready
 
     method remaining = source#remaining
-
     method abort_track = source#abort_track
-
     method seek len = source#seek len
 
     (* Operator startup *)
@@ -144,7 +136,6 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
 
     (* Metadata stuff: keep track of what was streamed. *)
     val q_length = 10
-
     val metadata_q = Queue.create ()
 
     method private add_metadata m =
@@ -155,9 +146,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
 
     (* The output process *)
     val mutable skip = false
-
     method private skip = skip <- true
-
     method private get_frame buf = source#get buf
 
     method private output =
@@ -181,7 +170,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
         if Frame.position self#memo > 0 then self#send_frame self#memo;
         if Frame.is_partial self#memo then (
           self#log#important "Source failed (no more tracks) stopping output...";
-          self#transition_to `Idle ) )
+          self#transition_to `Idle))
 
     method after_output =
       (* Let [memo] be cleared and signal propagated *)
@@ -191,7 +180,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
       if skip then (
         self#log#important "Performing user-requested skip";
         skip <- false;
-        self#abort_track )
+        self#abort_track)
   end
 
 class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
@@ -202,11 +191,8 @@ class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
           ~on_start ~on_stop ~content_kind:kind
 
     method private reset = ()
-
     method private start = ()
-
     method private stop = ()
-
     method private send_frame _ = ()
   end
 
@@ -239,9 +225,7 @@ class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
           autostart
 
     method virtual private insert_metadata : Meta_format.export_metadata -> unit
-
     method virtual private encode : Frame.t -> int -> int -> 'a
-
     method virtual private send : 'a -> unit
 
     method private send_frame frame =
@@ -263,8 +247,8 @@ class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
             output_chunks frame (stop :: l)
       in
       output_chunks frame
-        ( 0
-        :: List.sort compare
-             (List.map fst (Frame.get_all_metadata frame) @ Frame.breaks frame)
-        )
+        (0
+         ::
+         List.sort compare
+           (List.map fst (Frame.get_all_metadata frame) @ Frame.breaks frame))
   end
