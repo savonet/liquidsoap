@@ -78,7 +78,7 @@ end
 # @category List
 def list.mem_assoc(x, l)
   def rec aux(l)
-    list.case(l, false, fun (y, l) -> fst(x) == y or aux(l))
+    list.case(l, false, fun (y, l) -> x == fst(y) or aux(l))
   end
   aux(l)
 end
