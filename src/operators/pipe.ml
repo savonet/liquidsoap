@@ -64,9 +64,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
       Child_support.base ~check_self_sync:false [source_val] as child_support
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
-
     val mutable samplesize = 16
-
     val mutable samplerate = Frame.audio_of_seconds 1.
 
     (* Filled in by wake_up. *)
@@ -95,7 +93,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
                 ~samplesize)
           ();
-        `Reschedule Tutils.Non_blocking )
+        `Reschedule Tutils.Non_blocking)
       else (
         let len = pull bytes 0 Utils.pagesize in
         let data = converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
@@ -118,7 +116,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
                           "Cannot replay multiple element at once.. Picking up \
                            the most recent";
                       if pos > 0 && pos < pos' then ((pos, b), cur)
-                      else ((pos', b'), cur) )
+                      else ((pos', b'), cur))
                     else ((pos, b), (pos' + len, b') :: cur))
                   ((-1, `Nothing), [])
                   pending
@@ -139,12 +137,10 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         end;
         if abg_max_len < buffered + len then
           `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
-        else `Continue )
+        else `Continue)
 
     val mutable handler = None
-
     val to_write = Queue.create ()
-
     method stype = Source.Fallible
 
     method private get_handler =
@@ -194,7 +190,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         if ofs < slen then (
           let len = slen - ofs in
           let next = if Frame.is_partial self#tmp then `Break else `Nothing in
-          Queue.push { sbuf; next; ofs; len } to_write ) )
+          Queue.push { sbuf; next; ofs; len } to_write))
 
     method private on_stdin pusher =
       if Queue.is_empty to_write then self#get_to_write;
@@ -209,17 +205,17 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               Tutils.mutexify mutex
                 (fun () -> replay_pending := (0, next) :: !replay_pending)
                 ();
-              `Continue )
+              `Continue)
             else (
               Tutils.mutexify mutex (fun () -> next_stop := next) ();
-              if next <> `Nothing then `Stop else `Continue )
+              if next <> `Nothing then `Stop else `Continue)
           in
           ignore (Queue.take to_write);
-          action )
+          action)
         else (
           chunk.ofs <- ofs + ret;
           chunk.len <- len - ret;
-          `Continue )
+          `Continue)
       with Queue.Empty -> `Continue
 
     method private on_stderr reader =
@@ -281,6 +277,10 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
             handler <- None
           with Process_handler.Finished -> ())
         ()
+
+    method before_output =
+      super#before_output;
+      child_support#before_output
 
     method after_output =
       super#after_output;
@@ -363,7 +363,7 @@ let () =
         match data_len with None -> -1 | Some v -> Lang.to_int v
       in
       let kind = Source.Kind.of_kind kind in
-      ( new pipe
-          ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
-          ~restart_on_error ~process src
-        :> source ))
+      (new pipe
+         ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
+         ~restart_on_error ~process src
+        :> source))

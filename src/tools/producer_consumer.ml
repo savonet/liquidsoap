@@ -33,7 +33,6 @@ class producer ~check_self_sync ~consumers_val ~name ~kind g =
   let self_sync_type = Utils.self_sync_type consumers in
   object (self)
     inherit Source.source kind ~name as super
-
     inherit Child_support.base ~check_self_sync consumers_val as child_support
 
     method self_sync =
@@ -71,10 +70,12 @@ class producer ~check_self_sync ~consumers_val ~name ~kind g =
       Generator.fill g buf;
       if List.length b + 1 <> List.length (Frame.breaks buf) then (
         let cur_pos = Frame.position buf in
-        Frame.set_breaks buf (b @ [cur_pos]) )
+        Frame.set_breaks buf (b @ [cur_pos]))
 
-    (* No [#after_output] for the [consumers] as this
-       is taken care of by their own clock. *)
+    method before_output =
+      super#before_output;
+      child_support#before_output
+
     method after_output =
       super#after_output;
       child_support#after_output
@@ -102,10 +103,7 @@ class consumer ~write_frame ~name ~kind ~source () =
           ~on_stop:noop source true
 
     method reset = ()
-
     method start = ()
-
     method stop = write_frame `Flush
-
     method private send_frame frame = write_frame (`Frame frame)
   end

@@ -41,13 +41,9 @@ class soundtouch ~kind source_val rate tempo pitch =
       Child_support.base ~check_self_sync:true [source_val] as child_support
 
     val mutable st = None
-
     method stype = source#stype
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method remaining = -1
 
     method abort_track =
@@ -77,7 +73,7 @@ class soundtouch ~kind source_val rate tempo pitch =
         Generator.put_audio abg
           (Frame_content.Audio.lift_data tmp)
           0
-          (Frame.main_of_audio available) );
+          (Frame.main_of_audio available));
       if AFrame.is_partial databuf then Generator.add_break abg;
 
       (* It's almost impossible to know where to add metadata,
@@ -100,6 +96,10 @@ class soundtouch ~kind source_val rate tempo pitch =
       self#log#important "Using soundtouch %s."
         (Soundtouch.get_version_string (Option.get st));
       write_frame_ref := self#write_frame
+
+    method before_output =
+      super#before_output;
+      child_support#before_output
 
     method private after_output =
       super#after_output;

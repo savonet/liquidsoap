@@ -47,11 +47,8 @@ class virtual base ~check_self_sync children_val =
        on the child clock, which makes it perform a whole streaming
        loop. *)
     val mutable needs_tick = true
-
     method virtual id : string
-
     method virtual clock : Source.clock_variable
-
     method private child_clock = Option.get child_clock
 
     method private set_clock =
@@ -73,13 +70,12 @@ class virtual base ~check_self_sync children_val =
       needs_tick <- false
 
     (* This methods always set [need_tick] to true. If the source is not
-       [#is_ready], only [#after_output] is called during a clock tick,
+       [#is_ready], [#after_output] is called during a clock tick,
        which means that the children clock is _always_ animated by the
        main clock when the source becomes unavailable. Otherwise, we
        expect the source to make a decision about executing a child clock
        tick as part of its [#get_frame] implementation. See [cross.ml] or
        [soundtouch.ml] as examples. *)
-    method after_output =
-      if needs_tick then self#child_tick;
-      needs_tick <- true
+    method before_output = needs_tick <- true
+    method after_output = if needs_tick then self#child_tick
   end

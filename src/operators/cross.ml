@@ -41,14 +41,12 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
       Child_support.base ~check_self_sync:true [val_source] as child_support
 
     initializer Source.Kind.unify s#kind kind
-
     method stype = Source.Fallible
 
     (* This is complicated. crossfade should never be used with [self_sync]
      * sources but we do not have a static way of knowing it at the moment.
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
-
     val mutable cross_length = cross_length ()
 
     (* We need to store the end of a track, and compute the power of the signal
@@ -57,24 +55,16 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
      * sum. The sliding window is necessary because of possibly inaccurate
      * remaining time estimaton. *)
     val mutable gen_before = Generator.create ()
-
     val mutable rms_before = 0.
-
     val mutable rmsi_before = 0
-
     val mutable mem_before = Array.make rms_width 0.
-
     val mutable mem_i = 0
-
     val mutable before_metadata = None
 
     (* Same for the new track. No need for a sliding window here. *)
     val mutable gen_after = Generator.create ()
-
     val mutable rms_after = 0.
-
     val mutable rmsi_after = 0
-
     val mutable after_metadata = None
 
     (* An audio frame for intermediate computations. It is used to buffer the
@@ -101,7 +91,6 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
 
     (* Give a default value for the transition source. *)
     val mutable transition_source = None
-
     val mutable pending_after = Generator.create ()
 
     method private prepare_transition_source s =
@@ -141,7 +130,6 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
         transition
 
     val mutable main_time = 0
-
     val mutable last_child_tick = 0
 
     (* in main time *)
@@ -152,6 +140,10 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
       Frame.advance buf_frame;
       last_child_tick <- (Clock.get self#clock)#get_tick
 
+    method before_output =
+      super#before_output;
+      child_support#before_output
+
     method after_output =
       super#after_output;
       child_support#after_output;
@@ -161,8 +153,8 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
         (* Did the child clock tick during this instant? *)
         if active && last_child_tick <> main_time then (
           self#child_tick;
-          last_child_tick <- main_time );
-        main_time <- main_clock#get_tick )
+          last_child_tick <- main_time);
+        main_time <- main_clock#get_tick)
 
     method private save_last_metadata mode buf_frame =
       let compare x y = -compare (fst x) (fst y) in
@@ -183,7 +175,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
                     let l = float_of_string v in
                     self#log#info "Setting crossfade duration to %.2fs" l;
                     cross_length <- Frame.main_of_seconds l
-                  with _ -> () ) ))
+                  with _ -> ())))
         (Frame.get_all_metadata frame)
 
     method private get_frame frame =
@@ -195,19 +187,19 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
               source#get frame;
               self#save_last_metadata `Before frame;
               self#update_cross_length frame p;
-              needs_tick <- true )
+              needs_tick <- true)
             else (
               self#log#info "Buffering end of track...";
               status <- `Before;
               Frame.set_breaks buf_frame [Frame.position frame];
               Frame.set_all_metadata buf_frame
-                ( match Frame.get_past_metadata frame with
+                (match Frame.get_past_metadata frame with
                   | Some x -> [(-1, x)]
-                  | None -> [] );
+                  | None -> []);
               self#buffering cross_length;
               if status <> `Limit then
                 self#log#info "More buffering will be needed.";
-              self#get_frame frame )
+              self#get_frame frame)
         | `Before ->
             (* We started buffering but the track didn't end.
              * Play the beginning of the buffer while filling it more. *)
@@ -241,9 +233,9 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
               if source#is_ready then (
                 self#get_frame frame;
                 Frame.set_breaks frame
-                  ( match Frame.breaks frame with
+                  (match Frame.breaks frame with
                     | b :: _ :: l -> b :: l
-                    | _ -> assert false ) ) )
+                    | _ -> assert false)))
         | `After ->
             (* Here, transition source went down so we switch back to main source.
                Our [is_ready] check ensures that we only get here when the main source
@@ -290,7 +282,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
       (* Should we buffer more or are we done ? *)
       if AFrame.is_partial buf_frame then (
         Generator.add_break gen_before;
-        status <- `Limit )
+        status <- `Limit)
       else if n > 0 then self#buffering (n - stop + start)
 
     (* Analyze the beginning of a new track. *)
@@ -320,7 +312,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
             in
             rms_after <- rms_after +. squares;
             rmsi_after <- rmsi_after + 1
-          done );
+          done);
         self#save_last_metadata `After buf_frame;
         self#update_cross_length buf_frame start;
         if AFrame.is_partial buf_frame then Generator.add_break gen_after
@@ -390,7 +382,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
               then f before after
               else (
                 self#log#important "Not enough data for crossing.";
-                (new Sequence.sequence ~kind [before; after] :> source) )
+                (new Sequence.sequence ~kind [before; after] :> source))
             in
             Clock.unify compound#clock s#clock;
             compound)

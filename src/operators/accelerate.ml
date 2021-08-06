@@ -32,7 +32,6 @@ class accelerate ~kind ~ratio ~randomize source_val =
       Child_support.base ~check_self_sync:true [source_val] as child_support
 
     method self_sync = source#self_sync
-
     method stype = source#stype
 
     method remaining =
@@ -50,7 +49,6 @@ class accelerate ~kind ~ratio ~randomize source_val =
       source#get_ready [(self :> source)]
 
     method private sleep = source#leave (self :> source)
-
     method is_ready = source#is_ready
 
     (** Filled ticks. *)
@@ -73,7 +71,7 @@ class accelerate ~kind ~ratio ~randomize source_val =
           (* Scaled logistic function: 0. when a is very negative, 1. when a is
              very positive. *)
           let l = (tanh (a *. 2.) +. 1.) /. 2. in
-          Random.float 1. > 1. -. l ) )
+          Random.float 1. > 1. -. l))
 
     method private get_frame frame =
       let pos = ref 1 in
@@ -91,6 +89,10 @@ class accelerate ~kind ~ratio ~randomize source_val =
       let after = Frame.position frame in
       filled <- filled + (after - before);
       self#child_tick
+
+    method before_output =
+      super#before_output;
+      child_support#before_output
 
     method after_output =
       super#after_output;
