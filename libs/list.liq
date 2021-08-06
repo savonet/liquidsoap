@@ -74,6 +74,15 @@ def list.mem(x, l)
   aux(l)
 end
 
+# Check whether an element belongs to an associative list.
+# @category List
+def list.mem_assoc(x, l)
+  def rec aux(l)
+    list.case(l, false, fun (y, l) -> fst(x) == y or aux(l))
+  end
+  aux(l)
+end
+
 # Call a function on every element of a list.
 # @category List
 def list.iter(f, l)
