@@ -62,7 +62,7 @@ let stdlib_native = native
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
-def playlist.list(~id=null(), ~check_next=null(), ~prefetch=2, ~loop=true, ~mime_type=null(),
+def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, ~mime_type=null(),
                   ~mode="normal", ~native=false, ~on_done={()}, ~timeout=20., playlist)
   id = string.id.default(default="playlist.list", id)
   mode =
@@ -197,7 +197,7 @@ end
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
 def playlist.reloadable(
-  ~id=null(), ~check_next=null(), ~prefetch=2, ~loop=true, ~mime_type=null(),
+  ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, ~mime_type=null(),
   ~mode="randomize", ~native=false, ~on_done={()}, ~on_reload=(fun (_) -> ()),
   ~prefix="", ~timeout=20., uri) =
   id = string.id.default(default="playlist.reloadable", id)
@@ -275,7 +275,7 @@ end
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
 def replaces playlist(
-  ~id=null(), ~check_next=null(), ~prefetch=2, ~loop=true, 
+  ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, 
   ~mime_type=null(), ~mode="randomize", ~native=false, ~on_reload=(fun (_) -> ()),
   ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri) =
   id = string.id.default(default="playlist", id)

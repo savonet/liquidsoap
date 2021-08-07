@@ -262,7 +262,7 @@ let priority = Tutils.Maybe_blocking
     - the source tries to have more than [prefetch] requests in queue
     - downloading a file is required to take less than [timeout] seconds
    *)
-class virtual queued ~kind ~name ?(prefetch = 2) ?(timeout = 20.) () =
+class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
   object (self)
     inherit unqueued ~kind ~name as super
     method stype = Fallible
@@ -484,7 +484,7 @@ let queued_proto =
   [
     ( "prefetch",
       Lang.int_t,
-      Some (Lang.int 2),
+      Some (Lang.int 1),
       Some "How many requests should be queued in advance." );
     ( "timeout",
       Lang.float_t,

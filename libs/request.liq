@@ -11,7 +11,7 @@ let stdlib_native = native
 # @param ~retry_delay Retry after a given time (in seconds) when callback returns an empty list.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param f Function producing requests.
-def replaces request.dynamic(~id=null(), ~available={true}, ~retry_delay=0.1, ~prefetch=2, ~timeout=20., ~native=false, f) =
+def replaces request.dynamic(~id=null(), ~available={true}, ~retry_delay=0.1, ~prefetch=1, ~timeout=20., ~native=false, f) =
   if native then
     stdlib_native.request.dynamic(id=id, timeout=timeout, f).{prefetch = fun() -> true}
   else
@@ -29,7 +29,7 @@ end
 # @param ~timeout Timeout (in sec.) for a single download.
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
-def request.queue(~id=null(), ~interactive=true, ~prefetch=2, ~native=false, ~queue=[], ~timeout=20.)
+def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~queue=[], ~timeout=20.)
   id = string.id.default(default="request.queue", id)
   queue = ref(queue)
   def next()

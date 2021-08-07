@@ -85,7 +85,7 @@ end
 # Deprecated: this function has been replaced with `playlist`, setting
 # `reload_mode` argument to `"never"` and `loop` to `false`.
 def playlist.once(~id=null(),~random=false,~reload_mode="",
-                  ~prefetch=2,~filter=fun(_)->true,uri)
+                  ~prefetch=1,~filter=fun(_)->true,uri)
   deprecated("playlist.once", "playlist")
   mode = if random then "randomize" else "normal" end
   playlist(reload_mode="never", loop=false, id=id, mode=mode, prefetch=prefetch, check_next=filter, uri)
