@@ -89,8 +89,23 @@ def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=
   # Prepared requests
   queue = ref([])
 
+  def get_queue() =
+    def get_request(s) =
+      s.request
+    end
+    list.map(get_request, !queue)
+  end
+
   def set_queue(q) =
-    queue := q
+    def mk_source(result, r) =
+      s = request.once(r)
+      if s.resolve() then
+        [...result, s]
+      else
+        result
+      end
+    end
+    queue := list.fold(mk_source, [], q)
   end
 
   current = ref(null())
@@ -98,10 +113,7 @@ def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=
   def get_current() =
     if null.defined(!current) then
       s = null.get(!current)
-      def close() =
-        s.skip()
-      end
-      null({ request = s.request, close = close})
+      s.request
     else
       null()
     end
@@ -113,9 +125,10 @@ def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=
       r = f()
       if null.defined(r) then
         r = null.get(r)
-        if request.resolve(r) then
+        s = request.once(r)
+        if s.resolve() then
           log.info("Added request on queue: #{request.uri(r)}.")
-          queue := [...!queue, r]
+          queue := [...!queue, s]
         else
           log.important("Failed to resolve request #{request.uri(r)}.")
         end
@@ -127,17 +140,17 @@ def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=
   # Source
   def s()
     if not list.is_empty(!queue) then
-      let [r, ...rest] = !queue
+      let [s, ...rest] = !queue
       queue := rest
-      current := request.once(r)
-      null.get(!current)
+      current := s
+      s
     else
       source.fail()
     end
   end
   source.dynamic(id=id, track_sensitive=true, s).{
     prefetch=prefetch,
-    queue={!queue},
+    queue=get_queue,
     set_queue=set_queue,
     current=get_current
   }

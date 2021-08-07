@@ -37,6 +37,14 @@ let () =
     ]
     ~meth:
       [
+        ( "resolve",
+          ([], Lang.fun_t [] Lang.bool_t),
+          "Resolve the request (this is useful to make sure that the source \
+           will be available in advance). This function returns `true` if we \
+           were able to successfully perform resolution. You should use this \
+           method instead of `request.resolve` to make sure that the proper \
+           content type is decoded from the request.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#resolve) );
         ( "request",
           ([], Lang.request_t),
           "Get the request played by this source",
@@ -224,8 +232,9 @@ let () =
                      [] s#queue)) );
         ( "set_queue",
           ([], Lang.fun_t [(false, "", Lang.list_t Lang.request_t)] Lang.unit_t),
-          "Set the queue of requests. You are responsible for destroying the \
-           requests currently in the queue.",
+          "Set the queue of requests. Requests are resolved before being added \
+           to the queue. You are responsible for destroying the requests \
+           currently in the queue.",
           fun s ->
             Lang.val_fun [("", "", None)] (fun p ->
                 let l =
@@ -238,28 +247,13 @@ let () =
                 s#set_queue q;
                 Lang.unit) );
         ( "current",
-          ( [],
-            Lang.fun_t []
-              (Lang.nullable_t
-                 (Lang.record_t
-                    [
-                      ("request", Lang.request_t);
-                      ("close", Lang.fun_t [] Lang.unit_t);
-                    ])) ),
+          ([], Lang.fun_t [] (Lang.nullable_t Lang.request_t)),
           "Get the request currently being played.",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 match s#current with
                   | None -> Lang.null
-                  | Some c ->
-                      Lang.record
-                        [
-                          ("request", Lang.request c.req);
-                          ( "close",
-                            Lang.val_fun [] (fun _ ->
-                                c.close ();
-                                Lang.unit) );
-                        ]) );
+                  | Some c -> Lang.request c.req) );
       ]
     ~return_t:t
     (fun p ->

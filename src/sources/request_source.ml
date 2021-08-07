@@ -269,12 +269,23 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
     method virtual get_next_request : Request.t option
     val qlock = Mutex.create ()
     val retrieved : queue_item Queue.t = Queue.create ()
-    method private queue_size = Queue.length retrieved
-    method queue = retrieved
 
-    method set_queue q =
-      Queue.clear retrieved;
-      Queue.transfer q retrieved
+    method private queue_size =
+      self#mutexify (fun () -> Queue.length retrieved) ()
+
+    method queue = self#mutexify (fun () -> Queue.copy retrieved) ()
+
+    method set_queue =
+      self#mutexify (fun q ->
+          Queue.clear retrieved;
+          Queue.iter
+            (fun i ->
+              match
+                Request.resolve ~ctype:(Some self#ctype) i.request timeout
+              with
+                | Request.Resolved -> Queue.push i retrieved
+                | _ -> ())
+            q)
 
     (* Seconds *)
     val mutable resolving = None
