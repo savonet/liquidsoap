@@ -29,15 +29,13 @@ type line = {
   (* precomputed 2cos(2πk/N) *)
   mutable line_v : float;
   (* current value *)
-  mutable line_v' : float;
-  (* previous value *)
-  mutable line_v'' : float; (* previous previous value *)
+  mutable line_v' : float; (* previous value *)
 }
 
 class dtmf ~kind (source : source) =
   let samplerate = float (Lazy.force Frame.audio_rate) in
   (* Size of the DFT (usually noted N). *)
-  let size = 256 in
+  let size = 128 in
   object (self)
     inherit operator ~name:"dtmf" kind [source] as super
 
@@ -55,13 +53,12 @@ class dtmf ~kind (source : source) =
 
     (* TODO: only compute required v *)
     val v =
-      List.init size (fun k ->
+      List.init (size / 3) (fun k ->
           {
             line_k = k;
             line_cos = 2. *. cos (2. *. Float.pi *. float k /. float size);
             line_v = 0.;
             line_v' = 0.;
-            line_v'' = 0.;
           })
 
     val mutable n = size
@@ -84,15 +81,20 @@ class dtmf ~kind (source : source) =
       source#get buf;
       let b = AFrame.pcm buf in
       let position = AFrame.position buf in
-      (* let channels = self#audio_channels in *)
+      let channels = self#audio_channels in
       for i = offset to position - 1 do
-        (* TODO: mean of all channels *)
-        let x = b.(0).{i} in
+        let x =
+          let x = ref 0. in
+          for c = 0 to channels - 1 do
+            x := !x +. b.(c).{i}
+          done;
+          !x /. float channels
+        in
         List.iter
           (fun l ->
-            l.line_v'' <- l.line_v';
+            let v = x +. (l.line_cos *. l.line_v) -. l.line_v' in
             l.line_v' <- l.line_v;
-            l.line_v <- (l.line_cos *. l.line_v') -. l.line_v'' +. x)
+            l.line_v <- v)
           v;
         n <- n + 1;
         if n mod size = 0 then (
@@ -100,9 +102,13 @@ class dtmf ~kind (source : source) =
           List.iter
             (fun l ->
               (* square of the value for the DFT line *)
-              let v = l.line_v *. l.line_v in
-              let v' = l.line_v' *. l.line_v' in
-              let x = v +. v' -. (l.line_cos *. v *. v') in
+              (* let v = l.line_v *. l.line_v in *)
+              (* let v' = l.line_v' *. l.line_v' in *)
+              (* let x = v +. v' -. (l.line_cos *. v *. v') in *)
+              let x =
+                (l.line_v *. l.line_v) +. (l.line_v' *. l.line_v')
+                -. (l.line_cos *. l.line_v *. l.line_v')
+              in
               let f = float l.line_k /. float size *. samplerate in
               Printf.printf "%d / %f : %f\n" l.line_k f x)
             v;
