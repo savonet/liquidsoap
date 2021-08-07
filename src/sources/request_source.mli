@@ -58,7 +58,7 @@ class virtual unqueued :
 class virtual queued :
   kind:Source.Kind.t
   -> name:string
-  -> ?length:int
+  -> ?prefetch:int
   -> ?timeout:float
   -> unit
   -> object

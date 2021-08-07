@@ -49,7 +49,7 @@ let stdlib_native = native
 #   corresponding to local files. This is typically used to avoid repetitions, \
 #   but be careful: if the function rejects all attempts, the playlist will \
 #   enter into a consuming loop and stop playing anything.
-# @param ~length How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance.
 # @param ~loop Loop on the playlist.
 # @param ~mime_type Default MIME type for the playlist. Empty string means \
 #  automatic detection.
@@ -62,7 +62,7 @@ let stdlib_native = native
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
-def playlist.list(~id=null(), ~check_next=null(), ~length=2, ~loop=true, ~mime_type=null(),
+def playlist.list(~id=null(), ~check_next=null(), ~prefetch=2, ~loop=true, ~mime_type=null(),
                   ~mode="normal", ~native=false, ~on_done={()}, ~timeout=20., playlist)
   id = string.id.default(default="playlist.list", id)
   mode =
@@ -102,7 +102,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~length=2, ~loop=true, ~mime_t
     if native then
       stdlib_native.request.dynamic.list(id=id, next)
     else
-      (request.dynamic.list(id=id, length=length, timeout=timeout, retry_delay=1., available={not !has_stopped}, next):source_methods)
+      (request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, retry_delay=1., available={not !has_stopped}, next):source_methods)
     end
   source.set_name(s, "playlist.list.reloadable")
 
@@ -178,7 +178,7 @@ end
 #   corresponding to local files. This is typically used to avoid repetitions, \
 #   but be careful: if the function rejects all attempts, the playlist will \
 #   enter into a consuming loop and stop playing anything.
-# @param ~length How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance.
 # @param ~loop Loop on the playlist.
 # @param ~mime_type Default MIME type for the playlist. `null` means \
 #  automatic detection.
@@ -197,7 +197,7 @@ end
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
 def playlist.reloadable(
-  ~id=null(), ~check_next=null(), ~length=2, ~loop=true, ~mime_type=null(),
+  ~id=null(), ~check_next=null(), ~prefetch=2, ~loop=true, ~mime_type=null(),
   ~mode="randomize", ~native=false, ~on_done={()}, ~on_reload=(fun (_) -> ()),
   ~prefix="", ~timeout=20., uri) =
   id = string.id.default(default="playlist.reloadable", id)
@@ -218,7 +218,7 @@ def playlist.reloadable(
   files := load_playlist()
 
   s = playlist.list(
-    id=id, check_next=check_next, length=length,
+    id=id, check_next=check_next, prefetch=prefetch,
     loop=loop, mime_type=mime_type, mode=mode,
     native=native, on_done=on_done, timeout=timeout,
     !files)
@@ -252,7 +252,7 @@ end
 #   corresponding to local files. This is typically used to avoid repetitions, \
 #   but be careful: if the function rejects all attempts, the playlist will \
 #   enter into a consuming loop and stop playing anything.
-# @param ~length How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance.
 # @param ~loop Loop on the playlist.
 # @param ~mime_type Default MIME type for the playlist. `null` means automatic \
 #  detection.
@@ -275,7 +275,7 @@ end
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
 def replaces playlist(
-  ~id=null(), ~check_next=null(), ~length=2, ~loop=true, 
+  ~id=null(), ~check_next=null(), ~prefetch=2, ~loop=true, 
   ~mime_type=null(), ~mode="randomize", ~native=false, ~on_reload=(fun (_) -> ()),
   ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri) =
   id = string.id.default(default="playlist", id)
@@ -314,7 +314,7 @@ def replaces playlist(
   end 
 
   s = playlist.reloadable(
-    id=id, check_next=check_next, length=length, loop=loop,
+    id=id, check_next=check_next, prefetch=prefetch, loop=loop,
     mime_type=mime_type, mode=mode, native=native, on_done=on_done,
     prefix=prefix, timeout=timeout, on_reload=on_reload, !uri)
 

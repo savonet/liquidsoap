@@ -6,16 +6,16 @@ let stdlib_native = native
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~available Whether some new requests are available (when set to false, it stops after current playing request).
-# @param ~length How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance.
 # @param ~native Use native implementation.
 # @param ~retry_delay Retry after a given time (in seconds) when callback returns an empty list.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param f Function producing requests.
-def replaces request.dynamic(~id=null(), ~available={true}, ~retry_delay=0.1, ~length=2, ~timeout=20., ~native=false, f) =
+def replaces request.dynamic(~id=null(), ~available={true}, ~retry_delay=0.1, ~prefetch=2, ~timeout=20., ~native=false, f) =
   if native then
     stdlib_native.request.dynamic(id=id, timeout=timeout, f).{prefetch = fun() -> (), queue_length = fun() -> 0.}
   else
-    request.dynamic.list(id=id, available=available, retry_delay=retry_delay, length=length, timeout=timeout, {null.to_list(f())})
+    request.dynamic.list(id=id, available=available, retry_delay=retry_delay, prefetch=prefetch, timeout=timeout, {null.to_list(f())})
   end
 end
 
@@ -23,13 +23,13 @@ end
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 # @param ~interactive Should the queue be controllable via telnet?
-# @param ~length How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance.
 # @param ~native Use native implementation.
 # @param ~queue Initial queue of requests.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
-def request.queue(~id=null(), ~interactive=true, ~length=2, ~native=false, ~queue=[], ~timeout=20.)
+def request.queue(~id=null(), ~interactive=true, ~prefetch=2, ~native=false, ~queue=[], ~timeout=20.)
   id = string.id.default(default="request.queue", id)
   queue = ref(queue)
   def next()
@@ -49,7 +49,7 @@ def request.queue(~id=null(), ~interactive=true, ~length=2, ~native=false, ~queu
     if native then
       stdlib_native.request.dynamic.list(id=id, timeout=timeout, next)
     else
-      (request.dynamic.list(id=id, length=length, timeout=timeout, available={not list.is_empty(!queue)}, next) : source_methods)
+      (request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(!queue)}, next) : source_methods)
     end
   source.set_name(s, "request.queue")
   if interactive then

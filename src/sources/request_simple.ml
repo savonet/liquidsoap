@@ -73,10 +73,10 @@ class unqueued ~kind ~timeout request =
     method get_next_file = Some request
   end
 
-class queued ~kind uri length timeout =
+class queued ~kind uri prefetch timeout =
   object (self)
     inherit
-      Request_source.queued ~name:"single" ~kind ~length ~timeout () as super
+      Request_source.queued ~name:"single" ~kind ~prefetch ~timeout () as super
 
     method wake_up x =
       if String.length uri < 15 then self#set_id uri;
@@ -127,11 +127,11 @@ let () =
       let kind = Source.Kind.of_kind kind in
       (new unqueued ~kind ~timeout:60. request :> source))
 
-class dynamic ~kind ~retry_delay ~available (f : Lang.value) length timeout =
+class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
   object (self)
     inherit
       Request_source.queued
-        ~kind ~name:"request.dynamic.list" ~length ~timeout () as super
+        ~kind ~name:"request.dynamic.list" ~prefetch ~timeout () as super
 
     val mutable retry_status = None
 

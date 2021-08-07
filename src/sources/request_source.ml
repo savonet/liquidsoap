@@ -258,10 +258,10 @@ let priority = Tutils.Maybe_blocking
 (** Same thing, with a queue in which we prefetch files, which requests are
     given by [get_next_request]. Heuristical settings determining how the source
     feeds its queue:
-    - the source tries to have more than [length] requests in queue
+    - the source tries to have more than [prefetch] requests in queue
     - downloading a file is required to take less than [timeout] seconds
    *)
-class virtual queued ~kind ~name ?(length = 2) ?(timeout = 20.) () =
+class virtual queued ~kind ~name ?(prefetch = 2) ?(timeout = 20.) () =
   object (self)
     inherit unqueued ~kind ~name as super
     method stype = Fallible
@@ -389,7 +389,7 @@ class virtual queued ~kind ~name ?(length = 2) ?(timeout = 20.) () =
                    *    emptied, but Sleeping saves us). *)
                   false)
           ()
-        && self#queue_size < length
+        && self#queue_size < prefetch
       then (
         match self#prefetch with
           | `Finished ->
@@ -453,13 +453,13 @@ class virtual queued ~kind ~name ?(length = 2) ?(timeout = 20.) () =
       ans
 
     method private expire test =
-      let already_short = self#queue_size < length in
+      let already_short = self#queue_size < prefetch in
       Mutex.lock qlock;
       Queue.iter
         (fun r -> if test r.request && not r.expired then r.expired <- true)
         retrieved;
       Mutex.unlock qlock;
-      if self#queue_size < length then (
+      if self#queue_size < prefetch then (
         if not already_short then
           self#log#info "Expirations made the queue too short, feeding...";
 
@@ -471,7 +471,7 @@ class virtual queued ~kind ~name ?(length = 2) ?(timeout = 20.) () =
 
       (* At an end of track, we always have unqueued#remaining=0, so there's
          nothing special to do. *)
-      if self#queue_size < length then self#notify_new_request
+      if self#queue_size < prefetch then self#notify_new_request
 
     method copy_queue =
       Mutex.lock qlock;
@@ -484,7 +484,7 @@ class virtual queued ~kind ~name ?(length = 2) ?(timeout = 20.) () =
 
 let queued_proto =
   [
-    ( "length",
+    ( "prefetch",
       Lang.int_t,
       Some (Lang.int 2),
       Some "How many requests should be queued in advance." );
@@ -495,6 +495,6 @@ let queued_proto =
   ]
 
 let extract_queued_params p =
-  let l = Lang.to_int (List.assoc "length" p) in
+  let l = Lang.to_int (List.assoc "prefetch" p) in
   let t = Lang.to_float (List.assoc "timeout" p) in
   (l, t)
