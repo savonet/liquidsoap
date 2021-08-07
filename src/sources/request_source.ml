@@ -29,6 +29,14 @@ type handler = {
   close : unit -> unit;
 }
 
+let log_failed_request (log : Log.t) request ans =
+  log#important "Could not resolve request %s: %s."
+    (Request.initial_uri request)
+    (match ans with
+      | Request.Failed -> "failed"
+      | Request.Timeout -> "timeout"
+      | Request.Resolved -> assert false)
+
 (** Play a request once and become unavailable. *)
 class once ~kind ~name ~timeout request =
   object (self)
@@ -60,13 +68,7 @@ class once ~kind ~name ~timeout request =
         (* Ensure that the request is resolved. *)
         (match Request.resolve ~ctype:(Some self#ctype) request timeout with
           | Request.Resolved -> ()
-          | (Request.Failed | Request.Timeout) as ans ->
-              self#log#important "Could not resolve request %s: %s."
-                (Request.initial_uri request)
-                (match ans with
-                  | Request.Failed -> "failed"
-                  | Request.Timeout -> "timeout"
-                  | Request.Resolved -> assert false));
+          | ans -> log_failed_request self#log request ans);
         if not (Request.is_ready request) then (
           over <- true;
           self#log#critical "Failed to prepare track: request not ready.";
@@ -284,8 +286,18 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
                 Request.resolve ~ctype:(Some self#ctype) i.request timeout
               with
                 | Request.Resolved -> Queue.push i retrieved
-                | _ -> ())
+                | ans -> log_failed_request self#log i.request ans)
             q)
+
+    method add =
+      self#mutexify (fun i ->
+          match Request.resolve ~ctype:(Some self#ctype) i.request timeout with
+            | Request.Resolved ->
+                Queue.push i retrieved;
+                true
+            | ans ->
+                log_failed_request self#log i.request ans;
+                false)
 
     (* Seconds *)
     val mutable resolving = None

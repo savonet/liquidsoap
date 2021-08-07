@@ -90,16 +90,19 @@ def native.request.dynamic(%argsof(request.dynamic.list), f)
     list.map(get_request, !queue)
   end
 
-  def set_queue(q) =
-    def mk_source(result, r) =
-      s = request.once(r)
-      if s.resolve() then
-        [...result, s]
-      else
-        result
-      end
+  def add(r) =
+    s = request.once(r)
+    if s.resolve() then
+      queue := [...!queue, s]
+      true
+    else
+      false
     end
-    queue := list.fold(mk_source, [], q)
+  end
+
+  def set_queue(l) =
+    queue := []
+    list.iter(fun (r) -> ignore(add(r)), l)
   end
 
   current = ref(null())
@@ -154,6 +157,7 @@ def native.request.dynamic(%argsof(request.dynamic.list), f)
   source.dynamic(id=id, track_sensitive=true, s).{
     fetch=fetch,
     queue=get_queue,
+    add=add,
     set_queue=set_queue,
     current=get_current
   }
@@ -170,7 +174,7 @@ def native.request.dynamic.list(%argsof(request.dynamic.list), f)
 
   s = native.request.dynamic(%argsof(request.dynamic.list), next)
 
-  fn := {s.set_queue(f()); null()}
+  fn := {list.iter(fun (r) -> ignore(s.add(r)), f()); null()}
 
   s
 end

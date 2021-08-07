@@ -18,6 +18,10 @@ def f() =
   if not r.is_ready() then
     0.1
   else
+    if not r.add(request.create("file2.mp3")) then
+      test.fail()
+    end
+
     r.set_queue([
       request.create("file2.mp3"),
       request.create("file3.mp3")

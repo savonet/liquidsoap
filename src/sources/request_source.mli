@@ -101,6 +101,7 @@ class virtual queued :
 
        method queue : queue_item Queue.t
        method set_queue : queue_item Queue.t -> unit
+       method add : queue_item -> bool
      end
 
 val queued_proto : Lang.proto

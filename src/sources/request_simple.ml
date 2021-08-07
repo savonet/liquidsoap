@@ -230,6 +230,18 @@ let () =
                   (Queue.fold
                      (fun c i -> Lang.request i.request :: c)
                      [] s#queue)) );
+        ( "add",
+          ([], Lang.fun_t [(false, "", Lang.request_t)] Lang.bool_t),
+          "Add a request ot the queue. Requests are resolved before being \
+           added. Returns `true` if the request was successfully added.",
+          fun s ->
+            Lang.val_fun [("", "", None)] (fun p ->
+                Lang.bool
+                  (s#add
+                     {
+                       request = Lang.to_request (List.assoc "" p);
+                       expired = false;
+                     })) );
         ( "set_queue",
           ([], Lang.fun_t [(false, "", Lang.list_t Lang.request_t)] Lang.unit_t),
           "Set the queue of requests. Requests are resolved before being added \
