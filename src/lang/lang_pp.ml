@@ -517,6 +517,6 @@ let expand_define tokenizer =
   token
 
 (* Wrap the lexer with its extensions *)
-let mk_tokenizer ~pwd lexbuf =
-  mk_tokenizer lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
+let mk_tokenizer ?fname ~pwd lexbuf =
+  mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
   |> expand_string |> uminus |> strip_newlines |> expand_define

@@ -544,17 +544,17 @@ let type_and_run ~throw ~lib ast =
       if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
       ignore (Term.eval_toplevel ast))
 
-let mk_expr ~pwd processor lexbuf =
+let mk_expr ?fname ~pwd processor lexbuf =
   let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
-  let tokenizer = Lang_pp.mk_tokenizer ~pwd lexbuf in
+  let tokenizer = Lang_pp.mk_tokenizer ?fname ~pwd lexbuf in
   let tokenizer () =
     let token, (startp, endp) = tokenizer () in
     (token, startp, endp)
   in
   processor tokenizer
 
-let from_in_channel ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
-    in_chan =
+let from_in_channel ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns
+    ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
   begin
     match ns with
@@ -563,13 +563,16 @@ let from_in_channel ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
   end;
   try
     Lang_errors.report lexbuf (fun ~throw () ->
-        let expr = mk_expr ~pwd:dir Lang_parser.program lexbuf in
+        let expr = mk_expr ?fname ~pwd:dir Lang_parser.program lexbuf in
         if not parse_only then type_and_run ~throw ~lib expr)
   with Lang_errors.Error -> exit 1
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
-  from_in_channel ~dir:(Filename.dirname filename) ?parse_only ~ns ~lib ic;
+  let fname = Utils.home_unrelate filename in
+  from_in_channel ~fname
+    ~dir:(Filename.dirname filename)
+    ?parse_only ~ns ~lib ic;
   close_in ic
 
 let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true) () =
