@@ -37,7 +37,7 @@ type line = {
 class dtmf ~kind (source : source) =
   let samplerate = float (Lazy.force Frame.audio_rate) in
   (* Size of the DFT (usually noted N). *)
-  let size = 128 in
+  let size = 512 in
   object (self)
     inherit operator ~name:"dtmf" kind [source] as super
 
@@ -54,16 +54,22 @@ class dtmf ~kind (source : source) =
     method self_sync = source#self_sync
 
     val v =
-      (* let freqs = [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.] in *)
-      List.init (size / 3) (fun k ->
-          {
-            line_k = k;
-            line_f = float k /. float size *. samplerate;
-            line_cos = 2. *. cos (2. *. Float.pi *. float k /. float size);
-            line_v = 0.;
-            line_v' = 0.;
-          })
+      let line k =
+        {
+          line_k = k;
+          line_f = float k /. float size *. samplerate;
+          line_cos = 2. *. cos (2. *. Float.pi *. float k /. float size);
+          line_v = 0.;
+          line_v' = 0.;
+        }
+      in
+      let line_freq f =
+        let l = line (Float.to_int ((f /. samplerate *. float size) +. 0.5)) in
+        { l with line_f = f }
+      in
+      List.map line_freq [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
 
+    (* List.init (size / 3) line *)
     val mutable n = size
 
     method wake_up a = super#wake_up a
@@ -99,9 +105,6 @@ class dtmf ~kind (source : source) =
           List.iter
             (fun l ->
               (* square of the value for the DFT line *)
-              (* let v = l.line_v *. l.line_v in *)
-              (* let v' = l.line_v' *. l.line_v' in *)
-              (* let x = v +. v' -. (l.line_cos *. v *. v') in *)
               let x =
                 (l.line_v *. l.line_v) +. (l.line_v' *. l.line_v')
                 -. (l.line_cos *. l.line_v *. l.line_v')
