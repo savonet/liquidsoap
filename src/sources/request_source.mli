@@ -97,7 +97,7 @@ class virtual queued :
 
        (** Try to add a new request in the queue. This should be used in usual
            situations. *)
-       method prefetch : [ `Finished | `Retry | `Empty ]
+       method fetch : [ `Finished | `Retry | `Empty ]
 
        method queue : queue_item Queue.t
        method set_queue : queue_item Queue.t -> unit

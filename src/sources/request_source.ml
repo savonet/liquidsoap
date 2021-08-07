@@ -408,7 +408,7 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
           ()
         && self#queue_size < prefetch
       then (
-        match self#prefetch with
+        match self#fetch with
           | `Finished ->
               (* Retry again in order to make sure that we have enough data *)
               0.5
@@ -420,7 +420,7 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
       Empty if there was no new request to try,
       Retry if there was a new one but it failed to be resolved,
       Finished if all went OK. *)
-    method prefetch =
+    method fetch =
       match self#get_next_request with
         | None -> `Empty
         | Some req -> (

@@ -206,20 +206,20 @@ let () =
      :: queued_proto)
     ~meth:
       [
-        ( "prefetch",
+        ( "fetch",
           ([], Lang.fun_t [] Lang.bool_t),
           "Try feeding the queue with a new request. Returns `true` if \
            successful. This method can take long to return and should usually \
            be run in a separate thread.",
           fun s ->
             Lang.val_fun [] (fun _ ->
-                match s#prefetch with
+                match s#fetch with
                   | `Finished -> Lang.bool true
                   | `Retry ->
-                      log#important "Prefetch failed: retry.";
+                      log#important "Fetch failed: retry.";
                       Lang.bool false
                   | `Empty ->
-                      log#important "Prefetch failed: empty.";
+                      log#important "Fetch failed: empty.";
                       Lang.bool false) );
         ( "queue",
           ([], Lang.fun_t [] (Lang.list_t Lang.request_t)),

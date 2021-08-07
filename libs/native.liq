@@ -120,22 +120,31 @@ def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=
   end
 
   # Prefetch thread
-  def prefetch()
-    if list.length(!queue) < prefetch then
-      r = f()
-      if null.defined(r) then
-        r = null.get(r)
-        s = request.once(r)
-        if s.resolve() then
-          log.info("Added request on queue: #{request.uri(r)}.")
-          queue := [...!queue, s]
-        else
-          log.important("Failed to resolve request #{request.uri(r)}.")
-        end
+  def fetch()
+    r = f()
+    if null.defined(r) then
+      r = null.get(r)
+      s = request.once(r)
+      if s.resolve() then
+        log.info("Added request on queue: #{request.uri(r)}.")
+        queue := [...!queue, s]
+        true
+      else
+        log.important("Failed to resolve request #{request.uri(r)}.")
+        false
       end
+    else
+      false
     end
   end
-  thread.run(every=polling_delay, prefetch)
+
+  def fill() =
+    if list.length(!queue) < prefetch then
+      ignore(fetch())
+    end
+  end
+
+  thread.run(every=polling_delay, fill)
 
   # Source
   def s()
@@ -149,7 +158,7 @@ def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=
     end
   end
   source.dynamic(id=id, track_sensitive=true, s).{
-    prefetch=prefetch,
+    fetch=fetch,
     queue=get_queue,
     set_queue=set_queue,
     current=get_current
