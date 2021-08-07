@@ -78,67 +78,103 @@ end
 # This allows doing `open native`
 let native.request = request
 
-# Play requests dynamically created by a given function.
-# @category Source / Input
-# @param ~id Force the value of the source ID.
-# @param ~polling_delay How often the queue should be checkelid and filled in seconds.
-# @param ~prefetch Number of tracks to prepare in advance.
-# @param ~timeout Timeout for resolving requests in seconds.
-# @param f Function returning the next request.
-def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
+# @docof request.dynamic.list
+def native.request.dynamic(%argsof(request.dynamic.list), f)
   # Prepared requests
   queue = ref([])
-  def queue_size()
-    list.length(!queue)
+
+  def get_queue() =
+    def get_request(s) =
+      s.request
+    end
+    list.map(get_request, !queue)
   end
-  # Filling thread
-  def filler()
-    if list.length(!queue) < prefetch then
-      r = f()
-      if null.defined(r) then
-        r = null.get(r)
-        s = request.once(r)
-        if s.resolve() then
-          log.info("Added request on queue: #{request.uri(r)}.")
-          queue := list.append(!queue, [s])
-        else
-          log.important("Failed to resolve request #{request.uri(r)}.")
-        end
-      end
+
+  def add(r) =
+    s = request.once(r)
+    if s.resolve() then
+      queue := [...!queue, s]
+      true
+    else
+      false
     end
   end
-  thread.run(every=polling_delay, filler)
+
+  def set_queue(l) =
+    queue := []
+    list.iter(fun (r) -> ignore(add(r)), l)
+  end
+
+  current = ref(null())
+
+  def get_current() =
+    if null.defined(!current) then
+      s = null.get(!current)
+      s.request
+    else
+      null()
+    end
+  end
+
+  # Prefetch thread
+  def fetch()
+    r = f()
+    if null.defined(r) then
+      r = null.get(r)
+      s = request.once(r)
+      if s.resolve() then
+        log.info("Added request on queue: #{request.uri(r)}.")
+        queue := [...!queue, s]
+        true
+      else
+        log.important("Failed to resolve request #{request.uri(r)}.")
+        false
+      end
+    else
+      false
+    end
+  end
+
+  def fill() =
+    if list.length(!queue) < prefetch then
+      ignore(fetch())
+    end
+  end
+
+  thread.run(every=retry_delay, fill)
+
   # Source
   def s()
     if not list.is_empty(!queue) then
-      s = list.hd(!queue)
-      queue := list.tl(!queue)
+      let [s, ...rest] = !queue
+      queue := rest
+      current := s
       s
     else
       source.fail()
     end
   end
-  source.dynamic(id=id, track_sensitive=true, s).{queue_size=queue_size}
+  source.dynamic(id=id, track_sensitive=true, s).{
+    fetch=fetch,
+    queue=get_queue,
+    add=add,
+    set_queue=set_queue,
+    current=get_current
+  }
 end
 
-# Play requests dynamically created by a given function.
-# @category Source / Input
-# @param ~id Force the value of the source ID.
-# @param ~polling_delay How often the queue should be checkelid and filled in seconds.
-# @param ~prefetch Number of tracks to prepare in advance.
-# @param ~timeout Timeout for resolving requests in seconds.
-# @param f Function returning the list of next requests.
-def native.request.dynamic.list(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
-  l = ref([])
-  def f()
-    if !l == [] then l := f() end
-    if !l != [] then
-      r = list.hd(!l)
-      l := list.tl(!l)
-      r
-    else
-      null()
-    end
+# @docof request.dynamic.list
+def native.request.dynamic.list(%argsof(request.dynamic.list), f)
+  fn = ref({null()})
+
+  def next() =
+    fn = !fn
+    fn()
   end
-  native.request.dynamic(id=id, f)
+
+  s = native.request.dynamic(%argsof(request.dynamic.list), next)
+
+  fn := {list.iter(fun (r) -> ignore(s.add(r)), f()); null()}
+
+  s
 end

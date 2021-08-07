@@ -115,6 +115,15 @@ s.insert_metadata([("artist", "Bob")])
 output.pulseaudio(s)
 ```
 
+### Request-based queueing
+
+Queueing for request-based sources has been simplified. The `default_duration` and `length` have been removed in favor of
+a simpler implementation. You can now pass a `prefetch` parameter which tells the source how many requests should be queued
+in advance.
+
+Should you need more advanced queueing strategy, `request.dynamic.list` and `request.dynamic` now export functions to retrieve 
+and set their own queue of requests.
+
 ### Deprecated operators
 
 Some operators have been deprecated. For most of them, we provide a backward-compatible support 

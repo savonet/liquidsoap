@@ -22,6 +22,13 @@
 
 (** General classes for streaming files. *)
 
+type handler = {
+  req : Request.t;
+  fill : Frame.t -> unit;
+  seek : int -> int;
+  close : unit -> unit;
+}
+
 class once :
   kind:Source.Kind.t
   -> name:string
@@ -29,19 +36,13 @@ class once :
   -> Request.t
   -> object
        inherit Source.source
-
        method stype : Source.source_t
-
        method self_sync : Source.self_sync
-
        method is_ready : bool
-
+       method request : Request.t
        method remaining : int
-
        method private get_frame : Frame.t -> unit
-
        method resolve : bool
-
        method abort_track : unit
      end
 
@@ -54,31 +55,27 @@ class virtual unqueued :
        method virtual get_next_file : Request.t option
 
        inherit Source.source
-
        method is_ready : bool
-
        method private get_frame : Frame.t -> unit
-
        method abort_track : unit
-
-       method copy_queue : Request.t list
-
        method remaining : int
-
        method self_sync : Source.self_sync
+       method current : handler option
      end
+
+type queue_item = {
+  request : Request.t;
+  (* in seconds *)
+  mutable expired : bool;
+}
 
 class virtual queued :
   kind:Source.Kind.t
   -> name:string
-  -> ?length:float
-  -> ?default_duration:float
-  -> ?conservative:bool
+  -> ?prefetch:int
   -> ?timeout:float
   -> unit
   -> object
-       method copy_queue : Request.t list
-
        method stype : Source.source_t
 
        (** You should only define this. *)
@@ -100,14 +97,12 @@ class virtual queued :
 
        (** Try to add a new request in the queue. This should be used in usual
            situations. *)
-       method prefetch : [ `Finished | `Retry | `Empty ]
+       method fetch : [ `Finished | `Retry | `Empty ]
 
-       (** Number of requests in the queue. *)
-       method queue_size : int
-
-       (** Size of the queue. *)
-       method queue_length : float
+       method queue : queue_item Queue.t
+       method set_queue : queue_item Queue.t -> unit
+       method add : queue_item -> bool
      end
 
 val queued_proto : Lang.proto
-val extract_queued_params : Lang.env -> float * float * float * bool
+val extract_queued_params : Lang.env -> int * float
