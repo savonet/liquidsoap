@@ -2,20 +2,13 @@ let request.queue = ()
 
 let stdlib_native = native
 
-# Play requests dynamically created by a given function.
-# @category Source / Input
-# @param ~id Force the value of the source ID.
-# @param ~available Whether some new requests are available (when set to false, it stops after current playing request).
-# @param ~prefetch How many requests should be queued in advance.
+# @docof request.dynamic.list
 # @param ~native Use native implementation.
-# @param ~retry_delay Retry after a given time (in seconds) when callback returns an empty list.
-# @param ~timeout Timeout (in sec.) for a single download.
-# @param f Function producing requests.
-def replaces request.dynamic(~id=null(), ~available={true}, ~retry_delay=0.1, ~prefetch=1, ~timeout=20., ~native=false, f) =
+def replaces request.dynamic(%argsof(request.dynamic.list), ~native=false, f) =
   if native then
-    stdlib_native.request.dynamic(id=id, timeout=timeout, f)
+    stdlib_native.request.dynamic(id=id, timeout=timeout, prefetch=prefetch, f)
   else
-    request.dynamic.list(id=id, available=available, retry_delay=retry_delay, prefetch=prefetch, timeout=timeout, {null.to_list(f())})
+    request.dynamic.list(%argsof(request.dynamic.list), {null.to_list(f())})
   end
 end
 
