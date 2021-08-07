@@ -25,6 +25,8 @@ open Source
 (* DFT lines *)
 type line = {
   line_k : int;
+  line_f : float;
+  (* frequency being detected *)
   line_cos : float;
   (* precomputed 2cos(2πk/N) *)
   mutable line_v : float;
@@ -51,11 +53,12 @@ class dtmf ~kind (source : source) =
 
     method self_sync = source#self_sync
 
-    (* TODO: only compute required v *)
     val v =
+      (* let freqs = [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.] in *)
       List.init (size / 3) (fun k ->
           {
             line_k = k;
+            line_f = float k /. float size *. samplerate;
             line_cos = 2. *. cos (2. *. Float.pi *. float k /. float size);
             line_v = 0.;
             line_v' = 0.;
@@ -64,12 +67,6 @@ class dtmf ~kind (source : source) =
     val mutable n = size
 
     method wake_up a = super#wake_up a
-
-    (* let channels = self#audio_channels in *)
-    (* low <- Array.make channels 0.; *)
-    (* high <- Array.make channels 0.; *)
-    (* band <- Array.make channels 0.; *)
-    (* notch <- Array.make channels 0. *)
 
     (* See
        https://en.wikipedia.org/wiki/Goertzel_algorithm
@@ -109,8 +106,7 @@ class dtmf ~kind (source : source) =
                 (l.line_v *. l.line_v) +. (l.line_v' *. l.line_v')
                 -. (l.line_cos *. l.line_v *. l.line_v')
               in
-              let f = float l.line_k /. float size *. samplerate in
-              Printf.printf "%d / %f : %f\n" l.line_k f x)
+              Printf.printf "%d / %f : %f\n" l.line_k l.line_f x)
             v;
           print_newline () )
       done
