@@ -202,7 +202,7 @@ end
 # @param ~duration Duration of a tone (in seconds).
 # @param ~delay Dealy between two successive tones (in seconds).
 # @param dtmf String describing DTMF tones to generates: it should contains characters 0 to 9, A to D, or * or #.
-def dtmf(~duration=0.1, ~delay=0.05, dtmf)
+def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf)
   l = ref([])
   for i = 0 to string.length(dtmf) - 1 do
     c = string.sub(dtmf, start=i, length=1)
