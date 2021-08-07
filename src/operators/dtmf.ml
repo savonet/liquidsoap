@@ -110,6 +110,8 @@ class dtmf ~kind (source : source) =
       done
   end
 
+let () = Lang.add_module "dtmf"
+
 let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
