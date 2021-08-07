@@ -37,12 +37,10 @@ let () =
     ]
     ~meth:
       [
-        ( "resolve",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Resolve the request (this is useful to make sure that the source \
-           will be available in advance). This function returns `true` if we \
-           were able to successfully perform resolution.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#resolve) );
+        ( "request",
+          ([], Lang.request_t),
+          "Get the request played by this source",
+          fun s -> Lang.request s#request );
       ]
     ~return_t
     (fun p ->
@@ -201,23 +199,67 @@ let () =
     ~meth:
       [
         ( "prefetch",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Try feeding the queue with a new request (this method can take long \
-           to return and should usually be run in a separate thread).",
+          ([], Lang.fun_t [] Lang.bool_t),
+          "Try feeding the queue with a new request. Returns `true` if \
+           successful. This method can take long to return and should usually \
+           be run in a separate thread.",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 match s#prefetch with
-                  | `Finished -> Lang.unit
+                  | `Finished -> Lang.bool true
                   | `Retry ->
                       log#important "Prefetch failed: retry.";
-                      Lang.unit
+                      Lang.bool false
                   | `Empty ->
                       log#important "Prefetch failed: empty.";
-                      Lang.unit) );
-        ( "queue_size",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Number of requests in the queue.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.int s#queue_size) );
+                      Lang.bool false) );
+        ( "queue",
+          ([], Lang.fun_t [] (Lang.list_t Lang.request_t)),
+          "Get the requests currently in the queue.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                Lang.list
+                  (Queue.fold
+                     (fun c i -> Lang.request i.request :: c)
+                     [] s#queue)) );
+        ( "set_queue",
+          ([], Lang.fun_t [(false, "", Lang.list_t Lang.request_t)] Lang.unit_t),
+          "Set the queue of requests. You are responsible for destroying the \
+           requests currently in the queue.",
+          fun s ->
+            Lang.val_fun [("", "", None)] (fun p ->
+                let l =
+                  List.map Lang.to_request (Lang.to_list (List.assoc "" p))
+                in
+                let q = Queue.create () in
+                List.iter
+                  (fun request -> Queue.push { request; expired = false } q)
+                  l;
+                s#set_queue q;
+                Lang.unit) );
+        ( "current",
+          ( [],
+            Lang.fun_t []
+              (Lang.nullable_t
+                 (Lang.record_t
+                    [
+                      ("request", Lang.request_t);
+                      ("close", Lang.fun_t [] Lang.unit_t);
+                    ])) ),
+          "Get the request currently being played.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                match s#current with
+                  | None -> Lang.null
+                  | Some c ->
+                      Lang.record
+                        [
+                          ("request", Lang.request c.req);
+                          ( "close",
+                            Lang.val_fun [] (fun _ ->
+                                c.close ();
+                                Lang.unit) );
+                        ]) );
       ]
     ~return_t:t
     (fun p ->

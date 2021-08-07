@@ -13,7 +13,7 @@ let stdlib_native = native
 # @param f Function producing requests.
 def replaces request.dynamic(~id=null(), ~available={true}, ~retry_delay=0.1, ~prefetch=2, ~timeout=20., ~native=false, f) =
   if native then
-    stdlib_native.request.dynamic(id=id, timeout=timeout, f).{prefetch = fun() -> (), queue_length = fun() -> 0.}
+    stdlib_native.request.dynamic(id=id, timeout=timeout, f).{prefetch = fun() -> true}
   else
     request.dynamic.list(id=id, available=available, retry_delay=retry_delay, prefetch=prefetch, timeout=timeout, {null.to_list(f())})
   end

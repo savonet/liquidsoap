@@ -22,6 +22,13 @@
 
 (** General classes for streaming files. *)
 
+type handler = {
+  req : Request.t;
+  fill : Frame.t -> unit;
+  seek : int -> int;
+  close : unit -> unit;
+}
+
 class once :
   kind:Source.Kind.t
   -> name:string
@@ -32,6 +39,7 @@ class once :
        method stype : Source.source_t
        method self_sync : Source.self_sync
        method is_ready : bool
+       method request : Request.t
        method remaining : int
        method private get_frame : Frame.t -> unit
        method resolve : bool
@@ -50,10 +58,16 @@ class virtual unqueued :
        method is_ready : bool
        method private get_frame : Frame.t -> unit
        method abort_track : unit
-       method copy_queue : Request.t list
        method remaining : int
        method self_sync : Source.self_sync
+       method current : handler option
      end
+
+type queue_item = {
+  request : Request.t;
+  (* in seconds *)
+  mutable expired : bool;
+}
 
 class virtual queued :
   kind:Source.Kind.t
@@ -62,7 +76,6 @@ class virtual queued :
   -> ?timeout:float
   -> unit
   -> object
-       method copy_queue : Request.t list
        method stype : Source.source_t
 
        (** You should only define this. *)
@@ -86,8 +99,8 @@ class virtual queued :
            situations. *)
        method prefetch : [ `Finished | `Retry | `Empty ]
 
-       (** Number of requests in the queue. *)
-       method queue_size : int
+       method queue : queue_item Queue.t
+       method set_queue : queue_item Queue.t -> unit
      end
 
 val queued_proto : Lang.proto

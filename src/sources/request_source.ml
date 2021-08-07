@@ -48,6 +48,7 @@ class once ~kind ~name ~timeout request =
     val mutable remaining = 0
     method remaining = remaining
     val mutable decoder = None
+    method request = request
 
     method resolve =
       Request.resolve ~ctype:(Some self#ctype) request timeout
@@ -140,6 +141,7 @@ class virtual unqueued ~kind ~name =
     val mutable send_metadata = false
 
     val mutable current = None
+    method current = current
     val plock = Mutex.create ()
     method self_sync = (`Static, false)
 
@@ -243,7 +245,6 @@ class virtual unqueued ~kind ~name =
     method seek x = match current with None -> 0 | Some cur -> cur.seek x
     method abort_track = self#end_track true
     method private sleep = self#end_track false
-    method copy_queue = match current with None -> [] | Some cur -> [cur.req]
   end
 
 type queue_item = {
@@ -268,7 +269,12 @@ class virtual queued ~kind ~name ?(prefetch = 2) ?(timeout = 20.) () =
     method virtual get_next_request : Request.t option
     val qlock = Mutex.create ()
     val retrieved : queue_item Queue.t = Queue.create ()
-    method queue_size = Queue.length retrieved
+    method private queue_size = Queue.length retrieved
+    method queue = retrieved
+
+    method set_queue q =
+      Queue.clear retrieved;
+      Queue.transfer q retrieved
 
     (* Seconds *)
     val mutable resolving = None
@@ -472,14 +478,6 @@ class virtual queued ~kind ~name ?(prefetch = 2) ?(timeout = 20.) () =
       (* At an end of track, we always have unqueued#remaining=0, so there's
          nothing special to do. *)
       if self#queue_size < prefetch then self#notify_new_request
-
-    method copy_queue =
-      Mutex.lock qlock;
-      let q = match current with None -> [] | Some cur -> [cur.req] in
-      let q = match resolving with None -> q | Some r -> r :: q in
-      let q = Queue.fold (fun l r -> r.request :: l) q retrieved in
-      Mutex.unlock qlock;
-      q
   end
 
 let queued_proto =

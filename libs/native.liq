@@ -88,37 +88,59 @@ let native.request = request
 def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
   # Prepared requests
   queue = ref([])
-  def queue_size()
-    list.length(!queue)
+
+  def set_queue(q) =
+    queue := q
   end
-  # Filling thread
-  def filler()
+
+  current = ref(null())
+
+  def get_current() =
+    if null.defined(!current) then
+      s = null.get(!current)
+      def close() =
+        s.skip()
+      end
+      null({ request = s.request, close = close})
+    else
+      null()
+    end
+  end
+
+  # Prefetch thread
+  def prefetch()
     if list.length(!queue) < prefetch then
       r = f()
       if null.defined(r) then
         r = null.get(r)
-        s = request.once(r)
-        if s.resolve() then
+        if request.resolve(r) then
           log.info("Added request on queue: #{request.uri(r)}.")
-          queue := list.append(!queue, [s])
+          queue := [...!queue, r]
         else
           log.important("Failed to resolve request #{request.uri(r)}.")
         end
       end
     end
   end
-  thread.run(every=polling_delay, filler)
+  thread.run(every=polling_delay, prefetch)
+
   # Source
   def s()
     if not list.is_empty(!queue) then
-      s = list.hd(!queue)
-      queue := list.tl(!queue)
-      s
+      let [r, ...rest] = !queue
+      queue := rest
+      current := request.once(r)
+      null.get(!current)
     else
       source.fail()
     end
   end
-  source.dynamic(id=id, track_sensitive=true, s).{queue_size=queue_size}
+  source.dynamic(id=id, track_sensitive=true, s).{
+    prefetch=prefetch,
+    queue={!queue},
+    set_queue=set_queue,
+    current=get_current
+  }
 end
 
 # Play requests dynamically created by a given function.
