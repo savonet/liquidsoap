@@ -63,7 +63,8 @@ let key =
 class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
   (source : source) =
   let samplerate = float (Lazy.force Frame.audio_rate) in
-  let size = float bands in
+  let nbands = bands in
+  let size = float nbands in
   object (self)
     inherit operator ~name:"dtmf" kind [source] as super
 
@@ -79,7 +80,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
 
     method self_sync = source#self_sync
 
-    val v =
+    val bands =
       let band k =
         {
           band_k = k;
@@ -96,7 +97,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
       in
       List.map band_freq [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
 
-    val mutable n = bands
+    val mutable n = nbands
 
     val mutable state = `None
 
@@ -130,10 +131,10 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
             let v = x +. (b.band_cos *. b.band_v) -. b.band_v' in
             b.band_v' <- b.band_v;
             b.band_v <- v)
-          v;
+          bands;
         n <- n + 1;
-        if n mod bands = 0 then (
-          n <- n - bands;
+        if n mod nbands = 0 then (
+          n <- n - nbands;
           List.iter
             (fun b ->
               (* Square of the value for the DFT band. *)
@@ -157,7 +158,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
                 let bar = bar x in
                 Printf.printf "%02d / %.01f :\t%s %s %.01f\t%.01f\n" b.band_k
                   b.band_f bar bar2 x b.band_x ))
-            v;
+            bands;
           if debug then (
             Printf.printf "\n";
             ( match state with
@@ -172,12 +173,14 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
           (* We are looking for bands threshold times higher than the lowest band. *)
           let found =
             let threshold =
-              let min = List.fold_left (fun m b -> min m b.band_x) infinity v in
+              let min =
+                List.fold_left (fun m b -> min m b.band_x) infinity bands
+              in
               min *. threshold
             in
             List.filter_map
               (fun b -> if b.band_x > threshold then Some b.band_f else None)
-              v
+              bands
           in
           (* Update the state *)
           match found with
