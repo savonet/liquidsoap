@@ -438,18 +438,22 @@ let check_unused ~throw ~lib tm =
                 | _ -> v)
               v p
           in
-          let masked, v =
-            let v0 = v in
-            List.fold_left
-              (fun (masked, v) (_, var, _, _) ->
-                if Vars.mem var v0 then (Vars.add var masked, v)
-                else (masked, Vars.add var v))
-              (Vars.empty, v) p
+          let bound =
+            List.fold_left (fun v (_, var, _, _) -> Vars.add var v) Vars.empty p
           in
+          let masked = Vars.inter v bound in
+          let v = Vars.union v bound in
           let v = check v body in
-          (* Restore masked variables. The masking variables have been used but it
-             does not count for the ones they masked. *)
-          Vars.union masked v
+          Vars.iter
+            (fun x ->
+              if Vars.mem x v && x <> "_" then (
+                let pos = fst (Option.get tm.t.T.pos) in
+                throw (Unused_variable (x, pos))))
+            bound;
+          (* Restore masked variables. The masking variables have been used but
+             it does not count for the ones they masked. Bound variables have
+             been handled above. *)
+          Vars.union masked (Vars.diff v bound)
       | Let { pat; def; body; _ } ->
           let v = check v def in
           let bvpat = bound_vars_pat pat in
