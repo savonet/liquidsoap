@@ -119,6 +119,8 @@ def interactive.create(~name, ~description="", ~osc="", ~type)
       error.raise(error.not_found)
     end
   end
+%else
+  ignore(osc)
 %endif
 end
 
@@ -216,7 +218,7 @@ end
 # @param ~port Port of the server.
 # @param ~uri URI of the server.
 def interactive.harbor(~port=8000, ~uri="/interactive")
-  def webpage(~protocol, ~data, ~headers, uri)
+  def webpage(~protocol=_, ~data, ~headers=_, _)
     form_data = data
     data = ref("")
     def add(s) =
@@ -330,7 +332,7 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
 
   harbor.http.register(port=port, method="GET", uri, webpage)
 
-  def setter(~protocol, ~data, ~headers, uri)
+  def setter(~protocol=_, ~data, ~headers=_, _)
     data = url.split_args(data)
     def update(nv)
       let (name, v) = nv

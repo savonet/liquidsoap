@@ -123,7 +123,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
 
   responseHeaders = headers
 
-  def handler(~method,~protocol,~data,~headers,uri)
+  def handler(~method,~protocol,~data=_,~headers=_,uri)
     ret = string.extract(pattern="^#{basepath}([^?]*)", uri)
     match =
       if list.length(ret) == 0 then "."
