@@ -22,11 +22,12 @@
 
 open Source
 
-let debug = true
-
 (* DFT bands *)
 type band = {
   band_k : int;
+  (* band number *)
+  mutable band_x : float;
+  (* intensity of the band *)
   band_f : float;
   (* frequency being detected *)
   band_cos : float;
@@ -36,8 +37,39 @@ type band = {
   mutable band_v' : float; (* previous value *)
 }
 
+let key =
+  let keys =
+    [
+      ((697., 1209.), '1');
+      ((697., 1336.), '2');
+      ((697., 1477.), '3');
+      ((697., 1633.), 'A');
+      ((770., 1209.), '4');
+      ((770., 1336.), '5');
+      ((770., 1477.), '6');
+      ((770., 1633.), 'B');
+      ((852., 1209.), '7');
+      ((852., 1336.), '8');
+      ((852., 1477.), '9');
+      ((852., 1633.), 'C');
+      ((941., 1209.), '*');
+      ((941., 1336.), '0');
+      ((941., 1477.), '#');
+      ((941., 1633.), 'D');
+    ]
+  in
+  fun f -> List.assoc f keys
+
 class dtmf ~kind (source : source) =
   let samplerate = float (Lazy.force Frame.audio_rate) in
+  (* characteristic smoothing time (in seconds) *)
+  let smooth = 0.1 in
+  (* show debugging messages. *)
+  let debug = ref false in
+  (* threshold for detecting a band. *)
+  let threshold = 10000. in
+  (* duration for detecting a tone. *)
+  let duration = 0.1 in
   (* Size of the DFT (usually noted N). *)
   let size = 512 in
   object (self)
@@ -59,6 +91,7 @@ class dtmf ~kind (source : source) =
       let band k =
         {
           band_k = k;
+          band_x = 0.;
           band_f = float k /. float size *. samplerate;
           band_cos = 2. *. cos (2. *. Float.pi *. float k /. float size);
           band_v = 0.;
@@ -66,13 +99,15 @@ class dtmf ~kind (source : source) =
         }
       in
       let band_freq f =
-        let l = band (Float.to_int ((f /. samplerate *. float size) +. 0.5)) in
-        { l with band_f = f }
+        let b = band (Float.to_int ((f /. samplerate *. float size) +. 0.5)) in
+        { b with band_f = f }
       in
       List.map band_freq [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
 
     (* List.init (size / 3) band *)
     val mutable n = size
+
+    val mutable state = `None
 
     method wake_up a = super#wake_up a
 
@@ -87,6 +122,7 @@ class dtmf ~kind (source : source) =
       let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let channels = self#audio_channels in
+      let alpha = min 1. (float size /. samplerate /. smooth) in
       for i = offset to position - 1 do
         let x =
           let x = ref 0. in
@@ -96,31 +132,61 @@ class dtmf ~kind (source : source) =
           !x /. float channels
         in
         List.iter
-          (fun l ->
-            let v = x +. (l.band_cos *. l.band_v) -. l.band_v' in
-            l.band_v' <- l.band_v;
-            l.band_v <- v)
+          (fun b ->
+            let v = x +. (b.band_cos *. b.band_v) -. b.band_v' in
+            b.band_v' <- b.band_v;
+            b.band_v <- v)
           v;
         n <- n + 1;
         if n mod size = 0 then (
           n <- n - size;
           List.iter
-            (fun l ->
+            (fun b ->
               (* square of the value for the DFT band *)
               let x =
-                (l.band_v *. l.band_v) +. (l.band_v' *. l.band_v')
-                -. (l.band_cos *. l.band_v *. l.band_v')
+                (b.band_v *. b.band_v) +. (b.band_v' *. b.band_v')
+                -. (b.band_cos *. b.band_v *. b.band_v')
               in
-              if debug then (
-                let bar =
+              b.band_x <- ((1. -. alpha) *. b.band_x) +. (alpha *. x);
+              if !debug then (
+                let bar x =
                   let len = 20 in
                   let n = Float.to_int (x *. float len /. 20000.) in
                   let n = min len n in
                   String.make n '=' ^ String.make (len - n) ' '
                 in
-                Printf.printf "%d / %f :\t%s %f\n" l.band_k l.band_f bar x ))
+                let bar2 = bar b.band_x in
+                let bar = bar x in
+                Printf.printf "%02d / %.01f :\t%s %s %.01f\t%.01f\n" b.band_k
+                  b.band_f bar bar2 x b.band_x ))
             v;
-          print_newline () )
+          if !debug then print_newline ();
+          (* Update the state *)
+          let found =
+            List.filter_map
+              (fun b -> if b.band_x > threshold then Some b.band_f else None)
+              v
+          in
+          match found with
+            | [f1; f2] -> (
+                let f = (f1, f2) in
+                let dt = float size /. samplerate in
+                match state with
+                  | `Detected (f', t) when f' = f ->
+                      let t = t +. dt in
+                      if t < duration then state <- `Detected (f, t)
+                      else (
+                        ( try
+                            let k = String.make 1 (key f) in
+                            Printf.printf "Found %s\n%!" k
+                          with Not_found ->
+                            Printf.printf
+                              "Unknown combination (%.01f, %.01f)...\n%!"
+                              (fst f) (snd f) );
+                        state <- `Signaled f )
+                  | `Signaled f' when f' = f -> ()
+                  | _ -> state <- `Detected (f, dt) )
+            | _ -> state <- `None )
       done
   end
 
