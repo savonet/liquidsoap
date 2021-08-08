@@ -255,44 +255,11 @@ let () =
           in
           Lang.error ~message "file"
       in
-      let m = Mutex.create () in
-      let is_done = ref false in
-      let data = Buffer.create 1024 in
-      let task = ref None in
-      let process =
-        Tutils.mutexify m (fun () ->
-            try
-              if !is_done then (
-                close_out oc;
-                Duppy.Async.stop (Option.get !task))
-              else (
-                Buffer.output_buffer oc data;
-                Buffer.reset data);
-              -1.
-            with e ->
-              let message =
-                Printf.sprintf "The file %s could not be written to: %s" f
-                  (Printexc.to_string e)
-              in
-              Lang.error ~message "file")
-      in
-      task :=
-        Some
-          (Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler process);
-      Lang.val_fun [("", "", None)]
-        (Tutils.mutexify m (fun p ->
-             (match Lang.to_option (List.assoc "" p) with
-               | None -> is_done := true
-               | Some s -> Buffer.add_string data (Lang.to_string s));
-             try
-               Duppy.Async.wake_up (Option.get !task);
-               Lang.unit
-             with e ->
-               let message =
-                 Printf.sprintf "The file %s could not be written to: %s" f
-                   (Printexc.to_string e)
-               in
-               Lang.error ~message "file")))
+      Lang.val_fun [("", "", None)] (fun p ->
+          (match Lang.to_option (List.assoc "" p) with
+            | None -> close_out oc
+            | Some s -> output_string oc (Lang.to_string s));
+          Lang.unit))
 
 let () =
   add_builtin "file.watch" ~cat:Sys
