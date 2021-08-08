@@ -22,16 +22,18 @@
 
 open Source
 
-(* DFT lines *)
-type line = {
-  line_k : int;
-  line_f : float;
+let debug = true
+
+(* DFT bands *)
+type band = {
+  band_k : int;
+  band_f : float;
   (* frequency being detected *)
-  line_cos : float;
+  band_cos : float;
   (* precomputed 2cos(2πk/N) *)
-  mutable line_v : float;
+  mutable band_v : float;
   (* current value *)
-  mutable line_v' : float; (* previous value *)
+  mutable band_v' : float; (* previous value *)
 }
 
 class dtmf ~kind (source : source) =
@@ -54,22 +56,22 @@ class dtmf ~kind (source : source) =
     method self_sync = source#self_sync
 
     val v =
-      let line k =
+      let band k =
         {
-          line_k = k;
-          line_f = float k /. float size *. samplerate;
-          line_cos = 2. *. cos (2. *. Float.pi *. float k /. float size);
-          line_v = 0.;
-          line_v' = 0.;
+          band_k = k;
+          band_f = float k /. float size *. samplerate;
+          band_cos = 2. *. cos (2. *. Float.pi *. float k /. float size);
+          band_v = 0.;
+          band_v' = 0.;
         }
       in
-      let line_freq f =
-        let l = line (Float.to_int ((f /. samplerate *. float size) +. 0.5)) in
-        { l with line_f = f }
+      let band_freq f =
+        let l = band (Float.to_int ((f /. samplerate *. float size) +. 0.5)) in
+        { l with band_f = f }
       in
-      List.map line_freq [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
+      List.map band_freq [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
 
-    (* List.init (size / 3) line *)
+    (* List.init (size / 3) band *)
     val mutable n = size
 
     method wake_up a = super#wake_up a
@@ -95,21 +97,28 @@ class dtmf ~kind (source : source) =
         in
         List.iter
           (fun l ->
-            let v = x +. (l.line_cos *. l.line_v) -. l.line_v' in
-            l.line_v' <- l.line_v;
-            l.line_v <- v)
+            let v = x +. (l.band_cos *. l.band_v) -. l.band_v' in
+            l.band_v' <- l.band_v;
+            l.band_v <- v)
           v;
         n <- n + 1;
         if n mod size = 0 then (
           n <- n - size;
           List.iter
             (fun l ->
-              (* square of the value for the DFT line *)
+              (* square of the value for the DFT band *)
               let x =
-                (l.line_v *. l.line_v) +. (l.line_v' *. l.line_v')
-                -. (l.line_cos *. l.line_v *. l.line_v')
+                (l.band_v *. l.band_v) +. (l.band_v' *. l.band_v')
+                -. (l.band_cos *. l.band_v *. l.band_v')
               in
-              Printf.printf "%d / %f : %f\n" l.line_k l.line_f x)
+              if debug then (
+                let bar =
+                  let len = 20 in
+                  let n = Float.to_int (x *. float len /. 20000.) in
+                  let n = min len n in
+                  String.make n '=' ^ String.make (len - n) ' '
+                in
+                Printf.printf "%d / %f :\t%s %f\n" l.band_k l.band_f bar x ))
             v;
           print_newline () )
       done
