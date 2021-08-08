@@ -95,7 +95,7 @@ operators = \
 	operators/chord.ml operators/video_text.ml operators/window_op.ml \
 	operators/rms_smooth.ml operators/delay_line.ml \
 	operators/video_text_native.ml operators/accelerate.ml \
-	operators/still_frame.ml \
+	operators/still_frame.ml operators/dtmf.ml \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
