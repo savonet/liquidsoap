@@ -20,8 +20,8 @@ def f(k)
   end
 end
 
-s = amplify(1., dtmf(duration=0.1, keys))
-# s = add([s, amplify(0.1, noise())])
+s = amplify(0.5, dtmf(duration=0.1, keys))
+s = add([s, amplify(0.5, noise())])
 s = dtmf.detect(debug=false, s, f)
 
 # output.dummy(s)

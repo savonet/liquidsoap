@@ -144,7 +144,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
               in
               b.band_x <- ((1. -. alpha) *. b.band_x) +. (alpha *. x);
               (* Apparently we need to reset values, otherwise some unexpected
-                 band get high values over time. *)
+                 bands get high values over time. *)
               b.band_v <- 0.;
               b.band_v' <- 0.;
               if debug then (
@@ -170,14 +170,8 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
                   let k = try String.make 1 (key f) with Not_found -> "???" in
                   Printf.printf "Signaled key %s.\n" k );
             print_newline () );
-          (* We are looking for bands threshold times higher than the lowest band. *)
+          (* Find relevant bands. *)
           let found =
-            let threshold =
-              let min =
-                List.fold_left (fun m b -> min m b.band_x) infinity bands
-              in
-              min *. threshold
-            in
             List.filter_map
               (fun b -> if b.band_x > threshold then Some b.band_f else None)
               bands
@@ -224,7 +218,7 @@ let () =
         Some "Number of frequency bands." );
       ( "threshold",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float 100.),
+        Some (Lang.float 2500.),
         Some "Threshold for detecting a band." );
       ( "smoothing",
         Lang.getter_t Lang.float_t,
