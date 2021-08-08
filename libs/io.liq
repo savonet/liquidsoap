@@ -75,6 +75,10 @@ def output.audio_video(~id=null(),~fallible=true,~on_start={()},~on_stop={()},~s
 end
 
 def replaces input(~id=null(),~start=true,~on_start={()},~on_stop={()},~fallible=false)
+  ignore(start)
+  ignore(on_start)
+  ignore(on_stop)
+  ignore(fallible)
   blank(id=id)
 end
 %ifdef input.alsa
