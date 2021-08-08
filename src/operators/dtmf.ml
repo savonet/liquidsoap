@@ -142,6 +142,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
                 (b.band_v *. b.band_v) +. (b.band_v' *. b.band_v')
                 -. (b.band_cos *. b.band_v *. b.band_v')
               in
+              let x = sqrt x in
               b.band_x <- ((1. -. alpha) *. b.band_x) +. (alpha *. x);
               (* Apparently we need to reset values, otherwise some unexpected
                  bands get high values over time. *)
@@ -218,7 +219,7 @@ let () =
         Some "Number of frequency bands." );
       ( "threshold",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float 2500.),
+        Some (Lang.float 50.),
         Some "Threshold for detecting a band." );
       ( "smoothing",
         Lang.getter_t Lang.float_t,
