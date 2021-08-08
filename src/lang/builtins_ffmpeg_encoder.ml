@@ -97,12 +97,12 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
           in
 
           ( target_sample_format,
-            ( if List.mem `Variable_frame_size (Avcodec.capabilities codec) then
-              None
-            else Some (Avcodec.Audio.frame_size encoder) ),
+            (if List.mem `Variable_frame_size (Avcodec.capabilities codec) then
+             None
+            else Some (Avcodec.Audio.frame_size encoder)),
             function
             | `Frame frame -> Avcodec.encode encoder write_packet frame
-            | `Flush -> Avcodec.flush_encoder encoder write_packet ) )
+            | `Flush -> Avcodec.flush_encoder encoder write_packet ))
       | `Raw -> (
           let params =
             {
@@ -141,8 +141,8 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
                       let data = Ffmpeg_raw_content.Audio.lift_data data in
                       Producer_consumer.(
                         Generator.put_audio generator data 0 duration)
-                  | None -> () )
-            | `Flush -> () ) )
+                  | None -> ())
+            | `Flush -> () ))
   in
 
   let resampler =
@@ -271,7 +271,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
 
           function
           | `Frame frame -> Avcodec.encode encoder write_packet frame
-          | `Flush -> Avcodec.flush_encoder encoder write_packet )
+          | `Flush -> Avcodec.flush_encoder encoder write_packet)
       | `Raw -> (
           let target_pixel_format = Ffmpeg_utils.liq_frame_pixel_format () in
 
@@ -317,8 +317,8 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
                     let data = Ffmpeg_raw_content.Video.lift_data data in
                     Producer_consumer.(
                       Generator.put_video generator data 0 duration)
-                | None -> () )
-          | `Flush -> () )
+                | None -> ())
+          | `Flush -> ())
   in
 
   (* We don't know packet duration in advance so we have to infer
@@ -374,32 +374,32 @@ let mk_encoder mode =
     Frame.
       {
         audio =
-          ( match mode with
+          (match mode with
             | `Audio_encoded | `Both_encoded -> source_kind.Frame.audio
             | `Audio_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Audio.kind
-            | _ -> none );
+            | _ -> none);
         video =
-          ( match mode with
+          (match mode with
             | `Video_encoded | `Both_encoded -> source_kind.Frame.video
             | `Video_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Video.kind
-            | _ -> none );
+            | _ -> none);
         midi = none;
       }
   in
   let format_t =
     Lang.frame_kind_t
       ~audio:
-        ( match mode with
+        (match mode with
           | `Audio_encoded | `Both_encoded -> source_kind_t.Frame.audio
           | `Audio_raw | `Both_raw ->
               Lang.kind_t (`Kind Ffmpeg_raw_content.Audio.kind)
-          | _ -> Lang.kind_none_t )
+          | _ -> Lang.kind_none_t)
       ~video:
-        ( match mode with
+        (match mode with
           | `Video_encoded | `Both_encoded -> source_kind_t.Frame.video
           | `Video_raw | `Both_raw ->
               Lang.kind_t (`Kind Ffmpeg_raw_content.Video.kind)
-          | _ -> Lang.kind_none_t )
+          | _ -> Lang.kind_none_t)
       ~midi:Lang.kind_none_t
   in
   let format_kind_t = Lang.of_frame_kind_t format_t in
@@ -407,34 +407,34 @@ let mk_encoder mode =
     Frame.
       {
         audio =
-          ( match mode with
+          (match mode with
             | `Audio_encoded | `Both_encoded ->
                 `Kind Ffmpeg_copy_content.Audio.kind
             | `Audio_raw | `Both_raw -> format_kind.Frame.audio
-            | _ -> none );
+            | _ -> none);
         video =
-          ( match mode with
+          (match mode with
             | `Video_encoded | `Both_encoded ->
                 `Kind Ffmpeg_copy_content.Video.kind
             | `Video_raw | `Both_raw -> format_kind.Frame.video
-            | _ -> none );
+            | _ -> none);
         midi = none;
       }
   in
   let return_t =
     Lang.frame_kind_t
       ~audio:
-        ( match mode with
+        (match mode with
           | `Audio_encoded | `Both_encoded ->
               Lang.kind_t (`Kind Ffmpeg_copy_content.Audio.kind)
           | `Audio_raw | `Both_raw -> format_kind_t.Frame.audio
-          | _ -> Lang.kind_none_t )
+          | _ -> Lang.kind_none_t)
       ~video:
-        ( match mode with
+        (match mode with
           | `Video_encoded | `Both_encoded ->
               Lang.kind_t (`Kind Ffmpeg_copy_content.Video.kind)
           | `Video_raw | `Both_raw -> format_kind_t.Frame.video
-          | _ -> Lang.kind_none_t )
+          | _ -> Lang.kind_none_t)
       ~midi:Lang.kind_none_t
   in
   let return_kind_t = Lang.of_frame_kind_t return_t in
@@ -533,7 +533,7 @@ let mk_encoder mode =
                     (Lang_errors.Invalid_value
                        ( format_val,
                          "Operator expects an encoder of the form: " ^ encoder
-                       )) )
+                       )))
           else None
         in
         let encode_video_frame =
@@ -556,7 +556,7 @@ let mk_encoder mode =
                     (Lang_errors.Invalid_value
                        ( format_val,
                          "Operator expects an encoder of the form: " ^ encoder
-                       )) )
+                       )))
           else None
         in
         let size = Lazy.force Frame.size in

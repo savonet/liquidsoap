@@ -38,8 +38,8 @@ let encoder wav =
       | Some d ->
           Some
             (int_of_float
-               ( d *. float channels *. float sample_rate *. float sample_size
-               /. 8. ))
+               (d *. float channels *. float sample_rate *. float sample_size
+              /. 8.))
   in
   let header =
     Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
@@ -56,7 +56,7 @@ let encoder wav =
           Audio_converter.Samplerate.resample converter ratio
             (Audio.sub b start len)
         in
-        (b, 0, Audio.length b) )
+        (b, 0, Audio.length b))
     in
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =
@@ -71,7 +71,7 @@ let encoder wav =
     let s = Bytes.unsafe_to_string s in
     if !need_header then (
       need_header := false;
-      Strings.of_list [header; s] )
+      Strings.of_list [header; s])
     else Strings.of_string s
   in
   let hls =

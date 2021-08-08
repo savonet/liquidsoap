@@ -58,7 +58,7 @@ let rec to_json_compact v =
               (fun (l, v) -> Printf.sprintf "\"%s\":%s" l (to_json_compact v))
               m
           in
-          Printf.sprintf "{%s}" (String.concat "," l) )
+          Printf.sprintf "{%s}" (String.concat "," l))
         else failwith "TODO: JSON of method not yet implemented"
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf "{\"reference\": %s}" (to_json_compact !v)
@@ -99,7 +99,7 @@ let rec to_json_pp f v =
                 in
                 ignore (List.fold_left f 0 l)
               in
-              Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l )
+              Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l)
     | Lang.Tuple l ->
         Format.fprintf f "@[[@;<1 1>@[";
         let rec aux = function
@@ -124,7 +124,7 @@ let rec to_json_pp f v =
                 aux l
           in
           aux l;
-          Format.fprintf f "@]@;<1 0>}@]" )
+          Format.fprintf f "@]@;<1 0>}@]")
         else failwith "TODO: JSON of method not yet implemented"
     | Lang.Ref v ->
         Format.fprintf f "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
@@ -216,7 +216,7 @@ let rec of_json d j =
           let v = of_json x y in
           let a' = List.remove_assoc l a in
           Lang.meth (of_json d (`Assoc a')) [(l, v)]
-        with Not_found -> raise Failed )
+        with Not_found -> raise Failed)
     | Lang.Tuple [], `Assoc _ -> Lang.unit
     | _ -> raise Failed
 

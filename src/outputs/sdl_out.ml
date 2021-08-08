@@ -37,7 +37,6 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
           ~content_kind:(Source.Kind.of_kind kind) source autostart
 
     val mutable fullscreen = false
-
     val mutable window = None
 
     method start =
@@ -75,8 +74,8 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
                      Sdl_utils.check
                        (fun () ->
                          Sdl.set_window_fullscreen (Option.get window)
-                           ( if fullscreen then Sdl.Window.fullscreen
-                           else Sdl.Window.windowed ))
+                           (if fullscreen then Sdl.Window.fullscreen
+                           else Sdl.Window.windowed))
                        ()
                  | k when k = Sdl.K.q ->
                      let e = Sdl.Event.create () in
@@ -84,7 +83,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
                      assert (Sdl_utils.check Sdl.push_event e)
                  | _ -> ());
               self#process_events
-          | _ -> self#process_events )
+          | _ -> self#process_events)
 
     method send_frame buf =
       self#process_events;
@@ -114,8 +113,8 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      ( new output ~infallible ~autostart ~on_start ~on_stop ~kind source
-        :> Source.source ))
+      (new output ~infallible ~autostart ~on_start ~on_stop ~kind source
+        :> Source.source))
 
 let () =
   Lang.add_builtin ~category:(Lang.string_of_category Lang.Output)

@@ -83,27 +83,20 @@ type self_sync = [ `Static | `Dynamic ] * bool
 class type ['a, 'b] proto_clock =
   object
     method id : string
-
     method sync_mode : sync
 
     (** Attach an active source, detach active sources by filter. *)
 
     method attach : 'a -> unit
-
     method detach : ('a -> bool) -> unit
 
     (** Attach a sub_clock, get all subclocks, see below. *)
 
     method attach_clock : 'b -> unit
-
     method detach_clock : 'b -> unit
-
     method sub_clocks : 'b list
-
     method start_outputs : ('a -> bool) -> unit -> 'a list
-
     method get_tick : int
-
     method end_tick : unit
   end
 
@@ -262,7 +255,7 @@ module Kind = struct
             match t with
               | `Audio -> Frame_content.default_audio ()
               | `Video -> Frame_content.default_video ()
-              | `Midi -> Frame_content.default_midi () )
+              | `Midi -> Frame_content.default_midi ())
         | `Format f -> f
         | `Kind k -> Frame_content.default_format k
     in
@@ -336,6 +329,7 @@ type watcher = {
     is_partial:bool ->
     metadata:metadata ->
     unit;
+  before_output : unit -> unit;
   after_output : unit -> unit;
 }
 
@@ -379,34 +373,25 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     val mutable watchers = []
 
     method add_watcher w = watchers <- w :: watchers
-
     method private iter_watchers fn = List.iter fn watchers
 
     (** Logging and identification *)
 
     val mutable log = source_log
-
     method private create_log = log <- Log.make [self#id]
-
     method log = log
-
     val mutable id = ""
-
     val mutable definitive_id = false
-
     val mutable name = name
-
     method set_name n = name <- n
-
     initializer id <- generate_id name
-
     method id = id
 
     method set_id ?(definitive = true) s =
       let s = Pcre.substitute ~pat:"[ \t\n]" ~subst:(fun _ -> "_") s in
       if not definitive_id then (
         id <- s;
-        definitive_id <- definitive );
+        definitive_id <- definitive);
 
       (* Sometimes the ID is changed during initialization,
        * in order to make it equal to the server name,
@@ -420,7 +405,6 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
 
     val mutex = Mutex.create ()
-
     method mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b = Tutils.mutexify mutex
 
     (** Is the source infallible, i.e. is it always guaranteed that there
@@ -443,20 +427,15 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
      * be overridden, and it needs to be called at initialization:
      * #wake_up is too late since it's the clock who initiates it. *)
     val clock : active_operator var = create_unknown ~sources:[] ~sub_clocks:[]
-
     method clock = clock
-
     method virtual self_sync : self_sync
 
     method private set_clock =
       List.iter (fun s -> unify self#clock s#clock) sources
 
     initializer self#set_clock
-
     method kind = out_kind
-
     initializer List.iter (fun s -> Kind.unify s#kind in_kind) sources
-
     val mutable ctype = None
 
     (* Content type. *)
@@ -505,9 +484,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     * so the activation management API is not thread-safe. *)
 
     val mutable caching = false
-
     val mutable dynamic_activations : operator list list = []
-
     val mutable static_activations : operator list list = []
 
     (* List of callbacks executed when source shuts down. *)
@@ -540,16 +517,16 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
                     dynamic_activations
                 then Some "possible dynamic activation"
                 else None
-            | _ -> Some "two static activations" )
+            | _ -> Some "two static activations")
       with
         | None ->
             if caching then (
               caching <- false;
-              self#log#debug "Disabling caching mode." )
+              self#log#debug "Disabling caching mode.")
         | Some msg ->
             if not caching then (
               caching <- true;
-              self#log#debug "Enabling caching mode: %s." msg )
+              self#log#debug "Enabling caching mode: %s." msg)
 
     (* Ask for initialization.
      * The current implementation makes it dangerous to call #get_ready from
@@ -560,7 +537,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets up with content kind: %s." id
           (Kind.to_string self#kind);
-        self#wake_up activation );
+        self#wake_up activation);
       Server.register_op self#id name;
       if dynamic then dynamic_activations <- activation :: dynamic_activations
       else static_activations <- activation :: static_activations;
@@ -575,7 +552,6 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             ~ctype:self#ctype ~clock_id ~clock_sync_mode)
 
     val mutable on_leave = []
-
     method on_leave = self#mutexify (fun fn -> on_leave <- fn :: on_leave)
 
     (* Release the source, which will shutdown if possible.
@@ -604,7 +580,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             List.iter (fun fn -> try fn () with _ -> ()) on_shutdown;
             on_shutdown <- [])
           ();
-        self#sleep );
+        self#sleep);
       self#iter_watchers (fun w -> w.leave ())
 
     method is_up = static_activations <> [] || dynamic_activations <> []
@@ -669,7 +645,6 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     (* We want to notify of new tracks on the next call after a
        partial frame. *)
     val mutable was_partial = true
-
     method on_track = self#mutexify (fun fn -> on_track <- fn :: on_track)
 
     method private instrumented_get_frame buf =
@@ -699,7 +674,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
                 | None -> Hashtbl.create 0
                 | Some m -> m
             in
-            List.iter (fun fn -> fn m) on_track );
+            List.iter (fun fn -> fn m) on_track);
           was_partial <- is_partial)
         ();
       self#iter_watchers (fun w ->
@@ -743,11 +718,11 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
           self#instrumented_get_frame buf;
           if List.length b + 1 > List.length (Frame.breaks buf) then (
             self#log#severe "#get_frame added too many breaks!";
-            assert false );
+            assert false);
           if List.length b + 1 < List.length (Frame.breaks buf) then (
             self#log#severe
               "#get_frame returned a buffer without enough breaks!";
-            assert false ) )
+            assert false))
       else (
         let memo = self#memo in
         try Frame.get_chunk buf memo
@@ -760,22 +735,21 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             self#instrumented_get_frame memo;
             if List.length b + 1 <> List.length (Frame.breaks memo) then (
               self#log#severe "#get_frame didn't add exactly one break!";
-              assert false )
+              assert false)
             else if p < Frame.position memo then self#get buf
-            else Frame.add_break buf (Frame.position buf) ) )
+            else Frame.add_break buf (Frame.position buf)))
 
     (* That's the way the source produces audio data.
      * It cannot be called directly, but [#get] should be used instead, for
      * dealing with caching if needed. *)
     method virtual private get_frame : Frame.t -> unit
 
-    (* End the current output round.
-     * The default task is to clear the cache and propagate the call
-     * to children sources.
-     * It MUST be called at every frame for every source, even those who
-     * aren't played. This clock may be used for consistency of
-     * #is_ready/#get_frame for example, stopping the clock for one source
-     * can freeze its state in an unwanted way. *)
+    (* Prepare for output round. *)
+    method before_output =
+      List.iter (fun s -> s#before_output) sources;
+      self#iter_watchers (fun w -> w.before_output ())
+
+    (* Cleanup after output round. *)
     method after_output =
       List.iter (fun s -> s#after_output) sources;
       self#advance;
@@ -834,23 +808,14 @@ type clock_variable = active_source var
 class type clock =
   object
     method id : string
-
     method sync_mode : sync
-
     method attach : active_source -> unit
-
     method detach : (active_source -> bool) -> unit
-
     method attach_clock : clock_variable -> unit
-
     method detach_clock : clock_variable -> unit
-
     method sub_clocks : clock_variable list
-
     method start_outputs : (active_source -> bool) -> unit -> active_source list
-
     method get_tick : int
-
     method end_tick : unit
   end
 

@@ -166,9 +166,9 @@ module Icecast_v (M : Icecast_t) = struct
     | Encoder.Shine _ -> Some mpeg
     | Encoder.Ffmpeg e ->
         Option.map M.format_of_content
-          ( match e.Ffmpeg_format.format with
+          (match e.Ffmpeg_format.format with
             | None -> None
-            | Some v -> ffmpeg_mime_of_format v )
+            | Some v -> ffmpeg_mime_of_format v)
     | Encoder.FdkAacEnc _ -> Some aac
     | Encoder.External _ -> None
     | Encoder.GStreamer _ -> None
@@ -197,7 +197,7 @@ module Icecast_v (M : Icecast_t) = struct
               raise
                 (Lang_errors.Invalid_value
                    ( Lang.assoc "" 1 p,
-                     "No format (mime) found, please specify one." )) )
+                     "No format (mime) found, please specify one." )))
     in
     { factory = encoder_factory; format; info }
 end

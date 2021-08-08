@@ -66,7 +66,7 @@ let create_decoder input =
         let ret = Flac.Decoder.seek decoder c pos in
         if ret = true then (
           processed := pos;
-          ticks )
+          ticks)
         else (
           match Flac.Decoder.state decoder c with
             | `Seek_error ->
@@ -74,7 +74,7 @@ let create_decoder input =
                 else
                   (* Flushing failed, we are in an unknown state.. *)
                   raise End_of_stream
-            | _ -> 0 ));
+            | _ -> 0));
     decode =
       (fun buffer ->
         let c =
@@ -174,7 +174,7 @@ let check filename =
         try
           ignore (file_type filename);
           true
-        with _ -> false )
+        with _ -> false)
 
 let duration file =
   if not (check file) then raise Not_found;

@@ -1,3 +1,4 @@
+version=0.18.0
 profile = conventional
 break-separators = after
 space-around-lists = false

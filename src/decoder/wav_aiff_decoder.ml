@@ -32,7 +32,7 @@ let really_input input buf ofs len =
   let rec f pos =
     if pos < len then (
       let i = input buf (ofs + pos) (len - pos) in
-      if i = 0 then raise End_of_stream else f (pos + i) )
+      if i = 0 then raise End_of_stream else f (pos + i))
   in
   f ofs
 
@@ -107,7 +107,7 @@ let create ?header input =
             let samples = 8 * (ret - pos) / (samplesize * channels) in
             let duration = float samples /. float samplerate in
             Frame.main_of_seconds duration
-          with _ -> 0 )
+          with _ -> 0)
       | _, _, _ -> 0
   in
   { Decoder.decode = (fun buffer -> !decoder ~buffer); seek }

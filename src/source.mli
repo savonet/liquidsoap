@@ -66,6 +66,7 @@ type watcher = {
     is_partial:bool ->
     metadata:metadata ->
     unit;
+  before_output : unit -> unit;
   after_output : unit -> unit;
 }
 
@@ -101,7 +102,6 @@ class virtual source :
        method id : string
 
        method set_name : string -> unit
-
        method set_id : ?definitive:bool -> string -> unit
 
        (* {1 Liveness type}
@@ -199,12 +199,10 @@ class virtual source :
 
        method is_active : bool
 
-       (** Wait for output round to finish.
-           Typically, output nodes compute an audio frame (a full buffer),
-           then launch a few output threads, which take care of encoding
-           and outputting (to a file, network, ...).
-           In that case, after_output allows the node to wait for its
-           output threads. *)
+       (** Prepare for output round. *)
+       method before_output : unit
+
+       (** Cleanup after output round. *)
        method after_output : unit
 
        method advance : unit
@@ -220,7 +218,6 @@ class virtual source :
          Request.t
 
        method log : Log.t
-
        method add_watcher : watcher -> unit
      end
 
@@ -291,17 +288,13 @@ class type clock =
     (** Manage subordinate clocks *)
 
     method attach_clock : clock_variable -> unit
-
     method detach_clock : clock_variable -> unit
-
     method sub_clocks : clock_variable list
 
     (** Streaming *)
 
     method start_outputs : (active_source -> bool) -> unit -> active_source list
-
     method get_tick : int
-
     method end_tick : unit
   end
 

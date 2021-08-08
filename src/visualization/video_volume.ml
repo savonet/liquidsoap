@@ -34,26 +34,19 @@ class visu ~kind source =
   let height = Lazy.force Frame.video_height in
   object (self)
     inherit operator ~name:"video.volume" kind [source] as super
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     (* Ringbuffer for previous values, with its current position. *)
     val mutable vol = [||]
-
     val mutable pos = 0
 
     (* Another buffer for accumulating RMS over [group_size] samples, with its
      * current position. *)
     val mutable cur_rms = [||]
-
     val mutable group = 0
 
     method wake_up a =
@@ -71,7 +64,7 @@ class visu ~kind source =
           vol.(c).(pos) <- sqrt (cur_rms.(c) /. f_group_size);
           cur_rms.(c) <- 0.
         done;
-        pos <- (pos + 1) mod backpoints )
+        pos <- (pos + 1) mod backpoints)
 
     method private get_frame frame =
       let offset = Frame.position frame in
@@ -143,9 +136,9 @@ class visu ~kind source =
                 let pt1 =
                   ( int_of_float (volwidth *. float i),
                     height
-                    - ( chan_height
+                    - (chan_height
                       + int_of_float
-                          (volheight *. vol.((i + pos) mod backpoints)) )
+                          (volheight *. vol.((i + pos) mod backpoints)))
                     - 1 )
                 in
                 line buf (0, 0xff, 0, 0xff) !pt0 pt1;
@@ -153,7 +146,7 @@ class visu ~kind source =
               done
             done
           done
-        done )
+        done)
   end
 
 let () =

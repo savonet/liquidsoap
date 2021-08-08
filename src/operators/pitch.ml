@@ -61,7 +61,6 @@ class pitch ~kind every length freq_min freq_max (source : source) =
   let length = Frame.audio_of_seconds length in
   object (self)
     inherit operator ~name:"pitch" kind [source]
-
     val mutable ring = None
 
     method ring : Ringbuffer.t =
@@ -78,17 +77,11 @@ class pitch ~kind every length freq_min freq_max (source : source) =
         (Lazy.from_fun (fun () -> Audio.create self#audio_channels length))
 
     val mutable computations = -1
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     method private get_frame buf =
@@ -111,12 +104,12 @@ class pitch ~kind every length freq_min freq_max (source : source) =
           if d < !d_opt then (
             (* Printf.printf "d: %.02f      l: %d\n%!" d l; *)
             d_opt := d;
-            wl_opt := l )
+            wl_opt := l)
         done;
         let f = samples_per_second /. float !wl_opt in
         let f = if f > freq_max then 0. else f in
         self#log#important "Found frequency: %.02f (%s)\n%!" f
-          (string_of_note (note_of_freq f)) )
+          (string_of_note (note_of_freq f)))
   end
 
 let () =

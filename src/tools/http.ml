@@ -178,7 +178,7 @@ module Make (Transport : Transport_t) = struct
         if plus && x = " " then "+"
         else (
           let k = Char.code x.[0] in
-          "%" ^ to_hex2 k ))
+          "%" ^ to_hex2 k))
       s
 
   let of_hex1 c =
@@ -200,7 +200,7 @@ module Make (Transport : Transport_t) = struct
           if String.length s < 3 then raise UrlDecoding;
           let k1 = of_hex1 s.[1] in
           let k2 = of_hex1 s.[2] in
-          String.make 1 (Char.chr ((k1 lsl 4) lor k2)) ))
+          String.make 1 (Char.chr ((k1 lsl 4) lor k2))))
       s
 
   let args_split s =
@@ -300,7 +300,7 @@ module Make (Transport : Transport_t) = struct
       else (
         let c = Bytes.get c 0 in
         Buffer.add_char ans c;
-        if c = '\n' then incr count_n else if c <> '\r' then count_n := 0 );
+        if c = '\n' then incr count_n else if c <> '\r' then count_n := 0);
       incr n
     done;
     Buffer.contents ans

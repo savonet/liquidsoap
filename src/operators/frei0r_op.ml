@@ -47,19 +47,12 @@ class frei0r_filter ~kind ~name bgra instance params (source : source) =
   let dt = 1. /. float fps in
   object
     inherit operator ~name:("frei0r." ^ name) kind [source]
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method is_ready = source#is_ready
-
     method self_sync = source#self_sync
-
     method abort_track = source#abort_track
-
     val mutable t = 0.
 
     method private get_frame buf =
@@ -111,7 +104,6 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
       source2#abort_track
 
     val mutable t = 0.
-
     val mutable tmp = Frame.dummy
 
     method private wake_up a =
@@ -165,25 +157,18 @@ class frei0r_source ~kind ~name bgra instance params =
   let dt = 1. /. float fps in
   object
     inherit source ~name:("frei0r." ^ name) kind
-
     method stype = Infallible
-
     method is_ready = true
-
     method self_sync = (`Static, false)
-
     val mutable must_fail = false
-
     method abort_track = must_fail <- true
-
     method remaining = if must_fail then 0 else -1
-
     val mutable t = 0.
 
     method private get_frame frame =
       if must_fail then (
         must_fail <- false;
-        VFrame.add_break frame (VFrame.position frame) )
+        VFrame.add_break frame (VFrame.position frame))
       else (
         params ();
         let start = VFrame.position frame in
@@ -199,7 +184,7 @@ class frei0r_source ~kind ~name bgra instance params =
           Video.set rgb i img;
           t <- t +. dt
         done;
-        VFrame.add_break frame stop )
+        VFrame.add_break frame stop)
   end
 
 (** Make a list of parameters. *)
@@ -351,11 +336,11 @@ let register_plugin fname =
       let kind = Source.Kind.of_kind kind in
       if inputs = 1 then (
         let source = Lang.to_source (f "") in
-        new frei0r_filter ~kind ~name bgra instance params source )
+        new frei0r_filter ~kind ~name bgra instance params source)
       else if inputs = 2 then (
         let source = Lang.to_source (f "") in
         let source' = Lang.to_source (Lang.assoc "" 2 p) in
-        new frei0r_mixer ~kind ~name bgra instance params source source' )
+        new frei0r_mixer ~kind ~name bgra instance params source source')
       else if inputs = 0 then new frei0r_source ~kind ~name bgra instance params
       else assert false)
 

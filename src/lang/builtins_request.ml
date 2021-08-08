@@ -93,8 +93,8 @@ let () =
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let r = Lang.to_request (List.assoc "" p) in
       Lang.bool
-        ( try Request.Resolved = Request.resolve ~ctype r timeout
-          with _ -> false ))
+        (try Request.Resolved = Request.resolve ~ctype r timeout
+         with _ -> false))
 
 let () =
   add_builtin "request.read_metadata" ~cat:Liq

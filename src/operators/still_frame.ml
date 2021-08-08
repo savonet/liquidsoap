@@ -29,19 +29,12 @@ open Extralib
 class still_frame ~name ~kind (source : source) =
   object (self)
     inherit operator ~name kind [source]
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     val mutable fname = None
 
     method save (f : string) =
@@ -65,7 +58,7 @@ class still_frame ~name ~kind (source : source) =
                   output_string oc i;
                   close_out oc;
                   fname <- None
-              | None -> () )
+              | None -> ())
   end
 
 let () =

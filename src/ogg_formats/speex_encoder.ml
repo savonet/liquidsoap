@@ -111,7 +111,7 @@ let create speex ~metadata () =
             f (Array.sub buf.(0) (frame_size * n) frame_size);
             f (Array.sub buf.(1) (frame_size * n) frame_size);
           |]
-        else [| f (Array.sub buf.(0) (frame_size * n) frame_size) |] )
+        else [| f (Array.sub buf.(0) (frame_size * n) frame_size) |])
       else raise Internal
     in
     try
@@ -123,7 +123,7 @@ let create speex ~metadata () =
               let x = feed () in
               x.(0)
             in
-            Speex.Encoder.encode_page_int enc os feed )
+            Speex.Encoder.encode_page_int enc os feed)
         in
         add_page page
       done
@@ -166,7 +166,7 @@ let create_speex = function
               let title = Filename.basename s in
               try String.sub title 0 (String.rindex title '.')
               with Not_found -> title
-            with Not_found -> "Unknown" )
+            with Not_found -> "Unknown")
         in
         let metadata = [("title", title)] @ List.remove_assoc "title" m in
         let enc = create speex ~metadata () in

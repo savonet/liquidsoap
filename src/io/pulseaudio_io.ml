@@ -40,11 +40,8 @@ class virtual base ~client ~device =
   let device = if device = "" then None else Some device in
   object
     val client_name = client
-
     val dev = device
-
     method virtual log : Log.t
-
     method self_sync : Source.self_sync = (`Dynamic, dev <> None)
   end
 
@@ -92,7 +89,6 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
             stream <- None
 
     method start = self#open_device
-
     method stop = self#close_device
 
     method reset =
@@ -140,15 +136,10 @@ class input ~kind p =
           ~on_start ~on_stop ~autostart:start ~fallible ()
 
     inherit base ~client ~device
-
     method private start = self#open_device
-
     method private stop = self#close_device
-
     val mutable stream = None
-
     method remaining = -1
-
     method abort_track = ()
 
     method private open_device =
@@ -220,10 +211,11 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let kind = Source.Kind.of_kind kind in
-      (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Output.output));
+      (new output ~infallible ~on_start ~on_stop ~start ~kind p
+        :> Output.output));
   Lang.add_operator "input.pulseaudio"
-    ( Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
-    @ proto )
+    (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    @ proto)
     ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
     (fun p ->

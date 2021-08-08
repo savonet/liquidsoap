@@ -25,17 +25,11 @@ open Source
 class map_metadata ~kind source rewrite_f insert_missing update strip =
   object (self)
     inherit operator ~name:"map_metadata" kind [source]
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method abort_track = source#abort_track
-
     method seek n = source#seek n
-
     method self_sync = source#self_sync
 
     method private rewrite m =
@@ -62,13 +56,13 @@ class map_metadata ~kind source rewrite_f insert_missing update strip =
               self#log#important "Inserting missing metadata.";
               let h = Hashtbl.create 10 in
               Frame.set_metadata buf p h
-          | Some _ -> () );
+          | Some _ -> ());
       if Frame.is_partial buf then in_track <- false;
       List.iter
         (fun (t, m) ->
           if t >= p then (
             self#rewrite m;
-            if strip && Hashtbl.length m = 0 then Frame.free_metadata buf t ))
+            if strip && Hashtbl.length m = 0 then Frame.free_metadata buf t))
         (Frame.get_all_metadata buf)
   end
 

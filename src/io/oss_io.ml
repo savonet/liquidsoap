@@ -53,7 +53,6 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
           (Clock.create_known (get_clock () :> Clock.clock))
 
     val mutable fd = None
-
     method self_sync = (`Dynamic, fd <> None)
 
     method open_device =
@@ -71,7 +70,6 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
             fd <- None
 
     method start = self#open_device
-
     method stop = self#close_device
 
     method send_frame memo =
@@ -94,13 +92,9 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         ~on_start ~on_stop ~fallible ~autostart:start ()
 
     val mutable fd = None
-
     method self_sync = (`Dynamic, fd <> None)
-
     method abort_track = ()
-
     method remaining = -1
-
     method private start = self#open_device
 
     method private open_device =
@@ -133,7 +127,7 @@ let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.oss"
-    ( Output.proto
+    (Output.proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -144,7 +138,7 @@ let () =
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
     (fun p ->
@@ -162,18 +156,18 @@ let () =
       let clock_safe = e Lang.to_bool "clock_safe" in
       let device = e Lang.to_string "device" in
       let source = List.assoc "" p in
-      ( new output
-          ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
-        :> Source.source ));
+      (new output
+         ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
+        :> Source.source));
   let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
   Lang.add_operator "input.oss"
-    ( Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
         ( "device",
           Lang.string_t,
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
-      ] )
+      ])
     ~meth:(Start_stop.meth ()) ~return_t:k ~category:Lang.Input
     ~descr:"Stream from an OSS input device."
     (fun p ->

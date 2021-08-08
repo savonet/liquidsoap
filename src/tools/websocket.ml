@@ -106,7 +106,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
           Bytes.set ans 0 '\126';
           Bytes.set ans 1 (char_of_int (len lsr 8));
           Bytes.set ans 2 (char_of_int (len land 0xff));
-          Bytes.unsafe_to_string ans )
+          Bytes.unsafe_to_string ans)
         else (
           let ans = Bytes.create 5 in
           Bytes.set ans 0 '\127';
@@ -114,7 +114,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
           Bytes.set ans 2 (char_of_int ((len lsr 16) land 0xff));
           Bytes.set ans 3 (char_of_int ((len lsr 8) land 0xff));
           Bytes.set ans 4 (char_of_int (len land 0xff));
-          Bytes.unsafe_to_string ans )
+          Bytes.unsafe_to_string ans)
       in
       b0 ^ blen ^ f.data
 
@@ -165,7 +165,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
           for i = 0 to 3 do
             Bytes.set key i (read_char ())
           done;
-          Bytes.unsafe_to_string key )
+          Bytes.unsafe_to_string key)
         else ""
       in
       let unmask key s =
@@ -187,7 +187,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
           let n = T.read s data 0 len in
           Buffer.add_subbytes buf data 0 n;
           if n = 0 then failwith "end of stream reached prematurely!";
-          f (Int64.add pos (Int64.of_int n)) )
+          f (Int64.add pos (Int64.of_int n)))
         else Buffer.to_bytes buf
       in
       let data = f 0L in
@@ -235,7 +235,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
                 let code =
                   (int_of_char data.[0] lsl 8) + int_of_char data.[1]
                 in
-                Some (code, String.sub data 2 (String.length data - 2)) )
+                Some (code, String.sub data 2 (String.length data - 2)))
             in
             `Close reason
         | 0x9 -> `Ping data

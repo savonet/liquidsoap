@@ -40,7 +40,6 @@ class resample ~kind ~ratio source_val =
       Child_support.base ~check_self_sync:true [source_val] as child_support
 
     method self_sync = source#self_sync
-
     method stype = source#stype
 
     method remaining =
@@ -49,15 +48,17 @@ class resample ~kind ~ratio source_val =
       else int_of_float (float (rem + Generator.length generator) *. ratio ())
 
     method abort_track = source#abort_track
-
     method is_ready = source#is_ready
-
     val mutable converter = None
 
     method wake_up a =
       super#wake_up a;
       converter <- Some (Audio_converter.Samplerate.create self#audio_channels);
       write_frame_ref := self#write_frame
+
+    method before_output =
+      super#before_output;
+      child_support#before_output
 
     method after_output =
       super#after_output;

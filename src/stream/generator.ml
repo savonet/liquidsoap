@@ -86,13 +86,13 @@ module Generator = struct
        * Or do we need to consume it completely and go farther in the queue? *)
       if g.offset + len < b_len then (
         g.length <- g.length - len;
-        g.offset <- g.offset + len )
+        g.offset <- g.offset + len)
       else (
         let removed = b_len - g.offset in
         ignore (Queue.take g.buffers);
         g.length <- g.length - removed;
         g.offset <- 0;
-        remove g (len - removed) ) )
+        remove g (len - removed)))
 
   (* Feed an item into a generator.
      The item is put as such, not copied. *)
@@ -121,10 +121,10 @@ module Generator = struct
       if block_len <= needed then (
         ignore (Queue.take g.buffers);
         g.length <- g.length - block_len;
-        g.offset <- 0 )
+        g.offset <- 0)
       else (
         g.length <- g.length - needed;
-        g.offset <- g.offset + needed );
+        g.offset <- g.offset + needed);
 
       (* Add more data by recursing on the next block, or finish. *)
       if block_len < needed then aux chunks (offset + block_len)
@@ -324,7 +324,7 @@ module From_frames = struct
       match fg.breaks with
         | 0 :: tl -> fg.breaks <- tl
         | [] -> () (* end of stream / underrun ... *)
-        | _ -> assert false )
+        | _ -> assert false)
 end
 
 (** In [`Both] mode, the buffer is always kept in sync as follows:
@@ -405,7 +405,7 @@ module From_audio_video = struct
   let add_break ?(sync = false) ?(pos = 0) t =
     if sync then (
       Generator.clear t.current_audio;
-      Generator.clear t.current_video );
+      Generator.clear t.current_video);
     t.breaks <- t.breaks @ [length t + pos]
 
   let clear t =
@@ -423,7 +423,7 @@ module From_audio_video = struct
   let set_mode t m =
     if t.mode <> m then (
       assert (audio_length t = video_length t);
-      t.mode <- m )
+      t.mode <- m)
 
   (** Check for pending synced A/V content *)
   let sync_content t =
@@ -482,7 +482,7 @@ module From_audio_video = struct
             let video_len, more_video =
               pick ~picked:picked_video ~pos:0 ~chunks:video pts
             in
-            ( match (audio_len, video_len) with
+            (match (audio_len, video_len) with
               (* Full frame sync. Take it! *)
               | _ when audio_len = video_len && video_len = s ->
                   add_audio ~picked:picked_audio ~pos:audio_len ();
@@ -493,7 +493,7 @@ module From_audio_video = struct
                      || (video_len < s && more_video) ->
                   Generator.remove t.current_audio audio_len;
                   Generator.remove t.current_video video_len
-              | _ -> () );
+              | _ -> ());
             f ()
         | _ -> ()
     in
@@ -679,7 +679,7 @@ module From_audio_video = struct
       match t.breaks with
         | 0 :: tl -> t.breaks <- tl
         | [] -> () (* end of stream / underrun ... *)
-        | _ -> assert false )
+        | _ -> assert false)
 end
 
 module From_audio_video_plus = struct
@@ -763,7 +763,7 @@ module From_audio_video_plus = struct
                 t.error <- true;
                 Super.clear t.gen;
                 Frame.clear_from frame p;
-                Frame.set_breaks frame (p :: breaks) ))
+                Frame.set_breaks frame (p :: breaks)))
       ()
 
   let remove t len = Tutils.mutexify t.lock (Super.remove t.gen) len
@@ -789,10 +789,10 @@ module From_audio_video_plus = struct
         if t.error then (
           Super.clear t.gen;
           t.error <- false;
-          raise Incorrect_stream_type )
+          raise Incorrect_stream_type)
         else (
           check_overfull t len;
-          Super.put_audio ?pts t.gen buf off len ))
+          Super.put_audio ?pts t.gen buf off len))
       ()
 
   let put_video ?pts t buf off len =
@@ -801,27 +801,27 @@ module From_audio_video_plus = struct
         if t.error then (
           Super.clear t.gen;
           t.error <- false;
-          raise Incorrect_stream_type )
+          raise Incorrect_stream_type)
         else (
           check_overfull t len;
-          Super.put_video ?pts t.gen buf off len ))
+          Super.put_video ?pts t.gen buf off len))
       ()
 
   let feed_from_frame ?mode t frame =
     Tutils.mutexify t.lock
       (fun () ->
-        ( match t.ctype with
+        (match t.ctype with
           | None -> t.ctype <- Some (Frame.content_type frame)
           | Some ctype ->
               if Frame.content_type frame <> ctype then (
                 t.log "Incorrect stream type!";
-                t.error <- true ) );
+                t.error <- true));
         if t.error then (
           Super.clear t.gen;
           t.error <- false;
-          raise Incorrect_stream_type )
+          raise Incorrect_stream_type)
         else (
           check_overfull t (Lazy.force Frame.size);
-          Super.feed_from_frame ?mode t.gen frame ))
+          Super.feed_from_frame ?mode t.gen frame))
       ()
 end

@@ -32,15 +32,10 @@ class blank ~kind duration =
     val mutable remaining = ticks
 
     method remaining = remaining
-
     method stype = Infallible
-
     method is_ready = true
-
     method self_sync = (`Static, false)
-
     method seek x = x
-
     method abort_track = remaining <- 0
 
     method get_frame ab =
@@ -51,18 +46,17 @@ class blank ~kind duration =
       in
       let video_pos = Frame.video_of_main position in
       (* Audio *)
-      ( try
-          Audio.clear
-            (Audio.sub (AFrame.pcm ab)
-               (Frame.audio_of_main position)
-               (Frame.audio_of_main length))
-        with Frame_content.Invalid -> () );
+      (try
+         Audio.clear
+           (Audio.sub (AFrame.pcm ab)
+              (Frame.audio_of_main position)
+              (Frame.audio_of_main length))
+       with Frame_content.Invalid -> ());
 
       (* Video *)
-      ( try
-          Video.blank (VFrame.yuva420p ab) video_pos
-            (Frame.video_of_main length)
-        with Frame_content.Invalid -> () );
+      (try
+         Video.blank (VFrame.yuva420p ab) video_pos (Frame.video_of_main length)
+       with Frame_content.Invalid -> ());
 
       Frame.add_break ab (position + length);
       if Frame.is_partial ab then remaining <- ticks

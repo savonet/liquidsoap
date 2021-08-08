@@ -26,6 +26,8 @@ def f() =
   t(list.length(["a","b"]), 2)
   t(list.mem(1,[4,5,6]), false)
   t(list.mem(5,[4,5,6]), true)
+  t(list.mem_assoc(1,[(4,"bla"),(5,"foo"),(6,"gni")]), false)
+  t(list.mem_assoc(5,[(4,"bla"),(5,"foo"),(6,"gni")]), true)
   t(list.map(fun (x) -> 2*x,[1,2,3]), [2,4,6])
   t(list.map(fun (x) -> 2.*x,[1.,2.,3.]), [2.,4.,6.])
   t(list.mapi(fun (i,x) -> i+x,[1,1,2]), [1,2,4])

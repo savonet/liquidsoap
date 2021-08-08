@@ -45,13 +45,9 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
       Child_support.base ~check_self_sync:true [source_val] as child_support
 
     val mutable track_state : state = `Idle
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     method remaining =
@@ -62,6 +58,10 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
             let target = cue_out - elapsed in
             if source_remaining = -1 then target
             else min source#remaining target
+
+    method before_output =
+      super#before_output;
+      child_support#before_output
 
     method after_output =
       super#after_output;
@@ -107,12 +107,12 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
                 | _, cue_out -> cue_out
             in
             self#log#info "Cue points : %s / %s"
-              ( match cue_in with
+              (match cue_in with
                 | None -> "none"
-                | Some t -> string_of_float (Frame.seconds_of_main t) )
-              ( match cue_out with
+                | Some t -> string_of_float (Frame.seconds_of_main t))
+              (match cue_out with
                 | None -> "none"
-                | Some t -> string_of_float (Frame.seconds_of_main t) );
+                | Some t -> string_of_float (Frame.seconds_of_main t));
             (cue_in, cue_out)
 
     method private cue_in ~breaks ~length ?(in_pos = 0) ?out_pos buf =
@@ -136,14 +136,14 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
 
           let new_pos = Frame.position buf in
 
-          length + seeked_pos + new_pos - pos )
+          length + seeked_pos + new_pos - pos)
         else (
           if in_pos > 0 then
             self#log#info
               "Cue-in point %.03f is already past current position %.03f"
               (Frame.seconds_of_main in_pos)
               (Frame.seconds_of_main length);
-          length )
+          length)
       in
 
       match out_pos with

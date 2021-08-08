@@ -71,11 +71,11 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   let muxed_kind =
     {
       Frame.audio =
-        ( if aux_content = `Audio then aux#kind.Frame.audio
-        else main#kind.Frame.audio );
+        (if aux_content = `Audio then aux#kind.Frame.audio
+        else main#kind.Frame.audio);
       video =
-        ( if aux_content = `Video then aux#kind.Frame.video
-        else main#kind.Frame.video );
+        (if aux_content = `Video then aux#kind.Frame.video
+        else main#kind.Frame.video);
       midi = main#kind.Frame.midi;
     }
   in

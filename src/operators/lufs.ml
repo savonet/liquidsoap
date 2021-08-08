@@ -71,7 +71,7 @@ module IIR = struct
       let b2 = (vh -. (vb *. k /. q) +. (vl *. k *. k)) *. a in
       let a1 = 2. *. ((k *. k) -. 1.) *. a in
       let a2 = (1. -. (k /. q) +. (k *. k)) *. a in
-      { channels; x; y; a1; a2; b0; b1; b2 } )
+      { channels; x; y; a1; a2; b0; b1; b2 })
 
   let stage1 =
     create ~a1:(-1.69065929318241) ~a2:0.73248077421585 ~b0:1.53512485958697
@@ -106,25 +106,15 @@ let loudness z = -0.691 +. (10. *. log10 z)
 class lufs ~kind window source =
   object (self)
     inherit operator kind [source] ~name:"lufs" as super
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
-
     method channels = self#audio_channels
-
     method samplerate = float_of_int (Lazy.force Frame.audio_rate)
-
     val mutable stage1 = id
-
     val mutable stage2 = id
 
     (** Current mean square (weighted sum over channels). *)
@@ -188,7 +178,7 @@ class lufs ~kind window source =
         if ms_len >= len_100ms then (
           ms_blocks <- (ms /. float_of_int len_100ms) :: ms_blocks;
           ms <- 0.;
-          ms_len <- 0 )
+          ms_len <- 0)
       done;
       (* Keep only a limited (by the window) number of blocks. *)
       ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks

@@ -124,7 +124,7 @@ let create_encoder ~theora ~metadata () =
       let index =
         Int64.succ (Theora.Encoder.frames_of_granulepos enc granulepos)
       in
-      Ogg_muxer.Time (Int64.to_float index /. float fps) )
+      Ogg_muxer.Time (Int64.to_float index /. float fps))
     else Ogg_muxer.Time 0.
   in
   let end_of_stream os =
@@ -147,7 +147,7 @@ let create_encoder ~theora ~metadata () =
         }
       in
       Image.YUV420.blank_all yuv;
-      Theora.Encoder.encode_buffer enc os theora_yuv );
+      Theora.Encoder.encode_buffer enc os theora_yuv);
     Theora.Encoder.eos enc os
   in
   {

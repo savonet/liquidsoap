@@ -365,7 +365,7 @@ and read_string c pos buf lexbuf =
         if c = c' then STRING (Buffer.contents buf)
         else (
           Buffer.add_char buf c';
-          read_string c pos buf lexbuf )
+          read_string c pos buf lexbuf)
     | eof ->
         raise
           (Lang_values.Parse_error

@@ -95,7 +95,7 @@ let mk_audio ~ffmpeg ~options output =
           with e ->
             log#severe "Cannot find encoder %s: %s." codec
               (Printexc.to_string e);
-            raise e )
+            raise e)
       | _ -> assert false
   in
 
@@ -161,7 +161,7 @@ let mk_audio ~ffmpeg ~options output =
                       ~out_sample_format:target_sample_format src_channel_layout
                       src_samplerate target_channel_layout target_samplerate
                   in
-                  RawResampler.convert fn )
+                  RawResampler.convert fn)
                 else fun f -> f
               in
               resampler := Some f;
@@ -266,7 +266,7 @@ let mk_video ~ffmpeg ~options output =
           with e ->
             log#severe "Cannot find encoder %s: %s." codec
               (Printexc.to_string e);
-            raise e )
+            raise e)
       | _ -> assert false
   in
   let pixel_aspect = { Avutil.num = 1; den = 1 } in
@@ -421,7 +421,7 @@ let mk_video ~ffmpeg ~options output =
                   fun frame ->
                     let scaled = RawScaler.convert scaler frame in
                     Avutil.frame_set_pts scaled (Ffmpeg_utils.best_pts frame);
-                    scaled )
+                    scaled)
                 else fun f -> f
               in
               scaler := Some f;

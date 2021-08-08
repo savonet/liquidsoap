@@ -501,7 +501,7 @@ module VideoSpecs = struct
       {
         width = Some (lazy (Video.Image.width i));
         height = Some (lazy (Video.Image.height i));
-      } )
+      })
 
   let kind = `Yuva420p
   let default_params _ = { width = None; height = None }

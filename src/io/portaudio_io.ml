@@ -32,7 +32,7 @@ class virtual base =
     initializer
     if not !initialized then (
       Portaudio.init ();
-      initialized := true )
+      initialized := true)
 
     method virtual log : Log.t
 
@@ -72,7 +72,6 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
           (Clock.create_known (get_clock () :> Clock.clock))
 
     val mutable stream = None
-
     method self_sync = (`Dynamic, stream <> None)
 
     method private open_device =
@@ -92,7 +91,6 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
             stream <- None
 
     method start = self#open_device
-
     method stop = self#close_device
 
     method reset =
@@ -127,15 +125,10 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
           ~on_stop ~fallible ~autostart:start ()
 
     method private start = self#open_device
-
     method private stop = self#close_device
-
     val mutable stream = None
-
     method self_sync = (`Dynamic, stream <> None)
-
     method abort_track = ()
-
     method remaining = -1
 
     method private open_device =
@@ -178,7 +171,7 @@ let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.portaudio"
-    ( Output.proto
+    (Output.proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -189,7 +182,7 @@ let () =
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k ~category:Lang.Output ~meth:Output.meth
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
@@ -208,17 +201,17 @@ let () =
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let kind = Source.Kind.of_kind kind in
-      ( new output
-          ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
-        :> Output.output ));
+      (new output
+         ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
+        :> Output.output));
   Lang.add_operator "input.portaudio"
-    ( Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
         ( "buflen",
           Lang.int_t,
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
-      ] )
+      ])
     ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
     (fun p ->

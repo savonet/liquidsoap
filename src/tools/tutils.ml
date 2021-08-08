@@ -108,7 +108,7 @@ let seems_locked =
   else fun m ->
     if Mutex.try_lock m then (
       Mutex.unlock m;
-      false )
+      false)
     else true
 
 let log = Log.make ["threads"]
@@ -208,7 +208,7 @@ let create ~queue f x s =
                   Condition.signal no_problem;
                   Condition.signal c)
                 ();
-              raise e )
+              raise e)
         in
         Thread.create process x
       in
@@ -236,7 +236,7 @@ let () =
 let scheduler_log n =
   if scheduler_log#get then (
     let log = Log.make [n] in
-    fun m -> log#info "%s" m )
+    fun m -> log#info "%s" m)
   else fun _ -> ()
 
 let new_queue ?priorities ~name () =
@@ -325,7 +325,7 @@ let () =
     (Dtools.Init.at_start (fun () ->
          if Dtools.Init.conf_daemon#get then (
            Dtools.Log.conf_stdout#set false;
-           start_forwarding () )))
+           start_forwarding ())))
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
@@ -368,8 +368,8 @@ let wait_for ?(log = fun _ -> ()) event timeout =
       let current_time = Unix.gettimeofday () in
       if current_time >= max_time then (
         log "Timeout reached!";
-        raise (Timeout (current_time -. start_time)) )
-      else wait (min 1. (max_time -. current_time)) )
+        raise (Timeout (current_time -. start_time)))
+      else wait (min 1. (max_time -. current_time)))
   in
   wait (min 1. timeout)
 
@@ -382,7 +382,7 @@ let main () =
 let shutdown code =
   if !run = `Run then (
     run := `Exit code;
-    Condition.signal no_problem )
+    Condition.signal no_problem)
 
 let exit_code () = match !run with `Exit code -> code | _ -> 0
 

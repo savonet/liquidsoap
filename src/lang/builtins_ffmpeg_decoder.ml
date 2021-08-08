@@ -184,14 +184,15 @@ let decode_audio_frame ~mode generator =
             (get_converter ~time_base ~stream_idx params) (`Frame frame))
           data
     | `Flush -> (
-        match !current_converter with None -> () | Some (c, _, _) -> c `Flush )
+        match !current_converter with None -> () | Some (c, _, _) -> c `Flush)
   in
 
   let convert
         : 'a 'b.
           get_data:(Frame_content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
           decoder:([ `Frame of Frame_content.data | `Flush ] -> unit) ->
-          [ `Frame of Frame.t | `Flush ] -> unit =
+          [ `Frame of Frame.t | `Flush ] ->
+          unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
         let frame = Frame.(frame.content.audio) in
@@ -385,7 +386,8 @@ let decode_video_frame ~mode generator =
         : 'a 'b.
           get_data:(Frame_content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
           decoder:([ `Frame of Frame_content.data | `Flush ] -> unit) ->
-          [ `Frame of Frame.t | `Flush ] -> unit =
+          [ `Frame of Frame.t | `Flush ] ->
+          unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
         let frame = Frame.(frame.content.video) in
@@ -419,17 +421,17 @@ let mk_encoder mode =
     Frame.
       {
         audio =
-          ( match mode with
+          (match mode with
             | `Audio_encoded | `Both_encoded ->
                 `Kind Ffmpeg_copy_content.Audio.kind
             | `Audio_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Audio.kind
-            | _ -> none );
+            | _ -> none);
         video =
-          ( match mode with
+          (match mode with
             | `Video_encoded | `Both_encoded ->
                 `Kind Ffmpeg_copy_content.Video.kind
             | `Video_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Video.kind
-            | _ -> none );
+            | _ -> none);
         midi = none;
       }
   in
@@ -472,13 +474,13 @@ let mk_encoder mode =
         let decode_audio_frame =
           if has_audio then (
             let mode = if has_encoded_audio then `Decode else `Raw in
-            Some (decode_audio_frame ~mode generator) )
+            Some (decode_audio_frame ~mode generator))
           else None
         in
         let decode_video_frame =
           if has_video then (
             let mode = if has_encoded_video then `Decode else `Raw in
-            Some (decode_video_frame ~mode generator) )
+            Some (decode_video_frame ~mode generator))
           else None
         in
         let size = Lazy.force Frame.size in

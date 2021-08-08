@@ -69,7 +69,7 @@ let header ~channels ~samplerate () =
   let height = Lazy.force Frame.video_height in
   let avi_header =
     chunk "avih"
-      ( dword (1000000 / video_rate) (* microsec per frame *)
+      (dword (1000000 / video_rate) (* microsec per frame *)
       ^ dword 0 (* maximum bytes per second *)
       ^ dword 0 (* reserved *)
       ^ dword 0x0100 (* flags (interleaved) *)
@@ -79,13 +79,13 @@ let header ~channels ~samplerate () =
       ^ dword 0 (* suggested buffer size *)
       ^ dword width (* width *) ^ dword height (* height *)
       ^ dword 0 (* reserved *) ^ dword 0 (* reserved *)
-      ^ dword 0 (* reserved *) ^ dword 0 )
+      ^ dword 0 (* reserved *) ^ dword 0)
     (* reserved *)
   in
   let video_header =
     let stream_header =
       chunk "strh"
-        ( "vids" (* stream type *)
+        ("vids" (* stream type *)
         ^ dword 0x30323449 (* fourcc (codec) *)
         ^ dword 0 (* flags *) ^ word 0
         (* priority *)
@@ -100,20 +100,20 @@ let header ~channels ~samplerate () =
         ^ word 0 (* left *) ^ word 0
         (* top *)
         ^ word width (* right *)
-        ^ word height )
+        ^ word height)
       (* bottom *)
     in
     let stream_format =
       (* see BITMAPINFO *)
       chunk "strf"
-        ( dword 40 (* size of this structure *)
+        (dword 40 (* size of this structure *)
         ^ dword width (* width *) ^ dword height (* height *)
         ^ word 1 (* panes *) ^ word 12 (* depth *)
         ^ dword 0x30323449 (* codec: I420 *)
         ^ dword (width * height * 6 / 4) (* image size *)
         ^ dword 0 (* pixels / x meter *)
         ^ dword 0 (* pixels / y meter *)
-        ^ dword 0 (* colors used *) ^ dword 0 )
+        ^ dword 0 (* colors used *) ^ dword 0)
       (* important colors *)
     in
     list ("strl" ^ stream_header ^ stream_format)
@@ -121,7 +121,7 @@ let header ~channels ~samplerate () =
   let audio_header =
     let stream_header =
       chunk "strh"
-        ( "auds" (* stream type *) ^ dword 0
+        ("auds" (* stream type *) ^ dword 0
         (* stream *)
         ^ dword 0 (* flags *)
         ^ word 0 (* priority *) ^ word 0 (* language *)
@@ -137,18 +137,18 @@ let header ~channels ~samplerate () =
         (* top *)
         ^ word 0
         (* right *)
-        ^ word 0 )
+        ^ word 0)
       (* bottom *)
     in
     let stream_format =
       chunk "strf"
-        ( word 1 (* stream type (PCM) *)
+        (word 1 (* stream type (PCM) *)
         ^ word channels (* channels *)
         ^ dword samplerate (* rate *)
         ^ dword (2 * channels * samplerate) (* byte rate *)
         ^ word (2 * channels) (* block align *)
         ^ word 16 (* bits per sample *)
-        ^ word 0 )
+        ^ word 0)
       (* size of extra information *)
     in
     list ("strl" ^ stream_header ^ stream_format)
@@ -207,7 +207,7 @@ module Read = struct
               done;
 
               (* Printf.printf ">>\n%!"; *)
-              `LIST (subtag, List.rev !ll) )
+              `LIST (subtag, List.rev !ll))
         | "avih" ->
             (* microsec_per_frame *)
             let _ = dword f in
@@ -245,14 +245,14 @@ module Read = struct
             let fourcc = dword f in
             if
               not
-                ( stream_type <> "vids" || fourcc = 0 || fourcc = 0x52474218
-                (* RGB24 *) || fourcc = 0x30323449 )
+                (stream_type <> "vids" || fourcc = 0 || fourcc = 0x52474218
+               (* RGB24 *) || fourcc = 0x30323449)
               (* I420 *)
             then (
               let err =
                 Printf.sprintf "Wrong %s fourcc: 0x%x." stream_type fourcc
               in
-              must err false );
+              must err false);
             must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
             let flags = dword f in
             must "Wrong strh flags." (flags = 0);
@@ -364,15 +364,15 @@ module Read = struct
                         | 0x30323449 -> `I420
                         | _ -> assert false
                     in
-                    streams := `Video (fourcc, width, height, fps) :: !streams )
+                    streams := `Video (fourcc, width, height, fps) :: !streams)
                   else if stream_type = "auds" then (
                     let codec = word 0 in
                     must "Wrong audio codec." (codec = 1 || codec = 255);
                     let channels = word 2 in
                     let sample_rate = dword 4 in
-                    streams := `Audio (channels, sample_rate) :: !streams )
+                    streams := `Audio (channels, sample_rate) :: !streams)
                   else raise (Invalid "Unhandled stream type.")
-              | _ -> () )
+              | _ -> ())
         | _ -> ())
       h;
     let streams = List.rev !streams in

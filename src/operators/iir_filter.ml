@@ -34,52 +34,33 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
 
     (* Params *)
     val raw_alpha1 = freq1 /. rate
-
     val raw_alpha2 = freq2 /. rate
-
     val warped_alpha1 = tan (Float.pi *. freq1 /. rate) /. Float.pi
-
     val warped_alpha2 = tan (Float.pi *. freq2 /. rate) /. Float.pi
-
     val mutable gain = 0.
 
     (* Used for computation *)
     val mutable polemask = 0
-
     val mutable splane_poles = [||]
-
     val mutable splane_numpoles = 0
-
     val mutable splane_zeros = [||]
-
     val mutable splane_numzeros = 0
-
     val mutable zplane_poles = [||]
-
     val mutable zplane_numpoles = 0
-
     val mutable zplane_zeros = [||]
-
     val mutable zplane_numzeros = 0
-
     val mutable topcoeffs = [||]
-
     val mutable botcoeffs = [||]
-
     val mutable dc_gain = { re = 0.; im = 0. }
-
     val mutable fc_gain = { re = 0.; im = 0. }
-
     val mutable hf_gain = { re = 0.; im = 0. }
 
     (* Coefficients *)
     val mutable xcoeffs = [||]
-
     val mutable ycoeffs = [||]
 
     (* I/O shift registries *)
     val mutable xv = [||]
-
     val mutable yv = [||]
 
     initializer
@@ -138,8 +119,8 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
               self#log#info "z = %+.013f %+.013f i." z.re z.im;
               if polemask mod 2 == 0 then (
                 splane_poles <- Array.append splane_poles [| z |];
-                splane_numpoles <- splane_numpoles + 1 );
-              polemask <- polemask lsl 1 )
+                splane_numpoles <- splane_numpoles + 1);
+              polemask <- polemask lsl 1)
           in
           self#log#info "Theta:";
           for i = 0 to (2 * order) - 1 do
@@ -291,7 +272,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
 
             (* oscillator *)
             let zp = { re = cos theta; im = sin theta } in
-            zplane_poles <- [| zp; Complex.conj zp |] )
+            zplane_poles <- [| zp; Complex.conj zp |])
           else (
             (* must iterate to find exact pole positions *)
             topcoeffs <- expand zplane_zeros zplane_numzeros;
@@ -315,7 +296,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
             done;
 
             (* if we failed to converge ... *)
-            assert !cvg );
+            assert !cvg);
           xv <- Array.make_matrix channels zplane_numzeros 0.;
           yv <- Array.make_matrix channels zplane_numpoles 0.;
 
@@ -341,7 +322,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
                 zplane_zeros.(1) <-
                   zplane_poles.(1) /~ sqrt (cor (Complex.norm zplane_poles.(1)))
             | Band_pass -> ()
-            | _ -> assert false )
+            | _ -> assert false)
     end;
 
     (* Now expand the polynomials *)
@@ -411,17 +392,11 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
 
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     val mutable v_offs = 0
 
     method private get_frame buf =

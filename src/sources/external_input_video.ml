@@ -55,7 +55,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
         (Printf.sprintf
            "Got %f seconds more of %s than of %s. Are you sure that you are \
             producing the correct kind of data?"
-           d v a) );
+           d v a));
     let buffered = Generator.length abg in
     if abg_max_len < buffered then
       `Delay (Frame.seconds_of_audio (buffered - (3 * abg_max_len / 4)))
@@ -81,10 +81,10 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
         Generator.set_mode abg `Video;
       Generator.set_content_type abg self#ctype;
       self#log#debug "Generator mode: %s."
-        ( match Generator.mode abg with
+        (match Generator.mode abg with
           | `Video -> "video"
           | `Both -> "both"
-          | _ -> "???" );
+          | _ -> "???");
       base#wake_up x
   end
 
@@ -188,7 +188,7 @@ let () =
                 else (
                   let dst = Video.Image.create out_width out_height in
                   video_scaler src dst;
-                  dst )
+                  dst)
               in
               video_converter := Some converter
           | `Audio (channels, samplerate) ->

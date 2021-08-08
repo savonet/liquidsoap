@@ -29,21 +29,13 @@ class filter ~kind (source : source) freq wet mode =
   let dt = 1. /. rate in
   object (self)
     inherit operator ~name:"filter.rc" kind [source] as super
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     val mutable prev = [||]
-
     val mutable prev_in = [||]
 
     method wake_up a =

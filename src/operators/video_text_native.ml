@@ -114,12 +114,12 @@ let render_text ~font ~size text =
         done;
       if text.[i] = '\n' then (
         ans := Array.append !ans (Array.make (line_space + char_height) [||]);
-        incr line )
+        incr line)
       else (
         let c = char text.[i] in
         for j = 0 to char_height - 1 do
           !ans.(voff + j) <- Array.append !ans.(voff + j) c.(j)
-        done )
+        done)
     done;
     !ans
   in

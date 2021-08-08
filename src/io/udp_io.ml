@@ -64,7 +64,6 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
         source
 
     val mutable socket_send = None
-
     val mutable encoder = None
 
     method private start =
@@ -82,7 +81,7 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
               if off + pos < len then (
                 let len = min (len - pos) max_packet_size in
                 let len = Unix.sendto socket msg (off + pos) len [] portaddr in
-                f (pos + len) )
+                f (pos + len))
             in
             f 0);
       encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
@@ -128,13 +127,9 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
           ~on_start:ignore ~on_stop:ignore ~autostart:true ()
 
     initializer log_ref := fun s -> self#log#important "%s" s
-
     val mutable kill_feeding = None
-
     val mutable wait_feeding = None
-
     val mutable decoder_factory = None
-
     method private decoder_factory = Option.get decoder_factory
 
     method private start =
@@ -208,13 +203,13 @@ let () =
     ~descr:"Output encoded data to UDP, without any control whatsoever."
     ~category:Lang.Output
     ~flags:[Lang.Hidden; Lang.Deprecated; Lang.Experimental]
-    ( Output.proto
+    (Output.proto
     @ [
         ("port", Lang.int_t, None, None);
         ("host", Lang.string_t, None, None);
         ("", Lang.format_t k, None, Some "Encoding format.");
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k
     (fun p ->
       (* Generic output parameters *)
@@ -241,10 +236,10 @@ let () =
       in
       let source = Lang.assoc "" 2 p in
       let kind = Source.Kind.of_kind kind in
-      ( new output
-          ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-          ~encoder_factory:fmt source
-        :> Source.source ))
+      (new output
+         ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
+         ~encoder_factory:fmt source
+        :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -284,6 +279,6 @@ let () =
           | Some decoder_factory -> decoder_factory
       in
       let kind = Source.Kind.of_kind kind in
-      ( new input
-          ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
-        :> Source.source ))
+      (new input
+         ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
+        :> Source.source))

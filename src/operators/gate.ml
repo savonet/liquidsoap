@@ -27,22 +27,15 @@ class gate ~kind ~threshold ~attack ~release ~hold ~range ~window
   (source : source) =
   object (self)
     inherit operator ~name:"gate" kind [source]
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     (* Position of the gate between 0. and 1. *)
     val mutable gate = 1.
-
     method gate = gate
 
     (* Smoothed peak. *)
@@ -80,14 +73,14 @@ class gate ~kind ~threshold ~attack ~release ~hold ~range ~window
           peak <- peak +. (window_coef *. (!x -. peak));
           peak
         in
-        ( match state with
+        (match state with
           | `Closed -> if x > threshold_lin then state <- `Opening
           | `Opening ->
               gate <- gate +. attack_rate;
               if gate >= 1. then (
                 gate <- 1.;
                 hold_delay <- hold;
-                state <- `Open )
+                state <- `Open)
           | `Open ->
               if x < threshold_lin then
                 if hold_delay <= 0 then state <- `Closing
@@ -98,7 +91,7 @@ class gate ~kind ~threshold ~attack ~release ~hold ~range ~window
               if x >= threshold_lin then state <- `Opening
               else if gate <= 0. then (
                 gate <- 0.;
-                state <- `Closed ) );
+                state <- `Closed));
         let gain = Audio.lin_of_dB (range *. (1. -. gate)) in
         for c = 0 to chans - 1 do
           buf.(c).{i} <- buf.(c).{i} *. gain

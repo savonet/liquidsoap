@@ -36,7 +36,6 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
     val mutable state = if start_blank then `Blank 0 else `Noise 0
 
     method virtual private log : Log.t
-
     method is_blank = match state with `Blank _ -> true | _ -> false
 
     method private string_of_state =
@@ -60,7 +59,7 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
         if
           (* Don't bother analyzing the end of this track, jump to the new state. *)
           track_sensitive
-        then self#set_state (`Noise 0) )
+        then self#set_state (`Noise 0))
       else (
         let len = AFrame.position s - p0 in
         let rms = AFrame.rms s p0 len in
@@ -73,32 +72,25 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
               else (
                 let blank_len = blank_len + len in
                 if blank_len <= max_blank then self#set_state (`Noise blank_len)
-                else self#set_state (`Blank 0) )
+                else self#set_state (`Blank 0))
           | `Blank noise_len ->
               if noise then (
                 let noise_len = noise_len + len in
                 if noise_len < min_noise then self#set_state (`Blank noise_len)
-                else self#set_state (`Noise 0) )
-              else if noise_len <> 0 then self#set_state (`Blank 0) )
+                else self#set_state (`Noise 0))
+              else if noise_len <> 0 then self#set_state (`Blank 0))
   end
 
 class detect ~kind ~start_blank ~max_blank ~min_noise ~threshold
   ~track_sensitive ~on_blank ~on_noise source =
   object (self)
     inherit operator ~name:"blank.detect" kind [source]
-
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
 
     method private get_frame ab =
@@ -122,19 +114,12 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
      *  - declare yourself as unavailable when the source is silent
      *  - keep pulling data from the source during those times. *)
     inherit active_operator ~name:"blank.strip" kind [source]
-
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
-
     method stype = Fallible
-
     method is_ready = (not self#is_blank) && source#is_ready
-
     method remaining = if self#is_blank then 0 else source#remaining
-
     method seek n = if self#is_blank then 0 else source#seek n
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     method private get_frame ab =
@@ -168,26 +153,18 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
      * TODO It requires control over the time flow of the source; we need
      * to force our own clock onto it. *)
     inherit operator ~name:"blank.eat" kind [source]
-
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
 
     (** We strip when the source is silent,
     * but only at the beginning of tracks if [at_beginning] is passed. *)
 
     val mutable stripping = false
-
     val mutable beginning = true
-
     method stype = Fallible
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     method private get_frame ab =
@@ -202,7 +179,7 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
         source#get ab;
         if track_sensitive && AFrame.is_partial ab then (
           stripping <- false;
-          beginning <- true );
+          beginning <- true);
         let was_blank = self#is_blank in
         let is_blank =
           self#check_blank ab p0;
@@ -278,15 +255,16 @@ let () =
           fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
       ]
     ~descr:"Calls a given handler when detecting a blank."
-    ( ( "",
-        Lang.fun_t [] Lang.unit_t,
-        None,
-        Some "Handler called when blank is detected." )
-    :: ( "on_noise",
-         Lang.fun_t [] Lang.unit_t,
-         Some (Lang.val_cst_fun [] Lang.unit),
-         Some "Handler called when noise is detected." )
-    :: proto )
+    (( "",
+       Lang.fun_t [] Lang.unit_t,
+       None,
+       Some "Handler called when blank is detected." )
+     ::
+     ( "on_noise",
+       Lang.fun_t [] Lang.unit_t,
+       Some (Lang.val_cst_fun [] Lang.unit),
+       Some "Handler called when noise is detected." )
+     :: proto)
     (fun p ->
       let on_blank = Lang.assoc "" 1 p in
       let on_noise = Lang.assoc "on_noise" 1 p in
@@ -326,11 +304,11 @@ let () =
     ~descr:
       "Eat blanks, i.e., drop the contents of the stream until it is not blank \
        anymore."
-    ( ( "at_beginning",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Only eat at the beginning of a track." )
-    :: proto )
+    (( "at_beginning",
+       Lang.bool_t,
+       Some (Lang.bool false),
+       Some "Only eat at the beginning of a track." )
+     :: proto)
     (fun p ->
       let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =

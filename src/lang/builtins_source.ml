@@ -227,7 +227,7 @@ let () =
       in
       let proto = ("fallible", Lang.bool true) :: proto in
       let s = Lang.to_source (Lang.assoc "" 3 p) in
-      let p = (("id", Lang.string "source_dumper") :: p) @ proto in
+      let p = ("id", Lang.string "source_dumper") :: p @ proto in
       let fo = Pipe_output.new_file_output p in
       fo#get_ready [s];
       log#info "Start dumping source.";

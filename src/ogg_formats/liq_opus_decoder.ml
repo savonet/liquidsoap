@@ -35,4 +35,5 @@ let () =
 
 (* Register audio/opus mime *)
 let () =
-  Liq_ogg_decoder.mime_types#set ("audio/opus" :: Liq_ogg_decoder.mime_types#get)
+  Liq_ogg_decoder.mime_types#set
+    ("audio/opus" :: Liq_ogg_decoder.mime_types#get)

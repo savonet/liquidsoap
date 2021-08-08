@@ -50,9 +50,7 @@ module Make (Harbor : T) = struct
     in
     object (self)
       inherit Source.source ~name:Harbor.source_name kind as super
-
       inherit Generated.source abg ~empty_on_abort:false ~replay_meta ~bufferize
-
       val mutable relay_socket = None
 
       (** Function to read on socket. *)
@@ -60,15 +58,10 @@ module Make (Harbor : T) = struct
 
       (* Mutex used to protect socket's state (close) *)
       val relay_m = Mutex.create ()
-
       val mutable create_decoder = fun _ -> assert false
-
       val mutable mime_type = None
-
       val mutable dump = None
-
       val mutable logf = None
-
       method stop_cmd = self#disconnect ~lock:true
 
       method connected_client =
@@ -88,9 +81,7 @@ module Make (Harbor : T) = struct
         login
 
       method stype = Source.Fallible
-
       method icy_charset = icy_charset
-
       method meta_charset = meta_charset
 
       (* Insert metadata *)
@@ -99,7 +90,7 @@ module Make (Harbor : T) = struct
          * or "artist" and "title". Here, we use "song"
          * as the "title" field if "title" is not provided. *)
         if not (Hashtbl.mem m "title") then (
-          try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> () );
+          try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> ());
         self#log#important "New metadata chunk %s -- %s."
           (try Hashtbl.find m "artist" with _ -> "?")
           (try Hashtbl.find m "title" with _ -> "?");
@@ -135,7 +126,7 @@ module Make (Harbor : T) = struct
                       self#log#severe "Error while reading from client: %s"
                         (Printexc.to_string e);
                       self#disconnect ~lock:false;
-                      0 ))
+                      0))
               buf len
           in
           begin
@@ -227,7 +218,7 @@ module Make (Harbor : T) = struct
               try dump <- Some (open_out_bin (Utils.home_unrelate f))
               with e ->
                 self#log#severe "Could not open dump file: %s"
-                  (Printexc.to_string e) )
+                  (Printexc.to_string e))
           | None -> ()
         end;
         begin
@@ -236,7 +227,7 @@ module Make (Harbor : T) = struct
               try logf <- Some (open_out_bin (Utils.home_unrelate f))
               with e ->
                 self#log#severe "Could not open log file: %s"
-                  (Printexc.to_string e) )
+                  (Printexc.to_string e))
           | None -> ()
         end;
         ignore (Tutils.create (fun () -> self#feed) () "harbor source feeding")

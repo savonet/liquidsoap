@@ -75,7 +75,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
             (Gstreamer.Bin.get_by_name bin "audio_sink")
         in
         Gstreamer.App_sink.set_max_buffers sink gst_max_buffers;
-        Some sink )
+        Some sink)
       else None
     in
     let video_sink =
@@ -85,7 +85,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
             (Gstreamer.Bin.get_by_name bin "video_sink")
         in
         Gstreamer.App_sink.set_max_buffers sink gst_max_buffers;
-        Some sink )
+        Some sink)
       else None
     in
     { bin; audio_sink; video_sink }
@@ -104,13 +104,13 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
   let decode buffer =
     if not !started then (
       init ~reset:false buffer;
-      started := true );
+      started := true);
     let decode_audio, decode_video =
       if decode_audio && decode_video then (
         let gen = buffer.Decoder.generator in
         if Decoder.G.audio_length gen < Decoder.G.video_length gen then
           (true, false)
-        else (false, true) )
+        else (false, true))
       else (decode_audio, decode_video)
     in
     if decode_audio then (
@@ -124,7 +124,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       let buf = Audio.create channels len in
       Audio.S16LE.to_audio b 0 buf;
       let samplerate = Lazy.force Frame.audio_rate in
-      buffer.Decoder.put_pcm ~samplerate buf );
+      buffer.Decoder.put_pcm ~samplerate buf);
     if decode_video then (
       let _, state, _ = Gstreamer.Element.get_state gst.bin in
       if state <> Gstreamer.Element.State_playing then
@@ -139,7 +139,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       let img = Image.YUV420.make_data width height buf y_stride uv_stride in
       let stream = Video.single img in
       let fps = { Decoder.num = Lazy.force Frame.video_rate; den = 1 } in
-      buffer.Decoder.put_yuva420p ~fps stream );
+      buffer.Decoder.put_yuva420p ~fps stream);
     GU.flush ~log gst.bin
   in
   let seek off =
@@ -238,7 +238,7 @@ let get_type ~channels filename =
           let _, state, _ = Gstreamer.Element.get_state bin in
           if state = Gstreamer.Element.State_paused then (
             log#debug "File %s has audio." filename;
-            channels )
+            channels)
           else 0)
     with Gstreamer.Failed -> 0
   in
@@ -260,7 +260,7 @@ let get_type ~channels filename =
           let _, state, _ = Gstreamer.Element.get_state bin in
           if state = Gstreamer.Element.State_paused then (
             log#debug "File %s has video." filename;
-            1 )
+            1)
           else 0)
     with Gstreamer.Failed -> 0
   in

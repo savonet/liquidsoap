@@ -41,7 +41,6 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
           ~name ~output_kind:"output.alsa" source start as super
 
     inherit [Frame_content.Audio.data] IoRing.output ~nb_blocks as ioring
-
     val mutable initialized = false
 
     method wake_up a =
@@ -56,11 +55,8 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
           (Clock.create_known (Alsa_settings.get_clock () :> Clock.clock))
 
     val mutable device = None
-
     method self_sync = (`Dynamic, device <> None)
-
     val mutable alsa_rate = samples_per_second
-
     val mutable samplerate_converter = None
 
     method samplerate_converter =
@@ -84,21 +80,21 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
             let params = Pcm.get_params dev in
             let channels = self#audio_channels in
             let bufsize, periods =
-              ( try
-                  Pcm.set_access dev params Pcm.Access_rw_noninterleaved;
-                  Pcm.set_format dev params Pcm.Format_float
-                with _ ->
-                  (* If we can't get floats we fallback on interleaved s16le *)
-                  self#log#severe "Falling back on interleaved S16LE";
-                  Pcm.set_access dev params Pcm.Access_rw_interleaved;
-                  Pcm.set_format dev params Pcm.Format_s16_le;
-                  alsa_write <-
-                    (fun pcm buf ofs len ->
-                      let sbuf =
-                        Bytes.create (Audio.S16LE.size (Array.length buf) len)
-                      in
-                      Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
-                      Pcm.writei pcm sbuf 0 len) );
+              (try
+                 Pcm.set_access dev params Pcm.Access_rw_noninterleaved;
+                 Pcm.set_format dev params Pcm.Format_float
+               with _ ->
+                 (* If we can't get floats we fallback on interleaved s16le *)
+                 self#log#severe "Falling back on interleaved S16LE";
+                 Pcm.set_access dev params Pcm.Access_rw_interleaved;
+                 Pcm.set_format dev params Pcm.Format_s16_le;
+                 alsa_write <-
+                   (fun pcm buf ofs len ->
+                     let sbuf =
+                       Bytes.create (Audio.S16LE.size (Array.length buf) len)
+                     in
+                     Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
+                     Pcm.writei pcm sbuf 0 len));
               Pcm.set_channels dev params channels;
               alsa_rate <-
                 Pcm.set_rate_near dev params samples_per_second Dir_eq;
@@ -139,7 +135,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         let rec f pos =
           if pos < len then (
             let ret = alsa_write dev data pos (len - pos) in
-            f (pos + ret) )
+            f (pos + ret))
         in
         f 0
       with e ->
@@ -151,7 +147,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover.";
-          Pcm.recover dev e )
+          Pcm.recover dev e)
         else Printexc.raise_with_backtrace e bt
 
     method send_frame buf =

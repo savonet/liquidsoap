@@ -1,8 +1,7 @@
 let () =
   assert (Utils.Version.of_string "2.0.0~beta1" = ([2; 0; 0], "~beta1"));
   assert (
-    Utils.Version.of_string "2.0.0+git@7e211ffd" = ([2; 0; 0], "+git@7e211ffd")
-  );
+    Utils.Version.of_string "2.0.0+git@7e211ffd" = ([2; 0; 0], "+git@7e211ffd"));
   assert (Utils.Version.of_string "2.314234~beta1" = ([2; 314234], "~beta1"));
   assert (Utils.Version.of_string "2.314234" = ([2; 314234], ""));
   assert (Utils.Version.of_string "2.0.0" = ([2; 0; 0], ""));

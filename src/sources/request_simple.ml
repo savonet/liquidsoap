@@ -41,8 +41,14 @@ let () =
           ([], Lang.fun_t [] Lang.bool_t),
           "Resolve the request (this is useful to make sure that the source \
            will be available in advance). This function returns `true` if we \
-           were able to successfully perform resolution.",
+           were able to successfully perform resolution. You should use this \
+           method instead of `request.resolve` to make sure that the proper \
+           content type is decoded from the request.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#resolve) );
+        ( "request",
+          ([], Lang.request_t),
+          "Get the request played by this source",
+          fun s -> Lang.request s#request );
       ]
     ~return_t
     (fun p ->
@@ -70,15 +76,13 @@ class unqueued ~kind ~timeout request =
       super#wake_up x
 
     method stype = Infallible
-
     method get_next_file = Some request
   end
 
-class queued ~kind uri length default_duration timeout conservative =
+class queued ~kind uri prefetch timeout =
   object (self)
     inherit
-      Request_source.queued
-        ~name:"single" ~kind ~length ~default_duration ~conservative ~timeout () as super
+      Request_source.queued ~name:"single" ~kind ~prefetch ~timeout () as super
 
     method wake_up x =
       if String.length uri < 15 then self#set_id uri;
@@ -97,23 +101,24 @@ let () =
       "Loop on a request. It never fails if the request is static, meaning \
        that it can be fetched once. Typically, http, ftp, say requests are \
        static, and time is not."
-    ( ("", Lang.string_t, None, Some "URI where to find the file")
-    :: ( "fallible",
-         Lang.bool_t,
-         Some (Lang.bool false),
-         Some "Enforce fallibility of the request." )
-    :: queued_proto )
+    (("", Lang.string_t, None, Some "URI where to find the file")
+     ::
+     ( "fallible",
+       Lang.bool_t,
+       Some (Lang.bool false),
+       Some "Enforce fallibility of the request." )
+     :: queued_proto)
     ~return_t
     (fun p ->
       let val_uri = List.assoc "" p in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
-      let l, d, t, c = extract_queued_params p in
+      let l, t = extract_queued_params p in
       let uri = Lang.to_string val_uri in
       let kind = Source.Kind.of_kind kind in
       if (not fallible) && Request.is_static uri then (
         let request = Request.create ~persistent:true uri in
-        (new unqueued ~kind ~timeout:t request :> source) )
-      else (new queued uri ~kind l d t c :> source))
+        (new unqueued ~kind ~timeout:t request :> source))
+      else (new queued uri ~kind l t :> source))
 
 let () =
   let kind = Lang.any in
@@ -128,13 +133,11 @@ let () =
       let kind = Source.Kind.of_kind kind in
       (new unqueued ~kind ~timeout:60. request :> source))
 
-class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
-  default_duration timeout conservative =
+class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
   object (self)
     inherit
       Request_source.queued
-        ~kind ~name:"request.dynamic.list" ~length ~default_duration ~timeout
-          ~conservative () as super
+        ~kind ~name:"request.dynamic.list" ~prefetch ~timeout () as super
 
     val mutable retry_status = None
 
@@ -158,7 +161,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
           List.iter
             (fun req -> Request.set_root_metadata req "source" self#id)
             reqs;
-          reqs )
+          reqs)
         else []
       with e ->
         log#severe "Failed to obtain a media request!";
@@ -176,7 +179,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
                   Some req
               | [] ->
                   retry_status <- Some (Unix.gettimeofday () +. retry_delay ());
-                  None )
+                  None)
   end
 
 let () =
@@ -185,50 +188,90 @@ let () =
   let t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "request.dynamic.list" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
-    ( ("", Lang.fun_t [] (Lang.list_t Lang.request_t), None, None)
-    :: ( "retry_delay",
-         Lang.getter_t Lang.float_t,
-         Some (Lang.float 0.1),
-         Some
-           "Retry after a given time (in seconds) when callback returns an \
-            empty list." )
-    :: ( "available",
-         Lang.getter_t Lang.bool_t,
-         Some (Lang.bool true),
-         Some
-           "Whether some new requests are available (when set to false, it \
-            stops after current playing request)." )
-    :: queued_proto )
+    (("", Lang.fun_t [] (Lang.list_t Lang.request_t), None, None)
+     ::
+     ( "retry_delay",
+       Lang.getter_t Lang.float_t,
+       Some (Lang.float 0.1),
+       Some
+         "Retry after a given time (in seconds) when callback returns an empty \
+          list." )
+     ::
+     ( "available",
+       Lang.getter_t Lang.bool_t,
+       Some (Lang.bool true),
+       Some
+         "Whether some new requests are available (when set to false, it stops \
+          after current playing request)." )
+     :: queued_proto)
     ~meth:
       [
-        ( "prefetch",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Try feeding the queue with a new request (this method can take long \
-           to return and should usually be run in a separate thread).",
+        ( "fetch",
+          ([], Lang.fun_t [] Lang.bool_t),
+          "Try feeding the queue with a new request. Returns `true` if \
+           successful. This method can take long to return and should usually \
+           be run in a separate thread.",
           fun s ->
             Lang.val_fun [] (fun _ ->
-                match s#prefetch with
-                  | `Finished -> Lang.unit
+                match s#fetch with
+                  | `Finished -> Lang.bool true
                   | `Retry ->
-                      log#important "Prefetch failed: retry.";
-                      Lang.unit
+                      log#important "Fetch failed: retry.";
+                      Lang.bool false
                   | `Empty ->
-                      log#important "Prefetch failed: empty.";
-                      Lang.unit) );
-        ( "queue_size",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Number of requests in the queue.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.int s#queue_size) );
-        ( "queue_length",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Size of the queue in seconds.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#queue_length) );
+                      log#important "Fetch failed: empty.";
+                      Lang.bool false) );
+        ( "queue",
+          ([], Lang.fun_t [] (Lang.list_t Lang.request_t)),
+          "Get the requests currently in the queue.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                Lang.list
+                  (Queue.fold
+                     (fun c i -> Lang.request i.request :: c)
+                     [] s#queue)) );
+        ( "add",
+          ([], Lang.fun_t [(false, "", Lang.request_t)] Lang.bool_t),
+          "Add a request ot the queue. Requests are resolved before being \
+           added. Returns `true` if the request was successfully added.",
+          fun s ->
+            Lang.val_fun [("", "", None)] (fun p ->
+                Lang.bool
+                  (s#add
+                     {
+                       request = Lang.to_request (List.assoc "" p);
+                       expired = false;
+                     })) );
+        ( "set_queue",
+          ([], Lang.fun_t [(false, "", Lang.list_t Lang.request_t)] Lang.unit_t),
+          "Set the queue of requests. Requests are resolved before being added \
+           to the queue. You are responsible for destroying the requests \
+           currently in the queue.",
+          fun s ->
+            Lang.val_fun [("", "", None)] (fun p ->
+                let l =
+                  List.map Lang.to_request (Lang.to_list (List.assoc "" p))
+                in
+                let q = Queue.create () in
+                List.iter
+                  (fun request -> Queue.push { request; expired = false } q)
+                  l;
+                s#set_queue q;
+                Lang.unit) );
+        ( "current",
+          ([], Lang.fun_t [] (Lang.nullable_t Lang.request_t)),
+          "Get the request currently being played.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                match s#current with
+                  | None -> Lang.null
+                  | Some c -> Lang.request c.req) );
       ]
     ~return_t:t
     (fun p ->
       let f = List.assoc "" p in
       let available = Lang.to_bool_getter (List.assoc "available" p) in
       let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in
-      let l, d, t, c = extract_queued_params p in
+      let l, t = extract_queued_params p in
       let kind = Source.Kind.of_kind kind in
-      new dynamic ~kind ~available ~retry_delay f l d t c)
+      new dynamic ~kind ~available ~retry_delay f l t)

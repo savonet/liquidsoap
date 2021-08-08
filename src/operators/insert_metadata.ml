@@ -27,25 +27,15 @@ exception Error
 class insert_metadata ~kind source =
   object (self)
     inherit operator ~name:"insert_metadata" kind [source]
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
-
     val mutable metadata = None
-
     val mutable new_track = false
-
     val lock_m = Mutex.create ()
-
     val mutable ns = []
 
     method insert_metadata nt m : unit =
@@ -80,7 +70,7 @@ class insert_metadata ~kind source =
             otherwise, it will be visible to sources under
            this one! See: #1115 *)
         source#get buf;
-        self#add_metadata buf p )
+        self#add_metadata buf p)
   end
 
 let () =
@@ -129,17 +119,11 @@ let () =
 class replay ~kind meta src =
   object
     inherit operator ~name:"replay_metadata" kind [src]
-
     val mutable first = true
-
     method stype = src#stype
-
     method is_ready = src#is_ready
-
     method abort_track = src#abort_track
-
     method remaining = src#remaining
-
     method self_sync = src#self_sync
 
     method private get_frame ab =
@@ -148,5 +132,5 @@ class replay ~kind meta src =
       if first then (
         if Frame.get_metadata ab start = None then
           Frame.set_metadata ab start meta;
-        first <- false )
+        first <- false)
   end

@@ -23,17 +23,11 @@
 class on_frame ~kind f s =
   object
     inherit Source.operator ~name:"on_frame" kind [s]
-
     method stype = s#stype
-
     method is_ready = s#is_ready
-
     method abort_track = s#abort_track
-
     method remaining = s#remaining
-
     method seek n = s#seek n
-
     method self_sync = s#self_sync
 
     method private get_frame ab =
@@ -66,21 +60,13 @@ let () =
 class frame_op ~name ~kind f default s =
   object
     inherit Source.operator ~name kind [s]
-
     method stype = s#stype
-
     method is_ready = s#is_ready
-
     method abort_track = s#abort_track
-
     method remaining = s#remaining
-
     method seek n = s#seek n
-
     method self_sync = s#self_sync
-
     val mutable value = default
-
     method value : Lang.value = value
 
     method private get_frame buf =

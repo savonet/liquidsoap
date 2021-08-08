@@ -30,7 +30,6 @@ class compress ~kind (source : source) attack release threshold ratio knee
   let samplerate = Lazy.force Frame.audio_rate in
   object (self)
     inherit operator ~name:"compress" kind [source] as super
-
     val mutable effect = None
 
     method private wake_up a =
@@ -43,15 +42,10 @@ class compress ~kind (source : source) attack release threshold ratio knee
              self#audio_channels samplerate)
 
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
 
     method private get_frame buf =
@@ -127,18 +121,18 @@ let compress p =
 
 let () =
   Lang.add_operator "compress.old"
-    ( ( "ratio",
-        Lang.getter_t Lang.float_t,
-        Some (Lang.float 2.),
-        Some "Gain reduction ratio (n:1)." )
-    :: proto )
+    (( "ratio",
+       Lang.getter_t Lang.float_t,
+       Some (Lang.float 2.),
+       Some "Gain reduction ratio (n:1)." )
+     :: proto)
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Compress the signal."
     compress;
   Lang.add_operator "limit"
-    ( ( "ratio",
-        Lang.getter_t Lang.float_t,
-        Some (Lang.float 20.),
-        Some "Gain reduction ratio (n:1)." )
-    :: proto )
+    (( "ratio",
+       Lang.getter_t Lang.float_t,
+       Some (Lang.float 20.),
+       Some "Gain reduction ratio (n:1)." )
+     :: proto)
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Limit the signal."
     compress

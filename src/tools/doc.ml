@@ -27,15 +27,10 @@ class item ?(sort = true) (doc : string) =
   let sort = if sort then List.stable_sort compare else fun x -> x in
   object
     val doc = doc
-
     method get_doc = doc
-
     val mutable subsections : (string * item) list = []
-
     method get_subsections = sort subsections
-
     method get_subsection name = List.assoc name subsections
-
     method has_subsection name = List.mem_assoc name subsections
 
     method add_subsection label item =
@@ -90,7 +85,7 @@ let rec to_json (doc : item) =
     let ss =
       if info = "(no doc)" then ss else ("_info", `String (sanitize info)) :: ss
     in
-    `Assoc ss )
+    `Assoc ss)
 
 let print_json (doc : item) print_string =
   print_string (JSON.to_string (to_json doc));
@@ -201,10 +196,10 @@ let print_functions_md ~extra (doc : item) print_string =
                 (fun (l, s, t) ->
                   let s = if s = "" then "" else ": " ^ s in
                   Printf.ksprintf print_string "- `%s` (of type `%s`)%s\n" l t s)
-                methods );
+                methods);
             if List.mem "experimental" flags then
               print_string "\nThis function is experimental.\n";
-            print_string "\n" ))
+            print_string "\n"))
         ff)
     by_cat
 
@@ -252,7 +247,7 @@ let print_lang (i : item) =
       (fun c ->
         if c = '`' then (
           if not !backtick then protected := not !protected;
-          backtick := true )
+          backtick := true)
         else backtick := false;
         if (not !protected) && c = ' ' then Format.pp_print_space f ()
         else if c = '\n' then Format.pp_print_newline f ()
@@ -296,7 +291,7 @@ let print_lang (i : item) =
           (i#get_subsection "type")#get_doc default;
         if i#get_doc <> "(no doc)" then
           Format.fprintf ff "@[<5>     %a@]@." print_string_split i#get_doc)
-      sub );
+      sub);
   if meths <> [] then (
     Format.fprintf ff "@.Methods:@.";
     List.iter
@@ -305,7 +300,7 @@ let print_lang (i : item) =
         let doc = i#get_doc in
         if doc <> "(no doc)" && doc <> "" then
           Format.fprintf ff "@[<5>     %a@]@." print_string_split doc)
-      meths );
+      meths);
   Format.fprintf ff "@.";
   Format.pp_print_flush ff ();
   Utils.print_string ~pager:true (Buffer.contents b)

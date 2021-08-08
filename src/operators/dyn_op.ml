@@ -23,9 +23,7 @@
 class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
   object (self)
     inherit Source.source ~name:"source.dynamic" kind
-
     method stype = if infallible then Source.Infallible else Source.Fallible
-
     val mutable activation = []
 
     (* The dynamic stuff: #select calls the selection function and changes
@@ -35,7 +33,6 @@ class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
      * All that matters for cleanliness is that #unregister_source comes
      * last, which #sleep ensures. *)
     val source_lock = Mutex.create ()
-
     val mutable source : Source.source option = init
 
     method private unregister_source ~already_locked =
@@ -53,7 +50,6 @@ class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
 
     (* Proposed source for next round. *)
     val mutable proposal = None
-
     method propose s = proposal <- Some s
 
     method private select =

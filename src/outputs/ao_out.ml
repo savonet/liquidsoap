@@ -59,7 +59,6 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
           (Clock.create_known (get_clock () :> Clock.clock))
 
     val mutable device = None
-
     method self_sync = (`Dynamic, device <> None)
 
     method get_device =
@@ -99,7 +98,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
           assert (Array.length pcm = self#audio_channels);
           Audio.S16LE.of_audio pcm data 0
         in
-        ioring#put_block push )
+        ioring#put_block push)
 
     method reset = ()
   end
@@ -108,7 +107,7 @@ let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.ao"
-    ( Output.proto
+    (Output.proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -131,7 +130,7 @@ let () =
           Some (Lang.list []),
           Some "List of parameters, depends on the driver." );
         ("", Lang.source_t return_t, None, None);
-      ] )
+      ])
     ~category:Lang.Output ~meth:Output.meth
     ~descr:"Output stream to local sound card using libao." ~return_t
     (fun p ->
@@ -161,7 +160,7 @@ let () =
       in
       let source = List.assoc "" p in
       let kind = Source.Kind.of_kind kind in
-      ( new output
-          ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
-          ?channels_matrix ~options source start
-        :> Output.output ))
+      (new output
+         ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
+         ?channels_matrix ~options source start
+        :> Output.output))

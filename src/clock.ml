@@ -138,11 +138,8 @@ let sync_descr = function
 class clock ?(start = true) ?(sync = `Auto) id =
   object (self)
     initializer Clocks.add clocks (self :> Source.clock)
-
     method id = id
-
     method sync_mode : Source.sync = sync
-
     val log = Log.make ["clock"; id]
 
     (** List of outputs, together with a flag indicating their status:
@@ -170,13 +167,12 @@ class clock ?(start = true) ?(sync = `Auto) id =
                     | `New -> outputs
                     | `Active -> (`Old, s) :: outputs
                     | `Starting -> (`Aborted, s) :: outputs
-                    | `Old | `Aborted -> (flag, s) :: outputs )
+                    | `Old | `Aborted -> (flag, s) :: outputs)
                 else (flag, s) :: outputs)
               [] outputs)
         ()
 
     val mutable sub_clocks : Source.clock_variable list = []
-
     method sub_clocks = sub_clocks
 
     method attach_clock c =
@@ -187,9 +183,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
       sub_clocks <- List.filter (fun c' -> c <> c') sub_clocks
 
     val mutable round = 0
-
     method get_tick = round
-
     val mutable running = false
 
     val do_running =
@@ -197,9 +191,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
       fun f -> Tutils.mutexify lock f ()
 
     val mutable self_sync = None
-
     val mutable t0 = time ()
-
     val mutable ticks = 0L
 
     method private self_sync =
@@ -236,8 +228,8 @@ class clock ?(start = true) ?(sync = `Auto) id =
       let frame_duration = Time.of_float (Lazy.force Frame.duration) in
       let delay () =
         t0
-        |+| ( frame_duration
-            |*| Time.of_float (Int64.to_float (Int64.add ticks 1L)) )
+        |+| (frame_duration
+            |*| Time.of_float (Int64.to_float (Int64.add ticks 1L)))
         |-| time ()
       in
       log#important "Streaming loop starts in %s mode" (sync_descr sync);
@@ -250,7 +242,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
           (* Sleep a while or worry about the latency *)
           if self_sync || time_zero |<| rem then (
             acc := 0;
-            if time_zero |<| rem then sleep rem )
+            if time_zero |<| rem then sleep rem)
           else (
             incr acc;
             if rem |<| max_latency then (
@@ -258,7 +250,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
               List.iter (function `Active, s -> s#reset | _ -> ()) outputs;
               t0 <- time ();
               ticks <- 0L;
-              acc := 0 )
+              acc := 0)
             else if
               (rem |<=| (time_zero |-| time_unit) || !acc >= 100)
               && !last_latency_log |+| log_delay |<| time ()
@@ -266,12 +258,13 @@ class clock ?(start = true) ?(sync = `Auto) id =
               last_latency_log := time ();
               log#severe "We must catchup %.2f seconds%s!"
                 (Time.to_float (time_zero |-| rem))
-                (if !acc <= 100 then "" else " (we've been late for 100 rounds)");
-              acc := 0 ) );
+                (if !acc <= 100 then ""
+                else " (we've been late for 100 rounds)");
+              acc := 0));
           ticks <- Int64.add ticks 1L;
           (* This is where the streaming actually happens: *)
           self#end_tick;
-          loop () )
+          loop ())
       in
       loop ();
       do_running (fun () -> running <- false);
@@ -298,6 +291,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
           ()
       in
       List.iter (fun (s : active_source) -> leave s) leaving;
+      List.iter (fun s -> s#before_output) active;
       let error, active =
         List.fold_left
           (fun (e, a) s ->
@@ -327,7 +321,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
          * In any case, we can't just raise an exception here, otherwise
          * the streaming thread (method private run) will die and won't
          * be able to leave all sources. *)
-        if not allow_streaming_errors#get then Tutils.shutdown 1 );
+        if not allow_streaming_errors#get then Tutils.shutdown 1);
       round <- round + 1;
       List.iter (fun s -> s#after_output) active
 
@@ -386,12 +380,12 @@ class clock ?(start = true) ?(sync = `Auto) id =
                       match flag with
                         | `Starting -> ((`Active, s) :: outputs, leaving, errors)
                         | `Aborted -> (outputs, s :: leaving, errors)
-                        | `New | `Active | `Old -> assert false )
+                        | `New | `Active | `Old -> assert false)
                     else if List.mem (`Error s) to_start then (
                       match flag with
                         | `Starting -> (outputs, leaving, s :: errors)
                         | `Aborted -> (outputs, leaving, s :: errors)
-                        | `New | `Active | `Old -> assert false )
+                        | `New | `Active | `Old -> assert false)
                     else ((flag, s) :: outputs, leaving, errors))
                   ([], [], []) outputs
               in
@@ -402,7 +396,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
         if !started <> `Yes && errors <> [] then Tutils.shutdown 1;
         if leaving <> [] then (
           log#info "Stopping %d sources..." (List.length leaving);
-          List.iter (fun (s : active_source) -> leave s) leaving );
+          List.iter (fun (s : active_source) -> leave s) leaving);
         if
           start
           && List.exists (function `Active, _ -> true | _ -> false) outputs
@@ -410,7 +404,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
           do_running (fun () ->
               if not running then (
                 running <- true;
-                ignore (Tutils.create (fun () -> self#run) () thread_name) ));
+                ignore (Tutils.create (fun () -> self#run) () thread_name)));
         errors
   end
 
@@ -475,7 +469,7 @@ let gc_alarm =
     let nb_clocks = Clocks.count clocks in
     if nb_clocks <> !last_displayed then (
       log#info "Currently %d clocks allocated." nb_clocks;
-      last_displayed := nb_clocks )
+      last_displayed := nb_clocks)
 
 let () = ignore (Gc.create_alarm gc_alarm)
 
@@ -510,11 +504,11 @@ let collect ~must_lock =
         started := `Soon;
         fun () ->
           log#info "Main phase starts.";
-          started := `Yes )
+          started := `Yes)
     in
     Mutex.unlock lock;
     List.iter (fun f -> ignore (f ())) collects;
-    start () )
+    start ())
 
 let collect_after f =
   Mutex.lock lock;

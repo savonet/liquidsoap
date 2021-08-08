@@ -23,17 +23,11 @@
 class fail ~kind name =
   object
     inherit Source.source ~name kind
-
     method stype = Source.Fallible
-
     method is_ready = false
-
     method self_sync = (`Static, false)
-
     method remaining = 0
-
     method abort_track = ()
-
     method get_frame _ = assert false
   end
 
@@ -47,9 +41,9 @@ let () =
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
     ~flags:[Lang.Experimental] ~return_t [] (fun _ ->
-      ( let kind = Source.Kind.of_kind kind in
-        new fail ~kind "source.fail"
-        :> Source.source ))
+      (let kind = Source.Kind.of_kind kind in
+       new fail ~kind "source.fail"
+        :> Source.source))
 
 class fail_init ~kind =
   object
@@ -72,6 +66,6 @@ let () =
     ~descr:
       "A source that errors during its initialization phase, used for testing \
        and debugging." ~flags:[Lang.Experimental] ~return_t [] (fun _ ->
-      ( let kind = Source.Kind.of_kind kind in
-        new fail_init ~kind
-        :> Source.source ))
+      (let kind = Source.Kind.of_kind kind in
+       new fail_init ~kind
+        :> Source.source))
