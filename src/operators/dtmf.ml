@@ -60,16 +60,10 @@ let key =
   in
   fun f -> List.assoc f keys
 
-class dtmf ~kind ~debug (source : source) =
+class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
+  (source : source) =
   let samplerate = float (Lazy.force Frame.audio_rate) in
-  (* characteristic smoothing time (in seconds) *)
-  let smooth = 0.1 in
-  (* threshold for detecting a band. *)
-  let threshold = 10000. in
-  (* duration for detecting a tone. *)
-  let duration = 0.1 in
-  (* Size of the DFT (usually noted N). *)
-  let size = 1024 in
+  let size = float bands in
   object (self)
     inherit operator ~name:"dtmf" kind [source] as super
 
@@ -90,20 +84,19 @@ class dtmf ~kind ~debug (source : source) =
         {
           band_k = k;
           band_x = 0.;
-          band_f = float k /. float size *. samplerate;
-          band_cos = 2. *. cos (2. *. Float.pi *. float k /. float size);
+          band_f = float k /. size *. samplerate;
+          band_cos = 2. *. cos (2. *. Float.pi *. float k /. size);
           band_v = 0.;
           band_v' = 0.;
         }
       in
       let band_freq f =
-        let b = band (Float.to_int ((f /. samplerate *. float size) +. 0.5)) in
+        let b = band (Float.to_int ((f /. samplerate *. size) +. 0.5)) in
         { b with band_f = f }
       in
       List.map band_freq [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
 
-    (* List.init (size / 3) band *)
-    val mutable n = size
+    val mutable n = bands
 
     val mutable state = `None
 
@@ -121,7 +114,9 @@ class dtmf ~kind ~debug (source : source) =
       let position = AFrame.position buf in
       let channels = self#audio_channels in
       let debug = debug () in
-      let alpha = min 1. (float size /. samplerate /. smooth) in
+      let duration = duration () in
+      let threshold = threshold () in
+      let alpha = min 1. (size /. (samplerate *. smoothing ())) in
       for i = offset to position - 1 do
         let x =
           let x = ref 0. in
@@ -137,8 +132,8 @@ class dtmf ~kind ~debug (source : source) =
             b.band_v <- v)
           v;
         n <- n + 1;
-        if n mod size = 0 then (
-          n <- n - size;
+        if n mod bands = 0 then (
+          n <- n - bands;
           List.iter
             (fun b ->
               (* Square of the value for the DFT band. *)
@@ -163,17 +158,32 @@ class dtmf ~kind ~debug (source : source) =
                 Printf.printf "%02d / %.01f :\t%s %s %.01f\t%.01f\n" b.band_k
                   b.band_f bar bar2 x b.band_x ))
             v;
-          if debug then print_newline ();
-          (* Update the state *)
+          if debug then (
+            Printf.printf "\n";
+            ( match state with
+              | `None -> Printf.printf "No key detected.\n"
+              | `Detected (f, t) ->
+                  let k = try String.make 1 (key f) with Not_found -> "???" in
+                  Printf.printf "Detected key %s for %.03f seconds.\n" k t
+              | `Signaled f ->
+                  let k = try String.make 1 (key f) with Not_found -> "???" in
+                  Printf.printf "Signaled key %s.\n" k );
+            print_newline () );
+          (* We are looking for bands threshold times higher than the lowest band. *)
           let found =
+            let threshold =
+              let min = List.fold_left (fun m b -> min m b.band_x) infinity v in
+              min *. threshold
+            in
             List.filter_map
               (fun b -> if b.band_x > threshold then Some b.band_f else None)
               v
           in
+          (* Update the state *)
           match found with
             | [f1; f2] -> (
                 let f = (f1, f2) in
-                let dt = float size /. samplerate in
+                let dt = size /. samplerate in
                 match state with
                   | `Detected (f', t) when f' = f ->
                       let t = t +. dt in
@@ -181,11 +191,12 @@ class dtmf ~kind ~debug (source : source) =
                       else (
                         ( try
                             let k = String.make 1 (key f) in
-                            Printf.printf "Found %s\n%!" k
+                            (* Printf.printf "Found %s\n%!" k; *)
+                            ignore (Lang.apply callback [("", Lang.string k)])
                           with Not_found ->
-                            Printf.printf
-                              "Unknown combination (%.01f, %.01f)...\n%!"
-                              (fst f) (snd f) );
+                            ()
+                            (* Printf.printf "Unknown combination (%.01f, %.01f)...\n%!" (fst f) (snd f) *)
+                        );
                         state <- `Signaled f )
                   | `Signaled f' when f' = f -> ()
                   | _ -> state <- `Detected (f, dt) )
@@ -200,6 +211,25 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "dtmf.detect"
     [
+      ( "duration",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.05),
+        Some "Duration for detecting a tone." );
+      ( "bands",
+        Lang.int_t,
+        Some (Lang.int 1024),
+        Some "Number of frequency bands." );
+      ( "threshold",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 100.),
+        Some "Threshold for detecting a band." );
+      ( "smoothing",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.01),
+        Some
+          "Smoothing time (in seconds) for band indensity (the higher, the \
+           less sensitive we are to local variations, but the more time we \
+           take to detect a band)." );
       ( "debug",
         Lang.getter_t Lang.bool_t,
         Some (Lang.bool false),
@@ -207,11 +237,24 @@ let () =
           "Show internal values on standard output in order to fine-tune \
            parameters: band number, band frequency, detected intensity and \
            smoothed intensity." );
-      ("", Lang.source_t k, None, None);
+      ( "",
+        Lang.source_t k,
+        None,
+        Some "Source on which DTMF tones should be detected" );
+      ( "",
+        Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t,
+        None,
+        Some "Function called with detected key as argument." );
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Detect DTMF tones."
     (fun p ->
+      let duration = List.assoc "duration" p |> Lang.to_float_getter in
+      let bands = List.assoc "bands" p |> Lang.to_int in
+      let threshold = List.assoc "threshold" p |> Lang.to_float_getter in
+      let smoothing = List.assoc "smoothing" p |> Lang.to_float_getter in
       let debug = List.assoc "debug" p |> Lang.to_bool_getter in
-      let s = List.assoc "" p |> Lang.to_source in
+      let s = Lang.assoc "" 1 p |> Lang.to_source in
+      let callback = Lang.assoc "" 2 p in
       let kind = Source.Kind.of_kind kind in
-      (new dtmf ~kind ~debug s :> Source.source))
+      ( new dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback s
+        :> Source.source ))
