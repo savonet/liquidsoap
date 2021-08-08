@@ -60,18 +60,16 @@ let key =
   in
   fun f -> List.assoc f keys
 
-class dtmf ~kind (source : source) =
+class dtmf ~kind ~debug (source : source) =
   let samplerate = float (Lazy.force Frame.audio_rate) in
   (* characteristic smoothing time (in seconds) *)
   let smooth = 0.1 in
-  (* show debugging messages. *)
-  let debug = ref false in
   (* threshold for detecting a band. *)
   let threshold = 10000. in
   (* duration for detecting a tone. *)
   let duration = 0.1 in
   (* Size of the DFT (usually noted N). *)
-  let size = 512 in
+  let size = 1024 in
   object (self)
     inherit operator ~name:"dtmf" kind [source] as super
 
@@ -122,6 +120,7 @@ class dtmf ~kind (source : source) =
       let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let channels = self#audio_channels in
+      let debug = debug () in
       let alpha = min 1. (float size /. samplerate /. smooth) in
       for i = offset to position - 1 do
         let x =
@@ -142,13 +141,17 @@ class dtmf ~kind (source : source) =
           n <- n - size;
           List.iter
             (fun b ->
-              (* square of the value for the DFT band *)
+              (* Square of the value for the DFT band. *)
               let x =
                 (b.band_v *. b.band_v) +. (b.band_v' *. b.band_v')
                 -. (b.band_cos *. b.band_v *. b.band_v')
               in
               b.band_x <- ((1. -. alpha) *. b.band_x) +. (alpha *. x);
-              if !debug then (
+              (* Apparently we need to reset values, otherwise some unexpected
+                 band get high values over time. *)
+              b.band_v <- 0.;
+              b.band_v' <- 0.;
+              if debug then (
                 let bar x =
                   let len = 20 in
                   let n = Float.to_int (x *. float len /. 20000.) in
@@ -160,7 +163,7 @@ class dtmf ~kind (source : source) =
                 Printf.printf "%02d / %.01f :\t%s %s %.01f\t%.01f\n" b.band_k
                   b.band_f bar bar2 x b.band_x ))
             v;
-          if !debug then print_newline ();
+          if debug then print_newline ();
           (* Update the state *)
           let found =
             List.filter_map
@@ -196,9 +199,19 @@ let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "dtmf.detect"
-    [("", Lang.source_t k, None, None)]
+    [
+      ( "debug",
+        Lang.getter_t Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Show internal values on standard output in order to fine-tune \
+           parameters: band number, band frequency, detected intensity and \
+           smoothed intensity." );
+      ("", Lang.source_t k, None, None);
+    ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Detect DTMF tones."
     (fun p ->
+      let debug = List.assoc "debug" p |> Lang.to_bool_getter in
       let s = List.assoc "" p |> Lang.to_source in
       let kind = Source.Kind.of_kind kind in
-      (new dtmf ~kind s :> Source.source))
+      (new dtmf ~kind ~debug s :> Source.source))
