@@ -17,7 +17,7 @@ let settings.protocol.replaygain.path = settings.make(
 
 # @flag hidden
 def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
-                       ~delay,file)
+                     ~delay=_,file)
   log = log.info(label="extract.replaygain")
   p = process.run("#{extract_replaygain} #{string.quote(file)}")
   stdout = string.replace(pattern='\\n', fun (_) -> "", p.stdout)

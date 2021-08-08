@@ -51,8 +51,6 @@ let stdlib_native = native
 #   enter into a consuming loop and stop playing anything.
 # @param ~prefetch How many requests should be queued in advance.
 # @param ~loop Loop on the playlist.
-# @param ~mime_type Default MIME type for the playlist. Empty string means \
-#  automatic detection.
 # @param ~mode Play the files in the playlist either in the order ("normal" mode), \
 #  or shuffle the playlist each time it is loaded, and play it in this order for a \
 #  whole round ("randomize" mode), or pick a random file in the playlist each time \
@@ -62,7 +60,7 @@ let stdlib_native = native
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
-def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, ~mime_type=null(),
+def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
                   ~mode="normal", ~native=false, ~on_done={()}, ~timeout=20., playlist)
   id = string.id.default(default="playlist.list", id)
   mode =
@@ -218,10 +216,8 @@ def playlist.reloadable(
   files := load_playlist()
 
   s = playlist.list(
-    id=id, check_next=check_next, prefetch=prefetch,
-    loop=loop, mime_type=mime_type, mode=mode,
-    native=native, on_done=on_done, timeout=timeout,
-    !files)
+    id=id, check_next=check_next, prefetch=prefetch, loop=loop, mode=mode,
+    native=native, on_done=on_done, timeout=timeout, !files)
 
   source.set_name(s, "playlist.reloadable")
 

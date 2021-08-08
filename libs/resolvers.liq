@@ -21,6 +21,7 @@ end
 
 # @flag hidden
 def youtube_playlist_parser(~pwd="",url) =
+  ignore(pwd)
   binary = null.get(settings.protocol.youtube_dl.path())
 
   def parse_line(line) =
