@@ -159,6 +159,34 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
                 Printf.printf "%02d / %.01f :\t%s %s %.01f\t%.01f\n" b.band_k
                   b.band_f bar bar2 x b.band_x ))
             bands;
+          ((* Find relevant bands. *)
+           let found =
+             List.filter_map
+               (fun b -> if b.band_x > threshold then Some b.band_f else None)
+               bands
+           in
+           (* Update the state *)
+           match found with
+             | [f1; f2] -> (
+                 let f = (f1, f2) in
+                 let dt = size /. samplerate in
+                 match state with
+                   | `Detected (f', t) when f' = f ->
+                       let t = t +. dt in
+                       if t < duration then state <- `Detected (f, t)
+                       else (
+                         ( try
+                             let k = String.make 1 (key f) in
+                             (* Printf.printf "Found %s\n%!" k; *)
+                             ignore (Lang.apply callback [("", Lang.string k)])
+                           with Not_found ->
+                             ()
+                             (* Printf.printf "Unknown combination (%.01f, %.01f)...\n%!" (fst f) (snd f) *)
+                         );
+                         state <- `Signaled f )
+                   | `Signaled f' when f' = f -> ()
+                   | _ -> state <- `Detected (f, dt) )
+             | _ -> state <- `None);
           if debug then (
             Printf.printf "\n";
             ( match state with
@@ -169,35 +197,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
               | `Signaled f ->
                   let k = try String.make 1 (key f) with Not_found -> "???" in
                   Printf.printf "Signaled key %s.\n" k );
-            print_newline () );
-          (* Find relevant bands. *)
-          let found =
-            List.filter_map
-              (fun b -> if b.band_x > threshold then Some b.band_f else None)
-              bands
-          in
-          (* Update the state *)
-          match found with
-            | [f1; f2] -> (
-                let f = (f1, f2) in
-                let dt = size /. samplerate in
-                match state with
-                  | `Detected (f', t) when f' = f ->
-                      let t = t +. dt in
-                      if t < duration then state <- `Detected (f, t)
-                      else (
-                        ( try
-                            let k = String.make 1 (key f) in
-                            (* Printf.printf "Found %s\n%!" k; *)
-                            ignore (Lang.apply callback [("", Lang.string k)])
-                          with Not_found ->
-                            ()
-                            (* Printf.printf "Unknown combination (%.01f, %.01f)...\n%!" (fst f) (snd f) *)
-                        );
-                        state <- `Signaled f )
-                  | `Signaled f' when f' = f -> ()
-                  | _ -> state <- `Detected (f, dt) )
-            | _ -> state <- `None )
+            print_newline () ) )
       done
   end
 
