@@ -70,7 +70,7 @@ def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"]
   def prune()
     if duration != infinity then
       t = time()
-      l := list.assoc.filter(fun(f, tf) -> t - tf <= duration, !l)
+      l := list.assoc.filter(fun(_, tf) -> t - tf <= duration, !l)
     end
   end
   # Add a new entry

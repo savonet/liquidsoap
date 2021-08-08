@@ -49,7 +49,7 @@ def native.sequence(~id=null(), sources)
     end
   end
   infallible = not source.fallible(list.last(default=fail, sources))
-  s = source.dynamic(infallible=infallible, track_sensitive=true, s)
+  s = source.dynamic(id=id, infallible=infallible, track_sensitive=true, s)
 
   first = ref(true)
   def ot(_)
@@ -80,6 +80,9 @@ let native.request = request
 
 # @docof request.dynamic.list
 def native.request.dynamic(%argsof(request.dynamic.list), f)
+  ignore(available)
+  ignore(timeout)
+
   # Prepared requests
   queue = ref([])
 

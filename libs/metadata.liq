@@ -118,7 +118,7 @@ end
 # such information.
 # @category System
 # @param file File from which the cover should be obtained
-def file.cover(~id=null(), fname)
+def file.cover(fname)
   metadata.cover(file.metadata(fname))
 end
 
@@ -126,5 +126,5 @@ end
 # with coverart when logging metadata.
 # @category Source / Track Processing
 def metadata.cover.remove(m)
-  list.assoc.filter(fun (k, v) -> k != "metadata_block_picture" and k != "apic", m)
+  list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic", m)
 end

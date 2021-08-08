@@ -150,7 +150,7 @@ end
 # @param f Function `f` for which `f(x,e)` which will be called on every element `e` with the current value of `x`, returning the new value of `x`.
 # @param x Initial value x1, to be updated by successive calls of `f(x,e)`.
 def list.fold.right(f, x, l)
-  list.ind(l, x, fun (e, l, r) -> f(e, r))
+  list.ind(l, x, fun (e, _, r) -> f(e, r))
 end
 
 # Filter a list according to a predicate. The order in which elements are
@@ -177,20 +177,20 @@ end
 # Concatenate two lists.
 # @category List
 def list.append(l, m)
-  list.ind(l, m, fun (x, l, r) -> list.cons(x, r))
+  list.ind(l, m, fun (x, _, r) -> list.cons(x, r))
 end
 
 # Add a new last element to the list.
 # @category List
 # @flag hidden
 def list.snoc(y, l)
-  list.ind(l, list.cons(y, []), fun (x, l, r) -> list.cons(x, r))
+  list.ind(l, list.cons(y, []), fun (x, _, r) -> list.cons(x, r))
 end
 
 # Revert list order.
 # @category List
 def list.rev(l)
-  list.ind(l, [], fun (x, l, r) -> list.snoc(x, r))
+  list.ind(l, [], fun (x, _, r) -> list.snoc(x, r))
 end
 
 # Associate a value to a key in an association list. This functions raises
@@ -292,7 +292,7 @@ end
 # @param p Predicate.
 # @param l List.
 def list.index(p, l)
-  list.ind(l, 0, fun (x, l, r) -> if p(x) then 0 else r+1 end)
+  list.ind(l, 0, fun (x, _, r) -> if p(x) then 0 else r+1 end)
 end
 
 # list.assoc.mem(key,l) returns true if l contains a pair (key,value).
