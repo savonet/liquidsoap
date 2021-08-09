@@ -83,8 +83,8 @@ let conf_shell_path =
 
 let is_docker =
   lazy
-    ( Sys.unix
-    && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0 )
+    (Sys.unix
+    && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
 
 let has_binary =
   lazy (Utils.which_opt ~path:Configure.path conf_binary#get <> None)
@@ -92,13 +92,12 @@ let has_binary =
 let () =
   Lifecycle.before_start (fun () ->
       if Lazy.force is_docker then (
-        log#important
-          "Running inside a docker container, disabling sandboxing..";
-        conf_sandbox#set false )
+        log#important "Running inside a docker container, disabling sandboxing.";
+        conf_sandbox#set false)
       else if not (Lazy.force has_binary) then (
-        log#important "Could not find binary %s, disabling sandboxing.."
+        log#important "Could not find binary %s, disabling sandboxing."
           conf_binary#get;
-        conf_sandbox#set false )
+        conf_sandbox#set false)
       else if not conf_sandbox#get then log#important "Sandboxing disabled"
       else (
         log#important "Sandboxing external processes using bubblewrap at %s"
@@ -114,7 +113,7 @@ let () =
         log#important "Read-only directories: %s"
           (String.concat ", " conf_ro#get);
         log#important "Read/write directories: %s"
-          (String.concat ", " conf_rw#get) ))
+          (String.concat ", " conf_rw#get)))
 
 type t = string
 

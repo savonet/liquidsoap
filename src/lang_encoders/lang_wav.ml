@@ -58,7 +58,8 @@ let make params =
               raise (Error (t, "invalid sample size"));
             { f with Wav_format.samplesize = i }
         | "header", { term = Ground (Bool b); _ } ->
-            { f with Wav_format.header = b } | _, t -> raise (generic_error t))
+            { f with Wav_format.header = b }
+        | _, t -> raise (generic_error t))
       defaults params
   in
   Encoder.WAV wav

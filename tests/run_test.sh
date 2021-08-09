@@ -4,68 +4,68 @@ BASEPATH=$0
 BASEDIR=`dirname $0`
 PWD=`cd $BASEDIR && pwd`
 
-CMD=$1
-TEST=$2
-TEST_NAME=$3
+TIMEOUT=10m
 
-if [ -z "${TEST_NAME}" ]; then
-  TEST_NAME=${TEST}
-fi
+run_test() {
+  PWD=$1
+  CMD=$2
+  TEST=$3
+  TEST_NAME=$4
 
-TIMEOUT=1200 # 20 minutes.
-LOG_FILE=`mktemp`
-LIQ_PID=
-MAIN_PID=$$
-WATCH_PID=
+  if [ -z "${TEST_NAME}" ]; then
+    TEST_NAME=${TEST}
+  fi
 
-trap cleanup 0 1 2
+  TEST_NAME=`echo ${TEST_NAME} | sed -e 's#%#%%#g'`
 
-cleanup() {
-  rm -rf "${LOG_FILE}"
-}
+  LOG_FILE=`mktemp`
 
-print_timeout() {
-  echo -e "\033[1;34m[timeout]\033[0m"
+  START_TIME="$(date +%s)"
+
+  trap cleanup 0 1 2
+
+  cleanup() {
+    rm -rf "${LOG_FILE}"
+  }
+
+  on_timeout() {
+    T="$(($(date +%s)-START_TIME))"
+    printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[1;34m[timeout]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+    cat "${LOG_FILE}"
+    kill -9 "$PID"
+    exit 1
+  }
+
+  trap on_timeout 15
+
+  ${CMD} < "${PWD}/${TEST}" > "${LOG_FILE}" 2>&1
+
+  PID=$!
+  wait $PID
+  STATUS=$?
+  T="$(($(date +%s)-START_TIME))"
+
+  if [ "${STATUS}" == "0" ]; then
+    printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[0;32m[ok]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+    exit 0
+  fi
+
+  if [ "${STATUS}" == "2" ]; then
+      printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[1;33m[skipped]\033[0m\n"
+      exit 0
+  fi
+
+  printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[0;31m[failed]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
   cat "${LOG_FILE}"
   exit 1
 }
 
-timeout() {
-  kill -9 $WAITD_PID >/dev/null 2>&1
-  kill -9 $PID >/dev/null 2>&1 && print_timeout
+export -f run_test
+
+on_term() {
+  exit 1
 }
 
-watchit() {
-  sleep $TIMEOUT &
-  wait $!
-  kill -ALRM $MAIN_PID
-}
+trap on_term INT
 
-watchit &
-WATCH_PID=$!
-trap timeout ALRM
-
-echo -en "Running test \033[1m${TEST_NAME}\033[0m... "
-
-${CMD} < "${PWD}/${TEST}"  > "${LOG_FILE}" 2>&1 &
-
-PID=$!
-wait $PID
-STATUS=$?
-
-kill -ALRM $WATCH_PID 2>/dev/null
-wait $WATCH_PID
-
-if [ "${STATUS}" == "0" ]; then
-  echo -e "\033[0;32m[ok]\033[0m"
-  exit 0
-fi
-
-if [ "${STATUS}" == "2" ]; then
-    echo -e "\033[1;33m[skipped]\033[0m"
-    exit 0
-fi
-
-echo -e "\033[0;31m[failed]\033[0m"
-cat "${LOG_FILE}"
-exit 1
+timeout -s 15 "${TIMEOUT}" bash -c "run_test \"$PWD\" \"$1\" \"$2\" \"$3\""

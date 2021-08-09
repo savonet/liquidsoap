@@ -81,8 +81,7 @@ let () =
               | _ ->
                   raise
                     (Lang_errors.Invalid_value
-                       (List.assoc "source" p, "unknown lastfm submission mode"))
-            )
+                       (List.assoc "source" p, "unknown lastfm submission mode")))
           else Liqfm.Unknown
         in
         let length = Lang.to_bool (List.assoc "length" p) in
@@ -91,7 +90,7 @@ let () =
             log#severe
               "length information is required for \"user\" sources, setting to \
                true.";
-            true )
+            true)
           else length
         in
         let task =

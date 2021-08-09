@@ -14,21 +14,23 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-  get_branch_name:
+  build_details:
     runs-on: ubuntu-latest
     outputs:
-      branch: ${{ steps.branch_name.outputs.branch }}
-      sha: ${{ steps.branch_name.outputs.sha }}
-      is_release: ${{ steps.branch_name.outputs.is_release }}
-      docker_release: ${{ steps.branch_name.outputs.docker_release }}
+      branch: ${{ steps.build_details.outputs.branch }}
+      sha: ${{ steps.build_details.outputs.sha }}
+      is_release: ${{ steps.build_details.outputs.is_release }}
+      docker_release: ${{ steps.build_details.outputs.docker_release }}
+      should_build_code: ${{ steps.build_details.outputs.should_build_code }}
+      s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Extract branch name
-        run: .github/scripts/branch-name.sh
-        id: branch_name
+      - name: Get build details
+        run: .github/scripts/build-details.sh
+        id: build_details
 
   export_tarball:
     runs-on: ubuntu-latest
@@ -66,6 +68,8 @@ jobs:
 
   build_minimal:
     runs-on: ubuntu-latest
+    needs: build_details
+    if: ${{ needs.build_details.outputs.should_build_code }}
     container:
       image: savonet/liquidsoap-ci:debian_testing_amd64
       options: --user opam
@@ -86,6 +90,7 @@ jobs:
           opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | grep -v lilv | xargs opam remove --force -y
           cd liquidsoap
           ./.github/scripts/build-posix.sh
+          ./src/liquidsoap --no-stdlib ./libs/stdlib.liq ./libs/deprecations.liq --check 'print("hello world")'
       - name: Build doc
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
@@ -93,11 +98,12 @@ jobs:
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
-    needs: get_branch_name
+    needs: build_details
+    if: ${{ needs.build_details.outputs.should_build_code }}
     strategy:
       fail-fast: false
       matrix:
-        os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
+        os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal, alpine]
         platform: [amd64, arm64]
         include:
           - platform: amd64
@@ -106,10 +112,13 @@ jobs:
             runs-on: self-hosted
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
-      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian -v ${{ github.workspace }}/alpine:/tmp/alpine
     env:
       HOME: /home/opam
     steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@v1
+        id: cpu_cores
       - name: Enable core dump
         run: |
           ulimit -c unlimited
@@ -126,28 +135,51 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # Remove after liquidsoap 2.0 release
           sudo -u opam -E opam install -y posix-time2
-          sudo -u opam -E ./.github/scripts/build-posix.sh
+          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
       - name: Build doc
+        if: matrix.os != 'alpine'
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-doc.sh
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/test-posix.sh
+          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build debian package
+        if: matrix.os != 'alpine'
         id: build_deb
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           chown -R opam /tmp/debian
-          sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.get_branch_name.outputs.branch }} ${{ matrix.os }}
+          sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.build_details.outputs.branch }} ${{ matrix.os }}
       - name: Upload debian packages artifacts
+        if: matrix.os != 'alpine'
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/debian
           if-no-files-found: error
+      - name: Build alpine package
+        if: matrix.os == 'alpine'
+        id: build_apk
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          apk add alpine-sdk
+          adduser opam abuild
+          mkdir -p /tmp/alpine
+          rm -rf /tmp/alpine/*
+          chown -R opam /tmp/alpine 
+          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.platform }}
+      - name: Upload alpine packages artifacts
+        if: matrix.os == 'alpine'
+        uses: savonet/aws-s3-docker-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE: ${{ github.workspace }}/alpine
+          TARGET: ${{ needs.build_details.outputs.s3-artifact-basepath }}
       - name: Export potential core dumps
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
@@ -155,31 +187,116 @@ jobs:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
           path: ${{ github.workspace }}/core
 
+  fetch_s3_artifacts:
+    runs-on: ubuntu-latest
+    needs: [build_details, build_posix]
+    steps:
+      - name: Prepare directory
+        run: |
+          rm -rf ${{ github.workspace }}/s3-artifacts
+          mkdir -p ${{ github.workspace }}/s3-artifacts
+      - name: Fetch S3 artifacts
+        uses: savonet/aws-s3-docker-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE: ${{ needs.build_details.outputs.s3-artifact-basepath }}
+          TARGET: ${{ github.workspace }}/s3-artifacts
+      - name: Get alpine amd64 package name
+        id: apk_amd64
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64 | xargs basename)"
+      - name: Upload alpine amd64 package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_amd64.outputs.name }}
+          path: ${{ steps.apk_amd64.outputs.path }}
+          if-no-files-found: error
+      - name: Get alpine amd64 debug package name
+        id: apk_amd64_dbg
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64 | xargs basename)"
+      - name: Upload alpine amd64 debug package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_amd64_dbg.outputs.name }}
+          path: ${{ steps.apk_amd64_dbg.outputs.path }}
+          if-no-files-found: error
+      - name: Get alpine arm64 package name
+        id: apk_arm64
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64 | xargs basename)"
+      - name: Upload alpine amd64 package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_arm64.outputs.name }}
+          path: ${{ steps.apk_arm64.outputs.path }}
+          if-no-files-found: error
+      - name: Get alpine arm64 debug package name
+        id: apk_arm64_dbg
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64 | xargs basename)"
+      - name: Upload alpine amd64 debug package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_arm64_dbg.outputs.name }}
+          path: ${{ steps.apk_arm64_dbg.outputs.path }}
+          if-no-files-found: error
+
   build_win32:
     runs-on: ubuntu-latest
-    needs: get_branch_name
+    needs: build_details
+    if: ${{ needs.build_details.outputs.should_build_code }}
     strategy:
       fail-fast: false
       matrix:
         system: [x64]
+    container:
+      image: savonet/liquidsoap-win32-deps-${{ matrix.system }}
+      options: --user root  -v ${{ github.workspace }}:/workspace
+    env:
+      OPAM_DEPS: ao-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-avutil-windows,ffmpeg-avcodec-windows,ffmpeg-av-windows,ffmpeg-avfilter-windows,ffmpeg-swresample-windows,ffmpeg-swscale-windows,menhir.20181113,menhir-windows,mm-windows,ocurl-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows.0.2.0,taglib-windows,winsvc-windows,yojson-windows
     steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@v1
+        id: cpu_cores
       - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Build
-        run: .github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.get_branch_name.outputs.branch }}
+        run: |
+          cd /workspace
+          rm -rf *
+          mkdir liquidsoap
+          cd liquidsoap
+          git init
+          git remote add origin https://github.com/${{ github.repository }}.git
+          git fetch --depth 1 origin ${{ github.sha }}
+          git checkout FETCH_HEAD
+          chown -R opam /workspace
+      - name: Add local packages
+        run: |
+          gosu opam:root /workspace/liquidsoap/.github/scripts/add-local-opam-packages.sh
+      - name: Build mxe dependencies
+        run : |
+          cd /usr/src/mxe/
+          cat /home/opam/mxe-deps | xargs make
+      - name: Build windows binary
+        run: |
+          gosu opam:root /workspace/liquidsoap/.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
         id: build
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build.outputs.basename }}
-          path: ${{ steps.build.outputs.basename }}.zip
+          path: ${{ github.workspace }}/win32
+          if-no-files-found: error
 
   update_release:
     runs-on: ubuntu-latest
-    needs: [get_branch_name, build_posix, build_win32]
-    if: ${{ needs.get_branch_name.outputs.is_release }}
+    needs: [build_details, build_posix, build_win32, fetch_s3_artifacts]
+    if: ${{ needs.build_details.outputs.is_release }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -189,22 +306,22 @@ jobs:
       - name: Tag commit
         uses: savonet/latest-tag@any-context
         with:
-          description: Liquidsoap ${{ needs.get_branch_name.outputs.branch }}
-          tag-name: ${{ needs.get_branch_name.outputs.branch }}
+          description: Liquidsoap ${{ needs.build_details.outputs.branch }}
+          tag-name: ${{ needs.build_details.outputs.branch }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download all artifact
         uses: actions/download-artifact@v2
         with:
-          path: artifacts/${{ needs.get_branch_name.outputs.sha }}
+          path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: List assets to upload
-        run: echo "##[set-output name=assets;]$(find artifacts/${{ needs.get_branch_name.outputs.sha }} -type f | xargs)"
+        run: echo "##[set-output name=assets;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | xargs)"
         id: list_assets
       - name: Upload assets to release
         uses: meeDamian/github-release@2.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ needs.get_branch_name.outputs.branch }}
+          tag: ${{ needs.build_details.outputs.branch }}
           files:  ${{ steps.list_assets.outputs.assets }}
           prerelease: true
           gzip: false
@@ -212,7 +329,7 @@ jobs:
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
-    needs: [get_branch_name, build_posix]
+    needs: [build_details, build_posix]
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -230,20 +347,52 @@ jobs:
       - name: Download all artifact
         uses: actions/download-artifact@v2
         with:
-          path: artifacts/${{ needs.get_branch_name.outputs.sha }}
+          path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian testing package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.get_branch_name.outputs.sha }} -type f | grep debian-testing | grep ${{ matrix.platform }} | grep -v dbgsym | grep deb)"
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-testing | grep ${{ matrix.platform }} | grep -v dbgsym | grep deb)"
         id: debian_package
       - name: Get debian testing debug package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.get_branch_name.outputs.sha }} -type f | grep debian-testing | grep ${{ matrix.platform }} | grep dbgsym | grep deb)"
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-testing | grep ${{ matrix.platform }} | grep dbgsym | grep deb)"
         id: debian_debug_package
       - name: Build docker image
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+
+  build_docker_alpine:
+    runs-on: ${{ matrix.runs-on }}
+    needs: [build_details, fetch_s3_artifacts]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        include:
+          - platform: amd64
+            runs-on: ubuntu-latest
+            alpine-arch: x86_64
+          - platform: arm64
+            runs-on: self-hosted
+            alpine-arch: aarch64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Download all artifact
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts/${{ needs.build_details.outputs.sha }}
+      - name: Get alpine package
+        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})"
+        id: alpine_package
+      - name: Get alpine debug package
+        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})"
+        id: alpine_dbg_package
+      - name: Build docker image
+        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_release:
     runs-on: ubuntu-latest
-    needs: [get_branch_name, build_docker]
-    if: ${{ needs.get_branch_name.outputs.docker_release }}
+    needs: [build_details, build_docker, build_docker_alpine]
+    if: ${{ needs.build_details.outputs.docker_release }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -251,4 +400,4 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Push consolidated manifest
-        run: .github/scripts/push-docker.sh ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }}
+        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }}

@@ -34,6 +34,25 @@ exception Parse_error of (pos * string)
 (** Unsupported format *)
 exception Unsupported_format of (pos * Encoder.format)
 
+let () =
+  Printexc.register_printer (function
+    | Internal_error (pos, e) ->
+        Some
+          (Printf.sprintf "Lang_values.Internal_error at %s: %s"
+             (Runtime_error.print_pos_list pos)
+             e)
+    | Parse_error (pos, e) ->
+        Some
+          (Printf.sprintf "Lang_values.Parse_error at %s: %s"
+             (Runtime_error.print_pos pos)
+             e)
+    | Unsupported_format (pos, f) ->
+        Some
+          (Printf.sprintf "Lang_values.Unsupported_format at %s: %s"
+             (Runtime_error.print_pos pos)
+             (Encoder.string_of_format f))
+    | _ -> None)
+
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "lang") "Language configuration."
 
@@ -127,9 +146,9 @@ let format_t ?pos ?level k =
     (T.Constr { T.name = "format"; T.params = [(T.Covariant, k)] })
 
 (** Type of sources carrying frames of a given kind. *)
-let source_t ?(active = false) ?pos ?level k =
-  let name = if active then "active_source" else "source" in
-  T.make ?pos ?level (T.Constr { T.name; T.params = [(T.Invariant, k)] })
+let source_t ?pos ?level k =
+  T.make ?pos ?level
+    (T.Constr { T.name = "source"; T.params = [(T.Invariant, k)] })
 
 (* Filled in later to avoid dependency cycles. *)
 let source_methods_t = ref (fun () : Lang_types.t -> assert false)
@@ -137,7 +156,6 @@ let source_methods_t = ref (fun () : Lang_types.t -> assert false)
 let of_source_t t =
   match (T.deref t).T.descr with
     | T.Constr { T.name = "source"; T.params = [(_, t)] } -> t
-    | T.Constr { T.name = "active_source"; T.params = [(_, t)] } -> t
     | _ -> assert false
 
 let request_t ?pos ?level () = T.make ?pos ?level (T.Ground T.Request)
@@ -377,10 +395,7 @@ let free_vars ?(bound = []) body =
 (** Values which can be ignored (and will thus not raise a warning if
    ignored). *)
 let can_ignore t =
-  match (T.demeth t).T.descr with
-    | T.Tuple [] | T.Constr { T.name = "active_source"; _ } -> true
-    | T.EVar _ -> true
-    | _ -> false
+  match (T.demeth t).T.descr with T.Tuple [] | T.EVar _ -> true | _ -> false
 
 (* TODO: what about functions with methods? *)
 let is_fun t = match (T.deref t).T.descr with T.Arrow _ -> true | _ -> false
@@ -418,7 +433,8 @@ let check_unused ~throw ~lib tm =
       | Fun (_, p, body) ->
           let v =
             List.fold_left
-              (fun v -> function _, _, _, Some default -> check v default
+              (fun v -> function
+                | _, _, _, Some default -> check v default
                 | _ -> v)
               v p
           in
@@ -448,14 +464,14 @@ let check_unused ~throw ~lib tm =
               (fun s ->
                 (* Do we have an unused definition? *)
                 if Vars.mem s v then
-                  (* There are exceptions: unit, active_source and functions when
+                  (* There are exceptions: unit and functions when
                      at toplevel (sort of a lib situation...) *)
                   if
                     s <> "_"
                     && not (can_ignore def.t || (toplevel && is_fun def.t))
                   then (
                     let start_pos = fst (Option.get tm.t.T.pos) in
-                    throw (Unused_variable (s, start_pos)) ))
+                    throw (Unused_variable (s, start_pos))))
               bvpat;
           Vars.union v mask
   in
@@ -557,7 +573,7 @@ module V = struct
             if List.mem l hide then aux hide e
             else (
               let m, e = aux (l :: hide) e in
-              ((l, v) :: m, e) )
+              ((l, v) :: m, e))
         | _ -> ([], e)
     in
     aux [] e
@@ -628,7 +644,7 @@ let get_builtin name = builtins#get name
 (** Declare a module. *)
 let add_module name =
   (* Ensure that it does not already exist. *)
-  ( match name with
+  (match name with
     | [] -> assert false
     | [x] ->
         if List.mem_assoc x !builtins_env then
@@ -646,7 +662,7 @@ let add_module name =
         try
           ignore (V.invoke e l);
           failwith ("Module " ^ String.concat "." name ^ " already exists")
-        with _ -> () ) );
+        with _ -> ()));
   add_builtin ~register:false name
     (([], T.make T.unit), { V.pos = None; value = V.unit })
 
@@ -847,7 +863,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
               else e.t >: T.make ~level ~pos:None (T.Arrow (ap, t))
           | _ ->
               let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
-              a.t <: T.make ~level ~pos:None (T.Arrow (p, e.t)) )
+              a.t <: T.make ~level ~pos:None (T.Arrow (p, e.t)))
     | Fun (_, proto, body) -> check_fun ~proto ~env e body
     | RFun (x, _, proto, body) ->
         let env = (x, ([], e.t)) :: env in
@@ -876,7 +892,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
               in
               x' @ x
             in
-            f [] def.t )
+            f [] def.t)
           else []
         in
         let penv, pa = type_of_pat ~level ~pos pat in
@@ -900,7 +916,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
                       in
                       (l, (g, T.meths ~pos ~level ll (generalized, a) t))
                     with Not_found ->
-                      raise (Unbound (pos, String.concat "." (l :: ll))) ))
+                      raise (Unbound (pos, String.concat "." (l :: ll)))))
             penv
         in
         let env = penv @ env in
@@ -974,7 +990,7 @@ let rec eval ~env tm =
       let mem x =
         if Vars.mem x !fv then (
           fv := Vars.remove x !fv;
-          true )
+          true)
         else false
       in
       List.filter (fun (x, _) -> mem x) env
@@ -984,7 +1000,7 @@ let rec eval ~env tm =
   let mk v =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)
-    ( match (T.deref tm.t).T.descr with
+    (match (T.deref tm.t).T.descr with
       | T.Constr { T.name = "source"; params = [(T.Invariant, k)] } -> (
           let frame_content_of_t t =
             match (T.deref t).T.descr with
@@ -993,7 +1009,7 @@ let rec eval ~env tm =
                   match (T.deref t).T.descr with
                     | T.Ground (T.Format fmt) -> `Format fmt
                     | T.EVar _ -> `Kind (Frame_content.kind_of_string name)
-                    | _ -> failwith ("Unhandled content: " ^ T.print tm.t) )
+                    | _ -> failwith ("Unhandled content: " ^ T.print tm.t))
               | T.Constr { T.name = "none" } ->
                   `Kind (Frame_content.kind_of_string "none")
               | _ -> failwith ("Unhandled content: " ^ T.print tm.t)
@@ -1018,8 +1034,8 @@ let rec eval ~env tm =
                   (Internal_error
                      ( Option.to_list tm.t.T.pos,
                        "term has type source but is not a source: "
-                       ^ V.print_value { V.pos = tm.t.T.pos; V.value = v } )) )
-      | _ -> () );
+                       ^ V.print_value { V.pos = tm.t.T.pos; V.value = v } )))
+      | _ -> ());
     { V.pos = tm.t.T.pos; V.value = v }
   in
   match tm.term with
@@ -1112,7 +1128,7 @@ let rec eval ~env tm =
         if !profile then (
           match f.term with
             | Var fname -> Profiler.time fname ans ()
-            | _ -> ans () )
+            | _ -> ans ())
         else ans ()
 
 and apply f l =
@@ -1122,7 +1138,7 @@ and apply f l =
           | Some (p, _), Some (_, q) -> Some (p, q)
           | Some pos, None -> Some pos
           | None, Some pos -> Some pos
-          | None, None -> None )
+          | None, None -> None)
     | _ :: l -> pos l
     | [] -> f.V.pos
   in
@@ -1192,7 +1208,7 @@ and apply f l =
        information. For example, if we build a fallible source and pass it to an
        operator that expects an infallible one, an error is issued about that
        FFI-made value and a position is needed. *)
-    { v with V.pos } )
+    { v with V.pos })
 
 let eval ?env tm =
   let env = match env with Some env -> env | None -> default_environment () in
@@ -1234,10 +1250,10 @@ let toplevel_add (doc, params, methods) pat ~t v =
         item#add_subsection "type" (T.doc_of_type ~generalized t);
         item#add_subsection "default"
           (Doc.trivial
-             ( match default with
+             (match default with
                | `Unknown -> "???"
                | `Known (Some v) -> V.print_value v
-               | `Known None -> "None" ));
+               | `Known None -> "None"));
         doc#add_subsection (if label = "" then "(unlabeled)" else label) item;
         (params, pvalues))
       (params, pvalues) ptypes
@@ -1289,7 +1305,7 @@ let rec eval_toplevel ?(interactive = false) t =
                   let old = V.invokes old l in
                   (T.remeth old_t def.t, V.remeth old (eval def))
               | PTuple _ ->
-                  failwith "TODO: cannot replace toplevel tuples for now" )
+                  failwith "TODO: cannot replace toplevel tuples for now")
         in
         toplevel_add comment pat ~t:(generalized, def_t) def;
         if Lazy.force debug then

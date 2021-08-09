@@ -26,19 +26,12 @@ open Source
 class echo ~kind (source : source) delay feedback ping_pong =
   object (self)
     inherit operator ~name:"echo" kind [source] as super
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     val mutable effect = None
 
     method private wake_up a =

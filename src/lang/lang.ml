@@ -70,7 +70,7 @@ let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
 let getter_t a = T.make (T.Getter a)
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
-let source_t ?active t = Term.source_t ?active t
+let source_t t = Term.source_t t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
 let request_t = Term.request_t ()
@@ -202,9 +202,9 @@ let doc_of_prototype_item ~generalized t d doc =
   let item = new Doc.item doc in
   item#add_subsection "type" (T.doc_of_type ~generalized t);
   item#add_subsection "default"
-    ( match d with
+    (match d with
       | None -> Doc.trivial "None"
-      | Some d -> Doc.trivial (print_value d) );
+      | Some d -> Doc.trivial (print_value d));
   item
 
 type doc_flag = Hidden | Deprecated | Experimental | Extra
@@ -272,6 +272,7 @@ type category =
   | Input
   | Output
   | Conversions
+  | FFmpegFilter
   | TrackProcessing
   | SoundProcessing
   | VideoProcessing
@@ -287,6 +288,7 @@ let string_of_category x =
     | Input -> "Input"
     | Output -> "Output"
     | Conversions -> "Conversions"
+    | FFmpegFilter -> "FFmpeg Filter"
     | TrackProcessing -> "Track Processing"
     | SoundProcessing -> "Sound Processing"
     | VideoProcessing -> "Video Processing"
@@ -295,10 +297,7 @@ let string_of_category x =
     | Visualization -> "Visualization"
     | Liquidsoap -> "Liquidsoap"
 
-(** List of references for which iter_sources had to give up --- see below. *)
-let static_analysis_failed = ref []
-
-let iter_sources f v =
+let iter_sources ?on_reference ~static_analysis_failed f v =
   let itered_values = ref [] in
   let rec iter_term env v =
     match v.Term.term with
@@ -325,9 +324,9 @@ let iter_sources f v =
             let v = List.assoc v env in
             if Lazy.is_val v then (
               let v = Lazy.force v in
-              iter_value v )
+              iter_value v)
             else ()
-          with Not_found -> () )
+          with Not_found -> ())
       | Term.App (a, l) ->
           iter_term env a;
           List.iter (fun (_, v) -> iter_term env v) l
@@ -384,15 +383,19 @@ let iter_sources f v =
                 aux v
               in
               static_analysis_failed := r :: !static_analysis_failed;
-              if may_have_source then
-                log#severe
-                  "WARNING! Found a reference, potentially containing sources, \
-                   inside a dynamic source-producing function. Static analysis \
-                   cannot be performed: make sure you are not sharing sources \
-                   contained in references!" ) )
+              if may_have_source then (
+                match on_reference with
+                  | Some f -> f ()
+                  | None ->
+                      log#severe
+                        "WARNING! Found a reference, potentially containing \
+                         sources, inside a dynamic source-producing function. \
+                         Static analysis cannot be performed: make sure you \
+                         are not sharing sources contained in references!")))
   in
   iter_value v
 
+let iter_sources = iter_sources ~static_analysis_failed:(ref [])
 let apply f p = Clock.collect_after (fun () -> Term.apply f p)
 
 (** {1 High-level manipulation of values} *)
@@ -409,7 +412,7 @@ let to_bool_getter t =
         fun () ->
           match (apply t []).value with
             | Ground (Bool b) -> b
-            | _ -> assert false )
+            | _ -> assert false)
     | _ -> assert false
 
 let to_fun f =
@@ -427,7 +430,7 @@ let to_string_getter t =
         fun () ->
           match (apply t []).value with
             | Ground (String s) -> s
-            | _ -> assert false )
+            | _ -> assert false)
     | _ -> assert false
 
 let to_float t =
@@ -440,7 +443,7 @@ let to_float_getter t =
         fun () ->
           match (apply t []).value with
             | Ground (Float s) -> s
-            | _ -> assert false )
+            | _ -> assert false)
     | _ -> assert false
 
 let to_source t =
@@ -462,7 +465,7 @@ let to_int_getter t =
         fun () ->
           match (apply t []).value with
             | Ground (Int n) -> n
-            | _ -> assert false )
+            | _ -> assert false)
     | _ -> assert false
 
 let to_num t =
@@ -541,17 +544,17 @@ let type_and_run ~throw ~lib ast =
       if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
       ignore (Term.eval_toplevel ast))
 
-let mk_expr ~pwd processor lexbuf =
+let mk_expr ?fname ~pwd processor lexbuf =
   let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
-  let tokenizer = Lang_pp.mk_tokenizer ~pwd lexbuf in
+  let tokenizer = Lang_pp.mk_tokenizer ?fname ~pwd lexbuf in
   let tokenizer () =
     let token, (startp, endp) = tokenizer () in
     (token, startp, endp)
   in
   processor tokenizer
 
-let from_in_channel ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
-    in_chan =
+let from_in_channel ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns
+    ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
   begin
     match ns with
@@ -560,20 +563,25 @@ let from_in_channel ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
   end;
   try
     Lang_errors.report lexbuf (fun ~throw () ->
-        let expr = mk_expr ~pwd:dir Lang_parser.program lexbuf in
+        let expr = mk_expr ?fname ~pwd:dir Lang_parser.program lexbuf in
         if not parse_only then type_and_run ~throw ~lib expr)
   with Lang_errors.Error -> exit 1
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
-  from_in_channel ~dir:(Filename.dirname filename) ?parse_only ~ns ~lib ic;
+  let fname = Utils.home_unrelate filename in
+  from_in_channel ~fname
+    ~dir:(Filename.dirname filename)
+    ?parse_only ~ns ~lib ic;
   close_in ic
 
-let load_libs ?parse_only ?(deprecated = true) () =
+let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true) () =
   let dir = Configure.liq_libs_dir in
-  let file = Filename.concat dir "pervasives.liq" in
-  if Sys.file_exists file then
-    from_file ?parse_only ~ns:(Some file) ~lib:true file;
+  let file = Filename.concat dir "stdlib.liq" in
+  if not (Sys.file_exists file) then (
+    if error_on_no_stdlib then
+      failwith "Could not find default stdlib.liq library!")
+  else from_file ?parse_only ~ns:(Some file) ~lib:true file;
   let file = Filename.concat dir "deprecations.liq" in
   if deprecated && Sys.file_exists file then
     from_file ?parse_only ~ns:(Some file) ~lib:true file
@@ -722,7 +730,9 @@ let source_methods =
       fun s -> val_fun [] (fun _ -> string s#id) );
     ( "is_ready",
       ([], fun_t [] bool_t),
-      "Indicate if a source is ready to stream, or currently streaming.",
+      "Indicate if a source is ready to stream. This does not mean that the \
+       source is currently streaming, just that its resources are all properly \
+       initialized.",
       fun s -> val_fun [] (fun _ -> bool s#is_ready) );
     ( "on_metadata",
       ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
@@ -762,10 +772,51 @@ let source_methods =
       "Estimation of remaining time in the current track.",
       fun s -> val_fun [] (fun _ -> float (Frame.seconds_of_main s#remaining))
     );
+    ( "self_sync",
+      ([], fun_t [] bool_t),
+      "Is the source currently controling its own real-time loop.",
+      fun s -> val_fun [] (fun _ -> bool (snd s#self_sync)) );
+    ( "log",
+      ( [],
+        record_t
+          [
+            ( "level",
+              method_t
+                (fun_t [] (nullable_t int_t))
+                [
+                  ( "set",
+                    ([], fun_t [(false, "", int_t)] unit_t),
+                    "Set the source's log level" );
+                ] );
+          ] ),
+      "Get or set the source's log level, from `1` to `5`.",
+      fun s ->
+        record
+          [
+            ( "level",
+              meth
+                (val_fun [] (fun _ ->
+                     match s#log#level with Some lvl -> int lvl | None -> null))
+                [
+                  ( "set",
+                    val_fun [("", "", None)] (fun p ->
+                        let lvl = min 5 (max 1 (to_int (List.assoc "" p))) in
+                        s#log#set_level lvl;
+                        unit) );
+                ] );
+          ] );
     ( "is_up",
       ([], fun_t [] bool_t),
-      "Check whether a source is up.",
+      "Indicate that the source can be asked to produce some data at any time. \
+       This is `true` when the source is currently being used or if it could \
+       be used at any time, typically inside a `switch` or `fallback`.",
       fun s -> val_fun [] (fun _ -> bool s#is_up) );
+    ( "is_active",
+      ([], fun_t [] bool_t),
+      "`true` if the source is active, i.e. it is continuously animated by its \
+       own clock whenever it is ready. Typically, `true` for outputs and \
+       sources such as `input.http`.",
+      fun s -> val_fun [] (fun _ -> bool s#is_active) );
     ( "seek",
       ([], fun_t [(false, "", float_t)] float_t),
       "Seek forward, in seconds (returns the amount of time effectively \
@@ -784,9 +835,9 @@ let source_methods =
             s#abort_track;
             unit) );
     ( "fallible",
-      ([], fun_t [] bool_t),
+      ([], bool_t),
       "Indicate if a source may fail, i.e. may not be ready to stream.",
-      fun s -> val_fun [] (fun _ -> bool (s#stype = Source.Fallible)) );
+      fun s -> bool (s#stype = Source.Fallible) );
     ( "shutdown",
       ([], fun_t [] unit_t),
       "Deactivate a source.",
@@ -814,8 +865,8 @@ let source_methods =
             float (frame_position +. in_frame_position)) );
   ]
 
-let source_t ?(methods = false) ?active t =
-  let t = source_t ?active t in
+let source_t ?(methods = false) t =
+  let t = source_t t in
   if methods then
     method_t t
       (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
@@ -847,8 +898,8 @@ type 'a operator_method = string * scheme * string * ('a -> value)
   * so we have to force its value within the acceptable range. *)
 let add_operator =
   let _meth = meth in
-  fun ~category ~descr ?(flags = []) ?(active = false)
-      ?(meth = ([] : 'a operator_method list)) name proto ~return_t f ->
+  fun ~category ~descr ?(flags = []) ?(meth = ([] : 'a operator_method list))
+      name proto ~return_t f ->
     let compare (x, _, _, _) (y, _, _, _) =
       match (x, y) with
         | "", "" -> 0
@@ -857,37 +908,47 @@ let add_operator =
         | x, y -> Stdlib.compare x y
     in
     let proto =
-      let t = T.make (T.Ground T.String) in
       ( "id",
-        t,
-        Some { pos = t.T.pos; value = Ground (String "") },
+        nullable_t string_t,
+        Some null,
         Some "Force the value of the source ID." )
       :: List.stable_sort compare proto
     in
     let f env =
       let src : < Source.source ; .. > = f env in
-      let id =
-        match (List.assoc "id" env).value with
-          | Ground (String s) -> s
-          | _ -> assert false
-      in
-      if id <> "" then src#set_id id;
+      ignore
+        (Option.map
+           (fun id -> src#set_id id)
+           (to_valued_option to_string (List.assoc "id" env)));
       let v = source (src :> Source.source) in
       _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
     in
     let f env =
       let pos = None in
-      try f env with
+      try
+        let ret = f env in
+        if category = Output then (
+          let m, _ = Lang_values.V.split_meths ret in
+          _meth unit m)
+        else ret
+      with
         | Source.Clock_conflict (a, b) ->
             raise (Lang_errors.Clock_conflict (pos, a, b))
         | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b))
         | Source.Kind.Conflict (a, b) ->
             raise (Lang_errors.Kind_conflict (pos, a, b))
     in
-    let return_t = source_t ~methods:true ~active return_t in
+    let return_t = source_t ~methods:true return_t in
     let return_t =
       method_t return_t
         (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
+    in
+    let return_t =
+      if category = Output then (
+        let m, _ = Lang_types.split_meths return_t in
+        let m = List.map (fun (x, (y, z)) -> (x, y, z)) m in
+        method_t unit_t m)
+      else return_t
     in
     let category = string_of_category category in
     add_builtin ~category ~descr ~flags name proto return_t f

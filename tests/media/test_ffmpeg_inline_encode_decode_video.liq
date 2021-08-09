@@ -1,24 +1,23 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
-set("log.level",5)
+log.level.set(5)
+settings.decoder.decoders.set(["FFMPEG"])
 
-set("decoder.decoders",["FFMPEG"])
-
-out_copy = "files/copy.mp4"
+out_copy = "files/test_ffmpeg_inline_encode_decode_video_copy.mp4"
 
 if file.exists(out_copy) then
   file.remove(out_copy)
 end
 
-out_encode = "files/encode.mp4"
+out_encode = "files/test_ffmpeg_inline_encode_decode_video_encode.mp4"
 if file.exists(out_encode) then
   file.remove(out_encode)
 end
 
 s = once(blank(duration=10.))
 
-clock.assign_new(sync='none',[s])
+todo = ref(2)
 
 def on_done () =
   def check(out) =
@@ -48,10 +47,14 @@ def on_done () =
     streams == expected
   end
 
-  if check(out_copy) and check(out_encode) then
-    test.pass()
-  else
-    test.fail()
+  todo := !todo - 1
+
+  if !todo == 0 then
+    if check(out_copy) and check(out_encode) then
+      test.pass()
+    else
+      test.fail()
+    end
   end
 end
 
@@ -64,6 +67,7 @@ s = ffmpeg.encode.video(
 
 output.file(
   fallible=true,
+  on_stop=on_done,
   %ffmpeg(
     %video.copy,
   ),
@@ -72,6 +76,8 @@ output.file(
 )
 
 s = ffmpeg.decode.video(s)
+
+clock.assign_new(sync='none',[s])
 
 output.file(
   fallible=true,

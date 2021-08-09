@@ -20,138 +20,88 @@
 
  *****************************************************************************)
 
-(** Base class for sources with start/stop methods and server commands.
-  * That class provides #may/do_start/stop but does not hook them anywhere. *)
-class virtual base ~name ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
-  ~autostart =
+(* [`Start] and [`Stop] are explicit states resulting of a
+   user command. [`Idle] is a default state at init or after a source
+   failure. [`Idle] is used to captures situations where the output is
+   stopped by can be restarted immediately when its underlying source
+   becomes available again. In contrast, [`Stopped] indicates an
+   explicit user-requested stop and the output will not automatically
+   restart. *)
+type state = [ `Started | `Stopped | `Idle ]
+
+(** Base class for sources with start/stop methods. Class ineheriting it should
+    declare their own [start]/[stop] method and users should call [#set_start]  *)
+class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
   object (self)
-    method virtual private id : string
-
-    method virtual private set_id : ?definitive:bool -> string -> unit
-
-    method virtual private log : Log.t
-
+    val mutable state : state = `Idle
+    method state = state
     method virtual private start : unit
-
     method virtual private stop : unit
+    method virtual stype : Source.source_t
 
-    val mutable is_started = false
+    (* Default [reset] method. Can be overriden if necessary. *)
+    method reset =
+      self#stop;
+      self#start
 
-    (* Currently started *)
-    val mutable request_start = autostart
-
-    (* Ask for startup *)
-    val mutable request_stop = false
-
-    method is_active = is_started
-
-    method private wake_up (_ : Source.source list) =
-      (* We prefer [name] as an ID over the default,
-       * but do not overwrite user-defined ID.
-       * Our ID will be used for the server interface. *)
-      if name <> "" then self#set_id ~definitive:false name
-
-    method private notify = ()
-
-    method private may_start = if request_start then self#do_start
-
-    method private may_stop = if request_stop then self#do_stop
-
-    method private do_start =
-      request_start <- autostart;
-      if not is_started then (
-        self#start;
-        on_start ();
-        is_started <- true )
-
-    method private do_stop =
-      if is_started then (
-        self#stop;
-        on_stop ();
-        is_started <- false;
-        request_stop <- false )
+    method transition_to (s : state) =
+      match (s, state) with
+        | `Started, `Stopped | `Started, `Idle ->
+            self#start;
+            on_start ();
+            state <- `Started
+        | `Started, `Started -> ()
+        | `Stopped, `Started ->
+            self#stop;
+            on_stop ();
+            state <- `Stopped
+        | `Stopped, `Idle -> state <- `Stopped
+        | `Stopped, `Stopped -> ()
+        | `Idle, `Started ->
+            self#stop;
+            on_stop ();
+            state <- `Idle
+        | `Idle, `Stopped | `Idle, `Idle -> ()
   end
 
-(* Takes care of calling #start/#stop in a well-parenthesized way,
- * but they may be called from any thread.
- * It is suitable for inactive inputs, where the #start/stop methods
- * should start some sort of feeding thread. *)
-class virtual async ~name ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
-  ~autostart =
+class virtual active_source ?get_clock ~name ~content_kind ~clock_safe
+  ~(on_start : unit -> unit) ~(on_stop : unit -> unit) ~fallible ~autostart () =
+  let get_clock =
+    Option.value ~default:(fun () -> new Clock.clock name) get_clock
+  in
   object (self)
-    inherit base ~name ~on_start ~on_stop ~autostart as super
-
-    method private wake_up activation =
-      super#wake_up activation;
-      self#may_start
-
-    method private sleep = self#do_stop
-
-    method private notify =
-      (* TODO we should avoid race conditions here *)
-      self#may_stop;
-      self#may_start
-  end
-
-(** The [input] class should be used for defining active inputs.
-  * It only requires #start, #stop and #input methods,
-  * and provides start/stop server commands.
-  * Currently the start/stop mechanism is always enabled, so the input
-  * is fallible.
-  * The code is similar to Output.output, with #may_(start/stop) called
-  * from the #output method. *)
-class virtual input ~name ~source_kind ~content_kind ~(on_start : unit -> unit)
-  ~(on_stop : unit -> unit) ~fallible ~autostart =
-  object (self)
-    inherit Source.active_source ~name:source_kind content_kind
-
-    inherit base ~name ~on_start ~on_stop ~autostart as super
-
+    inherit Source.active_source ~name content_kind as super
+    inherit base ~on_start ~on_stop as base
     method stype = if fallible then Source.Fallible else Source.Infallible
+    method private wake_up _ = if autostart then base#transition_to `Started
+    method private sleep = base#transition_to `Stopped
+    method is_ready = state = `Started
+    val mutable clock = None
 
-    method output_get_ready = if fallible then self#may_start else self#do_start
+    method private get_clock =
+      match clock with
+        | Some c -> c
+        | None ->
+            let c = get_clock () in
+            clock <- Some c;
+            c
 
-    method private wake_up activation =
-      super#wake_up activation;
-      if fallible then self#may_start else self#do_start
+    method private set_clock =
+      super#set_clock;
+      if clock_safe then
+        Clock.unify self#clock
+          (Clock.create_known (self#get_clock :> Clock.clock))
 
-    method private sleep = self#do_stop
-
-    method is_ready =
-      if fallible then self#is_active
-      else (
-        assert self#is_active;
-        true )
-
-    method remaining = if self#is_active then -1 else 0
-
-    method abort_track = ()
+    method virtual private get_frame : Frame.t -> unit
+    method virtual private memo : Frame.t
 
     method private output =
-      self#may_start;
-      let memo = self#memo in
-      if is_started && AFrame.is_partial memo then self#get_frame memo;
-      if fallible then self#may_stop
-
-    method private get_frame frame =
-      (* Because we're an active source, the frame will actually be our memo.
-       * Hence we'll always start filling it at position 0, and we'll fill
-       * it completely. *)
-      assert (0 = AFrame.position frame);
-      if not is_started then Frame.add_break frame (Frame.position frame)
-      else self#input frame
-
-    method virtual private input : Frame.t -> unit
+      if self#is_ready && AFrame.is_partial self#memo then
+        self#get_frame self#memo
   end
 
-let input_proto =
+let output_proto =
   [
-    ( "fallible",
-      Lang.bool_t,
-      Some (Lang.bool false),
-      Some
-        "Allow the input to stop. When false, the source will be infallible \
-         but the stop command won't have any effect." );
     ( "on_start",
       Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
@@ -163,7 +113,62 @@ let input_proto =
     ( "start",
       Lang.bool_t,
       Some (Lang.bool true),
-      Some
-        "Start input as soon as it is created. Disabling it is only taken into \
-         account for a fallible input." );
+      Some "Start input as soon as it is available." );
   ]
+
+let active_source_proto ~fallible_opt ~clock_safe =
+  output_proto
+  @ [
+      ( "clock_safe",
+        Lang.bool_t,
+        Some (Lang.bool clock_safe),
+        Some "Force the use of a dedicated clock" );
+    ]
+  @
+  match fallible_opt with
+    | `Nope -> []
+    | `Yep v ->
+        [
+          ( "fallible",
+            Lang.bool_t,
+            Some (Lang.bool v),
+            Some
+              "Allow the source to fail. If set to `false`, `start` must be \
+               `true` and `stop` method raises an error." );
+        ]
+
+type 'a meth = string * Lang.scheme * string * ('a -> Lang.value)
+
+let meth :
+    unit -> < state : state ; transition_to : state -> unit ; .. > meth list =
+ fun () ->
+  Lang.
+    [
+      ( "is_started",
+        ([], fun_t [] bool_t),
+        "`true` if the output or source is started.",
+        fun s -> val_fun [] (fun _ -> bool (s#state = `Started)) );
+      ( "start",
+        ([], fun_t [] unit_t),
+        "Ask the source or output to start.",
+        fun s ->
+          val_fun [] (fun _ ->
+              s#transition_to `Started;
+              unit) );
+      ( "stop",
+        ([], fun_t [] unit_t),
+        "Ask the source or output to stop.",
+        fun s ->
+          val_fun [] (fun _ ->
+              if s#stype = Source.Infallible then
+                raise
+                  Lang_values.(
+                    Runtime_error
+                      {
+                        kind = "input";
+                        msg = Some "Source is infallible and cannot be stopped";
+                        pos = [];
+                      });
+              s#transition_to `Stopped;
+              unit) );
+    ]

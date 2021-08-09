@@ -70,3 +70,22 @@ let () =
       let ns = Pcre.split ~pat:"\\." namespace in
       Server.add ~ns ~usage ~descr command f;
       Lang.unit)
+
+let () =
+  add_builtin "server.register_operator" ~cat:Interaction
+    ~descr:
+      "Register an operator. This is mainly used to populate the `list` \
+       command on the telnet server."
+    [
+      ( "kind",
+        Lang.string_t,
+        None,
+        Some
+          "Kind of the operator (generally, the name of the function used to \
+           create it)." );
+      ("", Lang.string_t, None, Some "Identifier of the operator.");
+    ] Lang.unit_t (fun p ->
+      let id = List.assoc "" p |> Lang.to_string in
+      let kind = List.assoc "kind" p |> Lang.to_string in
+      Server.register_op id kind;
+      Lang.unit)

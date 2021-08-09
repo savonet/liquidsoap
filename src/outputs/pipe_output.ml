@@ -51,12 +51,10 @@ class virtual base ~kind ~source ~name p =
           ~name ~content_kind:kind source
 
     val mutable encoder = None
-
     val mutable current_metadata = None
-
     method virtual private encoder_factory : Encoder.factory
 
-    method output_start =
+    method start =
       let enc = self#encoder_factory self#id in
       let meta =
         match current_metadata with
@@ -65,30 +63,33 @@ class virtual base ~kind ~source ~name p =
       in
       encoder <- Some (enc meta)
 
-    method output_stop = encoder <- None
-
-    method output_reset = ()
-
-    val mutable need_reset = false
-
-    val mutable reopening = false
+    method stop = encoder <- None
+    method reset = ()
 
     method encode frame ofs len =
       let enc = Option.get encoder in
       enc.Encoder.encode frame ofs len
 
     method virtual write_pipe : string -> int -> int -> unit
-
     method send b = Strings.iter self#write_pipe b
-
     method insert_metadata m = (Option.get encoder).Encoder.insert_metadata m
   end
 
-(** url output: discard encoded data. *)
+(** url output: discard encoded data, try to restart on encoding error (can be networking issues etc.) *)
 let url_proto kind =
   Output.proto
   @ [
       ("url", Lang.string_t, None, Some "Url to output to.");
+      ( "restart_on_error",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Restart output on errors" );
+      ( "self_sync",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Should the source control its own synchronization? Set to `true` \
+           for output to e.g. `rtmp` output using `%ffmpeg` and etc." );
       ("", Lang.format_t kind, None, Some "Encoding format.");
       ("", Lang.source_t kind, None, None);
     ]
@@ -106,18 +107,30 @@ class url_output p =
   let format = Encoder.with_url_output format url in
   let kind = Source.Kind.of_kind (Encoder.kind_of_format format) in
   let source = Lang.assoc "" 2 p in
+  let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
+  let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let name = "output.url" in
-  object
-    inherit base p ~kind ~source ~name
-
+  object (self)
+    inherit base p ~kind ~source ~name as super
     method private encoder_factory = encoder_factory ~format format_val
 
+    method encode frame ofs len =
+      try super#encode frame ofs len
+      with e when restart_on_error ->
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log:self#log ~bt
+          (Printf.sprintf "Error when encoding data: %s" (Printexc.to_string e));
+        self#stop;
+        self#start;
+        self#encode frame ofs len
+
     method write_pipe _ _ _ = ()
+    method self_sync = (`Static, self_sync)
   end
 
 let () =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.url" ~active:true (url_proto return_t) ~return_t
+  Lang.add_operator "output.url" (url_proto return_t) ~return_t
     ~category:Lang.Output
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
@@ -153,9 +166,9 @@ let pipe_proto kind arg_doc =
         Lang.getter_t Lang.string_t,
         None,
         Some
-          ( arg_doc
-          ^ " Some strftime conversion specifiers are available: `%SMHdmY`. \
-             You can also use `$(..)` interpolation notation for metadata." ) );
+          (arg_doc
+         ^ " Some strftime conversion specifiers are available: `%SMHdmY`. You \
+            can also use `$(..)` interpolation notation for metadata.") );
       ("", Lang.source_t kind, None, None);
     ]
 
@@ -169,15 +182,12 @@ class virtual piped_output ~kind p =
   let source = Lang.assoc "" 3 p in
   object (self)
     inherit base ~kind ~source ~name p as super
-
     method reopen_cmd = self#reopen
-
     val mutable open_date = 0.
-
+    val mutable need_reset = false
+    val mutable reopening = false
     method virtual open_pipe : unit
-
     method virtual close_pipe : unit
-
     method virtual is_open : bool
 
     method interpolate ?(subst = fun x -> x) s =
@@ -193,12 +203,12 @@ class virtual piped_output ~kind p =
       self#open_pipe;
       open_date <- Unix.gettimeofday ()
 
-    method output_stop =
+    method stop =
       if self#is_open then (
         let flush = (Option.get encoder).Encoder.stop () in
         self#send flush;
-        self#close_pipe );
-      super#output_stop
+        self#close_pipe);
+      super#stop
 
     val m = Mutex.create ()
 
@@ -207,20 +217,20 @@ class virtual piped_output ~kind p =
         (fun () ->
           self#log#important "Re-opening output pipe.";
 
-          (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
+          (* #stop can trigger #send, the [reopening] flag avoids loops *)
           reopening <- true;
-          self#output_stop;
-          self#output_start;
+          self#stop;
+          self#start;
           reopening <- false;
           need_reset <- false)
         ()
 
     method send b =
       if not self#is_open then self#prepare_pipe;
-      ( try super#send b
-        with e when reload_on_error ->
-          self#log#important "Reopening on error: %s." (Printexc.to_string e);
-          need_reset <- true );
+      (try super#send b
+       with e when reload_on_error ->
+         self#log#important "Reopening on error: %s." (Printexc.to_string e);
+         need_reset <- true);
       if not reopening then
         if
           need_reset
@@ -231,7 +241,7 @@ class virtual piped_output ~kind p =
     method insert_metadata m =
       if reload_on_metadata then (
         current_metadata <- Some m;
-        need_reset <- true )
+        need_reset <- true)
       else super#insert_metadata m
   end
 
@@ -252,11 +262,8 @@ class virtual chan_output p =
   let flush = Lang.to_bool (List.assoc "flush" p) in
   object (self)
     val mutable chan = None
-
     method virtual open_chan : out_channel
-
     method virtual close_chan : out_channel -> unit
-
     method open_pipe = chan <- Some self#open_chan
 
     method write_pipe b ofs len =
@@ -279,7 +286,6 @@ class virtual file_output_base p =
   let on_close s = Lang.to_unit (Lang.apply on_close [("", Lang.string s)]) in
   object (self)
     val mutable current_filename = None
-
     method virtual interpolate : ?subst:(string -> string) -> string -> string
 
     method private filename =
@@ -299,17 +305,14 @@ class file_output ~format_val ~kind p =
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
   object (self)
     inherit piped_output ~kind p
-
     inherit chan_output p
-
     inherit file_output_base p
-
     method encoder_factory = encoder_factory format_val
 
     method open_chan =
       let mode =
-        Open_wronly :: Open_creat
-        :: (if append then [Open_append] else [Open_trunc])
+        Open_wronly
+        :: Open_creat :: (if append then [Open_append] else [Open_trunc])
       in
       let filename = self#filename in
       Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
@@ -328,7 +331,6 @@ class file_output_using_encoder ~format_val ~kind p =
   let format = Lang.to_format format_val in
   object (self)
     inherit piped_output ~kind p
-
     inherit file_output_base p
 
     method encoder_factory name meta =
@@ -336,11 +338,8 @@ class file_output_using_encoder ~format_val ~kind p =
       encoder_factory ~format format_val name meta
 
     method is_open = true
-
     method open_pipe = ()
-
     method close_pipe = ()
-
     method write_pipe _ _ _ = ()
   end
 
@@ -385,7 +384,7 @@ let new_file_output p =
 
 let () =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.file" (file_proto return_t) ~active:true ~return_t
+  Lang.add_operator "output.file" (file_proto return_t) ~return_t
     ~category:Lang.Output ~descr:"Output the source stream to a file." (fun p ->
       (new_file_output p :> Source.source))
 
@@ -399,12 +398,9 @@ class external_output p =
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
     inherit piped_output ~kind p
-
     inherit chan_output p
-
     method encoder_factory = encoder_factory format_val
-
-    method self_sync = self_sync
+    method self_sync = (`Static, self_sync)
 
     method open_chan =
       let process = process () in
@@ -428,7 +424,7 @@ let pipe_proto kind descr =
 
 let () =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.external" ~active:true
+  Lang.add_operator "output.external"
     (pipe_proto return_t "Process to pipe data to.")
     ~return_t ~category:Lang.Output
     ~meth:

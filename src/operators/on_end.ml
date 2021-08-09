@@ -23,23 +23,14 @@
 class on_end ~kind ~delay f s =
   object (self)
     inherit Source.operator ~name:"on_end" kind [s]
-
     inherit Latest_metadata.source
-
     val mutable executed = false
-
     method stype = s#stype
-
     method is_ready = s#is_ready
-
     method remaining = s#remaining
-
     method abort_track = s#abort_track
-
     method seek n = s#seek n
-
     method self_sync = s#self_sync
-
     method private on_new_metadata = ()
 
     method private get_frame ab =
@@ -52,10 +43,10 @@ class on_end ~kind ~delay f s =
         ignore
           (Lang.apply f
              [("", Lang.float rem); ("", Lang.metadata latest_metadata)]);
-        executed <- true );
+        executed <- true);
       if Frame.is_partial ab then (
         self#clear_latest_metadata;
-        executed <- false )
+        executed <- false)
   end
 
 let () =

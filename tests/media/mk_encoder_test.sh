@@ -8,6 +8,9 @@ FILE=$1
 FORMAT=`echo $FILE | cut -d '.' -f 1 | sed -e "s#@#%#g" | sed -e 's#DOT#.#g'`
 
 SOURCE=$2
+PREFIX=$3
 
-cat "${CWD}/test_encoder.liq.in" | sed -e "s#@FORMAT@#${FORMAT}#g" | sed -e "s#@SOURCE@#${SOURCE}#g" >| "${CWD}/test_encoder.liq"
+mkdir -p "${CWD}/files/${PREFIX}"
+
+cat "${CWD}/test_encoder.liq.in" | sed -e "s#@FORMAT@#${FORMAT}#g" | sed -e "s#@SOURCE@#${SOURCE}#g" >| "${CWD}/files/${PREFIX}/test_encoder.liq"
 

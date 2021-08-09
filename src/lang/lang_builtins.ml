@@ -33,6 +33,7 @@ type category =
   | Control
   | Interaction
   | Other
+  | FFmpegFilter
 
 let string_of_category = function
   | Sys -> "System"
@@ -45,19 +46,20 @@ let string_of_category = function
   | Control -> "Control"
   | Interaction -> "Interaction"
   | Other -> "Other"
+  | FFmpegFilter -> "FFmpeg Filter"
 
 let add_builtin ~cat ~descr ?(meth = []) ?flags name proto ret_t f =
   let ret_t =
     if meth = [] then ret_t
     else (
       let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
-      Lang.method_t ret_t meth )
+      Lang.method_t ret_t meth)
   in
   let f =
     if meth = [] then f
     else (
       let meth = List.map (fun (l, _, _, f) -> (l, f)) meth in
-      fun p -> Lang.meth (f p) meth )
+      fun p -> Lang.meth (f p) meth)
   in
   Lang.add_builtin ~category:(string_of_category cat) ~descr ?flags name proto
     ret_t f
@@ -139,8 +141,8 @@ let () =
   let proto =
     [
       ( "id",
-        Lang.string_t,
-        Some (Lang.string ""),
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some
           "Identifier for the new clock. The default empty string means that \
            the identifier of the first source will be used." );
@@ -159,7 +161,7 @@ let () =
     match l with
       | [] -> Lang.unit
       | hd :: _ as sources ->
-          let id = if id = "" then (Lang.to_source hd)#id else id in
+          let id = Option.value ~default:(Lang.to_source hd)#id id in
           let sync =
             match Lang.to_string sync with
               | s when s = "auto" -> `Auto
@@ -184,16 +186,16 @@ let () =
   in
   add_builtin "clock.assign_new" ~cat:Liq
     ~descr:"Create a new clock and assign it to a list of sources."
-    ( proto
+    (proto
     @ [
         ( "",
           Lang.list_t (Lang.source_t (Lang.univ_t ())),
           None,
           Some "List of sources to which the new clock will be assigned." );
-      ] )
+      ])
     Lang.unit_t
     (fun p ->
-      let id = Lang.to_string (List.assoc "id" p) in
+      let id = Lang.to_valued_option Lang.to_string (List.assoc "id" p) in
       let sync = List.assoc "sync" p in
       let l = Lang.to_list (List.assoc "" p) in
       assign id sync l)
@@ -555,7 +557,7 @@ let () =
           ignore (List.find (fun x -> x = name) argv);
           opts := List.filter (fun x -> x <> name) argv;
           Lang.string "1"
-        with Not_found -> Lang.string "0" )
+        with Not_found -> Lang.string "0")
       else (
         let rec find l l' =
           match l with
@@ -565,7 +567,7 @@ let () =
         in
         let v, l = find argv [] in
         opts := l;
-        Lang.string v ));
+        Lang.string v));
 
   add_builtin "argv" ~cat:Sys
     ~descr:
@@ -584,7 +586,7 @@ let () =
         (* Special case so that argv(0) returns the script name *)
         let i = offset - 1 in
         if 0 <= i && i < Array.length argv then Lang.string argv.(i)
-        else Lang.string default )
+        else Lang.string default)
       else if i < List.length opts then Lang.string (List.nth opts i)
       else Lang.string default)
 
@@ -603,8 +605,8 @@ let () =
         Some (Lang.string ""),
         Some "Default path for files." );
       ( "mime",
-        Lang.string_t,
-        Some (Lang.string ""),
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some "Mime type for the playlist" );
       ("", Lang.string_t, None, None);
     ]
@@ -620,16 +622,18 @@ let () =
         let pwd = Lang.to_string (List.assoc "path" p) in
         if pwd = "" then Filename.dirname f else pwd
       in
-      let mime = Lang.to_string (List.assoc "mime" p) in
+      let mime = Lang.to_valued_option Lang.to_string (List.assoc "mime" p) in
       try
         let _, l =
-          if mime = "" then Playlist_parser.search_valid ~pwd content
-          else (
-            match Playlist_parser.parsers#get mime with
-              | Some plugin -> (mime, plugin.Playlist_parser.parser ~pwd content)
-              | None ->
-                  log#important "Unknown mime type, trying autodetection.";
-                  Playlist_parser.search_valid ~pwd content )
+          match mime with
+            | None -> Playlist_parser.search_valid ~pwd content
+            | Some mime -> (
+                match Playlist_parser.parsers#get mime with
+                  | Some plugin ->
+                      (mime, plugin.Playlist_parser.parser ~pwd content)
+                  | None ->
+                      log#important "Unknown mime type, trying autodetection.";
+                      Playlist_parser.search_valid ~pwd content)
         in
         let process m =
           let f (n, v) = Lang.product (Lang.string n) (Lang.string v) in

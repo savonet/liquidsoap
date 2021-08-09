@@ -42,43 +42,12 @@ let show_record_schemes = ref true
  * Finally, constraints can be attached to existential (unknown, '_a)
  * and universal ('a) type variables. *)
 
-(** Positions *)
+type pos = Runtime_error.pos
 
-type pos = Lexing.position * Lexing.position
-
-let print_single_pos l =
-  let file =
-    if l.Lexing.pos_fname = "" then ""
-    else Printf.sprintf "file %s, " l.Lexing.pos_fname
-  in
-  let line, col = (l.Lexing.pos_lnum, l.Lexing.pos_cnum - l.Lexing.pos_bol) in
-  Printf.sprintf "%sline %d, char %d" file line col
-
-let print_pos ?(prefix = "at ") (start, stop) =
-  let prefix =
-    match start.Lexing.pos_fname with
-      | "" -> prefix
-      | file -> prefix ^ file ^ ", "
-  in
-  let f l = (l.Lexing.pos_lnum, l.Lexing.pos_cnum - l.Lexing.pos_bol) in
-  let lstart, cstart = f start in
-  let lstop, cstop = f stop in
-  if lstart = lstop then
-    if cstop = cstart + 1 then
-      Printf.sprintf "%sline %d, char %d" prefix lstart cstart
-    else Printf.sprintf "%sline %d, char %d-%d" prefix lstart cstart cstop
-  else
-    Printf.sprintf "%sline %d char %d - line %d char %d" prefix lstart cstart
-      lstop cstop
-
-let print_pos_opt ?prefix = function
-  | Some pos -> print_pos ?prefix pos
-  | None -> "unknown position"
-
-let rec print_pos_list ?prefix = function
-  | [] -> "unknown position"
-  | [pos] -> print_pos ?prefix pos
-  | pos :: l -> print_pos_list ?prefix l ^ ", " ^ print_pos ?prefix pos
+let print_single_pos = Runtime_error.print_single_pos
+let print_pos = Runtime_error.print_pos
+let print_pos_opt = Runtime_error.print_pos_opt
+let print_pos_list = Runtime_error.print_pos_list
 
 (** Ground types *)
 
@@ -243,7 +212,7 @@ let name =
     else (
       let head = i mod base in
       let head = if head = 0 then base else head in
-      n (add head suffix) ((i - head) / base) )
+      n (add head suffix) ((i - head) / base))
   in
   n ""
 
@@ -282,7 +251,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     if !debug then (
       let v = Printf.sprintf "?%s%d" constr_symbols i in
       let v = if debug_levels then Printf.sprintf "%s[%d]" v level else v in
-      `EVar (v, c) )
+      `EVar (v, c))
     else (
       let s =
         try Hashtbl.find evars i
@@ -291,7 +260,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
           Hashtbl.add evars i name;
           name
       in
-      `EVar (Printf.sprintf "?%s%s" constr_symbols s, c) )
+      `EVar (Printf.sprintf "?%s%s" constr_symbols s, c))
   in
   let rec repr g t =
     if filter_out t then `Ellipsis
@@ -318,7 +287,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
-        | Link t -> repr g t )
+        | Link t -> repr g t)
   in
   repr generalized t
 
@@ -367,7 +336,7 @@ let print_repr f t =
          * current API -- and simplify the printing by labeling its
          * parameters and omitting the stream_kind(...) to avoid
          * source(stream_kind(pcm(stereo),none,none)). *)
-          match params with
+        match params with
           | [(_, a); (_, v); (_, m)] ->
               let first, has_ellipsis, vars =
                 List.fold_left
@@ -377,15 +346,15 @@ let print_repr f t =
                       if not first then Format.fprintf f ",@ ";
                       Format.fprintf f "%s=" lbl;
                       let vars = print ~par:false vars t in
-                      (false, has_ellipsis, vars) ))
+                      (false, has_ellipsis, vars)))
                   (true, false, vars)
                   [("audio", a); ("video", v); ("midi", m)]
               in
               if not has_ellipsis then vars
               else (
                 if not first then Format.fprintf f ",@,";
-                print ~par:false vars `Range_Ellipsis )
-          | _ -> assert false )
+                print ~par:false vars `Range_Ellipsis)
+          | _ -> assert false)
     | `Constr ("none", _) ->
         Format.fprintf f "none";
         vars
@@ -445,11 +414,11 @@ let print_repr f t =
           let vars =
             if t = `Tuple [] then (
               Format.fprintf f "@,@[<hv 2>{@,";
-              vars )
+              vars)
             else (
               let vars = print ~par:true vars t in
               Format.fprintf f "@,@[<hv 2>.{@,";
-              vars )
+              vars)
           in
           let vars =
             if m = [] then vars
@@ -472,16 +441,16 @@ let print_repr f t =
                     aux vars m
                 | [] -> assert false
               in
-              aux vars m )
+              aux vars m)
           in
           Format.fprintf f "@]@,}";
-          vars )
+          vars)
         else (
           let vars = print ~par:true vars b in
           Format.fprintf f ".{%s = " l;
           let vars = print ~par:false vars a in
           Format.fprintf f "}";
-          vars )
+          vars)
     | `List t ->
         Format.fprintf f "@[<1>[";
         let vars = print ~par:false vars t in
@@ -576,7 +545,7 @@ let print_repr f t =
           Format.fprintf f "@ @[<2>where@ ";
           Format.fprintf f "%s" (List.hd constraints);
           List.iter (fun s -> Format.fprintf f ",@ %s" s) (List.tl constraints);
-          Format.fprintf f "@]" )
+          Format.fprintf f "@]")
   end;
   Format.fprintf f "@]"
 
@@ -699,11 +668,11 @@ let rec bind a0 b =
                               if g <> String then
                                 raise (Unsatisfied_constraint (Dtools, b'))
                           | EVar (_, _) -> bind b' (make (Ground String))
-                          | _ -> raise (Unsatisfied_constraint (Dtools, b')) )
+                          | _ -> raise (Unsatisfied_constraint (Dtools, b')))
                     | EVar (j, c) ->
                         if not (List.mem Dtools c) then
                           b.descr <- EVar (j, Dtools :: c)
-                    | _ -> raise (Unsatisfied_constraint (Dtools, b)) )
+                    | _ -> raise (Unsatisfied_constraint (Dtools, b)))
               | InternalMedia -> (
                   let is_internal name =
                     try
@@ -719,7 +688,7 @@ let rec bind a0 b =
                     | EVar (j, c) ->
                         if List.mem InternalMedia c then ()
                         else b.descr <- EVar (j, InternalMedia :: c)
-                    | _ -> raise (Unsatisfied_constraint (InternalMedia, b)) )
+                    | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
               | Num -> (
                   match (demeth b).descr with
                     | Ground g ->
@@ -728,7 +697,7 @@ let rec bind a0 b =
                     | EVar (j, c) ->
                         if List.mem Num c then ()
                         else b.descr <- EVar (j, Num :: c)
-                    | _ -> raise (Unsatisfied_constraint (Num, b)) ))
+                    | _ -> raise (Unsatisfied_constraint (Num, b))))
             constraints
       | _ -> assert false (* only EVars are bindable *)
     end;
@@ -740,7 +709,7 @@ let rec bind a0 b =
      * that variable occurrence to the position of the inferred type. *)
     if b.pos = None && match b.descr with EVar _ -> false | _ -> true then
       a.descr <- Link { a0 with descr = b.descr }
-    else a.descr <- Link b )
+    else a.descr <- Link b)
 
 (** {1 Type generalization and instantiation}
   *
@@ -792,7 +761,7 @@ let copy_with (subst : Subst.t) t =
   let rec aux t =
     let cp x = { t with descr = x } in
     match t.descr with
-      | EVar v -> ( try Subst.value subst v with Not_found -> t )
+      | EVar v -> ( try Subst.value subst v with Not_found -> t)
       | Constr c ->
           let params = List.map (fun (v, t) -> (v, aux t)) c.params in
           cp (Constr { c with params })
@@ -849,6 +818,8 @@ exception Type_Error of explanation
 let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
   error_header (print_pos_opt ta.pos);
   match b with
+    | `Meth (l, ([], `Ellipsis), `Ellipsis) when not flipped ->
+        Format.printf "this value has no method %s@." l
     | _ ->
         let inferred_pos a =
           let dpos = (deref a).pos in
@@ -856,18 +827,18 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
           else (
             match dpos with
               | None -> ""
-              | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")" )
+              | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")")
         in
         let ta, tb, a, b = if flipped then (tb, ta, b, a) else (ta, tb, a, b) in
         Format.printf "this value has type@.@[<2>  %a@]%s@ " print_repr a
           (inferred_pos ta);
         Format.printf "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
           (if flipped then "super" else "sub")
-          ( match tb.pos with
+          (match tb.pos with
             | None -> ""
             | Some p ->
                 Printf.sprintf " the type of the value at %s"
-                  (print_pos ~prefix:"" p) )
+                  (print_pos ~prefix:"" p))
           print_repr b (inferred_pos tb)
 
 let doc_of_type ~generalized t =
@@ -903,18 +874,12 @@ let doc_of_meths m =
  * optional argument; whereas with a mandatory argument it is expected to wait
  * for it. *)
 
-let constr_sub x y =
-  match (x, y) with
-    | _, _ when x = y -> true
-    | "active_source", "source" -> true
-    | _ -> false
-
 (** Ensure that a<:b, perform unification if needed.
   * In case of error, generate an explanation. *)
 let rec ( <: ) a b =
   if !debug then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
   match ((deref a).descr, (deref b).descr) with
-    | Constr c1, Constr c2 when constr_sub c1.name c2.name ->
+    | Constr c1, Constr c2 when c1.name = c2.name ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
             | (v, h1) :: t1, (_, h2) :: t2 ->
@@ -937,15 +902,15 @@ let rec ( <: ) a b =
         in
         aux [] c1.params c2.params
     | List t1, List t2 -> (
-        try t1 <: t2 with Error (a, b) -> raise (Error (`List a, `List b)) )
+        try t1 <: t2 with Error (a, b) -> raise (Error (`List a, `List b)))
     | Nullable t1, Nullable t2 -> (
         try t1 <: t2
-        with Error (a, b) -> raise (Error (`Nullable a, `Nullable b)) )
+        with Error (a, b) -> raise (Error (`Nullable a, `Nullable b)))
     | Tuple l, Tuple m ->
         if List.length l <> List.length m then (
           let l = List.map (fun _ -> `Ellipsis) l in
           let m = List.map (fun _ -> `Ellipsis) m in
-          raise (Error (`Tuple l, `Tuple m)) );
+          raise (Error (`Tuple l, `Tuple m)));
         let n = ref 0 in
         List.iter2
           (fun a b ->
@@ -999,45 +964,44 @@ let rec ( <: ) a b =
         if List.for_all (fun (o, _, _) -> o) l2 then (
           try t <: t'
           with Error (t, t') ->
-            raise (Error (`Arrow ([ellipsis], t), `Arrow ([ellipsis], t'))) )
+            raise (Error (`Arrow ([ellipsis], t), `Arrow ([ellipsis], t'))))
         else (
           try { a with descr = Arrow (l2, t) } <: t' with
             | Error (`Arrow (p, t), t') ->
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
-            | Error _ -> assert false )
+            | Error _ -> assert false)
     | Ground (Format k), Ground (Format k') -> (
-        try Frame_content.merge k k' with _ -> raise (Error (repr a, repr b)) )
+        try Frame_content.merge k k' with _ -> raise (Error (repr a, repr b)))
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
     | Getter t1, Getter t2 -> (
-        try t1 <: t2 with Error (a, b) -> raise (Error (`Getter a, `Getter b)) )
+        try t1 <: t2 with Error (a, b) -> raise (Error (`Getter a, `Getter b)))
     | Arrow ([], t1), Getter t2 -> (
         try t1 <: t2
-        with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)) )
+        with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
     | EVar _, _ -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->
           (* Can't do more concise than a full representation, as the problem
              isn't local. *)
-          raise (Error (repr a, repr b)) )
+          raise (Error (repr a, repr b)))
     | _, EVar (_, c)
     (* Force dropping the methods when we have constraints, see #1496. *)
       when not (has_meth a && c <> []) -> (
         try bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
-          raise (Error (repr a, repr b)) )
+          raise (Error (repr a, repr b)))
     | _, Nullable t2 -> (
-        try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)) )
+        try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
     | _, Meth (l, (g2, t2), _, u2) -> (
         try
           let g1, t1 = invoke a l in
-          ( try
-              instantiate ~level:(-1) ~generalized:g1 t1
-              <: instantiate ~level:(-1) ~generalized:g2 t2
-            with Error (a, b) ->
-              raise
-                (Error
-                   (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis)))
-          );
+          (try
+             instantiate ~level:(-1) ~generalized:g1 t1
+             <: instantiate ~level:(-1) ~generalized:g2 t2
+           with Error (a, b) ->
+             raise
+               (Error
+                  (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis))));
           try a <: hide_meth l u2
           with Error (a, b) ->
             raise (Error (a, `Meth (l, ([], `Ellipsis), b)))
@@ -1053,11 +1017,11 @@ let rec ( <: ) a b =
                           "",
                           fresh ~level:(-1) ~constraints:[] ~pos:None ));
                 a <: b
-            | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))) )
+            | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))))
         )
     | Meth (l, _, _, u1), _ -> hide_meth l u1 <: b
     | _, Getter t2 -> (
-        try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)) )
+        try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining the
@@ -1091,7 +1055,7 @@ let ( <: ) a b =
     be preserved. *)
 let rec duplicate ?pos ?level t =
   make ?pos ?level
-    ( match (deref t).descr with
+    (match (deref t).descr with
       | Constr c ->
           Constr
             {
@@ -1114,7 +1078,7 @@ let rec duplicate ?pos ?level t =
             ( List.map (fun (b, n, t) -> (b, n, duplicate ?pos ?level t)) args,
               duplicate ?pos ?level t )
       | EVar v -> EVar v
-      | Link t -> Link (duplicate ?pos ?level t) )
+      | Link t -> Link (duplicate ?pos ?level t))
 
 (** Find an approximation of the minimal type that is safe to use instead of
     both left and right hand types. This function is not exact: we should always
@@ -1144,7 +1108,7 @@ let rec min_type ?(pos = None) ?(level = -1) a b =
               | None -> cur
               | Some ((g', t'), _) -> (
                   try (name, ((g @ g', min_type t t'), doc)) :: cur
-                  with _ -> cur ))
+                  with _ -> cur))
           [] meths_a
       in
       let t = min a' b' in
@@ -1156,7 +1120,7 @@ let rec min_type ?(pos = None) ?(level = -1) a b =
       in
       duplicate ~pos ~level a <: t;
       duplicate ~pos ~level b <: t;
-      t )
+      t)
   with Error (x, y) ->
     let bt = Printexc.get_raw_backtrace () in
     Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt

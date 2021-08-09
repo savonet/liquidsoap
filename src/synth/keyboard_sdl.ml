@@ -89,20 +89,14 @@ class keyboard ~kind velocity =
       Source.active_source ~name:"input.keyboard.sdl" (Source.Kind.of_kind kind)
 
     method stype = Source.Infallible
-
     method is_ready = true
-
     method remaining = -1
-
     method abort_track = ()
-
-    method self_sync = false
-
+    method self_sync = (`Static, false)
     method output = if AFrame.is_partial self#memo then self#get_frame self#memo
-
     val mutable window = None
 
-    method output_get_ready =
+    method wake_up _ =
       window <-
         Some
           (Sdl_utils.check
@@ -111,14 +105,9 @@ class keyboard ~kind velocity =
              ())
 
     method private sleep = Sdl.quit ()
-
     val mutable reader = None
-
     val mutable velocity = velocity
-
-    method output_reset = ()
-
-    method is_active = true
+    method reset = ()
 
     method get_frame frame =
       assert (0 = MFrame.position frame);
@@ -143,14 +132,14 @@ class keyboard ~kind velocity =
                     else (
                       let n = note_of_char c in
                       (* Printf.printf "Playing note %d.\n%!" n; *)
-                      MIDI.insert ans (0, MIDI.Note_on (n, velocity)) )
+                      MIDI.insert ans (0, MIDI.Note_on (n, velocity)))
                 | `Key_up ->
                     let k = Sdl.Event.(get e keyboard_keycode) in
                     let c = char_of_key k in
                     let n = note_of_char c in
                     (* Printf.printf "Stopping note %d.\n%!" n; *)
                     MIDI.insert ans (0, MIDI.Note_off (n, velocity))
-                | _ -> () )
+                | _ -> ())
           with Not_found | Invalid_argument _ -> ()
         done;
         ans

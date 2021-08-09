@@ -26,33 +26,21 @@ class biquad ~kind (source : source) filter_type freq q gain =
   let samplerate = float (Frame.audio_of_seconds 1.) in
   object (self)
     inherit operator ~name:"biquad_filter" kind [source] as super
-
     val mutable p0 = 0.
-
     val mutable p1 = 0.
-
     val mutable p2 = 0.
-
     val mutable q1 = 0.
-
     val mutable q2 = 0.
-
     val mutable x1 = [||]
-
     val mutable x2 = [||]
-
     val mutable y0 = [||]
-
     val mutable y1 = [||]
-
     val mutable y2 = [||]
 
     (* Last frequency used to initialize parameters. Used to detect when we
        should re-compute coefficients. *)
     val mutable last_freq = 0.
-
     val mutable last_q = 0.
-
     val mutable last_gain = 0.
 
     (* Digital filter based on "Cookbook formulae for audio EQ biquad filter
@@ -65,7 +53,7 @@ class biquad ~kind (source : source) filter_type freq q gain =
         x2 <- Array.make chans 0.;
         y0 <- Array.make chans 0.;
         y1 <- Array.make chans 0.;
-        y2 <- Array.make chans 0. );
+        y2 <- Array.make chans 0.);
       let freq = freq () in
       let q = q () in
       let gain = gain () in
@@ -128,18 +116,13 @@ class biquad ~kind (source : source) filter_type freq q gain =
         p1 <- b1 /. a0;
         p2 <- b2 /. a0;
         q1 <- a1 /. a0;
-        q2 <- a2 /. a0 )
+        q2 <- a2 /. a0)
 
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
 
     method wake_up a =
@@ -194,8 +177,8 @@ let () =
           Lang.to_source (f "") )
       in
       let kind = Source.Kind.of_kind kind in
-      ( new biquad ~kind src `Low_shelf freq param (fun () -> 0.)
-        :> Source.source ))
+      (new biquad ~kind src `Low_shelf freq param (fun () -> 0.)
+        :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -219,8 +202,8 @@ let () =
           Lang.to_source (f "") )
       in
       let kind = Source.Kind.of_kind kind in
-      ( new biquad ~kind src `High_shelf freq param (fun () -> 0.)
-        :> Source.source ))
+      (new biquad ~kind src `High_shelf freq param (fun () -> 0.)
+        :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -240,7 +223,8 @@ let () =
           Lang.to_source (f "") )
       in
       let kind = Source.Kind.of_kind kind in
-      (new biquad ~kind src `Low_pass freq param (fun () -> 0.) :> Source.source))
+      (new biquad ~kind src `Low_pass freq param (fun () -> 0.)
+        :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -260,8 +244,8 @@ let () =
           Lang.to_source (f "") )
       in
       let kind = Source.Kind.of_kind kind in
-      ( new biquad ~kind src `High_pass freq param (fun () -> 0.)
-        :> Source.source ))
+      (new biquad ~kind src `High_pass freq param (fun () -> 0.)
+        :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -281,8 +265,8 @@ let () =
           Lang.to_source (f "") )
       in
       let kind = Source.Kind.of_kind kind in
-      ( new biquad ~kind src `Band_pass freq param (fun () -> 0.)
-        :> Source.source ))
+      (new biquad ~kind src `Band_pass freq param (fun () -> 0.)
+        :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -305,7 +289,8 @@ let () =
           Lang.to_source (f "") )
       in
       let kind = Source.Kind.of_kind kind in
-      (new biquad ~kind src `All_pass freq param (fun () -> 0.) :> Source.source))
+      (new biquad ~kind src `All_pass freq param (fun () -> 0.)
+        :> Source.source))
 
 let () =
   let kind = Lang.any in

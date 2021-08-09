@@ -26,17 +26,11 @@ open Source
 class pan ~kind (source : source) phi phi_0 =
   object
     inherit operator ~name:"pan" kind [source]
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     method private get_frame buf =

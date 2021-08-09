@@ -13,12 +13,12 @@ Here is the code:
 
 ```liquidsoap
  # Log to stdout
- set("log.file",false)
- set("log.stdout",true)
- set("log.level",4)
+ log.file.set(false)
+ log.stdout.set(true)
+ log.level.set(4)
  # Enable video
- set("frame.video.width",640)
- set("frame.video.height",480)
+ video.frame.width.set(640)
+ video.frame.height.set(480)
 
  audio_file = "/tmp/bla.mp3"
  video_file = "/tmp/bla.jpg"

@@ -53,6 +53,7 @@ let ffmpeg_gen params =
       height = Frame.video_height;
       pixel_format = None;
       audio_codec = None;
+      sample_format = None;
       video_codec = None;
       hwaccel = `Auto;
       hwaccel_device = None;
@@ -96,6 +97,10 @@ let ffmpeg_gen params =
     | ("ar", t) :: l when mode = `Audio ->
         parse_args ~format ~mode
           { f with Ffmpeg_format.samplerate = Lazy.from_val (to_int t) }
+          l
+    | ("sample_format", t) :: l when mode = `Audio ->
+        parse_args ~format ~mode
+          { f with Ffmpeg_format.sample_format = Some (to_string t) }
           l
     (* Video options *)
     | ("framerate", t) :: l when mode = `Video ->
@@ -164,19 +169,19 @@ let ffmpeg_gen params =
         set_global_quality (to_float t) f;
         parse_args ~format ~mode f l
     | (k, { term = Ground (String s); _ }) :: l ->
-        ( match mode with
+        (match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`String s)
-          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`String s) );
+          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`String s));
         parse_args ~format ~mode f l
     | (k, { term = Ground (Int i); _ }) :: l ->
-        ( match mode with
+        (match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Int i)
-          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Int i) );
+          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Int i));
         parse_args ~format ~mode f l
     | (k, { term = Ground (Float fl); _ }) :: l ->
-        ( match mode with
+        (match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Float fl)
-          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Float fl) );
+          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Float fl));
         parse_args ~format ~mode f l
     | (_, t) :: _ -> raise (generic_error t)
   in
@@ -214,7 +219,8 @@ let ffmpeg_gen params =
           f
       | `Option (k, { term = Ground (Float i); _ }) ->
           Hashtbl.add f.Ffmpeg_format.other_opts k (`Float i);
-          f | `Option (_, t) -> raise (generic_error t))
+          f
+      | `Option (_, t) -> raise (generic_error t))
     defaults params
 
 let make params = Encoder.Ffmpeg (ffmpeg_gen params)

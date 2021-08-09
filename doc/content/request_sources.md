@@ -64,7 +64,7 @@ to create a new request can be:
 def my_request_function() = 
   # Get the first line of my external process
   result =
-    list.hd(default="", get_process_lines("my_script my_params"))
+    list.hd(default="", process.read.lines("my_script my_params"))
   # Create and return a request using this result
   [request.create(result)]
 end

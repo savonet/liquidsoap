@@ -1,8 +1,8 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
-set("log.level", 5)
-set("frame.audio.samplerate",48000)
+log.level.set(5)
+audio.samplerate.set(48000)
 
 debian_version = string.trim(process.run("cat /etc/os-release | grep VERSION_ID | cut -d'=' -f 2 | xargs").stdout)
 

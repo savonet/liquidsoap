@@ -41,7 +41,7 @@ decoders = \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
-	$(if $(W_FFMPEG_DECODER),decoder/ffmpeg_internal_decoder.ml decoder/ffmpeg_raw_decoder.ml decoder/ffmpeg_copy_decoder.ml decoder/ffmpeg_decoder.ml) \
+	$(if $(W_FFMPEG_DECODER),decoder/ffmpeg_internal_decoder.ml decoder/ffmpeg_raw_decoder.ml decoder/ffmpeg_copy_decoder.ml decoder/ffmpeg_decoder.ml decoder/image/ffmpeg_image_decoder.ml) \
 	$(if $(W_FLAC),decoder/liq_flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
 	$(if $(W_OGG),decoder/liq_ogg_decoder.ml) \
@@ -64,7 +64,7 @@ protocols = \
 	protocols/mpd.ml
 
 sources = \
-	sources/synthesized.ml sources/noise.ml sources/blank.ml \
+	sources/synthesized.ml sources/noise.ml sources/blank.ml sources/debug_sources.ml \
 	sources/audio_gen.ml sources/request_source.ml sources/latest_metadata.ml \
 	sources/request_simple.ml sources/generated.ml \
 	harbor/harbor_base.ml harbor/harbor.ml sources/harbor_input.ml \
@@ -95,7 +95,7 @@ operators = \
 	operators/chord.ml operators/video_text.ml operators/window_op.ml \
 	operators/rms_smooth.ml operators/delay_line.ml \
 	operators/video_text_native.ml operators/accelerate.ml \
-	operators/still_frame.ml \
+	operators/still_frame.ml operators/dtmf.ml \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
@@ -212,7 +212,7 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
            lang/builtins_bool.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_json.ml \
            lang/builtins_request.ml lang/builtins_error.ml \
-           lang/builtins_null.ml lang/builtins_dtools.ml \
+           lang/builtins_null.ml lang/builtins_settings.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
 	   lang/builtins_files.ml lang/builtins_resolvers.ml \
@@ -251,6 +251,7 @@ liquidsoap_sources += \
 	lang/lang_types.ml lang/profiler.ml lang/lang_values.ml \
 	$(lang_encoders) lang/lang_parser_helper.ml lang/lang_parser.ml lang/lang_lexer.ml \
 	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml lang/modules.ml \
+        tools/child_support.ml \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(protocols) \

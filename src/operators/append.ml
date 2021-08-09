@@ -23,9 +23,19 @@
 open Source
 
 class append ~kind ~insert_missing ~merge source f =
+  let sources = ref [] in
+  let failed = ref false in
+  let () =
+    Lang.iter_sources
+      ~on_reference:(fun () -> failed := true)
+      (fun s -> sources := s :: !sources)
+      f
+  in
+  let self_sync_type =
+    if !failed then lazy `Dynamic else Utils.self_sync_type !sources
+  in
   object (self)
     inherit operator ~name:"append" kind [source]
-
     val mutable state = `Idle
 
     method private get_frame buf =
@@ -50,18 +60,18 @@ class append ~kind ~insert_missing ~merge source f =
                         let pos = Frame.position buf in
                         self#get_frame buf;
                         Frame.set_breaks buf
-                          (Utils.remove_one (( = ) pos) (Frame.breaks buf)) ) )
+                          (Utils.remove_one (( = ) pos) (Frame.breaks buf))))
                     else (
                       self#log#important
                         "Track ends and append source is not ready: won't \
                          append.";
                       self#unregister append;
-                      state <- `Idle )
+                      state <- `Idle)
                   else state <- `Replay (Some append)
               | _ ->
                   self#log#important
                     "No metadata at beginning of track: won't append.";
-                  state <- (if finished then `Idle else `Replay None) )
+                  state <- (if finished then `Idle else `Replay None))
         | `Replay None ->
             source#get buf;
             if Frame.is_partial buf then state <- `Idle
@@ -74,17 +84,17 @@ class append ~kind ~insert_missing ~merge source f =
                   let pos = Frame.position buf in
                   self#get_frame buf;
                   Frame.set_breaks buf
-                    (Utils.remove_one (( = ) pos) (Frame.breaks buf)) ) )
+                    (Utils.remove_one (( = ) pos) (Frame.breaks buf))))
               else (
                 self#log#important
                   "Track ends and append source is not ready: won't append.";
                 state <- `Idle;
-                self#unregister a )
+                self#unregister a)
         | `Append a ->
             a#get buf;
             if Frame.is_partial buf then (
               state <- `Idle;
-              self#unregister a )
+              self#unregister a)
 
     method stype = source#stype
 
@@ -110,7 +120,10 @@ class append ~kind ~insert_missing ~merge source f =
         | `Append s -> s#seek n
 
     method self_sync =
-      match state with `Append s -> s#self_sync | _ -> source#self_sync
+      ( Lazy.force self_sync_type,
+        match state with
+          | `Append s -> snd s#self_sync
+          | _ -> snd source#self_sync )
 
     (* Other behaviours could be wanted, but for now #abort_track won't cancel
      * any to-be-appended track. *)
@@ -136,7 +149,6 @@ class append ~kind ~insert_missing ~merge source f =
       state <- `Idle
 
     method private register a = a#get_ready activation
-
     method private unregister a = a#leave (self :> source)
   end
 

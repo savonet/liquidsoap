@@ -1,9 +1,9 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 
 %include "test.liq"
 
 s =
-if file.which(get(default="???","protocol.gtts.path")) == null() and file.which(get(default="???","protocol.text2wave.path")) == null() then
+if file.which(null.get(settings.protocol.gtts.path())) == null() and file.which(null.get(settings.protocol.text2wave.path())) == null() then
   print("Could not test gtts")
   chop(every=1.,sine())
 else

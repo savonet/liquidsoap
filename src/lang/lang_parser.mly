@@ -61,8 +61,9 @@ open Lang_parser_helper
 %token NOT
 %token GET SET
 %token <string> PP_IFDEF PP_IFNDEF
+%token <[ `Eq | `Geq | `Leq | `Gt | `Lt] * string> PP_IFVERSION
 %token ARGS_OF
-%token PP_IFENCODER PP_IFNENCODER PP_ENDIF
+%token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
 %token PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
@@ -356,8 +357,10 @@ arglist:
   | arg COMMA arglist     { $1@$3 }
 arg:
   | TILD var opt { [$2, $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $3] }
+  | TILD LPAR var COLON ty RPAR opt { [$3, $3, $5, $7 ] }
   | TILD var GETS UNDERSCORE opt { [$2, "_", T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $5] }
   | bindvar opt  { ["", $1, T.fresh_evar ~level:(-1) ~pos:(Some $loc($1)), $2] }
+  | LPAR bindvar COLON ty RPAR opt { ["", $2, $4, $6] }
   | ARGS_OF LPAR var RPAR { args_of ~only:[] ~except:[] ~pos:$loc $3 }
   | ARGS_OF LPAR subfield RPAR
                           { args_of ~only:[] ~except:[] ~pos:$loc (String.concat "." $3) }

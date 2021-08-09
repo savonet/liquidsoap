@@ -5,7 +5,7 @@ use strict ;
 my $liquidsoap = "../../src/liquidsoap";
 die unless -f $liquidsoap ;
 
-$liquidsoap = "$liquidsoap ../../libs/pervasives.liq -c";
+$liquidsoap = "$liquidsoap --no-stdlib ../../libs/stdlib.liq ../../libs/deprecations.liq -c";
 
 sub section {
   print "\n*** $_[0] ***\n\n" ;
@@ -179,5 +179,12 @@ correct('%ffmpeg(
         frag_duration=10,
         %audio.copy,
         %video.copy)');
+
+# The following is not technically checking on type errors but runtime invalid values.
+section("INVALID VALUES");
+incorrect('crossfade(input.http(self_sync=true,"http://foo.bar"))');
+incorrect('crossfade(fallback([input.http("http://foo.bar"), input.http(self_sync=true,"http://foo.bar")]))');
+incorrect('crossfade(sequence([input.http("http://foo.bar"), input.http(self_sync=true,"http://foo.bar")]))');
+incorrect('crossfade(add([input.http("http://foo.bar"), input.http(self_sync=true,"http://foo.bar")]))');
 
 print "Everything's good!\n" ;

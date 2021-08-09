@@ -55,8 +55,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
           (Clock.create_known (Bjack_in.bjack_clock () :> Clock.clock))
 
     val mutable device = None
-
-    method self_sync = device <> None
+    method self_sync = (`Dynamic, device <> None)
 
     method get_device =
       match device with
@@ -100,18 +99,18 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
             device <- None
         | None -> ()
 
-    method output_send wav =
+    method send_frame wav =
       let push data = Audio.S16LE.of_audio (AFrame.pcm wav) data 0 in
       ioring#put_block push
 
-    method output_reset = ()
+    method reset = ()
   end
 
 let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.jack" ~active:true
-    ( Output.proto
+  Lang.add_operator "output.jack"
+    (Output.proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -126,7 +125,7 @@ let () =
           Some (Lang.string ""),
           Some "Jack server to connect to." );
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k ~category:Lang.Output ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in
@@ -143,7 +142,7 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let kind = Source.Kind.of_kind kind in
-      ( new output
-          ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server
-          source
-        :> Source.source ))
+      (new output
+         ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server
+         source
+        :> Source.source))

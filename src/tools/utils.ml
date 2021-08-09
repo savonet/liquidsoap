@@ -80,7 +80,7 @@ let unescape_char c s =
         | '\\' when not escaped -> f ~escaped:true cur pos
         | x when x = c -> f ~escaped:false (Printf.sprintf "%s%c" cur c) pos
         | x when escaped -> f ~escaped:false (Printf.sprintf "%s\\%c" cur x) pos
-        | x -> f ~escaped:false (Printf.sprintf "%s%c" cur x) pos )
+        | x -> f ~escaped:false (Printf.sprintf "%s%c" cur x) pos)
   in
   f ~escaped:false "" 0
 
@@ -96,7 +96,7 @@ let split ~sep s =
         match s.[pos] with
           | '\\' when not escaped -> get_index true (pos + 1)
           | x when x == sep && not escaped -> pos
-          | _ -> get_index false (pos + 1) )
+          | _ -> get_index false (pos + 1))
     in
     let pos = get_index false 0 in
     if pos == len then s :: cur
@@ -106,11 +106,6 @@ let split ~sep s =
   in
   List.map (unescape_char sep) (List.rev (split [] s))
 
-(** Remove trailing and leading spaces. *)
-let trim s =
-  Pcre.replace ~rex:(Pcre.regexp "\\s+$")
-    (Pcre.replace ~rex:(Pcre.regexp "^\\s+") s)
-
 (** Remove the first element satisfying a predicate, raising Not_found
   * if none is found. *)
 let remove_one f l =
@@ -119,11 +114,6 @@ let remove_one f l =
     | x :: l -> if f x then List.rev_append acc l else aux (x :: acc) l
   in
   aux [] l
-
-let rec may_map f = function
-  | h :: t -> (
-      match f h with Some h -> h :: may_map f t | None -> may_map f t )
-  | [] -> []
 
 (* Read all data from a given filename.
  * We cannot use really_input with the 
@@ -141,7 +131,7 @@ let read_all filename =
     let ret = input channel tmp 0 pagesize in
     if ret > 0 then (
       Strings.Mutable.add_subbytes contents tmp 0 ret;
-      read () )
+      read ())
   in
   read ();
   close_in channel;
@@ -155,7 +145,7 @@ let buffer_drop buffer len =
   else (
     let tmp = Buffer.sub buffer len (size - len) in
     Buffer.clear buffer;
-    Buffer.add_string buffer tmp )
+    Buffer.add_string buffer tmp)
 
 let unix_translator = function
   | Unix.Unix_error (code, name, param) ->
@@ -214,7 +204,7 @@ let rec utf8_search_head s i =
   if i >= String.length s then i
   else (
     let n = Char.code (String.unsafe_get s i) in
-    if n < 0x80 || n >= 0xc2 then i else utf8_search_head s (i + 1) )
+    if n < 0x80 || n >= 0xc2 then i else utf8_search_head s (i + 1))
 
 let utf8_next s i =
   let n = Char.code s.[i] in
@@ -252,6 +242,21 @@ let escape_string escape s =
   escape f s;
   Format.pp_print_flush f ();
   Buffer.contents b
+
+let unescape_utf8 =
+  let utf8encode s =
+    let prefs = [| 0x0; 0xc0; 0xe0 |] in
+    let s1 n = String.make 1 (Char.chr n) in
+    let rec ienc k sofar resid =
+      let bct = if k = 0 then 7 else 6 - k in
+      if resid < 1 lsl bct then s1 (prefs.(k) + resid) ^ sofar
+      else ienc (k + 1) (s1 (0x80 + (resid mod 64)) ^ sofar) (resid / 64)
+    in
+    ienc 0 "" (int_of_string ("0x" ^ s))
+  in
+  fun s ->
+    let rex = Pcre.regexp "\\\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]" in
+    Pcre.substitute ~rex ~subst:(fun s -> utf8encode (String.sub s 2 4)) s
 
 (** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
 let unbreak_md md =
@@ -386,7 +391,7 @@ let rec mkdir ~perm dir =
   else (
     let up = Filename.dirname dir in
     if up = "." then () else mkdir ~perm up;
-    Unix.mkdir dir perm )
+    Unix.mkdir dir perm)
 
 (** Expand ~ notation in filenames. *)
 let home_unrelate =
@@ -406,8 +411,8 @@ let home_unrelate =
             try
               let home = (Unix.getpwnam user).Unix.pw_dir in
               Filename.concat home (String.sub s index (len - index))
-            with Not_found -> s )
-        | _ -> s )
+            with Not_found -> s)
+        | _ -> s)
   in
   unrel
 
@@ -478,7 +483,7 @@ let encode64 s =
   done;
   if extra = 1 then (
     Bytes.set dst ((4 * (n / 3)) - 2) '=';
-    Bytes.set dst ((4 * (n / 3)) - 1) '=' )
+    Bytes.set dst ((4 * (n / 3)) - 1) '=')
   else if extra = 2 then Bytes.set dst ((4 * (n / 3)) - 1) '=';
   Bytes.unsafe_to_string dst
 
@@ -578,7 +583,7 @@ let float_of_extended_float bytes =
     let expon = expon - 16383 - 31 in
     let f = ldexp (float_of_unsigned hiMant) expon in
     let f = f +. ldexp (float_of_unsigned loMant) (expon - 32) in
-    if int_of_char bytes.[0] land 0x80 <> 0 then -1. *. f else f )
+    if int_of_char bytes.[0] land 0x80 <> 0 then -1. *. f else f)
 
 (* From OCaml *)
 let file_extension_len ~dir_sep name =
@@ -668,7 +673,7 @@ let print_strings ?(pager = false) s =
           raise Exit
         with _ ->
           close_out oc;
-          Unix.unlink fname )
+          Unix.unlink fname)
 
 let print_string ?(pager = false) s =
   if not pager then print_string s
@@ -679,7 +684,7 @@ let kprint_string ?(pager = false) f =
   else (
     let ans = Strings.Mutable.empty () in
     f (Strings.Mutable.add ans);
-    print_strings ~pager (Strings.Mutable.to_strings ans) )
+    print_strings ~pager (Strings.Mutable.to_strings ans))
 
 (** String representation of a matrix of strings. *)
 let string_of_matrix a =
@@ -710,3 +715,72 @@ let string_of_matrix a =
 let log_exception ~(log : Log.t) ~bt msg =
   if log#active 4 (* info *) then log#info "%s\n%s" msg bt
   else log#severe "%s" msg
+
+(** Operations on versions of Liquidsoap. *)
+module Version = struct
+  type t = int list * string
+
+  (* We assume something like, 2.0.0+git@7e211ffd *)
+  let of_string s : t =
+    let rex = Pcre.regexp "([\\.\\d]+)([^\\.]+)?" in
+    let sub = Pcre.exec ~rex s in
+    let num = Pcre.get_substring sub 1 in
+    let str = try Pcre.get_substring sub 2 with Not_found -> "" in
+    let num = String.split_on_char '.' num |> List.map int_of_string in
+    (num, str)
+
+  (** Number part. *)
+  let num (v : t) = fst v
+
+  (** String part. *)
+  let str (v : t) = snd v
+
+  (** Compare two versions. 2.0.0~foo is less than 2.0.0 *)
+  let compare v w =
+    let compare_suffixes =
+      match (str v, str w) with
+        | v, w
+          when String.length v > 1
+               && String.length w > 1
+               && v.[0] = '~'
+               && w.[0] = '~' ->
+            String.compare v w
+        | v, w
+          when String.length v > 1
+               && String.length w > 1
+               && v.[0] = '~'
+               && w.[0] <> '~' ->
+            -1
+        | v, w
+          when String.length v > 1
+               && String.length w > 1
+               && v.[0] <> '~'
+               && w.[0] = '~' ->
+            1
+        | v, "" when String.length v > 1 && v.[0] = '~' -> -1
+        | "", w when String.length w > 1 && w.[0] = '~' -> 1
+        | v, w -> String.compare v w
+    in
+    let rec aux v w =
+      match (v, w) with
+        | m :: _, n :: _ when m < n -> -1
+        | m :: _, n :: _ when m > n -> 1
+        | _ :: v, _ :: w -> aux v w
+        | [], [] -> compare_suffixes
+        | [], _ -> -1
+        | _, [] -> 1
+    in
+    aux (num v) (num w)
+end
+
+let self_sync_type sources =
+  lazy
+    (fst
+       (List.fold_left
+          (fun cur s ->
+            match (cur, s#self_sync) with
+              | (`Static, None), (`Static, v) -> (`Static, Some v)
+              | (`Static, Some v), (`Static, v') when v = v' -> (`Static, Some v)
+              | _ -> (`Dynamic, None))
+          (`Static, None)
+          sources))

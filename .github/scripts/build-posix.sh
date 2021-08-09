@@ -2,6 +2,8 @@
 
 set -e
 
+export CPU_CORES=$1
+
 eval $(opam config env)
 
 cd /tmp/liquidsoap-full
@@ -33,7 +35,8 @@ echo "\n### Compiling\n"
 ./bootstrap
 ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
             --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
-            --with-camomile-data-dir=/usr/share/liquidsoap/camomile
+            --with-camomile-data-dir=/usr/share/liquidsoap/camomile \
+            CFLAGS=-g
 
 cd liquidsoap
-make
+make -j $CPU_CORES

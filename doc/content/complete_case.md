@@ -21,12 +21,12 @@ Now here is how to write that in [Liquidsoap](index.html).
 
 # Put the log file in some directory where
 # you have permission to write.
-set("log.file.path","/tmp/<script>.log")
+log.file.path.set("/tmp/<script>.log")
 # Print log messages to the console,
 # can also be done by passing the -v option to liquidsoap.
-set("log.stdout", true)
+log.stdout.set(true)
 # Use the telnet server for requests
-set("server.telnet", true)
+settings.server.telnet.set(true)
 
 # A bunch of files and playlists,
 # supposedly all located in the same base dir.
@@ -36,18 +36,15 @@ default = single("~/radio/default.ogg")
 day     = playlist("~/radio/day.pls")
 night   = playlist("~/radio/night.pls")
 jingles = playlist("~/radio/jingles.pls")
-
 clock   = single("~/radio/clock.ogg")
-start   = single("~/radio/live_start.ogg")
-stop    = single("~/radio/live_stop.ogg")
 
 # Play user requests if there are any,
 # otherwise one of our playlists,
 # and the default file if anything goes wrong.
 radio = fallback([ request.queue(id="request"),
-	                switch([({ 6h-22h }, day),
-	                        ({ 22h-6h }, night)]),
-	                default])
+                    switch([({ 6h-22h }, day),
+                            ({ 22h-6h }, night)]),
+                    default])
 # Add the normal jingles
 radio = random(weights=[1,5],[ jingles, radio ])
 # And the clock jingle
@@ -78,7 +75,7 @@ To try this example you need to edit the file names. In order to witness the swi
 To try the transition to a live show you need to start a new stream on the `live.ogg` mount of your server. You can send a playlist to it using examples from the [quickstart](quick_start.html). To start a real live show from soundcard input you can use `darkice`, or simply liquidsoap if you have a working ALSA input, with:
 
 ```liquidsoap
-liquidsoap 'output.icecast(%vorbis, 
+liquidsoap 'output.icecast(%vorbis, \ 
   mount="live.ogg",host="...",password="...",input.alsa())'
 ```
 

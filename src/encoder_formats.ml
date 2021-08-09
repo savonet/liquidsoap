@@ -27,7 +27,7 @@ let conf =
     ~comments:["Settings for the encoder"]
 
 let conf_meta =
-  Dtools.Conf.void ~p:(conf#plug "encoder") "Metadata settings"
+  Dtools.Conf.void ~p:(conf#plug "metadata") "Metadata settings"
     ~comments:["Settings for the encoded metadata."]
 
 (** The list of metadata fields that should be exported when encoding. *)
@@ -46,6 +46,7 @@ let conf_export_metadata =
         "year";
         "dj";
         "next";
+        "apic";
       ]
     ~comments:["The list of labels of exported metadata."]
 

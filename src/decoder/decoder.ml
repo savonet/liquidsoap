@@ -211,7 +211,7 @@ let conf_priorities =
 let test_file ?(log = log) ?mimes ?extensions fname =
   if not (Sys.file_exists fname) then (
     log#info "File %S does not exist!" fname;
-    false )
+    false)
   else (
     let ext_ok =
       match extensions with
@@ -220,7 +220,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
             let ret =
               try List.mem (Utils.get_ext fname) extensions with _ -> false
             in
-            if not ret then log#info "Invalid file extension for %S!" fname;
+            if not ret then log#info "Unsupported file extension for %S!" fname;
             ret
     in
     let mime_ok =
@@ -235,10 +235,11 @@ let test_file ?(log = log) ?mimes ?extensions fname =
                 mimes
             in
             let ret = List.mem mime mimes in
-            if not ret then log#info "Invalid MIME type for %S: %s!" fname mime;
+            if not ret then
+              log#info "Unsupported MIME type for %S: %s!" fname mime;
             ret
     in
-    ext_ok || mime_ok )
+    ext_ok || mime_ok)
 
 let channel_layout audio =
   Lazy.force Frame_content.(Audio.(get_params audio).Contents.channel_layout)
@@ -301,7 +302,7 @@ let get_file_decoder ~metadata ~ctype filename =
   in
   if decoders = [] then (
     log#important "No decoder available for %S!" filename;
-    None )
+    None)
   else (
     log#info "Available decoders: %s"
       (String.concat ", "
@@ -344,8 +345,7 @@ let get_file_decoder ~metadata ~ctype filename =
         (Frame.string_of_content_type decoded_type);
       Some
         ( name,
-          fun () -> (Option.get specs.file_decoder) ~metadata ~ctype filename )
-    )
+          fun () -> (Option.get specs.file_decoder) ~metadata ~ctype filename ))
 
 (** Get a valid image decoder creator for [filename]. *)
 let get_image_file_decoder filename =
@@ -390,7 +390,7 @@ let get_stream_decoder ~ctype mime =
                        with Invalid_argument _ -> false)
                      mimes);
                 true
-              with Not_found -> false ))
+              with Not_found -> false))
       (get_decoders ())
   in
   if decoders = [] then (
@@ -399,7 +399,7 @@ let get_stream_decoder ~ctype mime =
        %s!"
       mime
       (Frame.string_of_content_type ctype);
-    None )
+    None)
   else (
     log#info "Available decoders:";
     List.iter
@@ -410,7 +410,7 @@ let get_stream_decoder ~ctype mime =
     log#info "Selected decoder %s for mime-type %s with expected content %s"
       name mime
       (Frame.string_of_content_type ctype);
-    Some ((Option.get decoder.stream_decoder ~ctype) mime) )
+    Some ((Option.get decoder.stream_decoder ~ctype) mime))
 
 (** {1 Helpers for defining decoders} *)
 
@@ -450,7 +450,7 @@ let mk_buffer ~ctype generator =
         let data = (get_channel_converter ()) data in
         let len = Audio.length data in
         let data = Frame_content.Audio.lift_data data in
-        G.put_audio ?pts generator data 0 (Frame.main_of_audio len) )
+        G.put_audio ?pts generator data 0 (Frame.main_of_audio len))
     else fun ?pts:_ ~samplerate:_ _ -> ()
   in
 
@@ -466,7 +466,7 @@ let mk_buffer ~ctype generator =
         let data = video_resample ~in_freq:fps ~out_freq data in
         let len = Video.length data in
         let data = Frame_content.Video.lift_data data in
-        G.put_video ?pts generator data 0 (Frame.main_of_video len) )
+        G.put_video ?pts generator data 0 (Frame.main_of_video len))
     else fun ?pts:_ ~fps:_ _ -> ()
   in
 
@@ -492,7 +492,7 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
           (Printf.sprintf "Decoding %S ended: %s." filename
              (Printexc.to_string e));
         decoding_done := true;
-        if conf_debug#get then raise e );
+        if conf_debug#get then raise e);
 
     let offset = Frame.position frame in
     G.fill buffer.generator frame;
@@ -509,11 +509,11 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
     let gen_len = G.length buffer.generator in
     if len < 0 || len > gen_len then (
       G.clear buffer.generator;
-      gen_len + decoder.seek (len - gen_len) )
+      gen_len + decoder.seek (len - gen_len))
     else (
       (* Seek within the pre-buffered data if possible *)
       G.remove buffer.generator len;
-      len )
+      len)
   in
   { fill; fseek; close }
 
@@ -569,7 +569,7 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
     else (
       let compression = float !out_ticks /. float !proc_bytes in
       let remaining_ticks = float (file_size - in_bytes) *. compression in
-      int_of_float remaining_ticks )
+      int_of_float remaining_ticks)
   in
 
   let close () = Unix.close fd in

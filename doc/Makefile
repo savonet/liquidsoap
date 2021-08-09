@@ -35,16 +35,16 @@ pdf/%.pdf: content/%.md language.dtd
 	@$(PANDOC) $< -o $@
 
 content/protocols.md: $(LIQUIDSOAP)
-	PAGER=none $(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-protocols-md > $@
+	PAGER=none $(LIQUIDSOAP) --no-stdlib ../libs/stdlib.liq --list-protocols-md > $@
 
 content/reference.md: $(LIQUIDSOAP)
-	PAGER=none $(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-functions-md > $@
+	PAGER=none $(LIQUIDSOAP) --no-stdlib ../libs/stdlib.liq --list-functions-md > $@
 
 content/reference-extras.md: $(LIQUIDSOAP)
-	PAGER=none $(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-extra-functions-md > $@
+	PAGER=none $(LIQUIDSOAP) --no-stdlib ../libs/stdlib.liq --list-extra-functions-md > $@
 
 content/settings.md: $(LIQUIDSOAP)
-	PAGER=none $(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --conf-descr-md > $@
+	PAGER=none $(LIQUIDSOAP) --no-stdlib ../libs/stdlib.liq --list-settings > $@
 
 VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 

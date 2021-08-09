@@ -206,7 +206,7 @@ let mk_list_let ~pos ((vars, dots), def) body =
           let list = mk ~pos (Var "list") in
           let hd = mk ~pos (Invoke (list, "hd")) in
           let hd = mk ~pos (App (hd, [("", list_var ())])) in
-          mk_let ~pos var hd body ))
+          mk_let ~pos var hd body))
       body (List.rev vars)
   in
   mk_let ~pos list_var_name def body
@@ -311,10 +311,10 @@ let mk_kind ~pos (kind, params) =
         params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
       in
       let t = kind ^ "(" ^ params ^ ")" in
-      raise (Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")) )
+      raise (Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")))
 
 let mk_source_ty ~pos name args =
-  if name <> "source" && name <> "active_source" then
+  if name <> "source" then
     raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
 
   let audio = ref ("any", []) in
@@ -334,8 +334,7 @@ let mk_source_ty ~pos name args =
   let video = mk_kind ~pos !video in
   let midi = mk_kind ~pos !midi in
 
-  Lang_values.source_t ~active:(name <> "source")
-    (Lang_values.frame_kind_t audio video midi)
+  Lang_values.source_t (Lang_values.frame_kind_t audio video midi)
 
 let mk_ty ~pos name =
   match name with

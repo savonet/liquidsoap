@@ -26,9 +26,7 @@
 class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
   object
     inherit Doc.item doc
-
     val mutable plugins : (string * 'a) list = []
-
     val mutable aliases : (string * 'a) list = []
 
     method register plugin ?plugin_aliases ?doc ?sdoc v =
@@ -43,19 +41,18 @@ class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
       in
       if duplicates then (
         subsections <- (plugin, doc) :: subsections;
-        plugins <- (plugin, v) :: plugins )
+        plugins <- (plugin, v) :: plugins)
       else (
         subsections <-
           (plugin, doc) :: List.filter (fun (k, _) -> k <> plugin) subsections;
         plugins <-
-          (plugin, v) :: List.filter (fun (k, _) -> k <> plugin) plugins );
+          (plugin, v) :: List.filter (fun (k, _) -> k <> plugin) plugins);
       register_hook (plugin, v);
       match plugin_aliases with
         | Some l -> aliases <- List.map (fun alias -> (alias, v)) l @ aliases
         | None -> ()
 
     method is_registered a = List.mem_assoc a plugins
-
     method keys = List.fold_left (fun l (k, _) -> k :: l) [] plugins
 
     method iter ?(rev = false) f =
@@ -70,7 +67,7 @@ class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
       in
       try Some (List.assoc plugin plugins)
       with Not_found -> (
-        try Some (List.assoc plugin aliases) with Not_found -> None )
+        try Some (List.assoc plugin aliases) with Not_found -> None)
   end
 
 (** Every [plug] plugs in [plugs] *)

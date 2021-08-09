@@ -81,8 +81,8 @@ Its code is the following:
 
 ```liquidsoap
   def test_flac(file) =
-    if test_process("which metaflac") then
-      channels = list.hd(default="",get_process_lines("metaflac \
+    if process.test("which metaflac") then
+      channels = list.hd(default="",process.read.lines("metaflac \
                                             --show-channels #{quote(file)} \
                                             2>/dev/null"))
       # If the value is not an int, this returns 0 and we are ok :)
@@ -107,11 +107,11 @@ Its code is the following:
 Additionally, a metadata resolver is registered when the `metaflac` command can be found in the `$PATH`:
 
 ```liquidsoap
-if test_process("which metaflac") then
+if process.test("which metaflac") then
   log(level=3,"Found metaflac binary: \
                enabling flac external metadata resolver.")
   def flac_meta(file)
-    ret = get_process_lines("metaflac --export-tags-to=- \
+    ret = process.read.lines("metaflac --export-tags-to=- \
                             #{quote(file)} 2>/dev/null")
     ret = list.map(string.split(separator="="),ret)
     # Could be made better..
@@ -168,13 +168,13 @@ Its code is the following:
     end
   end
 
-  if test_process("which faad") then
+  if process.test("which faad") then
     log(level=3,"Found faad binary: enabling external faad decoder and \
                  metadata resolver.")
     faad_p = (fun (f) -> "faad -w #{quote(f)} 2>/dev/null")
     def test_faad(file) =
       if faad_test(file) then
-        channels = list.hd(default="",get_process_lines("faad -i #{quote(file)} 2>&1 | \
+        channels = list.hd(default="",process.read.lines("faad -i #{quote(file)} 2>&1 | \
                                                          grep 'ch,'"))
         ret = string.extract(pattern=", (\d) ch,",channels)
         ret =
@@ -194,7 +194,7 @@ Its code is the following:
                           the faad binary.", test=test_faad, faad_p)
     def faad_meta(file) =
       if faad_test(file) then
-        ret = get_process_lines("faad -i \
+        ret = process.read.lines("faad -i \
                      #{quote(file)} 2>&1")
         # Yea, this is tuff programming (again) !
         def get_meta(l,s)=

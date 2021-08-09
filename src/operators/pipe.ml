@@ -40,7 +40,7 @@ type chunk = {
 }
 
 class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
-  ~restart ~restart_on_error (source : source) =
+  ~restart ~restart_on_error source_val =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -55,13 +55,16 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   let next_stop = ref `Nothing in
   let header_read = ref false in
   let bytes = Bytes.create Utils.pagesize in
+  let source = Lang.to_source source_val in
   object (self)
     inherit source ~name:"pipe" kind as super
 
+    (* We are expecting real-rate with a couple of hickups.. *)
+    inherit
+      Child_support.base ~check_self_sync:false [source_val] as child_support
+
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
-
     val mutable samplesize = 16
-
     val mutable samplerate = Frame.audio_of_seconds 1.
 
     (* Filled in by wake_up. *)
@@ -90,7 +93,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
                 ~samplesize)
           ();
-        `Reschedule Tutils.Non_blocking )
+        `Reschedule Tutils.Non_blocking)
       else (
         let len = pull bytes 0 Utils.pagesize in
         let data = converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
@@ -113,7 +116,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
                           "Cannot replay multiple element at once.. Picking up \
                            the most recent";
                       if pos > 0 && pos < pos' then ((pos, b), cur)
-                      else ((pos', b'), cur) )
+                      else ((pos', b'), cur))
                     else ((pos, b), (pos' + len, b') :: cur))
                   ((-1, `Nothing), [])
                   pending
@@ -134,23 +137,32 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         end;
         if abg_max_len < buffered + len then
           `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
-        else `Continue )
+        else `Continue)
 
     val mutable handler = None
-
     val to_write = Queue.create ()
-
     method stype = Source.Fallible
 
     method private get_handler =
       match handler with Some h -> h | None -> raise Process_handler.Finished
 
+    val mutable tmp = None
+
+    method tmp =
+      match tmp with
+        | Some t -> t
+        | None ->
+            let t = Frame.create self#ctype in
+            tmp <- Some t;
+            t
+
     method private get_to_write =
       if source#is_ready then (
-        let tmp = Frame.create self#ctype in
-        source#get tmp;
+        Frame.clear self#tmp;
+        source#get self#tmp;
         self#child_tick;
-        let buf = AFrame.pcm tmp in
+        needs_tick <- false;
+        let buf = AFrame.pcm self#tmp in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in
         let slen = slen_of_len blen in
@@ -159,7 +171,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let metadata =
           List.sort
             (fun (pos, _) (pos', _) -> compare pos pos')
-            (Frame.get_all_metadata tmp)
+            (Frame.get_all_metadata self#tmp)
         in
         let ofs =
           List.fold_left
@@ -167,7 +179,8 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               let pos = slen_of_len pos in
               let len = pos - ofs in
               let next =
-                if pos = slen && Frame.is_partial tmp then `Break_and_metadata m
+                if pos = slen && Frame.is_partial self#tmp then
+                  `Break_and_metadata m
                 else `Metadata m
               in
               Queue.push { sbuf; next; ofs; len } to_write;
@@ -176,8 +189,8 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         in
         if ofs < slen then (
           let len = slen - ofs in
-          let next = if Frame.is_partial tmp then `Break else `Nothing in
-          Queue.push { sbuf; next; ofs; len } to_write ) )
+          let next = if Frame.is_partial self#tmp then `Break else `Nothing in
+          Queue.push { sbuf; next; ofs; len } to_write))
 
     method private on_stdin pusher =
       if Queue.is_empty to_write then self#get_to_write;
@@ -192,17 +205,17 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               Tutils.mutexify mutex
                 (fun () -> replay_pending := (0, next) :: !replay_pending)
                 ();
-              `Continue )
+              `Continue)
             else (
               Tutils.mutexify mutex (fun () -> next_stop := next) ();
-              if next <> `Nothing then `Stop else `Continue )
+              if next <> `Nothing then `Stop else `Continue)
           in
           ignore (Queue.take to_write);
-          action )
+          action)
         else (
           chunk.ofs <- ofs + ret;
           chunk.len <- len - ret;
-          `Continue )
+          `Continue)
       with Queue.Empty -> `Continue
 
     method private on_stderr reader =
@@ -236,18 +249,6 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
                 true
             | _, `Nothing -> restart)
 
-    method private child_tick =
-      (Clock.get source#clock)#end_tick;
-      source#after_output
-
-    (* See smactross.ml for details. *)
-    method private set_clock =
-      let child_clock = Clock.create_known (new Clock.clock self#id) in
-      Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
-      Clock.unify child_clock source#clock;
-      Gc.finalise (fun self -> Clock.forget self#clock child_clock) self
-
     method wake_up a =
       super#wake_up a;
       converter <-
@@ -276,6 +277,15 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
             handler <- None
           with Process_handler.Finished -> ())
         ()
+
+    method before_output =
+      super#before_output;
+      child_support#before_output
+
+    method after_output =
+      super#after_output;
+      (* As long as we have a process, we let it drive the child source entirely. *)
+      if handler = None then child_support#after_output
   end
 
 let () =
@@ -289,8 +299,9 @@ let () =
         Some Lang.null,
         Some
           "Replay track marks and metadata from the input source on the output \
-           after a given delay. If negative (default) close and flush the \
-           process on each track and metadata to get an exact timing." );
+           after a given delay. If `null` (default) close and flush the \
+           process on each track and metadata to get an exact timing. This \
+           parameter is typically used when integrating with `stereotool`." );
       ( "data_length",
         Lang.nullable_t Lang.int_t,
         Some Lang.null,
@@ -343,7 +354,7 @@ let () =
           Lang.to_bool (f "log_overfull"),
           Lang.to_bool (f "restart"),
           Lang.to_bool (f "restart_on_error"),
-          Lang.to_source (f "") )
+          f "" )
       in
       let replay_delay =
         match replay_delay with None -> -1. | Some v -> Lang.to_float v
@@ -352,7 +363,7 @@ let () =
         match data_len with None -> -1 | Some v -> Lang.to_int v
       in
       let kind = Source.Kind.of_kind kind in
-      ( new pipe
-          ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
-          ~restart_on_error ~process src
-        :> source ))
+      (new pipe
+         ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
+         ~restart_on_error ~process src
+        :> source))

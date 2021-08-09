@@ -36,68 +36,375 @@ let mime_types =
     "Mime-types used for decoding with ffmpeg"
     ~d:
       [
+        "application/f4v";
+        "application/ffmpeg";
+        "application/mp4";
+        "application/mxf";
+        "application/octet-stream";
+        "application/octet-stream";
+        "application/ogg";
+        "application/vnd.pg.format";
+        "application/vnd.rn-realmedia";
+        "application/vnd.smaf";
+        "application/x-mpegURL";
+        "application/x-ogg";
+        "application/x-pgs";
+        "application/x-shockwave-flash";
+        "application/x-subrip";
+        "application/xml";
+        "audio/G722";
+        "audio/MP4A-LATM";
+        "audio/MPA";
+        "audio/aac";
+        "audio/aacp";
+        "audio/aiff";
+        "audio/amr";
+        "audio/basic";
+        "audio/bit";
+        "audio/flac";
+        "audio/g723";
+        "audio/iLBC";
+        "audio/mp4";
+        "audio/mpeg";
+        "audio/ogg";
         "audio/vnd.wave";
         "audio/wav";
         "audio/wave";
-        "audio/x-wav";
-        "audio/aac";
-        "audio/aacp";
-        "audio/x-hx-aac-adts";
-        "audio/flac";
-        "audio/x-flac";
-        "audio/mpeg";
-        "audio/MPA";
-        "video/x-ms-asf";
-        "video/x-msvideo";
-        "audio/mp4";
         "audio/webm";
-        "application/mp4";
-        "video/mp4";
-        "video/3gpp";
-        "video/webm";
-        "video/x-matroska";
-        "video/mp2t";
-        "video/MP2T";
-        "application/ogg";
-        "application/x-ogg";
+        "audio/x-ac3";
+        "audio/x-adpcm";
+        "audio/x-caf";
+        "audio/x-dca";
+        "audio/x-eac3";
+        "audio/x-flac";
+        "audio/x-gsm";
+        "audio/x-hx-aac-adts";
         "audio/x-ogg";
-        "audio/ogg";
+        "audio/x-oma";
+        "audio/x-tta";
+        "audio/x-voc";
+        "audio/x-wav";
+        "audio/x-wavpack";
+        "multipart/x-mixed-replace;boundary=ffserver";
+        "text/vtt";
+        "text/x-ass";
+        "text/x-jacosub";
+        "text/x-microdvd";
+        "video/3gpp";
+        "video/3gpp2";
+        "video/MP2T";
+        "video/mp2t";
+        "video/mp4";
+        "video/mpeg";
         "video/ogg";
         "video/webm";
-        "application/ffmpeg";
+        "video/x-flv";
+        "video/x-h261";
+        "video/x-h263";
+        "video/x-m4v";
+        "video/x-matroska";
+        "video/x-mjpeg";
+        "video/x-ms-asf";
+        "video/x-msvideo";
+        "video/x-nut";
       ]
 
 let file_extensions =
   Dtools.Conf.list
     ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
-    "File extensions used for decoding with ffmpeg"
+    "File extensions used for decoding media files (except images) with ffmpeg"
     ~d:
       [
-        "mp1";
-        "mp2";
-        "mp3";
+        "264";
+        "265";
+        "302";
+        "3g2";
+        "3gp";
+        "669";
+        "722";
+        "A64";
+        "a64";
+        "aa";
+        "aa3";
+        "aac";
+        "aax";
+        "ac3";
+        "acm";
+        "adf";
+        "adp";
+        "ads";
+        "adts";
+        "adx";
+        "aea";
+        "afc";
+        "aif";
+        "aifc";
+        "aiff";
+        "aix";
+        "amf";
+        "amr";
+        "ams";
+        "amv";
+        "ape";
+        "apl";
+        "apm";
+        "apng";
+        "aptx";
+        "aptxhd";
+        "aqt";
+        "asf";
+        "ass";
+        "ast";
+        "au";
+        "aud";
+        "avi";
+        "avr";
+        "avs";
+        "avs2";
+        "bcstm";
+        "bfstm";
+        "binka";
+        "bit";
+        "bmv";
+        "brstm";
+        "c2";
+        "caf";
+        "cavs";
+        "cdata";
+        "cdg";
+        "cdxl";
+        "cgi";
+        "chk";
+        "cif";
+        "cpk";
+        "cvg";
+        "dat";
+        "daud";
+        "dav";
+        "dbm";
+        "dif";
+        "digi";
+        "dmf";
+        "dnxhd";
+        "dnxhr";
+        "drc";
+        "dsm";
+        "dss";
+        "dtk";
+        "dtm";
+        "dts";
+        "dtshd";
+        "dv";
+        "dvd";
+        "eac3";
+        "f4v";
+        "fap";
+        "far";
+        "ffmeta";
+        "fits";
+        "flac";
+        "flm";
+        "flv";
+        "fsb";
+        "fwse";
+        "g722";
+        "g723_1";
+        "g729";
+        "gdm";
+        "genh";
+        "gif";
+        "gsm";
+        "gxf";
+        "h261";
+        "h263";
+        "h264";
+        "h265";
+        "hca";
+        "hevc";
+        "ice";
+        "ico";
+        "idf";
+        "idx";
+        "ifv";
+        "imf";
+        "imx";
+        "ipu";
+        "ircam";
+        "ism";
+        "isma";
+        "ismv";
+        "it";
+        "ivf";
+        "ivr";
+        "j2b";
+        "jss";
+        "kux";
+        "latm";
+        "lbc";
+        "loas";
+        "lrc";
+        "lvf";
+        "m15";
+        "m1v";
+        "m2a";
+        "m2t";
+        "m2ts";
+        "m2v";
+        "m3u8";
         "m4a";
         "m4b";
-        "m4p";
         "m4v";
-        "m4r";
-        "mov";
-        "3gp";
-        "mp4";
-        "wav";
-        "flac";
-        "ogv";
-        "oga";
-        "ogx";
-        "ogg";
-        "opus";
-        "wma";
-        "webm";
-        "wmv";
-        "avi";
+        "mac";
+        "mca";
+        "mcc";
+        "mdl";
+        "med";
+        "mj2";
+        "mjpeg";
+        "mjpg";
+        "mk3d";
+        "mka";
+        "mks";
         "mkv";
-        "aac";
-        "osb";
+        "mlp";
+        "mmcmp";
+        "mmf";
+        "mms";
+        "mo3";
+        "mod";
+        "mods";
+        "moflex";
+        "mov";
+        "mp2";
+        "mp3";
+        "mp4";
+        "mpa";
+        "mpc";
+        "mpd";
+        "mpeg";
+        "mpg";
+        "mpl2";
+        "mptm";
+        "msbc";
+        "msf";
+        "mt2";
+        "mtaf";
+        "mtm";
+        "mts";
+        "musx";
+        "mvi";
+        "mxf";
+        "mxg";
+        "nist";
+        "nsp";
+        "nst";
+        "nut";
+        "obu";
+        "oga";
+        "ogg";
+        "ogv";
+        "okt";
+        "oma";
+        "omg";
+        "opus";
+        "paf";
+        "pcm";
+        "pjs";
+        "plm";
+        "psm";
+        "psp";
+        "pt36";
+        "ptm";
+        "pvf";
+        "qcif";
+        "ra";
+        "rco";
+        "rcv";
+        "rgb";
+        "rm";
+        "roq";
+        "rsd";
+        "rso";
+        "rt";
+        "s3m";
+        "sami";
+        "sbc";
+        "sbg";
+        "scc";
+        "sdr2";
+        "sds";
+        "sdx";
+        "ser";
+        "sf";
+        "sfx";
+        "sfx2";
+        "sga";
+        "shn";
+        "sln";
+        "smi";
+        "son";
+        "sox";
+        "spdif";
+        "sph";
+        "spx";
+        "srt";
+        "ss2";
+        "ssa";
+        "st26";
+        "stk";
+        "stl";
+        "stm";
+        "stp";
+        "str";
+        "sub";
+        "sup";
+        "svag";
+        "svs";
+        "swf";
+        "tak";
+        "tco";
+        "thd";
+        "ts";
+        "tta";
+        "ttml";
+        "tun";
+        "txt";
+        "ty";
+        "ty+";
+        "ult";
+        "umx";
+        "v";
+        "v210";
+        "vag";
+        "vb";
+        "vc1";
+        "vc2";
+        "viv";
+        "vob";
+        "voc";
+        "vpk";
+        "vqe";
+        "vqf";
+        "vql";
+        "vtt";
+        "w64";
+        "wav";
+        "webm";
+        "wma";
+        "wmv";
+        "wow";
+        "wsd";
+        "wtv";
+        "wv";
+        "xl";
+        "xm";
+        "xml";
+        "xmv";
+        "xpk";
+        "xvag";
+        "y4m";
+        "yop";
+        "yuv";
       ]
 
 let priority =
@@ -153,7 +460,7 @@ let get_type ~ctype ~url container =
           | Some f -> (
               match Avutil.Pixel_format.to_string f with
                 | None -> "none"
-                | Some s -> s )
+                | Some s -> s)
       in
       let codec_name =
         Avcodec.Video.string_of_id (Avcodec.Video.get_params_id params)
@@ -210,23 +517,16 @@ let get_type ~ctype ~url container =
     (Frame.string_of_content_type ctype);
   ctype
 
-let seek ~audio ~video ~target_position ticks =
+let seek ~target_position ~container ticks =
   let tpos = Frame.seconds_of_main ticks in
   log#debug "Setting target position to %f" tpos;
   target_position := Some tpos;
-  let position = Int64.of_float (tpos *. 1000.) in
-  let seek stream =
-    try
-      Av.seek stream `Millisecond position [| Av.Seek_flag_backward |];
-      ticks
-    with Avutil.Error _ -> 0
-  in
-  match (audio, video) with
-    | Some (`Packet (_, s, _)), _ -> seek s
-    | _, Some (`Packet (_, s, _)) -> seek s
-    | Some (`Frame (_, s, _)), _ -> seek s
-    | _, Some (`Frame (_, s, _)) -> seek s
-    | _ -> raise No_stream
+  let ts = Int64.of_float (tpos *. 1000.) in
+  let frame_duration = Lazy.force Frame.duration in
+  let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
+  let max_ts = ts in
+  Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
+  ticks
 
 let mk_decoder ?audio ?video ~target_position container =
   let no_decoder = (-1, [], fun ~buffer:_ _ -> assert false) in
@@ -250,12 +550,7 @@ let mk_decoder ?audio ?video ~target_position container =
       | Some pts, Some target_position ->
           let { Avutil.num; den } = Av.get_time_base stream in
           let position = Int64.to_float pts *. float num /. float den in
-          if position < target_position then
-            log#debug
-              "Current position: %f is less than target position: %f, \
-               skipping.."
-              position target_position;
-          position <= target_position
+          target_position <= position
       | _ -> true
   in
   fun buffer ->
@@ -333,12 +628,14 @@ let create_decoder ~ctype fname =
       (fun () ->
         match (duration, pts) with
           | None, _ | Some _, None -> ()
-          | Some d, Some pts ->
+          | Some d, Some pts -> (
               let { Avutil.num; den } = Av.get_time_base stream in
               let position =
                 Int64.to_float (Int64.mul (Int64.of_int num) pts) /. float den
               in
-              remaining := Some (d -. position))
+              match !remaining with
+                | None -> remaining := Some (d -. position)
+                | Some r -> remaining := Some (max (d -. position) r)))
       ()
   in
   let get_remaining =
@@ -386,11 +683,13 @@ let create_decoder ~ctype fname =
         (fun ticks ->
           match duration with
             | None -> -1
-            | Some d ->
-                let ticks =
+            | Some d -> (
+                let target =
                   ticks + Frame.main_of_seconds d - get_remaining ()
                 in
-                seek ~audio ~video ~target_position ticks);
+                match seek ~target_position ~container target with
+                  | 0 -> 0
+                  | _ -> ticks));
       decode = mk_decoder ?audio ?video ~target_position container;
     },
     close,
@@ -410,7 +709,7 @@ let create_stream_decoder ~ctype _ input =
   let audio, video = mk_streams ~ctype container in
   let target_position = ref None in
   {
-    Decoder.seek = seek ~audio ~video ~target_position;
+    Decoder.seek = seek ~target_position ~container;
     decode = mk_decoder ?audio ?video ~target_position container;
   }
 

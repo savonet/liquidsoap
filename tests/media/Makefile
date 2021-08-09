@@ -44,13 +44,15 @@ ENCODED_FILES=$(ENCODED_AUDIO_FILES) $(ENCODED_VIDEO_FILES)
 $(ENCODED_FILES): ENCODER = $(subst @,%,$(word 1,$(subst ., ,$*)))
 
 define generate_audio
-        @./mk_encoder_test.sh "$1" sine
-        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $2" media/test_encoder.liq "$1 encoder" || exit
+	@$(eval PREFIX := $(shell /bin/bash -c "echo $$RANDOM"))
+        @./mk_encoder_test.sh "$1" sine $(PREFIX)
+        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $2" media/files/$(PREFIX)/test_encoder.liq "$1 encoder" || exit
 endef
 
 define generate_video
-        @./mk_encoder_test.sh "$1" noise
-        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $2" media/test_encoder.liq "$1 encoder" || exit
+	@$(eval PREFIX := $(shell /bin/bash -c "echo $$RANDOM"))
+        @./mk_encoder_test.sh "$1" noise $(PREFIX)
+        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $2" media/files/$(PREFIX)/test_encoder.liq "$1 encoder" || exit
 endef
 
 test_encoder: files/audio files/video $(ENCODED_FILES)
@@ -70,70 +72,73 @@ files/video/%: $(top_srcdir)/src/liquidsoap
 test_mono: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_FILES:%="%"); do \
 	  if echo $$i | grep -v 'ffmpeg' > /dev/null 2>&1; then \
-	    ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_mono.liq "Mono decoding test for $$i" || exit; \
+	    ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_mono.liq "Mono decoding test for $$i" || exit; \
 	  fi \
 	done
 
 test_stereo: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_FILES:%="%"); do \
 	  if echo $$i | grep -v 'ffmpeg' > /dev/null 2>&1; then \
-	    ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_stereo.liq "Stereo decoding test for $$i" || exit; \
+	    ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_stereo.liq "Stereo decoding test for $$i" || exit; \
 	  fi \
 	done
 
 test_ffmpeg_filter: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $<" media/test_ffmpeg_filter.liq "FFmpeg filter test for $$i" || exit; \
+	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $<" media/test_ffmpeg_filter.liq "FFmpeg filter test for $$i" || exit; \
 	done
 
 test_ffmpeg_audio_decoder: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_ffmpeg_audio_decoder.liq "FFmpeg audio decoder test for $$i" || exit; \
+	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_audio_decoder.liq "FFmpeg audio decoder test for $$i" || exit; \
 	done
 
 test_ffmpeg_video_decoder: $(ENCODED_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_ffmpeg_video_decoder.liq "FFmpeg video decoder test for $$i" || exit; \
+	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_video_decoder.liq "FFmpeg video decoder test for $$i" || exit; \
 	done
 
 test_ffmpeg_copy_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_ffmpeg_copy_decoder.liq "FFmpeg copy decoder test for $$i" || exit; \
+	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_copy_decoder.liq "FFmpeg copy decoder test for $$i" || exit; \
 	done
 
 test_ffmpeg_copy_and_encode_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_ffmpeg_copy_and_encode_decoder.liq "FFmpeg copy+encode decoder test for $$i" || exit; \
+	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_copy_and_encode_decoder.liq "FFmpeg copy+encode decoder test for $$i" || exit; \
 	done
 
 test_ffmpeg_raw_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_ffmpeg_raw_decoder.liq "FFmpeg raw decoder test for $$i" || exit; \
+	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_raw_decoder.liq "FFmpeg raw decoder test for $$i" || exit; \
 	done
 
 test_ffmpeg_raw_and_encode_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_ffmpeg_raw_and_encode_decoder.liq "FFmpeg raw+encode decoder test for $$i" || exit; \
+	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_raw_and_encode_decoder.liq "FFmpeg raw+encode decoder test for $$i" || exit; \
 	done
 
 test_ffmpeg_raw_and_copy_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_ffmpeg_raw_and_copy_decoder.liq "FFmpeg raw+copy decoder test for $$i" || exit; \
+	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_raw_and_copy_decoder.liq "FFmpeg raw+copy decoder test for $$i" || exit; \
 	done
 
 test_ffmpeg_inline_encode_decode:
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" media/test_ffmpeg_inline_encode_decode.liq
+	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode.liq
 
 test_ffmpeg_inline_encode_decode_audio:
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" media/test_ffmpeg_inline_encode_decode_audio.liq
+	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode_audio.liq
 
 test_ffmpeg_inline_encode_decode_video:
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" media/test_ffmpeg_inline_encode_decode_video.liq
+	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode_video.liq
 
 test_ffmpeg_distributed_hls: 
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" media/test_ffmpeg_distributed_hls.liq
+	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_distributed_hls.liq
 
 test_ffmpeg_raw_hls:
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" media/test_ffmpeg_raw_hls.liq
+	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_raw_hls.liq
 
 include $(top_srcdir)/Makefile.rules
+
+clean:
+	rm -rf files/

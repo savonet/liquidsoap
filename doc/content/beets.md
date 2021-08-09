@@ -77,7 +77,7 @@ to create a source calling Beets every time it needs to prepare its the next tra
 ```liquidsoap
 def beets() =
   list.map(fun(item) -> request.create(item),
-    get_process_lines(
+    process.read.lines(
       "/home/me/path/to/beet random -f '$path' my_own_query"
     )
   )
@@ -86,7 +86,7 @@ end
 from_beets = request.dynamic.list(beets)
 ```
 
-`get_process_lines` returns the command's output as a list of strings.
+`process.read.lines` returns the command's output as a list of strings.
 Each item in this list (so, each line returned by `beet random`)
 is processed (`list.map`) by an anonymous function that turns it into a `request`.
 Thus our function returns a list of requests,
@@ -101,7 +101,7 @@ BEET = "/home/me/path/to/beet"
 
 def beets(arg="") =
   fun() -> list.map(fun(item) -> request.create(item),
-    get_process_lines(
+    process.read.lines(
       "#{BEET} random -f '$path' #{arg}"
     )
   )
@@ -124,7 +124,7 @@ what's needed by protocol resolution:
 
 ```liquidsoap
 def beets_protocol(~rlog,~maxtime,arg) =
-  get_process_lines(
+  process.read.lines(
     "/home/me/path/to/beet random -f '$path' #{arg}"
   )
 end
@@ -165,7 +165,7 @@ be careful to give different protocol names (the first argument in `add_protocol
 ```liquidsoap
 def beets_protocol(~rlog,~maxtime,arg) =
   tmp_playlist = file.temp("beetsplaylist", ".m3u8")
-  ignore(get_process_lines(
+  ignore(process.read.lines(
     "/home/me/path/to/beet random -f '$path' #{arg} > #{tmp_playlist}"
   ))
   [tmp_playlist]
@@ -205,7 +205,7 @@ On UNIX we can add a cleanup function that regularly calls `find -delete`:
 ```liquidsoap
 exec_at(freq=3600., pred={ true },
   fun () -> list.iter(fun(msg) -> log(msg, label="playlists_cleaner"),
-    get_process_lines("find /tmp -iname beetsplaylist*m3u8 -mtime +0 -delete"),
+    process.read.lines("find /tmp -iname beetsplaylist*m3u8 -mtime +0 -delete"),
   )
 )
 ```

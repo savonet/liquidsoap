@@ -21,27 +21,24 @@
  *****************************************************************************)
 
 open Mm
-open Source
 
 let log = Log.make ["input"; "jack"]
 let bjack_clock = Tutils.lazy_cell (fun () -> new Clock.clock "bjack")
 
-class jack_in ~kind ~clock_safe ~nb_blocks ~server =
+class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
+  ~nb_blocks ~server =
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let seconds_per_frame = float samples_per_frame /. float samples_per_second in
   let bytes_per_sample = 2 in
 
   object (self)
-    inherit active_source ~name:"input.jack" kind as active_source
+    inherit
+      Start_stop.active_source
+        ~name:"input.jack" ~content_kind:kind ~clock_safe ~on_start ~on_stop
+          ~fallible ~autostart () as active_source
 
     inherit [Bytes.t] IoRing.input ~nb_blocks as ioring
-
-    method set_clock =
-      active_source#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (bjack_clock () :> Clock.clock))
 
     method private wake_up l =
       active_source#wake_up l;
@@ -58,19 +55,11 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
       active_source#sleep;
       ioring#sleep
 
-    method stype = Infallible
-
-    method is_ready = true
-
     method abort_track = ()
-
     method remaining = -1
-
     val mutable sample_freq = samples_per_second
-
     val mutable device = None
-
-    method self_sync = device <> None
+    method self_sync = (`Dynamic, device <> None)
 
     method close =
       match device with
@@ -122,37 +111,42 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
         (Audio.sub fbuf 0 samples_per_frame);
       AFrame.add_break buf samples_per_frame
 
-    method output =
-      let memo = self#memo in
-      if AFrame.is_partial memo then self#get_frame memo
-
-    method output_reset = ()
-
-    method is_active = true
+    method reset = ()
   end
 
 let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.jack"
-    [
-      ( "clock_safe",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Force the use of the dedicated bjack clock." );
-      ( "buffer_size",
-        Lang.int_t,
-        Some (Lang.int 2),
-        Some "Set buffer size, in frames. Must be >= 1." );
-      ( "server",
-        Lang.string_t,
-        Some (Lang.string ""),
-        Some "Jack server to connect to." );
-    ]
-    ~return_t ~category:Lang.Input ~descr:"Get stream from jack."
+    (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    @ [
+        ( "buffer_size",
+          Lang.int_t,
+          Some (Lang.int 2),
+          Some "Set buffer size, in frames. Must be >= 1." );
+        ( "server",
+          Lang.string_t,
+          Some (Lang.string ""),
+          Some "Jack server to connect to." );
+      ])
+    ~meth:(Start_stop.meth ()) ~return_t ~category:Lang.Input
+    ~descr:"Get stream from jack."
     (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let fallible = Lang.to_bool (List.assoc "fallible" p) in
+      let autostart = Lang.to_bool (List.assoc "start" p) in
+      let on_start =
+        let f = List.assoc "on_start" p in
+        fun () -> ignore (Lang.apply f [])
+      in
+      let on_stop =
+        let f = List.assoc "on_stop" p in
+        fun () -> ignore (Lang.apply f [])
+      in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in
       let kind = Source.Kind.of_kind kind in
-      (new jack_in ~kind ~clock_safe ~nb_blocks ~server :> Source.source))
+      (new jack_in
+         ~kind ~clock_safe ~nb_blocks ~server ~fallible ~on_start ~on_stop
+         ~autostart
+        :> Start_stop.active_source))

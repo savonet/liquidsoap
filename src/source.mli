@@ -34,6 +34,10 @@ type clock_variable
   * protocol such as [input.srt]. *)
 type sync = [ `Auto | `CPU | `None ]
 
+(* Type for source's self_sync. A [`Static] self_sync should never change over
+   the source's lifetime. *)
+type self_sync = [ `Static | `Dynamic ] * bool
+
 (** The liveness type of a source indicates whether or not it can
   * fail to broadcast.
   * A Infallible source never fails; it is always ready. *)
@@ -47,7 +51,7 @@ type clock_sync_mode = [ sync | `Unknown ]
 type watcher = {
   get_ready :
     stype:source_t ->
-    is_output:bool ->
+    is_active:bool ->
     id:string ->
     ctype:Frame.content_type ->
     clock_id:string ->
@@ -62,6 +66,7 @@ type watcher = {
     is_partial:bool ->
     metadata:metadata ->
     unit;
+  before_output : unit -> unit;
   after_output : unit -> unit;
 }
 
@@ -78,6 +83,9 @@ module Kind : sig
   val unify : t -> t -> unit
 end
 
+(** Generate an identifier from the name of the source. *)
+val generate_id : string -> string
+
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
   ?name:string
@@ -93,6 +101,7 @@ class virtual source :
        (** Identifier of the source. *)
        method id : string
 
+       method set_name : string -> unit
        method set_id : ?definitive:bool -> string -> unit
 
        (* {1 Liveness type}
@@ -120,7 +129,7 @@ class virtual source :
            clock), we simply decide based on whether there is one [self_sync]
            source or not. This logic should dictate how the method is
            implemented by the various operators. *)
-       method virtual self_sync : bool
+       method virtual self_sync : self_sync
 
        (** Choose your clock, by adjusting to your children source,
            or anything custom. *)
@@ -138,7 +147,7 @@ class virtual source :
        method on_leave : (unit -> unit) -> unit
 
        (** Opposite of [get_ready] : the operator no longer needs the source. *)
-       method leave : ?dynamic:bool -> source -> unit
+       method leave : ?failed_to_start:bool -> ?dynamic:bool -> source -> unit
 
        method private sleep : unit
 
@@ -188,14 +197,12 @@ class virtual source :
        (** Tells the source to finish the reading of current track. *)
        method virtual abort_track : unit
 
-       method is_output : bool
+       method is_active : bool
 
-       (** Wait for output round to finish.
-           Typically, output nodes compute an audio frame (a full buffer),
-           then launch a few output threads, which take care of encoding
-           and outputting (to a file, network, ...).
-           In that case, after_output allows the node to wait for its
-           output threads. *)
+       (** Prepare for output round. *)
+       method before_output : unit
+
+       (** Cleanup after output round. *)
        method after_output : unit
 
        method advance : unit
@@ -210,8 +217,7 @@ class virtual source :
          string ->
          Request.t
 
-       method private log : Log.t
-
+       method log : Log.t
        method add_watcher : watcher -> unit
      end
 
@@ -225,23 +231,11 @@ and virtual active_source :
   -> object
        inherit source
 
-       (** Special init phase for outputs. This method is called by Root after the
-           standard get_ready propagation, after the Root clock is started.
-           It allows enhancements of the initial latency. *)
-       method virtual output_get_ready : unit
-
        (** Start a new output round, triggers computation of a new frame. *)
        method virtual output : unit
 
        (** Do whatever needed when the latency gets too big and is reset. *)
-       method virtual output_reset : unit
-
-       (** Is the source active ?
-           If the returned value is [false], then [output_reset]
-           should not be called on that source.
-           If [output_reset] does nothing, this function can return any value.
-           TODO that kind of detail could be left inside #output_reset *)
-       method virtual is_active : bool
+       method virtual reset : unit
      end
 
 (* This is for defining a source which has children *)
@@ -294,17 +288,13 @@ class type clock =
     (** Manage subordinate clocks *)
 
     method attach_clock : clock_variable -> unit
-
     method detach_clock : clock_variable -> unit
-
     method sub_clocks : clock_variable list
 
     (** Streaming *)
 
     method start_outputs : (active_source -> bool) -> unit -> active_source list
-
     method get_tick : int
-
     method end_tick : unit
   end
 

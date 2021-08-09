@@ -23,6 +23,19 @@
 open Lang_builtins
 
 let () =
+  add_builtin "source.set_name" ~cat:Liq ~descr:"Set the name of an operator."
+    [
+      ("", Lang.source_t (Lang.univ_t ()), None, None);
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.unit_t
+    (fun p ->
+      let s = Lang.assoc "" 1 p |> Lang.to_source in
+      let n = Lang.assoc "" 2 p |> Lang.to_string in
+      s#set_name n;
+      Lang.unit)
+
+let () =
   add_builtin "source.skip" ~cat:Liq ~descr:"Skip to the next track."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.unit_t
@@ -214,10 +227,9 @@ let () =
       in
       let proto = ("fallible", Lang.bool true) :: proto in
       let s = Lang.to_source (Lang.assoc "" 3 p) in
-      let p = (("id", Lang.string "source_dumper") :: p) @ proto in
+      let p = ("id", Lang.string "source_dumper") :: p @ proto in
       let fo = Pipe_output.new_file_output p in
       fo#get_ready [s];
-      fo#output_get_ready;
       log#info "Start dumping source.";
       while s#is_ready do
         fo#output;

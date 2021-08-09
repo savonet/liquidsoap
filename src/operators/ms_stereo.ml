@@ -27,17 +27,11 @@ type mode = Encode | Decode
 class msstereo ~kind (source : source) mode width =
   object
     inherit operator ~name:"stereo.ms.encode" kind [source]
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method abort_track = source#abort_track
 
     method private get_frame buf =
@@ -94,17 +88,11 @@ let () =
 class spatializer ~kind ~width (source : source) =
   object
     inherit operator ~name:"stereo.width" kind [source]
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method abort_track = source#abort_track
 
     method private get_frame buf =

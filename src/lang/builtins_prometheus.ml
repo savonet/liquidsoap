@@ -128,7 +128,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     if n = 0 then 0.
     else (
       let s = Hashtbl.fold (fun _ v cur -> cur +. v) l 0. in
-      s /. float_of_int n )
+      s /. float_of_int n)
   in
   let track_latency mode =
     let latency, peak_latency, max_latency =
@@ -162,7 +162,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   let last_start_time = ref 0. in
   let last_end_time = ref 0. in
   let last_data = Gauge.labels (get_last_data ~label_names) labels in
-  let get_ready ~stype:_ ~is_output:_ ~id:_ ~ctype:_ ~clock_id:_
+  let get_ready ~stype:_ ~is_active:_ ~id:_ ~ctype:_ ~clock_id:_
       ~clock_sync_mode:_ =
     ()
   in
@@ -181,7 +181,15 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     add_output_latency ((current_time -. !last_end_time) /. frame_duration);
     add_overall_latency ((current_time -. !last_start_time) /. frame_duration)
   in
-  let watcher = { Source.get_ready; leave; get_frame; after_output } in
+  let watcher =
+    {
+      Source.get_ready;
+      leave;
+      get_frame;
+      before_output = (fun _ -> ());
+      after_output;
+    }
+  in
   s#add_watcher watcher
 
 let () =

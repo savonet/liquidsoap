@@ -47,19 +47,12 @@ class frei0r_filter ~kind ~name bgra instance params (source : source) =
   let dt = 1. /. float fps in
   object
     inherit operator ~name:("frei0r." ^ name) kind [source]
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method is_ready = source#is_ready
-
     method self_sync = source#self_sync
-
     method abort_track = source#abort_track
-
     val mutable t = 0.
 
     method private get_frame buf =
@@ -101,14 +94,16 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
 
     method is_ready = source#is_ready && source2#is_ready
 
-    method self_sync = source#self_sync || source2#self_sync
+    method self_sync =
+      match (source#self_sync, source2#self_sync) with
+        | (`Static, v), (`Static, v') when v = v' -> (`Static, v || v')
+        | (_, v), (_, v') -> (`Dynamic, v || v')
 
     method abort_track =
       source#abort_track;
       source2#abort_track
 
     val mutable t = 0.
-
     val mutable tmp = Frame.dummy
 
     method private wake_up a =
@@ -162,25 +157,18 @@ class frei0r_source ~kind ~name bgra instance params =
   let dt = 1. /. float fps in
   object
     inherit source ~name:("frei0r." ^ name) kind
-
     method stype = Infallible
-
     method is_ready = true
-
-    method self_sync = false
-
+    method self_sync = (`Static, false)
     val mutable must_fail = false
-
     method abort_track = must_fail <- true
-
     method remaining = if must_fail then 0 else -1
-
     val mutable t = 0.
 
     method private get_frame frame =
       if must_fail then (
         must_fail <- false;
-        VFrame.add_break frame (VFrame.position frame) )
+        VFrame.add_break frame (VFrame.position frame))
       else (
         params ();
         let start = VFrame.position frame in
@@ -196,7 +184,7 @@ class frei0r_source ~kind ~name bgra instance params =
           Video.set rgb i img;
           t <- t +. dt
         done;
-        VFrame.add_break frame stop )
+        VFrame.add_break frame stop)
   end
 
 (** Make a list of parameters. *)
@@ -237,7 +225,7 @@ let params plugin info =
           Some (name, t, d, Some (info.Frei0r.param_explanation ^ "."))
         with Exit -> None)
   in
-  let liq_params = List.may_map id liq_params in
+  let liq_params = List.filter_map id liq_params in
   (* Initialize parameters and produce function to update float getters. *)
   let params instance p =
     let on_changed x0 =
@@ -287,7 +275,7 @@ let params plugin info =
                   None
           with Not_found -> None)
     in
-    let act = List.may_map id act in
+    let act = List.filter_map id act in
     fun () -> List.iter (fun f -> f ()) act
   in
   (liq_params, params)
@@ -337,7 +325,7 @@ let register_plugin fname =
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in
   Lang.add_operator ("video.frei0r." ^ name) liq_params ~return_t
-    ~category:Lang.VideoProcessing ~flags:[] ~descr (fun p ->
+    ~category:Lang.VideoProcessing ~flags:[Lang.Extra] ~descr (fun p ->
       let instance =
         let width = Lazy.force Frame.video_width in
         let height = Lazy.force Frame.video_height in
@@ -348,11 +336,11 @@ let register_plugin fname =
       let kind = Source.Kind.of_kind kind in
       if inputs = 1 then (
         let source = Lang.to_source (f "") in
-        new frei0r_filter ~kind ~name bgra instance params source )
+        new frei0r_filter ~kind ~name bgra instance params source)
       else if inputs = 2 then (
         let source = Lang.to_source (f "") in
         let source' = Lang.to_source (Lang.assoc "" 2 p) in
-        new frei0r_mixer ~kind ~name bgra instance params source source' )
+        new frei0r_mixer ~kind ~name bgra instance params source source')
       else if inputs = 0 then new frei0r_source ~kind ~name bgra instance params
       else assert false)
 

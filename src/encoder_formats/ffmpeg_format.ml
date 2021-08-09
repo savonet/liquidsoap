@@ -40,6 +40,7 @@ type t = {
   hwaccel : hwaccel;
   hwaccel_device : string option;
   audio_codec : codec option;
+  sample_format : string option;
   audio_opts : opts;
   video_codec : codec option;
   video_opts : opts;
@@ -88,9 +89,9 @@ let to_string m =
           Hashtbl.add video_opts "hwaccel"
             (`Var (match m.hwaccel with `None -> "none" | `Auto -> "auto"));
           Hashtbl.add video_opts "hwaccel_device"
-            ( match m.hwaccel_device with
+            (match m.hwaccel_device with
               | None -> `Var "none"
-              | Some d -> `String d );
+              | Some d -> `String d);
           let name =
             match m.video_codec with
               | Some (`Raw _) -> "video.raw"

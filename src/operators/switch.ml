@@ -46,11 +46,21 @@ type track_mode = Sensitive | Insensitive
 
 class virtual switch ~kind ~name ~override_meta ~transition_length
   ?(mode = fun () -> true) ?(replay_meta = true) (cases : child list) =
+  let sources = ref (List.map (fun c -> c.source) cases) in
+  let failed = ref false in
+  let () =
+    List.iter
+      (Lang.iter_sources
+         ~on_reference:(fun () -> failed := true)
+         (fun s -> sources := s :: !sources))
+      (List.map (fun c -> c.transition) cases)
+  in
+  let self_sync_type =
+    if !failed then lazy `Dynamic else Utils.self_sync_type !sources
+  in
   object (self)
     inherit operator ~name kind (List.map (fun x -> x.source) cases)
-
     val mutable transition_length = transition_length
-
     val mutable selected : (child * source) option = None
 
     (** We have to explicitly manage our children as they are dynamically created
@@ -126,13 +136,18 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 
     method is_ready = need_eot || selected <> None || self#cached_select <> None
 
+    (* This one is tricky. We do not want to call #cached_select as
+       this requires some run-time info from underlying sources
+       (mostly ctype to be set). The only case that matters if no
+       sources are selected is to know if we are [`Static, false] for
+       any caller such as [cross]. Since the source is not ready, we
+       can return anything so we check if any source might be not
+       self_sync in this case *)
     method self_sync =
-      match selected with
-        | Some (_, source) -> source#self_sync
-        | None -> (
-            match self#cached_select with
-              | Some { source } -> source#self_sync
-              | None -> false )
+      ( Lazy.force self_sync_type,
+        match selected with
+          | Some (_, source) -> snd source#self_sync
+          | None -> List.exists (fun c -> snd c.source#self_sync) cases )
 
     method private get_frame ab =
       (* Choose the next child to be played.
@@ -164,7 +179,8 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                     to_finish <- old_s :: to_finish;
                     Clock.collect_after (fun () ->
                         let old_source =
-                          if forget then Blank.empty kind else old_c.source
+                          if forget then Debug_sources.empty kind
+                          else old_c.source
                         in
                         let new_source =
                           (* Force insertion of old metadata if relevant.
@@ -201,21 +217,21 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                 | _ ->
                     (* We are staying on the same child,
                      * don't start a new track. *)
-                    need_eot <- false )
+                    need_eot <- false)
           | None -> (
               match selected with
                 | Some (_, old_s) ->
                     old_s#leave (self :> source);
                     to_finish <- old_s :: to_finish;
                     selected <- None
-                | None -> () )
+                | None -> ())
       in
       (* #select is called only when selected=None, and the cache is cleared	
        * as soon as the new selection is set. *)
       assert (selected = None || cached_selected = None);
       if need_eot then (
         need_eot <- false;
-        Frame.add_break ab (Frame.position ab) )
+        Frame.add_break ab (Frame.position ab))
       else (
         match selected with
           | None ->
@@ -227,7 +243,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
           | Some (c, s) ->
               s#get ab;
               c.cur_meta <-
-                ( if Frame.is_partial ab then None
+                (if Frame.is_partial ab then None
                 else (
                   match
                     List.fold_left
@@ -236,15 +252,15 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                         | Some (curp, curm) ->
                             fun (p, m) ->
                               Some (if p >= curp then (p, m) else (curp, curm)))
-                      ( match c.cur_meta with
+                      (match c.cur_meta with
                         | None -> None
-                        | Some m -> Some (-1, m) )
+                        | Some m -> Some (-1, m))
                       (Frame.get_all_metadata ab)
                   with
                     | None -> None
-                    | Some (_, m) -> Some (Hashtbl.copy m) ) );
+                    | Some (_, m) -> Some (Hashtbl.copy m)));
               if Frame.is_partial ab then reselect ~forget:true ()
-              else if not (mode ()) then reselect () )
+              else if not (mode ()) then reselect ())
 
     method remaining =
       match selected with None -> 0 | Some (_, s) -> s#remaining
@@ -253,7 +269,6 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
       match selected with Some (_, s) -> s#abort_track | None -> ()
 
     method seek n = match selected with Some (_, s) -> s#seek n | None -> 0
-
     method selected = Option.map (fun (_, s) -> s) selected
   end
 
@@ -288,7 +303,7 @@ let find ?(strict = false) f l =
     | x :: l ->
         if f x then (
           if strict then List.iter (fun x -> ignore (f x)) l;
-          x )
+          x)
         else aux l
     | [] -> raise Not_found
   in

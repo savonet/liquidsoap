@@ -53,7 +53,7 @@ let to_list q =
   Mutex.lock q.lock;
   if q.length = 0 then (
     Mutex.unlock q.lock;
-    [] )
+    [])
   else (
     let rec aux ans c =
       if c.next == q.top then List.rev (c.content :: ans)
@@ -61,7 +61,7 @@ let to_list q =
     in
     let ans = aux [] q.top in
     Mutex.unlock q.lock;
-    ans )
+    ans)
 
 let insert_pred ?top q f x =
   Mutex.lock q.lock;
@@ -88,7 +88,7 @@ let insert_pred ?top q f x =
               if Some true = top then q.top <- cell;
               c.prev.next <- cell;
               c.prev <- cell;
-              Mutex.unlock q.lock )
+              Mutex.unlock q.lock)
 
 let remove_pred_index q f =
   Mutex.lock q.lock;
@@ -115,7 +115,7 @@ let remove_pred_index q f =
               (c.content, !i)
           | None ->
               Mutex.unlock q.lock;
-              raise Not_found )
+              raise Not_found)
 
 let remove_pred q f = fst (remove_pred_index q f)
 
@@ -137,7 +137,7 @@ let fold f x q =
   Mutex.lock q.lock;
   if q.length = 0 then (
     Mutex.unlock q.lock;
-    x )
+    x)
   else (
     let rec fold c x =
       if c.next == q.top then f x c.content else fold c.next (f x c.content)
@@ -148,4 +148,4 @@ let fold f x q =
       a
     with e ->
       Mutex.unlock q.lock;
-      raise e )
+      raise e)

@@ -53,3 +53,11 @@ end
 def string.null_terminated(s)
   s ^ "\000"
 end
+
+# Generate an identifier if no identifier was provided.
+# @category String
+# @param ~default Name from which identifier is generated if not present.
+# @param id Proposed identifier.
+def string.id.default(~default, id)
+  null.default(id, {string.id(default)})
+end

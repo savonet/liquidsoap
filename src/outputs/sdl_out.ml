@@ -37,10 +37,9 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
           ~content_kind:(Source.Kind.of_kind kind) source autostart
 
     val mutable fullscreen = false
-
     val mutable window = None
 
-    method output_start =
+    method start =
       window <-
         Some
           (Sdl_utils.check
@@ -51,10 +50,10 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
       self#log#info "Initialized SDL video surface."
 
     (** We don't care about latency. *)
-    method output_reset = ()
+    method reset = ()
 
     (** Stop SDL. We have to assume that there's only one SDL output anyway. *)
-    method output_stop = Sdl.quit ()
+    method stop = Sdl.quit ()
 
     method process_events =
       let e = Sdl.Event.create () in
@@ -65,8 +64,8 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
                  do not cancel autostart. We should perhaps have a method in the
                  output class for that kind of thing, and try to get an uniform
                  behavior. *)
-              request_start <- false;
-              request_stop <- true
+              self#transition_to `Stopped;
+              self#transition_to `Started
           | `Key_down ->
               (let k = Sdl.Event.(get e keyboard_keycode) in
                match k with
@@ -75,8 +74,8 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
                      Sdl_utils.check
                        (fun () ->
                          Sdl.set_window_fullscreen (Option.get window)
-                           ( if fullscreen then Sdl.Window.fullscreen
-                           else Sdl.Window.windowed ))
+                           (if fullscreen then Sdl.Window.fullscreen
+                           else Sdl.Window.windowed))
                        ()
                  | k when k = Sdl.K.q ->
                      let e = Sdl.Event.create () in
@@ -84,9 +83,9 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
                      assert (Sdl_utils.check Sdl.push_event e)
                  | _ -> ());
               self#process_events
-          | _ -> self#process_events )
+          | _ -> self#process_events)
 
-    method output_send buf =
+    method send_frame buf =
       self#process_events;
       let window = Option.get window in
       let surface = Sdl_utils.check Sdl.get_window_surface window in
@@ -99,7 +98,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
 let () =
   let kind = Lang.video_yuva420p in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.sdl" ~active:true
+  Lang.add_operator "output.sdl"
     (Output.proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.Output ~descr:"Display a video using SDL."
     (fun p ->
@@ -114,8 +113,8 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      ( new output ~infallible ~autostart ~on_start ~on_stop ~kind source
-        :> Source.source ))
+      (new output ~infallible ~autostart ~on_start ~on_stop ~kind source
+        :> Source.source))
 
 let () =
   Lang.add_builtin ~category:(Lang.string_of_category Lang.Output)

@@ -46,19 +46,12 @@ let note_of_string s = note_of_string s - 12
 class chord ~kind metadata_name (source : source) =
   object (self)
     inherit operator ~name:"chord" kind [source]
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     val mutable notes_on = []
 
     method private get_frame buf =
@@ -116,7 +109,7 @@ class chord ~kind metadata_name (source : source) =
               | "M7" -> play t [c; c + 4; c + 7; c + 11]
               | "m7" -> play t [c; c + 3; c + 7; c + 10]
               | "dim" -> play t [c; c + 3; c + 6]
-              | m -> self#log#debug "Unknown mode: %s\n%!" m ))
+              | m -> self#log#debug "Unknown mode: %s\n%!" m))
         chords
   end
 
@@ -140,5 +133,5 @@ let () =
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let metadata = Lang.to_string (f "metadata") in
-      ( new chord ~kind:(Source.Kind.of_kind Lang.any) metadata src
-        :> Source.source ))
+      (new chord ~kind:(Source.Kind.of_kind Lang.any) metadata src
+        :> Source.source))

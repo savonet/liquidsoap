@@ -62,12 +62,12 @@ let add name g =
     ]
     (fun p ->
       let kind = Source.Kind.of_kind kind in
-      ( new gen
-          ~seek:true ~kind name g
-          (Lang.to_float_getter (List.assoc "" p))
-          (Lang.to_float (List.assoc "duration" p))
-          (Lang.to_float_getter (List.assoc "amplitude" p))
-        :> source ))
+      (new gen
+         ~seek:true ~kind name g
+         (Lang.to_float_getter (List.assoc "" p))
+         (Lang.to_float (List.assoc "duration" p))
+         (Lang.to_float_getter (List.assoc "amplitude" p))
+        :> source))
 
 let sine f =
   new Audio.Generator.of_mono

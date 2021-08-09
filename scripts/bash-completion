@@ -23,16 +23,12 @@ _liquidsoap()
     _liquidsoap_reply=()
 
     case "$prev" in
-        "--conf-descr-key")
-            _liquidsoap_add_f liquidsoap --list-conf-keys
-            ;;
-
         "-h"|"-help"|"--help")
             _liquidsoap_add_f liquidsoap --list-functions
             ;;
 
         *)
-            _liquidsoap_reply+=("-c --check --conf-descr --conf-descr-key --conf-dump -d --daemon --debug -h --help -i --interactive --list-conf-keys --list-functions --list-functions-md --list-extra-functions-md --list-plugins --list-protocols-md --no-pervasives --parse-only --profile --quiet -r --strict --version -v --verbose")
+            _liquidsoap_reply+=("-c --check --list-settings -d --daemon --debug -h --help -i --interactive --list-functions --list-functions-md --list-extra-functions-md --list-plugins --list-protocols-md --no-stdlib --parse-only --profile --quiet -r --strict --version -v --verbose")
             compgen_opt+=(-o filenames -f)
             ;;
     esac

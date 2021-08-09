@@ -26,19 +26,12 @@ class map ~kind source delay random freeze =
   let dt = AFrame.duration () in
   object
     inherit operator kind [source]
-
     val mutable lived = 0.
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     method private get_frame buf =

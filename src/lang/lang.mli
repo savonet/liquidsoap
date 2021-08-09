@@ -81,8 +81,10 @@ val compare_values : value -> value -> int
 
 (** Iter a function over all sources contained in a value. This only applies to
     statically referenced objects, i.e. it does not explore inside reference
-    cells. *)
-val iter_sources : (Source.source -> unit) -> value -> unit
+    cells. [on_reference] is used when we encounter a reference cell that may
+    contain a source. If not passed, we display a warning log. *)
+val iter_sources :
+  ?on_reference:(unit -> unit) -> (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)
 
@@ -140,6 +142,7 @@ type category =
   | Input  (** Input. *)
   | Output  (** Output. *)
   | Conversions  (** Conversions of stream type *)
+  | FFmpegFilter  (** FFmpeg filter *)
   | TrackProcessing  (** Operations on tracks (e.g. mixing, etc.). *)
   | SoundProcessing  (** Operations on sound (e.g. compression, etc.). *)
   | VideoProcessing  (** Operations on video. *)
@@ -184,7 +187,6 @@ val add_operator :
   category:category ->
   descr:string ->
   ?flags:doc_flag list ->
-  ?active:bool ->
   ?meth:(< Source.source ; .. > as 'a) operator_method list ->
   string ->
   proto ->
@@ -242,7 +244,7 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val request_t : t
-val source_t : ?methods:bool -> ?active:bool -> t -> t
+val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t
 val kind_t : Frame.kind -> t
@@ -302,7 +304,12 @@ val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
 (** {2 Main script evaluation} *)
 
 (** Load the external libraries. *)
-val load_libs : ?parse_only:bool -> ?deprecated:bool -> unit -> unit
+val load_libs :
+  ?error_on_no_stdlib:bool ->
+  ?parse_only:bool ->
+  ?deprecated:bool ->
+  unit ->
+  unit
 
 (** Evaluate a script from an [in_channel]. *)
 val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit

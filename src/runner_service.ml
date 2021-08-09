@@ -80,5 +80,5 @@ let () =
         try Svc.run Main.start
         with e ->
           Main.log#severe "Error while running service: %s"
-            (Printexc.to_string e) )
+            (Printexc.to_string e))
     | `None -> Main.start ()

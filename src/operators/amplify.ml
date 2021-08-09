@@ -26,19 +26,12 @@ open Source
 class amplify ~kind (source : source) override_field coeff =
   object (self)
     inherit operator ~name:"amplify" kind [source]
-
     val mutable override = None
-
     method stype = source#stype
-
     method is_ready = source#is_ready
-
     method remaining = source#remaining
-
     method abort_track = source#abort_track
-
     method seek = source#seek
-
     method self_sync = source#self_sync
 
     method private get_frame buf =
@@ -58,7 +51,7 @@ class amplify ~kind (source : source) override_field coeff =
                     in
                     self#log#info "Overriding amplification: %f." k;
                     override <- Some k
-                  with _ -> () ))
+                  with _ -> ()))
               (AFrame.get_all_metadata buf)
         | None -> ()
       end;
@@ -68,7 +61,7 @@ class amplify ~kind (source : source) override_field coeff =
           (Audio.sub (AFrame.pcm buf) offset (AFrame.position buf - offset));
       if AFrame.is_partial buf && override <> None then (
         self#log#info "End of the current overriding.";
-        override <- None )
+        override <- None)
   end
 
 let () =

@@ -51,6 +51,6 @@ explanation of how seeking in liquidsoap works [there](seek.html).
 The metadata added for cue-in and cue-out positions can be customized using the following
 configuration keys:
 ```liquidsoap
-set("playlists.cue_in_metadata","liq_cue_in")
-set("playlists.cue_out_metadata","liq_cue_out")
+settings.playlists.cue_in_metadata.set("liq_cue_in")
+settings.playlists.cue_out_metadata.set("liq_cue_out")
 ```

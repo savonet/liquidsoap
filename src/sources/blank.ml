@@ -32,15 +32,10 @@ class blank ~kind duration =
     val mutable remaining = ticks
 
     method remaining = remaining
-
     method stype = Infallible
-
     method is_ready = true
-
-    method self_sync = false
-
+    method self_sync = (`Static, false)
     method seek x = x
-
     method abort_track = remaining <- 0
 
     method get_frame ab =
@@ -51,18 +46,17 @@ class blank ~kind duration =
       in
       let video_pos = Frame.video_of_main position in
       (* Audio *)
-      ( try
-          Audio.clear
-            (Audio.sub (AFrame.pcm ab)
-               (Frame.audio_of_main position)
-               (Frame.audio_of_main length))
-        with Frame_content.Invalid -> () );
+      (try
+         Audio.clear
+           (Audio.sub (AFrame.pcm ab)
+              (Frame.audio_of_main position)
+              (Frame.audio_of_main length))
+       with Frame_content.Invalid -> ());
 
       (* Video *)
-      ( try
-          Video.blank (VFrame.yuva420p ab) video_pos
-            (Frame.video_of_main length)
-        with Frame_content.Invalid -> () );
+      (try
+         Video.blank (VFrame.yuva420p ab) video_pos (Frame.video_of_main length)
+       with Frame_content.Invalid -> ());
 
       Frame.add_break ab (position + length);
       if Frame.is_partial ab then remaining <- ticks
@@ -86,34 +80,3 @@ let () =
       let d = Lang.to_float (List.assoc "duration" p) in
       let kind = Source.Kind.of_kind kind in
       (new blank ~kind d :> source))
-
-class fail ~kind =
-  object
-    inherit source ~name:"fail" kind
-
-    method stype = Fallible
-
-    method is_ready = false
-
-    method self_sync = false
-
-    method remaining = 0
-
-    method abort_track = ()
-
-    method get_frame _ = assert false
-  end
-
-let fail kind = (new fail ~kind :> source)
-let empty = fail
-
-let () =
-  let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "fail" ~category:Lang.Input
-    ~descr:
-      "A source that does not produce anything. No silence, no track at all."
-    ~return_t [] (fun _ ->
-      ( let kind = Source.Kind.of_kind kind in
-        new fail ~kind
-        :> source ))

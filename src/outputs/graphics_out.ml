@@ -31,28 +31,27 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
           ~on_stop ~content_kind:kind source autostart
 
     val mutable sleep = false
+    method stop = sleep <- true
 
-    method output_stop = sleep <- true
-
-    method output_start =
+    method start =
       Graphics.open_graph "";
       Graphics.set_window_title "Liquidsoap";
       Graphics.resize_window video_width video_height;
       sleep <- false
 
-    method output_send buf =
+    method send_frame buf =
       let rgb = Video.get (VFrame.yuva420p buf) 0 in
       let img = Video.Image.to_int_image rgb in
       let img = Graphics.make_image img in
       Graphics.draw_image img 0 0
 
-    method output_reset = ()
+    method reset = ()
   end
 
 let () =
   let kind = Lang.video_yuva420p in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.graphics" ~active:true
+  Lang.add_operator "output.graphics"
     (Output.proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.Output
     ~descr:"Display video stream using the Graphics library."
@@ -69,5 +68,5 @@ let () =
       in
       let source = List.assoc "" p in
       let kind = Source.Kind.of_kind kind in
-      ( new output ~kind ~infallible ~autostart ~on_start ~on_stop source
-        :> Source.source ))
+      (new output ~kind ~infallible ~autostart ~on_start ~on_stop source
+        :> Source.source))

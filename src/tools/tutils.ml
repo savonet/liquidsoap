@@ -108,7 +108,7 @@ let seems_locked =
   else fun m ->
     if Mutex.try_lock m then (
       Mutex.unlock m;
-      false )
+      false)
     else true
 
 let log = Log.make ["threads"]
@@ -168,24 +168,25 @@ let create ~queue f x s =
   mutexify lock
     (fun () ->
       let id =
-        Thread.create
-          (fun x ->
+        let rec process x =
+          try
+            f x;
+            mutexify lock
+              (fun () ->
+                set := Set.remove (s, c) !set;
+                log#info "Thread %S terminated (%d remaining)." s
+                  (Set.cardinal !set);
+                Condition.signal c)
+              ()
+          with e -> (
+            let bt = Printexc.get_backtrace () in
             try
-              f x;
-              mutexify lock
-                (fun () ->
-                  set := Set.remove (s, c) !set;
-                  log#info "Thread %S terminated (%d remaining)." s
-                    (Set.cardinal !set);
-                  Condition.signal c)
-                ()
-            with e ->
-              let bt = Printexc.get_backtrace () in
-              begin
-                match e with
+              match e with
                 | Exit -> log#info "Thread %S exited." s
-                | Failure e -> log#important "Thread %S failed: %s!" s e
-                | e when error_handler ~bt ~name:s e -> ()
+                | Failure e as exn ->
+                    log#important "Thread %S failed: %s!" s e;
+                    raise exn
+                | e when queue && error_handler ~bt ~name:s e -> process x
                 | e when queue ->
                     log#severe "Queue %s crashed with exception %s\n%s" s
                       (Printexc.to_string e) bt;
@@ -195,11 +196,11 @@ let create ~queue f x s =
                     exit 1
                 | e ->
                     log#important "Thread %S aborts with exception %s!" s
-                      (Printexc.to_string e)
-              end;
-              if e <> Exit then (
-                let l = Pcre.split ~pat:"\n" bt in
-                List.iter (log#info "%s") l );
+                      (Printexc.to_string e);
+                    raise e
+            with e ->
+              let l = Pcre.split ~pat:"\n" bt in
+              List.iter (log#info "%s") l;
               mutexify lock
                 (fun () ->
                   set := Set.remove (s, c) !set;
@@ -207,8 +208,9 @@ let create ~queue f x s =
                   Condition.signal no_problem;
                   Condition.signal c)
                 ();
-              if e <> Exit then raise e)
-          x
+              raise e)
+        in
+        Thread.create process x
       in
       set := Set.add (s, c) !set;
       log#info "Created thread %S (%d total)." s (Set.cardinal !set);
@@ -229,15 +231,12 @@ let () =
   Lifecycle.on_scheduler_shutdown (fun () ->
       log#important "Shutting down scheduler...";
       Duppy.stop scheduler;
-      log#important "Scheduler shut down.";
-      log#important "Waiting for queue threads to terminate...";
-      join_all ~set:queues ();
-      log#important "Queues shut down")
+      log#important "Scheduler shut down.")
 
 let scheduler_log n =
   if scheduler_log#get then (
     let log = Log.make [n] in
-    fun m -> log#info "%s" m )
+    fun m -> log#info "%s" m)
   else fun _ -> ()
 
 let new_queue ?priorities ~name () =
@@ -326,7 +325,7 @@ let () =
     (Dtools.Init.at_start (fun () ->
          if Dtools.Init.conf_daemon#get then (
            Dtools.Log.conf_stdout#set false;
-           start_forwarding () )))
+           start_forwarding ())))
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
@@ -369,8 +368,8 @@ let wait_for ?(log = fun _ -> ()) event timeout =
       let current_time = Unix.gettimeofday () in
       if current_time >= max_time then (
         log "Timeout reached!";
-        raise (Timeout (current_time -. start_time)) )
-      else wait (min 1. (max_time -. current_time)) )
+        raise (Timeout (current_time -. start_time)))
+      else wait (min 1. (max_time -. current_time)))
   in
   wait (min 1. timeout)
 
@@ -383,7 +382,7 @@ let main () =
 let shutdown code =
   if !run = `Run then (
     run := `Exit code;
-    Condition.signal no_problem )
+    Condition.signal no_problem)
 
 let exit_code () = match !run with `Exit code -> code | _ -> 0
 
@@ -398,20 +397,3 @@ let lazy_cell f =
             let v = f () in
             c := Some v;
             v)
-
-(* Thread with preemptive kill/wait mechanism, see mli for details. *)
-let stoppable_thread f name =
-  let cond = Condition.create () in
-  let lock = Mutex.create () in
-  let should_stop = ref false in
-  let has_stopped = ref false in
-  let kill = mutexify lock (fun () -> should_stop := true) in
-  let wait () = wait cond lock (fun () -> !has_stopped) in
-  let should_stop = mutexify lock (fun () -> !should_stop) in
-  let has_stopped =
-    mutexify lock (fun () ->
-        has_stopped := true;
-        Condition.signal cond)
-  in
-  let _ = create f (should_stop, has_stopped) name in
-  (kill, wait)

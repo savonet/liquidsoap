@@ -56,7 +56,7 @@ let () =
       [(true, "pwd", Lang.string_t); (false, "", Lang.string_t)]
       playlist_t
   in
-  add_builtin "add_playlist_parser" ~cat:Liq
+  add_builtin "playlist.parse.register" ~cat:Liq
     ~descr:
       "Register a new playlist parser. An empty playlist is considered as a \
        failure to resolve."

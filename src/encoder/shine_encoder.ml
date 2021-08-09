@@ -51,7 +51,7 @@ let encoder shine =
           Audio_converter.Samplerate.resample samplerate_converter
             (dst_freq /. src_freq) (Audio.sub b start len)
         in
-        (b, 0, Audio.length b) )
+        (b, 0, Audio.length b))
       else (Audio.copy b, start, len)
     in
     G.put buf b start len;

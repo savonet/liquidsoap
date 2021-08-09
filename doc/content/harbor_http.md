@@ -128,7 +128,7 @@ def proxy_icecast(~protocol,~data,~headers,uri) =
   request = 
     "#{method} #{uri} #{protocol}\r\n\
      #{headers}\r\n\r\n"
-  get_process_output("echo #{quote(request)} | \
+  process.read("echo #{quote(request)} | \
                       nc localhost 8000")
 end
 

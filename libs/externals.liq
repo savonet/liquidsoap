@@ -1,33 +1,39 @@
 # Decoders, enabled when the binary is detected and the os is not Win32.
 
-register(
-  name="external decoders",
-  descr="External decoders settings",
-  "decoder.external",
-  ())
-register(
-  name="ffmpeg path",
-  descr="Path to ffmpeg binary",
-  "decoder.external.ffmpeg.path",
-  "ffmpeg#{exe_ext}")
-register(
-  name="ffprobe path",
-  descr="Path to ffprobe binary",
-  "decoder.external.ffprobe.path",
-  "ffprobe#{exe_ext}")
+let settings.decoder.external = settings.make.void(
+  "External decoders settings"
+)
 
-register(
-  name="Ffmpeg decoder stream mimes",
-  descr="Mime types supported by the ffmpeg stream decoder",
-  "decoder.mime_types.ffmpeg",
-  [])
+# @flag hidden
+def settings.make.external(name) =
+  settings.make.void("Settings for the #{name} external decoder")
+end
+
+let settings.decoder.external.ffmpeg = settings.make.external("FFmpeg")
+
+let settings.decoder.external.ffmpeg.path = settings.make(
+  description="Path to ffmpeg binary",
+  "ffmpeg#{exe_ext}"
+)
+
+let settings.decoder.external.ffprobe = settings.make.external("FFprobe")
+
+let settings.decoder.external.ffprobe.path = settings.make(
+  description="Path to ffprobe binary",
+  "ffprobe#{exe_ext}"
+)
+
+let settings.decoder.mime_types.ffmpeg = settings.make(
+  description="Mime types supported by the ffmpeg stream decoder",
+  []
+)
 
 # Enable ffmpeg decoder.
 # @category Liquidsoap
 def enable_external_ffmpeg_decoder() =
-  ffmpeg     = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
-  ffprobe    = get(default="ffprobe#{exe_ext}","decoder.external.ffprobe.path")
-  mime_types = get(default=[],"decoder.mime_types.ffmpeg")
+  ffmpeg     = settings.decoder.external.ffmpeg.path()
+  ffprobe    = settings.decoder.external.ffprobe.path()
+  mime_types = settings.decoder.mime_types.ffmpeg()
 
   def ffprobe_test(fname) =
     json = process.read("#{ffprobe} -print_format json -show_streams #{string.quote(fname)}")
@@ -51,11 +57,12 @@ def enable_external_ffmpeg_decoder() =
   end
 end
 
-register(
-  name="mpcdec path",
-  descr="Path to mpcdec binary",
-  "decoder.external.mpcdec.path",
-  "mpcdec#{exe_ext}")
+let settings.decoder.external.mpcdec = settings.make.external("mpcdec")
+
+let settings.decoder.external.mpcdec.path = settings.make(
+  description="Path to mpcdec binary",
+  "mpcdec#{exe_ext}"
+)
 
 # Enable external Musepack decoder.
 # @category Liquidsoap
@@ -65,7 +72,7 @@ def enable_external_mpc_decoder() =
   mpc_mimes = [ "audio/x-musepack", "audio/musepack" ]
   mpc_filexts = [ "mpc", "mp+", "mpp" ]
 
-  mpcdec = get(default="mpcdec#{exe_ext}","decoder.external.mpcdec.path") 
+  mpcdec = settings.decoder.external.mpcdec.path() 
 
   def test_mpc(file) =
     def get_channels(file) =
@@ -105,24 +112,27 @@ def enable_external_mpc_decoder() =
   end
 end
 
-register(
-  name="flac path",
-  descr="Path to flac binary",
-  "decoder.external.flac.path",
-  "flac#{exe_ext}")
-register(
-  name="metaflac path",
-  descr="Path to metaflac binary",
-  "decoder.external.metaflac.path",
-  "metaflac#{exe_ext}")
+let settings.decoder.external.flac = settings.make.external("flac")
+
+let settings.decoder.external.flac.path = settings.make(
+  description="Path to flac binary",
+  "flac#{exe_ext}"
+)
+
+let settings.decoder.external.metaflac = settings.make.external("metaflac")
+
+let settings.decoder.external.metaflac.path = settings.make(
+  description="Path to metaflac binary",
+  "metaflac#{exe_ext}"
+)
 
 # Enable external FLAC decoders. Please note that built-in support for 
 # FLAC is available in liquidsoap if compiled and should be preferred
 # over the external decoder.
 # @category Liquidsoap
 def enable_external_flac_decoder() =
-  flac = get(default="flac#{exe_ext}","decoder.external.flac.path")
-  metaflac = get(default="metaflac#{exe_ext}","decoder.external.metaflac.path")
+  flac = settings.decoder.external.flac.path()
+  metaflac = settings.decoder.external.metaflac.path()
 
   if file.which(flac) != null() then
     log(label="external.decoder","Enabling EXTERNAL_FLAC external decoder.")
@@ -178,11 +188,12 @@ def enable_external_flac_decoder() =
   end
 end
 
-register(
-  name="faad path",
-  descr="Path to faad binary",
-  "decoder.external.faad.path",
-  "faad#{exe_ext}")
+let settings.decoder.external.faad = settings.make.external("faad") 
+
+let settings.decoder.external.faad.path = settings.make(
+  description="Path to faad binary",
+  "faad#{exe_ext}"
+)
 
 # Enable or disable external FAAD (AAC/AAC+/M4A) decoders. Does not work
 # on Win32.
@@ -190,7 +201,7 @@ register(
 # compiled and should be preferred over the external decoder.
 # @category Liquidsoap
 def enable_external_faad_decoder() =
-  faad = get(default="faad#{exe_ext}","decoder.external.faad.path")
+  faad = settings.decoder.external.faad.path()
 
   # A list of know extensions and content-type for AAC.
   # Values from http://en.wikipedia.org/wiki/Advanced_Audio_Coding

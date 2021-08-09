@@ -1,14 +1,13 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
-set("log.level",5)
-set("frame.audio.samplerate",48000)
-set("frame.video.framerate",45)
-
-set("decoder.decoders",["FFMPEG"])
+log.level.set(5)
+audio.samplerate.set(48000)
+video.frame.rate.set(45)
+settings.decoder.decoders.set(["FFMPEG"])
 
 fname = argv(default="",1)
-out = "files/test.mp4"
+out = "files/test_ffmpeg_video_decoder.mp4"
 
 if file.exists(out) then
   file.remove(out)

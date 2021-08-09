@@ -169,7 +169,7 @@ module Icecast = struct
                 bitrate = None;
                 samplerate = None;
                 channels = None;
-              } )
+              })
 end
 
 module M = Icecast_utils.Icecast_v (Icecast)
@@ -443,7 +443,7 @@ class output ~kind p =
             | (_, s) :: _ -> (
                 let title = Filename.basename s in
                 try String.sub title 0 (String.rindex title '.')
-                with Not_found -> title )
+                with Not_found -> title)
             | [] -> "Unknown"
         in
         let default_song =
@@ -480,14 +480,14 @@ class output ~kind p =
               with e ->
                 self#log#important
                   "Metadata update may have failed with error: %s"
-                  (Printexc.to_string e) )
+                  (Printexc.to_string e))
           | Cry.Disconnected -> ()
-        (* Do nothing if shout connection isn't available *) )
+        (* Do nothing if shout connection isn't available *))
       else (
         (* Encoder is not always present.. *)
-          match encoder with
+        match encoder with
           | Some encoder -> encoder.Encoder.insert_metadata m
-          | None -> () )
+          | None -> ())
 
     method send b =
       match Cry.get_status connection with
@@ -510,18 +510,17 @@ class output ~kind p =
                 self#icecast_stop;
                 restart_time <- Unix.time () +. delay;
                 self#log#important "Will try to reconnect in %.02f seconds."
-                  delay )
-              else raise e )
+                  delay)
+              else raise e)
 
     (** It there's too much latency, we'll stop trying to catchup.
     * Reconnect to cancel the latency on the server's side too. *)
-    method output_reset =
-      self#output_stop;
-      self#output_start
+    method reset =
+      self#stop;
+      self#start
 
-    method output_start = self#icecast_start
-
-    method output_stop = self#icecast_stop
+    method start = self#icecast_start
+    method stop = self#icecast_stop
 
     method icecast_start =
       assert (encoder = None);
@@ -577,7 +576,7 @@ class output ~kind p =
         if delay >= 0. then (
           self#log#important "Will try again in %.02f sec." delay;
           self#icecast_stop;
-          restart_time <- Unix.time () +. delay )
+          restart_time <- Unix.time () +. delay)
         else raise e
 
     method icecast_stop =
@@ -600,10 +599,10 @@ class output ~kind p =
 
 let () =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.icecast" ~active:true ~category:Lang.Output
+  Lang.add_operator "output.icecast" ~category:Lang.Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    (proto return_t) ~return_t (fun p ->
+    ~meth:Output.meth (proto return_t) ~return_t (fun p ->
       let format_val = Lang.assoc "" 1 p in
       let format = Lang.to_format format_val in
       let kind = Encoder.kind_of_format format in
-      (new output ~kind p :> Source.source))
+      (new output ~kind p :> Output.output))

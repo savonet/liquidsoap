@@ -38,25 +38,23 @@ class audio_output ~name ~kind source_val =
     inherit
       Output.output
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
-          ~output_kind:"ffmpeg.filter.input" source_val true
+          ~output_kind:"ffmpeg.filter.input" source_val true as super
 
     initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
-
     val mutable input = fun _ -> assert false
-
     method set_input fn = input <- fn
-
     val mutable init = lazy ()
-
     method set_init v = init <- v
 
-    method output_start = Lazy.force init
+    method private wake_up a =
+      super#wake_up a;
+      Lazy.force init
 
-    method output_stop = ()
+    method start = ()
+    method stop = ()
+    method reset = ()
 
-    method output_reset = ()
-
-    method output_send memo =
+    method send_frame memo =
       let frames =
         Ffmpeg_raw_content.(
           (Audio.get_data Frame.(memo.content.audio)).VideoSpecs.data)
@@ -84,22 +82,15 @@ class video_output ~kind ~name source_val =
           ~output_kind:"ffmpeg.filter.input" source_val true
 
     initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
-
     val mutable input : Swscale.Frame.t -> unit = fun _ -> assert false
-
     method set_input fn = input <- fn
-
     val mutable init = lazy ()
-
     method set_init v = init <- v
+    method start = Lazy.force init
+    method stop = ()
+    method reset = ()
 
-    method output_start = Lazy.force init
-
-    method output_stop = ()
-
-    method output_reset = ()
-
-    method output_send memo =
+    method send_frame memo =
       let frames =
         Ffmpeg_raw_content.(
           (Video.get_data Frame.(memo.content.video)).VideoSpecs.data)
@@ -127,9 +118,7 @@ class audio_input ~bufferize kind =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
-
     val mutable config = None
-
     val mutable output = None
 
     method set_output v =
@@ -145,10 +134,8 @@ class audio_input ~bufferize kind =
         (Ffmpeg_raw_content.Audio.lift_params output_format);
       output <- Some v
 
-    method self_sync = false
-
+    method self_sync = (`Static, false)
     method stype = Source.Fallible
-
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
@@ -200,13 +187,13 @@ class audio_input ~bufferize kind =
         | `Not_ready ->
             if Generator.length generator >= min_buf then (
               state <- `Ready;
-              true )
+              true)
             else false
         | `Ready ->
             if Generator.length generator > 0 then true
             else (
               state <- `Not_ready;
-              false )
+              false)
 
     method private get_frame frame =
       self#flush_buffer;
@@ -215,12 +202,6 @@ class audio_input ~bufferize kind =
         self#log#important "Buffer emptied..."
 
     method abort_track = ()
-
-    val mutable init = lazy ()
-
-    method set_init v = init <- v
-
-    method output_start = Lazy.force init
   end
 
 type video_config = {
@@ -236,7 +217,6 @@ class video_input ~bufferize ~fps kind =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
-
     val mutable output = None
 
     method set_output v =
@@ -252,10 +232,8 @@ class video_input ~bufferize ~fps kind =
         (Ffmpeg_raw_content.Video.lift_params output_format);
       output <- Some v
 
-    method self_sync = false
-
+    method self_sync = (`Static, false)
     method stype = Source.Fallible
-
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
@@ -298,13 +276,13 @@ class video_input ~bufferize ~fps kind =
         | `Not_ready ->
             if Generator.length generator >= min_buf then (
               state <- `Ready;
-              true )
+              true)
             else false
         | `Ready ->
             if Generator.length generator > 0 then true
             else (
               state <- `Not_ready;
-              false )
+              false)
 
     method private get_frame frame =
       self#flush_buffer;

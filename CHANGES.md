@@ -38,6 +38,7 @@ New:
 - Add `validate` parameter to `register`, which allows to validate a value
   before setting it (#1046, @CyberDomovoy)
 - Add `string.null_terminated` (#960).
+- Add `string.unescape` and `string.utf8.unescape`.
 - Add `file.metadata` (#1058).
 - Add `predicate.activates`, `predicate.changes`, `predicate.first`,
   `predicate.once`, `predicate.signal` (#1075).
@@ -87,12 +88,15 @@ New:
 - Added `clock.log_delay` to configure how often clock catchup error messages
   should be printed.
 - Added `input.rtmp` (#1640).
+- Added `%ifversion` and `%else` preprocessing commands (#1682).
+- Added `dtmf` and `dtmf.detect` to generate and detect DTMF tones (#1796).
 
 Changed:
 
 - Implemented per-frame clock synchronization mechanism, should allow for more
   advanced flexibility when working with source synchronization while keeping
   the default safe behavior. (#1012)
+- Remove `active_source` type, make all output return `unit` type. (#1671)
 - Switch to YUV420 as internal image format, much more efficient (#848).
 - Use bigarrays for audio buffers (#950).
 - Re-implemented switch-derived operators (`fallback`, `rotate`, `random`) as
@@ -200,6 +204,9 @@ Fixed:
 - Fixed parsing of http URI arguments with `=` in them (#1340).
 - Fixed fade-out in crossfades when crossfade duration is the same as fade-out duration (#1351).
 - Fixed osc server not workin when daemonized (#1365).
+
+Removed:
+- LiGuidsoap, the old Liquidsoap GUI. 🪦
 
 1.4.4 (27-02-2021)
 =====

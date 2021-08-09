@@ -10,30 +10,11 @@ def deprecated(old, new)
   log.severe(label="lang.deprecated", "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{new}")
 end
 
-# @flag deprecated
-def on_change_harbor_bind_addr(v) =
-  deprecated("harbor.bind_addr", "harbor.bind_addrs")
-  set("harbor.bind_addrs",[v])
-end
-
-register(name="[DEPRECATED] Harbor bind_addr",
-         descr="IP addresses on which the harbor should listen.",
-         on_change=on_change_harbor_bind_addr,"harbor.bind_addr","0.0.0.0")
-
-# @flag deprecated
-def on_change_video_samplerate(r) =
-  deprecated("frame.video.samplerate", "frame.video.framerate")
-  set("frame.video.framerate",r)
-end
-
-register(name="[DEPRECATED] Framerate",
-         on_change=on_change_video_samplerate,"frame.video.samplerate",25)
-
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag deprecated
-def replaces input.external(%argsof(input.external.rawaudio))
+def replaces input.external(%argsof(input.external.rawaudio), cmd)
   deprecated("input.external", "input.external.rawaudio")
-  input.external.rawaudio(%argsof(input.external.rawaudio))
+  input.external.rawaudio(%argsof(input.external.rawaudio), cmd)
 end
 
 # Deprecated: this function has been replaced by `string.quote`.
@@ -52,7 +33,7 @@ end
 
 # Deprecated: use mksafe and playlist instead.
 # @flag deprecated
-def playlist.safe(~id="", ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri)
+def playlist.safe(~id=null(), ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri)
   deprecated("playlist.safe", "")
   mksafe(playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri))
 end
@@ -103,12 +84,11 @@ end
 
 # Deprecated: this function has been replaced with `playlist`, setting
 # `reload_mode` argument to `"never"` and `loop` to `false`.
-def playlist.once(~id="",~random=false,~reload_mode="",
-                  ~default_duration=30.,~length=10.,~conservative=false,
-                  ~filter=fun(_)->true,uri)
+def playlist.once(~id=null(),~random=false,~reload_mode="",
+                  ~prefetch=1,~filter=fun(_)->true,uri)
   deprecated("playlist.once", "playlist")
   mode = if random then "randomize" else "normal" end
-  playlist(reload_mode="never", loop=false, id=id, mode=mode, conservative=conservative, default_duration=default_duration, check_next=filter, uri)
+  playlist(reload_mode="never", loop=false, id=id, mode=mode, prefetch=prefetch, check_next=filter, uri)
 end
 
 # Deprecated: this function has been replaced by `map_metadata`.
@@ -128,7 +108,7 @@ end
 
 # Deprecated: this function will be removed in a future release
 # @flag deprecated
-def id(~id="",s)
+def id(~id=null(),s)
  deprecated("id","")
  s
 end 
@@ -237,17 +217,18 @@ def register_flow(~server="",~user="default",~password="default",
 end
 %endif
 
-# Deprecated: this function has been replaced by `fail`.
+# Deprecated: this function has been replaced by `source.fail`.
 # @flag deprecated
-def empty(~id="")
-  fail()
+def empty(~id=null())
+  deprecated("empty", "source.fail")
+  source.fail()
 end
 
 # Deprecated: use `request.create` instead.
 # @flag deprecated
-def request.create.raw(%argsof(request.create))
+def request.create.raw(%argsof(request.create), uri)
   deprecated("request.create.raw", "request.create")
-  request.create(%argsof(request.create))
+  request.create(%argsof(request.create), uri)
 end
 
 # Deprecated: use `file.remove` instead.
@@ -290,23 +271,23 @@ end
 
 # Deprecated: use `process.read` instead.
 # @flag deprecated
-def get_process_output(%argsof(process.read))
+def get_process_output(%argsof(process.read), cmd)
   deprecated("get_process_output", "process.read")
-  process.read(%argsof(process.read))
+  process.read(%argsof(process.read), cmd)
 end
 
 # Deprecated: use `process.read.lines` instead.
 # @flag deprecated
-def get_process_lines(%argsof(process.read.lines))
+def get_process_lines(%argsof(process.read.lines), cmd)
   deprecated("get_process_lines", "process.read.lines")
-  process.read.lines(%argsof(process.read.lines))
+  process.read.lines(%argsof(process.read.lines), cmd)
 end
 
 # Deprecated: use `process.test` instead.
 # @flag deprecated
-def test_process(%argsof(process.test))
+def test_process(%argsof(process.test), cmd)
   deprecated("test_process", "process.test")
-  process.test(%argsof(process.test))
+  process.test(%argsof(process.test), cmd)
 end
 
 # Deprecated: use `process.run` instead.
@@ -318,30 +299,30 @@ end
 
 # Deprecated: use `blank.detect` instead
 # @flag deprecated
-def on_blank(%argsof(blank.detect))
+def on_blank(%argsof(blank.detect), s)
   deprecated("on_blank", "blank.detect")
-  blank.detect(%argsof(blank.detect))
+  blank.detect(%argsof(blank.detect), s)
 end
 
 # Deprecated: use `blank.skip` instead
 # @flag deprecated
-def skip_blank(%argsof(blank.skip))
+def skip_blank(%argsof(blank.skip), s)
   deprecated("skip_blank", "blank.skip")
-  blank.skip(%argsof(blank.skip))
+  blank.skip(%argsof(blank.skip), s)
 end
 
 # Deprecated: use `blank.eat` instead
 # @flag deprecated
-def eat_blank(%argsof(blank.eat))
+def eat_blank(%argsof(blank.eat), s)
   deprecated("eat_blank", "blank.eat")
-  blank.eat(%argsof(blank.eat))
+  blank.eat(%argsof(blank.eat), s)
 end
 
 # Deprecated: use `blank.strip` instead
 # @flag deprecated
-def strip_blank(%argsof(blank.strip))
+def strip_blank(%argsof(blank.strip), s)
   deprecated("strip_blank", "blank.strip")
-  blank.strip(%argsof(blank.strip))
+  blank.strip(%argsof(blank.strip), s)
 end
 
 # Deprecated: use `time.local` instead
@@ -365,144 +346,8 @@ def gettimeofday()
   time()
 end
 
-%ifdef input.gstreamer.audio_video
-# @docof input.gstreamer.audio_video
-def input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
-  s = input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video))
-
-  server.register(namespace=s.id(), description="Set gstreamer pipeline state to play",
-                  "play", fun (_) -> try
-                    s.play()
-                    "Done."
-                  catch err do
-                    "Error while setting state to play: #{err}"
-                  end)
-
-  server.register(namespace=s.id(), description="Set gstreamer pipeline state to paused",
-                  "pause", fun (_) -> try
-                    s.pause()
-                    "Done."
-                  catch err do
-                    "Error while setting state to paused: #{err}"
-                  end)
-
-  server.register(namespace=s.id(), description="Restart gstreamer pipeline",
-                  "restart", fun (_) -> try
-                    s.restart()
-                    "Done."
-                  catch err do
-                    "Error while restarting pipeline: #{err}"
-                  end)
-
-  s
-end
-%endif
-
-# @docof blank.strip
-def blank.strip(%argsof(blank.strip), s) =
-  s = blank.strip(%argsof(blank.strip), s)
-
-  server.register(namespace=s.id(), description="Check if the source is stripping.",
-                  "is_stripping", fun (_) -> begin
-                    "#{s.is_blank()}"
-                  end)
-
-  s
-end
-
-# @docof output.external
-def output.external(%argsof(output.external), f, p, s) =
-  s = output.external(%argsof(output.external), f, p, s)
-
-  server.register(namespace=s.id(), description="Re-open the output.",
-                  "reopen", fun (_) -> begin
-                    s.reopen()
-                    "Done."
-                  end)
-
-  s
-end
-
-# @docof input.external.avi
-def input.external.avi(%argsof(input.external.avi), s) =
-  s = input.external.avi(%argsof(input.external.avi), s)
-
-  server.register(namespace=s.id(), description="Show internal buffer length (in seconds).",
-                  "buffer_length", fun (_) -> begin
-                    let (audio, video, total) = s.buffer_length()
-                    "audio buffer length: #{audio}\nvideo buffer length: #{video}\ntotal buffer length: #{total}"
-                  end)
-
-  s
-end
-
-# @docof input.harbor
-def input.harbor(%argsof(input.harbor), s) =
-  s = input.harbor(%argsof(input.harbor), s)
-
-  server.register(namespace=s.id(), description="Stop current source client, if connected.",
-                  "stop", fun (_) -> begin
-                    s.stop()
-                    "Done"
-                  end)
-
-  server.register(namespace=s.id(), description="Display current status.",
-                  "status", fun (_) -> begin
-                    s.status()
-                  end)
-
-  server.register(namespace=s.id(), description="Get the buffer's length, in seconds.",
-                  "buffer_length", fun (_) -> begin
-                    "#{s.buffer_length()}"
-                  end)
-
-  s
-end
-
-# @docof input.http
-def input.http(%argsof(input.http), s) =
-  s = input.http(%argsof(input.http), s)
-
-  server.register(namespace=s.id(), description="Start the source, if needed.",
-                  "start", fun (_) -> begin
-                    s.start()
-                    "Done!"
-                  end)
-
-  server.register(namespace=s.id(), description="Stop the source if connected.",
-                  "stop", fun (_) -> begin
-                    s.stop()
-                    "Done!"
-                  end)
-
-  server.register(namespace=s.id(), description="Get or set the stream's HTTP URL. Setting a new URL will not affect an ongoing connection.",
-                  usage="url [url]", "url", fun (url) -> begin
-                    if url == "" then
-                      s.url()
-                    else begin
-                      s.set_url({url})
-                      "Done!"
-                    end end
-                  end)
-
-  server.register(namespace=s.id(), description="Return the current status of the source, either \"stopped\" \
-                                                 (the source isn't trying to relay the HTTP stream), \"polling\" \
-                                                 (attempting to connect to the HTTP stream) or \"connected <url>\" \
-                                                 (connected to <url>, buffering or playing back the stream).",
-                  "status", fun (_) -> begin
-                    s.status()
-                  end)
-
-  server.register(namespace=s.id(), description="Get the buffer's length, in seconds.",
-                  "buffer_length", fun (_) -> begin
-                    "#{s.buffer_length()}"
-                  end)
-
-  s
-end
-
 # @flag deprecated
-def output.preferred(~id="",~fallible=false,
+def output.preferred(~id=null(),~fallible=false,
                     ~on_start={()},~on_stop={()},~start=true,s)
   deprecated("output.preferred","output")
   output(id=id,fallible=fallible,
@@ -519,7 +364,7 @@ end
 
 # Deprecated: use `input` instead.
 # @flag deprecated
-def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+def in(~id=null(),~start=true,~on_start={()},~on_stop={()},~fallible=false)
   deprecated("in", "input")
   input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
 end
@@ -532,11 +377,18 @@ def mkavailable(~id="mkavailable", ~track_sensitive=getter(true), ~active=getter
   switch(id=id,track_sensitive=getter.function(track_sensitive),[(getter.function(available),s)])
 end
 
+# Deprecated: use `at` instead.
+# @flag deprecated
+def at(pred,s)
+  deprecated("at", "source.available")
+  source.available(s,pred)
+end
+
 # Deprecated: use `source.on_end` instead.
 # @flag deprecated
-def on_end(%argsof(source.on_end))
+def on_end(%argsof(source.on_end), s, f)
   deprecated("on_end", "source.on_end")
-  source.on_end(%argsof(source.on_end))
+  source.on_end(%argsof(source.on_end), s, f)
 end
 
 https = ()
@@ -544,51 +396,67 @@ https = ()
 %ifdef http.get
 # Deprecated: use `http.get` instead.
 # @flag deprecated
-def https.get(%argsof(http.get))
+def https.get(%argsof(http.get), url)
   deprecated("https.get", "http.get")
-  http.get(%argsof(http.get))
+  http.get(%argsof(http.get), url)
 end
 %endif
 
 %ifdef http.put
 # Deprecated: use `http.put` instead.
 # @flag deprecated
-def https.put(%argsof(http.put))
+def https.put(%argsof(http.put), url)
   deprecated("https.put", "http.put")
-  http.put(%argsof(http.put))
+  http.put(%argsof(http.put), url)
 end
 %endif
 
 %ifdef http.post
 # Deprecated: use `http.post` instead.
 # @flag deprecated
-def https.post(%argsof(http.post))
+def https.post(%argsof(http.post), url)
   deprecated("https.post", "http.post")
-  http.post(%argsof(http.post))
+  http.post(%argsof(http.post), url)
 end
 %endif
 
 %ifdef http.head
 # Deprecated: use `http.head` instead.
 # @flag deprecated
-def https.head(%argsof(http.head))
+def https.head(%argsof(http.head), url)
   deprecated("https.head", "http.head")
-  http.head(%argsof(http.head))
+  http.head(%argsof(http.head), url)
 end
 %endif
 
 %ifdef http.delete
 # Deprecated: use `http.delete` instead.
 # @flag deprecated
-def https.delete(%argsof(http.delete))
+def https.delete(%argsof(http.delete), url)
   deprecated("https.delete", "http.delete")
-  http.delete(%argsof(http.delete))
+  http.delete(%argsof(http.delete), url)
 end
 %endif
 
+%ifdef input.http
 # Deprecated: use `input.http` instead
 # @flag deprecated
 def input.https(%argsof(input.http), url)
   deprecated("input.https", "input.http")
   input.http(%argsof(input.http), url)
+end
+%endif
+
+# Deprecated: use `source.say_metadata` instead
+# @flag deprecated
+def say_metadata(s, ~pattern) =
+  def pattern(m) = pattern % m end
+  source.say_metadata(pattern=pattern, s)
+end
+
+# Deprecated: use `playlist.parse.register` instead
+# @flag deprecated
+def add_playlist_parser(%argsof(playlist.parse.register), s) =
+  deprecated("add_playlist_parser", "playlist.parse.register")
+  playlist.parse.register(%argsof(playlist.parse.register), s)
 end

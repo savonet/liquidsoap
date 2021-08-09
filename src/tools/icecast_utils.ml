@@ -50,6 +50,100 @@ module type Icecast_t = sig
   val info_of_encoder : Encoder.format -> info
 end
 
+let ffmpeg_mime_of_format = function
+  | "3dostr" -> Some "application/vnd.pg.format"
+  | "3g2" -> Some "video/3gpp2"
+  | "3gp" -> Some "video/3gpp"
+  | "4xm" -> Some "audio/x-adpcm"
+  | "a64" -> Some "application/octet-stream "
+  | "aa" -> Some "application/octet-stream"
+  | "aac" -> Some "audio/aac"
+  | "ac3" -> Some "audio/x-ac3"
+  | "acm" -> Some "application/octet-stream"
+  | "adts" -> Some "audio/aac"
+  | "aiff" -> Some "audio/aiff"
+  | "amr" -> Some "audio/amr"
+  | "apng" -> Some "image/png"
+  | "asf" -> Some "video/x-ms-asf"
+  | "asf_stream" -> Some "video/x-ms-asf"
+  | "ass" -> Some "text/x-ass"
+  | "au" -> Some "audio/basic"
+  | "avi" -> Some "video/x-msvideo"
+  | "avm2" -> Some "application/x-shockwave-flash"
+  | "bin" -> Some "application/octet-stream"
+  | "bit" -> Some "audio/bit"
+  | "caf" -> Some "audio/x-caf"
+  | "dts" -> Some "audio/x-dca"
+  | "dvd" -> Some "video/mpeg"
+  | "eac3" -> Some "audio/x-eac3"
+  | "f4v" -> Some "application/f4v"
+  | "flac" -> Some "audio/x-flac"
+  | "flv" -> Some "video/x-flv"
+  | "g722" -> Some "audio/G722"
+  | "g723_1" -> Some "audio/g723"
+  | "gif" -> Some "image/gif"
+  | "gsm" -> Some "audio/x-gsm"
+  | "h261" -> Some "video/x-h261"
+  | "h263" -> Some "video/x-h263"
+  | "hls" -> Some "application/x-mpegURL"
+  | "hls,applehttp" -> Some "application/x-mpegURL"
+  | "ico" -> Some "image/vnd.microsoft.icon"
+  | "ilbc" -> Some "audio/iLBC"
+  | "ipod" -> Some "video/mp4"
+  | "ismv" -> Some "video/mp4"
+  | "jacosub" -> Some "text/x-jacosub"
+  | "jpeg_pipe" -> Some "image/jpeg"
+  | "jpegls_pipe" -> Some "image/jpeg"
+  | "latm" -> Some "audio/MP4A-LATM"
+  | "live_flv" -> Some "video/x-flv"
+  | "m4v" -> Some "video/x-m4v"
+  | "matroska" -> Some "video/x-matroska"
+  | "matroska,webm" -> Some "video/webm"
+  | "microdvd" -> Some "text/x-microdvd"
+  | "mjpeg" -> Some "video/x-mjpeg"
+  | "mjpeg_2000" -> Some "video/x-mjpeg"
+  | "mmf" -> Some "application/vnd.smaf"
+  | "mov,mp4,m4a,3gp,3g2,mj2" -> Some "video/mp4"
+  | "mp2" -> Some "audio/mpeg"
+  | "mp3" -> Some "audio/mpeg"
+  | "mp4" -> Some "video/mp4"
+  | "mpeg" -> Some "video/mpeg"
+  | "mpeg1video" -> Some "video/mpeg"
+  | "mpeg2video" -> Some "video/mpeg"
+  | "mpegts" -> Some "video/MP2T"
+  | "mpegtsraw" -> Some "video/MP2T"
+  | "mpegvideo" -> Some "video/mpeg"
+  | "mpjpeg" -> Some "multipart/x-mixed-replace;boundary=ffserver"
+  | "mxf" -> Some "application/mxf"
+  | "mxf_d10" -> Some "application/mxf"
+  | "mxf_opatom" -> Some "application/mxf"
+  | "nut" -> Some "video/x-nut"
+  | "oga" -> Some "audio/ogg"
+  | "ogg" -> Some "application/ogg"
+  | "ogv" -> Some "video/ogg"
+  | "oma" -> Some "audio/x-oma"
+  | "opus" -> Some "audio/ogg"
+  | "rm" -> Some "application/vnd.rn-realmedia"
+  | "singlejpeg" -> Some "image/jpeg"
+  | "smjpeg" -> Some "image/jpeg"
+  | "spx" -> Some "audio/ogg"
+  | "srt" -> Some "application/x-subrip"
+  | "sup" -> Some "application/x-pgs"
+  | "svcd" -> Some "video/mpeg"
+  | "swf" -> Some "application/x-shockwave-flash"
+  | "tta" -> Some "audio/x-tta"
+  | "vcd" -> Some "video/mpeg"
+  | "vob" -> Some "video/mpeg"
+  | "voc" -> Some "audio/x-voc"
+  | "wav" -> Some "audio/x-wav"
+  | "webm" -> Some "video/webm"
+  | "webm_chunk" -> Some "video/webm"
+  | "webm_dash_manifest" -> Some "application/xml"
+  | "webp" -> Some "image/webp"
+  | "webvtt" -> Some "text/vtt"
+  | "wv" -> Some "audio/x-wavpack"
+  | _ -> None
+
 module Icecast_v (M : Icecast_t) = struct
   type encoder_data = {
     factory : string -> Meta_format.export_metadata -> Encoder.encoder;
@@ -70,8 +164,11 @@ module Icecast_v (M : Icecast_t) = struct
   let format_of_encoder = function
     | Encoder.MP3 _ -> Some mpeg
     | Encoder.Shine _ -> Some mpeg
-    | Encoder.Ffmpeg e -> (
-        match e.Ffmpeg_format.format with Some "mp3" -> Some mpeg | _ -> None )
+    | Encoder.Ffmpeg e ->
+        Option.map M.format_of_content
+          (match e.Ffmpeg_format.format with
+            | None -> None
+            | Some v -> ffmpeg_mime_of_format v)
     | Encoder.FdkAacEnc _ -> Some aac
     | Encoder.External _ -> None
     | Encoder.GStreamer _ -> None
@@ -100,7 +197,7 @@ module Icecast_v (M : Icecast_t) = struct
               raise
                 (Lang_errors.Invalid_value
                    ( Lang.assoc "" 1 p,
-                     "No format (mime) found, please specify one." )) )
+                     "No format (mime) found, please specify one." )))
     in
     { factory = encoder_factory; format; info }
 end

@@ -94,6 +94,7 @@ let eval_ifdefs tokenizer =
     let rec skip () =
       match tokenizer () with
         | Lang_parser.PP_ENDIF, _ -> token ()
+        | Lang_parser.PP_ELSE, _ -> go_on ()
         | _ -> skip ()
     in
     match tokenizer () with
@@ -106,6 +107,19 @@ let eval_ifdefs tokenizer =
           in
           (* XXX Less natural meaning than the original one. *)
           if test (Lang_values.has_builtin v) then go_on () else skip ()
+      | Lang_parser.PP_IFVERSION (cmp, ver), _ ->
+          let current = Utils.Version.of_string Configure.version in
+          let ver = Utils.Version.of_string ver in
+          let test =
+            let compare = Utils.Version.compare current ver in
+            match cmp with
+              | `Eq -> compare = 0
+              | `Geq -> compare >= 0
+              | `Leq -> compare <= 0
+              | `Gt -> compare > 0
+              | `Lt -> compare < 0
+          in
+          if test then go_on () else skip ()
       | (Lang_parser.PP_IFENCODER, _ | Lang_parser.PP_IFNENCODER, _) as tok ->
           let fmt = get_encoder_format tokenizer in
           let has_enc =
@@ -118,6 +132,10 @@ let eval_ifdefs tokenizer =
             if fst tok = Lang_parser.PP_IFENCODER then fun x -> x else not
           in
           if test has_enc then go_on () else skip ()
+      | Lang_parser.PP_ELSE, _ ->
+          if !state = 0 then failwith "no %ifdef to end here";
+          decr state;
+          skip ()
       | Lang_parser.PP_ENDIF, _ ->
           if !state = 0 then failwith "no %ifdef to end here";
           decr state;
@@ -147,8 +165,8 @@ let includer dir tokenizer =
             with Sys_error _ ->
               flush_all ();
               Printf.printf "%sine %d, char %d: cannot %%include, "
-                ( if curp.Lexing.pos_fname = "" then "L"
-                else Printf.sprintf "File %S, l" curp.Lexing.pos_fname )
+                (if curp.Lexing.pos_fname = "" then "L"
+                else Printf.sprintf "File %S, l" curp.Lexing.pos_fname)
                 curp.Lexing.pos_lnum
                 (curp.Lexing.pos_cnum - curp.Lexing.pos_bol);
               Printf.printf "file %S doesn't exist.\n" fname;
@@ -162,7 +180,7 @@ let includer dir tokenizer =
           if Stack.is_empty stack then tok
           else (
             close_in (trd3 (Stack.pop stack));
-            token () )
+            token ())
       | x -> x
   in
   token
@@ -193,7 +211,7 @@ let expand_string tokenizer =
             [String s; Concat; LPar; String_of; Expr tokenizer; RPar; RPar];
           if l <> [] then (
             add Concat;
-            parse l )
+            parse l)
       | [x] -> add (String x)
       | [] -> assert false
     in
@@ -206,9 +224,9 @@ let expand_string tokenizer =
             parse s pos;
             if Queue.length state > 1 then (
               add pos RPar;
-              (Lang_parser.LPAR, pos) )
+              (Lang_parser.LPAR, pos))
             else token ()
-        | x -> x )
+        | x -> x)
     else (
       let el, pos = Queue.peek state in
       match el with
@@ -232,7 +250,7 @@ let expand_string tokenizer =
               | Lang_parser.EOF, _ ->
                   pop ();
                   token ()
-              | x, _ -> (x, pos) ) )
+              | x, _ -> (x, pos)))
   in
   token
 
@@ -359,10 +377,10 @@ let parse_comments tokenizer =
                           let n = String.length line - 1 in
                           if line.[n] = '\\' then (
                             let descr = String.sub line 0 n :: descr in
-                            parse_descr descr lines )
+                            parse_descr descr lines)
                           else (
                             let descr = List.rev (line :: descr) in
-                            (String.concat "" descr, lines) )
+                            (String.concat "" descr, lines))
                   in
                   let descr, lines = parse_descr [] (descr :: lines) in
                   parse_doc
@@ -377,7 +395,7 @@ let parse_comments tokenizer =
                     lines
               | _ -> assert false
           with Not_found ->
-            parse_doc (line :: main, special, params, methods) lines )
+            parse_doc (line :: main, special, params, methods) lines)
     in
     let main, special, params, methods = parse_doc ([], [], [], []) doc in
     let main = List.rev main and params = List.rev params in
@@ -463,7 +481,7 @@ let strip_newlines tokenizer =
             | (Lang_parser.VAR _, _ | Lang_parser.IN, _) as v ->
                 state := Some v;
                 token ()
-            | x -> x )
+            | x -> x)
       | Some ((Lang_parser.VAR var, _) as v) -> inject_varlpar var v
       | Some ((Lang_parser.UNDERSCORE, _) as v) -> inject_varlpar "_" v
       | Some ((Lang_parser.IN, _) as v) -> inject_varlpar "in" v
@@ -490,16 +508,15 @@ let expand_define tokenizer =
                     | Lang_parser.BOOL _, _ ) as def_val ->
                       defs := (def_name, (fst def_val, pos)) :: !defs;
                       token ()
-                  | _ -> raise Parsing.Parse_error )
-            | _ -> raise Parsing.Parse_error )
+                  | _ -> raise Parsing.Parse_error)
+            | _ -> raise Parsing.Parse_error)
       | (Lang_parser.VAR def_name, _) as v -> (
-          try List.assoc def_name !defs with Not_found -> v )
+          try List.assoc def_name !defs with Not_found -> v)
       | x -> x
   in
   token
 
 (* Wrap the lexer with its extensions *)
-let mk_tokenizer ~pwd lexbuf =
-  let ( => ) a b = b a in
-  mk_tokenizer lexbuf => includer pwd => eval_ifdefs => parse_comments
-  => expand_string => uminus => strip_newlines => expand_define
+let mk_tokenizer ?fname ~pwd lexbuf =
+  mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
+  |> expand_string |> uminus |> strip_newlines |> expand_define

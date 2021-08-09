@@ -34,27 +34,27 @@ Note that we use annotate to pass some variables to liquidsoap...
 #!/usr/bin/liquidsoap
 
 # Standard settings
-set("log.file.path","/var/log/liquidsoap/pi.log")
-set("init.daemon",true)
-set("log.stdout",false)
-set("log.file",true)
-set("init.daemon.pidfile.path","/var/run/liquidsoap/pi.pid")
+log.file.set(true)
+log.file.path.set("/var/log/liquidsoap/pi.log")
+log.stdout.set(false)
+init.daemon.set(true)
+init.daemon.pidfile.path.set("/var/run/liquidsoap/pi.pid")
 
 # Enable telnet server
-set("server.telnet",true)
+settings.server.telnet.set(true)
 
 # Enable harbor for any external
 # connection
-set("harbor.bind_addr","0.0.0.0")
+settings.harbor.bind_addr.set("0.0.0.0")
 
 # Verbose logs
-set("log.level",4)
+log.level.set(4)
 
 # We use the scheduler intensively,
 # therefore we create many queues.
-set("scheduler.generic_queues",5)
-set("scheduler.fast_queues",3)
-set("scheduler.non_blocking_queues",3)
+settings.scheduler.generic_queues.set(5)
+settings.scheduler.fast_queues.set(3)
+settings.scheduler.non_blocking_queues.set(3)
 
 # === Settings ===
 
@@ -79,7 +79,7 @@ url = "http://radiopi.org"
 # A live source, on which we stip blank (make the source
 # unavailable when streaming blank)
 live = 
-  strip_blank(
+  blank.strip(
     input.harbor(id="live", port=8000, password=pass,
                  buffer=8.,max=20.,"live.ogg"),
     length=10., threshold=-50.)
@@ -128,10 +128,10 @@ def lastfm (m) =
     if (m["canal"] == "reggae" or m["canal"] == "Jazz" or m["canal"] == "That70Sound") then
       canal = 
         if (m["canal"] == "That70Sound") then 
-	   "70sound" 
-	else 
-	   m["canal"]
-	end
+       "70sound" 
+    else 
+       m["canal"]
+    end
       user = "radiopi-" ^ canal
       lastfm.submit(user=user,password="xXXxx",m)
     end
@@ -219,7 +219,7 @@ def channel_radiopilote(~skip=true,name)
   # Request function
   def request () = 
     log("Request for #{name}")
-    ret = list.hd(get_process_lines(scripts^"radiopilote-getnext "^quote(name)^sed))
+    ret = list.hd(process.read.lines(scripts^"radiopilote-getnext "^quote(name)^sed))
     log("Got answer: #{ret} for #{name}")
     [request.create(ret)]
   end
@@ -239,7 +239,7 @@ def channel_radiopilote(~skip=true,name)
   # Skip blank when asked to
   source = 
     if skip then
-      skip_blank(source, length=10., threshold=-40.)
+      blank.skip(source, length=10., threshold=-40.)
     else
       source
     end

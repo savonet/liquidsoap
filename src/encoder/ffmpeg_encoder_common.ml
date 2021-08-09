@@ -52,19 +52,12 @@ let encode ~encoder frame start len =
     ignore
       (Option.map (fun { mk_stream } -> mk_stream frame) encoder.audio_stream);
     ignore
-      (Option.map (fun { mk_stream } -> mk_stream frame) encoder.video_stream) );
+      (Option.map (fun { mk_stream } -> mk_stream frame) encoder.video_stream));
   encoder.started <- true;
   ignore
     (Option.map (fun { encode } -> encode frame start len) encoder.audio_stream);
   ignore
     (Option.map (fun { encode } -> encode frame start len) encoder.video_stream)
-
-let insert_metadata ~encoder m =
-  let m =
-    Hashtbl.fold (fun lbl v l -> (lbl, v) :: l) (Meta_format.to_metadata m) []
-  in
-  if not (Av.output_started encoder.output) then
-    Av.set_output_metadata encoder.output m
 
 (* Convert ffmpeg-specific options. *)
 let convert_options opts =
@@ -99,8 +92,7 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
                 | Some fmt ->
                     failwith
                       (Printf.sprintf
-                         "No ffmpeg format could be guessed for format=%S" fmt)
-              );
+                         "No ffmpeg format could be guessed for format=%S" fmt));
             Av.open_output_stream ~opts:options write (Option.get format)
         | `Url url -> Av.open_output ?format ~opts:options url
     in
@@ -127,7 +119,7 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
       | Some v, Some a -> (
           match (v.codec_attr (), a.codec_attr ()) with
             | Some v, Some a -> Some (Printf.sprintf "%s,%s" v a)
-            | _ -> None )
+            | _ -> None)
       | None, Some s | Some s, None -> s.codec_attr ()
       | None, None -> None
   in
@@ -135,9 +127,10 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
     let encoder = !encoder in
     Some
       (List.fold_left
-         (fun cur -> function None -> cur
+         (fun cur -> function
+           | None -> cur
            | Some s -> (
-               match s.bitrate () with Some b -> cur + b | None -> cur ))
+               match s.bitrate () with Some b -> cur + b | None -> cur))
          0
          [encoder.video_stream; encoder.audio_stream])
   in
@@ -154,11 +147,11 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
           encode ~encoder frame start len;
           if encoder.video_stream <> None then (
             let d = Frame_content.sub Frame.(frame.content.video) start len in
-            video_sent := !video_sent || not (Frame_content.is_empty d) )
+            video_sent := !video_sent || not (Frame_content.is_empty d))
           else video_sent := true;
           if encoder.audio_stream <> None then (
             let d = Frame_content.sub Frame.(frame.content.audio) start len in
-            audio_sent := !audio_sent || not (Frame_content.is_empty d) )
+            audio_sent := !audio_sent || not (Frame_content.is_empty d))
           else audio_sent := true;
           if not (!audio_sent && !video_sent) then raise Encoder.Not_enough_data;
           Av.flush encoder.output;
@@ -188,7 +181,18 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
     encode ~encoder:!encoder frame start len;
     Strings.Mutable.flush buf
   in
-  let insert_metadata m = insert_metadata ~encoder:!encoder m in
+  let insert_metadata m =
+    let m =
+      Hashtbl.fold (fun lbl v l -> (lbl, v) :: l) (Meta_format.to_metadata m) []
+    in
+    match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
+      | _ when not !encoder.started -> Av.set_output_metadata !encoder.output m
+      | `Stream, Some "ogg" ->
+          Av.close !encoder.output;
+          encoder := make ();
+          Av.set_output_metadata !encoder.output m
+      | _ -> ()
+  in
   insert_metadata meta;
   let stop () =
     Av.close !encoder.output;

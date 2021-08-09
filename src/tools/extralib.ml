@@ -7,17 +7,14 @@ module List = struct
     let rec aux k = if k = n then [] else f k :: aux (k + 1) in
     aux 0
 
-  let rec may_map f = function
-    | x :: t -> (
-        match f x with Some x -> x :: may_map f t | None -> may_map f t )
-    | [] -> []
-
   let rec assoc_nth l n = function
     | [] -> raise Not_found
     | (x, v) :: t when x = l -> if n = 0 then v else assoc_nth l (n - 1) t
     | _ :: t -> assoc_nth l n t
 
-  let assoc_all x l = may_map (fun (y, v) -> if x = y then Some v else None) l
+  let assoc_all x l =
+    filter_map (fun (y, v) -> if x = y then Some v else None) l
+
   let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
 
   let rec prefix n l =
@@ -64,11 +61,11 @@ module Unix = struct
     let rec finddepth f roots =
       Array.iter
         (fun root ->
-          ( match lstat root with
+          (match lstat root with
             | { st_kind = S_DIR } ->
                 finddepth f
                   (Array.map (Filename.concat root) (Sys.readdir root))
-            | _ -> () );
+            | _ -> ());
           f root)
         roots
     in
@@ -104,7 +101,7 @@ module Filename = struct
           | Unix.Unix_error (Unix.EEXIST, _, _) -> loop (count - 1)
           | Unix.Unix_error (Unix.EINTR, _, _) -> loop count
           | Unix.Unix_error (e, _, _) ->
-              raise_err ("mk_temp_dir: " ^ Unix.error_message e) )
+              raise_err ("mk_temp_dir: " ^ Unix.error_message e))
     in
     loop 1000
 end

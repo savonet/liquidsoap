@@ -29,19 +29,12 @@ class comb ~kind (source : source) delay feedback =
   let past_len = Frame.audio_of_seconds delay in
   object (self)
     inherit operator ~name:"comb" kind [source] as super
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method self_sync = source#self_sync
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     val mutable past = Audio.make 0 0 0.
 
     method private wake_up s =

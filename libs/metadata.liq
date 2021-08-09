@@ -65,7 +65,7 @@ end
 # @category Source / Track Processing
 # @param m Metadata from which the cover should be extracted.
 # @method mime MIME type for the cover.
-def metadata.cover(~id="", m)
+def metadata.cover(m)
   fname = metadata.filename(m)
   if list.assoc.mem("coverart", m) or list.assoc.mem("metadata_block_picture", m)then
     # We are likely to have an ogg/vorbis file
@@ -98,7 +98,7 @@ def metadata.cover(~id="", m)
       else
         # Try the builtin tag reader because APIC tags are not read by default,
         # e.g. with taglib
-        log.debug(label=id, "APIC not found for #{fname}, trying builtin tag reader.")
+        log.debug(label="metadata.cover", "APIC not found for #{fname}, trying builtin tag reader.")
         file.mp3.metadata(fname)
       end
     apic = list.assoc(default="", "apic", m)
@@ -106,7 +106,7 @@ def metadata.cover(~id="", m)
       log.info("No cover found for #{fname}.")
       "".{mime=""}
     else
-      log.debug(label=id, "Found APIC for #{fname}.")
+      log.debug(label="metadata.cover", "Found APIC for #{fname}.")
       # TODO: we could use file type in order to select cover if there are many
       let (mime,_,_,data) = file.mp3.parse_apic(apic)
       data.{mime=mime}
@@ -118,7 +118,7 @@ end
 # such information.
 # @category System
 # @param file File from which the cover should be obtained
-def file.cover(~id="", fname)
+def file.cover(~id=null(), fname)
   metadata.cover(file.metadata(fname))
 end
 

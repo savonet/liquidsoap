@@ -30,27 +30,16 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
   let video_width = Lazy.force Frame.video_width in
   object (self)
     inherit operator ~name:"video.add_text" kind [source]
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
-
     val mutable text_frame = None
-
     val mutable pos_x = tx ()
-
     val mutable pos_y = ty ()
-
     val mutable font = None
-
     val mutable cur_text = text ()
 
     method private render_text text =
@@ -91,19 +80,19 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
             in
             if cur_text <> text then (
               cur_text <- text;
-              self#render_text cur_text );
+              self#render_text cur_text);
             for i = off to off + len - 1 do
               if speed = 0 then (
                 Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y;
                 pos_x <- tx ();
-                pos_y <- ty () )
+                pos_y <- ty ())
               else (
                 if pos_x <> -tfw then
                   Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y;
                 pos_x <- pos_x - speed;
                 if pos_x < -tfw then
                   if cycle then pos_x <- video_width
-                  else pos_x <- -tfw (* avoid overflows *) )
+                  else pos_x <- -tfw (* avoid overflows *))
             done
         | _ -> ()
   end
@@ -165,9 +154,9 @@ let register name init render_text =
         let speed = speed / Lazy.force Frame.video_rate in
         let meta = if meta = "" then None else Some meta in
         let kind = Source.Kind.of_kind kind in
-        ( new text
-            ~kind init render_text ttf ttf_size color x y speed cycle meta txt
-            source
-          :> Source.source ))
+        (new text
+           ~kind init render_text ttf ttf_size color x y speed cycle meta txt
+           source
+          :> Source.source))
   in
   add_operator ("video.add_text." ^ name)

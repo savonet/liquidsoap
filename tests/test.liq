@@ -1,4 +1,4 @@
-set("log.level",4)
+log.level.set(4)
 
 test = ()
 

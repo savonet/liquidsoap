@@ -54,8 +54,8 @@ depends: [
   "ocaml" {>= "4.08.0"}
   "camomile" {>= "1.0.0"}
   "dtools" {>= "0.4.2"}
-  "duppy" {>= "0.8.1"}
-  "menhir"
+  "duppy" {>= "0.9.1"}
+  "menhir" {>= "20180703"}
   "mm" {>= "0.7.0"}
   "ocamlfind" {build}
   "conf-pkg-config" {build}
@@ -123,12 +123,14 @@ conflicts: [
   "dssi" {< "0.1.3"}
   "faad" {< "0.5.0"}
   "fdkaac" {< "0.3.1"}
-  "ffmpeg-avutil" {< "1.0.0"}
-  "ffmpeg-av" {< "1.0.0"}
-  "ffmpeg-avcodec" {< "1.0.0"}
-  "ffmpeg-avfilter" {< "1.0.0"}
-  "ffmpeg-swresample" {< "1.0.0"}
-  "ffmpeg-swscale" {< "1.0.0"}
+  "ffmpeg" {< "1.0.0~beta1"}
+  "ffmpeg-avutil" {< "1.0.0~beta1"}
+  "ffmpeg-av" {< "1.0.0~beta1"}
+  "ffmpeg-avcodec" {< "1.0.0~beta1"}
+  "ffmpeg-avdevice" {< "1.0.0~beta1"}
+  "ffmpeg-avfilter" {< "1.0.0~beta1"}
+  "ffmpeg-swresample" {< "1.0.0~beta1"}
+  "ffmpeg-swscale" {< "1.0.0~beta1"}
   "flac" {< "0.3.0"}
   "frei0r" {< "0.1.0"}
   "gstreamer" {< "0.3.1"}

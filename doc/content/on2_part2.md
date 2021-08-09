@@ -27,9 +27,9 @@ Thus, we do not define here daemonized script. In order to make
 things work smoothly, you should put the following lines at the beginning
 of `radio.liq`:
 ```liquidsoap
-set("log.file",false)
-set("log.stdout",true)
-set("log.level",3)
+log.file.set(false)
+log.stdout.set(true)
+log.level.set(3)
 ```
 
 Finally, we add the following line at the beginning of `radio.liq`, 
@@ -41,7 +41,7 @@ in order to load our pre-defined functions:
 We will use the telnet server to interact with the radio.
 Thus, we enable the telnet server by adding the following line in `radio.liq`:
 ```liquidsoap
-set("server.telnet",true)
+settings.server.telnet.set(true)
 ```
 
 An initial model
@@ -599,9 +599,9 @@ associated to this source. The default parameters for the port,
 user and password are contained in the following settings:
 
 ```liquidsoap
-set("harbor.password","hackme")
-set("harbor.port",8005)
-set("harbor.username","source")
+settings.harbor.password.set("hackme")
+settings.harbor.port.set(8005)
+settings.harbor.username.set("source")
 ```
 
 We want the live source to be played as soon as it becomes available. Thus, we
@@ -629,7 +629,7 @@ Solutions:
 By default, shoutcast source clients are not supported. You can enable them by
 adding the following settings:
 ```liquidsoap
-set("harbor.icy",true)
+settings.harbor.icy.set(true)
 ```
 **Note** `ICY` is the technical name of the original shoutcast source
 protocol.

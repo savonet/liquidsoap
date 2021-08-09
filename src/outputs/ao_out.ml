@@ -59,8 +59,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
           (Clock.create_known (get_clock () :> Clock.clock))
 
     val mutable device = None
-
-    method self_sync = device <> None
+    method self_sync = (`Dynamic, device <> None)
 
     method get_device =
       match device with
@@ -92,23 +91,23 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
       let dev = self#get_device in
       play dev (Bytes.unsafe_to_string data)
 
-    method output_send wav =
+    method send_frame wav =
       if not (Frame.is_partial wav) then (
         let push data =
           let pcm = AFrame.pcm wav in
           assert (Array.length pcm = self#audio_channels);
           Audio.S16LE.of_audio pcm data 0
         in
-        ioring#put_block push )
+        ioring#put_block push)
 
-    method output_reset = ()
+    method reset = ()
   end
 
 let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.ao" ~active:true
-    ( Output.proto
+  Lang.add_operator "output.ao"
+    (Output.proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -131,8 +130,8 @@ let () =
           Some (Lang.list []),
           Some "List of parameters, depends on the driver." );
         ("", Lang.source_t return_t, None, None);
-      ] )
-    ~category:Lang.Output
+      ])
+    ~category:Lang.Output ~meth:Output.meth
     ~descr:"Output stream to local sound card using libao." ~return_t
     (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
@@ -161,7 +160,7 @@ let () =
       in
       let source = List.assoc "" p in
       let kind = Source.Kind.of_kind kind in
-      ( new output
-          ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
-          ?channels_matrix ~options source start
-        :> Source.source ))
+      (new output
+         ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
+         ?channels_matrix ~options source start
+        :> Output.output))

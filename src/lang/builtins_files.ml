@@ -154,7 +154,7 @@ let () =
                 let n = input c buf 0 buflen in
                 if n = 0 then (
                   close_in c;
-                  ic := None );
+                  ic := None);
                 Bytes.sub_string buf 0 n
             | None -> ""
         in
@@ -195,7 +195,7 @@ let () =
               fun () ->
                 if not !is_done then (
                   is_done := true;
-                  Lang.string s )
+                  Lang.string s)
                 else Lang.null
           | _ -> Lang.to_getter data
       in
@@ -255,44 +255,11 @@ let () =
           in
           Lang.error ~message "file"
       in
-      let m = Mutex.create () in
-      let is_done = ref false in
-      let data = Buffer.create 1024 in
-      let task = ref None in
-      let process =
-        Tutils.mutexify m (fun () ->
-            try
-              if !is_done then (
-                close_out oc;
-                Duppy.Async.stop (Option.get !task) )
-              else (
-                Buffer.output_buffer oc data;
-                Buffer.reset data );
-              -1.
-            with e ->
-              let message =
-                Printf.sprintf "The file %s could not be written to: %s" f
-                  (Printexc.to_string e)
-              in
-              Lang.error ~message "file")
-      in
-      task :=
-        Some
-          (Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler process);
-      Lang.val_fun [("", "", None)]
-        (Tutils.mutexify m (fun p ->
-             ( match Lang.to_option (List.assoc "" p) with
-               | None -> is_done := true
-               | Some s -> Buffer.add_string data (Lang.to_string s) );
-             try
-               Duppy.Async.wake_up (Option.get !task);
-               Lang.unit
-             with e ->
-               let message =
-                 Printf.sprintf "The file %s could not be written to: %s" f
-                   (Printexc.to_string e)
-               in
-               Lang.error ~message "file")))
+      Lang.val_fun [("", "", None)] (fun p ->
+          (match Lang.to_option (List.assoc "" p) with
+            | None -> close_out oc
+            | Some s -> output_string oc (Lang.to_string s));
+          Lang.unit))
 
 let () =
   add_builtin "file.watch" ~cat:Sys
@@ -379,11 +346,11 @@ let () =
                   let acc =
                     if f <> Filename.current_dir_name then f :: acc else acc
                   in
-                  aux subdir (aux f acc (readdir df)) l )
+                  aux subdir (aux f acc (readdir df)) l)
                 else aux subdir (concat subdir f :: acc) l
             | [] -> acc
           in
-          aux Filename.current_dir_name [] [Filename.current_dir_name] )
+          aux Filename.current_dir_name [] [Filename.current_dir_name])
       in
       let files =
         if absolute then List.map (Filename.concat dir) files else files
@@ -403,7 +370,7 @@ let () =
       let r = Request.create uri in
       if Request.resolve ~ctype:None r 30. = Request.Resolved then (
         Request.read_metadata r;
-        Lang.metadata (Request.get_all_metadata r) )
+        Lang.metadata (Request.get_all_metadata r))
       else Lang.metadata (Hashtbl.create 0))
 
 (************** Paths ********************)
@@ -520,4 +487,4 @@ let () =
         Lang.string (Digest.to_hex (Digest.file file))
       else (
         let message = Printf.sprintf "The file %s does not exist." file in
-        Lang.error ~message "file" ))
+        Lang.error ~message "file"))

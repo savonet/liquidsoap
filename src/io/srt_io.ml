@@ -367,8 +367,7 @@ let stats_specs =
       Lang.int (-1) );
   ]
 
-let meth :
-    < Source.source ; stats : Srt.Stats.t option > Lang.operator_method list =
+let meth () =
   [
     ( "stats",
       ( [],
@@ -379,7 +378,7 @@ let meth :
       fun s ->
         Lang.val_fun [] (fun _ ->
             Lang.record
-              ( match s#stats with
+              (match s#stats with
                 | Some stats ->
                     List.map
                       (fun (name, _, fn, _) -> (name, fn stats))
@@ -387,7 +386,7 @@ let meth :
                 | None ->
                     List.map
                       (fun (name, _, _, none) -> (name, none))
-                      stats_specs )) );
+                      stats_specs)) );
   ]
 
 let parse_common_options p =
@@ -545,43 +544,30 @@ let close_socket s = Srt.close s
 class virtual base =
   object (self)
     method virtual id : string
-
-    val mutable clock = None
-
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
-
     val mutable should_stop = false
-
     method private should_stop = self#mutexify (fun () -> should_stop) ()
-
     method private set_should_stop = self#mutexify (fun b -> should_stop <- b)
   end
 
 class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
   object (self)
     method virtual private connect : unit
-
     method virtual private disconnect : unit
-
     method virtual private is_connected : bool
-
     method virtual private get_socket : Srt.socket
-
     method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
-
     method virtual private should_stop : bool
-
     val mutable stats : Srt.Stats.t option = None
-
     val mutable stats_task = None
 
     method collect_stats () =
-      ( try
-          let s = self#get_socket in
-          self#mutexify
-            (fun () -> stats <- Some (Srt.Stats.bstats ~clear:true s))
-            ()
-        with _ -> () );
+      (try
+         let s = self#get_socket in
+         self#mutexify
+           (fun () -> stats <- Some (Srt.Stats.bstats ~clear:true s))
+           ()
+       with _ -> ());
       if self#should_stop then -1. else stats_interval
 
     method stats = self#mutexify (fun () -> stats) ()
@@ -596,7 +582,7 @@ class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
                self#collect_stats
            in
            stats_task <- Some t;
-           Duppy.Async.wake_up t );
+           Duppy.Async.wake_up t);
          current_on_connect ());
 
     let current_on_disconnect = !on_disconnect in
@@ -611,11 +597,8 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
   ~on_disconnect =
   object (self)
     method virtual should_stop : bool
-
     val mutable connect_task = None
-
     val mutable task_should_stop = false
-
     val mutable socket = None
 
     method private get_socket =
@@ -625,9 +608,7 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
         ()
 
     method virtual private log : Log.t
-
     method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
-
     method private is_connected = self#mutexify (fun () -> socket <> None) ()
 
     method private connect_fn () =
@@ -685,13 +666,9 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
   ~on_disconnect =
   object (self)
     val mutable client_data = None
-
     method virtual log : Log.t
-
     method virtual should_stop : bool
-
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
-
     val mutable listening_socket = None
 
     method private is_connected =
@@ -707,15 +684,15 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
       let on_connect s =
         try
           let client, origin = Srt.accept s in
-          ( try self#log#info "New connection from %s" (string_of_address origin)
-            with exn ->
-              self#log#important "Error while fetching connection source: %s"
-                (Printexc.to_string exn) );
+          (try self#log#info "New connection from %s" (string_of_address origin)
+           with exn ->
+             self#log#important "Error while fetching connection source: %s"
+               (Printexc.to_string exn));
           Srt.setsockflag client Srt.sndsyn true;
           Srt.setsockflag client Srt.rcvsyn true;
           if self#should_stop then (
             close_socket client;
-            raise Done );
+            raise Done);
           self#mutexify
             (fun () ->
               client_data <- Some client;
@@ -756,7 +733,8 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
   end
 
 class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
-  ~on_disconnect ~payload_size ~dump ~stats_interval format =
+  ~on_disconnect ~payload_size ~dump ~stats_interval ~on_start ~on_stop
+  ~autostart format =
   let max_ticks = Frame.main_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -766,13 +744,14 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
   in
   object (self)
     inherit networking_agent ~on_connect ~on_disconnect ~stats_interval
-
     inherit base
 
-    inherit Source.source ~name:"input.srt" (Source.Kind.of_kind kind) as super
+    inherit
+      Start_stop.active_source
+        ~name:"input.srt" ~content_kind:(Source.Kind.of_kind kind) ~clock_safe
+          ~on_start ~on_stop ~autostart ~fallible:true () as super
 
     val mutable decoder_data = None
-
     val mutable dump_chan = None
 
     initializer
@@ -781,32 +760,29 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
     (on_connect :=
        fun () ->
          Generator.set_mode generator `Undefined;
-         ( match dump with
+         (match dump with
            | Some fname -> dump_chan <- Some (open_out_bin fname)
-           | None -> () );
+           | None -> ());
          on_connect_cur ());
     let on_disconnect_cur = !on_disconnect in
     on_disconnect :=
       fun () ->
         decoder_data <- None;
-        ( match dump_chan with
+        (match dump_chan with
           | Some chan ->
               close_out_noerr chan;
               dump_chan <- None
-          | None -> () );
+          | None -> ());
         on_disconnect_cur ()
 
-    method stype = Source.Fallible
-
     method seek _ = 0
-
     method remaining = -1
-
     method abort_track = Generator.add_break generator
 
-    method is_ready = (not self#should_stop) && self#is_connected
+    method is_ready =
+      super#is_ready && (not self#should_stop) && self#is_connected
 
-    method self_sync = self#is_connected
+    method self_sync = (`Dynamic, self#is_connected)
 
     method private create_decoder socket =
       let create_decoder =
@@ -826,7 +802,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
           Buffer.add_subbytes buf tmp 0 input;
           match dump_chan with
             | Some chan -> output chan tmp 0 input
-            | None -> () );
+            | None -> ());
         let len = min len (Buffer.length buf) in
         Buffer.blit buf 0 bytes ofs len;
         Utils.buffer_drop buf len;
@@ -859,39 +835,24 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
         if not self#should_stop then self#connect;
         Frame.add_break frame pos
 
-    method private get_clock =
-      match clock with
-        | Some c -> c
-        | None ->
-            let c = new Clock.clock "srt" in
-            clock <- Some c;
-            c
-
-    method private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (self#get_clock :> Clock.clock))
-
-    method wake_up act =
-      super#wake_up act;
+    method private start =
       self#set_should_stop false;
       self#connect
 
-    method sleep =
+    method private stop =
       self#set_should_stop true;
-      self#disconnect;
-      super#sleep
+      self#disconnect
   end
 
 class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
   ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~messageapi ~dump
-  format =
+  ~on_start ~on_stop ~autostart format =
   object
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump ~stats_interval format
+          ~on_disconnect ~dump ~stats_interval ~on_start ~on_stop ~autostart
+          format
 
     inherit
       listener
@@ -900,12 +861,13 @@ class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
 
 class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
   ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~messageapi ~dump
-  format =
+  ~on_start ~on_stop ~autostart format =
   object
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump ~stats_interval format
+          ~on_disconnect ~dump ~stats_interval ~on_start ~on_stop ~autostart
+          format
 
     inherit
       caller
@@ -915,14 +877,12 @@ class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.srt" ~return_t ~category:Lang.Input ~meth
+  Lang.add_operator "input.srt" ~return_t ~category:Lang.Input
+    ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
-    ( common_options ~mode:`Listener
+    (common_options ~mode:`Listener
+    @ Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:`Nope
     @ [
-        ( "clock_safe",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Force the use of a decicated clock." );
         ( "max",
           Lang.float_t,
           Some (Lang.float 10.),
@@ -947,7 +907,7 @@ let () =
           Some
             "Content-Type (mime type) used to find a decoder for the input \
              stream." );
-      ] )
+      ])
     (fun p ->
       let ( mode,
             hostname,
@@ -968,20 +928,29 @@ let () =
       let max = Lang.to_float (List.assoc "max" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let on_start =
+        let f = List.assoc "on_start" p in
+        fun () -> ignore (Lang.apply f [])
+      in
+      let on_stop =
+        let f = List.assoc "on_stop" p in
+        fun () -> ignore (Lang.apply f [])
+      in
+      let autostart = Lang.to_bool (List.assoc "start" p) in
       let format = Lang.to_string (List.assoc "content_type" p) in
       match mode with
         | `Listener ->
-            ( new input_listener
-                ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
-                ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
-                ~dump format
-              :> < Source.source ; stats : Srt.Stats.t option > )
+            (new input_listener
+               ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
+               ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
+               ~dump ~on_start ~on_stop ~autostart format
+              :> < Start_stop.active_source ; stats : Srt.Stats.t option >)
         | `Caller ->
-            ( new input_caller
-                ~kind ~hostname ~port ~payload_size ~clock_safe ~on_connect
-                ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
-                ~dump format
-              :> < Source.source ; stats : Srt.Stats.t option > ))
+            (new input_caller
+               ~kind ~hostname ~port ~payload_size ~clock_safe ~on_connect
+               ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
+               ~dump ~on_start ~on_stop ~autostart format
+              :> < Start_stop.active_source ; stats : Srt.Stats.t option >))
 
 class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect
@@ -990,7 +959,6 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
   let tmp = Bytes.create payload_size in
   object (self)
     inherit networking_agent ~on_connect ~on_disconnect ~stats_interval
-
     inherit base
 
     inherit
@@ -1050,15 +1018,15 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
                 enc)
         ()
 
-    method private output_start =
+    method private start =
       self#mutexify (fun () -> should_stop <- false) ();
       self#connect
 
-    method private output_reset =
-      self#output_start;
-      self#output_stop
+    method private reset =
+      self#start;
+      self#stop
 
-    method private output_stop =
+    method private stop =
       self#mutexify (fun () -> should_stop <- true) ();
       self#disconnect
 
@@ -1072,7 +1040,7 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
     method private send data =
       if self#is_connected then (
         self#mutexify (Strings.Mutable.append_strings buffer) data;
-        self#send_chunks )
+        self#send_chunks)
   end
 
 class output_caller ~kind ~payload_size ~messageapi ~on_start ~on_stop
@@ -1108,14 +1076,20 @@ class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.srt" ~active:true ~return_t ~category:Lang.Output
-    ~meth ~descr:"Send a SRT stream to a distant agent."
-    ( Output.proto
+  let output_meth =
+    List.map
+      (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
+      Output.meth
+  in
+  Lang.add_operator "output.srt" ~return_t ~category:Lang.Output
+    ~meth:(meth () @ output_meth)
+    ~descr:"Send a SRT stream to a distant agent."
+    (Output.proto
     @ common_options ~mode:`Caller
     @ [
         ("", Lang.format_t return_t, None, Some "Encoding format.");
         ("", Lang.source_t return_t, None, None);
-      ] )
+      ])
     (fun p ->
       let ( mode,
             hostname,
@@ -1151,14 +1125,14 @@ let () =
       in
       match mode with
         | `Caller ->
-            ( new output_caller
-                ~kind ~hostname ~port ~payload_size ~autostart ~on_start
-                ~on_stop ~stats_interval ~infallible ~messageapi
-                ~encoder_factory ~on_connect ~on_disconnect source
-              :> < Source.source ; stats : Srt.Stats.t option > )
+            (new output_caller
+               ~kind ~hostname ~port ~payload_size ~autostart ~on_start ~on_stop
+               ~stats_interval ~infallible ~messageapi ~encoder_factory
+               ~on_connect ~on_disconnect source
+              :> < Output.output ; stats : Srt.Stats.t option >)
         | `Listener ->
-            ( new output_listener
-                ~kind ~bind_address ~payload_size ~autostart ~on_start ~on_stop
-                ~infallible ~stats_interval ~messageapi ~encoder_factory
-                ~on_connect ~on_disconnect source
-              :> < Source.source ; stats : Srt.Stats.t option > ))
+            (new output_listener
+               ~kind ~bind_address ~payload_size ~autostart ~on_start ~on_stop
+               ~infallible ~stats_interval ~messageapi ~encoder_factory
+               ~on_connect ~on_disconnect source
+              :> < Output.output ; stats : Srt.Stats.t option >))

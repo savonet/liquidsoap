@@ -31,25 +31,15 @@ let ticks_of_offset offset =
 class on_offset ~kind ~force ~offset ~override f s =
   object (self)
     inherit Source.operator ~name:"on_offset" kind [s]
-
     inherit Latest_metadata.source
-
     method stype = s#stype
-
     method is_ready = s#is_ready
-
     method remaining = s#remaining
-
     method abort_track = s#abort_track
-
     method seek n = s#seek n
-
     method self_sync = s#self_sync
-
     val mutable elapsed = 0L
-
     val mutable offset = ticks_of_offset offset
-
     val mutable executed = false
 
     method private execute =
@@ -86,7 +76,7 @@ class on_offset ~kind ~force ~offset ~override f s =
         if force && not executed then self#execute;
         executed <- false;
         self#clear_latest_metadata;
-        elapsed <- 0L )
+        elapsed <- 0L)
   end
 
 let () =

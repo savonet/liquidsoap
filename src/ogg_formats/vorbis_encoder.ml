@@ -57,7 +57,7 @@ let create_gen enc freq m =
     (* Assert that at least some data was encoded.. *)
     if not !started then (
       let b = empty_data () in
-      Vorbis.Encoder.encode_buffer_float enc os b 0 (Array.length b.(0)) );
+      Vorbis.Encoder.encode_buffer_float enc os b 0 (Array.length b.(0)));
     Vorbis.Encoder.end_of_stream enc os
   in
   {

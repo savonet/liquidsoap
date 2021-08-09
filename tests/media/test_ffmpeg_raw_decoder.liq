@@ -1,12 +1,11 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
-set("log.level",5)
-
-set("decoder.decoders",["FFMPEG"])
+log.level.set(5)
+settings.decoder.decoders.set(["FFMPEG"])
 
 fname = argv(default="",1)
-out = "files/test.mp4"
+out = "files/test_ffmpeg_raw_decoder.mp4"
 
 if file.exists(out) then
   file.remove(out)

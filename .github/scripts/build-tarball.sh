@@ -12,11 +12,12 @@ cd /tmp/liquidsoap-full
 git pull
 make clean
 make update
-./liquidsoap/.github/scripts/checkout-deps.sh
 
 cd liquidsoap
 git fetch origin $GITHUB_SHA
 git checkout $GITHUB_SHA
+
+./.github/scripts/checkout-deps.sh
 
 cd /tmp/liquidsoap-full
 
@@ -28,4 +29,5 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
             --with-camomile-data-dir=/usr/share/liquidsoap/camomile
 
 cd liquidsoap
+make -C doc language.dtd liquidsoap.1
 make tarball

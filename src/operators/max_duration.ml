@@ -27,13 +27,9 @@
 class max_duration ~kind ~override_meta ~duration source =
   object (self)
     inherit Source.operator ~name:"max_duration" kind []
-
     val mutable remaining = duration
-
     val mutable s : Source.source = source
-
     method self_sync = source#self_sync
-
     method private set_clock = Clock.unify self#clock s#clock
 
     method private wake_up activation =
@@ -41,11 +37,8 @@ class max_duration ~kind ~override_meta ~duration source =
       s#get_ready activation
 
     method private sleep = s#leave (self :> Source.operator)
-
     method stype = Source.Fallible
-
     method is_ready = remaining > 0 && s#is_ready
-
     method abort_track = s#abort_track
 
     method remaining =
@@ -66,8 +59,7 @@ class max_duration ~kind ~override_meta ~duration source =
                     remaining <- Frame.main_of_seconds v;
                     self#log#info "Overriding remaining value: %.02f." v
                   with _ ->
-                    self#log#important "Invalid remaining override value: %s." v
-                  ))
+                    self#log#important "Invalid remaining override value: %s." v))
               m)
         (Frame.get_all_metadata buf)
 
@@ -78,8 +70,8 @@ class max_duration ~kind ~override_meta ~duration source =
       remaining <- remaining - Frame.position buf + offset;
       if remaining <= 0 then (
         s#leave (self :> Source.source);
-        s <- Blank.empty kind;
-        s#get_ready [(self :> Source.source)] )
+        s <- Debug_sources.empty kind;
+        s#get_ready [(self :> Source.source)])
   end
 
 let () =

@@ -48,16 +48,12 @@ module Buffer = struct
   let proceed control f = Tutils.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~kind c =
+  class producer ~id ~kind c =
     object (self)
-      inherit Source.source kind ~name:"warp_prod"
-
-      method self_sync = false
-
+      inherit Source.source kind ~name:id
+      method self_sync = (`Static, false)
       method stype = Source.Fallible
-
       method remaining = proceed c (fun () -> Generator.remaining c.generator)
-
       method is_ready = proceed c (fun () -> not c.buffering)
 
       method private get_frame frame =
@@ -66,44 +62,41 @@ module Buffer = struct
             Generator.fill c.generator frame;
             if Frame.is_partial frame && Generator.length c.generator = 0 then (
               self#log#important "Buffer emptied, start buffering...";
-              c.buffering <- true ))
+              c.buffering <- true))
 
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
 
-  class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
+  class consumer ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
     ~max_buffer ~kind source_val c =
     let prebuf = Frame.main_of_seconds pre_buffer in
     let maxbuf = Frame.main_of_seconds max_buffer in
     object
       inherit
         Output.output
-          ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
-            ~on_stop source_val autostart
+          ~output_kind:id ~content_kind:kind ~infallible ~on_start ~on_stop
+            source_val autostart
 
-      method output_reset = ()
-
-      method output_start = ()
-
-      method output_stop = ()
-
+      method reset = ()
+      method start = ()
+      method stop = ()
       val source = Lang.to_source source_val
 
-      method output_send frame =
+      method send_frame frame =
         proceed c (fun () ->
             if c.abort then (
               c.abort <- false;
-              source#abort_track );
+              source#abort_track);
             Generator.feed_from_frame c.generator frame;
             if Generator.length c.generator > prebuf then (
               c.buffering <- false;
               if Generator.length c.generator > maxbuf then
                 Generator.remove c.generator
-                  (Generator.length c.generator - maxbuf) ))
+                  (Generator.length c.generator - maxbuf)))
     end
 
-  let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
-      ~kind source_val =
+  let create ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
+      ~max_buffer ~kind source_val =
     let control =
       {
         generator = Generator.create ();
@@ -114,17 +107,24 @@ module Buffer = struct
     in
     let _ =
       new consumer
+        ~id:(Printf.sprintf "%s.consumer" id)
         ~autostart ~infallible ~on_start ~on_stop ~kind source_val ~pre_buffer
         ~max_buffer control
     in
-    new producer ~kind control
+    new producer ~id:(Printf.sprintf "%s.producer" id) ~kind control
 end
 
 let () =
   let kind = Lang.any in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "buffer"
-    ( Output.proto
+    ([
+       ( "fallible",
+         Lang.bool_t,
+         Some (Lang.bool true),
+         Some "Allow the child source to fail." );
+     ]
+    @ List.filter (fun (lbl, _, _, _) -> lbl <> "fallible") Output.proto
     @ [
         ( "buffer",
           Lang.float_t,
@@ -135,10 +135,14 @@ let () =
           Some (Lang.float 10.),
           Some "Maximum amount of buffered data, in seconds." );
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k ~category:Lang.Liquidsoap
     ~descr:"Create a buffer between two different clocks."
     (fun p ->
+      let id =
+        Lang.to_default_option ~default:"buffer" Lang.to_string
+          (List.assoc "id" p)
+      in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start = List.assoc "on_start" p in
@@ -150,7 +154,7 @@ let () =
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let kind = Source.Kind.of_kind kind in
-      Buffer.create ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
+      Buffer.create ~id ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
         ~max_buffer ~kind s)
 
 module AdaptativeBuffer = struct
@@ -199,13 +203,9 @@ module AdaptativeBuffer = struct
     let alpha = log 2. *. AFrame.duration () /. averaging in
     object (self)
       inherit Source.source kind ~name:"buffer.adaptative_producer"
-
       method stype = Source.Fallible
-
-      method self_sync = false
-
+      method self_sync = (`Static, false)
       method remaining = proceed c (fun () -> MG.remaining c.mg)
-
       method is_ready = proceed c (fun () -> not c.buffering)
 
       method private get_frame frame =
@@ -256,7 +256,7 @@ module AdaptativeBuffer = struct
                       let x = srcc.{i * slen / dlen} in
                       dstc.{i + dofs} <- x
                     done
-                  done )
+                  done)
             in
             (* We scale the reading so that the buffer always approximatively
                contains prebuf data. *)
@@ -287,7 +287,7 @@ module AdaptativeBuffer = struct
               MG.advance c.mg (MG.length c.mg);
 
               (* sync just in case *)
-              c.buffering <- true ))
+              c.buffering <- true))
 
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
@@ -301,32 +301,29 @@ module AdaptativeBuffer = struct
           ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
             ~on_stop source_val autostart
 
-      method output_reset = ()
-
-      method output_start = ()
-
-      method output_stop = ()
-
+      method reset = ()
+      method start = ()
+      method stop = ()
       val source = Lang.to_source source_val
 
-      method output_send frame =
+      method send_frame frame =
         proceed c (fun () ->
             if c.abort then (
               c.abort <- false;
-              source#abort_track );
+              source#abort_track);
             let len = AFrame.position frame in
             let buf = AFrame.pcm frame in
             if RB.write_space c.rb < len then (
               (* Not enough write space, let's drop some data. *)
               let n = len - RB.write_space c.rb in
               RB.read_advance c.rb n;
-              MG.advance c.mg (Frame.main_of_audio n) );
+              MG.advance c.mg (Frame.main_of_audio n));
             RB.write c.rb (Audio.sub buf 0 len);
             MG.feed_from_frame c.mg frame;
             if RB.read_space c.rb > prebuf then (
               c.buffering <- false;
               if reset then
-                c.rb_length <- float (Frame.audio_of_seconds pre_buffer) ))
+                c.rb_length <- float (Frame.audio_of_seconds pre_buffer)))
     end
 
   let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
@@ -353,7 +350,7 @@ let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "buffer.adaptative"
-    ( Output.proto
+    (Output.proto
     @ [
         ( "buffer",
           Lang.float_t,
@@ -378,7 +375,7 @@ let () =
             "Reset speed estimation to 1. when the source becomes available \
              again." );
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k ~category:Lang.Liquidsoap
     ~descr:
       "Create a buffer between two different clocks. The speed of the output \

@@ -11,7 +11,7 @@ files:
 	if [ ! -e file3.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=880:duration=5" -ac 2 file3.mp3 ; fi
 
 %: %.liq
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" streams/$<
+	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" streams/$<
 
 include $(top_srcdir)/Makefile.rules
 

@@ -141,8 +141,31 @@ let rec token lexbuf =
         let n = String.indexp_from matched 7 (fun c -> c <> ' ') in
         let r = String.rindexp matched (fun c -> c <> ' ') in
         PP_IFNDEF (String.sub matched n (r - n + 1))
+    | ( "%ifversion",
+        Plus ' ',
+        ("==" | ">=" | "<=" | "<" | ">"),
+        Plus ' ',
+        Plus (decimal_digit | '.') ) ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let n1 = String.indexp_from matched 10 (fun c -> c <> ' ') in
+        let n2 = String.indexp_from matched n1 (fun c -> c = ' ') in
+        let n3 = String.indexp_from matched n2 (fun c -> c <> ' ') in
+        let r = String.rindexp matched (fun c -> c <> ' ') in
+        let cmp = String.sub matched n1 (n2 - n1) in
+        let ver = String.sub matched n3 (r - n3 + 1) in
+        let cmp =
+          match cmp with
+            | "==" -> `Eq
+            | ">=" -> `Geq
+            | "<=" -> `Leq
+            | "<" -> `Lt
+            | ">" -> `Gt
+            | _ -> assert false
+        in
+        PP_IFVERSION (cmp, ver)
     | "%ifencoder" -> PP_IFENCODER
     | "%ifnencoder" -> PP_IFNENCODER
+    | "%else" -> PP_ELSE
     | "%endif" -> PP_ENDIF
     | "%include", Star (white_space | '\t'), '"', Star (Compl '"'), '"' ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
@@ -342,7 +365,7 @@ and read_string c pos buf lexbuf =
         if c = c' then STRING (Buffer.contents buf)
         else (
           Buffer.add_char buf c';
-          read_string c pos buf lexbuf )
+          read_string c pos buf lexbuf)
     | eof ->
         raise
           (Lang_values.Parse_error

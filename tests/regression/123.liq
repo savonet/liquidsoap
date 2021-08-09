@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 
 # Correctly parse urls with empty arguments.
 # https://github.com/savonet/liquidsoap/issues/123

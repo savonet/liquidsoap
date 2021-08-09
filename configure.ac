@@ -1,7 +1,7 @@
 # Liquidsoap autoconf setup
 
 AC_INIT([liquidsoap],
-        m4_esyscmd([cat liquidsoap.opam | grep ^version | sed 's/version: "\([^"]*\)"/\1/' | tr -d '\r\n']),
+        m4_esyscmd([cat liquidsoap.opam | grep ^version | sed 's/version: "\([^"]*\)"/\1/' | tr -d '\r\n' | sed -e 's#~#-#g']),
         [savonet-users@lists.sourceforge.net],
         [liquidsoap],
         [https://github.com/savonet/liquidsoap])
@@ -946,40 +946,6 @@ fi
 cat >> src/configure.ml <<__BLAH__
 let default_font = "$DEFAULT_FONT"
 __BLAH__
-
-#
-# GUI
-#
-
-AC_ARG_ENABLE([gui],
-       AS_HELP_STRING([--disable-gui],[don't use the controller GUI]))
-w_PYTHON=no
-if test "x$enable_gui" != "xno" ; then
-AC_PATH_PROG(PYTHON,python,no)
-if test \! "$PYTHON" = no ; then
-  AC_MSG_CHECKING(for pygtk)
-  dnl Check for pygtk and find python version
-  PYVERSION=`$PYTHON -c "import sys ; import re ; import pygtk ; print re.search('^\d+\.\d+',sys.version).group(0)" 2> /dev/null`
-  if test $? = 0 ; then
-    AC_MSG_RESULT(yes)
-    PYMDIR="\${libdir}/python$PYVERSION/site-packages/liquidsoap"
-    W_PYTHON=yes
-    w_PYTHON="yes (requires >=pyGTK-2.0)"
-    cat > gui/liguidsoap <<__EOP__
-#!/usr/bin/env python
-import sys
-sys.path.insert(0,"${prefix}/lib/python$PYVERSION/site-packages/liquidsoap")
-import liguidsoap
-liguidsoap.liguidsoap()
-__EOP__
-    chmod +x gui/liguidsoap
-  else
-    AC_MSG_RESULT(no)
-  fi
-fi
-fi
-AC_SUBST(W_PYTHON)
-AC_SUBST(PYMDIR)
 
 if test "x$W_AO" = "xyes" ; then
   preferred_output=output.ao

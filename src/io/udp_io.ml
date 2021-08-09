@@ -22,6 +22,37 @@
 
 let max_packet_size = if Configure.host = "osx" then 9216 else 65535
 
+module Tutils = struct
+  include Tutils
+
+  (* Thread with preemptive kill/wait mechanism, see mli for details. *)
+
+  (** Preemptive stoppable thread.
+   *
+   * The thread function receives a [should_stop,has_stop] pair on startup.
+   * It should regularly poll the [should_stop] and stop when asked to.
+   * Before stopping it should call [has_stopped].
+   *
+   * The function returns a [kill,wait] pair. The first function should be
+   * called to request that the thread stops, and the second to wait
+   * that it has effectively stopped. *)
+  let stoppable_thread f name =
+    let cond = Condition.create () in
+    let lock = Mutex.create () in
+    let should_stop = ref false in
+    let has_stopped = ref false in
+    let kill = mutexify lock (fun () -> should_stop := true) in
+    let wait () = wait cond lock (fun () -> !has_stopped) in
+    let should_stop = mutexify lock (fun () -> !should_stop) in
+    let has_stopped =
+      mutexify lock (fun () ->
+          has_stopped := true;
+          Condition.signal cond)
+    in
+    let _ = create f (should_stop, has_stopped) name in
+    (kill, wait)
+end
+
 class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
   ~encoder_factory source =
   object (self)
@@ -33,10 +64,9 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
         source
 
     val mutable socket_send = None
-
     val mutable encoder = None
 
-    method private output_start =
+    method private start =
       let socket =
         Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_DGRAM
           (Unix.getprotobyname "udp").Unix.p_proto
@@ -51,16 +81,16 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
               if off + pos < len then (
                 let len = min (len - pos) max_packet_size in
                 let len = Unix.sendto socket msg (off + pos) len [] portaddr in
-                f (pos + len) )
+                f (pos + len))
             in
             f 0);
       encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
 
-    method private output_reset =
-      self#output_start;
-      self#output_stop
+    method private reset =
+      self#start;
+      self#stop
 
-    method private output_stop =
+    method private stop =
       socket_send <- None;
       encoder <- None
 
@@ -85,8 +115,6 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   object (self)
-    inherit Source.source ~name:"input.udp" kind as super
-
     inherit
       Generated.source
         (Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
@@ -94,31 +122,24 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
         ~empty_on_abort:false ~bufferize
 
     inherit
-      Start_stop.async
-        ~name:(Printf.sprintf "udp://%s:%d" hostname port)
-        ~on_start:ignore ~on_stop:ignore ~autostart:true
+      Start_stop.active_source
+        ~name:"input.udp" ~content_kind:kind ~clock_safe:false ~fallible:true
+          ~on_start:ignore ~on_stop:ignore ~autostart:true ()
 
     initializer log_ref := fun s -> self#log#important "%s" s
-
     val mutable kill_feeding = None
-
     val mutable wait_feeding = None
-
     val mutable decoder_factory = None
-
     method private decoder_factory = Option.get decoder_factory
-
-    method private wake_up a =
-      super#wake_up a;
-      decoder_factory <- Some (get_stream_decoder self#ctype)
 
     method private start =
       begin
+        decoder_factory <- Some (get_stream_decoder self#ctype);
         match wait_feeding with
-        | None -> ()
-        | Some f ->
-            f ();
-            wait_feeding <- None
+          | None -> ()
+          | Some f ->
+              f ();
+              wait_feeding <- None
       end;
       let kill, wait = Tutils.stoppable_thread self#feed "UDP input" in
       kill_feeding <- Some kill;
@@ -126,15 +147,8 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 
     method private stop =
       (Option.get kill_feeding) ();
-      kill_feeding <- None
-
-    method private output_reset =
-      request_stop <- true;
-      request_start <- true
-
-    method private is_active = true
-
-    method private stype = Source.Fallible
+      kill_feeding <- None;
+      decoder_factory <- None
 
     method private feed (should_stop, has_stopped) =
       let socket =
@@ -185,16 +199,17 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 let () =
   let kind = Lang.any in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.udp" ~active:true
+  Lang.add_operator "output.udp"
     ~descr:"Output encoded data to UDP, without any control whatsoever."
-    ~category:Lang.Output ~flags:[Lang.Experimental]
-    ( Output.proto
+    ~category:Lang.Output
+    ~flags:[Lang.Hidden; Lang.Deprecated; Lang.Experimental]
+    (Output.proto
     @ [
         ("port", Lang.int_t, None, None);
         ("host", Lang.string_t, None, None);
         ("", Lang.format_t k, None, Some "Encoding format.");
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k
     (fun p ->
       (* Generic output parameters *)
@@ -221,17 +236,18 @@ let () =
       in
       let source = Lang.assoc "" 2 p in
       let kind = Source.Kind.of_kind kind in
-      ( new output
-          ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-          ~encoder_factory:fmt source
-        :> Source.source ))
+      (new output
+         ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
+         ~encoder_factory:fmt source
+        :> Source.source))
 
 let () =
   let kind = Lang.any in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.udp" ~active:true
+  Lang.add_operator "input.udp"
     ~descr:"Input encoded data from UDP, without any control whatsoever."
-    ~category:Lang.Input ~flags:[Lang.Experimental]
+    ~category:Lang.Input
+    ~flags:[Lang.Hidden; Lang.Deprecated; Lang.Experimental]
     [
       ("port", Lang.int_t, None, None);
       ("host", Lang.string_t, None, None);
@@ -263,6 +279,6 @@ let () =
           | Some decoder_factory -> decoder_factory
       in
       let kind = Source.Kind.of_kind kind in
-      ( new input
-          ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
-        :> Source.source ))
+      (new input
+         ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
+        :> Source.source))

@@ -54,7 +54,7 @@ let encoder flac meta =
           Audio_converter.Samplerate.resample samplerate_converter
             (dst_freq /. src_freq) (Audio.sub b start len)
         in
-        (b, 0, Audio.length b) )
+        (b, 0, Audio.length b))
       else (b, start, len)
     in
     let b = Audio.sub b start len in

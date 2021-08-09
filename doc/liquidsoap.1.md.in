@@ -73,7 +73,7 @@ script.
 \--list-plugins-xml
 : List all plugins (builtin scripting values, supported formats and protocols), output as XML.
 
-\--no-pervasives
+\--no-stdlib
 : Do not load pervasive script libraries.
 
 \--version
@@ -123,17 +123,8 @@ script.
 -v, \--verbose
 : Print log messages on standard output.
 
-\--conf-descr-key _key_
-: Describe a configuration key.
-
-\--conf-descr
-: Show all configuration keys with their documentation.
-
-\--conf-descr-liqi
-: Show all configuration keys with their documentation in liqi (documentation wiki) format.
-
-\--conf-dump
-: Dump the configuration state
+\--list-settings
+: Show all settings with their documentation.
 
 -help, \--help
 Display this list of options

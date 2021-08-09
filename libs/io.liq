@@ -24,7 +24,7 @@ let replaces output=output.dummy
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
-def replaces output(~id="",~fallible=true,
+def replaces output(~id=null(),~fallible=true,
            ~on_start={()},~on_stop={()},~start=true,s)
   output(id=id,fallible=fallible,
          start=start,on_start=on_start,on_stop=on_stop,
@@ -35,10 +35,10 @@ let output.video = output.dummy
 %ifdef output.sdl
   def output.video(%argsof(output.sdl), s)
     if output.sdl.has_video() then
-      output.sdl(%argsof(output.sdl), s)
+      (output.sdl(%argsof(output.sdl), s):unit)
     else
       # Avoid using SDL when there is no video output.
-      output.dummy(fallible=fallible, s)
+      (output.dummy(fallible=fallible, s):unit)
     end
   end
 %endif
@@ -55,7 +55,7 @@ let output.video = output.dummy
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
-def output.video(~id="",~fallible=true,~on_start={()},~on_stop={()},~start=true,s)
+def output.video(~id=null(),~fallible=true,~on_start={()},~on_stop={()},~start=true,s)
   output.video(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s)
 end
 
@@ -69,12 +69,12 @@ end
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
-def output.audio_video(~id="",~fallible=true,~on_start={()},~on_stop={()},~start=true,s)
+def output.audio_video(~id=null(),~fallible=true,~on_start={()},~on_stop={()},~start=true,s)
   output(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, drop_video(s))
   output.video(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, drop_audio(s))
 end
 
-def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+def replaces input(~id=null(),~start=true,~on_start={()},~on_stop={()},~fallible=false)
   blank(id=id)
 end
 %ifdef input.alsa
@@ -97,6 +97,6 @@ end
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
-def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+def replaces input(~id=null(),~start=true,~on_start={()},~on_stop={()},~fallible=false)
   input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
 end

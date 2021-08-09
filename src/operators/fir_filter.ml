@@ -29,16 +29,12 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
     (* Needed to compute RC *)
     val f1 = (1. -. beta) *. (freq /. float_of_int (Frame.audio_of_seconds 1.))
-
     val f2 = (1. +. beta) *. (freq /. float_of_int (Frame.audio_of_seconds 1.))
-
     val tau = 0.5 /. (freq /. float_of_int (Frame.audio_of_seconds 1.))
 
     (* Misc *)
     val mutable nzeros = numcoeffs - 1
-
     val mutable gain = 0.
-
     val mutable xv = [||]
 
     method wake_up a =
@@ -47,9 +43,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
     (* Coefficients *)
     val mutable xcoeffs = Array.make numcoeffs 0.
-
     val mutable circle = [||]
-
     val mutable temp = Array.make 2048 { re = 0.; im = 0. }
 
     initializer
@@ -67,7 +61,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
           let theta = Float.pi *. float_of_int n /. 1024. in
           Array.append
             (mkcircle (n - 1))
-            [| { re = cos theta; im = sin theta } |] )
+            [| { re = cos theta; im = sin theta } |])
       in
       mkcircle 1024
     in
@@ -106,7 +100,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
           let wkt = circle.(i * a) *~ !t.(s + h + i) in
           !d.(s + i) <- !t.(s + i) +~ wkt;
           !d.(s + h + i) <- !t.(s + i) -~ wkt
-        done )
+        done)
     in
     fft (ref temp) (ref vec) 0 2048;
 
@@ -124,15 +118,10 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
     method stype = source#stype
-
     method remaining = source#remaining
-
     method is_ready = source#is_ready
-
     method seek = source#seek
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     method private get_frame buf =

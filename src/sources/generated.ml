@@ -38,18 +38,12 @@ module Make (Generator : Generator.S) = struct
        *    called from other threads. We use the generator_lock to avoid
        *    the only bad interference, ie. #get_frame vs #seek. *)
       val generator = gen
-
       val generator_lock = Mutex.create ()
-
       val mutable buffering = true
-
       val mutable should_fail = false
-
       val mutable cur_meta : Request.metadata option = None
-
       method virtual private log : Log.t
-
-      method self_sync = false
+      method self_sync : Source.self_sync = (`Static, false)
 
       method seek len =
         if (not seek) || len <= 0 then 0
@@ -62,9 +56,7 @@ module Make (Generator : Generator.S) = struct
             ()
 
       method abort_track = should_fail <- true
-
       method private length = Generator.length generator
-
       val mutable last_buffering_warning = -1
 
       method is_ready =
@@ -73,16 +65,15 @@ module Make (Generator : Generator.S) = struct
           (* We have some data, but not enough for safely starting to play it. *)
           if bufferize > 0 && r <= bufferize && r <> last_buffering_warning then (
             last_buffering_warning <- r;
-            self#log#debug "Not ready: need more buffering (%i/%i)." r bufferize
-            );
-          r > bufferize )
+            self#log#debug "Not ready: need more buffering (%i/%i)." r bufferize);
+          r > bufferize)
         else (
           (* This only happens if the end of track has not been played yet,
            * after which the buffering phase will start again. Does not mean
            * that we're not accumulating data, but it means that we don't know
            * yet that we'll stop playing it until the buffer is full enough. *)
           if r = 0 then self#log#info "Not ready for a new track: empty buffer.";
-          r > 0 )
+          r > 0)
 
       method remaining =
         if should_fail then 0
@@ -108,7 +99,7 @@ module Make (Generator : Generator.S) = struct
         if cur_meta = new_meta then true
         else (
           cur_meta <- new_meta;
-          false )
+          false)
 
       method private replay_metadata pos frame =
         match cur_meta with
@@ -125,7 +116,7 @@ module Make (Generator : Generator.S) = struct
               self#log#info "Performing skip.";
               should_fail <- false;
               if empty_on_abort then Generator.clear generator;
-              Frame.add_break ab (Frame.position ab) )
+              Frame.add_break ab (Frame.position ab))
             else (
               Generator.fill generator ab;
 
@@ -139,9 +130,9 @@ module Make (Generator : Generator.S) = struct
               if Frame.is_partial ab then self#log#info "End of track.";
               if Generator.length generator = 0 then (
                 self#log#info "Buffer emptied, buffering needed.";
-                buffering <- true );
+                buffering <- true);
               if self#save_metadata ab && was_buffering && replay_meta then
-                self#replay_metadata pos ab ))
+                self#replay_metadata pos ab))
           ()
     end
 
@@ -150,9 +141,7 @@ module Make (Generator : Generator.S) = struct
   class consumer ~kind generator =
     object
       inherit Source.source ~name:"buffer" kind
-
       inherit source generator ~bufferize:0. ~empty_on_abort:true
-
       method stype = Source.Fallible
     end
 end

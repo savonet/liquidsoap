@@ -58,6 +58,7 @@ module type ContentSpecs = sig
 
   val make : size:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
+  val fill : data -> int -> data -> int -> int -> unit
   val sub : data -> int -> int -> data
   val copy : data -> data
   val clear : data -> unit
@@ -162,6 +163,7 @@ let parse_param label value =
 
 type data_handler = {
   blit : int -> data -> int -> int -> unit;
+  fill : int -> data -> int -> int -> unit;
   sub : int -> int -> data;
   is_empty : unit -> bool;
   copy : unit -> data;
@@ -184,6 +186,7 @@ let get_data_handler v =
 
 let make ~size k = (get_params_handler k).make size
 let blit src = (get_data_handler src).blit
+let fill src = (get_data_handler src).fill
 let sub d = (get_data_handler d).sub
 let is_empty c = (get_data_handler c).is_empty ()
 let copy c = (get_data_handler c).copy ()
@@ -223,6 +226,10 @@ module MkContent (C : ContentSpecs) :
   let blit src src_ofs dst dst_ofs len =
     let dst = match dst with Data dst -> dst | _ -> raise Invalid in
     C.blit src src_ofs dst dst_ofs len
+
+  let fill src src_ofs dst dst_ofs len =
+    let dst = match dst with Data dst -> dst | _ -> raise Invalid in
+    C.fill src src_ofs dst dst_ofs len
 
   let merge p p' =
     let p' = match p' with Format p' -> p' | _ -> raise Invalid in
@@ -275,6 +282,7 @@ module MkContent (C : ContentSpecs) :
           Some
             {
               blit = blit d;
+              fill = fill d;
               sub = (fun ofs len -> Data (C.sub d ofs len));
               is_empty = (fun () -> C.is_empty d);
               copy = (fun () -> Data (C.copy d));
@@ -305,6 +313,7 @@ module NoneSpecs = struct
   let make ~size:_ _ = ()
   let clear _ = ()
   let blit _ _ _ _ _ = ()
+  let fill _ _ _ _ _ = ()
   let sub _ _ _ = ()
   let copy _ = ()
   let params _ = ()
@@ -357,6 +366,8 @@ module AudioSpecs = struct
           (Audio.Mono.sub a !src_pos !len)
           (Audio.Mono.sub a' !dst_pos !len))
       src dst
+
+  let fill = blit
 
   let sub data ofs len =
     let ( ! ) = audio_of_main in
@@ -469,6 +480,14 @@ module VideoSpecs = struct
     let ( ! ) = Frame_settings.video_of_main in
     Video.blit src !src_pos dst !dst_pos !len
 
+  let fill src src_pos dst dst_pos len =
+    let ( ! ) = Frame_settings.video_of_main in
+    let dst_pos = !dst_pos in
+    let src_pos = !src_pos in
+    for i = 0 to !len do
+      Video.set dst (dst_pos + i) (Video.get src (src_pos + i))
+    done
+
   let sub data ofs len =
     let ( ! ) = Frame_settings.video_of_main in
     Array.sub data !ofs !len
@@ -482,7 +501,7 @@ module VideoSpecs = struct
       {
         width = Some (lazy (Video.Image.width i));
         height = Some (lazy (Video.Image.height i));
-      } )
+      })
 
   let kind = `Yuva420p
   let default_params _ = { width = None; height = None }
@@ -519,6 +538,8 @@ module MidiSpecs = struct
   let blit src src_pos dst dst_pos len =
     let ( ! ) = midi_of_main in
     Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
+
+  let fill = blit
 
   let sub data ofs len =
     let ( ! ) = midi_of_main in

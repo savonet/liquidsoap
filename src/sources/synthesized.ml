@@ -35,27 +35,22 @@ class virtual source ?name ~seek kind duration =
       if track_size = None then Source.Infallible else Source.Fallible
 
     val mutable remaining = track_size
-
     method is_ready = remaining <> Some 0
-
     method seek x = if seek then x else 0
-
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     method remaining =
       match remaining with None -> -1 | Some remaining -> remaining
 
     val mutable must_fail = false
-
     method abort_track = must_fail <- true
-
     method virtual private synthesize : Frame.t -> int -> int -> unit
 
     method private get_frame frame =
       if must_fail then (
         Frame.add_break frame (Frame.position frame);
         must_fail <- false;
-        if track_size <> None then remaining <- Some 0 )
+        if track_size <> None then remaining <- Some 0)
       else (
         let off = Frame.position frame in
         let len =
@@ -67,5 +62,5 @@ class virtual source ?name ~seek kind duration =
                 len
         in
         self#synthesize frame off len;
-        Frame.add_break frame (off + len) )
+        Frame.add_break frame (off + len))
   end

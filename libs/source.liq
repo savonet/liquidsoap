@@ -33,7 +33,7 @@ end
 # @category Source / Track Processing
 # @param s The input source.
 def once(s)
-  sequence([s,(fail():source)])
+  sequence([s,(source.fail():source)])
 end
 
 # Apply a function to the first track of a source
@@ -41,16 +41,8 @@ end
 # @param ~id Force the value of the source ID.
 # @param fn The applied function.
 # @param s The input source.
-def map_first_track(~id="",fn,s)
+def map_first_track(~id=null(),fn,s)
   fallback(id=id,track_sensitive=true,[fn((once(s):source)),s])
-end
-
-# Restrict a source to play only when a predicate is true.
-# @category Source / Track Processing
-# @param pred The predicate, typically a time interval such as \
-#             `{10h-10h30}`.
-def at(pred,s)
-  switch([(pred,s)])
 end
 
 # Skip track when detecting a blank.
@@ -60,8 +52,8 @@ end
 # @param ~max_blank Maximum silence length allowed, in seconds.
 # @param ~min_noise Minimum duration of noise required to end silence, in seconds.
 # @param ~track_sensitive Reset blank counter at each track.
-def blank.skip(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
-  blank.detect({s.skip()},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
+def blank.skip(~id=null(),~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
+  blank.detect(id=id,{s.skip()},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
 
 # Same operator as rotate but merges tracks from each sources.
@@ -72,9 +64,9 @@ end
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 # @param sources Sequence of sources to be merged
-def rotate.merge(~id="",~transitions=[],~weights=[],sources)
+def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
   ready = ref(true)
-  duration = get(default=0.04,"frame.duration")
+  duration = frame.duration()
 
   def to_first(old,new) =
     ignore((old:source))
@@ -120,7 +112,7 @@ end
 # @param ~start_next Metadata field indicating when the next track should start, relative to current track's time.
 # @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.
 # @param sources Sources to toggle from
-def overlap_sources(~id="",~normalize=false,
+def overlap_sources(~id=null(),~normalize=false,
                     ~start_next="liq_start_next",
                     ~weights=[],sources) =
   position = ref(0)
@@ -192,10 +184,20 @@ end
 # @category Source / Track Processing
 # @param ~pattern Pattern to use
 # @param s The source to use
-def say_metadata
-  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
-  fun (s,~pattern=p) ->
-    append(s, fun (m) -> once(single(pattern % m)))
+def source.say_metadata =
+  def pattern(m) =
+    artist = m["artist"]
+    title = m["title"]
+    artist_predicate =
+      if artist != "" then
+        "It was #{artist} playing "
+      else
+        ""
+      end
+    "say:#{artist_predicate}#{title}"
+  end
+  fun (~id=null(), ~pattern=pattern, s) ->
+    append(id=id, s, fun (m) -> once(single(pattern(m))))
 end
 
 # Run a function regularly. This is similar to `thread.run` but based on a
@@ -240,6 +242,7 @@ end
 # @category Source / Track Processing
 # @param ~every How often to skip tracks.
 # @param s The stream.
+# @flag extra
 def skipper(~every=getter(5.), s) =
   start_time = ref(0.)
   def f() =

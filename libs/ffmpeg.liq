@@ -2,32 +2,35 @@
 # Stream from a video4linux2 input device, such as a webcam.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
-# @param ~buffer How much to buffer in advance (in seconds).
+# @param ~max_buffer Maximum data buffer in seconds
 # @param ~device V4L2 device to use.
-def input.v4l2(~id="", ~buffer=0.5, ~device="/dev/video0")
-  (input.ffmpeg(format="v4l2", buffer=buffer, device):source(audio=none))
+def input.v4l2(~id=null(), ~max_buffer=0.5, ~device="/dev/video0")
+  (input.ffmpeg(format="v4l2", max_buffer=max_buffer, device):source(audio=none))
 end
 
 # A test video source, which generates various patterns.
 # @category Source / Video Processing
 # @param ~pattern Pattern drawn in the video: `"testsrc"`, `"testsrc2"`, `"smptebars"` or `"rgbtestsrc"`.
-# @param ~buffer How much to buffer in advance (in seconds).
+# @param ~max_buffer Maximum data buffer in seconds
 # @param ~duration Duration of the source.
-def video.testsrc(~id="", ~pattern="testsrc", ~buffer=0.5, ~duration=null())
+def video.testsrc(~id=null(), ~pattern="testsrc", ~max_buffer=0.5, ~duration=null())
   if not list.mem(pattern, ["testsrc", "testsrc2", "smptebars", "rgbtestsrc"]) then failwith("invalid pattern for video.testsrc.ffmpeg") end
   size = "size=#{video.frame.width()}x#{video.frame.height()}"
   rate = "rate=#{video.frame.rate()}"
   duration = if null.defined(duration) then ":duration=#{duration}" else "" end
   src = "#{pattern}=#{size}:#{rate}#{duration}"
-  (input.ffmpeg(buffer=buffer, format="lavfi", src):source(audio=none))
+  (input.ffmpeg(max_buffer=max_buffer, format="lavfi", src):source(audio=none))
 end
 
 # Read an RTMP stream.
 # @category Source / Input
-# @param ~buffer How much to buffer in advance (in seconds).
+# @param ~max_buffer Maximum data buffer in seconds
+# @param ~timeout Timeout for source connection
 # @param url URL to read RTMP from, in the form `rtmp://IP:PORT/ENDPOINT`
-def input.rtmp(~buffer=5., url)
-  input.ffmpeg(buffer=buffer, log_overfull=false, format="live_flv", int_args=[("listen", 1)], url)
+def input.rtmp(~max_buffer=5., ~timeout=10., url)
+  input.ffmpeg(max_buffer=max_buffer, log_overfull=false, format="live_flv",
+               int_args=[("listen", 1), ("rw_timeout", int_of_float(timeout * 1000000.))],
+                url)
 end
 %endif
 
@@ -66,7 +69,7 @@ let ffmpeg.filter.audio_video = ()
 # @param id Force the value of the source ID.
 # @param buffer Duration of the pre-buffered data.
 # @param fps Output frame per seconds. Defaults to global value.
-def ffmpeg.filter.audio_video.output(~id="", ~buffer=0.1, ~fps=null(), graph, audio, video)
+def ffmpeg.filter.audio_video.output(~id=null(), ~buffer=0.1, ~fps=null(), graph, audio, video)
   a = ffmpeg.filter.audio.output(id=id, buffer=buffer, graph, audio)
   v = ffmpeg.filter.video.output(id=id, buffer=buffer, fps=fps, graph, video)
   mux_audio(audio=a, v)
