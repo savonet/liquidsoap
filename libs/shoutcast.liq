@@ -1,4 +1,3 @@
-
 %ifdef output.icecast
 # Output to shoutcast.
 # @category Source / Output
