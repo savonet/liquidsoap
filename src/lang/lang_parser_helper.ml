@@ -144,7 +144,9 @@ let args_of, app_of =
     let t = T.make ~pos:(Some pos) t.T.descr in
     Lang_values.{ t; term }
   in
-  (gen_args_of get_args, gen_args_of get_app)
+  let args_of = gen_args_of get_args in
+  let app_of = gen_args_of get_app in
+  (args_of, app_of)
 
 (** Create a new value with an unknown type. *)
 let mk ~pos e =

@@ -140,8 +140,8 @@ let reference x = mk (Ref x)
 let val_fun p f = mk (FFI (p, [], f))
 
 let val_cst_fun p c =
-  let p' = List.map (fun (l, d) -> (l, l, d)) p in
-  let f t tm = mk (Fun (p', [], [], { Term.t; Term.term = tm })) in
+  let p = List.map (fun (l, d) -> (l, "_", d)) p in
+  let f t tm = mk (Fun (p, [], [], { Term.t; Term.term = tm })) in
   let mkg t = T.make (T.Ground t) in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
@@ -151,7 +151,7 @@ let val_cst_fun p c =
     | Ground (Bool i) -> f (mkg T.Bool) (Term.Ground (Term.Ground.Bool i))
     | Ground (Float i) -> f (mkg T.Float) (Term.Ground (Term.Ground.Float i))
     | Ground (String i) -> f (mkg T.String) (Term.Ground (Term.Ground.String i))
-    | _ -> mk (FFI (p', [], fun _ -> c))
+    | _ -> mk (FFI (p, [], fun _ -> c))
 
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
