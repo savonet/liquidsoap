@@ -35,6 +35,7 @@ end
 # @flag deprecated
 def playlist.safe(~id=null(), ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri)
   deprecated("playlist.safe", "")
+  ignore(on_track)
   mksafe(playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri))
 end
 
@@ -88,7 +89,8 @@ def playlist.once(~id=null(),~random=false,~reload_mode="",
                   ~prefetch=1,~filter=fun(_)->true,uri)
   deprecated("playlist.once", "playlist")
   mode = if random then "randomize" else "normal" end
-  playlist(reload_mode="never", loop=false, id=id, mode=mode, prefetch=prefetch, check_next=filter, uri)
+  reload_mode = if reload_mode == "" then "never" else reload_mode end
+  playlist(reload_mode=reload_mode, loop=false, id=id, mode=mode, prefetch=prefetch, check_next=filter, uri)
 end
 
 # Deprecated: this function has been replaced by `map_metadata`.
@@ -110,6 +112,7 @@ end
 # @flag deprecated
 def id(~id=null(),s)
  deprecated("id","")
+ ignore(id)
  s
 end 
 
@@ -221,7 +224,7 @@ end
 # @flag deprecated
 def empty(~id=null())
   deprecated("empty", "source.fail")
-  source.fail()
+  source.fail(id=id)
 end
 
 # Deprecated: use `request.create` instead.
