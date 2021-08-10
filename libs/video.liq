@@ -281,6 +281,6 @@ def replaces video.add_text(~id=null(),~color=0xffffff,~cycle=true,~font="",
                    ~metadata="",~size=18,~speed=70,~x=getter(10),~y=getter(10),
                    d,s) =
   video.add_text.best(id=id,cycle=cycle,font=font,
-     metadata=metadata,size=size,
+     metadata=metadata,size=size,color=color,
      speed=speed,x=x,y=y,d,s)
 end

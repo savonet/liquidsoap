@@ -169,7 +169,8 @@ expr:
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | WHILE expr DO exprs END          { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "while"), ["", mk_fun ~pos:$loc($2) [] $2; "", mk_fun ~pos:$loc($4) [] $4])) }
-  | FOR VAR GETS expr DO exprs END   { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), None] $6])) }
+  | FOR bindvar GETS expr DO exprs END
+                                     { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), None] $6])) }
   | expr TO expr                     { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($2) (Var "iterator"), "int")), ["", $1; "", $3])) }
   | expr COALESCE expr               { let null = mk ~pos:$loc($1) (Var "null") in
                                        let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in

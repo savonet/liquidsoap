@@ -84,7 +84,7 @@ end
 # @param ~port Port of the server.
 # @param ~uri URI of the server.
 def server.harbor(~port=8000, ~uri="/telnet")
-  def webpage(~protocol, ~data, ~headers, uri)
+  def webpage(~protocol=_, ~data=_, ~headers=_, _)
     data="
 <html>
   <head>
@@ -146,7 +146,7 @@ def server.harbor(~port=8000, ~uri="/telnet")
 
   harbor.http.register(port=port, method="GET", uri, webpage)
 
-  def setter(~protocol, ~data, ~headers, uri)
+  def setter(~protocol=_, ~data, ~headers=_, _)
     log.info("Executing command: #{data}")
     answer = server.execute(data)
     answer = string.concat(separator="\n", answer) ^ "\n"

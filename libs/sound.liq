@@ -22,7 +22,7 @@
 # @method target_gain Current target amplification coefficient (in linear scale).
 # @method rms Current rms (in linear scale).
 def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~lookahead=getter(0.), ~window=getter(.5), ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
-  s = rms.smooth(duration=window, s)
+  s = rms.smooth(id=id, duration=window, s)
   v = ref(1.)
   frame = frame.duration()
   gain_min = lin_of_dB(gain_min)
@@ -52,7 +52,7 @@ def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=
     end
   s = source.on_frame(s, update)
   if track_sensitive then source.on_track(s, fun (_) -> v := 1.) end
-  amplify({!v}, delay_line(lookahead, s)).{ rms = rms, gain = fun() -> !v, target_gain = target_gain }
+  amplify(id=id, {!v}, delay_line(lookahead, s)).{ rms = rms, gain = fun() -> !v, target_gain = target_gain }
 end
 
 
@@ -69,8 +69,8 @@ end
 # @param ~high Higher frequency of the bandpass filter.
 # @param ~q Q factor.
 def filter.iir.eq.low_high(~id=null(), ~low, ~high, ~q=1., s)
-  s = if not (getter.is_constant(high) and getter.get(high) == infinity) then filter.iir.eq.low(frequency=high, q=q, s) else s end
-  s = if not (getter.is_constant(low) and getter.get(low) == 0.) then filter.iir.eq.high(frequency=low, q=q, s) else s end
+  s = if not (getter.is_constant(high) and getter.get(high) == infinity) then filter.iir.eq.low(id=id, frequency=high, q=q, s) else s end
+  s = if not (getter.is_constant(low) and getter.get(low) == 0.) then filter.iir.eq.high(id=id, frequency=low, q=q, s) else s end
   s
 end
 
@@ -178,7 +178,7 @@ end
 # @param ~frequency Frequency under which sound should be lowered.
 # @param s The input source.
 def mic_filter(~frequency=200., s)
-  filter(freq=200.,q=1.,mode="high",s)
+  filter(freq=frequency, q=1., mode="high", s)
 end
 
 # Mix between dry and wet sources. Useful for testing effects. Typically:

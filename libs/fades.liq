@@ -389,8 +389,8 @@ def crossfade(~id=null(), ~duration=5.,~override_duration="liq_cross_duration",
       simple_transition
     end
 
-  cross(id=id, width=width, duration=duration, conservative=conservative,
-        minimum=minimum,transition,s)
+  cross(id=id, width=width, duration=duration, override_duration=override_duration,
+        conservative=conservative, minimum=minimum, transition, s)
 end
 
 # Mixes two streams, with faded transitions between the state when only the
@@ -420,7 +420,7 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special)
   normal_volume = ref(fun () -> 1.)
   normal = c(normal_volume,normal)
 
-  def to_special(b,special) =
+  def to_special(_,special) =
     last_p := p()
     q = 1. - !last_p
     normal_volume := mkfade(start=1.,stop=!last_p,duration=duration,normal)

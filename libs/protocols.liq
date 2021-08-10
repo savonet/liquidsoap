@@ -17,7 +17,7 @@ let settings.protocol.replaygain.path = settings.make(
 
 # @flag hidden
 def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
-                       ~delay,file)
+                     ~delay=_,file)
   log = log.info(label="extract.replaygain")
   p = process.run("#{extract_replaygain} #{string.quote(file)}")
   stdout = string.replace(pattern='\\n', fun (_) -> "", p.stdout)
@@ -32,7 +32,7 @@ end
 
 # Register the replaygain protocol.
 # @flag hidden
-def replaygain_protocol(~rlog,~maxtime,arg)
+def replaygain_protocol(~rlog=_,~maxtime,arg)
  delay = maxtime - time()
  # The extraction program
  extract_replaygain = settings.protocol.replaygain.path()
@@ -66,7 +66,7 @@ let settings.protocol.process.inherit_env = settings.make(
 # [("input",<input file>),("output",<output file>),("colon",":")]
 # See say: protocol for an example.
 # @flag hidden
-def process_protocol(~rlog,~maxtime,arg)
+def process_protocol(~rlog=_,~maxtime,arg)
   log.info("Processing #{arg}")
 
   x = string.split(separator=":",arg)
@@ -261,7 +261,7 @@ add_protocol("youtube-dl", youtube_dl_protocol,
 # Register the youtube-pl protocol.
 # Syntax: youtube-pl:<ID>
 # @flag hidden
-def youtube_pl_protocol(~rlog,~maxtime,arg)
+def youtube_pl_protocol(~rlog=_,~maxtime=_,arg)
   tmp = file.temp("youtube-pl","")
   file.write(data="youtube-pl:#{arg}",tmp)
   [tmp]
@@ -272,7 +272,7 @@ add_protocol("youtube-pl", youtube_pl_protocol,
 
 # Register tmp
 # @flag hidden
-def tmp_protocol(~rlog,~maxtime,arg) =
+def tmp_protocol(~rlog=_, ~maxtime=_, arg) =
   [arg]
 end
 add_protocol("tmp",tmp_protocol,
@@ -489,7 +489,7 @@ add_protocol("ffmpeg",ffmpeg_protocol,
 # Register stereo protocol which converts a file to stereo (currently decodes as
 # wav).
 # @flag hidden
-def stereo_protocol(~rlog, ~maxtime, arg)
+def stereo_protocol(~rlog=_, ~maxtime=_, arg)
   file = file.temp("liq-stereo", ".wav")
   r = request.create(arg)
   if not request.resolve(r) then
@@ -513,7 +513,7 @@ let settings.protocol.text2wave.path = settings.make(
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden
-def text2wave_protocol(~rlog,~maxtime,arg) =
+def text2wave_protocol(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.text2wave.path()
   [process_uri(extname="wav", "echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
@@ -530,7 +530,7 @@ let settings.protocol.gtts.path = settings.make(
 
 # Register the gtts: protocol using gtts
 # @flag hidden
-def gtts_protocol(~rlog,~maxtime,arg) =
+def gtts_protocol(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.gtts.path()
   [process_uri(extname="mp3", "#{binary} -o $(output) #{string.quote(arg)}")]
 end
@@ -540,7 +540,7 @@ add_protocol(static=true,"gtts",gtts_protocol,
 
 # Register the legacy say: protocol
 # @flag hidden
-def say_protocol(~rlog,~maxtime,arg) =
+def say_protocol(~rlog=_, ~maxtime=_, arg) =
   ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
 end
 add_protocol(static=true,"say",say_protocol,
@@ -615,7 +615,7 @@ end
 
 # Register the s3:// protocol 
 # @flag hidden
-def s3_protocol(~rlog,~maxtime,arg) =
+def s3_protocol(~rlog=_, ~maxtime=_, arg) =
   extname = file.extension(leading_dot=false,dir_sep="/",arg)
   [process_uri(extname=extname,"#{aws_base()} s3 cp s3:#{arg} $(output)")]
 end
@@ -625,7 +625,7 @@ add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
 # Register the polly: protocol using AWS Polly
 # speech synthesis services. Syntax: polly:<text>
 # @flag hidden
-def polly_protocol(~rlog,~maxtime,text) =
+def polly_protocol(~rlog=_, ~maxtime=_, text) =
   aws = aws_base()
 
   format = settings.protocol.aws.polly.format()
@@ -654,7 +654,7 @@ add_protocol(static=true,"polly",polly_protocol,
 
 # Protocol to synthesize audio.
 # @flag hidden
-def synth_protocol(~rlog,~maxtime,text) =
+def synth_protocol(~rlog=_, ~maxtime=_, text) =
   log.debug(label="synth", "Synthesizing request: #{text}")
   args = string.split(separator=",", text)
   args = list.map(string.split(separator="="), args)
@@ -699,7 +699,7 @@ syntax="synth:shape=sine,frequency=440.,duration=10.")
 
 # File protocol
 # @flag hidden
-def file_protocol(~rlog,~maxtime,arg) =
+def file_protocol(~rlog=_, ~maxtime=_, arg) =
   path = list.nth(default="", string.split(separator=":",arg), 1)
   segments = string.split(separator="/",path)
 
