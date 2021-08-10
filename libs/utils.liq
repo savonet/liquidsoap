@@ -1,7 +1,8 @@
 # Get the value associated to a variable in the process environment. Returns ""
 # if the variable is not set.
 # @category System
-def getenv(default=null(), s) =
+def getenv(~default=null(), s) =
+  default = default ?? ""
   list.assoc(default=default, s, environment())
 end
 
