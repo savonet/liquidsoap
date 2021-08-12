@@ -179,6 +179,13 @@ let rec token lexbuf =
         let r = String.rindex matched '>' in
         let file = String.sub matched (n + 1) (r - n - 1) in
         PP_INCLUDE (Filename.concat Configure.liq_libs_dir file)
+    | "%include", Star white_space, "getenv(\"", Star (Compl '"'), "\")" ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let n = String.index matched '"' in
+        let r = String.rindex matched '"' in
+        let var = String.sub matched (n + 1) (r - n - 1) in
+        let file = Sys.getenv var in
+        PP_INCLUDE file
     | "%define" -> PP_DEFINE
     | "%argsof" -> ARGS_OF
     | '#', Star (Compl '\n'), eof -> EOF
