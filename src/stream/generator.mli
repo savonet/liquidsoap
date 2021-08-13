@@ -262,7 +262,11 @@ module From_audio_video : sig
   (** Fill a frame from the generator. *)
   val fill : t -> Frame.t -> unit
 
+  (* Remove from synced content, clear unsynced content. *)
   val remove : t -> int -> unit
+
+  (* Remove from buffered content (synced & unsynced), starting with top buffer. *)
+  val remove_buffered : t -> int -> unit
   val clear : t -> unit
 end
 

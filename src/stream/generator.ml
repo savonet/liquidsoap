@@ -430,17 +430,21 @@ module From_audio_video = struct
     let s = Lazy.force Frame.size in
 
     let audio = Queue.copy t.current_audio.Generator.buffers in
-    let video = Queue.copy t.current_video.Generator.buffers in
+    let initial_audio_offset = t.current_audio.Generator.offset in
 
-    let rec pick ~picked ~pos ~chunks pts =
+    let video = Queue.copy t.current_video.Generator.buffers in
+    let initial_video_offset = t.current_video.Generator.offset in
+
+    (* First buffer offset comes from the generator! *)
+    let rec pick ~offset ~picked ~pos ~chunks pts =
       match Queue.peek_opt chunks with
         | Some (chunk, _, l) when chunk.pts = pts ->
             Queue.add (Queue.take chunks) picked;
-            pick ~picked ~pos:(pos + l) ~chunks pts
+            pick ~offset:0 ~picked ~pos:(pos + l - offset) ~chunks pts
         | Some (chunk, _, _) when pts < chunk.pts -> (pos, true)
         (* Prevent user from submitting non-monotonic PTS. *)
         | Some (chunk, _, _) when chunk.pts < pts ->
-            pick ~picked ~pos ~chunks pts
+            pick ~offset:0 ~picked ~pos ~chunks pts
         | None -> (pos, false)
         | _ -> assert false
     in
@@ -461,7 +465,8 @@ module From_audio_video = struct
           when audio_pts < video_pts ->
             let picked_audio = Queue.create () in
             let audio_len, _ =
-              pick ~picked:picked_audio ~pos:0 ~chunks:audio audio_pts
+              pick ~offset:initial_audio_offset ~picked:picked_audio ~pos:0
+                ~chunks:audio audio_pts
             in
             Generator.remove t.current_audio audio_len;
             f ()
@@ -469,7 +474,8 @@ module From_audio_video = struct
           when video_pts < audio_pts ->
             let picked_video = Queue.create () in
             let video_len, _ =
-              pick ~picked:picked_video ~pos:0 ~chunks:video video_pts
+              pick ~offset:initial_video_offset ~picked:picked_video ~pos:0
+                ~chunks:video video_pts
             in
             Generator.remove t.current_video video_len;
             f ()
@@ -477,10 +483,12 @@ module From_audio_video = struct
             let picked_audio = Queue.create () in
             let picked_video = Queue.create () in
             let audio_len, more_audio =
-              pick ~picked:picked_audio ~pos:0 ~chunks:audio pts
+              pick ~offset:initial_audio_offset ~picked:picked_audio ~pos:0
+                ~chunks:audio pts
             in
             let video_len, more_video =
-              pick ~picked:picked_video ~pos:0 ~chunks:video pts
+              pick ~offset:initial_audio_offset ~picked:picked_video ~pos:0
+                ~chunks:video pts
             in
             (match (audio_len, video_len) with
               (* Full frame sync. Take it! *)
@@ -628,13 +636,44 @@ module From_audio_video = struct
     t.breaks <- List.filter (fun x -> x >= 0) breaks
 
   let remove t len =
-    let audio_len = Generator.length t.audio in
     Generator.remove t.audio len;
-    Generator.remove t.current_audio (len - audio_len);
-    let video_len = Generator.length t.video in
+    Generator.clear t.current_audio;
     Generator.remove t.video len;
-    Generator.remove t.current_video (len - video_len);
+    Generator.clear t.current_video;
     advance t len
+
+  let remove_buffered t len =
+    let audio_length = Generator.length t.current_audio in
+    let video_length = Generator.length t.current_video in
+    let top_generator, bottom_generator, top_length, diff_len =
+      if audio_length > video_length then
+        ( t.current_audio,
+          t.current_video,
+          audio_length,
+          audio_length - video_length )
+      else
+        ( t.current_video,
+          t.current_audio,
+          audio_length,
+          video_length - audio_length )
+    in
+    let remaining =
+      if len <= diff_len then (
+        Generator.remove top_generator len;
+        0)
+      else if len <= top_length then (
+        Generator.remove top_generator len;
+        Generator.remove bottom_generator (len - diff_len);
+        0)
+      else (
+        Generator.clear top_generator;
+        Generator.clear bottom_generator;
+        len - top_length)
+    in
+    if remaining > 0 then (
+      Generator.remove t.audio remaining;
+      Generator.remove t.video remaining;
+      advance t remaining)
 
   let fill t frame =
     let mode = mode t in
@@ -780,7 +819,7 @@ module From_audio_video_plus = struct
                  "Buffer overrun: Dropping %.2fs. Consider increasing the max \
                   buffer size!"
                  len_time);
-          Super.remove t.gen len
+          Super.remove_buffered t.gen len
       | _ -> ()
 
   let put_audio ?pts t buf off len =
