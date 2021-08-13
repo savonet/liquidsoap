@@ -63,7 +63,7 @@ let write_audio_frame ~time_base ~sample_rate ~channel_layout ~sample_format
       nb_samples :=
         Int64.add !nb_samples
           (Int64.of_int (Avutil.Audio.frame_nb_samples frame));
-      Avutil.frame_set_pts frame (Some frame_pts)
+      Avutil.Frame.set_pts frame (Some frame_pts)
   in
 
   let add_final_frame_pts = add_frame_pts () in
@@ -369,7 +369,7 @@ let mk_video ~ffmpeg ~options output =
                 ~dst:stream_time_base pts)
             (Ffmpeg_utils.best_pts frame)
         in
-        Avutil.frame_set_pts frame frame_pts;
+        Avutil.Frame.set_pts frame frame_pts;
         Av.write_frame stream frame;
         if Av.was_keyframe stream then was_keyframe := true)
   in
@@ -393,7 +393,7 @@ let mk_video ~ffmpeg ~options output =
         let f = Video.get vbuf i in
         let vdata = Ffmpeg_utils.pack_image f in
         let frame = InternalScaler.convert scaler vdata in
-        Avutil.frame_set_pts frame (Some !nb_frames);
+        Avutil.Frame.set_pts frame (Some !nb_frames);
         nb_frames := Int64.succ !nb_frames;
         cb ~stream_idx ~time_base frame
       done
@@ -420,7 +420,7 @@ let mk_video ~ffmpeg ~options output =
                   in
                   fun frame ->
                     let scaled = RawScaler.convert scaler frame in
-                    Avutil.frame_set_pts scaled (Ffmpeg_utils.best_pts frame);
+                    Avutil.Frame.set_pts scaled (Ffmpeg_utils.best_pts frame);
                     scaled)
                 else fun f -> f
               in

@@ -339,7 +339,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
         let f = Video.get vbuf i in
         let vdata = Ffmpeg_utils.pack_image f in
         let frame = InternalScaler.convert (Option.get !scaler) vdata in
-        Avutil.frame_set_pts frame (Some !nb_frames);
+        Avutil.Frame.set_pts frame (Some !nb_frames);
         nb_frames := Int64.succ !nb_frames;
         encode_ffmpeg_frame frame
       done

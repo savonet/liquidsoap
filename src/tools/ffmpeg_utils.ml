@@ -87,9 +87,9 @@ let () =
 *)
 
 let best_pts frame =
-  match Avutil.frame_pts frame with
+  match Avutil.Frame.pts frame with
     | Some pts -> Some pts
-    | None -> Avutil.frame_best_effort_timestamp frame
+    | None -> Avutil.Frame.best_effort_timestamp frame
 
 module Fps = struct
   type filter = {
@@ -170,7 +170,7 @@ module Fps = struct
     match converter with
       | `Pass_through _ -> cb frame
       | `Filter { input; output } ->
-          Avutil.frame_set_pts frame (best_pts frame);
+          Avutil.Frame.set_pts frame (best_pts frame);
           input frame;
           let rec flush () =
             try

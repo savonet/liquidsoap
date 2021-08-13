@@ -67,7 +67,7 @@ class audio_output ~name ~kind source_val =
               ((Lazy.force convert_frame_pts) (Frame.pts memo))
               (Int64.of_int pos)
           in
-          Avutil.frame_set_pts frame (Some pts);
+          Avutil.Frame.set_pts frame (Some pts);
           input frame)
         frames
   end
@@ -106,7 +106,7 @@ class video_output ~kind ~name source_val =
               ((Lazy.force convert_frame_pts) (Frame.pts memo))
               (Int64.of_int pos)
           in
-          Avutil.frame_set_pts frame (Some pts);
+          Avutil.Frame.set_pts frame (Some pts);
           input frame)
         frames
   end
@@ -156,6 +156,11 @@ class audio_input ~bufferize kind =
       let rec f () =
         try
           let ffmpeg_frame = output.Avfilter.handler () in
+          let metadata = Avutil.Frame.metadata ffmpeg_frame in
+          if metadata <> [] then (
+            let m = Hashtbl.create (List.length metadata) in
+            List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
+            Generator.add_metadata generator m);
           let frame =
             {
               Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
@@ -249,6 +254,11 @@ class video_input ~bufferize ~fps kind =
       let rec f () =
         try
           let ffmpeg_frame = output.Avfilter.handler () in
+          let metadata = Avutil.Frame.metadata ffmpeg_frame in
+          if metadata <> [] then (
+            let m = Hashtbl.create (List.length metadata) in
+            List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
+            Generator.add_metadata generator m);
           let frame =
             {
               Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
