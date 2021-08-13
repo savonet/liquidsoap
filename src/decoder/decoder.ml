@@ -270,20 +270,17 @@ let can_decode_type decoded_type target_type =
         let midi = if midi = none then none else decoded_type.Frame.midi in
         Frame.compatible target_type { Frame.audio; video; midi }
 
-let decoder_modes = function
-  | Frame.{ audio; video; midi }
-    when audio <> none && video <> none && midi = none ->
-      [`Audio_video]
-  | Frame.{ audio; video; midi }
-    when audio <> none && video = none && midi = none ->
-      [`Audio; `Audio_video]
-  | Frame.{ audio; video; midi }
-    when audio = none && video <> none && midi = none ->
-      [`Video; `Audio_video]
-  | Frame.{ audio; video; midi }
-    when audio = none && video = none && midi <> none ->
-      [`Midi]
-  | _ -> []
+let decoder_modes ctype =
+  match
+    Frame.map_fields (fun c -> not (Frame_content.None.is_format c)) ctype
+  with
+    | Frame.{ audio = true; video = true; midi = false } -> [`Audio_video]
+    | Frame.{ audio = true; video = false; midi = false } ->
+        [`Audio; `Audio_video]
+    | Frame.{ audio = false; video = true; midi = false } ->
+        [`Video; `Audio_video]
+    | Frame.{ audio = false; video = false; midi = false } -> [`Midi]
+    | _ -> []
 
 exception Found of (string * Frame.content_type * decoder_specs)
 
@@ -380,7 +377,7 @@ let get_stream_decoder ~ctype mime =
         && List.mem specs.media_type modes
         &&
         match specs.mime_types () with
-          | None -> true
+          | None -> false
           | Some mimes -> (
               try
                 ignore

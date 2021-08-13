@@ -26,6 +26,8 @@
 
 type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
+val map_fields : ('a -> 'b) -> 'a fields -> 'b fields
+
 (** High-level description of the content. *)
 type kind =
   [ `Any
