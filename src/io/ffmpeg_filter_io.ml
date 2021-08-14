@@ -30,9 +30,10 @@ let noop () = ()
   * is an output. *)
 class audio_output ~name ~kind source_val =
   let convert_frame_pts =
-    Ffmpeg_utils.(
-      convert_time_base ~src:(liq_frame_time_base ())
-        ~dst:(liq_main_ticks_time_base ()))
+    lazy
+      Ffmpeg_utils.(
+        convert_time_base ~src:(liq_frame_time_base ())
+          ~dst:(liq_main_ticks_time_base ()))
   in
   object (self)
     inherit
@@ -62,7 +63,9 @@ class audio_output ~name ~kind source_val =
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->
           let pts =
-            Int64.add (convert_frame_pts (Frame.pts memo)) (Int64.of_int pos)
+            Int64.add
+              ((Lazy.force convert_frame_pts) (Frame.pts memo))
+              (Int64.of_int pos)
           in
           Avutil.frame_set_pts frame (Some pts);
           input frame)
@@ -71,9 +74,10 @@ class audio_output ~name ~kind source_val =
 
 class video_output ~kind ~name source_val =
   let convert_frame_pts =
-    Ffmpeg_utils.(
-      convert_time_base ~src:(liq_frame_time_base ())
-        ~dst:(liq_main_ticks_time_base ()))
+    lazy
+      Ffmpeg_utils.(
+        convert_time_base ~src:(liq_frame_time_base ())
+          ~dst:(liq_main_ticks_time_base ()))
   in
   object (self)
     inherit
@@ -98,7 +102,9 @@ class video_output ~kind ~name source_val =
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->
           let pts =
-            Int64.add (convert_frame_pts (Frame.pts memo)) (Int64.of_int pos)
+            Int64.add
+              ((Lazy.force convert_frame_pts) (Frame.pts memo))
+              (Int64.of_int pos)
           in
           Avutil.frame_set_pts frame (Some pts);
           input frame)
@@ -114,7 +120,7 @@ type audio_config = {
 (* Same thing here. *)
 class audio_input ~bufferize kind =
   let generator = Generator.create `Audio in
-  let min_buf = Frame.main_of_seconds bufferize in
+  let min_buf = lazy (Frame.main_of_seconds bufferize) in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
@@ -185,7 +191,7 @@ class audio_input ~bufferize kind =
       if output <> None then self#flush_buffer;
       match state with
         | `Not_ready ->
-            if Generator.length generator >= min_buf then (
+            if Generator.length generator >= Lazy.force min_buf then (
               state <- `Ready;
               true)
             else false
@@ -212,7 +218,7 @@ type video_config = {
 
 class video_input ~bufferize ~fps kind =
   let generator = Generator.create `Video in
-  let min_buf = Frame.main_of_seconds bufferize in
+  let min_buf = lazy (Frame.main_of_seconds bufferize) in
   let duration = lazy (Frame.main_of_seconds (1. /. float (Lazy.force fps))) in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
@@ -274,7 +280,7 @@ class video_input ~bufferize ~fps kind =
       if output <> None then self#flush_buffer;
       match state with
         | `Not_ready ->
-            if Generator.length generator >= min_buf then (
+            if Generator.length generator >= Lazy.force min_buf then (
               state <- `Ready;
               true)
             else false
