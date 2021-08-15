@@ -35,7 +35,7 @@ jobs:
   export_tarball:
     runs-on: ubuntu-latest
     container:
-      image: savonet/liquidsoap-ci:debian_testing_amd64
+      image: savonet/liquidsoap-ci:debian_bullseye_amd64
       options: --user root -v ${{ github.workspace }}/tarball:/tmp/tarball
     env:
       HOME: /home/opam
@@ -71,7 +71,7 @@ jobs:
     needs: build_details
     if: ${{ needs.build_details.outputs.should_build_code }}
     container:
-      image: savonet/liquidsoap-ci:debian_testing_amd64
+      image: savonet/liquidsoap-ci:debian_bullseye_amd64
       options: --user opam
     env:
       HOME: /home/opam
@@ -103,7 +103,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal, alpine]
+        os: [debian_buster, debian_bullseye, ubuntu_groovy, ubuntu_focal, alpine]
         platform: [amd64, arm64]
         include:
           - platform: amd64
@@ -348,11 +348,11 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
-      - name: Get debian testing package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-testing | grep ${{ matrix.platform }} | grep -v dbgsym | grep deb)"
+      - name: Get debian buster package
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-buster | grep ${{ matrix.platform }} | grep -v dbgsym | grep deb)"
         id: debian_package
-      - name: Get debian testing debug package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-testing | grep ${{ matrix.platform }} | grep dbgsym | grep deb)"
+      - name: Get debian buster debug package
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-buster | grep ${{ matrix.platform }} | grep dbgsym | grep deb)"
         id: debian_debug_package
       - name: Build docker image
         run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
