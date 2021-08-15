@@ -103,7 +103,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian_buster, debian_bullseye, ubuntu_groovy, ubuntu_focal, alpine]
+        os: [debian_testing, debian_bullseye, ubuntu_groovy, ubuntu_focal, alpine]
         platform: [amd64, arm64]
         include:
           - platform: amd64
