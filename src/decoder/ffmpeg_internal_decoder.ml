@@ -22,7 +22,7 @@
 
 open Mm
 
-(** Decode and read metadata using ffmpeg. *)
+(** Decode media using ffmpeg. *)
 
 module Generator = Decoder.G
 
@@ -64,7 +64,12 @@ let mk_audio_decoder ~channels container =
         in_sample_format := frame_in_sample_format;
         converter := mk_converter ());
       let content = Converter.convert !converter frame in
-      buffer.Decoder.put_pcm ?pts:None ~samplerate:target_sample_rate content )
+      buffer.Decoder.put_pcm ?pts:None ~samplerate:target_sample_rate content;
+      let metadata = Avutil.Frame.metadata frame in
+      if metadata <> [] then (
+        let m = Hashtbl.create (List.length metadata) in
+        List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
+        Generator.add_metadata buffer.Decoder.generator m) )
 
 let mk_video_decoder container =
   let idx, stream, codec = Av.find_best_video_stream container in
@@ -92,7 +97,12 @@ let mk_video_decoder container =
     let content = Video.single img in
     buffer.Decoder.put_yuva420p ?pts:None
       ~fps:{ Decoder.num = target_fps; den = 1 }
-      content
+      content;
+    let metadata = Avutil.Frame.metadata frame in
+    if metadata <> [] then (
+      let m = Hashtbl.create (List.length metadata) in
+      List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
+      Generator.add_metadata buffer.Decoder.generator m)
   in
   let converter =
     Ffmpeg_utils.Fps.init ~width ~height ~pixel_format ~time_base ~pixel_aspect
