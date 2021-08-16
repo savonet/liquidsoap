@@ -31,8 +31,10 @@ module JSON = Lang.MkAbstract (struct
   let descr _ = "json"
 
   let to_json ~compact v =
-    !to_json_ref ~compact
-      (Lang.record (Hashtbl.fold (fun k v l -> (k, v) :: l) v []))
+    if Hashtbl.length v > 0 then
+      !to_json_ref ~compact
+        (Lang.record (Hashtbl.fold (fun k v l -> (k, v) :: l) v []))
+    else "{}"
 
   let compare = Stdlib.compare
 end)
@@ -40,23 +42,13 @@ end)
 let rec to_json_compact v =
   match v.Lang.value with
     | Lang.Ground g -> Lang_values.Ground.to_json ~compact:true g
-    | Lang.List l -> (
-        let v = String.concat "," (List.map to_json_compact l) in
-        match l with
-          | {
-              Lang.value =
-                Lang.Tuple
-                  [{ Lang.value = Lang.Ground (Lang.Ground.String _) }; _];
-            }
-            :: _ ->
-              Printf.sprintf "{%s}" v
-          | _ -> Printf.sprintf "[%s]" v)
+    | Lang.List l ->
+        Printf.sprintf "[%s]" (String.concat "," (List.map to_json_compact l))
     | Lang.Null -> "null"
     | Lang.Tuple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
     | Lang.Meth _ -> (
         let m, v = Lang_values.V.split_meths v in
         match v.Lang.value with
-          | _ when JSON.is_value v -> to_json_compact v
           | Lang.Tuple [] ->
               let l =
                 List.map
@@ -65,17 +57,7 @@ let rec to_json_compact v =
                   m
               in
               Printf.sprintf "{%s}" (String.concat "," l)
-          | _ ->
-              raise
-                (Lang_values.Runtime_error
-                   {
-                     Lang_values.kind = "json";
-                     msg = Some "Values with methods cannot be exported to JSON";
-                     pos =
-                       (match v.Lang_values.V.pos with
-                         | None -> []
-                         | Some pos -> [pos]);
-                   }))
+          | _ -> to_json_compact v)
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf "{\"reference\": %s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
@@ -85,39 +67,17 @@ let rec to_json_pp f v =
   match v.Lang.value with
     | Lang.Ground g ->
         Format.fprintf f "%s" (Lang_values.Ground.to_json ~compact:false g)
-    | Lang.List l -> (
-        match l with
-          | {
-              Lang.value =
-                Lang.Tuple
-                  [{ Lang.value = Lang.Ground (Lang.Ground.String _) }; _];
-            }
-            :: _ ->
-              (* Convert (string*'a) list to object *)
-              let print f l =
-                let len = List.length l in
-                let f pos x =
-                  let x, y = Lang.to_product x in
-                  if pos != len - 1 then
-                    Format.fprintf f "%a: %a,@;<1 0>" to_json_pp x to_json_pp y
-                  else Format.fprintf f "%a: %a" to_json_pp x to_json_pp y;
-                  pos + 1
-                in
-                ignore (List.fold_left f 0 l)
-              in
-              Format.fprintf f "@[{@;<1 1>@[%a@]@;<1 0>}@]" print l
-          | _ ->
-              let print f l =
-                let len = List.length l in
-                let f pos x =
-                  if pos < len - 1 then
-                    Format.fprintf f "%a,@;<1 0>" to_json_pp x
-                  else Format.fprintf f "%a" to_json_pp x;
-                  pos + 1
-                in
-                ignore (List.fold_left f 0 l)
-              in
-              Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l)
+    | Lang.List l ->
+        let print f l =
+          let len = List.length l in
+          let f pos x =
+            if pos < len - 1 then Format.fprintf f "%a,@;<1 0>" to_json_pp x
+            else Format.fprintf f "%a" to_json_pp x;
+            pos + 1
+          in
+          ignore (List.fold_left f 0 l)
+        in
+        Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
     | Lang.Tuple l ->
         Format.fprintf f "@[[@;<1 1>@[";
         let rec aux = function
@@ -132,7 +92,6 @@ let rec to_json_pp f v =
     | Lang.Meth _ -> (
         let l, v = Lang_values.V.split_meths v in
         match v.Lang.value with
-          | _ when JSON.is_value v -> Format.fprintf f "%a" to_json_pp v
           | Lang.Tuple [] ->
               Format.fprintf f "@{{@;<1 1>@[";
               let rec aux = function
@@ -144,17 +103,7 @@ let rec to_json_pp f v =
               in
               aux l;
               Format.fprintf f "@]@;<1 0>}@]"
-          | _ ->
-              raise
-                (Lang_values.Runtime_error
-                   {
-                     Lang_values.kind = "json";
-                     msg = Some "Values with methods cannot be exported to JSON";
-                     pos =
-                       (match v.Lang_values.V.pos with
-                         | None -> []
-                         | Some pos -> [pos]);
-                   }))
+          | _ -> Format.fprintf f "%a" to_json_pp v)
     | Lang.Ref v ->
         Format.fprintf f "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
           to_json_pp !v
