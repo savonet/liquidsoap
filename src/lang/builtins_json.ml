@@ -59,7 +59,17 @@ let rec to_json_compact v =
               m
           in
           Printf.sprintf "{%s}" (String.concat "," l))
-        else failwith "TODO: JSON of method not yet implemented"
+        else
+          raise
+            (Lang_values.Runtime_error
+               {
+                 Lang_values.kind = "json";
+                 msg = Some "Values with methods cannot be exported to JSON";
+                 pos =
+                   (match v.Lang_values.V.pos with
+                     | None -> []
+                     | Some pos -> [pos]);
+               })
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf "{\"reference\": %s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
