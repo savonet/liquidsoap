@@ -635,7 +635,7 @@ let create_decoder ~ctype fname =
               in
               match !remaining with
                 | None -> remaining := Some (d -. position)
-                | Some r -> remaining := Some (max (d -. position) r)))
+                | Some r -> remaining := Some (min (d -. position) r)))
       ()
   in
   let get_remaining =
