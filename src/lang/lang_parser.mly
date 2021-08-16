@@ -213,6 +213,7 @@ expr:
 
 ty:
   | VAR                        { mk_ty ~pos:$loc $1 }
+  | ty QUESTION                { Lang_types.make (Lang_types.Nullable $1) }
   | LBRA ty RBRA               { Lang_types.make (Lang_types.List $2) }
   | LPAR ty_tuple RPAR         { Lang_types.make (Lang_types.Tuple $2) }
   | LPAR argsty RPAR YIELDS ty { Lang_types.make (Lang_types.Arrow ($2,$5)) }
