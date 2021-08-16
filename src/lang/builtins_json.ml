@@ -31,11 +31,8 @@ module JSON = Lang.MkAbstract (struct
   let descr _ = "json"
 
   let to_json ~compact v =
-    if Hashtbl.length v > 0 then
-      !to_json_ref ~compact
-        (Lang.list
-           (Hashtbl.fold (fun k v l -> Lang.tuple [Lang.string k; v] :: l) v []))
-    else "{}"
+    !to_json_ref ~compact
+      (Lang.record (Hashtbl.fold (fun k v l -> (k, v) :: l) v []))
 
   let compare = Stdlib.compare
 end)
