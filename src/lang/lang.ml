@@ -682,12 +682,14 @@ module type Abstract = sig
   val t : t
   val to_value : content -> value
   val of_value : value -> content
+  val is_value : value -> bool
 end
 
 module type AbstractDef = sig
   type content
 
   val name : string
+  val to_json : compact:bool -> content -> string
   val descr : content -> string
   val compare : content -> content -> int
 end
@@ -706,7 +708,13 @@ module MkAbstract (Def : AbstractDef) = struct
             | Value v' -> Def.compare v v'
             | _ -> assert false
           in
-          Some { G.descr = (fun () -> Def.descr v); compare; typ = Type }
+          Some
+            {
+              G.descr = (fun () -> Def.descr v);
+              to_json = (fun ~compact () -> Def.to_json ~compact v);
+              compare;
+              typ = Type;
+            }
       | _ -> None);
 
     Lang_types.register_ground_printer (function
@@ -718,6 +726,9 @@ module MkAbstract (Def : AbstractDef) = struct
 
   let of_value t =
     match t.value with L.V.Ground (Value c) -> c | _ -> assert false
+
+  let is_value t =
+    match t.value with L.V.Ground (Value _) -> true | _ -> false
 end
 
 (* Augment source_t and source with default methods. *)

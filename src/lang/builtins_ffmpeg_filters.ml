@@ -53,6 +53,7 @@ module Graph = Lang.MkAbstract (struct
 
   let name = "ffmpeg.filter.graph"
   let descr _ = name
+  let to_json ~compact:_ v = Printf.sprintf "%S" (descr v)
   let compare = Stdlib.compare
 end)
 
@@ -64,6 +65,7 @@ module Audio = Lang.MkAbstract (struct
 
   let name = "ffmpeg.filter.audio"
   let descr _ = name
+  let to_json ~compact:_ v = Printf.sprintf "%S" (descr v)
   let compare = Stdlib.compare
 end)
 
@@ -75,6 +77,7 @@ module Video = Lang.MkAbstract (struct
 
   let name = "ffmpeg.filter.video"
   let descr _ = name
+  let to_json ~compact:_ v = Printf.sprintf "%S" (descr v)
   let compare = Stdlib.compare
 end)
 

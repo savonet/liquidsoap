@@ -183,7 +183,13 @@ module Vars = Set.Make (String)
 
 module Ground = struct
   type t = ..
-  type content = { descr : unit -> string; compare : t -> int; typ : T.ground }
+
+  type content = {
+    descr : unit -> string;
+    to_json : compact:bool -> unit -> string;
+    compare : t -> int;
+    typ : T.ground;
+  }
 
   let handlers = Queue.create ()
   let register fn = Queue.add fn handlers
@@ -199,6 +205,7 @@ module Ground = struct
     with Found c -> c
 
   let to_string (v : t) = (find v).descr ()
+  let to_json ~compact (v : t) = (find v).to_json ~compact ()
   let to_type (v : t) = (find v).typ
   let compare (v : t) = (find v).compare
 
@@ -216,21 +223,29 @@ module Ground = struct
             | Bool b' -> Stdlib.compare b b'
             | _ -> assert false
           in
-          Some { descr = (fun () -> string_of_bool b); compare; typ = T.Bool }
+          let to_string () = string_of_bool b in
+          let to_json ~compact:_ = to_string in
+          Some { descr = to_string; to_json; compare; typ = T.Bool }
       | Int i ->
           let compare = function
             | Int i' -> Stdlib.compare i i'
             | _ -> assert false
           in
-          Some { descr = (fun () -> string_of_int i); compare; typ = T.Int }
+          let to_string () = string_of_int i in
+          let to_json ~compact:_ = to_string in
+          Some { descr = to_string; to_json; compare; typ = T.Int }
       | String s ->
           let compare = function
             | String s' -> Stdlib.compare s s'
             | _ -> assert false
           in
+          let to_json ~compact:_ () =
+            Utils.escape_string (fun x -> Utils.escape_utf8 x) s
+          in
           Some
             {
               descr = (fun () -> Printf.sprintf "%S" s);
+              to_json;
               compare;
               typ = T.String;
             }
@@ -239,15 +254,27 @@ module Ground = struct
             | Float f' -> Stdlib.compare f f'
             | _ -> assert false
           in
-          Some { descr = (fun () -> string_of_float f); compare; typ = T.Float }
+          let to_json ~compact:_ () =
+            let s = string_of_float f in
+            let s = Printf.sprintf "%s" s in
+            if s.[String.length s - 1] = '.' then Printf.sprintf "%s0" s else s
+          in
+          Some
+            {
+              descr = (fun () -> string_of_float f);
+              to_json;
+              compare;
+              typ = T.Float;
+            }
       | Request r ->
           let descr () = Printf.sprintf "<request(id=%d)>" (Request.get_id r) in
+          let to_json ~compact:_ () = Printf.sprintf "%S" (descr ()) in
           let compare = function
             | Request r' ->
                 Stdlib.compare (Request.get_id r) (Request.get_id r')
             | _ -> assert false
           in
-          Some { descr; compare; typ = T.Request }
+          Some { descr; compare; to_json; typ = T.Request }
       | _ -> None)
 end
 
@@ -255,6 +282,7 @@ module type GroundDef = sig
   type content
 
   val descr : content -> string
+  val to_json : compact:bool -> content -> string
   val compare : content -> content -> int
   val typ : T.ground
 end
@@ -266,11 +294,12 @@ module MkGround (D : GroundDef) = struct
     Ground.register (function
       | Ground v ->
           let descr () = D.descr v in
+          let to_json ~compact () = D.to_json ~compact v in
           let compare = function
             | Ground v' -> D.compare v v'
             | _ -> assert false
           in
-          Some { Ground.typ = D.typ; compare; descr }
+          Some { Ground.typ = D.typ; to_json; compare; descr }
       | _ -> None)
 end
 
