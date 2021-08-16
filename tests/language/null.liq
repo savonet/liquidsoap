@@ -26,9 +26,9 @@ def f() =
 
   def g() =
     if true then
-      (1:int?)
-    else
       null()
+    else
+     (1:int?)
     end
   end
 
