@@ -88,11 +88,11 @@ type input = {
   * The closing function can be called earlier e.g. if the user skips.
   * In most cases, file decoders are wrapped stream decoders. *)
 type file_decoder_ops = {
-  fill : Frame.t -> int;
-  (* Return remaining ticks. *)
+  fill : Frame.t -> unit;
   fseek : int -> int;
   (* There is a record name clash here.. *)
   close : unit -> unit;
+  duration : float option;
 }
 
 type file_decoder =
@@ -469,13 +469,9 @@ let mk_buffer ~ctype generator =
 
   { generator; put_pcm; put_yuva420p }
 
-let mk_decoder ~filename ~close ~remaining ~buffer decoder =
+let mk_decoder ~filename ~close ~buffer decoder =
   let prebuf = Frame.main_of_seconds 0.5 in
   let decoding_done = ref false in
-
-  let remaining frame offset =
-    remaining () + G.length buffer.generator + Frame.position frame - offset
-  in
 
   let fill frame =
     if not !decoding_done then (
@@ -491,15 +487,7 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
         decoding_done := true;
         if conf_debug#get then raise e);
 
-    let offset = Frame.position frame in
-    G.fill buffer.generator frame;
-
-    try remaining frame offset
-    with e ->
-      log#info "Error while getting decoder's remaining time: %s"
-        (Printexc.to_string e);
-      decoding_done := true;
-      0
+    G.fill buffer.generator frame
   in
 
   let fseek len =
@@ -514,61 +502,9 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
   in
   { fill; fseek; close }
 
-let file_decoder ~filename ~close ~remaining ~ctype decoder =
+let file_decoder ~filename ~close ~ctype decoder =
   let generator =
     G.create ~log_overfull:false ~log:(log#info "%s") `Undefined
   in
   let buffer = mk_buffer ~ctype generator in
-  mk_decoder ~filename ~close ~remaining ~buffer decoder
-
-let opaque_file_decoder ~filename ~ctype create_decoder =
-  let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0 in
-
-  let file_size = (Unix.stat filename).Unix.st_size in
-  let proc_bytes = ref 0 in
-  let read buf ofs len =
-    try
-      let i = Unix.read fd buf ofs len in
-      proc_bytes := !proc_bytes + i;
-      i
-    with _ -> 0
-  in
-
-  let tell () = Unix.lseek fd 0 Unix.SEEK_CUR in
-  let length () = (Unix.fstat fd).Unix.st_size in
-  let lseek len = Unix.lseek fd len Unix.SEEK_SET in
-
-  let input =
-    { read; tell = Some tell; length = Some length; lseek = Some lseek }
-  in
-
-  let generator =
-    G.create ~log:(log#info "%s") ~log_overfull:false `Undefined
-  in
-  let buffer = mk_buffer ~ctype generator in
-  let decoder = create_decoder input in
-
-  let out_ticks = ref 0 in
-  let decode buffer =
-    let start = G.length buffer.generator in
-    decoder.decode buffer;
-    let stop = G.length buffer.generator in
-    out_ticks := !out_ticks + stop - start
-  in
-
-  let decoder = { decoder with decode } in
-
-  let remaining () =
-    let in_bytes = tell () in
-
-    (* Compute an estimated number of remaining ticks. *)
-    if !proc_bytes = 0 then -1
-    else (
-      let compression = float !out_ticks /. float !proc_bytes in
-      let remaining_ticks = float (file_size - in_bytes) *. compression in
-      int_of_float remaining_ticks)
-  in
-
-  let close () = Unix.close fd in
-
-  mk_decoder ~filename ~close ~remaining ~buffer decoder
+  mk_decoder ~filename ~close ~buffer decoder

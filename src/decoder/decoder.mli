@@ -63,9 +63,10 @@ type decoder = {
 }
 
 type file_decoder_ops = {
-  fill : Frame.t -> int;
+  fill : Frame.t -> unit;
   fseek : int -> int;
   close : unit -> unit;
+  duration : float option;
 }
 
 type stream_decoder = input -> decoder
@@ -125,20 +126,10 @@ val get_image_file_decoder : file -> Video.Image.t option
 (* Initialize a decoding buffer *)
 val mk_buffer : ctype:Frame.content_type -> G.t -> buffer
 
-(* Create a file decoder when remaining time is known. *)
+(* Create a file decoder. *)
 val file_decoder :
   filename:string ->
   close:(unit -> unit) ->
-  remaining:(unit -> int) ->
   ctype:Frame.content_type ->
   decoder ->
-  file_decoder_ops
-
-(* Create a file decoder when remaining time is not know,
-   in which case it is estimated from consumed bytes during
-   the decoding process. *)
-val opaque_file_decoder :
-  filename:string ->
-  ctype:Frame.content_type ->
-  (input -> decoder) ->
   file_decoder_ops

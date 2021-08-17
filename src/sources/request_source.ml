@@ -53,8 +53,8 @@ class once ~kind ~name ~timeout request =
 
     (* We need to insert a track at next frame. *)
     val mutable must_fail = false
-    val mutable remaining = 0
-    method remaining = remaining
+    val mutable duration : Source.duration = `Unknown
+    method duration = duration
     val mutable decoder = None
     method request = request
 
@@ -80,7 +80,7 @@ class once ~kind ~name ~timeout request =
           let file = Option.get (Request.get_filename request) in
           decoder <- Request.get_decoder request;
           assert (decoder <> None);
-          remaining <- -1;
+          duration <- `Unknown;
           self#log#important "Prepared %S (RID %d)." file
             (Request.get_id request)))
 
@@ -96,7 +96,7 @@ class once ~kind ~name ~timeout request =
         let decoder = Option.get decoder in
         decoder.Decoder.close ();
         Request.destroy request;
-        remaining <- 0;
+        duration <- `Unknown;
         if forced then must_fail <- true else over <- true)
 
     method is_ready = not over
@@ -113,7 +113,6 @@ class once ~kind ~name ~timeout request =
           Frame.set_metadata buf (Frame.position buf) m;
           send_metadata <- false);
         let decoder = Option.get decoder in
-        remaining <- decoder.Decoder.fill buf;
         if Frame.is_partial buf then self#end_track false)
 
     method seek len =
@@ -136,12 +135,13 @@ class virtual unqueued ~kind ~name =
       "quickly", which means that no resolving can be done here. *)
     method virtual get_next_file : Request.t option
 
-    val mutable remaining = 0
     val mutable must_fail = false
 
     (** These values are protected by [plock]. *)
     val mutable send_metadata = false
 
+    val mutable duration : Source.duration = `Unknown
+    method duration = duration
     val mutable current = None
     method current = current
     val plock = Mutex.create ()
@@ -168,7 +168,7 @@ class virtual unqueued ~kind ~name =
                 must_fail <- forced
           end;
           current <- None;
-          remaining <- 0)
+          duration <- `Unknown)
 
     (** Load a request. Should be called within critical section, when there is no
       ready request. *)
@@ -194,14 +194,15 @@ class virtual unqueued ~kind ~name =
               Some
                 {
                   req;
-                  fill =
-                    Tutils.mutexify m (fun buf ->
-                        remaining <- decoder.Decoder.fill buf);
+                  fill = Tutils.mutexify m (fun buf -> decoder.Decoder.fill buf);
                   seek =
                     Tutils.mutexify m (fun len -> decoder.Decoder.fseek len);
                   close = decoder.Decoder.close;
                 };
-            remaining <- -1;
+            duration <-
+              (match decoder.Decoder.duration with
+                | None -> `Unknown
+                | Some d -> `Main_ticks (Frame.main_of_seconds d));
             send_metadata <- true;
             true
         | Some req ->
@@ -497,9 +498,6 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
 
     method private get_frame ab =
       super#get_frame ab;
-
-      (* At an end of track, we always have unqueued#remaining=0, so there's
-         nothing special to do. *)
       if self#queue_size < prefetch then self#notify_new_request
   end
 

@@ -48,9 +48,9 @@ let add name g =
     ~return_t
     [
       ( "duration",
-        Lang.float_t,
-        Some (Lang.float (-1.)),
-        Some "Duration in seconds (negative means infinite)." );
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some "Duration in seconds (`null` means infinite)." );
       ( "amplitude",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
@@ -65,7 +65,7 @@ let add name g =
       (new gen
          ~seek:true ~kind name g
          (Lang.to_float_getter (List.assoc "" p))
-         (Lang.to_float (List.assoc "duration" p))
+         (Lang.to_valued_option Lang.to_float (List.assoc "duration" p))
          (Lang.to_float_getter (List.assoc "amplitude" p))
         :> source))
 

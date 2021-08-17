@@ -79,6 +79,7 @@ type source_t = Fallible | Infallible
 
 type sync = [ `Auto | `CPU | `None ]
 type self_sync = [ `Static | `Dynamic ] * bool
+type duration = [ `Unknown | `Infinity | `Main_ticks of int64 ]
 
 class type ['a, 'b] proto_clock =
   object
@@ -601,9 +602,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
 
     (** Streaming *)
 
-    (* Number of frames left in the current track:
-     * -1 means Infinity, time unit is the frame. *)
-    method virtual remaining : int
+    method virtual duration : duration
 
     (* [self#seek x] skips [x] main ticks.
      * returns the number of ticks actually skipped.
@@ -646,6 +645,15 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
        partial frame. *)
     val mutable was_partial = true
     method on_track = self#mutexify (fun fn -> on_track <- fn :: on_track)
+    method virtual duration : duration
+    val mutable elapsed : duration = `Unknown
+    method elapsed = elapsed
+
+    method remaining : duration =
+      match (self#duration, elapsed) with
+        | _, `Unknown | `Unknown, _ -> `Unknown
+        | _, `Infinity | `Infinity, _ -> `Infinity
+        | `Main_ticks d, `Main_ticks d' -> `Main_ticks (Int64.sub d d')
 
     method private instrumented_get_frame buf =
       let start_time = Unix.gettimeofday () in
@@ -654,6 +662,14 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       let end_time = Unix.gettimeofday () in
       let end_position = Frame.position buf in
       let is_partial = Frame.is_partial buf in
+      elapsed <-
+        (if is_partial then `Unknown
+        else (
+          let diff = Int64.of_int (end_position - start_position) in
+          match elapsed with
+            | `Unknown -> `Main_ticks diff
+            | `Infinity -> `Infinity
+            | `Main_ticks t -> `Main_ticks (Int64.add t diff)));
       let metadata =
         List.filter
           (fun (pos, _) -> start_position <= pos)

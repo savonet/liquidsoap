@@ -40,7 +40,7 @@ class once :
        method self_sync : Source.self_sync
        method is_ready : bool
        method request : Request.t
-       method remaining : int
+       method duration : Source.duration
        method private get_frame : Frame.t -> unit
        method resolve : bool
        method abort_track : unit
@@ -58,7 +58,7 @@ class virtual unqueued :
        method is_ready : bool
        method private get_frame : Frame.t -> unit
        method abort_track : unit
-       method remaining : int
+       method duration : Source.duration
        method self_sync : Source.self_sync
        method current : handler option
      end

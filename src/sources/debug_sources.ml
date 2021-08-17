@@ -26,7 +26,9 @@ class fail ~kind name =
     method stype = Source.Fallible
     method is_ready = false
     method self_sync = (`Static, false)
-    method remaining = 0
+    method duration = `Main_ticks 0L
+    method remaining = `Main_ticks 0L
+    method elapsed = `Main_ticks 0L
     method abort_track = ()
     method get_frame _ = assert false
   end

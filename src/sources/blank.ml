@@ -24,14 +24,20 @@ open Mm
 open Source
 
 class blank ~kind duration =
-  let ticks = if duration < 0. then -1 else Frame.main_of_seconds duration in
+  let ticks, duration =
+    match duration with
+      | None -> (-1, `Infinity)
+      | Some d ->
+          let t = Frame.main_of_seconds d in
+          (t, `Main_ticks (Int64.of_int t))
+  in
   object
     inherit source ~name:"blank" kind
 
     (** Remaining time, -1 for infinity. *)
     val mutable remaining = ticks
 
-    method remaining = remaining
+    method duration = duration
     method stype = Infallible
     method is_ready = true
     method self_sync = (`Static, false)
@@ -70,13 +76,12 @@ let () =
     ~descr:"Produce silence and blank images." ~return_t
     [
       ( "duration",
-        Lang.float_t,
-        Some (Lang.float (-1.)),
-        Some
-          "Duration of blank tracks in seconds, Negative value means forever."
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some "Duration of blank tracks in seconds, `null` value means forever."
       );
     ]
     (fun p ->
-      let d = Lang.to_float (List.assoc "duration" p) in
+      let d = Lang.to_valued_option Lang.to_float (List.assoc "duration" p) in
       let kind = Source.Kind.of_kind kind in
       (new blank ~kind d :> source))

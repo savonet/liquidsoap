@@ -25,8 +25,11 @@
    disabled. Thus, if [seek] is [true], the seek function is [fun x -> x]
    otherwise it is [fun _ -> 0] *)
 class virtual source ?name ~seek kind duration =
-  let track_size =
-    if duration < 0. then None else Some (Frame.main_of_seconds duration)
+  let track_size = Option.map Frame.main_of_seconds duration in
+  let duration =
+    match track_size with
+      | None -> `Infinity
+      | Some d -> `Main_ticks (Int64.of_int d)
   in
   object (self)
     inherit Source.source ?name kind
@@ -38,10 +41,7 @@ class virtual source ?name ~seek kind duration =
     method is_ready = remaining <> Some 0
     method seek x = if seek then x else 0
     method self_sync = (`Static, false)
-
-    method remaining =
-      match remaining with None -> -1 | Some remaining -> remaining
-
+    method duration = duration
     val mutable must_fail = false
     method abort_track = must_fail <- true
     method virtual private synthesize : Frame.t -> int -> int -> unit

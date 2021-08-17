@@ -43,6 +43,9 @@ type self_sync = [ `Static | `Dynamic ] * bool
   * A Infallible source never fails; it is always ready. *)
 type source_t = Fallible | Infallible
 
+(** Type for stream duration. *)
+type duration = [ `Unknown | `Infinity | `Main_ticks of int64 ]
+
 (** Instrumentation. *)
 
 type metadata = (int * (string, string) Hashtbl.t) list
@@ -167,8 +170,11 @@ class virtual source :
        (** Retrieve the frame currently being filled. *)
        method memo : Frame.t
 
-       (** Number of frames left in the current track. Defaults to -1=infinity. *)
-       method virtual remaining : int
+       (** Methods to get the position within the current track. *)
+
+       method virtual duration : duration
+       method elapsed : duration
+       method remaining : duration
 
        (** [self#seek_ticks x] skips [x] main ticks.
            returns the number of ticks actually skipped.

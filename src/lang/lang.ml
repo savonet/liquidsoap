@@ -767,10 +767,37 @@ let source_methods =
             let f = assoc "" 1 p in
             s#on_track (fun m -> ignore (apply f [("", metadata m)]));
             unit) );
+    ( "duration",
+      ([], fun_t [] (nullable_t float_t)),
+      "Duration time in the current track. `null` means unknown, can be \
+       `infinity` for infinite streams.",
+      fun s ->
+        val_fun [] (fun _ ->
+            match s#duration with
+              | `Unknown -> null
+              | `Infinity -> float infinity
+              | `Main_ticks t -> float (Frame.seconds_of_main (Int64.to_int t)))
+    );
+    ( "elapsed",
+      ([], fun_t [] (nullable_t float_t)),
+      "Elapsed time in the current track. `null` means unknown.",
+      fun s ->
+        val_fun [] (fun _ ->
+            match s#remaining with
+              | `Unknown -> null
+              | `Infinity -> float infinity
+              | `Main_ticks t -> float (Frame.seconds_of_main (Int64.to_int t)))
+    );
     ( "remaining",
-      ([], fun_t [] float_t),
-      "Estimation of remaining time in the current track.",
-      fun s -> val_fun [] (fun _ -> float (Frame.seconds_of_main s#remaining))
+      ([], fun_t [] (nullable_t float_t)),
+      "Remaining time in the current track. `null` means unknown, can be \
+       `infinity` for infinite streams.",
+      fun s ->
+        val_fun [] (fun _ ->
+            match s#remaining with
+              | `Unknown -> null
+              | `Infinity -> float infinity
+              | `Main_ticks t -> float (Frame.seconds_of_main (Int64.to_int t)))
     );
     ( "self_sync",
       ([], fun_t [] bool_t),
