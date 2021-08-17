@@ -28,7 +28,7 @@ The specific cases to keep in mind are:
 
 * Tuples are exported as lists, including `()`, which is an empty tuple.
 * Records (unit value with decorated methods) are exported as JSON objects.
-* Values with decorated with methods are exported without their methods. 
+* Values decorated with methods are exported without their methods. 
 
 Output format is pretty printed by default. A compact output can
 be obtained by using the optional argument: `compact=true`.
