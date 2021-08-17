@@ -6,11 +6,11 @@ New:
 - Add support for errors with `error.*` and `try ... catch` (#1242).
 - Add support for optional values with `null.*` (#1242).
 - Add support for `x ? y : z` syntax (#1266).
+- Added support for list spread and deconstruction syntax (#1269).
 - Add support for generic JSON objects, map `(string, 'a)` lists to regular lists,
   add support for json5 floats (`NaN`, `Infinity`), return `null` for those otherwise,
-  rename `json_of` into `json.stringify` and `json.parse` into `json.parse` with 
+  rename `json_of` into `json.stringify` and `of_json` into `json.parse` with
   deprecation (#1824)
-- Added support for list spread and deconstruction syntax (#1269).
 - Added support for video encoding and decoding using `ffmpeg` (#1038).
 - Added support for hardware-accelerated video encoding using `ffmpeg` (#1380)
 - Added support for ffmpeg filters (#1038).
@@ -630,7 +630,7 @@ New:
   SecureTransport.
 - Add optional "dj" and "next" metadata for Shoutcast v2, wrap "dj" value in a
   callback in output.shoutcast (#370, #388)
-- Allow partial parsing of JSON objects in json.parse.
+- Allow partial parsing of JSON objects in of_json.
 - Generalize list.assoc to allow default values. Legacy code must be updated:
   list.assoc(k,l) -> list.assoc(default="",k,l)
 - Generalize list.hd to allow default values. Legacy code must be updated:
@@ -952,7 +952,7 @@ Enhancements:
 
 1.0.0 beta3 (05-08-2011)
 ========================
-- Feature: Added json.parse to parse json data. Depends
+- Feature: Added of_json to parse json data. Depends
   on json-wheel.
 - Feature: Added file.exists and is_directory.
 - Feature: Added timeout options for:
