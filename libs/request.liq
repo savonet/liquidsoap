@@ -6,7 +6,7 @@ let stdlib_native = native
 # @param ~native Use native implementation.
 def replaces request.dynamic(%argsof(request.dynamic.list), ~native=false, f) =
   if native then
-    stdlib_native.request.dynamic(id=id, timeout=timeout, prefetch=prefetch, f)
+    stdlib_native.request.dynamic(%argsof(request.dynamic.list), f)
   else
     request.dynamic.list(%argsof(request.dynamic.list), {null.to_list(f())})
   end
