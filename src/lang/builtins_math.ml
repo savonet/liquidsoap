@@ -152,6 +152,19 @@ let () =
     Lang.float_t
 
 let () =
+  Lang.add_builtin_base ~category:(string_of_category Math)
+    ~descr:
+      "A special floating-point value denoting the result of an undefined \
+       operation such as 0.0 /. 0.0. Stands for 'not a number'. Any \
+       floating-point operation with nan as argument returns nan as result. As \
+       for floating-point comparisons, `==`, `<`, `<=`, `>` and `>=` return \
+       `false` and `!=` returns `true` if one or both of their arguments is \
+       `nan`."
+    "nan"
+    Lang.(Ground (Ground.Float nan))
+    Lang.float_t
+
+let () =
   add_builtin "lsl" ~cat:Math ~descr:"Logical shift left."
     [
       ("", Lang.int_t, None, Some "Number to shift.");

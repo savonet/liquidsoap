@@ -52,7 +52,7 @@ j.add("key_with_methods", "value".{method = 123})
 j.add("record", { a = 1, b = "ert"})
 j.remove("foo")
 json.stringify(j)
-- '{ "record": { "b": "ert", "a": 1 }, "key_with_methods": "value",\n"bla": "bar", "baz": 3.14\n}'
+- '{ "record": { "b": "ert", "a": 1 }, "key_with_methods": "value", "bla": "bar", "baz": 3.14 }'
 ```
 
 Importing values using JSON
