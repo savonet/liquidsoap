@@ -831,11 +831,11 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
        the then branch is nullable but the else branch is not, see #1816. *)
     | App
         ( ({ term = Var "if" } as e_if),
-          [("", e_cond); ("else", e_else); ("then", e_then)] ) ->
+          [("", e_cond); ("then", e_then); ("else", e_else)] ) ->
         check ~throw ~level ~env e_if;
         check ~throw ~level ~env e_cond;
-        check ~throw ~level ~env e_else;
         check ~throw ~level ~env e_then;
+        check ~throw ~level ~env e_else;
         let a = T.fresh_evar ~level ~pos in
         e_cond.t <: T.make (T.Ground T.Bool);
         e_else.t <: T.make (T.Arrow ([], a));
