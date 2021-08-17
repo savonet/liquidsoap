@@ -162,7 +162,7 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
 
   mime =
     if 200 <= code and code < 300 then
-      null(headers["content-type"])
+      headers["content-type"]
     else
       log(level=3,"Failed to fetch mime-type for #{uri}.")
       log(level=4,"Request response: #{ret}")

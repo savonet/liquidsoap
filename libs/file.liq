@@ -35,7 +35,7 @@ def file.iterator(fname)
   f = file.read(fname)
   fun () -> begin
     s = f()
-    (s=="")?null():null(s)
+    (s=="")?null():s
   end
 end
 

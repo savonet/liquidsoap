@@ -50,7 +50,7 @@ def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, tex
     if font == "" then
       null()
     else
-      null(font)
+      font
     end
   def mkfilter(graph)
     s = ffmpeg.filter.video.input(graph, s)
