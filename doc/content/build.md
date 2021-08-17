@@ -97,7 +97,7 @@ Libraries not developed by Savonet are:
 | tsdl                |  >= 0.2.0                 | Display videos                                |
 | tsdl-image          |            | Load images                                   |
 | tsdl-tff            |              | Render fonts                                  |
-| yojson              |                | Parsing JSON data (json.parse function)          |
+| yojson              |                | Parsing JSON data (of_json function)          |
 
 ### Runtime optional dependencies:
 
