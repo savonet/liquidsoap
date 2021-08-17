@@ -195,12 +195,12 @@ expr:
                                        let then_b = mk_fun ~pos:($startpos($3),$endpos($4)) [] $4 in
                                        let else_b = $5 in
                                        let op = mk ~pos:$loc($1) (Var "if") in
-                                       mk ~pos:$loc (App (op, ["", cond; "else", else_b; "then", then_b])) }
+                                       mk ~pos:$loc (App (op, ["", cond; "then", then_b; "else", else_b])) }
   | expr QUESTION expr COLON expr    { let cond = $1 in
                                        let then_b = mk_fun ~pos:$loc($3) [] $3 in
                                        let else_b = mk_fun ~pos:$loc($5) [] $5 in
                                        let op = mk ~pos:$loc($1) (Var "if") in
-                                       mk ~pos:$loc (App (op, ["", cond; "else", else_b; "then", then_b])) } 
+                                       mk ~pos:$loc (App (op, ["", cond; "then", then_b; "else", else_b])) }
 
   | expr BIN0 expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",$1;"",$3])) }
   | expr BIN1 expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",$1;"",$3])) }
@@ -388,7 +388,7 @@ if_elsif:
                                       let then_b = mk_fun ~pos:($startpos($3), $endpos($4)) [] $4 in
                                       let else_b = $5 in
                                       let op = mk ~pos:$loc($1) (Var "if") in
-                                      mk_fun ~pos:$loc [] (mk ~pos:$loc (App (op,["",cond; "else",else_b; "then",then_b]))) }
+                                      mk_fun ~pos:$loc [] (mk ~pos:$loc (App (op,["",cond; "then",then_b; "else",else_b]))) }
   | ELSE exprs                      { mk_fun ~pos:($startpos($1),$endpos($2)) [] $2 }
   |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc unit) }
 

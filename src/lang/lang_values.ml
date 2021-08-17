@@ -827,6 +827,27 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
         if not (can_ignore a.t) then throw (Ignored a);
         check ~print_toplevel ~throw ~level ~env b;
         e.t >: b.t
+    (* Special case for if branchings in order to backtrack in the case where
+       the then branch is nullable but the else branch is not, see #1816. *)
+    | App
+        ( ({ term = Var "if" } as e_if),
+          [("", e_cond); ("then", e_then); ("else", e_else)] ) ->
+        check ~throw ~level ~env e_if;
+        check ~throw ~level ~env e_cond;
+        check ~throw ~level ~env e_then;
+        check ~throw ~level ~env e_else;
+        let a = T.fresh_evar ~level ~pos in
+        e_cond.t <: T.make (T.Ground T.Bool);
+        e_else.t <: T.make (T.Arrow ([], a));
+        if
+          try
+            e_then.t <: T.make (T.Arrow ([], a));
+            true
+          with _ -> false
+        then e.t >: a
+        else (
+          e_then.t <: T.make (T.Arrow ([], T.make (T.Nullable a)));
+          e.t >: T.make (T.Nullable a))
     | App (a, l) -> (
         check ~throw ~level ~env a;
         List.iter (fun (_, b) -> check ~throw ~env ~level b) l;

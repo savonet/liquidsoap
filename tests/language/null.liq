@@ -32,6 +32,14 @@ def f() =
     end
   end
 
+  def f()
+    if true then null() else 1 end
+  end
+
+  def f()
+    if true then 1 else null() end
+  end
+
   test.pass()
 end
 
