@@ -124,6 +124,13 @@ in advance.
 Should you need more advanced queueing strategy, `request.dynamic.list` and `request.dynamic` now export functions to retrieve 
 and set their own queue of requests.
 
+### JSON import/export
+
+`json_of` has been renamed `json.stringify` and `of_json` has been renamed `json.parse`.
+
+JSON export has been enhanced with a new generic json object export. Associative lists of type `(string, 'a)` are now
+exported as lists. See our [JSON documentation page](json.html) for more details.
+
 ### Deprecated operators
 
 Some operators have been deprecated. For most of them, we provide a backward-compatible support 
