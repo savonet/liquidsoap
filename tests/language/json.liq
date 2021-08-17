@@ -38,9 +38,24 @@ def f() =
   t(json_of("©"), '"©"')
   t(json_of('"'), '"\\""')
   t(json_of('\\'), '"\\\\"')
+  t(json_of(infinity), 'null')
+  t(json_of((0.-infinity)), 'null')
+  t(json_of(nan), 'null')
+  t(json_of(json5=true, infinity), 'Infinity')
+  t(json_of(json5=true, (0.-infinity)), '-Infinity')
+  t(json_of(json5=true, nan), 'NaN')
 
   t(of_json(default=[("","")], '{"a":3}'), [("a","3")])
   t(of_json(default={x=0, a=""}, '{"a":"z", "x":3}'), {x=3, a="z"})
+
+  j = json()
+  j.add("foo", 1)
+  j.add("bla", "bar")
+  j.add("baz", 3.14)
+  j.add("key_with_methods", "value".{method = 123})
+  j.add("record", { a = 1, b = "ert"})
+  j.remove("foo")
+  t(json_of(j), '{ "record": { "b": "ert", "a": 1 }, "key_with_methods": "value",\n"bla": "bar", "baz": 3.14\n}')
 
   if !success then
     test.pass()
