@@ -33,6 +33,7 @@ module ErrorDef = struct
     Printf.sprintf "error(kind=%S,message=%s)" kind
       (match msg with Some msg -> Printf.sprintf "%S" msg | None -> "none")
 
+  let to_json ~compact:_ ~json5:_ v = Printf.sprintf "%S" (descr v)
   let compare = Stdlib.compare
 end
 

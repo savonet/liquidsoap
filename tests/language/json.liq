@@ -14,9 +14,9 @@ def t(x,y) =
 end
 
 def u(d,x) =
-  y = of_json(default=d,json_of(x))
+  y = json.parse(default=d,json.stringify(x))
   if y == d or y != x then
-    print("Failure: #{x} => #{json_of(x)} => #{y}")
+    print("Failure: #{x} => #{json.stringify(x)} => #{y}")
     success := false
   end
 end
@@ -32,15 +32,31 @@ def f() =
   u([(1,[("fr","bar")])], [(2,[("en","foo")])])
   # u([("ping",())], [("pong",())])
   u([3],[])
-  u([("x",0)],of_json(default=[("x",0)],"{\"a\" : 4}"))
+  u([("x",0)],json.parse(default=[("x",0)],"{\"a\" : 4}"))
 
-  t(json_of("a"), '"a"')
-  t(json_of("©"), '"©"')
-  t(json_of('"'), '"\\""')
-  t(json_of('\\'), '"\\\\"')
+  t(json.stringify(()), 'null')
+  t(json.stringify("a"), '"a"')
+  t(json.stringify("©"), '"©"')
+  t(json.stringify('"'), '"\\""')
+  t(json.stringify('\\'), '"\\\\"')
+  t(json.stringify(infinity), 'null')
+  t(json.stringify((0.-infinity)), 'null')
+  t(json.stringify(nan), 'null')
+  t(json.stringify(json5=true, infinity), 'Infinity')
+  t(json.stringify(json5=true, (0.-infinity)), '-Infinity')
+  t(json.stringify(json5=true, nan), 'NaN')
 
-  t(of_json(default=[("","")], '{"a":3}'), [("a","3")])
-  t(of_json(default={x=0, a=""}, '{"a":"z", "x":3}'), {x=3, a="z"})
+  t(json.parse(default=[("","")], '{"a":3}'), [("a","3")])
+  t(json.parse(default={x=0, a=""}, '{"a":"z", "x":3}'), {x=3, a="z"})
+
+  j = json()
+  j.add("foo", 1)
+  j.add("bla", "bar")
+  j.add("baz", 3.14)
+  j.add("key_with_methods", "value".{method = 123})
+  j.add("record", { a = 1, b = "ert"})
+  j.remove("foo")
+  t(json.stringify(j), '{ "record": { "b": "ert", "a": 1 }, "key_with_methods": "value",\n"bla": "bar", "baz": 3.14\n}')
 
   if !success then
     test.pass()

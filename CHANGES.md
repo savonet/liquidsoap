@@ -7,6 +7,10 @@ New:
 - Add support for optional values with `null.*` (#1242).
 - Add support for `x ? y : z` syntax (#1266).
 - Added support for list spread and deconstruction syntax (#1269).
+- Add support for generic JSON objects, map `(string, 'a)` lists to regular lists,
+  add support for json5 floats (`NaN`, `Infinity`), return `null` for those otherwise,
+  rename `json_of` into `json.stringify` and `of_json` into `json.parse` with
+  deprecation (#1824)
 - Added support for video encoding and decoding using `ffmpeg` (#1038).
 - Added support for hardware-accelerated video encoding using `ffmpeg` (#1380)
 - Added support for ffmpeg filters (#1038).

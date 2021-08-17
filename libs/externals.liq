@@ -36,9 +36,9 @@ def enable_external_ffmpeg_decoder() =
   mime_types = settings.decoder.mime_types.ffmpeg()
 
   def ffprobe_test(fname) =
-    json = process.read("#{ffprobe} -print_format json -show_streams #{string.quote(fname)}")
+    j = process.read("#{ffprobe} -print_format json -show_streams #{string.quote(fname)}")
     default = [("streams",[[("channels",0)]])]
-    data = of_json(default=default,json)
+    data = json.parse(default=default,j)
     streams = list.assoc(default=[],"streams",data)
     stream = list.hd(default=[],streams)
     list.assoc(default=0,"channels",stream)

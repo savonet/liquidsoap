@@ -183,7 +183,7 @@ def interactive.save(fname)
   bool = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_bool)
   string = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_string)
   vars = (float, int, bool, string)
-  file.write(data=json_of(vars), fname)
+  file.write(data=json.stringify(vars), fname)
 end
 
 # Load the value of interactive variables from a file.
@@ -191,7 +191,7 @@ end
 # @param fname Name of the file.
 def interactive.load(fname)
   vars = file.contents(fname)
-  let (float, int, bool, string) = of_json(default=([("",0.)],[("",0)],[("",false)],[("","")]), vars)
+  let (float, int, bool, string) = json.parse(default=([("",0.)],[("",0)],[("",false)],[("","")]), vars)
   list.iter(fun (nv) -> try interactive.float.set (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, float )
   list.iter(fun (nv) -> try interactive.int.set   (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, int   )
   list.iter(fun (nv) -> try interactive.bool.set  (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, bool  )

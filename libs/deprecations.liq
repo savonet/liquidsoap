@@ -463,3 +463,17 @@ def add_playlist_parser(%argsof(playlist.parse.register), s) =
   deprecated("add_playlist_parser", "playlist.parse.register")
   playlist.parse.register(%argsof(playlist.parse.register), s)
 end
+
+# Deprecated: use 'json.stringify` instead
+# @flag deprecated
+def json_of(%argsof(json.stringify), v) =
+  deprecated("json_of", "json.stringify")
+  json.stringify(%argsof(json.stringify), v)
+end
+
+# Deprecated: use 'json.stringify` instead
+# @flag deprecated
+def of_json(%argsof(json.parse), v) =
+  deprecated("of_json", "json.parse")
+  json.parse(%argsof(json.parse), v)
+end

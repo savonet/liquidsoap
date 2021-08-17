@@ -21,11 +21,11 @@ clock.assign_new(sync='none',[s])
 def on_done () =
   json = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
 
-  int_format = of_json(default=[("streams", [[("channels", 0)]])], json)
+  int_format = json.parse(default=[("streams", [[("channels", 0)]])], json)
   stream = list.hd(default=[], list.assoc(default=[], "streams", int_format))
   channels = list.assoc(default=0,"channels",stream)
 
-  string_format = of_json(default=[("streams", [[("samplerate", "0")]])], json)
+  string_format = json.parse(default=[("streams", [[("samplerate", "0")]])], json)
   stream = list.hd(default=[], list.assoc(default=[], "streams", string_format))
   samplerate = list.assoc(default="0","sample_rate",stream)
 

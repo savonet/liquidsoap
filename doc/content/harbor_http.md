@@ -148,7 +148,7 @@ Get metadata
 ------------
 You can use harbor to register HTTP services to 
 fecth/set the metadata of a source. For instance, 
-using the [JSON export function](json.html) `json_of`:
+using the [JSON export function](json.html) `json.stringify`:
 
 ```liquidsoap
 meta = ref([])
@@ -179,7 +179,7 @@ def get_meta(~protocol,~data,~headers,uri) =
     protocol=protocol,
     code=200,
     headers=[("Content-Type","application/json; charset=utf-8")],
-    data=json_of(m)
+    data=json.stringify(m)
   )
 end
 

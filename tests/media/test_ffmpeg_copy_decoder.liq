@@ -21,8 +21,8 @@ def on_done () =
   ijson = process.read("ffprobe -v quiet -print_format json -show_streams '#{fname}'")
   ojson = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
 
-  input_format = of_json(default=[("streams", [[("samplerate", "0")]])], ijson)
-  output_format = of_json(default=[("streams", [[("samplerate", "0")]])], ojson)
+  input_format = json.parse(default=[("streams", [[("samplerate", "0")]])], ijson)
+  output_format = json.parse(default=[("streams", [[("samplerate", "0")]])], ojson)
 
   input_streams = list.assoc(default=[], "streams", input_format)
   output_streams = list.assoc(default=[], "streams", output_format)
