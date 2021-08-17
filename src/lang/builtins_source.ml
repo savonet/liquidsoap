@@ -95,7 +95,27 @@ let () =
     Lang.float_t
     (fun p ->
       let r = (Lang.to_source (List.assoc "" p))#remaining in
-      let f = if r = -1 then infinity else Frame.seconds_of_main r in
+      let f = if r < 0 then infinity else Frame.seconds_of_main r in
+      Lang.float f)
+
+let () =
+  add_builtin "source.elapsed" ~cat:Liq
+    ~descr:"Elapsed time in the current track."
+    [("", Lang.source_t (Lang.univ_t ()), None, None)]
+    Lang.float_t
+    (fun p ->
+      let d = (Lang.to_source (List.assoc "" p))#elapsed in
+      let f = if d < 0 then infinity else Frame.seconds_of_main d in
+      Lang.float f)
+
+let () =
+  add_builtin "source.duration" ~cat:Liq
+    ~descr:"Estimation of the duration in the current track."
+    [("", Lang.source_t (Lang.univ_t ()), None, None)]
+    Lang.float_t
+    (fun p ->
+      let d = (Lang.to_source (List.assoc "" p))#duration in
+      let f = if d < 0 then infinity else Frame.seconds_of_main d in
       Lang.float f)
 
 let () =
@@ -227,7 +247,7 @@ let () =
       in
       let proto = ("fallible", Lang.bool true) :: proto in
       let s = Lang.to_source (Lang.assoc "" 3 p) in
-      let p = ("id", Lang.string "source_dumper") :: p @ proto in
+      let p = (("id", Lang.string "source_dumper") :: p) @ proto in
       let fo = Pipe_output.new_file_output p in
       fo#get_ready [s];
       log#info "Start dumping source.";

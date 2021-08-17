@@ -170,6 +170,9 @@ class virtual source :
        (** Number of frames left in the current track. Defaults to -1=infinity. *)
        method virtual remaining : int
 
+       method elapsed : int
+       method duration : int
+
        (** [self#seek_ticks x] skips [x] main ticks.
            returns the number of ticks actually skipped.
            By default it always returns 0, refusing to seek at all.

@@ -35,6 +35,7 @@ New:
 - Added `liquidsoap.executable` to get the path of the currently running
   Liquidsoap.
 - Added `source.dump`.
+- Added `source.elapsed` and `source.duration`
 - Added `synth` protocol (#1014).
 - Added listener and caller mode for `input.srt` and `output.srt` (#1377)
 - Added support for `srt.enforced_encryption` setting.

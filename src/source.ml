@@ -604,6 +604,13 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     (* Number of frames left in the current track:
      * -1 means Infinity, time unit is the frame. *)
     method virtual remaining : int
+    val mutable elapsed = 0
+    method elapsed = elapsed
+
+    method duration =
+      let r = self#remaining in
+      let e = self#elapsed in
+      if r < 0 || e < 0 then -1 else e + r
 
     (* [self#seek x] skips [x] main ticks.
      * returns the number of ticks actually skipped.
@@ -654,6 +661,8 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       let end_time = Unix.gettimeofday () in
       let end_position = Frame.position buf in
       let is_partial = Frame.is_partial buf in
+      if is_partial then elapsed <- 0
+      else elapsed <- elapsed + end_position - start_position;
       let metadata =
         List.filter
           (fun (pos, _) -> start_position <= pos)
