@@ -186,7 +186,7 @@ module Ground = struct
 
   type content = {
     descr : unit -> string;
-    to_json : compact:bool -> unit -> string;
+    to_json : compact:bool -> json5:bool -> unit -> string;
     compare : t -> int;
     typ : T.ground;
   }
@@ -205,7 +205,7 @@ module Ground = struct
     with Found c -> c
 
   let to_string (v : t) = (find v).descr ()
-  let to_json ~compact (v : t) = (find v).to_json ~compact ()
+  let to_json ~compact ~json5 (v : t) = (find v).to_json ~compact ~json5 ()
   let to_type (v : t) = (find v).typ
   let compare (v : t) = (find v).compare
 
@@ -224,7 +224,7 @@ module Ground = struct
             | _ -> assert false
           in
           let to_string () = string_of_bool b in
-          let to_json ~compact:_ = to_string in
+          let to_json ~compact:_ ~json5:_ = to_string in
           Some { descr = to_string; to_json; compare; typ = T.Bool }
       | Int i ->
           let compare = function
@@ -232,14 +232,14 @@ module Ground = struct
             | _ -> assert false
           in
           let to_string () = string_of_int i in
-          let to_json ~compact:_ = to_string in
+          let to_json ~compact:_ ~json5:_ = to_string in
           Some { descr = to_string; to_json; compare; typ = T.Int }
       | String s ->
           let compare = function
             | String s' -> Stdlib.compare s s'
             | _ -> assert false
           in
-          let to_json ~compact:_ () =
+          let to_json ~compact:_ ~json5:_ () =
             Utils.escape_string (fun x -> Utils.escape_utf8 x) s
           in
           Some
@@ -254,10 +254,17 @@ module Ground = struct
             | Float f' -> Stdlib.compare f f'
             | _ -> assert false
           in
-          let to_json ~compact:_ () =
-            let s = string_of_float f in
-            let s = Printf.sprintf "%s" s in
-            if s.[String.length s - 1] = '.' then Printf.sprintf "%s0" s else s
+          let to_json ~compact:_ ~json5 () =
+            match classify_float f with
+              | FP_infinite when json5 ->
+                  if f < 0. then "-Infinity" else "Infinity"
+              | FP_nan when json5 -> if f < 0. then "-NaN" else "NaN"
+              | FP_infinite | FP_nan -> "null"
+              | _ ->
+                  let s = string_of_float f in
+                  let s = Printf.sprintf "%s" s in
+                  if s.[String.length s - 1] = '.' then Printf.sprintf "%s0" s
+                  else s
           in
           Some
             {
@@ -268,7 +275,7 @@ module Ground = struct
             }
       | Request r ->
           let descr () = Printf.sprintf "<request(id=%d)>" (Request.get_id r) in
-          let to_json ~compact:_ () = Printf.sprintf "%S" (descr ()) in
+          let to_json ~compact:_ ~json5:_ () = Printf.sprintf "%S" (descr ()) in
           let compare = function
             | Request r' ->
                 Stdlib.compare (Request.get_id r) (Request.get_id r')
@@ -282,7 +289,7 @@ module type GroundDef = sig
   type content
 
   val descr : content -> string
-  val to_json : compact:bool -> content -> string
+  val to_json : compact:bool -> json5:bool -> content -> string
   val compare : content -> content -> int
   val typ : T.ground
 end
@@ -294,7 +301,7 @@ module MkGround (D : GroundDef) = struct
     Ground.register (function
       | Ground v ->
           let descr () = D.descr v in
-          let to_json ~compact () = D.to_json ~compact v in
+          let to_json ~compact ~json5 () = D.to_json ~compact ~json5 v in
           let compare = function
             | Ground v' -> D.compare v v'
             | _ -> assert false

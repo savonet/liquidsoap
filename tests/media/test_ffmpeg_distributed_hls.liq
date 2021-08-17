@@ -61,7 +61,7 @@ def check_stream() =
   if not !is_done then
     ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{output_dir}/mp4.m3u8")
 
-    output_format = of_json(default=[("streams", [[("samplerate", "0")]])], ojson)
+    output_format = json.parse(default=[("streams", [[("samplerate", "0")]])], ojson)
 
     output_streams = list.assoc(default=[], "streams", output_format)
 

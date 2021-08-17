@@ -689,7 +689,7 @@ module type AbstractDef = sig
   type content
 
   val name : string
-  val to_json : compact:bool -> content -> string
+  val to_json : compact:bool -> json5:bool -> content -> string
   val descr : content -> string
   val compare : content -> content -> int
 end
@@ -711,7 +711,8 @@ module MkAbstract (Def : AbstractDef) = struct
           Some
             {
               G.descr = (fun () -> Def.descr v);
-              to_json = (fun ~compact () -> Def.to_json ~compact v);
+              to_json =
+                (fun ~compact ~json5 () -> Def.to_json ~compact ~json5 v);
               compare;
               typ = Type;
             }

@@ -41,7 +41,7 @@ module Ground : sig
 
   type content = Lang_values.Ground.content = {
     descr : unit -> string;
-    to_json : compact:bool -> unit -> string;
+    to_json : compact:bool -> json5:bool -> unit -> string;
     compare : t -> int;
     typ : Lang_types.ground;
   }
@@ -341,7 +341,7 @@ module type AbstractDef = sig
   type content
 
   val name : string
-  val to_json : compact:bool -> content -> string
+  val to_json : compact:bool -> json5:bool -> content -> string
   val descr : content -> string
   val compare : content -> content -> int
 end

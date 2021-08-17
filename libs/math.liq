@@ -21,3 +21,13 @@ end
 def lin_of_dB(x)
   pow(10., x / 20.)
 end
+
+# A special floating-point value denoting the result of an undefined operation
+# such as 0.0 /. 0.0. Stands for 'not a number'. Any floating-point operation
+# with nan as argument returns nan as result. As for floating-point comparisons, 
+# `==`, `<`, `<=`, `>` and `>=` return `false` and `!=` returns `true` if one or
+# both of their arguments is `nan`.
+# @category Math
+def nan
+  sqrt(-1.)
+end

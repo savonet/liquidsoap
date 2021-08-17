@@ -22,7 +22,7 @@
 
 let log = Log.make ["lang"; "json"]
 let print_s s = Utils.escape_string (fun x -> Utils.escape_utf8 x) s
-let to_json_ref = ref (fun ~compact:_ _ -> assert false)
+let to_json_ref = ref (fun ~compact:_ ~json5:_ _ -> assert false)
 
 module JSON = Lang.MkAbstract (struct
   type content = (string, Lang.value) Hashtbl.t
@@ -30,22 +30,24 @@ module JSON = Lang.MkAbstract (struct
   let name = "json"
   let descr _ = "json"
 
-  let to_json ~compact v =
+  let to_json ~compact ~json5 v =
     if Hashtbl.length v > 0 then
-      !to_json_ref ~compact
+      !to_json_ref ~compact ~json5
         (Lang.record (Hashtbl.fold (fun k v l -> (k, v) :: l) v []))
     else "{}"
 
   let compare = Stdlib.compare
 end)
 
-let rec to_json_compact v =
+let rec to_json_compact ~json5 v =
   match v.Lang.value with
-    | Lang.Ground g -> Lang_values.Ground.to_json ~compact:true g
+    | Lang.Ground g -> Lang_values.Ground.to_json ~compact:true ~json5 g
     | Lang.List l ->
-        Printf.sprintf "[%s]" (String.concat "," (List.map to_json_compact l))
+        Printf.sprintf "[%s]"
+          (String.concat "," (List.map (to_json_compact ~json5) l))
     | Lang.Null -> "null"
-    | Lang.Tuple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
+    | Lang.Tuple l ->
+        "[" ^ String.concat "," (List.map (to_json_compact ~json5) l) ^ "]"
     | Lang.Meth _ -> (
         let m, v = Lang_values.V.split_meths v in
         match v.Lang.value with
@@ -53,26 +55,29 @@ let rec to_json_compact v =
               let l =
                 List.map
                   (fun (l, v) ->
-                    Printf.sprintf "\"%s\":%s" l (to_json_compact v))
+                    Printf.sprintf "\"%s\":%s" l (to_json_compact ~json5 v))
                   m
               in
               Printf.sprintf "{%s}" (String.concat "," l)
-          | _ -> to_json_compact v)
+          | _ -> to_json_compact ~json5 v)
     | Lang.Source _ -> "\"<source>\""
-    | Lang.Ref v -> Printf.sprintf "{\"reference\": %s}" (to_json_compact !v)
+    | Lang.Ref v ->
+        Printf.sprintf "{\"reference\": %s}" (to_json_compact ~json5 !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
     | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
 
-let rec to_json_pp f v =
+let rec to_json_pp ~json5 f v =
   match v.Lang.value with
     | Lang.Ground g ->
-        Format.fprintf f "%s" (Lang_values.Ground.to_json ~compact:false g)
+        Format.fprintf f "%s"
+          (Lang_values.Ground.to_json ~compact:false ~json5 g)
     | Lang.List l ->
         let print f l =
           let len = List.length l in
           let f pos x =
-            if pos < len - 1 then Format.fprintf f "%a,@;<1 0>" to_json_pp x
-            else Format.fprintf f "%a" to_json_pp x;
+            if pos < len - 1 then
+              Format.fprintf f "%a,@;<1 0>" (to_json_pp ~json5) x
+            else Format.fprintf f "%a" (to_json_pp ~json5) x;
             pos + 1
           in
           ignore (List.fold_left f 0 l)
@@ -82,9 +87,9 @@ let rec to_json_pp f v =
         Format.fprintf f "@[[@;<1 1>@[";
         let rec aux = function
           | [] -> ()
-          | [p] -> Format.fprintf f "%a" to_json_pp p
+          | [p] -> Format.fprintf f "%a" (to_json_pp ~json5) p
           | p :: l ->
-              Format.fprintf f "%a,@;<1 0>" to_json_pp p;
+              Format.fprintf f "%a,@;<1 0>" (to_json_pp ~json5) p;
               aux l
         in
         aux l;
@@ -96,27 +101,31 @@ let rec to_json_pp f v =
               Format.fprintf f "@{{@;<1 1>@[";
               let rec aux = function
                 | [] -> ()
-                | [(k, v)] -> Format.fprintf f "%s: %a" (print_s k) to_json_pp v
+                | [(k, v)] ->
+                    Format.fprintf f "%s: %a" (print_s k) (to_json_pp ~json5) v
                 | (k, v) :: l ->
-                    Format.fprintf f "%s: %a,@;<1 0>" (print_s k) to_json_pp v;
+                    Format.fprintf f "%s: %a,@;<1 0>" (print_s k)
+                      (to_json_pp ~json5) v;
                     aux l
               in
               aux l;
               Format.fprintf f "@]@;<1 0>}@]"
-          | _ -> Format.fprintf f "%a" to_json_pp v)
+          | _ -> Format.fprintf f "%a" (to_json_pp ~json5) v)
     | Lang.Ref v ->
         Format.fprintf f "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
-          to_json_pp !v
-    | _ -> Format.fprintf f "%s" (to_json_compact v)
+          (to_json_pp ~json5) !v
+    | _ -> Format.fprintf f "%s" (to_json_compact ~json5 v)
 
-let to_json_pp v =
+let to_json_pp ~json5 v =
   let b = Buffer.create 10 in
   let f = Format.formatter_of_buffer b in
-  ignore (to_json_pp f v);
+  ignore (to_json_pp ~json5 f v);
   Format.pp_print_flush f ();
   Buffer.contents b
 
-let to_json ~compact v = if compact then to_json_compact v else to_json_pp v
+let to_json ~compact ~json5 v =
+  if compact then to_json_compact ~json5 v else to_json_pp ~json5 v
+
 let () = to_json_ref := to_json
 
 let () =
@@ -162,19 +171,24 @@ let () =
       Lang.meth (JSON.to_value v) meth)
 
 let () =
-  Lang_builtins.add_builtin "json_of" ~cat:Lang_builtins.String
+  Lang_builtins.add_builtin "json.stringify" ~cat:Lang_builtins.String
     ~descr:"Convert a value to a json string."
     [
       ( "compact",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Output compact text." );
+      ( "json5",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Use json5 extended spec." );
       ("", Lang.univ_t (), None, None);
     ]
     Lang.string_t
     (fun p ->
       let compact = Lang.to_bool (List.assoc "compact" p) in
-      let v = to_json ~compact (List.assoc "" p) in
+      let json5 = Lang.to_bool (List.assoc "json5" p) in
+      let v = to_json ~compact ~json5 (List.assoc "" p) in
       Lang.string v)
 
 exception Failed
@@ -185,7 +199,7 @@ let () =
     | _ -> None)
 
 (* We compare the default's type with the parsed json value and return if they
-   match. This comes with json_of in Lang_builtins. *)
+   match. This comes with json.stringify in Lang_builtins. *)
 let rec of_json d j =
   match (d.Lang.value, j) with
     | Lang.Tuple [], `Null -> Lang.unit
@@ -256,9 +270,9 @@ let () =
       \ \"b\": 5\n\
        }\n\
        ```\n\
-       the value returned by `of_json(default=[(\"\",0)], j)` will be \
+       the value returned by `json.parse(default=[(\"\",0)], j)` will be \
        `[(\"b\",5)]`: the pair `(\"a\",\"test\")` is not kept because it is \
-       not of type `string * int`." "of_json"
+       not of type `string * int`." "json.parse"
     [
       ("default", t, None, Some "Default value if string cannot be parsed.");
       ("", Lang.string_t, None, None);
