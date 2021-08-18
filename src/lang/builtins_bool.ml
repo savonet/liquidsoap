@@ -71,16 +71,24 @@ let () =
 
 let () =
   add_builtin "and" ~cat:Bool ~descr:"Return the conjunction of its arguments"
-    [("", Lang.bool_t, None, None); ("", Lang.bool_t, None, None)] Lang.bool_t
+    [
+      ("", Lang.getter_t Lang.bool_t, None, None);
+      ("", Lang.getter_t Lang.bool_t, None, None);
+    ]
+    Lang.bool_t
     (fun p ->
-      match List.map (fun (_, x) -> Lang.to_bool x) p with
-        | [a; b] -> Lang.bool (a && b)
+      match List.map (fun (_, x) -> Lang.to_bool_getter x) p with
+        | [a; b] -> Lang.bool (if a () then b () else false)
         | _ -> assert false);
   add_builtin "or" ~cat:Bool ~descr:"Return the disjunction of its arguments"
-    [("", Lang.bool_t, None, None); ("", Lang.bool_t, None, None)] Lang.bool_t
+    [
+      ("", Lang.getter_t Lang.bool_t, None, None);
+      ("", Lang.getter_t Lang.bool_t, None, None);
+    ]
+    Lang.bool_t
     (fun p ->
-      match List.map (fun (_, x) -> Lang.to_bool x) p with
-        | [a; b] -> Lang.bool (a || b)
+      match List.map (fun (_, x) -> Lang.to_bool_getter x) p with
+        | [a; b] -> Lang.bool (if a () then true else b ())
         | _ -> assert false)
 
 let () =
