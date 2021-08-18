@@ -251,7 +251,10 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                         | None -> fun (p, m) -> Some (p, m)
                         | Some (curp, curm) ->
                             fun (p, m) ->
-                              Some (if p >= curp then (p, m) else (curp, curm)))
+                              Some
+                                (if p >= curp && p <= Frame.position ab then
+                                 (p, m)
+                                else (curp, curm)))
                       (match c.cur_meta with
                         | None -> None
                         | Some m -> Some (-1, m))
