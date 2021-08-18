@@ -16,3 +16,6 @@ docker build --no-cache  --build-arg "APK_FILE=$APK_FILE" --build-arg "APK_DBG_F
 docker login -u "$USER" -p "$PASSWORD" 
 
 docker push savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}
+
+docker tag savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}
+docker push ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}

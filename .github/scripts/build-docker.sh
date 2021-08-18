@@ -16,3 +16,6 @@ docker build --no-cache  --build-arg "DEB_FILE=$DEB_FILE"  --build-arg "DEB_DEBU
 docker login -u "$USER" -p "$PASSWORD" 
 
 docker push savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}
+
+docker tag savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}
+docker push ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}

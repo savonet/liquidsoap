@@ -18,8 +18,5 @@ docker manifest push savonet/liquidsoap:$TAG
 docker manifest create savonet/liquidsoap-alpine:$TAG --amend savonet/liquidsoap-ci-build:${TAG}_alpine_amd64 --amend savonet/liquidsoap-ci-build:${TAG}_alpine_arm64
 docker manifest push savonet/liquidsoap-alpine:$TAG
 
-docker tag savonet/liquidsoap-ci-build:${TAG}_amd64 ghcr.io/savonet/liquidsoap-ci-build:${TAG}_amd64
-docker tag savonet/liquidsoap-ci-build:${TAG}_arm64 ghcr.io/savonet/liquidsoap-ci-build:${TAG}_arm64
-
 docker manifest create ghcr.io/savonet/liquidsoap:$TAG --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_amd64 --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_arm64
 docker manifest push ghcr.io/savonet/liquidsoap:$TAG
