@@ -248,7 +248,7 @@ let none = Frame_content.None.format
 
 let can_decode_type decoded_type target_type =
   let can_convert_audio audio =
-    audio = none
+    Frame_content.None.is_format audio
     || Audio_converter.Channel_layout.(
          try
            ignore
@@ -266,8 +266,14 @@ let can_decode_type decoded_type target_type =
         let audio =
           if can_convert_audio audio then audio else decoded_type.Frame.audio
         in
-        let video = if video = none then none else decoded_type.Frame.video in
-        let midi = if midi = none then none else decoded_type.Frame.midi in
+        let video =
+          if Frame_content.None.is_format video then none
+          else decoded_type.Frame.video
+        in
+        let midi =
+          if Frame_content.None.is_format midi then none
+          else decoded_type.Frame.midi
+        in
         Frame.compatible target_type { Frame.audio; video; midi }
 
 let decoder_modes ctype =
@@ -413,10 +419,12 @@ let get_stream_decoder ~ctype mime =
 
 let mk_buffer ~ctype generator =
   let mode =
-    match ctype with
-      | Frame.{ audio; video } when audio <> none && video <> none -> `Both
-      | Frame.{ audio; video } when audio <> none && video = none -> `Audio
-      | Frame.{ audio; video } when audio = none && video <> none -> `Video
+    match
+      Frame.map_fields (fun c -> not (Frame_content.None.is_format c)) ctype
+    with
+      | Frame.{ audio = true; video = true } -> `Both
+      | Frame.{ audio = true; video = false } -> `Audio
+      | Frame.{ audio = false; video = true } -> `Video
       | _ -> failwith "Invalid type for buffer!"
   in
 
