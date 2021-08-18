@@ -24,3 +24,6 @@ docker login ghcr.io -u "$GHCR_USER" -p "$GHCR_PASSWORD"
 
 docker manifest create ghcr.io/savonet/liquidsoap:$TAG --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_amd64 --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_arm64
 docker manifest push ghcr.io/savonet/liquidsoap:$TAG
+
+docker manifest create ghcr.io/savonet/liquidsoap-alpine:$TAG --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_alpine_amd64 --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_alpine_arm64
+docker manifest push ghcr.io/savonet/liquidsoap-alpine:$TAG
