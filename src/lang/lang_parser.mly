@@ -73,6 +73,7 @@ open Lang_parser_helper
 %nonassoc COALESCE     /* (x ?? y) == z */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
 %nonassoc TO
+%nonassoc QUESTION    /* x ? y : z */
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
 %left BIN1
 %nonassoc NOT
@@ -80,7 +81,6 @@ open Lang_parser_helper
 %left BIN3 TIMES
 %nonassoc GET          /* (!x)+2 */
 %left DOT
-%nonassoc QUESTION    /* x ? y : z */
 %nonassoc COLON
 
 
