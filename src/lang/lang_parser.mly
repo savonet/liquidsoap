@@ -51,7 +51,7 @@ open Lang_parser_helper
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
 %token DOTDOTDOT
-%token <string> BIN0
+%token <string> BINB
 %token <string> BIN1
 %token <string> BIN2
 %token <string> BIN3
@@ -74,7 +74,7 @@ open Lang_parser_helper
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
 %nonassoc TO
 %nonassoc QUESTION    /* x ? y : z */
-%left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
+%left BINB             /* ((x+(y*z))==3) or ((not a)==b) */
 %left BIN1
 %nonassoc NOT
 %left BIN2 MINUS
@@ -202,7 +202,9 @@ expr:
                                        let op = mk ~pos:$loc($1) (Var "if") in
                                        mk ~pos:$loc (App (op, ["", cond; "then", then_b; "else", else_b])) }
 
-  | expr BIN0 expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",$1;"",$3])) }
+  | expr BINB expr                 { let left = mk_fun ~pos:$loc($1) [] $1 in
+                                     let right= mk_fun ~pos:$loc($3) [] $3 in
+                                     mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",left;"",right])) }
   | expr BIN1 expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",$1;"",$3])) }
   | expr BIN2 expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",$1;"",$3])) }
   | expr BIN3 expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",$1;"",$3])) }
