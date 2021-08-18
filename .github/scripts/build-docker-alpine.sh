@@ -17,5 +17,5 @@ docker login -u "$USER" -p "$PASSWORD"
 
 docker push savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}
 
-docker tag savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}
-docker push ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}
+docker tag savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE} ghcr.io/savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}
+docker push ghcr.io/savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}
