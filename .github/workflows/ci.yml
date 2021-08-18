@@ -403,7 +403,5 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-      - name: Log in to the github registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Push consolidated manifest
-        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }}
+        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }}
