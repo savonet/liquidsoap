@@ -30,8 +30,8 @@ def youtube_playlist_parser(~pwd="",url) =
     ([],"youtube-dl:#{url}")
   end
 
-  if string.match(pattern="^youtube-pl:",url) then
-    uri = list.nth(default="",string.split(separator=":",url),1)
+  if r/^youtube-pl/.test(url) then
+    uri = list.nth(default="",r/:/.split(url), 1)
     list.map(parse_line, process.read.lines("#{binary} -j --flat-playlist #{uri}"))
   else
     []

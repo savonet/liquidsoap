@@ -20,7 +20,7 @@ end
 # Get the list of lines of a file.
 # @category System
 def file.lines(fname)
-  string.split(separator="\n", file.contents(fname))
+  r/\n/.split(file.contents(fname))
 end
 
 # Iterate over the lines of a file.

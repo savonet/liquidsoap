@@ -12,12 +12,12 @@ end
 # @param args Argument string to split.
 def url.split_args(args) =
   def f(x) =
-    ret = string.split(separator="=",x)
+    ret = r/=/.split(x)
     arg = url.decode(list.nth(default="",ret,0))
     val = url.decode(list.nth(default="",ret,1))
     (arg,val)
   end
-  l = string.split(separator="&",args)
+  l = r/&/.split(args)
   list.map(f,l)
 end
 
@@ -27,7 +27,7 @@ end
 # @category String
 # @param uri Url to split.
 def url.split(uri) =
-  ret = string.extract(pattern="([^\\?]*)\\?(.*)",uri)
+  ret = r/([^\?]*)\?(.*)/.exec(uri)
   args = ret[2]
   if args != "" then
     (url.decode(ret[1]),url.split_args(ret[2]))

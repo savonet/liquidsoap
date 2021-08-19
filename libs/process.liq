@@ -17,7 +17,7 @@ end
 # @param command Command to run
 def process.read.lines(~timeout=(-1.),~env=[],~inherit_env=true,command)
   s = process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
-  string.split(separator="\r?\n", s)
+  r/\r?\n/.split(s)
 end
 
 # Return true if process exited with 0 code.

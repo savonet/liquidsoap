@@ -193,7 +193,7 @@ server.register(namespace="var", description="Get the value of a variable.", "ge
 # @flag hidden
 def interactive.set(arg)
   try
-    arg = string.split(separator=" = ", arg)
+    arg = r/=/.split(arg)
     name = list.nth(arg, 0)
     value = list.nth(arg, 1)
     t = interactive.type(name)

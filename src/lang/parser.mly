@@ -31,6 +31,7 @@ open Parser_helper
 %token <string> VARLPAR
 %token <string> VARLBRA
 %token <string> STRING
+%token <string * char list> REGEXP
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
@@ -45,6 +46,7 @@ open Parser_helper
 %token COALESCE
 %token TRY CATCH IN DO
 %token IF THEN ELSE ELSIF
+%token SLASH
 %token OPEN
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON DOT
 %token LBRA RBRA LCUR RCUR
@@ -182,6 +184,13 @@ expr:
                                        let else_b = $5 in
                                        let op = mk ~pos:$loc($1) (Var "if") in
                                        mk ~pos:$loc (App (op, ["", cond; "then", then_b; "else", else_b])) }
+  | REGEXP                          {  let regexp, flags = $1 in
+                                       let regexp =  mk ~pos:$loc (Ground (String regexp)) in
+                                       let flags = List.map Char.escaped flags in
+                                       let flags = List.map (fun s -> mk ~pos:$loc (Ground (String s))) flags in
+                                       let flags = mk ~pos:$loc (List flags) in
+                                       let op = mk ~pos:$loc($1) (Var "regexp") in
+                                       mk ~pos:$loc (App (op, ["", regexp; "flags", flags])) }
   | expr QUESTION expr COLON expr    { let cond = $1 in
                                        let then_b = mk_fun ~pos:$loc($3) [] $3 in
                                        let else_b = mk_fun ~pos:$loc($5) [] $5 in

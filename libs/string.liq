@@ -26,12 +26,6 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s)
   !ans
 end
 
-# Test whether a string is a valid integer.
-# @category String
-def string.is_int(s)
-  string.match(pattern="^\\d+$", s)
-end
-
 let string.binary = ()
 
 # Value of a positive (unsigned) integer encoded using native memory representation.
@@ -125,7 +119,7 @@ end
 # i.e. `"data:<mime>[;base64]:<data>"`.
 # @category String
 def string.data_uri.decode(s) =
-  captured = string.extract(pattern="^data:([/\\w]+)(;base64)?:(.+)$", s)
+  captured = r/^data:([\/\w]+)(;base64)?:(.+)$/.exec(s)
   if list.assoc.mem(1, captured) and list.assoc.mem(3, captured) then
     mime = list.assoc(1, captured)
     data = list.assoc(3, captured)
