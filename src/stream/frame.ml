@@ -423,9 +423,6 @@ let get_all_metadata b =
 
 let set_all_metadata b l = b.metadata <- l
 
-let get_past_metadata b =
-  try Some (List.assoc (-1) b.metadata) with Not_found -> None
-
 (** Operations on the contents *)
 
 (* When accessing content only for reading, or for chaning samples
@@ -476,7 +473,7 @@ let content_of_type ?force (frame : t) pos content_type =
         end
         else if pos = start_pos then (
           (* We are erasing the current layer. *)
-            match acc with
+          match acc with
             | (_, content) :: acc when content_has_type content content_type ->
                 (* We must re-use the previous layer. *)
                 frame.contents <- List.rev ((!!size, content) :: acc);
@@ -489,14 +486,14 @@ let content_of_type ?force (frame : t) pos content_type =
                     | Some c -> c
                 in
                 frame.contents <- List.rev ((!!size, content) :: acc);
-                content )
+                content)
         else (
           let acc = (pos, content) :: acc in
           let content =
             match force with None -> create_content content_type | Some c -> c
           in
           frame.contents <- List.rev ((!!size, content) :: acc);
-          content )
+          content)
   in
   aux 0 [] frame.contents
 
@@ -529,15 +526,15 @@ let blit_content src src_pos dst dst_pos len =
   Utils.array_iter2 src.audio dst.audio (fun a a' ->
       if a != a' then (
         let ( ! ) = audio_of_master in
-        Audio.Mono.blit a !src_pos a' !dst_pos !len ));
+        Audio.Mono.blit a !src_pos a' !dst_pos !len));
   Utils.array_iter2 src.video dst.video (fun v v' ->
       if v != v' then (
         let ( ! ) = video_of_master in
-        Video.blit v !src_pos v' !dst_pos !len ));
+        Video.blit v !src_pos v' !dst_pos !len));
   Utils.array_iter2 src.midi dst.midi (fun m m' ->
       if m != m' then (
         let ( ! ) = midi_of_master in
-        MIDI.blit m !src_pos m' !dst_pos !len ))
+        MIDI.blit m !src_pos m' !dst_pos !len))
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)

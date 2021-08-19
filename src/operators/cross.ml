@@ -35,9 +35,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   let channels = float (Frame.type_of_kind kind).Frame.audio in
   object (self)
     inherit source ~name:"cross" kind as super
-
     method stype = Source.Fallible
-
     val mutable cross_length = cross_length
 
     (* We need to store the end of a track, and compute the power of the signal
@@ -46,24 +44,16 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
      * sum. The sliding window is necessary because of possibly inaccurate
      * remaining time estimaton. *)
     val mutable gen_before = Generator.create ()
-
     val mutable rms_before = 0.
-
     val mutable rmsi_before = 0
-
     val mutable mem_before = Array.make rms_width 0.
-
     val mutable mem_i = 0
-
     val mutable before_metadata = None
 
     (* Same for the new track. No need for a sliding window here. *)
     val mutable gen_after = Generator.create ()
-
     val mutable rms_after = 0.
-
     val mutable rmsi_after = 0
-
     val mutable after_metadata = None
 
     (* An audio frame for intermediate computations.
@@ -91,7 +81,6 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
 
     (* Give a default value for the transition source. *)
     val mutable transition_source = None
-
     val mutable pending_after = Generator.create ()
 
     method private prepare_transition_source s =
@@ -142,7 +131,6 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       Gc.finalise (finalise_slave_clock slave_clock) self
 
     val mutable master_time = 0
-
     val mutable last_slave_tick = 0
 
     (* in master time *)
@@ -151,7 +139,6 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
      * and it has been used during the current tick, so it should be ticked
      * even if we're not in active mode. *)
     val mutable needs_tick = false
-
     val mutable status = `Idle
 
     method private slave_tick =
@@ -194,7 +181,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
                     let l = float_of_string v in
                     self#log#info "Setting crossfade duration to %.2fs" l;
                     cross_length <- Frame.master_of_seconds l
-                  with _ -> () ) ))
+                  with _ -> ())))
         (Frame.get_all_metadata frame)
 
     method private get_frame frame =
@@ -212,10 +199,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
               self#log#info "Buffering end of track...";
               status <- `Before;
               Frame.set_breaks buf_frame [Frame.position frame];
-              Frame.set_all_metadata buf_frame
-                ( match Frame.get_past_metadata frame with
-                  | Some x -> [(-1, x)]
-                  | None -> [] );
+              Frame.set_all_metadata buf_frame [];
               self#buffering cross_length;
               if status <> `Limit then
                 self#log#info "More buffering will be needed.";
@@ -252,9 +236,9 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
               if source#is_ready then begin
                 self#get_frame frame;
                 Frame.set_breaks frame
-                  ( match Frame.breaks frame with
+                  (match Frame.breaks frame with
                     | b :: _ :: l -> b :: l
-                    | _ -> assert false )
+                    | _ -> assert false)
               end
             end
 

@@ -48,9 +48,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
   ?(mode = fun () -> true) ?(replay_meta = true) (cases : child list) =
   object (self)
     inherit operator ~name kind (List.map (fun x -> x.source) cases)
-
     val mutable transition_length = transition_length
-
     val mutable selected : (child * source) option = None
 
     (** We have to explictly manage our children as they are dynamically created
@@ -227,7 +225,10 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                         | None -> fun (p, m) -> Some (p, m)
                         | Some (curp, curm) ->
                             fun (p, m) ->
-                              Some (if p >= curp then (p, m) else (curp, curm)))
+                              Some
+                                (if p >= curp && p <= Frame.position ab then
+                                 (p, m)
+                                else (curp, curm)))
                       (match c.cur_meta with
                         | None -> None
                         | Some m -> Some (-1, m))
@@ -472,9 +473,7 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
           (List.map snd children) as super
 
     val mutable position = -1
-
     val mutable track_pending = false
-
     val mutable tracks_played = 0
 
     method private select =

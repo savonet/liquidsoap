@@ -141,9 +141,6 @@ val get_all_metadata : t -> (int * metadata) list
 (** Set all metadata. *)
 val set_all_metadata : t -> (int * metadata) list -> unit
 
-(** Retreive "past metadata" which are stored at offset [-1] (cf. [advance]). *)
-val get_past_metadata : t -> metadata option
-
 (** {2 Content operations} *)
 
 val content : t -> int -> int * content
