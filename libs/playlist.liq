@@ -104,6 +104,11 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
     end
   source.set_name(s, "playlist.list.reloadable")
 
+  # When we have more than 10 failures in a row, we wait for 1 second before
+  # trying again in order to avoid infinite loops.
+  failed_count = ref(0)
+  failed_time = ref(0.)
+
   # The (real) next function
   def rec next() =
     if loop and list.length(!playlist) == 0 then playlist := randomize(!playlist_orig) end
@@ -126,16 +131,19 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
         end
         ""
       end
-    if file == "" then
+    if file == "" or (!failed_count > 10 and time() < !failed_time + 1.) then
       []
     else
       log.debug(label=id, "Next song will be \"#{file}\".")
       r = request.create(file)
       if not request.resolve(content_type=s, r) then
         log.info(label=id, "Could not resolve request: #{request.uri(r)}.")
+        ref.incr(failed_count)
+        failed_time := time()
         next()
       elsif null.defined(check_next) then
         check_next = null.get(check_next)
+        failed_count := 0
         if check_next(r) then
           [r]
         else
