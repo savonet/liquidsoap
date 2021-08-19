@@ -64,7 +64,8 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
     in
     let pipeline =
       Printf.sprintf "filesrc location=%s ! decodebin name=d%s%s"
-        (Utils.escape_utf8 fname) audio_pipeline video_pipeline
+        (Utils.quote_utf8_string fname)
+        audio_pipeline video_pipeline
     in
     log#debug "GStreamer pipeline: %s." pipeline;
     let bin = Gstreamer.Pipeline.parse_launch pipeline in

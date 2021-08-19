@@ -235,7 +235,7 @@ let file_type ~ctype:_ filename =
       in
       let video = if tracks.Ogg_decoder.video_track <> None then 1 else 0 in
       log#info "File %s recognized as audio=%d video=%d."
-        (Utils.escape_utf8 filename)
+        (Utils.quote_utf8_string filename)
         audio video;
       let audio =
         if audio = 0 then Frame_content.None.format

@@ -622,7 +622,7 @@ let interactive () =
      @.";
   if Dtools.Log.conf_file#get then
     Format.printf "Logs can be found in %s.\n@."
-      (Utils.escape_utf8 Dtools.Log.conf_file_path#get);
+      (Utils.quote_utf8_string Dtools.Log.conf_file_path#get);
   let lexbuf =
     (* See ocaml-community/sedlex#45 *)
     let chunk_size = 512 in

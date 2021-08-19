@@ -38,6 +38,9 @@ def f() =
   t(s[2], "cde")
   t(string.is_int("123"), true)
   t(string.is_int("1a3"), false)
+  t(string.escape("foo \"😅 o"), "foo \"😅 o")
+  t(string.unescape(string.escape("foo \"😅 o")), "foo \"😅 o")
+  t(string.quote("foo \"😅 o"), '"foo \\\"😅 o"')
   
   if !success then test.pass() else test.fail() end
 end

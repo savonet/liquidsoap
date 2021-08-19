@@ -24,11 +24,20 @@ def quote(s) =
   string.quote(s)
 end
 
-# Deprecated: this function has been replaced by `string.quote`.
+# Deprecated: this function has been replaced by `file.quote`.
 # @flag deprecated
 def process.quote(s) =
-  deprecated("process.quote", "string.quote")
-  string.quote(s)
+  deprecated("process.quote", "file.quote")
+  file.quote(s)
+end
+
+let string.utf8 = ()
+
+# Deprecated: this function has been replaced by `string.utf8.escape`.
+# @flag deprecated
+def string.utf8.escape(s) =
+  deprecated("string.utf8.escape", "string.escape")
+  string.escape(s)
 end
 
 # Deprecated: use mksafe and playlist instead.

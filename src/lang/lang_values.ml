@@ -239,10 +239,10 @@ module Ground = struct
             | String s' -> Stdlib.compare s s'
             | _ -> assert false
           in
-          let to_json ~compact:_ ~json5:_ () = Utils.escape_utf8 s in
+          let to_json ~compact:_ ~json5:_ () = Utils.quote_utf8_string s in
           Some
             {
-              descr = (fun () -> Utils.escape_utf8 s);
+              descr = (fun () -> Utils.quote_utf8_string s);
               to_json;
               compare;
               typ = T.String;

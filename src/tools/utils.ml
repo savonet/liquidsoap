@@ -194,9 +194,7 @@ let escape ?(special_char = special_char) ?(next = fun _ i -> i + 1)
     done;
     if new_pos < len then f new_pos
   in
-  out '"';
-  if len > 0 then f 0;
-  out '"'
+  if len > 0 then f 0
 
 (* These two functions are taken from Extlib's module UTF8
  * Copyright (c) 2002, 2003 Yamagata Yoriyuki *)
@@ -222,19 +220,24 @@ let utf8_next s i =
 
 (* End of Extlib code *)
 
-let escape_utf8_char = function
+let escape_char ~escape_fun = function
   | '"' -> "\\\""
   | '\t' -> "\\t"
   | '\r' -> "\\r"
   | '\b' -> "\\b"
   | '\n' -> "\\n"
-  | '\012' -> "\\f"
   | '\\' -> "\\\\"
-  | '/' -> "\\/"
-  | c -> Printf.sprintf "\\u%04X" (int_of_char c)
+  | '\'' -> "\\'"
+  | c -> escape_fun c
+
+let escape_utf8_char =
+  escape_char ~escape_fun:(fun c -> Printf.sprintf "\\u%04X" (int_of_char c))
 
 let escape_utf8_formatter ?special_char ?(escape_char = escape_utf8_char) =
   escape ?special_char ~escape_char ~next:utf8_next
+
+let escape_ascii_char =
+  escape_char ~escape_fun:(fun c -> Printf.sprintf "\\x%02X" (int_of_char c))
 
 let escape_string escape s =
   let b = Buffer.create (String.length s) in
@@ -243,22 +246,63 @@ let escape_string escape s =
   Format.pp_print_flush f ();
   Buffer.contents b
 
-let escape_utf8 = escape_string (fun x -> escape_utf8_formatter x)
+let escape_utf8_string = escape_string (fun x -> escape_utf8_formatter x)
+let escape_ascii_string = escape_string (fun x -> escape x)
+let quote_utf8_string s = Printf.sprintf "\"%s\"" (escape_utf8_string s)
+let quote_ascii_string s = Printf.sprintf "\"%s\"" (escape_ascii_string s)
+let unescape_utf8_pattern = "\\\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"
+let unescape_hex_pattern = "\\\\x[0-9a-fA-F][0-9a-fA-F]"
+let unescape_octal_pattern = "\\\\[0-9][0-9][0-9]"
 
-let unescape_utf8 =
-  let utf8encode s =
-    let prefs = [| 0x0; 0xc0; 0xe0 |] in
-    let s1 n = String.make 1 (Char.chr n) in
-    let rec ienc k sofar resid =
-      let bct = if k = 0 then 7 else 6 - k in
-      if resid < 1 lsl bct then s1 (prefs.(k) + resid) ^ sofar
-      else ienc (k + 1) (s1 (0x80 + (resid mod 64)) ^ sofar) (resid / 64)
-    in
-    ienc 0 "" (int_of_string ("0x" ^ s))
+let unescape_patterns =
+  [
+    "\\\"";
+    "\\t";
+    "\\r";
+    "\\b";
+    "\\n";
+    "\\\\";
+    "\\'";
+    unescape_octal_pattern;
+    unescape_hex_pattern;
+    unescape_utf8_pattern;
+  ]
+
+let unescape_octal_char s =
+  let s = String.sub s 1 3 in
+  Printf.sprintf "%c" (Char.chr (int_of_string ("0o" ^ s)))
+
+let unescape_hex_char s =
+  let s = String.sub s 2 2 in
+  Printf.sprintf "%c" (Char.chr (int_of_string ("0x" ^ s)))
+
+let unescape_utf8_char s =
+  let s = String.sub s 2 2 in
+  let prefs = [| 0x0; 0xc0; 0xe0 |] in
+  let s1 n = String.make 1 (Char.chr n) in
+  let rec ienc k sofar resid =
+    let bct = if k = 0 then 7 else 6 - k in
+    if resid < 1 lsl bct then s1 (prefs.(k) + resid) ^ sofar
+    else ienc (k + 1) (s1 (0x80 + (resid mod 64)) ^ sofar) (resid / 64)
   in
-  fun s ->
-    let rex = Pcre.regexp "\\\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]" in
-    Pcre.substitute ~rex ~subst:(fun s -> utf8encode (String.sub s 2 4)) s
+  ienc 0 "" (int_of_string ("0x" ^ s))
+
+let unescape_char = function
+  | "\\\"" -> "\""
+  | "\\t" -> "\t"
+  | "\\r" -> "\r"
+  | "\\b" -> "\b"
+  | "\\n" -> "\n"
+  | "\\\\" -> "\\"
+  | "\\'" -> "'"
+  | s when String.length s = 6 -> unescape_utf8_char s
+  | s when String.length s = 4 && s.[1] = 'x' -> unescape_hex_char s
+  | s when String.length s = 4 -> unescape_octal_char s
+  | _ -> assert false
+
+let unescape_string =
+  let rex = Pcre.regexp_or unescape_patterns in
+  Pcre.substitute ~rex ~subst:unescape_char
 
 (** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
 let unbreak_md md =

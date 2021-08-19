@@ -123,7 +123,7 @@ let file_type filename =
         (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
       in
       log#info "Libflac recognizes %s as FLAC (%dHz,%d channels)."
-        (Utils.escape_utf8 filename)
+        (Utils.quote_utf8_string filename)
         rate channels;
       Some
         {

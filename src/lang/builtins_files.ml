@@ -106,6 +106,16 @@ let () =
            (Lang.to_string (Lang.assoc "" 2 p))))
 
 let () =
+  add_builtin "file.quote" ~cat:Sys
+    ~descr:
+      "Return a quoted copy of the given string, suitable for use as one \
+       argument in a command line, escaping all meta-characters. Warning: \
+       under Windows, the output is only suitable for use with programs that \
+       follow the standard Windows quoting conventions."
+    [("", Lang.string_t, None, Some "File name")] Lang.string_t (fun p ->
+      Lang.string (Filename.quote (Lang.to_string (List.assoc "" p))))
+
+let () =
   add_builtin "file.temp_dir" ~cat:Sys
     ~descr:
       "Return a fresh temporary directory name. The temporary directory is \

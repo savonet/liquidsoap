@@ -61,3 +61,13 @@ end
 def string.id.default(~default, id)
   null.default(id, {string.id(default)})
 end
+
+# Return a quoted copy of the given string.
+# By default, the string is assumed to be `"utf8"` encoded and is escaped
+# following JSON and javascript specification.
+# @category String
+# @argsof string.escape
+def string.quote(%argsof(string.escape), s) =
+  s = string.escape(%argsof(string.escape), s)
+  "\"#{s}\""
+end
