@@ -58,7 +58,7 @@ type metadata = (string, string) Hashtbl.t
 let string_of_metadata metadata =
   let b = Buffer.create 20 in
   let f = Format.formatter_of_buffer b in
-  let escape f s = Utils.escape_utf8 f s in
+  let escape f s = Utils.escape_utf8_formatter f s in
   let first = ref true in
   Hashtbl.iter
     (fun k v ->
@@ -323,9 +323,10 @@ let file_is_readable name =
 let read_metadata t =
   let indicator = peek_indicator t in
   let name = indicator.string in
-  if not (file_exists name) then log#important "File %S does not exist!" name
+  if not (file_exists name) then
+    log#important "File %s does not exist!" (Utils.escape_utf8 name)
   else if not (file_is_readable name) then
-    log#important "Read permission denied for %S!" name
+    log#important "Read permission denied for %s!" (Utils.escape_utf8 name)
   else
     List.iter
       (fun (_, resolver) ->
@@ -353,7 +354,8 @@ let local_check t =
         let name = indicator.string in
         let metadata = get_all_metadata t in
         if not (file_is_readable name) then (
-          log#important "Read permission denied for %S!" name;
+          log#important "Read permission denied for %s!"
+            (Utils.escape_utf8 name);
           add_log t "Read permission denied!";
           pop_indicator t)
         else (
@@ -372,7 +374,7 @@ let local_check t =
 let push_indicators t l =
   if l <> [] then (
     let hd = List.hd l in
-    add_log t (Printf.sprintf "Pushed [%S;...]." hd.string);
+    add_log t (Printf.sprintf "Pushed [%s;...]." (Utils.escape_utf8 hd.string));
     t.indicators <- l :: t.indicators;
     t.decoder <- None;
 
@@ -588,25 +590,29 @@ let resolve ~ctype t timeout =
             match protocols#get proto with
               | Some handler ->
                   add_log t
-                    (Printf.sprintf "Resolving %S (timeout %.0fs)..." i.string
+                    (Printf.sprintf "Resolving %s (timeout %.0fs)..."
+                       (Utils.escape_utf8 i.string)
                        timeout);
                   let production =
                     handler.resolve ~log:(add_log t) arg maxtime
                   in
                   if production = [] then (
                     log#info
-                      "Failed to resolve %S! For more info, see server command \
+                      "Failed to resolve %s! For more info, see server command \
                        `request.trace %d`."
-                      i.string t.id;
+                      (Utils.escape_utf8 i.string)
+                      t.id;
                     ignore (pop_indicator t))
                   else push_indicators t production
               | None ->
-                  log#important "Unknown protocol %S in URI %S!" proto i.string;
+                  log#important "Unknown protocol %S in URI %s!" proto
+                    (Utils.escape_utf8 i.string);
                   add_log t "Unknown protocol!";
                   pop_indicator t)
         | None ->
             let log_level = if i.string = "" then 4 else 3 in
-            log#f log_level "Nonexistent file or ill-formed URI %S!" i.string;
+            log#f log_level "Nonexistent file or ill-formed URI %s!"
+              (Utils.escape_utf8 i.string);
             add_log t "Nonexistent file or ill-formed URI!";
             pop_indicator t)
   in

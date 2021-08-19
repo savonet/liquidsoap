@@ -31,7 +31,7 @@ exception Invalid_data
 let log = Log.make ["decoder"; "midi"]
 
 let decoder file =
-  log#info "Decoding %S..." file;
+  log#info "Decoding %s..." (Utils.escape_utf8 file);
   let fd = new MIDI.IO.Reader.of_file file in
   let closed = ref false in
   let close () =

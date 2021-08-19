@@ -122,8 +122,9 @@ let file_type filename =
       let rate, channels =
         (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
       in
-      log#info "Libflac recognizes %S as FLAC (%dHz,%d channels)." filename rate
-        channels;
+      log#info "Libflac recognizes %s as FLAC (%dHz,%d channels)."
+        (Utils.escape_utf8 filename)
+        rate channels;
       Some
         {
           Frame.audio = Frame_content.Audio.format_of_channels channels;

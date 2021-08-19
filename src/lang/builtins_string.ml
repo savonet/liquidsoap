@@ -133,7 +133,7 @@ let () =
        See `string.utf8.escape` for an UTF8-aware parsing function."
     ~escape ~escape_char:Utils.escape_char;
   let escape ~special_char ~escape_char f s =
-    Utils.escape_utf8 ~special_char ~escape_char f s
+    Utils.escape_utf8_formatter ~special_char ~escape_char f s
   in
   register_escape_fun ~name:"string.utf8.escape"
     ~descr:"Escape special characters in an UTF8 string." ~escape

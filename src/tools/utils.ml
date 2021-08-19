@@ -233,7 +233,7 @@ let escape_utf8_char = function
   | '/' -> "\\/"
   | c -> Printf.sprintf "\\u%04X" (int_of_char c)
 
-let escape_utf8 ?special_char ?(escape_char = escape_utf8_char) =
+let escape_utf8_formatter ?special_char ?(escape_char = escape_utf8_char) =
   escape ?special_char ~escape_char ~next:utf8_next
 
 let escape_string escape s =
@@ -242,6 +242,8 @@ let escape_string escape s =
   escape f s;
   Format.pp_print_flush f ();
   Buffer.contents b
+
+let escape_utf8 = escape_string (fun x -> escape_utf8_formatter x)
 
 let unescape_utf8 =
   let utf8encode s =

@@ -239,9 +239,7 @@ module Ground = struct
             | String s' -> Stdlib.compare s s'
             | _ -> assert false
           in
-          let to_json ~compact:_ ~json5:_ () =
-            Utils.escape_string (fun x -> Utils.escape_utf8 x) s
-          in
+          let to_json ~compact:_ ~json5:_ () = Utils.escape_utf8 s in
           Some
             {
               descr = (fun () -> Printf.sprintf "%S" s);

@@ -210,7 +210,7 @@ let conf_priorities =
 
 let test_file ?(log = log) ?mimes ?extensions fname =
   if not (Sys.file_exists fname) then (
-    log#info "File %S does not exist!" fname;
+    log#info "File %s does not exist!" (Utils.escape_utf8 fname);
     false)
   else (
     let ext_ok =
@@ -220,7 +220,9 @@ let test_file ?(log = log) ?mimes ?extensions fname =
             let ret =
               try List.mem (Utils.get_ext fname) extensions with _ -> false
             in
-            if not ret then log#info "Unsupported file extension for %S!" fname;
+            if not ret then
+              log#info "Unsupported file extension for %s!"
+                (Utils.escape_utf8 fname);
             ret
     in
     let mime_ok =
@@ -236,7 +238,8 @@ let test_file ?(log = log) ?mimes ?extensions fname =
             in
             let ret = List.mem mime mimes in
             if not ret then
-              log#info "Unsupported MIME type for %S: %s!" fname mime;
+              log#info "Unsupported MIME type for %s: %s!"
+                (Utils.escape_utf8 fname) mime;
             ret
     in
     ext_ok || mime_ok)
@@ -304,7 +307,7 @@ let get_file_decoder ~metadata ~ctype filename =
       (get_decoders ())
   in
   if decoders = [] then (
-    log#important "No decoder available for %S!" filename;
+    log#important "No decoder available for %s!" (Utils.escape_utf8 filename);
     None)
   else (
     log#info "Available decoders: %s"
@@ -323,9 +326,10 @@ let get_file_decoder ~metadata ~ctype filename =
                     raise (Found (name, decoded_type, specs))
                   else
                     log#info
-                      "Cannot decode file %S with decoder %s. Detected \
+                      "Cannot decode file %s with decoder %s. Detected \
                        content: %s"
-                      filename name
+                      (Utils.escape_utf8 filename)
+                      name
                       (Frame.string_of_content_type decoded_type)
               | None -> ()
           with
@@ -336,14 +340,16 @@ let get_file_decoder ~metadata ~ctype filename =
                   (Printf.sprintf "Error while checking file's content: %s"
                      (Printexc.to_string exn)))
         decoders;
-      log#important "Available decoders cannot decode %S as %s" filename
+      log#important "Available decoders cannot decode %s as %s"
+        (Utils.escape_utf8 filename)
         (Frame.string_of_content_type ctype);
       None
     with Found (name, decoded_type, specs) ->
       log#info
-        "Selected decoder %s for file %S with expected kind %s and detected \
+        "Selected decoder %s for file %s with expected kind %s and detected \
          content %s"
-        name filename
+        name
+        (Utils.escape_utf8 filename)
         (Frame.string_of_content_type ctype)
         (Frame.string_of_content_type decoded_type);
       Some
@@ -356,21 +362,23 @@ let get_image_file_decoder filename =
   try
     List.iter
       (fun (name, decoder) ->
-        log#info "Trying method %S for %S..." name filename;
+        log#info "Trying method %S for %s..." name (Utils.escape_utf8 filename);
         match
           try decoder filename
           with e ->
-            log#info "Decoder %S failed on %S: %s!" name filename
+            log#info "Decoder %S failed on %s: %s!" name
+              (Utils.escape_utf8 filename)
               (Printexc.to_string e);
             None
         with
           | Some img ->
-              log#important "Method %S accepted %S." name filename;
+              log#important "Method %S accepted %s." name
+                (Utils.escape_utf8 filename);
               ans := Some img;
               raise Stdlib.Exit
           | None -> ())
       (get_image_file_decoders ());
-    log#important "Unable to decode %S!" filename;
+    log#important "Unable to decode %s!" (Utils.escape_utf8 filename);
     !ans
   with Exit -> !ans
 
@@ -494,7 +502,8 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
       with e ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log ~bt
-          (Printf.sprintf "Decoding %S ended: %s." filename
+          (Printf.sprintf "Decoding %s ended: %s."
+             (Utils.escape_utf8 filename)
              (Printexc.to_string e));
         decoding_done := true;
         if conf_debug#get then raise e);

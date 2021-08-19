@@ -53,15 +53,13 @@ let from_string s =
   let lexer = lexer (Stream.of_string s) in
   parse lexer
 
-let escape_string s = String.escaped s
-
 let to_string (j : t) =
   let blank indent = String.make (2 * indent) ' ' in
   let rec aux indent = function
     | `Bool b -> if b then "true" else "false"
     | `Int n -> string_of_int n
     | `Float x -> string_of_float x
-    | `String s -> "\"" ^ escape_string s ^ "\""
+    | `String s -> Utils.escape_utf8 s
     | `Null -> "null"
     | `List l ->
         let l = List.map (fun j -> blank (indent + 1) ^ aux (indent + 1) j) l in

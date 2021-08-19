@@ -273,8 +273,8 @@ class hls_output p =
              (Lang_errors.Invalid_value
                 ( List.assoc "persist_at" p,
                   Printf.sprintf
-                    "Error while creating directory %S for persisting state: %s"
-                    dir (Printexc.to_string exn) )));
+                    "Error while creating directory %s for persisting state: %s"
+                    (Utils.escape_utf8 dir) (Printexc.to_string exn) )));
         filename)
       (Lang.to_option (List.assoc "persist_at" p))
   in
@@ -591,7 +591,8 @@ class hls_output p =
                     Printf.sprintf "%s%s" prefix (Filename.basename filename)
                   in
                   output_string oc
-                    (Printf.sprintf "#EXT-X-MAP:URI=%S\r\n" filename)
+                    (Printf.sprintf "#EXT-X-MAP:URI=%s\r\n"
+                       (Utils.escape_utf8 filename))
               | _ -> ());
           output_string oc
             (Printf.sprintf "#EXTINF:%.03f,\r\n"
@@ -658,7 +659,7 @@ class hls_output p =
        with _ -> ());
       match persist_at with
         | Some persist_at ->
-            self#log#info "Saving state to %S.." persist_at;
+            self#log#info "Saving state to %s.." (Utils.escape_utf8 persist_at);
             List.iter (fun s -> self#close_segment s) streams;
             self#write_state persist_at
         | None ->
@@ -668,7 +669,7 @@ class hls_output p =
     method reset = self#toggle_state `Restart
 
     method private write_state persist_at =
-      self#log#info "Reading state file at %S.." persist_at;
+      self#log#info "Reading state file at %s.." (Utils.escape_utf8 persist_at);
       let fd = open_out_bin persist_at in
       let streams =
         `List

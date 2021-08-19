@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 let log = Log.make ["lang"; "json"]
-let print_s s = Utils.escape_string (fun x -> Utils.escape_utf8 x) s
 let to_json_ref = ref (fun ~compact:_ ~json5:_ _ -> assert false)
 
 module JSON = Lang.MkAbstract (struct
@@ -63,7 +62,7 @@ let rec to_json_compact ~json5 v =
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v ->
         Printf.sprintf "{\"reference\": %s}" (to_json_compact ~json5 !v)
-    | Lang.Encoder e -> print_s (Encoder.string_of_format e)
+    | Lang.Encoder e -> Utils.escape_utf8 (Encoder.string_of_format e)
     | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
 
 let rec to_json_pp ~json5 f v =
@@ -102,9 +101,10 @@ let rec to_json_pp ~json5 f v =
               let rec aux = function
                 | [] -> ()
                 | [(k, v)] ->
-                    Format.fprintf f "%s: %a" (print_s k) (to_json_pp ~json5) v
+                    Format.fprintf f "%s: %a" (Utils.escape_utf8 k)
+                      (to_json_pp ~json5) v
                 | (k, v) :: l ->
-                    Format.fprintf f "%s: %a,@;<1 0>" (print_s k)
+                    Format.fprintf f "%s: %a,@;<1 0>" (Utils.escape_utf8 k)
                       (to_json_pp ~json5) v;
                     aux l
               in

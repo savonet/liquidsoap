@@ -123,8 +123,9 @@ let file_type ~ctype:_ filename =
         let channels = Wav_aiff.channels header in
         let sample_rate = Wav_aiff.sample_rate header in
         let ok_message s =
-          log#info "%S recognized as WAV file (%s,%dHz,%d channels)." filename s
-            sample_rate channels
+          log#info "%s recognized as WAV file (%s,%dHz,%d channels)."
+            (Utils.escape_utf8 filename)
+            s sample_rate channels
         in
         match Wav_aiff.sample_size header with
           | 8 ->

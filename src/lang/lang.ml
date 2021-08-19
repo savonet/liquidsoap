@@ -621,7 +621,8 @@ let interactive () =
      evaluation (forces default types), output startup (forces default clock).\n\
      @.";
   if Dtools.Log.conf_file#get then
-    Format.printf "Logs can be found in %S.\n@." Dtools.Log.conf_file_path#get;
+    Format.printf "Logs can be found in %s.\n@."
+      (Utils.escape_utf8 Dtools.Log.conf_file_path#get);
   let lexbuf =
     (* See ocaml-community/sedlex#45 *)
     let chunk_size = 512 in

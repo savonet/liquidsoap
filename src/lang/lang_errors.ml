@@ -185,7 +185,8 @@ let report lexbuf f =
       let buf = Sedlexing.Utf8.lexeme lexbuf in
       Printf.sprintf "%sine %d, char %d%s"
         (if start.Lexing.pos_fname = "" then "L"
-        else Printf.sprintf "File %S, l" start.Lexing.pos_fname)
+        else
+          Printf.sprintf "File %s, l" (Utils.escape_utf8 start.Lexing.pos_fname))
         start.Lexing.pos_lnum
         (start.Lexing.pos_cnum - start.Lexing.pos_bol)
         (if buf = "" then "" else Printf.sprintf " before %S" buf)
