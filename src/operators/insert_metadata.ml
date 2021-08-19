@@ -129,8 +129,13 @@ class replay ~kind meta src =
     method private get_frame ab =
       let start = Frame.position ab in
       src#get ab;
+      let stop = Frame.position ab in
       if first then (
-        if Frame.get_metadata ab start = None then
-          Frame.set_metadata ab start meta;
+        if
+          List.filter
+            (fun (pos, _) -> start <= pos && pos <= stop)
+            (Frame.get_all_metadata ab)
+          = []
+        then Frame.set_metadata ab start meta;
         first <- false)
   end

@@ -173,9 +173,6 @@ val get_all_raw_metadata : t -> (int * metadata) list
 (** Set all metadata. *)
 val set_all_metadata : t -> (int * metadata) list -> unit
 
-(** Retrieve "past metadata" which are stored at offset [-1] (cf. [advance]). *)
-val get_past_metadata : t -> metadata option
-
 (** {2 Content operations} *)
 
 exception No_chunk

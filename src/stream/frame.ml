@@ -163,12 +163,7 @@ let advance b =
   Frame_content.clear b.content.midi;
   b.pts <- Int64.succ b.pts;
   b.breaks <- [];
-  let max a (p, m) =
-    match a with Some (pa, _) when pa > p -> a | _ -> Some (p, m)
-  in
-  let rec last a = function [] -> a | b :: l -> last (max a b) l in
-  b.metadata <-
-    (match last None b.metadata with None -> [] | Some (_, e) -> [(-1, e)])
+  b.metadata <- []
 
 (** Presentation time stuff. *)
 
@@ -196,9 +191,6 @@ let get_all_metadata b =
 
 let get_all_raw_metadata b = b.metadata
 let set_all_metadata b l = b.metadata <- l
-
-let get_past_metadata b =
-  try Some (List.assoc (-1) b.metadata) with Not_found -> None
 
 let fill_content src src_pos dst dst_pos len =
   let fill src dst = fill src src_pos dst dst_pos len in

@@ -192,10 +192,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
               self#log#info "Buffering end of track...";
               status <- `Before;
               Frame.set_breaks buf_frame [Frame.position frame];
-              Frame.set_all_metadata buf_frame
-                (match Frame.get_past_metadata frame with
-                  | Some x -> [(-1, x)]
-                  | None -> []);
+              Frame.set_all_metadata buf_frame [];
               self#buffering cross_length;
               if status <> `Limit then
                 self#log#info "More buffering will be needed.";
