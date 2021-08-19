@@ -242,7 +242,7 @@ module Ground = struct
           let to_json ~compact:_ ~json5:_ () = Utils.escape_utf8 s in
           Some
             {
-              descr = (fun () -> Printf.sprintf "%S" s);
+              descr = (fun () -> Utils.escape_utf8 s);
               to_json;
               compare;
               typ = T.String;
