@@ -306,17 +306,11 @@ let rec token lexbuf =
 
 and read_string c pos buf lexbuf =
   match%sedlex lexbuf with
-    | '\\', '/' ->
-        Buffer.add_char buf '/';
-        read_string c pos buf lexbuf
     | '\\', '\\' ->
         Buffer.add_char buf '\\';
         read_string c pos buf lexbuf
     | '\\', 'b' ->
         Buffer.add_char buf '\b';
-        read_string c pos buf lexbuf
-    | '\\', 'f' ->
-        Buffer.add_char buf '\012';
         read_string c pos buf lexbuf
     | '\\', 'n' ->
         Buffer.add_char buf '\n';
@@ -335,18 +329,21 @@ and read_string c pos buf lexbuf =
         let code = int_of_string (Printf.sprintf "0x%s" code) in
         Buffer.add_char buf (Char.chr code);
         read_string c pos buf lexbuf
-    | '\\', 'o', oct_digit, oct_digit, oct_digit ->
+    | '\\', oct_digit, oct_digit, oct_digit ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
-        let idx = String.index matched 'o' in
+        let idx = String.index matched '\\' in
         let code = String.sub matched (idx + 1) 3 in
-        let code = int_of_string (Printf.sprintf "0o%s" code) in
+        let code = min 255 (int_of_string (Printf.sprintf "0o%s" code)) in
         Buffer.add_char buf (Char.chr code);
         read_string c pos buf lexbuf
-    | '\\', decimal_digit, decimal_digit, decimal_digit ->
+    | ( '\\',
+        'u',
+        ascii_hex_digit,
+        ascii_hex_digit,
+        ascii_hex_digit,
+        ascii_hex_digit ) ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
-        let code = String.sub matched 1 3 in
-        let code = int_of_string code in
-        Buffer.add_char buf (Char.chr code);
+        Buffer.add_string buf (Utils.unescape_utf8_char matched);
         read_string c pos buf lexbuf
     | '\\', ('"' | '\'') ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in

@@ -168,20 +168,8 @@ let randomize a =
       permute i (i + Random.int (l - i))
     done
 
-let special_char = function
-  | '"' | '\\'
-  (* DEL *)
-  | '\x7F'
-  (* Control chars *)
-  | '\x00' .. '\x1F' ->
-      true
-  | _ -> false
-
-let escape_char c = if c <> '"' then Char.escaped c else "\\\""
-
 (* Generic escaping function *)
-let escape ?(special_char = special_char) ?(next = fun _ i -> i + 1)
-    ?(escape_char = escape_char) f s =
+let escape ~special_char ~next ~escape_char f s =
   let out = Format.pp_print_char f in
   let outs = Format.pp_print_string f in
   let len = String.length s in
@@ -195,6 +183,25 @@ let escape ?(special_char = special_char) ?(next = fun _ i -> i + 1)
     if new_pos < len then f new_pos
   in
   if len > 0 then f 0
+
+let ascii_special_char = function
+  | '"' | '\\'
+  (* DEL *)
+  | '\x7F'
+  (* Control chars *)
+  | '\x00' .. '\x1F' ->
+      true
+  | c when Char.code c > 126 -> true
+  | _ -> false
+
+let utf8_special_char = function
+  | '"' | '\\'
+  (* DEL *)
+  | '\x7F'
+  (* Control chars *)
+  | '\x00' .. '\x1F' ->
+      true
+  | _ -> false
 
 (* These two functions are taken from Extlib's module UTF8
  * Copyright (c) 2002, 2003 Yamagata Yoriyuki *)
@@ -220,24 +227,34 @@ let utf8_next s i =
 
 (* End of Extlib code *)
 
+let ascii_next _ i = i + 1
+
 let escape_char ~escape_fun = function
   | '"' -> "\\\""
+  | '\'' -> "\\'"
+  | '\\' -> "\\\\"
   | '\t' -> "\\t"
   | '\r' -> "\\r"
   | '\b' -> "\\b"
   | '\n' -> "\\n"
-  | '\\' -> "\\\\"
-  | '\'' -> "\\'"
   | c -> escape_fun c
 
 let escape_utf8_char =
   escape_char ~escape_fun:(fun c -> Printf.sprintf "\\u%04X" (int_of_char c))
 
-let escape_utf8_formatter ?special_char ?(escape_char = escape_utf8_char) =
-  escape ?special_char ~escape_char ~next:utf8_next
+let escape_utf8_formatter =
+  escape ~special_char:utf8_special_char ~escape_char:escape_utf8_char
+    ~next:utf8_next
 
+(* We use the \xhh syntax to make sure the resulting string is also consistently readable in
+   OCaml. \nnn can be tricky since they are octal sequences in liquidsoap and digital sequences
+   in OCaml. *)
 let escape_ascii_char =
   escape_char ~escape_fun:(fun c -> Printf.sprintf "\\x%02X" (int_of_char c))
+
+let escape_ascii_formatter =
+  escape ~special_char:ascii_special_char ~escape_char:escape_ascii_char
+    ~next:(fun _ i -> i + 1)
 
 let escape_string escape s =
   let b = Buffer.create (String.length s) in
@@ -246,8 +263,8 @@ let escape_string escape s =
   Format.pp_print_flush f ();
   Buffer.contents b
 
-let escape_utf8_string = escape_string (fun x -> escape_utf8_formatter x)
-let escape_ascii_string = escape_string (fun x -> escape x)
+let escape_utf8_string = escape_string escape_utf8_formatter
+let escape_ascii_string = escape_string escape_ascii_formatter
 let quote_utf8_string s = Printf.sprintf "\"%s\"" (escape_utf8_string s)
 let quote_ascii_string s = Printf.sprintf "\"%s\"" (escape_ascii_string s)
 let unescape_utf8_pattern = "\\\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"
@@ -256,13 +273,13 @@ let unescape_octal_pattern = "\\\\[0-9][0-9][0-9]"
 
 let unescape_patterns =
   [
-    "\\\"";
-    "\\t";
-    "\\r";
-    "\\b";
-    "\\n";
-    "\\\\";
-    "\\'";
+    "\\\\\"";
+    "\\\\t";
+    "\\\\r";
+    "\\\\b";
+    "\\\\n";
+    "\\\\\\\\";
+    "\\\\'";
     unescape_octal_pattern;
     unescape_hex_pattern;
     unescape_utf8_pattern;

@@ -24,13 +24,6 @@ def quote(s) =
   string.quote(s)
 end
 
-# Deprecated: this function has been replaced by `file.quote`.
-# @flag deprecated
-def process.quote(s) =
-  deprecated("process.quote", "file.quote")
-  file.quote(s)
-end
-
 let string.utf8 = ()
 
 # Deprecated: this function has been replaced by `string.utf8.escape`.

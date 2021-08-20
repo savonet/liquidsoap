@@ -6,7 +6,7 @@ success = ref(true)
 
 def t(x, y)
   if x != y then
-    print("Failure: got #{x} instead of #{y}")
+    print("Failure: got #{json.stringify(x)} instead of #{json.stringify(y)}")
     success := false
   end
 end
@@ -38,9 +38,11 @@ def f() =
   t(s[2], "cde")
   t(string.is_int("123"), true)
   t(string.is_int("1a3"), false)
-  t(string.escape("foo \"😅 o"), "foo \"😅 o")
-  t(string.unescape(string.escape("foo \"😅 o")), "foo \"😅 o")
-  t(string.quote("foo \"😅 o"), '"foo \\\"😅 o"')
+  # This tests the Utils implementation:
+  t(string.unescape("\\\\ \\t \\r \\b \' \\\" \\\t \\045 \\x2f \\u4f32"), "\\ \t \r \b ' \" \\\t % / O")
+  # This also tests the lexer implementation:
+  t(string.unescape("\\045 \\x2f \\u4f32"), "\045 \x2f \u4f32")
+  t(string.escape(encoding="ascii", "foo \"😅 o"), "foo \\\"\\xF0\\x9F\\x98\\x85 o")
   
   if !success then test.pass() else test.fail() end
 end

@@ -66,32 +66,21 @@ let () =
       let n = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (int_of_char s.[n]))
 
-(* Special characters that must be escaped *)
-let special_chars =
-  (* Control chars between 0x00 and 0x1f *)
-  let rec escaped p l =
-    if p <= 0x1f then escaped (p + 1) (Char.chr p :: l) else List.rev l
-  in
-  (* We also add 0x7F (DEL) and the
-   * usual '"' and '\' *)
-  escaped 0 ['"'; '\\'; '\x7F']
-
 let () =
-  let special_chars =
-    Lang.list (List.map Lang.string (List.map (String.make 1) special_chars))
-  in
   add_builtin "string.escape" ~cat:String
     ~descr:
       "Escape special characters in an string. By default, the string is \
        assumed to be `\"utf8\"` encoded and is escaped following JSON and \
        javascript specification."
     [
-      ( "special_chars",
-        Lang.list_t Lang.string_t,
-        Some special_chars,
+      ( "special_char",
+        Lang.nullable_t (Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t),
+        Some Lang.null,
         Some
-          "List of characters that should be escaped. The first character of \
-           each element in the list is considered." );
+          "Return `true` if the given character (passed as a string) should be \
+           escaped. Defaults to control charaters for `\"utf8\"` and control \
+           characters and any character above `\\x7E` (non-printable \
+           characters) for `\"ascii\"`." );
       ( "escape_char",
         Lang.nullable_t (Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t),
         Some Lang.null,
@@ -118,13 +107,15 @@ let () =
                 (Lang_errors.Invalid_value
                    (encoding, "Encoding should be one of: \"ascii\", \"utf8\"."))
       in
-      let special_chars =
-        List.map
-          (fun s -> s.[0])
-          (List.map Lang.to_string
-             (Lang.to_list (List.assoc "special_chars" p)))
+      let special_char =
+        match (Lang.to_option (List.assoc "special_char" p), encoding) with
+          | Some f, _ ->
+              fun c ->
+                Lang.to_bool
+                  (Lang.apply f [("", Lang.string (String.make 1 c))])
+          | None, `Ascii -> Utils.ascii_special_char
+          | None, `Utf8 -> Utils.utf8_special_char
       in
-      let special_char c = List.mem c special_chars in
       let escape_char =
         match (Lang.to_option (List.assoc "escape_char" p), encoding) with
           | Some f, _ ->
@@ -141,21 +132,6 @@ let () =
       in
       Lang.string
         (Utils.escape_string (Utils.escape ~special_char ~escape_char ~next) s))
-
-let () =
-  Lang.add_builtin_base
-    ~category:(string_of_category String)
-    ~descr:"Default characters to escape" "string.escape.special_chars"
-    Lang.(
-      List
-        (List.map
-           (fun c ->
-             {
-               Lang.pos = None;
-               value = Lang.Ground (Ground.String (Printf.sprintf "%c" c));
-             })
-           special_chars))
-    (Lang.list_t Lang.string_t)
 
 let () =
   add_builtin "string.unescape"

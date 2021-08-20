@@ -144,6 +144,37 @@ print("The number #{random.float()} is random.")
 will print `The number 0.663455738438 is random.` (at least it did last time I
 tried).
 
+#### Escaping strings
+
+Liquidsoap strings follow the most common lexical conventions from `C` and `javascript` and `JSON`, in particular,
+`string.unescape` recognizes the following sequences:
+
+| Sequence | Character denoted |
+|----------|-------------------|
+| `\"`     | `"` (double quotation mark) |
+| `\'`     | `'` (single quotation mark) |
+| `\t`     | Horizontal tab              |
+| `\r`     | Form feed                   |
+| `\b`     | Backspace                   |
+| `\n`     | Newline                     |
+| `\\`     | Backslash                   |
+| `\nnn`   | The byte whose numerical value is given by _nnn_ interpreted as an octal number |
+| `\xhh`   | The byte whose numerical value is given by _hh_ interpreted as a hexadecimal number | 
+| `\uhhhh` | Unicode code point where _hhhh_ is a hexadecimal digit |
+
+This convention has been decided to follow the most common practices. In particular, `\nnn` is an _octal_ escape sequence in most languages
+including C, Ruby, Javascript, Python and more. This differs from OCaml where `\nnn` is considered a digital escape sequence.
+
+Not all usual control sequences are supported such as `\f`. The supported set is the common set for C, javascript and OCaml.
+
+These lexical conventions are used in the default `string.escape` and `string.unescape`.
+
+Here's an example of an escaped string:
+```
+# "\" \t \045 \x2f \u4f32";;
+- : string = "\" \t % / 2"
+```
+
 ### Booleans
 
 The _booleans_ are either `true` or
