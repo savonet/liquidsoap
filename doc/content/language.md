@@ -163,7 +163,7 @@ Liquidsoap strings follow the most common lexical conventions from `C` and `java
 | `\uhhhh` | Unicode code point where _hhhh_ is a hexadecimal digit |
 
 This convention has been decided to follow the most common practices. In particular, `\nnn` is an _octal_ escape sequence in most languages
-including C, Ruby, Javascript, Python and more. This differs from OCaml where `\nnn` is considered a digital escape sequence.
+including C, Ruby, Javascript, Python and more. This differs from OCaml where `\nnn` is considered a _digital_ escape sequence.
 
 Not all usual control sequences are supported such as `\f`. The supported set is the common set for C, javascript and OCaml.
 
