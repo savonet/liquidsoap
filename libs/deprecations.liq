@@ -26,7 +26,7 @@ end
 
 let string.utf8 = ()
 
-# Deprecated: this function has been replaced by `string.utf8.escape`.
+# Deprecated: this function has been replaced by `string.escape`.
 # @flag deprecated
 def string.utf8.escape(s) =
   deprecated("string.utf8.escape", "string.escape")
