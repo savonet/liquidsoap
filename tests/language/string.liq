@@ -38,11 +38,17 @@ def f() =
   t(s[2], "cde")
   t(string.is_int("123"), true)
   t(string.is_int("1a3"), false)
-  # This tests the Utils implementation:
-  t(string.unescape("\\\\ \\t \\r \\b \' \\\" \\\t \\045 \\x2f \\u4f32"), "\\ \t \r \b ' \" \\\t % / O")
-  # This also tests the lexer implementation:
-  t(string.unescape("\\045 \\x2f \\u4f32"), "\045 \x2f \u4f32")
+  t(string.unescape("\\a\\b\\e\\f\\n\\r\\t\\v\\'\\?\\x61\\141\\u0061"), "\a\b\e\f\n\r\t\v\'\?aaa")
   t(string.escape(encoding="ascii", "foo \"😅 o"), "foo \\\"\\xF0\\x9F\\x98\\x85 o")
+  t("\xF0\x9F\x98\x85", "😅")
+  t("\342\234\250", "✨")
+  t("\u2728", "✨")
+  t(string.escape.char("✨"), "\\u2728")
+  t(string.escape.char(format="hex", "✨"), "\\xE2\\x9C\\xA8")
+  t(string.escape.char(format="octal","✨"), "\\342\\234\\250")
+  t(string.unescape("\\u2728"), "✨")
+  t(string.unescape("\\xE2\\x9C\\xA8"), "✨")
+  t(string.unescape("\\342\\234\\250"), "✨")
   
   if !success then test.pass() else test.fail() end
 end

@@ -110,28 +110,58 @@ let () =
       let special_char =
         match (Lang.to_option (List.assoc "special_char" p), encoding) with
           | Some f, _ ->
-              fun c ->
-                Lang.to_bool
-                  (Lang.apply f [("", Lang.string (String.make 1 c))])
+              fun s -> Lang.to_bool (Lang.apply f [("", Lang.string s)])
           | None, `Ascii -> Utils.ascii_special_char
           | None, `Utf8 -> Utils.utf8_special_char
       in
       let escape_char =
         match (Lang.to_option (List.assoc "escape_char" p), encoding) with
           | Some f, _ ->
-              fun c ->
-                Lang.to_string
-                  (Lang.apply f [("", Lang.string (String.make 1 c))])
-          | None, `Ascii -> Utils.escape_ascii_char
+              fun s -> Lang.to_string (Lang.apply f [("", Lang.string s)])
+          | None, `Ascii -> Utils.escape_hex_char
           | None, `Utf8 -> Utils.escape_utf8_char
       in
       let next =
         match encoding with
-          | `Ascii -> fun _ i -> i + 1
+          | `Ascii -> Utils.ascii_next
           | `Utf8 -> Utils.utf8_next
       in
       Lang.string
         (Utils.escape_string (Utils.escape ~special_char ~escape_char ~next) s))
+
+let () =
+  add_builtin "string.escape.char"
+    ~descr:
+      "Escape each character in the given string using a specific escape \
+       sequence"
+    ~cat:String
+    [
+      ( "format",
+        Lang.string_t,
+        Some (Lang.string "utf8"),
+        Some "Escape format. One of: `\"octal\"`, `\"hex\"` or `\"utf8\"`." );
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.string_t
+    (fun p ->
+      let format = List.assoc "format" p in
+      let escape_char, next =
+        match Lang.to_string format with
+          | "octal" -> (Utils.escape_octal_char, Utils.ascii_next)
+          | "hex" -> (Utils.escape_hex_char, Utils.ascii_next)
+          | "utf8" -> (Utils.escape_utf8_char, Utils.utf8_next)
+          | _ ->
+              raise
+                (Lang_errors.Invalid_value
+                   ( format,
+                     "Format should be one of: `\"octal\"`, `\"hex\"` or \
+                      `\"utf8\"`." ))
+      in
+      let s = Lang.to_string (List.assoc "" p) in
+      Lang.string
+        (Utils.escape_string
+           (Utils.escape ~special_char:(fun _ -> true) ~escape_char ~next)
+           s))
 
 let () =
   add_builtin "string.unescape"

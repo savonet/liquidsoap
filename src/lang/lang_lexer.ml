@@ -305,12 +305,19 @@ let rec token lexbuf =
                "Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf ))
 
 and read_string c pos buf lexbuf =
+  (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
   match%sedlex lexbuf with
-    | '\\', '\\' ->
-        Buffer.add_char buf '\\';
+    | '\\', 'a' ->
+        Buffer.add_char buf '\x07';
         read_string c pos buf lexbuf
     | '\\', 'b' ->
         Buffer.add_char buf '\b';
+        read_string c pos buf lexbuf
+    | '\\', 'e' ->
+        Buffer.add_char buf '\x1b';
+        read_string c pos buf lexbuf
+    | '\\', 'f' ->
+        Buffer.add_char buf '\x0c';
         read_string c pos buf lexbuf
     | '\\', 'n' ->
         Buffer.add_char buf '\n';
@@ -321,7 +328,19 @@ and read_string c pos buf lexbuf =
     | '\\', 't' ->
         Buffer.add_char buf '\t';
         read_string c pos buf lexbuf
-    | '\\', '\n', Star skipped -> read_string c pos buf lexbuf
+    | '\\', 'v' ->
+        Buffer.add_char buf '\x0b';
+        read_string c pos buf lexbuf
+    | '\\', '\\' ->
+        Buffer.add_char buf '\\';
+        read_string c pos buf lexbuf
+    | '\\', ('"' | '\'') ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        Buffer.add_char buf matched.[1];
+        read_string c pos buf lexbuf
+    | '\\', '?' ->
+        Buffer.add_char buf '\x3f';
+        read_string c pos buf lexbuf
     | '\\', 'x', ascii_hex_digit, ascii_hex_digit ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let idx = String.index matched 'x' in
@@ -345,10 +364,9 @@ and read_string c pos buf lexbuf =
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         Buffer.add_string buf (Utils.unescape_utf8_char matched);
         read_string c pos buf lexbuf
-    | '\\', ('"' | '\'') ->
-        let matched = Sedlexing.Utf8.lexeme lexbuf in
-        Buffer.add_char buf matched.[1];
-        read_string c pos buf lexbuf
+    (* Multiline string support: some text \
+       Some more text *)
+    | '\\', '\n', Star skipped -> read_string c pos buf lexbuf
     | '\\', any ->
         Printf.printf "Warning: illegal backslash escape in string.\n";
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
