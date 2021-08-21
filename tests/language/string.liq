@@ -39,6 +39,7 @@ def f() =
   t(string.is_int("123"), true)
   t(string.is_int("1a3"), false)
   t(string.unescape("\\a\\b\\e\\f\\n\\r\\t\\v\\'\\?\\x61\\141\\u0061"), "\a\b\e\f\n\r\t\v\'\?aaa")
+  t(string.escape("\a\b\e\f\n\r\t\v\'\?"), "\\x07\\b\\x1b\\x0c\\n\\r\\t\\x0b'?")
   t(string.escape(encoding="ascii", "foo \"😅 o"), "foo \\\"\\xF0\\x9F\\x98\\x85 o")
   t("\xF0\x9F\x98\x85", "😅")
   t("\342\234\250", "✨")
