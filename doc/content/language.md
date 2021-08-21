@@ -162,12 +162,12 @@ The following sequences are recognized:
 | `\t` | `\x09`  | Horizontal Tab |
 | `\v` | `\x0B`  | Vertical Tab |
 | `\\` | `\x5C`  | Backslash |
-| `\'` | `\x27`  |  Apostrophe]] or single quotation mark |
+| `\'` | `\x27`  | Apostrophe or single quotation mark |
 | `\"` |  `\x22` | Double |
 | `\?` | `\x3F`  | Question mark (used to avoid Digraphs and trigraphs) |
 | `\nnn` | any | The byte whose numerical value is given by _nnn_interpreted as an _octal_ number |
 | `\xhh` | any | The byte whose numerical value is given by _hh_ interpreted as a _hexadecimal_ number |
-| `\uhhhh` | none | UTF8-8 code point given by _hhhh_ interpreted as an _hexidecimal_ number |
+| `\uhhhh` | none | UTF8-8 code point given by _hhhh_ interpreted as an _hexadecimal_ number |
 
 This convention has been decided to follow the most common practices. In particular, `\nnn` is an _octal_ escape sequence in most languages
 including C, Ruby, Javascript, Python and more. This differs from OCaml where `\nnn` is considered a _digital_ escape sequence.
