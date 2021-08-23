@@ -123,9 +123,9 @@ jobs:
             platform: armhf
           - os: alpine
             platform: armhf
-          - os: arm32v7_debian_bullseye_armhf
+          - os: arm32v7_debian_bullseye
             platform: amd64
-          - os: arm32v7_debian_bullseye_armhf
+          - os: arm32v7_debian_bullseye
             platform: arm64
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
