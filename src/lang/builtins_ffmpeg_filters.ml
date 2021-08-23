@@ -388,9 +388,7 @@ let () =
           (apply_filter ~args_parser ~filter))
       filters)
 
-let abuffer_args
-    { Ffmpeg_raw_content.AudioSpecs.channel_layout; sample_format; sample_rate }
-    =
+let abuffer_args raw_content =
   let default_channel_layout =
     match
       Audio_converter.Channel_layout.layout_of_channels
@@ -400,41 +398,67 @@ let abuffer_args
       | `Mono -> `Mono
       | `Stereo -> `Stereo
   in
+  let sample_rate =
+    match raw_content.Ffmpeg_raw_content.AudioSpecs.sample_rate with
+      | Some rate -> rate
+      | None ->
+          let rate = Lazy.force Frame.audio_rate in
+          raw_content.Ffmpeg_raw_content.AudioSpecs.sample_rate <- Some rate;
+          rate
+  in
+  let channel_layout =
+    match raw_content.Ffmpeg_raw_content.AudioSpecs.channel_layout with
+      | Some layout -> layout
+      | None ->
+          raw_content.Ffmpeg_raw_content.AudioSpecs.channel_layout <-
+            Some default_channel_layout;
+          default_channel_layout
+  in
+  let sample_format =
+    match raw_content.Ffmpeg_raw_content.AudioSpecs.sample_format with
+      | Some format -> format
+      | None ->
+          raw_content.Ffmpeg_raw_content.AudioSpecs.sample_format <- Some `Dbl;
+          `Dbl
+  in
   [
-    `Pair
-      ( "sample_rate",
-        `Int (Option.value ~default:(Lazy.force Frame.audio_rate) sample_rate)
-      );
+    `Pair ("sample_rate", `Int sample_rate);
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
     `Pair
-      ( "channel_layout",
-        `Int64
-          (Avutil.Channel_layout.get_id
-             (Option.value ~default:default_channel_layout channel_layout)) );
-    `Pair
-      ( "sample_fmt",
-        `Int
-          (Avutil.Sample_format.get_id
-             (Option.value ~default:`Dbl sample_format)) );
+      ("channel_layout", `Int64 (Avutil.Channel_layout.get_id channel_layout));
+    `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id sample_format));
   ]
 
-let buffer_args { Ffmpeg_raw_content.VideoSpecs.width; height; pixel_format } =
+let buffer_args raw_content =
+  let width =
+    match raw_content.Ffmpeg_raw_content.VideoSpecs.width with
+      | Some w -> w
+      | None ->
+          let w = Lazy.force Frame.video_width in
+          raw_content.Ffmpeg_raw_content.VideoSpecs.width <- Some w;
+          w
+  in
+  let height =
+    match raw_content.Ffmpeg_raw_content.VideoSpecs.height with
+      | Some h -> h
+      | None ->
+          let h = Lazy.force Frame.video_height in
+          raw_content.Ffmpeg_raw_content.VideoSpecs.height <- Some h;
+          h
+  in
+  let pixel_format =
+    match raw_content.Ffmpeg_raw_content.VideoSpecs.pixel_format with
+      | Some pf -> pf
+      | None ->
+          let pf = Ffmpeg_utils.liq_frame_pixel_format () in
+          raw_content.Ffmpeg_raw_content.VideoSpecs.pixel_format <- Some pf;
+          pf
+  in
   [
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
-    `Pair
-      ( "width",
-        `Int (Option.value ~default:(Lazy.force Frame.video_width) width) );
-    `Pair
-      ( "height",
-        `Int (Option.value ~default:(Lazy.force Frame.video_height) height) );
-    `Pair
-      ( "pix_fmt",
-        `Int
-          Avutil.Pixel_format.(
-            get_id
-              (Option.value
-                 ~default:(Ffmpeg_utils.liq_frame_pixel_format ())
-                 pixel_format)) );
+    `Pair ("width", `Int width);
+    `Pair ("height", `Int height);
+    `Pair ("pix_fmt", `Int Avutil.Pixel_format.(get_id pixel_format));
   ]
 
 let () =
