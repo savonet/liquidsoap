@@ -183,13 +183,7 @@ let free_metadata b t =
   b.metadata <- List.filter (fun (tt, _) -> t <> tt) b.metadata
 
 let free_all_metadata b = b.metadata <- []
-
-let get_all_metadata b =
-  List.sort
-    (fun (x, _) (y, _) -> compare x y)
-    (List.filter (fun (x, _) -> x <> -1) b.metadata)
-
-let get_all_raw_metadata b = b.metadata
+let get_all_metadata b = b.metadata
 let set_all_metadata b l = b.metadata <- l
 
 let fill_content src src_pos dst dst_pos len =

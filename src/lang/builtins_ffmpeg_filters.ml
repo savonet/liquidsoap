@@ -460,7 +460,17 @@ let () =
 
   add_builtin ~cat:FFmpegFilter "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
-    [("", Graph.t, None, None); ("", audio_t, None, None)] Audio.t (fun p ->
+    [
+      ( "pass_metadata",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Pass liquidsoap's metadata to this stream" );
+      ("", Graph.t, None, None);
+      ("", audio_t, None, None);
+    ]
+    Audio.t
+    (fun p ->
+      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -482,7 +492,10 @@ let () =
       let name = uniq_name "abuffer" in
       let pos = source_val.Lang.pos in
       let s =
-        try Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) with
+        try
+          Ffmpeg_filter_io.(
+            new audio_output ~pass_metadata ~name ~kind source_val)
+        with
           | Source.Clock_conflict (a, b) ->
               raise (Lang_errors.Clock_conflict (pos, a, b))
           | Source.Clock_loop (a, b) ->
@@ -512,8 +525,17 @@ let () =
   let return_t = Lang.kind_type_of_kind_format return_kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.FFmpegFilter
     ~descr:"Return an audio source from a filter's output" ~return_t
-    (output_base_proto @ [("", Graph.t, None, None); ("", Audio.t, None, None)])
+    (output_base_proto
+    @ [
+        ( "pass_metadata",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Pass ffmpeg stream metadata to liquidsoap" );
+        ("", Graph.t, None, None);
+        ("", Audio.t, None, None);
+      ])
     (fun p ->
+      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -528,7 +550,7 @@ let () =
             }
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let s = new Ffmpeg_filter_io.audio_input ~bufferize kind in
+      let s = new Ffmpeg_filter_io.audio_input ~pass_metadata ~bufferize kind in
       Queue.add s#clock graph.clocks;
 
       let pad = Audio.of_value (Lang.assoc "" 2 p) in
@@ -549,7 +571,17 @@ let () =
 
   add_builtin ~cat:FFmpegFilter "ffmpeg.filter.video.input"
     ~descr:"Attach a video source to a filter's input"
-    [("", Graph.t, None, None); ("", video_t, None, None)] Video.t (fun p ->
+    [
+      ( "pass_metadata",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Pass liquidsoap's metadata to this stream" );
+      ("", Graph.t, None, None);
+      ("", video_t, None, None);
+    ]
+    Video.t
+    (fun p ->
+      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -571,7 +603,10 @@ let () =
       let name = uniq_name "buffer" in
       let pos = source_val.Lang.pos in
       let s =
-        try Ffmpeg_filter_io.(new video_output ~name ~kind source_val) with
+        try
+          Ffmpeg_filter_io.(
+            new video_output ~pass_metadata ~name ~kind source_val)
+        with
           | Source.Clock_conflict (a, b) ->
               raise (Lang_errors.Clock_conflict (pos, a, b))
           | Source.Clock_loop (a, b) ->
@@ -603,6 +638,10 @@ let () =
     ~descr:"Return a video source from a filter's output" ~return_t
     (output_base_proto
     @ [
+        ( "pass_metadata",
+          Lang.bool_t,
+          Some (Lang.bool false),
+          Some "Pass ffmpeg stream metadata to liquidsoap" );
         ( "fps",
           Lang.nullable_t Lang.int_t,
           Some Lang.null,
@@ -611,6 +650,7 @@ let () =
         ("", Video.t, None, None);
       ])
     (fun p ->
+      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -629,7 +669,9 @@ let () =
             }
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let s = new Ffmpeg_filter_io.video_input ~bufferize ~fps kind in
+      let s =
+        new Ffmpeg_filter_io.video_input ~pass_metadata ~bufferize ~fps kind
+      in
       Queue.add s#clock graph.clocks;
 
       Queue.add

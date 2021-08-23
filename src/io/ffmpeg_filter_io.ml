@@ -28,7 +28,7 @@ let noop () = ()
 
 (** From the script perspective, the operator sending data to a filter graph
   * is an output. *)
-class audio_output ~name ~kind source_val =
+class audio_output ~pass_metadata ~name ~kind source_val =
   let convert_frame_pts =
     lazy
       Ffmpeg_utils.(
@@ -68,11 +68,18 @@ class audio_output ~name ~kind source_val =
               (Int64.of_int pos)
           in
           Avutil.Frame.set_pts frame (Some pts);
+          if pass_metadata then (
+            (* Pass only one metadata. *)
+            match Frame.get_all_metadata memo with
+              | (_, m) :: _ ->
+                  let m = Hashtbl.fold (fun k v m -> (k, v) :: m) m [] in
+                  Avutil.Frame.set_metadata frame m
+              | _ -> ());
           input frame)
         frames
   end
 
-class video_output ~kind ~name source_val =
+class video_output ~pass_metadata ~kind ~name source_val =
   let convert_frame_pts =
     lazy
       Ffmpeg_utils.(
@@ -107,6 +114,13 @@ class video_output ~kind ~name source_val =
               (Int64.of_int pos)
           in
           Avutil.Frame.set_pts frame (Some pts);
+          if pass_metadata then (
+            (* Pass only one metadata. *)
+            match Frame.get_all_metadata memo with
+              | (_, m) :: _ ->
+                  let m = Hashtbl.fold (fun k v m -> (k, v) :: m) m [] in
+                  Avutil.Frame.set_metadata frame m
+              | _ -> ());
           input frame)
         frames
   end
@@ -118,7 +132,7 @@ type audio_config = {
 }
 
 (* Same thing here. *)
-class audio_input ~bufferize kind =
+class audio_input ~pass_metadata ~bufferize kind =
   let generator = Generator.create `Audio in
   let min_buf = lazy (Frame.main_of_seconds bufferize) in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
@@ -156,11 +170,12 @@ class audio_input ~bufferize kind =
       let rec f () =
         try
           let ffmpeg_frame = output.Avfilter.handler () in
-          let metadata = Avutil.Frame.metadata ffmpeg_frame in
-          if metadata <> [] then (
-            let m = Hashtbl.create (List.length metadata) in
-            List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
-            Generator.add_metadata generator m);
+          if pass_metadata then (
+            let metadata = Avutil.Frame.metadata ffmpeg_frame in
+            if metadata <> [] then (
+              let m = Hashtbl.create (List.length metadata) in
+              List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
+              Generator.add_metadata generator m));
           let frame =
             {
               Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
@@ -221,7 +236,7 @@ type video_config = {
   pixel_format : Avutil.Pixel_format.t;
 }
 
-class video_input ~bufferize ~fps kind =
+class video_input ~pass_metadata ~bufferize ~fps kind =
   let generator = Generator.create `Video in
   let min_buf = lazy (Frame.main_of_seconds bufferize) in
   let duration = lazy (Frame.main_of_seconds (1. /. float (Lazy.force fps))) in
@@ -254,11 +269,12 @@ class video_input ~bufferize ~fps kind =
       let rec f () =
         try
           let ffmpeg_frame = output.Avfilter.handler () in
-          let metadata = Avutil.Frame.metadata ffmpeg_frame in
-          if metadata <> [] then (
-            let m = Hashtbl.create (List.length metadata) in
-            List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
-            Generator.add_metadata generator m);
+          if pass_metadata then (
+            let metadata = Avutil.Frame.metadata ffmpeg_frame in
+            if metadata <> [] then (
+              let m = Hashtbl.create (List.length metadata) in
+              List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
+              Generator.add_metadata generator m));
           let frame =
             {
               Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
