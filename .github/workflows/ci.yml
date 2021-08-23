@@ -103,13 +103,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian_testing, debian_bullseye, ubuntu_groovy, ubuntu_focal, alpine]
+        os: [arm32v7_debian_bullseye_armhf, debian_testing, debian_bullseye, ubuntu_groovy, ubuntu_focal, alpine]
         platform: [amd64, arm64]
         include:
           - platform: amd64
             runs-on: ubuntu-latest
           - platform: arm64
             runs-on: self-hosted
+        exclude:
+          - os: arm32v7_debian_bullseye_armhf
+            platform: amd64
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian -v ${{ github.workspace }}/alpine:/tmp/alpine
