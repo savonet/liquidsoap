@@ -111,7 +111,7 @@ jobs:
             docker_platform: x86_64
           - platform: arm64
             runs-on: self-hosted
-            docker_platform: linux/arm/v8
+            docker_platform: linux/arm64
           - platform: armhf
             runs-on: self-hosted
             docker_platform: linux/arm/v7
