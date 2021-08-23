@@ -108,10 +108,13 @@ jobs:
         include:
           - platform: amd64
             runs-on: ubuntu-latest
+            docker_platform: x86_64
           - platform: arm64
             runs-on: self-hosted
+            docker_platform: linux/arm/v8
           - platform: armhf
             runs-on: self-hosted
+            docker_platform: linux/arm/v7
         exclude:
           - os: debian_testing
             platform: armhf
@@ -129,7 +132,7 @@ jobs:
             platform: arm64
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
-      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian -v ${{ github.workspace }}/alpine:/tmp/alpine
+      options: --platform ${{ matrix.docker_platform }} --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian -v ${{ github.workspace }}/alpine:/tmp/alpine
     env:
       HOME: /home/opam
     steps:
