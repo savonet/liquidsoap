@@ -37,13 +37,6 @@ let rec value_restriction t =
     | Ground _ -> true
     | _ -> false
 
-(** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
-  * passed to the function [f] because the latter has no label [lbl].
-  * The [first] information tells whether [lbl=x] is the first parameter with
-  * label [lbl] in the considered application, which makes the message a bit
-  * more helpful. *)
-exception No_label of term * string * bool * term
-
 (** A simple mechanism for delaying printing toplevel tasks
   * as late as possible, to avoid seeing too many unknown variables. *)
 let add_task, pop_tasks =

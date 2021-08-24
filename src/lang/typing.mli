@@ -33,12 +33,6 @@ val instantiate : level:int -> generalized:var list -> t -> t
 (** Find all generalizable variables. *)
 val generalizable : level:int -> t -> var list
 
-type explanation
-
-exception Type_Error of explanation
-
-val print_type_error : (string -> unit) -> explanation -> unit
-
 (** Subtyping. *)
 val ( <: ) : t -> t -> unit
 

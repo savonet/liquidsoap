@@ -532,6 +532,36 @@ let print ?generalized t : string =
 
 let print_scheme (g, t) = print ~generalized:g t
 
+type explanation = bool * t * t * repr * repr
+
+exception Type_error of explanation
+
+let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
+  error_header (print_pos_opt ta.pos);
+  match b with
+    | `Meth (l, ([], `Ellipsis), `Ellipsis) when not flipped ->
+        Format.printf "this value has no method %s@." l
+    | _ ->
+        let inferred_pos a =
+          let dpos = (deref a).pos in
+          if a.pos = dpos then ""
+          else (
+            match dpos with
+              | None -> ""
+              | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")")
+        in
+        let ta, tb, a, b = if flipped then (tb, ta, b, a) else (ta, tb, a, b) in
+        Format.printf "this value has type@.@[<2>  %a@]%s@ " print_repr a
+          (inferred_pos ta);
+        Format.printf "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
+          (if flipped then "super" else "sub")
+          (match tb.pos with
+            | None -> ""
+            | Some p ->
+                Printf.sprintf " the type of the value at %s"
+                  (print_pos ~prefix:"" p))
+          print_repr b (inferred_pos tb)
+
 let fresh =
   let fresh_id =
     let c = ref 0 in

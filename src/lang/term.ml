@@ -444,12 +444,18 @@ let is_source t =
 exception Unbound of T.pos option * string
 exception Ignored of term
 
+(** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
+  * passed to the function [f] because the latter has no label [lbl].
+  * The [first] information tells whether [lbl=x] is the first parameter with
+  * label [lbl] in the considered application, which makes the message a bit
+  * more helpful. *)
+exception No_label of term * string * bool * term
+
 (** Check that all let-bound variables are used.
   * No check is performed for variable arguments.
   * This cannot be done at parse-time (as for the computatin of the
   * free variables of functions) because we need types, as well as
   * the ability to distinguish toplevel and inner let-in terms. *)
-
 exception Unused_variable of (string * Lexing.position)
 
 let check_unused ~throw ~lib tm =

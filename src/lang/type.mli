@@ -139,6 +139,14 @@ type repr =
 val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
 val print_repr : Format.formatter -> repr -> unit
 
+(** {1 Typing errors} *)
+
+type explanation = bool * t * t * repr * repr
+
+exception Type_error of explanation
+
+val print_type_error : (string -> unit) -> explanation -> unit
+
 (** {1 Printing and documentation} *)
 
 val pp_type : Format.formatter -> t -> unit

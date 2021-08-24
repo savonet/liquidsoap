@@ -132,36 +132,6 @@ let instantiate ~level ~generalized =
 
 exception Error of (repr * repr)
 
-type explanation = bool * t * t * repr * repr
-
-exception Type_Error of explanation
-
-let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
-  error_header (print_pos_opt ta.pos);
-  match b with
-    | `Meth (l, ([], `Ellipsis), `Ellipsis) when not flipped ->
-        Format.printf "this value has no method %s@." l
-    | _ ->
-        let inferred_pos a =
-          let dpos = (deref a).pos in
-          if a.pos = dpos then ""
-          else (
-            match dpos with
-              | None -> ""
-              | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")")
-        in
-        let ta, tb, a, b = if flipped then (tb, ta, b, a) else (ta, tb, a, b) in
-        Format.printf "this value has type@.@[<2>  %a@]%s@ " print_repr a
-          (inferred_pos ta);
-        Format.printf "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
-          (if flipped then "super" else "sub")
-          (match tb.pos with
-            | None -> ""
-            | Some p ->
-                Printf.sprintf " the type of the value at %s"
-                  (print_pos ~prefix:"" p))
-          print_repr b (inferred_pos tb)
-
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
  * We allow
@@ -349,13 +319,13 @@ let ( >: ) a b =
   try b <: a
   with Error (y, x) ->
     let bt = Printexc.get_raw_backtrace () in
-    Printexc.raise_with_backtrace (Type_Error (true, b, a, y, x)) bt
+    Printexc.raise_with_backtrace (Type_error (true, b, a, y, x)) bt
 
 let ( <: ) a b =
   try a <: b
   with Error (x, y) ->
     let bt = Printexc.get_raw_backtrace () in
-    Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
+    Printexc.raise_with_backtrace (Type_error (false, a, b, x, y)) bt
 
 (** Approximation of type duplication. Sharing of variables is not guaranteed to
     be preserved. *)
@@ -429,4 +399,4 @@ let rec min_type ?(pos = None) ?(level = -1) a b =
       t)
   with Error (x, y) ->
     let bt = Printexc.get_raw_backtrace () in
-    Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
+    Printexc.raise_with_backtrace (Type_error (false, a, b, x, y)) bt
