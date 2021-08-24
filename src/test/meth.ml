@@ -1,5 +1,3 @@
-module T = Lang_types
-
 (* The the code found in add_builtin. *)
 let () =
   (* x.l1.l2.l3 = v means
@@ -21,16 +19,18 @@ let () =
 
 (* Test adding submethods. *)
 let () =
-  let print t = Printf.printf "%s\n%!" (T.print t) in
-  let t = T.make (T.Ground T.Int) in
+  let print t = Printf.printf "%s\n%!" (Type.print t) in
+  let t = Type.make (Type.Ground Type.Int) in
   print t;
-  let t = T.meth "f" ([], T.make (T.Ground T.Float)) t in
+  let t = Type.meth "f" ([], Type.make (Type.Ground Type.Float)) t in
   print t;
-  let t = T.meth "ff" ([], T.make (T.Ground T.Float)) t in
+  let t = Type.meth "ff" ([], Type.make (Type.Ground Type.Float)) t in
   print t;
-  let t = T.meths ["f"; "s"] ([], T.make (T.Ground T.String)) t in
+  let t = Type.meths ["f"; "s"] ([], Type.make (Type.Ground Type.String)) t in
   print t;
-  let t = T.meths ["f"; "s"; "f'"] ([], T.make (T.Ground T.Float)) t in
+  let t =
+    Type.meths ["f"; "s"; "f'"] ([], Type.make (Type.Ground Type.Float)) t
+  in
   print t
 
 (* Test subtyping. *)
@@ -38,14 +38,13 @@ let () =
   (* Make sure unifying variables sees top-level methods:
      We do: t = ('a).{ f : int } <: t' = int.{ ff : int, f : float }
      and make sure that this fails. *)
-  let t = T.fresh_evar ~level:(-1) ~pos:None in
-  let t = T.meth "f" ([], T.make (T.Ground T.Int)) t in
-  let t' = T.make (T.Ground T.Int) in
-  let t' = T.meth "f" ([], T.make (T.Ground T.Float)) t' in
-  let t' = T.meth "ff" ([], T.make (T.Ground T.Int)) t' in
+  let t = Type.fresh_evar ~level:(-1) ~pos:None in
+  let t = Type.meth "f" ([], Type.make (Type.Ground Type.Int)) t in
+  let t' = Type.make (Type.Ground Type.Int) in
+  let t' = Type.meth "f" ([], Type.make (Type.Ground Type.Float)) t' in
+  let t' = Type.meth "ff" ([], Type.make (Type.Ground Type.Int)) t' in
   assert (
-    T.(
-      try
-        t <: t';
-        false
-      with _ -> true))
+    try
+      Typing.(t <: t');
+      false
+    with _ -> true)
