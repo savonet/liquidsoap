@@ -179,20 +179,20 @@ let filtered_settings = ["subordinate log level"]
 
 let print_settings () =
   let rec grab_descr cur = function
-    | Lang_values.V.Meth ("description", d, v) ->
+    | Term.V.Meth ("description", d, v) ->
         grab_descr { cur with description = Lang.to_string d } v.Lang.value
-    | Lang_values.V.Meth ("comments", c, v) ->
+    | Term.V.Meth ("comments", c, v) ->
         grab_descr { cur with comments = Lang.to_string c } v.Lang.value
-    | Lang_values.V.Meth ("set", _, v) -> grab_descr cur v.Lang.value
-    | Lang_values.V.Meth (key, _, v) when List.mem_assoc key cur.children ->
+    | Term.V.Meth ("set", _, v) -> grab_descr cur v.Lang.value
+    | Term.V.Meth (key, _, v) when List.mem_assoc key cur.children ->
         grab_descr cur v.Lang.value
-    | Lang_values.V.Meth (key, c, v) ->
+    | Term.V.Meth (key, c, v) ->
         let descr =
           {
             description = "";
             comments = "";
             children = [];
-            value = Lang_values.V.Tuple [];
+            value = Term.V.Tuple [];
           }
         in
         grab_descr
@@ -204,12 +204,7 @@ let print_settings () =
     | value -> { cur with value }
   in
   let descr =
-    {
-      description = "";
-      comments = "";
-      children = [];
-      value = Lang_values.V.Tuple [];
-    }
+    { description = ""; comments = ""; children = []; value = Term.V.Tuple [] }
   in
   let descr = grab_descr descr !settings.Lang.value in
   let filter_children =
@@ -217,11 +212,11 @@ let print_settings () =
         not (List.mem description filtered_settings))
   in
   let print_set ~path = function
-    | Lang_values.V.Tuple [] -> []
+    | Term.V.Tuple [] -> []
     | value ->
         [
-          (match Lang.apply { Lang_values.V.pos = None; value } [] with
-            | v when v.Lang_values.V.value = Lang_values.V.Null ->
+          (match Lang.apply { Term.V.pos = None; value } [] with
+            | v when v.Term.V.value = Term.V.Null ->
                 Printf.sprintf {|
 ```liquidsoap
 %s.set(<value>)
@@ -233,7 +228,7 @@ let print_settings () =
 %s.set(%s)
 ```
 |} path
-                  (Lang_values.V.print_value v));
+                  (Term.V.print_value v));
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -257,11 +252,10 @@ let () =
   let grab path value =
     let path = String.split_on_char '.' path in
     let rec grab links v =
-      match (links, v.Lang_values.V.value) with
+      match (links, v.Term.V.value) with
         | [], _ -> v
-        | link :: links, Lang_values.V.Meth (key, v, _) when key = link ->
-            grab links v
-        | _, Lang_values.V.Meth (_, _, v) -> grab links v
+        | link :: links, Term.V.Meth (key, v, _) when key = link -> grab links v
+        | _, Term.V.Meth (_, _, v) -> grab links v
         | _ -> raise Not_found
     in
     grab path value
@@ -273,7 +267,7 @@ let () =
     ~flags:[Lang.Deprecated; Lang.Hidden]
     [
       ("", Lang.string_t, None, None);
-      ("", Lang.univ_t ~constraints:[Lang_types.Dtools] (), None, None);
+      ("", Lang.univ_t ~constraints:[Type.Dtools] (), None, None);
     ]
     Lang.unit_t
     (fun p ->
@@ -293,7 +287,7 @@ let () =
        with Not_found -> log#severe "WARNING: setting %S does not exist!" path);
       Lang.unit);
 
-  let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] () in
+  let univ = Lang.univ_t ~constraints:[Type.Dtools] () in
   add_builtin "get" ~cat:Liq ~descr:"Get a setting's value."
     ~flags:[Lang.Deprecated; Lang.Hidden]
     [("default", univ, None, None); ("", Lang.string_t, None, None)] univ

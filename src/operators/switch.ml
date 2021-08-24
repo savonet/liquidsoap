@@ -287,11 +287,7 @@ let satisfied f = Lang.to_bool (Lang.apply f [])
 let trivially_true = function
   | {
       Lang.value =
-        Lang.Fun
-          ( _,
-            _,
-            _,
-            { Lang_values.term = Lang_values.(Ground (Ground.Bool true)); _ } );
+        Lang.Fun (_, _, _, { Term.term = Term.(Ground (Ground.Bool true)); _ });
       _;
     } ->
       true
@@ -433,7 +429,7 @@ let () =
         let ltr = List.length tr in
         if ltr > l then
           raise
-            (Lang_errors.Invalid_value
+            (Error.Invalid_value
                (List.assoc "transitions" p, "Too many transitions"));
         if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition)
         else tr
@@ -460,7 +456,7 @@ let () =
         try List.map2 (fun (d, s) single -> (d, single, s)) children singles
         with Invalid_argument s when s = "List.map2" ->
           raise
-            (Lang_errors.Invalid_value
+            (Error.Invalid_value
                ( List.assoc "single" p,
                  "there should be exactly one flag per children" ))
       in

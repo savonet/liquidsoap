@@ -23,7 +23,7 @@
 open Lang_builtins
 
 let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Ord] () in
+  let t = Lang.univ_t ~constraints:[Type.Ord] () in
   let register_op name op =
     add_builtin name ~cat:Bool ~descr:"Comparison of comparable values."
       [("", t, None, None); ("", t, None, None)] Lang.bool_t (fun p ->
@@ -35,7 +35,7 @@ let () =
         let ans =
           if a'.Lang.value = Lang.Tuple [] && b'.Lang.value = Lang.Tuple [] then (
             let r a =
-              let m, _ = Lang_values.V.split_meths a in
+              let m, _ = Term.V.split_meths a in
               m
             in
             let a = r a in

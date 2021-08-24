@@ -97,7 +97,7 @@ let () =
       let fn = Lang.assoc "" 2 p in
       let handler ~bt ~name err =
         match (err, on_err) with
-          | Lang_values.(Runtime_error { kind; msg; _ }), None ->
+          | Term.(Runtime_error { kind; msg; _ }), None ->
               let error = Builtins_error.(Error.to_value { kind; msg }) in
               let bt = Lang.string bt in
               let name = Lang.string name in
@@ -105,7 +105,7 @@ let () =
                 (Lang.apply fn
                    [("backtrace", bt); ("thread_name", name); ("", error)]);
               true
-          | Lang_values.(Runtime_error { kind; msg; _ }), Some err
+          | Term.(Runtime_error { kind; msg; _ }), Some err
             when kind = err.Builtins_error.kind ->
               let error = Builtins_error.(Error.to_value { kind; msg }) in
               let bt = Lang.string bt in

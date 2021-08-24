@@ -132,7 +132,7 @@ let () =
           | "notch" -> Notch
           | _ ->
               raise
-                (Lang_errors.Invalid_value
+                (Error.Invalid_value
                    (mode, "valid values are low|high|band|notch"))
       in
       let kind = Source.Kind.of_kind kind in

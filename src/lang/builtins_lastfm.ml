@@ -80,7 +80,7 @@ let () =
               | "unknown" -> Liqfm.Unknown
               | _ ->
                   raise
-                    (Lang_errors.Invalid_value
+                    (Error.Invalid_value
                        (List.assoc "source" p, "unknown lastfm submission mode")))
           else Liqfm.Unknown
         in

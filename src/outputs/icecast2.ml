@@ -299,7 +299,7 @@ class output ~kind p =
         | "post" -> Cry.Post
         | _ ->
             raise
-              (Lang_errors.Invalid_value
+              (Error.Invalid_value
                  (m, "Valid values are: 'source' 'put' or 'post'."))
     in
     let v = List.assoc "protocol" p in
@@ -309,7 +309,7 @@ class output ~kind p =
       | "icy" -> Cry.Icy
       | _ ->
           raise
-            (Lang_errors.Invalid_value
+            (Error.Invalid_value
                (v, "Valid values are 'http' (icecast) and 'icy' (shoutcast)"))
   in
   let icy_metadata =
@@ -321,7 +321,7 @@ class output ~kind p =
         | "false" -> `False
         | _ ->
             raise
-              (Lang_errors.Invalid_value
+              (Error.Invalid_value
                  (v, "Valid values are 'guess', 'true' or 'false'"))
     in
     match (data.format, icy) with
@@ -332,7 +332,7 @@ class output ~kind p =
           false
       | _, _ ->
           raise
-            (Lang_errors.Invalid_value
+            (Error.Invalid_value
                ( List.assoc "icy_metadata" p,
                  "Could not guess icy_metadata for this format, please specify \
                   either 'true' or 'false'." ))
@@ -350,7 +350,7 @@ class output ~kind p =
     match (protocol, name, mount) with
       | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
           raise
-            (Lang_errors.Invalid_value
+            (Error.Invalid_value
                ( List.assoc "mount" p,
                  "Either name or mount must be defined for icecast sources." ))
       | Cry.Icy, name, _ when name = no_name ->

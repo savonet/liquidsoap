@@ -75,7 +75,7 @@ let () =
       let msg =
         Option.map Lang.to_string (Lang.to_option (Lang.assoc "" 2 p))
       in
-      raise (Lang_values.Runtime_error { Lang_values.kind; msg; pos = [] }))
+      raise (Term.Runtime_error { Term.kind; msg; pos = [] }))
 
 let () =
   let a = Lang.univ_t () in
@@ -100,7 +100,7 @@ let () =
       let h = Lang.to_fun (Lang.assoc "" 2 p) in
       try f []
       with
-      | Lang_values.Runtime_error { Lang_values.kind; msg }
+      | Term.Runtime_error { Term.kind; msg }
       when errors = None
            || List.exists (fun err -> err.kind = kind) (Option.get errors)
       ->

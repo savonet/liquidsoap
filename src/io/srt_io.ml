@@ -34,7 +34,7 @@ let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
     | "caller" -> `Caller
-    | _ -> raise (Lang_errors.Invalid_value (v, "Invalid mode!"))
+    | _ -> raise (Error.Invalid_value (v, "Invalid mode!"))
 
 let string_of_mode = function `Listener -> "listener" | `Caller -> "caller"
 
@@ -395,7 +395,7 @@ let parse_common_options p =
     try Unix.inet_addr_of_string bind_address
     with exn ->
       raise
-        (Lang_errors.Invalid_value
+        (Error.Invalid_value
            ( List.assoc "bind_address" p,
              Printf.sprintf "Invalid address: %s" (Printexc.to_string exn) ))
   in
@@ -1120,7 +1120,7 @@ let () =
         try Encoder.get_factory format
         with Not_found ->
           raise
-            (Lang_errors.Invalid_value
+            (Error.Invalid_value
                (format_val, "Cannot get a stream encoder for that format"))
       in
       match mode with

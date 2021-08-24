@@ -35,7 +35,7 @@ class virtual base ~check_self_sync children_val =
         (fun c ->
           if (Lang.to_source c)#self_sync <> (`Static, false) then
             raise
-              (Lang_errors.Invalid_value
+              (Error.Invalid_value
                  ( c,
                    "This source may control its own latency and cannot be used \
                     with this operator." )))

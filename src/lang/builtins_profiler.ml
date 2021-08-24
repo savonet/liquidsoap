@@ -27,13 +27,13 @@ let () = Lang.add_module "profiler"
 let () =
   add_builtin "profiler.enable" ~cat:Liq ~descr:"Record profiling statistics."
     [] Lang.unit_t (fun _ ->
-      Lang_values.profile := true;
+      Term.profile := true;
       Lang.unit)
 
 let () =
   add_builtin "profiler.disable" ~cat:Liq ~descr:"Record profiling statistics."
     [] Lang.unit_t (fun _ ->
-      Lang_values.profile := false;
+      Term.profile := false;
       Lang.unit)
 
 let () =

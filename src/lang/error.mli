@@ -21,11 +21,11 @@
  *****************************************************************************)
 
 (** Runtime error, should eventually disappear. *)
-exception Invalid_value of Lang_values.V.value * string
+exception Invalid_value of Term.V.value * string
 
-exception Clock_conflict of (Lang_types.pos option * string * string)
-exception Clock_loop of (Lang_types.pos option * string * string)
-exception Kind_conflict of (Lang_types.pos option * string * string)
+exception Clock_conflict of (Type.pos option * string * string)
+exception Clock_loop of (Type.pos option * string * string)
+exception Kind_conflict of (Type.pos option * string * string)
 
 (** Exception raised by report_error after an error has been displayed.
   * Unknown errors are re-raised, so that their content is not totally lost. *)

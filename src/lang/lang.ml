@@ -20,54 +20,52 @@
 
  *****************************************************************************)
 
-module Term = Lang_values
 include Term.V
-module T = Lang_types
 module Ground = Term.Ground
 open Ground
 
-type t = T.t
-type scheme = T.scheme
-type pos = T.pos
+type t = Type.t
+type scheme = Type.scheme
+type pos = Type.pos
 
 let log = Log.make ["lang"]
 
 (** Type construction *)
 
-let ground_t x = T.make (T.Ground x)
-let int_t = ground_t T.Int
-let unit_t = T.make T.unit
-let float_t = ground_t T.Float
-let bool_t = ground_t T.Bool
-let string_t = ground_t T.String
-let tuple_t l = T.make (T.Tuple l)
+let ground_t x = Type.make (Type.Ground x)
+let int_t = ground_t Type.Int
+let unit_t = Type.make Type.unit
+let float_t = ground_t Type.Float
+let bool_t = ground_t Type.Bool
+let string_t = ground_t Type.String
+let tuple_t l = Type.make (Type.Tuple l)
 let product_t a b = tuple_t [a; b]
 
 let rec record_t = function
   | [] -> unit_t
-  | (l, t) :: r -> T.meth l ([], t) (record_t r)
+  | (l, t) :: r -> Type.meth l ([], t) (record_t r)
 
 let rec method_t t0 = function
   | [] -> t0
-  | (l, t, doc) :: r -> T.meth l t ~doc (method_t t0 r)
+  | (l, t, doc) :: r -> Type.meth l t ~doc (method_t t0 r)
 
 let of_tuple_t t =
-  match (T.deref t).T.descr with T.Tuple l -> l | _ -> assert false
+  match (Type.deref t).Type.descr with Type.Tuple l -> l | _ -> assert false
 
 let of_product_t t =
   match of_tuple_t t with [a; b] -> (a, b) | _ -> assert false
 
-let fun_t p b = T.make (T.Arrow (p, b))
-let list_t t = T.make (T.List t)
+let fun_t p b = Type.make (Type.Arrow (p, b))
+let list_t t = Type.make (Type.List t)
 
 let of_list_t t =
-  match (T.deref t).T.descr with T.List t -> t | _ -> assert false
+  match (Type.deref t).Type.descr with Type.List t -> t | _ -> assert false
 
-let nullable_t t = T.make (T.Nullable t)
+let nullable_t t = Type.make (Type.Nullable t)
 let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
-let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
-let getter_t a = T.make (T.Getter a)
+let univ_t ?(constraints = []) () = Type.fresh ~level:0 ~constraints ~pos:None
+let getter_t a = Type.make (Type.Getter a)
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t t = Term.source_t t
@@ -142,15 +140,16 @@ let val_fun p f = mk (FFI (p, [], f))
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
   let f t tm = mk (Fun (p, [], [], { Term.t; Term.term = tm })) in
-  let mkg t = T.make (T.Ground t) in
+  let mkg t = Type.make (Type.Ground t) in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
   match c.value with
-    | Tuple [] -> f (T.make T.unit) Term.unit
-    | Ground (Int i) -> f (mkg T.Int) (Term.Ground (Term.Ground.Int i))
-    | Ground (Bool i) -> f (mkg T.Bool) (Term.Ground (Term.Ground.Bool i))
-    | Ground (Float i) -> f (mkg T.Float) (Term.Ground (Term.Ground.Float i))
-    | Ground (String i) -> f (mkg T.String) (Term.Ground (Term.Ground.String i))
+    | Tuple [] -> f (Type.make Type.unit) Term.unit
+    | Ground (Int i) -> f (mkg Type.Int) (Term.Ground (Term.Ground.Int i))
+    | Ground (Bool i) -> f (mkg Type.Bool) (Term.Ground (Term.Ground.Bool i))
+    | Ground (Float i) -> f (mkg Type.Float) (Term.Ground (Term.Ground.Float i))
+    | Ground (String i) ->
+        f (mkg Type.String) (Term.Ground (Term.Ground.String i))
     | _ -> mk (FFI (p, [], fun _ -> c))
 
 let metadata m =
@@ -200,7 +199,7 @@ type proto = (string * t * value option * string option) list
 let doc_of_prototype_item ~generalized t d doc =
   let doc = match doc with None -> "(no doc)" | Some d -> d in
   let item = new Doc.item doc in
-  item#add_subsection "type" (T.doc_of_type ~generalized t);
+  item#add_subsection "type" (Type.doc_of_type ~generalized t);
   item#add_subsection "default"
     (match d with
       | None -> Doc.trivial "None"
@@ -216,20 +215,20 @@ let string_of_flag = function
   | Extra -> "extra"
 
 let builtin_type p t =
-  T.make
-    (T.Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
+  Type.make
+    (Type.Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
 
 let to_plugin_doc category flags main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
-  let meths, return_t = T.split_meths return_t in
+  let meths, return_t = Type.split_meths return_t in
   let t = builtin_type proto return_t in
-  let generalized = T.filter_vars (fun _ -> true) t in
+  let generalized = Type.filter_vars (fun _ -> true) t in
   item#add_subsection "_category" (Doc.trivial category);
-  item#add_subsection "_type" (T.doc_of_type ~generalized t);
+  item#add_subsection "_type" (Type.doc_of_type ~generalized t);
   List.iter
     (fun f -> item#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
     flags;
-  if meths <> [] then item#add_subsection "_methods" (T.doc_of_meths meths);
+  if meths <> [] then item#add_subsection "_methods" (Type.doc_of_meths meths);
   List.iter
     (fun (l, t, d, doc) ->
       item#add_subsection
@@ -247,7 +246,7 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
         FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f);
     }
   in
-  let generalized = T.filter_vars (fun _ -> true) t in
+  let generalized = Type.filter_vars (fun _ -> true) t in
   Term.add_builtin
     ~doc:(to_plugin_doc category flags descr proto return_t)
     (String.split_on_char '.' name)
@@ -255,10 +254,10 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let doc = new Doc.item ~sort:false descr in
-  let value = { pos = t.T.pos; value } in
-  let generalized = T.filter_vars (fun _ -> true) t in
+  let value = { pos = t.Type.pos; value } in
+  let generalized = Type.filter_vars (fun _ -> true) t in
   doc#add_subsection "_category" (Doc.trivial category);
-  doc#add_subsection "_type" (T.doc_of_type ~generalized t);
+  doc#add_subsection "_type" (Type.doc_of_type ~generalized t);
   List.iter
     (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
     flags;
@@ -521,7 +520,7 @@ let error = Runtime_error.error
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with
-    | Lang_values.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
+    | Term.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
     | exn ->
         error ~bt
           ~message:
@@ -546,7 +545,7 @@ let type_and_run ~throw ~lib ast =
 
 let mk_expr ?fname ~pwd processor lexbuf =
   let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
-  let tokenizer = Lang_pp.mk_tokenizer ?fname ~pwd lexbuf in
+  let tokenizer = Preprocessor.mk_tokenizer ?fname ~pwd lexbuf in
   let tokenizer () =
     let token, (startp, endp) = tokenizer () in
     (token, startp, endp)
@@ -562,10 +561,10 @@ let from_in_channel ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns
     | None -> ()
   end;
   try
-    Lang_errors.report lexbuf (fun ~throw () ->
-        let expr = mk_expr ?fname ~pwd:dir Lang_parser.program lexbuf in
+    Error.report lexbuf (fun ~throw () ->
+        let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
         if not parse_only then type_and_run ~throw ~lib expr)
-  with Lang_errors.Error -> exit 1
+  with Error.Error -> exit 1
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
@@ -600,9 +599,9 @@ let from_string ?parse_only ~lib expr =
 let eval s =
   try
     let lexbuf = Sedlexing.Utf8.from_string s in
-    let expr = mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf in
+    let expr = mk_expr ~pwd:"/nonexistent" Parser.program lexbuf in
     Clock.collect_after (fun () ->
-        Lang_errors.report lexbuf (fun ~throw () ->
+        Error.report lexbuf (fun ~throw () ->
             Term.check ~throw ~ignored:false expr);
         Some (Term.eval expr))
   with e ->
@@ -652,9 +651,9 @@ let interactive () =
     Format.printf "# %!";
     if
       try
-        Lang_errors.report lexbuf (fun ~throw () ->
+        Error.report lexbuf (fun ~throw () ->
             let expr =
-              mk_expr ~pwd:(Unix.getcwd ()) Lang_parser.interactive lexbuf
+              mk_expr ~pwd:(Unix.getcwd ()) Parser.interactive lexbuf
             in
             Term.check ~throw ~ignored:false expr;
             Term.check_unused ~throw ~lib:true expr;
@@ -665,7 +664,7 @@ let interactive () =
         | End_of_file ->
             Format.printf "Bye bye!@.";
             false
-        | Lang_errors.Error -> true
+        | Error.Error -> true
         | e ->
             let e = Console.colorize [`white; `bold] (Printexc.to_string e) in
             Format.printf "Exception: %s!@." e;
@@ -695,11 +694,10 @@ module type AbstractDef = sig
   val compare : content -> content -> int
 end
 
-module L = Lang_values
-module G = L.Ground
+module G = Term.Ground
 
 module MkAbstract (Def : AbstractDef) = struct
-  type T.ground += Type
+  type Type.ground += Type
   type G.t += Value of Def.content
 
   let () =
@@ -719,18 +717,16 @@ module MkAbstract (Def : AbstractDef) = struct
             }
       | _ -> None);
 
-    Lang_types.register_ground_printer (function
-      | Type -> Some Def.name
-      | _ -> None)
+    Type.register_ground_printer (function Type -> Some Def.name | _ -> None)
 
   let t = ground_t Type
-  let to_value c = mk (L.V.Ground (Value c))
+  let to_value c = mk (Term.V.Ground (Value c))
 
   let of_value t =
-    match t.value with L.V.Ground (Value c) -> c | _ -> assert false
+    match t.value with Term.V.Ground (Value c) -> c | _ -> assert false
 
   let is_value t =
-    match t.value with L.V.Ground (Value _) -> true | _ -> false
+    match t.value with Term.V.Ground (Value _) -> true | _ -> false
 end
 
 (* Augment source_t and source with default methods. *)
@@ -905,7 +901,7 @@ let source_t ?(methods = false) t =
   else t
 
 let () =
-  Lang_values.source_methods_t :=
+  Term.source_methods_t :=
     fun () -> source_t ~methods:true (kind_type_of_kind_format any)
 
 let source v =
@@ -960,15 +956,14 @@ let add_operator =
       try
         let ret = f env in
         if category = Output then (
-          let m, _ = Lang_values.V.split_meths ret in
+          let m, _ = Term.V.split_meths ret in
           _meth unit m)
         else ret
       with
         | Source.Clock_conflict (a, b) ->
-            raise (Lang_errors.Clock_conflict (pos, a, b))
-        | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b))
-        | Source.Kind.Conflict (a, b) ->
-            raise (Lang_errors.Kind_conflict (pos, a, b))
+            raise (Error.Clock_conflict (pos, a, b))
+        | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+        | Source.Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
     in
     let return_t = source_t ~methods:true return_t in
     let return_t =
@@ -977,7 +972,7 @@ let add_operator =
     in
     let return_t =
       if category = Output then (
-        let m, _ = Lang_types.split_meths return_t in
+        let m, _ = Type.split_meths return_t in
         let m = List.map (fun (x, (y, z)) -> (x, y, z)) m in
         method_t unit_t m)
       else return_t

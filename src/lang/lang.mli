@@ -25,38 +25,38 @@
 val log : Log.t
 
 (** The type of a value. *)
-type t = Lang_types.t
+type t = Type.t
 
-type scheme = Lang_types.scheme
+type scheme = Type.scheme
 
 (** Position in source code. *)
-type pos = Lang_types.pos
+type pos = Type.pos
 
 (** {2 Values} *)
 
 (** A typed value. *)
 module Ground : sig
-  type t = Lang_values.Ground.t = ..
+  type t = Term.Ground.t = ..
   type t += Bool of bool | Int of int | String of string | Float of float
 
-  type content = Lang_values.Ground.content = {
+  type content = Term.Ground.content = {
     descr : unit -> string;
     to_json : compact:bool -> json5:bool -> unit -> string;
     compare : t -> int;
-    typ : Lang_types.ground;
+    typ : Type.ground;
   }
 
   val register : (t -> content option) -> unit
   val to_string : t -> string
 end
 
-type value = Lang_values.V.value = { pos : pos option; value : in_value }
+type value = Term.V.value = { pos : pos option; value : in_value }
 
 and env = (string * value) list
 
 and lazy_env = (string * value Lazy.t) list
 
-and in_value = Lang_values.V.in_value =
+and in_value = Term.V.in_value =
   | Ground of Ground.t
   | Source of Source.source
   | Encoder of Encoder.format
@@ -65,8 +65,7 @@ and in_value = Lang_values.V.in_value =
   | Null
   | Meth of string * value * value
   | Ref of value ref
-  | Fun of
-      (string * string * value option) list * env * lazy_env * Lang_values.term
+  | Fun of (string * string * value option) list * env * lazy_env * Term.term
   (* A function with given arguments (argument label, argument variable,
      default value), parameters already passed to the function, closure and
      value. *)
@@ -260,7 +259,7 @@ val of_frame_kind_t : t -> t Frame.fields
   * label) and [t] is the type of the argument. *)
 val fun_t : (bool * string * t) list -> t -> t
 
-val univ_t : ?constraints:Lang_types.constraints -> unit -> t
+val univ_t : ?constraints:Type.constraints -> unit -> t
 
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t

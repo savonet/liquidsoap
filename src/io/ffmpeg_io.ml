@@ -389,7 +389,7 @@ let register_input is_http =
               | Some f -> f
               | None ->
                   raise
-                    (Lang_errors.Invalid_value
+                    (Error.Invalid_value
                        ( Lang.string format,
                          "Could not find ffmpeg input format with that name" )))
           format

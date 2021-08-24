@@ -49,7 +49,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     (* This should be done before the active_operator initializer
      * attaches us to a clock. *)
     if infallible && source#stype <> Infallible then
-      raise (Lang_errors.Invalid_value (val_source, "That source is fallible"))
+      raise (Error.Invalid_value (val_source, "That source is fallible"))
 
     inherit active_operator ~name:output_kind content_kind [source] as super
     inherit Start_stop.base ~on_start ~on_stop as start_stop
@@ -248,7 +248,7 @@ class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
       in
       output_chunks frame
         (0
-         ::
-         List.sort compare
-           (List.map fst (Frame.get_all_metadata frame) @ Frame.breaks frame))
+        :: List.sort compare
+             (List.map fst (Frame.get_all_metadata frame) @ Frame.breaks frame)
+        )
   end

@@ -239,7 +239,7 @@ let extract p =
     let v = f "threshold" in
     let t = Lang.to_float v in
     if t > 0. then
-      raise (Lang_errors.Invalid_value (v, "threshold should be negative"));
+      raise (Error.Invalid_value (v, "threshold should be negative"));
     Audio.lin_of_dB t
   in
   let ts = Lang.to_bool (f "track_sensitive") in
@@ -259,12 +259,11 @@ let () =
        Lang.fun_t [] Lang.unit_t,
        None,
        Some "Handler called when blank is detected." )
-     ::
-     ( "on_noise",
-       Lang.fun_t [] Lang.unit_t,
-       Some (Lang.val_cst_fun [] Lang.unit),
-       Some "Handler called when noise is detected." )
-     :: proto)
+    :: ( "on_noise",
+         Lang.fun_t [] Lang.unit_t,
+         Some (Lang.val_cst_fun [] Lang.unit),
+         Some "Handler called when noise is detected." )
+    :: proto)
     (fun p ->
       let on_blank = Lang.assoc "" 1 p in
       let on_noise = Lang.assoc "on_noise" 1 p in
@@ -308,7 +307,7 @@ let () =
        Lang.bool_t,
        Some (Lang.bool false),
        Some "Only eat at the beginning of a track." )
-     :: proto)
+    :: proto)
     (fun p ->
       let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =

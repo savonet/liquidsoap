@@ -78,10 +78,10 @@ let profile = ref false
 
 (** {2 Formats} *)
 
-(* In a sense this could move to Lang_types, but I like to keep that
-    part free of some specificities of liquidsoap, as much as possible. *)
+(* In a sense this could be moved to Type, but I like to keep that part free of
+   some specificities of liquidsoap, as much as possible. *)
 
-module T = Lang_types
+module T = Type
 
 let ref_t ?pos ?level t =
   T.make ?pos ?level
@@ -107,7 +107,7 @@ let kind_t ?pos ?level kind =
   let mk_format f = T.make ?pos ?level (T.Ground (T.Format f)) in
   match kind with
     | `Any -> evar ()
-    | `Internal -> evar ~constraints:[Lang_types.InternalMedia] ()
+    | `Internal -> evar ~constraints:[T.InternalMedia] ()
     | `Kind k ->
         T.make ?pos ?level
           (T.Constr
@@ -151,7 +151,7 @@ let source_t ?pos ?level k =
     (T.Constr { T.name = "source"; T.params = [(T.Invariant, k)] })
 
 (* Filled in later to avoid dependency cycles. *)
-let source_methods_t = ref (fun () : Lang_types.t -> assert false)
+let source_methods_t = ref (fun () : T.t -> assert false)
 
 let of_source_t t =
   match (T.deref t).T.descr with

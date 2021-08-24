@@ -139,7 +139,7 @@ let load_libs () =
 let lang_doc name =
   run_streams := false;
   load_libs ();
-  try Doc.print_lang (Lang_values.builtins#get_subsection name)
+  try Doc.print_lang (Term.builtins#get_subsection name)
   with Not_found -> Printf.printf "Plugin not found!\n%!"
 
 let process_request s =
@@ -233,17 +233,17 @@ let options =
              Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
          "Print debugging log messages." );
        ( ["--debug-errors"],
-         Arg.Unit (fun () -> Lang_values.conf_debug_errors#set true),
+         Arg.Unit (fun () -> Term.conf_debug_errors#set true),
          "Debug errors (show stacktrace instead of printing a message)." );
        ( ["--debug-lang"],
          Arg.Unit
            (fun () ->
-             Lang_types.debug := true;
-             Lang_values.conf_debug#set true),
+             Type.debug := true;
+             Term.conf_debug#set true),
          "Debug language implementation." );
-       (["--profile"], Arg.Set Lang_values.profile, "Profile execution.");
+       (["--profile"], Arg.Set Term.profile, "Profile execution.");
        ( ["--strict"],
-         Arg.Set Lang_errors.strict,
+         Arg.Set Error.strict,
          "Execute script code in strict mode, issuing fatal errors instead of \
           warnings in some cases. Currently: unused variables and ignored \
           expressions. " );
@@ -448,7 +448,7 @@ let () =
       do_eval ~lib:!last_item_lib)
 
 let initial_cleanup () =
-  if !Lang_values.profile then
+  if !Term.profile then
     log#important "Profiler stats:\n\n%s" (Profiler.stats ());
   Clock.stop ();
   if Tutils.has_started () then (

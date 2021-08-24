@@ -254,7 +254,7 @@ class hls_output p =
     if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
     then
       raise
-        (Lang_errors.Invalid_value
+        (Error.Invalid_value
            (Lang.assoc "" 1 p, "The target directory does not exist"))
   in
   let persist_at =
@@ -270,7 +270,7 @@ class hls_output p =
         (try Utils.mkdir ~perm:0o777 dir
          with exn ->
            raise
-             (Lang_errors.Invalid_value
+             (Error.Invalid_value
                 ( List.assoc "persist_at" p,
                   Printf.sprintf
                     "Error while creating directory %s for persisting state: %s"
@@ -326,8 +326,7 @@ class hls_output p =
     let l = Lang.to_list streams in
     if l = [] then
       raise
-        (Lang_errors.Invalid_value
-           (streams, "The list of streams cannot be empty"));
+        (Error.Invalid_value (streams, "The list of streams cannot be empty"));
     l
   in
   let streams =
@@ -338,7 +337,7 @@ class hls_output p =
       let encoder_factory =
         try Encoder.get_factory format
         with Not_found ->
-          raise (Lang_errors.Invalid_value (fmt, "Unsupported format"))
+          raise (Error.Invalid_value (fmt, "Unsupported format"))
       in
       let encoder = encoder_factory name Meta_format.empty_metadata in
       let bandwidth, codecs, extname, video_size =
@@ -352,7 +351,7 @@ class hls_output p =
                     try Encoder.bitrate format
                     with Not_found ->
                       raise
-                        (Lang_errors.Invalid_value
+                        (Error.Invalid_value
                            ( fmt,
                              "Bandwidth cannot be inferred from codec, please \
                               specify it in `streams_info`" ))))
@@ -365,7 +364,7 @@ class hls_output p =
                     try Encoder.iso_base_file_media_file_format format
                     with Not_found ->
                       raise
-                        (Lang_errors.Invalid_value
+                        (Error.Invalid_value
                            ( fmt,
                              Printf.sprintf
                                "Stream info for stream %S cannot be inferred \
@@ -377,7 +376,7 @@ class hls_output p =
             try Encoder.extension format
             with Not_found ->
               raise
-                (Lang_errors.Invalid_value
+                (Error.Invalid_value
                    ( fmt,
                      "File extension cannot be inferred from codec, please \
                       specify it in `streams_info`" ))

@@ -80,7 +80,7 @@ let () =
         | _ -> Lang.apply f [("", x)])
 
 let () =
-  let a = Lang.univ_t ~constraints:[Lang_types.Ord] () in
+  let a = Lang.univ_t ~constraints:[Type.Ord] () in
   let b = Lang.univ_t () in
   add_builtin ~cat:Liq "getter.map.memoize"
     ~descr:

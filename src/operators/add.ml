@@ -203,7 +203,7 @@ let () =
       let power = List.assoc "power" p |> Lang.to_bool_getter in
       if List.length weights <> List.length sources then
         raise
-          (Lang_errors.Invalid_value
+          (Error.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
       let kind = Source.Kind.of_kind kind in
@@ -289,7 +289,7 @@ let () =
       let video_init buf = video_loop 0 buf buf in
       if List.length weights <> List.length sources then
         raise
-          (Lang_errors.Invalid_value
+          (Error.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
       let kind = Source.Kind.of_kind kind in

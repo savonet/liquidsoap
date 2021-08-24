@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_values.Ground
+open Term
+open Term.Ground
 open Lang_encoders
 
 let make ?pos params =
@@ -66,7 +66,7 @@ let make ?pos params =
   in
   let dummy =
     {
-      Lang_values.t = T.fresh_evar ~level:(-1) ~pos;
+      Term.t = T.fresh_evar ~level:(-1) ~pos;
       term = Encoder (Encoder.GStreamer gstreamer);
     }
   in

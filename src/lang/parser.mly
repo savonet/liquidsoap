@@ -21,10 +21,10 @@
  *****************************************************************************/
 
 %{
-open Lang_values
-open Lang_values.Ground
+open Term
+open Term.Ground
 (* All auxiliary functions for parser are there *)
-open Lang_parser_helper
+open Parser_helper
 %}
 
 %token <string> VAR
@@ -89,10 +89,10 @@ open Lang_parser_helper
 %nonassoc LPAR
 
 %start program
-%type <Lang_values.term> program
+%type <Term.term> program
 
 %start interactive
-%type <Lang_values.term> interactive
+%type <Term.term> interactive
 
 %%
 
@@ -215,10 +215,10 @@ expr:
 
 ty:
   | VAR                        { mk_ty ~pos:$loc $1 }
-  | ty QUESTION                { Lang_types.make (Lang_types.Nullable $1) }
-  | LBRA ty RBRA               { Lang_types.make (Lang_types.List $2) }
-  | LPAR ty_tuple RPAR         { Lang_types.make (Lang_types.Tuple $2) }
-  | LPAR argsty RPAR YIELDS ty { Lang_types.make (Lang_types.Arrow ($2,$5)) }
+  | ty QUESTION                { Type.make (Type.Nullable $1) }
+  | LBRA ty RBRA               { Type.make (Type.List $2) }
+  | LPAR ty_tuple RPAR         { Type.make (Type.Tuple $2) }
+  | LPAR argsty RPAR YIELDS ty { Type.make (Type.Arrow ($2,$5)) }
   | ty_source                  { $1 }
 
 ty_source:

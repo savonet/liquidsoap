@@ -167,8 +167,7 @@ let () =
               | s when s = "auto" -> `Auto
               | s when s = "cpu" -> `CPU
               | s when s = "none" -> `None
-              | _ ->
-                  raise (Lang_errors.Invalid_value (sync, "Invalid sync value"))
+              | _ -> raise (Error.Invalid_value (sync, "Invalid sync value"))
           in
           let clock = new Clock.clock ~sync id in
           List.iter
@@ -178,9 +177,9 @@ let () =
                 Clock.unify s#clock (Clock.create_known (clock :> Clock.clock))
               with
                 | Source.Clock_conflict (a, b) ->
-                    raise (Lang_errors.Clock_conflict (s.Lang.pos, a, b))
+                    raise (Error.Clock_conflict (s.Lang.pos, a, b))
                 | Source.Clock_loop (a, b) ->
-                    raise (Lang_errors.Clock_loop (s.Lang.pos, a, b)))
+                    raise (Error.Clock_loop (s.Lang.pos, a, b)))
             sources;
           Lang.unit
   in
@@ -215,9 +214,9 @@ let () =
               Lang.unit
       with
         | Source.Clock_conflict (a, b) ->
-            raise (Lang_errors.Clock_conflict (l.Lang.pos, a, b))
+            raise (Error.Clock_conflict (l.Lang.pos, a, b))
         | Source.Clock_loop (a, b) ->
-            raise (Lang_errors.Clock_loop (l.Lang.pos, a, b)))
+            raise (Error.Clock_loop (l.Lang.pos, a, b)))
 
 let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in

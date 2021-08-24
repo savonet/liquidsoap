@@ -113,9 +113,7 @@ let () =
         match Lang.to_string mode with
           | "low" -> Low_pass
           | "high" -> High_pass
-          | _ ->
-              raise
-                (Lang_errors.Invalid_value (mode, "valid values are low|high"))
+          | _ -> raise (Error.Invalid_value (mode, "valid values are low|high"))
       in
       let kind = Source.Kind.of_kind kind in
       (new filter ~kind src freq wet mode :> Source.source))
