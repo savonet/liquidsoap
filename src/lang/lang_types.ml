@@ -996,6 +996,8 @@ let rec ( <: ) a b =
         try
           let g1, t1 = invoke a l in
           (try
+             (* TODO: we should perform proper type scheme subtyping, but this
+                is a good approximation for now... *)
              instantiate ~level:(-1) ~generalized:g1 t1
              <: instantiate ~level:(-1) ~generalized:g2 t2
            with Error (a, b) ->
