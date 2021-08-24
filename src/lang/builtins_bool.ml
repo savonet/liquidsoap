@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 let () =
   let t = Lang.univ_t ~constraints:[Type.Ord] () in

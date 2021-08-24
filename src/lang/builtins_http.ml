@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 type request = Get | Post | Put | Head | Delete
 
@@ -151,7 +151,7 @@ let add_http_request ~stream_body ~descr ~request name =
               ("HTTP/1.0", 526, "Invalid SSL certificate", [])
           | e ->
               let bt = Printexc.get_raw_backtrace () in
-              log#severe "Could not perform http request: %s."
+              Lang.log#severe "Could not perform http request: %s."
                 (Printexc.to_string e);
               Lang.raise_as_runtime ~bt ~kind:"http" e
       in

@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 open Extralib
 
 let log = Log.make ["lang.file"]

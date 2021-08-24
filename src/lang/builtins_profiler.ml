@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 let () = Lang.add_module "profiler"
 

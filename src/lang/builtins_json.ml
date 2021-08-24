@@ -161,14 +161,14 @@ let () =
     Lang.method_t JSON.t
       (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
   in
-  Lang_builtins.add_builtin "json" ~cat:Lang_builtins.String
+  Builtin.add_builtin "json" ~cat:Builtin.String
     ~descr:"Create a generic json object" [] t (fun _ ->
       let v = Hashtbl.create 10 in
       let meth = List.map (fun (name, _, _, fn) -> (name, fn v)) meth in
       Lang.meth (JSON.to_value v) meth)
 
 let () =
-  Lang_builtins.add_builtin "json.stringify" ~cat:Lang_builtins.String
+  Builtin.add_builtin "json.stringify" ~cat:Builtin.String
     ~descr:"Convert a value to a json string."
     [
       ( "compact",
@@ -196,7 +196,7 @@ let () =
     | _ -> None)
 
 (* We compare the default's type with the parsed json value and return if they
-   match. This comes with json.stringify in Lang_builtins. *)
+   match. This comes with json.stringify in Builtin. *)
 let rec of_json d j =
   match (d.Lang.value, j) with
     | Lang.Tuple [], `Null -> Lang.unit
@@ -254,7 +254,7 @@ let rec of_json d j =
 
 let () =
   let t = Lang.univ_t () in
-  Lang_builtins.add_builtin ~cat:Lang_builtins.String
+  Builtin.add_builtin ~cat:Builtin.String
     ~descr:
       "Parse a json string into a liquidsoap value. The value provided in the \
        `default` parameter is quite important: only the part of the JSON data \

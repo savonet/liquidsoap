@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 open Prometheus
 
 let () = Lang.add_module "prometheus"
@@ -200,7 +200,7 @@ let () =
       ]
       Lang.unit_t
   in
-  Lang_builtins.add_builtin "prometheus.latency"
+  Builtin.add_builtin "prometheus.latency"
     [
       ( "window",
         Lang.float_t,
@@ -212,7 +212,7 @@ let () =
         Some "Prefix for the metric's name" );
       ("labels", Lang.list_t Lang.string_t, None, Some "labels for the metric");
     ]
-    source_monitor_register_t ~cat:Lang_builtins.Liq
+    source_monitor_register_t ~cat:Builtin.Liq
     ~descr:"Monitor a source's internal latencies on Prometheus"
     (fun p ->
       let window = Lang.to_float (List.assoc "window" p) in

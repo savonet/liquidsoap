@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 let () =
   add_builtin "source.set_name" ~cat:Liq ~descr:"Set the name of an operator."

@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 let () =
   let t = ("", Lang.int_t, None, None) in

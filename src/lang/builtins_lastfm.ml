@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 let () = Lang.add_module "audioscrobbler"
 let log = Log.make ["lastfm"; "submit"]

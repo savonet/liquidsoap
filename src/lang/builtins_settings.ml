@@ -157,7 +157,7 @@ let settings_module =
        ~descr:"All settings." !settings.Lang.value settings_t)
 
 (* Hack to keep track of latest settings at runtime. *)
-open Lang_builtins
+open Builtin
 
 let () =
   add_builtin ~cat:Liq "set_settings_ref" ~descr:"Internal use only!"
@@ -247,6 +247,8 @@ let print_settings () =
   print_descr ~level:1 ~path:"settings" descr
 
 (* Deprecated backward-compatible get/set. *)
+
+let log = Lang.log
 
 let () =
   let grab path value =

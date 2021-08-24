@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 let () =
   let resolver_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.metadata_t in

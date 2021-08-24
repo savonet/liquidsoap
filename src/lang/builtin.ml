@@ -20,25 +20,44 @@
 
  *****************************************************************************)
 
-open Builtin
+type category =
+  | Sys
+  | Math
+  | String
+  | List
+  | Bool
+  | Pair
+  | Liq
+  | Control
+  | Interaction
+  | Other
+  | FFmpegFilter
 
-let () =
-  add_builtin "on_shutdown" ~cat:Sys
-    [("", Lang.fun_t [] Lang.unit_t, None, None)]
-    Lang.unit_t
-    ~descr:"Register a function to be called when Liquidsoap shuts down."
-    (fun p ->
-      let f = List.assoc "" p in
-      Lifecycle.before_core_shutdown (fun () -> ignore (Lang.apply f []));
-      Lang.unit)
+let string_of_category = function
+  | Sys -> "System"
+  | Math -> "Math"
+  | String -> "String"
+  | List -> "List"
+  | Pair -> "Pair"
+  | Bool -> "Bool"
+  | Liq -> "Liquidsoap"
+  | Control -> "Control"
+  | Interaction -> "Interaction"
+  | Other -> "Other"
+  | FFmpegFilter -> "FFmpeg Filter"
 
-let () =
-  add_builtin "on_start" ~cat:Sys
-    [("", Lang.fun_t [] Lang.unit_t, None, None)]
-    Lang.unit_t
-    ~descr:"Register a function to be called when Liquidsoap starts."
-    (fun p ->
-      let f = List.assoc "" p in
-      let wrap_f () = ignore (Lang.apply f []) in
-      Lifecycle.after_start wrap_f;
-      Lang.unit)
+let add_builtin ~cat ~descr ?(meth = []) ?flags name proto ret_t f =
+  let ret_t =
+    if meth = [] then ret_t
+    else (
+      let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
+      Lang.method_t ret_t meth)
+  in
+  let f =
+    if meth = [] then f
+    else (
+      let meth = List.map (fun (l, _, _, f) -> (l, f)) meth in
+      fun p -> Lang.meth (f p) meth)
+  in
+  Lang.add_builtin ~category:(string_of_category cat) ~descr ?flags name proto
+    ret_t f

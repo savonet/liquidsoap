@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 let () =
   add_builtin "file.mime" ~cat:Liq (* TODO bad category *)

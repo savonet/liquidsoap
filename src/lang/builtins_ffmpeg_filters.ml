@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 let () =
   Lang.add_module "ffmpeg.filter";
@@ -755,7 +755,7 @@ let () =
       Queue.iter (Clock.unify first) graph.clocks;
       Queue.add
         (lazy
-          (log#info "Initializing graph";
+          (Lang.log#info "Initializing graph";
            let filter = Avfilter.launch config in
            Avfilter.(
              List.iter

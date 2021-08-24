@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_builtins
+open Builtin
 
 let log = Log.make ["process"]
 let () = Lang.add_module "process"
