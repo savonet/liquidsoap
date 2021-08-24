@@ -218,7 +218,7 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
 	   lang/builtins_files.ml lang/builtins_resolvers.ml \
            lang/builtins_thread.ml lang/builtins_process.ml \
            lang/builtins_source.ml lang/builtins_getter.ml \
-           lang/builtins_profiler.ml \
+           lang/builtins_profiler.ml lang/builtins_eval.ml \
 	   $(if $(W_CURL),lang/builtins_http.ml) \
            lang/builtins_harbor.ml \
            $(if $(W_SSL),lang/builtins_harbor_ssl.ml) \
@@ -248,9 +248,9 @@ liquidsoap_sources= \
 	$(if $(W_ALSA), alsa_settings.ml)
 
 liquidsoap_sources += \
-	lang/type.ml lang/profiler.ml lang/term.ml \
+	lang/type.ml lang/typing.ml lang/profiler.ml lang/term.ml lang/typechecking.ml \
 	$(lang_encoders) lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
-	lang/preprocessor.ml lang/error.ml lang/lang.ml lang/modules.ml \
+	lang/preprocessor.ml lang/error.ml lang/lang.ml lang/runtime.ml lang/modules.ml \
         tools/child_support.ml \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \

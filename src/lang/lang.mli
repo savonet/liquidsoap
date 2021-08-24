@@ -301,31 +301,6 @@ val error :
 (** Re-raise an error as a runtime error. *)
 val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
 
-(** {2 Main script evaluation} *)
-
-(** Load the external libraries. *)
-val load_libs :
-  ?error_on_no_stdlib:bool ->
-  ?parse_only:bool ->
-  ?deprecated:bool ->
-  unit ->
-  unit
-
-(** Evaluate a script from an [in_channel]. *)
-val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
-
-(** Evaluate a script from a file. *)
-val from_file : ?parse_only:bool -> lib:bool -> string -> unit
-
-(** Evaluate a script from a string. *)
-val from_string : ?parse_only:bool -> lib:bool -> string -> unit
-
-(** Interactive loop: read from command line, eval, print and loop. *)
-val interactive : unit -> unit
-
-(** Evaluate a string *)
-val eval : string -> value option
-
 (* Abstract type and value. *)
 module type Abstract = sig
   type content

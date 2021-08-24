@@ -73,7 +73,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_copy_content.Audio.lift_params params))
           in
-          Type.(effective_t <: kind_t);
+          Typing.(effective_t <: kind_t);
 
           let write_packet packet =
             match Ffmpeg_utils.Duration.push duration_converter packet with
@@ -115,7 +115,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_raw_content.Audio.lift_params params))
           in
-          Type.(effective_t <: kind_t);
+          Typing.(effective_t <: kind_t);
           let duration_converter =
             Ffmpeg_utils.Duration.init ~src:target_time_base
               ~get_ts:Ffmpeg_utils.best_pts
@@ -239,7 +239,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_copy_content.Video.lift_params params))
           in
-          Type.(effective_t <: kind_t);
+          Typing.(effective_t <: kind_t);
 
           let encoder_time_base = Avcodec.time_base encoder in
 
@@ -294,7 +294,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_raw_content.Video.lift_params params))
           in
-          Type.(effective_t <: kind_t);
+          Typing.(effective_t <: kind_t);
 
           let duration_converter =
             Ffmpeg_utils.Duration.init ~src:time_base

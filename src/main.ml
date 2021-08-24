@@ -87,7 +87,7 @@ let load_libs =
     if !stdlib && not !loaded then (
       let save = !Configure.display_types in
       Configure.display_types := false;
-      Lang.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
+      Runtime.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
         ~parse_only:!parse_only ();
       loaded := true;
       Configure.display_types := save)
@@ -109,16 +109,16 @@ let do_eval, eval =
   let eval src ~lib =
     load_libs ();
     match src with
-      | `StdIn -> Lang.from_in_channel ~lib ~parse_only:!parse_only stdin
+      | `StdIn -> Runtime.from_in_channel ~lib ~parse_only:!parse_only stdin
       | `Expr_or_File expr when not (Sys.file_exists expr) ->
-          Lang.from_string ~lib ~parse_only:!parse_only expr
+          Runtime.from_string ~lib ~parse_only:!parse_only expr
       | `Expr_or_File f ->
           let basename = Filename.basename f in
           let basename =
             try Filename.chop_extension basename with _ -> basename
           in
           Configure.var_script := basename;
-          Lang.from_file ~lib ~parse_only:!parse_only f
+          Runtime.from_file ~lib ~parse_only:!parse_only f
   in
   let force ~lib =
     match !delayed with
@@ -538,7 +538,7 @@ let () =
         if !interactive then (
           load_libs ();
           check_directories ();
-          ignore (Thread.create Lang.interactive ());
+          ignore (Thread.create Runtime.interactive ());
           Dtools.Init.init main)
         else if Source.has_outputs () || force_start#get then (
           check_directories ();

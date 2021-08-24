@@ -105,11 +105,11 @@ let throw print_error = function
       error_header 4 pos;
       Format.printf "Undefined variable %s@]@." s;
       raise Error
-  | Type.Type_Error explain ->
+  | Typing.Type_Error explain ->
       flush_all ();
-      Type.print_type_error (error_header 5) explain;
+      Typing.print_type_error (error_header 5) explain;
       raise Error
-  | Term.No_label (f, lbl, first, x) ->
+  | Typechecking.No_label (f, lbl, first, x) ->
       let pos_f = Type.print_pos_opt f.Term.t.Type.pos in
       let pos_x = Type.print_pos_opt x.Term.t.Type.pos in
       flush_all ();
