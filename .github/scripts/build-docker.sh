@@ -8,14 +8,15 @@ TAG=$3
 USER=$4
 PASSWORD=$5
 ARCHITECTURE=$6
+DOCKER_PLATFORM=$7
 
 cp $DEB_FILE $DEB_DEBUG_FILE .
 
-docker build --no-cache  --build-arg "DEB_FILE=$DEB_FILE"  --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" -f .github/docker/Dockerfile.production -t savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} .
+docker login -u "$USER" -p "$PASSWORD"
 
-docker login -u "$USER" -p "$PASSWORD" 
+docker buildx build --platform "${DOCKER_PLATFORM}" --no-cache  --build-arg "DEB_FILE=$DEB_FILE"  --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" -f .github/docker/Dockerfile.production -t savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} --push .
 
-docker push savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}
+docker pull savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}
 
 docker tag savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}
 docker push ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}

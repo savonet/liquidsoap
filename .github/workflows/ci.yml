@@ -103,13 +103,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian_testing, debian_bullseye, ubuntu_groovy, ubuntu_focal, alpine]
-        platform: [amd64, arm64]
+        os: [arm32v7_debian_bullseye, debian_bullseye, alpine]
+        platform: [amd64, arm64, armhf]
         include:
           - platform: amd64
             runs-on: ubuntu-latest
+            alpine-arch: x86_64 
           - platform: arm64
             runs-on: self-hosted
+            alpine-arch: aarch64
+          - platform: armhf
+            runs-on: self-hosted
+            alpine-arch: armv7
+        exclude:
+          - os: debian_testing
+            platform: armhf
+          - os: debian_bullseye
+            platform: armhf
+          - os: ubuntu_groovy
+            platform: armhf
+          - os: ubuntu_focal
+            platform: armhf
+          - os: arm32v7_debian_bullseye
+            platform: amd64
+          - os: arm32v7_debian_bullseye
+            platform: arm64
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian -v ${{ github.workspace }}/alpine:/tmp/alpine
@@ -130,11 +148,14 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
+      # Remove after liquidsoap 2.0 release
+      - name: Install posix-time2
+        if: matrix.platform != 'armhf'
+        run: 
+          sudo -u opam -E opam install -y posix-time2
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          # Remove after liquidsoap 2.0 release
-          sudo -u opam -E opam install -y posix-time2
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
@@ -143,10 +164,6 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-doc.sh
-      - name: Run tests
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build debian package
         if: matrix.os != 'alpine'
         id: build_deb
@@ -155,12 +172,20 @@ jobs:
           chown -R opam /tmp/debian
           sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.build_details.outputs.branch }} ${{ matrix.os }}
       - name: Upload debian packages artifacts
-        if: matrix.os != 'alpine'
+        if: matrix.os != 'alpine' && matrix.platform != 'armhf'
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/debian
           if-no-files-found: error
+      - name: Upload debian armhf packages artifacts
+        if: matrix.os != 'alpine' && matrix.platform == 'armhf'
+        uses: savonet/aws-s3-docker-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE: ${{ github.workspace }}/debian
+          TARGET: ${{ needs.build_details.outputs.s3-artifact-basepath }}
       - name: Build alpine package
         if: matrix.os == 'alpine'
         id: build_apk
@@ -171,7 +196,7 @@ jobs:
           mkdir -p /tmp/alpine
           rm -rf /tmp/alpine/*
           chown -R opam /tmp/alpine 
-          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.platform }}
+          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.platform }} ${{ matrix.alpine-arch }}
       - name: Upload alpine packages artifacts
         if: matrix.os == 'alpine'
         uses: savonet/aws-s3-docker-action@master
@@ -246,6 +271,48 @@ jobs:
           name: ${{ steps.apk_arm64_dbg.outputs.name }}
           path: ${{ steps.apk_arm64_dbg.outputs.path }}
           if-no-files-found: error
+      - name: Get alpine armv7 package name
+        id: apk_armv7
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7 | xargs basename)"
+      - name: Upload alpine amd64 package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_armv7.outputs.name }}
+          path: ${{ steps.apk_armv7.outputs.path }}
+          if-no-files-found: error
+      - name: Get alpine armv7 debug package name
+        id: apk_armv7_dbg
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7 | xargs basename)"
+      - name: Upload alpine amd64 debug package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.apk_armv7_dbg.outputs.name }}
+          path: ${{ steps.apk_armv7_dbg.outputs.path }}
+          if-no-files-found: error
+      - name: Get debian armhf package name
+        id: deb_armhf
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf | xargs basename)"
+      - name: Upload debian armhf package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.deb_armhf.outputs.name }}
+          path: ${{ steps.deb_armhf.outputs.path }}
+      - name: Get debian armhf debug package name
+        id: deb_armhf_dbg
+        run: |
+          echo "##[set-output name=path;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf)"
+          echo "##[set-output name=name;]$(find ${{ github.workspace }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf | xargs basename)"
+      - name: Upload debian armhf debug package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.deb_armhf_dbg.outputs.name }}
+          path: ${{ steps.deb_armhf_dbg.outputs.path }}
 
   build_win32:
     runs-on: ubuntu-latest
@@ -329,55 +396,71 @@ jobs:
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, build_posix]
+    needs: [build_details, build_posix, fetch_s3_artifacts]
     strategy:
+      fail-fast: false
       matrix:
-        platform: [amd64, arm64]
+        platform: [amd64, arm64, armhf]
         include:
           - platform: amd64
             runs-on: ubuntu-latest
+            docker-platform: linux/amd64
           - platform: arm64
             runs-on: self-hosted
+            docker-platform: linux/arm64
+          - platform: armhf
+            runs-on: self-hosted
+            docker-platform: linux/arm/v7
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
       - name: Download all artifact
         uses: actions/download-artifact@v2
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian bullseye package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bullseye | grep ${{ matrix.platform }} | grep -v dbgsym | grep deb)"
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bullseye | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)"
         id: debian_package
       - name: Get debian bullseye debug package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bullseye | grep ${{ matrix.platform }} | grep dbgsym | grep deb)"
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bullseye | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)"
         id: debian_debug_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, fetch_s3_artifacts]
+    needs: [build_details, build_posix, fetch_s3_artifacts]
     strategy:
       matrix:
-        platform: [amd64, arm64]
+        platform: [amd64, arm64, armhf]
         include:
           - platform: amd64
             runs-on: ubuntu-latest
+            docker-platform: linux/amd64
             alpine-arch: x86_64
           - platform: arm64
             runs-on: self-hosted
             alpine-arch: aarch64
+            docker-platform: linux/arm64
+          - platform: armhf
+            runs-on: self-hosted
+            alpine-arch: armv7
+            docker-platform: linux/arm/v7
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
       - name: Download all artifact
         uses: actions/download-artifact@v2
         with:
@@ -391,7 +474,7 @@ jobs:
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
-        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
 
   build_docker_release:
     runs-on: ubuntu-latest

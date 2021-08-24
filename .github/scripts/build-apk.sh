@@ -4,18 +4,13 @@ set -e
 
 BRANCH=$1
 ARCH=$2
+ALPINE_ARCH=$3
 
 cd /tmp/liquidsoap-full/liquidsoap
 
 APK_VERSION=`opam show -f version . | cut -d'~' -f 1`
 
 TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
-
-if [ "${ARCH}" = "amd64" ]; then
-  ALPINE_ARCH=x86_64
-else
-  ALPINE_ARCH=aarch64
-fi
 
 APK_PACKAGE="liquidsoap-${TAG}-${ALPINE_ARCH}"
 

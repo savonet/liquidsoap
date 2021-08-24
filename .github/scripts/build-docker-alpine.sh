@@ -8,14 +8,15 @@ TAG=$3
 USER=$4
 PASSWORD=$5
 ARCHITECTURE=$6
+DOCKER_PLATFORM=$7
 
 cp $APK_FILE $APK_DBG_FILE .
 
-docker build --no-cache  --build-arg "APK_FILE=$APK_FILE" --build-arg "APK_DBG_FILE=$APK_DBG_FILE" -f .github/docker/Dockerfile.production-alpine -t savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE} .
+docker login -u "$USER" -p "$PASSWORD"
 
-docker login -u "$USER" -p "$PASSWORD" 
+docker buildx build --platform "${DOCKER_PLATFORM}" --no-cache  --build-arg "APK_FILE=$APK_FILE" --build-arg "APK_DBG_FILE=$APK_DBG_FILE" -f .github/docker/Dockerfile.production-alpine -t savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE} --push .
 
-docker push savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}
+docker pull savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}
 
 docker tag savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE} ghcr.io/savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}
 docker push ghcr.io/savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}
