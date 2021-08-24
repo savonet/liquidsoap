@@ -26,7 +26,7 @@ open Term
 open Term.Ground
 
 let gen_args_of ~only ~except ~pos get_args name =
-  match Term.get_builtin name with
+  match Environment.get_builtin name with
     | Some ((_, t), Term.V.{ value = Fun (args, _, _, _) })
     | Some ((_, t), Term.V.{ value = FFI (args, _, _) }) ->
         let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in

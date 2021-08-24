@@ -139,7 +139,7 @@ let load_libs () =
 let lang_doc name =
   run_streams := false;
   load_libs ();
-  try Doc.print_lang (Term.builtins#get_subsection name)
+  try Doc.print_lang (Environment.builtins#get_subsection name)
   with Not_found -> Printf.printf "Plugin not found!\n%!"
 
 let process_request s =

@@ -249,7 +249,8 @@ liquidsoap_sources= \
 	$(if $(W_ALSA), alsa_settings.ml)
 
 liquidsoap_sources += \
-	lang/type.ml lang/typing.ml lang/profiler.ml lang/term.ml lang/typechecking.ml \
+	lang/type.ml lang/typing.ml lang/profiler.ml lang/term.ml \
+	lang/environment.ml lang/typechecking.ml lang/evaluation.ml \
 	$(lang_encoders) lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
 	lang/preprocessor.ml lang/error.ml lang/lang.ml lang/runtime.ml lang/modules.ml \
         tools/child_support.ml \

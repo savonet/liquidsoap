@@ -106,7 +106,7 @@ let eval_ifdefs tokenizer =
               | _ -> assert false
           in
           (* XXX Less natural meaning than the original one. *)
-          if test (Term.has_builtin v) then go_on () else skip ()
+          if test (Environment.has_builtin v) then go_on () else skip ()
       | Parser.PP_IFVERSION (cmp, ver), _ ->
           let current = Utils.Version.of_string Configure.version in
           let ver = Utils.Version.of_string ver in
@@ -293,7 +293,7 @@ let parse_comments tokenizer =
             let s = Pcre.get_substring sub 2 in
             match Pcre.get_substring sub 1 with
               | "docof" ->
-                  let doc = Term.builtins#get_subsection s in
+                  let doc = Environment.builtins#get_subsection s in
                   let main_doc = doc#get_doc in
                   let main =
                     if main_doc <> "(no doc)" then main_doc :: main else main
@@ -341,7 +341,7 @@ let parse_comments tokenizer =
                       (s, only, except)
                     with Not_found -> (s, [], [])
                   in
-                  let doc = Term.builtins#get_subsection s in
+                  let doc = Environment.builtins#get_subsection s in
                   let args =
                     List.filter
                       (fun (n, _) ->

@@ -22,6 +22,8 @@
 
 (** {1 Running} *)
 
+let () = Lang.apply_fun := Evaluation.apply
+
 let type_and_run ~throw ~lib ast =
   Clock.collect_after (fun () ->
       if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
@@ -33,7 +35,7 @@ let type_and_run ~throw ~lib ast =
       (* Check for unused variables, relies on types *)
       Term.check_unused ~throw ~lib ast;
       if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
-      ignore (Term.eval_toplevel ast))
+      ignore (Evaluation.eval_toplevel ast))
 
 (** {1 Parsing} *)
 
@@ -97,7 +99,7 @@ let eval s =
     Clock.collect_after (fun () ->
         Error.report lexbuf (fun ~throw () ->
             Typechecking.check ~throw ~ignored:false expr);
-        Some (Term.eval expr))
+        Some (Evaluation.eval expr))
   with e ->
     Printf.eprintf "Evaluating %S failed: %s!" s (Printexc.to_string e);
     None
@@ -152,7 +154,7 @@ let interactive () =
             Typechecking.check ~throw ~ignored:false expr;
             Term.check_unused ~throw ~lib:true expr;
             Clock.collect_after (fun () ->
-                ignore (Term.eval_toplevel ~interactive:true expr)));
+                ignore (Evaluation.eval_toplevel ~interactive:true expr)));
         true
       with
         | End_of_file ->

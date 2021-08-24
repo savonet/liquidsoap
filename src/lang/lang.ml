@@ -247,7 +247,7 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
     }
   in
   let generalized = Type.filter_vars (fun _ -> true) t in
-  Term.add_builtin
+  Environment.add_builtin
     ~doc:(to_plugin_doc category flags descr proto return_t)
     (String.split_on_char '.' name)
     ((generalized, t), value)
@@ -261,9 +261,11 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   List.iter
     (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
     flags;
-  Term.add_builtin ~doc (String.split_on_char '.' name) ((generalized, t), value)
+  Environment.add_builtin ~doc
+    (String.split_on_char '.' name)
+    ((generalized, t), value)
 
-let add_module name = Term.add_module (String.split_on_char '.' name)
+let add_module name = Environment.add_module (String.split_on_char '.' name)
 
 (** Specialized version for operators, that is builtins returning sources. *)
 
@@ -395,7 +397,10 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
   iter_value v
 
 let iter_sources = iter_sources ~static_analysis_failed:(ref [])
-let apply f p = Clock.collect_after (fun () -> Term.apply f p)
+
+(* Delay this function in order not to have Lang depend on Evaluation. *)
+let apply_fun = ref (fun _ -> assert false)
+let apply f p = Clock.collect_after (fun () -> !apply_fun f p)
 
 (** {1 High-level manipulation of values} *)
 
