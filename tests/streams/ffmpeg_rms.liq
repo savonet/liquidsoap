@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq
 
 %include "test.liq"
 
@@ -29,7 +29,7 @@ s = astats(s)
 s = ffmpeg.raw.decode.audio(s)
 
 def test(m) =
-  if m["title"] == "test ffmpeg frame metadata" and list.mem_assoc("lavfi.astats.Overall.RMS_peak", m) then
+  if m["title"] == "test ffmpeg frame metadata" and list.assoc.mem("lavfi.astats.Overall.RMS_peak", m) then
     test.pass()
   end
 end
