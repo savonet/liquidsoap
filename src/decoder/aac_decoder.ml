@@ -158,7 +158,7 @@ let file_type ~ctype:_ filename =
         Faad.init dec aacbuf 0 n
       in
       log#info "Libfaad recognizes %s as AAC (%dHz,%d channels)."
-        (Utils.escape_utf8 filename)
+        (Utils.quote_utf8_string filename)
         rate channels;
       Some
         {
@@ -237,7 +237,7 @@ let file_type ~ctype:_ filename =
       let track = Faad.Mp4.find_aac_track mp4 in
       let rate, channels = Faad.Mp4.init mp4 dec track in
       log#info "Libfaad recognizes %s as MP4 (%dHz,%d channels)."
-        (Utils.escape_utf8 filename)
+        (Utils.quote_utf8_string filename)
         rate channels;
       Some
         {

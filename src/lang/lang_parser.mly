@@ -94,6 +94,9 @@ open Lang_parser_helper
 %start interactive
 %type <Lang_values.term> interactive
 
+%start annotate
+%type <(string * string) list> annotate
+
 %%
 
 program:
@@ -448,3 +451,14 @@ ffmpeg_opt:
 record:
   | VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($1, $3, e)) }
   | record COMMA VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($3, $5, $1 ~pos e)) }
+
+annotate:
+  | annotate_metadata COLON { $1 } 
+
+annotate_metadata:
+  | annotate_value GETS annotate_value COMMA annotate_metadata { ($1,$3)::$5 }
+  | annotate_value GETS annotate_value { [$1, $3] }
+
+annotate_value:
+  | VAR { $1 }
+  | STRING { $1 }

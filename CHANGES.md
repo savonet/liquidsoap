@@ -43,7 +43,8 @@ New:
 - Add `validate` parameter to `register`, which allows to validate a value
   before setting it (#1046, @CyberDomovoy)
 - Add `string.null_terminated` (#960).
-- Add `string.unescape` and `string.utf8.unescape`.
+- Removed `string.utf8.escape` in favor or a unifited, utf8-aware `string.escape`.
+- Add `string.unescape`.
 - Add `file.metadata` (#1058).
 - Add `predicate.activates`, `predicate.changes`, `predicate.first`,
   `predicate.once`, `predicate.signal` (#1075).
@@ -461,6 +462,7 @@ Fixed:
 - File descriptor leak when using openssl-based operators.
 - Fixed SSL read taking too long to timeout (#932)
 - Fixed output starting when underlying source is not available (#393)
+- Fixed `string.escape` also quoting its string.
 
 1.3.7 (09-04-2019)
 =====

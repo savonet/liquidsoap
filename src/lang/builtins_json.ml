@@ -62,7 +62,7 @@ let rec to_json_compact ~json5 v =
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v ->
         Printf.sprintf "{\"reference\": %s}" (to_json_compact ~json5 !v)
-    | Lang.Encoder e -> Utils.escape_utf8 (Encoder.string_of_format e)
+    | Lang.Encoder e -> Utils.quote_utf8_string (Encoder.string_of_format e)
     | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
 
 let rec to_json_pp ~json5 f v =
@@ -101,10 +101,12 @@ let rec to_json_pp ~json5 f v =
               let rec aux = function
                 | [] -> ()
                 | [(k, v)] ->
-                    Format.fprintf f "%s: %a" (Utils.escape_utf8 k)
+                    Format.fprintf f "%s: %a"
+                      (Utils.quote_utf8_string k)
                       (to_json_pp ~json5) v
                 | (k, v) :: l ->
-                    Format.fprintf f "%s: %a,@;<1 0>" (Utils.escape_utf8 k)
+                    Format.fprintf f "%s: %a,@;<1 0>"
+                      (Utils.quote_utf8_string k)
                       (to_json_pp ~json5) v;
                     aux l
               in
