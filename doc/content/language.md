@@ -163,7 +163,7 @@ The following sequences are recognized:
 | `\v` | `\x0B`  | Vertical Tab |
 | `\\` | `\x5C`  | Backslash |
 | `\'` | `\x27`  | Apostrophe or single quotation mark |
-| `\"` |  `\x22` | Double |
+| `\"` |  `\x22` | Double quotation mark |
 | `\?` | `\x3F`  | Question mark (used to avoid Digraphs and trigraphs) |
 | `\nnn` | any | The byte whose numerical value is given by _nnn_interpreted as an _octal_ number |
 | `\xhh` | any | The byte whose numerical value is given by _hh_ interpreted as a _hexadecimal_ number |

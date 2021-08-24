@@ -171,13 +171,27 @@ let () =
       Lang.string (Utils.unescape_string s))
 
 let () =
-  add_builtin "string.escape_annotation" ~cat:String
+  Lang.add_module "string.annotate";
+  add_builtin "string.annotate.parse" ~cat:String
     ~descr:
-      "Escape a string so that it is suitable for use as value for the \
-       `annotate:` protocol." [("", Lang.string_t, None, None)] Lang.string_t
-    (fun p ->
-      let s = List.assoc "" p |> Lang.to_string in
-      Lang.string ("\"" ^ String.escaped s ^ "\""))
+      "Parse a string of the form `<key>=<value>,...:<uri>` as given by the \
+       `annotate:` protocol" [("", Lang.string_t, None, None)]
+    (Lang.product_t Lang.metadata_t Lang.string_t) (fun p ->
+      let v = List.assoc "" p in
+      try
+        let metadata, uri = Annotate.parse (Lang.to_string v) in
+        Lang.product
+          (Lang.metadata (Utils.hashtbl_of_list metadata))
+          (Lang.string uri)
+      with Annotate.Error err ->
+        raise
+          (Runtime_error.Runtime_error
+             {
+               Runtime_error.kind = "string";
+               msg = Some err;
+               pos =
+                 (match v.Lang_values.V.pos with None -> [] | Some p -> [p]);
+             }))
 
 let () =
   add_builtin "string.split" ~cat:String

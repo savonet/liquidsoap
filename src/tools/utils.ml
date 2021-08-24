@@ -348,15 +348,10 @@ let unescape_hex_char s =
   Printf.sprintf "%c" (Char.chr (int_of_string ("0x" ^ s)))
 
 let unescape_utf8_char s =
+  let b = Buffer.create 1 in
   let s = String.sub s 2 4 in
-  let prefs = [| 0x0; 0xc0; 0xe0 |] in
-  let s1 n = String.make 1 (Char.chr n) in
-  let rec ienc k sofar resid =
-    let bct = if k = 0 then 7 else 6 - k in
-    if resid < 1 lsl bct then s1 (prefs.(k) + resid) ^ sofar
-    else ienc (k + 1) (s1 (0x80 + (resid mod 64)) ^ sofar) (resid / 64)
-  in
-  ienc 0 "" (int_of_string ("0x" ^ s))
+  Buffer.add_utf_8_uchar b (Uchar.of_int (int_of_string ("0x" ^ s)));
+  Buffer.contents b
 
 let unescape_char = function
   | "\\a" -> "\x07"

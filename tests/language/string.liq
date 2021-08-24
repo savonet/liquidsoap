@@ -50,6 +50,9 @@ def f() =
   t(string.unescape("\\u2728"), "✨")
   t(string.unescape("\\xE2\\x9C\\xA8"), "✨")
   t(string.unescape("\\342\\234\\250"), "✨")
+
+  t(string.annotate.parse("foo=bla,\"foo\"=\"✨✅\",\"gni:gno\"=\"bla\\\"blu:\":😈uri"),
+    ([("foo", "bla"), ("foo", "✨✅"), ("gni:gno", "bla\"blu:")], "😈uri"))
   
   if !success then test.pass() else test.fail() end
 end
