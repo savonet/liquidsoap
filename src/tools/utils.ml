@@ -181,20 +181,16 @@ let escape ~special_char ~next ~escape_char f s =
   if len > 0 then f 0
 
 let ascii_special_char = function
-  | "\"" | "\\"
   (* DEL *)
-  | "\x7F" ->
-      true
+  | "\x7F" -> true
   (* Control chars *)
   | s when String.length s = 1 && Char.code s.[0] <= 0x1F -> true
   | s when String.length s = 1 && Char.code s.[0] > 0x7E -> true
   | _ -> false
 
 let utf8_special_char = function
-  | "\"" | "\\"
   (* DEL *)
-  | "\x7F" ->
-      true
+  | "\x7F" -> true
   (* Control chars *)
   | s when String.length s = 1 && Char.code s.[0] <= 0x1F -> true
   | _ -> false

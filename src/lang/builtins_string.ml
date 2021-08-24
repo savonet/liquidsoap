@@ -91,7 +91,7 @@ let () =
       ( "encoding",
         Lang.string_t,
         Some (Lang.string "utf8"),
-        Some "One of: `\"ascii\"`, `\"utf8\"`." );
+        Some "One of: `\"ascii\"` or `\"utf8\"`." );
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
@@ -105,7 +105,8 @@ let () =
           | _ ->
               raise
                 (Lang_errors.Invalid_value
-                   (encoding, "Encoding should be one of: \"ascii\", \"utf8\"."))
+                   ( encoding,
+                     "Encoding should be one of: \"ascii\" or \"utf8\"." ))
       in
       let special_char =
         match (Lang.to_option (List.assoc "special_char" p), encoding) with
@@ -130,7 +131,7 @@ let () =
         (Utils.escape_string (Utils.escape ~special_char ~escape_char ~next) s))
 
 let () =
-  add_builtin "string.escape.char"
+  add_builtin "string.escape.all"
     ~descr:
       "Escape each character in the given string using a specific escape \
        sequence"
@@ -162,6 +163,31 @@ let () =
         (Utils.escape_string
            (Utils.escape ~special_char:(fun _ -> true) ~escape_char ~next)
            s))
+
+let () =
+  add_builtin "string.escape.special_char"
+    ~descr:
+      "Default function to detect characters to escape. See `string.escape` \
+       for more details."
+    ~cat:String
+    [
+      ( "encoding",
+        Lang.string_t,
+        Some (Lang.string "utf8"),
+        Some "One of: `\"ascii\"` or `\"utf8\"`." );
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.bool_t
+    (fun p ->
+      let s = Lang.to_string (List.assoc "" p) in
+      let encoding = List.assoc "encoding" p in
+      match Lang.to_string encoding with
+        | "ascii" -> Lang.bool (Utils.ascii_special_char s)
+        | "utf8" -> Lang.bool (Utils.utf8_special_char s)
+        | _ ->
+            raise
+              (Lang_errors.Invalid_value
+                 (encoding, "Encoding should be one of: \"ascii\" or \"utf8\".")))
 
 let () =
   add_builtin "string.unescape"
