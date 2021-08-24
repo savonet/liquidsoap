@@ -165,7 +165,7 @@ Changed:
   `system` in favor of `process.run`, `process.read`, `process.read.lines` and
   `process.test`.
 - Renamed `http_codes` to `http.codes` and put first member as integer.
-- Renamed `http_response` to `http.response` and `http_response_stream` to
+- Renamed `http.response` to `http.response` and `http.response.stream` to
   `http.response.stream`.
 - `localtime` and `gmtime` now return a record.
 - Deprecated `{eat,strip,skip,on}_blank` in favor of
