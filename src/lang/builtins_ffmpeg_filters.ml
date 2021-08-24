@@ -388,9 +388,7 @@ let () =
           (apply_filter ~args_parser ~filter))
       filters)
 
-let abuffer_args
-    { Ffmpeg_raw_content.AudioSpecs.channel_layout; sample_format; sample_rate }
-    =
+let abuffer_args raw_content =
   let default_channel_layout =
     match
       Audio_converter.Channel_layout.layout_of_channels
@@ -400,41 +398,67 @@ let abuffer_args
       | `Mono -> `Mono
       | `Stereo -> `Stereo
   in
+  let sample_rate =
+    match raw_content.Ffmpeg_raw_content.AudioSpecs.sample_rate with
+      | Some rate -> rate
+      | None ->
+          let rate = Lazy.force Frame.audio_rate in
+          raw_content.Ffmpeg_raw_content.AudioSpecs.sample_rate <- Some rate;
+          rate
+  in
+  let channel_layout =
+    match raw_content.Ffmpeg_raw_content.AudioSpecs.channel_layout with
+      | Some layout -> layout
+      | None ->
+          raw_content.Ffmpeg_raw_content.AudioSpecs.channel_layout <-
+            Some default_channel_layout;
+          default_channel_layout
+  in
+  let sample_format =
+    match raw_content.Ffmpeg_raw_content.AudioSpecs.sample_format with
+      | Some format -> format
+      | None ->
+          raw_content.Ffmpeg_raw_content.AudioSpecs.sample_format <- Some `Dbl;
+          `Dbl
+  in
   [
-    `Pair
-      ( "sample_rate",
-        `Int (Option.value ~default:(Lazy.force Frame.audio_rate) sample_rate)
-      );
+    `Pair ("sample_rate", `Int sample_rate);
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
     `Pair
-      ( "channel_layout",
-        `Int64
-          (Avutil.Channel_layout.get_id
-             (Option.value ~default:default_channel_layout channel_layout)) );
-    `Pair
-      ( "sample_fmt",
-        `Int
-          (Avutil.Sample_format.get_id
-             (Option.value ~default:`Dbl sample_format)) );
+      ("channel_layout", `Int64 (Avutil.Channel_layout.get_id channel_layout));
+    `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id sample_format));
   ]
 
-let buffer_args { Ffmpeg_raw_content.VideoSpecs.width; height; pixel_format } =
+let buffer_args raw_content =
+  let width =
+    match raw_content.Ffmpeg_raw_content.VideoSpecs.width with
+      | Some w -> w
+      | None ->
+          let w = Lazy.force Frame.video_width in
+          raw_content.Ffmpeg_raw_content.VideoSpecs.width <- Some w;
+          w
+  in
+  let height =
+    match raw_content.Ffmpeg_raw_content.VideoSpecs.height with
+      | Some h -> h
+      | None ->
+          let h = Lazy.force Frame.video_height in
+          raw_content.Ffmpeg_raw_content.VideoSpecs.height <- Some h;
+          h
+  in
+  let pixel_format =
+    match raw_content.Ffmpeg_raw_content.VideoSpecs.pixel_format with
+      | Some pf -> pf
+      | None ->
+          let pf = Ffmpeg_utils.liq_frame_pixel_format () in
+          raw_content.Ffmpeg_raw_content.VideoSpecs.pixel_format <- Some pf;
+          pf
+  in
   [
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
-    `Pair
-      ( "width",
-        `Int (Option.value ~default:(Lazy.force Frame.video_width) width) );
-    `Pair
-      ( "height",
-        `Int (Option.value ~default:(Lazy.force Frame.video_height) height) );
-    `Pair
-      ( "pix_fmt",
-        `Int
-          Avutil.Pixel_format.(
-            get_id
-              (Option.value
-                 ~default:(Ffmpeg_utils.liq_frame_pixel_format ())
-                 pixel_format)) );
+    `Pair ("width", `Int width);
+    `Pair ("height", `Int height);
+    `Pair ("pix_fmt", `Int Avutil.Pixel_format.(get_id pixel_format));
   ]
 
 let () =
@@ -460,7 +484,17 @@ let () =
 
   add_builtin ~cat:FFmpegFilter "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
-    [("", Graph.t, None, None); ("", audio_t, None, None)] Audio.t (fun p ->
+    [
+      ( "pass_metadata",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Pass liquidsoap's metadata to this stream" );
+      ("", Graph.t, None, None);
+      ("", audio_t, None, None);
+    ]
+    Audio.t
+    (fun p ->
+      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -482,7 +516,10 @@ let () =
       let name = uniq_name "abuffer" in
       let pos = source_val.Lang.pos in
       let s =
-        try Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) with
+        try
+          Ffmpeg_filter_io.(
+            new audio_output ~pass_metadata ~name ~kind source_val)
+        with
           | Source.Clock_conflict (a, b) ->
               raise (Lang_errors.Clock_conflict (pos, a, b))
           | Source.Clock_loop (a, b) ->
@@ -512,8 +549,17 @@ let () =
   let return_t = Lang.kind_type_of_kind_format return_kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.FFmpegFilter
     ~descr:"Return an audio source from a filter's output" ~return_t
-    (output_base_proto @ [("", Graph.t, None, None); ("", Audio.t, None, None)])
+    (output_base_proto
+    @ [
+        ( "pass_metadata",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Pass ffmpeg stream metadata to liquidsoap" );
+        ("", Graph.t, None, None);
+        ("", Audio.t, None, None);
+      ])
     (fun p ->
+      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -528,7 +574,7 @@ let () =
             }
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let s = new Ffmpeg_filter_io.audio_input ~bufferize kind in
+      let s = new Ffmpeg_filter_io.audio_input ~pass_metadata ~bufferize kind in
       Queue.add s#clock graph.clocks;
 
       let pad = Audio.of_value (Lang.assoc "" 2 p) in
@@ -549,7 +595,17 @@ let () =
 
   add_builtin ~cat:FFmpegFilter "ffmpeg.filter.video.input"
     ~descr:"Attach a video source to a filter's input"
-    [("", Graph.t, None, None); ("", video_t, None, None)] Video.t (fun p ->
+    [
+      ( "pass_metadata",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Pass liquidsoap's metadata to this stream" );
+      ("", Graph.t, None, None);
+      ("", video_t, None, None);
+    ]
+    Video.t
+    (fun p ->
+      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -571,7 +627,10 @@ let () =
       let name = uniq_name "buffer" in
       let pos = source_val.Lang.pos in
       let s =
-        try Ffmpeg_filter_io.(new video_output ~name ~kind source_val) with
+        try
+          Ffmpeg_filter_io.(
+            new video_output ~pass_metadata ~name ~kind source_val)
+        with
           | Source.Clock_conflict (a, b) ->
               raise (Lang_errors.Clock_conflict (pos, a, b))
           | Source.Clock_loop (a, b) ->
@@ -603,6 +662,10 @@ let () =
     ~descr:"Return a video source from a filter's output" ~return_t
     (output_base_proto
     @ [
+        ( "pass_metadata",
+          Lang.bool_t,
+          Some (Lang.bool false),
+          Some "Pass ffmpeg stream metadata to liquidsoap" );
         ( "fps",
           Lang.nullable_t Lang.int_t,
           Some Lang.null,
@@ -611,6 +674,7 @@ let () =
         ("", Video.t, None, None);
       ])
     (fun p ->
+      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -629,7 +693,9 @@ let () =
             }
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let s = new Ffmpeg_filter_io.video_input ~bufferize ~fps kind in
+      let s =
+        new Ffmpeg_filter_io.video_input ~pass_metadata ~bufferize ~fps kind
+      in
       Queue.add s#clock graph.clocks;
 
       Queue.add

@@ -164,11 +164,8 @@ val free_metadata : t -> int -> unit
 (** Remove all metadata. *)
 val free_all_metadata : t -> unit
 
-(** Retrieve all metadata, sorted with initial meta at position [-1] removed. *)
+(** Retrieve all metadata. *)
 val get_all_metadata : t -> (int * metadata) list
-
-(** Retrieve all metadata, untouched. *)
-val get_all_raw_metadata : t -> (int * metadata) list
 
 (** Set all metadata. *)
 val set_all_metadata : t -> (int * metadata) list -> unit

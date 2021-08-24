@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq
 
 %include "test.liq"
 
@@ -14,7 +14,13 @@ def astats(s) =
   ffmpeg.filter.create(mkfilter)
 end
 
-s = noise()
+s = chop(noise())
+
+def f(_) =
+  [("title", "test ffmpeg frame metadata")]
+end
+
+s = map_metadata(f, s)
 
 s = ffmpeg.raw.encode.audio(%ffmpeg(%audio.raw), s)
 
@@ -23,7 +29,7 @@ s = astats(s)
 s = ffmpeg.raw.decode.audio(s)
 
 def test(m) =
-  if list.mem_assoc("lavfi.astats.Overall.RMS_peak", m) then
+  if m["title"] == "test ffmpeg frame metadata" and list.assoc.mem("lavfi.astats.Overall.RMS_peak", m) then
     test.pass()
   end
 end
