@@ -201,8 +201,8 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.udp"
     ~descr:"Output encoded data to UDP, without any control whatsoever."
-    ~category:Lang.Output
-    ~flags:[Lang.Hidden; Lang.Deprecated; Lang.Experimental]
+    ~category:`Output
+    ~flags:[`Hidden; `Deprecated; `Experimental]
     (Output.proto
     @ [
         ("port", Lang.int_t, None, None);
@@ -246,8 +246,8 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.udp"
     ~descr:"Input encoded data from UDP, without any control whatsoever."
-    ~category:Lang.Input
-    ~flags:[Lang.Hidden; Lang.Deprecated; Lang.Experimental]
+    ~category:`Input
+    ~flags:[`Hidden; `Deprecated; `Experimental]
     [
       ("port", Lang.int_t, None, None);
       ("host", Lang.string_t, None, None);

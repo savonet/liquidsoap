@@ -126,7 +126,7 @@ let () =
           Some "Jack server to connect to." );
         ("", Lang.source_t k, None, None);
       ])
-    ~return_t:k ~category:Lang.Output ~descr:"Output stream to jack."
+    ~return_t:k ~category:`Output ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in

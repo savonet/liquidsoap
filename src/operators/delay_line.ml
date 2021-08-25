@@ -83,7 +83,7 @@ let () =
         Some "Duration of the delay in seconds." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
+    ~return_t:k ~category:`Audio
     ~descr:"Delay the audio signal by a given amount of time."
     (fun p ->
       let duration = Lang.assoc "" 1 p |> Lang.to_float_getter in

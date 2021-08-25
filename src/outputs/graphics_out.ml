@@ -53,7 +53,7 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.graphics"
     (Output.proto @ [("", Lang.source_t k, None, None)])
-    ~return_t:k ~category:Lang.Output
+    ~return_t:k ~category:`Output
     ~descr:"Display video stream using the Graphics library."
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in

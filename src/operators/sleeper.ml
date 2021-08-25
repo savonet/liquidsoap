@@ -70,8 +70,7 @@ let () =
     ]
     ~return_t:k
     ~descr:"Sleep at each frame. Useful for emulating network delays, etc."
-    ~category:Lang.SoundProcessing
-    ~flags:[Lang.Hidden; Lang.Experimental]
+    ~category:`Track ~flags:[`Hidden; `Experimental]
     (fun p ->
       let delay = Lang.to_float (List.assoc "delay" p) in
       let delay = AFrame.duration () *. delay in

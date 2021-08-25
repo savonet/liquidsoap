@@ -246,7 +246,7 @@ let extract p =
   (start_blank, max_blank, min_noise, threshold, ts, s)
 
 let () =
-  Lang.add_operator "blank.detect" ~return_t ~category:Lang.TrackProcessing
+  Lang.add_operator "blank.detect" ~return_t ~category:`Track
     ~meth:
       [
         ( "is_blank",
@@ -283,7 +283,7 @@ let () =
           "Indicate whether blank was detected.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
       ]
-    ~category:Lang.TrackProcessing
+    ~category:`Track
     ~descr:"Make the source unavailable when it is streaming blank." proto
     (fun p ->
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
@@ -292,7 +292,7 @@ let () =
       let kind = Source.Kind.of_kind kind in
       new strip
         ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s);
-  Lang.add_operator "blank.eat" ~return_t ~category:Lang.TrackProcessing
+  Lang.add_operator "blank.eat" ~return_t ~category:`Track
     ~meth:
       [
         ( "is_blank",

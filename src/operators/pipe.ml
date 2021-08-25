@@ -333,7 +333,7 @@ let () =
         Some "Restart process when exited with error." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.SoundProcessing
+    ~return_t ~category:`Audio
     ~descr:"Process audio signal through a given process stdin/stdout."
     (fun p ->
       let f v = List.assoc v p in

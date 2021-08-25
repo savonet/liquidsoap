@@ -20,14 +20,12 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () =
   Lang.add_module "thread";
   Lang.add_module "thread.run"
 
 let () =
-  add_builtin "thread.run.recurrent" ~cat:Control
+  Lang.add_builtin "thread.run.recurrent" ~category:`Liquidsoap
     [
       ( "fast",
         Lang.bool_t,
@@ -82,7 +80,7 @@ let () =
       ]
       Lang.unit_t
   in
-  add_builtin "thread.on_error" ~cat:Liq
+  Lang.add_builtin "thread.on_error" ~category:`Liquidsoap
     ~descr:
       "Register the function to be called when an error of the given kind is \
        raised in a thread. Catches all errors if first argument is `null`."
@@ -121,7 +119,7 @@ let () =
 
 let () =
   let t = Lang.univ_t () in
-  add_builtin "thread.mutexify" ~cat:Liq
+  Lang.add_builtin "thread.mutexify" ~category:`Liquidsoap
     ~descr:
       "Protect functions with a mutex in order to avoid concurrent calls. It \
        returns the original value when the argument is not a function."

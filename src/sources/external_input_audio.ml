@@ -91,7 +91,7 @@ let proto =
 let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.external.rawaudio" ~category:Lang.Input
+  Lang.add_operator "input.external.rawaudio" ~category:`Input
     ~descr:
       "Stream raw PCM data (interleaved signed 16 bits little endian integers) \
        from an external application."
@@ -135,7 +135,7 @@ let () =
 let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.external.wav" ~category:Lang.Input
+  Lang.add_operator "input.external.wav" ~category:`Input
     ~descr:"Stream WAV data from an external application." proto ~return_t
     (fun p ->
       let command = Lang.to_string (List.assoc "" p) in

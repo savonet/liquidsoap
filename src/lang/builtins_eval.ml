@@ -20,13 +20,10 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () =
-  add_builtin ~cat:Liq "eval"
+  Lang.add_builtin ~category:`Liquidsoap "eval"
     ~descr:"Evaluate a string as an expression in the toplevel environment."
-    ~flags:[Lang.Hidden] [("", Lang.string_t, None, None)] Lang.string_t
-    (fun p ->
+    ~flags:[`Hidden] [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
       let s = Lang.to_string (Lang.assoc "" 1 p) in
       match Runtime.eval s with
         | None -> Lang.string ""

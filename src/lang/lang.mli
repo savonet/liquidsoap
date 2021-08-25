@@ -108,18 +108,12 @@ val add_protocol :
 
 type proto = (string * t * value option * string option) list
 
-(** Some flags that can be attached to operators. *)
-type doc_flag =
-  | Hidden  (** Don't list the plugin in the documentation. *)
-  | Deprecated  (** The plugin should not be used. *)
-  | Experimental  (** The plugin should not considered as stable. *)
-  | Extra  (** Anything that is not part of the essential set of plugins. *)
-
 (** Add an builtin to the language, high-level version for functions. *)
 val add_builtin :
-  category:string ->
+  category:Documentation.category ->
   descr:string ->
-  ?flags:doc_flag list ->
+  ?flags:Documentation.flag list ->
+  ?meth:(string * Type.scheme * string * value) list ->
   string ->
   proto ->
   t ->
@@ -128,9 +122,9 @@ val add_builtin :
 
 (** Add an builtin to the language, more rudimentary version. *)
 val add_builtin_base :
-  category:string ->
+  category:Documentation.category ->
   descr:string ->
-  ?flags:doc_flag list ->
+  ?flags:Documentation.flag list ->
   string ->
   in_value ->
   t ->
@@ -138,26 +132,6 @@ val add_builtin_base :
 
 (** Declare a new module. *)
 val add_module : string -> unit
-
-(** Category of an operator. *)
-type category =
-  | Input  (** Input. *)
-  | Output  (** Output. *)
-  | Conversions  (** Conversions of stream type *)
-  | FFmpegFilter  (** FFmpeg filter *)
-  | TrackProcessing  (** Operations on tracks (e.g. mixing, etc.). *)
-  | SoundProcessing  (** Operations on sound (e.g. compression, etc.). *)
-  | VideoProcessing  (** Operations on video. *)
-  | MIDIProcessing  (** Operations on MIDI. *)
-  | Visualization  (** Visualizations of the sound. *)
-  | SoundSynthesis  (** Synthesis. *)
-  | Liquidsoap  (** Liquidsoap. *)
-
-(** Get a string representation of a[ category]. *)
-val string_of_category : category -> string
-
-(** Get a string representation of a [doc_flag]. *)
-val string_of_flag : doc_flag -> string
 
 val empty : Frame.content_kind
 val any : Frame.content_kind
@@ -186,9 +160,9 @@ type 'a operator_method = string * scheme * string * ('a -> value)
 
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
-  category:category ->
+  category:Documentation.source ->
   descr:string ->
-  ?flags:doc_flag list ->
+  ?flags:Documentation.flag list ->
   ?meth:(< Source.source ; .. > as 'a) operator_method list ->
   string ->
   proto ->

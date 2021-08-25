@@ -82,8 +82,7 @@ let () =
            dB`, but the spaces do not matter)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
-    ~descr:"Multiply the amplitude of the signal."
+    ~return_t:k ~category:`Audio ~descr:"Multiply the amplitude of the signal."
     (fun p ->
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 2 p) in

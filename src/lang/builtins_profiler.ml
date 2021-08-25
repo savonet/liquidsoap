@@ -20,25 +20,23 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () = Lang.add_module "profiler"
 
 let () =
-  add_builtin "profiler.enable" ~cat:Liq ~descr:"Record profiling statistics."
-    [] Lang.unit_t (fun _ ->
+  Lang.add_builtin "profiler.enable" ~category:`Liquidsoap
+    ~descr:"Record profiling statistics." [] Lang.unit_t (fun _ ->
       Term.profile := true;
       Lang.unit)
 
 let () =
-  add_builtin "profiler.disable" ~cat:Liq ~descr:"Record profiling statistics."
-    [] Lang.unit_t (fun _ ->
+  Lang.add_builtin "profiler.disable" ~category:`Liquidsoap
+    ~descr:"Record profiling statistics." [] Lang.unit_t (fun _ ->
       Term.profile := false;
       Lang.unit)
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "profiler.run" ~cat:Liq
+  Lang.add_builtin "profiler.run" ~category:`Liquidsoap
     ~descr:"Time a function with the profiler."
     [
       ("", Lang.string_t, None, Some "Name of the profiled function.");
@@ -53,5 +51,6 @@ let () =
 
 let () =
   Lang.add_module "profiler.stats";
-  add_builtin "profiler.stats.string" ~cat:Liq ~descr:"Profiling statistics." []
-    Lang.string_t (fun _ -> Lang.string (Profiler.stats ()))
+  Lang.add_builtin "profiler.stats.string" ~category:`Liquidsoap
+    ~descr:"Profiling statistics." [] Lang.string_t (fun _ ->
+      Lang.string (Profiler.stats ()))

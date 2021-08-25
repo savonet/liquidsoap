@@ -110,7 +110,7 @@ let () =
            filtered and 0. means only original signal)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
+    ~return_t:k ~category:`Audio
     ~descr:
       "Perform several kinds of filtering on the signal. Only frequencies \
        below the sampling rate / 4 (generally 10 kHz) are handled well for the \

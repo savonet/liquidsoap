@@ -20,11 +20,9 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () =
   let a = Lang.univ_t () in
-  add_builtin ~cat:Liq "getter" ~descr:"Create a getter."
+  Lang.add_builtin ~category:`Liquidsoap "getter" ~descr:"Create a getter."
     [
       ( "",
         Lang.getter_t a,
@@ -37,7 +35,7 @@ let () =
 let () =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  add_builtin ~cat:Liq "getter.case"
+  Lang.add_builtin ~category:`Liquidsoap "getter.case"
     ~descr:"Return a value depending on whether the getter is constant or not."
     [
       ("", Lang.getter_t a, None, Some "Getter to inspect.");
@@ -55,7 +53,8 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin ~cat:Liq "getter.get" ~descr:"Get the value of a getter."
+  Lang.add_builtin ~category:`Liquidsoap "getter.get"
+    ~descr:"Get the value of a getter."
     [("", Lang.getter_t a, None, None)]
     a
     (fun p ->
@@ -65,7 +64,8 @@ let () =
 let () =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  add_builtin ~cat:Liq "getter.map" ~descr:"Apply a function on a getter."
+  Lang.add_builtin ~category:`Liquidsoap "getter.map"
+    ~descr:"Apply a function on a getter."
     [
       ("", Lang.fun_t [(false, "", a)] b, None, Some "Function to apply.");
       ("", Lang.getter_t a, None, None);
@@ -82,7 +82,7 @@ let () =
 let () =
   let a = Lang.univ_t ~constraints:[Type.Ord] () in
   let b = Lang.univ_t () in
-  add_builtin ~cat:Liq "getter.map.memoize"
+  Lang.add_builtin ~category:`Liquidsoap "getter.map.memoize"
     ~descr:
       "Apply a function on a getter. If the input value has not changed \
        compared to last call, the previous result is returned without \

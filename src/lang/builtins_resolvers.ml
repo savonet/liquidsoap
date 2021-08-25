@@ -20,11 +20,9 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () =
   let resolver_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.metadata_t in
-  add_builtin "add_metadata_resolver" ~cat:Liq
+  Lang.add_builtin "add_metadata_resolver" ~category:`Liquidsoap
     ~descr:"Register an external file metadata decoder."
     [
       ("", Lang.string_t, None, Some "Format/resolver's name.");
@@ -56,7 +54,7 @@ let () =
       [(true, "pwd", Lang.string_t); (false, "", Lang.string_t)]
       playlist_t
   in
-  add_builtin "playlist.parse.register" ~cat:Liq
+  Lang.add_builtin "playlist.parse.register" ~category:`Liquidsoap
     ~descr:
       "Register a new playlist parser. An empty playlist is considered as a \
        failure to resolve."
@@ -105,7 +103,8 @@ let () =
       ]
       (Lang.list_t Lang.string_t)
   in
-  add_builtin "add_protocol" ~cat:Liq ~descr:"Register a new protocol."
+  Lang.add_builtin "add_protocol" ~category:`Liquidsoap
+    ~descr:"Register a new protocol."
     [
       ( "temporary",
         Lang.bool_t,

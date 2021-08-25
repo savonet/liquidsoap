@@ -136,7 +136,7 @@ let () =
            merge_tracks() if you need that too." );
       ("", Lang.list_t (Lang.source_t k), None, None);
     ]
-    ~category:Lang.TrackProcessing
+    ~category:`Track
     ~descr:
       "Play only one track of every successive source, except for the last one \
        which is played as much as available."
@@ -153,7 +153,7 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "merge_tracks"
     [("", Lang.source_t k, None, None)]
-    ~category:Lang.TrackProcessing
+    ~category:`Track
     ~descr:
       "Merge consecutive tracks from the input source. They will be considered \
        as one big track, so `on_track()` will not trigger for example."

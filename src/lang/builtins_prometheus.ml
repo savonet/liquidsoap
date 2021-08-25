@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Builtin
 open Prometheus
 
 let () = Lang.add_module "prometheus"
@@ -47,7 +46,7 @@ let register_t =
   Lang.fun_t [(false, "label_values", Lang.list_t Lang.string_t)] set_t
 
 let add_metric metric_name create register set =
-  add_builtin ("prometheus." ^ metric_name) ~cat:Interaction
+  Lang.add_builtin ("prometheus." ^ metric_name) ~category:`Interaction
     ~descr:("Register a prometheus " ^ metric_name) metric_proto register_t
     (fun p ->
       let help = Lang.to_string (List.assoc "help" p) in
@@ -200,7 +199,7 @@ let () =
       ]
       Lang.unit_t
   in
-  Builtin.add_builtin "prometheus.latency"
+  Lang.add_builtin "prometheus.latency"
     [
       ( "window",
         Lang.float_t,
@@ -212,7 +211,7 @@ let () =
         Some "Prefix for the metric's name" );
       ("labels", Lang.list_t Lang.string_t, None, Some "labels for the metric");
     ]
-    source_monitor_register_t ~cat:Builtin.Liq
+    source_monitor_register_t ~category:`Liquidsoap
     ~descr:"Monitor a source's internal latencies on Prometheus"
     (fun p ->
       let window = Lang.to_float (List.assoc "window" p) in

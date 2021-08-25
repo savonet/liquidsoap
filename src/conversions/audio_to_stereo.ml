@@ -64,7 +64,7 @@ let () =
   let output_type =
     Lang.frame_kind_t ~audio:(Lang.kind_t Frame.audio_stereo) ~video ~midi
   in
-  Lang.add_operator "audio_to_stereo" ~category:Lang.Conversions
+  Lang.add_operator "audio_to_stereo" ~category:`Conversion
     ~descr:"Convert any pcm audio source into a stereo source."
     ~return_t:output_type
     [("", Lang.source_t input_type, None, None)]

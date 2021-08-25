@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let log = Log.make ["process"]
 let () = Lang.add_module "process"
 
@@ -57,7 +55,7 @@ let () =
   in
   let env_t = Lang.product_t Lang.string_t Lang.string_t in
   let path_t = Lang.list_t Lang.string_t in
-  add_builtin "process.run" ~cat:Sys
+  Lang.add_builtin "process.run" ~category:`System
     ~descr:
       "Run a process in a shell environment. Returns the standard output, as \
        well as standard error and status as methods. The status can be \

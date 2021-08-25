@@ -457,7 +457,7 @@ let mk_encoder mode =
   let name = "ffmpeg." ^ extension in
   let proto = [("", Lang.source_t source_t, None, None)] in
   Lang.add_operator ("ffmpeg." ^ extension) proto ~return_t
-    ~category:Lang.Conversions ~descr:"Convert a source's content" (fun p ->
+    ~category:`Conversion ~descr:"Convert a source's content" (fun p ->
       let id =
         Lang.to_default_option ~default:name Lang.to_string (List.assoc "id" p)
       in

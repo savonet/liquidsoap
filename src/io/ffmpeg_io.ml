@@ -270,7 +270,7 @@ let register_input is_http =
     if is_http then ("input.http", "Create a http stream using ffmpeg")
     else ("input.ffmpeg", "Create a stream using ffmpeg")
   in
-  Lang.add_operator name ~descr ~category:Lang.Input
+  Lang.add_operator name ~descr ~category:`Input
     (Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
     @ (if is_http then
        [

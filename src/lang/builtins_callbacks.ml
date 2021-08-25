@@ -20,10 +20,8 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () =
-  add_builtin "on_shutdown" ~cat:Sys
+  Lang.add_builtin "on_shutdown" ~category:`System
     [("", Lang.fun_t [] Lang.unit_t, None, None)]
     Lang.unit_t
     ~descr:"Register a function to be called when Liquidsoap shuts down."
@@ -33,7 +31,7 @@ let () =
       Lang.unit)
 
 let () =
-  add_builtin "on_start" ~cat:Sys
+  Lang.add_builtin "on_start" ~category:`System
     [("", Lang.fun_t [] Lang.unit_t, None, None)]
     Lang.unit_t
     ~descr:"Register a function to be called when Liquidsoap starts."

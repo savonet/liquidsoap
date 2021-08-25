@@ -456,7 +456,7 @@ let mk_encoder mode =
       ("", Lang.source_t source_t, None, None);
     ]
   in
-  Lang.add_operator name proto ~return_t ~category:Lang.Conversions
+  Lang.add_operator name proto ~return_t ~category:`Conversion
     ~descr:"Convert a source's content" (fun p ->
       let id =
         Lang.to_default_option ~default:name Lang.to_string (List.assoc "id" p)

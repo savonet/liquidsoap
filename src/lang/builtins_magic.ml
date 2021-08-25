@@ -20,10 +20,8 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () =
-  add_builtin "file.mime" ~cat:Liq (* TODO bad category *)
+  Lang.add_builtin "file.mime" ~category:`File
     ~descr:"Get the MIME type of a file, according to libmagic."
     [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
       (* TODO is that really impossible ? *)

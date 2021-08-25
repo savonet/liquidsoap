@@ -20,11 +20,9 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () =
   let t = ("", Lang.int_t, None, None) in
-  add_builtin "time_in_mod" ~cat:Other ~flags:[Lang.Hidden]
+  Lang.add_builtin "time_in_mod" ~category:`Liquidsoap ~flags:[`Hidden]
     ~descr:
       ("INTERNAL: time_in_mod(a,b,c) checks that the unix time T "
      ^ "satisfies a <= T mod c < b") [t; t; t] Lang.bool_t (fun p ->
@@ -42,13 +40,13 @@ let () =
         | _ -> assert false)
 
 let () =
-  add_builtin ~cat:Sys "time"
+  Lang.add_builtin ~category:`System "time"
     ~descr:
       "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds." []
     Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()))
 
 let () =
-  add_builtin ~cat:Sys "time.up"
+  Lang.add_builtin ~category:`System "time.up"
     ~descr:"Current time, in seconds, since the script has started." []
     Lang.float_t (fun _ -> Lang.float (Utils.uptime ()))
 
@@ -93,13 +91,13 @@ let () =
        struct`. In particular, \"year\" is: year - 1900, i.e. 117 for 2017!"
       tz
   in
-  add_builtin ~cat:Sys "time.local" ~descr:(descr "local")
+  Lang.add_builtin ~category:`System "time.local" ~descr:(descr "local")
     [("", Lang.nullable_t Lang.float_t, Some Lang.null, None)]
     time_t
     (fun p ->
       let t = nullable_time (List.assoc "" p) in
       return (Unix.localtime t));
-  add_builtin ~cat:Sys "time.utc" ~descr:(descr "UTC")
+  Lang.add_builtin ~category:`System "time.utc" ~descr:(descr "UTC")
     [("", Lang.nullable_t Lang.float_t, Some Lang.null, None)]
     time_t
     (fun p ->

@@ -99,8 +99,7 @@ let () =
            filtered and 0. means only original signal)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
-    ~descr:"First-order filter (RC filter)."
+    ~return_t:k ~category:`Audio ~descr:"First-order filter (RC filter)."
     (fun p ->
       let f v = List.assoc v p in
       let freq, wet, mode, src =

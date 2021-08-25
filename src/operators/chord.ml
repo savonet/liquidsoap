@@ -128,7 +128,7 @@ let () =
         Some "Name of the metadata containing the chords." );
       ("", Lang.source_t in_k, None, None);
     ]
-    ~return_t:out_k ~category:Lang.MIDIProcessing ~descr:"Generate a chord."
+    ~return_t:out_k ~category:`MIDI ~descr:"Generate a chord."
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in

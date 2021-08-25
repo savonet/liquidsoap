@@ -1,4 +1,3 @@
-(* -*- mode: tuareg; -*- *)
 (*****************************************************************************
 
     Liquidsoap, a programmable audio stream generator.
@@ -21,10 +20,8 @@
 
   *****************************************************************************)
 
-open Builtin
-
 let () =
-  add_builtin "server.register" ~cat:Interaction
+  Lang.add_builtin "server.register" ~category:`Interaction
     ~descr:
       "Register a command. You can then execute this function through the \
        server, either telnet or socket."
@@ -72,7 +69,7 @@ let () =
       Lang.unit)
 
 let () =
-  add_builtin "server.register_operator" ~cat:Interaction
+  Lang.add_builtin "server.register_operator" ~category:`Interaction
     ~descr:
       "Register an operator. This is mainly used to populate the `list` \
        command on the telnet server."

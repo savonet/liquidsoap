@@ -347,7 +347,7 @@ let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
   let pred_t = Lang.fun_t [] Lang.bool_t in
-  Lang.add_operator "switch" ~category:Lang.TrackProcessing
+  Lang.add_operator "switch" ~category:`Track
     ~descr:
       "At the beginning of a track, select the first source whose predicate is \
        true."

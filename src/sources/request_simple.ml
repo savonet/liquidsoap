@@ -26,7 +26,7 @@ open Request_source
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "request.once" ~category:Lang.Input
+  Lang.add_operator "request.once" ~category:`Input
     ~descr:"Play a request once and become unavailable."
     [
       ( "timeout",
@@ -96,18 +96,17 @@ let log = Log.make ["single"]
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "single" ~category:Lang.Input
+  Lang.add_operator "single" ~category:`Input
     ~descr:
       "Loop on a request. It never fails if the request is static, meaning \
        that it can be fetched once. Typically, http, ftp, say requests are \
        static, and time is not."
     (("", Lang.string_t, None, Some "URI where to find the file")
-     ::
-     ( "fallible",
-       Lang.bool_t,
-       Some (Lang.bool false),
-       Some "Enforce fallibility of the request." )
-     :: queued_proto)
+    :: ( "fallible",
+         Lang.bool_t,
+         Some (Lang.bool false),
+         Some "Enforce fallibility of the request." )
+    :: queued_proto)
     ~return_t
     (fun p ->
       let val_uri = List.assoc "" p in
@@ -123,8 +122,7 @@ let () =
 let () =
   let kind = Lang.any in
   let t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "single.infallible" ~category:Lang.Input
-    ~flags:[Lang.Hidden]
+  Lang.add_operator "single.infallible" ~category:`Input ~flags:[`Hidden]
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
        WARNING: if used uncarefully, it can crash your application!"
@@ -186,24 +184,22 @@ let () =
   let log = Log.make ["request"; "dynamic"] in
   let kind = Lang.any in
   let t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "request.dynamic.list" ~category:Lang.Input
+  Lang.add_operator "request.dynamic.list" ~category:`Input
     ~descr:"Play request dynamically created by a given function."
     (("", Lang.fun_t [] (Lang.list_t Lang.request_t), None, None)
-     ::
-     ( "retry_delay",
-       Lang.getter_t Lang.float_t,
-       Some (Lang.float 0.1),
-       Some
-         "Retry after a given time (in seconds) when callback returns an empty \
-          list." )
-     ::
-     ( "available",
-       Lang.getter_t Lang.bool_t,
-       Some (Lang.bool true),
-       Some
-         "Whether some new requests are available (when set to false, it stops \
-          after current playing request)." )
-     :: queued_proto)
+    :: ( "retry_delay",
+         Lang.getter_t Lang.float_t,
+         Some (Lang.float 0.1),
+         Some
+           "Retry after a given time (in seconds) when callback returns an \
+            empty list." )
+    :: ( "available",
+         Lang.getter_t Lang.bool_t,
+         Some (Lang.bool true),
+         Some
+           "Whether some new requests are available (when set to false, it \
+            stops after current playing request)." )
+    :: queued_proto)
     ~meth:
       [
         ( "fetch",

@@ -20,11 +20,10 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () =
   let a = Lang.univ_t () in
-  add_builtin "null" ~cat:Liq ~descr:"Create a nullable value."
+  Lang.add_builtin "null" ~category:`Liquidsoap
+    ~descr:"Create a nullable value."
     [("", Lang.nullable_t a, Some Lang.null, Some "Value to make nullable.")]
     (Lang.nullable_t a)
     (fun p ->
@@ -35,7 +34,7 @@ let () =
 let () =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  add_builtin "null.case" ~cat:Liq
+  Lang.add_builtin "null.case" ~category:`Liquidsoap
     ~descr:"Return a result dending on whether a value is nothing or not."
     [
       ("", Lang.nullable_t a, None, Some "Value to reason by case analysis on.");
@@ -57,7 +56,7 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "null.default" ~cat:Liq
+  Lang.add_builtin "null.default" ~category:`Liquidsoap
     ~descr:"Return a result dending on whether a value is nothing or not."
     [
       ("", Lang.nullable_t a, None, Some "Value to reason by case analysis on.");

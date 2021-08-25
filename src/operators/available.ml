@@ -67,7 +67,7 @@ let () =
           "Predicate indicating whether the source should be available or not."
       );
     ]
-    ~category:Lang.TrackProcessing
+    ~category:`Track
     ~descr:"Change the availability of a source depending on a predicate."
     ~return_t
     (fun p ->

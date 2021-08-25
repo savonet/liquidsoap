@@ -291,7 +291,7 @@ module Make (Harbor : T) = struct
             fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd)
           );
         ]
-      ~category:Lang.Input ~descr:Harbor.source_description
+      ~category:`Input ~descr:Harbor.source_description
       [
         ( "buffer",
           Lang.float_t,

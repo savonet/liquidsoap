@@ -21,8 +21,6 @@
 
   *****************************************************************************)
 
-open Builtin
-
 module type T = sig
   include Harbor.T
 
@@ -35,9 +33,9 @@ module Make (Harbor : T) = struct
   let () = Lang.add_module ("harbor." ^ Harbor.name)
 
   let () =
-    Builtin.add_builtin
+    Lang.add_builtin
       ("harbor." ^ Harbor.name ^ ".register")
-      ~cat:Liq
+      ~category:`Liquidsoap
       ~descr:
         (Printf.sprintf
            "Register a %s handler on the harbor. The given function receives \
@@ -109,9 +107,9 @@ module Make (Harbor : T) = struct
         Lang.unit)
 
   let () =
-    Builtin.add_builtin
+    Lang.add_builtin
       ("harbor." ^ Harbor.name ^ ".remove")
-      ~cat:Liq
+      ~category:`Liquidsoap
       ~descr:
         (Printf.sprintf "Remove a registered %s handler on the harbor." name_up)
       [

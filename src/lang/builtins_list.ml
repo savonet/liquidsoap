@@ -20,13 +20,11 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () = Lang.add_module "list"
 
 let () =
   let a = Lang.univ_t ~constraints:[Type.Ord] () in
-  add_builtin "_[_]" ~cat:List
+  Lang.add_builtin "_[_]" ~category:`List
     ~descr:
       "l[k] returns the first v such that (k,v) is in the list l (or \"\" if \
        no such v exists)."
@@ -49,7 +47,7 @@ let () =
 let () =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  Lang.add_builtin "list.case" ~category:(string_of_category List)
+  Lang.add_builtin "list.case" ~category:`List
     ~descr:
       "Define a function by case analysis, depending on whether a list is \
        empty or not."
@@ -75,7 +73,7 @@ let () =
 let () =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  Lang.add_builtin "list.ind" ~category:(string_of_category List)
+  Lang.add_builtin "list.ind" ~category:`List
     ~descr:
       "Define a function by induction on a list. This is slightly more \
        efficient than defining a recursive function. The list is scanned from \
@@ -110,7 +108,7 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  Lang.add_builtin "list.add" ~category:(string_of_category List)
+  Lang.add_builtin "list.add" ~category:`List
     ~descr:"Add an element at the top of a list."
     [("", a, None, None); ("", Lang.list_t a, None, None)]
     (Lang.list_t a)
@@ -123,7 +121,7 @@ let () =
 
 let () =
   let t = Lang.list_t (Lang.univ_t ()) in
-  Lang.add_builtin "list.randomize" ~category:(string_of_category List)
+  Lang.add_builtin "list.randomize" ~category:`List
     ~descr:"Shuffle the content of a list." [("", t, None, None)] t (fun p ->
       let l = Array.of_list (Lang.to_list (List.assoc "" p)) in
       Utils.randomize l;
@@ -131,7 +129,7 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "list.sort" ~cat:List
+  Lang.add_builtin "list.sort" ~category:`List
     ~descr:"Sort a list according to a comparison function."
     [
       ( "",

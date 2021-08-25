@@ -21,16 +21,15 @@
  *****************************************************************************)
 
 open Extralib
-open Builtin
 
 let () =
-  Lang.add_builtin_base ~category:(string_of_category Liq)
+  Lang.add_builtin_base ~category:`Liquidsoap
     ~descr:"Liquidsoap version string." "liquidsoap.version"
     Lang.(Ground (Ground.String Configure.version))
     Lang.string_t;
   List.iter
     (fun (name, kind, str) ->
-      Lang.add_builtin_base ~category:(string_of_category Liq)
+      Lang.add_builtin_base ~category:`Liquidsoap
         ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
         ("configure." ^ name)
         Lang.(Ground (Ground.String str))
@@ -44,21 +43,20 @@ let () =
     ]
 
 let () =
-  Lang.add_builtin_base "liquidsoap.executable"
-    ~category:(string_of_category Liq)
+  Lang.add_builtin_base "liquidsoap.executable" ~category:`Liquidsoap
     ~descr:"Path to the Liquidsoap executable."
     Lang.(Ground (Ground.String Sys.executable_name))
     Lang.string_t
 
 let () =
-  Lang.add_builtin_base ~category:(string_of_category Sys)
+  Lang.add_builtin_base ~category:`System
     ~descr:"Type of OS running liquidsoap." "os.type"
     Lang.(Ground (Ground.String Sys.os_type))
     Lang.string_t
 
 let () =
-  Lang.add_builtin_base ~category:(string_of_category Sys)
-    ~descr:"Executable file extension." "exe_ext"
+  Lang.add_builtin_base ~category:`System ~descr:"Executable file extension."
+    "exe_ext"
     Lang.(Ground (Ground.String Configure.exe_ext))
     Lang.string_t
 
@@ -68,7 +66,7 @@ let log = Lang.log
 
 let () =
   let kind = Lang.univ_t () in
-  add_builtin ~cat:Liq "encoder.content_type"
+  Lang.add_builtin ~category:`Liquidsoap "encoder.content_type"
     ~descr:"Return the content-type (mime) of an encoder, if known."
     [("", Lang.format_t kind, None, None)]
     Lang.string_t
@@ -78,7 +76,7 @@ let () =
 
 let () =
   let kind = Lang.univ_t () in
-  add_builtin ~cat:Liq "encoder.extension"
+  Lang.add_builtin ~category:`Liquidsoap "encoder.extension"
     ~descr:"Return the file extension of an encoder, if known."
     [("", Lang.format_t kind, None, None)]
     Lang.string_t
@@ -132,7 +130,7 @@ let () =
             sources;
           Lang.unit
   in
-  add_builtin "clock.assign_new" ~cat:Liq
+  Lang.add_builtin "clock.assign_new" ~category:`Liquidsoap
     ~descr:"Create a new clock and assign it to a list of sources."
     (proto
     @ [
@@ -149,7 +147,7 @@ let () =
       assign id sync l)
 
 let () =
-  add_builtin "clock.unify" ~cat:Liq
+  Lang.add_builtin "clock.unify" ~category:`Liquidsoap
     ~descr:"Enforce that a list of sources all belong to the same clock."
     [("", Lang.list_t (Lang.source_t (Lang.univ_t ())), None, None)]
     Lang.unit_t
@@ -169,7 +167,7 @@ let () =
 
 let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
-  add_builtin "clock.status" ~cat:Liq
+  Lang.add_builtin "clock.status" ~category:`Liquidsoap
     ~descr:"Get the current time (in ticks) for all allocated clocks." []
     (Lang.list_t t) (fun _ ->
       let l =
@@ -204,7 +202,7 @@ let () =
          decodable audio channels." )
   in
   let test_f f file = Lang.to_int (Lang.apply f [("", Lang.string file)]) in
-  add_builtin "add_decoder" ~cat:Liq
+  Lang.add_builtin "add_decoder" ~category:`Liquidsoap
     ~descr:
       "Register an external decoder. The encoder should output in WAV format \
        to his standard output (stdout) and read data from its standard input \
@@ -250,7 +248,7 @@ let () =
       Lang.unit);
 
   let process_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t in
-  add_builtin "add_oblivious_decoder" ~cat:Liq
+  Lang.add_builtin "add_oblivious_decoder" ~category:`Liquidsoap
     ~descr:
       "Register an external file decoder. The encoder should output in WAV \
        format to his standard output (stdout) and read data from the file it \
@@ -308,8 +306,9 @@ let () =
       Lang.unit)
 
 let () =
-  add_builtin "metadata.export" ~cat:Liq ~descr:"Filter-out internal metadata."
-    [("", Lang.metadata_t, None, None)] Lang.metadata_t (fun p ->
+  Lang.add_builtin "metadata.export" ~category:`Liquidsoap
+    ~descr:"Filter-out internal metadata." [("", Lang.metadata_t, None, None)]
+    Lang.metadata_t (fun p ->
       Lang.metadata
         (Meta_format.to_metadata
            (Meta_format.export_metadata (Lang.to_metadata (List.assoc "" p)))))
@@ -319,11 +318,13 @@ let () =
 let () =
   let t1 = Lang.univ_t () in
   let t2 = Lang.univ_t () in
-  add_builtin "fst" ~cat:Pair ~descr:"Get the first component of a pair."
+  Lang.add_builtin "fst" ~category:`Liquidsoap
+    ~descr:"Get the first component of a pair."
     [("", Lang.product_t t1 t2, None, None)]
     t1
     (fun p -> fst (Lang.to_product (Lang.assoc "" 1 p)));
-  add_builtin "snd" ~cat:Pair ~descr:"Get the second component of a pair."
+  Lang.add_builtin "snd" ~category:`Liquidsoap
+    ~descr:"Get the second component of a pair."
     [("", Lang.product_t t1 t2, None, None)]
     t2
     (fun p -> snd (Lang.to_product (Lang.assoc "" 1 p)))
@@ -332,7 +333,7 @@ let () =
 
 let () =
   let descr = "Execute a liquidsoap server command." in
-  let cat = Liq in
+  let category = `Liquidsoap in
   let params =
     [
       ("", Lang.string_t, None, Some "Command to execute.");
@@ -350,13 +351,12 @@ let () =
     let r = try Server.exec s with Not_found -> "Command not found!" in
     Lang.list (List.map Lang.string (Pcre.split ~pat:"\r?\n" r))
   in
-  add_builtin "server.execute" ~cat ~descr params return_t execute
+  Lang.add_builtin "server.execute" ~category ~descr params return_t execute
 
 let () =
   let t = Lang.univ_t () in
-  Lang.add_builtin "if"
-    ~category:(string_of_category Control)
-    ~descr:"The basic conditional." ~flags:[Lang.Hidden]
+  Lang.add_builtin "if" ~category:`Control ~descr:"The basic conditional."
+    ~flags:[`Hidden]
     [
       ("", Lang.bool_t, None, None);
       ("then", Lang.fun_t [] t, None, None);
@@ -371,7 +371,8 @@ let () =
       Lang.apply (if c then fy else fn) [])
 
 let () =
-  add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application."
+  Lang.add_builtin "shutdown" ~category:`System
+    ~descr:"Shutdown the application."
     [("code", Lang.int_t, Some (Lang.int 0), Some "Exit code. Default: `0`")]
     Lang.unit_t
     (fun p ->
@@ -379,12 +380,12 @@ let () =
       let code = Lang.to_int (List.assoc "code" p) in
       Tutils.shutdown code;
       Lang.unit);
-  add_builtin "restart" ~cat:Sys ~descr:"Restart the application." []
-    Lang.unit_t (fun _ ->
+  Lang.add_builtin "restart" ~category:`System ~descr:"Restart the application."
+    [] Lang.unit_t (fun _ ->
       Configure.restart := true;
       Tutils.shutdown 0;
       Lang.unit);
-  add_builtin "exit" ~cat:Sys
+  Lang.add_builtin "exit" ~category:`System
     ~descr:
       "Immediately stop the application. This should only be used in extreme \
        cases or to specify an exit value. The recommended way of stopping \
@@ -394,7 +395,7 @@ let () =
       exit n)
 
 let () =
-  add_builtin "sleep" ~cat:Sys
+  Lang.add_builtin "sleep" ~category:`System
     ~descr:
       "Sleep for a given amount of seconds (beware that it freezes the thread \
        executing it)."
@@ -407,8 +408,8 @@ let () =
 
 let () =
   let reopen name descr f =
-    add_builtin name ~cat:Sys ~descr [("", Lang.string_t, None, None)]
-      Lang.unit_t (fun p ->
+    Lang.add_builtin name ~category:`System ~descr
+      [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
         let file = Lang.to_string (List.assoc "" p) in
         f file;
         Lang.unit)
@@ -421,27 +422,27 @@ let () =
     (Utils.reopen_out stderr)
 
 let () =
-  add_builtin "garbage_collect" ~cat:Liq
+  Lang.add_builtin "garbage_collect" ~category:`Liquidsoap
     ~descr:"Trigger full major garbage collection." [] Lang.unit_t (fun _ ->
       Gc.full_major ();
       Lang.unit)
 
 let () =
-  add_builtin "getpid" ~cat:Sys [] Lang.int_t ~descr:"Get the process' pid."
-    (fun _ -> Lang.int (Unix.getpid ()))
+  Lang.add_builtin "getpid" ~category:`System [] Lang.int_t
+    ~descr:"Get the process' pid." (fun _ -> Lang.int (Unix.getpid ()))
 
 let () =
   let ss = Lang.product_t Lang.string_t Lang.string_t in
   let ret_t = Lang.list_t ss in
-  add_builtin "environment" ~cat:Sys ~descr:"Return the process environment." []
-    ret_t (fun _ ->
+  Lang.add_builtin "environment" ~category:`System
+    ~descr:"Return the process environment." [] ret_t (fun _ ->
       let l = Utils.environment () in
       let l = List.map (fun (x, y) -> (Lang.string x, Lang.string y)) l in
       let l = List.map (fun (x, y) -> Lang.product x y) l in
       Lang.list l)
 
 let () =
-  add_builtin "setenv" ~cat:Sys
+  Lang.add_builtin "setenv" ~category:`System
     ~descr:"Set the value associated to a variable in the process environment."
     [
       ("", Lang.string_t, None, Some "Variable to be set.");
@@ -453,7 +454,7 @@ let () =
       Lang.unit)
 
 let () =
-  add_builtin "log" ~cat:Liq ~descr:"Log a message."
+  Lang.add_builtin "log" ~category:`Liquidsoap ~descr:"Log a message."
     [
       ("label", Lang.string_t, Some (Lang.string "lang"), None);
       ("level", Lang.int_t, Some (Lang.int 3), None);
@@ -482,7 +483,7 @@ let () =
   let opts =
     ref (Array.to_list (Array.sub argv offset (Array.length argv - offset)))
   in
-  add_builtin "getopt" ~cat:Sys
+  Lang.add_builtin "getopt" ~category:`System
     [
       ("default", Lang.string_t, Some (Lang.string ""), None);
       ("", Lang.string_t, None, None);
@@ -517,7 +518,7 @@ let () =
         opts := l;
         Lang.string v));
 
-  add_builtin "argv" ~cat:Sys
+  Lang.add_builtin "argv" ~category:`System
     ~descr:
       "Get command-line parameters. The parameters are numbered starting from \
        1, the zeroth parameter being the script name."
@@ -539,14 +540,14 @@ let () =
       else Lang.string default)
 
 let () =
-  add_builtin "ignore" ~descr:"Convert anything to unit, preventing warnings."
-    ~cat:Control
+  Lang.add_builtin "ignore"
+    ~descr:"Convert anything to unit, preventing warnings." ~category:`Control
     [("", Lang.univ_t (), None, None)]
     Lang.unit_t
     (fun _ -> Lang.unit)
 
 let () =
-  add_builtin "playlist.parse" ~cat:Liq
+  Lang.add_builtin "playlist.parse" ~category:`Liquidsoap
     [
       ( "path",
         Lang.string_t,
@@ -594,13 +595,14 @@ let () =
 (** Sound utils. *)
 
 let () =
-  add_builtin "seconds_of_main" ~cat:Liq
+  Lang.add_builtin "seconds_of_main" ~category:`Liquidsoap
     ~descr:"Convert a number of main ticks in seconds."
     [("", Lang.int_t, None, None)] Lang.float_t (fun p ->
       Lang.float (Frame.seconds_of_main (Lang.to_int (List.assoc "" p))))
 
 let () =
-  add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."
+  Lang.add_builtin "print" ~category:`Interaction
+    ~descr:"Print on standard output."
     [
       ( "newline",
         Lang.bool_t,
@@ -625,7 +627,7 @@ let () =
 (** Loops. *)
 
 let () =
-  add_builtin "while" ~cat:Liq ~descr:"A while loop."
+  Lang.add_builtin "while" ~category:`Liquidsoap ~descr:"A while loop."
     [
       ("", Lang.getter_t Lang.bool_t, None, Some "Condition guarding the loop.");
       ("", Lang.fun_t [] Lang.unit_t, None, Some "Function to execute.");
@@ -641,7 +643,8 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "for" ~cat:Liq ~descr:"A for loop." ~flags:[Lang.Hidden]
+  Lang.add_builtin "for" ~category:`Liquidsoap ~descr:"A for loop."
+    ~flags:[`Hidden]
     [
       ("", Lang.fun_t [] (Lang.nullable_t a), None, Some "Values to iterate on.");
       ( "",
@@ -663,8 +666,8 @@ let () =
       aux ())
 
 let () =
-  add_builtin "iterator.int" ~cat:Liq ~descr:"Iterator on integers."
-    ~flags:[Lang.Hidden]
+  Lang.add_builtin "iterator.int" ~category:`Liquidsoap
+    ~descr:"Iterator on integers." ~flags:[`Hidden]
     [
       ("", Lang.int_t, None, Some "First value.");
       ("", Lang.int_t, None, Some "Last value (included).");

@@ -642,7 +642,7 @@ module Make (T : T) = struct
   let () =
     let kind = Lang.any in
     let return_t = Lang.kind_type_of_kind_format kind in
-    Lang.add_operator ~category:Lang.Output ~descr:T.source_description
+    Lang.add_operator ~category:`Output ~descr:T.source_description
       ~meth:Output.meth T.source_name (proto return_t) ~return_t (fun p ->
         let format_val = Lang.assoc "" 1 p in
         let format = Lang.to_format format_val in

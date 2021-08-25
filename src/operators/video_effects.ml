@@ -49,8 +49,7 @@ let () =
   let name = "video.greyscale" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
-    ~return_t ~category:Lang.VideoProcessing
-    ~descr:"Convert video to greyscale."
+    ~return_t ~category:`Video ~descr:"Convert video to greyscale."
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
@@ -61,7 +60,7 @@ let () =
   let name = "video.sepia" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
-    ~return_t ~category:Lang.VideoProcessing ~descr:"Convert video to sepia."
+    ~return_t ~category:`Video ~descr:"Convert video to sepia."
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
@@ -72,7 +71,7 @@ let () =
   let name = "video.invert" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
-    ~return_t ~category:Lang.VideoProcessing ~descr:"Invert video."
+    ~return_t ~category:`Video ~descr:"Invert video."
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
@@ -89,7 +88,7 @@ let () =
         Some "Coefficient to scale opacity with." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.VideoProcessing ~descr:"Scale opacity of video."
+    ~return_t ~category:`Video ~descr:"Scale opacity of video."
     (fun p ->
       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
@@ -109,7 +108,7 @@ let () =
         Some "Color to fill the image with (0xRRGGBB)." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.VideoProcessing ~descr:"Fill frame with a color."
+    ~return_t ~category:`Video ~descr:"Fill frame with a color."
     (fun p ->
       let f v = List.assoc v p in
       let color = Lang.to_int_getter (f "color") in
@@ -132,7 +131,7 @@ let () =
       "", Lang.source_t kind, None, None
     ]
     ~return_t
-    ~category:Lang.VideoProcessing
+    ~category:`Video
     ~descr:"Blur opacity of video."
     (fun p ->
        let src = Lang.to_source (Lang.assoc "" 1 p) in
@@ -142,7 +141,7 @@ let () =
   Lang.add_operator "video.lomo"
     [ "", Lang.source_t kind, None, None ]
     ~return_t
-    ~category:Lang.VideoProcessing
+    ~category:`Video
     ~descr:"Emulate the \"Lomo effect\"."
     (fun p ->
        let f v = List.assoc v p in
@@ -163,7 +162,7 @@ let () =
       "", Lang.source_t kind, None, None
     ]
     ~return_t
-    ~category:Lang.VideoProcessing
+    ~category:`Video
     ~descr:"Set a color to be transparent."
     (fun p ->
        let f v = List.assoc v p in
@@ -189,7 +188,7 @@ let () =
       "", Lang.source_t kind, None, None
     ]
     ~return_t
-    ~category:Lang.VideoProcessing
+    ~category:`Video
     ~descr:"Rotate video."
     (fun p ->
       let f v = List.assoc v p in
@@ -233,8 +232,7 @@ let () =
       ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.VideoProcessing
-    ~descr:"Resize and translate video."
+    ~return_t ~category:`Video ~descr:"Resize and translate video."
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
@@ -277,7 +275,7 @@ let () =
       ("alpha", Lang.getter_t Lang.float_t, None, Some "alpha value.");
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.VideoProcessing
+    ~return_t ~category:`Video
     ~descr:"Set alpha value on a given box inside the image."
     (fun p ->
       let f v = List.assoc v p in
@@ -315,7 +313,7 @@ let () =
       ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.VideoProcessing ~descr:"Scale and translate video."
+    ~return_t ~category:`Video ~descr:"Scale and translate video."
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in

@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Builtin
-
 let () =
   Lang.add_module "ffmpeg.filter";
   Lang.add_module "ffmpeg.filter.audio";
@@ -383,8 +381,8 @@ let () =
           Printf.sprintf "Ffmpeg filter: %s%s" description
             (if explanation <> "" then " " ^ explanation else "")
         in
-        add_builtin ~cat:FFmpegFilter ("ffmpeg.filter." ^ name) ~descr
-          ~flags:[Lang.Extra] input_t output_t
+        Lang.add_builtin ~category:`Filter ("ffmpeg.filter." ^ name) ~descr
+          ~flags:[`Extra] input_t output_t
           (apply_filter ~args_parser ~filter))
       filters)
 
@@ -482,7 +480,7 @@ let () =
     ]
   in
 
-  add_builtin ~cat:FFmpegFilter "ffmpeg.filter.audio.input"
+  Lang.add_builtin ~category:`Filter "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
     [
       ( "pass_metadata",
@@ -546,7 +544,7 @@ let () =
 
   let return_kind = Frame.{ audio_frame with video = none; midi = none } in
   let return_t = Lang.kind_type_of_kind_format return_kind in
-  Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.FFmpegFilter
+  Lang.add_operator "ffmpeg.filter.audio.output" ~category:`Audio
     ~descr:"Return an audio source from a filter's output" ~return_t
     (output_base_proto
     @ [
@@ -592,7 +590,7 @@ let () =
 
       (s :> Source.source));
 
-  add_builtin ~cat:FFmpegFilter "ffmpeg.filter.video.input"
+  Lang.add_builtin ~category:`Filter "ffmpeg.filter.video.input"
     ~descr:"Attach a video source to a filter's input"
     [
       ( "pass_metadata",
@@ -656,7 +654,7 @@ let () =
 
   let return_kind = Frame.{ video_frame with audio = none; midi = none } in
   let return_t = Lang.kind_type_of_kind_format return_kind in
-  Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.FFmpegFilter
+  Lang.add_operator "ffmpeg.filter.video.output" ~category:`Video
     ~descr:"Return a video source from a filter's output" ~return_t
     (output_base_proto
     @ [
@@ -727,7 +725,7 @@ let () =
 
 let () =
   let univ_t = Lang.univ_t () in
-  add_builtin "ffmpeg.filter.create" ~cat:FFmpegFilter
+  Lang.add_builtin "ffmpeg.filter.create" ~category:`Filter
     ~descr:"Configure and launch a filter graph"
     [("", Lang.fun_t [(false, "", Graph.t)] univ_t, None, None)]
     univ_t

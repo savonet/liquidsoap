@@ -67,17 +67,11 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
   let size = float nbands in
   object (self)
     inherit operator ~name:"dtmf" kind [source] as super
-
     method stype = source#stype
-
     method remaining = source#remaining
-
     method seek = source#seek
-
     method is_ready = source#is_ready
-
     method abort_track = source#abort_track
-
     method self_sync = source#self_sync
 
     val bands =
@@ -98,9 +92,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
       List.map band_freq [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
 
     val mutable n = nbands
-
     val mutable state = `None
-
     method wake_up a = super#wake_up a
 
     (* See
@@ -158,7 +150,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
                 let bar2 = bar b.band_x in
                 let bar = bar x in
                 Printf.printf "%02d / %.01f :\t%s %s %.01f\t%.01f\n" b.band_k
-                  b.band_f bar bar2 x b.band_x ))
+                  b.band_f bar bar2 x b.band_x))
             bands;
           ((* Find relevant bands. *)
            let found =
@@ -176,29 +168,28 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
                        let t = t +. dt in
                        if t < duration then state <- `Detected (f, t)
                        else (
-                         ( try
-                             let k = String.make 1 (key f) in
-                             (* Printf.printf "Found %s\n%!" k; *)
-                             ignore (Lang.apply callback [("", Lang.string k)])
-                           with Not_found ->
-                             ()
-                             (* Printf.printf "Unknown combination (%.01f, %.01f)...\n%!" (fst f) (snd f) *)
-                         );
-                         state <- `Signaled f )
+                         (try
+                            let k = String.make 1 (key f) in
+                            (* Printf.printf "Found %s\n%!" k; *)
+                            ignore (Lang.apply callback [("", Lang.string k)])
+                          with Not_found ->
+                            ()
+                            (* Printf.printf "Unknown combination (%.01f, %.01f)...\n%!" (fst f) (snd f) *));
+                         state <- `Signaled f)
                    | `Signaled f' when f' = f -> ()
-                   | _ -> state <- `Detected (f, dt) )
+                   | _ -> state <- `Detected (f, dt))
              | _ -> state <- `None);
           if debug then (
             Printf.printf "\n";
-            ( match state with
+            (match state with
               | `None -> Printf.printf "No key detected.\n"
               | `Detected (f, t) ->
                   let k = try String.make 1 (key f) with Not_found -> "???" in
                   Printf.printf "Detected key %s for %.03f seconds.\n" k t
               | `Signaled f ->
                   let k = try String.make 1 (key f) with Not_found -> "???" in
-                  Printf.printf "Signaled key %s.\n" k );
-            print_newline () ) )
+                  Printf.printf "Signaled key %s.\n" k);
+            print_newline ()))
       done
   end
 
@@ -244,7 +235,7 @@ let () =
         None,
         Some "Function called with detected key as argument." );
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Detect DTMF tones."
+    ~return_t:k ~category:`Audio ~descr:"Detect DTMF tones."
     (fun p ->
       let duration = List.assoc "duration" p |> Lang.to_float_getter in
       let bands = List.assoc "bands" p |> Lang.to_int in
@@ -254,5 +245,5 @@ let () =
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let callback = Lang.assoc "" 2 p in
       let kind = Source.Kind.of_kind kind in
-      ( new dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback s
-        :> Source.source ))
+      (new dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback s
+        :> Source.source))

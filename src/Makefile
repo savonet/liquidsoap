@@ -208,7 +208,7 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
-builtins = lang/builtin.ml lang/lang_builtins.ml \
+builtins = lang/lang_builtins.ml \
            lang/builtins_ref.ml \
            lang/builtins_bool.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_json.ml \
@@ -252,7 +252,8 @@ liquidsoap_sources += \
 	lang/type.ml lang/typing.ml lang/profiler.ml lang/term.ml \
 	lang/environment.ml lang/typechecking.ml lang/evaluation.ml \
 	$(lang_encoders) lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
-	lang/preprocessor.ml lang/error.ml lang/lang.ml lang/runtime.ml lang/modules.ml \
+	lang/preprocessor.ml lang/error.ml lang/documentation.ml \
+	lang/lang.ml lang/runtime.ml lang/modules.ml \
         tools/child_support.ml \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \

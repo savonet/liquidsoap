@@ -206,14 +206,6 @@ let doc_of_prototype_item ~generalized t d doc =
       | Some d -> Doc.trivial (print_value d));
   item
 
-type doc_flag = Hidden | Deprecated | Experimental | Extra
-
-let string_of_flag = function
-  | Hidden -> "hidden"
-  | Deprecated -> "deprecated"
-  | Experimental -> "experimental"
-  | Extra -> "extra"
-
 let builtin_type p t =
   Type.make
     (Type.Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
@@ -223,10 +215,12 @@ let to_plugin_doc category flags main_doc proto return_t =
   let meths, return_t = Type.split_meths return_t in
   let t = builtin_type proto return_t in
   let generalized = Type.filter_vars (fun _ -> true) t in
-  item#add_subsection "_category" (Doc.trivial category);
+  item#add_subsection "_category"
+    (Doc.trivial (Documentation.string_of_category category));
   item#add_subsection "_type" (Type.doc_of_type ~generalized t);
   List.iter
-    (fun f -> item#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
+    (fun f ->
+      item#add_subsection "_flag" (Doc.trivial (Documentation.string_of_flag f)))
     flags;
   if meths <> [] then item#add_subsection "_methods" (Type.doc_of_meths meths);
   List.iter
@@ -237,7 +231,22 @@ let to_plugin_doc category flags main_doc proto return_t =
     proto;
   item
 
-let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
+let meth_fun = meth
+
+let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
+    f =
+  let return_t =
+    if meth = [] then return_t
+    else (
+      let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
+      method_t return_t meth)
+  in
+  let f =
+    if meth = [] then f
+    else (
+      let meth = List.map (fun (l, _, _, f) -> (l, f)) meth in
+      fun p -> meth_fun (f p) meth)
+  in
   let t = builtin_type proto return_t in
   let value =
     {
@@ -256,47 +265,18 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let doc = new Doc.item ~sort:false descr in
   let value = { pos = t.Type.pos; value } in
   let generalized = Type.filter_vars (fun _ -> true) t in
-  doc#add_subsection "_category" (Doc.trivial category);
+  doc#add_subsection "_category"
+    (Doc.trivial (Documentation.string_of_category category));
   doc#add_subsection "_type" (Type.doc_of_type ~generalized t);
   List.iter
-    (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
+    (fun f ->
+      doc#add_subsection "_flag" (Doc.trivial (Documentation.string_of_flag f)))
     flags;
   Environment.add_builtin ~doc
     (String.split_on_char '.' name)
     ((generalized, t), value)
 
 let add_module name = Environment.add_module (String.split_on_char '.' name)
-
-(** Specialized version for operators, that is builtins returning sources. *)
-
-type category =
-  | Input
-  | Output
-  | Conversions
-  | FFmpegFilter
-  | TrackProcessing
-  | SoundProcessing
-  | VideoProcessing
-  | MIDIProcessing
-  | Visualization
-  | SoundSynthesis
-  | Liquidsoap
-
-let string_of_category x =
-  "Source / "
-  ^
-  match x with
-    | Input -> "Input"
-    | Output -> "Output"
-    | Conversions -> "Conversions"
-    | FFmpegFilter -> "FFmpeg Filter"
-    | TrackProcessing -> "Track Processing"
-    | SoundProcessing -> "Sound Processing"
-    | VideoProcessing -> "Video Processing"
-    | MIDIProcessing -> "MIDI Processing"
-    | SoundSynthesis -> "Sound Synthesis"
-    | Visualization -> "Visualization"
-    | Liquidsoap -> "Liquidsoap"
 
 let iter_sources ?on_reference ~static_analysis_failed f v =
   let itered_values = ref [] in
@@ -785,8 +765,8 @@ type 'a operator_method = string * scheme * string * ('a -> value)
   * so we have to force its value within the acceptable range. *)
 let add_operator =
   let _meth = meth in
-  fun ~category ~descr ?(flags = []) ?(meth = ([] : 'a operator_method list))
-      name proto ~return_t f ->
+  fun ~(category : Documentation.source) ~descr ?(flags = [])
+      ?(meth = ([] : 'a operator_method list)) name proto ~return_t f ->
     let compare (x, _, _, _) (y, _, _, _) =
       match (x, y) with
         | "", "" -> 0
@@ -814,7 +794,7 @@ let add_operator =
       let pos = None in
       try
         let ret = f env in
-        if category = Output then (
+        if category = `Output then (
           let m, _ = Term.V.split_meths ret in
           _meth unit m)
         else ret
@@ -830,11 +810,11 @@ let add_operator =
         (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
     in
     let return_t =
-      if category = Output then (
+      if category = `Output then (
         let m, _ = Type.split_meths return_t in
         let m = List.map (fun (x, (y, z)) -> (x, y, z)) m in
         method_t unit_t m)
       else return_t
     in
-    let category = string_of_category category in
+    let category = `Source category in
     add_builtin ~category ~descr ~flags name proto return_t f

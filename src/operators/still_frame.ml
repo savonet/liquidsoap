@@ -68,7 +68,7 @@ let () =
   let name = "video.still_frame" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
-    ~return_t ~category:Lang.VideoProcessing
+    ~return_t ~category:`Video
     ~descr:
       "Take still frames from a video source by calling the `save` method. For \
        now only bitmap output is supported."

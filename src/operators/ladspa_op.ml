@@ -322,8 +322,8 @@ let register_descr plugin_name descr_n d inputs outputs =
     with Not_found -> label
   in
   let return_t = Lang.kind_type_of_kind_format output_kind in
-  Lang.add_operator ("ladspa." ^ label) liq_params ~return_t
-    ~category:Lang.SoundProcessing ~flags:[Lang.Extra] ~descr (fun p ->
+  Lang.add_operator ("ladspa." ^ label) liq_params ~return_t ~category:`Audio
+    ~flags:[`Extra] ~descr (fun p ->
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in
       let params = params p in

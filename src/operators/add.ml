@@ -165,7 +165,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
 let () =
   let kind = Lang.internal in
   let kind_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "add" ~category:Lang.SoundProcessing
+  Lang.add_operator "add" ~category:`Audio
     ~descr:
       "Mix sources, with optional normalization. Only relay metadata from the \
        first source that is effectively summed."
@@ -234,7 +234,7 @@ let tile_pos n =
 let () =
   let kind = Lang.video_yuva420p in
   let kind_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "video.tile" ~category:Lang.VideoProcessing
+  Lang.add_operator "video.tile" ~category:`Video
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [
       ("normalize", Lang.getter_t Lang.bool_t, Some (Lang.bool true), None);
