@@ -110,7 +110,7 @@ let () =
            filtered and 0. means only original signal)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
+    ~return_t:k ~category:`Audio
     ~descr:
       "Perform several kinds of filtering on the signal. Only frequencies \
        below the sampling rate / 4 (generally 10 kHz) are handled well for the \
@@ -132,7 +132,7 @@ let () =
           | "notch" -> Notch
           | _ ->
               raise
-                (Lang_errors.Invalid_value
+                (Error.Invalid_value
                    (mode, "valid values are low|high|band|notch"))
       in
       let kind = Source.Kind.of_kind kind in

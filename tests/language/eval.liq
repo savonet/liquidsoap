@@ -6,7 +6,6 @@ count = ref(1)
 fail = ref(false)
 
 def echo(s)
-  # system("echo "^quote(s))
   if s != string_of(!count) then
     fail := true
   end

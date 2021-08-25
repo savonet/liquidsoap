@@ -95,8 +95,7 @@ let log = Log.make ["input"; "external"; "video"]
 let () =
   let kind = Frame.{ audio = audio_pcm; video = video_yuva420p; midi = none } in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.external.avi" ~category:Lang.Input
-    ~flags:[Lang.Experimental]
+  Lang.add_operator "input.external.avi" ~category:`Input ~flags:[`Experimental]
     ~meth:
       [
         ( "buffer_length",
@@ -249,8 +248,8 @@ let () =
 let () =
   let kind = Lang.video_yuva420p in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.external.rawvideo" ~category:Lang.Input
-    ~flags:[Lang.Experimental]
+  Lang.add_operator "input.external.rawvideo" ~category:`Input
+    ~flags:[`Experimental]
     ~meth:
       [
         ( "buffer_length",

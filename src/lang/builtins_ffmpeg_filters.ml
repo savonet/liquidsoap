@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Lang_builtins
-
 let () =
   Lang.add_module "ffmpeg.filter";
   Lang.add_module "ffmpeg.filter.audio";
@@ -151,12 +149,12 @@ let mk_options { Avfilter.options } =
           in
           let x =
             try from_value v
-            with _ -> raise (Lang_errors.Invalid_value (v, "Invalid value"))
+            with _ -> raise (Error.Invalid_value (v, "Invalid value"))
           in
           (match min with
             | Some m when x < m ->
                 raise
-                  (Lang_errors.Invalid_value
+                  (Error.Invalid_value
                      ( v,
                        Printf.sprintf "%s must be more than %s" name
                          (to_string m) ))
@@ -164,7 +162,7 @@ let mk_options { Avfilter.options } =
           (match max with
             | Some m when m < x ->
                 raise
-                  (Lang_errors.Invalid_value
+                  (Error.Invalid_value
                      ( v,
                        Printf.sprintf "%s must be less than %s" name
                          (to_string m) ))
@@ -172,7 +170,7 @@ let mk_options { Avfilter.options } =
           (match values with
             | _ :: _ when List.find_opt (fun (_, v) -> v = x) values = None ->
                 raise
-                  (Lang_errors.Invalid_value
+                  (Error.Invalid_value
                      ( v,
                        Printf.sprintf "%s should be one of: %s" name
                          (String.concat ", "
@@ -269,7 +267,7 @@ let get_config graph =
     | Some config -> config
     | None ->
         raise
-          (Lang_errors.Invalid_value
+          (Error.Invalid_value
              ( graph,
                "Graph variables cannot be used outside of ffmpeg.filter.create!"
              ))
@@ -289,7 +287,7 @@ let apply_filter ~args_parser ~filter p =
         let inputs = Lang.to_list v in
         if List.length inputs <= idx then
           raise
-            (Lang_errors.Invalid_value
+            (Error.Invalid_value
                ( v,
                  Printf.sprintf "Invalid number of input for filter %s"
                    filter.name ));
@@ -383,8 +381,8 @@ let () =
           Printf.sprintf "Ffmpeg filter: %s%s" description
             (if explanation <> "" then " " ^ explanation else "")
         in
-        add_builtin ~cat:FFmpegFilter ("ffmpeg.filter." ^ name) ~descr
-          ~flags:[Lang.Extra] input_t output_t
+        Lang.add_builtin ~category:`Filter ("ffmpeg.filter." ^ name) ~descr
+          ~flags:[`Extra] input_t output_t
           (apply_filter ~args_parser ~filter))
       filters)
 
@@ -482,7 +480,7 @@ let () =
     ]
   in
 
-  add_builtin ~cat:FFmpegFilter "ffmpeg.filter.audio.input"
+  Lang.add_builtin ~category:`Filter "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
     [
       ( "pass_metadata",
@@ -521,11 +519,10 @@ let () =
             new audio_output ~pass_metadata ~name ~kind source_val)
         with
           | Source.Clock_conflict (a, b) ->
-              raise (Lang_errors.Clock_conflict (pos, a, b))
-          | Source.Clock_loop (a, b) ->
-              raise (Lang_errors.Clock_loop (pos, a, b))
+              raise (Error.Clock_conflict (pos, a, b))
+          | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
           | Source.Kind.Conflict (a, b) ->
-              raise (Lang_errors.Kind_conflict (pos, a, b))
+              raise (Error.Kind_conflict (pos, a, b))
       in
       Queue.add s#clock graph.clocks;
 
@@ -547,7 +544,7 @@ let () =
 
   let return_kind = Frame.{ audio_frame with video = none; midi = none } in
   let return_t = Lang.kind_type_of_kind_format return_kind in
-  Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.FFmpegFilter
+  Lang.add_operator "ffmpeg.filter.audio.output" ~category:`Audio
     ~descr:"Return an audio source from a filter's output" ~return_t
     (output_base_proto
     @ [
@@ -593,7 +590,7 @@ let () =
 
       (s :> Source.source));
 
-  add_builtin ~cat:FFmpegFilter "ffmpeg.filter.video.input"
+  Lang.add_builtin ~category:`Filter "ffmpeg.filter.video.input"
     ~descr:"Attach a video source to a filter's input"
     [
       ( "pass_metadata",
@@ -632,11 +629,10 @@ let () =
             new video_output ~pass_metadata ~name ~kind source_val)
         with
           | Source.Clock_conflict (a, b) ->
-              raise (Lang_errors.Clock_conflict (pos, a, b))
-          | Source.Clock_loop (a, b) ->
-              raise (Lang_errors.Clock_loop (pos, a, b))
+              raise (Error.Clock_conflict (pos, a, b))
+          | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
           | Source.Kind.Conflict (a, b) ->
-              raise (Lang_errors.Kind_conflict (pos, a, b))
+              raise (Error.Kind_conflict (pos, a, b))
       in
       Queue.add s#clock graph.clocks;
 
@@ -658,7 +654,7 @@ let () =
 
   let return_kind = Frame.{ video_frame with audio = none; midi = none } in
   let return_t = Lang.kind_type_of_kind_format return_kind in
-  Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.FFmpegFilter
+  Lang.add_operator "ffmpeg.filter.video.output" ~category:`Video
     ~descr:"Return a video source from a filter's output" ~return_t
     (output_base_proto
     @ [
@@ -729,7 +725,7 @@ let () =
 
 let () =
   let univ_t = Lang.univ_t () in
-  add_builtin "ffmpeg.filter.create" ~cat:FFmpegFilter
+  Lang.add_builtin "ffmpeg.filter.create" ~category:`Filter
     ~descr:"Configure and launch a filter graph"
     [("", Lang.fun_t [(false, "", Graph.t)] univ_t, None, None)]
     univ_t
@@ -757,7 +753,7 @@ let () =
       Queue.iter (Clock.unify first) graph.clocks;
       Queue.add
         (lazy
-          (log#info "Initializing graph";
+          (Lang.log#info "Initializing graph";
            let filter = Avfilter.launch config in
            Avfilter.(
              List.iter

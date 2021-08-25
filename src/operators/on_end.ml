@@ -71,7 +71,7 @@ let () =
            is the latest metadata. That function should be fast because it is \
            executed in the main streaming thread." );
     ]
-    ~category:Lang.TrackProcessing
+    ~category:`Track
     ~descr:
       "Call a given handler when there is less than a given amount of time \
        remaining before then end of track."

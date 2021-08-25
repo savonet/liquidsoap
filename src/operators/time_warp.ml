@@ -136,7 +136,7 @@ let () =
           Some "Maximum amount of buffered data, in seconds." );
         ("", Lang.source_t k, None, None);
       ])
-    ~return_t:k ~category:Lang.Liquidsoap
+    ~return_t:k ~category:`Liquidsoap
     ~descr:"Create a buffer between two different clocks."
     (fun p ->
       let id =
@@ -376,12 +376,12 @@ let () =
              again." );
         ("", Lang.source_t k, None, None);
       ])
-    ~return_t:k ~category:Lang.Liquidsoap
+    ~return_t:k ~category:`Liquidsoap
     ~descr:
       "Create a buffer between two different clocks. The speed of the output \
        is adapted so that no buffer underrun or overrun occurs. This wonderful \
        behavior has a cost: the pitch of the sound might be changed a little."
-    ~flags:[Lang.Experimental]
+    ~flags:[`Experimental]
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in

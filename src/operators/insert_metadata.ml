@@ -77,7 +77,7 @@ let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
 
-  Lang.add_operator "insert_metadata" ~category:Lang.TrackProcessing
+  Lang.add_operator "insert_metadata" ~category:`Track
     ~meth:
       [
         ( "insert_metadata",

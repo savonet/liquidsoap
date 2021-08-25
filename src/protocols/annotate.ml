@@ -25,56 +25,45 @@
  * is resolved into uri, and adds the bindings to the request metadata.
  * The values can be "strings", or directly integers, floats or identifiers. *)
 
-open Genlex
+exception Error of string
 
-exception Error
+let log = Log.make ["annotate"]
+
+let parse s =
+  let lexbuf = Sedlexing.Utf8.from_string s in
+  try
+    let processor =
+      MenhirLib.Convert.Simplified.traditional2revised Parser.annotate
+    in
+    let tokenizer () =
+      let token = Lexer.token lexbuf in
+      let startp, endp = Sedlexing.lexing_positions lexbuf in
+      (token, startp, endp)
+    in
+    let metadata = processor tokenizer in
+    let b = Buffer.create 10 in
+    let rec f () =
+      match Sedlexing.next lexbuf with
+        | Some c ->
+            Buffer.add_utf_8_uchar b c;
+            f ()
+        | None -> Buffer.contents b
+    in
+    (metadata, f ())
+  with _ ->
+    let startp, endp = Sedlexing.loc lexbuf in
+    let err = Printf.sprintf "Char %d-%d: Syntax error" startp endp in
+    log#info "Error while parsing annotate URI %s: %s"
+      (Utils.quote_utf8_string s)
+      err;
+    raise (Error err)
 
 let annotate s ~log _ =
   try
-    (* Avoid =- being lexed as a single identifier. *)
-    (* TODO: we should really code a custom lexer instead of having such hacks *)
-    let s = Pcre.substitute ~pat:"=-" ~subst:(fun _ -> "= -") s in
-    let l = String.length s in
-    let pos = ref 0 in
-    let str =
-      Stream.from (fun i ->
-          pos := i;
-          if i < l then Some s.[i] else None)
-    in
-    let lexer = make_lexer [":"; ","; "="] str in
-    let rec parse metadata =
-      match Stream.next lexer with
-        | Kwd ":" ->
-            let uri = String.sub s !pos (l - !pos) in
-            (* Revert the above hack. *)
-            let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
-            (metadata, uri)
-        | Kwd "," -> parse metadata
-        | Ident key ->
-            if key <> "" && key.[0] = ':' then (
-              let uri =
-                String.sub key 1 (String.length key - 1)
-                ^ String.sub s !pos (l - !pos)
-              in
-              (* Revert the above hack. *)
-              let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
-              (metadata, uri))
-            else (
-              match Stream.next lexer with
-                | Kwd "=" -> (
-                    match Stream.next lexer with
-                      | String s -> parse ((key, s) :: metadata)
-                      | Int i -> parse ((key, string_of_int i) :: metadata)
-                      | Float f -> parse ((key, string_of_float f) :: metadata)
-                      | Ident k -> parse ((key, k) :: metadata)
-                      | _ -> raise Error)
-                | _ -> raise Error)
-        | _ -> raise Error
-    in
-    let metadata, uri = parse [] in
+    let metadata, uri = parse s in
     [Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri]
-  with Error | Stream.Failure | Stream.Error _ ->
-    log "annotate: syntax error";
+  with Error err ->
+    log err;
     []
 
 let () =

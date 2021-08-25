@@ -63,7 +63,7 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "stereo.ms.encode"
     [("", Lang.source_t return_t, None, None)]
-    ~return_t ~category:Lang.SoundProcessing
+    ~return_t ~category:`Audio
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
@@ -77,7 +77,7 @@ let () =
         Some "Width of the stereo field." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.SoundProcessing
+    ~return_t ~category:`Audio
     ~descr:"Decode mid+side stereo (M/S) to left+right stereo."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
@@ -128,7 +128,7 @@ let () =
         Some "Width of the signal (-1: mono, 0.: original, 1.: wide stereo)." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.SoundProcessing
+    ~return_t ~category:`Audio
     ~descr:"Spacializer which allows controlling the width of the signal."
     (fun p ->
       let width = Lang.assoc "" 1 p |> Lang.to_float_getter in

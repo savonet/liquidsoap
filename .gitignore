@@ -16,8 +16,8 @@ src/configure.ml
 *.o
 *~
 src/auto_clean
-src/lang/lang_parser.ml
-src/lang/lang_parser.mli
+src/lang/parser.ml
+src/lang/parser.mli
 src/*_depend
 src/liquidsoap
 doc/html

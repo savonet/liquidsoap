@@ -20,14 +20,12 @@
 
  *****************************************************************************)
 
-open Lang_builtins
-
 let () =
   Lang.add_module "thread";
   Lang.add_module "thread.run"
 
 let () =
-  add_builtin "thread.run.recurrent" ~cat:Control
+  Lang.add_builtin "thread.run.recurrent" ~category:`Liquidsoap
     [
       ( "fast",
         Lang.bool_t,
@@ -82,7 +80,7 @@ let () =
       ]
       Lang.unit_t
   in
-  add_builtin "thread.on_error" ~cat:Liq
+  Lang.add_builtin "thread.on_error" ~category:`Liquidsoap
     ~descr:
       "Register the function to be called when an error of the given kind is \
        raised in a thread. Catches all errors if first argument is `null`."
@@ -97,7 +95,7 @@ let () =
       let fn = Lang.assoc "" 2 p in
       let handler ~bt ~name err =
         match (err, on_err) with
-          | Lang_values.(Runtime_error { kind; msg; _ }), None ->
+          | Term.(Runtime_error { kind; msg; _ }), None ->
               let error = Builtins_error.(Error.to_value { kind; msg }) in
               let bt = Lang.string bt in
               let name = Lang.string name in
@@ -105,7 +103,7 @@ let () =
                 (Lang.apply fn
                    [("backtrace", bt); ("thread_name", name); ("", error)]);
               true
-          | Lang_values.(Runtime_error { kind; msg; _ }), Some err
+          | Term.(Runtime_error { kind; msg; _ }), Some err
             when kind = err.Builtins_error.kind ->
               let error = Builtins_error.(Error.to_value { kind; msg }) in
               let bt = Lang.string bt in
@@ -121,7 +119,7 @@ let () =
 
 let () =
   let t = Lang.univ_t () in
-  add_builtin "thread.mutexify" ~cat:Liq
+  Lang.add_builtin "thread.mutexify" ~category:`Liquidsoap
     ~descr:
       "Protect functions with a mutex in order to avoid concurrent calls. It \
        returns the original value when the argument is not a function."

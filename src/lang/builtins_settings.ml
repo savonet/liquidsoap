@@ -153,15 +153,13 @@ let settings_module =
      let init = get_value Dtools.Init.conf in
      let log = get_value Dtools.Log.conf in
      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
-     Lang.add_builtin_base ~category:"Liquidsoap" "settings"
+     Lang.add_builtin_base ~category:`Liquidsoap "settings"
        ~descr:"All settings." !settings.Lang.value settings_t)
-
 (* Hack to keep track of latest settings at runtime. *)
-open Lang_builtins
 
 let () =
-  add_builtin ~cat:Liq "set_settings_ref" ~descr:"Internal use only!"
-    ~flags:[Lang.Hidden]
+  Lang.add_builtin ~category:`Liquidsoap "set_settings_ref"
+    ~descr:"Internal use only!" ~flags:[`Hidden]
     [("", Lang.univ_t (), None, None)]
     Lang.unit_t
     (fun p ->
@@ -179,20 +177,20 @@ let filtered_settings = ["subordinate log level"]
 
 let print_settings () =
   let rec grab_descr cur = function
-    | Lang_values.V.Meth ("description", d, v) ->
+    | Term.Value.Meth ("description", d, v) ->
         grab_descr { cur with description = Lang.to_string d } v.Lang.value
-    | Lang_values.V.Meth ("comments", c, v) ->
+    | Term.Value.Meth ("comments", c, v) ->
         grab_descr { cur with comments = Lang.to_string c } v.Lang.value
-    | Lang_values.V.Meth ("set", _, v) -> grab_descr cur v.Lang.value
-    | Lang_values.V.Meth (key, _, v) when List.mem_assoc key cur.children ->
+    | Term.Value.Meth ("set", _, v) -> grab_descr cur v.Lang.value
+    | Term.Value.Meth (key, _, v) when List.mem_assoc key cur.children ->
         grab_descr cur v.Lang.value
-    | Lang_values.V.Meth (key, c, v) ->
+    | Term.Value.Meth (key, c, v) ->
         let descr =
           {
             description = "";
             comments = "";
             children = [];
-            value = Lang_values.V.Tuple [];
+            value = Term.Value.Tuple [];
           }
         in
         grab_descr
@@ -208,7 +206,7 @@ let print_settings () =
       description = "";
       comments = "";
       children = [];
-      value = Lang_values.V.Tuple [];
+      value = Term.Value.Tuple [];
     }
   in
   let descr = grab_descr descr !settings.Lang.value in
@@ -217,11 +215,11 @@ let print_settings () =
         not (List.mem description filtered_settings))
   in
   let print_set ~path = function
-    | Lang_values.V.Tuple [] -> []
+    | Term.Value.Tuple [] -> []
     | value ->
         [
-          (match Lang.apply { Lang_values.V.pos = None; value } [] with
-            | v when v.Lang_values.V.value = Lang_values.V.Null ->
+          (match Lang.apply { Term.Value.pos = None; value } [] with
+            | v when v.Term.Value.value = Term.Value.Null ->
                 Printf.sprintf {|
 ```liquidsoap
 %s.set(<value>)
@@ -233,7 +231,7 @@ let print_settings () =
 %s.set(%s)
 ```
 |} path
-                  (Lang_values.V.print_value v));
+                  (Term.Value.print_value v));
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -253,27 +251,29 @@ let print_settings () =
 
 (* Deprecated backward-compatible get/set. *)
 
+let log = Lang.log
+
 let () =
   let grab path value =
     let path = String.split_on_char '.' path in
     let rec grab links v =
-      match (links, v.Lang_values.V.value) with
+      match (links, v.Term.Value.value) with
         | [], _ -> v
-        | link :: links, Lang_values.V.Meth (key, v, _) when key = link ->
+        | link :: links, Term.Value.Meth (key, v, _) when key = link ->
             grab links v
-        | _, Lang_values.V.Meth (_, _, v) -> grab links v
+        | _, Term.Value.Meth (_, _, v) -> grab links v
         | _ -> raise Not_found
     in
     grab path value
   in
-  add_builtin ~cat:Liq "set"
+  Lang.add_builtin ~category:`Liquidsoap "set"
     ~descr:
       "Change some setting. Use `liquidsoap --list-settings` on the \
        command-line to get some information about available settings."
-    ~flags:[Lang.Deprecated; Lang.Hidden]
+    ~flags:[`Deprecated; `Hidden]
     [
       ("", Lang.string_t, None, None);
-      ("", Lang.univ_t ~constraints:[Lang_types.Dtools] (), None, None);
+      ("", Lang.univ_t ~constraints:[Type.Dtools] (), None, None);
     ]
     Lang.unit_t
     (fun p ->
@@ -293,9 +293,9 @@ let () =
        with Not_found -> log#severe "WARNING: setting %S does not exist!" path);
       Lang.unit);
 
-  let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] () in
-  add_builtin "get" ~cat:Liq ~descr:"Get a setting's value."
-    ~flags:[Lang.Deprecated; Lang.Hidden]
+  let univ = Lang.univ_t ~constraints:[Type.Dtools] () in
+  Lang.add_builtin "get" ~category:`Liquidsoap ~descr:"Get a setting's value."
+    ~flags:[`Deprecated; `Hidden]
     [("default", univ, None, None); ("", Lang.string_t, None, None)] univ
     (fun p ->
       log#severe

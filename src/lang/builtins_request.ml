@@ -20,10 +20,8 @@
 
  *****************************************************************************)
 
-open Lang_builtins
-
 let () =
-  Lang.add_builtin "request.create" ~category:(string_of_category Liq)
+  Lang.add_builtin "request.create" ~category:`Liquidsoap
     ~descr:"Create a request from an URI."
     [
       ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
@@ -63,7 +61,7 @@ let () =
       Lang.request (Request.create ~persistent ~indicators initial))
 
 let () =
-  add_builtin "request.resolve" ~cat:Liq
+  Lang.add_builtin "request.resolve" ~category:`Liquidsoap
     [
       ( "content_type",
         Lang.nullable_t (Lang.source_t (Lang.univ_t ())),
@@ -97,7 +95,7 @@ let () =
          with _ -> false))
 
 let () =
-  add_builtin "request.read_metadata" ~cat:Liq
+  Lang.add_builtin "request.read_metadata" ~category:`Liquidsoap
     [("", Lang.request_t, None, None)]
     Lang.unit_t ~descr:"Force reading the metadata of a request." (fun p ->
       let r = Lang.to_request (List.assoc "" p) in
@@ -105,19 +103,21 @@ let () =
       Lang.unit)
 
 let () =
-  add_builtin "request.metadata" ~cat:Liq [("", Lang.request_t, None, None)]
+  Lang.add_builtin "request.metadata" ~category:`Liquidsoap
+    [("", Lang.request_t, None, None)]
     Lang.metadata_t ~descr:"Get the metadata associated to a request." (fun p ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.metadata (Request.get_all_metadata r))
 
 let () =
-  add_builtin "request.log" ~cat:Liq [("", Lang.request_t, None, None)]
+  Lang.add_builtin "request.log" ~category:`Liquidsoap
+    [("", Lang.request_t, None, None)]
     Lang.string_t ~descr:"Get log data associated to a request." (fun p ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.string (Request.string_of_log (Request.get_log r)))
 
 let () =
-  add_builtin "request.ready" ~cat:Liq
+  Lang.add_builtin "request.ready" ~category:`Liquidsoap
     ~descr:
       "Check if a request is ready, i.e. is associated to a valid local file. \
        Unless the initial URI was such a file, a request has to be resolved \
@@ -127,13 +127,14 @@ let () =
       Lang.bool (Request.is_ready e))
 
 let () =
-  add_builtin "request.uri" ~cat:Liq ~descr:"Initial URI of a request."
-    [("", Lang.request_t, None, None)] Lang.string_t (fun p ->
+  Lang.add_builtin "request.uri" ~category:`Liquidsoap
+    ~descr:"Initial URI of a request." [("", Lang.request_t, None, None)]
+    Lang.string_t (fun p ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.string (Request.initial_uri r))
 
 let () =
-  add_builtin "request.filename" ~cat:Liq
+  Lang.add_builtin "request.filename" ~category:`Liquidsoap
     ~descr:
       "Return a valid local filename if the request is ready, and the empty \
        string otherwise." [("", Lang.request_t, None, None)] Lang.string_t
@@ -142,7 +143,7 @@ let () =
       Lang.string (match Request.get_filename r with Some f -> f | None -> ""))
 
 let () =
-  add_builtin "request.destroy" ~cat:Liq
+  Lang.add_builtin "request.destroy" ~category:`Liquidsoap
     ~descr:
       "Destroying a request causes any temporary associated file to be \
        deleted, and releases its RID. Persistent requests resist to \
@@ -162,8 +163,8 @@ let () =
       Lang.unit)
 
 let () =
-  add_builtin "request.duration" ~cat:Liq [("", Lang.string_t, None, None)]
-    Lang.float_t
+  Lang.add_builtin "request.duration" ~category:`Liquidsoap
+    [("", Lang.string_t, None, None)] Lang.float_t
     ~descr:
       "Compute the duration in seconds of audio data contained in a request. \
        The computation may be expensive. Returns -1. if computation failed, \
@@ -172,13 +173,14 @@ let () =
       Lang.float (try Request.duration f with Not_found -> -1.))
 
 let () =
-  add_builtin "request.id" ~cat:Liq ~descr:"Identifier of a request."
-    [("", Lang.request_t, None, None)] Lang.int_t (fun p ->
+  Lang.add_builtin "request.id" ~category:`Liquidsoap
+    ~descr:"Identifier of a request." [("", Lang.request_t, None, None)]
+    Lang.int_t (fun p ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.int (Request.get_id r))
 
 let () =
-  add_builtin "request.status" ~cat:Liq
+  Lang.add_builtin "request.status" ~category:`Liquidsoap
     ~descr:
       "Current status of a request. Can be idle, resolving, ready, playing or \
        destroyed." [("", Lang.request_t, None, None)] Lang.string_t (fun p ->

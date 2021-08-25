@@ -331,8 +331,8 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio"
     (output_proto ~return_t ~pipeline:"autoaudiosink")
-    ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t (fun p ->
+    ~category:`Output ~descr:"Output stream to a GStreamer pipeline." ~return_t
+    (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -362,8 +362,8 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.video"
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
-    ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t (fun p ->
+    ~category:`Output ~descr:"Output stream to a GStreamer pipeline." ~return_t
+    (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -409,8 +409,7 @@ let () =
           Some (Lang.bool true),
           Some "Pushing buffers is blocking." );
       ])
-    ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t
+    ~category:`Output ~descr:"Output stream to a GStreamer pipeline." ~return_t
     (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
@@ -681,7 +680,7 @@ let () =
       ]
   in
   Lang.add_operator "input.gstreamer.audio_video" proto ~return_t
-    ~category:Lang.Input ~flags:[]
+    ~category:`Input ~flags:[]
     ~meth:
       [
         ( "pause",
@@ -732,7 +731,7 @@ let () =
           Some "GStreamer pipeline to input from." );
       ]
   in
-  Lang.add_operator "input.gstreamer.audio" proto ~return_t ~category:Lang.Input
+  Lang.add_operator "input.gstreamer.audio" proto ~return_t ~category:`Input
     ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       let kind = Source.Kind.of_kind kind in
@@ -751,7 +750,7 @@ let () =
           Some "GStreamer pipeline to input from." );
       ]
   in
-  Lang.add_operator "input.gstreamer.video" proto ~return_t ~category:Lang.Input
+  Lang.add_operator "input.gstreamer.video" proto ~return_t ~category:`Input
     ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       let kind = Source.Kind.of_kind kind in

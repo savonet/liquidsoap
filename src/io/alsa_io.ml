@@ -300,7 +300,7 @@ let () =
           Some "Alsa device to use" );
         ("", Lang.source_t k, None, None);
       ])
-    ~return_t:k ~category:Lang.Output ~meth:Output.meth
+    ~return_t:k ~category:`Output ~meth:Output.meth
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -339,7 +339,7 @@ let () =
           Some (Lang.string "default"),
           Some "Alsa device to use" );
       ])
-    ~meth:(Start_stop.meth ()) ~return_t:k ~category:Lang.Input
+    ~meth:(Start_stop.meth ()) ~return_t:k ~category:`Input
     ~descr:"Stream from an ALSA input device."
     (fun p ->
       let e f v = f (List.assoc v p) in

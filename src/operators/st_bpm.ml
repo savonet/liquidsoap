@@ -60,7 +60,7 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "bpm"
     [("", Lang.source_t k, None, None)]
-    ~return_t:k ~category:Lang.SoundProcessing
+    ~return_t:k ~category:`Visualization
     ~descr:
       "Detect the BPM (number of beats per minute). The returned source has a \
        method `bpm`, which can be called to compute it."

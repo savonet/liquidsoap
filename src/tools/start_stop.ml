@@ -162,7 +162,7 @@ let meth :
           val_fun [] (fun _ ->
               if s#stype = Source.Infallible then
                 raise
-                  Lang_values.(
+                  Term.(
                     Runtime_error
                       {
                         kind = "input";

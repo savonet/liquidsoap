@@ -154,7 +154,7 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]
-    ~return_t:k ~category:Lang.Visualization
+    ~return_t:k ~category:`Visualization
     ~descr:"Graphical visualization of the sound."
     (fun p ->
       let f v = List.assoc v p in

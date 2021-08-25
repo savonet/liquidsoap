@@ -20,11 +20,9 @@
 
  *****************************************************************************)
 
-open Lang_builtins
-
 let () =
   let a = Lang.univ_t () in
-  add_builtin "ref" ~cat:Liq
+  Lang.add_builtin "ref" ~category:`Liquidsoap
     ~descr:"Create a reference, i.e. a value which can be modified."
     [("", a, None, None)] (Lang.ref_t a) (fun p ->
       let x = List.assoc "" p in
@@ -32,7 +30,8 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "ref.get" ~cat:Liq ~descr:"Retrieve the contents of a reference."
+  Lang.add_builtin "ref.get" ~category:`Liquidsoap
+    ~descr:"Retrieve the contents of a reference."
     [("", Lang.ref_t a, None, None)]
     a
     (fun p ->
@@ -41,7 +40,8 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "ref.set" ~cat:Liq ~descr:"Set the value of a reference."
+  Lang.add_builtin "ref.set" ~category:`Liquidsoap
+    ~descr:"Set the value of a reference."
     [("", Lang.ref_t a, None, None); ("", a, None, None)]
     Lang.unit_t
     (fun p ->

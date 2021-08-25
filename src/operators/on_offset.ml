@@ -114,7 +114,7 @@ let () =
       );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~category:Lang.TrackProcessing
+    ~category:`Track
     ~descr:
       "Call a given handler when position in track is equal or more than a \
        given amount of time."

@@ -34,7 +34,7 @@ let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
     | "caller" -> `Caller
-    | _ -> raise (Lang_errors.Invalid_value (v, "Invalid mode!"))
+    | _ -> raise (Error.Invalid_value (v, "Invalid mode!"))
 
 let string_of_mode = function `Listener -> "listener" | `Caller -> "caller"
 
@@ -395,7 +395,7 @@ let parse_common_options p =
     try Unix.inet_addr_of_string bind_address
     with exn ->
       raise
-        (Lang_errors.Invalid_value
+        (Error.Invalid_value
            ( List.assoc "bind_address" p,
              Printf.sprintf "Invalid address: %s" (Printexc.to_string exn) ))
   in
@@ -877,7 +877,7 @@ class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.srt" ~return_t ~category:Lang.Input
+  Lang.add_operator "input.srt" ~return_t ~category:`Input
     ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
     (common_options ~mode:`Listener
@@ -1081,7 +1081,7 @@ let () =
       (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
       Output.meth
   in
-  Lang.add_operator "output.srt" ~return_t ~category:Lang.Output
+  Lang.add_operator "output.srt" ~return_t ~category:`Output
     ~meth:(meth () @ output_meth)
     ~descr:"Send a SRT stream to a distant agent."
     (Output.proto
@@ -1120,7 +1120,7 @@ let () =
         try Encoder.get_factory format
         with Not_found ->
           raise
-            (Lang_errors.Invalid_value
+            (Error.Invalid_value
                (format_val, "Cannot get a stream encoder for that format"))
       in
       match mode with

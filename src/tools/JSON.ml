@@ -59,7 +59,7 @@ let to_string (j : t) =
     | `Bool b -> if b then "true" else "false"
     | `Int n -> string_of_int n
     | `Float x -> string_of_float x
-    | `String s -> Utils.escape_utf8 s
+    | `String s -> Utils.quote_utf8_string s
     | `Null -> "null"
     | `List l ->
         let l = List.map (fun j -> blank (indent + 1) ^ aux (indent + 1) j) l in

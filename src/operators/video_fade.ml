@@ -227,7 +227,7 @@ let rec transition_of_string p transition =
           f
     | _ ->
         raise
-          (Lang_errors.Invalid_value
+          (Error.Invalid_value
              (List.assoc "transition" p, "Invalid transition kind"))
 
 let extract p =
@@ -254,7 +254,7 @@ let extract p =
              let msg =
                "The 'type' parameter should be 'lin','sin','log' or 'exp'!"
              in
-             raise (Lang_errors.Invalid_value (mode, msg))
+             raise (Error.Invalid_value (mode, msg))
      in
      fun l ->
        let l = float l in
@@ -276,8 +276,8 @@ let () =
        Lang.string_t,
        Some (Lang.string "liq_video_fade_in"),
        override_doc )
-     :: proto)
-    ~return_t ~category:Lang.VideoProcessing
+    :: proto)
+    ~return_t ~category:`Video
     ~descr:
       "Fade the beginning of tracks. Metadata 'liq_video_fade_in' can be used \
        to set the duration for a specific track (float in seconds)."
@@ -291,8 +291,8 @@ let () =
        Lang.string_t,
        Some (Lang.string "liq_video_fade_out"),
        override_doc )
-     :: proto)
-    ~return_t ~category:Lang.VideoProcessing
+    :: proto)
+    ~return_t ~category:`Video
     ~descr:
       "Fade the end of tracks. Metadata 'liq_video_fade_out' can be used to \
        set the duration for a specific track (float in seconds)."

@@ -125,14 +125,12 @@ let () =
        Lang.getter_t Lang.float_t,
        Some (Lang.float 2.),
        Some "Gain reduction ratio (n:1)." )
-     :: proto)
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Compress the signal."
-    compress;
+    :: proto)
+    ~return_t:k ~category:`Audio ~descr:"Compress the signal." compress;
   Lang.add_operator "limit"
     (( "ratio",
        Lang.getter_t Lang.float_t,
        Some (Lang.float 20.),
        Some "Gain reduction ratio (n:1)." )
-     :: proto)
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Limit the signal."
-    compress
+    :: proto)
+    ~return_t:k ~category:`Audio ~descr:"Limit the signal." compress

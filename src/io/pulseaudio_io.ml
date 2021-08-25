@@ -197,7 +197,7 @@ let () =
   in
   Lang.add_operator "output.pulseaudio"
     (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
-    ~return_t:k ~category:Lang.Output ~meth:Output.meth
+    ~return_t:k ~category:`Output ~meth:Output.meth
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -216,7 +216,7 @@ let () =
   Lang.add_operator "input.pulseaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ proto)
-    ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ())
+    ~return_t:k ~category:`Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
     (fun p ->
       let kind = Source.Kind.of_kind kind in

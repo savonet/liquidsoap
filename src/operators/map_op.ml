@@ -54,8 +54,8 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~descr:"Map a function to all audio samples. This is SLOW!"
-    ~category:Lang.SoundProcessing
-    ~flags:[Lang.Hidden] (* It works well but is probably useless. *)
+    ~category:`Audio
+    ~flags:[`Experimental] (* It works well but is probably useless. *)
     (fun p ->
       let f = to_fun_float (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in

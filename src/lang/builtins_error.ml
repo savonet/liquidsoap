@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Lang_builtins
-
 type error = { kind : string; msg : string option }
 
 module ErrorDef = struct
@@ -42,26 +40,27 @@ module Error = Lang.MkAbstract ((ErrorDef : Lang.AbstractDef))
 let () = Lang.add_module "error"
 
 let () =
-  add_builtin "error.register" ~cat:Liq
+  Lang.add_builtin "error.register" ~category:`Liquidsoap
     ~descr:"Register an error of the given kind"
     [("", Lang.string_t, None, Some "Kind of the error")] Error.t (fun p ->
       let kind = Lang.to_string (List.assoc "" p) in
       Error.to_value { kind; msg = None })
 
 let () =
-  add_builtin "error.kind" ~cat:Liq ~descr:"Get the kind of an error"
-    [("", Error.t, None, None)] Lang.string_t (fun p ->
-      Lang.string (Error.of_value (List.assoc "" p)).kind)
+  Lang.add_builtin "error.kind" ~category:`Liquidsoap
+    ~descr:"Get the kind of an error" [("", Error.t, None, None)] Lang.string_t
+    (fun p -> Lang.string (Error.of_value (List.assoc "" p)).kind)
 
 let () =
-  add_builtin "error.message" ~cat:Liq ~descr:"Get the message of an error"
-    [("", Error.t, None, None)] (Lang.nullable_t Lang.string_t) (fun p ->
+  Lang.add_builtin "error.message" ~category:`Liquidsoap
+    ~descr:"Get the message of an error" [("", Error.t, None, None)]
+    (Lang.nullable_t Lang.string_t) (fun p ->
       match Error.of_value (List.assoc "" p) with
         | { msg = Some msg } -> Lang.string msg
         | { msg = None } -> Lang.null)
 
 let () =
-  add_builtin "error.raise" ~cat:Liq ~descr:"Raise an error."
+  Lang.add_builtin "error.raise" ~category:`Liquidsoap ~descr:"Raise an error."
     [
       ("", Error.t, None, Some "Error kind.");
       ( "",
@@ -75,11 +74,11 @@ let () =
       let msg =
         Option.map Lang.to_string (Lang.to_option (Lang.assoc "" 2 p))
       in
-      raise (Lang_values.Runtime_error { Lang_values.kind; msg; pos = [] }))
+      raise (Term.Runtime_error { Term.kind; msg; pos = [] }))
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "error.catch" ~cat:Liq ~flags:[Lang.Hidden]
+  Lang.add_builtin "error.catch" ~category:`Liquidsoap ~flags:[`Hidden]
     ~descr:"Execute a function, catching eventual exceptions."
     [
       ( "errors",
@@ -100,7 +99,7 @@ let () =
       let h = Lang.to_fun (Lang.assoc "" 2 p) in
       try f []
       with
-      | Lang_values.Runtime_error { Lang_values.kind; msg }
+      | Term.Runtime_error { Term.kind; msg }
       when errors = None
            || List.exists (fun err -> err.kind = kind) (Option.get errors)
       ->

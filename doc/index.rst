@@ -28,8 +28,6 @@ Welcome to Liquidsoap's documentation!
    content/external_encoders
    content/external_streams
    content/faq
-   content/flows_devel
-   content/flows
    content/frequence3
    content/geekradio
    content/gstreamer_encoder

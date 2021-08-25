@@ -117,9 +117,9 @@ let () =
       ("pitch", Lang.getter_t Lang.float_t, Some (Lang.float 1.0), None);
       ("", Lang.source_t return_t, None, None);
     ]
-    ~category:Lang.SoundProcessing ~return_t
+    ~category:`Audio ~return_t
     ~descr:"Change the rate, the tempo or the pitch of the sound."
-    ~flags:[Lang.Experimental]
+    ~flags:[`Experimental]
     (fun p ->
       let f v = List.assoc v p in
       let rate = Lang.to_float_getter (f "rate") in

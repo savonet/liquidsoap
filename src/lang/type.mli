@@ -22,12 +22,16 @@
 
 val debug : bool ref
 
+(** {1 Positions} *)
+
 type pos = Lexing.position * Lexing.position
 
 val print_single_pos : Lexing.position -> string
 val print_pos : ?prefix:string -> pos -> string
 val print_pos_opt : ?prefix:string -> pos option -> string
 val print_pos_list : ?prefix:string -> pos list -> string
+
+(** {1 Ground types} *)
 
 type variance = Covariant | Contravariant | Invariant
 type ground = ..
@@ -42,6 +46,8 @@ type ground +=
 
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
+
+(** {1 Types} *)
 
 type constr = Num | Ord | Dtools | InternalMedia
 type constraints = constr list
@@ -68,41 +74,17 @@ and var = int * constraints
 
 and scheme = var list * t
 
-type env = (string * scheme) list
-
-module Subst : sig
-  type subst
-
-  val of_seq : (var * t) Seq.t -> subst
-  val filter : (var -> t -> bool) -> subst -> subst
-
-  type t = subst
-end
-
 val unit : descr
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
-val pp_type : Format.formatter -> t -> unit
-val pp_type_generalized : var list -> Format.formatter -> t -> unit
-val print : ?generalized:var list -> t -> string
-val print_scheme : scheme -> string
-val doc_of_type : generalized:var list -> t -> Doc.item
-val doc_of_meths : (string * (scheme * string)) list -> Doc.item
-
-exception Occur_check of t * t
-
-(** [occur_check x t] ensures that a variable [x] does not occur in [t]. Raises
-    [Occur_check] if it is the case. *)
-val occur_check : t -> t -> unit
-
-exception Unsatisfied_constraint of constr * t
-
-(** [bind x t] assigns a value [t] to a variable [x]. *)
-val bind : t -> t -> unit
 
 (** Remove links in a type: this function should always be called before
     matching on types. *)
 val deref : t -> t
+
+val fresh : constraints:constraints -> level:int -> pos:pos option -> t
+val fresh_evar : level:int -> pos:pos option -> t
+val filter_vars : (t -> bool) -> t -> var list
 
 (** Add a method to a type. *)
 val meth :
@@ -125,20 +107,51 @@ val invoke : t -> string -> scheme
 (** Type of a submethod in a type. *)
 val invokes : t -> string list -> scheme
 
-(** Find all the free variables satisfying a predicate. *)
-val filter_vars : (t -> bool) -> t -> var list
+(** {1 Assignation} *)
 
-val copy_with : Subst.t -> t -> t
-val instantiate : level:int -> generalized:var list -> t -> t
-val generalizable : level:int -> t -> var list
+exception Occur_check of t * t
 
-type explanation
+(** [occur_check x t] ensures that a variable [x] does not occur in [t]. Raises
+    [Occur_check] if it is the case. *)
+val occur_check : t -> t -> unit
 
-exception Type_Error of explanation
+exception Unsatisfied_constraint of constr * t
+
+(** [bind x t] assigns a value [t] to a variable [x]. *)
+val bind : t -> t -> unit
+
+(** {1 Representation of types} *)
+
+type repr =
+  [ `Constr of string * (variance * repr) list
+  | `Ground of ground
+  | `List of repr
+  | `Tuple of repr list
+  | `Nullable of repr
+  | `Meth of string * ((string * constraints) list * repr) * repr
+  | `Arrow of (bool * string * repr) list * repr
+  | `Getter of repr
+  | `EVar of string * constraints (* existential variable *)
+  | `UVar of string * constraints (* universal variable *)
+  | `Ellipsis (* omitted sub-term *)
+  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *) ]
+
+val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
+val print_repr : Format.formatter -> repr -> unit
+
+(** {1 Typing errors} *)
+
+type explanation = bool * t * t * repr * repr
+
+exception Type_error of explanation
 
 val print_type_error : (string -> unit) -> explanation -> unit
-val ( <: ) : t -> t -> unit
-val ( >: ) : t -> t -> unit
-val fresh : constraints:constraints -> level:int -> pos:pos option -> t
-val fresh_evar : level:int -> pos:pos option -> t
-val min_type : ?pos:pos option -> ?level:int -> t -> t -> t
+
+(** {1 Printing and documentation} *)
+
+val pp_type : Format.formatter -> t -> unit
+val pp_type_generalized : var list -> Format.formatter -> t -> unit
+val print : ?generalized:var list -> t -> string
+val print_scheme : scheme -> string
+val doc_of_type : generalized:var list -> t -> Doc.item
+val doc_of_meths : (string * (scheme * string)) list -> Doc.item

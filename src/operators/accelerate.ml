@@ -114,8 +114,7 @@ let () =
         Some "Randomization (0 means no randomization)." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~flags:[Lang.Experimental; Lang.Extra]
-    ~return_t ~category:Lang.SoundProcessing
+    ~flags:[`Experimental; `Extra] ~return_t ~category:`Audio
     ~descr:
       "Accelerate a stream by dropping frames. This is useful for testing \
        scripts."
