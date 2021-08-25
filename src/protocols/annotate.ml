@@ -27,6 +27,8 @@
 
 exception Error of string
 
+let log = Log.make ["annotate"]
+
 let parse s =
   let lexbuf = Sedlexing.Utf8.from_string s in
   try
@@ -51,6 +53,9 @@ let parse s =
   with _ ->
     let startp, endp = Sedlexing.loc lexbuf in
     let err = Printf.sprintf "Char %d-%d: Syntax error" startp endp in
+    log#info "Error while parsing annotate URI %s: %s"
+      (Utils.quote_utf8_string s)
+      err;
     raise (Error err)
 
 let annotate s ~log _ =
