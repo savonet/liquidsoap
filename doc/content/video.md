@@ -7,10 +7,13 @@ you just have to use video files instead of sound files! For instance, if you
 want to stream a single file to an icecast server in ogg format (with theora and
 vorbis as codecs for audio and video) you can simply type:
 ```liquidsoap
-source = single("video.avi")
+source = single("video.mp4")
 
 output.icecast(
-        %ogg(%theora(quality=25,width=320,height=240),%vorbis),
+        %ffmpeg(format="ogg",
+          %audio(codec="libvorbis"),
+          %video(codec="libtheora")
+        ),
         host="localhost",
         port=8000,
         password="hackme",
