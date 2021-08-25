@@ -26,7 +26,7 @@
 val has_builtin : string -> bool
 
 (** Retrieve a builtin definition. *)
-val get_builtin : string -> (Type.scheme * Term.V.t) option
+val get_builtin : string -> (Type.scheme * Term.Value.t) option
 
 (** Documentation for builtins. *)
 val builtins : Doc.item
@@ -37,7 +37,7 @@ val add_builtin :
   ?register:bool ->
   ?doc:Doc.item ->
   string list ->
-  Type.scheme * Term.V.t ->
+  Type.scheme * Term.Value.t ->
   unit
 
 (** Declare a module. *)
@@ -49,4 +49,4 @@ val add_module : string list -> unit
 val default_typing_environment : unit -> (string * Type.scheme) list
 
 (** Initial environment (with builtins). *)
-val default_environment : unit -> (string * (Type.scheme * Term.V.t)) list
+val default_environment : unit -> (string * (Type.scheme * Term.Value.t)) list

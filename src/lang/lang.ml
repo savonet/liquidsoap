@@ -20,14 +20,14 @@
 
  *****************************************************************************)
 
-include Term.V
+include Term.Value
 module Ground = Term.Ground
 open Ground
 
 type t = Type.t
 type scheme = Type.scheme
 type pos = Type.pos
-type value = Term.V.t = { pos : pos option; value : in_value }
+type value = Term.Value.t = { pos : pos option; value : in_value }
 
 let log = Log.make ["lang"]
 
@@ -560,13 +560,13 @@ module MkAbstract (Def : AbstractDef) = struct
     Type.register_ground_printer (function Type -> Some Def.name | _ -> None)
 
   let t = ground_t Type
-  let to_value c = mk (Term.V.Ground (Value c))
+  let to_value c = mk (Term.Value.Ground (Value c))
 
   let of_value t =
-    match t.value with Term.V.Ground (Value c) -> c | _ -> assert false
+    match t.value with Term.Value.Ground (Value c) -> c | _ -> assert false
 
   let is_value t =
-    match t.value with Term.V.Ground (Value _) -> true | _ -> false
+    match t.value with Term.Value.Ground (Value _) -> true | _ -> false
 end
 
 (* Augment source_t and source with default methods. *)
@@ -796,7 +796,7 @@ let add_operator =
       try
         let ret = f env in
         if category = `Output then (
-          let m, _ = Term.V.split_meths ret in
+          let m, _ = Term.Value.split_meths ret in
           _meth unit m)
         else ret
       with

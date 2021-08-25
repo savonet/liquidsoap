@@ -50,13 +50,13 @@ module Ground : sig
   val to_string : t -> string
 end
 
-type value = Term.V.t = { pos : pos option; value : in_value }
+type value = Term.Value.t = { pos : pos option; value : in_value }
 
 and env = (string * value) list
 
 and lazy_env = (string * value Lazy.t) list
 
-and in_value = Term.V.in_value =
+and in_value = Term.Value.in_value =
   | Ground of Ground.t
   | Source of Source.source
   | Encoder of Encoder.format

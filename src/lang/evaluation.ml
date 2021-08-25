@@ -35,19 +35,20 @@ let remove_first filter =
   in
   aux []
 
-let lookup (env : V.lazy_env) var = Lazy.force (List.assoc var env)
+let lookup (env : Value.lazy_env) var = Lazy.force (List.assoc var env)
 
 let eval_pat pat v =
   let rec aux env pat v =
     match (pat, v) with
       | PVar x, v -> (x, v) :: env
-      | PTuple pl, { V.value = V.Tuple l } -> List.fold_left2 aux env pl l
+      | PTuple pl, { Value.value = Value.Tuple l } ->
+          List.fold_left2 aux env pl l
       | _ -> assert false
   in
   aux [] pat v
 
 let rec eval ~env tm =
-  let env = (env : V.lazy_env) in
+  let env = (env : Value.lazy_env) in
   let prepare_fun fv p env =
     (* Unlike OCaml we always evaluate default values, and we do that early. I
        think the only reason is homogeneity with FFI, which are declared with
@@ -100,36 +101,36 @@ let rec eval ~env tm =
               }
           in
           let rec demeth = function
-            | V.Meth (_, _, v) -> demeth v.V.value
+            | Value.Meth (_, _, v) -> demeth v.Value.value
             | v -> v
           in
           match demeth v with
-            | V.Source s -> Source.Kind.unify s#kind k
+            | Value.Source s -> Source.Kind.unify s#kind k
             | _ ->
                 raise
                   (Internal_error
                      ( Option.to_list tm.t.Type.pos,
                        "term has type source but is not a source: "
-                       ^ V.print_value { V.pos = tm.t.Type.pos; V.value = v } ))
-          )
+                       ^ Value.print_value
+                           { Value.pos = tm.t.Type.pos; Value.value = v } )))
       | _ -> ());
-    { V.pos = tm.t.Type.pos; V.value = v }
+    { Value.pos = tm.t.Type.pos; Value.value = v }
   in
   match tm.term with
-    | Ground g -> mk (V.Ground g)
-    | Encoder x -> mk (V.Encoder x)
-    | List l -> mk (V.List (List.map (eval ~env) l))
-    | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
-    | Null -> mk V.Null
+    | Ground g -> mk (Value.Ground g)
+    | Encoder x -> mk (Value.Encoder x)
+    | List l -> mk (Value.List (List.map (eval ~env) l))
+    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval ~env a) l))
+    | Null -> mk Value.Null
     | Cast (e, _) ->
         let e = eval ~env e in
-        mk e.V.value
-    | Meth (l, u, v) -> mk (V.Meth (l, eval ~env u, eval ~env v))
+        mk e.Value.value
+    | Meth (l, u, v) -> mk (Value.Meth (l, eval ~env u, eval ~env v))
     | Invoke (t, l) ->
         let rec aux t =
-          match t.V.value with
-            | V.Meth (l', t, _) when l = l' -> t
-            | V.Meth (_, _, t) -> aux t
+          match t.Value.value with
+            | Value.Meth (l', t, _) when l = l' -> t
+            | Value.Meth (_, _, t) -> aux t
             | _ ->
                 raise
                   (Internal_error
@@ -140,9 +141,9 @@ let rec eval ~env tm =
     | Open (t, u) ->
         let t = eval ~env t in
         let rec aux env t =
-          match t.V.value with
-            | V.Meth (l, v, t) -> aux ((l, Lazy.from_val v) :: env) t
-            | V.Tuple [] -> env
+          match t.Value.value with
+            | Value.Meth (l, v, t) -> aux ((l, Lazy.from_val v) :: env) t
+            | Value.Tuple [] -> env
             | _ -> assert false
         in
         let env = aux env t in
@@ -156,26 +157,28 @@ let rec eval ~env tm =
                 | [] -> assert false
                 | [x] ->
                     let v () =
-                      if replace then V.remeth (Lazy.force (List.assoc x env)) v
+                      if replace then
+                        Value.remeth (Lazy.force (List.assoc x env)) v
                       else v
                     in
                     (x, Lazy.from_fun v)
                 | l :: ll ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
-                      let mk ~pos value = { V.pos; value } in
+                      let mk ~pos value = { Value.pos; value } in
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk ~pos:tm.t.Type.pos (V.Meth (l, v, t))
+                        | [l] -> mk ~pos:tm.t.Type.pos (Value.Meth (l, v, t))
                         | l :: ll ->
-                            mk ~pos:t.V.pos
-                              (V.Meth (l, meths ll v (V.invoke t l), t))
+                            mk ~pos:t.Value.pos
+                              (Value.Meth (l, meths ll v (Value.invoke t l), t))
                     in
                     let v () =
                       let t = Lazy.force (List.assoc l env) in
                       let v =
                         (* When replacing, keep previous methods. *)
-                        if replace then V.remeth (V.invokes t ll) v else v
+                        if replace then Value.remeth (Value.invokes t ll) v
+                        else v
                       in
                       meths ll v t
                     in
@@ -186,12 +189,12 @@ let rec eval ~env tm =
         eval ~env b
     | Fun (fv, p, body) ->
         let p, env = prepare_fun fv p env in
-        mk (V.Fun (p, [], env, body))
+        mk (Value.Fun (p, [], env, body))
     | RFun (x, fv, p, body) ->
         let p, env = prepare_fun fv p env in
         let rec v () =
           let env = (x, Lazy.from_fun v) :: env in
-          { V.pos = tm.t.Type.pos; value = V.Fun (p, [], env, body) }
+          { Value.pos = tm.t.Type.pos; value = Value.Fun (p, [], env, body) }
         in
         v ()
     | Var var -> lookup env var
@@ -211,35 +214,35 @@ let rec eval ~env tm =
 and apply f l =
   let rec pos = function
     | [(_, v)] -> (
-        match (f.V.pos, v.V.pos) with
+        match (f.Value.pos, v.Value.pos) with
           | Some (p, _), Some (_, q) -> Some (p, q)
           | Some pos, None -> Some pos
           | None, Some pos -> Some pos
           | None, None -> None)
     | _ :: l -> pos l
-    | [] -> f.V.pos
+    | [] -> f.Value.pos
   in
   (* Position of the whole application. *)
   let pos = pos l in
-  let pos_f = f.V.pos in
-  let mk ~pos v = { pos; V.value = v } in
+  let pos_f = f.Value.pos in
+  let mk ~pos v = { pos; Value.value = v } in
   (* Extract the components of the function, whether it's explicit or foreign,
      together with a rewrapping function for creating a closure in case of
      partial application. *)
   let p, pe, f, rewrap =
-    match (V.demeth f).V.value with
-      | V.Fun (p, pe, e, body) ->
+    match (Value.demeth f).Value.value with
+      | Value.Fun (p, pe, e, body) ->
           ( p,
             pe,
             (fun pe ->
               let pe = List.map (fun (x, gv) -> (x, Lazy.from_val gv)) pe in
               eval ~env:(List.rev_append pe e) body),
-            fun p pe -> mk ~pos:pos_f (V.Fun (p, pe, e, body)) )
-      | V.FFI (p, pe, f) ->
+            fun p pe -> mk ~pos:pos_f (Value.Fun (p, pe, e, body)) )
+      | Value.FFI (p, pe, f) ->
           ( p,
             pe,
             (fun pe -> f (List.rev pe)),
-            fun p pe -> mk ~pos:pos_f (V.FFI (p, pe, f)) )
+            fun p pe -> mk ~pos:pos_f (Value.FFI (p, pe, f)) )
       | _ -> assert false
   in
   (* Record error positions. *)
@@ -276,7 +279,7 @@ and apply f l =
                with the mount/name params of output.icecast.*, the printing of
                the error should succeed at getting a position information. *)
             let v = Option.get v in
-            { v with V.pos } )
+            { v with Value.pos } )
           :: pe)
         pe p
     in
@@ -285,7 +288,7 @@ and apply f l =
        information. For example, if we build a fallible source and pass it to an
        operator that expects an infallible one, an error is issued about that
        FFI-made value and a position is needed. *)
-    { v with V.pos })
+    { v with Value.pos })
 
 let eval ?env tm =
   let env =
@@ -309,9 +312,9 @@ let toplevel_add (doc, params, methods) pat ~t v =
   in
   let ptypes = ptypes t in
   let rec pvalues v =
-    match v.V.value with
-      | V.Fun (p, _, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
-      | V.Meth (_, _, v) -> pvalues v
+    match v.Value.value with
+      | Value.Fun (p, _, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+      | Value.Meth (_, _, v) -> pvalues v
       | _ -> []
   in
   let pvalues = pvalues v in
@@ -333,7 +336,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
           (Doc.trivial
              (match default with
                | `Unknown -> "???"
-               | `Known (Some v) -> V.print_value v
+               | `Known (Some v) -> Value.print_value v
                | `Known None -> "None"));
         doc#add_subsection (if label = "" then "(unlabeled)" else label) item;
         (params, pvalues))
@@ -343,7 +346,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
     (fun (s, _) ->
       Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
         (string_of_pat pat)
-        (Type.print_pos_opt v.V.pos))
+        (Type.print_pos_opt v.Value.pos))
     params;
   (let meths, t =
      let meths, t = Type.split_meths t in
@@ -387,8 +390,8 @@ let rec eval_toplevel ?(interactive = false) t =
                   in
                   let old_t = snd old_t in
                   let old_t = snd (Type.invokes old_t l) in
-                  let old = V.invokes old l in
-                  (Type.remeth old_t def.t, V.remeth old (eval def))
+                  let old = Value.invokes old l in
+                  (Type.remeth old_t def.t, Value.remeth old (eval def))
               | PTuple _ ->
                   failwith "TODO: cannot replace toplevel tuples for now")
         in
@@ -400,15 +403,15 @@ let rec eval_toplevel ?(interactive = false) t =
         if interactive && var <> "_" then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." var
             (Type.pp_type_generalized generalized)
-            def_t (V.print_value def);
+            def_t (Value.print_value def);
         eval_toplevel ~interactive body
     | Seq (a, b) ->
         ignore
           (let v = eval_toplevel a in
-           if v.V.pos = None then { v with V.pos = a.t.Type.pos } else v);
+           if v.Value.pos = None then { v with Value.pos = a.t.Type.pos } else v);
         eval_toplevel ~interactive b
     | _ ->
         let v = eval t in
         if interactive && t.term <> unit then
-          Format.printf "- : %a = %s@." Type.pp_type t.t (V.print_value v);
+          Format.printf "- : %a = %s@." Type.pp_type t.t (Value.print_value v);
         v

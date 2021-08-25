@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Runtime error, should eventually disappear. *)
-exception Invalid_value of Term.V.t * string
+exception Invalid_value of Term.Value.t * string
 
 exception Clock_conflict of (Type.pos option * string * string)
 exception Clock_loop of (Type.pos option * string * string)
@@ -122,7 +122,7 @@ let throw print_error = function
         else Format.sprintf "argument labeled %S" lbl);
       raise Error
   | Invalid_value (v, msg) ->
-      error_header 7 (Type.print_pos_opt v.Term.V.pos);
+      error_header 7 (Type.print_pos_opt v.Term.Value.pos);
       Format.printf "Invalid value:@ %s@]@." msg;
       raise Error
   | Lang_encoders.Error (v, s) ->

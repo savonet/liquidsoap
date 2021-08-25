@@ -511,7 +511,7 @@ let () =
       let dv = Lang.demeth v in
       (* Always show records. *)
       let show_fields =
-        if dv.Lang.value = Term.V.unit then true else show_fields
+        if dv.Lang.value = Term.Value.unit then true else show_fields
       in
       let v = if show_fields then v else dv in
       match v with

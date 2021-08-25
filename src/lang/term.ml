@@ -535,7 +535,7 @@ let check_unused ~throw ~lib tm =
   ignore (check ~toplevel:true Vars.empty tm)
 
 (** Values are untyped normal forms of terms. *)
-module V = struct
+module Value = struct
   type t = { pos : Type.pos option; value : in_value }
 
   and env = (string * t) list

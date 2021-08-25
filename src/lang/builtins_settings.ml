@@ -177,20 +177,20 @@ let filtered_settings = ["subordinate log level"]
 
 let print_settings () =
   let rec grab_descr cur = function
-    | Term.V.Meth ("description", d, v) ->
+    | Term.Value.Meth ("description", d, v) ->
         grab_descr { cur with description = Lang.to_string d } v.Lang.value
-    | Term.V.Meth ("comments", c, v) ->
+    | Term.Value.Meth ("comments", c, v) ->
         grab_descr { cur with comments = Lang.to_string c } v.Lang.value
-    | Term.V.Meth ("set", _, v) -> grab_descr cur v.Lang.value
-    | Term.V.Meth (key, _, v) when List.mem_assoc key cur.children ->
+    | Term.Value.Meth ("set", _, v) -> grab_descr cur v.Lang.value
+    | Term.Value.Meth (key, _, v) when List.mem_assoc key cur.children ->
         grab_descr cur v.Lang.value
-    | Term.V.Meth (key, c, v) ->
+    | Term.Value.Meth (key, c, v) ->
         let descr =
           {
             description = "";
             comments = "";
             children = [];
-            value = Term.V.Tuple [];
+            value = Term.Value.Tuple [];
           }
         in
         grab_descr
@@ -202,7 +202,12 @@ let print_settings () =
     | value -> { cur with value }
   in
   let descr =
-    { description = ""; comments = ""; children = []; value = Term.V.Tuple [] }
+    {
+      description = "";
+      comments = "";
+      children = [];
+      value = Term.Value.Tuple [];
+    }
   in
   let descr = grab_descr descr !settings.Lang.value in
   let filter_children =
@@ -210,11 +215,11 @@ let print_settings () =
         not (List.mem description filtered_settings))
   in
   let print_set ~path = function
-    | Term.V.Tuple [] -> []
+    | Term.Value.Tuple [] -> []
     | value ->
         [
-          (match Lang.apply { Term.V.pos = None; value } [] with
-            | v when v.Term.V.value = Term.V.Null ->
+          (match Lang.apply { Term.Value.pos = None; value } [] with
+            | v when v.Term.Value.value = Term.Value.Null ->
                 Printf.sprintf {|
 ```liquidsoap
 %s.set(<value>)
@@ -226,7 +231,7 @@ let print_settings () =
 %s.set(%s)
 ```
 |} path
-                  (Term.V.print_value v));
+                  (Term.Value.print_value v));
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -252,10 +257,11 @@ let () =
   let grab path value =
     let path = String.split_on_char '.' path in
     let rec grab links v =
-      match (links, v.Term.V.value) with
+      match (links, v.Term.Value.value) with
         | [], _ -> v
-        | link :: links, Term.V.Meth (key, v, _) when key = link -> grab links v
-        | _, Term.V.Meth (_, _, v) -> grab links v
+        | link :: links, Term.Value.Meth (key, v, _) when key = link ->
+            grab links v
+        | _, Term.Value.Meth (_, _, v) -> grab links v
         | _ -> raise Not_found
     in
     grab path value
