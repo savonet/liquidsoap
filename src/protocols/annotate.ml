@@ -31,10 +31,10 @@ let parse s =
   let lexbuf = Sedlexing.Utf8.from_string s in
   try
     let processor =
-      MenhirLib.Convert.Simplified.traditional2revised Lang_parser.annotate
+      MenhirLib.Convert.Simplified.traditional2revised Parser.annotate
     in
     let tokenizer () =
-      let token = Lang_lexer.token lexbuf in
+      let token = Lexer.token lexbuf in
       let startp, endp = Sedlexing.lexing_positions lexbuf in
       (token, startp, endp)
     in

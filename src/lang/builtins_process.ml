@@ -248,7 +248,7 @@ let () =
         else synchronous ()))
 
 let () =
-  add_builtin "process.quote" ~cat:Sys
+  Lang.add_builtin "process.quote" ~category:`System
     ~descr:
       "Return a quoted copy of the given string, suitable for use as one \
        argument in a command line, escaping all meta-characters. Warning: \

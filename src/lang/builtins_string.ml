@@ -103,7 +103,7 @@ let () =
           | "utf8" -> `Utf8
           | _ ->
               raise
-                (Lang_errors.Invalid_value
+                (Error.Invalid_value
                    ( encoding,
                      "Encoding should be one of: \"ascii\" or \"utf8\"." ))
       in
@@ -130,11 +130,11 @@ let () =
         (Utils.escape_string (Utils.escape ~special_char ~escape_char ~next) s))
 
 let () =
-  add_builtin "string.escape.all"
+  Lang.add_builtin "string.escape.all"
     ~descr:
       "Escape each character in the given string using a specific escape \
        sequence"
-    ~cat:String
+    ~category:`String
     [
       ( "format",
         Lang.string_t,
@@ -152,7 +152,7 @@ let () =
           | "utf8" -> (Utils.escape_utf8_char, Utils.utf8_next)
           | _ ->
               raise
-                (Lang_errors.Invalid_value
+                (Error.Invalid_value
                    ( format,
                      "Format should be one of: `\"octal\"`, `\"hex\"` or \
                       `\"utf8\"`." ))
@@ -185,7 +185,7 @@ let () =
         | "utf8" -> Lang.bool (Utils.utf8_special_char s)
         | _ ->
             raise
-              (Lang_errors.Invalid_value
+              (Error.Invalid_value
                  (encoding, "Encoding should be one of: \"ascii\" or \"utf8\".")))
 
 let () =
@@ -214,8 +214,7 @@ let () =
              {
                Runtime_error.kind = "string";
                msg = Some err;
-               pos =
-                 (match v.Lang_values.V.pos with None -> [] | Some p -> [p]);
+               pos = (match v.Term.Value.pos with None -> [] | Some p -> [p]);
              }))
 
 let () =
@@ -472,7 +471,7 @@ let () =
       Lang.string (Utils.interpolate (fun k -> List.assoc k l) s))
 
 let () =
-  Lang.add_builtin "string.hex_of_int" ~category: `String
+  Lang.add_builtin "string.hex_of_int" ~category:`String
     ~descr:"Hexadecimal representation of an integer."
     [
       ( "pad",
