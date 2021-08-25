@@ -191,9 +191,12 @@ let rec ( <: ) a b =
             incr n;
             try a <: b
             with Error (a, b) ->
+              let bt = Printexc.get_raw_backtrace () in
               let l = List.init (!n - 1) (fun _ -> `Ellipsis) in
               let l' = List.init (List.length m - !n) (fun _ -> `Ellipsis) in
-              raise (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l'))))
+              Printexc.raise_with_backtrace
+                (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l')))
+                bt)
           l m
     | Arrow (l12, t), Arrow (l, t') ->
         (* Here, it must be that l12 = l1@l2 where l1 is essentially l modulo
@@ -226,10 +229,11 @@ let rec ( <: ) a b =
               begin
                 try t' <: t
                 with Error (t, t') ->
+                  let bt = Printexc.get_raw_backtrace () in
                   let make t =
                     `Arrow (List.rev (ellipsis :: (o, lbl, t) :: l1), `Ellipsis)
                   in
-                  raise (Error (make t', make t))
+                  Printexc.raise_with_backtrace (Error (make t', make t)) bt
               end;
               ((o, lbl, `Ellipsis) :: l1, l2'))
             ([], l12) l
@@ -238,7 +242,10 @@ let rec ( <: ) a b =
         if List.for_all (fun (o, _, _) -> o) l2 then (
           try t <: t'
           with Error (t, t') ->
-            raise (Error (`Arrow ([ellipsis], t), `Arrow ([ellipsis], t'))))
+            let bt = Printexc.get_raw_backtrace () in
+            Printexc.raise_with_backtrace
+              (Error (`Arrow ([ellipsis], t), `Arrow ([ellipsis], t')))
+              bt)
         else (
           try { a with descr = Arrow (l2, t) } <: t' with
             | Error (`Arrow (p, t), t') ->
@@ -280,7 +287,10 @@ let rec ( <: ) a b =
                   (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis))));
           try a <: hide_meth l u2
           with Error (a, b) ->
-            raise (Error (a, `Meth (l, ([], `Ellipsis), b)))
+            let bt = Printexc.get_raw_backtrace () in
+            Printexc.raise_with_backtrace
+              (Error (a, `Meth (l, ([], `Ellipsis), b)))
+              bt
         with Not_found -> (
           let a' = demeth a in
           match a'.descr with
