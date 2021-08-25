@@ -273,6 +273,18 @@ let rec ( <: ) a b =
           raise (Error (repr a, repr b)))
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
+    | Meth (l, (g1, t1), _, u1), Meth (l', (g2, t2), _, u2) when l = l' -> (
+        (* Handle explicitly this case in order to avoid #1842. *)
+        try
+          (* TODO: we should perform proper type scheme subtyping, but this
+                is a good approximation for now... *)
+          instantiate ~level:(-1) ~generalized:g1 t1
+          <: instantiate ~level:(-1) ~generalized:g2 t2;
+          u1 <: u2
+        with Error (a, b) ->
+          raise
+            (Error (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis)))
+        )
     | _, Meth (l, (g2, t2), _, u2) -> (
         try
           let g1, t1 = invoke a l in
