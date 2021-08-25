@@ -50,7 +50,7 @@ module Ground : sig
   val to_string : t -> string
 end
 
-type value = Term.V.value = { pos : pos option; value : in_value }
+type value = Term.V.t = { pos : pos option; value : in_value }
 
 and env = (string * value) list
 

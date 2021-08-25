@@ -22,11 +22,11 @@
 
 (** {1 Evaluation environment} *)
 
-let builtins : (Type.scheme * Term.V.value) Plug.plug =
+let builtins : (Type.scheme * Term.V.t) Plug.plug =
   Plug.create ~duplicates:false ~doc:"scripting values" "scripting values"
 
 (* Environment for builtins. *)
-let builtins_env : (string * (Type.scheme * Term.V.value)) list ref = ref []
+let builtins_env : (string * (Type.scheme * Term.V.t)) list ref = ref []
 let default_environment () = !builtins_env
 
 let default_typing_environment () =

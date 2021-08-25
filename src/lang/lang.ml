@@ -27,6 +27,7 @@ open Ground
 type t = Type.t
 type scheme = Type.scheme
 type pos = Type.pos
+type value = Term.V.t = { pos : pos option; value : in_value }
 
 let log = Log.make ["lang"]
 

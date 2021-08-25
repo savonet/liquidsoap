@@ -352,6 +352,8 @@ and pattern =
   | PVar of string list  (** a field *)
   | PTuple of pattern list  (** a tuple *)
 
+type term = t
+
 let unit = Tuple []
 
 (* Only used for printing very simple functions. *)
@@ -534,32 +536,32 @@ let check_unused ~throw ~lib tm =
 
 (** Values are untyped normal forms of terms. *)
 module V = struct
-  type value = { pos : Type.pos option; value : in_value }
+  type t = { pos : Type.pos option; value : in_value }
 
-  and env = (string * value) list
+  and env = (string * t) list
 
   (* Some values have to be lazy in the environment because of recursive functions. *)
-  and lazy_env = (string * value Lazy.t) list
+  and lazy_env = (string * t Lazy.t) list
 
   and in_value =
     | Ground of Ground.t
     | Source of Source.source
     | Encoder of Encoder.format
-    | List of value list
-    | Tuple of value list
+    | List of t list
+    | Tuple of t list
     | Null
     (* TODO: It would be better to have a list of methods associated to each
        value than a constructor here. However, I am keeping as is for now because
        implementation is safer this way. *)
-    | Meth of string * value * value
-    | Ref of value ref
+    | Meth of string * t * t
+    | Ref of t ref
     (* The first environment contains the parameters already passed to the
        function. Next parameters will be inserted between that and the second
        env which is part of the closure. *)
-    | Fun of (string * string * value option) list * env * lazy_env * t
+    | Fun of (string * string * t option) list * env * lazy_env * term
     (* For a foreign function only the arguments are visible, the closure
        doesn't capture anything in the environment. *)
-    | FFI of (string * string * value option) list * env * (env -> value)
+    | FFI of (string * string * t option) list * env * (env -> t)
 
   let unit : in_value = Tuple []
 

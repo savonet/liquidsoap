@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Runtime error, should eventually disappear. *)
-exception Invalid_value of Term.V.value * string
+exception Invalid_value of Term.V.t * string
 
 exception Clock_conflict of (Type.pos option * string * string)
 exception Clock_loop of (Type.pos option * string * string)
