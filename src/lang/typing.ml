@@ -282,9 +282,10 @@ let rec ( <: ) a b =
           <: instantiate ~level:(-1) ~generalized:g2 t2;
           u1 <: u2
         with Error (a, b) ->
-          raise
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace
             (Error (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis)))
-        )
+            bt)
     | _, Meth (l, (g2, t2), _, u2) -> (
         try
           let g1, t1 = invoke a l in
@@ -294,9 +295,11 @@ let rec ( <: ) a b =
              instantiate ~level:(-1) ~generalized:g1 t1
              <: instantiate ~level:(-1) ~generalized:g2 t2
            with Error (a, b) ->
-             raise
+             let bt = Printexc.get_raw_backtrace () in
+             Printexc.raise_with_backtrace
                (Error
-                  (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis))));
+                  (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis)))
+               bt);
           try a <: hide_meth l u2
           with Error (a, b) ->
             let bt = Printexc.get_raw_backtrace () in
