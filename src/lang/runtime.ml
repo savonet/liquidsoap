@@ -201,9 +201,8 @@ let mk_expr ?fname ~pwd processor lexbuf =
   in
   processor tokenizer
 
-let from_in_channel ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns
-    ~lib in_chan =
-  let lexbuf = Sedlexing.Utf8.from_channel in_chan in
+let from_lexbuf ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
+    lexbuf =
   begin
     match ns with
     | Some ns -> Sedlexing.set_filename lexbuf ns
@@ -214,6 +213,10 @@ let from_in_channel ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns
         let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
         if not parse_only then type_and_run ~throw ~lib expr)
   with Error -> exit 1
+
+let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
+  let lexbuf = Sedlexing.Utf8.from_channel in_chan in
+  from_lexbuf ?fname ?dir ?parse_only ~ns ~lib lexbuf
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
@@ -237,13 +240,8 @@ let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true) () =
 let from_file = from_file ~ns:None
 
 let from_string ?parse_only ~lib expr =
-  let i, o = Unix.pipe ~cloexec:true () in
-  let i = Unix.in_channel_of_descr i in
-  let o = Unix.out_channel_of_descr o in
-  output_string o expr;
-  close_out o;
-  from_in_channel ?parse_only ~ns:None ~lib i;
-  close_in i
+  let lexbuf = Sedlexing.Utf8.from_string expr in
+  from_lexbuf ?parse_only ~ns:None ~lib lexbuf
 
 let eval s =
   try
