@@ -89,10 +89,10 @@ open Parser_helper
 %nonassoc LPAR
 
 %start program
-%type <Term.term> program
+%type <Term.t> program
 
 %start interactive
-%type <Term.term> interactive
+%type <Term.t> interactive
 
 %%
 

@@ -20,17 +20,15 @@
 
  *****************************************************************************)
 
-open Term
-
 (** Errors *)
 
-exception Error of (term * string)
+exception Error of (Term.t * string)
 
-let invalid t = match t.term with Ground _ -> false | _ -> true
+let invalid t = match t.Term.term with Term.Ground _ -> false | _ -> true
 
 let generic_error t : exn =
   if invalid t then (
-    match t.term with
-      | Var _ -> Error (t, "variables are forbidden in encoding formats")
+    match t.Term.term with
+      | Term.Var _ -> Error (t, "variables are forbidden in encoding formats")
       | _ -> Error (t, "complex expressions are forbidden in encoding formats"))
   else Error (t, "unknown parameter name or invalid parameter value")

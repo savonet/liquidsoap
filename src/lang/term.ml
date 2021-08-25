@@ -310,7 +310,7 @@ module MkGround (D : GroundDef) = struct
       | _ -> None)
 end
 
-type term = { mutable t : Type.t; term : in_term }
+type t = { mutable t : Type.t; term : in_term }
 
 and let_t = {
   doc : Doc.item * (string * string) list * (string * string) list;
@@ -319,33 +319,32 @@ and let_t = {
   (* whether the definition replaces a previously existing one (keeping methods) *)
   pat : pattern;
   mutable gen : (int * Type.constraints) list;
-  def : term;
-  body : term;
+  def : t;
+  body : t;
 }
 
 and in_term =
   | Ground of Ground.t
   | Encoder of Encoder.format
-  | List of term list
-  | Tuple of term list
+  | List of t list
+  | Tuple of t list
   | Null
-  | Cast of term * Type.t
-  | Meth of string * term * term
-  | Invoke of term * string
-  | Open of term * term
+  | Cast of t * Type.t
+  | Meth of string * t * t
+  | Invoke of t * string
+  | Open of t * t
   | Let of let_t
   | Var of string
-  | Seq of term * term
-  | App of term * (string * term) list
+  | Seq of t * t
+  | App of t * (string * t) list
   (* [fun ~l1:x1 .. ?li:(xi=defi) .. -> body] =
    * [Fun (V, [(l1,x1,None)..(li,xi,Some defi)..], body)]
    * The first component [V] is the list containing all
    * variables occurring in the function. It is used to
    * restrict the environment captured when a closure is
    * formed. *)
-  | Fun of Vars.t * (string * string * Type.t * term option) list * term
-  | RFun of
-      string * Vars.t * (string * string * Type.t * term option) list * term
+  | Fun of Vars.t * (string * string * Type.t * t option) list * t
+  | RFun of string * Vars.t * (string * string * Type.t * t option) list * t
 
 (* A recursive function, the first string is the name of the recursive
    variable. *)
@@ -448,14 +447,14 @@ let is_source t =
 (** {1 Basic checks and errors} *)
 
 exception Unbound of Type.pos option * string
-exception Ignored of term
+exception Ignored of t
 
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
   * passed to the function [f] because the latter has no label [lbl].
   * The [first] information tells whether [lbl=x] is the first parameter with
   * label [lbl] in the considered application, which makes the message a bit
   * more helpful. *)
-exception No_label of term * string * bool * term
+exception No_label of t * string * bool * t
 
 (** Check that all let-bound variables are used.
   * No check is performed for variable arguments.
@@ -557,7 +556,7 @@ module V = struct
     (* The first environment contains the parameters already passed to the
        function. Next parameters will be inserted between that and the second
        env which is part of the closure. *)
-    | Fun of (string * string * value option) list * env * lazy_env * term
+    | Fun of (string * string * value option) list * env * lazy_env * t
     (* For a foreign function only the arguments are visible, the closure
        doesn't capture anything in the environment. *)
     | FFI of (string * string * value option) list * env * (env -> value)
