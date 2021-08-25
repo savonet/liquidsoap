@@ -66,7 +66,7 @@ let make ?pos params =
   in
   let dummy =
     {
-      Term.t = T.fresh_evar ~level:(-1) ~pos;
+      Term.t = Type.fresh_evar ~level:(-1) ~pos;
       term = Encoder (Encoder.GStreamer gstreamer);
     }
   in

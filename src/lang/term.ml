@@ -81,84 +81,86 @@ let profile = ref false
 (* In a sense this could be moved to Type, but I like to keep that part free of
    some specificities of liquidsoap, as much as possible. *)
 
-module T = Type
-
 let ref_t ?pos ?level t =
-  T.make ?pos ?level
-    (T.Constr { T.name = "ref"; T.params = [(T.Invariant, t)] })
+  Type.make ?pos ?level
+    (Type.Constr { Type.name = "ref"; params = [(Type.Invariant, t)] })
 
 (** A frame kind type is a purely abstract type representing a
     frame kind. *)
 let frame_kind_t ?pos ?level audio video midi =
-  T.make ?pos ?level
-    (T.Constr
+  Type.make ?pos ?level
+    (Type.Constr
        {
-         T.name = "stream_kind";
-         T.params =
-           [(T.Covariant, audio); (T.Covariant, video); (T.Covariant, midi)];
+         Type.name = "stream_kind";
+         Type.params =
+           [
+             (Type.Covariant, audio);
+             (Type.Covariant, video);
+             (Type.Covariant, midi);
+           ];
        })
 
 let kind_t ?pos ?level kind =
   let evar ?(constraints = []) () =
-    T.fresh ~constraints
+    Type.fresh ~constraints
       ~pos:(match pos with None -> None | Some pos -> pos)
       ~level:(-1)
   in
-  let mk_format f = T.make ?pos ?level (T.Ground (T.Format f)) in
+  let mk_format f = Type.make ?pos ?level (Type.Ground (Type.Format f)) in
   match kind with
     | `Any -> evar ()
-    | `Internal -> evar ~constraints:[T.InternalMedia] ()
+    | `Internal -> evar ~constraints:[Type.InternalMedia] ()
     | `Kind k ->
-        T.make ?pos ?level
-          (T.Constr
+        Type.make ?pos ?level
+          (Type.Constr
              {
-               T.name = Frame_content.string_of_kind k;
-               T.params = [(T.Covariant, evar ())];
+               Type.name = Frame_content.string_of_kind k;
+               Type.params = [(Type.Covariant, evar ())];
              })
     | `Format f ->
         let k = Frame_content.kind f in
-        T.make ?pos ?level
-          (T.Constr
+        Type.make ?pos ?level
+          (Type.Constr
              {
-               T.name = Frame_content.string_of_kind k;
-               T.params = [(T.Covariant, mk_format f)];
+               Type.name = Frame_content.string_of_kind k;
+               Type.params = [(Type.Covariant, mk_format f)];
              })
 
 let of_frame_kind_t t =
-  match (T.deref t).T.descr with
-    | T.Constr
+  match (Type.deref t).Type.descr with
+    | Type.Constr
         {
-          T.name = "stream_kind";
-          T.params = [(_, audio); (_, video); (_, midi)];
+          Type.name = "stream_kind";
+          Type.params = [(_, audio); (_, video); (_, midi)];
         } ->
         { Frame.audio; video; midi }
-    | T.EVar (_, _) ->
+    | Type.EVar (_, _) ->
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
-        T.bind t (frame_kind_t audio video midi);
+        Type.bind t (frame_kind_t audio video midi);
         { Frame.audio; video; midi }
     | _ -> assert false
 
 (** Type of audio formats that can encode frame of a given kind. *)
 let format_t ?pos ?level k =
-  T.make ?pos ?level
-    (T.Constr { T.name = "format"; T.params = [(T.Covariant, k)] })
+  Type.make ?pos ?level
+    (Type.Constr { Type.name = "format"; Type.params = [(Type.Covariant, k)] })
 
 (** Type of sources carrying frames of a given kind. *)
 let source_t ?pos ?level k =
-  T.make ?pos ?level
-    (T.Constr { T.name = "source"; T.params = [(T.Invariant, k)] })
+  Type.make ?pos ?level
+    (Type.Constr { Type.name = "source"; Type.params = [(Type.Invariant, k)] })
 
 (* Filled in later to avoid dependency cycles. *)
-let source_methods_t = ref (fun () : T.t -> assert false)
+let source_methods_t = ref (fun () : Type.t -> assert false)
 
 let of_source_t t =
-  match (T.deref t).T.descr with
-    | T.Constr { T.name = "source"; T.params = [(_, t)] } -> t
+  match (Type.deref t).Type.descr with
+    | Type.Constr { Type.name = "source"; Type.params = [(_, t)] } -> t
     | _ -> assert false
 
-let request_t ?pos ?level () = T.make ?pos ?level (T.Ground T.Request)
+let request_t ?pos ?level () = Type.make ?pos ?level (Type.Ground Type.Request)
 
 let type_of_format ~pos ~level f =
   let kind = Encoder.kind_of_format f in
@@ -188,7 +190,7 @@ module Ground = struct
     descr : unit -> string;
     to_json : compact:bool -> json5:bool -> unit -> string;
     compare : t -> int;
-    typ : T.ground;
+    typ : Type.ground;
   }
 
   let handlers = Queue.create ()
@@ -225,7 +227,7 @@ module Ground = struct
           in
           let to_string () = string_of_bool b in
           let to_json ~compact:_ ~json5:_ = to_string in
-          Some { descr = to_string; to_json; compare; typ = T.Bool }
+          Some { descr = to_string; to_json; compare; typ = Type.Bool }
       | Int i ->
           let compare = function
             | Int i' -> Stdlib.compare i i'
@@ -233,7 +235,7 @@ module Ground = struct
           in
           let to_string () = string_of_int i in
           let to_json ~compact:_ ~json5:_ = to_string in
-          Some { descr = to_string; to_json; compare; typ = T.Int }
+          Some { descr = to_string; to_json; compare; typ = Type.Int }
       | String s ->
           let compare = function
             | String s' -> Stdlib.compare s s'
@@ -245,7 +247,7 @@ module Ground = struct
               descr = (fun () -> Utils.escape_utf8 s);
               to_json;
               compare;
-              typ = T.String;
+              typ = Type.String;
             }
       | Float f ->
           let compare = function
@@ -269,7 +271,7 @@ module Ground = struct
               descr = (fun () -> string_of_float f);
               to_json;
               compare;
-              typ = T.Float;
+              typ = Type.Float;
             }
       | Request r ->
           let descr () = Printf.sprintf "<request(id=%d)>" (Request.get_id r) in
@@ -279,7 +281,7 @@ module Ground = struct
                 Stdlib.compare (Request.get_id r) (Request.get_id r')
             | _ -> assert false
           in
-          Some { descr; compare; to_json; typ = T.Request }
+          Some { descr; compare; to_json; typ = Type.Request }
       | _ -> None)
 end
 
@@ -289,7 +291,7 @@ module type GroundDef = sig
   val descr : content -> string
   val to_json : compact:bool -> json5:bool -> content -> string
   val compare : content -> content -> int
-  val typ : T.ground
+  val typ : Type.ground
 end
 
 module MkGround (D : GroundDef) = struct
@@ -308,7 +310,7 @@ module MkGround (D : GroundDef) = struct
       | _ -> None)
 end
 
-type term = { mutable t : T.t; term : in_term }
+type term = { mutable t : Type.t; term : in_term }
 
 and let_t = {
   doc : Doc.item * (string * string) list * (string * string) list;
@@ -316,7 +318,7 @@ and let_t = {
   replace : bool;
   (* whether the definition replaces a previously existing one (keeping methods) *)
   pat : pattern;
-  mutable gen : (int * T.constraints) list;
+  mutable gen : (int * Type.constraints) list;
   def : term;
   body : term;
 }
@@ -327,7 +329,7 @@ and in_term =
   | List of term list
   | Tuple of term list
   | Null
-  | Cast of term * T.t
+  | Cast of term * Type.t
   | Meth of string * term * term
   | Invoke of term * string
   | Open of term * term
@@ -341,8 +343,9 @@ and in_term =
    * variables occurring in the function. It is used to
    * restrict the environment captured when a closure is
    * formed. *)
-  | Fun of Vars.t * (string * string * T.t * term option) list * term
-  | RFun of string * Vars.t * (string * string * T.t * term option) list * term
+  | Fun of Vars.t * (string * string * Type.t * term option) list * term
+  | RFun of
+      string * Vars.t * (string * string * Type.t * term option) list * term
 
 (* A recursive function, the first string is the name of the recursive
    variable. *)
@@ -367,7 +370,7 @@ let rec print_term v =
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
     | Null -> "null"
-    | Cast (e, t) -> "(" ^ print_term e ^ " : " ^ T.print t ^ ")"
+    | Cast (e, t) -> "(" ^ print_term e ^ " : " ^ Type.print t ^ ")"
     | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ " = " ^ print_term v ^ "}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
     | Open (m, e) -> "open " ^ print_term m ^ " " ^ print_term e
@@ -429,19 +432,22 @@ let free_vars ?(bound = []) body =
 (** Values which can be ignored (and will thus not raise a warning if
    ignored). *)
 let can_ignore t =
-  match (T.demeth t).T.descr with T.Tuple [] | T.EVar _ -> true | _ -> false
+  match (Type.demeth t).Type.descr with
+    | Type.Tuple [] | Type.EVar _ -> true
+    | _ -> false
 
 (* TODO: what about functions with methods? *)
-let is_fun t = match (T.deref t).T.descr with T.Arrow _ -> true | _ -> false
+let is_fun t =
+  match (Type.deref t).Type.descr with Type.Arrow _ -> true | _ -> false
 
 let is_source t =
-  match (T.demeth t).T.descr with
-    | T.Constr { T.name = "source"; _ } -> true
+  match (Type.demeth t).Type.descr with
+    | Type.Constr { Type.name = "source"; _ } -> true
     | _ -> false
 
 (** {1 Basic checks and errors} *)
 
-exception Unbound of T.pos option * string
+exception Unbound of Type.pos option * string
 exception Ignored of term
 
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
@@ -492,7 +498,7 @@ let check_unused ~throw ~lib tm =
           Vars.iter
             (fun x ->
               if Vars.mem x v && x <> "_" then (
-                let pos = fst (Option.get tm.t.T.pos) in
+                let pos = fst (Option.get tm.t.Type.pos) in
                 throw (Unused_variable (x, pos))))
             bound;
           (* Restore masked variables. The masking variables have been used but
@@ -519,7 +525,7 @@ let check_unused ~throw ~lib tm =
                     s <> "_"
                     && not (can_ignore def.t || (toplevel && is_fun def.t))
                   then (
-                    let start_pos = fst (Option.get tm.t.T.pos) in
+                    let start_pos = fst (Option.get tm.t.Type.pos) in
                     throw (Unused_variable (s, start_pos))))
               bvpat;
           Vars.union v mask
@@ -529,7 +535,7 @@ let check_unused ~throw ~lib tm =
 
 (** Values are untyped normal forms of terms. *)
 module V = struct
-  type value = { pos : T.pos option; value : in_value }
+  type value = { pos : Type.pos option; value : in_value }
 
   and env = (string * value) list
 

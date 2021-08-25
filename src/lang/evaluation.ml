@@ -75,19 +75,20 @@ let rec eval ~env tm =
   let mk v =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)
-    (match (T.deref tm.t).T.descr with
-      | T.Constr { T.name = "source"; params = [(T.Invariant, k)] } -> (
+    (match (Type.deref tm.t).Type.descr with
+      | Type.Constr { Type.name = "source"; params = [(Type.Invariant, k)] }
+        -> (
           let frame_content_of_t t =
-            match (T.deref t).T.descr with
-              | T.EVar _ -> `Any
-              | T.Constr { T.name; params = [(_, t)] } -> (
-                  match (T.deref t).T.descr with
-                    | T.Ground (T.Format fmt) -> `Format fmt
-                    | T.EVar _ -> `Kind (Frame_content.kind_of_string name)
-                    | _ -> failwith ("Unhandled content: " ^ T.print tm.t))
-              | T.Constr { T.name = "none" } ->
+            match (Type.deref t).Type.descr with
+              | Type.EVar _ -> `Any
+              | Type.Constr { Type.name; params = [(_, t)] } -> (
+                  match (Type.deref t).Type.descr with
+                    | Type.Ground (Type.Format fmt) -> `Format fmt
+                    | Type.EVar _ -> `Kind (Frame_content.kind_of_string name)
+                    | _ -> failwith ("Unhandled content: " ^ Type.print tm.t))
+              | Type.Constr { Type.name = "none" } ->
                   `Kind (Frame_content.kind_of_string "none")
-              | _ -> failwith ("Unhandled content: " ^ T.print tm.t)
+              | _ -> failwith ("Unhandled content: " ^ Type.print tm.t)
           in
           let k = of_frame_kind_t k in
           let k =
@@ -107,11 +108,12 @@ let rec eval ~env tm =
             | _ ->
                 raise
                   (Internal_error
-                     ( Option.to_list tm.t.T.pos,
+                     ( Option.to_list tm.t.Type.pos,
                        "term has type source but is not a source: "
-                       ^ V.print_value { V.pos = tm.t.T.pos; V.value = v } )))
+                       ^ V.print_value { V.pos = tm.t.Type.pos; V.value = v } ))
+          )
       | _ -> ());
-    { V.pos = tm.t.T.pos; V.value = v }
+    { V.pos = tm.t.Type.pos; V.value = v }
   in
   match tm.term with
     | Ground g -> mk (V.Ground g)
@@ -131,7 +133,7 @@ let rec eval ~env tm =
             | _ ->
                 raise
                   (Internal_error
-                     ( Option.to_list tm.t.T.pos,
+                     ( Option.to_list tm.t.Type.pos,
                        "invoked method " ^ l ^ " not found" ))
         in
         aux (eval ~env t)
@@ -164,7 +166,7 @@ let rec eval ~env tm =
                       let mk ~pos value = { V.pos; value } in
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk ~pos:tm.t.T.pos (V.Meth (l, v, t))
+                        | [l] -> mk ~pos:tm.t.Type.pos (V.Meth (l, v, t))
                         | l :: ll ->
                             mk ~pos:t.V.pos
                               (V.Meth (l, meths ll v (V.invoke t l), t))
@@ -189,7 +191,7 @@ let rec eval ~env tm =
         let p, env = prepare_fun fv p env in
         let rec v () =
           let env = (x, Lazy.from_fun v) :: env in
-          { V.pos = tm.t.T.pos; value = V.Fun (p, [], env, body) }
+          { V.pos = tm.t.Type.pos; value = V.Fun (p, [], env, body) }
         in
         v ()
     | Var var -> lookup env var
@@ -300,9 +302,9 @@ let eval ?env tm =
 let toplevel_add (doc, params, methods) pat ~t v =
   let generalized, t = t in
   let rec ptypes t =
-    match (T.deref t).T.descr with
-      | T.Arrow (p, _) -> p
-      | T.Meth (_, _, _, t) -> ptypes t
+    match (Type.deref t).Type.descr with
+      | Type.Arrow (p, _) -> p
+      | Type.Meth (_, _, _, t) -> ptypes t
       | _ -> []
   in
   let ptypes = ptypes t in
@@ -326,7 +328,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
           with Not_found -> (`Unknown, pvalues)
         in
         let item = Doc.trivial (if descr = "" then "(no doc)" else descr) in
-        item#add_subsection "type" (T.doc_of_type ~generalized t);
+        item#add_subsection "type" (Type.doc_of_type ~generalized t);
         item#add_subsection "default"
           (Doc.trivial
              (match default with
@@ -340,22 +342,23 @@ let toplevel_add (doc, params, methods) pat ~t v =
   List.iter
     (fun (s, _) ->
       Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
-        (string_of_pat pat) (T.print_pos_opt v.V.pos))
+        (string_of_pat pat)
+        (Type.print_pos_opt v.V.pos))
     params;
   (let meths, t =
-     let meths, t = T.split_meths t in
-     match (T.deref t).T.descr with
-       | T.Arrow (p, a) ->
-           let meths, a = T.split_meths a in
+     let meths, t = Type.split_meths t in
+     match (Type.deref t).Type.descr with
+       | Type.Arrow (p, a) ->
+           let meths, a = Type.split_meths a in
            (* Note that in case we have a function, we drop the methods around,
               the reason being that we expect that they are registered on their
               own in the documentation. For instance, we don't want the field
               recurrent to appear in the doc of thread.run: it is registered as
               thread.run.recurrent anyways. *)
-           (meths, { t with T.descr = T.Arrow (p, a) })
+           (meths, { t with Type.descr = Type.Arrow (p, a) })
        | _ -> (meths, t)
    in
-   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
+   doc#add_subsection "_type" (Type.doc_of_type ~generalized t);
    let meths =
      List.map
        (fun (l, (t, d)) ->
@@ -364,7 +367,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
          (l, (t, d)))
        meths
    in
-   if meths <> [] then doc#add_subsection "_methods" (T.doc_of_meths meths));
+   if meths <> [] then doc#add_subsection "_methods" (Type.doc_of_meths meths));
   List.iter
     (fun (x, v) ->
       Environment.add_builtin ~override:true ~doc x ((generalized, t), v))
@@ -383,29 +386,29 @@ let rec eval_toplevel ?(interactive = false) t =
                     List.assoc x (Environment.default_environment ())
                   in
                   let old_t = snd old_t in
-                  let old_t = snd (T.invokes old_t l) in
+                  let old_t = snd (Type.invokes old_t l) in
                   let old = V.invokes old l in
-                  (T.remeth old_t def.t, V.remeth old (eval def))
+                  (Type.remeth old_t def.t, V.remeth old (eval def))
               | PTuple _ ->
                   failwith "TODO: cannot replace toplevel tuples for now")
         in
         toplevel_add comment pat ~t:(generalized, def_t) def;
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
-            (T.print ~generalized def_t);
+            (Type.print ~generalized def_t);
         let var = string_of_pat pat in
         if interactive && var <> "_" then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." var
-            (T.pp_type_generalized generalized)
+            (Type.pp_type_generalized generalized)
             def_t (V.print_value def);
         eval_toplevel ~interactive body
     | Seq (a, b) ->
         ignore
           (let v = eval_toplevel a in
-           if v.V.pos = None then { v with V.pos = a.t.T.pos } else v);
+           if v.V.pos = None then { v with V.pos = a.t.Type.pos } else v);
         eval_toplevel ~interactive b
     | _ ->
         let v = eval t in
         if interactive && t.term <> unit then
-          Format.printf "- : %a = %s@." T.pp_type t.t (V.print_value v);
+          Format.printf "- : %a = %s@." Type.pp_type t.t (V.print_value v);
         v

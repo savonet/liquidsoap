@@ -71,8 +71,8 @@ let gen_args_of ~only ~except ~pos get_args name =
 let args_of, app_of =
   let rec get_args ~pos t args =
     let get_arg_type t name =
-      match (T.deref t).T.descr with
-        | T.Arrow (l, _) ->
+      match (Type.deref t).Type.descr with
+        | Type.Arrow (l, _) ->
             let _, _, t = List.find (fun (_, n, _) -> n = name) l in
             t
         | _ ->
@@ -82,30 +82,34 @@ let args_of, app_of =
                    Printf.sprintf
                      "Cannot get argument type of %s, this is not a function, \
                       it has type: %s."
-                     name (T.print t) ))
+                     name (Type.print t) ))
     in
     List.map
       (fun (n, n', v) ->
-        let t = T.make ~pos:(Some pos) (get_arg_type t n).T.descr in
+        let t = Type.make ~pos:(Some pos) (get_arg_type t n).Type.descr in
         (n, n', t, Option.map (term_of_value ~pos t) v))
       args
   and get_app ~pos _ args =
     List.map
       (fun (n, _, _) ->
-        (n, Term.{ t = T.fresh_evar ~level:(-1) ~pos:(Some pos); term = Var n }))
+        ( n,
+          Term.{ t = Type.fresh_evar ~level:(-1) ~pos:(Some pos); term = Var n }
+        ))
       args
   and term_of_value ~pos t ({ Term.V.value } as v) =
     let get_list_type () =
-      match (T.deref t).T.descr with T.List t -> t | _ -> assert false
+      match (Type.deref t).Type.descr with
+        | Type.List t -> t
+        | _ -> assert false
     in
     let get_tuple_type pos =
-      match (T.deref t).T.descr with
-        | T.Tuple t -> List.nth t pos
+      match (Type.deref t).Type.descr with
+        | Type.Tuple t -> List.nth t pos
         | _ -> assert false
     in
     let get_meth_type () =
-      match (T.deref t).T.descr with
-        | T.Meth (_, _, _, t) -> t
+      match (Type.deref t).Type.descr with
+        | Type.Meth (_, _, _, t) -> t
         | _ -> assert false
     in
     let term =
@@ -125,7 +129,7 @@ let args_of, app_of =
             Term.Meth (name, term_of_value ~pos t v, term_of_value ~pos t v')
         | Term.V.Fun (args, [], [], body) ->
             let body =
-              Term.{ body with t = T.make ~pos:(Some pos) body.t.T.descr }
+              Term.{ body with t = Type.make ~pos:(Some pos) body.t.Type.descr }
             in
             Term.Fun (Term.free_vars body, get_args ~pos t args, body)
         | _ ->
@@ -135,7 +139,7 @@ let args_of, app_of =
                    Printf.sprintf "Term %s cannot be represented as a term"
                      (Term.V.print_value v) ))
     in
-    let t = T.make ~pos:(Some pos) t.T.descr in
+    let t = Type.make ~pos:(Some pos) t.Type.descr in
     Term.{ t; term }
   in
   let args_of = gen_args_of get_args in
@@ -144,12 +148,12 @@ let args_of, app_of =
 
 (** Create a new value with an unknown type. *)
 let mk ~pos e =
-  let kind = T.fresh_evar ~level:(-1) ~pos:(Some pos) in
+  let kind = Type.fresh_evar ~level:(-1) ~pos:(Some pos) in
   if Lazy.force Term.debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
-      (T.print_pos_opt kind.T.pos)
+      (Type.print_pos_opt kind.Type.pos)
       (try Term.print_term { t = kind; term = e } with _ -> "<?>")
-      (T.print kind);
+      (Type.print kind);
   { t = kind; term = e }
 
 let append_list ~pos x v =

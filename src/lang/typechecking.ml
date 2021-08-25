@@ -52,7 +52,7 @@ let add_task, pop_tasks =
 (** Generate a type with fresh variables for a pattern. *)
 let rec type_of_pat ~level ~pos = function
   | PVar x ->
-      let a = T.fresh_evar ~level ~pos in
+      let a = Type.fresh_evar ~level ~pos in
       ([(x, a)], a)
   | PTuple l ->
       let env, l =
@@ -63,7 +63,7 @@ let rec type_of_pat ~level ~pos = function
           ([], []) l
       in
       let l = List.rev l in
-      (env, T.make ~level ~pos (T.Tuple l))
+      (env, Type.make ~level ~pos (Type.Tuple l))
 
 (* Type-check an expression.
  * [level] should be the sum of the lengths of [env] and [builtins],
@@ -73,16 +73,16 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   (* The role of this function is not only to type-check but also to assign
    * meaningful levels to type variables, and unify the types of
    * all occurrences of the same variable, since the parser does not do it. *)
-  assert (e.t.T.level = -1);
-  e.t.T.level <- level;
+  assert (e.t.Type.level = -1);
+  e.t.Type.level <- level;
 
   (* The toplevel position of the (un-dereferenced) type
    * is the actual parsing position of the value.
    * When we synthesize a type against which the type of the term is unified,
    * we have to set the position information in order not to loose it. *)
-  let pos = e.t.T.pos in
-  let mk t = T.make ~level ~pos t in
-  let mkg t = mk (T.Ground t) in
+  let pos = e.t.Type.pos in
+  let mk t = Type.make ~level ~pos t in
+  let mkg t = mk (Type.Ground t) in
   let check_fun ~proto ~env e body =
     let base_check = check ~throw ~level ~env in
     let proto_t, env, level =
@@ -91,14 +91,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           | lbl, var, kind, None ->
               if Lazy.force debug then
                 Printf.eprintf "Assigning level %d to %s (%s).\n" level var
-                  (T.print kind);
-              kind.T.level <- level;
+                  (Type.print kind);
+              kind.Type.level <- level;
               ((false, lbl, kind) :: p, (var, ([], kind)) :: env, level + 1)
           | lbl, var, kind, Some v ->
               if Lazy.force debug then
                 Printf.eprintf "Assigning level %d to %s (%s).\n" level var
-                  (T.print kind);
-              kind.T.level <- level;
+                  (Type.print kind);
+              kind.Type.level <- level;
               base_check v;
               v.t <: kind;
               ((true, lbl, kind) :: p, (var, ([], kind)) :: env, level + 1))
@@ -106,24 +106,25 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     in
     let proto_t = List.rev proto_t in
     check ~throw ~level ~env body;
-    e.t >: mk (T.Arrow (proto_t, body.t))
+    e.t >: mk (Type.Arrow (proto_t, body.t))
   in
   match e.term with
     | Ground g -> e.t >: mkg (Ground.to_type g)
-    | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
+    | Encoder f -> e.t >: type_of_format ~pos:e.t.Type.pos ~level f
     | List l ->
         List.iter (fun x -> check ~throw ~level ~env x) l;
         let t =
           List.fold_left
-            (fun t e -> Typing.min_type ~pos:e.t.T.pos ~level t e.t)
-            (T.fresh_evar ~level ~pos) l
+            (fun t e -> Typing.min_type ~pos:e.t.Type.pos ~level t e.t)
+            (Type.fresh_evar ~level ~pos)
+            l
         in
         List.iter (fun e -> e.t <: t) l;
-        e.t >: mk (T.List t)
+        e.t >: mk (Type.List t)
     | Tuple l ->
         List.iter (fun a -> check ~throw ~level ~env a) l;
-        e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
-    | Null -> e.t >: mk (T.Nullable (T.fresh_evar ~level ~pos))
+        e.t >: mk (Type.Tuple (List.map (fun a -> a.t) l))
+    | Null -> e.t >: mk (Type.Nullable (Type.fresh_evar ~level ~pos))
     | Cast (a, t) ->
         check ~throw ~level ~env a;
         a.t <: t;
@@ -131,30 +132,31 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     | Meth (l, a, b) ->
         check ~throw ~level ~env a;
         check ~throw ~level ~env b;
-        e.t >: mk (T.Meth (l, (Typing.generalizable ~level a.t, a.t), "", b.t))
+        e.t
+        >: mk (Type.Meth (l, (Typing.generalizable ~level a.t, a.t), "", b.t))
     | Invoke (a, l) ->
         check ~throw ~level ~env a;
         let rec aux t =
-          match (T.deref t).T.descr with
-            | T.Meth (l', (generalized, b), _, c) ->
+          match (Type.deref t).Type.descr with
+            | Type.Meth (l', (generalized, b), _, c) ->
                 if l = l' then Typing.instantiate ~level ~generalized b
                 else aux c
             | _ ->
                 (* We did not find the method, the type we will infer is not the
                    most general one (no generalization), but this is safe and
                    enough for records. *)
-                let x = T.fresh_evar ~level ~pos in
-                let y = T.fresh_evar ~level ~pos in
-                a.t <: mk (T.Meth (l, ([], x), "", y));
+                let x = Type.fresh_evar ~level ~pos in
+                let y = Type.fresh_evar ~level ~pos in
+                a.t <: mk (Type.Meth (l, ([], x), "", y));
                 x
         in
         e.t >: aux a.t
     | Open (a, b) ->
         check ~throw ~level ~env a;
-        a.t <: mk T.unit;
+        a.t <: mk Type.unit;
         let rec aux env t =
-          match (T.deref t).T.descr with
-            | T.Meth (l, (g, u), _, t) -> aux ((l, (g, u)) :: env) t
+          match (Type.deref t).Type.descr with
+            | Type.Meth (l, (g, u), _, t) -> aux ((l, (g, u)) :: env) t
             | _ -> env
         in
         let env = aux env a.t in
@@ -174,18 +176,18 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~throw ~level ~env e_cond;
         check ~throw ~level ~env e_then;
         check ~throw ~level ~env e_else;
-        let a = T.fresh_evar ~level ~pos in
-        e_cond.t <: T.make (T.Ground T.Bool);
-        e_else.t <: T.make (T.Arrow ([], a));
+        let a = Type.fresh_evar ~level ~pos in
+        e_cond.t <: Type.make (Type.Ground Type.Bool);
+        e_else.t <: Type.make (Type.Arrow ([], a));
         if
           try
-            e_then.t <: T.make (T.Arrow ([], a));
+            e_then.t <: Type.make (Type.Arrow ([], a));
             true
           with _ -> false
         then e.t >: a
         else (
-          e_then.t <: T.make (T.Arrow ([], T.make (T.Nullable a)));
-          e.t >: T.make (T.Nullable a))
+          e_then.t <: Type.make (Type.Arrow ([], Type.make (Type.Nullable a)));
+          e.t >: Type.make (Type.Nullable a))
     | App (a, l) -> (
         check ~throw ~level ~env a;
         List.iter (fun (_, b) -> check ~throw ~env ~level b) l;
@@ -194,8 +196,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
          * it for better error messages. Otherwise generate its type
          * and unify -- in that case the optionality can't be guessed
          * and mandatory is the default. *)
-        match (T.demeth a.t).T.descr with
-          | T.Arrow (ap, t) ->
+        match (Type.demeth a.t).Type.descr with
+          | Type.Arrow (ap, t) ->
               (* Find in l the first arg labeled lbl,
                * return it together with the remaining of the list. *)
               let get_arg lbl l =
@@ -223,10 +225,10 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
               in
               (* See if any mandatory argument remains, check the return type. *)
               if List.for_all (fun (o, _, _) -> o) ap then e.t >: t
-              else e.t >: T.make ~level ~pos:None (T.Arrow (ap, t))
+              else e.t >: Type.make ~level ~pos:None (Type.Arrow (ap, t))
           | _ ->
               let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
-              a.t <: T.make ~level ~pos:None (T.Arrow (p, e.t)))
+              a.t <: Type.make ~level ~pos:None (Type.Arrow (p, e.t)))
     | Fun (_, proto, body) -> check_fun ~proto ~env e body
     | RFun (x, _, proto, body) ->
         let env = (x, ([], e.t)) :: env in
@@ -234,12 +236,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     | Var var ->
         let generalized, orig =
           try List.assoc var env
-          with Not_found -> raise (Unbound (e.t.T.pos, var))
+          with Not_found -> raise (Unbound (e.t.Type.pos, var))
         in
         e.t >: Typing.instantiate ~level ~generalized orig;
         if Lazy.force debug then
           Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n" var
-            (T.deref e.t).T.level (T.print orig) (T.print e.t)
+            (Type.deref e.t).Type.level (Type.print orig) (Type.print e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
         check ~throw ~level ~env def;
         let generalized =
@@ -248,7 +250,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
               let x' =
                 Type.filter_vars
                   (function
-                    | { T.descr = T.EVar (i, _); level = l; _ } ->
+                    | { Type.descr = Type.EVar (i, _); level = l; _ } ->
                         (not (List.mem_assoc i x)) && l >= level
                     | _ -> assert false)
                   t
@@ -267,7 +269,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 | [] -> assert false
                 | [x] ->
                     let a =
-                      if replace then T.remeth (snd (List.assoc x env)) a else a
+                      if replace then Type.remeth (snd (List.assoc x env)) a
+                      else a
                     in
                     (x, (generalized, a))
                 | l :: ll -> (
@@ -275,9 +278,10 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                       let g, t = List.assoc l env in
                       let a =
                         (* If we are replacing the value, we keep the previous methods. *)
-                        if replace then T.remeth (snd (T.invokes t ll)) a else a
+                        if replace then Type.remeth (snd (Type.invokes t ll)) a
+                        else a
                       in
-                      (l, (g, T.meths ~pos ~level ll (generalized, a) t))
+                      (l, (g, Type.meths ~pos ~level ll (generalized, a) t))
                     with Not_found ->
                       raise (Unbound (pos, String.concat "." (l :: ll)))))
             penv
@@ -290,7 +294,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 (let name = string_of_pat pat in
                  let l = String.length name and max = 5 in
                  if l >= max then name else name ^ String.make (max - l) ' ')
-                (T.pp_type_generalized generalized)
+                (Type.pp_type_generalized generalized)
                 def.t);
         check ~print_toplevel ~throw ~level:(level + 1) ~env body;
         e.t >: body.t
@@ -301,8 +305,8 @@ let check ?(ignored = false) ~throw e =
   try
     let env = Environment.default_typing_environment () in
     check ~print_toplevel ~throw ~level:(List.length env) ~env e;
-    if print_toplevel && (T.deref e.t).T.descr <> T.unit then
-      add_task (fun () -> Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t);
+    if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
+      add_task (fun () -> Format.printf "@[<2>-     :@ %a@]@." Type.pp_type e.t);
     if ignored && not (can_ignore e.t) then throw (Ignored e);
     pop_tasks ()
   with e ->
