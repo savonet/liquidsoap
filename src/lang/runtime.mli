@@ -20,7 +20,10 @@
 
  *****************************************************************************)
 
-(** {2 Main script evaluation} *)
+(** {1 Main script evaluation} *)
+
+(** Raise errors for warnings. *)
+val strict : bool ref
 
 (** Load the external libraries. *)
 val load_libs :

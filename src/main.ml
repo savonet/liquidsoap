@@ -243,7 +243,7 @@ let options =
          "Debug language implementation." );
        (["--profile"], Arg.Set Term.profile, "Profile execution.");
        ( ["--strict"],
-         Arg.Set Error.strict,
+         Arg.Set Runtime.strict,
          "Execute script code in strict mode, issuing fatal errors instead of \
           warnings in some cases. Currently: unused variables and ignored \
           expressions. " );
