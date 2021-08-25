@@ -28,8 +28,7 @@ let encoder_factory ?format format_val =
   in
   try Encoder.get_factory format
   with Not_found ->
-    raise
-      (Lang_errors.Invalid_value (format_val, "Unsupported encoding format"))
+    raise (Error.Invalid_value (format_val, "Unsupported encoding format"))
 
 class virtual base ~kind ~source ~name p =
   let e f v = f (List.assoc v p) in
@@ -101,7 +100,7 @@ class url_output p =
   let () =
     if not (Encoder.url_output format) then
       raise
-        (Lang_errors.Invalid_value
+        (Error.Invalid_value
            (format_val, "Encoding format does not support output url!"))
   in
   let format = Encoder.with_url_output format url in
@@ -131,7 +130,7 @@ class url_output p =
 let () =
   let return_t = Lang.univ_t () in
   Lang.add_operator "output.url" (url_proto return_t) ~return_t
-    ~category:Lang.Output
+    ~category:`Output
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
        expected output or to encode to files that need full control from the \
@@ -311,8 +310,8 @@ class file_output ~format_val ~kind p =
 
     method open_chan =
       let mode =
-        Open_wronly
-        :: Open_creat :: (if append then [Open_append] else [Open_trunc])
+        Open_wronly :: Open_creat
+        :: (if append then [Open_append] else [Open_trunc])
       in
       let filename = self#filename in
       Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
@@ -385,7 +384,7 @@ let new_file_output p =
 let () =
   let return_t = Lang.univ_t () in
   Lang.add_operator "output.file" (file_proto return_t) ~return_t
-    ~category:Lang.Output ~descr:"Output the source stream to a file." (fun p ->
+    ~category:`Output ~descr:"Output the source stream to a file." (fun p ->
       (new_file_output p :> Source.source))
 
 (** External output *)
@@ -426,7 +425,7 @@ let () =
   let return_t = Lang.univ_t () in
   Lang.add_operator "output.external"
     (pipe_proto return_t "Process to pipe data to.")
-    ~return_t ~category:Lang.Output
+    ~return_t ~category:`Output
     ~meth:
       [
         ( "reopen",

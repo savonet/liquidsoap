@@ -74,7 +74,7 @@ let () =
         Some "Use ping-pong delay." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Add echo."
+    ~return_t:k ~category:`Audio ~descr:"Add echo."
     (fun p ->
       let f v = List.assoc v p in
       let duration, feedback, pp, src =
@@ -87,8 +87,7 @@ let () =
         (* Check the initial value, wrap the getter with a converter. *)
         if feedback () > 0. then
           raise
-            (Lang_errors.Invalid_value
-               (f "feedback", "feedback should be negative"));
+            (Error.Invalid_value (f "feedback", "feedback should be negative"));
         fun () -> Audio.lin_of_dB (feedback ())
       in
       let kind = Source.Kind.of_kind kind in

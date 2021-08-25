@@ -110,7 +110,7 @@ let () =
         Some "A value higher than 1 means slowing down." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.SoundProcessing
+    ~return_t ~category:`Audio
     ~descr:
       "Slow down or accelerate an audio stream by stretching (sounds lower) or \
        squeezing it (sounds higher)."

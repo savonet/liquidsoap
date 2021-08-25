@@ -139,7 +139,7 @@ let () =
           Some "OSS device to use." );
         ("", Lang.source_t k, None, None);
       ])
-    ~return_t:k ~category:Lang.Output
+    ~return_t:k ~category:`Output
     ~descr:"Output the source's stream to an OSS output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -168,7 +168,7 @@ let () =
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
       ])
-    ~meth:(Start_stop.meth ()) ~return_t:k ~category:Lang.Input
+    ~meth:(Start_stop.meth ()) ~return_t:k ~category:`Input
     ~descr:"Stream from an OSS input device."
     (fun p ->
       let e f v = f (List.assoc v p) in

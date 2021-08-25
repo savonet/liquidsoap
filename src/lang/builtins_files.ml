@@ -20,14 +20,14 @@
 
  *****************************************************************************)
 
-open Lang_builtins
 open Extralib
 
 let log = Log.make ["lang.file"]
 let () = Lang.add_module "file"
 
 let () =
-  add_builtin "file.extension" ~cat:Sys ~descr:"Returns a file's extension."
+  Lang.add_builtin "file.extension" ~category:`File
+    ~descr:"Returns a file's extension."
     [
       ( "dir_sep",
         Lang.string_t,
@@ -48,7 +48,7 @@ let () =
            (Lang.to_string (List.assoc "" p))))
 
 let () =
-  add_builtin "file.remove" ~cat:Sys ~descr:"Remove a file."
+  Lang.add_builtin "file.remove" ~category:`File ~descr:"Remove a file."
     [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
       try
         Unix.unlink (Lang.to_string (List.assoc "" p));
@@ -56,7 +56,7 @@ let () =
       with _ -> Lang.unit)
 
 let () =
-  add_builtin "file.size" ~cat:Sys ~descr:"File size in bytes."
+  Lang.add_builtin "file.size" ~category:`File ~descr:"File size in bytes."
     [("", Lang.string_t, None, None)] Lang.int_t (fun p ->
       try
         let ic = open_in_bin (Lang.to_string (List.assoc "" p)) in
@@ -66,7 +66,7 @@ let () =
       with _ -> Lang.int 0)
 
 let () =
-  add_builtin "file.mkdir" ~cat:Sys ~descr:"Create a directory."
+  Lang.add_builtin "file.mkdir" ~category:`File ~descr:"Create a directory."
     [
       ( "perms",
         Lang.int_t,
@@ -84,7 +84,8 @@ let () =
       with _ -> Lang.unit)
 
 let () =
-  add_builtin "file.rmdir" ~cat:Sys ~descr:"Remove a directory and its content."
+  Lang.add_builtin "file.rmdir" ~category:`File
+    ~descr:"Remove a directory and its content."
     [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
       try
         Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p));
@@ -92,7 +93,7 @@ let () =
       with _ -> Lang.unit)
 
 let () =
-  add_builtin "file.temp" ~cat:Sys
+  Lang.add_builtin "file.temp" ~category:`File
     ~descr:
       "Return a fresh temporary filename. The temporary file is created empty, \
        with permissions 0o600 (readable and writable only by the file owner)."
@@ -106,7 +107,7 @@ let () =
            (Lang.to_string (Lang.assoc "" 2 p))))
 
 let () =
-  add_builtin "file.temp_dir" ~cat:Sys
+  Lang.add_builtin "file.temp_dir" ~category:`File
     ~descr:
       "Return a fresh temporary directory name. The temporary directory is \
        created empty, with permissions 0o700 (readable, writable and listable \
@@ -121,14 +122,16 @@ let () =
            (Lang.to_string (Lang.assoc "" 2 p))))
 
 let () =
-  add_builtin "file.exists" ~cat:Sys [("", Lang.string_t, None, None)]
+  Lang.add_builtin "file.exists" ~category:`File
+    [("", Lang.string_t, None, None)]
     Lang.bool_t ~descr:"Returns true if the file or directory exists." (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       let f = Utils.home_unrelate f in
       Lang.bool (Sys.file_exists f))
 
 let () =
-  add_builtin "file.is_directory" ~cat:Sys [("", Lang.string_t, None, None)]
+  Lang.add_builtin "file.is_directory" ~category:`File
+    [("", Lang.string_t, None, None)]
     Lang.bool_t ~descr:"Returns true if the file exists and is a directory."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
@@ -136,7 +139,7 @@ let () =
       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
 let () =
-  add_builtin "file.read" ~cat:Sys [("", Lang.string_t, None, None)]
+  Lang.add_builtin "file.read" ~category:`File [("", Lang.string_t, None, None)]
     (Lang.fun_t [] Lang.string_t)
     ~descr:
       "Read the content of a file. Returns a function of type `()->string`. \
@@ -167,7 +170,7 @@ let () =
         Lang.error ~message "file")
 
 let () =
-  add_builtin "file.write" ~cat:Sys
+  Lang.add_builtin "file.write" ~category:`File
     [
       ( "data",
         Lang.getter_t (Lang.nullable_t Lang.string_t),
@@ -224,7 +227,7 @@ let () =
         Lang.error ~message "file")
 
 let () =
-  add_builtin "file.write.stream" ~cat:Sys
+  Lang.add_builtin "file.write.stream" ~category:`File
     [
       ( "append",
         Lang.bool_t,
@@ -262,7 +265,7 @@ let () =
           Lang.unit))
 
 let () =
-  add_builtin "file.watch" ~cat:Sys
+  Lang.add_builtin "file.watch" ~category:`File
     [
       ("", Lang.string_t, None, Some "File to watch.");
       ("", Lang.fun_t [] Lang.unit_t, None, Some "Handler function.");
@@ -292,7 +295,7 @@ let () =
         ])
 
 let () =
-  add_builtin "file.ls" ~cat:Sys
+  Lang.add_builtin "file.ls" ~category:`File
     [
       ( "absolute",
         Lang.bool_t,
@@ -359,7 +362,7 @@ let () =
       Lang.list files)
 
 let () =
-  add_builtin "file.metadata" ~cat:Sys
+  Lang.add_builtin "file.metadata" ~category:`File
     [
       ( "",
         Lang.string_t,
@@ -380,7 +383,8 @@ let () =
   Lang.add_module "path.home"
 
 let () =
-  add_builtin "path.home.unrelate" ~cat:Sys [("", Lang.string_t, None, None)]
+  Lang.add_builtin "path.home.unrelate" ~category:`File
+    [("", Lang.string_t, None, None)]
     Lang.string_t
     ~descr:"Expand path that start with '~' with the current home directory."
     (fun p ->
@@ -388,19 +392,21 @@ let () =
       Lang.string (Utils.home_unrelate f))
 
 let () =
-  add_builtin "path.basename" ~cat:Sys [("", Lang.string_t, None, None)]
+  Lang.add_builtin "path.basename" ~category:`File
+    [("", Lang.string_t, None, None)]
     Lang.string_t ~descr:"Get the base name of a path." (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.basename f))
 
 let () =
-  add_builtin "path.dirname" ~cat:Sys [("", Lang.string_t, None, None)]
+  Lang.add_builtin "path.dirname" ~category:`File
+    [("", Lang.string_t, None, None)]
     Lang.string_t ~descr:"Get the directory name of a path." (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.dirname f))
 
 let () =
-  add_builtin "path.concat" ~cat:Sys
+  Lang.add_builtin "path.concat" ~category:`File
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
     Lang.string_t
     ~descr:"Concatenate two paths, using the appropriate directory separator."
@@ -410,7 +416,8 @@ let () =
       Lang.string (Filename.concat f s))
 
 let () =
-  add_builtin "path.remove_extension" ~cat:Sys [("", Lang.string_t, None, None)]
+  Lang.add_builtin "path.remove_extension" ~category:`File
+    [("", Lang.string_t, None, None)]
     Lang.string_t ~descr:"Remove the file extension from a path." (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.remove_extension f))
@@ -420,7 +427,7 @@ let () =
 let () = Lang.add_module "file.mp3"
 
 let () =
-  add_builtin "file.mp3.metadata" ~cat:Sys
+  Lang.add_builtin "file.mp3.metadata" ~category:`File
     [
       ( "",
         Lang.string_t,
@@ -449,7 +456,7 @@ let () =
            ans))
 
 let () =
-  add_builtin "file.mp3.parse_apic" ~cat:Sys
+  Lang.add_builtin "file.mp3.parse_apic" ~category:`File
     [("", Lang.string_t, None, Some "APIC data.")]
     (Lang.tuple_t [Lang.string_t; Lang.int_t; Lang.string_t; Lang.string_t])
     ~descr:
@@ -468,7 +475,7 @@ let () =
         ])
 
 let () =
-  add_builtin "file.which" ~cat:Sys
+  Lang.add_builtin "file.which" ~category:`File
     ~descr:
       "`file.which(\"progname\")` looks for an executable named \"progname\" \
        using directories from the PATH environment variable and returns \"\" \
@@ -479,7 +486,7 @@ let () =
       with Not_found -> Lang.null)
 
 let () =
-  add_builtin "file.digest" ~cat:Sys
+  Lang.add_builtin "file.digest" ~category:`File
     ~descr:"Return an MD5 digest for the given file."
     [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
       let file = Lang.to_string (List.assoc "" p) in

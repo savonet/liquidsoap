@@ -474,7 +474,7 @@ let () =
            transition (`power`), and the metadata (`metadata`)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
+    ~return_t:k ~category:`Audio
     ~descr:
       "Cross operator, allowing the composition of the _n_ last seconds of a \
        track with the beginning of the next track, using a transition function \

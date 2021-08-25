@@ -37,10 +37,10 @@ let empty = fail
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "source.fail" ~category:Lang.Input
+  Lang.add_operator "source.fail" ~category:`Input
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
-    ~flags:[Lang.Experimental] ~return_t [] (fun _ ->
+    ~return_t [] (fun _ ->
       (let kind = Source.Kind.of_kind kind in
        new fail ~kind "source.fail"
         :> Source.source))
@@ -62,10 +62,10 @@ class fail_init ~kind =
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "source.fail.init" ~category:Lang.Input
+  Lang.add_operator "source.fail.init" ~category:`Input
     ~descr:
       "A source that errors during its initialization phase, used for testing \
-       and debugging." ~flags:[Lang.Experimental] ~return_t [] (fun _ ->
+       and debugging." ~flags:[`Experimental] ~return_t [] (fun _ ->
       (let kind = Source.Kind.of_kind kind in
        new fail_init ~kind
         :> Source.source))

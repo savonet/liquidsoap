@@ -98,7 +98,7 @@ let () =
   let aux_t =
     Lang.frame_kind_t ~audio:Lang.kind_none_t ~video ~midi:Lang.kind_none_t
   in
-  Lang.add_operator "mux_video" ~category:Lang.Conversions
+  Lang.add_operator "mux_video" ~category:`Conversion
     ~descr:
       "Add video channels to a stream. Track marks and metadata are taken from \
        both sources."
@@ -123,7 +123,7 @@ let () =
   let aux_t =
     Lang.frame_kind_t ~audio ~video:Lang.kind_none_t ~midi:Lang.kind_none_t
   in
-  Lang.add_operator "mux_audio" ~category:Lang.Conversions
+  Lang.add_operator "mux_audio" ~category:`Conversion
     ~descr:
       "Mux an audio stream into an audio-free stream. Track marks and metadata \
        are taken from both sources."

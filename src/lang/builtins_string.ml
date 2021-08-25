@@ -20,10 +20,8 @@
 
  *****************************************************************************)
 
-open Lang_builtins
-
 let () =
-  add_builtin "string" ~cat:String
+  Lang.add_builtin "string" ~category:`String
     ~descr:
       "Ensure that we have a string (useful for removing fields from strings)."
     [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
@@ -35,7 +33,7 @@ let () =
   Lang.add_module "url"
 
 let () =
-  add_builtin "^" ~cat:String ~descr:"Concatenate strings."
+  Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
     Lang.string_t (fun p ->
       let s1 = Lang.to_string (Lang.assoc "" 1 p) in
@@ -43,7 +41,8 @@ let () =
       Lang.string (s1 ^ s2))
 
 let () =
-  add_builtin "string.concat" ~cat:String ~descr:"Concatenate strings."
+  Lang.add_builtin "string.concat" ~category:`String
+    ~descr:"Concatenate strings."
     [
       ("separator", Lang.string_t, Some (Lang.string ""), None);
       ("", Lang.list_t Lang.string_t, None, None);
@@ -56,7 +55,7 @@ let () =
       Lang.string (String.concat sep l))
 
 let () =
-  add_builtin "string.nth" ~cat:String
+  Lang.add_builtin "string.nth" ~category:`String
     ~descr:"Retrieve a character in a string."
     [
       ("", Lang.string_t, None, Some "String to look into.");
@@ -67,7 +66,7 @@ let () =
       Lang.int (int_of_char s.[n]))
 
 let () =
-  add_builtin "string.escape" ~cat:String
+  Lang.add_builtin "string.escape" ~category:`String
     ~descr:
       "Escape special characters in an string. By default, the string is \
        assumed to be `\"utf8\"` encoded and is escaped following JSON and \
@@ -104,7 +103,7 @@ let () =
           | "utf8" -> `Utf8
           | _ ->
               raise
-                (Lang_errors.Invalid_value
+                (Error.Invalid_value
                    ( encoding,
                      "Encoding should be one of: \"ascii\" or \"utf8\"." ))
       in
@@ -131,11 +130,11 @@ let () =
         (Utils.escape_string (Utils.escape ~special_char ~escape_char ~next) s))
 
 let () =
-  add_builtin "string.escape.all"
+  Lang.add_builtin "string.escape.all"
     ~descr:
       "Escape each character in the given string using a specific escape \
        sequence"
-    ~cat:String
+    ~category:`String
     [
       ( "format",
         Lang.string_t,
@@ -153,7 +152,7 @@ let () =
           | "utf8" -> (Utils.escape_utf8_char, Utils.utf8_next)
           | _ ->
               raise
-                (Lang_errors.Invalid_value
+                (Error.Invalid_value
                    ( format,
                      "Format should be one of: `\"octal\"`, `\"hex\"` or \
                       `\"utf8\"`." ))
@@ -165,11 +164,11 @@ let () =
            s))
 
 let () =
-  add_builtin "string.escape.special_char"
+  Lang.add_builtin "string.escape.special_char"
     ~descr:
       "Default function to detect characters to escape. See `string.escape` \
        for more details."
-    ~cat:String
+    ~category:`String
     [
       ( "encoding",
         Lang.string_t,
@@ -186,19 +185,19 @@ let () =
         | "utf8" -> Lang.bool (Utils.utf8_special_char s)
         | _ ->
             raise
-              (Lang_errors.Invalid_value
+              (Error.Invalid_value
                  (encoding, "Encoding should be one of: \"ascii\" or \"utf8\".")))
 
 let () =
-  add_builtin "string.unescape"
-    ~descr:"This function is the inverse of `string.escape`." ~cat:String
+  Lang.add_builtin "string.unescape"
+    ~descr:"This function is the inverse of `string.escape`." ~category:`String
     [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.unescape_string s))
 
 let () =
   Lang.add_module "string.annotate";
-  add_builtin "string.annotate.parse" ~cat:String
+  Lang.add_builtin "string.annotate.parse" ~category:`String
     ~descr:
       "Parse a string of the form `<key>=<value>,...:<uri>` as given by the \
        `annotate:` protocol" [("", Lang.string_t, None, None)]
@@ -215,12 +214,11 @@ let () =
              {
                Runtime_error.kind = "string";
                msg = Some err;
-               pos =
-                 (match v.Lang_values.V.pos with None -> [] | Some p -> [p]);
+               pos = (match v.Term.Value.pos with None -> [] | Some p -> [p]);
              }))
 
 let () =
-  add_builtin "string.split" ~cat:String
+  Lang.add_builtin "string.split" ~category:`String
     ~descr:
       "Split a string at 'separator'. Perl compatible regular expressions are \
        recognized. Hence, special characters should be escaped."
@@ -232,7 +230,7 @@ let () =
       Lang.list (List.map Lang.string (Pcre.split ~rex string)))
 
 let () =
-  add_builtin "string.extract" ~cat:String
+  Lang.add_builtin "string.extract" ~category:`String
     ~descr:
       "Extract substrings from a string. Perl compatible regular expressions \
        are recognized. Hence, special characters should be escaped. Returns a \
@@ -259,7 +257,7 @@ let () =
       with Not_found -> Lang.list [])
 
 let () =
-  add_builtin "string.match" ~cat:String
+  Lang.add_builtin "string.match" ~category:`String
     ~descr:
       "Match a string with an expression. Perl compatible regular expressions \
        are recognized. Hence, special characters should be escaped."
@@ -271,7 +269,7 @@ let () =
       Lang.bool (Pcre.pmatch ~rex string))
 
 let () =
-  add_builtin "string.recode" ~cat:String
+  Lang.add_builtin "string.recode" ~category:`String
     ~descr:"Convert a string. Effective only if Camomile is enabled."
     [
       ( "in_enc",
@@ -294,13 +292,14 @@ let () =
       Lang.string (Configure.recode_tag ?in_enc ~out_enc string))
 
 let () =
-  add_builtin "string.length" ~cat:String ~descr:"Get the length of a string."
-    [("", Lang.string_t, None, None)] Lang.int_t (fun p ->
+  Lang.add_builtin "string.length" ~category:`String
+    ~descr:"Get the length of a string." [("", Lang.string_t, None, None)]
+    Lang.int_t (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.int (String.length string))
 
 let () =
-  add_builtin "string.sub" ~cat:String
+  Lang.add_builtin "string.sub" ~category:`String
     ~descr:
       "Get a substring of a string. Returns \"\" if no such substring exists."
     [
@@ -323,7 +322,7 @@ let () =
         (try String.sub string start len with Invalid_argument _ -> ""))
 
 let () =
-  add_builtin "string.case" ~cat:String
+  Lang.add_builtin "string.case" ~category:`String
     ~descr:"Convert a string to lower or upper case."
     [
       ( "lower",
@@ -341,13 +340,13 @@ let () =
         else String.uppercase_ascii string))
 
 let () =
-  add_builtin "string.trim" ~cat:String
+  Lang.add_builtin "string.trim" ~category:`String
     ~descr:"Return a string without leading and trailing whitespace."
     [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
       Lang.string (String.trim (Lang.to_string (List.assoc "" p))))
 
 let () =
-  add_builtin "string.capitalize" ~cat:String
+  Lang.add_builtin "string.capitalize" ~category:`String
     ~descr:
       "Return a string with the first character set to upper case \
        (capitalize), or to lower case (uncapitalize)."
@@ -378,7 +377,7 @@ let () =
         else f string))
 
 let () =
-  add_builtin "string.replace" ~cat:String
+  Lang.add_builtin "string.replace" ~category:`String
     ~descr:
       "Replace all substrings matched by a pattern by another string returned \
        by a function."
@@ -413,21 +412,21 @@ let () =
       Lang.string (Pcre.substitute ~rex ~subst string))
 
 let () =
-  add_builtin "string.base64.decode" ~cat:String
+  Lang.add_builtin "string.base64.decode" ~category:`String
     ~descr:"Decode a Base64 encoded string." [("", Lang.string_t, None, None)]
     Lang.string_t (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.decode64 string))
 
 let () =
-  add_builtin "string.base64.encode" ~cat:String
+  Lang.add_builtin "string.base64.encode" ~category:`String
     ~descr:"Encode a string in Base64." [("", Lang.string_t, None, None)]
     Lang.string_t (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.encode64 string))
 
 let () =
-  add_builtin "url.decode" ~cat:String
+  Lang.add_builtin "url.decode" ~category:`String
     ~descr:"Decode an encoded url (e.g. \"%20\" becomes \" \")."
     [
       ("plus", Lang.bool_t, Some (Lang.bool true), None);
@@ -440,7 +439,7 @@ let () =
       Lang.string (Http.url_decode ~plus string))
 
 let () =
-  add_builtin "url.encode" ~cat:String
+  Lang.add_builtin "url.encode" ~category:`String
     ~descr:"Encode an url (e.g. \" \" becomes \"%20\")."
     [
       ("plus", Lang.bool_t, Some (Lang.bool true), None);
@@ -453,7 +452,7 @@ let () =
       Lang.string (Http.url_encode ~plus string))
 
 let () =
-  add_builtin "%" ~cat:String
+  Lang.add_builtin "%" ~category:`String
     ~descr:
       "`pattern % [...,(k,v),...]` changes in the pattern occurrences of:\n\n\
        - `$(k)` into `v`\n\
@@ -472,7 +471,7 @@ let () =
       Lang.string (Utils.interpolate (fun k -> List.assoc k l) s))
 
 let () =
-  add_builtin "string.hex_of_int" ~cat:String
+  Lang.add_builtin "string.hex_of_int" ~category:`String
     ~descr:"Hexadecimal representation of an integer."
     [
       ( "pad",
@@ -500,9 +499,9 @@ let () =
   (* Register as [name] the function which composes [in_value],[func] and
    * [out_value], and returns [default] in exceptional cases -- which MUST not
    * occur when default is not supplied. *)
-  let register_tt doc name cat func ?default in_type in_value out_value out_type
-      =
-    add_builtin name ~cat
+  let register_tt doc name category func ?default in_type in_value out_value
+      out_type =
+    Lang.add_builtin name ~category
       ~descr:("Convert " ^ doc ^ ".")
       (let p = [("", in_type, None, None)] in
        match default with
@@ -514,15 +513,15 @@ let () =
         with _ -> List.assoc "default" p)
   in
   let register_tts name func ~default out_value out_type =
-    register_tt ("a string to a " ^ name) (name ^ "_of_string") String func
+    register_tt ("a string to a " ^ name) (name ^ "_of_string") `String func
       ~default Lang.string_t Lang.to_string out_value out_type
   in
   let register_tti name func out_value out_type =
-    register_tt ("an int to a " ^ name) (name ^ "_of_int") Math func Lang.int_t
+    register_tt ("an int to a " ^ name) (name ^ "_of_int") `Math func Lang.int_t
       Lang.to_int out_value out_type
   in
   let register_ttf name func out_value out_type =
-    register_tt ("a float to a " ^ name) (name ^ "_of_float") Math func
+    register_tt ("a float to a " ^ name) (name ^ "_of_float") `Math func
       Lang.float_t Lang.to_float out_value out_type
   in
   register_tts "int" int_of_string ~default:(Lang.int 0)
@@ -540,7 +539,7 @@ let () =
   register_ttf "bool" (fun v -> v = 1.) (fun v -> Lang.bool v) Lang.bool_t
 
 let () =
-  add_builtin "string_of" ~cat:String
+  Lang.add_builtin "string_of" ~category:`String
     ~descr:"Return the representation of a value."
     [
       ( "fields",
@@ -556,7 +555,7 @@ let () =
       let dv = Lang.demeth v in
       (* Always show records. *)
       let show_fields =
-        if dv.Lang.value = Lang_values.V.unit then true else show_fields
+        if dv.Lang.value = Term.Value.unit then true else show_fields
       in
       let v = if show_fields then v else dv in
       match v with
@@ -564,7 +563,7 @@ let () =
         | v -> Lang.string (Lang.print_value v))
 
 let () =
-  add_builtin "string_of_float" ~cat:String
+  Lang.add_builtin "string_of_float" ~category:`String
     ~descr:"String representation of a float"
     [
       ( "decimal_places",
@@ -592,7 +591,7 @@ let () =
       Lang.string s)
 
 let () =
-  add_builtin "string.id" ~cat:String
+  Lang.add_builtin "string.id" ~category:`String
     ~descr:"Generate an identifier with given operator name."
     [("", Lang.string_t, None, Some "Operator name.")] Lang.string_t (fun p ->
       let name = List.assoc "" p |> Lang.to_string in

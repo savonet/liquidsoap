@@ -208,7 +208,8 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
-builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
+builtins = lang/lang_builtins.ml \
+           lang/builtins_ref.ml \
            lang/builtins_bool.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_json.ml \
            lang/builtins_request.ml lang/builtins_error.ml \
@@ -218,7 +219,7 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
 	   lang/builtins_files.ml lang/builtins_resolvers.ml \
            lang/builtins_thread.ml lang/builtins_process.ml \
            lang/builtins_source.ml lang/builtins_getter.ml \
-           lang/builtins_profiler.ml \
+           lang/builtins_profiler.ml lang/builtins_eval.ml \
 	   $(if $(W_CURL),lang/builtins_http.ml) \
            lang/builtins_harbor.ml \
            $(if $(W_SSL),lang/builtins_harbor_ssl.ml) \
@@ -248,9 +249,11 @@ liquidsoap_sources= \
 	$(if $(W_ALSA), alsa_settings.ml)
 
 liquidsoap_sources += \
-	lang/lang_types.ml lang/profiler.ml lang/lang_values.ml \
-	$(lang_encoders) lang/lang_parser_helper.ml lang/lang_parser.ml lang/lang_lexer.ml \
-	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml lang/modules.ml \
+	lang/type.ml lang/typing.ml lang/profiler.ml lang/term.ml \
+	lang/environment.ml lang/typechecking.ml lang/evaluation.ml \
+	$(lang_encoders) lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
+	lang/preprocessor.ml lang/error.ml lang/documentation.ml \
+	lang/lang.ml lang/runtime.ml lang/modules.ml \
         tools/child_support.ml \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \

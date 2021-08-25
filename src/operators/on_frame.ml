@@ -48,8 +48,7 @@ let () =
           "Function called on every frame. It should be fast because it is \
            executed in the main streaming thread." );
     ]
-    ~category:Lang.TrackProcessing ~descr:"Call a given handler on every frame."
-    ~return_t:k
+    ~category:`Track ~descr:"Call a given handler on every frame." ~return_t:k
     (fun p ->
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
@@ -83,7 +82,7 @@ let op name descr f_t f default =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator ("source.frame." ^ name)
     [("", Lang.source_t k, None, None)]
-    ~category:Lang.TrackProcessing ~descr
+    ~category:`Track ~descr
     ~return_t:(Lang.method_t k [("frame_" ^ name, ([], f_t), descr)])
     ~meth:[("frame_" ^ name, ([], f_t), descr, fun s -> s#value)]
     (fun p ->

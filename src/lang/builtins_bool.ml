@@ -20,12 +20,11 @@
 
  *****************************************************************************)
 
-open Lang_builtins
-
 let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Ord] () in
+  let t = Lang.univ_t ~constraints:[Type.Ord] () in
   let register_op name op =
-    add_builtin name ~cat:Bool ~descr:"Comparison of comparable values."
+    Lang.add_builtin name ~category:`Bool
+      ~descr:"Comparison of comparable values."
       [("", t, None, None); ("", t, None, None)] Lang.bool_t (fun p ->
         let a = Lang.assoc "" 1 p in
         let b = Lang.assoc "" 2 p in
@@ -35,7 +34,7 @@ let () =
         let ans =
           if a'.Lang.value = Lang.Tuple [] && b'.Lang.value = Lang.Tuple [] then (
             let r a =
-              let m, _ = Lang_values.V.split_meths a in
+              let m, _ = Term.Value.split_meths a in
               m
             in
             let a = r a in
@@ -70,7 +69,8 @@ let () =
   register_op ">" (fun c -> c = 1)
 
 let () =
-  add_builtin "and" ~cat:Bool ~descr:"Return the conjunction of its arguments"
+  Lang.add_builtin "and" ~category:`Bool
+    ~descr:"Return the conjunction of its arguments"
     [
       ("", Lang.getter_t Lang.bool_t, None, None);
       ("", Lang.getter_t Lang.bool_t, None, None);
@@ -80,7 +80,8 @@ let () =
       match List.map (fun (_, x) -> Lang.to_bool_getter x) p with
         | [a; b] -> Lang.bool (if a () then b () else false)
         | _ -> assert false);
-  add_builtin "or" ~cat:Bool ~descr:"Return the disjunction of its arguments"
+  Lang.add_builtin "or" ~category:`Bool
+    ~descr:"Return the disjunction of its arguments"
     [
       ("", Lang.getter_t Lang.bool_t, None, None);
       ("", Lang.getter_t Lang.bool_t, None, None);
@@ -92,6 +93,7 @@ let () =
         | _ -> assert false)
 
 let () =
-  add_builtin "not" ~cat:Bool ~descr:"Returns the negation of its argument."
+  Lang.add_builtin "not" ~category:`Bool
+    ~descr:"Returns the negation of its argument."
     [("", Lang.bool_t, None, None)] Lang.bool_t (fun p ->
       Lang.bool (not (Lang.to_bool (List.assoc "" p))))

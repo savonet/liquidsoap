@@ -128,9 +128,8 @@ let () =
         Some "Maximal frequency" );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
-    ~descr:"Compute the pitch of a sound."
-    ~flags:[Lang.Hidden; Lang.Experimental]
+    ~return_t:k ~category:`Audio ~descr:"Compute the pitch of a sound."
+    ~flags:[`Hidden; `Experimental]
     (fun p ->
       let f v = List.assoc v p in
       let length = Lang.to_float (f "length") in

@@ -152,7 +152,7 @@ let () =
         Some "Reset values on every track." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
+    ~return_t:k ~category:`Audio
     ~descr:
       "Normalize the signal. Dynamic normalization of the signal is sometimes \
        the only option, and can make a listening experience much nicer. \

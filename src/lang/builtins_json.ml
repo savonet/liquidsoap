@@ -40,7 +40,7 @@ end)
 
 let rec to_json_compact ~json5 v =
   match v.Lang.value with
-    | Lang.Ground g -> Lang_values.Ground.to_json ~compact:true ~json5 g
+    | Lang.Ground g -> Term.Ground.to_json ~compact:true ~json5 g
     | Lang.List l ->
         Printf.sprintf "[%s]"
           (String.concat "," (List.map (to_json_compact ~json5) l))
@@ -48,7 +48,7 @@ let rec to_json_compact ~json5 v =
     | Lang.Tuple l ->
         "[" ^ String.concat "," (List.map (to_json_compact ~json5) l) ^ "]"
     | Lang.Meth _ -> (
-        let m, v = Lang_values.V.split_meths v in
+        let m, v = Term.Value.split_meths v in
         match v.Lang.value with
           | Lang.Tuple [] ->
               let l =
@@ -68,8 +68,7 @@ let rec to_json_compact ~json5 v =
 let rec to_json_pp ~json5 f v =
   match v.Lang.value with
     | Lang.Ground g ->
-        Format.fprintf f "%s"
-          (Lang_values.Ground.to_json ~compact:false ~json5 g)
+        Format.fprintf f "%s" (Term.Ground.to_json ~compact:false ~json5 g)
     | Lang.List l ->
         let print f l =
           let len = List.length l in
@@ -94,7 +93,7 @@ let rec to_json_pp ~json5 f v =
         aux l;
         Format.fprintf f "@]@;<1 0>]@]"
     | Lang.Meth _ -> (
-        let l, v = Lang_values.V.split_meths v in
+        let l, v = Term.Value.split_meths v in
         match v.Lang.value with
           | Lang.Tuple [] ->
               Format.fprintf f "@{{@;<1 1>@[";
@@ -133,9 +132,7 @@ let () = to_json_ref := to_json
 let () =
   let val_t = Lang.univ_t () in
   let var =
-    match val_t.Lang_types.descr with
-      | Lang_types.EVar v -> v
-      | _ -> assert false
+    match val_t.Type.descr with Type.EVar v -> v | _ -> assert false
   in
   let meth =
     [
@@ -166,14 +163,14 @@ let () =
     Lang.method_t JSON.t
       (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
   in
-  Lang_builtins.add_builtin "json" ~cat:Lang_builtins.String
+  Lang.add_builtin "json" ~category:`String
     ~descr:"Create a generic json object" [] t (fun _ ->
       let v = Hashtbl.create 10 in
       let meth = List.map (fun (name, _, _, fn) -> (name, fn v)) meth in
       Lang.meth (JSON.to_value v) meth)
 
 let () =
-  Lang_builtins.add_builtin "json.stringify" ~cat:Lang_builtins.String
+  Lang.add_builtin "json.stringify" ~category:`String
     ~descr:"Convert a value to a json string."
     [
       ( "compact",
@@ -201,7 +198,7 @@ let () =
     | _ -> None)
 
 (* We compare the default's type with the parsed json value and return if they
-   match. This comes with json.stringify in Lang_builtins. *)
+   match. This comes with json.stringify in Builtin. *)
 let rec of_json d j =
   match (d.Lang.value, j) with
     | Lang.Tuple [], `Null -> Lang.unit
@@ -259,7 +256,7 @@ let rec of_json d j =
 
 let () =
   let t = Lang.univ_t () in
-  Lang_builtins.add_builtin ~cat:Lang_builtins.String
+  Lang.add_builtin ~category:`String
     ~descr:
       "Parse a json string into a liquidsoap value. The value provided in the \
        `default` parameter is quite important: only the part of the JSON data \

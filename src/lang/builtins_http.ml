@@ -20,14 +20,12 @@
 
  *****************************************************************************)
 
-open Lang_builtins
-
 type request = Get | Post | Put | Head | Delete
 
 let request_with_body = [Get; Post; Put]
 
 let add_http_error kind =
-  Lang.add_builtin_base ~category:(string_of_category Liq)
+  Lang.add_builtin_base ~category:`Liquidsoap
     ~descr:(Printf.sprintf "Base error for %s" kind)
     (Printf.sprintf "%s.error" kind)
     (Builtins_error.Error.to_value { Builtins_error.kind; msg = None })
@@ -88,7 +86,8 @@ let add_http_request ~stream_body ~descr ~request name =
       ]
     else []
   in
-  add_builtin name ~cat:Interaction ~descr params request_return_t (fun p ->
+  Lang.add_builtin name ~category:`Interaction ~descr params request_return_t
+    (fun p ->
       let headers = List.assoc "headers" p in
       let headers = Lang.to_list headers in
       let headers = List.map Lang.to_product headers in
@@ -151,7 +150,7 @@ let add_http_request ~stream_body ~descr ~request name =
               ("HTTP/1.0", 526, "Invalid SSL certificate", [])
           | e ->
               let bt = Printexc.get_raw_backtrace () in
-              log#severe "Could not perform http request: %s."
+              Lang.log#severe "Could not perform http request: %s."
                 (Printexc.to_string e);
               Lang.raise_as_runtime ~bt ~kind:"http" e
       in

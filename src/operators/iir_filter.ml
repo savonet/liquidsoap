@@ -442,7 +442,7 @@ let () =
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
+    ~return_t:k ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, order, src =
@@ -458,7 +458,7 @@ let () =
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
+    ~return_t:k ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, order, src =
@@ -475,7 +475,7 @@ let () =
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
+    ~return_t:k ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq1, freq2, order, src =
@@ -493,7 +493,7 @@ let () =
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
+    ~return_t:k ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq1, freq2, order, src =
@@ -510,7 +510,7 @@ let () =
       ("q", Lang.float_t, Some (Lang.float 60.), Some "Quality factor");
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
+    ~return_t:k ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, q, src =
@@ -526,7 +526,7 @@ let () =
       ("q", Lang.float_t, Some (Lang.float 60.), Some "Quality factor");
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
+    ~return_t:k ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, q, src =
@@ -542,7 +542,7 @@ let () =
       ("q", Lang.float_t, Some (Lang.float 60.), Some "Quality factor");
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
+    ~return_t:k ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, q, src =

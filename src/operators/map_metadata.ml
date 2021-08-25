@@ -100,8 +100,8 @@ let register =
            enabled." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~category:Lang.TrackProcessing
-    ~descr:"Rewrite metadata on the fly using a function." ~return_t
+    ~category:`Track ~descr:"Rewrite metadata on the fly using a function."
+    ~return_t
     (fun p ->
       let source = Lang.to_source (Lang.assoc "" 2 p) in
       let f = Lang.assoc "" 1 p in

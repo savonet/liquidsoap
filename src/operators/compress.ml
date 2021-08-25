@@ -219,7 +219,7 @@ let () =
            original sound, 1 means only compressed sound)." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.SoundProcessing ~descr:"Compress the signal."
+    ~return_t ~category:`Audio ~descr:"Compress the signal."
     ~meth:
       [
         ( "gain",

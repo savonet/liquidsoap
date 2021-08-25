@@ -156,7 +156,7 @@ let () =
       "Dynamically change the underlying source: it can either be changed by \
        the function given as argument, which returns the source to be played, \
        or by calling the `set` method."
-    ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
+    ~category:`Track ~flags:[`Experimental]
     ~meth:
       [
         ( "set",

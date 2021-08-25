@@ -71,7 +71,7 @@ let () =
         None,
         Some "Source whose mean should be computed." );
     ]
-    ~return_t:out_kind ~category:Lang.Conversions
+    ~return_t:out_kind ~category:`Conversion
     ~descr:"Produce mono audio by taking the mean of all audio channels."
     (fun p ->
       let normalize = Lang.to_bool (List.assoc "normalize" p) in

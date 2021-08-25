@@ -74,7 +74,7 @@ let () =
            any end of track" );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~category:Lang.TrackProcessing
+    ~category:`Track
     ~descr:"Make the source unavailable for a given time between tracks."
     ~return_t
     (fun p ->

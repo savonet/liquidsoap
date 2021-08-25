@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_values.Ground
+open Term
+open Term.Ground
 open Lang_encoders
 
 let flag_qscale = ref 0

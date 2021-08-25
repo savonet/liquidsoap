@@ -73,7 +73,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_copy_content.Audio.lift_params params))
           in
-          Lang_types.(effective_t <: kind_t);
+          Typing.(effective_t <: kind_t);
 
           let write_packet packet =
             match Ffmpeg_utils.Duration.push duration_converter packet with
@@ -115,7 +115,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_raw_content.Audio.lift_params params))
           in
-          Lang_types.(effective_t <: kind_t);
+          Typing.(effective_t <: kind_t);
           let duration_converter =
             Ffmpeg_utils.Duration.init ~src:target_time_base
               ~get_ts:Ffmpeg_utils.best_pts
@@ -239,7 +239,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_copy_content.Video.lift_params params))
           in
-          Lang_types.(effective_t <: kind_t);
+          Typing.(effective_t <: kind_t);
 
           let encoder_time_base = Avcodec.time_base encoder in
 
@@ -294,7 +294,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_raw_content.Video.lift_params params))
           in
-          Lang_types.(effective_t <: kind_t);
+          Typing.(effective_t <: kind_t);
 
           let duration_converter =
             Ffmpeg_utils.Duration.init ~src:time_base
@@ -456,7 +456,7 @@ let mk_encoder mode =
       ("", Lang.source_t source_t, None, None);
     ]
   in
-  Lang.add_operator name proto ~return_t ~category:Lang.Conversions
+  Lang.add_operator name proto ~return_t ~category:`Conversion
     ~descr:"Convert a source's content" (fun p ->
       let id =
         Lang.to_default_option ~default:name Lang.to_string (List.assoc "id" p)
@@ -468,7 +468,7 @@ let mk_encoder mode =
           | Encoder.Ffmpeg ffmpeg -> ffmpeg
           | _ ->
               raise
-                (Lang_errors.Invalid_value
+                (Error.Invalid_value
                    (format_val, "Only %ffmpeg encoder is currently supported!"))
       in
       let content =
@@ -481,7 +481,7 @@ let mk_encoder mode =
 
       if Hashtbl.length format.Ffmpeg_format.other_opts > 0 then
         raise
-          (Lang_errors.Invalid_value
+          (Error.Invalid_value
              ( format_val,
                Printf.sprintf
                  "Muxer options are not supported for inline encoders: %s"
@@ -490,7 +490,7 @@ let mk_encoder mode =
 
       if format.Ffmpeg_format.format <> None then
         raise
-          (Lang_errors.Invalid_value
+          (Error.Invalid_value
              (format_val, "Format option is not supported inline encoders"));
 
       let mk_encode_frame () =
@@ -530,7 +530,7 @@ let mk_encoder mode =
                     else "%audio.raw"
                   in
                   raise
-                    (Lang_errors.Invalid_value
+                    (Error.Invalid_value
                        ( format_val,
                          "Operator expects an encoder of the form: " ^ encoder
                        )))
@@ -553,7 +553,7 @@ let mk_encoder mode =
                     if has_encoded_video then "%video" else "%video.raw"
                   in
                   raise
-                    (Lang_errors.Invalid_value
+                    (Error.Invalid_value
                        ( format_val,
                          "Operator expects an encoder of the form: " ^ encoder
                        )))
@@ -599,7 +599,7 @@ let mk_encoder mode =
 
         if Hashtbl.length original_opts > 0 then
           raise
-            (Lang_errors.Invalid_value
+            (Error.Invalid_value
                ( format_val,
                  Printf.sprintf "Unrecognized options: %s"
                    (Ffmpeg_format.string_of_options original_opts) ));

@@ -61,11 +61,11 @@ let handler path (data : Lo.Message.data array) =
 
 (* We have to start the server _after_
    daemonizing. See: savonet/liquidsoap#1365.
- 
+
    There are two cases:
    - Server is requested before we daemonize (i.e.
      in a top-level call), start it after daemonization.
-   - Server is requested after we daemonize (i.e. 
+   - Server is requested after we daemonize (i.e.
      in a callback), start it immediately. *)
 let server = ref None
 let should_start = ref false
@@ -121,7 +121,7 @@ let register name osc_t liq_t =
       | 2 -> Lang.product vv.(0) vv.(1)
       | _ -> assert false
   in
-  Lang.add_builtin ("osc." ^ name) ~category:"Interaction"
+  Lang.add_builtin ("osc." ^ name) ~category:`Interaction
     [
       ("", Lang.string_t, None, Some "OSC path.");
       ("", liq_t, None, Some "Initial value.");
@@ -133,7 +133,7 @@ let register name osc_t liq_t =
       add_handler path osc_t handle;
       start_server ();
       Lang.val_fun [] (fun _ -> !v));
-  Lang.add_builtin ("osc.on_" ^ name) ~category:"Interaction"
+  Lang.add_builtin ("osc.on_" ^ name) ~category:`Interaction
     [
       ("", Lang.string_t, None, Some "OSC path.");
       ( "",
@@ -152,7 +152,7 @@ let register name osc_t liq_t =
       add_handler path osc_t handle;
       start_server ();
       Lang.unit);
-  Lang.add_builtin ("osc.send_" ^ name) ~category:"Interaction"
+  Lang.add_builtin ("osc.send_" ^ name) ~category:`Interaction
     [
       ("host", Lang.string_t, None, Some "OSC client address.");
       ("port", Lang.int_t, None, Some "OSC client port.");

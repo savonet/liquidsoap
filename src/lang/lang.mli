@@ -25,38 +25,38 @@
 val log : Log.t
 
 (** The type of a value. *)
-type t = Lang_types.t
+type t = Type.t
 
-type scheme = Lang_types.scheme
+type scheme = Type.scheme
 
 (** Position in source code. *)
-type pos = Lang_types.pos
+type pos = Type.pos
 
 (** {2 Values} *)
 
 (** A typed value. *)
 module Ground : sig
-  type t = Lang_values.Ground.t = ..
+  type t = Term.Ground.t = ..
   type t += Bool of bool | Int of int | String of string | Float of float
 
-  type content = Lang_values.Ground.content = {
+  type content = Term.Ground.content = {
     descr : unit -> string;
     to_json : compact:bool -> json5:bool -> unit -> string;
     compare : t -> int;
-    typ : Lang_types.ground;
+    typ : Type.ground;
   }
 
   val register : (t -> content option) -> unit
   val to_string : t -> string
 end
 
-type value = Lang_values.V.value = { pos : pos option; value : in_value }
+type value = Term.Value.t = { pos : pos option; value : in_value }
 
 and env = (string * value) list
 
 and lazy_env = (string * value Lazy.t) list
 
-and in_value = Lang_values.V.in_value =
+and in_value = Term.Value.in_value =
   | Ground of Ground.t
   | Source of Source.source
   | Encoder of Encoder.format
@@ -65,8 +65,7 @@ and in_value = Lang_values.V.in_value =
   | Null
   | Meth of string * value * value
   | Ref of value ref
-  | Fun of
-      (string * string * value option) list * env * lazy_env * Lang_values.term
+  | Fun of (string * string * value option) list * env * lazy_env * Term.t
   (* A function with given arguments (argument label, argument variable,
      default value), parameters already passed to the function, closure and
      value. *)
@@ -89,6 +88,8 @@ val iter_sources :
 
 (** {2 Computation} *)
 
+val apply_fun : (value -> env -> value) ref
+
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
 val apply : value -> env -> value
@@ -107,18 +108,12 @@ val add_protocol :
 
 type proto = (string * t * value option * string option) list
 
-(** Some flags that can be attached to operators. *)
-type doc_flag =
-  | Hidden  (** Don't list the plugin in the documentation. *)
-  | Deprecated  (** The plugin should not be used. *)
-  | Experimental  (** The plugin should not considered as stable. *)
-  | Extra  (** Anything that is not part of the essential set of plugins. *)
-
 (** Add an builtin to the language, high-level version for functions. *)
 val add_builtin :
-  category:string ->
+  category:Documentation.category ->
   descr:string ->
-  ?flags:doc_flag list ->
+  ?flags:Documentation.flag list ->
+  ?meth:(string * Type.scheme * string * value) list ->
   string ->
   proto ->
   t ->
@@ -127,9 +122,9 @@ val add_builtin :
 
 (** Add an builtin to the language, more rudimentary version. *)
 val add_builtin_base :
-  category:string ->
+  category:Documentation.category ->
   descr:string ->
-  ?flags:doc_flag list ->
+  ?flags:Documentation.flag list ->
   string ->
   in_value ->
   t ->
@@ -137,26 +132,6 @@ val add_builtin_base :
 
 (** Declare a new module. *)
 val add_module : string -> unit
-
-(** Category of an operator. *)
-type category =
-  | Input  (** Input. *)
-  | Output  (** Output. *)
-  | Conversions  (** Conversions of stream type *)
-  | FFmpegFilter  (** FFmpeg filter *)
-  | TrackProcessing  (** Operations on tracks (e.g. mixing, etc.). *)
-  | SoundProcessing  (** Operations on sound (e.g. compression, etc.). *)
-  | VideoProcessing  (** Operations on video. *)
-  | MIDIProcessing  (** Operations on MIDI. *)
-  | Visualization  (** Visualizations of the sound. *)
-  | SoundSynthesis  (** Synthesis. *)
-  | Liquidsoap  (** Liquidsoap. *)
-
-(** Get a string representation of a[ category]. *)
-val string_of_category : category -> string
-
-(** Get a string representation of a [doc_flag]. *)
-val string_of_flag : doc_flag -> string
 
 val empty : Frame.content_kind
 val any : Frame.content_kind
@@ -185,9 +160,9 @@ type 'a operator_method = string * scheme * string * ('a -> value)
 
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
-  category:category ->
+  category:Documentation.source ->
   descr:string ->
-  ?flags:doc_flag list ->
+  ?flags:Documentation.flag list ->
   ?meth:(< Source.source ; .. > as 'a) operator_method list ->
   string ->
   proto ->
@@ -260,7 +235,7 @@ val of_frame_kind_t : t -> t Frame.fields
   * label) and [t] is the type of the argument. *)
 val fun_t : (bool * string * t) list -> t -> t
 
-val univ_t : ?constraints:Lang_types.constraints -> unit -> t
+val univ_t : ?constraints:Type.constraints -> unit -> t
 
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t
@@ -301,31 +276,6 @@ val error :
 
 (** Re-raise an error as a runtime error. *)
 val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
-
-(** {2 Main script evaluation} *)
-
-(** Load the external libraries. *)
-val load_libs :
-  ?error_on_no_stdlib:bool ->
-  ?parse_only:bool ->
-  ?deprecated:bool ->
-  unit ->
-  unit
-
-(** Evaluate a script from an [in_channel]. *)
-val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
-
-(** Evaluate a script from a file. *)
-val from_file : ?parse_only:bool -> lib:bool -> string -> unit
-
-(** Evaluate a script from a string. *)
-val from_string : ?parse_only:bool -> lib:bool -> string -> unit
-
-(** Interactive loop: read from command line, eval, print and loop. *)
-val interactive : unit -> unit
-
-(** Evaluate a string *)
-val eval : string -> value option
 
 (* Abstract type and value. *)
 module type Abstract = sig

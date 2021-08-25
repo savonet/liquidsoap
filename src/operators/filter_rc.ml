@@ -99,8 +99,7 @@ let () =
            filtered and 0. means only original signal)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
-    ~descr:"First-order filter (RC filter)."
+    ~return_t:k ~category:`Audio ~descr:"First-order filter (RC filter)."
     (fun p ->
       let f v = List.assoc v p in
       let freq, wet, mode, src =
@@ -113,9 +112,7 @@ let () =
         match Lang.to_string mode with
           | "low" -> Low_pass
           | "high" -> High_pass
-          | _ ->
-              raise
-                (Lang_errors.Invalid_value (mode, "valid values are low|high"))
+          | _ -> raise (Error.Invalid_value (mode, "valid values are low|high"))
       in
       let kind = Source.Kind.of_kind kind in
       (new filter ~kind src freq wet mode :> Source.source))

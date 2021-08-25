@@ -87,7 +87,7 @@ let load_libs =
     if !stdlib && not !loaded then (
       let save = !Configure.display_types in
       Configure.display_types := false;
-      Lang.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
+      Runtime.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
         ~parse_only:!parse_only ();
       loaded := true;
       Configure.display_types := save)
@@ -109,16 +109,16 @@ let do_eval, eval =
   let eval src ~lib =
     load_libs ();
     match src with
-      | `StdIn -> Lang.from_in_channel ~lib ~parse_only:!parse_only stdin
+      | `StdIn -> Runtime.from_in_channel ~lib ~parse_only:!parse_only stdin
       | `Expr_or_File expr when not (Sys.file_exists expr) ->
-          Lang.from_string ~lib ~parse_only:!parse_only expr
+          Runtime.from_string ~lib ~parse_only:!parse_only expr
       | `Expr_or_File f ->
           let basename = Filename.basename f in
           let basename =
             try Filename.chop_extension basename with _ -> basename
           in
           Configure.var_script := basename;
-          Lang.from_file ~lib ~parse_only:!parse_only f
+          Runtime.from_file ~lib ~parse_only:!parse_only f
   in
   let force ~lib =
     match !delayed with
@@ -139,7 +139,7 @@ let load_libs () =
 let lang_doc name =
   run_streams := false;
   load_libs ();
-  try Doc.print_lang (Lang_values.builtins#get_subsection name)
+  try Doc.print_lang (Environment.builtins#get_subsection name)
   with Not_found -> Printf.printf "Plugin not found!\n%!"
 
 let process_request s =
@@ -233,17 +233,17 @@ let options =
              Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
          "Print debugging log messages." );
        ( ["--debug-errors"],
-         Arg.Unit (fun () -> Lang_values.conf_debug_errors#set true),
+         Arg.Unit (fun () -> Term.conf_debug_errors#set true),
          "Debug errors (show stacktrace instead of printing a message)." );
        ( ["--debug-lang"],
          Arg.Unit
            (fun () ->
-             Lang_types.debug := true;
-             Lang_values.conf_debug#set true),
+             Type.debug := true;
+             Term.conf_debug#set true),
          "Debug language implementation." );
-       (["--profile"], Arg.Set Lang_values.profile, "Profile execution.");
+       (["--profile"], Arg.Set Term.profile, "Profile execution.");
        ( ["--strict"],
-         Arg.Set Lang_errors.strict,
+         Arg.Set Error.strict,
          "Execute script code in strict mode, issuing fatal errors instead of \
           warnings in some cases. Currently: unused variables and ignored \
           expressions. " );
@@ -448,7 +448,7 @@ let () =
       do_eval ~lib:!last_item_lib)
 
 let initial_cleanup () =
-  if !Lang_values.profile then
+  if !Term.profile then
     log#important "Profiler stats:\n\n%s" (Profiler.stats ());
   Clock.stop ();
   if Tutils.has_started () then (
@@ -538,7 +538,7 @@ let () =
         if !interactive then (
           load_libs ();
           check_directories ();
-          ignore (Thread.create Lang.interactive ());
+          ignore (Thread.create Runtime.interactive ());
           Dtools.Init.init main)
         else if Source.has_outputs () || force_start#get then (
           check_directories ();

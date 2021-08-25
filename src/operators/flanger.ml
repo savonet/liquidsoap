@@ -91,7 +91,7 @@ let () =
         Some "Phase difference between channels in radians." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Flanger effect."
+    ~return_t:k ~category:`Audio ~descr:"Flanger effect."
     (fun p ->
       let f v = List.assoc v p in
       let duration, freq, feedback, phase, src =

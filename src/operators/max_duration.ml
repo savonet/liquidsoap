@@ -88,7 +88,7 @@ let () =
       ("", Lang.float_t, None, Some "Maximum duration");
       ("", Lang.source_t return_t, None, None);
     ]
-    ~category:Lang.TrackProcessing ~descr:"Limit source duration" ~return_t
+    ~category:`Track ~descr:"Limit source duration" ~return_t
     (fun p ->
       let override_meta = Lang.to_string (List.assoc "override" p) in
       let duration =

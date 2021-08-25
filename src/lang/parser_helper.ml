@@ -22,13 +22,13 @@
 
 (** Helper functions for the parser. *)
 
-open Lang_values
-open Lang_values.Ground
+open Term
+open Term.Ground
 
 let gen_args_of ~only ~except ~pos get_args name =
-  match Lang_values.get_builtin name with
-    | Some ((_, t), Lang_values.V.{ value = Fun (args, _, _, _) })
-    | Some ((_, t), Lang_values.V.{ value = FFI (args, _, _) }) ->
+  match Environment.get_builtin name with
+    | Some ((_, t), Term.Value.{ value = Fun (args, _, _, _) })
+    | Some ((_, t), Term.Value.{ value = FFI (args, _, _) }) ->
         let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in
         let filtered_args =
           if only <> [] then
@@ -71,8 +71,8 @@ let gen_args_of ~only ~except ~pos get_args name =
 let args_of, app_of =
   let rec get_args ~pos t args =
     let get_arg_type t name =
-      match (T.deref t).T.descr with
-        | T.Arrow (l, _) ->
+      match (Type.deref t).Type.descr with
+        | Type.Arrow (l, _) ->
             let _, _, t = List.find (fun (_, n, _) -> n = name) l in
             t
         | _ ->
@@ -82,67 +82,65 @@ let args_of, app_of =
                    Printf.sprintf
                      "Cannot get argument type of %s, this is not a function, \
                       it has type: %s."
-                     name (T.print t) ))
+                     name (Type.print t) ))
     in
     List.map
       (fun (n, n', v) ->
-        let t = T.make ~pos:(Some pos) (get_arg_type t n).T.descr in
+        let t = Type.make ~pos:(Some pos) (get_arg_type t n).Type.descr in
         (n, n', t, Option.map (term_of_value ~pos t) v))
       args
   and get_app ~pos _ args =
     List.map
       (fun (n, _, _) ->
         ( n,
-          Lang_values.
-            { t = T.fresh_evar ~level:(-1) ~pos:(Some pos); term = Var n } ))
+          Term.{ t = Type.fresh_evar ~level:(-1) ~pos:(Some pos); term = Var n }
+        ))
       args
-  and term_of_value ~pos t ({ Lang_values.V.value } as v) =
+  and term_of_value ~pos t ({ Term.Value.value } as v) =
     let get_list_type () =
-      match (T.deref t).T.descr with T.List t -> t | _ -> assert false
+      match (Type.deref t).Type.descr with
+        | Type.List t -> t
+        | _ -> assert false
     in
     let get_tuple_type pos =
-      match (T.deref t).T.descr with
-        | T.Tuple t -> List.nth t pos
+      match (Type.deref t).Type.descr with
+        | Type.Tuple t -> List.nth t pos
         | _ -> assert false
     in
     let get_meth_type () =
-      match (T.deref t).T.descr with
-        | T.Meth (_, _, _, t) -> t
+      match (Type.deref t).Type.descr with
+        | Type.Meth (_, _, _, t) -> t
         | _ -> assert false
     in
     let term =
       match value with
-        | Lang_values.V.Ground g -> Lang_values.Ground g
-        | Lang_values.V.Encoder e -> Lang_values.Encoder e
-        | Lang_values.V.List l ->
-            Lang_values.List
-              (List.map (term_of_value ~pos (get_list_type ())) l)
-        | Lang_values.V.Tuple l ->
-            Lang_values.List
+        | Term.Value.Ground g -> Term.Ground g
+        | Term.Value.Encoder e -> Term.Encoder e
+        | Term.Value.List l ->
+            Term.List (List.map (term_of_value ~pos (get_list_type ())) l)
+        | Term.Value.Tuple l ->
+            Term.List
               (List.mapi
                  (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
                  l)
-        | Lang_values.V.Null -> Lang_values.Null
-        | Lang_values.V.Meth (name, v, v') ->
+        | Term.Value.Null -> Term.Null
+        | Term.Value.Meth (name, v, v') ->
             let t = get_meth_type () in
-            Lang_values.Meth
-              (name, term_of_value ~pos t v, term_of_value ~pos t v')
-        | Lang_values.V.Fun (args, [], [], body) ->
+            Term.Meth (name, term_of_value ~pos t v, term_of_value ~pos t v')
+        | Term.Value.Fun (args, [], [], body) ->
             let body =
-              Lang_values.
-                { body with t = T.make ~pos:(Some pos) body.t.T.descr }
+              Term.{ body with t = Type.make ~pos:(Some pos) body.t.Type.descr }
             in
-            Lang_values.Fun
-              (Lang_values.free_vars body, get_args ~pos t args, body)
+            Term.Fun (Term.free_vars body, get_args ~pos t args, body)
         | _ ->
             raise
               (Parse_error
                  ( pos,
-                   Printf.sprintf "Value %s cannot be represented as a term"
-                     (Lang_values.V.print_value v) ))
+                   Printf.sprintf "Term %s cannot be represented as a term"
+                     (Term.Value.print_value v) ))
     in
-    let t = T.make ~pos:(Some pos) t.T.descr in
-    Lang_values.{ t; term }
+    let t = Type.make ~pos:(Some pos) t.Type.descr in
+    Term.{ t; term }
   in
   let args_of = gen_args_of get_args in
   let app_of = gen_args_of get_app in
@@ -150,12 +148,12 @@ let args_of, app_of =
 
 (** Create a new value with an unknown type. *)
 let mk ~pos e =
-  let kind = T.fresh_evar ~level:(-1) ~pos:(Some pos) in
-  if Lazy.force Lang_values.debug then
+  let kind = Type.fresh_evar ~level:(-1) ~pos:(Some pos) in
+  if Lazy.force Term.debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
-      (T.print_pos_opt kind.T.pos)
-      (try Lang_values.print_term { t = kind; term = e } with _ -> "<?>")
-      (T.print kind);
+      (Type.print_pos_opt kind.Type.pos)
+      (try Term.print_term { t = kind; term = e } with _ -> "<?>")
+      (Type.print kind);
   { t = kind; term = e }
 
 let append_list ~pos x v =
@@ -179,7 +177,7 @@ let mk_list ~pos = function `List l -> mk ~pos (List l) | `App a -> a
 
 let mk_fun ~pos args body =
   let bound = List.map (fun (_, x, _, _) -> x) args in
-  let fv = Lang_values.free_vars ~bound body in
+  let fv = Term.free_vars ~bound body in
   mk ~pos (Fun (fv, args, body))
 
 let mk_let ~pos (doc, replace, pat, def) body =
@@ -217,7 +215,7 @@ let mk_rec_fun ~pos pat args body =
   let name = match pat with PVar [name] -> name | _ -> assert false in
   let bound = List.map (fun (_, x, _, _) -> x) args in
   let bound = name :: bound in
-  let fv = Lang_values.free_vars ~bound body in
+  let fv = Term.free_vars ~bound body in
   mk ~pos (RFun (name, fv, args, body))
 
 let mk_enc ~pos e =
@@ -288,16 +286,15 @@ let mk_time_pred ~pos (a, b, c) =
   mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
 let mk_kind ~pos (kind, params) =
-  if kind = "any" then Lang_types.fresh_evar ~level:(-1) ~pos:(Some pos)
+  if kind = "any" then Type.fresh_evar ~level:(-1) ~pos:(Some pos)
   else (
     try
       let k = Frame_content.kind_of_string kind in
       match params with
-        | [] -> Lang_values.kind_t (`Kind k)
-        | [("", "any")] -> Lang_types.fresh_evar ~level:(-1) ~pos:None
+        | [] -> Term.kind_t (`Kind k)
+        | [("", "any")] -> Type.fresh_evar ~level:(-1) ~pos:None
         | [("", "internal")] ->
-            Lang_types.fresh ~constraints:[Lang_types.InternalMedia] ~level:(-1)
-              ~pos:None
+            Type.fresh ~constraints:[Type.InternalMedia] ~level:(-1) ~pos:None
         | param :: params ->
             let mk_format (label, value) =
               Frame_content.parse_param label value
@@ -307,7 +304,7 @@ let mk_kind ~pos (kind, params) =
               (fun param -> Frame_content.merge f (mk_format param))
               params;
             assert (k = Frame_content.kind f);
-            Lang_values.kind_t (`Format f)
+            Term.kind_t (`Format f)
     with _ ->
       let params =
         params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
@@ -336,16 +333,16 @@ let mk_source_ty ~pos name args =
   let video = mk_kind ~pos !video in
   let midi = mk_kind ~pos !midi in
 
-  Lang_values.source_t (Lang_values.frame_kind_t audio video midi)
+  Term.source_t (Term.frame_kind_t audio video midi)
 
 let mk_ty ~pos name =
   match name with
-    | "_" -> Lang_types.fresh_evar ~level:(-1) ~pos:None
-    | "unit" -> Lang_types.make Lang_types.unit
-    | "bool" -> Lang_types.make (Lang_types.Ground Lang_types.Bool)
-    | "int" -> Lang_types.make (Lang_types.Ground Lang_types.Int)
-    | "float" -> Lang_types.make (Lang_types.Ground Lang_types.Float)
-    | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
+    | "_" -> Type.fresh_evar ~level:(-1) ~pos:None
+    | "unit" -> Type.make Type.unit
+    | "bool" -> Type.make (Type.Ground Type.Bool)
+    | "int" -> Type.make (Type.Ground Type.Int)
+    | "float" -> Type.make (Type.Ground Type.Float)
+    | "string" -> Type.make (Type.Ground Type.String)
     | "source" -> mk_source_ty ~pos "source" []
-    | "source_methods" -> !Lang_values.source_methods_t ()
+    | "source_methods" -> !Term.source_methods_t ()
     | _ -> raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."))

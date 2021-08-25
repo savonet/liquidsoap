@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_parser
+open Parser
 
 module String = struct
   include String
@@ -300,7 +300,7 @@ let rec token lexbuf =
           (Buffer.create 17) lexbuf
     | _ ->
         raise
-          (Lang_values.Parse_error
+          (Term.Parse_error
              ( Sedlexing.lexing_positions lexbuf,
                "Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf ))
 
@@ -383,11 +383,11 @@ and read_string c pos buf lexbuf =
           read_string c pos buf lexbuf)
     | eof ->
         raise
-          (Lang_values.Parse_error
+          (Term.Parse_error
              ( (pos, snd (Sedlexing.lexing_positions lexbuf)),
                "String is not terminated" ))
     | _ ->
         raise
-          (Lang_values.Parse_error
+          (Term.Parse_error
              ( (pos, snd (Sedlexing.lexing_positions lexbuf)),
                "Illegal string character: " ^ Sedlexing.Utf8.lexeme lexbuf ))

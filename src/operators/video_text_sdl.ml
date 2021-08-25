@@ -33,7 +33,7 @@ let get_font font size =
   try Sdl_utils.check (Ttf.open_font font) size
   with e ->
     raise
-      (Lang_errors.Invalid_value
+      (Error.Invalid_value
          (Lang.string font, Printexc.to_string e ^ "(font: " ^ font ^ ")"))
 
 let render_text ~font ~size text =

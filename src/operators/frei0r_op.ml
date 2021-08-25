@@ -310,7 +310,7 @@ let register_plugin fname =
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in
   Lang.add_operator ("video.frei0r." ^ name) liq_params ~return_t
-    ~category:Lang.VideoProcessing ~flags:[Lang.Extra] ~descr (fun p ->
+    ~category:`Video ~flags:[`Extra] ~descr (fun p ->
       let instance =
         let width = Lazy.force Frame.video_width in
         let height = Lazy.force Frame.video_height in

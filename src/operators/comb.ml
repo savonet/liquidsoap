@@ -71,7 +71,7 @@ let () =
         Some "Feedback coefficient in dB." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Comb filter."
+    ~return_t:k ~category:`Audio ~descr:"Comb filter."
     (fun p ->
       let f v = List.assoc v p in
       let duration, feedback, src =

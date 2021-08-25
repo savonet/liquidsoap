@@ -166,7 +166,7 @@ let () =
       ("coeffs", Lang.int_t, Some (Lang.int 255), Some "Number of coefficients");
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Low-pass FIR filter."
+    ~return_t:k ~category:`Audio ~descr:"Low-pass FIR filter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, beta, num, src =

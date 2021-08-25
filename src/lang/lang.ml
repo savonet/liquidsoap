@@ -20,54 +20,53 @@
 
  *****************************************************************************)
 
-module Term = Lang_values
-include Term.V
-module T = Lang_types
+include Term.Value
 module Ground = Term.Ground
 open Ground
 
-type t = T.t
-type scheme = T.scheme
-type pos = T.pos
+type t = Type.t
+type scheme = Type.scheme
+type pos = Type.pos
+type value = Term.Value.t = { pos : pos option; value : in_value }
 
 let log = Log.make ["lang"]
 
 (** Type construction *)
 
-let ground_t x = T.make (T.Ground x)
-let int_t = ground_t T.Int
-let unit_t = T.make T.unit
-let float_t = ground_t T.Float
-let bool_t = ground_t T.Bool
-let string_t = ground_t T.String
-let tuple_t l = T.make (T.Tuple l)
+let ground_t x = Type.make (Type.Ground x)
+let int_t = ground_t Type.Int
+let unit_t = Type.make Type.unit
+let float_t = ground_t Type.Float
+let bool_t = ground_t Type.Bool
+let string_t = ground_t Type.String
+let tuple_t l = Type.make (Type.Tuple l)
 let product_t a b = tuple_t [a; b]
 
 let rec record_t = function
   | [] -> unit_t
-  | (l, t) :: r -> T.meth l ([], t) (record_t r)
+  | (l, t) :: r -> Type.meth l ([], t) (record_t r)
 
 let rec method_t t0 = function
   | [] -> t0
-  | (l, t, doc) :: r -> T.meth l t ~doc (method_t t0 r)
+  | (l, t, doc) :: r -> Type.meth l t ~doc (method_t t0 r)
 
 let of_tuple_t t =
-  match (T.deref t).T.descr with T.Tuple l -> l | _ -> assert false
+  match (Type.deref t).Type.descr with Type.Tuple l -> l | _ -> assert false
 
 let of_product_t t =
   match of_tuple_t t with [a; b] -> (a, b) | _ -> assert false
 
-let fun_t p b = T.make (T.Arrow (p, b))
-let list_t t = T.make (T.List t)
+let fun_t p b = Type.make (Type.Arrow (p, b))
+let list_t t = Type.make (Type.List t)
 
 let of_list_t t =
-  match (T.deref t).T.descr with T.List t -> t | _ -> assert false
+  match (Type.deref t).Type.descr with Type.List t -> t | _ -> assert false
 
-let nullable_t t = T.make (T.Nullable t)
+let nullable_t t = Type.make (Type.Nullable t)
 let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
-let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
-let getter_t a = T.make (T.Getter a)
+let univ_t ?(constraints = []) () = Type.fresh ~level:0 ~constraints ~pos:None
+let getter_t a = Type.make (Type.Getter a)
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t t = Term.source_t t
@@ -142,15 +141,16 @@ let val_fun p f = mk (FFI (p, [], f))
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
   let f t tm = mk (Fun (p, [], [], { Term.t; Term.term = tm })) in
-  let mkg t = T.make (T.Ground t) in
+  let mkg t = Type.make (Type.Ground t) in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
   match c.value with
-    | Tuple [] -> f (T.make T.unit) Term.unit
-    | Ground (Int i) -> f (mkg T.Int) (Term.Ground (Term.Ground.Int i))
-    | Ground (Bool i) -> f (mkg T.Bool) (Term.Ground (Term.Ground.Bool i))
-    | Ground (Float i) -> f (mkg T.Float) (Term.Ground (Term.Ground.Float i))
-    | Ground (String i) -> f (mkg T.String) (Term.Ground (Term.Ground.String i))
+    | Tuple [] -> f (Type.make Type.unit) Term.unit
+    | Ground (Int i) -> f (mkg Type.Int) (Term.Ground (Term.Ground.Int i))
+    | Ground (Bool i) -> f (mkg Type.Bool) (Term.Ground (Term.Ground.Bool i))
+    | Ground (Float i) -> f (mkg Type.Float) (Term.Ground (Term.Ground.Float i))
+    | Ground (String i) ->
+        f (mkg Type.String) (Term.Ground (Term.Ground.String i))
     | _ -> mk (FFI (p, [], fun _ -> c))
 
 let metadata m =
@@ -200,36 +200,30 @@ type proto = (string * t * value option * string option) list
 let doc_of_prototype_item ~generalized t d doc =
   let doc = match doc with None -> "(no doc)" | Some d -> d in
   let item = new Doc.item doc in
-  item#add_subsection "type" (T.doc_of_type ~generalized t);
+  item#add_subsection "type" (Type.doc_of_type ~generalized t);
   item#add_subsection "default"
     (match d with
       | None -> Doc.trivial "None"
       | Some d -> Doc.trivial (print_value d));
   item
 
-type doc_flag = Hidden | Deprecated | Experimental | Extra
-
-let string_of_flag = function
-  | Hidden -> "hidden"
-  | Deprecated -> "deprecated"
-  | Experimental -> "experimental"
-  | Extra -> "extra"
-
 let builtin_type p t =
-  T.make
-    (T.Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
+  Type.make
+    (Type.Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
 
 let to_plugin_doc category flags main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
-  let meths, return_t = T.split_meths return_t in
+  let meths, return_t = Type.split_meths return_t in
   let t = builtin_type proto return_t in
-  let generalized = T.filter_vars (fun _ -> true) t in
-  item#add_subsection "_category" (Doc.trivial category);
-  item#add_subsection "_type" (T.doc_of_type ~generalized t);
+  let generalized = Type.filter_vars (fun _ -> true) t in
+  item#add_subsection "_category"
+    (Doc.trivial (Documentation.string_of_category category));
+  item#add_subsection "_type" (Type.doc_of_type ~generalized t);
   List.iter
-    (fun f -> item#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
+    (fun f ->
+      item#add_subsection "_flag" (Doc.trivial (Documentation.string_of_flag f)))
     flags;
-  if meths <> [] then item#add_subsection "_methods" (T.doc_of_meths meths);
+  if meths <> [] then item#add_subsection "_methods" (Type.doc_of_meths meths);
   List.iter
     (fun (l, t, d, doc) ->
       item#add_subsection
@@ -238,7 +232,22 @@ let to_plugin_doc category flags main_doc proto return_t =
     proto;
   item
 
-let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
+let meth_fun = meth
+
+let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
+    f =
+  let return_t =
+    if meth = [] then return_t
+    else (
+      let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
+      method_t return_t meth)
+  in
+  let f =
+    if meth = [] then f
+    else (
+      let meth = List.map (fun (l, _, _, f) -> (l, f)) meth in
+      fun p -> meth_fun (f p) meth)
+  in
   let t = builtin_type proto return_t in
   let value =
     {
@@ -247,55 +256,28 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
         FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f);
     }
   in
-  let generalized = T.filter_vars (fun _ -> true) t in
-  Term.add_builtin
+  let generalized = Type.filter_vars (fun _ -> true) t in
+  Environment.add_builtin
     ~doc:(to_plugin_doc category flags descr proto return_t)
     (String.split_on_char '.' name)
     ((generalized, t), value)
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let doc = new Doc.item ~sort:false descr in
-  let value = { pos = t.T.pos; value } in
-  let generalized = T.filter_vars (fun _ -> true) t in
-  doc#add_subsection "_category" (Doc.trivial category);
-  doc#add_subsection "_type" (T.doc_of_type ~generalized t);
+  let value = { pos = t.Type.pos; value } in
+  let generalized = Type.filter_vars (fun _ -> true) t in
+  doc#add_subsection "_category"
+    (Doc.trivial (Documentation.string_of_category category));
+  doc#add_subsection "_type" (Type.doc_of_type ~generalized t);
   List.iter
-    (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
+    (fun f ->
+      doc#add_subsection "_flag" (Doc.trivial (Documentation.string_of_flag f)))
     flags;
-  Term.add_builtin ~doc (String.split_on_char '.' name) ((generalized, t), value)
+  Environment.add_builtin ~doc
+    (String.split_on_char '.' name)
+    ((generalized, t), value)
 
-let add_module name = Term.add_module (String.split_on_char '.' name)
-
-(** Specialized version for operators, that is builtins returning sources. *)
-
-type category =
-  | Input
-  | Output
-  | Conversions
-  | FFmpegFilter
-  | TrackProcessing
-  | SoundProcessing
-  | VideoProcessing
-  | MIDIProcessing
-  | Visualization
-  | SoundSynthesis
-  | Liquidsoap
-
-let string_of_category x =
-  "Source / "
-  ^
-  match x with
-    | Input -> "Input"
-    | Output -> "Output"
-    | Conversions -> "Conversions"
-    | FFmpegFilter -> "FFmpeg Filter"
-    | TrackProcessing -> "Track Processing"
-    | SoundProcessing -> "Sound Processing"
-    | VideoProcessing -> "Video Processing"
-    | MIDIProcessing -> "MIDI Processing"
-    | SoundSynthesis -> "Sound Synthesis"
-    | Visualization -> "Visualization"
-    | Liquidsoap -> "Liquidsoap"
+let add_module name = Environment.add_module (String.split_on_char '.' name)
 
 let iter_sources ?on_reference ~static_analysis_failed f v =
   let itered_values = ref [] in
@@ -396,7 +378,10 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
   iter_value v
 
 let iter_sources = iter_sources ~static_analysis_failed:(ref [])
-let apply f p = Clock.collect_after (fun () -> Term.apply f p)
+
+(* Delay this function in order not to have Lang depend on Evaluation. *)
+let apply_fun = ref (fun _ -> assert false)
+let apply f p = Clock.collect_after (fun () -> !apply_fun f p)
 
 (** {1 High-level manipulation of values} *)
 
@@ -521,159 +506,13 @@ let error = Runtime_error.error
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with
-    | Lang_values.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
+    | Term.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
     | exn ->
         error ~bt
           ~message:
             (Printf.sprintf "%s\nBacktrace:\n%s" (Printexc.to_string exn)
                (Printexc.raw_backtrace_to_string bt))
           kind
-
-(** {1 Parsing} *)
-
-let type_and_run ~throw ~lib ast =
-  Clock.collect_after (fun () ->
-      if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
-      (* Type checking *)
-      Term.check ~throw ~ignored:true ast;
-
-      if Lazy.force Term.debug then
-        Printf.eprintf "Checking for unused variables...\n%!";
-      (* Check for unused variables, relies on types *)
-      Term.check_unused ~throw ~lib ast;
-      if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
-      ignore (Term.eval_toplevel ast))
-
-let mk_expr ?fname ~pwd processor lexbuf =
-  let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
-  let tokenizer = Lang_pp.mk_tokenizer ?fname ~pwd lexbuf in
-  let tokenizer () =
-    let token, (startp, endp) = tokenizer () in
-    (token, startp, endp)
-  in
-  processor tokenizer
-
-let from_in_channel ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns
-    ~lib in_chan =
-  let lexbuf = Sedlexing.Utf8.from_channel in_chan in
-  begin
-    match ns with
-    | Some ns -> Sedlexing.set_filename lexbuf ns
-    | None -> ()
-  end;
-  try
-    Lang_errors.report lexbuf (fun ~throw () ->
-        let expr = mk_expr ?fname ~pwd:dir Lang_parser.program lexbuf in
-        if not parse_only then type_and_run ~throw ~lib expr)
-  with Lang_errors.Error -> exit 1
-
-let from_file ?parse_only ~ns ~lib filename =
-  let ic = open_in filename in
-  let fname = Utils.home_unrelate filename in
-  from_in_channel ~fname
-    ~dir:(Filename.dirname filename)
-    ?parse_only ~ns ~lib ic;
-  close_in ic
-
-let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true) () =
-  let dir = Configure.liq_libs_dir in
-  let file = Filename.concat dir "stdlib.liq" in
-  if not (Sys.file_exists file) then (
-    if error_on_no_stdlib then
-      failwith "Could not find default stdlib.liq library!")
-  else from_file ?parse_only ~ns:(Some file) ~lib:true file;
-  let file = Filename.concat dir "deprecations.liq" in
-  if deprecated && Sys.file_exists file then
-    from_file ?parse_only ~ns:(Some file) ~lib:true file
-
-let from_file = from_file ~ns:None
-
-let from_string ?parse_only ~lib expr =
-  let i, o = Unix.pipe ~cloexec:true () in
-  let i = Unix.in_channel_of_descr i in
-  let o = Unix.out_channel_of_descr o in
-  output_string o expr;
-  close_out o;
-  from_in_channel ?parse_only ~ns:None ~lib i;
-  close_in i
-
-let eval s =
-  try
-    let lexbuf = Sedlexing.Utf8.from_string s in
-    let expr = mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf in
-    Clock.collect_after (fun () ->
-        Lang_errors.report lexbuf (fun ~throw () ->
-            Term.check ~throw ~ignored:false expr);
-        Some (Term.eval expr))
-  with e ->
-    Printf.eprintf "Evaluating %S failed: %s!" s (Printexc.to_string e);
-    None
-
-let from_in_channel ?parse_only ~lib x =
-  from_in_channel ?parse_only ~ns:None ~lib x
-
-let interactive () =
-  Format.printf
-    "\n\
-     Welcome to the liquidsoap interactive loop.\n\n\
-     You may enter any sequence of expressions, terminated by \";;\".\n\
-     Each input will be fully processed: parsing, type-checking,\n\
-     evaluation (forces default types), output startup (forces default clock).\n\
-     @.";
-  if Dtools.Log.conf_file#get then
-    Format.printf "Logs can be found in %s.\n@."
-      (Utils.quote_utf8_string Dtools.Log.conf_file_path#get);
-  let lexbuf =
-    (* See ocaml-community/sedlex#45 *)
-    let chunk_size = 512 in
-    let buf = Bytes.create chunk_size in
-    let cached = ref (-1) in
-    let position = ref (-1) in
-    let rec gen () =
-      match (!position, !cached) with
-        | _, 0 -> None
-        | -1, _ ->
-            position := 0;
-            cached := input stdin buf 0 chunk_size;
-            gen ()
-        | len, c when len = c ->
-            position := -1;
-
-            (* This means that the last read was a full chunk. Safe to try a new
-               one right away. *)
-            if len = chunk_size then gen () else None
-        | len, _ ->
-            position := len + 1;
-            Some (Bytes.get buf len)
-    in
-    Sedlexing.Utf8.from_gen gen
-  in
-  let rec loop () =
-    Format.printf "# %!";
-    if
-      try
-        Lang_errors.report lexbuf (fun ~throw () ->
-            let expr =
-              mk_expr ~pwd:(Unix.getcwd ()) Lang_parser.interactive lexbuf
-            in
-            Term.check ~throw ~ignored:false expr;
-            Term.check_unused ~throw ~lib:true expr;
-            Clock.collect_after (fun () ->
-                ignore (Term.eval_toplevel ~interactive:true expr)));
-        true
-      with
-        | End_of_file ->
-            Format.printf "Bye bye!@.";
-            false
-        | Lang_errors.Error -> true
-        | e ->
-            let e = Console.colorize [`white; `bold] (Printexc.to_string e) in
-            Format.printf "Exception: %s!@." e;
-            true
-    then loop ()
-  in
-  loop ();
-  Tutils.shutdown 0
 
 (* Abstract types. *)
 
@@ -695,11 +534,10 @@ module type AbstractDef = sig
   val compare : content -> content -> int
 end
 
-module L = Lang_values
-module G = L.Ground
+module G = Term.Ground
 
 module MkAbstract (Def : AbstractDef) = struct
-  type T.ground += Type
+  type Type.ground += Type
   type G.t += Value of Def.content
 
   let () =
@@ -719,18 +557,16 @@ module MkAbstract (Def : AbstractDef) = struct
             }
       | _ -> None);
 
-    Lang_types.register_ground_printer (function
-      | Type -> Some Def.name
-      | _ -> None)
+    Type.register_ground_printer (function Type -> Some Def.name | _ -> None)
 
   let t = ground_t Type
-  let to_value c = mk (L.V.Ground (Value c))
+  let to_value c = mk (Term.Value.Ground (Value c))
 
   let of_value t =
-    match t.value with L.V.Ground (Value c) -> c | _ -> assert false
+    match t.value with Term.Value.Ground (Value c) -> c | _ -> assert false
 
   let is_value t =
-    match t.value with L.V.Ground (Value _) -> true | _ -> false
+    match t.value with Term.Value.Ground (Value _) -> true | _ -> false
 end
 
 (* Augment source_t and source with default methods. *)
@@ -905,7 +741,7 @@ let source_t ?(methods = false) t =
   else t
 
 let () =
-  Lang_values.source_methods_t :=
+  Term.source_methods_t :=
     fun () -> source_t ~methods:true (kind_type_of_kind_format any)
 
 let source v =
@@ -930,8 +766,8 @@ type 'a operator_method = string * scheme * string * ('a -> value)
   * so we have to force its value within the acceptable range. *)
 let add_operator =
   let _meth = meth in
-  fun ~category ~descr ?(flags = []) ?(meth = ([] : 'a operator_method list))
-      name proto ~return_t f ->
+  fun ~(category : Documentation.source) ~descr ?(flags = [])
+      ?(meth = ([] : 'a operator_method list)) name proto ~return_t f ->
     let compare (x, _, _, _) (y, _, _, _) =
       match (x, y) with
         | "", "" -> 0
@@ -959,16 +795,15 @@ let add_operator =
       let pos = None in
       try
         let ret = f env in
-        if category = Output then (
-          let m, _ = Lang_values.V.split_meths ret in
+        if category = `Output then (
+          let m, _ = Term.Value.split_meths ret in
           _meth unit m)
         else ret
       with
         | Source.Clock_conflict (a, b) ->
-            raise (Lang_errors.Clock_conflict (pos, a, b))
-        | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b))
-        | Source.Kind.Conflict (a, b) ->
-            raise (Lang_errors.Kind_conflict (pos, a, b))
+            raise (Error.Clock_conflict (pos, a, b))
+        | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+        | Source.Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
     in
     let return_t = source_t ~methods:true return_t in
     let return_t =
@@ -976,11 +811,11 @@ let add_operator =
         (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
     in
     let return_t =
-      if category = Output then (
-        let m, _ = Lang_types.split_meths return_t in
+      if category = `Output then (
+        let m, _ = Type.split_meths return_t in
         let m = List.map (fun (x, (y, z)) -> (x, y, z)) m in
         method_t unit_t m)
       else return_t
     in
-    let category = string_of_category category in
+    let category = `Source category in
     add_builtin ~category ~descr ~flags name proto return_t f

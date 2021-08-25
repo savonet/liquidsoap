@@ -16,22 +16,37 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-(** Runtime error, should eventually disappear. *)
-exception Invalid_value of Lang_values.V.value * string
+(** {1 Builtins} *)
 
-exception Clock_conflict of (Lang_types.pos option * string * string)
-exception Clock_loop of (Lang_types.pos option * string * string)
-exception Kind_conflict of (Lang_types.pos option * string * string)
+(** Whether a given builtin was declared. *)
+val has_builtin : string -> bool
 
-(** Exception raised by report_error after an error has been displayed.
-  * Unknown errors are re-raised, so that their content is not totally lost. *)
-exception Error
+(** Retrieve a builtin definition. *)
+val get_builtin : string -> (Type.scheme * Term.Value.t) option
 
-(** Raise errors for warnings. *)
-val strict : bool ref
+(** Documentation for builtins. *)
+val builtins : Doc.item
 
-val report : Sedlexing.lexbuf -> (throw:(exn -> unit) -> unit -> unit) -> unit
+(** Add a builtin value. *)
+val add_builtin :
+  ?override:bool ->
+  ?register:bool ->
+  ?doc:Doc.item ->
+  string list ->
+  Type.scheme * Term.Value.t ->
+  unit
+
+(** Declare a module. *)
+val add_module : string list -> unit
+
+(** {1 Environments} *)
+
+(** Initial typing environment (with builtins). *)
+val default_typing_environment : unit -> (string * Type.scheme) list
+
+(** Initial environment (with builtins). *)
+val default_environment : unit -> (string * (Type.scheme * Term.Value.t)) list

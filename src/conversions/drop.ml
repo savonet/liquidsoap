@@ -72,7 +72,7 @@ let () =
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~midi:true ~name:"drop_midi" source )
       in
-      Lang.add_operator name ~category:Lang.Conversions ~descr ~return_t:output
+      Lang.add_operator name ~category:`Conversion ~descr ~return_t:output
         [("", Lang.source_t input, None, None)]
         (fun p -> (source p :> Source.source)))
     [`Audio; `Video; `Midi]
