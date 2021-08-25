@@ -35,6 +35,49 @@ size of videos have a great impact on computations; if your machine cannot
 handle a stream (i.e. it's always catching up) you can try to encode to smaller
 videos for a start.
 
+### Encoding with FFmpeg
+
+The `%ffmpeg` encoder is the recommended encoder when working with video. Not only does it support a whide range
+of audio and video formats but it can also send and receive data to many different plances, using `input.ffmpeg`
+and `output.url`. On top of that, it also supports passing encoded data, if your script does not need re-encoding and
+all the [FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html).
+
+The syntax for the encoder is detailed in the [encoders page](encoding_formats.html). Here are some examples:
+```liquidsoap
+# AC3 audio and H264 video encapsulated in a MPEG-TS bitstream
+%ffmpeg(format="mpegts",
+  %audio(codec="ac3",channel_coupling=0),
+  %video(codec="libx264",b="2600k",
+         "x264-params"="scenecut=0:open_gop=0:min-keyint=150:keyint=150",
+         preset="ultrafast"))
+
+# AAC audio and H264 video encapsulated in a mp4 file (to use with
+# `output.file` only, mp4 container cannot be streamed!
+%ffmpeg(format="mp4",
+  %audio(codec="aac"),
+  %video(codec="libx264",b="2600k"))
+
+# Ogg opus and theora encappsulated in an ogg bitstream
+%ffmpeg(format="ogg",
+  %audio(codec="libopus"),
+  %video(codec="libtheora"))
+
+# Ogg opus and VP8 video encapsulated in a webm bitstream
+%ffmpeg(format="webm",
+  %audio(codec="libopus"),
+  %video(codec="libvpx"))
+```
+
+### Streaming with FFmpeg
+
+The main input to take advantage of FFmpeg is `input.ffmpeg`. It should be able to decode pretty much and url and file that the `ffmpeg` command-line
+can take as input. This is, in particular, how `input.rtmp` is defined.
+
+For output, one can use the regular outputs but two of them have special features when used with `%ffmpeg`:
+* `output.file` is able to properly close a file after it is done encoding it. This makes it possible to encode in formats that need a proper header after encoding is done, such as `mp4`.
+* `output.url` will only work with the `%ffmpeg` encoder. It delegates data output to FFmpeg and can support any url that the `ffmpeg` command-line supports.
+* `output.file.hls` and `output.harbor.hls` should only be used with `%ffmpeg`. The other encoders do work but `%ffmpeg` is the only encoder able to generate valid `MPEG-TS` and `MP4` data segments for the HLS specifications.
+
 ## Useful tips & tricks
 
 Video is a really exciting world where there are lots of cool stuff to do.
@@ -214,47 +257,3 @@ s = add([s,cam])
 # Output to SDL
 output.sdl(fallible=true,drop_audio(s))
 ```
-
-### Encoding with FFmpeg
-
-The `%ffmpeg` encoder is the recommended encoder when working with video. Not only does it support a whide range
-of audio and video formats but it can also send and receive data to many different plances, using `input.ffmpeg`
-and `output.url`. On top of that, it also supports passing encoded data, if your script does not need re-encoding and
-all the [FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html).
-
-The syntax for the encoder is detailed in the [encoders page](encoding_formats.html). Here are some examples:
-```liquidsoap
-# AC3 audio and H264 video encapsulated in a MPEG-TS bitstream
-%ffmpeg(format="mpegts",
-  %audio(codec="ac3",channel_coupling=0),
-  %video(codec="libx264",b="2600k",
-         "x264-params"="scenecut=0:open_gop=0:min-keyint=150:keyint=150",
-         preset="ultrafast"))
-
-# AAC audio and H264 video encapsulated in a mp4 file (to use with
-# `output.file` only, mp4 container cannot be streamed!
-%ffmpeg(format="mp4",
-  %audio(codec="aac"),
-  %video(codec="libx264",b="2600k"))
-
-# Ogg opus and theora encappsulated in an ogg bitstream
-%ffmpeg(format="ogg",
-  %audio(codec="libopus"),
-  %video(codec="libtheora"))
-
-# Ogg opus and VP8 video encapsulated in a webm bitstream 
-%ffmpeg(format="webm",
-  %audio(codec="libopus"),
-  %video(codec="libvpx"))
-```
-
-### Streaming with FFmpeg
-
-The main input to take advantage of FFmpeg is `input.ffmpeg`. It should be able to decode pretty much and url and file that the `ffmpeg` command-line
-can take as input. This is, in particular, how `input.rtmp` is defined.
-
-For output, one can use the regular outputs but two of them have special features when used with `%ffmpeg`:
-* `output.file` is able to properly close a file after it is done encoding it. This makes it possible to encode in formats that need a proper header after encoding is done, such as `mp4`.
-* `output.url` will only work with the `%ffmpeg` encoder. It delegates data output to FFmpeg and can support any url that the `ffmpeg` command-line supports.
-* `output.file.hls` and `output.harbor.hls` should only be used with `%ffmpeg`. The other encoders do work but `%ffmpeg` is the only encoder able to generate valid `MPEG-TS` and `MP4` data segments for the HLS specifications.
-
