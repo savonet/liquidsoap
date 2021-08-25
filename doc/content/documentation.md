@@ -10,26 +10,26 @@ your dream stream.
 If you downloaded a source tarball of liquidsoap, you may first read the
 [build instructions](build.html).
 
-If you are looking for a way to build a distribution-independant bundle of
-liquidsoap, you may want to read the [custom path](custom-path.html) page.
+If you are migrating from a previous version, you might want to checkout
+[this page](migrating.html).
 
 General tutorials
 -----------------
-* [Quickstart](quick_start.html): where anyone should start.
-* [Presentations](presentations.html): some presentations we did about liquidsoap
-* [Complete case analysis](complete_case.html): an example that is not a toy.
-* [Advanced](advanced.html): overview of more advanced features for serious usage.
+* [The book](bool.html): The Liquidsoap book
+* [Video presentations](presentations.html): some presentations we did about liquidsoap
 * [How to find help](help.html) about operators, settings, server commands, etc.
-* [Cookbook](cookbook.html): contains lots of idiomatic examples.
 * [Frequently Asked Questions, Troubleshooting](faq.html)
+* [Quickstart](quick_start.html): where anyone should start.
+* [Complete case analysis](complete_case.html): an example that is not a toy.
+* [Cookbook](cookbook.html): contains lots of idiomatic examples.
 
 Reference
 ---------
+* [Script language](language.html): A more detailed presentation.
 * [Core API](reference.html): The core liquidsoap API
 * [Extra API](reference-extra.html): Extra functions and libraries. 
 * [Protocols](protocols.html): List of protocols supported by liquidsoap.
 * [Settings](settings.html): The list of available settings for liquidsoap.
-* [Script language](language.html): A more detailed presentation.
 * [Encoding formats](encoding_formats.html): The available formats for encoding outputs.
 * [Playlist parsers](playlist_parsers.html): Supported playlist formats.
 * [JSON import/export](json.html): Importing and exporting language values in JSON.
@@ -57,7 +57,6 @@ Specific tutorials
 * [ICY metadata update](icy_metadata.html): manipulate and configure metadata update in Icecast.
 * [Interaction with the Harbor](harbor_http.html): interact with a running Liquidsoap using the Harbor server.
 * [Interaction with the server](server.html) interact with a running Liquidsoap instance using the telnet server.
-* [Liquid Flows](flows.html): add your radio to the [webpage](http://flows.liquidsoap.info/) of proud users.
 * [Normalization and replay gain](replay_gain.html): normalize audio data.
 * [Profiling](profiling.html): profiling your scripts.
 * [Prometheus reporting](prometheus.html): metrics reporting via prometheus.

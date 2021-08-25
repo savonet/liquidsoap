@@ -45,7 +45,7 @@ Content-Length: 35\r\n\
 in HTTP content)
 
 The handler is a _string getter_, which means that it can be of either type `string` or type `()->string`.
-The former is used to returned the response in one call while the later can be used to returned bigger response
+The former is used to return the response in one call while the later can be used to returned bigger response
 without having to load the whole response string in memory, for instance in the case of a file.
 
 For convenience, two functions, `http.response` and `http.response.stream` are provided to 
