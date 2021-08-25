@@ -3,8 +3,8 @@ top_srcdir=../..
 include $(top_srcdir)/Makefile.rules
 
 menhir:
-	@rm -f lang_parser.conflicts
+	@rm -f parser.conflicts
 	menhir --explain parser.mly
-	@cat lang_parser.conflicts
+	@cat parser.conflicts
 
 .PHONY: menhir
