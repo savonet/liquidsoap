@@ -31,10 +31,11 @@ Reference
 * [Protocols](protocols.html): List of protocols supported by liquidsoap.
 * [Settings](settings.html): The list of available settings for liquidsoap.
 * [Encoding formats](encoding_formats.html): The available formats for encoding outputs.
-* [Playlist parsers](playlist_parsers.html): Supported playlist formats.
+* [Videos streams](video.html): Use `liquidsoap` for video streams
 * [JSON import/export](json.html): Importing and exporting language values in JSON.
-* [LADSPA plugins](ladspa.html): Using LADSPA plugins.
 * [FFmpeg filters](ffmpeg_filters.html): Using FFmpeg filters.
+* [Playlist parsers](playlist_parsers.html): Supported playlist formats.
+* [LADSPA plugins](ladspa.html): Using LADSPA plugins.
 
 Core
 ----
@@ -65,7 +66,6 @@ Specific tutorials
 * [Shoutcast output](shoutcast.html): output to shoutcast.
 * [Smart crossfading](smartcrossfade.html): define custom crossfade transitions.
 * [Using in production](in_production.html): integrate liquidsoap scripts in a production environment.
-* [Videos streams](video.html): why restrict yourself to sound only?
 
 User scripts
 ------------
