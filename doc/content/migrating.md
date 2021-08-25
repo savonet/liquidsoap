@@ -154,6 +154,7 @@ deprecated operatords. Here's a list of the most important ones:
 * `register_flow`: flow is no longer maintained
 * `empty` is replaced by: `source.fail`
 * `file.unlink` is replaced by: `file.remove`
+* `string.utf8.escape` is replaced by: `string.escape`   
 
 ### Windows build
 

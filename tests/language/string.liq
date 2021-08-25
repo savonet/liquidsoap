@@ -6,7 +6,7 @@ success = ref(true)
 
 def t(x, y)
   if x != y then
-    print("Failure: got #{x} instead of #{y}")
+    print("Failure: got #{json.stringify(x)} instead of #{json.stringify(y)}")
     success := false
   end
 end
@@ -38,6 +38,23 @@ def f() =
   t(s[2], "cde")
   t(string.is_int("123"), true)
   t(string.is_int("1a3"), false)
+  t(string.unescape("\\a\\b\\e\\f\\n\\r\\t\\v\\'\\?\\x61\\141\\u0061"), "\a\b\e\f\n\r\t\v\'\?aaa")
+  t(string.escape("\a\b\e\f\n\r\t\v\'\?"), "\\x07\\b\\x1b\\x0c\\n\\r\\t\\x0b'?")
+  t(string.escape(encoding="ascii", "foo \"😅 o"), "foo \"\\xF0\\x9F\\x98\\x85 o")
+  t("\xF0\x9F\x98\x85", "😅")
+  t("\342\234\250", "✨")
+  t("\u2728", "✨")
+  t(string.escape.all("✨"), "\\u2728")
+  t(string.escape.all(format="hex", "✨"), "\\xE2\\x9C\\xA8")
+  t(string.escape.all(format="octal","✨"), "\\342\\234\\250")
+  t(string.unescape("\\u2728"), "✨")
+  t(string.unescape("\\xE2\\x9C\\xA8"), "✨")
+  t(string.unescape("\\342\\234\\250"), "✨")
+  t(string.quote(encoding="ascii", "foo \"😅 o"), "\"foo \\\"\\xF0\\x9F\\x98\\x85 o\"")
+  t(string.quote("foo \"😅 o"), "\"foo \\\"😅 o\"")
+
+  t(string.annotate.parse("foo=bla,\"foo\"=\"✨✅\",\"gni:gno\"=\"bla\\\"blu:\":😈uri"),
+    ([("foo", "bla"), ("foo", "✨✅"), ("gni:gno", "bla\"blu:")], "😈uri"))
   
   if !success then test.pass() else test.fail() end
 end

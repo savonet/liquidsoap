@@ -246,3 +246,13 @@ let () =
       on_done
         (if 0. <= timeout && tutils_started then asynchronous ()
         else synchronous ()))
+
+let () =
+  add_builtin "process.quote" ~cat:Sys
+    ~descr:
+      "Return a quoted copy of the given string, suitable for use as one \
+       argument in a command line, escaping all meta-characters. Warning: \
+       under Windows, the output is only suitable for use with programs that \
+       follow the standard Windows quoting conventions."
+    [("", Lang.string_t, None, Some "File name")] Lang.string_t (fun p ->
+      Lang.string (Filename.quote (Lang.to_string (List.assoc "" p))))

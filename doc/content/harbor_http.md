@@ -45,11 +45,11 @@ Content-Length: 35\r\n\
 in HTTP content)
 
 The handler is a _string getter_, which means that it can be of either type `string` or type `()->string`.
-The former is used to returned the response in one call while the later can be used to returned bigger response
+The former is used to return the response in one call while the later can be used to returned bigger response
 without having to load the whole response string in memory, for instance in the case of a file.
 
-For convenience, two functions, `http_response` and `http_response_stream` are provided to 
-create a HTTP response string. `http_response` has the following type:
+For convenience, two functions, `http.response` and `http.response.stream` are provided to 
+create a HTTP response string. `http.response` has the following type:
 
 ```
 (?protocol:string,?code:int,?headers:[(string*string)],
@@ -63,7 +63,7 @@ where:
 * `headers` is the response headers. It defaults to `[]` but an appropriate `"Content-Length"` header is added if not set by the user and `data` is not empty.
 * `data` is an optional response data (default `""`)
 
-`http_response_stream` has the following type:
+`http.response.stream` has the following type:
 
 ```
 (?protocol:string,?code:int,?headers:[(string*string)],
@@ -92,7 +92,7 @@ In this case, you can register the following handler:
 # than /admin.* to icecast,
 # located at localhost:8000
 def redirect_icecast(~protocol,~data,~headers,uri) =
-   http_response(
+   http.response(
      protocol=protocol,
      code=301,
      headers=[("Location","http://localhost:8000#{uri}")]
@@ -175,7 +175,7 @@ s = on_metadata(update_meta,s)
 # of meta
 def get_meta(~protocol,~data,~headers,uri) =
   m = !meta
-  http_response(
+  http.response(
     protocol=protocol,
     code=200,
     headers=[("Content-Type","application/json; charset=utf-8")],
@@ -245,7 +245,7 @@ def set_meta(~protocol,~data,~headers,uri) =
   end
 
   # Return response
-  http_response(
+  http.response(
    protocol=protocol,
    code=200,
    headers=[("Content-Type","text/html")],

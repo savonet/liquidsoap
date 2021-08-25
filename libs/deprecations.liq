@@ -24,11 +24,13 @@ def quote(s) =
   string.quote(s)
 end
 
-# Deprecated: this function has been replaced by `string.quote`.
+let string.utf8 = ()
+
+# Deprecated: this function has been replaced by `string.escape`.
 # @flag deprecated
-def process.quote(s) =
-  deprecated("process.quote", "string.quote")
-  string.quote(s)
+def string.utf8.escape(s) =
+  deprecated("string.utf8.escape", "string.escape")
+  string.escape(s)
 end
 
 # Deprecated: use mksafe and playlist instead.
@@ -464,16 +466,34 @@ def add_playlist_parser(%argsof(playlist.parse.register), s) =
   playlist.parse.register(%argsof(playlist.parse.register), s)
 end
 
-# Deprecated: use 'json.stringify` instead
+# Deprecated: use `json.stringify` instead
 # @flag deprecated
+# @argsof json.stringify
 def json_of(%argsof(json.stringify), v) =
   deprecated("json_of", "json.stringify")
   json.stringify(%argsof(json.stringify), v)
 end
 
-# Deprecated: use 'json.stringify` instead
+# Deprecated: use `json.parse` instead
 # @flag deprecated
+# @argsof json.parse
 def of_json(%argsof(json.parse), v) =
   deprecated("of_json", "json.parse")
   json.parse(%argsof(json.parse), v)
+end
+
+# Deprecated use `http.response` instead
+# @flag deprecated
+# @argsof http.response
+def http_response(%argsof(http.response)) =
+  deprecated("http_response", "http.response")
+  http.response(%argsof(http.response))
+end
+
+# Deprecated use `http.response.stream` instead
+# @flag deprecated
+# @argsof http.response.stream
+def http_response_stream(%argsof(http.response.stream)) =
+  deprecated("http_response_stream", "http.response.stream")
+  http.response.stream(%argsof(http.response.stream))
 end

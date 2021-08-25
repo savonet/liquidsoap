@@ -7,10 +7,13 @@ you just have to use video files instead of sound files! For instance, if you
 want to stream a single file to an icecast server in ogg format (with theora and
 vorbis as codecs for audio and video) you can simply type:
 ```liquidsoap
-source = single("video.avi")
+source = single("video.mp4")
 
 output.icecast(
-        %ogg(%theora(quality=25,width=320,height=240),%vorbis),
+        %ffmpeg(format="ogg",
+          %audio(codec="libvorbis"),
+          %video(codec="libtheora")
+        ),
         host="localhost",
         port=8000,
         password="hackme",
@@ -31,6 +34,49 @@ for video than for audio. So, be prepared to hear the fan of your computer! The
 size of videos have a great impact on computations; if your machine cannot
 handle a stream (i.e. it's always catching up) you can try to encode to smaller
 videos for a start.
+
+### Encoding with FFmpeg
+
+The `%ffmpeg` encoder is the recommended encoder when working with video. Not only does it support a whide range
+of audio and video formats but it can also send and receive data to many different plances, using `input.ffmpeg`
+and `output.url`. On top of that, it also supports passing encoded data, if your script does not need re-encoding and
+all the [FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html).
+
+The syntax for the encoder is detailed in the [encoders page](encoding_formats.html). Here are some examples:
+```liquidsoap
+# AC3 audio and H264 video encapsulated in a MPEG-TS bitstream
+%ffmpeg(format="mpegts",
+  %audio(codec="ac3",channel_coupling=0),
+  %video(codec="libx264",b="2600k",
+         "x264-params"="scenecut=0:open_gop=0:min-keyint=150:keyint=150",
+         preset="ultrafast"))
+
+# AAC audio and H264 video encapsulated in a mp4 file (to use with
+# `output.file` only, mp4 container cannot be streamed!
+%ffmpeg(format="mp4",
+  %audio(codec="aac"),
+  %video(codec="libx264",b="2600k"))
+
+# Ogg opus and theora encappsulated in an ogg bitstream
+%ffmpeg(format="ogg",
+  %audio(codec="libopus"),
+  %video(codec="libtheora"))
+
+# Ogg opus and VP8 video encapsulated in a webm bitstream
+%ffmpeg(format="webm",
+  %audio(codec="libopus"),
+  %video(codec="libvpx"))
+```
+
+### Streaming with FFmpeg
+
+The main input to take advantage of FFmpeg is `input.ffmpeg`. It should be able to decode pretty much and url and file that the `ffmpeg` command-line
+can take as input. This is, in particular, how `input.rtmp` is defined.
+
+For output, one can use the regular outputs but two of them have special features when used with `%ffmpeg`:
+* `output.file` is able to properly close a file after it is done encoding it. This makes it possible to encode in formats that need a proper header after encoding is done, such as `mp4`.
+* `output.url` will only work with the `%ffmpeg` encoder. It delegates data output to FFmpeg and can support any url that the `ffmpeg` command-line supports.
+* `output.file.hls` and `output.harbor.hls` should only be used with `%ffmpeg`. The other encoders do work but `%ffmpeg` is the only encoder able to generate valid `MPEG-TS` and `MP4` data segments for the HLS specifications.
 
 ## Useful tips & tricks
 
@@ -211,115 +257,3 @@ s = add([s,cam])
 # Output to SDL
 output.sdl(fallible=true,drop_audio(s))
 ```
-
-### Encoding with GStreamer codecs
-
-Gstreamer codecs can be used to encode videos and audio as any natively
-supported format. For instance, suppose that you want to stream using harbor in
-x264 / mp3. This can be achieved as follows:
-
-```liquidsoap
-# Set the values for video size and fps.
-# On my standard computer, higher values means
-# that we cannot encode in realtime.
-video.frame.width.set(320)
-video.frame.height.set(240)
-video.frame.rate.set(12)
-
-# The video we want to stream.
-s = single("big_buck_bunny_720p_stereo.ogg")
-
-output.harbor(
-  format="video/mpeg",
-  icy_metadata="false",
-  mount="/test",
-  %gstreamer(video="x264enc speed-preset=1",audio="lamemp3enc"),
-  s)
-```
-
-The video can be read after that at
-[http://localhost:8000/test](http://localhost:8000/test) and of course an
-`output.icecast` or `output.file` could have been used instead of
-`output.harbor` depending on your needs.
-
-### Streaming with GStreamer
-
-The usual way to stream a video is using icecast, as for audio. However, it can
-happen that you want to use weird formats or ways to to stream. In this case,
-using GStreamer as output (as opposed to simply a codec as above) might be a
-good idea. For instance, suppose that you want to stream mp4 video using
-RTP. This can be done as follows:
-
-```liquidsoap
-s = single("test.mp4")
-output.gstreamer.video(pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=127.0.0.1 port=5000", s)
-```
-
-The stream can then be read with vlc for instance using `vlc test.sdp`. Here,
-the contents of the file `test.sdp` is
-
-```
-v=0
-m=video 5000 RTP/AVP 96
-c=IN IP4 127.0.0.1
-a=rtpmap:96 MP4V-ES/90000
-```
-
-## Frequently asked questions
-
-
-### `audio=1+_`
-
-When I try
-
-```liquidsoap
-s = input.v4l2_with_audio()
-output.sdl(s)
-```
-I get the error
-```
-At line 2, char 13:
-  this value has type
-    active_source(audio=1+_,...) (inferred at ../scripts/gstreamer.liq, line 20, char 30-121)
-  but it should be a subtype of
-    active_source(audio=0,...)
-```
-
-This error means that the stream `s` has an audio channel (as indicated by
-`audio=1+_`) whereas `output.sdl` wants no audio channel. Namely, it's type is
-
-```
-$ liquidsoap -h output.sdl
-
-Display a video using SDL.
-
-Type: (?id:string,?fallible:bool,?on_start:(()->unit),
- ?on_stop:(()->unit),?start:bool,
- source(audio=0,video=1,midi=0))->
-active_source(audio=0,video=1,midi=0)
-```
-
-which means that it wants 0 audio channel, 1 video channel and 0 midi
-channel. The solution to correct the script is simply to remove the audio
-channel using the `drop_audio` operator:
-
-```liquidsoap
-s = input.v4l2_with_audio()
-output.sdl(drop_audio(s))
-```
-
-## Advanced parameters
-
-### Default size for videos
-
-Internally, Liquidsoap uses a video format which is the same for all frames. You
-can change it by doing
-
-```liquidsoap
-video.frame.width.set(320)
-video.frame.height.set(240)
-video.frame.rate.set(24)
-```
-
-Using higher values result in higher quality videos produced, but this also
-means more computations to perform!

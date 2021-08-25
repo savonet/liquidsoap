@@ -1,5 +1,6 @@
 A simple video script
 =====================
+
 The other day, I wanted to prepare some videos of my favorite reggae and soul 
 tunes for uploading them to YouTube.
 My goal was very simple: prepare a video with the music,
@@ -12,60 +13,24 @@ Well, that is fairly easy!
 Here is the code:
 
 ```liquidsoap
- # Log to stdout
- log.file.set(false)
- log.stdout.set(true)
- log.level.set(4)
- # Enable video
- video.frame.width.set(640)
- video.frame.height.set(480)
+log.level.set(4)
 
- audio_file = "/tmp/bla.mp3"
- video_file = "/tmp/bla.jpg"
+audio = once(single("/tmp/bla.mp3"))
+video = single("/tmp/bla.jpg")
 
- # Grab file's title
- r = request.create(audio_file)
- title = 
-   if request.resolve(r) then
-     meta = request.metadata(r)
-     meta["title"]
-   else
-     # File not readable
-     log("Error: cannot decode audio file!")
-     shutdown () 
-     ""
-   end
- title = 
-   if title == "" then
-      "Unknown title"
-   else
-      title
-   end
+# Mux audio and video
+source = mux_video(video=video,audio)
 
- # The audio song.
- audio = request.queue(interactive=false,queue=[r])
+# Disable real-time processing, to process with the maximum speed
+clock.assign_new(sync='none',[source])
 
- # Create a video source with the image for video track
- video = single(video_file)
-
- # Mux audio and video
- #source = mux_audio(audio=audio,video)
- source = mux_video(video=video,audio)
-
- # Disable real-time processing, to process with the maximum speed
- source = clock(sync=false,source)
+# Encode video and copy audio:
+encoder = %ffmpeg(format="mp4",
+                  %audio.copy,
+                  %video(codec="libx264")) 
 
  # Output to a theora file, shutdown on stop
- output.file(%ogg(%vorbis,%theora),
-             id="youtube",fallible=true,
-             on_stop=shutdown,reopen_on_metadata=true,
-             "/tmp/#{title}.ogv",
+ output.file(fallible=true,on_stop=shutdown,
+             encoder, "/tmp/encoded-video.mp4",
              source)
 ```
-
-This should produce on file named `<title>.ogv` where `<title>` is the title
-metadata of your song.
-
-Inspired from [blog.rastageeks.org](http://blog.rastageeks.org/spip.php?article27).
-
-

@@ -71,8 +71,7 @@ all-auto-ocaml-prog:
 	done
 
 ifdef PROG
-$(PROG)_mly=$(wildcard $($(PROG)_sources:.ml=.mly))
-$(PROG)_headers=$(wildcard $($(PROG)_sources:.ml=.mli)) $($(PROG)_mly:.mly=.mli)
+$(PROG)_headers=$(wildcard $($(PROG)_sources:.ml=.mli))
 # Grab program-specific flags
 _OCAML_CFLAGS=$($(PROG)_ocamlcflags)
 _OCAML_LFLAGS=$($(PROG)_ocamllflags)
@@ -111,11 +110,6 @@ $(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs)
 		$($(PROG)_sources:.ml=.$(o)) \
 		$(c_link)
 endif
-
-%.ml: %.mll
-	@echo $(<:.mll=.mli) $(<:.mll=.ml) >> auto_clean
-	$(V)echo OCAMLLEX $<
-	$(V)$(OCAMLLEX) $<
 
 %.ml %.mli: %.mly
 	@echo $(<:.mly=.mli) $(<:.mly=.ml) $(<:.mly=.conflicts) >> auto_clean

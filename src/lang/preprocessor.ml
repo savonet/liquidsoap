@@ -168,10 +168,11 @@ let includer dir tokenizer =
                 (if curp.Lexing.pos_fname = "" then "L"
                 else
                   Printf.sprintf "File %s, l"
-                    (Utils.escape_utf8 curp.Lexing.pos_fname))
+                    (Utils.quote_utf8_string curp.Lexing.pos_fname))
                 curp.Lexing.pos_lnum
                 (curp.Lexing.pos_cnum - curp.Lexing.pos_bol);
-              Printf.printf "file %s doesn't exist.\n" (Utils.escape_utf8 fname);
+              Printf.printf "file %s doesn't exist.\n"
+                (Utils.quote_utf8_string fname);
               exit 1
           in
           let lexbuf = Sedlexing.Utf8.from_channel channel in

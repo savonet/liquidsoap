@@ -29,7 +29,6 @@ let () =
       Lang.string s)
 
 let () =
-  Lang.add_module "string.utf8";
   Lang.add_module "string.base64";
   Lang.add_module "url"
 
@@ -66,102 +65,158 @@ let () =
       let n = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (int_of_char s.[n]))
 
-(* Special characters that must be escaped *)
-let special_chars =
-  (* Control chars between 0x00 and 0x1f *)
-  let rec escaped p l =
-    if p <= 0x1f then escaped (p + 1) (Char.chr p :: l) else List.rev l
-  in
-  (* We also add 0x7F (DEL) and the
-   * usual '"' and '\' *)
-  escaped 0 ['"'; '\\'; '\x7F']
-
-let register_escape_fun ~name ~descr ~escape ~escape_char =
-  let escape ~special_char ~escape_char s =
-    let b = Buffer.create (String.length s) in
-    let f = Format.formatter_of_buffer b in
-    escape ~special_char ~escape_char f s;
-    Format.pp_print_flush f ();
-    Buffer.contents b
-  in
-  let special_chars =
-    Lang.list (List.map Lang.string (List.map (String.make 1) special_chars))
-  in
-  let escape_char p =
-    let v = List.assoc "" p in
-    Lang.string (escape_char (Lang.to_string v).[0])
-  in
-  let escape_char = Lang.val_fun [("", "", None)] escape_char in
-  Lang.add_builtin name ~category:`String ~descr
+let () =
+  Lang.add_builtin "string.escape" ~category:`String
+    ~descr:
+      "Escape special characters in an string. By default, the string is \
+       assumed to be `\"utf8\"` encoded and is escaped following JSON and \
+       javascript specification."
     [
-      ( "special_chars",
-        Lang.list_t Lang.string_t,
-        Some special_chars,
+      ( "special_char",
+        Lang.nullable_t (Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t),
+        Some Lang.null,
         Some
-          "List of characters that should be escaped. The first character of \
-           each element in the list is considered." );
+          "Return `true` if the given character (passed as a string) should be \
+           escaped. Defaults to control charaters for `\"utf8\"` and control \
+           characters and any character above `\\x7E` (non-printable \
+           characters) for `\"ascii\"`." );
       ( "escape_char",
-        Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t,
-        Some escape_char,
-        Some "Function used to escape a character." );
+        Lang.nullable_t (Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t),
+        Some Lang.null,
+        Some
+          "Function used to escape a character. Defaults to `\\xxx` octal \
+           notation for `\"ascii\"` and `\\uxxxx` hexadecimal notation for \
+           `\"utf8\"`." );
+      ( "encoding",
+        Lang.string_t,
+        Some (Lang.string "utf8"),
+        Some "One of: `\"ascii\"` or `\"utf8\"`." );
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
     (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
-      let special_chars =
-        List.map
-          (fun s -> s.[0])
-          (List.map Lang.to_string
-             (Lang.to_list (List.assoc "special_chars" p)))
+      let encoding = List.assoc "encoding" p in
+      let encoding : [ `Ascii | `Utf8 ] =
+        match Lang.to_string encoding with
+          | "ascii" -> `Ascii
+          | "utf8" -> `Utf8
+          | _ ->
+              raise
+                (Lang_errors.Invalid_value
+                   ( encoding,
+                     "Encoding should be one of: \"ascii\" or \"utf8\"." ))
       in
-      let special_char c = List.mem c special_chars in
-      let f = List.assoc "escape_char" p in
-      let escape_char c =
-        Lang.to_string (Lang.apply f [("", Lang.string (String.make 1 c))])
+      let special_char =
+        match (Lang.to_option (List.assoc "special_char" p), encoding) with
+          | Some f, _ ->
+              fun s -> Lang.to_bool (Lang.apply f [("", Lang.string s)])
+          | None, `Ascii -> Utils.ascii_special_char
+          | None, `Utf8 -> Utils.utf8_special_char
       in
-      Lang.string (escape ~special_char ~escape_char s))
+      let escape_char =
+        match (Lang.to_option (List.assoc "escape_char" p), encoding) with
+          | Some f, _ ->
+              fun s -> Lang.to_string (Lang.apply f [("", Lang.string s)])
+          | None, `Ascii -> Utils.escape_hex_char
+          | None, `Utf8 -> Utils.escape_utf8_char
+      in
+      let next =
+        match encoding with
+          | `Ascii -> Utils.ascii_next
+          | `Utf8 -> Utils.utf8_next
+      in
+      Lang.string
+        (Utils.escape_string (Utils.escape ~special_char ~escape_char ~next) s))
 
 let () =
-  let escape ~special_char ~escape_char f s =
-    Utils.escape ~special_char ~escape_char f s
-  in
-  register_escape_fun ~name:"string.escape"
+  add_builtin "string.escape.all"
     ~descr:
-      "Escape special characters in a string. String is parsed char by char. \
-       See `string.utf8.escape` for an UTF8-aware parsing function."
-    ~escape ~escape_char:Utils.escape_char;
-  let escape ~special_char ~escape_char f s =
-    Utils.escape_utf8_formatter ~special_char ~escape_char f s
-  in
-  register_escape_fun ~name:"string.utf8.escape"
-    ~descr:"Escape special characters in an UTF8 string." ~escape
-    ~escape_char:Utils.escape_utf8_char
+      "Escape each character in the given string using a specific escape \
+       sequence"
+    ~cat:String
+    [
+      ( "format",
+        Lang.string_t,
+        Some (Lang.string "utf8"),
+        Some "Escape format. One of: `\"octal\"`, `\"hex\"` or `\"utf8\"`." );
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.string_t
+    (fun p ->
+      let format = List.assoc "format" p in
+      let escape_char, next =
+        match Lang.to_string format with
+          | "octal" -> (Utils.escape_octal_char, Utils.ascii_next)
+          | "hex" -> (Utils.escape_hex_char, Utils.ascii_next)
+          | "utf8" -> (Utils.escape_utf8_char, Utils.utf8_next)
+          | _ ->
+              raise
+                (Lang_errors.Invalid_value
+                   ( format,
+                     "Format should be one of: `\"octal\"`, `\"hex\"` or \
+                      `\"utf8\"`." ))
+      in
+      let s = Lang.to_string (List.assoc "" p) in
+      Lang.string
+        (Utils.escape_string
+           (Utils.escape ~special_char:(fun _ -> true) ~escape_char ~next)
+           s))
+
+let () =
+  Lang.add_builtin "string.escape.special_char"
+    ~descr:
+      "Default function to detect characters to escape. See `string.escape` \
+       for more details."
+    ~category:`String
+    [
+      ( "encoding",
+        Lang.string_t,
+        Some (Lang.string "utf8"),
+        Some "One of: `\"ascii\"` or `\"utf8\"`." );
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.bool_t
+    (fun p ->
+      let s = Lang.to_string (List.assoc "" p) in
+      let encoding = List.assoc "encoding" p in
+      match Lang.to_string encoding with
+        | "ascii" -> Lang.bool (Utils.ascii_special_char s)
+        | "utf8" -> Lang.bool (Utils.utf8_special_char s)
+        | _ ->
+            raise
+              (Lang_errors.Invalid_value
+                 (encoding, "Encoding should be one of: \"ascii\" or \"utf8\".")))
 
 let () =
   Lang.add_builtin "string.unescape"
-    ~descr:"Unescape strings. This function is the inverse of `string.escape`."
-    ~category:`String [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
-      let s = Lang.to_string (List.assoc "" p) in
-      Lang.string (Scanf.unescaped s))
-
-let () =
-  Lang.add_builtin "string.utf8.unescape"
-    ~descr:
-      "Unescape UTF8 strings. This function is the inverse of \
-       `string.utf8.escape`." ~category:`String
+    ~descr:"This function is the inverse of `string.escape`." ~category:`String
     [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
-      Lang.string (Utils.unescape_utf8 s))
+      Lang.string (Utils.unescape_string s))
 
 let () =
-  Lang.add_builtin "string.escape_annotation" ~category:`String
+  Lang.add_module "string.annotate";
+  Lang.add_builtin "string.annotate.parse" ~category:`String
     ~descr:
-      "Escape a string so that it is suitable for use as value for the \
-       `annotate:` protocol." [("", Lang.string_t, None, None)] Lang.string_t
-    (fun p ->
-      let s = List.assoc "" p |> Lang.to_string in
-      Lang.string ("\"" ^ String.escaped s ^ "\""))
+      "Parse a string of the form `<key>=<value>,...:<uri>` as given by the \
+       `annotate:` protocol" [("", Lang.string_t, None, None)]
+    (Lang.product_t Lang.metadata_t Lang.string_t) (fun p ->
+      let v = List.assoc "" p in
+      try
+        let metadata, uri = Annotate.parse (Lang.to_string v) in
+        Lang.product
+          (Lang.metadata (Utils.hashtbl_of_list metadata))
+          (Lang.string uri)
+      with Annotate.Error err ->
+        raise
+          (Runtime_error.Runtime_error
+             {
+               Runtime_error.kind = "string";
+               msg = Some err;
+               pos =
+                 (match v.Lang_values.V.pos with None -> [] | Some p -> [p]);
+             }))
 
 let () =
   Lang.add_builtin "string.split" ~category:`String
@@ -417,17 +472,7 @@ let () =
       Lang.string (Utils.interpolate (fun k -> List.assoc k l) s))
 
 let () =
-  Lang.add_builtin "string.quote" ~category:`String
-    ~descr:
-      "Return a quoted copy of the given string, suitable for use as one \
-       argument in a command line, escaping all meta-characters. Warning: \
-       under Windows, the output is only suitable for use with programs that \
-       follow the standard Windows quoting conventions."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
-      Lang.string (Filename.quote (Lang.to_string (List.assoc "" p))))
-
-let () =
-  Lang.add_builtin "string.hex_of_int" ~category:`String
+  Lang.add_builtin "string.hex_of_int" ~category: `String
     ~descr:"Hexadecimal representation of an integer."
     [
       ( "pad",

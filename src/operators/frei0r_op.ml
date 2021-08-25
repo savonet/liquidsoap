@@ -189,40 +189,24 @@ class frei0r_source ~kind ~name bgra instance params =
 
 (** Make a list of parameters. *)
 let params plugin info =
-  (* This is only to get default parameters... *)
-  let instance = Frei0r.create plugin 8 8 in
   let liq_params =
     List.init info.Frei0r.num_params (fun i ->
         try
           let info = Frei0r.param_info plugin i in
           let name = Utils.normalize_parameter_string info.Frei0r.param_name in
-          let t, d =
+          let t =
             match info.Frei0r.param_type with
-              | Frei0r.Bool ->
-                  ( Lang.bool_t,
-                    Some (Lang.bool (Frei0r.get_param_bool instance i)) )
-              | Frei0r.Double ->
-                  ( Lang.getter_t Lang.float_t,
-                    Some (Lang.float (Frei0r.get_param_float instance i)) )
-              | Frei0r.Color ->
-                  let r, g, b = Frei0r.get_param_color instance i in
-                  let r = int_of_float (r *. 255.) in
-                  let g = int_of_float (g *. 255.) in
-                  let b = int_of_float (b *. 255.) in
-                  let v = Lang.int ((r lsl 16) + (g lsl 8) + b) in
-                  (Lang.int_t, Some v)
-              | Frei0r.Position ->
-                  let t = Lang.product_t Lang.float_t Lang.float_t in
-                  let x, y = Frei0r.get_param_position instance i in
-                  let x = Lang.float x in
-                  let y = Lang.float y in
-                  let v = Lang.product x y in
-                  (t, Some v)
-              | Frei0r.String ->
-                  ( Lang.string_t,
-                    Some (Lang.string (Frei0r.get_param_string instance i)) )
+              | Frei0r.Bool -> Lang.bool_t
+              | Frei0r.Double -> Lang.getter_t Lang.float_t
+              | Frei0r.Color -> Lang.int_t
+              | Frei0r.Position -> Lang.product_t Lang.float_t Lang.float_t
+              | Frei0r.String -> Lang.string_t
           in
-          Some (name, t, d, Some (info.Frei0r.param_explanation ^ "."))
+          Some
+            ( name,
+              Lang.nullable_t t,
+              Some Lang.null,
+              Some (info.Frei0r.param_explanation ^ ".") )
         with Exit -> None)
   in
   let liq_params = List.filter_map id liq_params in
@@ -242,19 +226,20 @@ let params plugin info =
             let name =
               Utils.normalize_parameter_string info.Frei0r.param_name
             in
-            let v = f name in
-            match info.Frei0r.param_type with
-              | Frei0r.Bool ->
+            let v = Lang.to_option (f name) in
+            match (v, info.Frei0r.param_type) with
+              | None, _ -> None
+              | Some v, Frei0r.Bool ->
                   Frei0r.set_param_bool instance i (Lang.to_bool v);
                   None
-              | Frei0r.Double ->
+              | Some v, Frei0r.Double ->
                   let x = Lang.to_float_getter v in
                   let x0 = x () in
                   let f x = Frei0r.set_param_float instance i x in
                   let oc = on_changed x0 in
                   f x0;
                   Some (fun () -> oc f (x ()))
-              | Frei0r.Color ->
+              | Some v, Frei0r.Color ->
                   let c = Lang.to_int v in
                   let r = (c lsr 16) land 0xff in
                   let g = (c lsr 8) land 0xff in
@@ -264,13 +249,13 @@ let params plugin info =
                   let b = float b /. 255. in
                   Frei0r.set_param_color instance i (r, g, b);
                   None
-              | Frei0r.Position ->
+              | Some v, Frei0r.Position ->
                   let x, y = Lang.to_product v in
                   let x = Lang.to_float x in
                   let y = Lang.to_float y in
                   Frei0r.set_param_position instance i (x, y);
                   None
-              | Frei0r.String ->
+              | Some v, Frei0r.String ->
                   Frei0r.set_param_string instance i (Lang.to_string v);
                   None
           with Not_found -> None)
