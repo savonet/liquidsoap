@@ -1,49 +1,65 @@
-module T = Lang_types
-
 let should_work t t' r =
-  let t = T.make t in
-  let t' = T.make t' in
-  let r = T.make r in
-  Printf.printf "Finding min for %s and %s\n%!" (T.print t) (T.print t');
-  let m = T.min_type t t' in
-  Printf.printf "Got: %s, expect %s\n%!" (T.print m) (T.print r);
-  T.(m <: r);
-  T.(t <: m);
-  T.(t' <: m)
+  let t = Type.make t in
+  let t' = Type.make t' in
+  let r = Type.make r in
+  Printf.printf "Finding min for %s and %s\n%!" (Type.print t) (Type.print t');
+  let m = Typing.min_type t t' in
+  Printf.printf "Got: %s, expect %s\n%!" (Type.print m) (Type.print r);
+  Typing.(m <: r);
+  Typing.(t <: m);
+  Typing.(t' <: m)
 
 let should_fail t t' =
   try
-    ignore (T.min_type (T.make t) (T.make t'));
+    ignore (Typing.min_type (Type.make t) (Type.make t'));
     assert false
   with _ -> ()
 
 let () =
-  should_work (T.EVar (1, [])) (T.Ground T.Bool) (T.Ground T.Bool);
-  should_work (T.Ground T.Bool) (T.EVar (1, [])) (T.Ground T.Bool);
+  should_work
+    (Type.EVar (1, []))
+    (Type.Ground Type.Bool) (Type.Ground Type.Bool);
+  should_work (Type.Ground Type.Bool)
+    (Type.EVar (1, []))
+    (Type.Ground Type.Bool);
 
-  should_fail (T.Ground T.Bool) (T.Ground T.Int);
+  should_fail (Type.Ground Type.Bool) (Type.Ground Type.Int);
   should_fail
-    (T.List (T.make (T.Ground T.Bool)))
-    (T.List (T.make (T.Ground T.Int)));
+    (Type.List (Type.make (Type.Ground Type.Bool)))
+    (Type.List (Type.make (Type.Ground Type.Int)));
 
   let m =
-    T.Meth ("aa", ([], T.make (T.Ground T.Int)), "", T.make (T.Ground T.Bool))
+    Type.Meth
+      ( "aa",
+        ([], Type.make (Type.Ground Type.Int)),
+        "",
+        Type.make (Type.Ground Type.Bool) )
   in
 
-  should_work m (T.Ground T.Bool) (T.Ground T.Bool);
+  should_work m (Type.Ground Type.Bool) (Type.Ground Type.Bool);
 
-  let n = T.Meth ("b", ([], T.make (T.Ground T.Bool)), "", T.make m) in
+  let n =
+    Type.Meth ("b", ([], Type.make (Type.Ground Type.Bool)), "", Type.make m)
+  in
 
   should_work m n m;
 
   let n =
-    T.Meth ("aa", ([], T.make (T.Ground T.Int)), "", T.make (T.Ground T.Int))
+    Type.Meth
+      ( "aa",
+        ([], Type.make (Type.Ground Type.Int)),
+        "",
+        Type.make (Type.Ground Type.Int) )
   in
 
   should_fail m n;
 
   let n =
-    T.Meth ("aa", ([], T.make (T.Ground T.Bool)), "", T.make (T.Ground T.Bool))
+    Type.Meth
+      ( "aa",
+        ([], Type.make (Type.Ground Type.Bool)),
+        "",
+        Type.make (Type.Ground Type.Bool) )
   in
 
   should_fail m n;
