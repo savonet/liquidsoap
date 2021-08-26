@@ -131,6 +131,9 @@ and set their own queue of requests.
 JSON export has been enhanced with a new generic json object export. Associative lists of type `(string, 'a)` are now
 exported as lists. See our [JSON documentation page](json.html) for more details.
 
+Convenience functions have been added to convert metadata to and from JSON object format: `metadata.json.stringify` and
+`metadata.json.parse`.
+
 ### Deprecated operators
 
 Some operators have been deprecated. For most of them, we provide a backward-compatible support 
