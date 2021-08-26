@@ -57,11 +57,13 @@ let stdlib_native = native
 #  ("random" mode).
 # @param ~native Use native implementation.
 # @param ~on_done Function executed when the playlist is finished.
+# @param ~max_fail When this number of requests fail to resolve, the whole playlists is considered as failed and `on_fail` is called.
+# @param ~on_fail Function executed when too many requests failed and returning the contents of a fixed playlist.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
 def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
-                  ~mode="normal", ~native=false, ~on_done={()}, ~timeout=20., playlist)
+                  ~mode="normal", ~native=false, ~on_done={()}, ~max_fail=10, ~on_fail=null(), ~timeout=20., playlist)
   id = string.id.default(default="playlist.list", id)
   mode =
     if not list.mem(mode, ["normal", "random", "randomize"]) then
@@ -104,6 +106,19 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
     end
   source.set_name(s, "playlist.list.reloadable")
 
+  # The reload function
+  def reload(p) =
+    log.debug(label=id, "Reloading playlist.")
+    playlist_orig := p
+    playlist := randomize(!playlist_orig)
+    has_stopped := false
+  end
+
+  # When we have more than max_fail failures in a row, we wait for 1 second
+  # before trying again in order to avoid infinite loops.
+  failed_count = ref(0)
+  failed_time = ref(0.)
+
   # The (real) next function
   def rec next() =
     if loop and list.length(!playlist) == 0 then playlist := randomize(!playlist_orig) end
@@ -126,16 +141,28 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
         end
         ""
       end
-    if file == "" then
+    if file == "" or (!failed_count >= max_fail and time() < !failed_time + 1.) then
+      # Playlist failed too many times recently, don't try next for now.
       []
     else
       log.debug(label=id, "Next song will be \"#{file}\".")
       r = request.create(file)
       if not request.resolve(content_type=s, r) then
         log.info(label=id, "Could not resolve request: #{request.uri(r)}.")
+        ref.incr(failed_count)
+        # Playlist failed, call handler.
+        if !failed_count >= max_fail then
+          log.info(label=id, "Playlist failed.")
+          if null.defined(on_fail) then
+            f = null.get(on_fail)
+            reload(f())
+          end
+        end
+        failed_time := time()
         next()
       elsif null.defined(check_next) then
         check_next = null.get(check_next)
+        failed_count := 0
         if check_next(r) then
           [r]
         else
@@ -151,13 +178,6 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
   end
 
   next_fun := next
-
-  # The reload function
-  def reload(p) =
-    log.debug(label=id, "Reloading playlist.")
-    playlist := randomize(p)
-    has_stopped := false
-  end
 
   # Return
   s.{reload = reload}
@@ -212,12 +232,26 @@ def playlist.reloadable(
     list.map(fun(file) -> prefix^file, files)
   end
 
+  # Try to reload playlist when the playlist is looped and has failed.
+  def on_fail()
+    l = load_playlist()
+    if l == [] then
+      log.info("Failed to reload playlist after failure.")
+      # We add a dummy request in order for the playlist not to stop.
+      ["???failed???"]
+    else
+      log.info("Successfully reload playlist after failure.")
+      l
+    end
+  end
+  on_fail = if loop then on_fail else null() end
+
   # Create the source
   files := load_playlist()
 
   s = playlist.list(
     id=id, check_next=check_next, prefetch=prefetch, loop=loop, mode=mode,
-    native=native, on_done=on_done, timeout=timeout, !files)
+    native=native, on_done=on_done, on_fail=on_fail, timeout=timeout, !files)
 
   source.set_name(s, "playlist.reloadable")
 
