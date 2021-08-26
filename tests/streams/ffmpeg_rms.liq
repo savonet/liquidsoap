@@ -28,13 +28,24 @@ s = astats(s)
 
 s = ffmpeg.raw.decode.audio(s)
 
-def test(m) =
+passed = ref(false)
+
+def f(m) =
   if m["title"] == "test ffmpeg frame metadata" and list.assoc.mem("lavfi.astats.Overall.RMS_peak", m) then
+    passed := true
     test.pass()
   end
 end
 
-s.on_metadata(test)
+s.on_metadata(f)
 
 output.dummy(fallible=true, s)
+
+def fail() =
+  if not !passed then
+    test.fail()
+  end
+end
+
+thread.run(delay=20., fail)
 
