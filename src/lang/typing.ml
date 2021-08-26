@@ -221,7 +221,7 @@ let rec ( <: ) a b =
                                `Ellipsis ) ))
                 | (o', lbl', t') :: tl ->
                     if o = o' && lbl = lbl' then
-                      ((o, lbl, t'), List.rev_append acc tl)
+                      ((o', lbl', t'), List.rev_append acc tl)
                     else get_param ((o', lbl', t') :: acc) tl
               in
               let (o, lbl, t'), l2' = get_param [] l2 in

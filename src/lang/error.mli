@@ -26,12 +26,3 @@ exception Invalid_value of Term.Value.t * string
 exception Clock_conflict of (Type.pos option * string * string)
 exception Clock_loop of (Type.pos option * string * string)
 exception Kind_conflict of (Type.pos option * string * string)
-
-(** Exception raised by report_error after an error has been displayed.
-  * Unknown errors are re-raised, so that their content is not totally lost. *)
-exception Error
-
-(** Raise errors for warnings. *)
-val strict : bool ref
-
-val report : Sedlexing.lexbuf -> (throw:(exn -> unit) -> unit -> unit) -> unit

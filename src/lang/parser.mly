@@ -456,9 +456,16 @@ annotate:
   | annotate_metadata COLON { $1 } 
 
 annotate_metadata:
-  | annotate_value GETS annotate_value COMMA annotate_metadata { ($1,$3)::$5 }
-  | annotate_value GETS annotate_value { [$1, $3] }
+  | annotate_key GETS annotate_value COMMA annotate_metadata { ($1,$3)::$5 }
+  | annotate_key GETS annotate_value { [$1, $3] }
+
+annotate_key:
+  | VAR { $1 }
+  | STRING { $1 }
 
 annotate_value:
+  | INT { string_of_int $1 }
+  | FLOAT { string_of_float $1 }
+  | BOOL { string_of_bool $1 }
   | VAR { $1 }
   | STRING { $1 }

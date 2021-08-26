@@ -40,6 +40,15 @@ def f() =
     f2(x)
   end
   ignore(id')
+
+  # Generalization and aliasing (see #941)
+  def id (x) = x end
+  _ = id(3)
+  _ = id("a")
+
+  id' = id
+  _ = id'(3)
+  _ = id'("a")
   
   # Testing generalization of recursive functions
   def rec recid(x)
