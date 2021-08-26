@@ -71,7 +71,8 @@ all-auto-ocaml-prog:
 	done
 
 ifdef PROG
-$(PROG)_headers=$(wildcard $($(PROG)_sources:.ml=.mli))
+$(PROG)_mly=$(wildcard $($(PROG)_sources:.ml=.mly))
+$(PROG)_headers=$(wildcard $($(PROG)_sources:.ml=.mli)) $($(PROG)_mly:.mly=.mli)
 # Grab program-specific flags
 _OCAML_CFLAGS=$($(PROG)_ocamlcflags)
 _OCAML_LFLAGS=$($(PROG)_ocamllflags)
