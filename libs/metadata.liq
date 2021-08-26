@@ -133,8 +133,16 @@ let metadata.json = ()
 
 # Export metadata as JSON object
 # @category String 
-def metadata.json.stringify(m) =
+# @argsof json.stringify
+def metadata.json.stringify(%argsof(json.stringify), m) =
   j = json()
   list.iter((fun (v) -> j.add(fst(v), (snd(v):string))), m)
-  json.stringify(m)
+  json.stringify(%argsof(json.stringify), j)
+end
+
+# Parse metadata from JSON object
+# @category String
+def metadata.json.parse(s) =
+  m = json.parse(default=[("invalid","invalid")], s)
+  if m == [("invalid","invalid")] then [] else m end
 end
