@@ -128,3 +128,13 @@ end
 def metadata.cover.remove(m)
   list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic", m)
 end
+
+let metadata.json = ()
+
+# Export metadata as JSON object
+# @category String 
+def metadata.json.stringify(m) =
+  j = json()
+  list.iter((fun (v) -> j.add(fst(v), (snd(v):string))), m)
+  json.stringify(m)
+end
