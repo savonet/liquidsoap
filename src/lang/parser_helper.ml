@@ -297,7 +297,7 @@ let mk_kind ~pos (kind, params) =
             Type.fresh ~constraints:[Type.InternalMedia] ~level:(-1) ~pos:None
         | param :: params ->
             let mk_format (label, value) =
-              Frame_content.parse_param label value
+              Frame_content.parse_param k label value
             in
             let f = mk_format param in
             List.iter

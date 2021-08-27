@@ -150,11 +150,11 @@ let format_parsers = Queue.create ()
 
 exception Parsed_format of format
 
-let parse_param label value =
+let parse_param kind label value =
   try
     Queue.iter
       (fun fn ->
-        match fn label value with
+        match fn kind label value with
           | Some p -> raise (Parsed_format p)
           | None -> ())
       format_parsers;
@@ -201,8 +201,8 @@ let () =
     | Incompatible_format (f, f') ->
         Some
           (Printf.sprintf
-             "Frame_content.Incompatible_format: %s and %s are not compatible \
-              formats!"
+             "Frame_content.Incompatible_format: formats %s and %s are \
+              incompatible!"
              (string_of_format f) (string_of_format f'))
     | _ -> None)
 
@@ -244,8 +244,13 @@ module MkContent (C : ContentSpecs) :
 
   let kind_of_string s = Option.map (fun p -> Kind p) (C.kind_of_string s)
 
-  let format_of_string label value =
-    Option.map (fun p -> Format (Unifier.make p)) (C.parse_param label value)
+  let format_of_string kind label value =
+    match kind with
+      | Kind _ ->
+          Option.map
+            (fun p -> Format (Unifier.make p))
+            (C.parse_param label value)
+      | _ -> None
 
   let () =
     register_kind_handler (function

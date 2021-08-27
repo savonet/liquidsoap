@@ -133,8 +133,8 @@ val merge : format -> format -> unit
 val compatible : format -> format -> bool
 val string_of_format : format -> string
 
-(* [parse_param "label" "value"] *)
-val parse_param : string -> string -> format
+(* [parse_param kind "label" "value"] *)
+val parse_param : kind -> string -> string -> format
 
 (** Kind *)
 
