@@ -25,6 +25,8 @@ let () =
   Lang.add_module "ffmpeg.filter.audio";
   Lang.add_module "ffmpeg.filter.video"
 
+let log = Log.make ["ffmpeg"; "filter"]
+
 type 'a input = 'a Avfilter.input
 type 'a output = 'a Avfilter.output
 type 'a setter = 'a -> unit
@@ -36,15 +38,15 @@ type outputs =
 
 type graph = {
   mutable config : Avfilter.config option;
-  input_inits : unit Lazy.t Queue.t;
+  input_inits : (unit -> bool) Queue.t;
   init : unit Lazy.t Queue.t;
   entries : (inputs, outputs) Avfilter.io;
   clocks : Source.clock_variable Queue.t;
 }
 
 let init_graph graph =
-  Queue.iter Lazy.force graph.input_inits;
-  Queue.iter Lazy.force graph.init
+  if Queue.fold (fun b v -> b && v ()) true graph.input_inits then
+    Queue.iter Lazy.force graph.init
 
 module Graph = Lang.MkAbstract (struct
   type content = graph
@@ -529,16 +531,22 @@ let () =
       let audio =
         lazy
           (let ctype = (Lang.to_source source_val)#ctype in
+           log#info "Initializating input %s with content-type: %s" s#id
+             (Frame.string_of_content_type ctype);
            let params = Ffmpeg_raw_content.Audio.get_params ctype.Frame.audio in
            let args = abuffer_args params in
            let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
            Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
+           init_graph graph;
            List.hd Avfilter.(_abuffer.io.outputs.audio))
       in
 
-      Queue.add (lazy (ignore (Lazy.force audio))) graph.input_inits;
+      Queue.add (fun () -> Lazy.is_val audio) graph.input_inits;
 
-      s#set_init (lazy (init_graph graph));
+      s#set_init
+        (lazy
+          (ignore (Lazy.force audio);
+           init_graph graph));
 
       Audio.to_value (`Output audio));
 
@@ -639,6 +647,8 @@ let () =
       let video =
         lazy
           (let ctype = (Lang.to_source source_val)#ctype in
+           log#info "Initializating input %s with content-type: %s" s#id
+             (Frame.string_of_content_type ctype);
            let params = Ffmpeg_raw_content.Video.get_params ctype.Frame.video in
            let args = buffer_args params in
            let _buffer = Avfilter.attach ~args ~name Avfilter.buffer config in
@@ -646,9 +656,12 @@ let () =
            List.hd Avfilter.(_buffer.io.outputs.video))
       in
 
-      Queue.add (lazy (ignore (Lazy.force video))) graph.input_inits;
+      Queue.add (fun () -> Lazy.is_val video) graph.input_inits;
 
-      s#set_init (lazy (init_graph graph));
+      s#set_init
+        (lazy
+          (ignore (Lazy.force video);
+           init_graph graph));
 
       Video.to_value (`Output video));
 
@@ -753,7 +766,7 @@ let () =
       Queue.iter (Clock.unify first) graph.clocks;
       Queue.add
         (lazy
-          (Lang.log#info "Initializing graph";
+          (log#info "Initializing graph";
            let filter = Avfilter.launch config in
            Avfilter.(
              List.iter
@@ -784,7 +797,6 @@ let () =
                  set_output output)
                filter.outputs.video)))
         graph.init;
-      if Queue.length graph.input_inits = 0 then
-        Queue.iter Lazy.force graph.init;
+      init_graph graph;
       graph.config <- None;
       ret)

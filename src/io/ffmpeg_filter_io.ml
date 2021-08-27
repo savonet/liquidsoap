@@ -39,23 +39,19 @@ class audio_output ~pass_metadata ~name ~kind source_val =
     inherit
       Output.output
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
-          ~output_kind:"ffmpeg.filter.input" source_val true as super
+          ~output_kind:"ffmpeg.filter.input" source_val true
 
     initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
-    val mutable input = fun _ -> assert false
+    val mutable input = fun _ -> ()
     method set_input fn = input <- fn
     val mutable init = lazy ()
     method set_init v = init <- v
-
-    method private wake_up a =
-      super#wake_up a;
-      Lazy.force init
-
     method start = ()
     method stop = ()
     method reset = ()
 
     method send_frame memo =
+      Lazy.force init;
       let frames =
         Ffmpeg_raw_content.(
           (Audio.get_data Frame.(memo.content.audio)).VideoSpecs.data)
@@ -93,15 +89,16 @@ class video_output ~pass_metadata ~kind ~name source_val =
           ~output_kind:"ffmpeg.filter.input" source_val true
 
     initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
-    val mutable input : Swscale.Frame.t -> unit = fun _ -> assert false
+    val mutable input : Swscale.Frame.t -> unit = fun _ -> ()
     method set_input fn = input <- fn
     val mutable init = lazy ()
     method set_init v = init <- v
-    method start = Lazy.force init
+    method start = ()
     method stop = ()
     method reset = ()
 
     method send_frame memo =
+      Lazy.force init;
       let frames =
         Ffmpeg_raw_content.(
           (Video.get_data Frame.(memo.content.video)).VideoSpecs.data)
