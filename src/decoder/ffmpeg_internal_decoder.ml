@@ -34,6 +34,7 @@ module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 
 let mk_audio_decoder ~channels container =
   let idx, stream, codec = Av.find_best_audio_stream container in
+  Ffmpeg_decoder_common.set_audio_stream_decoder stream;
   let in_sample_rate = ref (Avcodec.Audio.get_sample_rate codec) in
   let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
   let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
@@ -73,6 +74,7 @@ let mk_audio_decoder ~channels container =
 
 let mk_video_decoder container =
   let idx, stream, codec = Av.find_best_video_stream container in
+  Ffmpeg_decoder_common.set_video_stream_decoder stream;
   let pixel_format =
     match Avcodec.Video.get_pixel_format codec with
       | None -> failwith "Pixel format unknown!"
