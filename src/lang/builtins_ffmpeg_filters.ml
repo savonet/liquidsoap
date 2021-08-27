@@ -388,39 +388,10 @@ let () =
           (apply_filter ~args_parser ~filter))
       filters)
 
-let abuffer_args raw_content =
-  let default_channel_layout =
-    match
-      Audio_converter.Channel_layout.layout_of_channels
-        (Lazy.force Frame.audio_channels)
-    with
-      | `Five_point_one -> `_5point1
-      | `Mono -> `Mono
-      | `Stereo -> `Stereo
-  in
-  let sample_rate =
-    match raw_content.Ffmpeg_raw_content.AudioSpecs.sample_rate with
-      | Some rate -> rate
-      | None ->
-          let rate = Lazy.force Frame.audio_rate in
-          raw_content.Ffmpeg_raw_content.AudioSpecs.sample_rate <- Some rate;
-          rate
-  in
-  let channel_layout =
-    match raw_content.Ffmpeg_raw_content.AudioSpecs.channel_layout with
-      | Some layout -> layout
-      | None ->
-          raw_content.Ffmpeg_raw_content.AudioSpecs.channel_layout <-
-            Some default_channel_layout;
-          default_channel_layout
-  in
-  let sample_format =
-    match raw_content.Ffmpeg_raw_content.AudioSpecs.sample_format with
-      | Some format -> format
-      | None ->
-          raw_content.Ffmpeg_raw_content.AudioSpecs.sample_format <- Some `Dbl;
-          `Dbl
-  in
+let abuffer_args frame =
+  let sample_rate = Avutil.Audio.frame_get_sample_rate frame in
+  let channel_layout = Avutil.Audio.frame_get_channel_layout frame in
+  let sample_format = Avutil.Audio.frame_get_sample_format frame in
   [
     `Pair ("sample_rate", `Int sample_rate);
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
@@ -429,31 +400,10 @@ let abuffer_args raw_content =
     `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id sample_format));
   ]
 
-let buffer_args raw_content =
-  let width =
-    match raw_content.Ffmpeg_raw_content.VideoSpecs.width with
-      | Some w -> w
-      | None ->
-          let w = Lazy.force Frame.video_width in
-          raw_content.Ffmpeg_raw_content.VideoSpecs.width <- Some w;
-          w
-  in
-  let height =
-    match raw_content.Ffmpeg_raw_content.VideoSpecs.height with
-      | Some h -> h
-      | None ->
-          let h = Lazy.force Frame.video_height in
-          raw_content.Ffmpeg_raw_content.VideoSpecs.height <- Some h;
-          h
-  in
-  let pixel_format =
-    match raw_content.Ffmpeg_raw_content.VideoSpecs.pixel_format with
-      | Some pf -> pf
-      | None ->
-          let pf = Ffmpeg_utils.liq_frame_pixel_format () in
-          raw_content.Ffmpeg_raw_content.VideoSpecs.pixel_format <- Some pf;
-          pf
-  in
+let buffer_args frame =
+  let width = Avutil.Video.frame_get_width frame in
+  let height = Avutil.Video.frame_get_height frame in
+  let pixel_format = Avutil.Video.frame_get_pixel_format frame in
   [
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
     `Pair ("width", `Int width);
@@ -528,14 +478,14 @@ let () =
       in
       Queue.add s#clock graph.clocks;
 
+      let args = ref None in
+
       let audio =
         lazy
-          (let ctype = (Lang.to_source source_val)#ctype in
-           log#info "Initializating input %s with content-type: %s" s#id
-             (Frame.string_of_content_type ctype);
-           let params = Ffmpeg_raw_content.Audio.get_params ctype.Frame.audio in
-           let args = abuffer_args params in
-           let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
+          (let _abuffer =
+             Avfilter.attach ~args:(Option.get !args) ~name Avfilter.abuffer
+               config
+           in
            Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
            init_graph graph;
            List.hd Avfilter.(_abuffer.io.outputs.audio))
@@ -543,10 +493,11 @@ let () =
 
       Queue.add (fun () -> Lazy.is_val audio) graph.input_inits;
 
-      s#set_init
-        (lazy
-          (ignore (Lazy.force audio);
-           init_graph graph));
+      s#set_init (fun frame ->
+          if !args = None then (
+            args := Some (abuffer_args frame);
+            ignore (Lazy.force audio);
+            init_graph graph));
 
       Audio.to_value (`Output audio));
 
@@ -644,24 +595,25 @@ let () =
       in
       Queue.add s#clock graph.clocks;
 
+      let args = ref None in
+
       let video =
         lazy
-          (let ctype = (Lang.to_source source_val)#ctype in
-           log#info "Initializating input %s with content-type: %s" s#id
-             (Frame.string_of_content_type ctype);
-           let params = Ffmpeg_raw_content.Video.get_params ctype.Frame.video in
-           let args = buffer_args params in
-           let _buffer = Avfilter.attach ~args ~name Avfilter.buffer config in
+          (let _buffer =
+             Avfilter.attach ~args:(Option.get !args) ~name Avfilter.buffer
+               config
+           in
            Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
            List.hd Avfilter.(_buffer.io.outputs.video))
       in
 
       Queue.add (fun () -> Lazy.is_val video) graph.input_inits;
 
-      s#set_init
-        (lazy
-          (ignore (Lazy.force video);
-           init_graph graph));
+      s#set_init (fun frame ->
+          if !args = None then (
+            args := Some (buffer_args frame);
+            ignore (Lazy.force video);
+            init_graph graph));
 
       Video.to_value (`Output video));
 

@@ -575,9 +575,7 @@ module Midi = struct
   let kind = lift_kind `Midi
 end
 
-let default_audio () =
-  let channels = Lazy.force Frame_settings.audio_channels in
-  if channels = 0 then None.format else Audio.format_of_channels channels
+let default_audio () = None.format
 
 let default_video () =
   if Lazy.force Frame_settings.default_video_enabled then

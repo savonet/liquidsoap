@@ -44,20 +44,20 @@ class audio_output ~pass_metadata ~name ~kind source_val =
     initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
     val mutable input = fun _ -> ()
     method set_input fn = input <- fn
-    val mutable init = lazy ()
+    val mutable init : Avutil.audio Avutil.frame -> unit = fun _ -> assert false
     method set_init v = init <- v
     method start = ()
     method stop = ()
     method reset = ()
 
     method send_frame memo =
-      Lazy.force init;
       let frames =
         Ffmpeg_raw_content.(
           (Audio.get_data Frame.(memo.content.audio)).VideoSpecs.data)
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->
+          init frame;
           let pts =
             Int64.add
               ((Lazy.force convert_frame_pts) (Frame.pts memo))
@@ -91,20 +91,20 @@ class video_output ~pass_metadata ~kind ~name source_val =
     initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
     val mutable input : Swscale.Frame.t -> unit = fun _ -> ()
     method set_input fn = input <- fn
-    val mutable init = lazy ()
+    val mutable init : Avutil.video Avutil.frame -> unit = fun _ -> assert false
     method set_init v = init <- v
     method start = ()
     method stop = ()
     method reset = ()
 
     method send_frame memo =
-      Lazy.force init;
       let frames =
         Ffmpeg_raw_content.(
           (Video.get_data Frame.(memo.content.video)).VideoSpecs.data)
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->
+          init frame;
           let pts =
             Int64.add
               ((Lazy.force convert_frame_pts) (Frame.pts memo))

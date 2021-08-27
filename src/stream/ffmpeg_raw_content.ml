@@ -43,9 +43,9 @@ module AudioSpecs = struct
   let kind_of_string = function "ffmpeg.audio.raw" -> Some `Raw | _ -> None
 
   type params = {
-    mutable channel_layout : Channel_layout.t option;
-    mutable sample_format : Sample_format.t option;
-    mutable sample_rate : int option;
+    channel_layout : Channel_layout.t option;
+    sample_format : Sample_format.t option;
+    sample_rate : int option;
   }
 
   type data = (params, audio frame) content
@@ -140,10 +140,10 @@ module VideoSpecs = struct
   let kind_of_string = function "ffmpeg.video.raw" -> Some `Raw | _ -> None
 
   type params = {
-    mutable width : int option;
-    mutable height : int option;
-    mutable pixel_format : Avutil.Pixel_format.t option;
-    mutable pixel_aspect : Avutil.rational option;
+    width : int option;
+    height : int option;
+    pixel_format : Avutil.Pixel_format.t option;
+    pixel_aspect : Avutil.rational option;
   }
 
   type data = (params, video frame) content
