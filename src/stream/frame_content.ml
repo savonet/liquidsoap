@@ -438,11 +438,11 @@ module VideoSpecs = struct
   open Frame_settings
   open Contents
 
-  type kind = [ `Yuva420p ]
+  type kind = [ `Yuv420p ]
   type params = Contents.video_params
   type data = Video.t
 
-  let string_of_kind = function `Yuva420p -> "yuva420p"
+  let string_of_kind = function `Yuv420p -> "yuva420p"
   let is_empty d = Video.length d = 0
 
   let make ~size { width; height } =
@@ -508,18 +508,18 @@ module VideoSpecs = struct
         height = Some (lazy (Video.Image.height i));
       })
 
-  let kind = `Yuva420p
+  let kind = `Yuv420p
   let default_params _ = { width = None; height = None }
 
   let kind_of_string = function
-    | "yuva420p" | "video" -> Some `Yuva420p
+    | "yuva420p" | "video" -> Some `Yuv420p
     | _ -> None
 end
 
 module Video = struct
   include MkContent (VideoSpecs)
 
-  let kind = lift_kind `Yuva420p
+  let kind = lift_kind `Yuv420p
 end
 
 module MidiSpecs = struct
