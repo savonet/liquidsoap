@@ -109,6 +109,18 @@ let mime_types =
         "video/x-nut";
       ]
 
+let image_mime_types =
+  Dtools.Conf.list ~p:(mime_types#plug "images")
+    "Mime-types used for decoding images with ffmpeg"
+    ~d:
+      [
+        "image/gif";
+        "image/jpeg";
+        "image/png";
+        "image/vnd.microsoft.icon";
+        "image/webp";
+      ]
+
 let file_extensions =
   Dtools.Conf.list
     ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
@@ -407,6 +419,72 @@ let file_extensions =
         "yuv";
       ]
 
+let image_file_extensions =
+  Dtools.Conf.list
+    ~p:(file_extensions#plug "images")
+    "File extensions used for decoding images with ffmpeg"
+    ~d:
+      [
+        "bmp";
+        "cri";
+        "dds";
+        "dng";
+        "dpx";
+        "exr";
+        "im1";
+        "im24";
+        "im32";
+        "im8";
+        "j2c";
+        "j2k";
+        "jls";
+        "jp2";
+        "jpc";
+        "jpeg";
+        "jpg";
+        "jps";
+        "ljpg";
+        "mng";
+        "mpg1-img";
+        "mpg2-img";
+        "mpg4-img";
+        "mpo";
+        "pam";
+        "pbm";
+        "pcd";
+        "pct";
+        "pcx";
+        "pfm";
+        "pgm";
+        "pgmyuv";
+        "pic";
+        "pict";
+        "pix";
+        "png";
+        "pnm";
+        "pns";
+        "ppm";
+        "ptx";
+        "ras";
+        "raw";
+        "rs";
+        "sgi";
+        "sun";
+        "sunras";
+        "svg";
+        "svgz";
+        "tga";
+        "tif";
+        "tiff";
+        "webp";
+        "xbm";
+        "xface";
+        "xpm";
+        "xwd";
+        "y";
+        "yuv10";
+      ]
+
 let priority =
   Dtools.Conf.int
     ~p:(Decoder.conf_priorities#plug "ffmpeg")
@@ -642,7 +720,12 @@ let create_decoder ~ctype fname =
     Tutils.mutexify m (fun () ->
         match !remaining with None -> -1 | Some r -> Frame.main_of_seconds r)
   in
-  let container = Av.open_input fname in
+  let opts = Hashtbl.create 10 in
+  let ext = Filename.extension fname in
+  if List.exists (fun s -> ext = "." ^ s) image_file_extensions#get then (
+    Hashtbl.add opts "loop" (`Int 1);
+    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)));
+  let container = Av.open_input ~opts fname in
   let audio, video = mk_streams ~ctype container in
   let audio =
     match audio with
@@ -699,13 +782,19 @@ let create_file_decoder ~metadata:_ ~ctype filename =
   let decoder, close, remaining = create_decoder ~ctype filename in
   Decoder.file_decoder ~filename ~close ~remaining ~ctype decoder
 
-let create_stream_decoder ~ctype _ input =
+let create_stream_decoder ~ctype mime input =
   let seek_input =
     match input.Decoder.lseek with
       | None -> None
       | Some fn -> Some (fun len _ -> fn len)
   in
-  let container = Av.open_input_stream ?seek:seek_input input.Decoder.read in
+  let opts = Hashtbl.create 10 in
+  if List.exists (fun s -> mime = s) image_mime_types#get then (
+    Hashtbl.add opts "loop" (`Int 1);
+    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)));
+  let container =
+    Av.open_input_stream ?seek:seek_input ~opts input.Decoder.read
+  in
   let audio, video = mk_streams ~ctype container in
   let target_position = ref None in
   {
@@ -727,8 +816,9 @@ let () =
     {
       Decoder.media_type = `Audio_video;
       priority = (fun () -> priority#get);
-      file_extensions = (fun () -> Some file_extensions#get);
-      mime_types = (fun () -> Some mime_types#get);
+      file_extensions =
+        (fun () -> Some (file_extensions#get @ image_file_extensions#get));
+      mime_types = (fun () -> Some (mime_types#get @ image_mime_types#get));
       file_type = (fun ~ctype filename -> Some (get_file_type ~ctype filename));
       file_decoder = Some create_file_decoder;
       stream_decoder = Some create_stream_decoder;
