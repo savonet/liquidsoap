@@ -66,7 +66,8 @@ class unqueued ~kind ~timeout request =
 
     method wake_up x =
       let uri = Request.initial_uri request in
-      self#log#important "%S is static, resolving once for all..." uri;
+      self#log#important "%s is static, resolving once for all..."
+        (Utils.escape_utf8_string uri);
       if
         Request.Resolved
         <> Request.resolve ~ctype:(Some self#ctype) request timeout
