@@ -612,6 +612,8 @@ let get_ext s =
     String.lowercase_ascii (Pcre.get_substring ret 1)
   with _ -> raise Not_found
 
+let get_ext_opt s = try Some (get_ext s) with Not_found -> None
+
 let name_of_sockaddr ?(rev_dns = false) ?(show_port = false) a =
   match a with
     | Unix.ADDR_UNIX s -> Printf.sprintf "unix socket %S" s

@@ -803,10 +803,23 @@ let create_stream_decoder ~ctype mime input =
   }
 
 let get_file_type ~ctype filename =
-  let container = Av.open_input filename in
-  Tutils.finalize
-    ~k:(fun () -> Av.close container)
-    (fun () -> get_type ~ctype ~url:filename container)
+  (* If file is an image, leave internal decoding to
+     the image decoder. *)
+  match (Utils.get_ext_opt filename, ctype.Frame.video) with
+    | Some ext, format
+      when List.mem ext image_file_extensions#get
+           && Frame_content.Video.is_format format ->
+        Frame.
+          {
+            audio = Frame_content.None.format;
+            video = Frame_content.None.format;
+            midi = Frame_content.None.format;
+          }
+    | _ ->
+        let container = Av.open_input filename in
+        Tutils.finalize
+          ~k:(fun () -> Av.close container)
+          (fun () -> get_type ~ctype ~url:filename container)
 
 let () =
   Decoder.decoders#register "FFMPEG"
