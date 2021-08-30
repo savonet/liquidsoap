@@ -10,6 +10,8 @@ def audio.channels =
   settings.frame.audio.channels
 end
 
+lufs_builtin = lufs
+
 # Normalization the volume of a stream (this is also called _automatic gain
 # control_). Dynamic normalization of the signal is sometimes the only option
 # (for instance, for live sources), and can make a listening experience much
@@ -25,6 +27,7 @@ end
 # @param ~down Characteristic time to go down.
 # @param ~up Characteristic time to go up.
 # @param ~lookahead How much time to look ahead of the signal (second). Setting a positive value delays the output by the corresponding amount of time.
+# @param ~lufs Use LUFS instead of RMS to compute intensity.
 # @param ~target Desired RMS (dB).
 # @param ~threshold Minimal RMS for activaing gain control (dB).
 # @param ~window Duration of the window used to compute the current RMS power (second).
@@ -33,8 +36,15 @@ end
 # @method gain Current amplification coefficient (in linear scale).
 # @method target_gain Current target amplification coefficient (in linear scale).
 # @method rms Current rms (in linear scale).
-def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~lookahead=getter(0.), ~window=getter(.5), ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
-  s = rms.smooth(id=id, duration=window, s)
+def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~lufs=false, ~lookahead=getter(0.), ~window=getter(.5), ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
+  let (s, rms) =
+    if lufs then
+      s = lufs_builtin(id=id, window=window, s)
+      ((s:source), {lin_of_dB(s.lufs())})
+    else
+      s = rms.smooth(id=id, duration=window, s)
+      ((s:source), s.rms)
+    end
   v = ref(1.)
   frame = frame.duration()
   gain_min = lin_of_dB(gain_min)
@@ -42,7 +52,7 @@ def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=
   def update()
     target    = lin_of_dB(getter.get(target))
     threshold = lin_of_dB(getter.get(threshold))
-    rms       = s.rms()
+    rms       = rms()
     if rms >= threshold then
       if !v * rms <= target then
         up = 1. - exp (0. - frame / getter.get(up))
@@ -54,11 +64,10 @@ def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=
       v := max(gain_min, min(gain_max, !v))
     end
   end
-  rms = s.rms
   def target_gain () = lin_of_dB(getter.get(target)) / rms() end
   s =
     if null.defined(debug) then
-      source.run(s, every=null.get(debug), {log.debug("rms: #{s.rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{!v} / #{target_gain()}")})
+      source.run(s, every=null.get(debug), {log.debug("rms: #{rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{!v} / #{target_gain()}")})
     else
       (s:source)
     end
