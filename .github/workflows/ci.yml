@@ -103,7 +103,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [arm32v7_debian_bullseye, debian_bullseye, alpine]
+        os: [debian_testing, debian_bullseye, ubuntu_groovy, ubuntu_focal, alpine]
         platform: [amd64, arm64, armhf]
         include:
           - platform: amd64
@@ -164,6 +164,10 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-doc.sh
+      - name: Run tests
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build debian package
         if: matrix.os != 'alpine'
         id: build_deb
