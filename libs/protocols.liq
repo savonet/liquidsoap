@@ -617,7 +617,8 @@ end
 # @flag hidden
 def s3_protocol(~rlog=_, ~maxtime=_, arg) =
   extname = file.extension(leading_dot=false,dir_sep="/",arg)
-  [process_uri(extname=extname,"#{aws_base()} s3 cp s3:#{arg} $(output)")]
+  arg = string.quote("s3:#{arg}")
+  [process_uri(extname=extname,"#{aws_base()} s3 cp #{arg} $(output)")]
 end
 add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
              syntax="s3://uri")
