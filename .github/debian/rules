@@ -25,7 +25,7 @@ override_dh_auto_install:
                prefix=$(DESTDIR)/usr sysconfdir=$(DESTDIR)/etc \
                INSTALL_DAEMON=no OCAMLFIND_LDCONF=ignore
 	mkdir -p $(DESTDIR)/usr/share/liquidsoap
-	cp -rf `ocamlfind ocamlc -where`/../../share/camomile $(DESTDIR)/usr/share/liquidsoap
+	cp -rf `opam config var share`/camomile $(DESTDIR)/usr/share/liquidsoap
 	dh_install
 
 override_dh_auto_clean:
