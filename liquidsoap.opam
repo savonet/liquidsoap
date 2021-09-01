@@ -55,7 +55,7 @@ depends: [
   "conf-automake" {dev}
   "ocaml" {>= "4.08.0"}
   "camomile" {>= "1.0.0"}
-  "dtools" {>= "0.4.2"}
+  "dtools" {>= "0.4.4"}
   "duppy" {>= "0.9.1"}
   "menhir" {>= "20180703"}
   "mm" {>= "0.7.0"}
