@@ -1005,6 +1005,8 @@ fi
 
 cat <<EOMSG
 
+ Liquidsoap version: $version
+
  ----------------------------------------------------------------- Compilation
 
  Compiler       : $OCAMLC
