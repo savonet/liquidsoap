@@ -1,6 +1,6 @@
 SUBDIRS= src examples doc scripts tests libs
 DISTFILES = CHANGES CHANGES.md COPYING README README.md \
-	bootstrap configure.ac configure config.h.in \
+	bootstrap configure.ac configure config.h.in config.sub config.guess \
 	Makefile Makefile.defs.in Makefile.rules install-sh \
         liquidsoap.opam
 DISTDIRS = m4
