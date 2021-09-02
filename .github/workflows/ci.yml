@@ -395,6 +395,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ needs.build_details.outputs.branch }}
           files:  ${{ steps.list_assets.outputs.assets }}
+          draft: true
           prerelease: true
           gzip: false
           allow_override: true
