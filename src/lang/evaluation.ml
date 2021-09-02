@@ -426,6 +426,9 @@ let rec eval_toplevel ?(interactive = false) t =
                   let old_t = snd (Type.invokes old_t l) in
                   let old = Value.invokes old l in
                   (Type.remeth old_t def.t, Value.remeth old (eval def))
+              | PGround (x, g) ->
+                  failwith
+                    "TODO: ground patterns not supported in let definitions"
               | PTuple _ ->
                   failwith "TODO: cannot replace toplevel tuples for now")
         in

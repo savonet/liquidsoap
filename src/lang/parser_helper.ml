@@ -335,14 +335,20 @@ let mk_source_ty ~pos name args =
 
   Term.source_t (Term.frame_kind_t audio video midi)
 
+let ground_type_of_string ~pos = function
+  | "bool" -> Type.Bool
+  | "int" -> Type.Int
+  | "float" -> Type.Float
+  | "string" -> Type.String
+  | t -> raise (Parse_error (pos, "Ground type expected: " ^ t ^ "."))
+
 let mk_ty ~pos name =
   match name with
     | "_" -> Type.fresh_evar ~level:(-1) ~pos:None
     | "unit" -> Type.make Type.unit
-    | "bool" -> Type.make (Type.Ground Type.Bool)
-    | "int" -> Type.make (Type.Ground Type.Int)
-    | "float" -> Type.make (Type.Ground Type.Float)
-    | "string" -> Type.make (Type.Ground Type.String)
     | "source" -> mk_source_ty ~pos "source" []
     | "source_methods" -> !Term.source_methods_t ()
-    | _ -> raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."))
+    | _ -> (
+        try Type.make (Type.Ground (ground_type_of_string ~pos name))
+        with _ ->
+          raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")))

@@ -351,6 +351,7 @@ and in_term =
    variable. *)
 and pattern =
   | PVar of string list  (** a field *)
+  | PGround of string * Type.ground  (** a variable of ground type *)
   | PTuple of pattern list  (** a tuple *)
 
 type term = t
@@ -391,18 +392,21 @@ let rec print_term v =
 
 let rec string_of_pat = function
   | PVar l -> String.concat "." l
+  | PGround (x, g) -> Printf.sprintf "%s : %s" x (Type.print_ground g)
   | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
 
 let rec free_vars_pat = function
   | PVar [] -> assert false
   | PVar [_] -> Vars.empty
   | PVar (x :: _) -> Vars.singleton x
+  | PGround (x, _) -> Vars.singleton x
   | PTuple l -> List.fold_left Vars.union Vars.empty (List.map free_vars_pat l)
 
 let rec bound_vars_pat = function
   | PVar [] -> assert false
   | PVar [x] -> Vars.singleton x
   | PVar _ -> Vars.empty
+  | PGround (x, _) -> Vars.singleton x
   | PTuple l -> List.fold_left Vars.union Vars.empty (List.map bound_vars_pat l)
 
 let rec free_vars tm =

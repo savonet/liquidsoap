@@ -54,6 +54,9 @@ let rec type_of_pat ~level ~pos = function
   | PVar x ->
       let a = Type.fresh_evar ~level ~pos in
       ([(x, a)], a)
+  | PGround (x, g) ->
+      let t = Type.make ~level ~pos (Type.Ground g) in
+      ([([x], t)], t)
   | PTuple l ->
       let env, l =
         List.fold_left
@@ -300,6 +303,23 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~print_toplevel ~level:(level + 1) ~env body;
         e.t >: body.t
     | Match l ->
+        ((* Generic patterns are only allowed in last position: this is in order
+            to avoid programs like
+            match x
+              case x do ignore (x+4)
+              case x do ignore (""^x)
+            end
+            which accept int or string, but we cannot be sure which branch does what.
+         *)
+         let safe = function PGround _ -> true | _ -> false in
+         let rec aux = function
+           | [_] -> ()
+           | [] -> ()
+           | (p, _) :: l ->
+               (* TODO: better error *)
+               if not (safe p) then failwith "Unsafe pattern" else aux l
+         in
+         aux l);
         let b = Type.fresh_evar ~level ~pos in
         let l =
           List.map
@@ -319,6 +339,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             l
         in
         let a = Type.union ~level ~pos l in
+        Printf.printf "source: %s\n%!" (Type.print a);
         e.t >: mk (Type.Arrow ([(false, "", a)], b))
 
 (* The simple definition for external use. *)
