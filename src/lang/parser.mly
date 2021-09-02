@@ -1,4 +1,4 @@
-/*****************************************************************************
+(*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
   Copyright 2003-2021 Savonet team
@@ -18,7 +18,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
- *****************************************************************************/
+ *****************************************************************************)
 
 %{
 open Term
@@ -40,7 +40,7 @@ open Parser_helper
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END REC GETS TILD QUESTION LET
-/* name, arguments, methods */
+(* name, arguments, methods *)
 %token <Doc.item * (string*string) list * (string*string) list> DEF
 %token REPLACES
 %token COALESCE
@@ -69,22 +69,22 @@ open Parser_helper
 %token <string list> PP_COMMENT
 %token WHILE FOR TO
 
-%nonassoc YIELDS       /* fun x -> (x+x) */
-%nonassoc COALESCE     /* (x ?? y) == z */
-%right SET             /* expr := (expr + expr), expr := (expr := expr) */
+%nonassoc YIELDS       (* fun x -> (x+x) *)
+%nonassoc COALESCE     (* (x ?? y) == z *)
+%right SET             (* expr := (expr + expr), expr := (expr := expr) *)
 %nonassoc TO
-%nonassoc QUESTION    /* x ? y : z */
-%left BINB             /* ((x+(y*z))==3) or ((not a)==b) */
+%nonassoc QUESTION    (* x ? y : z *)
+%left BINB             (* ((x+(y*z))==3) or ((not a)==b) *)
 %left BIN1
 %nonassoc NOT
 %left BIN2 MINUS
 %left BIN3 TIMES
-%nonassoc GET          /* (!x)+2 */
+%nonassoc GET          (* (!x)+2 *)
 %left DOT
 %nonassoc COLON
 
 
-/* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg */
+(* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg *)
 %nonassoc no_app
 %nonassoc LPAR
 
@@ -120,12 +120,12 @@ exprs:
   | list_binding s           { mk_list_let ~pos:$loc $1 (mk ~pos:$loc unit) }
   | list_binding s exprs     { mk_list_let ~pos:$loc $1 $3 }
 
-/* Sequences of expressions without bindings */
+(* Sequences of expressions without bindings *)
 exprss:
   | expr { $1 }
   | expr SEQ exprss { mk ~pos:$loc (Seq ($1,$3)) }
 
-/* General expressions. */
+(* General expressions. *)
 expr:
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (Cast ($2, $4)) }
   | UMINUS FLOAT                     { mk ~pos:$loc (Ground (Float (-. $2))) }
@@ -329,7 +329,7 @@ binding:
       let body = mk_fun ~pos:$loc arglist $7 in
       $1,$2,PVar $3,body
         }
-  /* We don't handle recursive fields for now... */
+  (* We don't handle recursive fields for now... *)
   | DEF REC VARLPAR arglist RPAR g exprs END {
       let doc = $1 in
       let pat = PVar [$3] in
@@ -428,12 +428,12 @@ ffmpeg_list_elem:
   | AUDIO_NONE                        { `Audio_none }
   | AUDIO_COPY                        { `Audio_copy }
   | AUDIO_RAW LPAR ffmpeg_params RPAR { `Audio_raw $3 }
-  /* This is for inline encoders. */
+  (* This is for inline encoders. *)
   | AUDIO_RAW                         { `Audio_raw [] }
   | AUDIO LPAR ffmpeg_params RPAR     { `Audio  $3 }
   | VIDEO_NONE                        { `Video_none }
   | VIDEO_COPY                        { `Video_copy }
-  /* This is for inline encoders. */
+  (* This is for inline encoders. *)
   | VIDEO_RAW                         { `Video_raw [] }
   | VIDEO_RAW LPAR ffmpeg_params RPAR { `Video_raw  $3 }
   | VIDEO LPAR ffmpeg_params RPAR     { `Video  $3 }
