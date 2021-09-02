@@ -464,7 +464,8 @@ let strip_newlines tokenizer =
             state := None;
             let startp = fst (snd v) in
             (Parser.VARLPAR var, (startp, endp))
-        | Parser.LBRA, (_, endp) when var <> "in" ->
+        | Parser.LBRA, (_, endp) when not (List.mem var ["in"; "case"; "match"])
+          ->
             state := None;
             let startp = fst (snd v) in
             (Parser.VARLBRA var, (startp, endp))
@@ -479,13 +480,16 @@ let strip_newlines tokenizer =
       | None -> (
           match tokenizer () with
             | Parser.PP_ENDL, _ -> token ()
-            | (Parser.VAR _, _ | Parser.IN, _) as v ->
+            | (Parser.VAR _, _ | Parser.IN, _ | Parser.CASE, _ | Parser.MATCH, _)
+              as v ->
                 state := Some v;
                 token ()
             | x -> x)
       | Some ((Parser.VAR var, _) as v) -> inject_varlpar var v
       | Some ((Parser.UNDERSCORE, _) as v) -> inject_varlpar "_" v
       | Some ((Parser.IN, _) as v) -> inject_varlpar "in" v
+      | Some ((Parser.CASE, _) as v) -> inject_varlpar "case" v
+      | Some ((Parser.MATCH, _) as v) -> inject_varlpar "match" v
       | Some x ->
           state := None;
           x

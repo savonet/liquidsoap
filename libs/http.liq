@@ -125,12 +125,12 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
 
   def handler(~method,~protocol,~data=_,~headers=_,uri)
     ret = string.extract(pattern="^#{basepath}([^?]*)", uri)
-    match =
+    loc =
       if list.length(ret) == 0 then "."
       else string.trim(ret[1]) end
-    match = url.decode(match)
+    loc = url.decode(loc)
 
-    fname = path.concat(directory, match)
+    fname = path.concat(directory, loc)
     log.debug("Serving static file: #{fname}")
     if file.exists(fname) then
       if file.is_directory(fname) then

@@ -188,6 +188,8 @@ let rec token lexbuf =
     | "try" -> TRY
     | "catch" -> CATCH
     | "do" -> DO
+    | "match" -> MATCH
+    | "case" -> CASE
     | "let" -> LET
     | "fun" -> FUN
     | "rec" -> REC

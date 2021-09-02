@@ -44,7 +44,7 @@ open Parser_helper
 %token <Doc.item * (string*string) list * (string*string) list> DEF
 %token REPLACES
 %token COALESCE
-%token TRY CATCH IN DO
+%token TRY CATCH IN DO MATCH CASE
 %token IF THEN ELSE ELSIF
 %token OPEN
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON DOT
