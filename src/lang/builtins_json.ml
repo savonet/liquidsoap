@@ -48,7 +48,7 @@ let rec to_json_compact ~json5 v =
     | Lang.Tuple l ->
         "[" ^ String.concat "," (List.map (to_json_compact ~json5) l) ^ "]"
     | Lang.Meth _ -> (
-        let m, v = Term.Value.split_meths v in
+        let m, v = Value.split_meths v in
         match v.Lang.value with
           | Lang.Tuple [] ->
               let l =
@@ -93,7 +93,7 @@ let rec to_json_pp ~json5 f v =
         aux l;
         Format.fprintf f "@]@;<1 0>]@]"
     | Lang.Meth _ -> (
-        let l, v = Term.Value.split_meths v in
+        let l, v = Value.split_meths v in
         match v.Lang.value with
           | Lang.Tuple [] ->
               Format.fprintf f "@{{@;<1 1>@[";

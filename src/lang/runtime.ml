@@ -116,7 +116,7 @@ let throw print_error = function
         else Format.sprintf "argument labeled %S" lbl);
       raise Error
   | Error.Invalid_value (v, msg) ->
-      error_header 7 (Type.print_pos_opt v.Term.Value.pos);
+      error_header 7 (Type.print_pos_opt v.Value.pos);
       Format.printf "Invalid value:@ %s@]@." msg;
       raise Error
   | Lang_encoders.Error (v, s) ->

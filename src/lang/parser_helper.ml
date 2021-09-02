@@ -27,8 +27,8 @@ open Term.Ground
 
 let gen_args_of ~only ~except ~pos get_args name =
   match Environment.get_builtin name with
-    | Some ((_, t), Term.Value.{ value = Fun (args, _, _, _) })
-    | Some ((_, t), Term.Value.{ value = FFI (args, _, _) }) ->
+    | Some ((_, t), Value.{ value = Fun (args, _, _, _) })
+    | Some ((_, t), Value.{ value = FFI (args, _, _) }) ->
         let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in
         let filtered_args =
           if only <> [] then
@@ -96,7 +96,7 @@ let args_of, app_of =
           Term.{ t = Type.fresh_evar ~level:(-1) ~pos:(Some pos); term = Var n }
         ))
       args
-  and term_of_value ~pos t ({ Term.Value.value } as v) =
+  and term_of_value ~pos t ({ Value.value } as v) =
     let get_list_type () =
       match (Type.deref t).Type.descr with
         | Type.List t -> t
@@ -114,20 +114,20 @@ let args_of, app_of =
     in
     let term =
       match value with
-        | Term.Value.Ground g -> Term.Ground g
-        | Term.Value.Encoder e -> Term.Encoder e
-        | Term.Value.List l ->
+        | Value.Ground g -> Term.Ground g
+        | Value.Encoder e -> Term.Encoder e
+        | Value.List l ->
             Term.List (List.map (term_of_value ~pos (get_list_type ())) l)
-        | Term.Value.Tuple l ->
+        | Value.Tuple l ->
             Term.List
               (List.mapi
                  (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
                  l)
-        | Term.Value.Null -> Term.Null
-        | Term.Value.Meth (name, v, v') ->
+        | Value.Null -> Term.Null
+        | Value.Meth (name, v, v') ->
             let t = get_meth_type () in
             Term.Meth (name, term_of_value ~pos t v, term_of_value ~pos t v')
-        | Term.Value.Fun (args, [], [], body) ->
+        | Value.Fun (args, [], [], body) ->
             let body =
               Term.{ body with t = Type.make ~pos:(Some pos) body.t.Type.descr }
             in
@@ -137,7 +137,7 @@ let args_of, app_of =
               (Parse_error
                  ( pos,
                    Printf.sprintf "Term %s cannot be represented as a term"
-                     (Term.Value.print_value v) ))
+                     (Value.print_value v) ))
     in
     let t = Type.make ~pos:(Some pos) t.Type.descr in
     Term.{ t; term }

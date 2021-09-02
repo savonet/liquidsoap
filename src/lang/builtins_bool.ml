@@ -34,7 +34,7 @@ let () =
         let ans =
           if a'.Lang.value = Lang.Tuple [] && b'.Lang.value = Lang.Tuple [] then (
             let r a =
-              let m, _ = Term.Value.split_meths a in
+              let m, _ = Value.split_meths a in
               m
             in
             let a = r a in

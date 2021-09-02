@@ -22,11 +22,11 @@
 
 (** {1 Evaluation environment} *)
 
-let builtins : (Type.scheme * Term.Value.t) Plug.plug =
+let builtins : (Type.scheme * Value.t) Plug.plug =
   Plug.create ~duplicates:false ~doc:"scripting values" "scripting values"
 
 (* Environment for builtins. *)
-let builtins_env : (string * (Type.scheme * Term.Value.t)) list ref = ref []
+let builtins_env : (string * (Type.scheme * Value.t)) list ref = ref []
 let default_environment () = !builtins_env
 
 let default_typing_environment () =
@@ -56,7 +56,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
               (* Previous type scheme for x.l1...li. *)
               let vg, vt = Type.invokes t0 (List.rev prefix) in
               (* Previous value of x.l1...li.  *)
-              let v = Term.Value.invokes xv (List.rev prefix) in
+              let v = Value.invokes xv (List.rev prefix) in
               (* Updated value of x.l1...li+1. *)
               let (lvg, lvt), lv = aux (l :: prefix) ll in
               (* Updated type for x.l1...li, obtained by changing the type of
@@ -65,8 +65,8 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                 Type.make ~pos:t.Type.pos (Type.Meth (l, (lvg, lvt), "", vt))
               in
               (* Update value for x.l1...li. *)
-              let value = Term.Value.Meth (l, lv, v) in
-              ((vg, t), { Term.Value.pos = v.Term.Value.pos; value })
+              let value = Value.Meth (l, lv, v) in
+              ((vg, t), { Value.pos = v.Value.pos; value })
           | [] -> ((g, t), v)
         in
         let (g, t), v = aux [] ll in
@@ -90,18 +90,17 @@ let add_module name =
         let l = List.hd mm in
         let mm = List.rev (List.tl mm) in
         let e =
-          try Term.Value.invokes (snd (List.assoc x !builtins_env)) mm
+          try Value.invokes (snd (List.assoc x !builtins_env)) mm
           with _ ->
             failwith
               ("Could not find the parent module of " ^ String.concat "." name)
         in
         try
-          ignore (Term.Value.invoke e l);
+          ignore (Value.invoke e l);
           failwith ("Module " ^ String.concat "." name ^ " already exists")
         with _ -> ()));
   add_builtin ~register:false name
-    ( ([], Type.make Type.unit),
-      { Term.Value.pos = None; value = Term.Value.unit } )
+    (([], Type.make Type.unit), { Value.pos = None; value = Value.unit })
 
 (* Builtins are only used for documentation now. *)
 let builtins = (builtins :> Doc.item)

@@ -21,11 +21,10 @@
  *****************************************************************************)
 
 (** Evaluate a term in a given environment. *)
-val eval :
-  ?env:(string * (Type.scheme * Term.Value.t)) list -> Term.t -> Term.Value.t
+val eval : ?env:(string * (Type.scheme * Value.t)) list -> Term.t -> Value.t
 
 (** Evaluate a toplevel term. *)
-val eval_toplevel : ?interactive:bool -> Term.t -> Term.Value.t
+val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
 
 (** Apply a function to arguments. *)
-val apply : Term.Value.t -> (string * Term.Value.t) list -> Term.Value.t
+val apply : Value.t -> (string * Value.t) list -> Value.t

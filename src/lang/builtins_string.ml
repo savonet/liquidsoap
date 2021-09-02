@@ -214,7 +214,7 @@ let () =
              {
                Runtime_error.kind = "string";
                msg = Some err;
-               pos = (match v.Term.Value.pos with None -> [] | Some p -> [p]);
+               pos = (match v.Value.pos with None -> [] | Some p -> [p]);
              }))
 
 let () =
@@ -555,7 +555,7 @@ let () =
       let dv = Lang.demeth v in
       (* Always show records. *)
       let show_fields =
-        if dv.Lang.value = Term.Value.unit then true else show_fields
+        if dv.Lang.value = Value.unit then true else show_fields
       in
       let v = if show_fields then v else dv in
       match v with
