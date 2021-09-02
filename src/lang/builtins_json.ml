@@ -63,7 +63,7 @@ let rec to_json_compact ~json5 v =
     | Lang.Ref v ->
         Printf.sprintf "{\"reference\": %s}" (to_json_compact ~json5 !v)
     | Lang.Encoder e -> Utils.quote_utf8_string (Encoder.string_of_format e)
-    | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
+    | Lang.FFI _ | Lang.Fun _ | Lang.Match _ -> "\"<fun>\""
 
 let rec to_json_pp ~json5 f v =
   match v.Lang.value with

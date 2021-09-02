@@ -69,6 +69,7 @@ and in_value = Value.in_value =
   (* A function with given arguments (argument label, argument variable,
      default value), parameters already passed to the function, closure and
      value. *)
+  | Match of lazy_env * (Term.pattern * Term.t) list
   | FFI of (string * string * value option) list * env * (env -> value)
 
 val demeth : value -> value

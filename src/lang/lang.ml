@@ -318,6 +318,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
             (fun (_, _, _, v) ->
               match v with Some v -> iter_term env v | None -> ())
             proto
+      | Term.Match l -> List.iter (fun (_, v) -> iter_term env v) l
   and iter_value v =
     if not (List.memq v !itered_values) then (
       (* We need to avoid checking the same value multiple times, otherwise we
@@ -341,6 +342,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
         | FFI (proto, pe, _) ->
             List.iter (fun (_, v) -> iter_value v) pe;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
+        | Match (env, l) -> List.iter (fun (_, v) -> iter_term env v) l
         | Ref r ->
             if List.memq r !static_analysis_failed then ()
             else (
@@ -359,7 +361,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
                     | List l -> List.exists aux l
                     | Tuple l -> List.exists aux l
                     | Ref r -> aux !r
-                    | Fun _ | FFI _ -> true
+                    | Fun _ | FFI _ | Match _ -> true
                     | Meth (_, v, t) -> aux v || aux t
                 in
                 aux v

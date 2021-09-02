@@ -179,7 +179,7 @@ expr:
                                        let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
                                        mk ~pos:$loc (App (op, ["",$1;"",handler])) }
-  | MATCH expr cases END             { mk ~pos:$loc (App (mk ~pos:$loc (Match ($3)), $2)) }
+  | MATCH expr cases END             { mk ~pos:$loc (App (mk ~pos:$loc (Match ($3)), ["", $2])) }
   | TRY exprs CATCH bindvar IN varlist DO exprs END
                                      { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, Type.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
