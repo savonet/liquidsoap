@@ -70,6 +70,7 @@ let rec type_of_pat ~level ~pos = function
  * that is the size of the typing context, that is the number of surrounding
  * abstractions. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
+  let check = check ~throw in
   (* The role of this function is not only to type-check but also to assign
    * meaningful levels to type variables, and unify the types of
    * all occurrences of the same variable, since the parser does not do it. *)
@@ -84,7 +85,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let mk t = Type.make ~level ~pos t in
   let mkg t = mk (Type.Ground t) in
   let check_fun ~proto ~env e body =
-    let base_check = check ~throw ~level ~env in
+    let base_check = check ~level ~env in
     let proto_t, env, level =
       List.fold_left
         (fun (p, env, level) -> function
@@ -105,14 +106,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         ([], env, level) proto
     in
     let proto_t = List.rev proto_t in
-    check ~throw ~level ~env body;
+    check ~level ~env body;
     e.t >: mk (Type.Arrow (proto_t, body.t))
   in
   match e.term with
     | Ground g -> e.t >: mkg (Ground.to_type g)
     | Encoder f -> e.t >: type_of_format ~pos:e.t.Type.pos ~level f
     | List l ->
-        List.iter (fun x -> check ~throw ~level ~env x) l;
+        List.iter (fun x -> check ~level ~env x) l;
         let t =
           List.fold_left
             (fun t e -> Typing.min_type ~pos:e.t.Type.pos ~level t e.t)
@@ -122,20 +123,20 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         List.iter (fun e -> e.t <: t) l;
         e.t >: mk (Type.List t)
     | Tuple l ->
-        List.iter (fun a -> check ~throw ~level ~env a) l;
+        List.iter (fun a -> check ~level ~env a) l;
         e.t >: mk (Type.Tuple (List.map (fun a -> a.t) l))
     | Null -> e.t >: mk (Type.Nullable (Type.fresh_evar ~level ~pos))
     | Cast (a, t) ->
-        check ~throw ~level ~env a;
+        check ~level ~env a;
         a.t <: t;
         e.t >: t
     | Meth (l, a, b) ->
-        check ~throw ~level ~env a;
-        check ~throw ~level ~env b;
+        check ~level ~env a;
+        check ~level ~env b;
         e.t
         >: mk (Type.Meth (l, (Typing.generalizable ~level a.t, a.t), "", b.t))
     | Invoke (a, l) ->
-        check ~throw ~level ~env a;
+        check ~level ~env a;
         let rec aux t =
           match (Type.deref t).Type.descr with
             | Type.Meth (l', (generalized, b), _, c) ->
@@ -152,7 +153,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         in
         e.t >: aux a.t
     | Open (a, b) ->
-        check ~throw ~level ~env a;
+        check ~level ~env a;
         a.t <: mk Type.unit;
         let rec aux env t =
           match (Type.deref t).Type.descr with
@@ -160,22 +161,22 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             | _ -> env
         in
         let env = aux env a.t in
-        check ~throw ~level ~env b;
+        check ~level ~env b;
         e.t >: b.t
     | Seq (a, b) ->
-        check ~throw ~env ~level a;
+        check ~env ~level a;
         if not (can_ignore a.t) then throw (Ignored a);
-        check ~print_toplevel ~throw ~level ~env b;
+        check ~print_toplevel ~level ~env b;
         e.t >: b.t
     (* Special case for if branchings in order to backtrack in the case where
        the then branch is nullable but the else branch is not, see #1816. *)
     | App
         ( ({ term = Var "if" } as e_if),
           [("", e_cond); ("then", e_then); ("else", e_else)] ) ->
-        check ~throw ~level ~env e_if;
-        check ~throw ~level ~env e_cond;
-        check ~throw ~level ~env e_then;
-        check ~throw ~level ~env e_else;
+        check ~level ~env e_if;
+        check ~level ~env e_cond;
+        check ~level ~env e_then;
+        check ~level ~env e_else;
         let a = Type.fresh_evar ~level ~pos in
         e_cond.t <: Type.make (Type.Ground Type.Bool);
         e_else.t <: Type.make (Type.Arrow ([], a));
@@ -189,8 +190,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           e_then.t <: Type.make (Type.Arrow ([], Type.make (Type.Nullable a)));
           e.t >: Type.make (Type.Nullable a))
     | App (a, l) -> (
-        check ~throw ~level ~env a;
-        List.iter (fun (_, b) -> check ~throw ~env ~level b) l;
+        check ~level ~env a;
+        List.iter (fun (_, b) -> check ~env ~level b) l;
 
         (* If [a] is known to have a function type, manually dig through
          * it for better error messages. Otherwise generate its type
@@ -243,7 +244,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n" var
             (Type.deref e.t).Type.level (Type.print orig) (Type.print e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
-        check ~throw ~level ~env def;
+        check ~level ~env def;
         let generalized =
           if value_restriction def then (
             let f x t =
@@ -296,7 +297,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                  if l >= max then name else name ^ String.make (max - l) ' ')
                 (Type.pp_type_generalized generalized)
                 def.t);
-        check ~print_toplevel ~throw ~level:(level + 1) ~env body;
+        check ~print_toplevel ~level:(level + 1) ~env body;
         e.t >: body.t
 
 (* The simple definition for external use. *)
