@@ -49,7 +49,7 @@ and in_value =
      env which is part of the closure. *)
   | Fun of (string * string * t option) list * env * lazy_env * Term.t
   (* A matcher. Some day, Fun might be merged with this. *)
-  | Match of lazy_env * (Term.pattern list * Term.t) list
+  | Match of lazy_env * (Term.pattern * Term.t) list
   (* For a foreign function only the arguments are visible, the closure
      doesn't capture anything in the environment. *)
   | FFI of (string * string * t option) list * env * (env -> t)
@@ -102,6 +102,7 @@ let rec print_value v =
         Printf.sprintf "fun (%s) -> %s" (String.concat "," args)
           (Term.print_term x)
     | Fun _ | FFI _ -> "<fun>"
+    | Match _ -> "<match>"
 
 (** Find a method in a value. *)
 let rec invoke x l =
