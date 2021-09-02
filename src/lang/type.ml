@@ -116,6 +116,7 @@ and descr =
   | Nullable of t
   | Meth of string * scheme * string * t (* label, type, documentation, type to decorate *)
   | Arrow of (bool * string * t) list * t
+  | Union of t * t
   | EVar of var (* type variable *)
   | Link of t
 
@@ -134,6 +135,7 @@ type repr =
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
+  | `Union of repr * repr
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
@@ -272,6 +274,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
+        | Union (u, v) -> `Union (repr g u, repr g v)
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
@@ -425,6 +428,13 @@ let print_repr f t =
         Format.fprintf f "{";
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
+        vars
+    | `Union (t, u) ->
+        Format.fprintf f "@[<1>(";
+        let vars = print ~par:false vars t in
+        Format.fprintf f " ∪ ";
+        let vars = print ~par:false vars u in
+        Format.fprintf f ")@]";
         vars
     | `EVar (a, [InternalMedia]) ->
         Format.fprintf f "?internal(%s)" a;
@@ -592,6 +602,7 @@ let filter_vars f t =
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
+      | Union (t, u) -> aux (aux l t) u
       | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
       | Link _ -> assert false
   in
@@ -628,6 +639,9 @@ let rec occur_check a b =
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
+    | Union (t, u) ->
+        occur_check a t;
+        occur_check a u
     | EVar _ ->
         (* In normal type inference level -1 should never arise.
          * Unfortunately we can't check it strictly because this code 

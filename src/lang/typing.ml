@@ -105,6 +105,7 @@ let copy_with (subst : Subst.t) t =
           cp (Meth (l, (g, aux t), d, aux u))
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
+      | Union (t, u) -> cp (Union (aux t, aux u))
       | Link t ->
           (* Keep links to preserve rich position information,
            * and to make it possible to check if the application left
@@ -378,6 +379,7 @@ let rec duplicate ?pos ?level t =
           Arrow
             ( List.map (fun (b, n, t) -> (b, n, duplicate ?pos ?level t)) args,
               duplicate ?pos ?level t )
+      | Union (t, u) -> Union (duplicate ?pos ?level t, duplicate ?pos ?level u)
       | EVar v -> EVar v
       | Link t -> Link (duplicate ?pos ?level t))
 
