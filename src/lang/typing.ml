@@ -260,10 +260,6 @@ let rec ( <: ) a b =
     | Arrow ([], t1), Getter t2 -> (
         try t1 <: t2
         with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
-    | _, Union (u, v) -> (
-        try a <: u
-        with Error _ -> (
-          try a <: v with Error _ -> raise (Error (repr a, repr b))))
     | EVar _, _ -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->
@@ -276,6 +272,13 @@ let rec ( <: ) a b =
         try bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)))
+    | Union (u, v), _ ->
+        u <: b;
+        v <: v
+    | _, Union (u, v) -> (
+        try a <: u
+        with Error _ -> (
+          try a <: v with Error _ -> raise (Error (repr a, repr b))))
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
     | Meth (l, (g1, t1), _, u1), Meth (l', (g2, t2), _, u2) when l = l' -> (

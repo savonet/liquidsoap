@@ -12,8 +12,20 @@ def t(x, y)
 end
   
 def f() =
+  # Simple test
   x = match 2
     case x do 4
+  end
+
+  # Two ground types
+  def f(x) =
+    match x
+      case x : string do
+        ignore (x^"")
+        4
+      case y : int do
+        y+2
+    end
   end
   
   if !success then test.pass() else test.fail() end

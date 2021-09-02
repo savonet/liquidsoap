@@ -339,7 +339,6 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             l
         in
         let a = Type.union ~level ~pos l in
-        Printf.printf "source: %s\n%!" (Type.print a);
         e.t >: mk (Type.Arrow ([(false, "", a)], b))
 
 (* The simple definition for external use. *)

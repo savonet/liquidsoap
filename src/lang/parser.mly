@@ -405,7 +405,7 @@ app_opt:
   | LPAR app_list RPAR { $2 }
 
 cases:
-  | CASE pattern DO expr cases { ($2,$4)::$5 }
+  | CASE pattern DO exprs cases { ($2,$4)::$5 }
   | { [] }
 
 top_level_ogg_audio_item:

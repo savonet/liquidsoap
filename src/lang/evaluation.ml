@@ -256,7 +256,8 @@ and apply f l =
             List.find_map
               (fun (p, e) ->
                 match (p, (Value.demeth v).Value.value) with
-                  | PVar [x], _ ->
+                  | PVar [x], _
+                  | PGround (x, Type.Int), Value.Ground (Value.Ground.Int _) ->
                       let env = (x, Lazy.from_val v) :: env in
                       Some (eval ~env e)
                   | _ -> None)
@@ -426,9 +427,10 @@ let rec eval_toplevel ?(interactive = false) t =
                   let old_t = snd (Type.invokes old_t l) in
                   let old = Value.invokes old l in
                   (Type.remeth old_t def.t, Value.remeth old (eval def))
-              | PGround (x, g) ->
+              | PGround _ ->
                   failwith
-                    "TODO: ground patterns not supported in let definitions"
+                    "TODO: ground patterns not (yet) supported in let \
+                     definitions"
               | PTuple _ ->
                   failwith "TODO: cannot replace toplevel tuples for now")
         in
