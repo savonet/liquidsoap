@@ -169,6 +169,14 @@ let rec invoke t l =
 (** Add a method. *)
 let meth ?pos ?level l v ?(doc = "") t = make ?pos ?level (Meth (l, v, doc, t))
 
+let union ?pos ?level l =
+  let rec aux = function
+    | [a] -> a
+    | [] -> failwith "The empty type is not (yet) implemented."
+    | a :: l -> make ?pos ?level (Union (a, aux l))
+  in
+  aux l
+
 (** Add methods. *)
 let rec meths ?pos ?level l v t =
   match l with

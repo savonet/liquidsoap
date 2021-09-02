@@ -235,7 +235,8 @@ and apply f l =
   let mk ~pos v = { pos; Value.value = v } in
   (* Extract the components of the function, whether it's explicit or foreign,
      together with a rewrapping function for creating a closure in case of
-     partial application. *)
+     partial application. Returns the parameters, the already given parameters,
+     the function to evaluate given the parameters, . *)
   let p, pe, f, rewrap =
     match (Value.demeth f).Value.value with
       | Value.Fun (p, pe, e, body) ->
@@ -250,6 +251,32 @@ and apply f l =
             pe,
             (fun pe -> f (List.rev pe)),
             fun p pe -> mk ~pos:pos_f (Value.FFI (p, pe, f)) )
+      | Value.Match (env, l) ->
+          let f v =
+            List.find_map
+              (fun (p, e) ->
+                match (p, (Value.demeth v).Value.value) with
+                  | PVar [x], _ ->
+                      let env = (x, Lazy.from_val v) :: env in
+                      Some (eval ~env e)
+                  | _ -> None)
+              l
+          in
+          let f v =
+            match f v with Some v -> v | None -> assert false
+            (* We failed to match. This should not have happened. *)
+          in
+          ( [("", "_", None)],
+            [],
+            (function
+            | [(_, v)] -> f v
+            | l ->
+                let l =
+                  List.map (fun (l, v) -> l ^ "=" ^ Value.print_value v) l
+                  |> String.concat ", "
+                in
+                failwith ("Match applied to " ^ l)),
+            fun _ _ -> assert false )
       | _ -> assert false
   in
   (* Record error positions. *)

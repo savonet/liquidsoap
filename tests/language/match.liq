@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq
 
 %include "test.liq"
   

@@ -299,7 +299,27 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 def.t);
         check ~print_toplevel ~level:(level + 1) ~env body;
         e.t >: body.t
-    | Match l -> failwith "TODO"
+    | Match l ->
+        let b = Type.fresh_evar ~level ~pos in
+        let l =
+          List.map
+            (fun (p, e) ->
+              let penv, pa = type_of_pat ~level ~pos p in
+              let penv =
+                List.map
+                  (function
+                    | [l], t -> (l, ([], t))
+                    | _ -> failwith "TODO: fields in match not yet implemented")
+                  penv
+              in
+              let env = penv @ env in
+              check ~level ~env e;
+              e.t <: b;
+              pa)
+            l
+        in
+        let a = Type.union ~level ~pos l in
+        e.t >: mk (Type.Arrow ([(false, "", a)], b))
 
 (* The simple definition for external use. *)
 let check ?(ignored = false) ~throw e =

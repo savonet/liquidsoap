@@ -78,6 +78,7 @@ and scheme = var list * t
 val unit : descr
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
+val union : ?pos:pos option -> ?level:int -> t list -> t
 
 (** Remove links in a type: this function should always be called before
     matching on types. *)
