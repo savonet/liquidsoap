@@ -299,6 +299,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 def.t);
         check ~print_toplevel ~level:(level + 1) ~env body;
         e.t >: body.t
+    | Match l -> failwith "TODO"
 
 (* The simple definition for external use. *)
 let check ?(ignored = false) ~throw e =

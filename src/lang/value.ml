@@ -48,6 +48,8 @@ and in_value =
      function. Next parameters will be inserted between that and the second
      env which is part of the closure. *)
   | Fun of (string * string * t option) list * env * lazy_env * Term.t
+  (* A matcher. Some day, Fun might be merged with this. *)
+  | Match of lazy_env * (Term.pattern list * Term.t) list
   (* For a foreign function only the arguments are visible, the closure
      doesn't capture anything in the environment. *)
   | FFI of (string * string * t option) list * env * (env -> t)

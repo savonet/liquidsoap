@@ -49,6 +49,9 @@ let eval_pat pat v =
 
 let rec eval ~env tm =
   let env = (env : Value.lazy_env) in
+  (* Prepare functions. It takes the free variables, the parameters and the
+     current evaluation environment. It returns the parameters (with evaluated
+     default values) and the filtered environement. *)
   let prepare_fun fv p env =
     (* Unlike OCaml we always evaluate default values, and we do that early. I
        think the only reason is homogeneity with FFI, which are declared with
@@ -197,6 +200,10 @@ let rec eval ~env tm =
           { Value.pos = tm.t.Type.pos; value = Value.Fun (p, [], env, body) }
         in
         v ()
+    | Match l ->
+        (* TODO: we should restrcit environments to free variables, like for
+           functions. *)
+        { Value.pos = tm.t.Type.pos; value = Value.Match (env, l) }
     | Var var -> lookup env var
     | Seq (a, b) ->
         ignore (eval ~env a);

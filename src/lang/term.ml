@@ -345,6 +345,7 @@ and in_term =
    * formed. *)
   | Fun of Vars.t * (string * string * Type.t * t option) list * t
   | RFun of string * Vars.t * (string * string * Type.t * t option) list * t
+  | Match of (pattern * t) list
 
 (* A recursive function, the first string is the name of the recursive
    variable. *)
@@ -386,7 +387,7 @@ let rec print_term v =
             tl
         in
         print_term hd ^ "(" ^ String.concat "," tl ^ ")"
-    | Let _ | Seq _ -> assert false
+    | Let _ | Seq _ | Match _ -> assert false
 
 let rec string_of_pat = function
   | PVar l -> String.concat "." l
@@ -426,6 +427,11 @@ let rec free_vars tm =
     | Let l ->
         Vars.union (free_vars l.def)
           (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
+    | Match l ->
+        List.fold_left
+          (fun vars (p, e) ->
+            Vars.union vars (Vars.diff (free_vars e) (bound_vars_pat p)))
+          Vars.empty l
 
 let free_vars ?(bound = []) body =
   Vars.diff (free_vars body) (Vars.of_list bound)
@@ -530,6 +536,9 @@ let check_unused ~throw ~lib tm =
                     throw (Unused_variable (s, start_pos))))
               bvpat;
           Vars.union v mask
+      | Match l ->
+          (* TODO: check handlers... *)
+          v
   in
   (* Unused free variables may remain *)
   ignore (check ~toplevel:true Vars.empty tm)

@@ -179,6 +179,7 @@ expr:
                                        let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
                                        mk ~pos:$loc (App (op, ["",$1;"",handler])) }
+  | MATCH expr cases END             { mk ~pos:$loc (App (mk ~pos:$loc (Match ($3)), $2)) }
   | TRY exprs CATCH bindvar IN varlist DO exprs END
                                      { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, Type.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
@@ -401,6 +402,10 @@ if_elsif:
 app_opt:
   | %prec no_app { [] }
   | LPAR app_list RPAR { $2 }
+
+cases:
+  | CASE pattern DO expr cases { ($2,$4)::$5 }
+  | { [] }
 
 top_level_ogg_audio_item:
   | VORBIS app_opt     { Lang_vorbis.make $2 }
