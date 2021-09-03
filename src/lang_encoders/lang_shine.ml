@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-open Term
-open Term.Ground
+open Value
+open Ground
 open Lang_encoders
 
 let make params =
@@ -37,17 +37,19 @@ let make params =
   let shine =
     List.fold_left
       (fun f -> function
-        | "channels", { term = Ground (Int i); _ } ->
+        | "channels", `Value { value = Ground (Int i); _ } ->
             { f with Shine_format.channels = i }
-        | "samplerate", { term = Ground (Int i); _ } ->
+        | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with Shine_format.samplerate = Lazy.from_val i }
-        | "bitrate", { term = Ground (Int i); _ } ->
+        | "bitrate", `Value { value = Ground (Int i); _ } ->
             { f with Shine_format.bitrate = i }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "mono" ->
             { f with Shine_format.channels = 1 }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "stereo" ->
             { f with Shine_format.channels = 2 }
-        | _, t -> raise (generic_error t))
+        | t -> raise (generic_error t))
       defaults params
   in
   Encoder.Shine shine

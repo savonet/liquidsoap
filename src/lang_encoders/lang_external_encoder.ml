@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-open Term
-open Term.Ground
+open Value
+open Ground
 open Lang_encoders
 
 let make params =
@@ -41,32 +41,32 @@ let make params =
   let ext =
     List.fold_left
       (fun f -> function
-        | "channels", { term = Ground (Int c); _ } ->
+        | "channels", `Value { value = Ground (Int c); _ } ->
             { f with External_encoder_format.channels = c }
-        | "samplerate", { term = Ground (Int i); _ } ->
+        | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with External_encoder_format.samplerate = Lazy.from_val i }
-        | "video", { term = Ground (Bool h); _ } ->
+        | "video", `Value { value = Ground (Bool h); _ } ->
             { f with External_encoder_format.video = h }
-        | "header", { term = Ground (Bool h); _ } ->
+        | "header", `Value { value = Ground (Bool h); _ } ->
             { f with External_encoder_format.header = h }
-        | "restart_on_crash", { term = Ground (Bool h); _ } ->
+        | "restart_on_crash", `Value { value = Ground (Bool h); _ } ->
             { f with External_encoder_format.restart_on_crash = h }
-        | "", { term = Var s; _ }
+        | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "restart_on_metadata" ->
             {
               f with
               External_encoder_format.restart = External_encoder_format.Metadata;
             }
-        | "restart_after_delay", { term = Ground (Int i); _ } ->
+        | "restart_after_delay", `Value { value = Ground (Int i); _ } ->
             {
               f with
               External_encoder_format.restart = External_encoder_format.Delay i;
             }
-        | "process", { term = Ground (String s); _ } ->
+        | "process", `Value { value = Ground (String s); _ } ->
             { f with External_encoder_format.process = s }
-        | "", { term = Ground (String s); _ } ->
+        | "", `Value { value = Ground (String s); _ } ->
             { f with External_encoder_format.process = s }
-        | _, t -> raise (generic_error t))
+        | t -> raise (generic_error t))
       defaults params
   in
   if ext.External_encoder_format.process = "" then

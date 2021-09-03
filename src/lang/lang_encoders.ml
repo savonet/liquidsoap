@@ -22,13 +22,14 @@
 
 (** Errors *)
 
-exception Error of (Term.t * string)
+exception Error of (Term.pos option * string)
 
-let invalid t = match t.Term.term with Term.Ground _ -> false | _ -> true
-
-let generic_error t : exn =
-  if invalid t then (
-    match t.Term.term with
-      | Term.Var _ -> Error (t, "variables are forbidden in encoding formats")
-      | _ -> Error (t, "complex expressions are forbidden in encoding formats"))
-  else Error (t, "unknown parameter name or invalid parameter value")
+let generic_error (l, t) : exn =
+  match t with
+    | `Value v ->
+        Error
+          ( v.Value.pos,
+            Printf.sprintf
+              "unknown parameter name (%s) or invalid parameter value (%s)" l
+              (Value.print_value v) )
+    | `Encoder _ -> Error (None, "unexpected subencoder")

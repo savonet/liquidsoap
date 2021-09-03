@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-open Term
-open Term.Ground
+open Value
+open Ground
 open Lang_encoders
 
 let make ?pos params =
@@ -41,34 +41,28 @@ let make ?pos params =
     let perhaps = function "" -> None | s -> Some s in
     List.fold_left
       (fun f -> function
-        | "channels", { term = Ground (Int i); _ } ->
+        | "channels", `Value { value = Ground (Int i); _ } ->
             { f with Gstreamer_format.channels = i }
-        | "audio", { term = Ground (String s); _ } ->
+        | "audio", `Value { value = Ground (String s); _ } ->
             { f with Gstreamer_format.audio = perhaps s }
-        | "has_video", { term = Ground (Bool b); _ } ->
+        | "has_video", `Value { value = Ground (Bool b); _ } ->
             { f with Gstreamer_format.has_video = b }
-        | "video", { term = Ground (String s); _ } ->
+        | "video", `Value { value = Ground (String s); _ } ->
             let video = perhaps s in
             let has_video =
               if video = None then false else f.Gstreamer_format.has_video
             in
             { f with Gstreamer_format.has_video; video }
-        | "muxer", { term = Ground (String s); _ } ->
+        | "muxer", `Value { value = Ground (String s); _ } ->
             { f with Gstreamer_format.muxer = perhaps s }
-        | "metadata", { term = Ground (String s); _ } ->
+        | "metadata", `Value { value = Ground (String s); _ } ->
             { f with Gstreamer_format.metadata = s }
-        | "log", { term = Ground (Int i); _ } ->
+        | "log", `Value { value = Ground (Int i); _ } ->
             { f with Gstreamer_format.log = i }
-        | "pipeline", { term = Ground (String s); _ } ->
+        | "pipeline", `Value { value = Ground (String s); _ } ->
             { f with Gstreamer_format.pipeline = perhaps s }
-        | _, t -> raise (generic_error t))
+        | t -> raise (generic_error t))
       defaults params
-  in
-  let dummy =
-    {
-      Term.t = Type.fresh_evar ~level:(-1) ~pos;
-      term = Encoder (Encoder.GStreamer gstreamer);
-    }
   in
   if
     gstreamer.Gstreamer_format.pipeline = None
@@ -77,7 +71,7 @@ let make ?pos params =
   then
     raise
       (Error
-         ( dummy,
+         ( pos,
            "must have at least one audio channel when passing an audio pipeline"
          ));
   if
@@ -88,5 +82,5 @@ let make ?pos params =
   then
     raise
       (Error
-         (dummy, "must have a muxer when passing an audio and a video pipeline"));
+         (pos, "must have a muxer when passing an audio and a video pipeline"));
   Encoder.GStreamer gstreamer

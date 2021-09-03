@@ -23,7 +23,7 @@
 (** Helper functions for the parser. *)
 
 open Term
-open Term.Ground
+open Ground
 
 let gen_args_of ~only ~except ~pos get_args name =
   match Environment.get_builtin name with
@@ -115,7 +115,6 @@ let args_of, app_of =
     let term =
       match value with
         | Value.Ground g -> Term.Ground g
-        | Value.Encoder e -> Term.Encoder e
         | Value.List l ->
             Term.List (List.map (term_of_value ~pos (get_list_type ())) l)
         | Value.Tuple l ->
@@ -218,14 +217,7 @@ let mk_rec_fun ~pos pat args body =
   let fv = Term.free_vars ~bound body in
   mk ~pos (RFun (name, fv, args, body))
 
-let mk_enc ~pos e =
-  begin
-    try
-      let (_ : Encoder.factory) = Encoder.get_factory e in
-      ()
-    with Not_found -> raise (Unsupported_format (pos, e))
-  end;
-  mk ~pos (Encoder e)
+let mk_encoder ~pos e p = mk ~pos (Encoder (e, p))
 
 (** Time intervals *)
 

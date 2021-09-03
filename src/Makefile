@@ -250,8 +250,9 @@ liquidsoap_sources= \
 
 liquidsoap_sources += \
 	lang/type.ml lang/typing.ml lang/profiler.ml lang/term.ml lang/value.ml \
-	lang/environment.ml lang/typechecking.ml lang/evaluation.ml \
-	$(lang_encoders) lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
+	$(lang_encoders) lang/encoders.ml \
+	lang/environment.ml lang/typechecking.ml \
+	lang/evaluation.ml lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
 	lang/preprocessor.ml lang/error.ml lang/documentation.ml \
 	lang/lang.ml lang/runtime.ml lang/modules.ml \
         tools/child_support.ml \

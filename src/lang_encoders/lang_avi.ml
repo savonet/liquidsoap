@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-open Term
-open Term.Ground
+open Value
+open Ground
 open Lang_encoders
 
 let make params =
@@ -36,11 +36,11 @@ let make params =
   let avi =
     List.fold_left
       (fun f -> function
-        | "channels", { term = Ground (Int c); _ } ->
+        | "channels", `Value { value = Ground (Int c); _ } ->
             { f with Avi_format.channels = c }
-        | "samplerate", { term = Ground (Int i); _ } ->
+        | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with Avi_format.samplerate = Lazy.from_val i }
-        | _, t -> raise (generic_error t))
+        | t -> raise (generic_error t))
       defaults params
   in
   Encoder.AVI avi

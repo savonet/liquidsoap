@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-open Term
-open Term.Ground
+open Value
+open Ground
 open Lang_encoders
 
 let make params =
@@ -41,48 +41,50 @@ let make params =
   let speex =
     List.fold_left
       (fun f -> function
-        | "stereo", { term = Ground (Bool b); _ } ->
+        | "stereo", `Value { value = Ground (Bool b); _ } ->
             { f with Speex_format.stereo = b }
-        | "mono", { term = Ground (Bool b); _ } ->
+        | "mono", `Value { value = Ground (Bool b); _ } ->
             { f with Speex_format.stereo = not b }
-        | "samplerate", { term = Ground (Int i); _ } ->
+        | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with Speex_format.samplerate = Lazy.from_val i }
-        | "abr", { term = Ground (Int i); _ } ->
+        | "abr", `Value { value = Ground (Int i); _ } ->
             { f with Speex_format.bitrate_control = Speex_format.Abr i }
-        | "quality", ({ term = Ground (Int q); _ } as t) ->
+        | "quality", `Value { value = Ground (Int q); pos } ->
             (* Doc say this should be from 0 to 10. *)
             if q < 0 || q > 10 then
-              raise (Error (t, "Speex quality should be in 0..10"));
+              raise (Error (pos, "Speex quality should be in 0..10"));
             { f with Speex_format.bitrate_control = Speex_format.Quality q }
-        | "vbr", { term = Ground (Int q); _ } ->
+        | "vbr", `Value { value = Ground (Int q); _ } ->
             { f with Speex_format.bitrate_control = Speex_format.Vbr q }
-        | "mode", { term = Var s; _ } when String.lowercase_ascii s = "wideband"
-          ->
+        | "mode", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "wideband" ->
             { f with Speex_format.mode = Speex_format.Wideband }
-        | "mode", { term = Var s; _ }
+        | "mode", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "narrowband" ->
             { f with Speex_format.mode = Speex_format.Narrowband }
-        | "mode", { term = Var s; _ }
+        | "mode", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "ultra-wideband" ->
             { f with Speex_format.mode = Speex_format.Ultra_wideband }
-        | "frames_per_packet", { term = Ground (Int i); _ } ->
+        | "frames_per_packet", `Value { value = Ground (Int i); _ } ->
             { f with Speex_format.frames_per_packet = i }
-        | "complexity", ({ term = Ground (Int i); _ } as t) ->
+        | "complexity", `Value { value = Ground (Int i); pos } ->
             (* Doc says this should be between 1 and 10. *)
             if i < 1 || i > 10 then
-              raise (Error (t, "Speex complexity should be in 1..10"));
+              raise (Error (pos, "Speex complexity should be in 1..10"));
             { f with Speex_format.complexity = Some i }
-        | "bytes_per_page", { term = Ground (Int i); _ } ->
+        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
             { f with Speex_format.fill = Some i }
-        | "dtx", { term = Ground (Bool b); _ } ->
+        | "dtx", `Value { value = Ground (Bool b); _ } ->
             { f with Speex_format.dtx = b }
-        | "vad", { term = Ground (Bool b); _ } ->
+        | "vad", `Value { value = Ground (Bool b); _ } ->
             { f with Speex_format.vad = b }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "mono" ->
             { f with Speex_format.stereo = false }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "stereo" ->
             { f with Speex_format.stereo = true }
-        | _, t -> raise (generic_error t))
+        | t -> raise (generic_error t))
       defaults params
   in
   Ogg_format.Speex speex
