@@ -58,7 +58,7 @@ let rec type_of_pat ~level ~pos = function
   | PGround (x, g) ->
       let t = Type.make ~level ~pos (Type.Ground g) in
       ([([x], t)], t)
-  | PCons c -> ([], Type.make ~level ~pos (Type.Cons c))
+  | PAString s -> ([], Type.make ~level ~pos (Type.AString s))
   | PTuple l ->
       let env, l =
         List.fold_left
@@ -115,6 +115,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     e.t >: mk (Type.Arrow (proto_t, body.t))
   in
   match e.term with
+    | Ground (Term.Ground.String s) -> e.t >: mk (Type.AString s)
     | Ground g -> e.t >: mkg (Ground.to_type g)
     | Encoder f -> e.t >: type_of_format ~pos:e.t.Type.pos ~level f
     | List l ->
@@ -304,7 +305,6 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 def.t);
         check ~print_toplevel ~level:(level + 1) ~env body;
         e.t >: body.t
-    | Cons c -> e.t <: Type.make ~pos ~level (Type.Cons c)
     | Match l ->
         (* Generic patterns are only allowed in last position: this is in order
            to avoid programs like

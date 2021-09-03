@@ -25,18 +25,18 @@ end
 # Constructors
 def g(x) =
   match x
-    case `a do "a"
-    case `b do "b"
-    case `c do "c"
+    case "a" do "A"
+    case "b" do "B"
+    case "c" do "C"
   end
 end
 
 # Constructors with a catchall
 def h(x) =
   match x
-    case `a do "a"
-    case `b do "b"
-    case `c do "c"
+    case "a" do "A"
+    case "b" do "B"
+    case "c" do "C"
     case _ do "?"
   end
 end
@@ -50,13 +50,13 @@ def run() =
   _ = f("x")
   _ = f(2)
 
-  _ = g(`a)
-  _ = g(`b)
-  _ = g(`c)
+  _ = g("a")
+  _ = g("b")
+  _ = g("c")
 
-  _ = h(`a)
-  _ = h(`b)
-  _ = h(`c)
+  _ = h("a")
+  _ = h("b")
+  _ = h("c")
   _ = h("x")
 
   if !success then test.pass() else test.fail() end

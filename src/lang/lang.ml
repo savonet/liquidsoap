@@ -319,7 +319,6 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
             (fun (_, _, _, v) ->
               match v with Some v -> iter_term env v | None -> ())
             proto
-      | Cons (_ : string) -> ()
       | Match l -> List.iter (fun (_, v) -> iter_term env v) l
   and iter_value v =
     if not (List.memq v !itered_values) then (

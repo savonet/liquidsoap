@@ -110,13 +110,13 @@ and constructed = { name : string; params : (variance * t) list }
 and descr =
   | Constr of constructed
   | Ground of ground
+  | AString of string (* we accept only one string *)
   | Getter of t
   | List of t
   | Tuple of t list
   | Nullable of t
   | Meth of string * scheme * string * t (* label, type, documentation, type to decorate *)
   | Arrow of (bool * string * t) list * t
-  | Cons of string (* A type with one variant. *)
   | Union of t * t
   | EVar of var (* type variable *)
   | Link of t
@@ -130,13 +130,13 @@ let unit = Tuple []
 type repr =
   [ `Constr of string * (variance * repr) list
   | `Ground of ground
+  | `AString of string
   | `List of repr
   | `Tuple of repr list
   | `Nullable of repr
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
-  | `Cons of string
   | `Union of repr * repr
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
@@ -267,6 +267,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     else (
       match t.descr with
         | Ground g -> `Ground g
+        | AString s -> `AString s
         | Getter t -> `Getter (repr g t)
         | List t -> `List (repr g t)
         | Tuple l -> `Tuple (List.map (repr g) l)
@@ -285,7 +286,6 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Union (u, v) -> `Union (repr g u, repr g v)
-        | Cons c -> `Cons c
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
@@ -350,6 +350,9 @@ let print_repr f t =
     | `Ground g ->
         Format.fprintf f "%s" (print_ground g);
         vars
+    | `AString s ->
+        Format.fprintf f "\"%s\"" s;
+        vars
     | `Tuple [] ->
         Format.fprintf f "unit";
         vars
@@ -369,9 +372,6 @@ let print_repr f t =
     | `Nullable t ->
         let vars = print ~par:true vars t in
         Format.fprintf f "?";
-        vars
-    | `Cons c ->
-        Format.fprintf f "`%s" c;
         vars
     | `Meth (l, (_, a), b) as t ->
         if not !debug then (
@@ -608,6 +608,7 @@ let filter_vars f t =
     let t = deref t in
     match t.descr with
       | Ground _ -> l
+      | AString _ -> l
       | Getter t -> aux l t
       | List t | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
@@ -617,7 +618,6 @@ let filter_vars f t =
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | Union (t, u) -> aux (aux l t) u
-      | Cons (_ : string) -> l
       | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
       | Link _ -> assert false
   in
@@ -654,7 +654,6 @@ let rec occur_check a b =
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
-    | Cons (_ : string) -> ()
     | Union (t, u) ->
         occur_check a t;
         occur_check a u
@@ -667,6 +666,7 @@ let rec occur_check a b =
         if b.level = -1 then b.level <- a.level
         else if a.level <> -1 then b.level <- min b.level a.level
     | Ground _ -> ()
+    | AString _ -> ()
     | Link _ -> assert false
 
 (* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)

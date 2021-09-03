@@ -61,13 +61,13 @@ and constructed = { name : string; params : (variance * t) list }
 and descr =
   | Constr of constructed
   | Ground of ground
+  | AString of string
   | Getter of t
   | List of t
   | Tuple of t list
   | Nullable of t
   | Meth of string * scheme * string * t
   | Arrow of (bool * string * t) list * t
-  | Cons of string
   | Union of t * t
   | EVar of var
   | Link of t
@@ -128,13 +128,13 @@ val bind : t -> t -> unit
 type repr =
   [ `Constr of string * (variance * repr) list
   | `Ground of ground
+  | `AString of string
   | `List of repr
   | `Tuple of repr list
   | `Nullable of repr
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
-  | `Cons of string
   | `Union of repr * repr
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)

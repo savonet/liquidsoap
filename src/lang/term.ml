@@ -346,15 +346,13 @@ and in_term =
   | Fun of Vars.t * (string * string * Type.t * t option) list * t
   | RFun of string * Vars.t * (string * string * Type.t * t option) list * t
   | Match of (pattern * t) list
-  (* A constructor (for variants). *)
-  | Cons of string
 
 (* A recursive function, the first string is the name of the recursive
    variable. *)
 and pattern =
   | PVar of string list  (** a field *)
   | PGround of string * Type.ground  (** a variable of ground type *)
-  | PCons of string  (** a constructor *)
+  | PAString of string  (** a string *)
   | PTuple of pattern list  (** a tuple *)
 
 type term = t
@@ -391,13 +389,12 @@ let rec print_term v =
             tl
         in
         print_term hd ^ "(" ^ String.concat "," tl ^ ")"
-    | Cons c -> "`" ^ c
     | Let _ | Seq _ | Match _ -> assert false
 
 let rec string_of_pat = function
   | PVar l -> String.concat "." l
   | PGround (x, g) -> Printf.sprintf "%s : %s" x (Type.print_ground g)
-  | PCons c -> Printf.sprintf "`%s" c
+  | PAString s -> Printf.sprintf "\"%s\"" s
   | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
 
 let rec free_vars_pat = function
@@ -405,7 +402,7 @@ let rec free_vars_pat = function
   | PVar [_] -> Vars.empty
   | PVar (x :: _) -> Vars.singleton x
   | PGround (x, _) -> Vars.singleton x
-  | PCons (_ : string) -> Vars.empty
+  | PAString _ -> Vars.empty
   | PTuple l -> List.fold_left Vars.union Vars.empty (List.map free_vars_pat l)
 
 let rec bound_vars_pat = function
@@ -413,7 +410,7 @@ let rec bound_vars_pat = function
   | PVar [x] -> Vars.singleton x
   | PVar _ -> Vars.empty
   | PGround (x, _) -> Vars.singleton x
-  | PCons (_ : string) -> Vars.empty
+  | PAString _ -> Vars.empty
   | PTuple l -> List.fold_left Vars.union Vars.empty (List.map bound_vars_pat l)
 
 let rec free_vars tm =
@@ -443,7 +440,6 @@ let rec free_vars tm =
           (fun vars (p, e) ->
             Vars.union vars (Vars.diff (free_vars e) (bound_vars_pat p)))
           Vars.empty l
-    | Cons (_ : string) -> Vars.empty
 
 let free_vars ?(bound = []) body =
   Vars.diff (free_vars body) (Vars.of_list bound)
@@ -464,22 +460,23 @@ let is_source t =
     | Type.Constr { Type.name = "source"; _ } -> true
     | _ -> false
 
-(** Whether two patterns are disjoint, i.e. cannot match common elements. This
-    function is approximated: [true] guarantees that the patterns are disjoint,
-    while the converse only holds most of the time. *)
+(** Whether two patterns are disjoint. This function is approximated: [true]
+   guarantees that the patterns are disjoint, while the converse only holds most
+   of the time. *)
 let rec disjoint_patterns p q =
   match (p, q) with
     | PTuple _, PGround _
     | PGround _, PTuple _
-    | PGround _, PCons _
-    | PCons _, PGround _
-    | PTuple _, PCons _
-    | PCons _, PTuple _ ->
+    | PTuple _, PAString _
+    | PAString _, PTuple _
+    (* For these two cases, they are not really disjoint, but I don't think they can cause problems. *)
+    | PAString _, PGround _
+    | PGround _, PAString _ ->
         true
     | PGround (_, g), PGround (_, g') -> g <> g'
+    | PAString s, PAString s' -> s <> s'
     | PTuple l, PTuple l' ->
         List.length l <> List.length l' || List.exists2 disjoint_patterns l l'
-    | PCons (c : string), PCons (c' : string) -> c <> c'
     | PVar _, _ | _, PVar _ -> false
 
 (** {1 Basic checks and errors} *)
@@ -577,7 +574,6 @@ let check_unused ~throw ~lib tm =
               let v = check v e in
               Vars.union (Vars.diff v bv) mask)
             v l
-      | Cons (_ : string) -> v
   in
   (* Unused free variables may remain *)
   ignore (check ~toplevel:true Vars.empty tm)

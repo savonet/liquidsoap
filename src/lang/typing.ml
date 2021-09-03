@@ -94,6 +94,7 @@ let copy_with (subst : Subst.t) t =
           let params = List.map (fun (v, t) -> (v, aux t)) c.params in
           cp (Constr { c with params })
       | Ground _ -> cp t.descr
+      | AString s -> cp (AString s)
       | Getter t -> cp (Getter (aux t))
       | List t -> cp (List (aux t))
       | Nullable t -> cp (Nullable (aux t))
@@ -105,7 +106,6 @@ let copy_with (subst : Subst.t) t =
           cp (Meth (l, (g, aux t), d, aux u))
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
-      | Cons (c : string) -> cp (Cons c)
       | Union (t, u) -> cp (Union (aux t, aux u))
       | Link t ->
           (* Keep links to preserve rich position information,
@@ -256,13 +256,13 @@ let rec ( <: ) a b =
     | Ground (Format k), Ground (Format k') -> (
         try Frame_content.merge k k' with _ -> raise (Error (repr a, repr b)))
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
+    | AString s, AString s' -> if s <> s' then raise (Error (repr a, repr b))
+    | AString _, Ground Type.String -> ()
     | Getter t1, Getter t2 -> (
         try t1 <: t2 with Error (a, b) -> raise (Error (`Getter a, `Getter b)))
     | Arrow ([], t1), Getter t2 -> (
         try t1 <: t2
         with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
-    | Cons (c : string), Cons (d : string) ->
-        if c <> d then raise (Error (repr a, repr b))
     | EVar _, _ -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->
@@ -379,6 +379,7 @@ let rec duplicate ?pos ?level t =
             }
       | Ground (Format k) -> Ground (Format (Frame_content.duplicate k))
       | Ground g -> Ground g
+      | AString s -> AString s
       | Getter t -> Getter (duplicate ?pos ?level t)
       | List t -> List (duplicate ?pos ?level t)
       | Tuple l -> Tuple (List.map (duplicate ?pos ?level) l)
@@ -389,7 +390,6 @@ let rec duplicate ?pos ?level t =
           Arrow
             ( List.map (fun (b, n, t) -> (b, n, duplicate ?pos ?level t)) args,
               duplicate ?pos ?level t )
-      | Cons (c : string) -> Cons c
       | Union (t, u) -> Union (duplicate ?pos ?level t, duplicate ?pos ?level u)
       | EVar v -> EVar v
       | Link t -> Link (duplicate ?pos ?level t))

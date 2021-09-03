@@ -200,7 +200,6 @@ let rec eval ~env tm =
           { Value.pos = tm.t.Type.pos; value = Value.Fun (p, [], env, body) }
         in
         v ()
-    | Cons c -> mk (Value.Cons c)
     | Match l ->
         (* Keep only once the variables we might use in the environment. *)
         let env =
@@ -275,7 +274,8 @@ and apply f l =
                     ->
                       let env = (x, Lazy.from_val v) :: env in
                       Some (eval ~env e)
-                  | PCons (c : string), Value.Cons c' when c = c' ->
+                  | PAString s, Value.Ground (Value.Ground.String s')
+                    when s = s' ->
                       Some (eval ~env e)
                   | _ -> None)
               l
@@ -451,9 +451,9 @@ let rec eval_toplevel ?(interactive = false) t =
                   failwith
                     "TODO: ground patterns not (yet) supported in let \
                      definitions"
-              | PCons _ ->
+              | PAString _ ->
                   failwith
-                    "TODO: constructor patterns not (yet) supported in let \
+                    "TODO: string patterns not (yet) supported in let \
                      definitions"
               | PTuple _ ->
                   failwith "TODO: cannot replace toplevel tuples for now")
