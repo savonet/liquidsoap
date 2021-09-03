@@ -447,7 +447,7 @@ let print_repr f t =
         if par then Format.fprintf f "@[<1>(" else Format.fprintf f "@[<0>";
         let vars = print ~par:true vars t in
         Format.fprintf f " | ";
-        let vars = print ~par:true vars u in
+        let vars = print ~par:false vars u in
         if par then Format.fprintf f ")@]" else Format.fprintf f "@]";
         vars
     | `EVar (a, [InternalMedia]) ->

@@ -309,6 +309,7 @@ bindvar:
 pattern:
   | bindvar { PVar [$1] }
   | bindvar COLON VAR { PGround ($1, ground_type_of_string ~pos:$loc($3) $3) }
+  | CONS    { PCons $1 }
   | LPAR pattern_list RPAR { PTuple $2 }
 
 subfield:

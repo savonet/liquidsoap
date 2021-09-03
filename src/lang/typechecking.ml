@@ -58,6 +58,7 @@ let rec type_of_pat ~level ~pos = function
   | PGround (x, g) ->
       let t = Type.make ~level ~pos (Type.Ground g) in
       ([([x], t)], t)
+  | PCons c -> ([], Type.make ~level ~pos (Type.Cons c))
   | PTuple l ->
       let env, l =
         List.fold_left

@@ -258,15 +258,25 @@ and apply f l =
               (fun (p, e) ->
                 match (p, (Value.demeth v).Value.value) with
                   | PVar [x], _
-                  | PGround (x, Type.Int), Value.Ground (Value.Ground.Int _) ->
+                  | PGround (x, Type.Int), Value.Ground (Value.Ground.Int _)
+                  | ( PGround (x, Type.String),
+                      Value.Ground (Value.Ground.String _) )
+                  | PGround (x, Type.Float), Value.Ground (Value.Ground.Float _)
+                  | PGround (x, Type.Bool), Value.Ground (Value.Ground.Bool _)
+                    ->
                       let env = (x, Lazy.from_val v) :: env in
+                      Some (eval ~env e)
+                  | PCons (c : string), Value.Cons c' when c = c' ->
                       Some (eval ~env e)
                   | _ -> None)
               l
           in
           let f v =
-            match f v with Some v -> v | None -> assert false
-            (* We failed to match. This should not have happened. *)
+            match f v with
+              | Some v -> v
+              | None ->
+                  (* We failed to match. This should not have happened. *)
+                  failwith ("Failed to apply match to " ^ Value.print_value v)
           in
           ( [("", "_", None)],
             [],
@@ -431,6 +441,10 @@ let rec eval_toplevel ?(interactive = false) t =
               | PGround _ ->
                   failwith
                     "TODO: ground patterns not (yet) supported in let \
+                     definitions"
+              | PCons _ ->
+                  failwith
+                    "TODO: constructor patterns not (yet) supported in let \
                      definitions"
               | PTuple _ ->
                   failwith "TODO: cannot replace toplevel tuples for now")
