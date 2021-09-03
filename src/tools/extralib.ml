@@ -21,6 +21,10 @@ module List = struct
     match l with
       | [] -> []
       | x :: l -> if n = 0 then [] else x :: prefix (n - 1) l
+
+  let rec for_all_pairs p = function
+    | x :: l -> List.for_all (fun y -> p x y) l && for_all_pairs p l
+    | [] -> true
 end
 
 module String = struct

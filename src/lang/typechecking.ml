@@ -22,6 +22,7 @@
 
 open Term
 open Typing
+open Extralib
 
 (** {1 Type checking / inference} *)
 
@@ -303,23 +304,25 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~print_toplevel ~level:(level + 1) ~env body;
         e.t >: body.t
     | Match l ->
-        ((* Generic patterns are only allowed in last position: this is in order
-            to avoid programs like
-            match x
-              case x do ignore (x+4)
-              case x do ignore (""^x)
-            end
-            which accept int or string, but we cannot be sure which branch does what.
-         *)
-         let safe = function PGround _ -> true | _ -> false in
-         let rec aux = function
-           | [_] -> ()
-           | [] -> ()
-           | (p, _) :: l ->
-               (* TODO: better error *)
-               if not (safe p) then failwith "Unsafe pattern" else aux l
-         in
-         aux l);
+        (* Generic patterns are only allowed in last position: this is in order
+           to avoid programs like
+              match x
+                case x do ignore (x+4)
+                case x do ignore (""^x)
+              end
+              which accept int or string, but we cannot be sure which branch does what.
+        *)
+        if
+          not
+            (List.for_all_pairs Term.disjoint_patterns
+               (List.tl (List.rev (List.map fst l))))
+        then
+          (* TODO: better kind of exception? *)
+          raise
+            (Parse_error
+               ( Option.get e.Term.t.Type.pos,
+                 "All patterns should be pairwise disjoint (excepting possibly \
+                  the last one)." ));
         let b = Type.fresh_evar ~level ~pos in
         let l =
           List.map

@@ -456,9 +456,21 @@ let is_source t =
     | Type.Constr { Type.name = "source"; _ } -> true
     | _ -> false
 
+(** Whether two patterns are disjoint, i.e. cannot match common elements. This
+    function is approximated: [true] guarantees that the patterns are disjoint,
+    while the converse only holds most of the time. *)
+let disjoint_patterns p q =
+  match (p, q) with
+    | PTuple _, PGround _ | PGround _, PTuple _ -> true
+    | PGround (_, g), PGround (_, g') when g = g' -> true
+    | _ -> false
+
 (** {1 Basic checks and errors} *)
 
+(** An unbound variable. *)
 exception Unbound of Type.pos option * string
+
+(** We silently ignore the result of a function. *)
 exception Ignored of t
 
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be

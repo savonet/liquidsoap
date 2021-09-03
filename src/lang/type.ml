@@ -438,11 +438,11 @@ let print_repr f t =
         Format.fprintf f "}";
         vars
     | `Union (t, u) ->
-        Format.fprintf f "@[<1>(";
-        let vars = print ~par:false vars t in
-        Format.fprintf f " ∪ ";
-        let vars = print ~par:false vars u in
-        Format.fprintf f ")@]";
+        if par then Format.fprintf f "@[<1>(" else Format.fprintf f "@[<0>";
+        let vars = print ~par:true vars t in
+        Format.fprintf f " | ";
+        let vars = print ~par:true vars u in
+        if par then Format.fprintf f ")@]" else Format.fprintf f "@]";
         vars
     | `EVar (a, [InternalMedia]) ->
         Format.fprintf f "?internal(%s)" a;
@@ -463,7 +463,7 @@ let print_repr f t =
               if not first then Format.fprintf f ",@ ";
               if opt then Format.fprintf f "?";
               if lbl <> "" then Format.fprintf f "%s : " lbl;
-              let vars = print ~par:true vars kind in
+              let vars = print ~par:false vars kind in
               (false, vars))
             (true, vars) p
         in
