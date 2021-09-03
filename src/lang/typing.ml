@@ -150,8 +150,8 @@ exception Error of (repr * repr)
  * optional argument; whereas with a mandatory argument it is expected to wait
  * for it. *)
 
-(** Ensure that a<:b, perform unification if needed.
-  * In case of error, generate an explanation. *)
+(** The subtyping function. We ensure that a<:b, and perform unification if
+    needed. In case of error, we generate an explanation. *)
 let rec ( <: ) a b =
   if !debug then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
   match ((deref a).descr, (deref b).descr) with
