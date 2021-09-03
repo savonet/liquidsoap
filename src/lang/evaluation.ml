@@ -202,8 +202,17 @@ let rec eval ~env tm =
         v ()
     | Cons c -> mk (Value.Cons c)
     | Match l ->
-        (* TODO: we should restrcit environments to free variables, like for
-           functions. *)
+        (* Keep only once the variables we might use in the environment. *)
+        let env =
+          let fv = ref (Term.free_vars tm) in
+          let mem x =
+            if Vars.mem x !fv then (
+              fv := Vars.remove x !fv;
+              true)
+            else false
+          in
+          List.filter (fun (x, _) -> mem x) env
+        in
         { Value.pos = tm.t.Type.pos; value = Value.Match (env, l) }
     | Var var -> lookup env var
     | Seq (a, b) ->
