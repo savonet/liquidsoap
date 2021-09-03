@@ -50,6 +50,7 @@ and in_value =
   | Fun of (string * string * t option) list * env * lazy_env * Term.t
   (* A matcher. Some day, Fun might be merged with this. *)
   | Match of lazy_env * (Term.pattern * Term.t) list
+  | Cons of string
   (* For a foreign function only the arguments are visible, the closure
      doesn't capture anything in the environment. *)
   | FFI of (string * string * t option) list * env * (env -> t)
@@ -103,6 +104,7 @@ let rec print_value v =
           (Term.print_term x)
     | Fun _ | FFI _ -> "<fun>"
     | Match _ -> "<match>"
+    | Cons c -> "`" ^ c
 
 (** Find a method in a value. *)
 let rec invoke x l =

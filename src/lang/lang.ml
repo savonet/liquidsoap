@@ -282,23 +282,24 @@ let add_module name = Environment.add_module (String.split_on_char '.' name)
 let iter_sources ?on_reference ~static_analysis_failed f v =
   let itered_values = ref [] in
   let rec iter_term env v =
-    match v.Term.term with
-      | Term.Ground _ | Term.Encoder _ -> ()
-      | Term.List l -> List.iter (iter_term env) l
-      | Term.Tuple l -> List.iter (iter_term env) l
-      | Term.Null -> ()
-      | Term.Cast (a, _) -> iter_term env a
-      | Term.Meth (_, a, b) ->
+    let open Term in
+    match v.term with
+      | Ground _ | Encoder _ -> ()
+      | List l -> List.iter (iter_term env) l
+      | Tuple l -> List.iter (iter_term env) l
+      | Null -> ()
+      | Cast (a, _) -> iter_term env a
+      | Meth (_, a, b) ->
           iter_term env a;
           iter_term env b
-      | Term.Invoke (a, _) -> iter_term env a
-      | Term.Open (a, b) ->
+      | Invoke (a, _) -> iter_term env a
+      | Open (a, b) ->
           iter_term env a;
           iter_term env b
-      | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
+      | Let { def = a; body = b; _ } | Seq (a, b) ->
           iter_term env a;
           iter_term env b
-      | Term.Var v -> (
+      | Var v -> (
           try
             (* If it's locally bound it won't be in [env]. *)
             (* TODO since inner-bound variables don't mask outer ones in [env],
@@ -309,16 +310,17 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
               iter_value v)
             else ()
           with Not_found -> ())
-      | Term.App (a, l) ->
+      | App (a, l) ->
           iter_term env a;
           List.iter (fun (_, v) -> iter_term env v) l
-      | Term.Fun (_, proto, body) | Term.RFun (_, _, proto, body) ->
+      | Fun (_, proto, body) | RFun (_, _, proto, body) ->
           iter_term env body;
           List.iter
             (fun (_, _, _, v) ->
               match v with Some v -> iter_term env v | None -> ())
             proto
-      | Term.Match l -> List.iter (fun (_, v) -> iter_term env v) l
+      | Cons (_ : string) -> ()
+      | Match l -> List.iter (fun (_, v) -> iter_term env v) l
   and iter_value v =
     if not (List.memq v !itered_values) then (
       (* We need to avoid checking the same value multiple times, otherwise we
@@ -342,6 +344,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
         | FFI (proto, pe, _) ->
             List.iter (fun (_, v) -> iter_value v) pe;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
+        | Cons (_ : string) -> ()
         | Match (env, l) -> List.iter (fun (_, v) -> iter_term env v) l
         | Ref r ->
             if List.memq r !static_analysis_failed then ()
@@ -357,7 +360,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
                 let rec aux v =
                   match v.value with
                     | Source _ -> true
-                    | Ground _ | Encoder _ | Null -> false
+                    | Ground _ | Encoder _ | Null | Cons (_ : string) -> false
                     | List l -> List.exists aux l
                     | Tuple l -> List.exists aux l
                     | Ref r -> aux !r

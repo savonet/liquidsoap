@@ -98,6 +98,7 @@ let var_lit =
 
 let var_ref = [%sedlex.regexp? "ref", Plus (var_char | decimal_digit | '\'')]
 let var = [%sedlex.regexp? var_lit | so | math | other_math]
+let constructor = [%sedlex.regexp? "`", Plus (var_char | decimal_digit | '\'')]
 
 let time =
   [%sedlex.regexp?
@@ -291,6 +292,10 @@ let rec token lexbuf =
         in
         let t2 = String.trim t2 in
         INTERVAL (parse_time t1, parse_time t2)
+    | constructor ->
+        let c = Sedlexing.Utf8.lexeme lexbuf in
+        let c = String.sub c 1 (String.length c - 1) in
+        CONS c
     | var -> VAR (Sedlexing.Utf8.lexeme lexbuf)
     | '"' ->
         read_string '"'

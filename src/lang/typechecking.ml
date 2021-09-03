@@ -303,6 +303,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 def.t);
         check ~print_toplevel ~level:(level + 1) ~env body;
         e.t >: body.t
+    | Cons c -> e.t <: Type.make ~pos ~level (Type.Cons c)
     | Match l ->
         (* Generic patterns are only allowed in last position: this is in order
            to avoid programs like

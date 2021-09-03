@@ -67,6 +67,7 @@ and descr =
   | Nullable of t
   | Meth of string * scheme * string * t
   | Arrow of (bool * string * t) list * t
+  | Cons of string
   | Union of t * t
   | EVar of var
   | Link of t
@@ -133,6 +134,7 @@ type repr =
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
+  | `Cons of string
   | `Union of repr * repr
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)

@@ -34,6 +34,7 @@ open Parser_helper
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
+%token <string> CONS
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
 %token OGG FLAC AUDIO AUDIO_RAW AUDIO_COPY AUDIO_NONE VIDEO VIDEO_RAW VIDEO_COPY VIDEO_NONE FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
@@ -137,6 +138,7 @@ expr:
   | BOOL                             { mk ~pos:$loc (Ground (Bool $1)) }
   | FLOAT                            { mk ~pos:$loc (Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
+  | CONS                             { mk ~pos:$loc (Cons $1) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | varlist                          { mk_list ~pos:$loc $1 }
   | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke (mk ~pos:$loc($1) (Var "ref"), "get")), ["", $2])) }

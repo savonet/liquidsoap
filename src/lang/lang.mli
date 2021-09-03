@@ -70,6 +70,7 @@ and in_value = Value.in_value =
      default value), parameters already passed to the function, closure and
      value. *)
   | Match of lazy_env * (Term.pattern * Term.t) list
+  | Cons of string
   | FFI of (string * string * value option) list * env * (env -> value)
 
 val demeth : value -> value

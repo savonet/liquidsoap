@@ -200,6 +200,7 @@ let rec eval ~env tm =
           { Value.pos = tm.t.Type.pos; value = Value.Fun (p, [], env, body) }
         in
         v ()
+    | Cons c -> mk (Value.Cons c)
     | Match l ->
         (* TODO: we should restrcit environments to free variables, like for
            functions. *)

@@ -116,6 +116,7 @@ and descr =
   | Nullable of t
   | Meth of string * scheme * string * t (* label, type, documentation, type to decorate *)
   | Arrow of (bool * string * t) list * t
+  | Cons of string (* A type with one variant. *)
   | Union of t * t
   | EVar of var (* type variable *)
   | Link of t
@@ -135,6 +136,7 @@ type repr =
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
+  | `Cons of string
   | `Union of repr * repr
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
@@ -283,6 +285,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Union (u, v) -> `Union (repr g u, repr g v)
+        | Cons c -> `Cons c
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
@@ -366,6 +369,9 @@ let print_repr f t =
     | `Nullable t ->
         let vars = print ~par:true vars t in
         Format.fprintf f "?";
+        vars
+    | `Cons c ->
+        Format.fprintf f "`%s" c;
         vars
     | `Meth (l, (_, a), b) as t ->
         if not !debug then (
@@ -611,6 +617,7 @@ let filter_vars f t =
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | Union (t, u) -> aux (aux l t) u
+      | Cons (_ : string) -> l
       | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
       | Link _ -> assert false
   in
@@ -647,6 +654,7 @@ let rec occur_check a b =
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
+    | Cons (_ : string) -> ()
     | Union (t, u) ->
         occur_check a t;
         occur_check a u
