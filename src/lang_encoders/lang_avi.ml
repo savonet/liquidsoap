@@ -44,3 +44,6 @@ let make params =
       defaults params
   in
   Encoder.AVI avi
+
+let kind_of_encoder p = Encoder.audio_video_kind (Encoders.channels_of_params p)
+let () = Encoders.register "avi" kind_of_encoder make

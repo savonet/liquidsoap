@@ -323,8 +323,10 @@ and let_t = {
   body : t;
 }
 
+and encoder_params = (string * [ `Term of t | `Encoder of encoder ]) list
+
 (** A formal encoder. *)
-and encoder = string * (string * [ `Term of t | `Encoder of encoder ]) list
+and encoder = string * encoder_params
 
 and in_term =
   | Ground of Ground.t
@@ -403,6 +405,18 @@ let rec print_term v =
 let rec string_of_pat = function
   | PVar l -> String.concat "." l
   | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
+
+(** Create a new value. *)
+let make ?pos ?t e =
+  let t =
+    match t with Some t -> t | None -> Type.fresh_evar ~level:(-1) ~pos
+  in
+  if Lazy.force debug then
+    Printf.eprintf "%s (%s): assigned type var %s\n"
+      (Type.print_pos_opt t.Type.pos)
+      (try print_term { t; term = e } with _ -> "<?>")
+      (Type.print t);
+  { t; term = e }
 
 let rec free_vars_pat = function
   | PVar [] -> assert false

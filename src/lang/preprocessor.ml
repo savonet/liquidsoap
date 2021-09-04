@@ -78,12 +78,14 @@ let eval_ifdefs tokenizer =
               let fmt =
                 let token = fst (tokenizer ()) in
                 match token with
-                  | Parser.ENCODER e -> Encoders.make_encoder_base e []
+                  | Parser.ENCODER e ->
+                      Encoders.make_encoder ~pos:None (Term.make Term.unit)
+                        (e, [])
                   | _ -> failwith "expected an encoding format after %ifencoder"
               in
               let (_ : Encoder.factory) = Encoder.get_factory fmt in
               true
-            with Encoders.Error _ | Not_found -> false
+            with _ -> false
           in
           let test =
             if fst tok = Parser.PP_IFENCODER then fun x -> x else not

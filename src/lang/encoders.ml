@@ -23,6 +23,41 @@
 open Term
 open Term.Ground
 
+(** An encoder. *)
+type encoder = {
+  kind_of_encoder : Term.encoder_params -> Frame.kind Frame.fields;
+      (** Compute the kind of the encoder. *)
+  make : Value.encoder_params -> Encoder.format;
+      (** Actually create the encoder. *)
+}
+
+let encoders = ref []
+
+(** Register an encoder. *)
+let register name kind_of_encoder make =
+  encoders := (name, { kind_of_encoder; make }) :: !encoders
+
+(** Find an encoder with given name. *)
+let find_encoder name = List.assoc name !encoders
+
+let channels_of_params ?(default = 2) p =
+  match
+    List.find_map
+      (function
+        | "", `Term { term = Ground (String "stereo") } -> Some 2
+        | "", `Term { term = Ground (String "mono") } -> Some 1
+        | "channels", `Term { term = Ground (Int n) } -> Some n
+        | _ -> None)
+      p
+  with
+    | Some n -> n
+    | None -> default
+
+(** Compute a kind from a non-fully evaluated format. This should give the same
+    result than [Encoder.kind_of_format] once evaluated... *)
+let kind_of_encoder ((e, p) : Term.encoder) = (find_encoder e).kind_of_encoder p
+
+(*
 (** Compute a kind from a non-fully evaluated format. This should give the same
     result than [Encoder.kind_of_format] once evaluated... *)
 let kind_of_encoder (name, p) =
@@ -122,16 +157,16 @@ let kind_of_encoder (name, p) =
         in
         { Frame.audio; video; midi = Frame.none }
     | _ -> raise Not_found
+*)
 
-let type_of_encoder ~pos ~level f =
-  let kind = kind_of_encoder f in
+let type_of_encoder ~pos ~level e =
+  let kind = kind_of_encoder e in
   let audio = kind_t ~pos ~level kind.Frame.audio in
   let video = kind_t ~pos ~level kind.Frame.video in
   let midi = kind_t ~pos ~level kind.Frame.midi in
   format_t ~pos ~level (frame_kind_t ~pos ~level audio video midi)
 
-exception Error of string
-
+(*
 (* TODO: it would be better if each encoder registered itself here than
    having this match *)
 let make_encoder_base e p =
@@ -199,14 +234,11 @@ let make_encoder_base e p =
             Encoder.Ogg
               { Ogg_format.audio = None; video = Some (ogg_video e p) }
           with Not_found -> raise (Error ("Unkown encoder " ^ e))))
+*)
 
-let make_encoder ~pos t e p =
-  let e =
-    try make_encoder_base e p
-    with Error _ -> raise (Term.Unsupported_format (pos, Term.print_term t))
-  in
-  (try
-     let (_ : Encoder.factory) = Encoder.get_factory e in
-     ()
-   with Not_found -> raise (Term.Unsupported_format (pos, Term.print_term t)));
-  e
+let make_encoder ~pos t ((e, p) : Value.encoder) =
+  try
+    let e = (find_encoder e).make p in
+    let (_ : Encoder.factory) = Encoder.get_factory e in
+    e
+  with Not_found -> raise (Term.Unsupported_format (pos, Term.print_term t))

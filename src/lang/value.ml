@@ -52,6 +52,11 @@ and in_value =
      doesn't capture anything in the environment. *)
   | FFI of (string * string * t option) list * env * (env -> t)
 
+type encoder_params = (string * [ `Value of t | `Encoder of encoder ]) list
+
+(** The type of evaluated encoder terms. *)
+and encoder = string * encoder_params
+
 let unit : in_value = Tuple []
 
 let string_of_float f =

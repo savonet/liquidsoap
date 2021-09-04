@@ -145,15 +145,7 @@ let args_of, app_of =
   let app_of = gen_args_of get_app in
   (args_of, app_of)
 
-(** Create a new value with an unknown type. *)
-let mk ~pos e =
-  let kind = Type.fresh_evar ~level:(-1) ~pos:(Some pos) in
-  if Lazy.force Term.debug then
-    Printf.eprintf "%s (%s): assigned type var %s\n"
-      (Type.print_pos_opt kind.Type.pos)
-      (try Term.print_term { t = kind; term = e } with _ -> "<?>")
-      (Type.print kind);
-  { t = kind; term = e }
+let mk = Term.make
 
 let append_list ~pos x v =
   match (x, v) with
