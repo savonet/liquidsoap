@@ -22,7 +22,64 @@
 
 open Value
 open Ground
-open Lang_encoders
+
+let kind_of_encoder p =
+  let audio =
+    List.fold_left
+      (fun audio p ->
+        match p with
+          | "", `Encoder ("audio.copy", _) ->
+              `Format
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.audio.copy"))
+          | "", `Encoder ("audio.raw", _) ->
+              `Format
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.audio.raw"))
+          | "", `Encoder ("audio", p) ->
+              let channels =
+                try
+                  let channels =
+                    try List.assoc "channels" p
+                    with Not_found -> List.assoc "ac" p
+                  in
+                  match channels with
+                    | `Term { Term.term = Term.Ground (Int n) } -> n
+                    | _ -> raise Exit
+                with
+                  | Not_found -> 2
+                  | Exit -> raise Not_found
+              in
+              `Format
+                Frame_content.(
+                  Audio.lift_params
+                    {
+                      Contents.channel_layout =
+                        lazy
+                          (Audio_converter.Channel_layout.layout_of_channels
+                             channels);
+                    })
+          | _ -> audio)
+      Frame.none p
+  in
+  let video =
+    List.fold_left
+      (fun audio p ->
+        match p with
+          | "", `Encoder ("video.copy", _) ->
+              `Format
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.video.copy"))
+          | "", `Encoder ("video.raw", _) ->
+              `Format
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.video.raw"))
+          | "", `Encoder ("video", _) ->
+              `Format Frame_content.(default_format Video.kind)
+          | _ -> audio)
+      Frame.none p
+  in
+  { Frame.audio; video; midi = Frame.none }
 
 let flag_qscale = ref 0
 let qp2lambda = ref 0
@@ -67,21 +124,21 @@ let ffmpeg_gen params =
       | Ground (Int i) -> i
       | Ground (String s) -> int_of_string s
       | Ground (Float f) -> int_of_float f
-      | _ -> raise (Error (t.pos, "integer expected"))
+      | _ -> raise (Lang_encoder.Error (t.pos, "integer expected"))
   in
   let to_string t =
     match t.value with
       | Ground (Int i) -> Printf.sprintf "%i" i
       | Ground (String s) -> s
       | Ground (Float f) -> Printf.sprintf "%f" f
-      | _ -> raise (Error (t.pos, "string expected"))
+      | _ -> raise (Lang_encoder.Error (t.pos, "string expected"))
   in
   let to_float t =
     match t.value with
       | Ground (Int i) -> float i
       | Ground (String s) -> float_of_string s
       | Ground (Float f) -> f
-      | _ -> raise (Error (t.pos, "float expected"))
+      | _ -> raise (Lang_encoder.Error (t.pos, "float expected"))
   in
   let rec parse_args ~format ~mode f = function
     | [] -> f
@@ -187,7 +244,7 @@ let ffmpeg_gen params =
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Float fl)
           | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Float fl));
         parse_args ~format ~mode f l
-    | (_, t) :: _ -> raise (Error (t.pos, "unexpected option"))
+    | (_, t) :: _ -> raise (Lang_encoder.Error (t.pos, "unexpected option"))
   in
   List.fold_left
     (fun f -> function
@@ -224,7 +281,7 @@ let ffmpeg_gen params =
       | `Option (k, { value = Ground (Float i); _ }) ->
           Hashtbl.add f.Ffmpeg_format.other_opts k (`Float i);
           f
-      | `Option (l, v) -> raise (generic_error (l, `Value v)))
+      | `Option (l, v) -> raise (Lang_encoder.generic_error (l, `Value v)))
     defaults params
 
 let make params =
@@ -251,3 +308,5 @@ let make params =
       params
   in
   Encoder.Ffmpeg (ffmpeg_gen params)
+
+let () = Lang_encoder.register "ffmpeg" kind_of_encoder make

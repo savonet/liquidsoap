@@ -22,7 +22,8 @@
 
 open Value
 open Ground
-open Lang_encoders
+
+let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
 
 let make_cbr params =
   let defaults =
@@ -52,7 +53,7 @@ let make_cbr params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   Ogg_format.Vorbis vorbis
@@ -95,7 +96,7 @@ let make_abr params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   Ogg_format.Vorbis vorbis
@@ -116,11 +117,13 @@ let make params =
             { f with Vorbis_format.samplerate = Lazy.from_val i }
         | "quality", `Value { value = Ground (Float q); pos } ->
             if q < -0.2 || q > 1. then
-              raise (Error (pos, "quality should be in [(-0.2)..1]"));
+              raise
+                (Lang_encoder.Error (pos, "quality should be in [(-0.2)..1]"));
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
         | "quality", `Value { value = Ground (Int i); pos } ->
             if i <> 0 && i <> 1 then
-              raise (Error (pos, "quality should be in [-(0.2)..1]"));
+              raise
+                (Lang_encoder.Error (pos, "quality should be in [-(0.2)..1]"));
             let q = float i in
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
         | "channels", `Value { value = Ground (Int i); _ } ->
@@ -133,7 +136,19 @@ let make params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   Ogg_format.Vorbis vorbis
+
+let () =
+  let make p = Encoder.Ogg { Ogg_format.audio = Some (make p); video = None } in
+  let make_abr p =
+    Encoder.Ogg { Ogg_format.audio = Some (make_abr p); video = None }
+  in
+  let make_cbr p =
+    Encoder.Ogg { Ogg_format.audio = Some (make_cbr p); video = None }
+  in
+  Lang_encoder.register "vorbis" kind_of_encoder make;
+  Lang_encoder.register "vorbis.abr" kind_of_encoder make_abr;
+  Lang_encoder.register "vorbis.cbr" kind_of_encoder make_cbr

@@ -135,7 +135,7 @@ let rec eval ~env tm =
         in
         let p = eval_param p in
         let enc : Value.encoder = (e, p) in
-        let e = Encoders.make_encoder ~pos tm enc in
+        let e = Lang_encoder.make_encoder ~pos tm enc in
         mk (Value.Encoder e)
     | List l -> mk (Value.List (List.map (eval ~env) l))
     | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval ~env a) l))

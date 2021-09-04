@@ -22,7 +22,8 @@
 
 open Value
 open Ground
-open Lang_encoders
+
+let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
 
 let make params =
   let defaults =
@@ -49,7 +50,11 @@ let make params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Shine_format.channels = 2 }
-        | t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   Encoder.Shine shine
+
+let () =
+  Lang_encoder.register "shine" kind_of_encoder make;
+  Lang_encoder.register "mp3.fxp" kind_of_encoder make

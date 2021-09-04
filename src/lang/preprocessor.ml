@@ -79,7 +79,7 @@ let eval_ifdefs tokenizer =
                 let token = fst (tokenizer ()) in
                 match token with
                   | Parser.ENCODER e ->
-                      Encoders.make_encoder ~pos:None (Term.make Term.unit)
+                      Lang_encoder.make_encoder ~pos:None (Term.make Term.unit)
                         (e, [])
                   | _ -> failwith "expected an encoding format after %ifencoder"
               in

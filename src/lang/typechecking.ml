@@ -121,7 +121,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         in
         check_enc f;
         let t =
-          try Encoders.type_of_encoder ~pos:e.t.Type.pos ~level f
+          try Lang_encoder.type_of_encoder ~pos:e.t.Type.pos ~level f
           with Not_found ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace

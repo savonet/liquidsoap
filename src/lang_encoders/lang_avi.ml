@@ -22,7 +22,6 @@
 
 open Value
 open Ground
-open Lang_encoders
 
 let make params =
   let defaults =
@@ -40,10 +39,12 @@ let make params =
             { f with Avi_format.channels = c }
         | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with Avi_format.samplerate = Lazy.from_val i }
-        | t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   Encoder.AVI avi
 
-let kind_of_encoder p = Encoder.audio_video_kind (Encoders.channels_of_params p)
-let () = Encoders.register "avi" kind_of_encoder make
+let kind_of_encoder p =
+  Encoder.audio_video_kind (Lang_encoder.channels_of_params p)
+
+let () = Lang_encoder.register "avi" kind_of_encoder make

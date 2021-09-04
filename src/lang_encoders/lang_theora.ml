@@ -22,7 +22,9 @@
 
 open Value
 open Ground
-open Lang_encoders
+
+let kind_of_encoder p =
+  Encoder.audio_video_kind (Lang_encoder.channels_of_params p)
 
 let make params =
   let defaults =
@@ -50,7 +52,8 @@ let make params =
           (* According to the doc, this should be a value between
            * 0 and 63. *)
           if i < 0 || i > 63 then
-            raise (Error (pos, "Theora quality should be in 0..63"));
+            raise
+              (Lang_encoder.Error (pos, "Theora quality should be in 0..63"));
           { f with Theora_format.bitrate_control = Theora_format.Quality i }
       | "bitrate", `Value { value = Ground (Int i); _ } ->
           { f with Theora_format.bitrate_control = Theora_format.Bitrate i }
@@ -58,25 +61,29 @@ let make params =
           (* According to the doc: must be a multiple of 16, and less than 1048576. *)
           if i mod 16 <> 0 || i >= 1048576 then
             raise
-              (Error
+              (Lang_encoder.Error
                  (pos, "invalid frame width value (should be a multiple of 16)"));
           { f with Theora_format.width = lazy i; picture_width = lazy i }
       | "height", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must be a multiple of 16, and less than 1048576. *)
           if i mod 16 <> 0 || i >= 1048576 then
             raise
-              (Error
+              (Lang_encoder.Error
                  (pos, "invalid frame height value (should be a multiple of 16)"));
           { f with Theora_format.height = lazy i; picture_height = lazy i }
       | "picture_width", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must not be larger than width. *)
           if i > Lazy.force f.Theora_format.width then
-            raise (Error (pos, "picture width must not be larger than width"));
+            raise
+              (Lang_encoder.Error
+                 (pos, "picture width must not be larger than width"));
           { f with Theora_format.picture_width = lazy i }
       | "picture_height", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must not be larger than height. *)
           if i > Lazy.force f.Theora_format.height then
-            raise (Error (pos, "picture height must not be larger than height"));
+            raise
+              (Lang_encoder.Error
+                 (pos, "picture height must not be larger than height"));
           { f with Theora_format.picture_height = lazy i }
       | "picture_x", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must be no larger than width-picture_width
@@ -89,7 +96,7 @@ let make params =
                 255
           then
             raise
-              (Error
+              (Lang_encoder.Error
                  ( pos,
                    "picture x must not be larger than width - picture width or \
                     255, whichever is smaller" ));
@@ -103,13 +110,13 @@ let make params =
               - Lazy.force f.Theora_format.picture_height
           then
             raise
-              (Error
+              (Lang_encoder.Error
                  ( pos,
                    "picture y must not be larger than height - picture height"
                  ));
           if Lazy.force f.Theora_format.picture_height - i > 255 then
             raise
-              (Error
+              (Lang_encoder.Error
                  (pos, "picture height - picture y must not be larger than 255"));
           { f with Theora_format.picture_y = i }
       | "aspect_numerator", `Value { value = Ground (Int i); _ } ->
@@ -128,5 +135,9 @@ let make params =
           { f with Theora_format.speed = Some i }
       | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
           { f with Theora_format.fill = Some i }
-      | t -> raise (generic_error t))
+      | t -> raise (Lang_encoder.generic_error t))
     defaults params
+
+let () =
+  let make p = Encoder.Ogg { Ogg_format.audio = None; video = Some (make p) } in
+  Lang_encoder.register "theora" kind_of_encoder make

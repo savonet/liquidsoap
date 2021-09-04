@@ -22,7 +22,8 @@
 
 open Value
 open Ground
-open Lang_encoders
+
+let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
 
 let make params =
   let defaults =
@@ -55,11 +56,13 @@ let make params =
             { f with Wav_format.samplerate = Lazy.from_val i }
         | "samplesize", `Value { value = Ground (Int i); pos } ->
             if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
-              raise (Error (pos, "invalid sample size"));
+              raise (Lang_encoder.Error (pos, "invalid sample size"));
             { f with Wav_format.samplesize = i }
         | "header", `Value { value = Ground (Bool b); _ } ->
             { f with Wav_format.header = b }
-        | t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   Encoder.WAV wav
+
+let () = Lang_encoder.register "wav" kind_of_encoder make

@@ -22,7 +22,8 @@
 
 open Value
 open Ground
-open Lang_encoders
+
+let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
 
 let make params =
   let valid_samplerates =
@@ -49,7 +50,7 @@ let make params =
            Printf.sprintf "invalid samplerate value. Possible values: %s"
              (String.concat ", " (List.map string_of_int valid_samplerates))
          in
-         raise (Error (pos, err)));
+         raise (Lang_encoder.Error (pos, err)));
        i)
   in
   let defaults =
@@ -76,7 +77,8 @@ let make params =
         | "aot", `Value { value = Ground (String s); pos } ->
             let aot =
               try Fdkaac_format.aot_of_string s
-              with Not_found -> raise (Error (pos, "invalid aot value"))
+              with Not_found ->
+                raise (Lang_encoder.Error (pos, "invalid aot value"))
             in
             { f with Fdkaac_format.aot }
         | "vbr", `Value { value = Ground (Int i); pos } ->
@@ -85,7 +87,7 @@ let make params =
                 Printf.sprintf "invalid vbr mode. Possible values: %s"
                   (String.concat ", " (List.map string_of_int valid_vbr))
               in
-              raise (Error (pos, err)));
+              raise (Lang_encoder.Error (pos, err)));
             { f with Fdkaac_format.bitrate_mode = `Variable i }
         | "bandwidth", `Value { value = Ground (Int i); _ } ->
             { f with Fdkaac_format.bandwidth = `Fixed i }
@@ -106,7 +108,8 @@ let make params =
         | "transmux", `Value { value = Ground (String s); pos } ->
             let transmux =
               try Fdkaac_format.transmux_of_string s
-              with Not_found -> raise (Error (pos, "invalid transmux value"))
+              with Not_found ->
+                raise (Lang_encoder.Error (pos, "invalid transmux value"))
             in
             { f with Fdkaac_format.transmux }
         | "", `Value { value = Ground (String s); _ }
@@ -115,7 +118,7 @@ let make params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Fdkaac_format.channels = 2 }
-        | t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   let aot = fdkaac.Fdkaac_format.aot in
@@ -123,3 +126,5 @@ let make params =
     if fdkaac.Fdkaac_format.channels <> 2 then
       failwith "HE-AAC v2 is only available with 2 channels.";
   Encoder.FdkAacEnc fdkaac
+
+let () = Lang_encoder.register "fdkaac" kind_of_encoder make

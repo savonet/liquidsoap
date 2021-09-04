@@ -22,7 +22,17 @@
 
 open Value
 open Ground
-open Lang_encoders
+
+let kind_of_encoder p =
+  let has_video =
+    List.exists
+      (function
+        | "", `Term { Term.term = Term.Ground (Bool true) } -> true | _ -> false)
+      p
+  in
+  let channels = Lang_encoder.channels_of_params p in
+  if has_video then Encoder.audio_video_kind channels
+  else Encoder.audio_kind channels
 
 let make ?pos params =
   let defaults =
@@ -61,7 +71,7 @@ let make ?pos params =
             { f with Gstreamer_format.log = i }
         | "pipeline", `Value { value = Ground (String s); _ } ->
             { f with Gstreamer_format.pipeline = perhaps s }
-        | t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   if
@@ -70,7 +80,7 @@ let make ?pos params =
     && gstreamer.Gstreamer_format.channels = 0
   then
     raise
-      (Error
+      (Lang_encoder.Error
          ( pos,
            "must have at least one audio channel when passing an audio pipeline"
          ));
@@ -81,6 +91,8 @@ let make ?pos params =
     && gstreamer.Gstreamer_format.muxer = None
   then
     raise
-      (Error
+      (Lang_encoder.Error
          (pos, "must have a muxer when passing an audio and a video pipeline"));
   Encoder.GStreamer gstreamer
+
+let () = Lang_encoder.register "gstreamer" kind_of_encoder (make ?pos:None)

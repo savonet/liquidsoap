@@ -22,7 +22,8 @@
 
 open Value
 open Ground
-open Lang_encoders
+
+let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
 
 let make params =
   let defaults =
@@ -66,9 +67,11 @@ let make params =
             { f with External_encoder_format.process = s }
         | "", `Value { value = Ground (String s); _ } ->
             { f with External_encoder_format.process = s }
-        | t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   if ext.External_encoder_format.process = "" then
     raise External_encoder_format.No_process;
   Encoder.External ext
+
+let () = Lang_encoder.register "external" kind_of_encoder make
