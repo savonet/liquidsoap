@@ -23,11 +23,6 @@ let settings.decoder.external.ffprobe.path = settings.make(
   "ffprobe#{exe_ext}"
 )
 
-let settings.decoder.mime_types.ffmpeg = settings.make(
-  description="Mime types supported by the ffmpeg stream decoder",
-  []
-)
-
 # Enable ffmpeg decoder.
 # @category Liquidsoap
 def enable_external_ffmpeg_decoder() =

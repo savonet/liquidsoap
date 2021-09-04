@@ -4,6 +4,7 @@ version: "2.1.0"
 maintainer: "romain.beauxis@gmail.com"
 homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
+license: "GPL-2.0-or-later"
 build: [
   ["./bootstrap"] {dev}
   ["./configure" "--prefix" prefix
@@ -63,7 +64,7 @@ depends: [
   "conf-pkg-config" {build}
   "conf-which" {build}
   "pcre"
-  "sedlex" {>= "2.0"}
+  "sedlex" {>= "2.2"}
 ]
 depopts: [
   "alsa"
