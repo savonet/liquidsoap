@@ -25,9 +25,7 @@
    disabled. Thus, if [seek] is [true], the seek function is [fun x -> x]
    otherwise it is [fun _ -> 0] *)
 class virtual source ?name ~seek kind duration =
-  let track_size =
-    if duration < 0. then None else Some (Frame.main_of_seconds duration)
-  in
+  let track_size = Option.map Frame.main_of_seconds duration in
   object (self)
     inherit Source.source ?name kind
 

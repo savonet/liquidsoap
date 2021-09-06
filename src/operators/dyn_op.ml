@@ -94,8 +94,9 @@ class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
         | Some s when s#is_ready -> true
         | _ ->
             if
-              track_sensitive && resurection_time >= 0.
-              && Unix.gettimeofday () -. last_select >= resurection_time
+              track_sensitive && resurection_time <> None
+              && Unix.gettimeofday () -. last_select
+                 >= Option.get resurection_time
             then self#select;
             false
 
@@ -138,11 +139,11 @@ let () =
           "Whether the source is infallible or not (be careful when setting \
            this, it will not be checked by the typing system)." );
       ( "resurection_time",
-        Lang.float_t,
-        Some (Lang.float 1.),
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
         Some
           "When track sensitive and the source is unavailable, how long we \
-           should wait before trying to update source again (negative means \
+           should wait before trying to update source again (`null` means \
            never)." );
       ( "",
         Lang.fun_t [] (Lang.nullable_t (Lang.source_t k)),
@@ -173,7 +174,9 @@ let () =
       in
       let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
       let infallible = List.assoc "infallible" p |> Lang.to_bool in
-      let resurection_time = List.assoc "resurection_time" p |> Lang.to_float in
+      let resurection_time =
+        List.assoc "resurection_time" p |> Lang.to_valued_option Lang.to_float
+      in
       let kind = Source.Kind.of_kind kind in
       new dyn
         ~kind ~init ~track_sensitive ~infallible ~resurection_time
