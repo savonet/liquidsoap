@@ -607,12 +607,16 @@ let seek ~target_position ~container ticks =
   Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
   ticks
 
-let mk_decoder ?audio ?video ~target_position container =
+let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
   let check_metadata (_, stream, _) =
+    let is_first = ref true in
     let latest_metadata = ref None in
     fun buffer ->
       let m = Av.get_metadata stream in
-      if Some m <> !latest_metadata then (
+      if
+        ((not !is_first) || decode_first_metadata) && Some m <> !latest_metadata
+      then (
+        is_first := false;
         latest_metadata := Some m;
         let meta = Hashtbl.create 10 in
         List.iter (fun (k, v) -> Hashtbl.add meta k v) m;
@@ -791,7 +795,9 @@ let create_decoder ~ctype fname =
                 match seek ~target_position ~container target with
                   | 0 -> 0
                   | _ -> ticks));
-      decode = mk_decoder ?audio ?video ~target_position container;
+      decode =
+        mk_decoder ?audio ?video ~decode_first_metadata:false ~target_position
+          container;
     },
     close,
     get_remaining )
@@ -817,7 +823,9 @@ let create_stream_decoder ~ctype mime input =
   let target_position = ref None in
   {
     Decoder.seek = seek ~target_position ~container;
-    decode = mk_decoder ?audio ?video ~target_position container;
+    decode =
+      mk_decoder ?audio ?video ~decode_first_metadata:true ~target_position
+        container;
   }
 
 let get_file_type ~ctype filename =
