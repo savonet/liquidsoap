@@ -34,7 +34,7 @@ end
 
 let string.binary = ()
 
-# Value of an integer encoded using native memory representation.
+# Value of a positive (unsigned) integer encoded using native memory representation.
 # @category String
 # @param ~little_endian Whether the memory representation is little endian.
 # @param s String containing the binary representation.
@@ -45,6 +45,39 @@ def string.binary.to_int(~little_endian=true, s)
     ans := lsl(!ans,8) + string.nth(s, if little_endian then n-1-i else i end)
   end
   !ans
+end
+
+# Encode a positive (unsigned) integer using native memory representation.
+# @category String
+# @param ~pad Minimum length in digits (pad on the left with zeros in order to reach it)
+# @param ~little_endian Whether the memory representation is little endian.
+# @param s String containing the binary representation.
+def string.binary.of_int(~pad=0, ~little_endian=true, d)
+  def rec f(d, s) =
+    if d > 0 then
+      c = string.hex_of_int(pad=2, (d mod 256))
+      if little_endian then
+        f(lsr(d, 8), "#{s}\\x#{c}")
+      else
+        f(lsr(d, 8), "\\x#{c}#{s}")
+      end
+    else
+      s
+    end
+  end
+  ret = d == 0 ? "\\x00" : f(d, "")
+  ret = string.unescape(ret)
+  len = string.length(ret)
+  if len < pad then
+    ans = string.make(char_code=0, pad-len)
+    if little_endian then
+      "#{ret}#{ans}"
+    else
+      "#{ans}#{ret}"
+    end
+  else
+    ret
+  end
 end
 
 # Add a null character at the end of a string.

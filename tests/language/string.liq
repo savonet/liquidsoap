@@ -33,6 +33,8 @@ def f() =
   t(string.contains(substring="bc","acbd"), false)
   t(string.binary.to_int(little_endian=true,"abcd"),0x64636261)
   t(string.binary.to_int(little_endian=false,"abcd"),0x61626364)
+  t(string.binary.of_int(little_endian=true,0x64636261),"abcd")
+  t(string.binary.of_int(little_endian=false,0x61626364), "abcd")
   s = string.extract(pattern="([^=]*)=(.*)", "ab=cde")
   t(s[1], "ab")
   t(s[2], "cde")
