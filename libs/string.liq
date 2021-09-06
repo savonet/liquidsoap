@@ -108,3 +108,35 @@ def string.quote(%argsof(string.escape.special_char), s) =
   s = string.escape(%argsof(string.escape.special_char), special_char=special_char, s)
   "\"#{s}\""
 end
+
+let string.data_uri = ()
+
+# Encode a string using the data uri format,
+# i.e. `"data:<mime>[;base64]:<data>"`.
+# @category String
+# @param ~base64 Encode data using the base64 format
+# @param ~mime Data mime type
+def string.data_uri.encode(~base64=true, ~(mime:string), s) =
+  s = base64 ? ";base64:#{string.base64.encode(s)}" : ":#{s}"
+  "data:#{mime}#{s}"
+end
+
+# Decode a string using the data uri format,
+# i.e. `"data:<mime>[;base64]:<data>"`.
+# @category String
+def string.data_uri.decode(s) =
+  captured = string.extract(pattern="^data:([/\\w]+)(;base64)?:(.+)$", s)
+  if list.assoc.mem(1, captured) and list.assoc.mem(3, captured) then
+    mime = list.assoc(1, captured)
+    data = list.assoc(3, captured)
+    data =
+      if list.assoc.mem(2, captured) then
+        string.base64.decode(data)
+      else
+        data
+      end 
+    null(data.{mime=mime})
+  else
+    null()
+  end
+end
