@@ -140,7 +140,7 @@ let () =
            this, it will not be checked by the typing system)." );
       ( "resurection_time",
         Lang.nullable_t Lang.float_t,
-        Some Lang.null,
+        Some (Lang.float 1.),
         Some
           "When track sensitive and the source is unavailable, how long we \
            should wait before trying to update source again (`null` means \
