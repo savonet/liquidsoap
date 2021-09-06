@@ -56,14 +56,20 @@ let () =
 
 let () =
   Lang.add_builtin "string.nth" ~category:`String
-    ~descr:"Retrieve a character in a string."
+    ~descr:
+      "Retrieve a character in a string. Raises `error.not_found` if character \
+       does not exist."
     [
       ("", Lang.string_t, None, Some "String to look into.");
       ("", Lang.int_t, None, Some "Index of the character.");
     ] Lang.int_t (fun p ->
-      let s = Lang.to_string (Lang.assoc "" 1 p) in
-      let n = Lang.to_int (Lang.assoc "" 2 p) in
-      Lang.int (int_of_char s.[n]))
+      try
+        let s = Lang.to_string (Lang.assoc "" 1 p) in
+        let n = Lang.to_int (Lang.assoc "" 2 p) in
+        Lang.int (int_of_char s.[n])
+      with _ ->
+        Runtime_error.error ~message:"string.nth: character not found!"
+          "not_found")
 
 let () =
   Lang.add_builtin "string.escape" ~category:`String
@@ -416,7 +422,9 @@ let () =
     ~descr:"Decode a Base64 encoded string." [("", Lang.string_t, None, None)]
     Lang.string_t (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
-      Lang.string (Utils.decode64 string))
+      try Lang.string (Utils.decode64 string)
+      with _ ->
+        Runtime_error.error ~message:"Invalid base64 string!" "invalid")
 
 let () =
   Lang.add_builtin "string.base64.encode" ~category:`String
