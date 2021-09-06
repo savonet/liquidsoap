@@ -221,13 +221,13 @@ let () =
   Lang.add_operator name
     [
       ( "width",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int (-1)),
-        Some "Target width (negative means original width)." );
+        Lang.nullable_t (Lang.getter_t Lang.int_t),
+        Some Lang.null,
+        Some "Target width (`null` means original width)." );
       ( "height",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int (-1)),
-        Some "Target height (negative means original height)." );
+        Lang.nullable_t (Lang.getter_t Lang.int_t),
+        Some Lang.null,
+        Some "Target height (`null` means original height)." );
       ("x", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "x offset.");
       ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
       ("", Lang.source_t return_t, None, None);
@@ -236,26 +236,27 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      let width = Lang.to_int_getter (f "width") in
-      let height = Lang.to_int_getter (f "height") in
+      let width = Lang.to_valued_option Lang.to_int_getter (f "width") in
+      let height = Lang.to_valued_option Lang.to_int_getter (f "height") in
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
       let kind = Source.Kind.of_kind kind in
       new effect
         ~name ~kind
         (fun buf ->
-          let width = width () in
-          let height = height () in
+          let owidth = Video.Image.width buf in
+          let oheight = Video.Image.height buf in
+          let width = match width with None -> owidth | Some w -> w () in
+          let height = match height with None -> oheight | Some h -> h () in
           let width, height =
             if width >= 0 && height >= 0 then (width, height)
-            else (
+            else if
               (* Negative values mean proportional scale. *)
-              let owidth = Video.Image.width buf in
-              let oheight = Video.Image.height buf in
-              if width < 0 && height < 0 then (owidth, oheight)
-              else if width < 0 then (owidth * height / oheight, height)
-              else if height < 0 then (width, oheight * width / owidth)
-              else assert false)
+              width < 0 && height < 0
+            then (owidth, oheight)
+            else if width < 0 then (owidth * height / oheight, height)
+            else if height < 0 then (width, oheight * width / owidth)
+            else assert false
           in
           let dst = Video.Image.create width height in
           Video.Image.scale buf dst;
