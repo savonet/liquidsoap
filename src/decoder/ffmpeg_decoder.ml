@@ -618,10 +618,8 @@ let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
       then (
         is_first := false;
         latest_metadata := Some m;
-        let meta = Hashtbl.create 10 in
-        List.iter (fun (k, v) -> Hashtbl.add meta k v) m;
-        latest_metadata := Some m;
-        Generator.add_metadata buffer.Decoder.generator meta)
+        Generator.add_metadata buffer.Decoder.generator
+          (Frame.metadata_of_list m))
   in
   let no_metadata _ = () in
   let no_decoder = (-1, [], fun ~buffer:_ _ -> assert false) in
