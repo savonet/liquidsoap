@@ -422,7 +422,9 @@ let update_metadata t =
   end;
   begin
     match t.on_air with
-    | Some d -> replace "on_air" (pretty_date (Unix.localtime d))
+    | Some d ->
+        replace "on_air" (pretty_date (Unix.localtime d));
+        replace "on_air_timestamp" (Printf.sprintf "%.02f" d)
     | None -> ()
   end;
   begin
