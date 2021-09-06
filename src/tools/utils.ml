@@ -285,6 +285,9 @@ let escape_char ~escape_fun = function
   | c -> escape_fun c
 
 let escape_utf8_char =
+  let utf8_char_code s =
+    try utf8_char_code s with _ -> Uchar.to_int Uchar.rep
+  in
   escape_char ~escape_fun:(fun s -> Printf.sprintf "\\u%04X" (utf8_char_code s))
 
 let escape_utf8_formatter =
