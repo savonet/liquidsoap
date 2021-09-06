@@ -180,21 +180,6 @@ let escape ~special_char ~next ~escape_char f s =
   in
   if len > 0 then f 0
 
-let ascii_special_char = function
-  (* DEL *)
-  | "\x7F" -> true
-  (* Control chars *)
-  | s when String.length s = 1 && Char.code s.[0] <= 0x1F -> true
-  | s when String.length s = 1 && Char.code s.[0] > 0x7E -> true
-  | _ -> false
-
-let utf8_special_char = function
-  (* DEL *)
-  | "\x7F" -> true
-  (* Control chars *)
-  | s when String.length s = 1 && Char.code s.[0] <= 0x1F -> true
-  | _ -> false
-
 (* These two functions are taken from Extlib's module UTF8
  * Copyright (c) 2002, 2003 Yamagata Yoriyuki *)
 let rec utf8_search_head s i =
@@ -262,6 +247,21 @@ let utf8_char_code s =
   else failwith "Invalid argument"
 
 (* End of Extlib code *)
+
+let ascii_special_char = function
+  (* DEL *)
+  | "\x7F" -> true
+  (* Control chars *)
+  | s when String.length s = 1 && Char.code s.[0] <= 0x1F -> true
+  | s when String.length s = 1 && Char.code s.[0] > 0x7E -> true
+  | _ -> false
+
+let utf8_special_char = function
+  (* DEL *)
+  | "\x7F" -> true
+  (* Control chars *)
+  | s when String.length s = 1 && Char.code s.[0] <= 0x1F -> true
+  | s -> ( try not (Uchar.is_valid (utf8_char_code s)) with _ -> true)
 
 let ascii_next _ i = i + 1
 
