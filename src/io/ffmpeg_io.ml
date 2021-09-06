@@ -96,8 +96,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                (Frame.string_of_content_type self#ctype));
         let audio, video = Ffmpeg_decoder.mk_streams ~ctype:self#ctype input in
         let decoder =
-          Ffmpeg_decoder.mk_decoder ?audio ?video ~target_position:(ref None)
-            input
+          Ffmpeg_decoder.mk_decoder ?audio ?video ~decode_first_metadata:true
+            ~target_position:(ref None) input
         in
         Generator.set_rewrite_metadata generator (fun m ->
             Hashtbl.replace m "source_url" url;
