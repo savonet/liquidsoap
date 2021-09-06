@@ -652,32 +652,36 @@ let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
   in
   fun buffer ->
     let rec f () =
-      let data =
-        Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
-          container
-      in
-      check_audio_metadata buffer;
-      check_video_metadata buffer;
-      match data with
-        | `Audio_frame (i, frame) when i = audio_frame_idx ->
-            if check_pts (List.hd audio_frame) (Ffmpeg_utils.best_pts frame)
-            then audio_frame_decoder ~buffer frame
-            else f ()
-        | `Audio_packet (i, packet) when i = audio_packet_idx ->
-            if check_pts (List.hd audio_packet) (Avcodec.Packet.get_pts packet)
-            then audio_packet_decoder ~buffer packet
-            else f ()
-        | `Video_frame (i, frame) when i = video_frame_idx ->
-            if check_pts (List.hd video_frame) (Ffmpeg_utils.best_pts frame)
-            then video_frame_decoder ~buffer frame
-            else f ()
-        | `Video_packet (i, packet) when i = video_packet_idx ->
-            if check_pts (List.hd video_packet) (Avcodec.Packet.get_pts packet)
-            then video_packet_decoder ~buffer packet
-            else f ()
-        | _ -> ()
-        | exception Avutil.Error `Invalid_data -> f ()
-        | exception Avutil.Error `Eof ->
+      try
+        let data =
+          Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
+            container
+        in
+        check_audio_metadata buffer;
+        check_video_metadata buffer;
+        match data with
+          | `Audio_frame (i, frame) when i = audio_frame_idx ->
+              if check_pts (List.hd audio_frame) (Ffmpeg_utils.best_pts frame)
+              then audio_frame_decoder ~buffer frame
+              else f ()
+          | `Audio_packet (i, packet) when i = audio_packet_idx ->
+              if
+                check_pts (List.hd audio_packet) (Avcodec.Packet.get_pts packet)
+              then audio_packet_decoder ~buffer packet
+              else f ()
+          | `Video_frame (i, frame) when i = video_frame_idx ->
+              if check_pts (List.hd video_frame) (Ffmpeg_utils.best_pts frame)
+              then video_frame_decoder ~buffer frame
+              else f ()
+          | `Video_packet (i, packet) when i = video_packet_idx ->
+              if
+                check_pts (List.hd video_packet) (Avcodec.Packet.get_pts packet)
+              then video_packet_decoder ~buffer packet
+              else f ()
+          | _ -> ()
+      with
+        | Avutil.Error `Invalid_data -> f ()
+        | Avutil.Error `Eof ->
             Generator.add_break ?sync:(Some true) buffer.Decoder.generator;
             raise End_of_file
     in
