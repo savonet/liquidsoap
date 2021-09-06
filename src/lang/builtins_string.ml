@@ -596,3 +596,25 @@ let () =
     [("", Lang.string_t, None, Some "Operator name.")] Lang.string_t (fun p ->
       let name = List.assoc "" p |> Lang.to_string in
       Lang.string (Source.generate_id name))
+
+let () =
+  Lang.add_builtin "string.make" ~category:`String
+    ~descr:"Create a string of a given length using the given character."
+    [
+      ( "char_code",
+        Lang.int_t,
+        Some (Lang.int (Char.code ' ')),
+        Some "Character code." );
+      ("", Lang.int_t, None, Some "String length.");
+    ]
+    Lang.string_t
+    (fun p ->
+      let n = Lang.to_int (List.assoc "" p) in
+      if n < 0 then
+        Runtime_error.error ~message:"Invalid string length!" "invalid";
+      let c =
+        try Char.chr (Lang.to_int (List.assoc "char_code" p))
+        with _ ->
+          Runtime_error.error ~message:"Invalid character code!" "invalid"
+      in
+      Lang.string (String.make n c))
