@@ -35,7 +35,11 @@ let remove_first filter =
   in
   aux []
 
-let lookup (env : Value.lazy_env) var = Lazy.force (List.assoc var env)
+let lookup (env : Value.lazy_env) var =
+  try Lazy.force (List.assoc var env)
+  with Not_found ->
+    failwith
+      (Printf.sprintf "Internal error: variable %s not in environment." var)
 
 let eval_pat pat v =
   let rec aux env pat v =
@@ -118,7 +122,21 @@ let rec eval ~env tm =
   in
   match tm.term with
     | Ground g -> mk (Value.Ground g)
-    | Encoder x -> mk (Value.Encoder x)
+    | Encoder (e, p) ->
+        let pos = tm.t.Type.pos in
+        let rec eval_param p =
+          List.map
+            (fun (l, t) ->
+              ( l,
+                match t with
+                  | `Term t -> `Value (eval ~env t)
+                  | `Encoder (l, p) -> `Encoder (l, eval_param p) ))
+            p
+        in
+        let p = eval_param p in
+        let enc : Value.encoder = (e, p) in
+        let e = Lang_encoder.make_encoder ~pos tm enc in
+        mk (Value.Encoder e)
     | List l -> mk (Value.List (List.map (eval ~env) l))
     | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval ~env a) l))
     | Null -> mk Value.Null

@@ -98,6 +98,7 @@ let var_lit =
 
 let var_ref = [%sedlex.regexp? "ref", Plus (var_char | decimal_digit | '\'')]
 let var = [%sedlex.regexp? var_lit | so | math | other_math]
+let encoder = [%sedlex.regexp? '%', Plus (var_char | decimal_digit | '.')]
 
 let time =
   [%sedlex.regexp?
@@ -199,34 +200,10 @@ let rec token lexbuf =
     | "else" -> ELSE
     | "elsif" -> ELSIF
     | "->" -> YIELDS
-    | "%ogg" -> OGG
-    | "%vorbis" -> VORBIS
-    | "%opus" -> OPUS
-    | "%flac" -> FLAC
-    | "%audio" -> AUDIO
-    | "%audio.raw" -> AUDIO_RAW
-    | "%audio.copy" -> AUDIO_COPY
-    | "%audio.none" -> AUDIO_NONE
-    | "%video" -> VIDEO
-    | "%video.raw" -> VIDEO_RAW
-    | "%video.copy" -> VIDEO_COPY
-    | "%video.none" -> VIDEO_NONE
-    | "%ffmpeg" -> FFMPEG
-    | "%vorbis.cbr" -> VORBIS_CBR
-    | "%vorbis.abr" -> VORBIS_ABR
-    | "%theora" -> THEORA
-    | "%external" -> EXTERNAL
-    | "%gstreamer" -> GSTREAMER
-    | "%speex" -> SPEEX
-    | "%wav" -> WAV
-    | "%avi" -> AVI
-    | "%mp3" -> MP3
-    | "%mp3.cbr" -> MP3
-    | "%mp3.abr" -> MP3_ABR
-    | "%mp3.vbr" -> MP3_VBR
-    | "%mp3.fxp" -> SHINE
-    | "%shine" -> SHINE
-    | "%fdkaac" -> FDKAAC
+    | encoder ->
+        let e = Sedlexing.Utf8.lexeme lexbuf in
+        let e = String.sub e 1 (String.length e - 1) in
+        ENCODER e
     | '.' -> DOT
     | "..." -> DOTDOTDOT
     | '[' -> LBRA

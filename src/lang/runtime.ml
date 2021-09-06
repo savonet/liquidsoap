@@ -119,8 +119,8 @@ let throw print_error = function
       error_header 7 (Type.print_pos_opt v.Value.pos);
       Format.printf "Invalid value:@ %s@]@." msg;
       raise Error
-  | Lang_encoders.Error (v, s) ->
-      error_header 8 (Type.print_pos_opt v.Term.t.Type.pos);
+  | Lang_encoder.Error (pos, s) ->
+      error_header 8 (Type.print_pos_opt pos);
       Format.printf "%s@]@." (String.capitalize_ascii s);
       raise Error
   | Failure s ->
@@ -141,12 +141,12 @@ let throw print_error = function
       Format.printf "Source kinds don't match@ (%s vs@ %s).@]@." a b;
       raise Error
   | Term.Unsupported_format (pos, fmt) ->
-      let pos = Type.print_pos pos in
+      let pos = Type.print_pos_opt pos in
       error_header 12 pos;
       Format.printf
         "Unsupported format: %s.@ You must be missing an optional \
          dependency.@]@."
-        (Encoder.string_of_format fmt);
+        fmt;
       raise Error
   | Term.Internal_error (pos, e) ->
       let pos = Type.print_pos_list pos in

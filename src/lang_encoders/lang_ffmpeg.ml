@@ -20,9 +20,66 @@
 
  *****************************************************************************)
 
-open Term
-open Term.Ground
-open Lang_encoders
+open Value
+open Ground
+
+let kind_of_encoder p =
+  let audio =
+    List.fold_left
+      (fun audio p ->
+        match p with
+          | "", `Encoder ("audio.copy", _) ->
+              `Format
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.audio.copy"))
+          | "", `Encoder ("audio.raw", _) ->
+              `Format
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.audio.raw"))
+          | "", `Encoder ("audio", p) ->
+              let channels =
+                try
+                  let channels =
+                    try List.assoc "channels" p
+                    with Not_found -> List.assoc "ac" p
+                  in
+                  match channels with
+                    | `Term { Term.term = Term.Ground (Int n) } -> n
+                    | _ -> raise Exit
+                with
+                  | Not_found -> 2
+                  | Exit -> raise Not_found
+              in
+              `Format
+                Frame_content.(
+                  Audio.lift_params
+                    {
+                      Contents.channel_layout =
+                        lazy
+                          (Audio_converter.Channel_layout.layout_of_channels
+                             channels);
+                    })
+          | _ -> audio)
+      Frame.none p
+  in
+  let video =
+    List.fold_left
+      (fun audio p ->
+        match p with
+          | "", `Encoder ("video.copy", _) ->
+              `Format
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.video.copy"))
+          | "", `Encoder ("video.raw", _) ->
+              `Format
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.video.raw"))
+          | "", `Encoder ("video", _) ->
+              `Format Frame_content.(default_format Video.kind)
+          | _ -> audio)
+      Frame.none p
+  in
+  { Frame.audio; video; midi = Frame.none }
 
 let flag_qscale = ref 0
 let qp2lambda = ref 0
@@ -63,25 +120,25 @@ let ffmpeg_gen params =
     }
   in
   let to_int t =
-    match t.term with
+    match t.value with
       | Ground (Int i) -> i
       | Ground (String s) -> int_of_string s
       | Ground (Float f) -> int_of_float f
-      | _ -> raise (generic_error t)
+      | _ -> raise (Lang_encoder.Error (t.pos, "integer expected"))
   in
   let to_string t =
-    match t.term with
+    match t.value with
       | Ground (Int i) -> Printf.sprintf "%i" i
       | Ground (String s) -> s
       | Ground (Float f) -> Printf.sprintf "%f" f
-      | _ -> raise (generic_error t)
+      | _ -> raise (Lang_encoder.Error (t.pos, "string expected"))
   in
   let to_float t =
-    match t.term with
+    match t.value with
       | Ground (Int i) -> float i
       | Ground (String s) -> float_of_string s
       | Ground (Float f) -> f
-      | _ -> raise (generic_error t)
+      | _ -> raise (Lang_encoder.Error (t.pos, "float expected"))
   in
   let rec parse_args ~format ~mode f = function
     | [] -> f
@@ -119,17 +176,21 @@ let ffmpeg_gen params =
         parse_args ~format ~mode
           { f with Ffmpeg_format.height = Lazy.from_val (to_int t) }
           l
-    | ("pixel_format", { term = Var "none"; _ }) :: l when mode = `Video ->
+    | ("pixel_format", { value = Ground (String "none"); _ }) :: l
+      when mode = `Video ->
         parse_args ~format ~mode { f with Ffmpeg_format.pixel_format = None } l
     | ("pixel_format", t) :: l when mode = `Video ->
         parse_args ~format ~mode
           { f with Ffmpeg_format.pixel_format = Some (to_string t) }
           l
-    | ("hwaccel", { term = Var "auto"; _ }) :: l when mode = `Video ->
+    | ("hwaccel", { value = Ground (String "auto"); _ }) :: l when mode = `Video
+      ->
         parse_args ~format ~mode { f with Ffmpeg_format.hwaccel = `Auto } l
-    | ("hwaccel", { term = Var "none"; _ }) :: l when mode = `Video ->
+    | ("hwaccel", { value = Ground (String "none"); _ }) :: l when mode = `Video
+      ->
         parse_args ~format ~mode { f with Ffmpeg_format.hwaccel = `None } l
-    | ("hwaccel_device", { term = Var "none"; _ }) :: l when mode = `Video ->
+    | ("hwaccel_device", { value = Ground (String "none"); _ }) :: l
+      when mode = `Video ->
         parse_args ~format ~mode
           { f with Ffmpeg_format.hwaccel_device = None }
           l
@@ -168,22 +229,22 @@ let ffmpeg_gen params =
     | ("q", t) :: l | ("qscale", t) :: l ->
         set_global_quality (to_float t) f;
         parse_args ~format ~mode f l
-    | (k, { term = Ground (String s); _ }) :: l ->
+    | (k, { value = Ground (String s); _ }) :: l ->
         (match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`String s)
           | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`String s));
         parse_args ~format ~mode f l
-    | (k, { term = Ground (Int i); _ }) :: l ->
+    | (k, { value = Ground (Int i); _ }) :: l ->
         (match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Int i)
           | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Int i));
         parse_args ~format ~mode f l
-    | (k, { term = Ground (Float fl); _ }) :: l ->
+    | (k, { value = Ground (Float fl); _ }) :: l ->
         (match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Float fl)
           | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Float fl));
         parse_args ~format ~mode f l
-    | (_, t) :: _ -> raise (generic_error t)
+    | (_, t) :: _ -> raise (Lang_encoder.Error (t.pos, "unexpected option"))
   in
   List.fold_left
     (fun f -> function
@@ -207,20 +268,45 @@ let ffmpeg_gen params =
             { f with Ffmpeg_format.video_codec = Some (`Internal None) }
           in
           parse_args ~format:`Internal ~mode:`Video f l
-      | `Option ("format", { term = Var "none"; _ }) ->
+      | `Option ("format", { value = Ground (String "none"); _ }) ->
           { f with Ffmpeg_format.format = None }
-      | `Option ("format", { term = Ground (String fmt); _ }) ->
+      | `Option ("format", { value = Ground (String fmt); _ }) ->
           { f with Ffmpeg_format.format = Some fmt }
-      | `Option (k, { term = Ground (String s); _ }) ->
+      | `Option (k, { value = Ground (String s); _ }) ->
           Hashtbl.add f.Ffmpeg_format.other_opts k (`String s);
           f
-      | `Option (k, { term = Ground (Int i); _ }) ->
+      | `Option (k, { value = Ground (Int i); _ }) ->
           Hashtbl.add f.Ffmpeg_format.other_opts k (`Int i);
           f
-      | `Option (k, { term = Ground (Float i); _ }) ->
+      | `Option (k, { value = Ground (Float i); _ }) ->
           Hashtbl.add f.Ffmpeg_format.other_opts k (`Float i);
           f
-      | `Option (_, t) -> raise (generic_error t))
+      | `Option (l, v) -> raise (Lang_encoder.generic_error (l, `Value v)))
     defaults params
 
-let make params = Encoder.Ffmpeg (ffmpeg_gen params)
+let make params =
+  let params =
+    List.map
+      (function
+        | _, `Encoder (e, p) -> (
+            let p =
+              List.filter_map
+                (function l, `Value v -> Some (l, v) | _, `Encoder _ -> None)
+                p
+            in
+            match e with
+              | "audio.none" -> `Audio_none
+              | "audio.copy" -> `Audio_copy
+              | "audio.raw" -> `Audio_raw p
+              | "audio" -> `Audio p
+              | "video.none" -> `Video_none
+              | "video.copy" -> `Video_copy
+              | "video.raw" -> `Video_raw p
+              | "video" -> `Video p
+              | _ -> failwith "unknown subencoder")
+        | l, `Value v -> `Option (l, v))
+      params
+  in
+  Encoder.Ffmpeg (ffmpeg_gen params)
+
+let () = Lang_encoder.register "ffmpeg" kind_of_encoder make
