@@ -81,12 +81,11 @@ let rec eval ~env tm =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)
     (match (Type.deref tm.t).Type.descr with
-      | Type.Constr { Type.name = "source"; params = [(Type.Invariant, k)] }
-        -> (
+      | Type.Constr { Type.name = "source"; params = [k] } -> (
           let frame_content_of_t t =
             match (Type.deref t).Type.descr with
               | Type.EVar _ -> `Any
-              | Type.Constr { Type.name; params = [(_, t)] } -> (
+              | Type.Constr { Type.name; params = [t] } -> (
                   match (Type.deref t).Type.descr with
                     | Type.Ground (Type.Format fmt) -> `Format fmt
                     | Type.EVar _ -> `Kind (Frame_content.kind_of_string name)

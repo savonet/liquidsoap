@@ -97,15 +97,13 @@ let print_constr = function
 
 (** Types *)
 
-type variance = Covariant | Contravariant | Invariant
-
 (** Every type gets a level annotation.
   * This is useful in order to know what can or cannot be generalized:
   * you need to compare the level of an abstraction and those of a ref or
   * source. *)
 type t = { pos : pos option; mutable level : int; mutable descr : descr }
 
-and constructed = { name : string; params : (variance * t) list }
+and constructed = { name : string; params : t list }
 
 and descr =
   | Constr of constructed
@@ -126,7 +124,7 @@ and scheme = var list * t
 let unit = Tuple []
 
 type repr =
-  [ `Constr of string * (variance * repr) list
+  [ `Constr of string * repr list
   | `Ground of ground
   | `List of repr
   | `Tuple of repr list
@@ -266,8 +264,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
-        | Constr { name; params } ->
-            `Constr (name, List.map (fun (l, t) -> (l, repr g t)) params)
+        | Constr { name; params } -> `Constr (name, List.map (repr g) params)
         | Arrow (args, t) ->
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
@@ -302,7 +299,7 @@ let print_repr f t =
          * parameters and omitting the stream_kind(...) to avoid
          * source(stream_kind(pcm(stereo),none,none)). *)
         match params with
-          | [(_, a); (_, v); (_, m)] ->
+          | [a; v; m] ->
               let first, has_ellipsis, vars =
                 List.fold_left
                   (fun (first, has_ellipsis, vars) (lbl, t) ->
@@ -323,7 +320,7 @@ let print_repr f t =
     | `Constr ("none", _) ->
         Format.fprintf f "none";
         vars
-    | `Constr (_, [(_, `Ground (Format format))]) ->
+    | `Constr (_, [`Ground (Format format)]) ->
         Format.fprintf f "%s" (Frame_content.string_of_format format);
         vars
     | `Constr (name, params) ->
@@ -461,7 +458,7 @@ let print_repr f t =
         vars
   and print_list ?(first = true) ?(acc = []) vars = function
     | [] -> vars
-    | (_, x) :: l ->
+    | x :: l ->
         if not first then Format.fprintf f ",";
         let vars = print ~par:false vars x in
         print_list ~first:false ~acc:(x :: acc) vars l
@@ -590,7 +587,7 @@ let filter_vars f t =
       | Meth (_, (g, t), _, u) ->
           let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
           aux l u
-      | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
+      | Constr c -> List.fold_left aux l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
       | Link _ -> assert false
@@ -616,7 +613,7 @@ let rec occur_check a b =
   let b = deref b in
   if a == b then raise (Occur_check (a, b));
   match b.descr with
-    | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
+    | Constr c -> List.iter (occur_check a) c.params
     | Tuple l -> List.iter (occur_check a) l
     | Getter t -> occur_check a t
     | List t -> occur_check a t

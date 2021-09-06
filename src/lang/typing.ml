@@ -91,7 +91,7 @@ let copy_with (subst : Subst.t) t =
     match t.descr with
       | EVar v -> ( try Subst.value subst v with Not_found -> t)
       | Constr c ->
-          let params = List.map (fun (v, t) -> (v, aux t)) c.params in
+          let params = List.map aux c.params in
           cp (Constr { c with params })
       | Ground _ -> cp t.descr
       | Getter t -> cp (Getter (aux t))
@@ -156,20 +156,20 @@ let rec ( <: ) a b =
     | Constr c1, Constr c2 when c1.name = c2.name ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
-            | (v, h1) :: t1, (_, h2) :: t2 ->
+            | h1 :: t1, h2 :: t2 ->
                 begin
                   try (* TODO use variance info *)
                       h1 <: h2
                   with Error (a, b) ->
                     let bt = Printexc.get_raw_backtrace () in
-                    let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
+                    let post = List.map (fun _ -> `Ellipsis) t1 in
                     Printexc.raise_with_backtrace
                       (Error
-                         ( `Constr (c1.name, pre @ [(v, a)] @ post),
-                           `Constr (c1.name, pre @ [(v, b)] @ post) ))
+                         ( `Constr (c1.name, pre @ [a] @ post),
+                           `Constr (c1.name, pre @ [b] @ post) ))
                       bt
                 end;
-                aux ((v, `Ellipsis) :: pre) t1 t2
+                aux (`Ellipsis :: pre) t1 t2
             | [], [] -> ()
             | _ -> assert false
           (* same name => same arity *)
@@ -358,14 +358,7 @@ let rec duplicate ?pos ?level t =
   make ?pos ?level
     (match (deref t).descr with
       | Constr c ->
-          Constr
-            {
-              c with
-              params =
-                List.map
-                  (fun (vars, t) -> (vars, duplicate ?pos ?level t))
-                  c.params;
-            }
+          Constr { c with params = List.map (duplicate ?pos ?level) c.params }
       | Ground (Format k) -> Ground (Format (Frame_content.duplicate k))
       | Ground g -> Ground g
       | Getter t -> Getter (duplicate ?pos ?level t)

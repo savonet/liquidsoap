@@ -33,7 +33,6 @@ val print_pos_list : ?prefix:string -> pos list -> string
 
 (** {1 Ground types} *)
 
-type variance = Covariant | Contravariant | Invariant
 type ground = ..
 
 type ground +=
@@ -56,7 +55,7 @@ val print_constr : constr -> string
 
 type t = { pos : pos option; mutable level : int; mutable descr : descr }
 
-and constructed = { name : string; params : (variance * t) list }
+and constructed = { name : string; params : t list }
 
 and descr =
   | Constr of constructed
@@ -123,7 +122,7 @@ val bind : t -> t -> unit
 (** {1 Representation of types} *)
 
 type repr =
-  [ `Constr of string * (variance * repr) list
+  [ `Constr of string * repr list
   | `Ground of ground
   | `List of repr
   | `Tuple of repr list
