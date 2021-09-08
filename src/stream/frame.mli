@@ -66,6 +66,8 @@ val copy_video : content -> content
 (** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
 
+val metadata_of_list : (string * string) list -> metadata
+
 (** A frame. *)
 type t = {
   (* Presentation time, in multiple of frame size. *)

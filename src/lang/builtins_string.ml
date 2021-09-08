@@ -626,3 +626,29 @@ let () =
           Runtime_error.error ~message:"Invalid character code!" "invalid"
       in
       Lang.string (String.make n c))
+
+let () =
+  Lang.add_module "string.apic";
+  let t =
+    Lang.method_t Lang.string_t
+      [
+        ("mime", ([], Lang.string_t), "Mime type");
+        ("picture_type", ([], Lang.int_t), "Picture type");
+        ("description", ([], Lang.string_t), "Description");
+      ]
+  in
+  Lang.add_builtin "string.apic.parse" ~category:`File
+    [("", Lang.string_t, None, Some "APIC data.")] t
+    ~descr:
+      "Parse APIC ID3v2 tags (such as those obtained in the APIC tag from \
+       `file.metadata.id3v2`). The returned values are: mime, picture type, \
+       description, and picture data." (fun p ->
+      let apic = Lang.to_string (List.assoc "" p) in
+      let apic = Id3v2.parse_apic apic in
+      Lang.meth
+        (Lang.string apic.Id3v2.data)
+        [
+          ("mime", Lang.string apic.Id3v2.mime);
+          ("picture_type", Lang.int apic.Id3v2.picture_type);
+          ("description", Lang.string apic.Id3v2.description);
+        ])

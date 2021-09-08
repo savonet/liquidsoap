@@ -74,10 +74,8 @@ def video.cover(s)
   def read_cover(m)
     filename = m["filename"]
     cover = if file.exists(filename) then file.cover(filename) else "".{mime=""} end
-    if cover == "" then
-      log.debug("No cover for #{filename}.")
-      video.set(source.fail())
-    else
+    if null.defined(cover) then
+      cover = null.get(cover)
       ext =
         if cover.mime == "image/png" then
           ".png"
@@ -88,6 +86,9 @@ def video.cover(s)
       log.debug("Found cover for #{filename}.")
       file.write(data=cover, f)
       video.set(request.once(request.create(temporary=true, f)))
+    else
+      log.debug("No cover for #{filename}.")
+      video.set(source.fail())
     end
   end
   s.on_track(read_cover)
