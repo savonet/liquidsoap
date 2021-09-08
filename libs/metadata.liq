@@ -73,7 +73,7 @@ def metadata.cover(~mime="image/jpeg", m)
     # We are likely to have an ogg/vorbis file
     cover = list.assoc(default="", "coverart", m)
     if cover != "" then
-      null(string.base64.decode(cover).{mime=coverart_mime})
+      null(string.base64.decode(cover).{mime=mime})
     else
       # See https://xiph.org/flac/format.html#metadata_block_picture
       cover = list.assoc(default=cover, "metadata_block_picture", m)
@@ -140,11 +140,11 @@ let metadata.json = ()
 # `metadata.cover` and exported with key `"cover"` and exported using
 # `string.data_uri.encode`.
 # @category String 
-# @param ~coverart_mime Default mime type for `"coverart"` data.
+# @param ~mime Default data mime type when unknown
 # @param ~base64 Encode cover data as `base64`
 # @argsof json.stringify
-def metadata.json.stringify(~coverart_mime="image/jpeg", ~base64=true, %argsof(json.stringify), m) =
-  c = metadata.cover(coverart_mime=coverart_mime, m)
+def metadata.json.stringify(~mime="image/jpeg", ~base64=true, %argsof(json.stringify), m) =
+  c = metadata.cover(mime=mime, m)
   m = metadata.cover.remove(m)
   m = metadata.export(m)
 
