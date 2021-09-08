@@ -65,9 +65,9 @@ end
 # for the following formats: coverart (ogg) and apic (flac, mp3). 
 # @category Source / Track Processing
 # @param m Metadata from which the cover should be extracted.
-# @param ~coverart_mime Default mime type for `"coverart"` data.
+# @param ~mime Default data mime type when unknown
 # @method mime MIME type for the cover.
-def metadata.cover(~coverart_mime="image/jpeg", m)
+def metadata.cover(~mime="image/jpeg", m)
   fname = metadata.filename(m)
   if list.assoc.mem("coverart", m) or list.assoc.mem("metadata_block_picture", m)then
     # We are likely to have an ogg/vorbis file
@@ -125,7 +125,7 @@ def metadata.cover.remove(m)
   list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic", m)
 end
 
-# Cleanup metadata for export. This is used to remove liquidsoap's internal
+# Cleanup metadata for export. This is used to remove Liquidsoap's internal
 # metadata entries before sending them. List of exported metadata is set using
 # `settings.encoder.metadata.export.set`.
 # @category Source / Track Processing
