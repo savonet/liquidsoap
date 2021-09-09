@@ -60,11 +60,17 @@ def interactive.string.ref(name)
   list.assoc(name, !variables_string).ref
 end
 
+# @flag hidden
+def interactive.remove(name)
+  variables := list.assoc.remove.all(name, !variables)
+end
+
 # Remove an interactive variable.
 # @param name Name of the variable.
 # @category Interactive
 # @flag hidden
 def interactive.float.remove(name)
+  interactive.remove(name)
   variables_float := list.assoc.remove.all(name, !variables_float)
 end
 
@@ -73,6 +79,7 @@ end
 # @category Interactive
 # @flag hidden
 def interactive.int.remove(name)
+  interactive.remove(name)
   variables_int := list.assoc.remove.all(name, !variables_int)
 end
 
@@ -81,6 +88,7 @@ end
 # @category Interactive
 # flag hidden
 def interactive.bool.remove(name)
+  interactive.remove(name)
   variables_bool := list.assoc.remove.all(name, !variables_bool)
 end
 
@@ -89,6 +97,7 @@ end
 # @category Interactive
 # @flag hidden
 def interactive.string.remove(name)
+  interactive.remove(name)
   variables_string := list.assoc.remove.all(name, !variables_string)
 end
 
