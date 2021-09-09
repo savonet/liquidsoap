@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq
 
 %include "test.liq"
 
@@ -20,13 +20,23 @@ def f() =
   t(x(), 15.)
   interactive.load(file)
   t(x(), 2.)
+
   try
     interactive.float("bla", 0.)
     interactive.float("bla", 0.)
     log.critical("Did not detect double registration.")
     success := false
-  catch _ do
-    log.important("Double registration detected.")
+  catch e do
+    log.important("Double registration detected: #{e}")
+  end
+
+  try
+    x = interactive.float("xxx", 3.)
+    x.remove()
+    x.set(2.)
+    success := false
+  catch e do
+    log.important("Inexistent variable use detected: #{e}")
   end
 
   if !success then test.pass() else test.fail() end
