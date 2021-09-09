@@ -133,7 +133,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         List.iter (fun x -> check ~level ~env x) l;
         let t =
           List.fold_left
-            (fun t e -> Typing.min_type ~pos:e.t.Type.pos ~level t e.t)
+            (fun t e -> Typing.sup ~pos:e.t.Type.pos ~level t e.t)
             (Type.fresh_evar ~level ~pos)
             l
         in

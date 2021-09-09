@@ -384,9 +384,9 @@ let rec duplicate ?pos ?level t =
 (** Find an approximation of the minimal type that is safe to use instead of
     both left and right hand types. This function is not exact: we should always
     try to cast with the result in order to ensure that everything is alright. *)
-let rec min_type ?(pos = None) ?(level = -1) a b =
+let rec sup ?(pos = None) ?(level = -1) a b =
   try
-    let min a b =
+    let simple a b =
       try
         let t = fresh_evar ~level ~pos in
         duplicate ~pos ~level a <: t;
@@ -398,7 +398,7 @@ let rec min_type ?(pos = None) ?(level = -1) a b =
         duplicate ~pos ~level a <: t;
         deref t
     in
-    if not (has_meth a && has_meth b) then min a b
+    if not (has_meth a && has_meth b) then simple a b
     else (
       let meths_a, a' = split_meths a in
       let meths_b, b' = split_meths b in
@@ -408,8 +408,7 @@ let rec min_type ?(pos = None) ?(level = -1) a b =
             match List.assoc_opt name meths_b with
               | None -> cur
               | Some ((g', t'), _) -> (
-                  try (name, ((g @ g', min_type t t'), doc)) :: cur
-                  with _ -> cur))
+                  try (name, ((g @ g', sup t t'), doc)) :: cur with _ -> cur))
           [] meths_a
       in
       let t = min a' b' in
