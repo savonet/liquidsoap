@@ -65,26 +65,23 @@ end
 # for the following formats: coverart (ogg) and apic (flac, mp3). 
 # @category Source / Track Processing
 # @param m Metadata from which the cover should be extracted.
-# @param ~mime Default data mime type when unknown
+# @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
 # @method mime MIME type for the cover.
-def metadata.cover(~mime="image/jpeg", m)
+def metadata.cover(~coverart_mime=null(), m)
   fname = metadata.filename(m)
-  if list.assoc.mem("coverart", m) or list.assoc.mem("metadata_block_picture", m)then
-    # We are likely to have an ogg/vorbis file
+  if list.assoc.mem("coverart", m) and null.defined(coverart_mime) then
     cover = list.assoc(default="", "coverart", m)
-    if cover != "" then
-      null(string.base64.decode(cover).{mime=mime})
+    null(string.base64.decode(cover).{mime=null.get(coverart_mime)})
+  elsif list.assoc.mem("metadata_block_picture", m) then
+    # See https://xiph.org/flac/format.html#metadata_block_picture
+    cover = list.assoc(default="", "metadata_block_picture", m)
+    cover = file.metadata.flac.cover.decode(string.base64.decode(cover))
+    if not null.defined(cover) then
+      log.info("Failed to read cover metadata for #{fname}.")
+      null()
     else
-      # See https://xiph.org/flac/format.html#metadata_block_picture
-      cover = list.assoc(default=cover, "metadata_block_picture", m)
-      cover = file.metadata.flac.cover.decode(string.base64.decode(cover))
-      if not null.defined(cover) then
-        log.info("Failed to read cover metadata for #{fname}.")
-        null()
-      else
-        cover = null.get(cover)
-        null((cover:string).{mime=cover.mime})
-      end
+      cover = null.get(cover)
+      null((cover:string).{mime=cover.mime})
     end
   else
     # Assume we have an mp3 file
@@ -140,11 +137,11 @@ let metadata.json = ()
 # `metadata.cover` and exported with key `"cover"` and exported using
 # `string.data_uri.encode`.
 # @category String 
-# @param ~mime Default data mime type when unknown
+# @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
 # @param ~base64 Encode cover data as `base64`
 # @argsof json.stringify
-def metadata.json.stringify(~mime="image/jpeg", ~base64=true, %argsof(json.stringify), m) =
-  c = metadata.cover(mime=mime, m)
+def metadata.json.stringify(~coverart_mime=null(), ~base64=true, %argsof(json.stringify), m) =
+  c = metadata.cover(coverart_mime=coverart_mime, m)
   m = metadata.cover.remove(m)
   m = metadata.export(m)
 
