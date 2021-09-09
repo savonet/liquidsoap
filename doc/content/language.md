@@ -162,6 +162,7 @@ The following sequences are recognized:
 | `\t` | `\x09`  | Horizontal Tab |
 | `\v` | `\x0B`  | Vertical Tab |
 | `\\` | `\x5C`  | Backslash |
+| `\/` | `\x2f`  | Forward slash |
 | `\'` | `\x27`  | Apostrophe or single quotation mark |
 | `\"` |  `\x22` | Double quotation mark |
 | `\?` | `\x3F`  | Question mark (used to avoid Digraphs and trigraphs) |
@@ -179,6 +180,8 @@ Here's an example of an escaped string:
 # "\" \t \045 \x2f \u4f32";;
 - : string = "\" \t % / 2"
 ```
+
+The function `string.quote` returns [JSON-compatible](https://www.json.org/json-en.html) strings.
 
 ### Booleans
 

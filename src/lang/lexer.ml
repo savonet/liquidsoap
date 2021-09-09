@@ -308,10 +308,7 @@ and read_string c pos buf lexbuf =
     | '\\', 'v' ->
         Buffer.add_char buf '\x0b';
         read_string c pos buf lexbuf
-    | '\\', '\\' ->
-        Buffer.add_char buf '\\';
-        read_string c pos buf lexbuf
-    | '\\', ('"' | '\'') ->
+    | '\\', ('"' | '\'' | '/' | '\\') ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         Buffer.add_char buf matched.[1];
         read_string c pos buf lexbuf
