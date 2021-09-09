@@ -60,6 +60,38 @@ def interactive.string.ref(name)
   list.assoc(name, !variables_string).ref
 end
 
+# Remove an interactive variable.
+# @param name Name of the variable.
+# @category Interactive
+# @flag hidden
+def interactive.float.remove(name)
+  variables_float := list.assoc.remove.all(name, !variables_float)
+end
+
+# Remove an interactive variable.
+# @param name Name of the variable.
+# @category Interactive
+# @flag hidden
+def interactive.int.remove(name)
+  variables_int := list.assoc.remove.all(name, !variables_int)
+end
+
+# Remove an interactive variable.
+# @param name Name of the variable.
+# @category Interactive
+# flag hidden
+def interactive.bool.remove(name)
+  variables_bool := list.assoc.remove.all(name, !variables_bool)
+end
+
+# Remove an interactive variable.
+# @param name Name of the variable.
+# @category Interactive
+# @flag hidden
+def interactive.string.remove(name)
+  variables_string := list.assoc.remove.all(name, !variables_string)
+end
+
 # Function called to ensure persistency of data.
 let interactive.persistency = ref(fun()->())
 
@@ -373,7 +405,7 @@ def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~desc
   interactive.create(name=name, description=description, osc=osc, type="float")
   r = ref(v)
   variables_float := list.add((name, {ref=r, unit=unit, min=min, max=max, step=step }), !variables_float)
-  ref.getter(r).{set = interactive.float.set(name)}
+  ref.getter(r).{set = interactive.float.set(name), remove = {interactive.float.remove(name)}}
 end
 
 # Read an integer from an interactive input.
@@ -386,7 +418,7 @@ def replaces interactive.int(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="int")
   r = ref(v)
   variables_int := list.add((name, {ref=r }), !variables_int)
-  ref.getter(r).{set = interactive.int.set(name)}
+  ref.getter(r).{set = interactive.int.set(name), remove = {interactive.int.remove(name)}}
 end
 
 # Read a boolean from an interactive input.
@@ -399,7 +431,7 @@ def replaces interactive.bool(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="bool")
   r = ref(v)
   variables_bool := list.add((name, { ref=r }), !variables_bool)
-  ref.getter(r).{set = interactive.bool.set(name)}
+  ref.getter(r).{set = interactive.bool.set(name), remove = {interactive.bool.remove(name)}}
 end
 
 # Read a string from an interactive input.
@@ -412,7 +444,7 @@ def replaces interactive.string(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="string")
   r = ref(v)
   variables_string := list.add((name, { ref=r }), !variables_string)
-  ref.getter(r).{set = interactive.bool.set(name)}
+  ref.getter(r).{set = interactive.string.set(name), remove = {interactive.string.remove(name)}}
 end
 
 # Create a multiband compressor whose parameters are interactive variables.
