@@ -278,7 +278,29 @@ exception Error of (repr * repr)
   * In case of error, generate an explanation. *)
 let rec ( <: ) a b =
   if !debug then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
-  match ((deref a).descr, (deref b).descr) with
+  match (a.descr, b.descr) with
+    | _, Link (Covariant, b') ->
+        (* We can take this opportunity to increase b' so that it is actually
+           greater than a. This is for instance, to make types nullable afterward
+           (e.g. if a branch of an if is nullable and the other is not. Ideally,
+           we should simply do b' <- sup a b', but it seems difficult to perform
+           exactly for now, while preserving sharing, so that we make an
+           approximation of the supremum. *)
+        let rec sup a b =
+          let mk descr = { b with descr } in
+          match (deref a).descr with
+            | Nullable a -> (
+                match (deref b).descr with
+                  | EVar _ -> b
+                  | _ -> mk (Nullable (sup a b)))
+            | _ -> b
+        in
+        let b'' = sup a b' in
+        (try b' <: b'' with _ -> assert false);
+        b'.descr <- Link (Covariant, b'');
+        a <: b'
+    | _, Link (_, b) -> a <: b
+    | Link (_, a), _ -> a <: b
     | Constr c1, Constr c2 when c1.name = c2.name ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
@@ -394,7 +416,7 @@ let rec ( <: ) a b =
     | _, EVar (_, c)
     (* Force dropping the methods when we have constraints, see #1496. *)
       when not (has_meth a && c <> []) -> (
-        try bind b a
+        try bind ~variance:Covariant b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)))
     | _, Nullable t2 -> (
@@ -449,7 +471,6 @@ let rec ( <: ) a b =
     | Meth (l, _, _, u1), _ -> hide_meth l u1 <: b
     | _, Getter t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
-    | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining the
            mismatch. *)

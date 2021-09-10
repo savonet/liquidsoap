@@ -185,27 +185,6 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         if not (can_ignore a.t) then throw (Ignored a);
         check ~print_toplevel ~level ~env b;
         e.t >: b.t
-    (* Special case for if branchings in order to backtrack in the case where
-       the then branch is nullable but the else branch is not, see #1816. *)
-    | App
-        ( ({ term = Var "if" } as e_if),
-          [("", e_cond); ("then", e_then); ("else", e_else)] ) ->
-        check ~level ~env e_if;
-        check ~level ~env e_cond;
-        check ~level ~env e_then;
-        check ~level ~env e_else;
-        let a = Type.fresh_evar ~level ~pos in
-        e_cond.t <: Type.make (Type.Ground Type.Bool);
-        e_else.t <: Type.make (Type.Arrow ([], a));
-        if
-          try
-            e_then.t <: Type.make (Type.Arrow ([], a));
-            true
-          with _ -> false
-        then e.t >: a
-        else (
-          e_then.t <: Type.make (Type.Arrow ([], Type.make (Type.Nullable a)));
-          e.t >: Type.make (Type.Nullable a))
     | App (a, l) -> (
         check ~level ~env a;
         List.iter (fun (_, b) -> check ~env ~level b) l;
