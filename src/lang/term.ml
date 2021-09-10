@@ -127,7 +127,8 @@ let kind_t ?pos ?level kind =
              })
 
 let of_frame_kind_t t =
-  match (Type.deref t).Type.descr with
+  let t = Type.deref t in
+  match t.Type.descr with
     | Type.Constr
         {
           Type.name = "stream_kind";
@@ -138,7 +139,7 @@ let of_frame_kind_t t =
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
-        Type.bind t (frame_kind_t audio video midi);
+        t.Type.descr <- Type.Link (frame_kind_t audio video midi);
         { Frame.audio; video; midi }
     | _ -> assert false
 
