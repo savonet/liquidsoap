@@ -105,11 +105,11 @@ let copy_with (subst : Subst.t) t =
           cp (Meth (l, (g, aux t), d, aux u))
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
-      | Link t ->
+      | Link (v, t) ->
           (* Keep links to preserve rich position information,
            * and to make it possible to check if the application left
            * the type unchanged. *)
-          cp (Link (aux t))
+          cp (Link (v, aux t))
   in
   if Subst.is_identity subst then t else aux t
 
@@ -165,7 +165,7 @@ let rec occur_check a b =
     | Link _ -> assert false
 
 (* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)
-let rec bind a0 b =
+let rec bind ?(variance = Invariant) a0 b =
   (* if !debug then Printf.eprintf "%s := %s\n%!" (print a0) (print b); *)
   let a = deref a0 in
   let b = deref b in
@@ -251,8 +251,8 @@ let rec bind a0 b =
      * If it doesn't break sharing, we set the parsing position of
      * that variable occurrence to the position of the inferred type. *)
     if b.pos = None && match b.descr with EVar _ -> false | _ -> true then
-      a.descr <- Link { a0 with descr = b.descr }
-    else a.descr <- Link b)
+      a.descr <- Link (variance, { a0 with descr = b.descr })
+    else a.descr <- Link (variance, b))
 
 (** {1 Subtype checking/inference} *)
 
@@ -505,7 +505,7 @@ let rec duplicate ?pos ?level t =
             ( List.map (fun (b, n, t) -> (b, n, duplicate ?pos ?level t)) args,
               duplicate ?pos ?level t )
       | EVar v -> EVar v
-      | Link t -> Link (duplicate ?pos ?level t))
+      | Link (v, t) -> Link (v, duplicate ?pos ?level t))
 
 (** Find an approximation of the minimal type that is safe to use instead of
     both left and right hand types. This function is not exact: we should always

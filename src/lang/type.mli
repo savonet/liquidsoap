@@ -68,7 +68,7 @@ and descr =
   | Meth of string * scheme * string * t
   | Arrow of (bool * string * t) list * t
   | EVar of var
-  | Link of t
+  | Link of variance * t
 
 and var = int * constraints
 

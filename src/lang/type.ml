@@ -117,7 +117,7 @@ and descr =
   | Meth of string * scheme * string * t (* label, type, documentation, type to decorate *)
   | Arrow of (bool * string * t) list * t
   | EVar of var (* type variable *)
-  | Link of t
+  | Link of variance * t
 
 and var = int * constraints
 
@@ -145,7 +145,7 @@ let dummy = make ~pos:None (EVar (-1, []))
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced
     type. *)
-let rec deref t = match t.descr with Link x -> deref x | _ -> t
+let rec deref t = match t.descr with Link (_, x) -> deref x | _ -> t
 
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
@@ -275,7 +275,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
-        | Link t -> repr g t)
+        | Link (_, t) -> repr g t)
   in
   repr generalized t
 
