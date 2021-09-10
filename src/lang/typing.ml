@@ -292,12 +292,19 @@ let rec ( <: ) a b =
             | Nullable a -> (
                 match (deref b).descr with
                   | EVar _ -> b
+                  | Nullable b -> mk (Nullable (sup a b))
                   | _ -> mk (Nullable (sup a b)))
             | _ -> b
         in
         let b'' = sup a b' in
-        (try b' <: b'' with _ -> assert false);
-        b'.descr <- Link (Covariant, b'');
+        Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b')
+          (Type.print b'');
+        (try b' <: b''
+         with _ ->
+           failwith
+             (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
+                (Type.print b'')));
+        b.descr <- Link (Covariant, b'');
         a <: b'
     | _, Link (_, b) -> a <: b
     | Link (_, a), _ -> a <: b
