@@ -185,6 +185,8 @@ The function `string.quote` returns [JSON-compatible](https://www.json.org/json-
 
 ### Regular expressions
 
+_This feature was introduced in liquidsoap version 2.1.0_
+
 Regular expressions can be created using the `regexp` operator or the syntactic sugar: `r/.../<flags>`. For instance:
 
 ```liquidsoap

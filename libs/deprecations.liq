@@ -500,28 +500,28 @@ end
 
 # Deprecated: use regexp's test method instead
 # @flags deprecated
-def string.match(r, s) =
+def string.match(~pattern, s) =
   deprecated("string.match", "r/_/.test(_)")
-  regexp(r).test(s)
+  regexp(pattern).test(s)
 end
 
 # Deprecated: use regexp's exec method instead
 # @flags deprecated
-def string.extract(r, s) =
+def string.extract(~pattern, s) =
   deprecated("string.extract", "r/_/.exec(_)")
-  regexp(r).exec(s)
+  regexp(pattern).exec(s)
 end
 
 # Deprecated: use regexp's replace method instead
 # @flags deprecated
-def string.replace(r, fn, s) =
-  deprecated("string.replace", "r/_/.replace(_)")
-  regexp(r).replace(fn, s)
+def string.replace(~pattern, fn, s) =
+  deprecated("string.replace", "r/_/g.replace(_)")
+  regexp(flags=["g"], pattern).replace(fn, s)
 end
 
 # Deprecated: use regexp's split method instead
 # @flags deprecated
-def string.split(r, s) =
+def string.split(~separator, s) =
   deprecated("string.split", "r/_/.split(_)")
-  regexp(r).split(s)
+  regexp(separator).split(s)
 end
