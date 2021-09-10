@@ -145,7 +145,7 @@ def enable_external_flac_decoder() =
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
-        if r/flag/.test(fname) then
+        if r/flac/.test(fname) then
           # We do not know the number of audio channels
           # so setting to -1
           (-1)
