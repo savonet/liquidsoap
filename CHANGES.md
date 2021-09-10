@@ -1,3 +1,11 @@
+2.1.0 (unreleased)
+=====
+
+New:
+
+- Added support for variables in encoders (#1858)
+- Added support for regular expressions (#1881)
+
 2.0.0 (unreleased)
 =====
 

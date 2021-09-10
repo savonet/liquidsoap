@@ -183,6 +183,35 @@ Here's an example of an escaped string:
 
 The function `string.quote` returns [JSON-compatible](https://www.json.org/json-en.html) strings.
 
+### Regular expressions
+
+Regular expressions can be created using the `regexp` operator or the syntactic sugar: `r/.../<flags>`. For instance:
+
+```liquidsoap
+# Using the regexp operator:
+r = regexp(flags=["g","i"], "foo([\\w])+bar")
+
+# Using the r/../ syntactic sugar:
+r = r/foo([\w])bar/gi
+```
+
+Using the `r/../` syntactic sugar makes it possible to write regular expressions without having to escape `\` characters,
+which makes them more easily readable.
+
+Regular expression flags are:
+
+* `i`: perform case-insensitive match
+* `g`: substitute all matched sub-strings, not just the first one
+* `s`: match all characters, including `\n` when using the `.` pattern
+* `m`: `^` and `$` match before/after newlines, not just at the beginning/end of a string
+
+Regular expressions have the following methods:
+
+* `replace(fn, s)`: replace matched substrings of `s` using function `fn`. If the `g` flag is not passed, only the first match is replaced otherwise, all matches are replaced
+* `exec(s)`: execute the regular expression and return a list matches of the form: `[(<match index>, <match>), ..]`
+* `split(s)`: split the given string on all substrings matching the regular expression.
+* `test(s)`: returns `true` if the given string matches the regular expression.
+
 ### Booleans
 
 The _booleans_ are either `true` or

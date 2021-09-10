@@ -88,7 +88,7 @@ def enable_external_mpc_decoder() =
       get_channels(file)
     else
       # Otherwise test file extension
-      ret = string.extract(pattern='\\.(.+)$',file)
+      ret = r/\.(.+)$/.exec(file)
       if list.length(ret) != 0 then
         ext = ret[1]
         if list.mem(ext,mpc_filexts) then
@@ -145,7 +145,7 @@ def enable_external_flac_decoder() =
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
-        if string.match(pattern="flac",fname) then
+        if r/flac/.test(fname) then
           # We do not know the number of audio channels
           # so setting to -1
           (-1)
@@ -167,7 +167,7 @@ def enable_external_flac_decoder() =
     def flac_meta(fname)
       ret = process.read.lines("#{metaflac} --export-tags-to=- \
                    #{string.quote(fname)}")
-      ret = list.map(string.split(separator="="),ret)
+      ret = list.map(r/=/.split, ret)
       # Could be made better..
       def f(l',l)=
         if list.length(l) >= 2 then
@@ -222,7 +222,7 @@ def enable_external_faad_decoder() =
       true
     else
       # Otherwise test file extension
-      ret = string.extract(pattern='\\.(.+)$',file)
+      ret = r/\.(.+)$/.exec(file)
       if list.length(ret) != 0 then
         ext = ret[1]
         list.mem(ext,aac_filexts)
@@ -241,7 +241,7 @@ def enable_external_faad_decoder() =
         channels = list.hd(default="",
                            process.read.lines("#{faad} -i #{string.quote(file)} 2>&1 | \
                                               grep 'ch,'"))
-        ret = string.extract(pattern=", (\\d) ch,",channels)
+        ret = r/, (\d) ch,/.exec(channels)
         ret =
           if list.length(ret) == 0 then
             # If we pass the faad_test, chances are high that the file will
@@ -262,7 +262,7 @@ def enable_external_faad_decoder() =
         ret = process.read.lines("#{faad} -i #{string.quote(file)} 2>&1")
         # Yea, this is ugly programming (again)!
         def get_meta(l,s)=
-          ret = string.extract(pattern="^(\\w+):\\s(.+)$",s)
+          ret = r/^(\w+):\s(.+)$/.exec(s)
           if list.length(ret) > 0 then
             list.append([(ret[1],ret[2])],l)
           else

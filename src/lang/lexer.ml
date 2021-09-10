@@ -268,18 +268,37 @@ let rec token lexbuf =
         INTERVAL (parse_time t1, parse_time t2)
     | var -> VAR (Sedlexing.Utf8.lexeme lexbuf)
     | '"' ->
-        read_string '"'
-          (fst (Sedlexing.lexing_positions lexbuf))
-          (Buffer.create 17) lexbuf
+        STRING
+          (read_string '"'
+             (fst (Sedlexing.lexing_positions lexbuf))
+             (Buffer.create 17) lexbuf)
     | '\'' ->
-        read_string '\''
-          (fst (Sedlexing.lexing_positions lexbuf))
-          (Buffer.create 17) lexbuf
+        STRING
+          (read_string '\''
+             (fst (Sedlexing.lexing_positions lexbuf))
+             (Buffer.create 17) lexbuf)
+    | "r/" ->
+        let regexp =
+          read_string '/'
+            (fst (Sedlexing.lexing_positions lexbuf))
+            (Buffer.create 17) lexbuf
+        in
+        let flags = read_regexp_flags [] lexbuf in
+        REGEXP (regexp, flags)
     | _ ->
         raise
           (Term.Parse_error
              ( Sedlexing.lexing_positions lexbuf,
                "Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf ))
+
+and read_regexp_flags flags lexbuf =
+  match%sedlex lexbuf with
+    | 'g' | 'i' | 's' | 'm' | 'u' ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        read_regexp_flags (matched.[0] :: flags) lexbuf
+    | _ ->
+        Sedlexing.rollback lexbuf;
+        flags
 
 and read_string c pos buf lexbuf =
   (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
@@ -342,26 +361,35 @@ and read_string c pos buf lexbuf =
        Some more text *)
     | '\\', '\n', Star skipped -> read_string c pos buf lexbuf
     | '\\', any ->
-        Printf.printf "Warning: illegal backslash escape in string.\n";
+        if c <> '/' then (
+          let pos = Type.print_single_pos pos in
+          Printf.printf
+            "Warning at position %s: illegal backslash escape in string.\n" pos);
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_string c pos buf lexbuf
-    | Plus (Compl ('"' | '\'' | '\\')) ->
+    | Plus (Compl ('"' | '\'' | '\\' | '/')) ->
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_string c pos buf lexbuf
-    | '"' | '\'' ->
+    | '"' | '\'' | '/' ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let c' = matched.[0] in
-        if c = c' then STRING (Buffer.contents buf)
+        if c = c' then Buffer.contents buf
         else (
           Buffer.add_char buf c';
           read_string c pos buf lexbuf)
     | eof ->
+        let msg =
+          if c = '/' then "Regexp not terminated"
+          else "String is not terminated"
+        in
         raise
-          (Term.Parse_error
-             ( (pos, snd (Sedlexing.lexing_positions lexbuf)),
-               "String is not terminated" ))
+          (Term.Parse_error ((pos, snd (Sedlexing.lexing_positions lexbuf)), msg))
     | _ ->
+        let msg =
+          if c = '/' then "Illegal regexp character: "
+          else "Illegal string character: "
+        in
         raise
           (Term.Parse_error
              ( (pos, snd (Sedlexing.lexing_positions lexbuf)),
-               "Illegal string character: " ^ Sedlexing.Utf8.lexeme lexbuf ))
+               msg ^ Sedlexing.Utf8.lexeme lexbuf ))

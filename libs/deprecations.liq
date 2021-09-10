@@ -497,3 +497,31 @@ def http_response_stream(%argsof(http.response.stream)) =
   deprecated("http_response_stream", "http.response.stream")
   http.response.stream(%argsof(http.response.stream))
 end
+
+# Deprecated: use regexp's test method instead
+# @flags deprecated
+def string.match(r, s) =
+  deprecated("string.match", "r/_/.test(_)")
+  regexp(r).test(s)
+end
+
+# Deprecated: use regexp's exec method instead
+# @flags deprecated
+def string.extract(r, s) =
+  deprecated("string.extract", "r/_/.exec(_)")
+  regexp(r).exec(s)
+end
+
+# Deprecated: use regexp's replace method instead
+# @flags deprecated
+def string.replace(r, fn, s) =
+  deprecated("string.replace", "r/_/.replace(_)")
+  regexp(r).replace(fn, s)
+end
+
+# Deprecated: use regexp's split method instead
+# @flags deprecated
+def string.split(r, s) =
+  deprecated("string.split", "r/_/.split(_)")
+  regexp(r).split(s)
+end

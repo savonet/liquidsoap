@@ -224,57 +224,6 @@ let () =
              }))
 
 let () =
-  Lang.add_builtin "string.split" ~category:`String
-    ~descr:
-      "Split a string at 'separator'. Perl compatible regular expressions are \
-       recognized. Hence, special characters should be escaped."
-    [("separator", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    (Lang.list_t Lang.string_t) (fun p ->
-      let sep = Lang.to_string (List.assoc "separator" p) in
-      let string = Lang.to_string (List.assoc "" p) in
-      let rex = Pcre.regexp sep in
-      Lang.list (List.map Lang.string (Pcre.split ~rex string)))
-
-let () =
-  Lang.add_builtin "string.extract" ~category:`String
-    ~descr:
-      "Extract substrings from a string. Perl compatible regular expressions \
-       are recognized. Hence, special characters should be escaped. Returns a \
-       list of (index,value). If the list does not have a pair associated to \
-       some index, it means that the corresponding pattern was not found."
-    [("pattern", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    (Lang.list_t (Lang.product_t Lang.int_t Lang.string_t))
-    (fun p ->
-      let pattern = Lang.to_string (List.assoc "pattern" p) in
-      let string = Lang.to_string (List.assoc "" p) in
-      let rex = Pcre.regexp pattern in
-      try
-        let sub = Pcre.exec ~rex string in
-        let n = Pcre.num_of_subs sub in
-        let rec extract acc i =
-          if i < n then (
-            try extract ((i, Pcre.get_substring sub i) :: acc) (i + 1)
-            with Not_found -> extract acc (i + 1))
-          else List.rev acc
-        in
-        let l = extract [] 1 in
-        Lang.list
-          (List.map (fun (x, y) -> Lang.product (Lang.int x) (Lang.string y)) l)
-      with Not_found -> Lang.list [])
-
-let () =
-  Lang.add_builtin "string.match" ~category:`String
-    ~descr:
-      "Match a string with an expression. Perl compatible regular expressions \
-       are recognized. Hence, special characters should be escaped."
-    [("pattern", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    Lang.bool_t (fun p ->
-      let pattern = Lang.to_string (List.assoc "pattern" p) in
-      let string = Lang.to_string (List.assoc "" p) in
-      let rex = Pcre.regexp pattern in
-      Lang.bool (Pcre.pmatch ~rex string))
-
-let () =
   Lang.add_builtin "string.recode" ~category:`String
     ~descr:"Convert a string. Effective only if Camomile is enabled."
     [
@@ -381,41 +330,6 @@ let () =
          let l = List.map f l in
          String.concat " " l)
         else f string))
-
-let () =
-  Lang.add_builtin "string.replace" ~category:`String
-    ~descr:
-      "Replace all substrings matched by a pattern by another string returned \
-       by a function."
-    [
-      ( "pattern",
-        Lang.string_t,
-        None,
-        Some
-          "Pattern (regular expression) of substrings which should be replaced."
-      );
-      ( "",
-        Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t,
-        None,
-        Some
-          "Function getting a matched substring an returning the string to \
-           replace it with." );
-      ( "",
-        Lang.string_t,
-        None,
-        Some "String whose substrings should be replaced." );
-    ]
-    Lang.string_t
-    (fun p ->
-      let pattern = Lang.to_string (List.assoc "pattern" p) in
-      let string = Lang.to_string (Lang.assoc "" 2 p) in
-      let subst = Lang.assoc "" 1 p in
-      let subst s =
-        let ret = Lang.apply subst [("", Lang.string s)] in
-        Lang.to_string ret
-      in
-      let rex = Pcre.regexp pattern in
-      Lang.string (Pcre.substitute ~rex ~subst string))
 
 let () =
   Lang.add_builtin "string.base64.decode" ~category:`String

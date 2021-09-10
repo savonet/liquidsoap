@@ -32,11 +32,11 @@ def server.insert_metadata(~id=null(),s) =
   def insert(s) =
     #TODO: we don't split as expected if one string contains a comma, but this
     #is difficult to achieve with regexps
-    l = string.split(separator=',',s)
+    l = r/,/.split(s)
     def f(l,x) =
-      def sub(s) = string.replace(pattern='\\"',fun (_) -> '"',s) end
+      sub = r/\"/.replace(fun (_) -> '"')
       if x != "" then
-        ret = string.extract(pattern='([^=]+)\\s*=\\s*"((?:\\"|[^"])*)"',x)
+        ret = r/([^=]+)\s*=\s*"((?:\"|[^"])*)"/.exec(x)
         if ret[1] != "" then
           list.append(l, [(ret[1], sub(ret[2]))])
         else
