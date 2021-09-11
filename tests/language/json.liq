@@ -34,7 +34,7 @@ def f() =
   u([3],[])
   u([("x",0)],json.parse(default=[("x",0)],"{\"a\" : 4}"))
 
-  t(json.stringify(()), 'null')
+  t(json.stringify(()), '[  ]')
   t(json.stringify("a"), '"a"')
   t(json.stringify("©"), '"©"')
   t(json.stringify('"'), '"\\""')
