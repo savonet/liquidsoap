@@ -183,7 +183,7 @@ let utf8_char_code s =
 (* End of Extlib code *)
 
 let ascii_special_char = function
-  | "\\"
+  | "'" | "\"" | "\\"
   (* DEL *)
   | "\x7F" ->
       true
@@ -192,15 +192,7 @@ let ascii_special_char = function
   | s when String.length s = 1 && Char.code s.[0] > 0x7E -> true
   | _ -> false
 
-let utf8_special_char = function
-  | "\\"
-  (* DEL *)
-  | "\x7F" ->
-      true
-  (* Control chars *)
-  | s when String.length s = 1 && Char.code s.[0] <= 0x1F -> true
-  | s -> ( try not (Uchar.is_valid (utf8_char_code s)) with _ -> true)
-
+let utf8_special_char s = String.length s = 1 && ascii_special_char s
 let ascii_next _ i = i + 1
 
 let escape_char ~escape_fun = function
