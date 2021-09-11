@@ -40,8 +40,6 @@ run_test() {
 
   ${CMD} < "${PWD}/${TEST}" > "${LOG_FILE}" 2>&1
 
-  PID=$!
-  wait $PID
   STATUS=$?
   T="$(($(date +%s)-START_TIME))"
 
