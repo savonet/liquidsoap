@@ -129,7 +129,7 @@ def string.data_uri.decode(s) =
       else
         data
       end 
-    null(data.{mime=mime})
+    data.{mime=mime}
   else
     null()
   end
