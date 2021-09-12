@@ -32,13 +32,13 @@ def on_done () =
       true
     end
 
-  json = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
+  j = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
 
-  int_format = json.parse(default=[("streams", [[("channels", 0)]])], json)
+  int_format = json.parse(default=[("streams", [[("channels", 0)]])], j)
   stream = list.hd(default=[], list.assoc(default=[], "streams", int_format))
   channels = list.assoc(default=0,"channels",stream)
 
-  string_format = json.parse(default=[("streams", [[("samplerate", "0")]])], json)
+  string_format = json.parse(default=[("streams", [[("samplerate", "0")]])], j)
   stream = list.hd(default=[], list.assoc(default=[], "streams", string_format))
   samplerate = list.assoc(default="0","sample_rate",stream)
 
