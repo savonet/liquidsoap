@@ -269,8 +269,9 @@ let rec sup a b =
   let mk descr = { b with descr } in
   let rec has_meth l t a =
     match (deref a).descr with
-      | Meth (l', t', _, _) when l = l' && t = t' -> true
+      | Meth (l', _, _, _) when l = l' -> true
       | Meth (_, _, _, a) -> has_meth l t a
+      | EVar _ -> true
       | _ -> false
   in
   let a0 = a in
