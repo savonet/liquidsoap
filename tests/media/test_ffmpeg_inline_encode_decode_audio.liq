@@ -21,9 +21,9 @@ todo = ref(2)
 
 def on_done () =
   def check(out) =
-    json = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
+    j = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
 
-    format = json.parse(default=[("streams", [[("samplerate", "0")]])], json)
+    format = json.parse(default=[("streams", [[("samplerate", "0")]])], j)
 
     streams = list.assoc(default=[], "streams", format)
 
