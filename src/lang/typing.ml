@@ -258,6 +258,25 @@ let rec bind ?(variance = Invariant) a0 b =
 
 exception Error of (repr * repr)
 
+(** Approximated supremum of two types. We grow the second argument so that it
+    has a chance be be greater than the first. No binding is performed by this
+    function so that it should always be followed by a subtyping. *)
+let rec sup a b =
+  let mk descr = { b with descr } in
+  match (deref a).descr with
+    | Nullable a -> (
+        match (deref b).descr with
+          | EVar _ -> b
+          | Nullable b -> mk (Nullable (sup a b))
+          | _ -> mk (Nullable (sup a b)))
+    | _ -> b
+
+let sup a b =
+  let b' = sup a b in
+  Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b)
+    (Type.print b');
+  b'
+
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
  * We allow
@@ -277,33 +296,21 @@ exception Error of (repr * repr)
 (** Ensure that a<:b, perform unification if needed.
   * In case of error, generate an explanation. *)
 let rec ( <: ) a b =
-  if !debug then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
+  if !debug || true then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
   match (a.descr, b.descr) with
     | _, Link (Covariant, b') ->
-        (* We can take this opportunity to increase b' so that it is actually
-           greater than a. This is for instance, to make types nullable afterward
-           (e.g. if a branch of an if is nullable and the other is not. Ideally,
-           we should simply do b' <- sup a b', but it seems difficult to perform
-           exactly for now, while preserving sharing, so that we make an
-           approximation of the supremum. *)
-        let rec sup a b =
-          let mk descr = { b with descr } in
-          match (deref a).descr with
-            | Nullable a -> (
-                match (deref b).descr with
-                  | EVar _ -> b
-                  | Nullable b -> mk (Nullable (sup a b))
-                  | _ -> mk (Nullable (sup a b)))
-            | _ -> b
-        in
+        (* When the variable is covariant, we take the opportunity here to correct
+           bad choices. For instance, if we took int, but then have a 'a?, we
+           change our mind and use int? instead. *)
         let b'' = sup a b' in
-        Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b')
-          (Type.print b'');
+        Printf.printf "the sup of %s and %s is %s\n%!" (Type.print a)
+          (Type.print b') (Type.print b'');
         (try b' <: b''
          with _ ->
            failwith
              (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
                 (Type.print b'')));
+        Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b'');
         b.descr <- Link (Covariant, b'');
         a <: b'
     | _, Link (_, b) -> a <: b
