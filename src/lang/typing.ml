@@ -24,7 +24,9 @@
 
 open Type
 
-let () = Type.debug := true
+(* let () = Type.debug := true *)
+
+let debug_subtyping = ref false
 
 type env = (string * scheme) list
 
@@ -265,18 +267,30 @@ exception Error of (repr * repr)
     function so that it should always be followed by a subtyping. *)
 let rec sup a b =
   let mk descr = { b with descr } in
+  let rec has_meth l t a =
+    match (deref a).descr with
+      | Meth (l', t', _, _) when l = l' && t = t' -> true
+      | Meth (_, _, _, a) -> has_meth l t a
+      | _ -> false
+  in
+  let a0 = a in
   match (deref a).descr with
     | Nullable a -> (
         match (deref b).descr with
           | EVar _ -> b
           | Nullable b -> mk (Nullable (sup a b))
+          | Meth (_, _, _, b) -> sup a0 b
           | _ -> mk (Nullable (sup a b)))
-    | _ -> b
+    | _ -> (
+        match (deref b).descr with
+          | Meth (l, t, _, b) when not (has_meth l t a) -> sup a b
+          | _ -> b)
 
 let sup a b =
   let b' = sup a b in
-  Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b)
-    (Type.print b');
+  if b' != b then
+    Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b)
+      (Type.print b');
   b'
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
@@ -298,7 +312,8 @@ let sup a b =
 (** Ensure that a<:b, perform unification if needed.
   * In case of error, generate an explanation. *)
 let rec ( <: ) a b =
-  if !debug || true then Printf.eprintf "\n%s <: %s\n%!" (print a) (print b);
+  if !debug || !debug_subtyping then
+    Printf.eprintf "\n%s <: %s\n%!" (print a) (print b);
   match (a.descr, b.descr) with
     | _, Link (Covariant, b') ->
         (* When the variable is covariant, we take the opportunity here to correct
@@ -312,9 +327,10 @@ let rec ( <: ) a b =
            failwith
              (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
                 (Type.print b'')));
-        Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b'');
+        if b'' != b' then
+          Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b'');
         b.descr <- Link (Covariant, b'');
-        a <: b'
+        a <: b''
     | _, Link (_, b) -> a <: b
     | Link (_, a), _ -> a <: b
     | Constr c1, Constr c2 when c1.name = c2.name ->

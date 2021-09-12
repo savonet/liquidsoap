@@ -72,6 +72,9 @@ def f() =
   ignore(list.hd(l).x)
   def f(c) = [a,c] end
 
+  # Subsequent increase of the type
+  _ = if true then {a = 4} end  
+
   # Equality
   t({a = 5} == {a = 5}, true)
   t({a = 5} == {a = 6}, false)
