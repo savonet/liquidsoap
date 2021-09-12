@@ -24,6 +24,8 @@
 
 open Type
 
+let () = Type.debug := true
+
 type env = (string * scheme) list
 
 (** Do we have a method. *)
@@ -296,7 +298,7 @@ let sup a b =
 (** Ensure that a<:b, perform unification if needed.
   * In case of error, generate an explanation. *)
 let rec ( <: ) a b =
-  if !debug || true then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
+  if !debug || true then Printf.eprintf "\n%s <: %s\n%!" (print a) (print b);
   match (a.descr, b.descr) with
     | _, Link (Covariant, b') ->
         (* When the variable is covariant, we take the opportunity here to correct

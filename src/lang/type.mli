@@ -20,7 +20,11 @@
 
  *****************************************************************************)
 
+(** Show debugging information. *)
 val debug : bool ref
+
+(** Show variables levels. *)
+val debug_levels : bool ref
 
 (** {1 Positions} *)
 

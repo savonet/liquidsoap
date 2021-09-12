@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
-let debug_levels = false
+let debug_levels = ref false
 
 (** Show generalized variables in records. *)
 let show_record_schemes = ref true
@@ -208,6 +208,18 @@ let name =
   in
   n ""
 
+(** Generate a globally unique name for evars (used for debugging only). *)
+let evar_global_name =
+  let evars = Hashtbl.create 10 in
+  let n = ref (-1) in
+  fun i ->
+    try Hashtbl.find evars i
+    with Not_found ->
+      incr n;
+      let name = String.uppercase_ascii (name !n) in
+      Hashtbl.add evars i name;
+      name
+
 (** Compute the structure that a term [repr]esents, given the list of
    universally quantified variables. Also takes care of computing the printing
    name of variables, including constraint symbols, which are removed from
@@ -227,7 +239,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    let v = if debug_levels then Printf.sprintf "%s[%d]" v level else v in
+    let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
     `UVar (v, c)
   in
   let counter =
@@ -240,8 +252,9 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let evar level i c =
     let constr_symbols, c = split_constr c in
     if !debug then (
-      let v = Printf.sprintf "?%s%d" constr_symbols i in
-      let v = if debug_levels then Printf.sprintf "%s[%d]" v level else v in
+      (* let v = Printf.sprintf "?%s%d" constr_symbols i in *)
+      let v = Printf.sprintf "?%s%s" constr_symbols (evar_global_name i) in
+      let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
       `EVar (v, c))
     else (
       let s =
