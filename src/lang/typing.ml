@@ -155,7 +155,6 @@ let rec occur_check a b =
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
-    | Cons (_ : string) -> ()
     | Union (t, u) ->
         occur_check a t;
         occur_check a u
@@ -168,6 +167,7 @@ let rec occur_check a b =
         if b.level = -1 then b.level <- a.level
         else if a.level <> -1 then b.level <- min b.level a.level
     | Ground _ -> ()
+    | AString _ -> ()
     | Link _ -> assert false
 
 (* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)
