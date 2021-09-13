@@ -517,56 +517,32 @@ let raise_as_runtime ~bt ~kind exn =
 (* Abstract types. *)
 
 module type Abstract = sig
-  type content
+  include Term.Abstract
 
-  val t : t
   val to_value : content -> value
   val of_value : value -> content
   val is_value : value -> bool
 end
 
-module type AbstractDef = sig
-  type content
+module type AbstractDef = Term.AbstractDef
 
-  val name : string
-  val to_json : compact:bool -> json5:bool -> content -> string
-  val descr : content -> string
-  val compare : content -> content -> int
-end
+module MkAbstractValue (Term : Term.Abstract) = struct
+  include Term
 
-module G = Term.Ground
-
-module MkAbstract (Def : AbstractDef) = struct
-  type Type.ground += Type
-  type G.t += Value of Def.content
-
-  let () =
-    G.register (function
-      | Value v ->
-          let compare = function
-            | Value v' -> Def.compare v v'
-            | _ -> assert false
-          in
-          Some
-            {
-              G.descr = (fun () -> Def.descr v);
-              to_json =
-                (fun ~compact ~json5 () -> Def.to_json ~compact ~json5 v);
-              compare;
-              typ = Type;
-            }
-      | _ -> None);
-
-    Type.register_ground_printer (function Type -> Some Def.name | _ -> None)
-
-  let t = ground_t Type
-  let to_value c = mk (Value.Ground (Value c))
+  let to_value c = mk (Value.Ground (to_ground c))
 
   let of_value t =
-    match t.value with Value.Ground (Value c) -> c | _ -> assert false
+    match t.value with
+      | Value.Ground g when is_ground g -> of_ground g
+      | _ -> assert false
 
   let is_value t =
-    match t.value with Value.Ground (Value _) -> true | _ -> false
+    match t.value with Value.Ground g -> is_ground g | _ -> false
+end
+
+module MkAbstract (Def : AbstractDef) = struct
+  module Term = Term.MkAbstract (Def)
+  include MkAbstractValue (Term)
 end
 
 (* Augment source_t and source with default methods. *)
