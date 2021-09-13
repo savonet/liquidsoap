@@ -38,3 +38,6 @@ val ( <: ) : t -> t -> unit
 
 (** Suptyping. *)
 val ( >: ) : t -> t -> unit
+
+(** Supremeum of two types. *)
+val sup : pos:pos option -> t -> t -> t

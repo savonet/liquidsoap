@@ -3,7 +3,7 @@ let should_work t t' r =
   let t' = Type.make t' in
   let r = Type.make r in
   Printf.printf "Finding min for %s and %s\n%!" (Type.print t) (Type.print t');
-  let m = Typing.sup t t' in
+  let m = Typing.sup ~pos:None t t' in
   Printf.printf "Got: %s, expect %s\n%!" (Type.print m) (Type.print r);
   Typing.(m <: r);
   Typing.(t <: m);
@@ -11,7 +11,7 @@ let should_work t t' r =
 
 let should_fail t t' =
   try
-    ignore (Typing.sup (Type.make t) (Type.make t'));
+    ignore (Typing.sup ~pos:None (Type.make t) (Type.make t'));
     assert false
   with _ -> ()
 
