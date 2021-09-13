@@ -176,78 +176,84 @@ let rec bind ?(variance = Invariant) a0 b =
   if b == a then ()
   else (
     occur_check a b;
-    begin
+    let constraints =
       match a.descr with
-      | EVar (_, constraints) ->
-          List.iter
-            (function
-              | Ord ->
-                  let rec check b =
-                    let m, b = split_meths b in
+        | EVar (_, constraints) ->
+            List.iter
+              (function
+                | Ord ->
+                    let rec check b =
+                      let m, b = split_meths b in
+                      match b.descr with
+                        | Ground _ -> ()
+                        | EVar (j, c) ->
+                            if List.mem Ord c then ()
+                            else b.descr <- EVar (j, Ord :: c)
+                        | Tuple [] ->
+                            (* For records, we want to ensure that all fields are ordered. *)
+                            List.iter
+                              (fun (_, ((v, a), _)) ->
+                                if v <> [] then
+                                  raise (Unsatisfied_constraint (Ord, a));
+                                check a)
+                              m
+                        | Tuple l -> List.iter (fun b -> check b) l
+                        | List b -> check b
+                        | Nullable b -> check b
+                        | _ -> raise (Unsatisfied_constraint (Ord, b))
+                    in
+                    check b
+                | Dtools -> (
                     match b.descr with
-                      | Ground _ -> ()
+                      | Ground g ->
+                          if not (List.mem g [Bool; Int; Float; String]) then
+                            raise (Unsatisfied_constraint (Dtools, b))
+                      | Tuple [] -> ()
+                      | List b' -> (
+                          match (deref b').descr with
+                            | Ground g ->
+                                if g <> String then
+                                  raise (Unsatisfied_constraint (Dtools, b'))
+                            | EVar (_, _) -> bind b' (make (Ground String))
+                            | _ -> raise (Unsatisfied_constraint (Dtools, b')))
                       | EVar (j, c) ->
-                          if List.mem Ord c then ()
-                          else b.descr <- EVar (j, Ord :: c)
-                      | Tuple [] ->
-                          (* For records, we want to ensure that all fields are ordered. *)
-                          List.iter
-                            (fun (_, ((v, a), _)) ->
-                              if v <> [] then
-                                raise (Unsatisfied_constraint (Ord, a));
-                              check a)
-                            m
-                      | Tuple l -> List.iter (fun b -> check b) l
-                      | List b -> check b
-                      | Nullable b -> check b
-                      | _ -> raise (Unsatisfied_constraint (Ord, b))
-                  in
-                  check b
-              | Dtools -> (
-                  match b.descr with
-                    | Ground g ->
-                        if not (List.mem g [Bool; Int; Float; String]) then
-                          raise (Unsatisfied_constraint (Dtools, b))
-                    | Tuple [] -> ()
-                    | List b' -> (
-                        match (deref b').descr with
-                          | Ground g ->
-                              if g <> String then
-                                raise (Unsatisfied_constraint (Dtools, b'))
-                          | EVar (_, _) -> bind b' (make (Ground String))
-                          | _ -> raise (Unsatisfied_constraint (Dtools, b')))
-                    | EVar (j, c) ->
-                        if not (List.mem Dtools c) then
-                          b.descr <- EVar (j, Dtools :: c)
-                    | _ -> raise (Unsatisfied_constraint (Dtools, b)))
-              | InternalMedia -> (
-                  let is_internal name =
-                    try
-                      let kind = Frame_content.kind_of_string name in
-                      Frame_content.is_internal kind
-                    with Frame_content.Invalid -> false
-                  in
-                  match b.descr with
-                    | Constr { name } when is_internal name -> ()
-                    | Ground (Format f)
-                      when Frame_content.(is_internal (kind f)) ->
-                        ()
-                    | EVar (j, c) ->
-                        if List.mem InternalMedia c then ()
-                        else b.descr <- EVar (j, InternalMedia :: c)
-                    | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
-              | Num -> (
-                  match (demeth b).descr with
-                    | Ground g ->
-                        if g <> Int && g <> Float then
-                          raise (Unsatisfied_constraint (Num, b))
-                    | EVar (j, c) ->
-                        if List.mem Num c then ()
-                        else b.descr <- EVar (j, Num :: c)
-                    | _ -> raise (Unsatisfied_constraint (Num, b))))
+                          if not (List.mem Dtools c) then
+                            b.descr <- EVar (j, Dtools :: c)
+                      | _ -> raise (Unsatisfied_constraint (Dtools, b)))
+                | InternalMedia -> (
+                    let is_internal name =
+                      try
+                        let kind = Frame_content.kind_of_string name in
+                        Frame_content.is_internal kind
+                      with Frame_content.Invalid -> false
+                    in
+                    match b.descr with
+                      | Constr { name } when is_internal name -> ()
+                      | Ground (Format f)
+                        when Frame_content.(is_internal (kind f)) ->
+                          ()
+                      | EVar (j, c) ->
+                          if List.mem InternalMedia c then ()
+                          else b.descr <- EVar (j, InternalMedia :: c)
+                      | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
+                | Num -> (
+                    match (demeth b).descr with
+                      | Ground g ->
+                          if g <> Int && g <> Float then
+                            raise (Unsatisfied_constraint (Num, b))
+                      | EVar (j, c) ->
+                          if List.mem Num c then ()
+                          else b.descr <- EVar (j, Num :: c)
+                      | _ -> raise (Unsatisfied_constraint (Num, b))))
+              constraints;
             constraints
-      | _ -> assert false (* only EVars are bindable *)
-    end;
+        | _ -> assert false
+      (* only EVars are bindable *)
+    in
+
+    (* We do not want to check the constraints when we increase the types (for
+       now). *)
+    let variance = if constraints <> [] then Invariant else variance in
 
     (* This is a shaky hack...
      * When a value is passed to a FFI, its type is bound to a type without
@@ -260,39 +266,86 @@ let rec bind ?(variance = Invariant) a0 b =
 
 (** {1 Subtype checking/inference} *)
 
-exception Error of (repr * repr)
+exception Incompatible
 
 (** Approximated supremum of two types. We grow the second argument so that it
     has a chance be be greater than the first. No binding is performed by this
     function so that it should always be followed by a subtyping. *)
-let rec sup a b =
-  let mk descr = { b with descr } in
-  let rec has_meth l t a =
-    match (deref a).descr with
-      | Meth (l', _, _, _) when l = l' -> true
-      | Meth (_, _, _, a) -> has_meth l t a
-      | EVar _ -> true
-      | _ -> false
+let rec sup ~pos a b =
+  (* Printf.printf "sup %s // %s\n%!" (Type.print a) (Type.print b); *)
+  let sup = sup ~pos in
+  let mk descr = { level = -1; pos; descr } in
+  let scheme_sup t t' =
+    match (t, t') with ([], t), ([], t') -> ([], sup t t') | _ -> t'
   in
-  let a0 = a in
-  match (deref a).descr with
-    | Nullable a -> (
-        match (deref b).descr with
-          | EVar _ -> b
-          | Nullable b -> mk (Nullable (sup a b))
-          | Meth (_, _, _, b) -> sup a0 b
-          | _ -> mk (Nullable (sup a b)))
-    | _ -> (
-        match (deref b).descr with
-          | Meth (l, t, _, b) when not (has_meth l t a) -> sup a b
-          | _ -> b)
+  let rec meth_type l a =
+    match (deref a).descr with
+      | Meth (l', t, _, _) when l = l' -> Some t
+      | Meth (_, _, _, a) -> meth_type l a
+      | EVar _ -> Some ([], fresh_evar ~level:(-1) ~pos)
+      | _ -> None
+  in
+  match ((deref a).descr, (deref b).descr) with
+    | EVar _, _ -> b
+    | _, EVar _ -> a
+    | Nullable a, Nullable b -> mk (Nullable (sup a b))
+    | Nullable a, _ -> mk (Nullable (sup a b))
+    | _, Nullable b -> mk (Nullable (sup a b))
+    | List a, List b -> mk (List (sup a b))
+    | Arrow (p, a), Arrow (q, b) ->
+        if List.length p <> List.length q then raise Incompatible;
+        mk (Arrow (q, sup a b))
+    | Tuple l, Tuple m ->
+        if List.length l <> List.length m then raise Incompatible;
+        mk (Tuple (List.map2 sup l m))
+    | Ground g, Ground g' ->
+        if g <> g' then raise Incompatible;
+        mk (Ground g)
+    | Meth (l, t, _, a), Meth (l', t', d', b) when l = l' ->
+        mk (Meth (l, scheme_sup t t', d', sup a b))
+    | Meth (l, t, d, a), _ -> (
+        match meth_type l b with
+          (* TODO: I guess that we should hide other methods named l *)
+          | Some t' -> mk (Meth (l, scheme_sup t' t, d, sup a b))
+          | None -> sup a b)
+    | _, Meth (l, t, d, b) -> (
+        match meth_type l a with
+          (* TODO: I guess that we should hide other methods named l *)
+          | Some t' -> mk (Meth (l, scheme_sup t' t, d, sup a b))
+          | None -> sup a b)
+    | Constr { name = c; params = a }, Constr { name = d; params = b } ->
+        if c <> d || List.length a <> List.length b then raise Incompatible;
+        let params =
+          List.map2
+            (fun (v, a) (v', b) ->
+              if v <> v' then raise Incompatible;
+              (v, sup a b))
+            a b
+        in
+        mk (Constr { name = c; params })
+    | Getter a, Getter b -> mk (Getter (sup a b))
+    | Getter a, Arrow ([], b) -> mk (Getter (sup a b))
+    | Getter a, _ -> mk (Getter (sup a b))
+    | Arrow ([], a), Getter b -> mk (Getter (sup a b))
+    | _, Getter b -> mk (Getter (sup a b))
+    | _, _ -> raise Incompatible
 
-let sup a b =
-  let b' = sup a b in
-  if b' != b then
+let sup ~pos a b =
+  let b' =
+    try sup ~pos a b
+    with Incompatible as e ->
+      if !debug_subtyping then
+        failwith
+          (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.print a)
+             (Type.print b))
+      else raise e
+  in
+  if !debug_subtyping && b' != b then
     Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b)
       (Type.print b');
   b'
+
+exception Error of (repr * repr)
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
@@ -320,17 +373,17 @@ let rec ( <: ) a b =
         (* When the variable is covariant, we take the opportunity here to correct
            bad choices. For instance, if we took int, but then have a 'a?, we
            change our mind and use int? instead. *)
-        let b'' = sup a b' in
-        Printf.printf "the sup of %s and %s is %s\n%!" (Type.print a)
-          (Type.print b') (Type.print b'');
+        let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
+        (* Printf.printf "the sup of %s and %s is %s\n%!" (Type.print a) *)
+        (* (Type.print b') (Type.print b''); *)
         (try b' <: b''
          with _ ->
            failwith
              (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
                 (Type.print b'')));
         if b'' != b' then
-          Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b'');
-        b.descr <- Link (Covariant, b'');
+          (* Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b''); *)
+          b.descr <- Link (Covariant, b'');
         a <: b''
     | _, Link (_, b) -> a <: b
     | Link (_, a), _ -> a <: b
