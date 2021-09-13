@@ -77,6 +77,8 @@ def f() =
   t({a = 5} == {a = 6}, false)
   t({a = 5, b = 3} == {a = 6}, false)
   t({a = 5} == {a = 6, b = 4}, false)
+  t([{a = 5}] == [{a = 5}], true)
+  t(({a = 5}) == ({a = 5}), true)
 
   if !success then test.pass() else test.fail() end
 end
