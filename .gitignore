@@ -25,6 +25,8 @@ doc/content/reference.md
 doc/content/reference-extras.md
 doc/content/settings.md
 doc/content/protocols.md
+doc/content/install.md
+doc/content/build.md
 autodoc/
 *.annot
 tests/language/interactive.json
