@@ -20,7 +20,11 @@
 
  *****************************************************************************)
 
+(** Show debugging information. *)
 val debug : bool ref
+
+(** Show variables levels. *)
+val debug_levels : bool ref
 
 (** {1 Positions} *)
 
@@ -70,7 +74,7 @@ and descr =
   | Arrow of (bool * string * t) list * t
   | Union of t * t
   | EVar of var
-  | Link of t
+  | Link of variance * t
 
 and var = int * constraints
 
@@ -126,7 +130,8 @@ type repr =
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
-  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *) ]
+  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
+  | `Misc of string * repr * string ]
 
 val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
 val print_repr : Format.formatter -> repr -> unit

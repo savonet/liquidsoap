@@ -71,7 +71,7 @@ def metadata.cover(~coverart_mime=null(), m)
   fname = metadata.filename(m)
   if list.assoc.mem("coverart", m) and null.defined(coverart_mime) then
     cover = list.assoc(default="", "coverart", m)
-    null(string.base64.decode(cover).{mime=null.get(coverart_mime)})
+    string.base64.decode(cover).{mime=null.get(coverart_mime)}
   elsif list.assoc.mem("metadata_block_picture", m) then
     # See https://xiph.org/flac/format.html#metadata_block_picture
     cover = list.assoc(default="", "metadata_block_picture", m)
@@ -81,7 +81,7 @@ def metadata.cover(~coverart_mime=null(), m)
       null()
     else
       cover = null.get(cover)
-      null((cover:string).{mime=cover.mime})
+      cover.{mime=cover.mime}
     end
   else
     # Assume we have an mp3 file
@@ -102,7 +102,7 @@ def metadata.cover(~coverart_mime=null(), m)
       log.debug(label="metadata.cover", "Found APIC for #{fname}.")
       # TODO: we could use file type in order to select cover if there are many
       meta = string.apic.parse(apic)
-      null((meta:string).{mime=meta.mime})
+      meta.{mime=meta.mime}
     end
   end
 end

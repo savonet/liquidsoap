@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
-let debug_levels = false
+let debug_levels = ref false
 
 (** Show generalized variables in records. *)
 let show_record_schemes = ref true
@@ -119,7 +119,7 @@ and descr =
   | Arrow of (bool * string * t) list * t
   | Union of t * t
   | EVar of var (* type variable *)
-  | Link of t
+  | Link of variance * t
 
 and var = int * constraints
 
@@ -141,7 +141,10 @@ type repr =
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
-  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *) ]
+  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
+  | `Misc of
+    string * repr * string
+    (* add annotations before / after, mostly used for debugging *) ]
 
 let make ?(pos = None) ?(level = -1) d = { pos; level; descr = d }
 let dummy = make ~pos:None (EVar (-1, []))
@@ -149,7 +152,7 @@ let dummy = make ~pos:None (EVar (-1, []))
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced
     type. *)
-let rec deref t = match t.descr with Link x -> deref x | _ -> t
+let rec deref t = match t.descr with Link (_, x) -> deref x | _ -> t
 
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
@@ -217,6 +220,18 @@ let name =
   in
   n ""
 
+(** Generate a globally unique name for evars (used for debugging only). *)
+let evar_global_name =
+  let evars = Hashtbl.create 10 in
+  let n = ref (-1) in
+  fun i ->
+    try Hashtbl.find evars i
+    with Not_found ->
+      incr n;
+      let name = String.uppercase_ascii (name !n) in
+      Hashtbl.add evars i name;
+      name
+
 (** Compute the structure that a term [repr]esents, given the list of
    universally quantified variables. Also takes care of computing the printing
    name of variables, including constraint symbols, which are removed from
@@ -236,7 +251,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    let v = if debug_levels then Printf.sprintf "%s[%d]" v level else v in
+    let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
     `UVar (v, c)
   in
   let counter =
@@ -249,8 +264,9 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let evar level i c =
     let constr_symbols, c = split_constr c in
     if !debug then (
-      let v = Printf.sprintf "?%s%d" constr_symbols i in
-      let v = if debug_levels then Printf.sprintf "%s[%d]" v level else v in
+      (* let v = Printf.sprintf "?%s%d" constr_symbols i in *)
+      let v = Printf.sprintf "?%s%s" constr_symbols (evar_global_name i) in
+      let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
       `EVar (v, c))
     else (
       let s =
@@ -289,7 +305,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
-        | Link t -> repr g t)
+        | Link (Covariant, t) when !debug -> `Misc ("[>", repr g t, "]")
+        | Link (_, t) -> repr g t)
   in
   repr generalized t
 
@@ -482,6 +499,11 @@ let print_repr f t =
         vars
     | `Range_Ellipsis ->
         Format.fprintf f "...";
+        vars
+    | `Misc (a, b, c) ->
+        Format.fprintf f "%s" a;
+        let vars = print ~par:false vars b in
+        Format.fprintf f "%s" c;
         vars
   and print_list ?(first = true) ?(acc = []) vars = function
     | [] -> vars

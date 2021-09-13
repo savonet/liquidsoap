@@ -24,6 +24,10 @@
 
 open Type
 
+(* let () = Type.debug := true *)
+
+let debug_subtyping = ref false
+
 type env = (string * scheme) list
 
 (** Do we have a method. *)
@@ -107,11 +111,11 @@ let copy_with (subst : Subst.t) t =
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
       | Union (t, u) -> cp (Union (aux t, aux u))
-      | Link t ->
+      | Link (v, t) ->
           (* Keep links to preserve rich position information,
            * and to make it possible to check if the application left
            * the type unchanged. *)
-          cp (Link (aux t))
+          cp (Link (v, aux t))
   in
   if Subst.is_identity subst then t else aux t
 
@@ -171,85 +175,91 @@ let rec occur_check a b =
     | Link _ -> assert false
 
 (* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)
-let rec bind a0 b =
+let rec bind ?(variance = Invariant) a0 b =
   (* if !debug then Printf.eprintf "%s := %s\n%!" (print a0) (print b); *)
   let a = deref a0 in
   let b = deref b in
   if b == a then ()
   else (
     occur_check a b;
-    begin
+    let constraints =
       match a.descr with
-      | EVar (_, constraints) ->
-          List.iter
-            (function
-              | Ord ->
-                  let rec check b =
-                    let m, b = split_meths b in
+        | EVar (_, constraints) ->
+            List.iter
+              (function
+                | Ord ->
+                    let rec check b =
+                      let m, b = split_meths b in
+                      match b.descr with
+                        | Ground _ -> ()
+                        | EVar (j, c) ->
+                            if List.mem Ord c then ()
+                            else b.descr <- EVar (j, Ord :: c)
+                        | Tuple [] ->
+                            (* For records, we want to ensure that all fields are ordered. *)
+                            List.iter
+                              (fun (_, ((v, a), _)) ->
+                                if v <> [] then
+                                  raise (Unsatisfied_constraint (Ord, a));
+                                check a)
+                              m
+                        | Tuple l -> List.iter (fun b -> check b) l
+                        | List b -> check b
+                        | Nullable b -> check b
+                        | _ -> raise (Unsatisfied_constraint (Ord, b))
+                    in
+                    check b
+                | Dtools -> (
                     match b.descr with
-                      | Ground _ -> ()
+                      | Ground g ->
+                          if not (List.mem g [Bool; Int; Float; String]) then
+                            raise (Unsatisfied_constraint (Dtools, b))
+                      | Tuple [] -> ()
+                      | List b' -> (
+                          match (deref b').descr with
+                            | Ground g ->
+                                if g <> String then
+                                  raise (Unsatisfied_constraint (Dtools, b'))
+                            | EVar (_, _) -> bind b' (make (Ground String))
+                            | _ -> raise (Unsatisfied_constraint (Dtools, b')))
                       | EVar (j, c) ->
-                          if List.mem Ord c then ()
-                          else b.descr <- EVar (j, Ord :: c)
-                      | Tuple [] ->
-                          (* For records, we want to ensure that all fields are ordered. *)
-                          List.iter
-                            (fun (_, ((v, a), _)) ->
-                              if v <> [] then
-                                raise (Unsatisfied_constraint (Ord, a));
-                              check a)
-                            m
-                      | Tuple l -> List.iter (fun b -> check b) l
-                      | List b -> check b
-                      | Nullable b -> check b
-                      | _ -> raise (Unsatisfied_constraint (Ord, b))
-                  in
-                  check b
-              | Dtools -> (
-                  match b.descr with
-                    | Ground g ->
-                        if not (List.mem g [Bool; Int; Float; String]) then
-                          raise (Unsatisfied_constraint (Dtools, b))
-                    | Tuple [] -> ()
-                    | List b' -> (
-                        match (deref b').descr with
-                          | Ground g ->
-                              if g <> String then
-                                raise (Unsatisfied_constraint (Dtools, b'))
-                          | EVar (_, _) -> bind b' (make (Ground String))
-                          | _ -> raise (Unsatisfied_constraint (Dtools, b')))
-                    | EVar (j, c) ->
-                        if not (List.mem Dtools c) then
-                          b.descr <- EVar (j, Dtools :: c)
-                    | _ -> raise (Unsatisfied_constraint (Dtools, b)))
-              | InternalMedia -> (
-                  let is_internal name =
-                    try
-                      let kind = Frame_content.kind_of_string name in
-                      Frame_content.is_internal kind
-                    with Frame_content.Invalid -> false
-                  in
-                  match b.descr with
-                    | Constr { name } when is_internal name -> ()
-                    | Ground (Format f)
-                      when Frame_content.(is_internal (kind f)) ->
-                        ()
-                    | EVar (j, c) ->
-                        if List.mem InternalMedia c then ()
-                        else b.descr <- EVar (j, InternalMedia :: c)
-                    | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
-              | Num -> (
-                  match (demeth b).descr with
-                    | Ground g ->
-                        if g <> Int && g <> Float then
-                          raise (Unsatisfied_constraint (Num, b))
-                    | EVar (j, c) ->
-                        if List.mem Num c then ()
-                        else b.descr <- EVar (j, Num :: c)
-                    | _ -> raise (Unsatisfied_constraint (Num, b))))
+                          if not (List.mem Dtools c) then
+                            b.descr <- EVar (j, Dtools :: c)
+                      | _ -> raise (Unsatisfied_constraint (Dtools, b)))
+                | InternalMedia -> (
+                    let is_internal name =
+                      try
+                        let kind = Frame_content.kind_of_string name in
+                        Frame_content.is_internal kind
+                      with Frame_content.Invalid -> false
+                    in
+                    match b.descr with
+                      | Constr { name } when is_internal name -> ()
+                      | Ground (Format f)
+                        when Frame_content.(is_internal (kind f)) ->
+                          ()
+                      | EVar (j, c) ->
+                          if List.mem InternalMedia c then ()
+                          else b.descr <- EVar (j, InternalMedia :: c)
+                      | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
+                | Num -> (
+                    match (demeth b).descr with
+                      | Ground g ->
+                          if g <> Int && g <> Float then
+                            raise (Unsatisfied_constraint (Num, b))
+                      | EVar (j, c) ->
+                          if List.mem Num c then ()
+                          else b.descr <- EVar (j, Num :: c)
+                      | _ -> raise (Unsatisfied_constraint (Num, b))))
+              constraints;
             constraints
-      | _ -> assert false (* only EVars are bindable *)
-    end;
+        | _ -> assert false
+      (* only EVars are bindable *)
+    in
+
+    (* We do not want to check the constraints when we increase the types (for
+       now). *)
+    let variance = if constraints <> [] then Invariant else variance in
 
     (* This is a shaky hack...
      * When a value is passed to a FFI, its type is bound to a type without
@@ -257,10 +267,90 @@ let rec bind a0 b =
      * If it doesn't break sharing, we set the parsing position of
      * that variable occurrence to the position of the inferred type. *)
     if b.pos = None && match b.descr with EVar _ -> false | _ -> true then
-      a.descr <- Link { a0 with descr = b.descr }
-    else a.descr <- Link b)
+      a.descr <- Link (variance, { a0 with descr = b.descr })
+    else a.descr <- Link (variance, b))
 
 (** {1 Subtype checking/inference} *)
+
+exception Incompatible
+
+(** Approximated supremum of two types. We grow the second argument so that it
+    has a chance be be greater than the first. No binding is performed by this
+    function so that it should always be followed by a subtyping. *)
+let rec sup ~pos a b =
+  (* Printf.printf "sup %s // %s\n%!" (Type.print a) (Type.print b); *)
+  let sup = sup ~pos in
+  let mk descr = { level = -1; pos; descr } in
+  let scheme_sup t t' =
+    match (t, t') with ([], t), ([], t') -> ([], sup t t') | _ -> t'
+  in
+  let rec meth_type l a =
+    match (deref a).descr with
+      | Meth (l', t, _, _) when l = l' -> Some t
+      | Meth (_, _, _, a) -> meth_type l a
+      | EVar _ -> Some ([], fresh_evar ~level:(-1) ~pos)
+      | _ -> None
+  in
+  match ((deref a).descr, (deref b).descr) with
+    | EVar _, _ -> b
+    | _, EVar _ -> a
+    | Nullable a, Nullable b -> mk (Nullable (sup a b))
+    | Nullable a, _ -> mk (Nullable (sup a b))
+    | _, Nullable b -> mk (Nullable (sup a b))
+    | List a, List b -> mk (List (sup a b))
+    | Arrow (p, a), Arrow (q, b) ->
+        if List.length p <> List.length q then raise Incompatible;
+        mk (Arrow (q, sup a b))
+    | Tuple l, Tuple m ->
+        if List.length l <> List.length m then raise Incompatible;
+        mk (Tuple (List.map2 sup l m))
+    | Ground g, Ground g' ->
+        (* It might happen that we compare abstract values. *)
+        (try if g <> g' then raise Incompatible with _ -> ());
+        mk (Ground g')
+    | Meth (l, t, _, a), Meth (l', t', d', b) when l = l' ->
+        mk (Meth (l, scheme_sup t t', d', sup a b))
+    | Meth (l, t, d, a), _ -> (
+        match meth_type l b with
+          (* TODO: I guess that we should hide other methods named l *)
+          | Some t' -> mk (Meth (l, scheme_sup t' t, d, sup a b))
+          | None -> sup a b)
+    | _, Meth (l, t, d, b) -> (
+        match meth_type l a with
+          (* TODO: I guess that we should hide other methods named l *)
+          | Some t' -> mk (Meth (l, scheme_sup t' t, d, sup a b))
+          | None -> sup a b)
+    | Constr { name = c; params = a }, Constr { name = d; params = b } ->
+        if c <> d || List.length a <> List.length b then raise Incompatible;
+        let params =
+          List.map2
+            (fun (v, a) (v', b) ->
+              if v <> v' then raise Incompatible;
+              (v, sup a b))
+            a b
+        in
+        mk (Constr { name = c; params })
+    | Getter a, Getter b -> mk (Getter (sup a b))
+    | Getter a, Arrow ([], b) -> mk (Getter (sup a b))
+    | Getter a, _ -> mk (Getter (sup a b))
+    | Arrow ([], a), Getter b -> mk (Getter (sup a b))
+    | _, Getter b -> mk (Getter (sup a b))
+    | _, _ -> raise Incompatible
+
+let sup ~pos a b =
+  let b' =
+    try sup ~pos a b
+    with Incompatible as e ->
+      if !debug_subtyping then
+        failwith
+          (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.print a)
+             (Type.print b))
+      else raise e
+  in
+  if !debug_subtyping && b' != b then
+    Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b)
+      (Type.print b');
+  b'
 
 exception Error of (repr * repr)
 
@@ -283,8 +373,27 @@ exception Error of (repr * repr)
 (** The subtyping function. We ensure that a<:b, and perform unification if
     needed. In case of error, we generate an explanation. *)
 let rec ( <: ) a b =
-  if !debug then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
-  match ((deref a).descr, (deref b).descr) with
+  if !debug || !debug_subtyping then
+    Printf.eprintf "\n%s <: %s\n%!" (print a) (print b);
+  match (a.descr, b.descr) with
+    | _, Link (Covariant, b') ->
+        (* When the variable is covariant, we take the opportunity here to correct
+           bad choices. For instance, if we took int, but then have a 'a?, we
+           change our mind and use int? instead. *)
+        let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
+        (* Printf.printf "the sup of %s and %s is %s\n%!" (Type.print a) *)
+        (* (Type.print b') (Type.print b''); *)
+        (try b' <: b''
+         with _ ->
+           failwith
+             (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
+                (Type.print b'')));
+        if b'' != b' then
+          (* Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b''); *)
+          b.descr <- Link (Covariant, b'');
+        a <: b''
+    | _, Link (_, b) -> a <: b
+    | Link (_, a), _ -> a <: b
     | Constr c1, Constr c2 when c1.name = c2.name ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
@@ -402,7 +511,7 @@ let rec ( <: ) a b =
     | _, EVar (_, c)
     (* Force dropping the methods when we have constraints, see #1496. *)
       when not (has_meth a && c <> []) -> (
-        try bind b a
+        try bind ~variance:Covariant b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)))
     | Union (u, v), _ ->
@@ -464,7 +573,6 @@ let rec ( <: ) a b =
     | Meth (l, _, _, u1), _ -> hide_meth l u1 <: b
     | _, Getter t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
-    | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining the
            mismatch. *)
@@ -489,81 +597,6 @@ let ( >: ) a b =
 
 let ( <: ) a b =
   try a <: b
-  with Error (x, y) ->
-    let bt = Printexc.get_raw_backtrace () in
-    Printexc.raise_with_backtrace (Type_error (false, a, b, x, y)) bt
-
-(** Approximation of type duplication. Sharing of variables is not guaranteed to
-    be preserved. *)
-let rec duplicate ?pos ?level t =
-  make ?pos ?level
-    (match (deref t).descr with
-      | Constr c ->
-          Constr
-            {
-              c with
-              params =
-                List.map
-                  (fun (vars, t) -> (vars, duplicate ?pos ?level t))
-                  c.params;
-            }
-      | Ground (Format k) -> Ground (Format (Frame_content.duplicate k))
-      | Ground g -> Ground g
-      | AString s -> AString s
-      | Getter t -> Getter (duplicate ?pos ?level t)
-      | List t -> List (duplicate ?pos ?level t)
-      | Tuple l -> Tuple (List.map (duplicate ?pos ?level) l)
-      | Nullable t -> Nullable (duplicate ?pos ?level t)
-      | Meth (name, (v, g), d, t) ->
-          Meth (name, (v, duplicate ?pos ?level g), d, duplicate ?pos ?level t)
-      | Arrow (args, t) ->
-          Arrow
-            ( List.map (fun (b, n, t) -> (b, n, duplicate ?pos ?level t)) args,
-              duplicate ?pos ?level t )
-      | Union (t, u) -> Union (duplicate ?pos ?level t, duplicate ?pos ?level u)
-      | EVar v -> EVar v
-      | Link t -> Link (duplicate ?pos ?level t))
-
-(** Find an approximation of the minimal type that is safe to use instead of
-    both left and right hand types. This function is not exact: we should always
-    try to cast with the result in order to ensure that everything is alright. *)
-let rec sup ?(pos = None) ?(level = -1) a b =
-  try
-    let simple a b =
-      try
-        let t = fresh_evar ~level ~pos in
-        duplicate ~pos ~level a <: t;
-        duplicate ~pos ~level b <: t;
-        deref t
-      with _ ->
-        let t = fresh_evar ~level ~pos in
-        duplicate ~pos ~level b <: t;
-        duplicate ~pos ~level a <: t;
-        deref t
-    in
-    if not (has_meth a && has_meth b) then simple a b
-    else (
-      let meths_a, a' = split_meths a in
-      let meths_b, b' = split_meths b in
-      let meths =
-        List.fold_left
-          (fun cur (name, ((g, t), doc)) ->
-            match List.assoc_opt name meths_b with
-              | None -> cur
-              | Some ((g', t'), _) -> (
-                  try (name, ((g @ g', sup t t'), doc)) :: cur with _ -> cur))
-          [] meths_a
-      in
-      let t = min a' b' in
-      let t =
-        List.fold_left
-          (fun cur (name, (s, doc)) ->
-            make ~pos ~level (Meth (name, s, doc, cur)))
-          t meths
-      in
-      duplicate ~pos ~level a <: t;
-      duplicate ~pos ~level b <: t;
-      t)
   with Error (x, y) ->
     let bt = Printexc.get_raw_backtrace () in
     Printexc.raise_with_backtrace (Type_error (false, a, b, x, y)) bt
