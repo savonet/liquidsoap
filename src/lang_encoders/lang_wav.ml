@@ -31,9 +31,7 @@ let make params =
       Wav_format.samplesize = 16;
       header = true;
       duration = None;
-      (* We use a hardcoded value in order not to force the evaluation of the
-                       number of channels too early, see #933. *)
-      channels = 2;
+      channels = Lazy.force Frame.audio_channels;
       samplerate = Frame.audio_rate;
     }
   in
