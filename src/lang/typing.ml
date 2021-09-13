@@ -404,7 +404,7 @@ let rec ( <: ) a b =
         a <: b''
     | Link (Covariant, a'), _ ->
         a.descr <- Link (Invariant, a');
-        a' <: a
+        a' <: b
     | _, Link (_, b) -> a <: b
     | Link (_, a), _ -> a <: b
     | Constr c1, Constr c2 when c1.name = c2.name ->
@@ -532,7 +532,7 @@ let rec ( <: ) a b =
           raise (Error (repr a, repr b)))
     | Union (u, v), _ ->
         u <: b;
-        v <: v
+        v <: b
     | _, Union (u, v) -> (
         try a <: u
         with Error _ -> (
