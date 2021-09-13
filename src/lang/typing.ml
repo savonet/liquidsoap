@@ -299,8 +299,9 @@ let rec sup ~pos a b =
         if List.length l <> List.length m then raise Incompatible;
         mk (Tuple (List.map2 sup l m))
     | Ground g, Ground g' ->
-        if g <> g' then raise Incompatible;
-        mk (Ground g)
+        (* It might happen that we compare abstract values. *)
+        (try if g <> g' then raise Incompatible with _ -> ());
+        mk (Ground g')
     | Meth (l, t, _, a), Meth (l', t', d', b) when l = l' ->
         mk (Meth (l, scheme_sup t t', d', sup a b))
     | Meth (l, t, d, a), _ -> (
