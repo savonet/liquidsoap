@@ -133,8 +133,6 @@ end
 
 let metadata.json = ()
 
-# TODO: restore me.......................
-
 # Export metadata as JSON object. Cover art, if found, is extracted using
 # `metadata.cover` and exported with key `"cover"` and exported using
 # `string.data_uri.encode`.
@@ -142,22 +140,22 @@ let metadata.json = ()
 # @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
 # @param ~base64 Encode cover data as `base64`
 # @argsof json.stringify
-# def metadata.json.stringify(~coverart_mime=null(), ~base64=true, %argsof(json.stringify), m) =
-  # c = metadata.cover(coverart_mime=coverart_mime, m)
-  # m = metadata.cover.remove(m)
-  # m = metadata.export(m)
+def metadata.json.stringify(~coverart_mime=null(), ~base64=true, %argsof(json.stringify), m) =
+  c = metadata.cover(coverart_mime=coverart_mime, m)
+  m = metadata.cover.remove(m)
+  m = metadata.export(m)
 
-  # m =
-    # if null.defined(c) then
-      # c = null.get(c)
-      # [("cover", string.data_uri.encode(base64=base64, mime=c.mime, c)), ...m]
-    # else
-      # m
-    # end
-  # j = json()
-  # list.iter((fun (v) -> j.add(fst(v), (snd(v):string))), m)
-  # json.stringify(%argsof(json.stringify), j)
-# end
+  m =
+    if null.defined(c) then
+      c = null.get(c)
+      [("cover", string.data_uri.encode(base64=base64, mime=c.mime, c)), ...m]
+    else
+      m
+    end
+  j = json()
+  list.iter((fun (v) -> j.add(fst(v), (snd(v):string))), m)
+  json.stringify(%argsof(json.stringify), j)
+end
 
 # Parse metadata from JSON object
 # @category String
