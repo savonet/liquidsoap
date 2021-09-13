@@ -22,6 +22,7 @@
 
 let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
 let debug_levels = ref false
+let debug_subtyping = ref false
 
 (** Show generalized variables in records. *)
 let show_record_schemes = ref true
@@ -305,7 +306,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
-        | Link (Covariant, t) when !debug -> `Misc ("[>", repr g t, "]")
+        | Link (Covariant, t) when !debug_subtyping ->
+            `Misc ("[>", repr g t, "]")
         | Link (_, t) -> repr g t)
   in
   repr generalized t

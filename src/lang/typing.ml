@@ -26,7 +26,8 @@ open Type
 
 (* let () = Type.debug := true *)
 
-let debug_subtyping = ref false
+let debug_subtyping = ref true
+let () = Type.debug_subtyping := !debug_subtyping
 
 type env = (string * scheme) list
 
@@ -175,10 +176,12 @@ let rec occur_check a b =
     | Link _ -> assert false
 
 (* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)
-let rec bind ?(variance = Invariant) a0 b =
-  (* if !debug then Printf.eprintf "%s := %s\n%!" (print a0) (print b); *)
+let rec bind ?(variance = Invariant) a0 b0 =
+  if !debug || true then
+    Printf.eprintf "%s := %s%s\n%!" (print a0) (print b0)
+      (if variance = Covariant then " (covariant)" else "");
   let a = deref a0 in
-  let b = deref b in
+  let b = deref b0 in
   if b == a then ()
   else (
     occur_check a b;
@@ -192,6 +195,7 @@ let rec bind ?(variance = Invariant) a0 b =
                       let m, b = split_meths b in
                       match b.descr with
                         | Ground _ -> ()
+                        | AString _ -> ()
                         | EVar (j, c) ->
                             if List.mem Ord c then ()
                             else b.descr <- EVar (j, Ord :: c)
@@ -259,7 +263,9 @@ let rec bind ?(variance = Invariant) a0 b =
 
     (* We do not want to check the constraints when we increase the types (for
        now). *)
-    let variance = if constraints <> [] then Invariant else variance in
+    (* let variance = if constraints <> [] then Invariant else variance in *)
+    (* TODO: this is actually quite ennoying, better be slightly unsafe *)
+    ignore constraints;
 
     (* This is a shaky hack...
      * When a value is passed to a FFI, its type is bound to a type without
@@ -384,7 +390,7 @@ let rec ( <: ) a b =
         (* When the variable is covariant, we take the opportunity here to correct
            bad choices. For instance, if we took int, but then have a 'a?, we
            change our mind and use int? instead. *)
-        let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
+        let b'' = try sup ~pos:b.pos a b' with Incompatible -> b' in
         (* Printf.printf "the sup of %s and %s is %s\n%!" (Type.print a) *)
         (* (Type.print b') (Type.print b''); *)
         (try b' <: b''
@@ -396,6 +402,9 @@ let rec ( <: ) a b =
           (* Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b''); *)
           b.descr <- Link (Covariant, b'');
         a <: b''
+    | Link (Covariant, a'), _ ->
+        a.descr <- Link (Invariant, a');
+        a' <: a
     | _, Link (_, b) -> a <: b
     | Link (_, a), _ -> a <: b
     | Constr c1, Constr c2 when c1.name = c2.name ->
@@ -507,7 +516,10 @@ let rec ( <: ) a b =
         try t1 <: t2
         with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
     | EVar _, _ -> (
-        try bind a b
+        (* The variance might be surprising here: we suppose that universally
+           quantified variables are always covariant and change the variance
+           later on if they are used as lower bound. *)
+        try bind ~variance:Covariant a b
         with Occur_check _ | Unsatisfied_constraint _ ->
           (* Can't do more concise than a full representation, as the problem
              isn't local. *)

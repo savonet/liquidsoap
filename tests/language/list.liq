@@ -93,7 +93,13 @@ def f() =
     t(error.kind(err), "not_found")
     t(error.message(err), "List should have at least 23 elemments")    
   end
-  
+
+  # Test generalization of associative lists on orderable types
+  def f(m)
+    _ = m["a"]
+    _ = m["b"]
+  end
+
   if !success then test.pass() else test.fail() end
 end
 

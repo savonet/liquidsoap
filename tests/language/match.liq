@@ -1,4 +1,4 @@
-#!../../src/liquidsoap -i ../../libs/stdlib.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq
 
 %include "test.liq"
   

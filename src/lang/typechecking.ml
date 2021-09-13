@@ -24,6 +24,8 @@ open Term
 open Typing
 open Extralib
 
+let debug = ref true
+
 (** {1 Type checking / inference} *)
 
 let rec value_restriction t =
@@ -75,7 +77,16 @@ let rec type_of_pat ~level ~pos = function
  * that is the size of the typing context, that is the number of surrounding
  * abstractions. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
+  if !debug then
+    Printf.printf "\n# check: %s\n%!" (try Term.print_term e with _ -> "?");
   let check = check ~throw in
+  let check ?print_toplevel ~level ~env e =
+    check ?print_toplevel ~level ~env e;
+    if !debug then
+      Printf.printf "\n# check: %s => %s\n%!"
+        (try Term.print_term e with _ -> "?")
+        (Type.print e.Term.t)
+  in
   (* The role of this function is not only to type-check but also to assign
    * meaningful levels to type variables, and unify the types of
    * all occurrences of the same variable, since the parser does not do it. *)
@@ -95,13 +106,13 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
       List.fold_left
         (fun (p, env, level) -> function
           | lbl, var, kind, None ->
-              if Lazy.force debug then
+              if Lazy.force Term.debug then
                 Printf.eprintf "Assigning level %d to %s (%s).\n" level var
                   (Type.print kind);
               kind.Type.level <- level;
               ((false, lbl, kind) :: p, (var, ([], kind)) :: env, level + 1)
           | lbl, var, kind, Some v ->
-              if Lazy.force debug then
+              if Lazy.force Term.debug then
                 Printf.eprintf "Assigning level %d to %s (%s).\n" level var
                   (Type.print kind);
               kind.Type.level <- level;
@@ -237,7 +248,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           with Not_found -> raise (Unbound (e.t.Type.pos, var))
         in
         e.t >: Typing.instantiate ~level ~generalized orig;
-        if Lazy.force debug then
+        if Lazy.force Term.debug then
           Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n" var
             (Type.deref e.t).Type.level (Type.print orig) (Type.print e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
