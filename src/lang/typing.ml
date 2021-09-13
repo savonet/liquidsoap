@@ -308,6 +308,10 @@ let rec sup ~pos a b =
         (* It might happen that we compare abstract values. *)
         (try if g <> g' then raise Incompatible with _ -> ());
         mk (Ground g')
+    | AString s, AString t ->
+        if s <> t then mk (Ground String) else mk (AString t)
+    | AString _, Ground String -> mk (Ground String)
+    | Ground String, AString _ -> mk (Ground String)
     | Meth (l, t, _, a), Meth (l', t', d', b) when l = l' ->
         mk (Meth (l, scheme_sup t t', d', sup a b))
     | Meth (l, t, d, a), _ -> (
