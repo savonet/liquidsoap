@@ -386,6 +386,9 @@ let rec ( <: ) a b =
           (* Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b''); *)
           b.descr <- Link (Covariant, b'');
         a <: b''
+    | Link (Covariant, a'), _ ->
+        a.descr <- Link (Invariant, a');
+        a <: b
     | _, Link (_, b) -> a <: b
     | Link (_, a), _ -> a <: b
     | Constr c1, Constr c2 when c1.name = c2.name ->
