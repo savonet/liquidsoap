@@ -525,3 +525,17 @@ def string.split(~separator, s) =
   deprecated("string.split", "r/_/.split(_)")
   regexp(separator).split(s)
 end
+
+# Deprecated: use error method instead
+# @flags deprecated
+def error.kind(err) =
+  deprecated("error.kind", "")
+  err.kind
+end
+
+# Deprecated: use error method instead
+# @flags deprecated
+def error.message(err) =
+  deprecated("error.message", "")
+  err.message
+end

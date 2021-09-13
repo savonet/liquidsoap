@@ -20,22 +20,65 @@
 
  *****************************************************************************)
 
-type error = { kind : string; msg : string option }
+include Runtime_error
+
+type pos = Runtime_error.pos
+
+type error = Runtime_error.runtime_error = {
+  kind : string;
+  msg : string option;
+  pos : pos list;
+}
 
 module ErrorDef = struct
   type content = error
 
   let name = "error"
 
-  let descr { kind; msg } =
-    Printf.sprintf "error(kind=%S,message=%s)" kind
+  let descr { kind; msg; pos } =
+    let pos =
+      String.concat ", " (List.map (fun pos -> Runtime_error.print_pos pos) pos)
+    in
+    Printf.sprintf "error(kind=%S,message=%s,positions=%s)" kind
       (match msg with Some msg -> Printf.sprintf "%S" msg | None -> "none")
+      (Utils.escape_utf8_string pos)
 
   let to_json ~compact:_ ~json5:_ v = Printf.sprintf "%S" (descr v)
   let compare = Stdlib.compare
 end
 
-module Error = Lang.MkAbstract ((ErrorDef : Lang.AbstractDef))
+module Error = struct
+  include Lang.MkAbstract ((ErrorDef : Lang.AbstractDef))
+
+  let meths =
+    [
+      ( "kind",
+        ([], Lang.string_t),
+        "Error kind.",
+        fun { kind } -> Lang.string kind );
+      ( "message",
+        ([], Lang.(nullable_t string_t)),
+        "Error message.",
+        fun { msg } ->
+          Option.value ~default:Lang.null
+            (Option.map (fun v -> Lang.string v) msg) );
+      ( "positions",
+        ([], Lang.(list_t string_t)),
+        "Error positions.",
+        fun { pos } ->
+          Lang.list
+            (List.map
+               (fun pos -> Lang.string (Runtime_error.print_pos pos))
+               pos) );
+    ]
+
+  let t =
+    Lang.method_t t (List.map (fun (lbl, t, descr, _) -> (lbl, t, descr)) meths)
+
+  let to_value err =
+    Lang.meth (to_value err)
+      (List.map (fun (lbl, _, _, m) -> (lbl, m err)) meths)
+end
 
 let () = Lang.add_module "error"
 
@@ -44,20 +87,7 @@ let () =
     ~descr:"Register an error of the given kind"
     [("", Lang.string_t, None, Some "Kind of the error")] Error.t (fun p ->
       let kind = Lang.to_string (List.assoc "" p) in
-      Error.to_value { kind; msg = None })
-
-let () =
-  Lang.add_builtin "error.kind" ~category:`Liquidsoap
-    ~descr:"Get the kind of an error" [("", Error.t, None, None)] Lang.string_t
-    (fun p -> Lang.string (Error.of_value (List.assoc "" p)).kind)
-
-let () =
-  Lang.add_builtin "error.message" ~category:`Liquidsoap
-    ~descr:"Get the message of an error" [("", Error.t, None, None)]
-    (Lang.nullable_t Lang.string_t) (fun p ->
-      match Error.of_value (List.assoc "" p) with
-        | { msg = Some msg } -> Lang.string msg
-        | { msg = None } -> Lang.null)
+      Error.to_value { kind; msg = None; pos = [] })
 
 let () =
   Lang.add_builtin "error.raise" ~category:`Liquidsoap ~descr:"Raise an error."
@@ -103,4 +133,4 @@ let () =
       when errors = None
            || List.exists (fun err -> err.kind = kind) (Option.get errors)
       ->
-        h [("", Error.to_value { kind; msg })])
+        h [("", Error.to_value { kind; msg; pos = [] })])
