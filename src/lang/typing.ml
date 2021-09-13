@@ -294,7 +294,7 @@ let rec sup ~pos a b =
     match (deref a).descr with
       | Meth (l', t, _, _) when l = l' -> Some t
       | Meth (_, _, _, a) -> meth_type l a
-      | EVar _ -> Some ([], fresh_evar ~level:(-1) ~pos)
+      | EVar _ -> Some ([], fresh_evar ~level:max_int ~pos)
       | _ -> None
   in
   match ((deref a).descr, (deref b).descr) with
