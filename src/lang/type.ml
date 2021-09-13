@@ -291,7 +291,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
-        | Link (Covariant, t) -> `Misc ("[>", repr g t, "]")
+        | Link (Covariant, t) when !debug -> `Misc ("[>", repr g t, "]")
         | Link (_, t) -> repr g t)
   in
   repr generalized t

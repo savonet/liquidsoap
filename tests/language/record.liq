@@ -73,7 +73,8 @@ def f() =
   def f(c) = [a,c] end
 
   # Subsequent increase of the type
-  _ = if true then {a = 4} end  
+  _ = if true then {a = 4, b = 5} else {a = 4} end
+  _ = if true then {a = 4} else {a = 4, b = 5} end
 
   # Equality
   t({a = 5} == {a = 5}, true)
