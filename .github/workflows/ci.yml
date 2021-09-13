@@ -43,6 +43,7 @@ jobs:
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
+          rm -rf doc/content/build.md doc/content/install.md
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build tarball
@@ -79,6 +80,7 @@ jobs:
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
+          rm -rf doc/content/build.md doc/content/install.md
           git fetch origin $GITHUB_SHA
           git checkout $GITHUB_SHA
       - name: Build
@@ -146,6 +148,7 @@ jobs:
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
+          rm -rf doc/content/build.md doc/content/install.md
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
       # Remove after liquidsoap 2.0 release
