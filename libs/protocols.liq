@@ -20,11 +20,11 @@ def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain"
                      ~delay=_,file)
   log = log.info(label="extract.replaygain")
   p = process.run("#{extract_replaygain} #{string.quote(file)}")
-  stdout = string.replace(pattern='\\n', fun (_) -> "", p.stdout)
+  stdout = r/\n/.replace(fun (_) -> "", p.stdout)
   if p.status == "exit" and p.status.code == 0 then
     stdout
   else
-    stderr = string.replace(pattern='\\n', fun (_) -> "", p.stderr)
+    stderr = r/\n/.replace(fun (_) -> "", p.stderr)
     log("ReplayGain extraction by #{extract_replaygain} failed with: #{stderr}")
     ""
   end
@@ -69,9 +69,9 @@ let settings.protocol.process.inherit_env = settings.make(
 def process_protocol(~rlog=_,~maxtime,arg)
   log.info("Processing #{arg}")
 
-  x = string.split(separator=":",arg)
+  x = r/:/.split(arg)
   uri = string.concat(separator=":",list.tl(x))
-  x = string.split(separator=",",list.hd(default="",x))
+  x = r/,/.split(list.hd(default="",x))
   extname = list.hd(default="liq",x)
   cmd = string.concat(separator=",",list.tl(x))
 
@@ -136,7 +136,7 @@ add_protocol(temporary=true, "process", process_protocol,
 # @param ~extname Output file extension (with no leading '.')
 # @param ~uri Input uri
 def process_uri(~extname,~uri="",cmd) =
-  cmd = string.replace(pattern=":",fun (_) -> "$(colon)",cmd)
+  cmd = r/:/.replace(fun (_) -> "$(colon)",cmd)
   uri = if uri != "" then ":#{uri}" else "" end
   "process:#{extname},#{cmd}#{uri}"
 end
@@ -329,7 +329,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     log(level=4,"Executing #{cmd}")
     lines = process.read.lines(timeout=delay,cmd)
     def f(cur,line) =
-      m = string.split(separator="=",line)
+      m = r/=/.split(line)
       if list.length(m) >= 2 then
         key = list.hd(default="",m)
         value = string.concat(separator="=",list.tl(m))
@@ -657,8 +657,8 @@ add_protocol(static=true,"polly",polly_protocol,
 # @flag hidden
 def synth_protocol(~rlog=_, ~maxtime=_, text) =
   log.debug(label="synth", "Synthesizing request: #{text}")
-  args = string.split(separator=",", text)
-  args = list.map(string.split(separator="="), args)
+  args = r/,/.split(text)
+  args = list.map(r/=/.split, args)
   if list.exists(fun(l)-> list.length(l) != 2, args) then
     []
   else
@@ -701,8 +701,8 @@ syntax="synth:shape=sine,frequency=440.,duration=10.")
 # File protocol
 # @flag hidden
 def file_protocol(~rlog=_, ~maxtime=_, arg) =
-  path = list.nth(default="", string.split(separator=":",arg), 1)
-  segments = string.split(separator="/",path)
+  path = list.nth(default="", r/:/.split(arg), 1)
+  segments = r/\//.split(path)
 
   segments =
     if list.length(segments) > 3 and

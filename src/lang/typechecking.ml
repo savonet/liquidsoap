@@ -116,12 +116,29 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   in
   match e.term with
     | Ground g -> e.t >: mkg (Ground.to_type g)
-    | Encoder f -> e.t >: type_of_format ~pos:e.t.Type.pos ~level f
+    | Encoder f ->
+        (* Ensure that we only use well-formed terms. *)
+        let rec check_enc (_, p) =
+          List.iter
+            (function
+              | _, `Term t -> check ~level ~env t | _, `Encoder e -> check_enc e)
+            p
+        in
+        check_enc f;
+        let t =
+          try Lang_encoder.type_of_encoder ~pos:e.t.Type.pos ~level f
+          with Not_found ->
+            let bt = Printexc.get_raw_backtrace () in
+            Printexc.raise_with_backtrace
+              (Unsupported_format (pos, print_term e))
+              bt
+        in
+        e.t >: t
     | List l ->
         List.iter (fun x -> check ~level ~env x) l;
         let t =
           List.fold_left
-            (fun t e -> Typing.min_type ~pos:e.t.Type.pos ~level t e.t)
+            (fun t e -> Typing.sup ~pos:e.t.Type.pos ~level t e.t)
             (Type.fresh_evar ~level ~pos)
             l
         in

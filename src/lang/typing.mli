@@ -39,5 +39,5 @@ val ( <: ) : t -> t -> unit
 (** Suptyping. *)
 val ( >: ) : t -> t -> unit
 
-(** Minimum of two types. *)
-val min_type : ?pos:pos option -> ?level:int -> t -> t -> t
+(** Supremeum of two types. *)
+val sup : ?pos:pos option -> ?level:int -> t -> t -> t

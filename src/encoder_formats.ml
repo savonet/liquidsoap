@@ -47,6 +47,8 @@ let conf_export_metadata =
         "dj";
         "next";
         "apic";
+        "metadata_block_picture";
+        "coverart";
       ]
     ~comments:["The list of labels of exported metadata."]
 

@@ -20,9 +20,10 @@
 
  *****************************************************************************)
 
-open Term
-open Term.Ground
-open Lang_encoders
+open Value
+open Ground
+
+let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
 
 let make_cbr params =
   let defaults =
@@ -38,19 +39,21 @@ let make_cbr params =
   let vorbis =
     List.fold_left
       (fun f -> function
-        | "samplerate", { term = Ground (Int i); _ } ->
+        | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | "bitrate", { term = Ground (Int i); _ } ->
+        | "bitrate", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.mode = Vorbis_format.CBR i }
-        | "channels", { term = Ground (Int i); _ } ->
+        | "channels", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.channels = i }
-        | "bytes_per_page", { term = Ground (Int i); _ } ->
+        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.fill = Some i }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | _, t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   Ogg_format.Vorbis vorbis
@@ -72,26 +75,28 @@ let make_abr params =
   let vorbis =
     List.fold_left
       (fun f -> function
-        | "samplerate", { term = Ground (Int i); _ } ->
+        | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | "bitrate", { term = Ground (Int i); _ } ->
+        | "bitrate", `Value { value = Ground (Int i); _ } ->
             let x, _, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (x, Some i, y) }
-        | "max_bitrate", { term = Ground (Int i); _ } ->
+        | "max_bitrate", `Value { value = Ground (Int i); _ } ->
             let x, y, _ = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (x, y, Some i) }
-        | "min_bitrate", { term = Ground (Int i); _ } ->
+        | "min_bitrate", `Value { value = Ground (Int i); _ } ->
             let _, x, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (Some i, x, y) }
-        | "channels", { term = Ground (Int i); _ } ->
+        | "channels", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.channels = i }
-        | "bytes_per_page", { term = Ground (Int i); _ } ->
+        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.fill = Some i }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | _, t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   Ogg_format.Vorbis vorbis
@@ -108,26 +113,42 @@ let make params =
   let vorbis =
     List.fold_left
       (fun f -> function
-        | "samplerate", { term = Ground (Int i); _ } ->
+        | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | "quality", ({ term = Ground (Float q); _ } as t) ->
+        | "quality", `Value { value = Ground (Float q); pos } ->
             if q < -0.2 || q > 1. then
-              raise (Error (t, "quality should be in [(-0.2)..1]"));
+              raise
+                (Lang_encoder.Error (pos, "quality should be in [(-0.2)..1]"));
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
-        | "quality", ({ term = Ground (Int i); _ } as t) ->
+        | "quality", `Value { value = Ground (Int i); pos } ->
             if i <> 0 && i <> 1 then
-              raise (Error (t, "quality should be in [-(0.2)..1]"));
+              raise
+                (Lang_encoder.Error (pos, "quality should be in [-(0.2)..1]"));
             let q = float i in
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
-        | "channels", { term = Ground (Int i); _ } ->
+        | "channels", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.channels = i }
-        | "bytes_per_page", { term = Ground (Int i); _ } ->
+        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.fill = Some i }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
-        | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | _, t -> raise (generic_error t))
+        | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
   Ogg_format.Vorbis vorbis
+
+let () =
+  let make p = Encoder.Ogg { Ogg_format.audio = Some (make p); video = None } in
+  let make_abr p =
+    Encoder.Ogg { Ogg_format.audio = Some (make_abr p); video = None }
+  in
+  let make_cbr p =
+    Encoder.Ogg { Ogg_format.audio = Some (make_cbr p); video = None }
+  in
+  Lang_encoder.register "vorbis" kind_of_encoder make;
+  Lang_encoder.register "vorbis.abr" kind_of_encoder make_abr;
+  Lang_encoder.register "vorbis.cbr" kind_of_encoder make_cbr

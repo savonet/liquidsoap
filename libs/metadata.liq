@@ -61,34 +61,27 @@ def metadata.comment(m)
   m["comment"]
 end
 
-# Extract cover from metadata.
+# Extract cover from metadata. This function implements cover extraction
+# for the following formats: coverart (ogg) and apic (flac, mp3). 
 # @category Source / Track Processing
 # @param m Metadata from which the cover should be extracted.
+# @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
 # @method mime MIME type for the cover.
-def metadata.cover(m)
+def metadata.cover(~coverart_mime=null(), m)
   fname = metadata.filename(m)
-  if list.assoc.mem("coverart", m) or list.assoc.mem("metadata_block_picture", m)then
-    # We are likely to have an ogg/vorbis file
+  if list.assoc.mem("coverart", m) and null.defined(coverart_mime) then
     cover = list.assoc(default="", "coverart", m)
-    if cover != "" then
-      string.base64.decode(cover).{mime=""}
+    null(string.base64.decode(cover).{mime=null.get(coverart_mime)})
+  elsif list.assoc.mem("metadata_block_picture", m) then
+    # See https://xiph.org/flac/format.html#metadata_block_picture
+    cover = list.assoc(default="", "metadata_block_picture", m)
+    cover = file.metadata.flac.cover.decode(string.base64.decode(cover))
+    if not null.defined(cover) then
+      log.info("Failed to read cover metadata for #{fname}.")
+      null()
     else
-      # See https://xiph.org/flac/format.html#metadata_block_picture
-      cover = list.assoc(default=cover, "metadata_block_picture", m)
-      cover = string.base64.decode(cover)
-      i = ref(4)
-      mime_len = string.binary.to_int(little_endian=false, string.sub(cover, start=!i, length=4))
-      i := !i + 4
-      mime = string.sub(cover, start=!i, length=mime_len)
-      i := !i + mime_len
-      desc_len = string.binary.to_int(little_endian=false, string.sub(cover, start=!i, length=4))
-      i := !i + 4 + desc_len
-      i := !i + 4 * 4
-      pic_len = string.binary.to_int(little_endian=false, string.sub(cover, start=!i, length=4))
-      i := !i + 4
-      cover = string.sub(cover, start=!i, length=pic_len)
-      if cover == "" then log.info("Failed to read cover metadata for #{fname}.") end
-      cover.{mime=mime}
+      cover = null.get(cover)
+      null((cover:string).{mime=cover.mime})
     end
   else
     # Assume we have an mp3 file
@@ -99,17 +92,17 @@ def metadata.cover(m)
         # Try the builtin tag reader because APIC tags are not read by default,
         # e.g. with taglib
         log.debug(label="metadata.cover", "APIC not found for #{fname}, trying builtin tag reader.")
-        file.mp3.metadata(fname)
+        file.metadata.id3v2(fname)
       end
     apic = list.assoc(default="", "apic", m)
     if apic == "" then
       log.info("No cover found for #{fname}.")
-      "".{mime=""}
+      null()
     else
       log.debug(label="metadata.cover", "Found APIC for #{fname}.")
       # TODO: we could use file type in order to select cover if there are many
-      let (mime,_,_,data) = file.mp3.parse_apic(apic)
-      data.{mime=mime}
+      meta = string.apic.parse(apic)
+      null((meta:string).{mime=meta.mime})
     end
   end
 end
@@ -129,12 +122,36 @@ def metadata.cover.remove(m)
   list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic", m)
 end
 
+# Cleanup metadata for export. This is used to remove Liquidsoap's internal
+# metadata entries before sending them. List of exported metadata is set using
+# `settings.encoder.metadata.export.set`.
+# @category Source / Track Processing
+def metadata.export(m) =
+  exported_keys = settings.encoder.metadata.export()
+  list.assoc.filter((fun (k, (_:string)) -> list.mem(k, exported_keys)), m)
+end
+
 let metadata.json = ()
 
-# Export metadata as JSON object
+# Export metadata as JSON object. Cover art, if found, is extracted using
+# `metadata.cover` and exported with key `"cover"` and exported using
+# `string.data_uri.encode`.
 # @category String 
+# @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
+# @param ~base64 Encode cover data as `base64`
 # @argsof json.stringify
-def metadata.json.stringify(%argsof(json.stringify), m) =
+def metadata.json.stringify(~coverart_mime=null(), ~base64=true, %argsof(json.stringify), m) =
+  c = metadata.cover(coverart_mime=coverart_mime, m)
+  m = metadata.cover.remove(m)
+  m = metadata.export(m)
+
+  m =
+    if null.defined(c) then
+      c = null.get(c)
+      [("cover", string.data_uri.encode(base64=base64, mime=c.mime, c)), ...m]
+    else
+      m
+    end
   j = json()
   list.iter((fun (v) -> j.add(fst(v), (snd(v):string))), m)
   json.stringify(%argsof(json.stringify), j)

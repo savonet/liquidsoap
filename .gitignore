@@ -27,6 +27,7 @@ doc/content/settings.md
 doc/content/protocols.md
 autodoc/
 *.annot
+tests/language/interactive.json
 tests/threesines/
 tests/media/files/
 tests/media/test_encoder.liq

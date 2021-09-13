@@ -110,19 +110,6 @@ val invoke : t -> string -> scheme
 (** Type of a submethod in a type. *)
 val invokes : t -> string list -> scheme
 
-(** {1 Assignation} *)
-
-exception Occur_check of t * t
-
-(** [occur_check x t] ensures that a variable [x] does not occur in [t]. Raises
-    [Occur_check] if it is the case. *)
-val occur_check : t -> t -> unit
-
-exception Unsatisfied_constraint of constr * t
-
-(** [bind x t] assigns a value [t] to a variable [x]. *)
-val bind : t -> t -> unit
-
 (** {1 Representation of types} *)
 
 type repr =

@@ -23,7 +23,7 @@
 (** Helper functions for the parser. *)
 
 open Term
-open Term.Ground
+open Ground
 
 let gen_args_of ~only ~except ~pos get_args name =
   match Environment.get_builtin name with
@@ -115,7 +115,6 @@ let args_of, app_of =
     let term =
       match value with
         | Value.Ground g -> Term.Ground g
-        | Value.Encoder e -> Term.Encoder e
         | Value.List l ->
             Term.List (List.map (term_of_value ~pos (get_list_type ())) l)
         | Value.Tuple l ->
@@ -146,15 +145,7 @@ let args_of, app_of =
   let app_of = gen_args_of get_app in
   (args_of, app_of)
 
-(** Create a new value with an unknown type. *)
-let mk ~pos e =
-  let kind = Type.fresh_evar ~level:(-1) ~pos:(Some pos) in
-  if Lazy.force Term.debug then
-    Printf.eprintf "%s (%s): assigned type var %s\n"
-      (Type.print_pos_opt kind.Type.pos)
-      (try Term.print_term { t = kind; term = e } with _ -> "<?>")
-      (Type.print kind);
-  { t = kind; term = e }
+let mk = Term.make
 
 let append_list ~pos x v =
   match (x, v) with
@@ -218,14 +209,7 @@ let mk_rec_fun ~pos pat args body =
   let fv = Term.free_vars ~bound body in
   mk ~pos (RFun (name, fv, args, body))
 
-let mk_enc ~pos e =
-  begin
-    try
-      let (_ : Encoder.factory) = Encoder.get_factory e in
-      ()
-    with Not_found -> raise (Unsupported_format (pos, e))
-  end;
-  mk ~pos (Encoder e)
+let mk_encoder ~pos e p = mk ~pos (Encoder (e, p))
 
 (** Time intervals *)
 

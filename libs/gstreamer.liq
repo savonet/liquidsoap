@@ -117,7 +117,7 @@ end
 # @param source Source to stream
 # @category Source / Output
 # @flag extra
-def output.youtube.live(~id=null(),
+def output.youtube.live.gstreamer(~id=null(),
   ~video_bitrate=2000,
   ~audio_encoder="fdkaacenc",
   ~audio_bitrate=128000,

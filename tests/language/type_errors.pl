@@ -92,8 +92,8 @@ incorrect('add([mean(blank()),audio_to_stereo(add([]))])');
 
 section("ENCODERS");
 correct('%ffmpeg(%video(codec="h264_nvenc"))');
-correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel=none))');
-correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel=auto,hwaccel_device=none))');
+correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel="none"))');
+correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel="auto",hwaccel_device="none"))');
 correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel_device="foo"))');
 correct('%ffmpeg(format="mpegts",
                 %audio(

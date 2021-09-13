@@ -31,14 +31,14 @@ open Parser_helper
 %token <string> VARLPAR
 %token <string> VARLBRA
 %token <string> STRING
+%token <string * char list> REGEXP
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
 %token <string> CONS
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG FLAC AUDIO AUDIO_RAW AUDIO_COPY AUDIO_NONE VIDEO VIDEO_RAW VIDEO_COPY VIDEO_NONE FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
-%token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
+%token <string> ENCODER
 %token EOF
 %token BEGIN END REC GETS TILD QUESTION LET
 (* name, arguments, methods *)
@@ -47,6 +47,7 @@ open Parser_helper
 %token COALESCE
 %token TRY CATCH IN DO MATCH CASE
 %token IF THEN ELSE ELSIF
+%token SLASH
 %token OPEN
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON DOT
 %token LBRA RBRA LCUR RCUR
@@ -143,23 +144,7 @@ expr:
   | varlist                          { mk_list ~pos:$loc $1 }
   | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke (mk ~pos:$loc($1) (Var "ref"), "get")), ["", $2])) }
   | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($1) (Var "ref"), "set")), ["", $1; "", $3])) }
-  | MP3 app_opt                      { mk_enc ~pos:$loc (Lang_mp3.make_cbr $2) }
-  | MP3_VBR app_opt                  { mk_enc ~pos:$loc (Lang_mp3.make_vbr $2) }
-  | MP3_ABR app_opt                  { mk_enc ~pos:$loc (Lang_mp3.make_abr $2) }
-  | SHINE app_opt                    { mk_enc ~pos:$loc (Lang_shine.make $2) }
-  | FDKAAC app_opt                   { mk_enc ~pos:$loc (Lang_fdkaac.make $2) }
-  | FLAC app_opt                     { mk_enc ~pos:$loc (Lang_flac.make $2) }
-  | FFMPEG ffmpeg_opt                { mk_enc ~pos:$loc (Lang_ffmpeg.make $2) }
-  | EXTERNAL app_opt                 { mk_enc ~pos:$loc (Lang_external_encoder.make $2) }
-  | GSTREAMER app_opt                { mk_enc ~pos:$loc (Lang_gstreamer.make ~pos:$loc $2) }
-  | WAV app_opt                      { mk_enc ~pos:$loc (Lang_wav.make $2) }
-  | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
-  | OGG LPAR ogg_audio_item COMMA ogg_video_item RPAR { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = Some $3; video = Some $5}) }
-  | OGG LPAR ogg_video_item COMMA ogg_audio_item RPAR { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = Some $5; video = Some $3}) }
-  | OGG LPAR ogg_audio_item RPAR     { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = Some $3; video = None}) }
-  | OGG LPAR ogg_video_item RPAR     { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = None; video = Some $3}) }
-  | top_level_ogg_audio_item         { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = Some $1; video = None}) }
-  | ogg_video_item                   { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = None; video = Some $1}) }
+  | ENCODER encoder_opt              { mk_encoder ~pos:$loc $1 $2 }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | expr DOT LCUR record RCUR        { $4 ~pos:$loc $1 }
@@ -202,6 +187,13 @@ expr:
                                        let else_b = $5 in
                                        let op = mk ~pos:$loc($1) (Var "if") in
                                        mk ~pos:$loc (App (op, ["", cond; "then", then_b; "else", else_b])) }
+  | REGEXP                          {  let regexp, flags = $1 in
+                                       let regexp =  mk ~pos:$loc (Ground (String regexp)) in
+                                       let flags = List.map Char.escaped flags in
+                                       let flags = List.map (fun s -> mk ~pos:$loc (Ground (String s))) flags in
+                                       let flags = mk ~pos:$loc (List flags) in
+                                       let op = mk ~pos:$loc($1) (Var "regexp") in
+                                       mk ~pos:$loc (App (op, ["", regexp; "flags", flags])) }
   | expr QUESTION expr COLON expr    { let cond = $1 in
                                        let then_b = mk_fun ~pos:$loc($3) [] $3 in
                                        let else_b = mk_fun ~pos:$loc($5) [] $5 in
@@ -402,60 +394,25 @@ if_elsif:
   | ELSE exprs                      { mk_fun ~pos:($startpos($1),$endpos($2)) [] $2 }
   |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc unit) }
 
-
-app_opt:
-  | %prec no_app { [] }
-  | LPAR app_list RPAR { $2 }
-
 cases:
   | CASE pattern DO exprs cases { ($2,$4)::$5 }
   | { [] }
 
-top_level_ogg_audio_item:
-  | VORBIS app_opt     { Lang_vorbis.make $2 }
-  | VORBIS_CBR app_opt { Lang_vorbis.make_cbr $2 }
-  | VORBIS_ABR app_opt { Lang_vorbis.make_abr $2 }
-  | SPEEX app_opt      { Lang_speex.make $2 }
-  | OPUS app_opt       { Lang_opus.make $2 }
-
-ogg_audio_item:
-  | FLAC app_opt             { Lang_flac.make_ogg $2 }
-  | top_level_ogg_audio_item { $1 }
-
-ogg_video_item:
-  | THEORA app_opt     { Lang_theora.make $2 }
-
-ffmpeg_param:
-  | STRING GETS expr     { $1,$3 }
-  | VAR GETS expr        { $1,$3 }
-ffmpeg_params:
-  |                                  { [] }
-  | ffmpeg_param                     { [$1] }
-  | ffmpeg_param COMMA ffmpeg_params { $1::$3 }
-
-ffmpeg_list_elem:
-  | AUDIO_NONE                        { `Audio_none }
-  | AUDIO_COPY                        { `Audio_copy }
-  | AUDIO_RAW LPAR ffmpeg_params RPAR { `Audio_raw $3 }
-  (* This is for inline encoders. *)
-  | AUDIO_RAW                         { `Audio_raw [] }
-  | AUDIO LPAR ffmpeg_params RPAR     { `Audio  $3 }
-  | VIDEO_NONE                        { `Video_none }
-  | VIDEO_COPY                        { `Video_copy }
-  (* This is for inline encoders. *)
-  | VIDEO_RAW                         { `Video_raw [] }
-  | VIDEO_RAW LPAR ffmpeg_params RPAR { `Video_raw  $3 }
-  | VIDEO LPAR ffmpeg_params RPAR     { `Video  $3 }
-  | ffmpeg_param                      { `Option $1 }
- 
-ffmpeg_list:
-  |                                    { [] }
-  | ffmpeg_list_elem                   { [$1] }
-  | ffmpeg_list_elem COMMA ffmpeg_list { $1::$3 }
-
-ffmpeg_opt:
+encoder_opt:
   | %prec no_app { [] }
-  | LPAR ffmpeg_list RPAR { $2 }
+  | LPAR encoder_params RPAR { $2 }
+
+encoder_param:
+  | VAR GETS expr       { $1, `Term $3 }
+  | STRING GETS expr    { $1, `Term $3 }
+  | VAR                 { "", `Term (mk ~pos:$loc (Ground (String $1))) }
+  | STRING              { "", `Term (mk ~pos:$loc (Ground (String $1))) }
+  | ENCODER encoder_opt { "", `Encoder ($1, $2) }
+
+encoder_params:
+  |                                    { [] }
+  | encoder_param                      { [$1] }
+  | encoder_param COMMA encoder_params { $1::$3 }
 
 record:
   | VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($1, $3, e)) }

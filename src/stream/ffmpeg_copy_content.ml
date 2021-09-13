@@ -132,6 +132,15 @@ module VideoSpecs = struct
                       | Some p -> p))) );
       ]
 
+  let compatible_aspect_radio p p' =
+    match (p, p') with
+      (* 0/1 aspect_ratio means undefined and is usually
+         assumed to be 1 so we match it with 1/1. *)
+      | Avutil.{ num = 0; den = 1 }, Avutil.{ num = 1; den = 1 }
+      | Avutil.{ num = 1; den = 1 }, Avutil.{ num = 0; den = 1 } ->
+          true
+      | _ -> p = p'
+
   let compatible p p' =
     match (p, p') with
       | None, _ | _, None -> true
@@ -139,7 +148,9 @@ module VideoSpecs = struct
           Video.get_params_id p = Video.get_params_id p'
           && Video.get_width p = Video.get_width p'
           && Video.get_height p = Video.get_height p'
-          && Video.get_sample_aspect_ratio p = Video.get_sample_aspect_ratio p'
+          && compatible_aspect_radio
+               (Video.get_sample_aspect_ratio p)
+               (Video.get_sample_aspect_ratio p')
           && Video.get_pixel_format p = Video.get_pixel_format p'
 
   let merge = merge ~compatible

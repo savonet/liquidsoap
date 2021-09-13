@@ -91,8 +91,9 @@ let mutexify lock f x =
     Mutex.unlock lock;
     ans
   with e ->
+    let bt = Printexc.get_raw_backtrace () in
     Mutex.unlock lock;
-    raise e
+    Printexc.raise_with_backtrace e bt
 
 let finalize ~k f =
   try
@@ -100,8 +101,9 @@ let finalize ~k f =
     k ();
     x
   with e ->
+    let bt = Printexc.get_raw_backtrace () in
     k ();
-    raise e
+    Printexc.raise_with_backtrace e bt
 
 let seems_locked =
   if Sys.win32 then fun _ -> true
@@ -184,8 +186,9 @@ let create ~queue f x s =
               match e with
                 | Exit -> log#info "Thread %S exited." s
                 | Failure e as exn ->
+                    let bt = Printexc.get_raw_backtrace () in
                     log#important "Thread %S failed: %s!" s e;
-                    raise exn
+                    Printexc.raise_with_backtrace exn bt
                 | e when queue && error_handler ~bt ~name:s e -> process x
                 | e when queue ->
                     log#severe "Queue %s crashed with exception %s\n%s" s
@@ -195,10 +198,12 @@ let create ~queue f x s =
                        Please report at: savonet-users@lists.sf.net";
                     exit 1
                 | e ->
+                    let bt = Printexc.get_raw_backtrace () in
                     log#important "Thread %S aborts with exception %s!" s
                       (Printexc.to_string e);
-                    raise e
+                    Printexc.raise_with_backtrace e bt
             with e ->
+              let raw_bt = Printexc.get_raw_backtrace () in
               let l = Pcre.split ~pat:"\n" bt in
               List.iter (log#info "%s") l;
               mutexify lock
@@ -208,7 +213,7 @@ let create ~queue f x s =
                   Condition.signal no_problem;
                   Condition.signal c)
                 ();
-              raise e)
+              Printexc.raise_with_backtrace e raw_bt)
         in
         Thread.create process x
       in

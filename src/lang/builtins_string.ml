@@ -56,14 +56,20 @@ let () =
 
 let () =
   Lang.add_builtin "string.nth" ~category:`String
-    ~descr:"Retrieve a character in a string."
+    ~descr:
+      "Retrieve a character in a string. Raises `error.not_found` if character \
+       does not exist."
     [
       ("", Lang.string_t, None, Some "String to look into.");
       ("", Lang.int_t, None, Some "Index of the character.");
     ] Lang.int_t (fun p ->
-      let s = Lang.to_string (Lang.assoc "" 1 p) in
-      let n = Lang.to_int (Lang.assoc "" 2 p) in
-      Lang.int (int_of_char s.[n]))
+      try
+        let s = Lang.to_string (Lang.assoc "" 1 p) in
+        let n = Lang.to_int (Lang.assoc "" 2 p) in
+        Lang.int (int_of_char s.[n])
+      with _ ->
+        Runtime_error.error ~message:"string.nth: character not found!"
+          "not_found")
 
 let () =
   Lang.add_builtin "string.escape" ~category:`String
@@ -218,57 +224,6 @@ let () =
              }))
 
 let () =
-  Lang.add_builtin "string.split" ~category:`String
-    ~descr:
-      "Split a string at 'separator'. Perl compatible regular expressions are \
-       recognized. Hence, special characters should be escaped."
-    [("separator", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    (Lang.list_t Lang.string_t) (fun p ->
-      let sep = Lang.to_string (List.assoc "separator" p) in
-      let string = Lang.to_string (List.assoc "" p) in
-      let rex = Pcre.regexp sep in
-      Lang.list (List.map Lang.string (Pcre.split ~rex string)))
-
-let () =
-  Lang.add_builtin "string.extract" ~category:`String
-    ~descr:
-      "Extract substrings from a string. Perl compatible regular expressions \
-       are recognized. Hence, special characters should be escaped. Returns a \
-       list of (index,value). If the list does not have a pair associated to \
-       some index, it means that the corresponding pattern was not found."
-    [("pattern", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    (Lang.list_t (Lang.product_t Lang.int_t Lang.string_t))
-    (fun p ->
-      let pattern = Lang.to_string (List.assoc "pattern" p) in
-      let string = Lang.to_string (List.assoc "" p) in
-      let rex = Pcre.regexp pattern in
-      try
-        let sub = Pcre.exec ~rex string in
-        let n = Pcre.num_of_subs sub in
-        let rec extract acc i =
-          if i < n then (
-            try extract ((i, Pcre.get_substring sub i) :: acc) (i + 1)
-            with Not_found -> extract acc (i + 1))
-          else List.rev acc
-        in
-        let l = extract [] 1 in
-        Lang.list
-          (List.map (fun (x, y) -> Lang.product (Lang.int x) (Lang.string y)) l)
-      with Not_found -> Lang.list [])
-
-let () =
-  Lang.add_builtin "string.match" ~category:`String
-    ~descr:
-      "Match a string with an expression. Perl compatible regular expressions \
-       are recognized. Hence, special characters should be escaped."
-    [("pattern", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    Lang.bool_t (fun p ->
-      let pattern = Lang.to_string (List.assoc "pattern" p) in
-      let string = Lang.to_string (List.assoc "" p) in
-      let rex = Pcre.regexp pattern in
-      Lang.bool (Pcre.pmatch ~rex string))
-
-let () =
   Lang.add_builtin "string.recode" ~category:`String
     ~descr:"Convert a string. Effective only if Camomile is enabled."
     [
@@ -377,46 +332,13 @@ let () =
         else f string))
 
 let () =
-  Lang.add_builtin "string.replace" ~category:`String
-    ~descr:
-      "Replace all substrings matched by a pattern by another string returned \
-       by a function."
-    [
-      ( "pattern",
-        Lang.string_t,
-        None,
-        Some
-          "Pattern (regular expression) of substrings which should be replaced."
-      );
-      ( "",
-        Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t,
-        None,
-        Some
-          "Function getting a matched substring an returning the string to \
-           replace it with." );
-      ( "",
-        Lang.string_t,
-        None,
-        Some "String whose substrings should be replaced." );
-    ]
-    Lang.string_t
-    (fun p ->
-      let pattern = Lang.to_string (List.assoc "pattern" p) in
-      let string = Lang.to_string (Lang.assoc "" 2 p) in
-      let subst = Lang.assoc "" 1 p in
-      let subst s =
-        let ret = Lang.apply subst [("", Lang.string s)] in
-        Lang.to_string ret
-      in
-      let rex = Pcre.regexp pattern in
-      Lang.string (Pcre.substitute ~rex ~subst string))
-
-let () =
   Lang.add_builtin "string.base64.decode" ~category:`String
     ~descr:"Decode a Base64 encoded string." [("", Lang.string_t, None, None)]
     Lang.string_t (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
-      Lang.string (Utils.decode64 string))
+      try Lang.string (Utils.decode64 string)
+      with _ ->
+        Runtime_error.error ~message:"Invalid base64 string!" "invalid")
 
 let () =
   Lang.add_builtin "string.base64.encode" ~category:`String
@@ -596,3 +518,51 @@ let () =
     [("", Lang.string_t, None, Some "Operator name.")] Lang.string_t (fun p ->
       let name = List.assoc "" p |> Lang.to_string in
       Lang.string (Source.generate_id name))
+
+let () =
+  Lang.add_builtin "string.make" ~category:`String
+    ~descr:"Create a string of a given length using the given character."
+    [
+      ( "char_code",
+        Lang.int_t,
+        Some (Lang.int (Char.code ' ')),
+        Some "Character code." );
+      ("", Lang.int_t, None, Some "String length.");
+    ]
+    Lang.string_t
+    (fun p ->
+      let n = Lang.to_int (List.assoc "" p) in
+      if n < 0 then
+        Runtime_error.error ~message:"Invalid string length!" "invalid";
+      let c =
+        try Char.chr (Lang.to_int (List.assoc "char_code" p))
+        with _ ->
+          Runtime_error.error ~message:"Invalid character code!" "invalid"
+      in
+      Lang.string (String.make n c))
+
+let () =
+  Lang.add_module "string.apic";
+  let t =
+    Lang.method_t Lang.string_t
+      [
+        ("mime", ([], Lang.string_t), "Mime type");
+        ("picture_type", ([], Lang.int_t), "Picture type");
+        ("description", ([], Lang.string_t), "Description");
+      ]
+  in
+  Lang.add_builtin "string.apic.parse" ~category:`File
+    [("", Lang.string_t, None, Some "APIC data.")] t
+    ~descr:
+      "Parse APIC ID3v2 tags (such as those obtained in the APIC tag from \
+       `file.metadata.id3v2`). The returned values are: mime, picture type, \
+       description, and picture data." (fun p ->
+      let apic = Lang.to_string (List.assoc "" p) in
+      let apic = Id3v2.parse_apic apic in
+      Lang.meth
+        (Lang.string apic.Id3v2.data)
+        [
+          ("mime", Lang.string apic.Id3v2.mime);
+          ("picture_type", Lang.int apic.Id3v2.picture_type);
+          ("description", Lang.string apic.Id3v2.description);
+        ])

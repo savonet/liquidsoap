@@ -4,6 +4,17 @@ Migrating to a new Liquidsoap version
 In this page, we list the most common catches when migrating to a new version of
 Liquidsoap.
 
+From 2.0.x to 2.1.x
+-------------------
+
+### Regular expressions
+
+First-class [regular expression](language.html#regular-expressions) are introduced and are used to replace the following operators:
+* `string.match(pattern=<regexp>, <string>` is replaced by: `r/<regexp>/.test(<string>)`
+* `string.extract(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/.exec(<string>)`
+* `string.replace(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/g.replace(<string>)`
+* `string.split(separator=<regexp>, <string>)` is replaced by: `r/<regexp>/.split(<string>)`
+
 From 1.4.x to 2.0.0
 -------------------
 

@@ -422,7 +422,9 @@ let update_metadata t =
   end;
   begin
     match t.on_air with
-    | Some d -> replace "on_air" (pretty_date (Unix.localtime d))
+    | Some d ->
+        replace "on_air" (pretty_date (Unix.localtime d));
+        replace "on_air_timestamp" (Printf.sprintf "%.02f" d)
     | None -> ()
   end;
   begin
@@ -573,7 +575,8 @@ type resolve_flag = Resolved | Failed | Timeout
 exception ExnTimeout
 
 let resolve ~ctype t timeout =
-  assert (t.ctype = None || t.ctype = ctype);
+  assert (
+    t.ctype = None || Frame.compatible (Option.get t.ctype) (Option.get ctype));
   log#debug "Resolving request %s." (string_of_indicators t);
   t.ctype <- ctype;
   t.resolving <- Some (Unix.time ());

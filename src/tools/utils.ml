@@ -65,47 +65,6 @@ let list_of_metadata m =
 let hashtbl_get : ('a, 'b) Hashtbl.t -> 'a -> 'b option =
  fun h k -> try Some (Hashtbl.find h k) with Not_found -> None
 
-(** Unescape a string. *)
-let unescape s = try Scanf.sscanf s "%S" (fun u -> u) with _ -> s
-
-(* Unescape a given char in a string, i.e. \\c -> c *)
-let unescape_char c s =
-  let len = String.length s in
-  let rec f ~escaped cur pos =
-    if pos >= len then if escaped then Printf.sprintf "%s\\" cur else cur
-    else (
-      let d = s.[pos] in
-      let pos = pos + 1 in
-      match d with
-        | '\\' when not escaped -> f ~escaped:true cur pos
-        | x when x = c -> f ~escaped:false (Printf.sprintf "%s%c" cur c) pos
-        | x when escaped -> f ~escaped:false (Printf.sprintf "%s\\%c" cur x) pos
-        | x -> f ~escaped:false (Printf.sprintf "%s%c" cur x) pos)
-  in
-  f ~escaped:false "" 0
-
-(** Parse strings of the form foo <sep> bar,
- *  trying to be clever on escaping <sep> in foo
- *  and bar.. *)
-let split ~sep s =
-  let rec split cur s =
-    let len = String.length s in
-    let rec get_index escaped pos =
-      if pos == len then pos
-      else (
-        match s.[pos] with
-          | '\\' when not escaped -> get_index true (pos + 1)
-          | x when x == sep && not escaped -> pos
-          | _ -> get_index false (pos + 1))
-    in
-    let pos = get_index false 0 in
-    if pos == len then s :: cur
-    else if pos == len - 1 then String.sub s 0 pos :: cur
-    else
-      split (String.sub s 0 pos :: cur) (String.sub s (pos + 1) (len - pos - 1))
-  in
-  List.map (unescape_char sep) (List.rev (split [] s))
-
 (** Remove the first element satisfying a predicate, raising Not_found
   * if none is found. *)
 let remove_one f l =
@@ -180,107 +139,76 @@ let escape ~special_char ~next ~escape_char f s =
   in
   if len > 0 then f 0
 
+let utf8_next s i =
+  match s.[i] with
+    | '\000' .. '\127' -> i + 1
+    | '\192' .. '\223' -> i + 2
+    | '\224' .. '\239' -> i + 3
+    | '\240' .. '\247' -> i + 4
+    | _ -> i + 1
+
+(* Return the utf8 char code of the first utf8 character in the given
+   string. *)
+let utf8_char_code s =
+  match s.[0] with
+    | '\000' .. '\127' as c -> Char.code c
+    | '\192' .. '\223' as c ->
+        let n1 = Char.code c in
+        let n2 = Char.code s.[1] in
+        if n2 lsr 6 != 0b10 then failwith "invalid utf8";
+        ((n1 land 0x1f) lsl 6) lor (n2 land 0x3f)
+    | '\224' .. '\239' as c ->
+        let n1 = Char.code c in
+        let n2 = Char.code s.[1] in
+        let n3 = Char.code s.[2] in
+        if n2 lsr 6 != 0b10 || n3 lsr 6 != 0b10 then failwith "invalid utf8";
+        let p =
+          ((n1 land 0x0f) lsl 12) lor ((n2 land 0x3f) lsl 6) lor (n3 land 0x3f)
+        in
+        if p >= 0xd800 && p <= 0xdf00 then failwith "invalid utf8";
+        p
+    | '\240' .. '\247' as c ->
+        let n1 = Char.code c in
+        let n2 = Char.code s.[1] in
+        let n3 = Char.code s.[2] in
+        let n4 = Char.code s.[3] in
+        if n2 lsr 6 != 0b10 || n3 lsr 6 != 0b10 || n4 lsr 6 != 0b10 then
+          failwith "invalid utf8";
+        ((n1 land 0x07) lsl 18)
+        lor ((n2 land 0x3f) lsl 12)
+        lor ((n3 land 0x3f) lsl 6)
+        lor (n4 land 0x3f)
+    | _ -> failwith "invalid utf8"
+
+(* End of Extlib code *)
+
 let ascii_special_char = function
+  | "'" | "\"" | "\\"
   (* DEL *)
-  | "\x7F" -> true
+  | "\x7F" ->
+      true
   (* Control chars *)
   | s when String.length s = 1 && Char.code s.[0] <= 0x1F -> true
   | s when String.length s = 1 && Char.code s.[0] > 0x7E -> true
   | _ -> false
 
-let utf8_special_char = function
-  (* DEL *)
-  | "\x7F" -> true
-  (* Control chars *)
-  | s when String.length s = 1 && Char.code s.[0] <= 0x1F -> true
-  | _ -> false
-
-(* These two functions are taken from Extlib's module UTF8
- * Copyright (c) 2002, 2003 Yamagata Yoriyuki *)
-let rec utf8_search_head s i =
-  if i >= String.length s then i
-  else (
-    let n = Char.code (String.unsafe_get s i) in
-    if n < 0x80 || n >= 0xc2 then i else utf8_search_head s (i + 1))
-
-let utf8_next s i =
-  let n = Char.code s.[i] in
-  if n < 0x80 then i + 1
-  else if n < 0xc0 then utf8_search_head s (i + 1)
-  else if n <= 0xdf then i + 2
-  else if n <= 0xef then i + 3
-  else if n <= 0xf7 then i + 4
-  else if n <= 0xfb then i + 5
-  else if n <= 0xfd then i + 6
-  else
-    (* This is invalid utf8, but we try to find next character anyway. Otherwise
-       we get useless crashes, see #1590. *)
-    utf8_search_head s (i + 1)
-
-(* Return the utf8 char code of the first utf8 character in the given
-   string. *)
-let utf8_char_code s =
-  let n = Char.code s.[0] in
-  if n < 0x80 then n
-  else if n <= 0xdf then ((n - 0xc0) lsl 6) lor (0x7f land Char.code s.[1])
-  else if n <= 0xef then (
-    let n' = n - 0xe0 in
-    let m0 = Char.code s.[2] in
-    let m = Char.code (String.unsafe_get s 1) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    (n' lsl 6) lor (0x7f land m0))
-  else if n <= 0xf7 then (
-    let n' = n - 0xf0 in
-    let m0 = Char.code s.[3] in
-    let m = Char.code (String.unsafe_get s 1) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    let m = Char.code (String.unsafe_get s 2) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    (n' lsl 6) lor (0x7f land m0))
-  else if n <= 0xfb then (
-    let n' = n - 0xf8 in
-    let m0 = Char.code s.[4] in
-    let m = Char.code (String.unsafe_get s 1) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    let m = Char.code (String.unsafe_get s 2) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    let m = Char.code (String.unsafe_get s 3) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    (n' lsl 6) lor (0x7f land m0))
-  else if n <= 0xfd then (
-    let n' = n - 0xfc in
-    let m0 = Char.code s.[5] in
-    let m = Char.code (String.unsafe_get s 1) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    let m = Char.code (String.unsafe_get s 2) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    let m = Char.code (String.unsafe_get s 3) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    let m = Char.code (String.unsafe_get s 4) in
-    let n' = (n' lsl 6) lor (0x7f land m) in
-    (n' lsl 6) lor (0x7f land m0))
-  else failwith "Invalid argument"
-
-(* End of Extlib code *)
-
+let utf8_special_char s = String.length s = 1 && ascii_special_char s
 let ascii_next _ i = i + 1
 
 let escape_char ~escape_fun = function
-  | "\x07" -> "\\x07"
   | "\b" -> "\\b"
-  | "\x1b" -> "\\x1b"
-  | "\x0c" -> "\\x0c"
   | "\n" -> "\\n"
   | "\r" -> "\\r"
   | "\t" -> "\\t"
-  | "\x0b" -> "\\x0b"
   | "\\" -> "\\\\"
   | "\"" -> "\\\""
   | "\'" -> "\\'"
-  | "\x3f" -> "\\x3f"
   | c -> escape_fun c
 
 let escape_utf8_char =
+  let utf8_char_code s =
+    try utf8_char_code s with _ -> Uchar.to_int Uchar.rep
+  in
   escape_char ~escape_fun:(fun s -> Printf.sprintf "\\u%04X" (utf8_char_code s))
 
 let escape_utf8_formatter =
@@ -326,6 +254,7 @@ let unescape_patterns =
     "\\\\r";
     "\\\\t";
     "\\\\v";
+    "\\\\/";
     "\\\\\\\\";
     "\\\\\"";
     "\\\\\'";
@@ -358,6 +287,7 @@ let unescape_char = function
   | "\\r" -> "\r"
   | "\\t" -> "\t"
   | "\\v" -> "\x0b"
+  | "\\/" -> "/"
   | "\\\\" -> "\\"
   | "\\\"" -> "\""
   | "\\'" -> "'"

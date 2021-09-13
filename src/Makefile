@@ -126,12 +126,11 @@ encoders = \
 	$(if $(W_GSTREAMER),encoder/gstreamer_encoder.ml)
 
 lang_encoders = \
-  lang/lang_encoders.ml \
   lang_encoders/lang_avi.ml lang_encoders/lang_external_encoder.ml lang_encoders/lang_fdkaac.ml \
   lang_encoders/lang_ffmpeg.ml $(if $(W_FFMPEG_ENCODER),lang_encoders/lang_ffmpeg_opt.ml) lang_encoders/lang_flac.ml lang_encoders/lang_gstreamer.ml \
   lang_encoders/lang_mp3.ml lang_encoders/lang_opus.ml lang_encoders/lang_shine.ml \
   lang_encoders/lang_speex.ml lang_encoders/lang_theora.ml lang_encoders/lang_vorbis.ml \
-  lang_encoders/lang_wav.ml
+  lang_encoders/lang_wav.ml lang_encoders/lang_ogg.ml
 
 encoder_formats = \
   encoder_formats.ml \
@@ -211,7 +210,7 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 builtins = lang/lang_builtins.ml \
            lang/builtins_ref.ml \
            lang/builtins_bool.ml lang/builtins_list.ml \
-           lang/builtins_string.ml lang/builtins_json.ml \
+           lang/builtins_string.ml lang/builtins_regexp.ml lang/builtins_json.ml \
            lang/builtins_request.ml lang/builtins_error.ml \
            lang/builtins_null.ml lang/builtins_settings.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
@@ -250,8 +249,9 @@ liquidsoap_sources= \
 
 liquidsoap_sources += \
 	lang/type.ml lang/typing.ml lang/profiler.ml lang/term.ml lang/value.ml \
-	lang/environment.ml lang/typechecking.ml lang/evaluation.ml \
-	$(lang_encoders) lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
+	lang/lang_encoder.ml $(lang_encoders) \
+	lang/environment.ml lang/typechecking.ml \
+	lang/evaluation.ml lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
 	lang/preprocessor.ml lang/error.ml lang/documentation.ml \
 	lang/lang.ml lang/runtime.ml lang/modules.ml \
         tools/child_support.ml \
