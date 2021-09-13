@@ -33,54 +33,6 @@ let mk_tokenizer ?(fname = "") lexbuf =
     let pos = Sedlexing.lexing_positions lexbuf in
     (token, pos)
 
-(* TODO: also parse optional arguments? *)
-let get_encoder_format tokenizer =
-  let ogg_audio_item = function
-    | Parser.VORBIS -> Lang_vorbis.make []
-    | Parser.VORBIS_CBR -> Lang_vorbis.make_cbr []
-    | Parser.VORBIS_ABR -> Lang_vorbis.make_abr []
-    | Parser.SPEEX -> Lang_speex.make []
-    | Parser.OPUS -> Lang_opus.make []
-    | Parser.FLAC -> Lang_flac.make_ogg []
-    | _ -> failwith "ogg format expected"
-  in
-  let is_ogg_audio_item token =
-    try
-      let _ = ogg_audio_item token in
-      true
-    with _ -> false
-  in
-  let ogg_video_item = function
-    | Parser.THEORA -> Lang_theora.make []
-    | _ -> failwith "ogg format expected"
-  in
-  let is_ogg_video_item token =
-    try
-      let _ = ogg_video_item token in
-      true
-    with _ -> false
-  in
-  let token = fst (tokenizer ()) in
-  match token with
-    | Parser.MP3 -> Lang_mp3.make_cbr []
-    | Parser.MP3_VBR -> Lang_mp3.make_vbr []
-    | Parser.MP3_ABR -> Lang_mp3.make_vbr []
-    | Parser.SHINE -> Lang_shine.make []
-    | Parser.FDKAAC -> Lang_fdkaac.make []
-    | Parser.FLAC -> Lang_flac.make []
-    | Parser.EXTERNAL -> Lang_external_encoder.make []
-    | Parser.GSTREAMER -> Lang_gstreamer.make []
-    | Parser.WAV -> Lang_wav.make []
-    | ogg when is_ogg_audio_item ogg ->
-        let audio = ogg_audio_item ogg in
-        Encoder.Ogg { Ogg_format.audio = Some audio; video = None }
-    | ogg when is_ogg_video_item ogg ->
-        let video = ogg_video_item ogg in
-        Encoder.Ogg { Ogg_format.audio = None; video = Some video }
-    (* TODO *)
-    (* | Parser.OGG -> Lang_encoders.mk ... [] *)
-    | _ -> failwith "expected an encoding format after %ifencoder"
-
 (* The Lang_lexer is not quite enough for our needs, so we first define
    convenient layers between it and the parser. First a pre-processor which
    evaluates %ifdefs. *)
@@ -121,12 +73,19 @@ let eval_ifdefs tokenizer =
           in
           if test then go_on () else skip ()
       | (Parser.PP_IFENCODER, _ | Parser.PP_IFNENCODER, _) as tok ->
-          let fmt = get_encoder_format tokenizer in
           let has_enc =
             try
+              let fmt =
+                let token = fst (tokenizer ()) in
+                match token with
+                  | Parser.ENCODER e ->
+                      Lang_encoder.make_encoder ~pos:None (Term.make Term.unit)
+                        (e, [])
+                  | _ -> failwith "expected an encoding format after %ifencoder"
+              in
               let (_ : Encoder.factory) = Encoder.get_factory fmt in
               true
-            with Not_found -> false
+            with _ -> false
           in
           let test =
             if fst tok = Parser.PP_IFENCODER then fun x -> x else not

@@ -607,22 +607,38 @@ let seek ~target_position ~container ticks =
   Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
   ticks
 
-let mk_decoder ?audio ?video ~target_position container =
+let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
+  let check_metadata (_, stream, _) =
+    let is_first = ref true in
+    let latest_metadata = ref None in
+    fun buffer ->
+      let m = Av.get_metadata stream in
+      if
+        ((not !is_first) || decode_first_metadata) && Some m <> !latest_metadata
+      then (
+        is_first := false;
+        latest_metadata := Some m;
+        Generator.add_metadata buffer.Decoder.generator
+          (Frame.metadata_of_list m))
+  in
+  let no_metadata _ = () in
   let no_decoder = (-1, [], fun ~buffer:_ _ -> assert false) in
   let pack (idx, stream, decoder) = (idx, [stream], decoder) in
   let ( (audio_frame_idx, audio_frame, audio_frame_decoder),
-        (audio_packet_idx, audio_packet, audio_packet_decoder) ) =
+        (audio_packet_idx, audio_packet, audio_packet_decoder),
+        check_audio_metadata ) =
     match audio with
-      | None -> (no_decoder, no_decoder)
-      | Some (`Packet packet) -> (no_decoder, pack packet)
-      | Some (`Frame frame) -> (pack frame, no_decoder)
+      | None -> (no_decoder, no_decoder, no_metadata)
+      | Some (`Packet packet) -> (no_decoder, pack packet, check_metadata packet)
+      | Some (`Frame frame) -> (pack frame, no_decoder, check_metadata frame)
   in
   let ( (video_frame_idx, video_frame, video_frame_decoder),
-        (video_packet_idx, video_packet, video_packet_decoder) ) =
+        (video_packet_idx, video_packet, video_packet_decoder),
+        check_video_metadata ) =
     match video with
-      | None -> (no_decoder, no_decoder)
-      | Some (`Packet packet) -> (no_decoder, pack packet)
-      | Some (`Frame frame) -> (pack frame, no_decoder)
+      | None -> (no_decoder, no_decoder, no_metadata)
+      | Some (`Packet packet) -> (no_decoder, pack packet, check_metadata packet)
+      | Some (`Frame frame) -> (pack frame, no_decoder, check_metadata frame)
   in
   let check_pts stream pts =
     match (pts, !target_position) with
@@ -634,29 +650,36 @@ let mk_decoder ?audio ?video ~target_position container =
   in
   fun buffer ->
     let rec f () =
-      match
-        Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
-          container
+      try
+        let data =
+          Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
+            container
+        in
+        check_audio_metadata buffer;
+        check_video_metadata buffer;
+        match data with
+          | `Audio_frame (i, frame) when i = audio_frame_idx ->
+              if check_pts (List.hd audio_frame) (Ffmpeg_utils.best_pts frame)
+              then audio_frame_decoder ~buffer frame
+              else f ()
+          | `Audio_packet (i, packet) when i = audio_packet_idx ->
+              if
+                check_pts (List.hd audio_packet) (Avcodec.Packet.get_pts packet)
+              then audio_packet_decoder ~buffer packet
+              else f ()
+          | `Video_frame (i, frame) when i = video_frame_idx ->
+              if check_pts (List.hd video_frame) (Ffmpeg_utils.best_pts frame)
+              then video_frame_decoder ~buffer frame
+              else f ()
+          | `Video_packet (i, packet) when i = video_packet_idx ->
+              if
+                check_pts (List.hd video_packet) (Avcodec.Packet.get_pts packet)
+              then video_packet_decoder ~buffer packet
+              else f ()
+          | _ -> ()
       with
-        | `Audio_frame (i, frame) when i = audio_frame_idx ->
-            if check_pts (List.hd audio_frame) (Ffmpeg_utils.best_pts frame)
-            then audio_frame_decoder ~buffer frame
-            else f ()
-        | `Audio_packet (i, packet) when i = audio_packet_idx ->
-            if check_pts (List.hd audio_packet) (Avcodec.Packet.get_pts packet)
-            then audio_packet_decoder ~buffer packet
-            else f ()
-        | `Video_frame (i, frame) when i = video_frame_idx ->
-            if check_pts (List.hd video_frame) (Ffmpeg_utils.best_pts frame)
-            then video_frame_decoder ~buffer frame
-            else f ()
-        | `Video_packet (i, packet) when i = video_packet_idx ->
-            if check_pts (List.hd video_packet) (Avcodec.Packet.get_pts packet)
-            then video_packet_decoder ~buffer packet
-            else f ()
-        | _ -> ()
-        | exception Avutil.Error `Invalid_data -> f ()
-        | exception Avutil.Error `Eof ->
+        | Avutil.Error `Invalid_data -> f ()
+        | Avutil.Error `Eof ->
             Generator.add_break ?sync:(Some true) buffer.Decoder.generator;
             raise End_of_file
     in
@@ -774,7 +797,9 @@ let create_decoder ~ctype fname =
                 match seek ~target_position ~container target with
                   | 0 -> 0
                   | _ -> ticks));
-      decode = mk_decoder ?audio ?video ~target_position container;
+      decode =
+        mk_decoder ?audio ?video ~decode_first_metadata:false ~target_position
+          container;
     },
     close,
     get_remaining )
@@ -800,7 +825,9 @@ let create_stream_decoder ~ctype mime input =
   let target_position = ref None in
   {
     Decoder.seek = seek ~target_position ~container;
-    decode = mk_decoder ?audio ?video ~target_position container;
+    decode =
+      mk_decoder ?audio ?video ~decode_first_metadata:true ~target_position
+        container;
   }
 
 let get_file_type ~ctype filename =

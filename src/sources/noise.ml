@@ -50,11 +50,13 @@ let () =
     ~descr:"Generate audio white noise."
     [
       ( "duration",
-        Lang.float_t,
-        Some (Lang.float (-1.)),
-        Some "Duration in seconds (negative means infinite)." );
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some "Duration in seconds (`null` means infinite)." );
     ]
     ~return_t
     (fun p ->
       let kind = Source.Kind.of_kind kind in
-      new noise ~kind (Lang.to_float (List.assoc "duration" p)))
+      new noise
+        ~kind
+        (Lang.to_valued_option Lang.to_float (List.assoc "duration" p)))

@@ -32,7 +32,7 @@ exception Internal_error of (pos list * string)
 exception Parse_error of (pos * string)
 
 (** Unsupported format *)
-exception Unsupported_format of (pos * Encoder.format)
+exception Unsupported_format of (pos option * string)
 
 let () =
   Printexc.register_printer (function
@@ -46,11 +46,11 @@ let () =
           (Printf.sprintf "Lang_values.Parse_error at %s: %s"
              (Runtime_error.print_pos pos)
              e)
-    | Unsupported_format (pos, f) ->
+    | Unsupported_format (pos, e) ->
         Some
           (Printf.sprintf "Lang_values.Unsupported_format at %s: %s"
-             (Runtime_error.print_pos pos)
-             (Encoder.string_of_format f))
+             (Runtime_error.print_pos_opt pos)
+             e)
     | _ -> None)
 
 let conf =
@@ -127,7 +127,8 @@ let kind_t ?pos ?level kind =
              })
 
 let of_frame_kind_t t =
-  match (Type.deref t).Type.descr with
+  let t = Type.deref t in
+  match t.Type.descr with
     | Type.Constr
         {
           Type.name = "stream_kind";
@@ -138,7 +139,7 @@ let of_frame_kind_t t =
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
-        Type.bind t (frame_kind_t audio video midi);
+        t.Type.descr <- Type.Link (frame_kind_t audio video midi);
         { Frame.audio; video; midi }
     | _ -> assert false
 
@@ -323,9 +324,14 @@ and let_t = {
   body : t;
 }
 
+and encoder_params = (string * [ `Term of t | `Encoder of encoder ]) list
+
+(** A formal encoder. *)
+and encoder = string * encoder_params
+
 and in_term =
   | Ground of Ground.t
-  | Encoder of Encoder.format
+  | Encoder of encoder
   | List of t list
   | Tuple of t list
   | Null
@@ -361,16 +367,25 @@ let unit = Tuple []
 
 (* Only used for printing very simple functions. *)
 let is_ground x =
-  match x.term with
-    | Ground _ | Encoder _ -> true
-    (* | Ref x -> is_ground x *)
-    | _ -> false
+  match x.term with Ground _ -> true (* | Ref x -> is_ground x *) | _ -> false
 
 (** Print terms, (almost) assuming they are in normal form. *)
 let rec print_term v =
   match v.term with
     | Ground g -> Ground.to_string g
-    | Encoder e -> Encoder.string_of_format e
+    | Encoder e ->
+        let rec print (e, p) =
+          let p =
+            p
+            |> List.map (function
+                 | "", `Term v -> print_term v
+                 | l, `Term v -> l ^ "=" ^ print_term v
+                 | _, `Encoder e -> print e)
+            |> String.concat ", "
+          in
+          "%" ^ e ^ "(" ^ p ^ ")"
+        in
+        print e
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
     | Null -> "null"
@@ -397,6 +412,18 @@ let rec string_of_pat = function
   | PAString s -> Printf.sprintf "\"%s\"" s
   | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
 
+(** Create a new value. *)
+let make ?pos ?t e =
+  let t =
+    match t with Some t -> t | None -> Type.fresh_evar ~level:(-1) ~pos
+  in
+  if Lazy.force debug then
+    Printf.eprintf "%s (%s): assigned type var %s\n"
+      (Type.print_pos_opt t.Type.pos)
+      (try print_term { t; term = e } with _ -> "<?>")
+      (Type.print t);
+  { t; term = e }
+
 let rec free_vars_pat = function
   | PVar [] -> assert false
   | PVar [_] -> Vars.empty
@@ -415,11 +442,21 @@ let rec bound_vars_pat = function
 
 let rec free_vars tm =
   match tm.term with
-    | Ground _ | Encoder _ -> Vars.empty
+    | Ground _ -> Vars.empty
     | Var x -> Vars.singleton x
     | Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
     | Null -> Vars.empty
+    | Encoder e ->
+        let rec enc (_, p) =
+          List.fold_left
+            (fun v (_, t) ->
+              match t with
+                | `Term t -> Vars.union v (free_vars t)
+                | `Encoder e -> Vars.union v (enc e))
+            Vars.empty p
+        in
+        enc e
     | Cast (e, _) -> free_vars e
     | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
     | Meth (_, v, e) -> Vars.union (free_vars v) (free_vars e)
@@ -505,7 +542,7 @@ let check_unused ~throw ~lib tm =
   let rec check ?(toplevel = false) v tm =
     match tm.term with
       | Var s -> Vars.remove s v
-      | Ground _ | Encoder _ -> v
+      | Ground _ -> v
       | Tuple l -> List.fold_left (fun a -> check a) v l
       | Null -> v
       | Cast (e, _) -> check v e
@@ -514,6 +551,14 @@ let check_unused ~throw ~lib tm =
       | Open (a, b) -> check (check v a) b
       | Seq (a, b) -> check ~toplevel (check v a) b
       | List l -> List.fold_left (fun x y -> check x y) v l
+      | Encoder e ->
+          let rec enc v (_, p) =
+            List.fold_left
+              (fun v (_, t) ->
+                match t with `Term t -> check v t | `Encoder e -> enc v e)
+              v p
+          in
+          enc v e
       | App (hd, l) ->
           let v = check v hd in
           List.fold_left (fun v (_, t) -> check v t) v l

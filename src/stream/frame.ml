@@ -98,6 +98,11 @@ let compatible c c' =
   * It might be a good idea to straighten that up in the future. *)
 type metadata = (string, string) Hashtbl.t
 
+let metadata_of_list l =
+  let m = Hashtbl.create (List.length l) in
+  List.iter (fun (k, v) -> Hashtbl.add m k v) l;
+  m
+
 type t = {
   (* Presentation time, in multiple of frame size. *)
   mutable pts : int64;

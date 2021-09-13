@@ -124,7 +124,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
   responseHeaders = headers
 
   def handler(~method,~protocol,~data=_,~headers=_,uri)
-    ret = string.extract(pattern="^#{basepath}([^?]*)", uri)
+    ret = regexp("^#{basepath}([^?]*)").exec(uri)
     loc =
       if list.length(ret) == 0 then "."
       else string.trim(ret[1]) end

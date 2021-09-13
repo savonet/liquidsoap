@@ -130,6 +130,136 @@ let instantiate ~level ~generalized =
   let subst = Subst.of_seq subst in
   fun t -> copy_with subst t
 
+(** {1 Assignation} *)
+
+(** These two exceptions can be raised when attempting to assign a variable. *)
+exception Occur_check of t * t
+
+exception Unsatisfied_constraint of constr * t
+
+(** Check that [a] (a dereferenced type variable) does not occur in [b],
+  * and prepare the instantiation [a<-b] by adjusting the levels. *)
+let rec occur_check a b =
+  let b = deref b in
+  if a == b then raise (Occur_check (a, b));
+  match b.descr with
+    | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
+    | Tuple l -> List.iter (occur_check a) l
+    | Getter t -> occur_check a t
+    | List t -> occur_check a t
+    | Nullable t -> occur_check a t
+    | Meth (_, (_, t), _, u) ->
+        (* We assume that a is not a generalized variable of t. *)
+        occur_check a t;
+        occur_check a u
+    | Arrow (p, t) ->
+        List.iter (fun (_, _, t) -> occur_check a t) p;
+        occur_check a t
+    | Cons (_ : string) -> ()
+    | Union (t, u) ->
+        occur_check a t;
+        occur_check a u
+    | EVar _ ->
+        (* In normal type inference level -1 should never arise.
+         * Unfortunately we can't check it strictly because this code
+         * is also used to process type annotations, which make use
+         * of unknown levels. Also note that >=0 levels can arise
+         * when processing type annotations, because of builtins. *)
+        if b.level = -1 then b.level <- a.level
+        else if a.level <> -1 then b.level <- min b.level a.level
+    | Ground _ -> ()
+    | Link _ -> assert false
+
+(* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)
+let rec bind a0 b =
+  (* if !debug then Printf.eprintf "%s := %s\n%!" (print a0) (print b); *)
+  let a = deref a0 in
+  let b = deref b in
+  if b == a then ()
+  else (
+    occur_check a b;
+    begin
+      match a.descr with
+      | EVar (_, constraints) ->
+          List.iter
+            (function
+              | Ord ->
+                  let rec check b =
+                    let m, b = split_meths b in
+                    match b.descr with
+                      | Ground _ -> ()
+                      | EVar (j, c) ->
+                          if List.mem Ord c then ()
+                          else b.descr <- EVar (j, Ord :: c)
+                      | Tuple [] ->
+                          (* For records, we want to ensure that all fields are ordered. *)
+                          List.iter
+                            (fun (_, ((v, a), _)) ->
+                              if v <> [] then
+                                raise (Unsatisfied_constraint (Ord, a));
+                              check a)
+                            m
+                      | Tuple l -> List.iter (fun b -> check b) l
+                      | List b -> check b
+                      | Nullable b -> check b
+                      | _ -> raise (Unsatisfied_constraint (Ord, b))
+                  in
+                  check b
+              | Dtools -> (
+                  match b.descr with
+                    | Ground g ->
+                        if not (List.mem g [Bool; Int; Float; String]) then
+                          raise (Unsatisfied_constraint (Dtools, b))
+                    | Tuple [] -> ()
+                    | List b' -> (
+                        match (deref b').descr with
+                          | Ground g ->
+                              if g <> String then
+                                raise (Unsatisfied_constraint (Dtools, b'))
+                          | EVar (_, _) -> bind b' (make (Ground String))
+                          | _ -> raise (Unsatisfied_constraint (Dtools, b')))
+                    | EVar (j, c) ->
+                        if not (List.mem Dtools c) then
+                          b.descr <- EVar (j, Dtools :: c)
+                    | _ -> raise (Unsatisfied_constraint (Dtools, b)))
+              | InternalMedia -> (
+                  let is_internal name =
+                    try
+                      let kind = Frame_content.kind_of_string name in
+                      Frame_content.is_internal kind
+                    with Frame_content.Invalid -> false
+                  in
+                  match b.descr with
+                    | Constr { name } when is_internal name -> ()
+                    | Ground (Format f)
+                      when Frame_content.(is_internal (kind f)) ->
+                        ()
+                    | EVar (j, c) ->
+                        if List.mem InternalMedia c then ()
+                        else b.descr <- EVar (j, InternalMedia :: c)
+                    | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
+              | Num -> (
+                  match (demeth b).descr with
+                    | Ground g ->
+                        if g <> Int && g <> Float then
+                          raise (Unsatisfied_constraint (Num, b))
+                    | EVar (j, c) ->
+                        if List.mem Num c then ()
+                        else b.descr <- EVar (j, Num :: c)
+                    | _ -> raise (Unsatisfied_constraint (Num, b))))
+            constraints
+      | _ -> assert false (* only EVars are bindable *)
+    end;
+
+    (* This is a shaky hack...
+     * When a value is passed to a FFI, its type is bound to a type without
+     * any location.
+     * If it doesn't break sharing, we set the parsing position of
+     * that variable occurrence to the position of the inferred type. *)
+    if b.pos = None && match b.descr with EVar _ -> false | _ -> true then
+      a.descr <- Link { a0 with descr = b.descr }
+    else a.descr <- Link b)
+
 (** {1 Subtype checking/inference} *)
 
 exception Error of (repr * repr)
@@ -397,9 +527,9 @@ let rec duplicate ?pos ?level t =
 (** Find an approximation of the minimal type that is safe to use instead of
     both left and right hand types. This function is not exact: we should always
     try to cast with the result in order to ensure that everything is alright. *)
-let rec min_type ?(pos = None) ?(level = -1) a b =
+let rec sup ?(pos = None) ?(level = -1) a b =
   try
-    let min a b =
+    let simple a b =
       try
         let t = fresh_evar ~level ~pos in
         duplicate ~pos ~level a <: t;
@@ -411,7 +541,7 @@ let rec min_type ?(pos = None) ?(level = -1) a b =
         duplicate ~pos ~level a <: t;
         deref t
     in
-    if not (has_meth a && has_meth b) then min a b
+    if not (has_meth a && has_meth b) then simple a b
     else (
       let meths_a, a' = split_meths a in
       let meths_b, b' = split_meths b in
@@ -421,8 +551,7 @@ let rec min_type ?(pos = None) ?(level = -1) a b =
             match List.assoc_opt name meths_b with
               | None -> cur
               | Some ((g', t'), _) -> (
-                  try (name, ((g @ g', min_type t t'), doc)) :: cur
-                  with _ -> cur))
+                  try (name, ((g @ g', sup t t'), doc)) :: cur with _ -> cur))
           [] meths_a
       in
       let t = min a' b' in

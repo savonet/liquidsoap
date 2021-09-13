@@ -1,7 +1,7 @@
 #!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
-log.level.set(5)
+log.level.set(4)
 settings.decoder.decoders.set(["FFMPEG"])
 
 fname = argv(default="",1)
@@ -13,12 +13,12 @@ end
 
 def f(s) =
   def mkfilter(graph) =
-    a = ffmpeg.filter.audio.input(graph, s)
+    a = ffmpeg.filter.audio.input(graph, drop_video(s))
     a = ffmpeg.filter.flanger(graph, a, delay=10.)
     a = ffmpeg.filter.highpass(graph, a, frequency=4000.)
     a = ffmpeg.filter.audio.output(graph, a)
 
-    v = ffmpeg.filter.video.input(graph, s)
+    v = ffmpeg.filter.video.input(graph, drop_audio(s))
     v = ffmpeg.filter.hflip(graph, v)
     v = ffmpeg.filter.video.output(graph, v)
 

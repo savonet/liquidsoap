@@ -7,6 +7,8 @@
 log.level.set(5)
 
 def f() =
+  test.skip()
+
   reloaded = ref("")
 
   def on_reload(uri) =

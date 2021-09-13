@@ -17,7 +17,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
     if request.resolve(pl) then
       pl = request.filename(pl)
 
-      m = string.extract(pattern="#EXT-X-MEDIA-SEQUENCE:(\\d+)",file.contents(pl))
+      m = r/#EXT-X-MEDIA-SEQUENCE:(\d+)/.exec(file.contents(pl))
       pl_sequence = m[1]
       log.info(label=id,"Sequence: " ^ pl_sequence)
       pl_sequence = int_of_string(default=0,pl_sequence)
@@ -68,7 +68,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
     if request.resolve(pl) then
       plfile = request.filename(pl)
 
-      m = string.extract(pattern="#EXT-X-STREAM-INF[^\\n]*\\n([^\\r\\n]*)\\r?\\n",file.contents(plfile))
+      m = r/#EXT-X-STREAM-INF[^\n]*\n([^\r\n]*)\r?\n/.exec(file.contents(plfile))
       playlist_uri := list.assoc(default=!playlist_uri,1,m)
 
       if not (string.contains(substring="/", !playlist_uri)) then

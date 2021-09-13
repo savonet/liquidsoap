@@ -2,6 +2,8 @@ let error.not_found = error.register("not_found")
 
 let error.assertion = error.register("assertion")
 
+let error.invalid = error.register("invalid")
+
 # Ensure that a condition is satisfied (raise `error.assertion` exception
 # otherwise).
 # @category Liquidsoap

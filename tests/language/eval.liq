@@ -30,7 +30,7 @@ def f() =
 
   l = [ ("bla",""), ("bli","x"), ("blo","xx"), ("blu","xxx"), ("dix","10") ]
   echo(l["dix"])
-  t("11",{ 2 == list.length(string.split(separator="",l["blo"])) })
+  t("11",{ 2 == list.length(r//.split(l["blo"])) })
 
 %ifdef foobarbaz
   if = if is not a well-formed expression, and we do not care...
@@ -46,8 +46,8 @@ def f() =
 
   t("15",{ list.remove(2,[2]) == [] })
 
-  t("16", { "bla" == true ? "bla" : "foo" })
-  t("17", { "foo" == false ? "bla" : "foo" })
+  t("16", { "bla" == (true ? "bla" : "foo") })
+  t("17", { "foo" == (false ? "bla" : "foo") })
 
   if !fail then test.fail() else test.pass() end
 end
