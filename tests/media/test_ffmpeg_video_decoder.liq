@@ -20,9 +20,9 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  json = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
+  j = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
 
-  string_format = json.parse(default=[("streams", [[("samplerate", "0")]])], json)
+  string_format = json.parse(default=[("streams", [[("samplerate", "0")]])], j)
   stream = list.hd(default=[], list.assoc(default=[], "streams", string_format))
   framerate = list.assoc(default="0","r_frame_rate",stream)
   codec = list.assoc(default="0","codec_name",stream)
