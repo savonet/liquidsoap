@@ -272,7 +272,6 @@ exception Incompatible
     has a chance be be greater than the first. No binding is performed by this
     function so that it should always be followed by a subtyping. *)
 let rec sup ~pos a b =
-  (* Printf.printf "sup %s // %s\n%!" (Type.print a) (Type.print b); *)
   let sup = sup ~pos in
   let mk descr = { level = -1; pos; descr } in
   let scheme_sup t t' =
@@ -375,16 +374,12 @@ let rec ( <: ) a b =
            bad choices. For instance, if we took int, but then have a 'a?, we
            change our mind and use int? instead. *)
         let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
-        (* Printf.printf "the sup of %s and %s is %s\n%!" (Type.print a) *)
-        (* (Type.print b') (Type.print b''); *)
         (try b' <: b''
          with _ ->
            failwith
              (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
                 (Type.print b'')));
-        if b'' != b' then
-          (* Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b''); *)
-          b.descr <- Link (Covariant, b'');
+        if b'' != b' then b.descr <- Link (Covariant, b'');
         a <: b''
     | Link (Covariant, a'), _ ->
         a.descr <- Link (Invariant, a');
