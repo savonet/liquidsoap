@@ -439,7 +439,12 @@ let conf_enforced_encryption =
 let log = Log.make ["srt"]
 
 let log_handler { Srt.Log.message } =
-  let message = Pcre.substitute ~pat:"[ \r\n]+$" ~subst:(fun _ -> "") message in
+  let message =
+    Re.Pcre.substitute
+      ~rex:(Re.Pcre.regexp "[ \r\n]+$")
+      ~subst:(fun _ -> "")
+      message
+  in
   log#f conf_level#get "%s" message
 
 (** Common polling task for all srt input/output.

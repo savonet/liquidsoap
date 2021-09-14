@@ -204,7 +204,7 @@ let create ~queue f x s =
                     Printexc.raise_with_backtrace e bt
             with e ->
               let raw_bt = Printexc.get_raw_backtrace () in
-              let l = Pcre.split ~pat:"\n" bt in
+              let l = Re.Pcre.split ~rex:(Re.Pcre.regexp "\n") bt in
               List.iter (log#info "%s") l;
               mutexify lock
                 (fun () ->

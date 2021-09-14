@@ -191,8 +191,8 @@ module Make (Harbor : T) = struct
       method register_decoder mime =
         let mime =
           try
-            let sub = Pcre.exec ~pat:"^([^;]+);.*$" mime in
-            Pcre.get_substring sub 1
+            let sub = Re.Pcre.exec ~rex:(Re.Pcre.regexp "^([^;]+);.*$") mime in
+            Re.Pcre.get_substring sub 1
           with Not_found -> mime
         in
         Generator.set_mode generator `Undefined;

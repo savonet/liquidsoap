@@ -21,14 +21,14 @@
  *****************************************************************************)
 
 let log = Log.make ["playlist"; "basic"]
-let split_lines buf = Pcre.split ~pat:"[\r\n]+" buf
+let split_lines buf = Re.Pcre.split ~rex:(Re.Pcre.regexp "[\r\n]+") buf
 
 let test_text s =
   match Configure.data_mime with
     | None -> ()
     | Some get_mime ->
         let mime = get_mime s in
-        if not (Pcre.pmatch ~pat:"text/.*" mime) then (
+        if not (Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "text/.*") mime) then (
           log#important "Wrong mime type %s for playlist!" mime;
 
           (* TODO this shouldn't be an assert false, it can happen *)
@@ -36,11 +36,11 @@ let test_text s =
 
 let parse_extinf s =
   try
-    let rex = Pcre.regexp "#EXTINF:(\\d+),(.*)" in
-    let sub = Pcre.exec ~rex s in
-    let duration = Pcre.get_substring sub 1 in
-    let song = Pcre.get_substring sub 2 in
-    let lines = Pcre.split ~pat:" - " song in
+    let rex = Re.Pcre.regexp "#EXTINF:(\\d+),(.*)" in
+    let sub = Re.Pcre.exec ~rex s in
+    let duration = Re.Pcre.get_substring sub 1 in
+    let song = Re.Pcre.get_substring sub 2 in
+    let lines = Re.Pcre.split ~rex:(Re.Pcre.regexp " - ") song in
     match lines with
       | [artist; title] ->
           [
@@ -55,7 +55,7 @@ let parse_extinf s =
 let parse_mpegurl ?pwd string =
   test_text string;
   let lines = List.filter (fun x -> x <> "") (split_lines string) in
-  let is_info line = Pcre.pmatch ~pat:"^#EXTINF" line in
+  let is_info line = Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "^#EXTINF") line in
   let skip_line line = line.[0] == '#' in
   let rec get_urls cur lines =
     match lines with
@@ -71,10 +71,16 @@ let parse_mpegurl ?pwd string =
 
 let parse_scpls ?pwd string =
   test_text string;
-  let string = Pcre.replace ~pat:"#[^\\r\\n]*[\\n\\r]+" string in
+  let string =
+    Re.Pcre.substitute
+      ~rex:(Re.Pcre.regexp "#[^\\r\\n]*[\\n\\r]+")
+      ~subst:(fun _ -> "")
+      string
+  in
   (* Format check, raise Not_found if invalid *)
   ignore
-    (Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]"
+    (Re.Pcre.exec
+       ~rex:(Re.Pcre.regexp "^[\\r\\n\\s]*\\[playlist\\]")
        (String.lowercase_ascii string));
   let lines = split_lines string in
   let urls =
@@ -82,10 +88,10 @@ let parse_scpls ?pwd string =
       (fun s ->
         try
           let rex =
-            Pcre.regexp ~flags:[`CASELESS] "file\\d*\\s*=\\s*(.*)\\s*"
+            Re.Pcre.regexp ~flags:[`CASELESS] "file\\d*\\s*=\\s*(.*)\\s*"
           in
-          let sub = Pcre.exec ~rex s in
-          Pcre.get_substring sub 1
+          let sub = Re.Pcre.exec ~rex s in
+          Re.Pcre.get_substring sub 1
         with Not_found -> "")
       lines
   in
@@ -208,7 +214,10 @@ let parse_cue ?pwd string =
   let strings = split_lines string in
   let strings =
     List.map
-      (fun string -> Pcre.replace ~rex:(Pcre.regexp "^\\s+") string)
+      (fun string ->
+        Re.Pcre.substitute ~rex:(Re.Pcre.regexp "^\\s+")
+          ~subst:(fun _ -> "")
+          string)
       strings
   in
   let strings = List.filter (fun s -> s <> "") strings in

@@ -239,7 +239,11 @@ let () =
   add "help" ~usage:"help [<command>]"
     ~descr:"Get information on available commands." (fun args ->
       try
-        let args = Pcre.substitute ~pat:"\\s*" ~subst:(fun _ -> "") args in
+        let args =
+          Re.Pcre.substitute ~rex:(Re.Pcre.regexp "\\s*")
+            ~subst:(fun _ -> "")
+            args
+        in
         let _, us, d = Tutils.mutexify lock (Hashtbl.find commands) args in
         Printf.sprintf "Usage: %s\r\n  %s" us d
       with Not_found ->

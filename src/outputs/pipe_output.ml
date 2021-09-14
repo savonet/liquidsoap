@@ -292,7 +292,9 @@ class virtual file_output_base p =
       let filename = Utils.strftime filename in
       let filename = Utils.home_unrelate filename in
       (* Avoid / in metas for filename.. *)
-      let subst m = Pcre.substitute ~pat:"/" ~subst:(fun _ -> "-") m in
+      let subst m =
+        Re.Pcre.substitute ~rex:(Re.Pcre.regexp "/") ~subst:(fun _ -> "-") m
+      in
       self#interpolate ~subst filename
 
     method private on_close = on_close

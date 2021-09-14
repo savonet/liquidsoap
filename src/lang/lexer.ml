@@ -50,20 +50,22 @@ end
 
 let parse_time t =
   let g sub n =
-    let s = Pcre.get_substring sub n in
+    let s = Re.Pcre.get_substring sub n in
     if s = "" then None
     else Some (int_of_string (String.sub s 0 (String.length s - 1)))
   in
   try
-    let pat = "^((?:\\d+w)?)((?:\\d+h)?)((?:\\d+m)?)((?:\\d+s)?)$" in
-    let sub = Pcre.exec ~pat t in
+    let rex =
+      Re.Pcre.regexp "^((?:\\d+w)?)((?:\\d+h)?)((?:\\d+m)?)((?:\\d+s)?)$"
+    in
+    let sub = Re.Pcre.exec ~rex t in
     let g = g sub in
     List.map g [1; 2; 3; 4]
   with Not_found ->
-    let pat = "^((?:\\d+w)?)(\\d+h)(\\d+)$" in
-    let sub = Pcre.exec ~pat t in
+    let rex = Re.Pcre.regexp "^((?:\\d+w)?)(\\d+h)(\\d+)$" in
+    let sub = Re.Pcre.exec ~rex t in
     let g = g sub in
-    [g 1; g 2; Some (int_of_string (Pcre.get_substring sub 3)); None]
+    [g 1; g 2; Some (int_of_string (Re.Pcre.get_substring sub 3)); None]
 
 let skipped = [%sedlex.regexp? Sub (white_space, '\n') | '\r' | '\t']
 let decimal_digit = [%sedlex.regexp? '0' .. '9']
@@ -129,7 +131,7 @@ let rec token lexbuf =
     | skipped -> token lexbuf
     | Plus ('#', Star (Compl '\n'), '\n') ->
         let doc = Sedlexing.Utf8.lexeme lexbuf in
-        let doc = Pcre.split ~pat:"\n" doc in
+        let doc = Re.Pcre.split ~rex:(Re.Pcre.regexp "\n") doc in
         PP_COMMENT doc
     | '\n' -> PP_ENDL
     | "%ifdef", Plus ' ', var, Star ("" | '.', var) ->

@@ -299,8 +299,8 @@ let unescape_char = function
   | _ -> assert false
 
 let unescape_string =
-  let rex = Pcre.regexp_or unescape_patterns in
-  Pcre.substitute ~rex ~subst:unescape_char
+  let rex = Re.Pcre.regexp (String.concat "|" unescape_patterns) in
+  Re.Pcre.substitute ~rex ~subst:unescape_char
 
 (** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
 let unbreak_md md =
@@ -411,11 +411,8 @@ let strftime str : string =
       ("%", "%");
     ]
   in
-  let subst sub =
-    let key = Pcre.get_substring sub 1 in
-    try List.assoc key assoc with _ -> "%" ^ key
-  in
-  Pcre.substitute_substrings ~pat:"%(.)" ~subst str
+  let subst sub = try List.assoc sub assoc with _ -> "%" ^ sub in
+  Re.Pcre.substitute ~rex:(Re.Pcre.regexp "%(.)") ~subst str
 
 (** Check if a directory exists. *)
 let is_dir d =
@@ -538,9 +535,9 @@ let encode64 s =
 (** Get a file/uri extension. *)
 let get_ext s =
   try
-    let rex = Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
-    let ret = Pcre.exec ~rex s in
-    String.lowercase_ascii (Pcre.get_substring ret 1)
+    let rex = Re.Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
+    let ret = Re.Pcre.exec ~rex s in
+    String.lowercase_ascii (Re.Pcre.get_substring ret 1)
   with _ -> raise Not_found
 
 let get_ext_opt s = try Some (get_ext s) with Not_found -> None
@@ -565,17 +562,34 @@ let uptime =
 (** Generate a string which can be used as a parameter name. *)
 let normalize_parameter_string s =
   let s =
-    Pcre.substitute ~pat:"( *\\([^\\)]*\\)| *\\[[^\\]]*\\])"
+    Re.Pcre.substitute
+      ~rex:(Re.Pcre.regexp "( *\\([^\\)]*\\)| *\\[[^\\]]*\\])")
       ~subst:(fun _ -> "")
       s
   in
-  let s = Pcre.substitute ~pat:"(\\.+|\\++)" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
-  let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
+  let s =
+    Re.Pcre.substitute
+      ~rex:(Re.Pcre.regexp "(\\.+|\\++)")
+      ~subst:(fun _ -> "")
+      s
+  in
+  let s =
+    Re.Pcre.substitute ~rex:(Re.Pcre.regexp " +$") ~subst:(fun _ -> "") s
+  in
+  let s =
+    Re.Pcre.substitute
+      ~rex:(Re.Pcre.regexp "( +|/+|-+)")
+      ~subst:(fun _ -> "_")
+      s
+  in
+  let s =
+    Re.Pcre.substitute ~rex:(Re.Pcre.regexp "\"") ~subst:(fun _ -> "") s
+  in
   let s = String.lowercase_ascii s in
   (* Identifiers cannot begin with a digit. *)
-  let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_" ^ s else s in
+  let s =
+    if Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "^[0-9]") s then "_" ^ s else s
+  in
   s
 
 (** A function to reopen a file descriptor
@@ -768,10 +782,10 @@ module Version = struct
 
   (* We assume something like, 2.0.0+git@7e211ffd *)
   let of_string s : t =
-    let rex = Pcre.regexp "([\\.\\d]+)([^\\.]+)?" in
-    let sub = Pcre.exec ~rex s in
-    let num = Pcre.get_substring sub 1 in
-    let str = try Pcre.get_substring sub 2 with Not_found -> "" in
+    let rex = Re.Pcre.regexp "([\\.\\d]+)([^\\.]+)?" in
+    let sub = Re.Pcre.exec ~rex s in
+    let num = Re.Pcre.get_substring sub 1 in
+    let str = try Re.Pcre.get_substring sub 2 with Not_found -> "" in
     let num = String.split_on_char '.' num |> List.map int_of_string in
     (num, str)
 
