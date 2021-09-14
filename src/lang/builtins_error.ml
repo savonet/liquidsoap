@@ -78,6 +78,8 @@ module Error = struct
   let to_value err =
     Lang.meth (to_value err)
       (List.map (fun (lbl, _, _, m) -> (lbl, m err)) meths)
+
+  let of_value err = of_value (Lang.demeth err)
 end
 
 let () = Lang.add_module "error"
