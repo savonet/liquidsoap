@@ -68,9 +68,7 @@ def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
   ready = ref(true)
   duration = frame.duration()
 
-  def to_first(old,new) =
-    ignore((old:source))
-    ignore((new:source))
+  def to_first(_,new) =
     ready := (not !ready)
     sequence(merge=true,[blank(duration=duration),new])
   end
