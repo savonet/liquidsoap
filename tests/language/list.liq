@@ -91,7 +91,7 @@ def f() =
     test.fail()
   catch err in [error.not_found] do
     t(err.kind, "not_found")
-    t(err.kind, "List should have at least 23 elemments")    
+    t(err.message, "List should have at least 23 elemments")    
   end
   
   if !success then test.pass() else test.fail() end
