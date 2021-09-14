@@ -126,7 +126,7 @@ type repr =
   | `UVar of string * constraints (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
   | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
-  | `Misc of string * repr * string ]
+  | `Debug of string * repr * string ]
 
 val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
 val print_repr : Format.formatter -> repr -> unit

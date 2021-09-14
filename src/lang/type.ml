@@ -138,7 +138,7 @@ type repr =
   | `UVar of string * constraints (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
   | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
-  | `Misc of
+  | `Debug of
     string * repr * string
     (* add annotations before / after, mostly used for debugging *) ]
 
@@ -291,7 +291,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
-        | Link (Covariant, t) when !debug -> `Misc ("[>", repr g t, "]")
+        | Link (Covariant, t) when !debug -> `Debug ("[>", repr g t, "]")
         | Link (_, t) -> repr g t)
   in
   repr generalized t
@@ -476,7 +476,7 @@ let print_repr f t =
     | `Range_Ellipsis ->
         Format.fprintf f "...";
         vars
-    | `Misc (a, b, c) ->
+    | `Debug (a, b, c) ->
         Format.fprintf f "%s" a;
         let vars = print ~par:false vars b in
         Format.fprintf f "%s" c;
