@@ -50,6 +50,9 @@ type ground +=
 
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
+val register_ground_resolver : (string -> ground option) -> unit
+val resolve_ground : string -> ground
+val resolve_ground_opt : string -> ground option
 
 (** {1 Types} *)
 

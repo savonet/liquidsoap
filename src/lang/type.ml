@@ -63,8 +63,11 @@ type ground +=
 
 let ground_printers = Queue.create ()
 let register_ground_printer fn = Queue.add fn ground_printers
+let ground_resolvers = Queue.create ()
+let register_ground_resolver fn = Queue.add fn ground_resolvers
 
-exception Found of string
+exception FoundName of string
+exception FoundGround of ground
 
 let () =
   register_ground_printer (function
@@ -74,15 +77,40 @@ let () =
     | Float -> Some "float"
     | Request -> Some "request"
     | Format p -> Some (Frame_content.string_of_format p)
+    | _ -> None);
+  register_ground_resolver (function
+    | "string" -> Some String
+    | "bool" -> Some Bool
+    | "int" -> Some Int
+    | "float" -> Some Float
+    | "request" -> Some Request
     | _ -> None)
 
 let print_ground v =
   try
     Queue.iter
-      (fun fn -> match fn v with Some s -> raise (Found s) | None -> ())
+      (fun fn -> match fn v with Some s -> raise (FoundName s) | None -> ())
       ground_printers;
     assert false
-  with Found s -> s
+  with FoundName s -> s
+
+let resolve_ground name =
+  try
+    Queue.iter
+      (fun fn ->
+        match fn name with Some g -> raise (FoundGround g) | None -> ())
+      ground_resolvers;
+    raise Not_found
+  with FoundGround g -> g
+
+let resolve_ground_opt name =
+  try
+    Queue.iter
+      (fun fn ->
+        match fn name with Some g -> raise (FoundGround g) | None -> ())
+      ground_resolvers;
+    None
+  with FoundGround g -> Some g
 
 (** Type constraints *)
 

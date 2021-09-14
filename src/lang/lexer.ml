@@ -332,8 +332,15 @@ and read_string c pos buf lexbuf =
         Buffer.add_char buf matched.[1];
         read_string c pos buf lexbuf
     | '\\', '?' ->
-        Buffer.add_char buf '\x3f';
-        read_string c pos buf lexbuf
+        (* For regexp, we want to make sure \? is kept as-is
+           and does not need any further escaping. *)
+        if c = '/' then (
+          Buffer.add_char buf '\\';
+          Buffer.add_char buf '?';
+          read_string c pos buf lexbuf)
+        else (
+          Buffer.add_char buf '\x3f';
+          read_string c pos buf lexbuf)
     | '\\', 'x', ascii_hex_digit, ascii_hex_digit ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let idx = String.index matched 'x' in
