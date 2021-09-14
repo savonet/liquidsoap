@@ -156,30 +156,6 @@ let val_cst_fun p c =
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 
-let compare_values a b =
-  let rec aux = function
-    | Ground a, Ground b -> Ground.compare a b
-    | Tuple l, Tuple m ->
-        List.fold_left2
-          (fun cmp a b -> if cmp <> 0 then cmp else aux (a.value, b.value))
-          0 l m
-    | List l1, List l2 ->
-        let rec cmp = function
-          | [], [] -> 0
-          | [], _ -> -1
-          | _, [] -> 1
-          | h1 :: l1, h2 :: l2 ->
-              let c = aux (h1.value, h2.value) in
-              if c = 0 then cmp (l1, l2) else c
-        in
-        cmp (l1, l2)
-    | Null, Null -> 0
-    | Null, _ -> -1
-    | _, Null -> 1
-    | _ -> assert false
-  in
-  aux (a.value, b.value)
-
 (** Helpers for defining protocols. *)
 
 let to_proto_doc ~syntax ~static doc =

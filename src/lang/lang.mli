@@ -76,9 +76,6 @@ val demeth : value -> value
 (** Get a string representation of a value. *)
 val print_value : value -> string
 
-(** Compare values. *)
-val compare_values : value -> value -> int
-
 (** Iter a function over all sources contained in a value. This only applies to
     statically referenced objects, i.e. it does not explore inside reference
     cells. [on_reference] is used when we encounter a reference cell that may

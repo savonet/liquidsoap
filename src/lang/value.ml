@@ -134,3 +134,71 @@ let rec remeth t u =
   match t.value with
     | Meth (l, v, t) -> { t with value = Meth (l, v, remeth t u) }
     | _ -> u
+
+let compare a b =
+  let rec aux = function
+    | Ground a, Ground b -> Ground.compare a b
+    | Tuple l, Tuple m ->
+        List.fold_left2
+          (fun cmp a b -> if cmp <> 0 then cmp else compare a b)
+          0 l m
+    | List l1, List l2 ->
+        let rec cmp = function
+          | [], [] -> 0
+          | [], _ -> -1
+          | _, [] -> 1
+          | h1 :: l1, h2 :: l2 ->
+              let c = compare h1 h2 in
+              if c = 0 then cmp (l1, l2) else c
+        in
+        cmp (l1, l2)
+    | Null, Null -> 0
+    | Null, _ -> -1
+    | _, Null -> 1
+    | _ -> assert false
+  and compare a b =
+    let a' = demeth a in
+    let b' = demeth b in
+    (* For records, we compare the list ["label", field; ..] of common fields. *)
+    if a'.value = Tuple [] && b'.value = Tuple [] then (
+      let r a =
+        let m, _ = split_meths a in
+        m
+      in
+      let a = r a in
+      let b = r b in
+      (* Keep only common fields: with subtyping it might happen that some fields are ignored. *)
+      let a =
+        List.filter (fun (l, _) -> List.exists (fun (l', _) -> l = l') b) a
+      in
+      let b =
+        List.filter (fun (l, _) -> List.exists (fun (l', _) -> l = l') a) b
+      in
+      let a = List.sort (fun x x' -> Stdlib.compare (fst x) (fst x')) a in
+      let b = List.sort (fun x x' -> Stdlib.compare (fst x) (fst x')) b in
+      let a =
+        Tuple
+          (List.map
+             (fun (lbl, v) ->
+               {
+                 pos = None;
+                 value =
+                   Tuple [{ pos = None; value = Ground (Ground.String lbl) }; v];
+               })
+             a)
+      in
+      let b =
+        Tuple
+          (List.map
+             (fun (lbl, v) ->
+               {
+                 pos = None;
+                 value =
+                   Tuple [{ pos = None; value = Ground (Ground.String lbl) }; v];
+               })
+             b)
+      in
+      aux (a, b))
+    else aux (a'.value, b'.value)
+  in
+  compare a b
