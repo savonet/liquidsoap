@@ -37,9 +37,13 @@ module ErrorDef = struct
 
   let descr { kind; msg; pos } =
     let pos =
-      String.concat ", " (List.map (fun pos -> Runtime_error.print_pos pos) pos)
+      if pos <> [] then
+        Printf.sprintf ",positions=%s"
+          (String.concat ", "
+             (List.map (fun pos -> Runtime_error.print_pos pos) pos))
+      else ""
     in
-    Printf.sprintf "error(kind=%S,message=%s,positions=%s)" kind
+    Printf.sprintf "error(kind=%S,message=%s%s)" kind
       (match msg with Some msg -> Printf.sprintf "%S" msg | None -> "none")
       (Utils.escape_utf8_string pos)
 
