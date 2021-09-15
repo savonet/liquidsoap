@@ -7,7 +7,7 @@ module = file.temp("tmp","module")
 data = '
 let export foo = 123
 
-let export gni = { foo = "bla" }
+export gni = { foo = "bla" }
 '
 
 file.write(data=data, module)

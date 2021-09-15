@@ -411,27 +411,48 @@ let uminus tokenizer =
   token
 
 (* Turn [let import] and [let export] into, resp., [LET_IMPORT] and
-   [LET_EXPORT]. *)
+   [LET_EXPORT] and [export var =] into [EXPORT_VAR_GETS] *)
 let import_export tokenizer =
-  let state = ref None in
+  let state = ref `None in
   let rec token () =
     let s = !state in
-    state := None;
+    state := `None;
     match s with
-      | Some ((Parser.LET, (startp, _)) as _let) -> (
-          match tokenizer () with
-            | Parser.VAR "import", (_, endp) ->
+      | `Left_over v -> v
+      | `Double_left_over (v, v') ->
+          state := `Left_over v';
+          v
+      | `Let v -> (
+          match (v, tokenizer ()) with
+            | (_, (startp, _)), (Parser.VAR "import", (_, endp)) ->
                 (Parser.LET_IMPORT, (startp, endp))
-            | Parser.VAR "export", (_, endp) ->
+            | (_, (startp, _)), (Parser.VAR "export", (_, endp)) ->
                 (Parser.LET_EXPORT, (startp, endp))
+            | v, v' ->
+                state := `Left_over v';
+                v)
+      | `Export export -> (
+          match tokenizer () with
+            | (Parser.VAR _, _) as var ->
+                state := `Export_var (export, var);
+                token ()
             | v ->
-                state := Some v;
-                _let)
-      | Some v -> v
-      | None -> (
+                state := `Left_over v;
+                export)
+      | `Export_var (export, var) -> (
+          match (export, var, tokenizer ()) with
+            | (_, (startp, _)), (Parser.VAR v, _), (Parser.GETS, (_, endp)) ->
+                (Parser.EXPORT_VAR_GETS v, (startp, endp))
+            | _, _, v ->
+                state := `Double_left_over (var, v);
+                export)
+      | `None -> (
           match tokenizer () with
             | (Parser.LET, _) as v ->
-                state := Some v;
+                state := `Let v;
+                token ()
+            | (Parser.VAR "export", _) as v ->
+                state := `Export v;
                 token ()
             | v -> v)
   in

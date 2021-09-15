@@ -385,19 +385,21 @@ let mk_import_let ~pos (bindings, from) body =
                  cur)
              body names)
 
-let mk_export_let ~pos (var, def) body =
+let mk_export_let ~pos (expose, var, def) body =
   let exports = mk ~pos (Var "_exports_") in
   let body =
-    mk ~pos
-      (Let
-         {
-           doc = (Doc.none (), [], []);
-           replace = false;
-           pat = PVar [var];
-           gen = [];
-           def = mk ~pos (Invoke (exports, var));
-           body;
-         })
+    if expose then
+      mk ~pos
+        (Let
+           {
+             doc = (Doc.none (), [], []);
+             replace = false;
+             pat = PVar [var];
+             gen = [];
+             def = mk ~pos (Invoke (exports, var));
+             body;
+           })
+    else body
   in
   mk ~pos
     (Let

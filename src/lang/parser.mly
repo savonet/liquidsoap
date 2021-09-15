@@ -70,6 +70,7 @@ open Parser_helper
 %token <string list> PP_COMMENT
 %token WHILE FOR TO
 %token LET_IMPORT LET_EXPORT
+%token <string> EXPORT_VAR_GETS
 
 %nonassoc YIELDS       (* fun x -> (x+x) *)
 %nonassoc COALESCE     (* (x ?? y) == z *)
@@ -367,7 +368,8 @@ import_record_elems:
   | VAR COMMA import_record_elems { $1::$3 }
 
 export_binding:
-  | LET_EXPORT VAR GETS expr { $2, $4 }
+  | EXPORT_VAR_GETS expr     { false, $1, $2 }
+  | LET_EXPORT VAR GETS expr { true, $2, $4 }
 
 list_binding:
   | LET LBRA list_bind RBRA GETS expr { $3,$6 }
