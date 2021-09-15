@@ -101,7 +101,7 @@ let () =
             let last_y = ref (Lang.apply f [("", !last_x)]) in
             Lang.val_fun [] (fun _ ->
                 let x = Lang.apply x [] in
-                if Lang.compare_values x !last_x = 0 then !last_y
+                if Value.compare x !last_x = 0 then !last_y
                 else (
                   let y = Lang.apply f [("", x)] in
                   last_y := y;

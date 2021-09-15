@@ -39,7 +39,7 @@ let () =
       let ans =
         try
           Lang.to_string
-            (snd (List.find (fun (k', _) -> Lang.compare_values k k' = 0) l))
+            (snd (List.find (fun (k', _) -> Value.compare k k' = 0) l))
         with _ -> ""
       in
       Lang.string ans)

@@ -345,18 +345,15 @@ let rec sup ~pos a b =
     | Getter a, _ -> mk (Getter (sup a b))
     | Arrow ([], a), Getter b -> mk (Getter (sup a b))
     | _, Getter b -> mk (Getter (sup a b))
-    | _, _ -> raise Incompatible
+    | _, _ ->
+        if !debug_subtyping then
+          failwith
+            (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.print a)
+               (Type.print b))
+        else raise Incompatible
 
 let sup ~pos a b =
-  let b' =
-    try sup ~pos a b
-    with Incompatible as e ->
-      if !debug_subtyping then
-        failwith
-          (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.print a)
-             (Type.print b))
-      else raise e
-  in
+  let b' = sup ~pos a b in
   if !debug_subtyping && b' != b then
     Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b)
       (Type.print b');
@@ -390,21 +387,17 @@ let rec ( <: ) a b =
         (* When the variable is covariant, we take the opportunity here to correct
            bad choices. For instance, if we took int, but then have a 'a?, we
            change our mind and use int? instead. *)
-        let b'' = try sup ~pos:b.pos a b' with Incompatible -> b' in
-        (* Printf.printf "the sup of %s and %s is %s\n%!" (Type.print a) *)
-        (* (Type.print b') (Type.print b''); *)
+        let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
         (try b' <: b''
          with _ ->
            failwith
              (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
                 (Type.print b'')));
-        if b'' != b' then
-          (* Printf.printf "%s becomes %s\n%!" (Type.print b) (Type.print b''); *)
-          b.descr <- Link (Covariant, b'');
+        if b'' != b' then b.descr <- Link (Covariant, b'');
         a <: b''
     | Link (Covariant, a'), _ ->
         a.descr <- Link (Invariant, a');
-        a' <: b
+        a <: b
     | _, Link (_, b) -> a <: b
     | Link (_, a), _ -> a <: b
     | Constr c1, Constr c2 when c1.name = c2.name ->
@@ -481,7 +474,7 @@ let rec ( <: ) a b =
               let (o, lbl, t'), l2' = get_param [] l2 in
               (* Check on-the-fly that the types match. *)
               begin
-                try t' <: t
+                try t <: t'
                 with Error (t, t') ->
                   let bt = Printexc.get_raw_backtrace () in
                   let make t =
@@ -525,8 +518,9 @@ let rec ( <: ) a b =
              isn't local. *)
           raise (Error (repr a, repr b)))
     | _, EVar (_, c)
-    (* Force dropping the methods when we have constraints, see #1496. *)
-      when not (has_meth a && c <> []) -> (
+    (* Force dropping the methods when we have constraints (see #1496) unless
+       we are comparing records (see #1930). *)
+      when (not (has_meth a)) || c = [] || (demeth a).descr = unit -> (
         try bind ~variance:Covariant b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)))

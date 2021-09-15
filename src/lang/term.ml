@@ -622,3 +622,62 @@ let check_unused ~throw ~lib tm =
   in
   (* Unused free variables may remain *)
   ignore (check ~toplevel:true Vars.empty tm)
+
+(* Abstract types. *)
+
+module type Abstract = sig
+  type content
+
+  val t : Type.t
+  val to_ground : content -> Ground.t
+  val of_ground : Ground.t -> content
+  val is_ground : Ground.t -> bool
+  val to_term : content -> t
+  val of_term : t -> content
+  val is_term : t -> bool
+end
+
+module type AbstractDef = sig
+  type content
+
+  val name : string
+  val to_json : compact:bool -> json5:bool -> content -> string
+  val descr : content -> string
+  val compare : content -> content -> int
+end
+
+module MkAbstract (Def : AbstractDef) = struct
+  type Type.ground += Type
+  type Ground.t += Value of Def.content
+
+  let () =
+    Ground.register (function
+      | Value v ->
+          let compare = function
+            | Value v' -> Def.compare v v'
+            | _ -> assert false
+          in
+          Some
+            {
+              Ground.descr = (fun () -> Def.descr v);
+              to_json =
+                (fun ~compact ~json5 () -> Def.to_json ~compact ~json5 v);
+              compare;
+              typ = Type;
+            }
+      | _ -> None);
+
+    Type.register_ground_printer (function Type -> Some Def.name | _ -> None);
+    Type.register_ground_resolver (fun s ->
+        if s = Def.name then Some Type else None)
+
+  type content = Def.content
+
+  let t = Type.make (Type.Ground Type)
+  let of_ground = function Value c -> c | _ -> assert false
+  let to_ground c = Value c
+  let is_ground = function Value _ -> true | _ -> false
+  let of_term t = match t.term with Ground (Value c) -> c | _ -> assert false
+  let to_term c = { t = Type.make (Type.Ground Type); term = Ground (Value c) }
+  let is_term t = match t.term with Ground (Value _) -> true | _ -> false
+end

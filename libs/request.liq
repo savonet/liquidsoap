@@ -42,7 +42,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
     if native then
       stdlib_native.request.dynamic.list(id=id, timeout=timeout, next)
     else
-      (request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(!queue)}, next) : source_methods)
+      request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(!queue)}, next)
     end
   source.set_name(s, "request.queue")
   if interactive then
@@ -81,7 +81,7 @@ def request.player(~simultaneous=true)
 
     def play(r)
       collect()
-      l := list.add((request.once(r):source), !l)
+      l := list.add(request.once(r), !l)
     end
 
     source.dynamic({add(normalize=false, !l)}).{play=play, length={collect(); list.length(!l)}}

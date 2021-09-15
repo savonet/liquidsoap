@@ -203,6 +203,7 @@ let escape_char ~escape_fun = function
   | "\\" -> "\\\\"
   | "\"" -> "\\\""
   | "\'" -> "\\'"
+  | "/" -> "\\/"
   | c -> escape_fun c
 
 let escape_utf8_char =

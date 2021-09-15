@@ -201,14 +201,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~level ~env a;
         List.iter (fun (_, b) -> check ~env ~level b) l;
 
-        (* If [a] is known to have a function type, manually dig through
-         * it for better error messages. Otherwise generate its type
-         * and unify -- in that case the optionality can't be guessed
-         * and mandatory is the default. *)
+        (* If [a] is known to have a function type, manually dig through it for
+           better error messages. Otherwise generate its type and unify -- in
+           that case the optionality can't be guessed and mandatory is the
+           default. *)
         match (Type.demeth a.t).Type.descr with
           | Type.Arrow (ap, t) ->
-              (* Find in l the first arg labeled lbl,
-               * return it together with the remaining of the list. *)
+              (* Find in l the first arg labeled lbl, return it together with the
+                 remaining of the list. *)
               let get_arg lbl l =
                 let rec aux acc = function
                   | [] -> None
@@ -219,8 +219,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 aux [] l
               in
               let _, ap =
-                (* Remove the applied parameters,
-                 * check their types on the fly. *)
+                (* Remove the applied parameters, check their types on the
+                   fly. *)
                 List.fold_left
                   (fun (already, ap) (lbl, v) ->
                     match get_arg lbl ap with

@@ -102,7 +102,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
     if native then
       stdlib_native.request.dynamic.list(id=id, next)
     else
-      (request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, retry_delay=1., available={not !has_stopped}, next):source_methods)
+      request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, retry_delay=1., available={not !has_stopped}, next)
     end
   source.set_name(s, "playlist.list.reloadable")
 

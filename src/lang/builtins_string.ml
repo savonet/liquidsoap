@@ -219,7 +219,7 @@ let () =
           (Runtime_error.Runtime_error
              {
                Runtime_error.kind = "string";
-               msg = Some err;
+               msg = err;
                pos = (match v.Value.pos with None -> [] | Some p -> [p]);
              }))
 

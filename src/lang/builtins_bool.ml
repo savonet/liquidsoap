@@ -28,38 +28,7 @@ let () =
       [("", t, None, None); ("", t, None, None)] Lang.bool_t (fun p ->
         let a = Lang.assoc "" 1 p in
         let b = Lang.assoc "" 2 p in
-        let a' = Lang.demeth a in
-        let b' = Lang.demeth b in
-        (* For records, we also compare fields. *)
-        let ans =
-          if a'.Lang.value = Lang.Tuple [] && b'.Lang.value = Lang.Tuple [] then (
-            let r a =
-              let m, _ = Value.split_meths a in
-              m
-            in
-            let a = r a in
-            let b = r b in
-            (* Keep only common fields: with subtyping it might happen that some fields are ignored. *)
-            let a =
-              List.filter
-                (fun (l, _) -> List.exists (fun (l', _) -> l = l') b)
-                a
-            in
-            let b =
-              List.filter
-                (fun (l, _) -> List.exists (fun (l', _) -> l = l') a)
-                b
-            in
-            (* TODO: the order is not the expected one on records (for < we want
-               one field to be < and the other to be <=). *)
-            List.for_all
-              (fun (l, v) ->
-                let v' = List.assoc l b in
-                op (Lang.compare_values v v'))
-              a)
-          else op (Lang.compare_values a' b')
-        in
-        Lang.bool ans)
+        Lang.bool (op (Value.compare a b)))
   in
   register_op "==" (fun c -> c = 0);
   register_op "!=" (fun c -> c <> 0);

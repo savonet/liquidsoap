@@ -60,9 +60,8 @@ module RegExp = Lang.MkAbstract (struct
   let escape_regex_descr =
     let escape_regex_formatter =
       Utils.escape
-        ~special_char:(fun s -> s = "/")
-        ~escape_char:(fun _ -> "\\/")
-        ~next:Utils.utf8_next
+        ~special_char:(fun s -> s = "/" || Utils.utf8_special_char s)
+        ~escape_char:Utils.escape_utf8_char ~next:Utils.utf8_next
     in
     Utils.escape_string escape_regex_formatter
 
