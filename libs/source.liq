@@ -72,7 +72,7 @@ def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
     ignore((old:source))
     ignore((new:source))
     ready := (not !ready)
-    sequence(merge=true,[blank(duration=duration),new])
+    sequence(merge=true,[blank(duration=duration),(new:source)])
   end
 
   transitions = if list.length(transitions) == 0 then

@@ -227,7 +227,7 @@ let rec ( <: ) a b =
               let (o, lbl, t'), l2' = get_param [] l2 in
               (* Check on-the-fly that the types match. *)
               begin
-                try t' <: t
+                try t <: t'
                 with Error (t, t') ->
                   let bt = Printexc.get_raw_backtrace () in
                   let make t =
@@ -266,8 +266,9 @@ let rec ( <: ) a b =
              isn't local. *)
           raise (Error (repr a, repr b)))
     | _, EVar (_, c)
-    (* Force dropping the methods when we have constraints, see #1496. *)
-      when not (has_meth a && c <> []) -> (
+    (* Force dropping the methods when we have constraints (see #1496) unless
+       we are comparing records (see #1930). *)
+      when (not (has_meth a)) || c = [] || (demeth a).descr = unit -> (
         try bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)))
