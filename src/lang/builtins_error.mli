@@ -16,28 +16,16 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-(** {1 Functions for typing} *)
+type pos = Runtime_error.pos
 
-open Type
+type error = Runtime_error.runtime_error = {
+  kind : string;
+  msg : string;
+  pos : pos list;
+}
 
-(** A typing environment. *)
-type env = (string * scheme) list
-
-(** Instantiate a type. *)
-val instantiate : level:int -> generalized:var list -> t -> t
-
-(** Find all generalizable variables. *)
-val generalizable : level:int -> t -> var list
-
-(** Subtyping. *)
-val ( <: ) : t -> t -> unit
-
-(** Suptyping. *)
-val ( >: ) : t -> t -> unit
-
-(** Supremeum of two types. *)
-val sup : pos:pos option -> t -> t -> t
+module Error : Lang.Abstract with type content := error

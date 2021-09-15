@@ -38,7 +38,7 @@ def f() =
     error.raise(e);
     "bla"
   catch err do
-    error.kind(err)
+    err.kind
   end 
   t(ret, "foo")
 
@@ -47,16 +47,16 @@ def f() =
     error.raise(e)
     "bla"
   catch err do
-    error.message(err) ?? "blo"
+    err.message
   end
-  t(ret, "blo")
+  t(ret, "")
 
   # Can report set message
   ret = try
     error.raise(e, "msg");
     "bla"
   catch err do
-    error.message(err) ?? "blo"
+    err.message ?? "blo"
   end
   t(ret, "msg")
 
@@ -69,10 +69,10 @@ def f() =
       try
         error.raise(e, "msg");
         "bla"
-      catch err in [e'] do
+      catch _ in [e'] do
         "blo"
       end
-    catch err in [e] do
+    catch _ in [e] do
       "gni"
     end
   t(ret, "gni")
@@ -83,10 +83,10 @@ def f() =
       try
         error.raise(e, "msg");
         "bla"
-      catch err in [] do
+      catch _ in [] do
         "blo"
       end
-    catch err in [e] do
+    catch _ in [e] do
       "gni"
     end
   t(ret, "gni")
@@ -97,10 +97,10 @@ def f() =
       try
         error.raise(e, "msg");
         "bla"
-      catch err in [e, e'] do
+      catch _ in [e, e'] do
         "blo"
       end
-    catch err in [e] do
+    catch _ in [e] do
       "gni"
     end
   t(ret, "blo")
@@ -116,7 +116,7 @@ def f() =
   # Catches error
   def on_error(~backtrace, ~thread_name, e) =
     print("caught error #{e} from thread #{thread_name} and backtrace:\n#{backtrace}")
-    if error.kind(e) == "foo" then
+    if e.kind == "foo" then
       on_done()
     else
       test.fail()

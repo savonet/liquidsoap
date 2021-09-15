@@ -40,10 +40,10 @@ def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=
   let (s, rms) =
     if lufs then
       s = lufs_builtin(id=id, window=window, s)
-      ((s:source), {lin_of_dB(s.lufs())})
+      (s, {lin_of_dB(s.lufs())})
     else
       s = rms.smooth(id=id, duration=window, s)
-      ((s:source), s.rms)
+      (s, s.rms)
     end
   v = ref(1.)
   frame = frame.duration()
@@ -69,7 +69,7 @@ def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=
     if null.defined(debug) then
       source.run(s, every=null.get(debug), {log.debug("rms: #{rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{!v} / #{target_gain()}")})
     else
-      (s:source)
+      s
     end
   s = source.on_frame(s, update)
   if track_sensitive then source.on_track(s, fun (_) -> v := 1.) end

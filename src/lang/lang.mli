@@ -78,9 +78,6 @@ val demeth : value -> value
 (** Get a string representation of a value. *)
 val print_value : value -> string
 
-(** Compare values. *)
-val compare_values : value -> value -> int
-
 (** Iter a function over all sources contained in a value. This only applies to
     statically referenced objects, i.e. it does not explore inside reference
     cells. [on_reference] is used when we encounter a reference cell that may
@@ -284,6 +281,12 @@ module type Abstract = sig
   type content
 
   val t : t
+  val to_ground : content -> Term.Ground.t
+  val of_ground : Term.Ground.t -> content
+  val is_ground : Term.Ground.t -> bool
+  val to_term : content -> Term.t
+  val of_term : Term.t -> content
+  val is_term : Term.t -> bool
   val to_value : content -> value
   val of_value : value -> content
   val is_value : value -> bool
@@ -298,5 +301,11 @@ module type AbstractDef = sig
   val compare : content -> content -> int
 end
 
+(* Create an abstract value from an already existing
+   abstract term. *)
+module MkAbstractValue (Term : Term.Abstract) :
+  Abstract with type content := Term.content
+
+(* Create an abstract value and an abstract term. *)
 module MkAbstract (Def : AbstractDef) :
   Abstract with type content := Def.content

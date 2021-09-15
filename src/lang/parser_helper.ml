@@ -332,7 +332,9 @@ let mk_ty ~pos name =
     | "unit" -> Type.make Type.unit
     | "source" -> mk_source_ty ~pos "source" []
     | "source_methods" -> !Term.source_methods_t ()
-    | _ -> (
-        try Type.make (Type.Ground (ground_type_of_string ~pos name))
-        with _ ->
-          raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")))
+    | name -> (
+        match Type.resolve_ground_opt name with
+          | Some g -> Type.make (Type.Ground g)
+          | None ->
+              raise
+                (Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")))

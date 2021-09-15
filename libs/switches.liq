@@ -61,7 +61,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
 
     if list.exists(source.is_ready, sources) then
       def rec f(index) =
-        s = list.nth(default=(source.fail():source), sources, index)
+        s = list.nth(default=source.fail(), sources, index)
         if source.is_ready(s) then
           picked_index := index
         else
@@ -105,7 +105,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
 
-  fallback(id=id, track_sensitive=true, list.add((s:source), sources))
+  fallback(id=id, track_sensitive=true, list.add(s, sources))
 end
 
 # At the beginning of every track, select a random ready child.
@@ -182,5 +182,5 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
 
-  fallback(id=id, track_sensitive=true, list.add((s:source), sources))
+  fallback(id=id, track_sensitive=true, list.add(s, sources))
 end

@@ -20,7 +20,11 @@
 
  *****************************************************************************)
 
+(** Show debugging information. *)
 val debug : bool ref
+
+(** Show variables levels. *)
+val debug_levels : bool ref
 
 (** {1 Positions} *)
 
@@ -46,6 +50,9 @@ type ground +=
 
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
+val register_ground_resolver : (string -> ground option) -> unit
+val resolve_ground : string -> ground
+val resolve_ground_opt : string -> ground option
 
 (** {1 Types} *)
 
@@ -70,7 +77,7 @@ and descr =
   | Cons of string
   | Union of t * t
   | EVar of var
-  | Link of t
+  | Link of variance * t
 
 and var = int * constraints
 
@@ -126,7 +133,8 @@ type repr =
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
-  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *) ]
+  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
+  | `Debug of string * repr * string ]
 
 val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
 val print_repr : Format.formatter -> repr -> unit

@@ -96,7 +96,9 @@ let () =
       let handler ~bt ~name err =
         match (err, on_err) with
           | Term.(Runtime_error { kind; msg; _ }), None ->
-              let error = Builtins_error.(Error.to_value { kind; msg }) in
+              let error =
+                Builtins_error.(Error.to_value { kind; msg; pos = [] })
+              in
               let bt = Lang.string bt in
               let name = Lang.string name in
               ignore
@@ -105,7 +107,9 @@ let () =
               true
           | Term.(Runtime_error { kind; msg; _ }), Some err
             when kind = err.Builtins_error.kind ->
-              let error = Builtins_error.(Error.to_value { kind; msg }) in
+              let error =
+                Builtins_error.(Error.to_value { kind; msg; pos = [] })
+              in
               let bt = Lang.string bt in
               let name = Lang.string name in
               ignore
