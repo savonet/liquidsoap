@@ -116,8 +116,7 @@ let () =
     | _ -> None)
 
 let fail msg =
-  raise
-    Runtime_error.(Runtime_error { kind = "http"; msg = Some msg; pos = [] })
+  raise Runtime_error.(Runtime_error { kind = "http"; msg; pos = [] })
 
 let ftp_request ~timeout ~url () =
   let connection = new Curl.handle in

@@ -24,7 +24,7 @@ type pos = Runtime_error.pos
 
 type error = Runtime_error.runtime_error = {
   kind : string;
-  msg : string option;
+  msg : string;
   pos : pos list;
 }
 

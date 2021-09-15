@@ -26,7 +26,7 @@ type pos = Runtime_error.pos
 
 type error = Runtime_error.runtime_error = {
   kind : string;
-  msg : string option;
+  msg : string;
   pos : pos list;
 }
 
@@ -43,8 +43,7 @@ module ErrorDef = struct
              (List.map (fun pos -> Runtime_error.print_pos pos) pos))
       else ""
     in
-    Printf.sprintf "error(kind=%S,message=%s%s)" kind
-      (match msg with Some msg -> Printf.sprintf "%S" msg | None -> "none")
+    Printf.sprintf "error(kind=%S,message=%s%s)" kind (Printf.sprintf "%S" msg)
       (Utils.escape_utf8_string pos)
 
   let to_json ~compact:_ ~json5:_ v = Printf.sprintf "%S" (descr v)
@@ -61,11 +60,9 @@ module Error = struct
         "Error kind.",
         fun { kind } -> Lang.string kind );
       ( "message",
-        ([], Lang.(nullable_t string_t)),
+        ([], Lang.string_t),
         "Error message.",
-        fun { msg } ->
-          Option.value ~default:Lang.null
-            (Option.map (fun v -> Lang.string v) msg) );
+        fun { msg } -> Lang.string msg );
       ( "positions",
         ([], Lang.(list_t string_t)),
         "Error positions.",
@@ -93,23 +90,21 @@ let () =
     ~descr:"Register an error of the given kind"
     [("", Lang.string_t, None, Some "Kind of the error")] Error.t (fun p ->
       let kind = Lang.to_string (List.assoc "" p) in
-      Error.to_value { kind; msg = None; pos = [] })
+      Error.to_value { kind; msg = ""; pos = [] })
 
 let () =
   Lang.add_builtin "error.raise" ~category:`Liquidsoap ~descr:"Raise an error."
     [
       ("", Error.t, None, Some "Error kind.");
       ( "",
-        Lang.nullable_t Lang.string_t,
-        Some Lang.null,
+        Lang.string_t,
+        Some (Lang.string ""),
         Some "Description of the error." );
     ]
     (Lang.univ_t ())
     (fun p ->
       let { kind } = Error.of_value (Lang.assoc "" 1 p) in
-      let msg =
-        Option.map Lang.to_string (Lang.to_option (Lang.assoc "" 2 p))
-      in
+      let msg = Lang.to_string (Lang.assoc "" 2 p) in
       raise (Term.Runtime_error { Term.kind; msg; pos = [] }))
 
 let () =

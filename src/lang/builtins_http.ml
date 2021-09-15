@@ -28,8 +28,7 @@ let add_http_error kind =
   Lang.add_builtin_base ~category:`Liquidsoap
     ~descr:(Printf.sprintf "Base error for %s" kind)
     (Printf.sprintf "%s.error" kind)
-    (Builtins_error.Error.to_value
-       { Builtins_error.kind; msg = None; pos = [] })
+    (Builtins_error.Error.to_value { Builtins_error.kind; msg = ""; pos = [] })
       .Lang.value Builtins_error.Error.t
 
 let add_http_request ~stream_body ~descr ~request name =

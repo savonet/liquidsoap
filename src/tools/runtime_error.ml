@@ -60,7 +60,7 @@ let rec print_pos_list ?prefix = function
   | [pos] -> print_pos ?prefix pos
   | pos :: l -> print_pos_list ?prefix l ^ ", " ^ print_pos ?prefix pos
 
-type runtime_error = { kind : string; msg : string option; pos : pos list }
+type runtime_error = { kind : string; msg : string; pos : pos list }
 
 exception Runtime_error of runtime_error
 
@@ -70,12 +70,11 @@ let () =
         Some
           (Printf.sprintf "Lang.Runtime_error { kind: %S, msg: %s, pos: [%s] }"
              kind
-             (Option.value ~default:"None"
-                (Option.map (Printf.sprintf "Some %S") msg))
+             ((Printf.sprintf "Some %S") msg)
              (String.concat ", " (List.map (fun pos -> print_pos pos) pos)))
     | _ -> None)
 
-let error ?bt ?(pos = []) ?message kind =
+let error ?bt ?(pos = []) ?(message = "") kind =
   let e = Runtime_error { kind; msg = message; pos } in
   match bt with
     | None -> raise e

@@ -54,7 +54,7 @@ class fail_init ~kind =
         (Runtime_error.Runtime_error
            {
              Runtime_error.kind = "debug";
-             msg = Some "Source's initialization failed";
+             msg = "Source's initialization failed";
              pos = [];
            })
   end

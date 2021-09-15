@@ -166,7 +166,7 @@ let meth :
                     Runtime_error
                       {
                         kind = "input";
-                        msg = Some "Source is infallible and cannot be stopped";
+                        msg = "Source is infallible and cannot be stopped";
                         pos = [];
                       });
               s#transition_to `Stopped;
