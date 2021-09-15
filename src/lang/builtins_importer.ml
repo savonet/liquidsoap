@@ -22,7 +22,7 @@
 
 module TypeValue = Lang.MkAbstractValue (Parser_helper.TypeTerm)
 
-let throw exn =
+let raise exn =
   let bt = Printexc.get_raw_backtrace () in
   Lang.raise_as_runtime ~bt ~kind:"import" exn
 
@@ -39,16 +39,18 @@ let () =
     ] t (fun p ->
       let ty = TypeValue.of_value (List.assoc "ty" p) in
       let fname = Lang.to_string (List.assoc "" p) in
-      let ic = open_in fname in
-      let fname = Utils.home_unrelate fname in
-      let pwd = Unix.getcwd () in
-      let lexbuf = Sedlexing.Utf8.from_channel ic in
-      let expr =
-        Tutils.finalize
-          ~k:(fun () -> close_in ic)
-          (fun () -> Runtime.mk_expr ~fname ~pwd Parser.export lexbuf)
-      in
-      let expr = Term.make (Term.Cast (expr, ty)) in
-      Typechecking.check ~throw ~ignored:true expr;
-      let exports = Evaluation.eval expr in
-      exports)
+      try
+        let ic = open_in fname in
+        let fname = Utils.home_unrelate fname in
+        let pwd = Unix.getcwd () in
+        let lexbuf = Sedlexing.Utf8.from_channel ic in
+        let expr =
+          Tutils.finalize
+            ~k:(fun () -> close_in ic)
+            (fun () -> Runtime.mk_expr ~fname ~pwd Parser.export lexbuf)
+        in
+        let expr = Term.make (Term.Cast (expr, ty)) in
+        Typechecking.check ~throw:raise ~ignored:true expr;
+        let exports = Evaluation.eval expr in
+        exports
+      with exn -> raise exn)
