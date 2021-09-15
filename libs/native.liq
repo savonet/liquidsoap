@@ -6,7 +6,7 @@ let native = ()
 # @category Source / Track Processing
 # @flag extra
 def native.once(s)
-  # source.available(track_sensitive=true, (s:source), predicate.first({true}))
+  # source.available(track_sensitive=true, s, predicate.first({true}))
   a = ref(true)
   source.on_track(s, fun(_) -> a := false)
   source.available(s, {!a})
@@ -18,7 +18,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.
 def native.fallback(~id=null(), ~track_sensitive=true, sources)
-  fail = (source.fail():source)
+  fail = source.fail()
 
   def s()
     list.find(default=fail, source.is_ready, sources)
@@ -37,7 +37,7 @@ end
 def native.sequence(~id=null(), sources)
   len  = list.length(sources)
   n    = ref(0)
-  fail = (source.fail():source)
+  fail = source.fail()
 
   def rec s()
     sn = list.nth(default=list.last(default=fail, sources), sources, !n)

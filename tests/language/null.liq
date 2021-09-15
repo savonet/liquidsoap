@@ -32,13 +32,11 @@ def f() =
     end
   end
 
-  def f()
-    if true then null() else 1 end
-  end
-
-  def f()
-    if true then 1 else null() end
-  end
+  # Subtyping
+  def f() = if true then null() else 1 end end
+  def f() = if true then 1 else null() end end
+  _ = [null(), 3]
+  _ = [3, null()]
 
   test.pass()
 end

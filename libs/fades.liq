@@ -253,7 +253,7 @@ def cross.simple(~fade_in=3.,~fade_out=3.,a,b)
   let fade.in  = fade.in(type="sin",duration=fade_in)
   add = fun (a,b) -> add(normalize=false,[b, a])
 
-  (add(fade.out(a),fade.in(b)):source)
+  add(fade.out(a),fade.in(b))
 end
 
 # Smart transition for crossfade
@@ -274,7 +274,7 @@ def cross.smart(~log=log(label="cross.smart"),
                 a, b)
   let fade.out = fade.out(type="sin",duration=fade_out)
   let fade.in  = fade.in(type="sin",duration=fade_in)
-  add = fun (a,b) -> (add(normalize=false,[b, a]):source)
+  add = fun (a,b) -> add(normalize=false,[b, a])
 
   # This is for the type system..
   ignore(a.metadata["foo"])

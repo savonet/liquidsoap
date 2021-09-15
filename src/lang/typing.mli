@@ -40,4 +40,4 @@ val ( <: ) : t -> t -> unit
 val ( >: ) : t -> t -> unit
 
 (** Supremeum of two types. *)
-val sup : ?pos:pos option -> ?level:int -> t -> t -> t
+val sup : pos:pos option -> t -> t -> t
