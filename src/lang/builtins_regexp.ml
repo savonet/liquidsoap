@@ -70,7 +70,7 @@ module RegExp = Lang.MkAbstract (struct
       (String.concat ""
          (List.sort Stdlib.compare (List.map string_of_regexp_flag flags)))
 
-  let to_json ~compact:_ ~json5:_ r = Utils.escape_utf8_string (descr r)
+  let to_json ~compact:_ ~json5:_ r = Utils.quote_utf8_string (descr r)
 
   let compare r r' =
     Stdlib.compare

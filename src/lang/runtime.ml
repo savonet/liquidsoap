@@ -158,7 +158,7 @@ let throw print_error = function
       let pos = Type.print_pos_list pos in
       error_header 14 pos;
       Format.printf "Uncaught runtime error:@ type: %s,@ message: %s@]@." kind
-        (Printf.sprintf "%S" msg);
+        (Printf.sprintf "%s" (Utils.quote_utf8_string msg));
       raise Error
   | Sedlexing.MalFormed -> print_error 13 "Malformed file."
   | End_of_file -> raise End_of_file

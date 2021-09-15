@@ -49,7 +49,7 @@ def f() =
   catch err do
     err.message
   end
-  t(ret, "")
+  t(ret, null())
 
   # Can report set message
   ret = try

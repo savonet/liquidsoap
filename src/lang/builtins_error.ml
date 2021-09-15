@@ -43,10 +43,14 @@ module ErrorDef = struct
              (List.map (fun pos -> Runtime_error.print_pos pos) pos))
       else ""
     in
-    Printf.sprintf "error(kind=%S,message=%s%s)" kind (Printf.sprintf "%S" msg)
-      (Utils.escape_utf8_string pos)
+    Printf.sprintf "error(kind=%s,message=%s%s)"
+      (Utils.quote_utf8_string kind)
+      (Utils.quote_utf8_string msg)
+      (Utils.quote_utf8_string pos)
 
-  let to_json ~compact:_ ~json5:_ v = Printf.sprintf "%S" (descr v)
+  let to_json ~compact:_ ~json5:_ v =
+    Printf.sprintf "%s" (Utils.quote_utf8_string (descr v))
+
   let compare = Stdlib.compare
 end
 

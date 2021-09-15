@@ -591,7 +591,7 @@ let get_type ~ctype ~url container =
   in
   let ctype = { Frame.audio; video; midi = Frame_content.None.format } in
   log#info "ffmpeg recognizes %s as: %s and content-type: %s."
-    (Utils.escape_utf8_string url)
+    (Utils.quote_utf8_string url)
     (String.concat ", " (List.rev descr))
     (Frame.string_of_content_type ctype);
   ctype
