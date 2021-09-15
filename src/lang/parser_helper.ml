@@ -345,23 +345,45 @@ module TypeTerm = Term.MkAbstract (struct
   let compare = Stdlib.compare
 end)
 
-let mk_import_let ~pos (var, from) body =
+let fresh_module_name =
+  let module_idx = ref Int64.zero in
+  fun () ->
+    module_idx := Int64.succ !module_idx;
+    Printf.sprintf "_imported_module_%Ld_" !module_idx
+
+let mk_import_let ~pos (bindings, from) body =
   let ty = Type.fresh_evar ~level:(-1) ~pos:None in
   let tty = TypeTerm.to_term ty in
-  let pat = PVar [var] in
   let parser = mk ~pos (Var "_internal_module_importer_") in
-  let expr = mk ~pos (App (parser, [("ty", tty); ("", from)])) in
-  let def = mk ~pos (Cast (expr, ty)) in
-  mk ~pos
-    (Let
-       {
-         doc = (Doc.none (), [], []);
-         replace = false;
-         pat;
-         gen = [];
-         def;
-         body;
-       })
+  let exports = mk ~pos (App (parser, [("ty", tty); ("", from)])) in
+  let exports = mk ~pos (Cast (exports, ty)) in
+  let let_term ~pat ~def body =
+    mk ~pos
+      (Let
+         {
+           doc = (Doc.none (), [], []);
+           replace = false;
+           pat;
+           gen = [];
+           def;
+           body;
+         })
+  in
+  match bindings with
+    | `Var var -> let_term ~pat:(PVar [var]) ~def:exports body
+    | `Record names ->
+        let module_name = fresh_module_name () in
+        let_term
+          ~pat:(PVar [module_name])
+          ~def:exports
+          (List.fold_left
+             (fun cur name ->
+               let _module = mk ~pos (Var module_name) in
+               let_term
+                 ~pat:(PVar [name])
+                 ~def:(mk ~pos (Invoke (_module, name)))
+                 cur)
+             body names)
 
 let mk_export_let ~pos (var, def) body =
   let exports = mk ~pos (Var "_exports_") in

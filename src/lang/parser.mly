@@ -69,7 +69,7 @@ open Parser_helper
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 %token WHILE FOR TO
-%token IMPORT EXPORT
+%token LET_IMPORT LET_EXPORT
 
 %nonassoc YIELDS       (* fun x -> (x+x) *)
 %nonassoc COALESCE     (* (x ?? y) == z *)
@@ -356,10 +356,18 @@ binding:
     }
 
 import_binding:
-  | LET IMPORT VAR GETS expr { $3, $5 }
+  | LET_IMPORT import_record GETS expr  { `Record $2, $4 }
+  | LET_IMPORT VAR GETS expr            { `Var $2, $4 }
+
+import_record:
+  | LCUR import_record_elems RCUR { $2 }
+
+import_record_elems:
+  | VAR                           { [$1] }
+  | VAR COMMA import_record_elems { $1::$3 }
 
 export_binding:
-  | LET EXPORT VAR GETS expr { $3, $5 }
+  | LET_EXPORT VAR GETS expr { $2, $4 }
 
 list_binding:
   | LET LBRA list_bind RBRA GETS expr { $3,$6 }

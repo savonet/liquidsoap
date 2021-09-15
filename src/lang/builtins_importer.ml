@@ -22,6 +22,11 @@
 
 module TypeValue = Lang.MkAbstractValue (Parser_helper.TypeTerm)
 
+let throw exn =
+  let bt = Printexc.get_raw_backtrace () in
+  Lang.raise_as_runtime ~bt ~kind:"import" exn
+
+(* Default module exports. *)
 let () = Environment.add_builtin ["_exports_"] (([], Lang.unit_t), Lang.unit)
 
 let () =
@@ -44,6 +49,6 @@ let () =
           (fun () -> Runtime.mk_expr ~fname ~pwd Parser.export lexbuf)
       in
       let expr = Term.make (Term.Cast (expr, ty)) in
-      Typechecking.check ~throw:raise ~ignored:true expr;
+      Typechecking.check ~throw ~ignored:true expr;
       let exports = Evaluation.eval expr in
       exports)

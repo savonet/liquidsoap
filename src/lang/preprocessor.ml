@@ -410,6 +410,33 @@ let uminus tokenizer =
   in
   token
 
+(* Turn [let import] and [let export] into, resp., [LET_IMPORT] and
+   [LET_EXPORT]. *)
+let import_export tokenizer =
+  let state = ref None in
+  let rec token () =
+    let s = !state in
+    state := None;
+    match s with
+      | Some ((Parser.LET, (startp, _)) as _let) -> (
+          match tokenizer () with
+            | Parser.VAR "import", (_, endp) ->
+                (Parser.LET_IMPORT, (startp, endp))
+            | Parser.VAR "export", (_, endp) ->
+                (Parser.LET_EXPORT, (startp, endp))
+            | v ->
+                state := Some v;
+                _let)
+      | Some v -> v
+      | None -> (
+          match tokenizer () with
+            | (Parser.LET, _) as v ->
+                state := Some v;
+                token ()
+            | v -> v)
+  in
+  token
+
 (* Last but not least: remove new lines and merge some tokens around them
    in order to remove some ambiguities, typically between:
    def foo \n (x,y) ... << Normal definition, starting with a couple
@@ -479,4 +506,4 @@ let expand_define tokenizer =
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname ~pwd lexbuf =
   mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
-  |> expand_string |> uminus |> strip_newlines |> expand_define
+  |> expand_string |> uminus |> import_export |> strip_newlines |> expand_define
