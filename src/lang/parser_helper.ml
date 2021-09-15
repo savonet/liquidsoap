@@ -335,3 +335,60 @@ let mk_ty ~pos name =
           | None ->
               raise
                 (Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")))
+
+module TypeTerm = Term.MkAbstract (struct
+  type content = Type.t
+
+  let name = "type"
+  let descr _ = "type"
+  let to_json ~compact:_ ~json5:_ _ = "\"type\""
+  let compare = Stdlib.compare
+end)
+
+let mk_import_let ~pos (var, from) body =
+  let ty = Type.fresh_evar ~level:(-1) ~pos:None in
+  let tty = TypeTerm.to_term ty in
+  let pat = PVar [var] in
+  let parser = mk ~pos (Var "_internal_module_importer_") in
+  let expr = mk ~pos (App (parser, [("ty", tty); ("", from)])) in
+  let def = mk ~pos (Cast (expr, ty)) in
+  mk ~pos
+    (Let
+       {
+         doc = (Doc.none (), [], []);
+         replace = false;
+         pat;
+         gen = [];
+         def;
+         body;
+       })
+
+let mk_export_let ~pos (var, def) body =
+  let exports = mk ~pos (Var "_exports_") in
+  let body =
+    mk ~pos
+      (Let
+         {
+           doc = (Doc.none (), [], []);
+           replace = false;
+           pat = PVar [var];
+           gen = [];
+           def = mk ~pos (Invoke (exports, var));
+           body;
+         })
+  in
+  mk ~pos
+    (Let
+       {
+         doc = (Doc.none (), [], []);
+         replace = false;
+         pat = PVar ["_exports_"; var];
+         gen = [];
+         def;
+         body;
+       })
+
+let mk_export ?expr ~pos () =
+  match expr with
+    | None -> mk ~pos (Var "_exports_")
+    | Some expr -> mk ~pos (Seq (expr, mk ~pos (Var "_exports_")))

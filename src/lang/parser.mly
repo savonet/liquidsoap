@@ -69,6 +69,7 @@ open Parser_helper
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 %token WHILE FOR TO
+%token IMPORT EXPORT
 
 %nonassoc YIELDS       (* fun x -> (x+x) *)
 %nonassoc COALESCE     (* (x ?? y) == z *)
@@ -95,6 +96,9 @@ open Parser_helper
 %start interactive
 %type <Term.t> interactive
 
+%start export
+%type <Term.t> export
+
 %start annotate
 %type <(string * string) list> annotate
 
@@ -108,6 +112,10 @@ interactive:
   | error { raise (Parse_error ($loc, "Syntax error!")) }
   | exprs SEQSEQ { $1 }
   | EOF { raise End_of_file }
+export:
+  | error { raise (Parse_error ($loc, "Syntax error!")) }
+  | EOF { mk_export ~pos:$loc () }
+  | export_exprs EOF { $1 }
 
 s: | {} | SEQ  {}
 g: | {} | GETS {}
@@ -120,6 +128,23 @@ exprs:
   | binding s exprs          { mk_let ~pos:$loc($1) $1 $3 }
   | list_binding s           { mk_list_let ~pos:$loc $1 (mk ~pos:$loc unit) }
   | list_binding s exprs     { mk_list_let ~pos:$loc $1 $3 }
+  | import_binding           { mk_import_let ~pos:$loc $1 (mk ~pos:$loc unit) }
+  | import_binding s exprs   { mk_import_let ~pos:$loc $1 $3 }
+  | export_binding           { mk_export_let ~pos:$loc $1 (mk ~pos:$loc unit) }
+  | export_binding s exprs   { mk_export_let ~pos:$loc $1 $3 }
+
+export_exprs:
+  | OPEN expr s export_exprs        { mk ~pos:$loc (Open ($2,$4)) }
+  | expr s                          { mk_export ~pos:$loc ~expr:$1 () }
+  | expr s export_exprs             { mk ~pos:$loc (Seq ($1,$3)) }
+  | binding s                       { mk_let ~pos:$loc($1) $1 (mk_export ~pos:$loc ()) }
+  | binding s export_exprs          { mk_let ~pos:$loc($1) $1 $3 }
+  | list_binding s                  { mk_list_let ~pos:$loc $1 (mk_export ~pos:$loc ()) }
+  | list_binding s export_exprs     { mk_list_let ~pos:$loc $1 $3 }
+  | import_binding                  { mk_import_let ~pos:$loc $1 (mk_export ~pos:$loc ()) }
+  | import_binding s export_exprs   { mk_import_let ~pos:$loc $1 $3 }
+  | export_binding                  { mk_export_let ~pos:$loc $1 (mk_export ~pos:$loc ()) }
+  | export_binding s export_exprs   { mk_export_let ~pos:$loc $1 $3 }
 
 (* Sequences of expressions without bindings *)
 exprss:
@@ -329,6 +354,12 @@ binding:
       let body = mk_rec_fun ~pos:$loc pat arglist $7 in
       doc,false,pat,body
     }
+
+import_binding:
+  | LET IMPORT VAR GETS expr { $3, $5 }
+
+export_binding:
+  | LET EXPORT VAR GETS expr { $3, $5 }
 
 list_binding:
   | LET LBRA list_bind RBRA GETS expr { $3,$6 }

@@ -240,6 +240,8 @@ let rec token lexbuf =
     | '_' -> UNDERSCORE
     | "true" -> BOOL true
     | "false" -> BOOL false
+    | "import" -> IMPORT
+    | "export" -> EXPORT
     | int_literal -> INT (int_of_string (Sedlexing.Utf8.lexeme lexbuf))
     | Star decimal_digit, '.', Star decimal_digit ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in

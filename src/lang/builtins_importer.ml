@@ -20,38 +20,30 @@
 
  *****************************************************************************)
 
-(** {1 Main script evaluation} *)
+module TypeValue = Lang.MkAbstractValue (Parser_helper.TypeTerm)
 
-(** Raise errors for warnings. *)
-val strict : bool ref
+let () = Environment.add_builtin ["_exports_"] (([], Lang.unit_t), Lang.unit)
 
-(* Low-level parser wrapper. *)
-val mk_expr :
-  ?fname:string ->
-  pwd:string ->
-  (Parser.token, Term.t) MenhirLib.Convert.traditional ->
-  Sedlexing.lexbuf ->
-  Term.t
-
-(** Load the external libraries. *)
-val load_libs :
-  ?error_on_no_stdlib:bool ->
-  ?parse_only:bool ->
-  ?deprecated:bool ->
-  unit ->
-  unit
-
-(** Evaluate a script from an [in_channel]. *)
-val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
-
-(** Evaluate a script from a file. *)
-val from_file : ?parse_only:bool -> lib:bool -> string -> unit
-
-(** Evaluate a script from a string. *)
-val from_string : ?parse_only:bool -> lib:bool -> string -> unit
-
-(** Interactive loop: read from command line, eval, print and loop. *)
-val interactive : unit -> unit
-
-(** Evaluate a string *)
-val eval : string -> Value.t option
+let () =
+  let t = Lang.univ_t () in
+  Lang.add_builtin "_internal_module_importer_" ~category:`Liquidsoap
+    ~flags:[`Hidden] ~descr:"Internal module importer"
+    [
+      ("ty", TypeValue.t, None, Some "Imported type");
+      ("", Lang.string_t, None, None);
+    ] t (fun p ->
+      let ty = TypeValue.of_value (List.assoc "ty" p) in
+      let fname = Lang.to_string (List.assoc "" p) in
+      let ic = open_in fname in
+      let fname = Utils.home_unrelate fname in
+      let pwd = Unix.getcwd () in
+      let lexbuf = Sedlexing.Utf8.from_channel ic in
+      let expr =
+        Tutils.finalize
+          ~k:(fun () -> close_in ic)
+          (fun () -> Runtime.mk_expr ~fname ~pwd Parser.export lexbuf)
+      in
+      let expr = Term.make (Term.Cast (expr, ty)) in
+      Typechecking.check ~throw:raise ~ignored:true expr;
+      let exports = Evaluation.eval expr in
+      exports)
