@@ -460,7 +460,7 @@ let rec ( <: ) a b =
               let (o, lbl, t'), l2' = get_param [] l2 in
               (* Check on-the-fly that the types match. *)
               begin
-                try t' <: t
+                try t <: t'
                 with Error (t, t') ->
                   let bt = Printexc.get_raw_backtrace () in
                   let make t =
