@@ -496,8 +496,9 @@ let rec ( <: ) a b =
              isn't local. *)
           raise (Error (repr a, repr b)))
     | _, EVar (_, c)
-    (* Force dropping the methods when we have constraints, see #1496. *)
-      when not (has_meth a && c <> []) -> (
+    (* Force dropping the methods when we have constraints (see #1496) unless
+       we are comparing records (see #1930). *)
+      when (not (has_meth a)) || c = [] || (demeth a).descr = unit -> (
         try bind ~variance:Covariant b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)))
