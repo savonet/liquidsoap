@@ -47,9 +47,9 @@ def f() =
     error.raise(e)
     "bla"
   catch err do
-    err.message ?? "blo"
+    err.message
   end
-  t(ret, "blo")
+  t(ret, "")
 
   # Can report set message
   ret = try
