@@ -27,7 +27,9 @@ let raise exn =
   Lang.raise_as_runtime ~bt ~kind:"import" exn
 
 (* Default module exports. *)
-let () = Environment.add_builtin ["_exports_"] (([], Lang.unit_t), Lang.unit)
+let () =
+  Environment.add_builtin ~register:false ["_exports_"]
+    (([], Lang.unit_t), Lang.unit)
 
 let () =
   let t = Lang.univ_t () in
