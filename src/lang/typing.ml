@@ -328,18 +328,15 @@ let rec sup ~pos a b =
     | Getter a, _ -> mk (Getter (sup a b))
     | Arrow ([], a), Getter b -> mk (Getter (sup a b))
     | _, Getter b -> mk (Getter (sup a b))
-    | _, _ -> raise Incompatible
+    | _, _ ->
+        if !debug_subtyping then
+          failwith
+            (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.print a)
+               (Type.print b))
+        else raise Incompatible
 
 let sup ~pos a b =
-  let b' =
-    try sup ~pos a b
-    with Incompatible as e ->
-      if !debug_subtyping then
-        failwith
-          (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.print a)
-             (Type.print b))
-      else raise e
-  in
+  let b' = sup ~pos a b in
   if !debug_subtyping && b' != b then
     Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b)
       (Type.print b');
