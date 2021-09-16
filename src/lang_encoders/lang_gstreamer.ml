@@ -80,10 +80,8 @@ let make ?pos params =
     && gstreamer.Gstreamer_format.channels = 0
   then
     raise
-      (Lang_encoder.Error
-         ( pos,
-           "must have at least one audio channel when passing an audio pipeline"
-         ));
+      (Lang_encoder.error ~pos
+         "must have at least one audio channel when passing an audio pipeline");
   if
     gstreamer.Gstreamer_format.pipeline = None
     && gstreamer.Gstreamer_format.video <> None
@@ -91,8 +89,8 @@ let make ?pos params =
     && gstreamer.Gstreamer_format.muxer = None
   then
     raise
-      (Lang_encoder.Error
-         (pos, "must have a muxer when passing an audio and a video pipeline"));
+      (Lang_encoder.error ~pos
+         "must have a muxer when passing an audio and a video pipeline");
   Encoder.GStreamer gstreamer
 
 let () = Lang_encoder.register "gstreamer" kind_of_encoder (make ?pos:None)

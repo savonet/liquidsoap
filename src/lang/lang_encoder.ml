@@ -23,17 +23,31 @@
 open Term
 open Term.Ground
 
-exception Error of (Term.pos option * string)
+exception Encoder_error of (Term.pos option * string)
+
+let has_started = ref false
+let () = Lifecycle.before_start (fun () -> has_started := true)
+
+let error ~pos msg =
+  match !has_started with
+    | false -> Encoder_error (pos, msg)
+    | true ->
+        Runtime_error.(
+          Runtime_error
+            {
+              kind = "encoder";
+              msg;
+              pos = (match pos with None -> [] | Some pos -> [pos]);
+            })
 
 let generic_error (l, t) : exn =
   match t with
     | `Value v ->
-        Error
-          ( v.Value.pos,
-            Printf.sprintf
-              "unknown parameter name (%s) or invalid parameter value (%s)" l
-              (Value.print_value v) )
-    | `Encoder _ -> Error (None, "unexpected subencoder")
+        error ~pos:v.Value.pos
+          (Printf.sprintf
+             "unknown parameter name (%s) or invalid parameter value (%s)" l
+             (Value.print_value v))
+    | `Encoder _ -> error ~pos:None "unexpected subencoder"
 
 (** An encoder. *)
 type encoder = {
@@ -81,4 +95,6 @@ let make_encoder ~pos t ((e, p) : Value.encoder) =
     let e = (find_encoder e).make p in
     let (_ : Encoder.factory) = Encoder.get_factory e in
     e
-  with Not_found -> raise (Term.Unsupported_format (pos, Term.print_term t))
+  with Not_found ->
+    raise
+      (error ~pos (Printf.sprintf "unsupported format: %s" (Term.print_term t)))

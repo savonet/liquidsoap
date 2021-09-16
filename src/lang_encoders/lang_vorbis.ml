@@ -117,13 +117,11 @@ let make params =
             { f with Vorbis_format.samplerate = Lazy.from_val i }
         | "quality", `Value { value = Ground (Float q); pos } ->
             if q < -0.2 || q > 1. then
-              raise
-                (Lang_encoder.Error (pos, "quality should be in [(-0.2)..1]"));
+              raise (Lang_encoder.error ~pos "quality should be in [(-0.2)..1]");
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
         | "quality", `Value { value = Ground (Int i); pos } ->
             if i <> 0 && i <> 1 then
-              raise
-                (Lang_encoder.Error (pos, "quality should be in [-(0.2)..1]"));
+              raise (Lang_encoder.error ~pos "quality should be in [-(0.2)..1]");
             let q = float i in
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
         | "channels", `Value { value = Ground (Int i); _ } ->

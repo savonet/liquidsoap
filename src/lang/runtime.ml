@@ -119,7 +119,7 @@ let throw print_error = function
       error_header 7 (Type.print_pos_opt v.Value.pos);
       Format.printf "Invalid value:@ %s@]@." msg;
       raise Error
-  | Lang_encoder.Error (pos, s) ->
+  | Lang_encoder.Encoder_error (pos, s) ->
       error_header 8 (Type.print_pos_opt pos);
       Format.printf "%s@]@." (String.capitalize_ascii s);
       raise Error
