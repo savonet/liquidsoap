@@ -35,8 +35,8 @@
   *
   * Clocks are in charge of animating active sources.
   * Each clock "owns" a number of active sources, and indirectly some
-  * sources owned by those active sources,
-  * and controls access to their streams. *)
+  * sources owned by those active sources, and controls access to their
+  * streams. *)
 
 (** Fallibility type MUST be defined BEFORE clocks.
   * Otherwise the module cannot be well-typed since the list of all
