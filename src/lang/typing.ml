@@ -320,8 +320,11 @@ let rec sup ~pos a b =
             (fun (v, a) (v', b) ->
               if v <> v' then raise Incompatible;
               let a =
-                if c = "stream_kind" then
-                  if a = b then b else mk (Constr { name = "any"; params = [] })
+                if c = "stream_kind" then (
+                  match ((deref a).descr, (deref b).descr) with
+                    | Constr { name = a }, Constr { name = b } when a <> b ->
+                        mk (Constr { name = "any"; params = [] })
+                    | _ -> sup a b)
                 else sup a b
               in
               (v, a))
