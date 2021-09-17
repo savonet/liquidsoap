@@ -104,6 +104,7 @@ New:
 - Added `input.rtmp` (#1640).
 - Added `%ifversion` and `%else` preprocessing commands (#1682).
 - Added `dtmf` and `dtmf.detect` to generate and detect DTMF tones (#1796).
+- Added `sine.detect` to detect sines (#1796).
 
 Changed:
 
@@ -218,6 +219,7 @@ Fixed:
 - Fixed parsing of http URI arguments with `=` in them (#1340).
 - Fixed fade-out in crossfades when crossfade duration is the same as fade-out duration (#1351).
 - Fixed osc server not workin when daemonized (#1365).
+- Fixed glitchy audio when using `input.harbor` (#1944)
 
 Removed:
 - LiGuidsoap, the old Liquidsoap GUI. 🪦
