@@ -104,6 +104,7 @@ New:
 - Added `input.rtmp` (#1640).
 - Added `%ifversion` and `%else` preprocessing commands (#1682).
 - Added `dtmf` and `dtmf.detect` to generate and detect DTMF tones (#1796).
+- Added `sine.detect` to detect sines (#1796).
 
 Changed:
 
