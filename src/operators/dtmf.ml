@@ -397,7 +397,7 @@ let () =
         None,
         Some "Function called with detected frequency as argument." );
     ]
-    ~return_t:k ~category:`Audio ~descr:"Detect DTMF tones."
+    ~return_t:k ~category:`Audio ~descr:"Detect sine waves."
     (fun p ->
       let duration = List.assoc "duration" p |> Lang.to_float_getter in
       let bands = List.assoc "bands" p |> Lang.to_int in
