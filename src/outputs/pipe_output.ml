@@ -247,7 +247,6 @@ class virtual piped_output ~kind p =
 (** Out channel virtual class: takes care 
   * of current out channel and writing to
   * it. *)
-
 let chan_proto kind arg_doc =
   [
     ( "flush",
@@ -267,8 +266,12 @@ class virtual chan_output p =
 
     method write_pipe b ofs len =
       let chan = Option.get chan in
-      output_substring chan b ofs len;
-      if flush then Stdlib.flush chan
+      try
+        output_substring chan b ofs len;
+        if flush then Stdlib.flush chan
+      with Sys_error e ->
+        let bt = Printexc.get_raw_backtrace () in
+        Runtime_error.error ~bt ~message:e "system"
 
     method close_pipe =
       self#close_chan (Option.get chan);
@@ -314,16 +317,24 @@ class file_output ~format_val ~kind p =
         :: (if append then [Open_append] else [Open_trunc])
       in
       let filename = self#filename in
-      Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
-      let fd = open_out_gen mode perm filename in
-      current_filename <- Some filename;
-      set_binary_mode_out fd true;
-      fd
+      try
+        Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
+        let fd = open_out_gen mode perm filename in
+        current_filename <- Some filename;
+        set_binary_mode_out fd true;
+        fd
+      with Sys_error e ->
+        let bt = Printexc.get_raw_backtrace () in
+        Runtime_error.error ~bt ~message:e "system"
 
     method close_chan fd =
-      close_out fd;
-      self#on_close (Option.get current_filename);
-      current_filename <- None
+      try
+        close_out fd;
+        self#on_close (Option.get current_filename);
+        current_filename <- None
+      with Sys_error e ->
+        let bt = Printexc.get_raw_backtrace () in
+        Runtime_error.error ~bt ~message:e "system"
   end
 
 class file_output_using_encoder ~format_val ~kind p =
