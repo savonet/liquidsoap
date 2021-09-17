@@ -3,6 +3,7 @@
 %include "test.liq"
 
 def f() =
+  # Test errors for encoder parameters
   try
     enc = %wav(samplesize=123456)
   catch err do
@@ -10,6 +11,14 @@ def f() =
       test.fail()
     end
   end
+
+  # Test encoded or not streams, see #1915.
+  encoder =
+    if true then
+      (%ffmpeg(format="fdkaac", %audio.copy))
+    else
+      (%ffmpeg(format="mp3", %audio(codec = "libmp3lame", samplerate=44100,b="320k")))
+    end
 
   test.pass()
 end
