@@ -43,6 +43,13 @@ module Band = struct
   let frequency b = b.band_f
   let intensity b = b.band_x
 
+  let to_string ~size ~samplerate b =
+    let size = float size in
+    Printf.sprintf "band %d at %.02fHz (detecting between %.02fHz and %0.02fHz)"
+      b.band_k b.band_f
+      (float b.band_k /. size *. samplerate)
+      (float (b.band_k + 1) /. size *. samplerate)
+
   (** Create the band of given number. Size is the total number of bands and
       samplerate is the expected samplerate. *)
   let create ~size ~samplerate k =
@@ -99,11 +106,15 @@ end
 module Bands = struct
   type t = Band.t list
 
-  let make ~samplerate size freqs : t =
+  let to_string ~size ~samplerate (bands : t) =
+    List.map (Band.to_string ~size ~samplerate) bands |> String.concat ", "
+
+  let make ~size ~samplerate freqs : t =
     List.map (Band.make ~size ~samplerate) freqs
 
   let update ?debug ~alpha (bands : t) =
-    List.iter (fun b -> Band.update ?debug ~alpha b) bands
+    List.iter (fun b -> Band.update ?debug ~alpha b) bands;
+    if debug = Some true then Printf.printf "%!"
 
   let feed (bands : t) x = List.iter (fun b -> Band.feed b x) bands
 
@@ -152,7 +163,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
     method self_sync = source#self_sync
 
     val bands =
-      Bands.make ~samplerate nbands
+      Bands.make ~size:nbands ~samplerate
         [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
 
     val mutable n = nbands
@@ -287,11 +298,15 @@ class detect ~kind ~duration ~bands ~threshold ~smoothing ~debug ~frequencies
     method is_ready = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-    val bands = Bands.make ~samplerate nbands frequencies
+    val bands = Bands.make ~size:nbands ~samplerate frequencies
     val mutable n = nbands
     val mutable detected = []
     val mutable signaled = []
     method wake_up a = super#wake_up a
+
+    initializer
+    self#log#info "Listening on the following bands: %s"
+      (Bands.to_string ~size:nbands ~samplerate bands)
 
     method private get_frame buf =
       let offset = AFrame.position buf in
@@ -318,9 +333,8 @@ class detect ~kind ~duration ~bands ~threshold ~smoothing ~debug ~frequencies
           Bands.update ~debug ~alpha bands;
           let found = Bands.detect bands threshold in
           (* Forget about non-detected bands. *)
-          detected <-
-            List.filter (fun (f, _) -> not (List.mem f found)) detected;
-          signaled <- List.filter (fun f -> not (List.mem f found)) signaled;
+          detected <- List.filter (fun (f, _) -> List.mem f found) detected;
+          signaled <- List.filter (fun f -> List.mem f found) signaled;
           (* Consider not already signaled bands. *)
           let found = List.filter (fun f -> not (List.mem f signaled)) found in
           let dt = size /. samplerate in
