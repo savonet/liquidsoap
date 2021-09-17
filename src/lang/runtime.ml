@@ -119,7 +119,7 @@ let throw print_error = function
       error_header 7 (Type.print_pos_opt v.Value.pos);
       Format.printf "Invalid value:@ %s@]@." msg;
       raise Error
-  | Lang_encoder.Error (pos, s) ->
+  | Lang_encoder.Encoder_error (pos, s) ->
       error_header 8 (Type.print_pos_opt pos);
       Format.printf "%s@]@." (String.capitalize_ascii s);
       raise Error
@@ -158,7 +158,7 @@ let throw print_error = function
       let pos = Type.print_pos_list pos in
       error_header 14 pos;
       Format.printf "Uncaught runtime error:@ type: %s,@ message: %s@]@." kind
-        (Printf.sprintf "%S" msg);
+        (Printf.sprintf "%s" (Utils.quote_utf8_string msg));
       raise Error
   | Sedlexing.MalFormed -> print_error 13 "Malformed file."
   | End_of_file -> raise End_of_file

@@ -124,21 +124,21 @@ let ffmpeg_gen params =
       | Ground (Int i) -> i
       | Ground (String s) -> int_of_string s
       | Ground (Float f) -> int_of_float f
-      | _ -> raise (Lang_encoder.Error (t.pos, "integer expected"))
+      | _ -> raise (Lang_encoder.error ~pos:t.pos "integer expected")
   in
   let to_string t =
     match t.value with
       | Ground (Int i) -> Printf.sprintf "%i" i
       | Ground (String s) -> s
       | Ground (Float f) -> Printf.sprintf "%f" f
-      | _ -> raise (Lang_encoder.Error (t.pos, "string expected"))
+      | _ -> raise (Lang_encoder.error ~pos:t.pos "string expected")
   in
   let to_float t =
     match t.value with
       | Ground (Int i) -> float i
       | Ground (String s) -> float_of_string s
       | Ground (Float f) -> f
-      | _ -> raise (Lang_encoder.Error (t.pos, "float expected"))
+      | _ -> raise (Lang_encoder.error ~pos:t.pos "float expected")
   in
   let rec parse_args ~format ~mode f = function
     | [] -> f
@@ -244,7 +244,7 @@ let ffmpeg_gen params =
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Float fl)
           | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Float fl));
         parse_args ~format ~mode f l
-    | (_, t) :: _ -> raise (Lang_encoder.Error (t.pos, "unexpected option"))
+    | (_, t) :: _ -> raise (Lang_encoder.error ~pos:t.pos "unexpected option")
   in
   List.fold_left
     (fun f -> function

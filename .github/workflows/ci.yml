@@ -105,7 +105,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [arm32v7_debian_bullseye, debian_testing, debian_bullseye, ubuntu_groovy, ubuntu_focal, alpine]
+        os: [arm32v7_debian_bullseye, debian_testing, debian_buster, debian_bullseye, ubuntu_groovy, ubuntu_focal, alpine]
         platform: [amd64, arm64, armhf]
         include:
           - platform: amd64
@@ -121,6 +121,8 @@ jobs:
           - os: debian_testing
             platform: armhf
           - os: debian_bullseye
+            platform: armhf
+          - os: debian_buster
             platform: armhf
           - os: ubuntu_groovy
             platform: armhf
