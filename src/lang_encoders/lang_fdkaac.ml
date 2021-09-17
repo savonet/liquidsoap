@@ -50,7 +50,7 @@ let make params =
            Printf.sprintf "invalid samplerate value. Possible values: %s"
              (String.concat ", " (List.map string_of_int valid_samplerates))
          in
-         raise (Lang_encoder.Error (pos, err)));
+         raise (Lang_encoder.error ~pos err));
        i)
   in
   let defaults =
@@ -78,7 +78,7 @@ let make params =
             let aot =
               try Fdkaac_format.aot_of_string s
               with Not_found ->
-                raise (Lang_encoder.Error (pos, "invalid aot value"))
+                raise (Lang_encoder.error ~pos "invalid aot value")
             in
             { f with Fdkaac_format.aot }
         | "vbr", `Value { value = Ground (Int i); pos } ->
@@ -87,7 +87,7 @@ let make params =
                 Printf.sprintf "invalid vbr mode. Possible values: %s"
                   (String.concat ", " (List.map string_of_int valid_vbr))
               in
-              raise (Lang_encoder.Error (pos, err)));
+              raise (Lang_encoder.error ~pos err));
             { f with Fdkaac_format.bitrate_mode = `Variable i }
         | "bandwidth", `Value { value = Ground (Int i); _ } ->
             { f with Fdkaac_format.bandwidth = `Fixed i }
@@ -109,7 +109,7 @@ let make params =
             let transmux =
               try Fdkaac_format.transmux_of_string s
               with Not_found ->
-                raise (Lang_encoder.Error (pos, "invalid transmux value"))
+                raise (Lang_encoder.error ~pos "invalid transmux value")
             in
             { f with Fdkaac_format.transmux }
         | "", `Value { value = Ground (String s); _ }
