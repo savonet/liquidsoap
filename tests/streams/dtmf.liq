@@ -9,7 +9,7 @@ detected = ref("")
 
 def f(k)
   # Skip test for now.
-  test.skip()
+  # test.skip()
 
   print("Detected key #{k}")
   detected := !detected ^ k
@@ -24,7 +24,7 @@ def f(k)
 end
 
 s = amplify(0.5, dtmf(duration=0.1, keys))
-s = add([s, amplify(0.5, noise())])
+# s = add([s, amplify(0.5, noise())]) # Removed to make the test deterministic
 s = dtmf.detect(debug=false, s, f)
 
-output.dummy(s)
+output.dummy(fallible=true, s)
