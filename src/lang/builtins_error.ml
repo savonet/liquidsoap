@@ -55,7 +55,7 @@ module ErrorDef = struct
 end
 
 module Error = struct
-  include Lang.MkAbstract ((ErrorDef : Lang.AbstractDef))
+  include Value.MkAbstract ((ErrorDef : Value.AbstractDef))
 
   let meths =
     [

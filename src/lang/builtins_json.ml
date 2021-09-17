@@ -25,7 +25,7 @@ open Lang
 let log = Log.make ["lang"; "json"]
 let to_json_ref = ref (fun ~compact:_ ~json5:_ _ -> assert false)
 
-module JSON = MkAbstract (struct
+module JSON = Value.MkAbstract (struct
   type content = (string, value) Hashtbl.t
 
   let name = "json"

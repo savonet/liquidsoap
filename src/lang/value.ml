@@ -202,3 +202,33 @@ let compare a b =
     else aux (a'.value, b'.value)
   in
   compare a b
+
+(* Abstract values. *)
+
+module type Abstract = sig
+  include Term.Abstract
+
+  val to_value : content -> t
+  val of_value : t -> content
+  val is_value : t -> bool
+end
+
+module type AbstractDef = Term.AbstractDef
+
+module MkAbstractFromTerm (Term : Term.Abstract) = struct
+  include Term
+
+  let to_value c = { pos = None; value = Ground (to_ground c) }
+
+  let of_value t =
+    match t.value with
+      | Ground g when is_ground g -> of_ground g
+      | _ -> assert false
+
+  let is_value t = match t.value with Ground g -> is_ground g | _ -> false
+end
+
+module MkAbstract (Def : AbstractDef) = struct
+  module Term = Term.MkAbstract (Def)
+  include MkAbstractFromTerm (Term)
+end

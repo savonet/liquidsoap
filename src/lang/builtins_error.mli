@@ -28,4 +28,4 @@ type error = Runtime_error.runtime_error = {
   pos : pos list;
 }
 
-module Error : Lang.Abstract with type content := error
+module Error : Value.Abstract with type content := error

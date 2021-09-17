@@ -490,37 +490,6 @@ let raise_as_runtime ~bt ~kind exn =
                (Printexc.raw_backtrace_to_string bt))
           kind
 
-(* Abstract types. *)
-
-module type Abstract = sig
-  include Term.Abstract
-
-  val to_value : content -> value
-  val of_value : value -> content
-  val is_value : value -> bool
-end
-
-module type AbstractDef = Term.AbstractDef
-
-module MkAbstractValue (Term : Term.Abstract) = struct
-  include Term
-
-  let to_value c = mk (Value.Ground (to_ground c))
-
-  let of_value t =
-    match t.value with
-      | Value.Ground g when is_ground g -> of_ground g
-      | _ -> assert false
-
-  let is_value t =
-    match t.value with Value.Ground g -> is_ground g | _ -> false
-end
-
-module MkAbstract (Def : AbstractDef) = struct
-  module Term = Term.MkAbstract (Def)
-  include MkAbstractValue (Term)
-end
-
 (* Augment source_t and source with default methods. *)
 
 let source_methods =
