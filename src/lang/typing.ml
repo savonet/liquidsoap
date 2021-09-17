@@ -319,7 +319,12 @@ let rec sup ~pos a b =
           List.map2
             (fun (v, a) (v', b) ->
               if v <> v' then raise Incompatible;
-              (v, sup a b))
+              let a =
+                if c = "stream_kind" then
+                  if a = b then b else mk (Constr { name = "any"; params = [] })
+                else sup a b
+              in
+              (v, a))
             a b
         in
         mk (Constr { name = c; params })
@@ -387,9 +392,16 @@ let rec ( <: ) a b =
         let rec aux pre p1 p2 =
           match (p1, p2) with
             | (v, h1) :: t1, (_, h2) :: t2 ->
+                let is_any t =
+                  match (deref t).descr with
+                    | Constr { name = "any" } -> true
+                    | _ -> false
+                in
                 begin
-                  try (* TODO use variance info *)
-                      h1 <: h2
+                  try
+                    (* TODO use variance info *)
+                    if c1.name = "stream_kind" && is_any h2 then ()
+                    else h1 <: h2
                   with Error (a, b) ->
                     let bt = Printexc.get_raw_backtrace () in
                     let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
