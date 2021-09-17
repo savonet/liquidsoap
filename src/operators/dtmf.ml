@@ -22,20 +22,73 @@
 
 open Source
 
-(* DFT bands *)
-type band = {
-  band_k : int;
-  (* band number *)
-  mutable band_x : float;
-  (* intensity of the band *)
-  band_f : float;
-  (* frequency being detected *)
-  band_cos : float;
-  (* precomputed 2cos(2πk/N) *)
-  mutable band_v : float;
-  (* current value *)
-  mutable band_v' : float; (* previous value *)
-}
+(** DFT bands. *)
+module Band = struct
+  (** A band. *)
+  type t = {
+    band_k : int;  (** band number *)
+    mutable band_x : float;  (** intensity of the band *)
+    band_f : float;  (** frequency being detected *)
+    band_cos : float;  (** precomputed 2cos(2πk/N) *)
+    mutable band_v : float;  (** current value *)
+    mutable band_v' : float;  (** previous value *)
+  }
+
+  let frequency b = b.band_f
+  let intensity b = b.band_x
+
+  (** Create the band of given number. Size is the total number of bands and
+      samplerate is the expected samplerate. *)
+  let create ~size ~samplerate k =
+    let size = float size in
+    {
+      band_k = k;
+      band_x = 0.;
+      band_f = float k /. size *. samplerate;
+      band_cos = 2. *. cos (2. *. Float.pi *. float k /. size);
+      band_v = 0.;
+      band_v' = 0.;
+    }
+
+  (** Create band of given frequency. *)
+  let make ~size ~samplerate f =
+    let b =
+      create ~size ~samplerate
+        (Float.to_int ((f /. samplerate *. float size) +. 0.5))
+    in
+    { b with band_f = f }
+
+  (** Feed a band with a sample. *)
+  let feed b x =
+    let v = x +. (b.band_cos *. b.band_v) -. b.band_v' in
+    b.band_v' <- b.band_v;
+    b.band_v <- v
+
+  (** Update the value of the band. This function should be called every size samples. *)
+  let update ?(debug = false) ~alpha b =
+    (* Square of the value for the DFT band. *)
+    let x =
+      (b.band_v *. b.band_v) +. (b.band_v' *. b.band_v')
+      -. (b.band_cos *. b.band_v *. b.band_v')
+    in
+    let x = sqrt x in
+    b.band_x <- ((1. -. alpha) *. b.band_x) +. (alpha *. x);
+    (* Apparently we need to reset values, otherwise some unexpected bands get
+       high values over time. *)
+    b.band_v <- 0.;
+    b.band_v' <- 0.;
+    if debug then (
+      let bar x =
+        let len = 20 in
+        let n = Float.to_int (x *. float len /. 20000.) in
+        let n = min len n in
+        String.make n '=' ^ String.make (len - n) ' '
+      in
+      let bar2 = bar b.band_x in
+      let bar = bar x in
+      Printf.printf "%02d / %.01f :\t%s %s %.01f\t%.01f\n" b.band_k b.band_f bar
+        bar2 x b.band_x)
+end
 
 let key =
   let keys =
@@ -75,21 +128,9 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
     method self_sync = source#self_sync
 
     val bands =
-      let band k =
-        {
-          band_k = k;
-          band_x = 0.;
-          band_f = float k /. size *. samplerate;
-          band_cos = 2. *. cos (2. *. Float.pi *. float k /. size);
-          band_v = 0.;
-          band_v' = 0.;
-        }
-      in
-      let band_freq f =
-        let b = band (Float.to_int ((f /. samplerate *. size) +. 0.5)) in
-        { b with band_f = f }
-      in
-      List.map band_freq [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
+      List.map
+        (Band.make ~size:nbands ~samplerate)
+        [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
 
     val mutable n = nbands
     val mutable state = `None
@@ -118,44 +159,17 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
           done;
           !x /. float channels
         in
-        List.iter
-          (fun b ->
-            let v = x +. (b.band_cos *. b.band_v) -. b.band_v' in
-            b.band_v' <- b.band_v;
-            b.band_v <- v)
-          bands;
+        List.iter (fun b -> Band.feed b x) bands;
         n <- n + 1;
         if n mod nbands = 0 then (
           n <- n - nbands;
-          List.iter
-            (fun b ->
-              (* Square of the value for the DFT band. *)
-              let x =
-                (b.band_v *. b.band_v) +. (b.band_v' *. b.band_v')
-                -. (b.band_cos *. b.band_v *. b.band_v')
-              in
-              let x = sqrt x in
-              b.band_x <- ((1. -. alpha) *. b.band_x) +. (alpha *. x);
-              (* Apparently we need to reset values, otherwise some unexpected
-                 bands get high values over time. *)
-              b.band_v <- 0.;
-              b.band_v' <- 0.;
-              if debug then (
-                let bar x =
-                  let len = 20 in
-                  let n = Float.to_int (x *. float len /. 20000.) in
-                  let n = min len n in
-                  String.make n '=' ^ String.make (len - n) ' '
-                in
-                let bar2 = bar b.band_x in
-                let bar = bar x in
-                Printf.printf "%02d / %.01f :\t%s %s %.01f\t%.01f\n" b.band_k
-                  b.band_f bar bar2 x b.band_x))
-            bands;
+          List.iter (fun b -> Band.update ~debug ~alpha b) bands;
           ((* Find relevant bands. *)
            let found =
              List.filter_map
-               (fun b -> if b.band_x > threshold then Some b.band_f else None)
+               (fun b ->
+                 if Band.intensity b > threshold then Some (Band.frequency b)
+                 else None)
                bands
            in
            (* Update the state *)
