@@ -22,6 +22,12 @@
 
 open Source
 
+(* See
+   https://en.wikipedia.org/wiki/Goertzel_algorithm
+   https://web.archive.org/web/20180628024641/http://en.dsplib.org/content/goertzel/goertzel.html
+   https://www.ti.com/lit/pdf/spra096
+*)
+
 (** DFT bands. *)
 module Band = struct
   (** A band. *)
@@ -153,11 +159,6 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
     val mutable state = `None
     method wake_up a = super#wake_up a
 
-    (* See
-       https://en.wikipedia.org/wiki/Goertzel_algorithm
-       https://web.archive.org/web/20180628024641/http://en.dsplib.org/content/goertzel/goertzel.html
-       https://www.ti.com/lit/pdf/spra096
-    *)
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
@@ -254,7 +255,7 @@ let () =
       ( "",
         Lang.source_t k,
         None,
-        Some "Source on which DTMF tones should be detected" );
+        Some "Source on which DTMF tones should be detected." );
       ( "",
         Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t,
         None,
@@ -271,4 +272,131 @@ let () =
       let callback = Lang.assoc "" 2 p in
       let kind = Source.Kind.of_kind kind in
       (new dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback s
+        :> Source.source))
+
+class detect ~kind ~duration ~bands ~threshold ~smoothing ~debug ~frequencies
+  callback (source : source) =
+  let samplerate = float (Lazy.force Frame.audio_rate) in
+  let nbands = bands in
+  let size = float nbands in
+  object (self)
+    inherit operator ~name:"sine.detect" kind [source] as super
+    method stype = source#stype
+    method remaining = source#remaining
+    method seek = source#seek
+    method is_ready = source#is_ready
+    method abort_track = source#abort_track
+    method self_sync = source#self_sync
+    val bands = Bands.make ~samplerate nbands frequencies
+    val mutable n = nbands
+    val mutable detected = []
+    val mutable signaled = []
+    method wake_up a = super#wake_up a
+
+    method private get_frame buf =
+      let offset = AFrame.position buf in
+      source#get buf;
+      let b = AFrame.pcm buf in
+      let position = AFrame.position buf in
+      let channels = self#audio_channels in
+      let debug = debug () in
+      let duration = duration () in
+      let threshold = threshold () in
+      let alpha = min 1. (size /. (samplerate *. smoothing ())) in
+      for i = offset to position - 1 do
+        let x =
+          let x = ref 0. in
+          for c = 0 to channels - 1 do
+            x := !x +. b.(c).{i}
+          done;
+          !x /. float channels
+        in
+        Bands.feed bands x;
+        n <- n + 1;
+        if n mod nbands = 0 then (
+          n <- n - nbands;
+          Bands.update ~debug ~alpha bands;
+          let found = Bands.detect bands threshold in
+          (* Forget about non-detected bands. *)
+          detected <-
+            List.filter (fun (f, _) -> not (List.mem f found)) detected;
+          signaled <- List.filter (fun f -> not (List.mem f found)) signaled;
+          (* Consider not already signaled bands. *)
+          let found = List.filter (fun f -> not (List.mem f signaled)) found in
+          let dt = size /. samplerate in
+          List.iter
+            (fun f ->
+              let t =
+                try List.assoc f detected
+                with Not_found ->
+                  let t = ref 0. in
+                  detected <- (f, t) :: detected;
+                  t
+              in
+              t := !t +. dt;
+              if !t >= duration then (
+                ignore (Lang.apply callback [("", Lang.float f)]);
+                detected <- List.remove_assoc f detected;
+                signaled <- f :: signaled))
+            found)
+      done
+  end
+
+let () =
+  let kind = Lang.audio_pcm in
+  let k = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator "sine.detect"
+    [
+      ( "duration",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.5),
+        Some "Duration for detecting a tone." );
+      ( "bands",
+        Lang.int_t,
+        Some (Lang.int 1024),
+        Some "Number of frequency bands." );
+      ( "threshold",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 50.),
+        Some "Threshold for detecting a band." );
+      ( "smoothing",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.01),
+        Some
+          "Smoothing time (in seconds) for band indensity (the higher, the \
+           less sensitive we are to local variations, but the more time we \
+           take to detect a band)." );
+      ( "debug",
+        Lang.getter_t Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Show internal values on standard output in order to fine-tune \
+           parameters: band number, band frequency, detected intensity and \
+           smoothed intensity." );
+      ("", Lang.list_t Lang.float_t, None, Some "List of frequencies to detect.");
+      ( "",
+        Lang.source_t k,
+        None,
+        Some "Source on which sines should be detected." );
+      ( "",
+        Lang.fun_t [(false, "", Lang.float_t)] Lang.unit_t,
+        None,
+        Some "Function called with detected frequency as argument." );
+    ]
+    ~return_t:k ~category:`Audio ~descr:"Detect DTMF tones."
+    (fun p ->
+      let duration = List.assoc "duration" p |> Lang.to_float_getter in
+      let bands = List.assoc "bands" p |> Lang.to_int in
+      let threshold = List.assoc "threshold" p |> Lang.to_float_getter in
+      let smoothing = List.assoc "smoothing" p |> Lang.to_float_getter in
+      let debug = List.assoc "debug" p |> Lang.to_bool_getter in
+      let frequencies =
+        Lang.assoc "" 1 p |> Lang.to_list |> List.map Lang.to_float
+      in
+      let s = Lang.assoc "" 2 p |> Lang.to_source in
+      let callback = Lang.assoc "" 3 p in
+      let kind = Source.Kind.of_kind kind in
+      (new detect
+         ~kind ~duration ~bands ~threshold ~smoothing ~debug ~frequencies
+         callback s
         :> Source.source))
