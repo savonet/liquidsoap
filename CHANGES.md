@@ -212,6 +212,7 @@ Fixed:
 - Fixed parsing of http URI arguments with `=` in them (#1340).
 - Fixed fade-out in crossfades when crossfade duration is the same as fade-out duration (#1351).
 - Fixed osc server not workin when daemonized (#1365).
+- Fixed glitchy audio when using `input.harbor` (#1944)
 
 Removed:
 - LiGuidsoap, the old Liquidsoap GUI. 🪦
