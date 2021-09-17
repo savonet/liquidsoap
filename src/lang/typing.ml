@@ -383,6 +383,12 @@ exception Error of (repr * repr)
 let rec ( <: ) a b =
   if !debug || !debug_subtyping then
     Printf.printf "\n%s <: %s\n%!" (print a) (print b);
+  let occurs x a =
+    try
+      occur_check x a;
+      false
+    with _ -> true
+  in
   let is_evar a = match (deref a).descr with EVar _ -> true | _ -> false in
   match (a.descr, b.descr) with
     | _, Link (Covariant, b') ->
@@ -393,8 +399,8 @@ let rec ( <: ) a b =
         (try b' <: b''
          with _ ->
            failwith
-             (Printf.sprintf "sup did not increase: %s !< %s" (Type.print b')
-                (Type.print b'')));
+             (Printf.sprintf "sup did not increase:\n%s\nvs\n%s\ngives\n%s"
+                (Type.print a) (Type.print b') (Type.print b'')));
         if b'' != b' then b.descr <- Link (Covariant, b'');
         a <: b''
     | Link (Covariant, a'), _ when not ((not (is_evar a')) && is_evar b) ->
@@ -522,7 +528,8 @@ let rec ( <: ) a b =
     | _, EVar (_, c)
     (* Force dropping the methods when we have constraints (see #1496) unless
        we are comparing records (see #1930). *)
-      when (not (has_meth a)) || c = [] || (demeth a).descr = unit -> (
+      when ((not (has_meth a && c <> [])) || (demeth a).descr = unit)
+           && not (occurs b a) -> (
         try bind ~variance:Covariant b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)))
