@@ -80,6 +80,8 @@ module Subst = struct
   (** Retrieve the value of a variable. *)
   let value (s : t) (i : var) = M.find i s
 
+  let hide (s : t) l : t = M.filter (fun i _ -> not (List.mem i l)) s
+
   (* let filter f (s : t) = M.filter (fun i t -> f i t) s *)
 
   (** Whether we have the identity substitution. *)
@@ -90,34 +92,34 @@ end
   * of associations. Other EVars are not copied, so sharing is
   * preserved. *)
 let copy_with (subst : Subst.t) t =
-  let rec aux t =
+  let rec aux subst t =
     let cp x = { t with descr = x } in
     match t.descr with
       | EVar v -> ( try Subst.value subst v with Not_found -> t)
       | Constr c ->
-          let params = List.map (fun (v, t) -> (v, aux t)) c.params in
+          let params = List.map (fun (v, t) -> (v, aux subst t)) c.params in
           cp (Constr { c with params })
       | Ground _ -> cp t.descr
       | AString s -> cp (AString s)
-      | Getter t -> cp (Getter (aux t))
-      | List t -> cp (List (aux t))
-      | Nullable t -> cp (Nullable (aux t))
-      | Tuple l -> cp (Tuple (List.map aux l))
+      | Getter t -> cp (Getter (aux subst t))
+      | List t -> cp (List (aux subst t))
+      | Nullable t -> cp (Nullable (aux subst t))
+      | Tuple l -> cp (Tuple (List.map (aux subst) l))
       | Meth (l, (g, t), d, u) ->
-          (* We assume that we don't substitute generalized variables. *)
-          if !debug then
-            assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
-          cp (Meth (l, (g, aux t), d, aux u))
+          let subst = Subst.hide subst g in
+          cp (Meth (l, (g, aux subst t), d, aux subst u))
       | Arrow (p, t) ->
-          cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
-      | Union (t, u) -> cp (Union (aux t, aux u))
+          cp
+            (Arrow
+               (List.map (fun (o, l, t) -> (o, l, aux subst t)) p, aux subst t))
+      | Union (t, u) -> cp (Union (aux subst t, aux subst u))
       | Link (v, t) ->
           (* Keep links to preserve rich position information,
            * and to make it possible to check if the application left
            * the type unchanged. *)
-          cp (Link (v, aux t))
+          cp (Link (v, aux subst t))
   in
-  if Subst.is_identity subst then t else aux t
+  if Subst.is_identity subst then t else aux subst t
 
 (** Instantiate a type scheme, given as a type together with a list
   * of generalized variables.
@@ -177,7 +179,7 @@ let rec occur_check a b =
 (* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)
 let rec bind ?(variance = Invariant) a0 b0 =
   if !debug || true then
-    Printf.eprintf "%s := %s%s\n%!" (print a0) (print b0)
+    Printf.printf "%s := %s%s\n%!" (print a0) (print b0)
       (if variance = Covariant then " (covariant)" else "");
   let a = deref a0 in
   let b = deref b0 in
@@ -380,7 +382,7 @@ exception Error of (repr * repr)
     needed. In case of error, we generate an explanation. *)
 let rec ( <: ) a b =
   if !debug || !debug_subtyping then
-    Printf.eprintf "\n%s <: %s\n%!" (print a) (print b);
+    Printf.printf "\n%s <: %s\n%!" (print a) (print b);
   let is_evar a = match (deref a).descr with EVar _ -> true | _ -> false in
   match (a.descr, b.descr) with
     | _, Link (Covariant, b') ->
@@ -391,7 +393,7 @@ let rec ( <: ) a b =
         (try b' <: b''
          with _ ->
            failwith
-             (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
+             (Printf.sprintf "sup did not increase: %s !< %s" (Type.print b')
                 (Type.print b'')));
         if b'' != b' then b.descr <- Link (Covariant, b'');
         a <: b''
