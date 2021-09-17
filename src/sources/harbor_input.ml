@@ -49,7 +49,7 @@ module Make (Harbor : T) = struct
         `Undefined
     in
     object (self)
-      inherit Source.source ~name:Harbor.source_name kind as super
+      inherit Source.active_source ~name:Harbor.source_name kind as super
       inherit Generated.source abg ~empty_on_abort:false ~replay_meta ~bufferize
       val mutable relay_socket = None
 
@@ -74,6 +74,11 @@ module Make (Harbor : T) = struct
           | Some addr -> Printf.sprintf "source client connected from %s" addr
           | None -> "no source client connected"
 
+      method private output =
+        if self#is_ready && AFrame.is_partial self#memo then
+          self#get_frame self#memo
+
+      method reset = self#disconnect ~lock:true
       method buffer_length_cmd = Frame.seconds_of_audio self#length
 
       method login : string * (socket:Harbor.socket -> string -> string -> bool)
