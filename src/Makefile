@@ -251,11 +251,12 @@ liquidsoap_sources += \
 	lang/type.ml lang/typing.ml lang/profiler.ml lang/term.ml lang/value.ml \
 	lang/lang_encoder.ml $(lang_encoders) \
 	lang/environment.ml lang/typechecking.ml \
-	lang/evaluation.ml lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
-	lang/preprocessor.ml lang/error.ml lang/documentation.ml \
-	lang/lang.ml lang/runtime.ml lang/modules.ml \
-        tools/child_support.ml \
-        tools/start_stop.ml tools/ioRing.ml \
+	lang/evaluation.ml lang/error.ml lang/documentation.ml \
+	lang/lang.ml lang/modules.ml \
+	lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
+	lang/preprocessor.ml lang/runtime.ml \
+	tools/child_support.ml \
+	tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(protocols) \
 	$(sources) $(outputs) tools/producer_consumer.ml \
