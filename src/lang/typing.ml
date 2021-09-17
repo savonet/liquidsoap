@@ -24,8 +24,7 @@
 
 open Type
 
-(* let () = Type.debug := true *)
-
+let () = Type.debug := true
 let debug_subtyping = ref true
 let () = Type.debug_subtyping := !debug_subtyping
 
@@ -383,23 +382,6 @@ let rec ( <: ) a b =
   if !debug || !debug_subtyping then
     Printf.eprintf "\n%s <: %s\n%!" (print a) (print b);
   match (a.descr, b.descr) with
-    | _, Link (Covariant, b') ->
-        (* When the variable is covariant, we take the opportunity here to correct
-           bad choices. For instance, if we took int, but then have a 'a?, we
-           change our mind and use int? instead. *)
-        let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
-        (try b' <: b''
-         with _ ->
-           failwith
-             (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
-                (Type.print b'')));
-        if b'' != b' then b.descr <- Link (Covariant, b'');
-        a <: b''
-    | Link (Covariant, a'), _ ->
-        a.descr <- Link (Invariant, a');
-        a <: b
-    | _, Link (_, b) -> a <: b
-    | Link (_, a), _ -> a <: b
     | Constr c1, Constr c2 when c1.name = c2.name ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
@@ -583,6 +565,23 @@ let rec ( <: ) a b =
     | Meth (l, _, _, u1), _ -> hide_meth l u1 <: b
     | _, Getter t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
+    | _, Link (Covariant, b') ->
+        (* When the variable is covariant, we take the opportunity here to correct
+           bad choices. For instance, if we took int, but then have a 'a?, we
+           change our mind and use int? instead. *)
+        let b'' = try sup ~pos:b'.pos a b' |> deref with Incompatible -> b' in
+        (try b' <: b''
+         with _ ->
+           failwith
+             (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
+                (Type.print b'')));
+        if b'' != b' then b.descr <- Link (Covariant, b'');
+        a <: b''
+    | Link (Covariant, a'), _ ->
+        a.descr <- Link (Invariant, a');
+        a <: b
+    | _, Link (_, b) -> a <: b
+    | Link (_, a), _ -> a <: b
     | _, _ ->
         (* The superficial representation is enough for explaining the
            mismatch. *)

@@ -70,3 +70,14 @@ let () =
       let x = Lang.assoc "" 1 p in
       let d = Lang.assoc "" 2 p in
       match Lang.to_option x with None -> Lang.apply d [] | Some x -> x)
+
+(* TODO: remove me *)
+let () =
+  let a = Lang.univ_t () in
+  Lang.add_builtin "null.get" ~category:`Liquidsoap
+    ~descr:"Get the contents of a nullable value."
+    [("", Lang.nullable_t a, None, Some "Value to reason by case analysis on.")]
+    a
+    (fun p ->
+      let x = Lang.assoc "" 1 p in
+      match Lang.to_option x with None -> assert false | Some x -> x)
