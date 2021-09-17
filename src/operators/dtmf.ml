@@ -90,6 +90,24 @@ module Band = struct
         bar2 x b.band_x)
 end
 
+module Bands = struct
+  type t = Band.t list
+
+  let make ~samplerate size freqs : t =
+    List.map (Band.make ~size ~samplerate) freqs
+
+  let update ?debug ~alpha (bands : t) =
+    List.iter (fun b -> Band.update ?debug ~alpha b) bands
+
+  let feed (bands : t) x = List.iter (fun b -> Band.feed b x) bands
+
+  let detect (bands : t) threshold =
+    List.filter_map
+      (fun b ->
+        if Band.intensity b > threshold then Some (Band.frequency b) else None)
+      bands
+end
+
 let key =
   let keys =
     [
@@ -128,8 +146,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
     method self_sync = source#self_sync
 
     val bands =
-      List.map
-        (Band.make ~size:nbands ~samplerate)
+      Bands.make ~samplerate nbands
         [697.; 770.; 852.; 941.; 1209.; 1336.; 1477.; 1633.]
 
     val mutable n = nbands
@@ -159,19 +176,13 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
           done;
           !x /. float channels
         in
-        List.iter (fun b -> Band.feed b x) bands;
+        Bands.feed bands x;
         n <- n + 1;
         if n mod nbands = 0 then (
           n <- n - nbands;
-          List.iter (fun b -> Band.update ~debug ~alpha b) bands;
+          Bands.update ~debug ~alpha bands;
           ((* Find relevant bands. *)
-           let found =
-             List.filter_map
-               (fun b ->
-                 if Band.intensity b > threshold then Some (Band.frequency b)
-                 else None)
-               bands
-           in
+           let found = Bands.detect bands threshold in
            (* Update the state *)
            match found with
              | [f1; f2] -> (
