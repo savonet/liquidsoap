@@ -394,7 +394,7 @@ let rec ( <: ) a b =
     | Constr c1, Constr c2 when c1.name = c2.name ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
-            | (v, h1) :: t1, (_, h2) :: t2 ->
+            | (v1, h1) :: t1, (v2, h2) :: t2 ->
                 let is_any t =
                   match (deref t).descr with
                     | Constr { name = "any" } -> true
@@ -402,19 +402,25 @@ let rec ( <: ) a b =
                 in
                 begin
                   try
-                    (* TODO use variance info *)
+                    let v = if v1 = v2 then v1 else Invariant in
                     if c1.name = "stream_kind" && is_any h2 then ()
-                    else h1 <: h2
+                    else (
+                      match v with
+                        | Covariant -> h1 <: h2
+                        | Contravariant -> h2 <: h1
+                        | Invariant ->
+                            h1 <: h2;
+                            h2 <: h1)
                   with Error (a, b) ->
                     let bt = Printexc.get_raw_backtrace () in
                     let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
                     Printexc.raise_with_backtrace
                       (Error
-                         ( `Constr (c1.name, pre @ [(v, a)] @ post),
-                           `Constr (c1.name, pre @ [(v, b)] @ post) ))
+                         ( `Constr (c1.name, pre @ [(v1, a)] @ post),
+                           `Constr (c1.name, pre @ [(v2, b)] @ post) ))
                       bt
                 end;
-                aux ((v, `Ellipsis) :: pre) t1 t2
+                aux ((v1, `Ellipsis) :: pre) t1 t2
             | [], [] -> ()
             | _ -> assert false
           (* same name => same arity *)
