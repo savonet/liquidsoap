@@ -214,6 +214,7 @@ Fixed:
 - Fixed fade-out in crossfades when crossfade duration is the same as fade-out duration (#1351).
 - Fixed osc server not workin when daemonized (#1365).
 - Fixed glitchy audio when using `input.harbor` (#1944)
+- Fixed `"tracknumber"` and `"year"` returning `0` in taglib (#1901) 
 
 Removed:
 - LiGuidsoap, the old Liquidsoap GUI. 🪦
