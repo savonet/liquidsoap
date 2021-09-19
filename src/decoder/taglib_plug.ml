@@ -38,6 +38,8 @@ let file_extensions =
     ~p:(Decoder.conf_file_extensions#plug "taglib")
     "File extensions used for decoding metadata using TAGLIB" ~d:["mp3"]
 
+let int_tags = [("year", Taglib.tag_year); ("tracknumber", Taglib.tag_track)]
+
 (** We used to force the format. However, now that we check extensions, taglib's
   * automatic format detection should work. *)
 let get_tags fname =
@@ -52,12 +54,18 @@ let get_tags fname =
       ~k:(fun () -> Taglib.File.close_file f)
       (fun () ->
         let tags =
-          try [("year", string_of_int (Taglib.tag_year f))]
-          with Not_found -> []
+          List.fold_left
+            (fun cur (lbl, fn) ->
+              try
+                let v = fn f in
+                if v = 0 then cur else (lbl, string_of_int v) :: cur
+              with Not_found -> cur)
+            [] int_tags
         in
         Hashtbl.fold
           (fun key (values : string list) tags ->
-            if values = [] then tags
+            let key = String.lowercase_ascii key in
+            if List.mem_assoc key tags || values = [] then tags
             else (
               let v = List.hd values in
               if v = "" then tags else (key, v) :: tags))
