@@ -83,7 +83,7 @@ let profile = ref false
 
 let ref_t ?pos ?level t =
   Type.make ?pos ?level
-    (Type.Constr { Type.name = "ref"; params = [(Type.Invariant, t)] })
+    (Type.Constr { Type.constructor = "ref"; params = [(Type.Invariant, t)] })
 
 (** A frame kind type is a purely abstract type representing a
     frame kind. *)
@@ -91,7 +91,7 @@ let frame_kind_t ?pos ?level audio video midi =
   Type.make ?pos ?level
     (Type.Constr
        {
-         Type.name = "stream_kind";
+         Type.constructor = "stream_kind";
          Type.params =
            [
              (Type.Covariant, audio);
@@ -114,7 +114,7 @@ let kind_t ?pos ?level kind =
         Type.make ?pos ?level
           (Type.Constr
              {
-               Type.name = Frame_content.string_of_kind k;
+               Type.constructor = Frame_content.string_of_kind k;
                Type.params = [(Type.Covariant, evar ())];
              })
     | `Format f ->
@@ -122,7 +122,7 @@ let kind_t ?pos ?level kind =
         Type.make ?pos ?level
           (Type.Constr
              {
-               Type.name = Frame_content.string_of_kind k;
+               Type.constructor = Frame_content.string_of_kind k;
                Type.params = [(Type.Covariant, mk_format f)];
              })
 
@@ -131,7 +131,7 @@ let of_frame_kind_t t =
   match t.Type.descr with
     | Type.Constr
         {
-          Type.name = "stream_kind";
+          Type.constructor = "stream_kind";
           Type.params = [(_, audio); (_, video); (_, midi)];
         } ->
         { Frame.audio; video; midi }
@@ -146,19 +146,21 @@ let of_frame_kind_t t =
 (** Type of audio formats that can encode frame of a given kind. *)
 let format_t ?pos ?level k =
   Type.make ?pos ?level
-    (Type.Constr { Type.name = "format"; Type.params = [(Type.Covariant, k)] })
+    (Type.Constr
+       { Type.constructor = "format"; Type.params = [(Type.Covariant, k)] })
 
 (** Type of sources carrying frames of a given kind. *)
 let source_t ?pos ?level k =
   Type.make ?pos ?level
-    (Type.Constr { Type.name = "source"; Type.params = [(Type.Invariant, k)] })
+    (Type.Constr
+       { Type.constructor = "source"; Type.params = [(Type.Invariant, k)] })
 
 (* Filled in later to avoid dependency cycles. *)
 let source_methods_t = ref (fun () : Type.t -> assert false)
 
 let of_source_t t =
   match (Type.deref t).Type.descr with
-    | Type.Constr { Type.name = "source"; Type.params = [(_, t)] } -> t
+    | Type.Constr { Type.constructor = "source"; Type.params = [(_, t)] } -> t
     | _ -> assert false
 
 let request_t ?pos ?level () = Type.make ?pos ?level (Type.Ground Type.Request)
@@ -480,7 +482,7 @@ let is_fun t =
 
 let is_source t =
   match (Type.demeth t).Type.descr with
-    | Type.Constr { Type.name = "source"; _ } -> true
+    | Type.Constr { Type.constructor = "source"; _ } -> true
     | _ -> false
 
 (** {1 Basic checks and errors} *)

@@ -228,7 +228,8 @@ let rec bind ?(variance = Invariant) a0 b =
                       with Frame_content.Invalid -> false
                     in
                     match b.descr with
-                      | Constr { name } when is_internal name -> ()
+                      | Constr { constructor } when is_internal constructor ->
+                          ()
                       | Ground (Format f)
                         when Frame_content.(is_internal (kind f)) ->
                           ()
@@ -313,7 +314,8 @@ let rec sup ~pos a b =
           (* TODO: I guess that we should hide other methods named l *)
           | Some t' -> mk (Meth (l, scheme_sup t' t, d, sup a b))
           | None -> sup a b)
-    | Constr { name = c; params = a }, Constr { name = d; params = b } ->
+    | ( Constr { constructor = c; params = a },
+        Constr { constructor = d; params = b } ) ->
         if c <> d || List.length a <> List.length b then raise Incompatible;
         let params =
           List.map2
@@ -322,7 +324,7 @@ let rec sup ~pos a b =
               (v, sup a b))
             a b
         in
-        mk (Constr { name = c; params })
+        mk (Constr { constructor = c; params })
     | Getter a, Getter b -> mk (Getter (sup a b))
     | Getter a, Arrow ([], b) -> mk (Getter (sup a b))
     | Getter a, _ -> mk (Getter (sup a b))
@@ -383,7 +385,7 @@ let rec ( <: ) a b =
         a <: b
     | _, Link (_, b) -> a <: b
     | Link (_, a), _ -> a <: b
-    | Constr c1, Constr c2 when c1.name = c2.name ->
+    | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
             | (v1, h1) :: t1, (v2, h2) :: t2 ->
@@ -401,8 +403,8 @@ let rec ( <: ) a b =
                     let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
                     Printexc.raise_with_backtrace
                       (Error
-                         ( `Constr (c1.name, pre @ [(v1, a)] @ post),
-                           `Constr (c1.name, pre @ [(v2, b)] @ post) ))
+                         ( `Constr (c1.constructor, pre @ [(v1, a)] @ post),
+                           `Constr (c1.constructor, pre @ [(v2, b)] @ post) ))
                       bt
                 end;
                 aux ((v1, `Ellipsis) :: pre) t1 t2

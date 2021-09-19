@@ -133,7 +133,7 @@ type variance = Covariant | Contravariant | Invariant
   * source. *)
 type t = { pos : pos option; mutable level : int; mutable descr : descr }
 
-and constructed = { name : string; params : (variance * t) list }
+and constructed = { constructor : string; params : (variance * t) list }
 
 and descr =
   | Constr of constructed
@@ -309,8 +309,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
-        | Constr { name; params } ->
-            `Constr (name, List.map (fun (l, t) -> (l, repr g t)) params)
+        | Constr { constructor; params } ->
+            `Constr (constructor, List.map (fun (l, t) -> (l, repr g t)) params)
         | Arrow (args, t) ->
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
