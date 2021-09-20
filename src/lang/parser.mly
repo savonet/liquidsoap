@@ -158,7 +158,7 @@ expr:
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | WHILE expr DO exprs END          { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "while"), ["", mk_fun ~pos:$loc($2) [] $2; "", mk_fun ~pos:$loc($4) [] $4])) }
   | FOR bindvar GETS expr DO exprs END
-                                     { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, Type.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), None] $6])) }
+                                     { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, Type.var ~pos:(Some $loc($2)) (), None] $6])) }
   | expr TO expr                     { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($2) (Var "iterator"), "int")), ["", $1; "", $3])) }
   | expr COALESCE expr               { let null = mk ~pos:$loc($1) (Var "null") in
                                        let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
@@ -166,14 +166,14 @@ expr:
                                        mk ~pos:$loc (App (op, ["",$1;"",handler])) }
   | TRY exprs CATCH bindvar IN varlist DO exprs END
                                      { let fn = mk_fun ~pos:$loc($2) [] $2 in
-                                       let err_arg = ["", $4, Type.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
+                                       let err_arg = ["", $4, Type.var ~pos:(Some $loc($4)) (), None] in
                                        let errors = mk_list ~pos:$loc $6 in
                                        let handler =  mk_fun ~pos:$loc($8) err_arg $8 in
                                        let error_module = mk ~pos:$loc($1) (Var "error") in
                                        let op = mk ~pos:$loc($1) (Invoke (error_module, "catch")) in
                                        mk ~pos:$loc (App (op, ["errors", errors; "", fn; "", handler])) }
   | TRY exprs CATCH bindvar DO exprs END { let fn = mk_fun ~pos:$loc($2) [] $2 in
-                                       let err_arg = ["", $4, Type.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
+                                       let err_arg = ["", $4, Type.var ~pos:(Some $loc($4)) (), None] in
                                        let handler = mk_fun ~pos:$loc($6) err_arg $6 in
                                        let errors = mk ~pos:$loc Null in
                                        let error_module = mk ~pos:$loc($1) (Var "error") in
@@ -355,10 +355,10 @@ arglist:
   | arg                   { $1 }
   | arg COMMA arglist     { $1@$3 }
 arg:
-  | TILD var opt { [$2, $2, Type.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $3] }
+  | TILD var opt { [$2, $2, Type.var ~pos:(Some $loc($2)) (), $3] }
   | TILD LPAR var COLON ty RPAR opt { [$3, $3, $5, $7 ] }
-  | TILD var GETS UNDERSCORE opt { [$2, "_", Type.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $5] }
-  | bindvar opt  { ["", $1, Type.fresh_evar ~level:(-1) ~pos:(Some $loc($1)), $2] }
+  | TILD var GETS UNDERSCORE opt { [$2, "_", Type.var ~pos:(Some $loc($2)) (), $5] }
+  | bindvar opt  { ["", $1, Type.var ~pos:(Some $loc($1)) (), $2] }
   | LPAR bindvar COLON ty RPAR opt { ["", $2, $4, $6] }
   | ARGS_OF LPAR var RPAR { args_of ~only:[] ~except:[] ~pos:$loc $3 }
   | ARGS_OF LPAR subfield RPAR

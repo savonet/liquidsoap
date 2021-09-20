@@ -133,7 +133,9 @@ let () = to_json_ref := to_json
 let () =
   let val_t = univ_t () in
   let var =
-    match val_t.Type.descr with Type.EVar v -> v | _ -> assert false
+    match val_t.Type.descr with
+      | Type.Var { contents = Free v } -> v
+      | _ -> assert false
   in
   let meth =
     [
