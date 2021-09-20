@@ -711,9 +711,9 @@ let generalizable ~level t =
 (* TODO: we should keep only bound with no type variable and fix the type otherwise. *)
 let generalize ~level t : scheme =
   let g = generalizable ~level t in
-  Printf.printf "generalize %s: %s\n%!" (print t)
-    (List.map (fun v -> print (make (Var (ref (Free v))))) g
-    |> String.concat ", ");
+  (* Printf.printf "generalize %s: %s\n%!" (print t) *)
+  (* (List.map (fun v -> print (make (Var (ref (Free v))))) g *)
+  (* |> String.concat ", "); *)
   (g, t)
 
 (** Substitutions. *)
@@ -785,14 +785,14 @@ let copy_with (subst : Subst.t) t =
    level, and attached to the appropriate constraints.  This erases position
    information, since they usually become irrelevant. *)
 let instantiate ~level (g, t) =
-  Printf.printf "generalized: %s\n%!"
-    (List.map (fun v -> print (make (Var (ref (Free v))))) g
-    |> String.concat ", ");
+  (* Printf.printf "generalized: %s\n%!" *)
+  (* (List.map (fun v -> print (make (Var (ref (Free v))))) g *)
+  (* |> String.concat ", "); *)
   let subst = List.map (fun v -> (v, var ~level ())) g in
   let subst = Subst.of_list subst in
-  Printf.printf "instantiate: %s => " (print t);
+  (* Printf.printf "instantiate: %s => " (print t); *)
   let ans = copy_with subst t in
-  Printf.printf "%s\n%!" (print ans);
+  (* Printf.printf "%s\n%!" (print ans); *)
   ans
 
 (** {1 Documentation} *)
