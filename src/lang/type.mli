@@ -61,9 +61,9 @@ type constraints = constr list
 
 val print_constr : constr -> string
 
-type t = { pos : pos option; mutable level : int; mutable descr : descr }
+type t = { pos : pos option; descr : descr }
 
-and constructed = { name : string; params : (variance * t) list }
+and constructed = { constructor : string; params : (variance * t) list }
 
 and descr =
   | Constr of constructed
@@ -74,31 +74,33 @@ and descr =
   | Nullable of t
   | Meth of string * scheme * string * t
   | Arrow of (bool * string * t) list * t
-  | EVar of var
-  | Link of variance * t
+  | Var of invar ref
 
-and var = int * constraints
+and invar = Free of var | Link of variance * t
+
+and var = { name : int; mutable level : int; mutable constraints : constraints }
 
 and scheme = var list * t
 
 val unit : descr
-val make : ?pos:pos option -> ?level:int -> descr -> t
-val dummy : t
+val make : ?pos:pos option -> descr -> t
 
 (** Remove links in a type: this function should always be called before
     matching on types. *)
 val deref : t -> t
 
-val fresh : constraints:constraints -> level:int -> pos:pos option -> t
-val fresh_evar : level:int -> pos:pos option -> t
-val filter_vars : (t -> bool) -> t -> var list
+(** Compare two variables for equality. This comparison should always be used to
+    compare variables (as opposed to =). *)
+val var : ?constraints:constraints -> ?level:int -> ?pos:pos option -> unit -> t
+
+val var_eq : var -> var -> bool
+val filter_vars : (var -> bool) -> t -> var list
 
 (** Add a method to a type. *)
-val meth :
-  ?pos:pos option -> ?level:int -> string -> scheme -> ?doc:string -> t -> t
+val meth : ?pos:pos option -> string -> scheme -> ?doc:string -> t -> t
 
 (** Add a submethod to a type. *)
-val meths : ?pos:pos option -> ?level:int -> string list -> scheme -> t -> t
+val meths : ?pos:pos option -> string list -> scheme -> t -> t
 
 (** Remove all methods in a type. *)
 val demeth : t -> t
@@ -145,7 +147,7 @@ val print_type_error : (string -> unit) -> explanation -> unit
 (** {1 Printing and documentation} *)
 
 val pp_type : Format.formatter -> t -> unit
-val pp_type_generalized : var list -> Format.formatter -> t -> unit
+val pp_scheme : Format.formatter -> scheme -> unit
 val print : ?generalized:var list -> t -> string
 val print_scheme : scheme -> string
 val doc_of_type : generalized:var list -> t -> Doc.item

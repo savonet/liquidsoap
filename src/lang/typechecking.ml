@@ -52,7 +52,7 @@ let add_task, pop_tasks =
 (** Generate a type with fresh variables for a pattern. *)
 let rec type_of_pat ~level ~pos = function
   | PVar x ->
-      let a = Type.fresh_evar ~level ~pos in
+      let a = Type.var ~level ~pos () in
       ([(x, a)], a)
   | PTuple l ->
       let env, l =
@@ -63,47 +63,30 @@ let rec type_of_pat ~level ~pos = function
           ([], []) l
       in
       let l = List.rev l in
-      (env, Type.make ~level ~pos (Type.Tuple l))
+      (env, Type.make ~pos (Type.Tuple l))
 
-(* Type-check an expression.
- * [level] should be the sum of the lengths of [env] and [builtins],
- * that is the size of the typing context, that is the number of surrounding
- * abstractions. *)
+(* Type-check an expression. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let check = check ~throw in
-  (* The role of this function is not only to type-check but also to assign
-   * meaningful levels to type variables, and unify the types of
-   * all occurrences of the same variable, since the parser does not do it. *)
-  assert (e.t.Type.level = -1);
-  e.t.Type.level <- level;
-
-  (* The toplevel position of the (un-dereferenced) type
-   * is the actual parsing position of the value.
-   * When we synthesize a type against which the type of the term is unified,
-   * we have to set the position information in order not to loose it. *)
+  (* The toplevel position of the (un-dereferenced) type is the actual parsing
+     position of the value. When we synthesize a type against which the type of
+     the term is unified, we have to set the position information in order not
+     to loose it. *)
   let pos = e.t.Type.pos in
-  let mk t = Type.make ~level ~pos t in
+  let mk t = Type.make ~pos t in
   let mkg t = mk (Type.Ground t) in
   let check_fun ~proto ~env e body =
     let base_check = check ~level ~env in
-    let proto_t, env, level =
+    let proto_t, env =
       List.fold_left
-        (fun (p, env, level) -> function
+        (fun (p, env) -> function
           | lbl, var, kind, None ->
-              if Lazy.force debug then
-                Printf.eprintf "Assigning level %d to %s (%s).\n" level var
-                  (Type.print kind);
-              kind.Type.level <- level;
-              ((false, lbl, kind) :: p, (var, ([], kind)) :: env, level + 1)
+              ((false, lbl, kind) :: p, (var, ([], kind)) :: env)
           | lbl, var, kind, Some v ->
-              if Lazy.force debug then
-                Printf.eprintf "Assigning level %d to %s (%s).\n" level var
-                  (Type.print kind);
-              kind.Type.level <- level;
               base_check v;
               v.t <: kind;
-              ((true, lbl, kind) :: p, (var, ([], kind)) :: env, level + 1))
-        ([], env, level) proto
+              ((true, lbl, kind) :: p, (var, ([], kind)) :: env))
+        ([], env) proto
     in
     let proto_t = List.rev proto_t in
     check ~level ~env body;
@@ -121,7 +104,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         in
         check_enc f;
         let t =
-          try Lang_encoder.type_of_encoder ~pos:e.t.Type.pos ~level f
+          try Lang_encoder.type_of_encoder ~pos:e.t.Type.pos f
           with Not_found ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace
@@ -131,13 +114,13 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         e.t >: t
     | List l ->
         List.iter (fun x -> check ~level ~env x) l;
-        let t = Type.fresh_evar ~level ~pos in
+        let t = Type.var ~level ~pos () in
         List.iter (fun e -> e.t <: t) l;
         e.t >: mk (Type.List t)
     | Tuple l ->
         List.iter (fun a -> check ~level ~env a) l;
         e.t >: mk (Type.Tuple (List.map (fun a -> a.t) l))
-    | Null -> e.t >: mk (Type.Nullable (Type.fresh_evar ~level ~pos))
+    | Null -> e.t >: mk (Type.Nullable (Type.var ~level ~pos ()))
     | Cast (a, t) ->
         check ~level ~env a;
         a.t <: t;
@@ -145,8 +128,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     | Meth (l, a, b) ->
         check ~level ~env a;
         check ~level ~env b;
-        e.t
-        >: mk (Type.Meth (l, (Typing.generalizable ~level a.t, a.t), "", b.t))
+        e.t >: mk (Type.Meth (l, Typing.generalize ~level a.t, "", b.t))
     | Invoke (a, l) ->
         check ~level ~env a;
         let rec aux t =
@@ -158,8 +140,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 (* We did not find the method, the type we will infer is not the
                    most general one (no generalization), but this is safe and
                    enough for records. *)
-                let x = Type.fresh_evar ~level ~pos in
-                let y = Type.fresh_evar ~level ~pos in
+                let x = Type.var ~level ~pos () in
+                let y = Type.var ~level ~pos () in
                 a.t <: mk (Type.Meth (l, ([], x), "", y));
                 x
         in
@@ -217,10 +199,10 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
               in
               (* See if any mandatory argument remains, check the return type. *)
               if List.for_all (fun (o, _, _) -> o) ap then e.t >: t
-              else e.t >: Type.make ~level ~pos:None (Type.Arrow (ap, t))
+              else e.t >: Type.make (Type.Arrow (ap, t))
           | _ ->
               let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
-              a.t <: Type.make ~level ~pos:None (Type.Arrow (p, e.t)))
+              a.t <: Type.make (Type.Arrow (p, e.t)))
     | Fun (_, proto, body) -> check_fun ~proto ~env e body
     | RFun (x, _, proto, body) ->
         let env = (x, ([], e.t)) :: env in
@@ -232,25 +214,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         in
         e.t >: Typing.instantiate ~level ~generalized orig;
         if Lazy.force debug then
-          Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n" var
-            (Type.deref e.t).Type.level (Type.print orig) (Type.print e.t)
+          Printf.eprintf "Instantiate %s : %s becomes %s\n" var
+            (Type.print orig) (Type.print e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
-        check ~level ~env def;
+        check ~level:(level + 1) ~env def;
         let generalized =
-          if value_restriction def then (
-            let f x t =
-              let x' =
-                Type.filter_vars
-                  (function
-                    | { Type.descr = Type.EVar (i, _); level = l; _ } ->
-                        (not (List.mem_assoc i x)) && l >= level
-                    | _ -> assert false)
-                  t
-              in
-              x' @ x
-            in
-            f [] def.t)
-          else []
+          if value_restriction def then fst (generalize ~level def.t) else []
         in
         let penv, pa = type_of_pat ~level ~pos pat in
         def.t <: pa;
@@ -273,7 +242,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                         if replace then Type.remeth (snd (Type.invokes t ll)) a
                         else a
                       in
-                      (l, (g, Type.meths ~pos ~level ll (generalized, a) t))
+                      (l, (g, Type.meths ~pos ll (generalized, a) t))
                     with Not_found ->
                       raise (Unbound (pos, String.concat "." (l :: ll)))))
             penv
@@ -286,9 +255,9 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 (let name = string_of_pat pat in
                  let l = String.length name and max = 5 in
                  if l >= max then name else name ^ String.make (max - l) ' ')
-                (Type.pp_type_generalized generalized)
+                (fun f t -> Type.pp_scheme f (generalized, t))
                 def.t);
-        check ~print_toplevel ~level:(level + 1) ~env body;
+        check ~print_toplevel ~level ~env body;
         e.t >: body.t
 
 (* The simple definition for external use. *)

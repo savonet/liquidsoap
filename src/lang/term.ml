@@ -81,17 +81,17 @@ let profile = ref false
 (* In a sense this could be moved to Type, but I like to keep that part free of
    some specificities of liquidsoap, as much as possible. *)
 
-let ref_t ?pos ?level t =
-  Type.make ?pos ?level
-    (Type.Constr { Type.name = "ref"; params = [(Type.Invariant, t)] })
+let ref_t ?pos t =
+  Type.make ?pos
+    (Type.Constr { Type.constructor = "ref"; params = [(Type.Invariant, t)] })
 
 (** A frame kind type is a purely abstract type representing a
     frame kind. *)
-let frame_kind_t ?pos ?level audio video midi =
-  Type.make ?pos ?level
+let frame_kind_t ?pos audio video midi =
+  Type.make ?pos
     (Type.Constr
        {
-         Type.name = "stream_kind";
+         Type.constructor = "stream_kind";
          Type.params =
            [
              (Type.Covariant, audio);
@@ -100,29 +100,25 @@ let frame_kind_t ?pos ?level audio video midi =
            ];
        })
 
-let kind_t ?pos ?level kind =
-  let evar ?(constraints = []) () =
-    Type.fresh ~constraints
-      ~pos:(match pos with None -> None | Some pos -> pos)
-      ~level:(-1)
-  in
-  let mk_format f = Type.make ?pos ?level (Type.Ground (Type.Format f)) in
+let kind_t ?pos kind =
+  let evar ?(constraints = []) () = Type.var ~constraints ?pos () in
+  let mk_format f = Type.make ?pos (Type.Ground (Type.Format f)) in
   match kind with
     | `Any -> evar ()
     | `Internal -> evar ~constraints:[Type.InternalMedia] ()
     | `Kind k ->
-        Type.make ?pos ?level
+        Type.make ?pos
           (Type.Constr
              {
-               Type.name = Frame_content.string_of_kind k;
+               Type.constructor = Frame_content.string_of_kind k;
                Type.params = [(Type.Covariant, evar ())];
              })
     | `Format f ->
         let k = Frame_content.kind f in
-        Type.make ?pos ?level
+        Type.make ?pos
           (Type.Constr
              {
-               Type.name = Frame_content.string_of_kind k;
+               Type.constructor = Frame_content.string_of_kind k;
                Type.params = [(Type.Covariant, mk_format f)];
              })
 
@@ -131,44 +127,46 @@ let of_frame_kind_t t =
   match t.Type.descr with
     | Type.Constr
         {
-          Type.name = "stream_kind";
+          Type.constructor = "stream_kind";
           Type.params = [(_, audio); (_, video); (_, midi)];
         } ->
         { Frame.audio; video; midi }
-    | Type.EVar (_, _) ->
+    | Type.Var ({ contents = Type.Free _ } as var) ->
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
-        t.Type.descr <- Type.Link (Type.Invariant, frame_kind_t audio video midi);
+        var := Type.Link (Type.Invariant, frame_kind_t audio video midi);
         { Frame.audio; video; midi }
     | _ -> assert false
 
 (** Type of audio formats that can encode frame of a given kind. *)
-let format_t ?pos ?level k =
-  Type.make ?pos ?level
-    (Type.Constr { Type.name = "format"; Type.params = [(Type.Covariant, k)] })
+let format_t ?pos k =
+  Type.make ?pos
+    (Type.Constr
+       { Type.constructor = "format"; Type.params = [(Type.Covariant, k)] })
 
 (** Type of sources carrying frames of a given kind. *)
-let source_t ?pos ?level k =
-  Type.make ?pos ?level
-    (Type.Constr { Type.name = "source"; Type.params = [(Type.Invariant, k)] })
+let source_t ?pos k =
+  Type.make ?pos
+    (Type.Constr
+       { Type.constructor = "source"; Type.params = [(Type.Invariant, k)] })
 
 (* Filled in later to avoid dependency cycles. *)
 let source_methods_t = ref (fun () : Type.t -> assert false)
 
 let of_source_t t =
   match (Type.deref t).Type.descr with
-    | Type.Constr { Type.name = "source"; Type.params = [(_, t)] } -> t
+    | Type.Constr { Type.constructor = "source"; Type.params = [(_, t)] } -> t
     | _ -> assert false
 
-let request_t ?pos ?level () = Type.make ?pos ?level (Type.Ground Type.Request)
+let request_t ?pos () = Type.make ?pos (Type.Ground Type.Request)
 
-let type_of_format ~pos ~level f =
+let type_of_format ~pos f =
   let kind = Encoder.kind_of_format f in
-  let audio = kind_t ~pos ~level kind.Frame.audio in
-  let video = kind_t ~pos ~level kind.Frame.video in
-  let midi = kind_t ~pos ~level kind.Frame.midi in
-  format_t ~pos ~level (frame_kind_t ~pos ~level audio video midi)
+  let audio = kind_t ~pos kind.Frame.audio in
+  let video = kind_t ~pos kind.Frame.video in
+  let midi = kind_t ~pos kind.Frame.midi in
+  format_t ~pos (frame_kind_t ~pos audio video midi)
 
 (** {2 Terms} *)
 
@@ -319,7 +317,7 @@ and let_t = {
   replace : bool;
   (* whether the definition replaces a previously existing one (keeping methods) *)
   pat : pattern;
-  mutable gen : (int * Type.constraints) list;
+  mutable gen : Type.var list;
   def : t;
   body : t;
 }
@@ -409,9 +407,7 @@ let rec string_of_pat = function
 
 (** Create a new value. *)
 let make ?pos ?t e =
-  let t =
-    match t with Some t -> t | None -> Type.fresh_evar ~level:(-1) ~pos
-  in
+  let t = match t with Some t -> t | None -> Type.var ~pos () in
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
       (Type.print_pos_opt t.Type.pos)
@@ -471,7 +467,7 @@ let free_vars ?(bound = []) body =
    ignored). *)
 let can_ignore t =
   match (Type.demeth t).Type.descr with
-    | Type.Tuple [] | Type.EVar _ -> true
+    | Type.Tuple [] | Type.Var _ -> true
     | _ -> false
 
 (* TODO: what about functions with methods? *)
@@ -480,7 +476,7 @@ let is_fun t =
 
 let is_source t =
   match (Type.demeth t).Type.descr with
-    | Type.Constr { Type.name = "source"; _ } -> true
+    | Type.Constr { Type.constructor = "source"; _ } -> true
     | _ -> false
 
 (** {1 Basic checks and errors} *)

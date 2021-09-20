@@ -65,7 +65,7 @@ let of_list_t t =
 let nullable_t t = Type.make (Type.Nullable t)
 let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
-let univ_t ?(constraints = []) () = Type.fresh ~level:0 ~constraints ~pos:None
+let univ_t ?(constraints = []) () = Type.var ~constraints ()
 let getter_t a = Type.make (Type.Getter a)
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
