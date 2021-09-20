@@ -656,7 +656,8 @@ let filter_vars f t =
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
-      | Var { contents = Free var } -> if f var then var :: l else l
+      | Var { contents = Free var } ->
+          if f var && not (List.exists (var_eq var) l) then var :: l else l
       | Var { contents = Link _ } -> assert false
   in
   aux [] t

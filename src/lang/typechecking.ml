@@ -218,21 +218,9 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             (Type.print orig) (Type.print e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
         check ~level:(level + 1) ~env def;
-        let generalized =
-          if value_restriction def then (
-            let f x t =
-              let x' =
-                Type.filter_vars
-                  (fun v ->
-                    v.Type.level > level
-                    && not
-                         (List.exists (fun v' -> v.Type.name = v'.Type.name) x))
-                  t
-              in
-              x' @ x
-            in
-            f [] def.t)
-          else []
+        let generalized, _ =
+          if value_restriction def then Typing.generalize ~level def.t
+          else ([], def.t)
         in
         let penv, pa = type_of_pat ~level ~pos pat in
         def.t <: pa;
