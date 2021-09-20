@@ -165,11 +165,22 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~level ~env a;
         List.iter (fun (_, b) -> check ~env ~level b) l;
 
+        let t =
+          let open Type in
+          let t = demeth a.t in
+          match t.descr with
+            | Arrow _ -> t
+            | Var { contents = Free { lower_bound = l } } -> (
+                let l = demeth l in
+                match l.descr with Arrow _ -> l | _ -> t)
+            | _ -> t
+        in
+
         (* If [a] is known to have a function type, manually dig through it for
            better error messages. Otherwise generate its type and unify -- in
            that case the optionality can't be guessed and mandatory is the
            default. *)
-        match (Type.demeth a.t).Type.descr with
+        match t.Type.descr with
           | Type.Arrow (ap, t) ->
               (* Find in l the first arg labeled lbl, return it together with the
                  remaining of the list. *)

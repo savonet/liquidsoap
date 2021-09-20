@@ -699,6 +699,8 @@ let generalizable ~level t =
             if (deref v.lower_bound).descr = Bot then
               if not (List.exists (var_eq v) l) then v :: l else l
             else (
+              (* Generalized variables with bounds seem to be complicated. Get
+                 rid of them for now. *)
               var := Link v.lower_bound;
               aux l v.lower_bound)
           else l
@@ -709,6 +711,9 @@ let generalizable ~level t =
 (* TODO: we should keep only bound with no type variable and fix the type otherwise. *)
 let generalize ~level t : scheme =
   let g = generalizable ~level t in
+  Printf.printf "generalize %s: %s\n%!" (print t)
+    (List.map (fun v -> print (make (Var (ref (Free v))))) g
+    |> String.concat ", ");
   (g, t)
 
 (** Substitutions. *)
@@ -741,11 +746,16 @@ let copy_with (subst : Subst.t) t =
     let descr =
       match t.descr with
         | Var { contents = Free v } as d -> (
-            try (Subst.value subst v).descr with Not_found -> d)
+            try (Subst.value subst v).descr
+            with Not_found ->
+              if (deref v.lower_bound).descr <> Bot then
+                (aux v.lower_bound).descr
+              else d)
         | Var { contents = Link t } ->
             (* Keep links to preserve rich position information, and to make it
                possible to check if the application left the type unchanged. *)
-            Var (ref (Link (aux t)))
+            (* Var (ref (Link (aux t))) *)
+            (aux t).descr
         | Constr c ->
             let params = List.map (fun (v, t) -> (v, aux t)) c.params in
             Constr { c with params }
@@ -758,7 +768,10 @@ let copy_with (subst : Subst.t) t =
         | Meth (l, (g, t), d, u) ->
             (* We assume that we don't substitute generalized variables. *)
             if !debug then
-              assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
+              assert (
+                Subst.M.for_all
+                  (fun v _ -> not (List.exists (var_eq v) g))
+                  subst);
             Meth (l, (g, aux t), d, aux u)
         | Arrow (p, t) ->
             Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t)
@@ -772,9 +785,15 @@ let copy_with (subst : Subst.t) t =
    level, and attached to the appropriate constraints.  This erases position
    information, since they usually become irrelevant. *)
 let instantiate ~level (g, t) =
+  Printf.printf "generalized: %s\n%!"
+    (List.map (fun v -> print (make (Var (ref (Free v))))) g
+    |> String.concat ", ");
   let subst = List.map (fun v -> (v, var ~level ())) g in
   let subst = Subst.of_list subst in
-  copy_with subst t
+  Printf.printf "instantiate: %s => " (print t);
+  let ans = copy_with subst t in
+  Printf.printf "%s\n%!" (print ans);
+  ans
 
 (** {1 Documentation} *)
 
