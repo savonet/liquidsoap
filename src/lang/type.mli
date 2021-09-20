@@ -95,6 +95,7 @@ val var : ?constraints:constraints -> ?level:int -> ?pos:pos option -> unit -> t
     compare variables (as opposed to =). *)
 val var_eq : var -> var -> bool
 
+(** Find all variables satisfying a predicate. *)
 val filter_vars : (var -> bool) -> t -> var list
 
 (** Add a method to a type. *)
@@ -106,6 +107,7 @@ val meths : ?pos:pos option -> string list -> scheme -> t -> t
 (** Remove all methods in a type. *)
 val demeth : t -> t
 
+(** Split a type between methods and the main type. *)
 val split_meths : t -> (string * (scheme * string)) list * t
 
 (** Put the methods of the first type around the second type. *)
@@ -119,6 +121,7 @@ val invokes : t -> string list -> scheme
 
 (** {1 Representation of types} *)
 
+(** Representation of a type. *)
 type repr =
   [ `Constr of string * (variance * repr) list
   | `Ground of ground
@@ -128,13 +131,16 @@ type repr =
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
-  | `EVar of string * constraints (* existential variable *)
-  | `UVar of string * constraints (* universal variable *)
-  | `Ellipsis (* omitted sub-term *)
-  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
+  | `EVar of string * constraints  (** existential variable *)
+  | `UVar of string * constraints  (** universal variable *)
+  | `Ellipsis  (** omitted sub-term *)
+  | `Range_Ellipsis  (** omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of string * repr * string ]
 
+(** Representation of a type. *)
 val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
+
+(** Print the representation of a type. *)
 val print_repr : Format.formatter -> repr -> unit
 
 (** {1 Typing errors} *)
