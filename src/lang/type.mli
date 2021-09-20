@@ -88,6 +88,10 @@ and var = {
 
 and scheme = var list * t
 
+(** Compare two variables for equality. This comparison should always be used to
+    compare variables (as opposed to =). *)
+val var_eq : var -> var -> bool
+
 val unit : descr
 
 (** Create a type. *)

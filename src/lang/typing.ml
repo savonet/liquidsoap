@@ -24,8 +24,7 @@
 
 open Type
 
-(* let () = Type.debug := true *)
-
+let () = Type.debug := true
 let debug_subtyping = ref true
 
 type env = (string * scheme) list
@@ -61,10 +60,12 @@ let rec hide_meth l a =
   * This is performed after type inference on the left-hand side
   * of a let-in, with [level] being the level of that let-in.
   * Uses the simple method of ML, to be associated with a value restriction. *)
-let generalizable ~level t = filter_vars (fun t -> t.level >= level) t
+let generalizable ~level t = filter_vars (fun v -> v.level > level) t
 
 (* TODO: we should keep only bound with no type variable and fix the type otherwise. *)
-let generalize ~level t : Type.scheme = (generalizable ~level t, t)
+let generalize ~level t : Type.scheme =
+  let g = generalizable ~level t in
+  (g, t)
 
 (** Substitutions. *)
 module Subst = struct
@@ -353,24 +354,6 @@ and ( <: ) a b =
   let b = deref b in
   match (a.descr, b.descr) with
     | Bot, _ -> ()
-    | Var { contents = Free v }, Var { contents = Free v' }
-      when v.name = v'.name ->
-        ()
-    | _, Var { contents = Free v } -> (
-        occur_check v a;
-        satisfies_constraints a v.constraints;
-        let lb = v.lower_bound in
-        v.lower_bound <- sup ~pos:b.pos v.lower_bound a;
-        try
-          lb <: v.lower_bound;
-          a <: v.lower_bound
-        with _ ->
-          failwith
-            (Printf.sprintf "sup did to increase: %s sup %s not <: %s"
-               (Type.print lb) (Type.print a) (Type.print v.lower_bound)))
-    | Var { contents = Free v }, _ ->
-        (* TODO: we could add an upper bound, but this is left for later. *)
-        bind a b
     | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
@@ -483,6 +466,31 @@ and ( <: ) a b =
     | Arrow ([], t1), Getter t2 -> (
         try t1 <: t2
         with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
+    | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v' ->
+        ()
+    | Var { contents = Free v }, _ -> (
+        (* TODO: we could add an upper bound, but this is left for later. *)
+        try bind a b
+        with Occur_check _ | Unsatisfied_constraint _ ->
+          (* Can't do more concise than a full representation, as the problem
+             isn't local. *)
+          raise (Error (repr a, repr b)))
+    | _, Var { contents = Free v } ->
+        (*
+        occur_check v a;
+        satisfies_constraints a v.constraints;
+        let lb = v.lower_bound in
+        v.lower_bound <- sup ~pos:b.pos v.lower_bound a;
+        try
+          lb <: v.lower_bound;
+          a <: v.lower_bound
+        with _ ->
+          failwith
+            (Printf.sprintf "sup did to increase: %s sup %s not <: %s"
+               (Type.print lb) (Type.print a) (Type.print v.lower_bound))
+         *)
+        (* TODO: restore subtyping... *)
+        bind b a
     (*
     | Var _, _ -> (
         try bind a b

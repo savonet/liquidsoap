@@ -179,6 +179,7 @@ type repr =
     string * repr * string
     (* add annotations before / after, mostly used for debugging *) ]
 
+let var_eq v v' = v.name = v'.name
 let make ?(pos = None) d = { pos; descr = d }
 
 (** Dereferencing gives you the meaning of a term, going through links created
@@ -270,8 +271,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     let constr_symbols, c = split_constr var.constraints in
     let rec index n = function
       | v :: tl ->
-          if v.name = var.name then
-            Printf.sprintf "'%s%s" constr_symbols (name n)
+          if var_eq v var then Printf.sprintf "'%s%s" constr_symbols (name n)
           else index (n + 1) tl
       | [] -> assert false
     in
@@ -330,8 +330,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Var { contents = Free var } ->
-            if List.exists (fun v -> v.name = var.name) g then uvar g var
-            else evar var
+            if List.exists (var_eq var) g then uvar g var else evar var
         | Var { contents = Link t } -> repr g t)
   in
   repr generalized t
