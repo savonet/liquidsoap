@@ -575,7 +575,8 @@ let () =
       if Sys.is_directory f then
         Runtime_error.error
           ~message:
-            (Printf.sprintf "File %s is a directory!"
+            (Printf.sprintf
+               "File %s is a directory! A regular file was expected."
                (Utils.quote_utf8_string f))
           "playlist";
       let content = Utils.read_all f in
