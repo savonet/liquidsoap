@@ -26,7 +26,7 @@ open Type
 
 (* let () = Type.debug := true *)
 
-let debug_subtyping = ref false
+let debug_subtyping = ref true
 
 type env = (string * scheme) list
 
@@ -322,17 +322,11 @@ let rec bind a b =
   in
   (* if !debug then Printf.eprintf "%s := %s\n%!" (print a0) (print b); *)
   let b = deref b in
-  if
-    match b.descr with
-      | Var { contents = Free b } when a.name = b.name -> true
-      | _ -> false
-  then ()
-  else (
-    occur_check a b;
-    satisfies_constraints b a.constraints;
-    a.lower_bound <: b;
-    let b = if b.pos = None then { b with pos = a0.pos } else b in
-    v := Link b)
+  occur_check a b;
+  satisfies_constraints b a.constraints;
+  a.lower_bound <: b;
+  let b = if b.pos = None then { b with pos = a0.pos } else b in
+  v := Link b
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
@@ -358,6 +352,10 @@ and ( <: ) a b =
   let a = deref a in
   let b = deref b in
   match (a.descr, b.descr) with
+    | Bot, _ -> ()
+    | Var { contents = Free v }, Var { contents = Free v' }
+      when v.name = v'.name ->
+        ()
     | _, Var { contents = Free v } -> (
         occur_check v a;
         satisfies_constraints a v.constraints;
@@ -485,13 +483,13 @@ and ( <: ) a b =
     | Arrow ([], t1), Getter t2 -> (
         try t1 <: t2
         with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
+    (*
     | Var _, _ -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->
           (* Can't do more concise than a full representation, as the problem
              isn't local. *)
           raise (Error (repr a, repr b)))
-    (*
     | _, Var { contents = Free v }
     (* Force dropping the methods when we have constraints (see #1496) unless
        we are comparing records (see #1930). *)

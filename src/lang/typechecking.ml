@@ -223,7 +223,10 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             let f x t =
               let x' =
                 Type.filter_vars
-                  (fun v -> v.Type.level > level && not (List.mem v x))
+                  (fun v ->
+                    v.Type.level > level
+                    && not
+                         (List.exists (fun v' -> v.Type.name = v'.Type.name) x))
                   t
               in
               x' @ x

@@ -134,7 +134,7 @@ let () =
   let val_t = univ_t () in
   let var =
     match val_t.Type.descr with
-      | Type.Var { contents = Free v } -> v
+      | Type.Var { contents = Type.Free v } -> v
       | _ -> assert false
   in
   let meth =
