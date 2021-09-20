@@ -131,10 +131,10 @@ type repr =
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
-  | `EVar of string * constraints  (** existential variable *)
-  | `UVar of string * constraints  (** universal variable *)
-  | `Ellipsis  (** omitted sub-term *)
-  | `Range_Ellipsis  (** omitted sub-terms (in a list, e.g. list of args) *)
+  | `EVar of string * constraints (** existential variable *)
+  | `UVar of string * constraints (** universal variable *)
+  | `Ellipsis (** omitted sub-term *)
+  | `Range_Ellipsis (** omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of string * repr * string ]
 
 (** Representation of a type. *)
