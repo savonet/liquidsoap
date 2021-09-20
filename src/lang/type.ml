@@ -168,16 +168,18 @@ type repr =
   | `List of repr
   | `Tuple of repr list
   | `Nullable of repr
-  | `Meth of string * ((string * constraints) list * repr) * repr
+  | `Meth of string * (var_repr list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
-  | `EVar of string * constraints (* existential variable *)
-  | `UVar of string * constraints (* universal variable *)
+  | `EVar of var_repr (* existential variable *)
+  | `UVar of var_repr (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
   | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of
     string * repr * string
     (* add annotations before / after, mostly used for debugging *) ]
+
+and var_repr = string * repr * constraints
 
 let var_eq v v' = v.name = v'.name
 let make ?(pos = None) d = { pos; descr = d }
@@ -267,7 +269,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
-  let uvar g var =
+  let uvar g var lower_bound =
     let constr_symbols, c = split_constr var.constraints in
     let rec index n = function
       | v :: tl ->
@@ -277,7 +279,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    `UVar (v, c)
+    `UVar (v, lower_bound, c)
   in
   let counter =
     let c = ref 0 in
@@ -286,7 +288,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       !c
   in
   let evars = Hashtbl.create 10 in
-  let evar var =
+  let evar var lower_bound =
     let constr_symbols, c = split_constr var.constraints in
     if !debug then (
       let v =
@@ -295,7 +297,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       let v =
         if !debug_levels then Printf.sprintf "%s[%d]" v var.level else v
       in
-      `EVar (v, c))
+      `EVar (v, lower_bound, c))
     else (
       let s =
         try Hashtbl.find evars var.name
@@ -304,7 +306,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
           Hashtbl.add evars var.name name;
           name
       in
-      `EVar (Printf.sprintf "?%s%s" constr_symbols s, c))
+      `EVar (Printf.sprintf "?%s%s" constr_symbols s, lower_bound, c))
   in
   let rec repr g t =
     if filter_out t then `Ellipsis
@@ -319,7 +321,9 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Meth (l, (g', u), _, v) ->
             let gen =
               List.map
-                (fun ic -> match uvar (g' @ g) ic with `UVar ic -> ic)
+                (fun v ->
+                  match uvar (g' @ g) v (repr g v.lower_bound) with
+                    | `UVar v -> v)
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
@@ -330,7 +334,9 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Var { contents = Free var } ->
-            if List.exists (var_eq var) g then uvar g var else evar var
+            if List.exists (var_eq var) g then
+              uvar g var (repr g var.lower_bound)
+            else evar var (repr g var.lower_bound)
         | Var { contents = Link t } -> repr g t)
   in
   repr generalized t
@@ -448,7 +454,7 @@ let print_repr f t =
             if m = [] then vars
             else (
               let rec gen = function
-                | (x, _) :: g -> x ^ "." ^ gen g
+                | (x, _, _) :: g -> x ^ "." ^ gen g
                 | [] -> ""
               in
               let gen g =
@@ -485,14 +491,20 @@ let print_repr f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
         vars
-    | `EVar (a, [InternalMedia]) ->
+    | `EVar (a, _, [InternalMedia]) ->
         Format.fprintf f "?internal(%s)" a;
         vars
-    | `UVar (a, [InternalMedia]) ->
+    | `UVar (a, _, [InternalMedia]) ->
         Format.fprintf f "internal(%s)" a;
         vars
-    | `EVar (name, c) | `UVar (name, c) ->
+    | `EVar (name, lower_bound, c) | `UVar (name, lower_bound, c) ->
         Format.fprintf f "%s" name;
+        let vars =
+          if lower_bound <> `Bot then (
+            Format.fprintf f ">";
+            print ~par:true vars lower_bound)
+          else vars
+        in
         if c <> [] then DS.add (name, c) vars else vars
     | `Arrow (p, t) ->
         if par then Format.fprintf f "@[<hov 1>("
@@ -534,10 +546,10 @@ let print_repr f t =
   begin
     match t with
     (* We're only printing a variable: ignore its [repr]esentation. *)
-    | `EVar (_, c) when c <> [] ->
+    | `EVar (_, _, c) when c <> [] ->
         Format.fprintf f "something that is %s"
           (String.concat " and " (List.map print_constr c))
-    | `UVar (_, c) when c <> [] ->
+    | `UVar (_, _, c) when c <> [] ->
         Format.fprintf f "anything that is %s"
           (String.concat " and " (List.map print_constr c))
     (* Print the full thing, then display constraints *)
@@ -647,6 +659,122 @@ let rec invokes t = function
       let g, t = invoke t l in
       if ll = [] then (g, t) else invokes t ll
   | [] -> ([], t)
+
+(** {1 Type generalization and instantiation}
+  *
+  * We don't have type schemes per se, but we compute generalizable variables
+  * and keep track of them in the AST.
+  * This is simple and useful because in any case we need to distinguish
+  * two 'a variables bound at different places. Indeed, we might instantiate
+  * one in a term where the second is bound, and we don't want to
+  * merge the two when going under the binder.
+  *
+  * When generalizing we need to know what can be generalized in the outermost
+  * type but also in the inner types of the term forming a let-definition.
+  * Indeed those variables will have to be instantiated by fresh ones for
+  * every instance.
+  *
+  * If the value restriction applies, then we have some (fun (...) -> ...)
+  * and any type variable of higher level can be generalized, whether it's
+  * in the outermost type or not. *)
+
+(** Find all the variables which can be generalized at current level. *)
+let generalizable ~level t =
+  let rec aux l t =
+    let t = deref t in
+    match t.descr with
+      | Ground _ | Bot -> l
+      | Getter t -> aux l t
+      | List t | Nullable t -> aux l t
+      | Tuple aa -> List.fold_left aux l aa
+      | Meth (_, (g, t), _, u) ->
+          let l =
+            List.filter (fun v -> not (List.exists (var_eq v) g)) (aux l t)
+          in
+          aux l u
+      | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
+      | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
+      | Var ({ contents = Free v } as var) ->
+          if v.level > level then
+            if (deref v.lower_bound).descr = Bot then
+              if not (List.exists (var_eq v) l) then v :: l else l
+            else (
+              var := Link v.lower_bound;
+              aux l v.lower_bound)
+          else l
+      | Var { contents = Link _ } -> assert false
+  in
+  aux [] t
+
+(* TODO: we should keep only bound with no type variable and fix the type otherwise. *)
+let generalize ~level t : scheme =
+  let g = generalizable ~level t in
+  (g, t)
+
+(** Substitutions. *)
+module Subst = struct
+  module M = Map.Make (struct
+    type t = var
+
+    (* We can compare variables with their indices. *)
+    let compare (x : var) (y : var) = compare x.name y.name
+  end)
+
+  type subst = t M.t
+  type t = subst
+
+  let of_list l : t = M.of_seq (List.to_seq l)
+
+  (** Retrieve the value of a variable. *)
+  let value (s : t) (i : var) = M.find i s
+
+  (* let filter f (s : t) = M.filter (fun i t -> f i t) s *)
+
+  (** Whether we have the identity substitution. *)
+  let is_identity (s : t) = M.is_empty s
+end
+
+(** Copy a term, substituting some EVars as indicated by a list of
+    associations. *)
+let copy_with (subst : Subst.t) t =
+  let rec aux t =
+    let descr =
+      match t.descr with
+        | Var { contents = Free v } as d -> (
+            try (Subst.value subst v).descr with Not_found -> d)
+        | Var { contents = Link t } ->
+            (* Keep links to preserve rich position information, and to make it
+               possible to check if the application left the type unchanged. *)
+            Var (ref (Link (aux t)))
+        | Constr c ->
+            let params = List.map (fun (v, t) -> (v, aux t)) c.params in
+            Constr { c with params }
+        | Ground _ as d -> d
+        | Bot -> Bot
+        | Getter t -> Getter (aux t)
+        | List t -> List (aux t)
+        | Nullable t -> Nullable (aux t)
+        | Tuple l -> Tuple (List.map aux l)
+        | Meth (l, (g, t), d, u) ->
+            (* We assume that we don't substitute generalized variables. *)
+            if !debug then
+              assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
+            Meth (l, (g, aux t), d, aux u)
+        | Arrow (p, t) ->
+            Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t)
+    in
+    { t with descr }
+  in
+  if Subst.is_identity subst then t else aux t
+
+(** Instantiate a type scheme, given as a type together with a list of
+   generalized variables. Fresh variables are created with the given (current)
+   level, and attached to the appropriate constraints.  This erases position
+   information, since they usually become irrelevant. *)
+let instantiate ~level (g, t) =
+  let subst = List.map (fun v -> (v, var ~level ())) g in
+  let subst = Subst.of_list subst in
+  copy_with subst t
 
 (** {1 Documentation} *)
 

@@ -131,7 +131,7 @@ let of_frame_kind_t t =
           Type.params = [(_, audio); (_, video); (_, midi)];
         } ->
         { Frame.audio; video; midi }
-    | Type.Var ({ contents = Free _ } as v) ->
+    | Type.Var ({ contents = Type.Free _ } as v) ->
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
@@ -467,7 +467,7 @@ let free_vars ?(bound = []) body =
     ignored). *)
 let can_ignore t =
   match (Type.demeth t).Type.descr with
-    | Type.Tuple [] | Type.Var { contents = Free _ } -> true
+    | Type.Tuple [] | Type.Var { contents = Type.Free _ } -> true
     | _ -> false
 
 (* TODO: what about functions with methods? *)

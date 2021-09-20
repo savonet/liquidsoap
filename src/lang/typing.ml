@@ -38,118 +38,6 @@ let rec hide_meth l a =
     | Meth (l', t, d, u) -> { a with descr = Meth (l', t, d, hide_meth l u) }
     | _ -> a
 
-(** {1 Type generalization and instantiation}
-  *
-  * We don't have type schemes per se, but we compute generalizable variables
-  * and keep track of them in the AST.
-  * This is simple and useful because in any case we need to distinguish
-  * two 'a variables bound at different places. Indeed, we might instantiate
-  * one in a term where the second is bound, and we don't want to
-  * merge the two when going under the binder.
-  *
-  * When generalizing we need to know what can be generalized in the outermost
-  * type but also in the inner types of the term forming a let-definition.
-  * Indeed those variables will have to be instantiated by fresh ones for
-  * every instance.
-  *
-  * If the value restriction applies, then we have some (fun (...) -> ...)
-  * and any type variable of higher level can be generalized, whether it's
-  * in the outermost type or not. *)
-
-(** Find all the variables which can be generalized at current level. *)
-let rec generalizable ~level t =
-  let rec aux l t =
-    let t = deref t in
-    match t.descr with
-      | Ground _ | Bot -> l
-      | Getter t -> aux l t
-      | List t | Nullable t -> aux l t
-      | Tuple aa -> List.fold_left aux l aa
-      | Meth (_, (g, t), _, u) ->
-          let l =
-            List.filter (fun v -> not (List.exists (Type.var_eq v) g)) (aux l t)
-          in
-          aux l u
-      | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
-      | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
-      | Var { contents = Free v } ->
-          let l =
-            if v.level > level && not (List.exists (var_eq v) l) then v :: l
-            else l
-          in
-          aux l v.lower_bound
-      | Var { contents = Link _ } -> assert false
-  in
-  aux [] t
-
-(* TODO: we should keep only bound with no type variable and fix the type otherwise. *)
-let generalize ~level t : Type.scheme =
-  let g = generalizable ~level t in
-  (g, t)
-
-(** Substitutions. *)
-module Subst = struct
-  module M = Map.Make (struct
-    type t = var
-
-    (* We can compare variables with their indices. *)
-    let compare (x : var) (y : var) = compare x.name y.name
-  end)
-
-  type subst = t M.t
-  type t = subst
-
-  let of_list l : t = M.of_seq (List.to_seq l)
-
-  (** Retrieve the value of a variable. *)
-  let value (s : t) (i : var) = M.find i s
-
-  (* let filter f (s : t) = M.filter (fun i t -> f i t) s *)
-
-  (** Whether we have the identity substitution. *)
-  let is_identity (s : t) = M.is_empty s
-end
-
-(** Copy a term, substituting some EVars as indicated by a list of
-    associations. *)
-let copy_with (subst : Subst.t) t =
-  let rec aux t =
-    let cp x = { t with descr = x } in
-    match t.descr with
-      | Var { contents = Free v } -> (
-          try Subst.value subst v with Not_found -> t)
-      | Var { contents = Link t } ->
-          (* Keep links to preserve rich position information, and to make it
-             possible to check if the application left the type unchanged. *)
-          cp (Var (ref (Link (aux t))))
-      | Constr c ->
-          let params = List.map (fun (v, t) -> (v, aux t)) c.params in
-          cp (Constr { c with params })
-      | Ground _ -> cp t.descr
-      | Bot -> cp Bot
-      | Getter t -> cp (Getter (aux t))
-      | List t -> cp (List (aux t))
-      | Nullable t -> cp (Nullable (aux t))
-      | Tuple l -> cp (Tuple (List.map aux l))
-      | Meth (l, (g, t), d, u) ->
-          (* We assume that we don't substitute generalized variables. *)
-          if !debug then
-            assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
-          cp (Meth (l, (g, aux t), d, aux u))
-      | Arrow (p, t) ->
-          cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
-  in
-  if Subst.is_identity subst then t else aux t
-
-(** Instantiate a type scheme, given as a type together with a list of
-   generalized variables. Fresh variables are created with the given (current)
-   level, and attached to the appropriate constraints.  This erases position
-   information, since they usually become irrelevant. *)
-let instantiate ~level ~generalized =
-  let subst = List.map (fun v -> (v, Type.var ~level ())) generalized in
-  let subst = Subst.of_list subst in
-  fun t -> copy_with subst t
-
 (** {1 The type lattice} *)
 
 exception Incompatible
@@ -495,8 +383,7 @@ and ( <: ) a b =
           (* Can't do more concise than a full representation, as the problem
              isn't local. *)
           raise (Error (repr a, repr b)))
-    | _, Var { contents = Free v } ->
-        (*
+    | _, Var { contents = Free v } -> (
         occur_check v a;
         satisfies_constraints a v.constraints;
         let lb = v.lower_bound in
@@ -507,10 +394,7 @@ and ( <: ) a b =
         with _ ->
           failwith
             (Printf.sprintf "sup did to increase: %s sup %s not <: %s"
-               (Type.print lb) (Type.print a) (Type.print v.lower_bound))
-         *)
-        (* TODO: restore subtyping... *)
-        bind b a
+               (Type.print lb) (Type.print a) (Type.print v.lower_bound)))
     (*
     | Var _, _ -> (
         try bind a b
@@ -533,8 +417,8 @@ and ( <: ) a b =
         try
           (* TODO: we should perform proper type scheme subtyping, but this
                 is a good approximation for now... *)
-          instantiate ~level:max_int ~generalized:g1 t1
-          <: instantiate ~level:max_int ~generalized:g2 t2;
+          instantiate ~level:max_int (g1, t1)
+          <: instantiate ~level:max_int (g2, t2);
           u1 <: u2
         with Error (a, b) ->
           let bt = Printexc.get_raw_backtrace () in
@@ -547,8 +431,8 @@ and ( <: ) a b =
           (try
              (* TODO: we should perform proper type scheme subtyping, but this
                 is a good approximation for now... *)
-             instantiate ~level:max_int ~generalized:g1 t1
-             <: instantiate ~level:max_int ~generalized:g2 t2
+             instantiate ~level:max_int (g1, t1)
+             <: instantiate ~level:max_int (g2, t2)
            with Error (a, b) ->
              let bt = Printexc.get_raw_backtrace () in
              Printexc.raise_with_backtrace

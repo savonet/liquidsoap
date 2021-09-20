@@ -128,14 +128,13 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     | Meth (l, a, b) ->
         check ~level ~env a;
         check ~level ~env b;
-        e.t >: mk (Type.Meth (l, Typing.generalize ~level a.t, "", b.t))
+        e.t >: mk (Type.Meth (l, Type.generalize ~level a.t, "", b.t))
     | Invoke (a, l) ->
         check ~level ~env a;
         let rec aux t =
           match (Type.deref t).Type.descr with
-            | Type.Meth (l', (generalized, b), _, c) ->
-                if l = l' then Typing.instantiate ~level ~generalized b
-                else aux c
+            | Type.Meth (l', b, _, c) ->
+                if l = l' then Type.instantiate ~level b else aux c
             | _ ->
                 (* We did not find the method, the type we will infer is not the
                    most general one (no generalization), but this is safe and
@@ -212,14 +211,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           try List.assoc var env
           with Not_found -> raise (Unbound (e.t.Type.pos, var))
         in
-        e.t >: Typing.instantiate ~level ~generalized orig;
+        e.t >: Type.instantiate ~level (generalized, orig);
         if Lazy.force debug then
           Printf.eprintf "Instantiate %s : %s becomes %s\n" var
             (Type.print orig) (Type.print e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
         check ~level:(level + 1) ~env def;
         let generalized, _ =
-          if value_restriction def then Typing.generalize ~level def.t
+          if value_restriction def then Type.generalize ~level def.t
           else ([], def.t)
         in
         let penv, pa = type_of_pat ~level ~pos pat in

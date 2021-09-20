@@ -124,6 +124,12 @@ val invoke : t -> string -> scheme
 (** Type of a submethod in a type. *)
 val invokes : t -> string list -> scheme
 
+(** Type generalization. *)
+val generalize : level:int -> t -> scheme
+
+(** Instantiate a type. *)
+val instantiate : level:int -> scheme -> t
+
 (** {1 Representation of types} *)
 
 type repr =
@@ -133,14 +139,16 @@ type repr =
   | `List of repr
   | `Tuple of repr list
   | `Nullable of repr
-  | `Meth of string * ((string * constraints) list * repr) * repr
+  | `Meth of string * (var_repr list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
-  | `EVar of string * constraints (* existential variable *)
-  | `UVar of string * constraints (* universal variable *)
+  | `EVar of var_repr (* existential variable *)
+  | `UVar of var_repr (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
   | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of string * repr * string ]
+
+and var_repr = string * repr * constraints
 
 val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
 val print_repr : Format.formatter -> repr -> unit

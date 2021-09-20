@@ -191,7 +191,7 @@ let to_plugin_doc category flags main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
   let meths, return_t = Type.split_meths return_t in
   let t = builtin_type proto return_t in
-  let generalized, t = Typing.generalize ~level:(-1) t in
+  let generalized, t = Type.generalize ~level:(-1) t in
   item#add_subsection "_category"
     (Doc.trivial (Documentation.string_of_category category));
   item#add_subsection "_type" (Type.doc_of_type ~generalized t);
@@ -225,7 +225,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
       fun p -> meth_fun (f p) meth)
   in
   let t = builtin_type proto return_t in
-  let generalized, t = Typing.generalize ~level:(-1) t in
+  let generalized, t = Type.generalize ~level:(-1) t in
   let value =
     {
       pos = None;
@@ -241,7 +241,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let doc = new Doc.item ~sort:false descr in
   let value = { pos = t.Type.pos; value } in
-  let generalized, t = Typing.generalize ~level:(-1) t in
+  let generalized, t = Type.generalize ~level:(-1) t in
   doc#add_subsection "_category"
     (Doc.trivial (Documentation.string_of_category category));
   doc#add_subsection "_type" (Type.doc_of_type ~generalized t);
