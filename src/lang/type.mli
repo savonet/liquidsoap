@@ -89,11 +89,12 @@ val make : ?pos:pos option -> descr -> t
     matching on types. *)
 val deref : t -> t
 
-(** Compare two variables for equality. This comparison should always be used to
-    compare variables (as opposed to =). *)
 val var : ?constraints:constraints -> ?level:int -> ?pos:pos option -> unit -> t
 
+(** Compare two variables for equality. This comparison should always be used to
+    compare variables (as opposed to =). *)
 val var_eq : var -> var -> bool
+
 val filter_vars : (var -> bool) -> t -> var list
 
 (** Add a method to a type. *)
