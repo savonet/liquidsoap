@@ -1,3 +1,29 @@
+# Default id assignment for playlists
+# @category Liquidsoap
+# @param ~default Default name pattern when no useful name can be extracted from `uri`
+# @param uri Playlist uri
+def playlist.id(~default,uri) =
+  basename = path.basename(uri)
+
+  basename =
+    if basename == "." then
+      let l = string.split(separator="/", uri)
+      if l == [] then
+        path.dirname(uri)
+      else
+        list.hd(list.rev(l))
+      end
+    else
+      basename
+    end
+
+  if basename == "." then
+    string.id.default(default=default, null())
+  else
+    basename
+  end
+end
+
 # Retrieve the list of files contained in a playlist.
 # @category Liquidsoap
 # @param ~mime_type Default MIME type for the playlist. `null` means automatic \
@@ -5,7 +31,7 @@
 # @param ~timeout Timeout for resolving the playlist
 # @param uri Path to the playlist
 def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
-  id = string.id.default(default="playlist.files", id)
+  id = id ?? playlist.id(default="playlist.files", uri)
   if file.is_directory(uri) then
     log.info(label=id, "Playlist is a directory.")
     files = file.ls(absolute=true, recursive=true, uri)
@@ -218,7 +244,7 @@ def playlist.reloadable(
   ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, ~mime_type=null(),
   ~mode="randomize", ~native=false, ~on_done={()}, ~on_reload=(fun (_) -> ()),
   ~prefix="", ~timeout=20., uri) =
-  id = string.id.default(default="playlist.reloadable", id)
+  id = id ?? playlist.id(default="playlist.reloadable", uri)
   # URI of the current playlist
   playlist_uri=ref(uri)
   # List of files in the current playlist
@@ -308,7 +334,7 @@ def replaces playlist(
   ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, 
   ~mime_type=null(), ~mode="randomize", ~native=false, ~on_reload=(fun (_) -> ()),
   ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri) =
-  id = string.id.default(default="playlist", id)
+  id = id ?? playlist.id(default="playlist", uri)
 
   reload_mode =
     if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then
