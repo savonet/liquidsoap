@@ -104,8 +104,6 @@ val deref : t -> t
 (** Create a fresh type variable. *)
 val var : ?constraints:constraints -> ?level:int -> ?pos:pos option -> unit -> t
 
-val filter_vars : (var -> bool) -> t -> var list
-
 (** Add a method to a type. *)
 val meth : ?pos:pos option -> string -> scheme -> ?doc:string -> t -> t
 

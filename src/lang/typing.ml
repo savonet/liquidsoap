@@ -56,11 +56,31 @@ let rec hide_meth l a =
   * and any type variable of higher level can be generalized, whether it's
   * in the outermost type or not. *)
 
-(** Return a list of generalizable variables in a type.
-  * This is performed after type inference on the left-hand side
-  * of a let-in, with [level] being the level of that let-in.
-  * Uses the simple method of ML, to be associated with a value restriction. *)
-let generalizable ~level t = filter_vars (fun v -> v.level > level) t
+(** Find all the variables which can be generalized at current level. *)
+let rec generalizable ~level t =
+  let rec aux l t =
+    let t = deref t in
+    match t.descr with
+      | Ground _ | Bot -> l
+      | Getter t -> aux l t
+      | List t | Nullable t -> aux l t
+      | Tuple aa -> List.fold_left aux l aa
+      | Meth (_, (g, t), _, u) ->
+          let l =
+            List.filter (fun v -> not (List.exists (Type.var_eq v) g)) (aux l t)
+          in
+          aux l u
+      | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
+      | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
+      | Var { contents = Free v } ->
+          let l =
+            if v.level > level && not (List.exists (var_eq v) l) then v :: l
+            else l
+          in
+          aux l v.lower_bound
+      | Var { contents = Link _ } -> assert false
+  in
+  aux [] t
 
 (* TODO: we should keep only bound with no type variable and fix the type otherwise. *)
 let generalize ~level t : Type.scheme =
