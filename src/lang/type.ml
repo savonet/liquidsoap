@@ -635,8 +635,35 @@ let var =
   in
   f
 
-(** Find all the free variables satisfying a predicate. *)
-let filter_vars f t =
+let rec invokes t = function
+  | l :: ll ->
+      let g, t = invoke t l in
+      if ll = [] then (g, t) else invokes t ll
+  | [] -> ([], t)
+
+(** {1 Type generalization and instantiation}
+  *
+  * We don't have type schemes per se, but we compute generalizable variables
+  * and keep track of them in the AST.
+  * This is simple and useful because in any case we need to distinguish
+  * two 'a variables bound at different places. Indeed, we might instantiate
+  * one in a term where the second is bound, and we don't want to
+  * merge the two when going under the binder.
+  *
+  * When generalizing we need to know what can be generalized in the outermost
+  * type but also in the inner types of the term forming a let-definition.
+  * Indeed those variables will have to be instantiated by fresh ones for
+  * every instance.
+  *
+  * If the value restriction applies, then we have some (fun (...) -> ...)
+  * and any type variable of higher level can be generalized, whether it's
+  * in the outermost type or not. *)
+
+(** Return a list of generalizable variables in a type. This is performed after
+   type inference on the left-hand side of a let-in, with [level] being the
+   level of that let-in. Uses the simple method of ML, to be associated with a
+   value restriction. *)
+let generalizable ~level t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
@@ -650,16 +677,118 @@ let filter_vars f t =
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | Var { contents = Free var } ->
-          if f var && not (List.exists (var_eq var) l) then var :: l else l
+          if var.level > level && not (List.exists (var_eq var) l) then var :: l
+          else l
       | Var { contents = Link _ } -> assert false
   in
   aux [] t
 
-let rec invokes t = function
-  | l :: ll ->
-      let g, t = invoke t l in
-      if ll = [] then (g, t) else invokes t ll
-  | [] -> ([], t)
+let generalize ~level t : scheme = (generalizable ~level t, t)
+
+(** Substitutions. *)
+module Subst = struct
+  module M = Map.Make (struct
+    type t = var
+
+    (* We can compare variables with their indices. *)
+    let compare (v : var) (v' : var) = compare v.name v'.name
+  end)
+
+  type subst = t M.t
+  type t = subst
+
+  let of_list l : t = M.of_seq (List.to_seq l)
+
+  (** Retrieve the value of a variable. *)
+  let value (s : t) (i : var) = M.find i s
+
+  (* let filter f (s : t) = M.filter (fun i t -> f i t) s *)
+
+  (** Whether we have the identity substitution. *)
+  let is_identity (s : t) = M.is_empty s
+end
+
+(** Instantiate a type scheme, given as a type together with a list
+  * of generalized variables.
+  * Fresh variables are created with the given (current) level,
+  * and attached to the appropriate constraints.
+  * This erases position information, since they usually become
+  * irrelevant. *)
+let instantiate ~level ~generalized =
+  let subst =
+    List.map
+      (fun v -> (v, var ~level ~constraints:v.constraints ()))
+      generalized
+  in
+  let subst = Subst.of_list subst in
+  (* Monad with substitution update *)
+  let return x subst = (x, subst) in
+  let ( let* ) x f subst =
+    let x, subst = x subst in
+    f x subst
+  in
+  let rec map f = function
+    | x :: l ->
+        let* x = f x in
+        let* l = map f l in
+        return (x :: l)
+    | [] -> return []
+  in
+  fun t ->
+    let rec aux t =
+      let* descr =
+        match t.descr with
+          | Var { contents = Free v } as var -> (
+              try fun subst -> ((Subst.value subst v).descr, subst)
+              with Not_found -> return var)
+          | Constr c ->
+              let* params =
+                map
+                  (fun (v, t) ->
+                    let* t = aux t in
+                    return (v, t))
+                  c.params
+              in
+              return (Constr { c with params })
+          | Ground _ as g -> return g
+          | Getter t ->
+              let* t = aux t in
+              return (Getter t)
+          | List t ->
+              let* t = aux t in
+              return (List t)
+          | Nullable t ->
+              let* t = aux t in
+              return (Nullable t)
+          | Tuple l ->
+              let* l = map aux l in
+              return (Tuple l)
+          | Meth (l, (g, t), d, u) ->
+              (* We assume that we don't substitute generalized variables. *)
+              if !debug then
+                assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
+              let* t = aux t in
+              let* u = aux u in
+              return (Meth (l, (g, t), d, u))
+          | Arrow (p, t) ->
+              let* p =
+                map
+                  (fun (o, l, t) ->
+                    let* t = aux t in
+                    return (o, l, t))
+                  p
+              in
+              let* t = aux t in
+              return (Arrow (p, t))
+          | Var { contents = Link (_, t) } ->
+              (* TOOD: we remove the link here, it would be too difficult to preserve
+                 sharing. We could at least keep it when no variable is changed. *)
+              let* t = aux t in
+              return t.descr
+      in
+      return { t with descr }
+    in
+    if Subst.is_identity subst then t else fst (aux t subst)
 
 (** {1 Documentation} *)
 
