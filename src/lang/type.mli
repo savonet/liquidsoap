@@ -83,12 +83,15 @@ and var = { name : int; mutable level : int; mutable constraints : constraints }
 and scheme = var list * t
 
 val unit : descr
+
+(** Create a type from its value. *)
 val make : ?pos:pos -> descr -> t
 
 (** Remove links in a type: this function should always be called before
     matching on types. *)
 val deref : t -> t
 
+(** Create a fresh variable. *)
 val var : ?constraints:constraints -> ?level:int -> ?pos:pos -> unit -> t
 
 (** Compare two variables for equality. This comparison should always be used to

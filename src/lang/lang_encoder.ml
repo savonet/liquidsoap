@@ -96,5 +96,4 @@ let make_encoder ~pos t ((e, p) : Value.encoder) =
     let (_ : Encoder.factory) = Encoder.get_factory e in
     e
   with Not_found ->
-    raise
-      (error ~pos (Printf.sprintf "unsupported format: %s" (Term.print_term t)))
+    raise (error ~pos (Printf.sprintf "unsupported format: %s" (Term.print t)))

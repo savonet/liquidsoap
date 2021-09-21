@@ -72,11 +72,11 @@ let rec type_of_pat ~level ~pos = function
 (* Type-check an expression. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let check = check ~throw in
-  if !debug then Printf.printf "\n# %s : ?\n\n%!" (Term.print_term e);
+  if !debug then Printf.printf "\n# %s : ?\n\n%!" (Term.print e);
   let check ?print_toplevel ~level ~env e =
     check ?print_toplevel ~level ~env e;
     if !debug then
-      Printf.printf "\n# %s : %s\n\n%!" (Term.print_term e) (Type.print e.t)
+      Printf.printf "\n# %s : %s\n\n%!" (Term.print e) (Type.print e.t)
   in
   (* The toplevel position of the (un-dereferenced) type is the actual parsing
      position of the value. When we synthesize a type against which the type of
@@ -120,7 +120,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           with Not_found ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace
-              (Unsupported_format (pos, print_term e))
+              (Unsupported_format (pos, Term.print e))
               bt
         in
         e.t >: t

@@ -369,45 +369,44 @@ let rec string_of_pat = function
   | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
 
 (** Print terms, (almost) assuming they are in normal form. *)
-let rec print_term v =
+let rec print v =
   match v.term with
     | Ground g -> Ground.to_string g
     | Encoder e ->
-        let rec print (e, p) =
+        let rec aux (e, p) =
           let p =
             p
             |> List.map (function
-                 | "", `Term v -> print_term v
-                 | l, `Term v -> l ^ "=" ^ print_term v
-                 | _, `Encoder e -> print e)
+                 | "", `Term v -> print v
+                 | l, `Term v -> l ^ "=" ^ print v
+                 | _, `Encoder e -> aux e)
             |> String.concat ", "
           in
           "%" ^ e ^ "(" ^ p ^ ")"
         in
-        print e
-    | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
-    | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
+        aux e
+    | List l -> "[" ^ String.concat ", " (List.map print l) ^ "]"
+    | Tuple l -> "(" ^ String.concat ", " (List.map print l) ^ ")"
     | Null -> "null"
-    | Cast (e, t) -> "(" ^ print_term e ^ " : " ^ Type.print t ^ ")"
-    | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ " = " ^ print_term v ^ "}"
-    | Invoke (e, l) -> print_term e ^ "." ^ l
-    | Open (m, e) -> "open " ^ print_term m ^ " " ^ print_term e
-    | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
+    | Cast (e, t) -> "(" ^ print e ^ " : " ^ Type.print t ^ ")"
+    | Meth (l, v, e) -> print e ^ ".{" ^ l ^ " = " ^ print v ^ "}"
+    | Invoke (e, l) -> print e ^ "." ^ l
+    | Open (m, e) -> "open " ^ print m ^ " " ^ print e
+    | Fun (_, [], v) when is_ground v -> "{" ^ print v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
     | Var s -> s
     | App (hd, tl) ->
         let tl =
           List.map
-            (fun (lbl, v) ->
-              (if lbl = "" then "" else lbl ^ " = ") ^ print_term v)
+            (fun (lbl, v) -> (if lbl = "" then "" else lbl ^ " = ") ^ print v)
             tl
         in
-        print_term hd ^ "(" ^ String.concat "," tl ^ ")"
+        print hd ^ "(" ^ String.concat "," tl ^ ")"
     (* | Let _ | Seq _ -> assert false *)
     | Let l ->
-        Printf.sprintf "let %s = %s in %s" (string_of_pat l.pat)
-          (print_term l.def) (print_term l.body)
-    | Seq (e, e') -> print_term e ^ "; " ^ print_term e'
+        Printf.sprintf "let %s = %s in %s" (string_of_pat l.pat) (print l.def)
+          (print l.body)
+    | Seq (e, e') -> print e ^ "; " ^ print e'
 
 (** Create a new value. *)
 let make ?pos ?t e =
@@ -415,7 +414,7 @@ let make ?pos ?t e =
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
       (Type.print_pos_opt t.Type.pos)
-      (try print_term { t; term = e } with _ -> "<?>")
+      (try print { t; term = e } with _ -> "<?>")
       (Type.print t);
   { t; term = e }
 
