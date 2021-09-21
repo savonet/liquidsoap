@@ -23,7 +23,7 @@
 open Term
 open Typing
 
-let debug = ref true
+let debug = ref false
 
 (** {1 Type checking / inference} *)
 
@@ -246,8 +246,9 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                       if replace then Type.remeth (snd (List.assoc x env)) a
                       else a
                     in
-                    Printf.printf "\nLET %s : %s\n%!" x
-                      (Type.print_scheme (generalized, a));
+                    if !debug then
+                      Printf.printf "\nLET %s : %s\n%!" x
+                        (Type.print_scheme (generalized, a));
                     (x, (generalized, a))
                 | l :: ll -> (
                     try
