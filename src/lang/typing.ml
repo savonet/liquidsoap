@@ -253,6 +253,14 @@ let bind ?(variance = Invariant) a b =
   let variance = if a.constraints <> [] then Invariant else variance in
   v := Link (variance, b)
 
+(** Lower all type variables to given level. *)
+let update_level ~level a =
+  let x = Type.var ~level () in
+  let x =
+    match x.descr with Var { contents = Free x } -> x | _ -> assert false
+  in
+  occur_check x a
+
 (** {1 Subtype checking/inference} *)
 
 exception Incompatible
