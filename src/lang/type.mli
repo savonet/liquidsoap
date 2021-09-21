@@ -131,14 +131,16 @@ type repr =
   | `List of repr
   | `Tuple of repr list
   | `Nullable of repr
-  | `Meth of string * ((string * constraints) list * repr) * repr
+  | `Meth of string * (var_repr list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
-  | `EVar of string * constraints  (** existential variable *)
-  | `UVar of string * constraints  (** universal variable *)
+  | `EVar of var_repr  (** existential variable *)
+  | `UVar of var_repr  (** universal variable *)
   | `Ellipsis  (** omitted sub-term *)
   | `Range_Ellipsis  (** omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of string * repr * string ]
+
+and var_repr = string * constraints
 
 (** Representation of a type. *)
 val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
