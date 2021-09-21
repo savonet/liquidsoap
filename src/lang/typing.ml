@@ -395,7 +395,9 @@ and ( <: ) (a : t) (b : t) =
             | _ -> false
         in
         let isnt_methable a =
-          match (deref a).descr with Ground _ | Constr _ -> true | _ -> false
+          match (deref a).descr with
+            | Ground _ | Constr _ | Arrow _ -> true
+            | _ -> false
         in
         (* TODO: there should be many other cases we want to avoid here... *)
         match (deref b).descr with
