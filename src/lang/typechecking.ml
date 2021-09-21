@@ -56,7 +56,7 @@ let add_task, pop_tasks =
 (** Generate a type with fresh variables for a pattern. *)
 let rec type_of_pat ~level ~pos = function
   | PVar x ->
-      let a = Type.var ~level ~pos () in
+      let a = Type.var ~level ?pos () in
       ([(x, a)], a)
   | PTuple l ->
       let env, l =
@@ -67,7 +67,7 @@ let rec type_of_pat ~level ~pos = function
           ([], []) l
       in
       let l = List.rev l in
-      (env, Type.make ~pos (Type.Tuple l))
+      (env, Type.make ?pos (Type.Tuple l))
 
 (* Type-check an expression. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
@@ -83,7 +83,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
      the term is unified, we have to set the position information in order not
      to loose it. *)
   let pos = e.t.Type.pos in
-  let mk t = Type.make ~pos t in
+  let mk t = Type.make ?pos t in
   let mkg t = mk (Type.Ground t) in
   let check_fun ~proto ~env e body =
     let base_check = check ~level ~env in
@@ -126,13 +126,13 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         e.t >: t
     | List l ->
         List.iter (fun x -> check ~level ~env x) l;
-        let t = Type.var ~level ~pos () in
+        let t = Type.var ~level ?pos () in
         List.iter (fun e -> e.t <: t) l;
         e.t >: mk (Type.List t)
     | Tuple l ->
         List.iter (fun a -> check ~level ~env a) l;
         e.t >: mk (Type.Tuple (List.map (fun a -> a.t) l))
-    | Null -> e.t >: mk (Type.Nullable (Type.var ~level ~pos ()))
+    | Null -> e.t >: mk (Type.Nullable (Type.var ~level ?pos ()))
     | Cast (a, t) ->
         check ~level ~env a;
         a.t <: t;
@@ -152,8 +152,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 (* We did not find the method, the type we will infer is not the
                    most general one (no generalization), but this is safe and
                    enough for records. *)
-                let x = Type.var ~level ~pos () in
-                let y = Type.var ~level ~pos () in
+                let x = Type.var ~level ?pos () in
+                let y = Type.var ~level ?pos () in
                 a.t <: mk (Type.Meth (l, ([], x), "", y));
                 x
         in
@@ -258,7 +258,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                         if replace then Type.remeth (snd (Type.invokes t ll)) a
                         else a
                       in
-                      (l, (g, Type.meths ~pos ll (generalized, a) t))
+                      (l, (g, Type.meths ?pos ll (generalized, a) t))
                     with Not_found ->
                       raise (Unbound (pos, String.concat "." (l :: ll)))))
             penv

@@ -174,7 +174,7 @@ type repr =
 and var_repr = string * constraints
 
 let var_eq v v' = v.name = v'.name
-let make ?(pos = None) d = { pos; descr = d }
+let make ?pos d = { pos; descr = d }
 
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced
@@ -630,9 +630,8 @@ let var =
       !c
   in
   let f ?(constraints = []) ?(level = max_int) ?pos () =
-    let pos = match pos with Some pos -> pos | None -> None in
     let name = name () in
-    make ~pos (Var (ref (Free { name; level; constraints })))
+    make ?pos (Var (ref (Free { name; level; constraints })))
   in
   f
 

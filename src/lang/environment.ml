@@ -62,7 +62,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
               (* Updated type for x.l1...li, obtained by changing the type of
                  the field li+1. *)
               let t =
-                Type.make ~pos:t.Type.pos (Type.Meth (l, (lvg, lvt), "", vt))
+                Type.make ?pos:t.Type.pos (Type.Meth (l, (lvg, lvt), "", vt))
               in
               (* Update value for x.l1...li. *)
               let value = Value.Meth (l, lv, v) in

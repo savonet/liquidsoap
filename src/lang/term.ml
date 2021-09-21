@@ -411,7 +411,7 @@ let rec print_term v =
 
 (** Create a new value. *)
 let make ?pos ?t e =
-  let t = match t with Some t -> t | None -> Type.var ~pos () in
+  let t = match t with Some t -> t | None -> Type.var ?pos () in
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
       (Type.print_pos_opt t.Type.pos)

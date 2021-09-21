@@ -83,13 +83,13 @@ and var = { name : int; mutable level : int; mutable constraints : constraints }
 and scheme = var list * t
 
 val unit : descr
-val make : ?pos:pos option -> descr -> t
+val make : ?pos:pos -> descr -> t
 
 (** Remove links in a type: this function should always be called before
     matching on types. *)
 val deref : t -> t
 
-val var : ?constraints:constraints -> ?level:int -> ?pos:pos option -> unit -> t
+val var : ?constraints:constraints -> ?level:int -> ?pos:pos -> unit -> t
 
 (** Compare two variables for equality. This comparison should always be used to
     compare variables (as opposed to =). *)
@@ -99,10 +99,10 @@ val var_eq : var -> var -> bool
 val filter_vars : (var -> bool) -> t -> var list
 
 (** Add a method to a type. *)
-val meth : ?pos:pos option -> string -> scheme -> ?doc:string -> t -> t
+val meth : ?pos:pos -> string -> scheme -> ?doc:string -> t -> t
 
 (** Add a submethod to a type. *)
-val meths : ?pos:pos option -> string list -> scheme -> t -> t
+val meths : ?pos:pos -> string list -> scheme -> t -> t
 
 (** Remove all methods in a type. *)
 val demeth : t -> t
@@ -131,10 +131,10 @@ type repr =
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
-  | `EVar of string * constraints (** existential variable *)
-  | `UVar of string * constraints (** universal variable *)
-  | `Ellipsis (** omitted sub-term *)
-  | `Range_Ellipsis (** omitted sub-terms (in a list, e.g. list of args) *)
+  | `EVar of string * constraints  (** existential variable *)
+  | `UVar of string * constraints  (** universal variable *)
+  | `Ellipsis  (** omitted sub-term *)
+  | `Range_Ellipsis  (** omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of string * repr * string ]
 
 (** Representation of a type. *)

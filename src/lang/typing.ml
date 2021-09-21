@@ -203,7 +203,7 @@ let satisfies_constraint b = function
                     raise (Unsatisfied_constraint (Dtools, b'))
               | Var ({ contents = Free _ } as v) ->
                   (* TODO: we should check the constraints and the lower bound *)
-                  v := Link (Invariant, make ~pos:b.pos (Ground String))
+                  v := Link (Invariant, make ?pos:b.pos (Ground String))
               | _ -> raise (Unsatisfied_constraint (Dtools, b')))
         | Var { contents = Free v } ->
             if not (List.mem Dtools v.constraints) then
@@ -278,7 +278,7 @@ let rec sup ~pos a b =
     match (deref a).descr with
       | Meth (l', t, _, _) when l = l' -> Some t
       | Meth (_, _, _, a) -> meth_type l a
-      | Var { contents = Free _ } -> Some ([], var ~pos ())
+      | Var { contents = Free _ } -> Some ([], var ?pos ())
       | _ -> None
   in
   match ((deref a).descr, (deref b).descr) with
