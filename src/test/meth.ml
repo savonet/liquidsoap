@@ -38,7 +38,7 @@ let () =
   (* Make sure unifying variables sees top-level methods:
      We do: t = ('a).{ f : int } <: t' = int.{ ff : int, f : float }
      and make sure that this fails. *)
-  let t = Type.fresh_evar ~level:(-1) ~pos:None in
+  let t = Type.var () in
   let t = Type.meth "f" ([], Type.make (Type.Ground Type.Int)) t in
   let t' = Type.make (Type.Ground Type.Int) in
   let t' = Type.meth "f" ([], Type.make (Type.Ground Type.Float)) t' in
