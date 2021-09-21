@@ -83,12 +83,12 @@ let channels_of_params ?(default = 2) p =
     result than [Encoder.kind_of_format] once evaluated... *)
 let kind_of_encoder ((e, p) : Term.encoder) = (find_encoder e).kind_of_encoder p
 
-let type_of_encoder ~pos ~level e =
+let type_of_encoder ~pos e =
   let kind = kind_of_encoder e in
-  let audio = kind_t ~pos ~level kind.Frame.audio in
-  let video = kind_t ~pos ~level kind.Frame.video in
-  let midi = kind_t ~pos ~level kind.Frame.midi in
-  format_t ~pos ~level (frame_kind_t ~pos ~level audio video midi)
+  let audio = kind_t ?pos kind.Frame.audio in
+  let video = kind_t ?pos kind.Frame.video in
+  let midi = kind_t ?pos kind.Frame.midi in
+  format_t ?pos (frame_kind_t ?pos audio video midi)
 
 let make_encoder ~pos t ((e, p) : Value.encoder) =
   try
@@ -96,5 +96,4 @@ let make_encoder ~pos t ((e, p) : Value.encoder) =
     let (_ : Encoder.factory) = Encoder.get_factory e in
     e
   with Not_found ->
-    raise
-      (error ~pos (Printf.sprintf "unsupported format: %s" (Term.print_term t)))
+    raise (error ~pos (Printf.sprintf "unsupported format: %s" (Term.print t)))

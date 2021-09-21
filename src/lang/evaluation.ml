@@ -81,17 +81,18 @@ let rec eval ~env tm =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)
     (match (Type.deref tm.t).Type.descr with
-      | Type.Constr { Type.name = "source"; params = [(Type.Invariant, k)] }
-        -> (
+      | Type.Constr
+          { Type.constructor = "source"; params = [(Type.Invariant, k)] } -> (
           let frame_content_of_t t =
             match (Type.deref t).Type.descr with
-              | Type.EVar _ -> `Any
-              | Type.Constr { Type.name; params = [(_, t)] } -> (
+              | Type.Var _ -> `Any
+              | Type.Constr { Type.constructor; params = [(_, t)] } -> (
                   match (Type.deref t).Type.descr with
                     | Type.Ground (Type.Format fmt) -> `Format fmt
-                    | Type.EVar _ -> `Kind (Frame_content.kind_of_string name)
+                    | Type.Var _ ->
+                        `Kind (Frame_content.kind_of_string constructor)
                     | _ -> failwith ("Unhandled content: " ^ Type.print tm.t))
-              | Type.Constr { Type.name = "none" } ->
+              | Type.Constr { Type.constructor = "none" } ->
                   `Kind (Frame_content.kind_of_string "none")
               | _ -> failwith ("Unhandled content: " ^ Type.print tm.t)
           in
@@ -420,7 +421,7 @@ let rec eval_toplevel ?(interactive = false) t =
         let var = string_of_pat pat in
         if interactive && var <> "_" then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." var
-            (Type.pp_type_generalized generalized)
+            (fun f t -> Type.pp_scheme f (generalized, t))
             def_t (Value.print_value def);
         eval_toplevel ~interactive body
     | Seq (a, b) ->

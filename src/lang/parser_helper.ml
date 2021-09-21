@@ -86,15 +86,12 @@ let args_of, app_of =
     in
     List.map
       (fun (n, n', v) ->
-        let t = Type.make ~pos:(Some pos) (get_arg_type t n).Type.descr in
+        let t = Type.make ~pos (get_arg_type t n).Type.descr in
         (n, n', t, Option.map (term_of_value ~pos t) v))
       args
   and get_app ~pos _ args =
     List.map
-      (fun (n, _, _) ->
-        ( n,
-          Term.{ t = Type.fresh_evar ~level:(-1) ~pos:(Some pos); term = Var n }
-        ))
+      (fun (n, _, _) -> (n, Term.{ t = Type.var ~pos (); term = Var n }))
       args
   and term_of_value ~pos t ({ Value.value } as v) =
     let get_list_type () =
@@ -128,7 +125,7 @@ let args_of, app_of =
             Term.Meth (name, term_of_value ~pos t v, term_of_value ~pos t v')
         | Value.Fun (args, [], [], body) ->
             let body =
-              Term.{ body with t = Type.make ~pos:(Some pos) body.t.Type.descr }
+              Term.{ body with t = Type.make ~pos body.t.Type.descr }
             in
             Term.Fun (Term.free_vars body, get_args ~pos t args, body)
         | _ ->
@@ -138,7 +135,7 @@ let args_of, app_of =
                    Printf.sprintf "Term %s cannot be represented as a term"
                      (Value.print_value v) ))
     in
-    let t = Type.make ~pos:(Some pos) t.Type.descr in
+    let t = Type.make ~pos t.Type.descr in
     Term.{ t; term }
   in
   let args_of = gen_args_of get_args in
@@ -270,15 +267,14 @@ let mk_time_pred ~pos (a, b, c) =
   mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
 let mk_kind ~pos (kind, params) =
-  if kind = "any" then Type.fresh_evar ~level:(-1) ~pos:(Some pos)
+  if kind = "any" then Type.var ~pos ()
   else (
     try
       let k = Frame_content.kind_of_string kind in
       match params with
         | [] -> Term.kind_t (`Kind k)
-        | [("", "any")] -> Type.fresh_evar ~level:(-1) ~pos:None
-        | [("", "internal")] ->
-            Type.fresh ~constraints:[Type.InternalMedia] ~level:(-1) ~pos:None
+        | [("", "any")] -> Type.var ()
+        | [("", "internal")] -> Type.var ~constraints:[Type.InternalMedia] ()
         | param :: params ->
             let mk_format (label, value) =
               Frame_content.parse_param k label value
@@ -321,7 +317,7 @@ let mk_source_ty ~pos name args =
 
 let mk_ty ~pos name =
   match name with
-    | "_" -> Type.fresh_evar ~level:(-1) ~pos:None
+    | "_" -> Type.var ()
     | "unit" -> Type.make Type.unit
     | "bool" -> Type.make (Type.Ground Type.Bool)
     | "int" -> Type.make (Type.Ground Type.Int)

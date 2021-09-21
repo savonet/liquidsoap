@@ -131,9 +131,9 @@ type variance = Covariant | Contravariant | Invariant
   * This is useful in order to know what can or cannot be generalized:
   * you need to compare the level of an abstraction and those of a ref or
   * source. *)
-type t = { pos : pos option; mutable level : int; mutable descr : descr }
+type t = { pos : pos option; descr : descr }
 
-and constructed = { name : string; params : (variance * t) list }
+and constructed = { constructor : string; params : (variance * t) list }
 
 and descr =
   | Constr of constructed
@@ -144,10 +144,11 @@ and descr =
   | Nullable of t
   | Meth of string * scheme * string * t (* label, type, documentation, type to decorate *)
   | Arrow of (bool * string * t) list * t
-  | EVar of var (* type variable *)
-  | Link of variance * t
+  | Var of invar ref
 
-and var = int * constraints
+and invar = Free of var | Link of variance * t
+
+and var = { name : int; mutable level : int; mutable constraints : constraints }
 
 and scheme = var list * t
 
@@ -159,24 +160,27 @@ type repr =
   | `List of repr
   | `Tuple of repr list
   | `Nullable of repr
-  | `Meth of string * ((string * constraints) list * repr) * repr
+  | `Meth of string * (var_repr list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
   | `Getter of repr
-  | `EVar of string * constraints (* existential variable *)
-  | `UVar of string * constraints (* universal variable *)
+  | `EVar of var_repr (* existential variable *)
+  | `UVar of var_repr (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
   | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of
     string * repr * string
     (* add annotations before / after, mostly used for debugging *) ]
 
-let make ?(pos = None) ?(level = -1) d = { pos; level; descr = d }
-let dummy = make ~pos:None (EVar (-1, []))
+and var_repr = string * constraints
+
+let var_eq v v' = v.name = v'.name
+let make ?pos d = { pos; descr = d }
 
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced
     type. *)
-let rec deref t = match t.descr with Link (_, x) -> deref x | _ -> t
+let rec deref t =
+  match t.descr with Var { contents = Link (_, t) } -> deref t | _ -> t
 
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
@@ -196,17 +200,17 @@ let rec invoke t l =
     | _ -> raise Not_found
 
 (** Add a method. *)
-let meth ?pos ?level l v ?(doc = "") t = make ?pos ?level (Meth (l, v, doc, t))
+let meth ?pos l v ?(doc = "") t = make ?pos (Meth (l, v, doc, t))
 
 (** Add methods. *)
-let rec meths ?pos ?level l v t =
+let rec meths ?pos l v t =
   match l with
     | [] -> assert false
-    | [l] -> meth ?pos ?level l v t
+    | [l] -> meth ?pos l v t
     | l :: ll ->
         let g, tl = invoke t l in
-        let v = meths ?pos ?level ll v tl in
-        meth ?pos ?level l (g, v) t
+        let v = meths ?pos ll v tl in
+        meth ?pos l (g, v) t
 
 (** Split the methods from the type. *)
 let split_meths t =
@@ -257,17 +261,16 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
-  let uvar g level (i, c) =
-    let constr_symbols, c = split_constr c in
+  let uvar g var =
+    let constr_symbols, c = split_constr var.constraints in
     let rec index n = function
       | v :: tl ->
-          if fst v = i then Printf.sprintf "'%s%s" constr_symbols (name n)
+          if var_eq v var then Printf.sprintf "'%s%s" constr_symbols (name n)
           else index (n + 1) tl
       | [] -> assert false
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
     `UVar (v, c)
   in
   let counter =
@@ -277,21 +280,29 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       !c
   in
   let evars = Hashtbl.create 10 in
-  let evar level i c =
-    let constr_symbols, c = split_constr c in
+  let evar var =
+    let constr_symbols, c = split_constr var.constraints in
     if !debug then (
-      let v = Printf.sprintf "?%s%s" constr_symbols (evar_global_name i) in
-      let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
+      let v =
+        Printf.sprintf "'%s%s" constr_symbols (evar_global_name var.name)
+      in
+      let v =
+        if !debug_levels then (
+          let level = var.level in
+          let level = if level = max_int then "∞" else string_of_int level in
+          Printf.sprintf "%s[%s]" v level)
+        else v
+      in
       `EVar (v, c))
     else (
       let s =
-        try Hashtbl.find evars i
+        try Hashtbl.find evars var.name
         with Not_found ->
           let name = String.uppercase_ascii (name (counter ())) in
-          Hashtbl.add evars i name;
+          Hashtbl.add evars var.name name;
           name
       in
-      `EVar (Printf.sprintf "?%s%s" constr_symbols s, c))
+      `EVar (Printf.sprintf "'%s%s" constr_symbols s, c))
   in
   let rec repr g t =
     if filter_out t then `Ellipsis
@@ -305,21 +316,21 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Meth (l, (g', u), _, v) ->
             let gen =
               List.map
-                (fun ic -> match uvar (g' @ g) t.level ic with `UVar ic -> ic)
+                (fun v -> match uvar (g' @ g) v with `UVar v -> v)
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
-        | Constr { name; params } ->
-            `Constr (name, List.map (fun (l, t) -> (l, repr g t)) params)
+        | Constr { constructor; params } ->
+            `Constr (constructor, List.map (fun (l, t) -> (l, repr g t)) params)
         | Arrow (args, t) ->
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
-        | EVar (i, c) ->
-            if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
-            else evar t.level i c
-        | Link (Covariant, t) when !debug -> `Debug ("[>", repr g t, "]")
-        | Link (_, t) -> repr g t)
+        | Var { contents = Free var } ->
+            if List.exists (var_eq var) g then uvar g var else evar var
+        | Var { contents = Link (Covariant, t) } when !debug ->
+            `Debug ("[>", repr g t, "]")
+        | Var { contents = Link (_, t) } -> repr g t)
   in
   repr generalized t
 
@@ -565,11 +576,11 @@ let print_repr f t =
 
 let pp_type f t = print_repr f (repr t)
 
-let pp_type_generalized generalized f t =
+let pp_scheme f (generalized, t) =
   if !debug then
     List.iter
       (fun v ->
-        print_repr f (repr ~generalized (make (EVar v)));
+        print_repr f (repr ~generalized (make (Var (ref (Free v)))));
         Format.fprintf f ".")
       generalized;
   print_repr f (repr ~generalized t)
@@ -611,21 +622,18 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
                   (print_pos ~prefix:"" p))
           print_repr b (inferred_pos tb)
 
-let fresh =
-  let fresh_id =
-    let c = ref 0 in
+let var =
+  let name =
+    let c = ref (-1) in
     fun () ->
       incr c;
       !c
   in
-  let f ~constraints ~level ~pos =
-    { pos; level; descr = EVar (fresh_id (), constraints) }
+  let f ?(constraints = []) ?(level = max_int) ?pos () =
+    let name = name () in
+    make ?pos (Var (ref (Free { name; level; constraints })))
   in
   f
-
-(** Simplified version of existential variable generation, without
-    constraints. This is used when parsing to annotate the AST. *)
-let fresh_evar = fresh ~constraints:[]
 
 (** Find all the free variables satisfying a predicate. *)
 let filter_vars f t =
@@ -641,8 +649,9 @@ let filter_vars f t =
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
-      | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
-      | Link _ -> assert false
+      | Var { contents = Free var } ->
+          if f var && not (List.exists (var_eq var) l) then var :: l else l
+      | Var { contents = Link _ } -> assert false
   in
   aux [] t
 
@@ -657,7 +666,9 @@ let rec invokes t = function
 let doc_of_type ~generalized t =
   let margin = Format.pp_get_margin Format.str_formatter () in
   Format.pp_set_margin Format.str_formatter 58;
-  Format.fprintf Format.str_formatter "%a@?" (pp_type_generalized generalized) t;
+  Format.fprintf Format.str_formatter "%a@?"
+    (fun f t -> pp_scheme f (generalized, t))
+    t;
   Format.pp_set_margin Format.str_formatter margin;
   Doc.trivial (Format.flush_str_formatter ())
 

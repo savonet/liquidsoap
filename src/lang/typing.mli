@@ -31,7 +31,10 @@ type env = (string * scheme) list
 val instantiate : level:int -> generalized:var list -> t -> t
 
 (** Find all generalizable variables. *)
-val generalizable : level:int -> t -> var list
+val generalize : level:int -> t -> scheme
+
+(** Lower all type variables to given level. *)
+val update_level : level:int -> t -> unit
 
 (** Subtyping. *)
 val ( <: ) : t -> t -> unit

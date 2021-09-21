@@ -92,7 +92,7 @@ let rec print_value v =
           match e.value with Tuple [] -> "" | _ -> print_value e ^ "."
         in
         e ^ "{" ^ m ^ "}"
-    | Fun ([], _, _, x) when Term.is_ground x -> "{" ^ Term.print_term x ^ "}"
+    | Fun ([], _, _, x) when Term.is_ground x -> "{" ^ Term.print x ^ "}"
     | Fun (l, _, _, x) when Term.is_ground x ->
         let f (label, _, value) =
           match (label, value) with
@@ -102,8 +102,7 @@ let rec print_value v =
             | label, None -> Printf.sprintf "~%s=_" label
         in
         let args = List.map f l in
-        Printf.sprintf "fun (%s) -> %s" (String.concat "," args)
-          (Term.print_term x)
+        Printf.sprintf "fun (%s) -> %s" (String.concat "," args) (Term.print x)
     | Fun _ | FFI _ -> "<fun>"
 
 (** Find a method in a value. *)
