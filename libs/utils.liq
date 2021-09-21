@@ -77,7 +77,7 @@ def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"]
   def add(m)
     prune()
     f = hash(m)
-    l := list.add((f, time()), !l)
+    l := (f, time()) :: !l
     save()
   end
   # Last time this entry was played

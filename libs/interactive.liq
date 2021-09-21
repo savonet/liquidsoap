@@ -144,7 +144,7 @@ let stdlib_osc = osc
 # @param ~type Type of the variable.
 def interactive.create(~name, ~description="", ~osc="", ~type)
   if list.assoc.mem(name, !variables) then error.raise(interactive.error, "variable already registered") end
-  variables := list.add((name, { type=type, description=description }), !variables)
+  variables := (name, { type=type, description=description }) :: !variables
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
 %ifdef osc
   if osc != "" then
@@ -413,7 +413,7 @@ end
 def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~description="", ~unit="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="float")
   r = ref(v)
-  variables_float := list.add((name, {ref=r, unit=unit, min=min, max=max, step=step }), !variables_float)
+  variables_float := (name, {ref=r, unit=unit, min=min, max=max, step=step }) :: !variables_float
   ref.getter(r).{set = interactive.float.set(name), remove = {interactive.float.remove(name)}}
 end
 
@@ -426,7 +426,7 @@ end
 def replaces interactive.int(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="int")
   r = ref(v)
-  variables_int := list.add((name, {ref=r }), !variables_int)
+  variables_int := (name, {ref=r }) :: !variables_int
   ref.getter(r).{set = interactive.int.set(name), remove = {interactive.int.remove(name)}}
 end
 
@@ -439,7 +439,7 @@ end
 def replaces interactive.bool(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="bool")
   r = ref(v)
-  variables_bool := list.add((name, { ref=r }), !variables_bool)
+  variables_bool := (name, { ref=r }) :: !variables_bool
   ref.getter(r).{set = interactive.bool.set(name), remove = {interactive.bool.remove(name)}}
 end
 
@@ -452,7 +452,7 @@ end
 def replaces interactive.string(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="string")
   r = ref(v)
-  variables_string := list.add((name, { ref=r }), !variables_string)
+  variables_string := (name, { ref=r }) :: !variables_string
   ref.getter(r).{set = interactive.string.set(name), remove = {interactive.string.remove(name)}}
 end
 

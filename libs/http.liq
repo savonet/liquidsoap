@@ -21,7 +21,7 @@ def http.response(~protocol="HTTP/1.1",
                  ("Connection", "close")])
   headers =
     if content_type != "" then
-      list.add(("Content-Type", content_type), headers)
+      ("Content-Type", content_type)::headers
     else
       headers
     end
@@ -71,7 +71,7 @@ def http.response.stream(
                  ("Connection", "close")])
   headers =
     if content_type != "" then
-      list.add(("Content-Type", content_type), headers)
+      ("Content-Type", content_type)::headers
     else
       headers
     end

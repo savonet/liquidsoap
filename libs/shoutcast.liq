@@ -22,7 +22,7 @@ def output.shoutcast(
   def map(m) =
     dj = dj()
     if dj != "" then
-      list.add(("dj",dj),m)
+      ("dj",dj)::m
     else
       m
     end
