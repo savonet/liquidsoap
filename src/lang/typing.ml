@@ -24,8 +24,8 @@
 
 open Type
 
-let () = Type.debug := true
-let () = Type.debug_levels := true
+let () = Type.debug := false
+let () = Type.debug_levels := false
 let debug_subtyping = ref false
 
 type env = (string * scheme) list
@@ -437,8 +437,8 @@ and ( <: ) (a : t) (b : t) =
         try
           (* TODO: we should perform proper type scheme subtyping, but this
                 is a good approximation for now... *)
-          instantiate ~level:(-1) ~generalized:g1 t1
-          <: instantiate ~level:(-1) ~generalized:g2 t2;
+          instantiate ~level:max_int ~generalized:g1 t1
+          <: instantiate ~level:max_int ~generalized:g2 t2;
           u1 <: u2
         with Error (a, b) ->
           let bt = Printexc.get_raw_backtrace () in
@@ -451,8 +451,8 @@ and ( <: ) (a : t) (b : t) =
           (try
              (* TODO: we should perform proper type scheme subtyping, but this
                 is a good approximation for now... *)
-             instantiate ~level:(-1) ~generalized:g1 t1
-             <: instantiate ~level:(-1) ~generalized:g2 t2
+             instantiate ~level:max_int ~generalized:g1 t1
+             <: instantiate ~level:max_int ~generalized:g2 t2
            with Error (a, b) ->
              let bt = Printexc.get_raw_backtrace () in
              Printexc.raise_with_backtrace

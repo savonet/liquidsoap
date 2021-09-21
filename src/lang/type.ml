@@ -735,12 +735,10 @@ module Subst = struct
   let is_identity (s : t) = M.is_empty s
 end
 
-(** Instantiate a type scheme, given as a type together with a list
-  * of generalized variables.
-  * Fresh variables are created with the given (current) level,
-  * and attached to the appropriate constraints.
-  * This erases position information, since they usually become
-  * irrelevant. *)
+(** Instantiate a type scheme, given as a type together with a list of
+    generalized variables. Fresh variables are created with the given (current)
+    level, and attached to the appropriate constraints. This erases position
+    information, since they usually become irrelevant. *)
 let instantiate ~level ~generalized =
   let subst =
     List.map
