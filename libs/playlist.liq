@@ -422,7 +422,17 @@ def replaces playlist(
 
   # Set up telnet commands
   server.register(namespace=id, description="Skip current song in the playlist.", usage="skip", "skip", fun (_) -> begin s.skip(); "OK" end)
-  server.register(namespace=id, description="Skip current song in the playlist (this command is DEPRECATED and present only for backward compatibility).", usage="next", "next", fun (_) -> begin s.skip(); log.important("Please use `skip` instead of `next` as telnet command for playlists. It is deprecated and will be removed in a future version."); "OK" end)
+  server.register(namespace=id, description="Return up to 10 next URIs to be played.", usage="next", "next", fun (n) -> begin
+    n = max(10, int_of_string(default=10, n))
+    requests = list.fold((fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur), [], s.queue())
+    string.concat(separator="\n", list.map((fun (r) -> begin
+      m = request.metadata(r)
+      get = fun (lbl) -> list.assoc(default="?", lbl, m)
+      status = get("status")
+      uri = get("initial_uri")
+      "[#{status}] #{uri}"
+    end), requests))
+  end)
   server.register(namespace=id, description="Reload the playlist, unless already being loaded.", usage="reload", "reload", fun (_) -> begin s.reload(); "OK" end)
 
   def uri_cmd (uri') =
