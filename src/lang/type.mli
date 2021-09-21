@@ -98,9 +98,6 @@ val var : ?constraints:constraints -> ?level:int -> ?pos:pos -> unit -> t
     compare variables (as opposed to =). *)
 val var_eq : var -> var -> bool
 
-(** Find all variables satisfying a predicate. *)
-val filter_vars : (var -> bool) -> t -> var list
-
 (** Add a method to a type. *)
 val meth : ?pos:pos -> string -> scheme -> ?doc:string -> t -> t
 
@@ -145,6 +142,14 @@ val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
 
 (** Print the representation of a type. *)
 val print_repr : Format.formatter -> repr -> unit
+
+(** {1 instantiation and generalization} *)
+
+(** Instantiate a type. *)
+val instantiate : level:int -> generalized:var list -> t -> t
+
+(** Find all generalizable variables. *)
+val generalize : level:int -> t -> scheme
 
 (** {1 Typing errors} *)
 
