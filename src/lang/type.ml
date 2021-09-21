@@ -699,8 +699,12 @@ let generalizable ~level t =
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | Var { contents = Free var } ->
-          if var.level > level && not (List.exists (var_eq var) l) then var :: l
-          else l
+          let l =
+            if var.level > level && not (List.exists (var_eq var) l) then
+              var :: l
+            else l
+          in
+          List.fold_left aux l var.lower
       | Var { contents = Link _ } -> assert false
   in
   aux [] t
@@ -719,6 +723,7 @@ module Subst = struct
   type subst = t M.t
   type t = subst
 
+  let add = M.add
   let of_list l : t = M.of_seq (List.to_seq l)
 
   (** Retrieve the value of a variable. *)
@@ -760,9 +765,17 @@ let instantiate ~level ~generalized =
     let rec aux t =
       let* descr =
         match t.descr with
-          | Var { contents = Free v } as var -> (
-              try fun subst -> ((Subst.value subst v).descr, subst)
-              with Not_found -> return var)
+          | Var { contents = Free v } -> (
+              fun subst ->
+                try ((Subst.value subst v).descr, subst)
+                with Not_found ->
+                  let lower, subst = map aux v.lower subst in
+                  let var =
+                    var ?pos:t.pos ~level:v.level ~constraints:v.constraints
+                      ~lower ()
+                  in
+                  let subst = Subst.add v var subst in
+                  (var.descr, subst))
           | Constr c ->
               let* params =
                 map

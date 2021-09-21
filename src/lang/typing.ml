@@ -236,12 +236,12 @@ exception Error of (repr * repr)
 (** Make a variable link to given type *)
 let rec bind a b =
   let a0 = a in
+  if !debug then Printf.printf "\n%s := %s\n%!" (print a0) (print b);
   let v, a =
     match a.descr with
       | Var ({ contents = Free a } as v) -> (v, a)
       | _ -> assert false
   in
-  if !debug then Printf.printf "\n%s := %s\n%!" (print a0) (print b);
   let b = deref b in
   occur_check a b;
   satisfies_constraints b a.constraints;
@@ -270,7 +270,9 @@ let rec bind a b =
 and ( <: ) (a : t) (b : t) =
   if !debug || !debug_subtyping then
     Printf.printf "\n%s <: %s\n%!" (print a) (print b);
-  match ((deref a).descr, (deref b).descr) with
+  let a = deref a in
+  let b = deref b in
+  match (a.descr, b.descr) with
     | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v' ->
         ()
     | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
@@ -395,11 +397,28 @@ and ( <: ) (a : t) (b : t) =
     (* Force dropping the methods when we have constraints (see #1496) unless
        we are comparing records (see #1930). *)
       when (not (has_meth a)) || v.constraints = [] || (demeth a).descr = unit
-      ->
-        List.iter
-          (fun b -> if not (have_sup a b) then raise (Error (repr a, repr b)))
-          v.lower;
-        v.lower <- a :: v.lower
+      -> (
+        (* If the type is simple enough we keep the constraint, otherwise, we bind
+           as usual. Functions are not simple because we need to have those
+           explicitly in order to detect optional arguments. *)
+        (* TODO: refine... *)
+        let simple a =
+          match (deref a).descr with Arrow _ -> false | _ -> true
+        in
+        try
+          if simple a then (
+            List.iter
+              (fun b ->
+                if not (have_sup a b) then raise (Error (repr a, repr b)))
+              v.lower;
+            occur_check v a;
+            satisfies_constraints a v.constraints;
+            v.lower <- a :: v.lower)
+          else bind b a
+        with Occur_check _ | Unsatisfied_constraint _ ->
+          (* Can't do more concise than a full representation, as the problem
+             isn't local. *)
+          raise (Error (repr a, repr b))
         (*
     | _, Var { contents = Free v }
     (* Force dropping the methods when we have constraints (see #1496) unless
@@ -410,6 +429,7 @@ and ( <: ) (a : t) (b : t) =
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)))
 *)
+        )
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
     | Meth (l, (g1, t1), _, u1), Meth (l', (g2, t2), _, u2) when l = l' -> (
