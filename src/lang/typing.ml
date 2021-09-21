@@ -421,6 +421,7 @@ and ( <: ) (a : t) (b : t) =
               v.lower;
             occur_check v a;
             satisfies_constraints a v.constraints;
+            update_level ~level:v.level a;
             if not (List.exists (Type.eq a) v.lower) then
               v.lower <- a :: v.lower)
           else bind b a
