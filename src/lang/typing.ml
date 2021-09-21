@@ -272,9 +272,6 @@ and ( <: ) (a : t) (b : t) =
     Printf.printf "\n%s <: %s\n%!" (print a) (print b);
   let a = deref a in
   let b = deref b in
-  let is_nullable a =
-    match (deref a).descr with Nullable _ -> true | _ -> false
-  in
   match (a.descr, b.descr) with
     | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v' ->
         ()
@@ -390,24 +387,29 @@ and ( <: ) (a : t) (b : t) =
     | Arrow ([], t1), Getter t2 -> (
         try t1 <: t2
         with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
-    | Var { contents = Free v }, _
-      when (* TODO: there should be many other cases we want to avoid here... *)
-           let rec isnt_nullable a =
-             match (deref a).descr with
-               | Ground _ | Constr _ -> true
-               | Meth (_, _, _, a) -> isnt_nullable a
-               | _ -> false
-           in
-           not
-             (is_nullable b
-             && (Type.eq b (make (Nullable a))
-                || List.mem Num v.constraints
-                || List.exists isnt_nullable v.lower)) -> (
-        try bind a b
-        with Occur_check _ | Unsatisfied_constraint _ ->
-          (* Can't do more concise than a full representation, as the problem
-             isn't local. *)
-          raise (Error (repr a, repr b)))
+    | Var { contents = Free v }, _ -> (
+        let rec isnt_nullable a =
+          match (deref a).descr with
+            | Ground _ | Constr _ | Arrow _ -> true
+            | Meth (_, _, _, a) -> isnt_nullable a
+            | _ -> false
+        in
+        let isnt_methable a =
+          match (deref a).descr with Ground _ | Constr _ -> true | _ -> false
+        in
+        (* TODO: there should be many other cases we want to avoid here... *)
+        match (deref b).descr with
+          | Nullable b
+            when Type.eq b a || List.mem Num v.constraints
+                 || List.exists isnt_nullable v.lower ->
+              a <: b
+          | Meth (_, _, _, b) when List.exists isnt_methable v.lower -> a <: b
+          | _ -> (
+              try bind a b
+              with Occur_check _ | Unsatisfied_constraint _ ->
+                (* Can't do more concise than a full representation, as the problem
+                   isn't local. *)
+                raise (Error (repr a, repr b))))
     | _, Var { contents = Free v }
     (* Force dropping the methods when we have constraints (see #1496) unless
        we are comparing records (see #1930). *)

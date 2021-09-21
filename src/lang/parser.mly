@@ -388,7 +388,7 @@ if_elsif:
                                       let else_b = $5 in
                                       let op = mk ~pos:$loc($1) (Var "if") in
                                       mk_fun ~pos:$loc [] (mk ~pos:$loc (App (op,["",cond; "then",then_b; "else",else_b]))) }
-  | ELSE exprs                      { mk_fun ~pos:($startpos($1),$endpos($2)) [] $2 }
+  | ELSE exprs                      { mk_fun ~pos:$loc($2) [] $2 }
   |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc unit) }
 
 encoder_opt:
