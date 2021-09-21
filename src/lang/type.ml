@@ -729,15 +729,10 @@ module Subst = struct
   type t = subst
 
   let add = M.add
-  let of_list l : t = M.of_seq (List.to_seq l)
+  let identity : t = M.empty
 
   (** Retrieve the value of a variable. *)
   let value (s : t) (i : var) = M.find i s
-
-  (* let filter f (s : t) = M.filter (fun i t -> f i t) s *)
-
-  (** Whether we have the identity substitution. *)
-  let is_identity (s : t) = M.is_empty s
 end
 
 (** Instantiate a type scheme, given as a type together with a list of
@@ -745,12 +740,6 @@ end
     level, and attached to the appropriate constraints. This erases position
     information, since they usually become irrelevant. *)
 let instantiate ~level ~generalized =
-  let subst =
-    List.map
-      (fun v -> (v, var ~level ~constraints:v.constraints ()))
-      generalized
-  in
-  let subst = Subst.of_list subst in
   (* Monad with substitution update *)
   let return x subst = (x, subst) in
   let ( let* ) x f subst =
@@ -768,17 +757,18 @@ let instantiate ~level ~generalized =
     let rec aux t =
       let* descr =
         match t.descr with
-          | Var { contents = Free v } -> (
+          | Var { contents = Free v } as vv -> (
               fun subst ->
                 try ((Subst.value subst v).descr, subst)
                 with Not_found ->
-                  let lower, subst = map aux v.lower subst in
-                  let var =
-                    var ?pos:t.pos ~level:v.level ~constraints:v.constraints
-                      ~lower ()
-                  in
-                  let subst = Subst.add v var subst in
-                  (var.descr, subst))
+                  if List.exists (var_eq v) generalized then (
+                    let lower, subst = map aux v.lower subst in
+                    let var =
+                      var ?pos:t.pos ~level ~constraints:v.constraints ~lower ()
+                    in
+                    let subst = Subst.add v var subst in
+                    (var.descr, subst))
+                  else (vv, subst))
           | Constr c ->
               let* params =
                 map
@@ -802,9 +792,13 @@ let instantiate ~level ~generalized =
               let* l = map aux l in
               return (Tuple l)
           | Meth (l, (g, t), d, u) ->
-              (* We assume that we don't substitute generalized variables. *)
-              if !debug then
-                assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
+              let* () =
+               fun subst ->
+                (* We assume that we don't substitute generalized variables. *)
+                if !debug then
+                  assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
+                ((), subst)
+              in
               let* t = aux t in
               let* u = aux u in
               return (Meth (l, (g, t), d, u))
@@ -824,7 +818,7 @@ let instantiate ~level ~generalized =
       in
       return { t with descr }
     in
-    if Subst.is_identity subst then t else fst (aux t subst)
+    if generalized = [] then t else fst (aux t Subst.identity)
 
 (** {1 Documentation} *)
 
