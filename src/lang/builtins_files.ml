@@ -101,10 +101,14 @@ let () =
       ("", Lang.string_t, None, Some "File prefix");
       ("", Lang.string_t, None, Some "File suffix");
     ] Lang.string_t (fun p ->
-      Lang.string
-        (Filename.temp_file
-           (Lang.to_string (Lang.assoc "" 1 p))
-           (Lang.to_string (Lang.assoc "" 2 p))))
+      try
+        Lang.string
+          (Filename.temp_file
+             (Lang.to_string (Lang.assoc "" 1 p))
+             (Lang.to_string (Lang.assoc "" 2 p)))
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"file" exn)
 
 let () =
   Lang.add_builtin "file.temp_dir" ~category:`File
@@ -116,10 +120,14 @@ let () =
       ("", Lang.string_t, None, Some "Directory prefix");
       ("", Lang.string_t, None, Some "Directory suffix");
     ] Lang.string_t (fun p ->
-      Lang.string
-        (Extralib.Filename.mk_temp_dir
-           (Lang.to_string (Lang.assoc "" 1 p))
-           (Lang.to_string (Lang.assoc "" 2 p))))
+      try
+        Lang.string
+          (Extralib.Filename.mk_temp_dir
+             (Lang.to_string (Lang.assoc "" 1 p))
+             (Lang.to_string (Lang.assoc "" 2 p)))
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"file" exn)
 
 let () =
   Lang.add_builtin "file.exists" ~category:`File
