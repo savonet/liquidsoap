@@ -67,7 +67,7 @@ let parse f =
               | "TIT2" -> "title"
               | "TALB" -> "album"
               | "TYER" -> "year"
-              | "TRCK" -> "track"
+              | "TRCK" -> "tracknumber"
               | "TBPM" -> "tempo"
               | _ -> id
           in

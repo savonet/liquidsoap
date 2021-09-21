@@ -502,11 +502,18 @@ let () =
   Request.dresolvers#register "FFMPEG" (fun fname ->
       match duration fname with None -> raise Not_found | Some d -> d)
 
+let tags_substitutions = [("track", "tracknumber")]
+
 let get_tags file =
   let container = Av.open_input file in
   Tutils.finalize
     ~k:(fun () -> Av.close container)
-    (fun () -> Av.get_input_metadata container)
+    (fun () ->
+      let tags = Av.get_input_metadata container in
+      List.map
+        (fun (lbl, v) ->
+          try (List.assoc lbl tags_substitutions, v) with _ -> (lbl, v))
+        tags)
 
 let () = Request.mresolvers#register "FFMPEG" get_tags
 

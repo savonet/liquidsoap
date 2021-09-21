@@ -52,7 +52,7 @@ let regexp_flag_of_string = function
   | "m" -> `m
   | _ -> assert false
 
-module RegExp = Lang.MkAbstract (struct
+module RegExp = Value.MkAbstract (struct
   type content = regexp
 
   let name = "regexp"

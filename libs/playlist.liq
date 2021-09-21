@@ -1,3 +1,29 @@
+# Default id assignment for playlists
+# @category Liquidsoap
+# @param ~default Default name pattern when no useful name can be extracted from `uri`
+# @param uri Playlist uri
+def playlist.id(~default,uri) =
+  basename = path.basename(uri)
+
+  basename =
+    if basename == "." then
+      let l = r/\//g.split(uri)
+      if l == [] then
+        path.dirname(uri)
+      else
+        list.hd(list.rev(l))
+      end
+    else
+      basename
+    end
+
+  if basename == "." then
+    string.id.default(default=default, null())
+  else
+    basename
+  end
+end
+
 # Retrieve the list of files contained in a playlist.
 # @category Liquidsoap
 # @param ~mime_type Default MIME type for the playlist. `null` means automatic \
@@ -5,7 +31,7 @@
 # @param ~timeout Timeout for resolving the playlist
 # @param uri Path to the playlist
 def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
-  id = string.id.default(default="playlist.files", id)
+  id = id ?? playlist.id(default="playlist.files", uri)
   if file.is_directory(uri) then
     log.info(label=id, "Playlist is a directory.")
     files = file.ls(absolute=true, recursive=true, uri)
@@ -218,7 +244,7 @@ def playlist.reloadable(
   ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, ~mime_type=null(),
   ~mode="randomize", ~native=false, ~on_done={()}, ~on_reload=(fun (_) -> ()),
   ~prefix="", ~timeout=20., uri) =
-  id = string.id.default(default="playlist.reloadable", id)
+  id = id ?? playlist.id(default="playlist.reloadable", uri)
   # URI of the current playlist
   playlist_uri=ref(uri)
   # List of files in the current playlist
@@ -308,7 +334,7 @@ def replaces playlist(
   ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, 
   ~mime_type=null(), ~mode="randomize", ~native=false, ~on_reload=(fun (_) -> ()),
   ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri) =
-  id = string.id.default(default="playlist", id)
+  id = id ?? playlist.id(default="playlist", uri)
 
   reload_mode =
     if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then
@@ -396,7 +422,17 @@ def replaces playlist(
 
   # Set up telnet commands
   server.register(namespace=id, description="Skip current song in the playlist.", usage="skip", "skip", fun (_) -> begin s.skip(); "OK" end)
-  server.register(namespace=id, description="Skip current song in the playlist (this command is DEPRECATED and present only for backward compatibility).", usage="next", "next", fun (_) -> begin s.skip(); log.important("Please use `skip` instead of `next` as telnet command for playlists. It is deprecated and will be removed in a future version."); "OK" end)
+  server.register(namespace=id, description="Return up to 10 next URIs to be played.", usage="next", "next", fun (n) -> begin
+    n = max(10, int_of_string(default=10, n))
+    requests = list.fold((fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur), [], s.queue())
+    string.concat(separator="\n", list.map((fun (r) -> begin
+      m = request.metadata(r)
+      get = fun (lbl) -> list.assoc(default="?", lbl, m)
+      status = get("status")
+      uri = get("initial_uri")
+      "[#{status}] #{uri}"
+    end), requests))
+  end)
   server.register(namespace=id, description="Reload the playlist, unless already being loaded.", usage="reload", "reload", fun (_) -> begin s.reload(); "OK" end)
 
   def uri_cmd (uri') =

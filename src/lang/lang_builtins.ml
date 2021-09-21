@@ -566,6 +566,19 @@ let () =
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       let f = Utils.home_unrelate f in
+      if not (Sys.file_exists f) then
+        Runtime_error.error
+          ~message:
+            (Printf.sprintf "File %s does not exist!"
+               (Utils.quote_utf8_string f))
+          "playlist";
+      if Sys.is_directory f then
+        Runtime_error.error
+          ~message:
+            (Printf.sprintf
+               "File %s is a directory! A regular file was expected."
+               (Utils.quote_utf8_string f))
+          "playlist";
       let content = Utils.read_all f in
       let pwd =
         let pwd = Lang.to_string (List.assoc "path" p) in

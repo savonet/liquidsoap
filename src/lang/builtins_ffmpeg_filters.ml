@@ -48,7 +48,7 @@ let init_graph graph =
   if Queue.fold (fun b v -> b && v ()) true graph.input_inits then
     Queue.iter Lazy.force graph.init
 
-module Graph = Lang.MkAbstract (struct
+module Graph = Value.MkAbstract (struct
   type content = graph
 
   let name = "ffmpeg.filter.graph"
@@ -57,7 +57,7 @@ module Graph = Lang.MkAbstract (struct
   let compare = Stdlib.compare
 end)
 
-module Audio = Lang.MkAbstract (struct
+module Audio = Value.MkAbstract (struct
   type content =
     [ `Input of ([ `Attached ], [ `Audio ], [ `Input ]) Avfilter.pad
     | `Output of ([ `Attached ], [ `Audio ], [ `Output ]) Avfilter.pad Lazy.t
@@ -69,7 +69,7 @@ module Audio = Lang.MkAbstract (struct
   let compare = Stdlib.compare
 end)
 
-module Video = Lang.MkAbstract (struct
+module Video = Value.MkAbstract (struct
   type content =
     [ `Input of ([ `Attached ], [ `Video ], [ `Input ]) Avfilter.pad
     | `Output of ([ `Attached ], [ `Video ], [ `Output ]) Avfilter.pad Lazy.t
