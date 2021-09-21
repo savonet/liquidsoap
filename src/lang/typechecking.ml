@@ -27,6 +27,7 @@ let debug = ref true
 
 (** {1 Type checking / inference} *)
 
+(** Terms for which generalization is safe. *)
 let rec value_restriction t =
   match t.term with
     | Var _ -> true
@@ -37,10 +38,11 @@ let rec value_restriction t =
     | Meth (_, t, u) -> value_restriction t && value_restriction u
     (* | Invoke (t, _) -> value_restriction t *)
     | Ground _ -> true
+    | Let l -> value_restriction l.def && value_restriction l.body
     | _ -> false
 
-(** A simple mechanism for delaying printing toplevel tasks
-  * as late as possible, to avoid seeing too many unknown variables. *)
+(** A simple mechanism for delaying printing toplevel tasks as late as possible,
+    to avoid seeing too many unknown variables. *)
 let add_task, pop_tasks =
   let q = Queue.create () in
   ( (fun f -> Queue.add f q),
@@ -227,9 +229,10 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     | Let ({ pat; replace; def; body; _ } as l) ->
         check ~level:(level + 1) ~env def;
         let generalized =
+          (* Printf.printf "generalize at %d: %B\n\n!" level (value_restriction def); *)
           if value_restriction def then fst (generalize ~level def.t) else []
         in
-        let penv, pa = type_of_pat ~level ~pos pat in
+        let penv, pa = type_of_pat ~level:(level + 1) ~pos pat in
         def.t <: pa;
         let penv =
           List.map
@@ -241,6 +244,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                       if replace then Type.remeth (snd (List.assoc x env)) a
                       else a
                     in
+                    (* Printf.printf "env: %s : %s\n\n%!" x (Type.print_scheme (generalized,a)); *)
                     (x, (generalized, a))
                 | l :: ll -> (
                     try
