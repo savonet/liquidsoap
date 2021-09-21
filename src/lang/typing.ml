@@ -392,7 +392,17 @@ and ( <: ) (a : t) (b : t) =
         with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
     | Var { contents = Free v }, _
       when (* TODO: there should be many other cases we want to avoid here... *)
-           not (List.mem Num v.constraints && is_nullable b) -> (
+           let rec isnt_nullable a =
+             match (deref a).descr with
+               | Ground _ | Constr _ -> true
+               | Meth (_, _, _, a) -> isnt_nullable a
+               | _ -> false
+           in
+           not
+             (is_nullable b
+             && (Type.eq b (make (Nullable a))
+                || List.mem Num v.constraints
+                || List.exists isnt_nullable v.lower)) -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->
           (* Can't do more concise than a full representation, as the problem

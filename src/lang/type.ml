@@ -663,9 +663,11 @@ let rec invokes t = function
       if ll = [] then (g, t) else invokes t ll
   | [] -> ([], t)
 
-let eq a b =
+let rec eq a b =
   match ((deref a).descr, (deref b).descr) with
     | Ground g, Ground g' -> g = g'
+    | Var { contents = Free v }, Var { contents = Free v' } -> var_eq v v'
+    | Nullable a, Nullable b -> eq a b
     | _ -> false
 
 (** {1 Type generalization and instantiation}
