@@ -130,6 +130,9 @@ val invoke : t -> string -> scheme
 (** Type of a submethod in a type. *)
 val invokes : t -> string list -> scheme
 
+(** If true, the two types are the same. *)
+val eq : t -> t -> bool
+
 (** {1 Representation of types} *)
 
 (** Representation of a type. *)

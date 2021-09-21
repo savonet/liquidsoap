@@ -663,6 +663,11 @@ let rec invokes t = function
       if ll = [] then (g, t) else invokes t ll
   | [] -> ([], t)
 
+let eq a b =
+  match ((deref a).descr, (deref b).descr) with
+    | Ground g, Ground g' -> g = g'
+    | _ -> false
+
 (** {1 Type generalization and instantiation}
   *
   * We don't have type schemes per se, but we compute generalizable variables

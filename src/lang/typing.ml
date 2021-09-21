@@ -26,7 +26,7 @@ open Type
 
 let () = Type.debug := false
 let () = Type.debug_levels := false
-let debug_subtyping = ref false
+let debug_subtyping = ref true
 
 type env = (string * scheme) list
 
@@ -402,8 +402,11 @@ and ( <: ) (a : t) (b : t) =
            as usual. Functions are not simple because we need to have those
            explicitly in order to detect optional arguments. *)
         (* TODO: refine... *)
-        let simple a =
-          match (deref a).descr with Arrow _ -> false | _ -> true
+        let rec simple a =
+          match (deref a).descr with
+            | Arrow _ -> false
+            | Meth (_, _, _, a) -> simple a
+            | _ -> true
         in
         try
           if simple a then (
@@ -413,7 +416,8 @@ and ( <: ) (a : t) (b : t) =
               v.lower;
             occur_check v a;
             satisfies_constraints a v.constraints;
-            v.lower <- a :: v.lower)
+            if not (List.exists (Type.eq a) v.lower) then
+              v.lower <- a :: v.lower)
           else bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           (* Can't do more concise than a full representation, as the problem
