@@ -68,7 +68,6 @@ and constructed = { constructor : string; params : (variance * t) list }
 and descr =
   | Constr of constructed
   | Ground of ground
-  | Bot
   | Getter of t
   | List of t
   | Tuple of t list
@@ -82,7 +81,7 @@ and invar = Free of var | Link of t
 and var = {
   name : int;
   mutable level : int;
-  mutable lower : t;
+  mutable lower : t list;
   mutable constraints : constraints;
 }
 
@@ -99,7 +98,12 @@ val deref : t -> t
 
 (** Create a fresh variable. *)
 val var :
-  ?constraints:constraints -> ?level:int -> ?lower:t -> ?pos:pos -> unit -> t
+  ?constraints:constraints ->
+  ?level:int ->
+  ?lower:t list ->
+  ?pos:pos ->
+  unit ->
+  t
 
 (** Compare two variables for equality. This comparison should always be used to
     compare variables (as opposed to =). *)
@@ -132,7 +136,6 @@ val invokes : t -> string list -> scheme
 type repr =
   [ `Constr of string * (variance * repr) list
   | `Ground of ground
-  | `Bot
   | `List of repr
   | `Tuple of repr list
   | `Nullable of repr
@@ -145,7 +148,7 @@ type repr =
   | `Range_Ellipsis  (** omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of string * repr * string ]
 
-and var_repr = string * repr * constraints
+and var_repr = string * repr list * constraints
 
 (** Representation of a type. *)
 val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr

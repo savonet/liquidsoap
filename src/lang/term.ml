@@ -135,7 +135,7 @@ let of_frame_kind_t t =
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
-        var := Type.Link (Type.Invariant, frame_kind_t audio video midi);
+        var := Type.Link (frame_kind_t audio video midi);
         { Frame.audio; video; midi }
     | _ -> assert false
 

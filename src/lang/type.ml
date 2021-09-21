@@ -138,7 +138,6 @@ and constructed = { constructor : string; params : (variance * t) list }
 and descr =
   | Constr of constructed
   | Ground of ground
-  | Bot
   | Getter of t
   | List of t
   | Tuple of t list
@@ -152,7 +151,7 @@ and invar = Free of var | Link of t
 and var = {
   name : int;
   mutable level : int;
-  mutable lower : t;
+  mutable lower : t list;
   mutable constraints : constraints;
 }
 
@@ -163,7 +162,6 @@ let unit = Tuple []
 type repr =
   [ `Constr of string * (variance * repr) list
   | `Ground of ground
-  | `Bot
   | `List of repr
   | `Tuple of repr list
   | `Nullable of repr
@@ -178,7 +176,7 @@ type repr =
     string * repr * string
     (* add annotations before / after, mostly used for debugging *) ]
 
-and var_repr = string * repr * constraints
+and var_repr = string * repr list * constraints
 
 let var_eq v v' = v.name = v'.name
 let make ?pos d = { pos; descr = d }
@@ -316,7 +314,6 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     else (
       match t.descr with
         | Ground g -> `Ground g
-        | Bot -> `Bot
         | Getter t -> `Getter (repr g t)
         | List t -> `List (repr g t)
         | Tuple l -> `Tuple (List.map (repr g) l)
@@ -325,7 +322,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
             let gen =
               List.map
                 (fun v ->
-                  match uvar (g' @ g) v (repr g v.lower) with `UVar v -> v)
+                  match uvar (g' @ g) v (List.map (repr g) v.lower) with
+                    | `UVar v -> v)
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
@@ -336,8 +334,9 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Var { contents = Free var } ->
-            if List.exists (var_eq var) g then uvar g var (repr g var.lower)
-            else evar var (repr g var.lower)
+            if List.exists (var_eq var) g then
+              uvar g var (List.map (repr g) var.lower)
+            else evar var (List.map (repr g) var.lower)
         | Var { contents = Link t } -> repr g t)
   in
   repr generalized t
@@ -398,9 +397,6 @@ let print_repr f (t : repr) =
         vars
     | `Ground g ->
         Format.fprintf f "%s" (print_ground g);
-        vars
-    | `Bot ->
-        Format.fprintf f "⊥";
         vars
     | `Tuple [] ->
         Format.fprintf f "unit";
@@ -500,6 +496,21 @@ let print_repr f (t : repr) =
         vars
     | `EVar (name, lower, c) | `UVar (name, lower, c) ->
         Format.fprintf f "%s" name;
+        let vars =
+          if lower <> [] then (
+            Format.fprintf f "[> ";
+            let first = ref true in
+            let vars =
+              List.fold_left
+                (fun vars t ->
+                  if not !first then Format.fprintf f ", " else first := false;
+                  print ~par:false vars t)
+                vars lower
+            in
+            Format.fprintf f " ]";
+            vars)
+          else vars
+        in
         if c <> [] then DS.add (name, c) vars else vars
     | `Arrow (p, t) ->
         if par then Format.fprintf f "@[<hov 1>("
@@ -640,10 +651,7 @@ let var =
       incr c;
       !c
   in
-  let f ?(constraints = []) ?(level = max_int) ?lower ?pos () =
-    let lower =
-      match lower with Some lower -> lower | None -> make ?pos Bot
-    in
+  let f ?(constraints = []) ?(level = max_int) ?(lower = []) ?pos () =
     let name = name () in
     make ?pos (Var (ref (Free { name; level; lower; constraints })))
   in
@@ -682,7 +690,6 @@ let generalizable ~level t =
     let t = deref t in
     match t.descr with
       | Ground _ -> l
-      | Bot -> l
       | Getter t -> aux l t
       | List t | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
@@ -766,7 +773,6 @@ let instantiate ~level ~generalized =
               in
               return (Constr { c with params })
           | Ground _ as g -> return g
-          | Bot -> return Bot
           | Getter t ->
               let* t = aux t in
               return (Getter t)

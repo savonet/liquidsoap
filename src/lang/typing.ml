@@ -64,7 +64,7 @@ let rec occur_check (a : var) b =
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
-    | Ground _ | Bot -> ()
+    | Ground _ -> ()
     | Var { contents = Free b } ->
         if a.name = b.name then raise (Occur_check (a, b0));
         b.level <- min a.level b.level
@@ -105,8 +105,8 @@ let satisfies_constraint b = function
                   if g <> String then
                     raise (Unsatisfied_constraint (Dtools, b'))
               | Var ({ contents = Free _ } as v) ->
-                  (* TODO: we should check the constraints *)
-                  v := Link (Invariant, make ?pos:b.pos (Ground String))
+                  (* TODO: we should check the constraints, etc. (ideally use bind...) *)
+                  v := Link (make ?pos:b.pos (Ground String))
               | _ -> raise (Unsatisfied_constraint (Dtools, b')))
         | Var { contents = Free v } ->
             if not (List.mem Dtools v.constraints) then
@@ -138,24 +138,6 @@ let satisfies_constraint b = function
 
 let satisfies_constraints b c = List.iter (satisfies_constraint b) c
 
-(** Make a variable link to given type *)
-let bind ?(variance = Invariant) a b =
-  let a0 = a in
-  let v, a =
-    match a.descr with
-      | Var ({ contents = Free a } as v) -> (v, a)
-      | _ -> assert false
-  in
-  if !debug then Printf.printf "\n%s := %s\n%!" (print a0) (print b);
-  let b = deref b in
-  occur_check a b;
-  satisfies_constraints b a.constraints;
-  let b = if b.pos = None then { b with pos = a0.pos } else b in
-  (* We do not want to check the constraints when we increase the types (for
-     now). *)
-  let variance = if a.constraints <> [] then Invariant else variance in
-  v := Link (variance, b)
-
 (** Lower all type variables to given level. *)
 let update_level ~level a =
   let x = Type.var ~level () in
@@ -171,8 +153,8 @@ exception Incompatible
 (** Approximated supremum of two types. We grow the second argument so that it
     has a chance be be greater than the first. No binding is performed by this
     function so that it should always be followed by a subtyping. *)
-let rec sup ~pos a b =
-  let sup = sup ~pos in
+let rec sup ?pos a b =
+  let sup = sup ?pos in
   let mk descr = { pos; descr } in
   let scheme_sup t t' =
     match (t, t') with ([], t), ([], t') -> ([], sup t t') | _ -> t'
@@ -185,8 +167,6 @@ let rec sup ~pos a b =
       | _ -> None
   in
   match ((deref a).descr, (deref b).descr) with
-    | Bot, _ -> b
-    | _, Bot -> a
     | Var { contents = Free _ }, _ -> b
     | _, Var { contents = Free _ } -> a
     | Nullable a, Nullable b -> mk (Nullable (sup a b))
@@ -238,14 +218,36 @@ let rec sup ~pos a b =
                (Type.print b))
         else raise Incompatible
 
-let sup ~pos a b =
-  let b' = sup ~pos a b in
+let sup ?pos a b =
+  let b' = sup ?pos a b in
   if !debug_subtyping && b' != b then
     Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b)
       (Type.print b');
   b'
 
+let have_sup a b =
+  try
+    ignore (sup a b);
+    true
+  with Incompatible -> false
+
 exception Error of (repr * repr)
+
+(** Make a variable link to given type *)
+let rec bind a b =
+  let a0 = a in
+  let v, a =
+    match a.descr with
+      | Var ({ contents = Free a } as v) -> (v, a)
+      | _ -> assert false
+  in
+  if !debug then Printf.printf "\n%s := %s\n%!" (print a0) (print b);
+  let b = deref b in
+  occur_check a b;
+  satisfies_constraints b a.constraints;
+  List.iter (fun a -> a <: b) a.lower;
+  let b = if b.pos = None then { b with pos = a0.pos } else b in
+  v := Link b
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
@@ -263,16 +265,14 @@ exception Error of (repr * repr)
  * optional argument; whereas with a mandatory argument it is expected to wait
  * for it. *)
 
-(** Ensure that a<:b, perform unification if needed.
-  * In case of error, generate an explanation. *)
-let rec ( <: ) a b =
+(** Ensure that a<:b, perform unification if needed. In case of error, generate
+    an explanation. *)
+and ( <: ) (a : t) (b : t) =
   if !debug || !debug_subtyping then
     Printf.printf "\n%s <: %s\n%!" (print a) (print b);
-  match (a.descr, b.descr) with
+  match ((deref a).descr, (deref b).descr) with
     | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v' ->
         ()
-    | _, Var { contents = Link (_, b) } -> a <: b
-    | Var { contents = Link (_, a) }, _ -> a <: b
     | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
@@ -391,18 +391,15 @@ let rec ( <: ) a b =
           (* Can't do more concise than a full representation, as the problem
              isn't local. *)
           raise (Error (repr a, repr b)))
-    | _, Var ({ contents = Free v } as var) ->
-        (* When the variable is covariant, we take the opportunity here to correct
-           bad choices. For instance, if we took int, but then have a 'a?, we
-           change our mind and use int? instead. *)
-        let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
-        (try b' <: b''
-         with _ ->
-           failwith
-             (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
-                (Type.print b'')));
-        if b'' != b' then var := Link (Covariant, b'');
-        a <: b''
+    | _, Var { contents = Free v }
+    (* Force dropping the methods when we have constraints (see #1496) unless
+       we are comparing records (see #1930). *)
+      when (not (has_meth a)) || v.constraints = [] || (demeth a).descr = unit
+      ->
+        List.iter
+          (fun b -> if not (have_sup a b) then raise (Error (repr a, repr b)))
+          v.lower;
+        v.lower <- a :: v.lower
         (*
     | _, Var { contents = Free v }
     (* Force dropping the methods when we have constraints (see #1496) unless
