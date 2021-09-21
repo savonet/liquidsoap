@@ -138,6 +138,7 @@ and constructed = { constructor : string; params : (variance * t) list }
 and descr =
   | Constr of constructed
   | Ground of ground
+  | Bot
   | Getter of t
   | List of t
   | Tuple of t list
@@ -148,7 +149,12 @@ and descr =
 
 and invar = Free of var | Link of variance * t
 
-and var = { name : int; mutable level : int; mutable constraints : constraints }
+and var = {
+  name : int;
+  mutable level : int;
+  mutable lower : t;
+  mutable constraints : constraints;
+}
 
 and scheme = var list * t
 
@@ -157,6 +163,7 @@ let unit = Tuple []
 type repr =
   [ `Constr of string * (variance * repr) list
   | `Ground of ground
+  | `Bot
   | `List of repr
   | `Tuple of repr list
   | `Nullable of repr
@@ -171,7 +178,7 @@ type repr =
     string * repr * string
     (* add annotations before / after, mostly used for debugging *) ]
 
-and var_repr = string * constraints
+and var_repr = string * repr * constraints
 
 let var_eq v v' = v.name = v'.name
 let make ?pos d = { pos; descr = d }
@@ -261,7 +268,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
-  let uvar g var =
+  let uvar g var lower =
     let constr_symbols, c = split_constr var.constraints in
     let rec index n = function
       | v :: tl ->
@@ -271,7 +278,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    `UVar (v, c)
+    `UVar (v, lower, c)
   in
   let counter =
     let c = ref 0 in
@@ -280,7 +287,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       !c
   in
   let evars = Hashtbl.create 10 in
-  let evar var =
+  let evar var lower =
     let constr_symbols, c = split_constr var.constraints in
     if !debug then (
       let v =
@@ -293,7 +300,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
           Printf.sprintf "%s[%s]" v level)
         else v
       in
-      `EVar (v, c))
+      `EVar (v, lower, c))
     else (
       let s =
         try Hashtbl.find evars var.name
@@ -302,13 +309,14 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
           Hashtbl.add evars var.name name;
           name
       in
-      `EVar (Printf.sprintf "?%s%s" constr_symbols s, c))
+      `EVar (Printf.sprintf "?%s%s" constr_symbols s, lower, c))
   in
   let rec repr g t =
     if filter_out t then `Ellipsis
     else (
       match t.descr with
         | Ground g -> `Ground g
+        | Bot -> `Bot
         | Getter t -> `Getter (repr g t)
         | List t -> `List (repr g t)
         | Tuple l -> `Tuple (List.map (repr g) l)
@@ -316,7 +324,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Meth (l, (g', u), _, v) ->
             let gen =
               List.map
-                (fun v -> match uvar (g' @ g) v with `UVar v -> v)
+                (fun v ->
+                  match uvar (g' @ g) v (repr g v.lower) with `UVar v -> v)
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
@@ -327,7 +336,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Var { contents = Free var } ->
-            if List.exists (var_eq var) g then uvar g var else evar var
+            if List.exists (var_eq var) g then uvar g var (repr g var.lower)
+            else evar var (repr g var.lower)
         | Var { contents = Link (Covariant, t) } when !debug ->
             `Debug ("[>", repr g t, "]")
         | Var { contents = Link (_, t) } -> repr g t)
@@ -345,7 +355,7 @@ end)
   * Unless in debug mode, variable identifiers are not shown,
   * and variable names are generated.
   * Names are only meaningful over one printing, as they are re-used. *)
-let print_repr f t =
+let print_repr f (t : repr) =
   (* Display the type and return the list of variables that occur in it.
    * The [par] params tells whether (..)->.. should be surrounded by
    * parenthesis or not. *)
@@ -390,6 +400,9 @@ let print_repr f t =
         vars
     | `Ground g ->
         Format.fprintf f "%s" (print_ground g);
+        vars
+    | `Bot ->
+        Format.fprintf f "⊥";
         vars
     | `Tuple [] ->
         Format.fprintf f "unit";
@@ -444,7 +457,7 @@ let print_repr f t =
             if m = [] then vars
             else (
               let rec gen = function
-                | (x, _) :: g -> x ^ "." ^ gen g
+                | (x, _, _) :: g -> x ^ "." ^ gen g
                 | [] -> ""
               in
               let gen g =
@@ -481,13 +494,13 @@ let print_repr f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
         vars
-    | `EVar (a, [InternalMedia]) ->
+    | `EVar (a, _, [InternalMedia]) ->
         Format.fprintf f "?internal(%s)" a;
         vars
-    | `UVar (a, [InternalMedia]) ->
+    | `UVar (a, _, [InternalMedia]) ->
         Format.fprintf f "internal(%s)" a;
         vars
-    | `EVar (name, c) | `UVar (name, c) ->
+    | `EVar (name, lower, c) | `UVar (name, lower, c) ->
         Format.fprintf f "%s" name;
         if c <> [] then DS.add (name, c) vars else vars
     | `Arrow (p, t) ->
@@ -530,10 +543,10 @@ let print_repr f t =
   begin
     match t with
     (* We're only printing a variable: ignore its [repr]esentation. *)
-    | `EVar (_, c) when c <> [] ->
+    | `EVar (_, _, c) when c <> [] ->
         Format.fprintf f "something that is %s"
           (String.concat " and " (List.map print_constr c))
-    | `UVar (_, c) when c <> [] ->
+    | `UVar (_, _, c) when c <> [] ->
         Format.fprintf f "anything that is %s"
           (String.concat " and " (List.map print_constr c))
     (* Print the full thing, then display constraints *)
@@ -629,9 +642,12 @@ let var =
       incr c;
       !c
   in
-  let f ?(constraints = []) ?(level = max_int) ?pos () =
+  let f ?(constraints = []) ?(level = max_int) ?lower ?pos () =
+    let lower =
+      match lower with Some lower -> lower | None -> make ?pos Bot
+    in
     let name = name () in
-    make ?pos (Var (ref (Free { name; level; constraints })))
+    make ?pos (Var (ref (Free { name; level; lower; constraints })))
   in
   f
 
@@ -668,6 +684,7 @@ let generalizable ~level t =
     let t = deref t in
     match t.descr with
       | Ground _ -> l
+      | Bot -> l
       | Getter t -> aux l t
       | List t | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
@@ -751,6 +768,7 @@ let instantiate ~level ~generalized =
               in
               return (Constr { c with params })
           | Ground _ as g -> return g
+          | Bot -> return Bot
           | Getter t ->
               let* t = aux t in
               return (Getter t)
