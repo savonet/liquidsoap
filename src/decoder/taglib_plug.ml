@@ -39,6 +39,7 @@ let file_extensions =
     "File extensions used for decoding metadata using TAGLIB" ~d:["mp3"]
 
 let int_tags = [("year", Taglib.tag_year); ("tracknumber", Taglib.tag_track)]
+let tag_aliases = [("track", "tracknumber")]
 
 (** We used to force the format. However, now that we check extensions, taglib's
   * automatic format detection should work. *)
@@ -65,10 +66,14 @@ let get_tags fname =
         Hashtbl.fold
           (fun key (values : string list) tags ->
             let key = String.lowercase_ascii key in
+            let key = try List.assoc key tag_aliases with _ -> key in
             if List.mem_assoc key tags || values = [] then tags
             else (
               let v = List.hd values in
-              if v = "" then tags else (key, v) :: tags))
+              match v with
+                | "0" when List.mem_assoc key int_tags -> tags
+                | "" -> tags
+                | _ -> (key, v) :: tags))
           (Taglib.File.properties f) tags)
   with
     | Invalid_file -> []
