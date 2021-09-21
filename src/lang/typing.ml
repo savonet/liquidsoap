@@ -24,7 +24,7 @@
 
 open Type
 
-let () = Type.debug := false
+let () = Type.debug := true
 let () = Type.debug_levels := false
 let debug_subtyping = ref true
 
@@ -272,6 +272,9 @@ and ( <: ) (a : t) (b : t) =
     Printf.printf "\n%s <: %s\n%!" (print a) (print b);
   let a = deref a in
   let b = deref b in
+  let is_nullable a =
+    match (deref a).descr with Nullable _ -> true | _ -> false
+  in
   match (a.descr, b.descr) with
     | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v' ->
         ()
@@ -387,7 +390,9 @@ and ( <: ) (a : t) (b : t) =
     | Arrow ([], t1), Getter t2 -> (
         try t1 <: t2
         with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
-    | Var { contents = Free _ }, _ -> (
+    | Var { contents = Free v }, _
+      when (* TODO: there should be many other cases we want to avoid here... *)
+           not (List.mem Num v.constraints && is_nullable b) -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->
           (* Can't do more concise than a full representation, as the problem
