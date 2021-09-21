@@ -284,10 +284,14 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     let constr_symbols, c = split_constr var.constraints in
     if !debug then (
       let v =
-        Printf.sprintf "?%s%s" constr_symbols (evar_global_name var.name)
+        Printf.sprintf "'%s%s" constr_symbols (evar_global_name var.name)
       in
       let v =
-        if !debug_levels then Printf.sprintf "%s[%d]" v var.level else v
+        if !debug_levels then (
+          let level = var.level in
+          let level = if level = max_int then "∞" else string_of_int level in
+          Printf.sprintf "%s[%s]" v level)
+        else v
       in
       `EVar (v, c))
     else (

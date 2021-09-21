@@ -1,4 +1,4 @@
-#!../../src/liquidsoap -i ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../src/liquidsoap -i ../../libs/stdlib.liq
 
 # Basic radio test
 

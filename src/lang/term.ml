@@ -364,6 +364,10 @@ let unit = Tuple []
 let is_ground x =
   match x.term with Ground _ -> true (* | Ref x -> is_ground x *) | _ -> false
 
+let rec string_of_pat = function
+  | PVar l -> String.concat "." l
+  | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
+
 (** Print terms, (almost) assuming they are in normal form. *)
 let rec print_term v =
   match v.term with
@@ -399,11 +403,11 @@ let rec print_term v =
             tl
         in
         print_term hd ^ "(" ^ String.concat "," tl ^ ")"
-    | Let _ | Seq _ -> assert false
-
-let rec string_of_pat = function
-  | PVar l -> String.concat "." l
-  | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
+    (* | Let _ | Seq _ -> assert false *)
+    | Let l ->
+        Printf.sprintf "let %s = %s in %s" (string_of_pat l.pat)
+          (print_term l.def) (print_term l.body)
+    | Seq (e, e') -> print_term e ^ "; " ^ print_term e'
 
 (** Create a new value. *)
 let make ?pos ?t e =

@@ -24,9 +24,9 @@
 
 open Type
 
-(* let () = Type.debug := true *)
-
-let debug_subtyping = ref false
+let () = Type.debug := true
+let () = Type.debug_levels := true
+let debug_subtyping = ref true
 
 type env = (string * scheme) list
 
@@ -243,7 +243,7 @@ let bind ?(variance = Invariant) a b =
       | Var ({ contents = Free a } as v) -> (v, a)
       | _ -> assert false
   in
-  (* if !debug then Printf.eprintf "%s := %s\n%!" (print a0) (print b); *)
+  if !debug then Printf.printf "\n%s := %s\n%!" (print a0) (print b);
   let b = deref b in
   occur_check a b;
   satisfies_constraints b a.constraints;
@@ -354,7 +354,7 @@ exception Error of (repr * repr)
   * In case of error, generate an explanation. *)
 let rec ( <: ) a b =
   if !debug || !debug_subtyping then
-    Printf.eprintf "\n%s <: %s\n%!" (print a) (print b);
+    Printf.printf "\n%s <: %s\n%!" (print a) (print b);
   match (a.descr, b.descr) with
     | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v' ->
         ()

@@ -23,6 +23,8 @@
 open Term
 open Typing
 
+let debug = ref true
+
 (** {1 Type checking / inference} *)
 
 let rec value_restriction t =
@@ -68,6 +70,12 @@ let rec type_of_pat ~level ~pos = function
 (* Type-check an expression. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let check = check ~throw in
+  if !debug then Printf.printf "\n# %s : ?\n\n%!" (Term.print_term e);
+  let check ?print_toplevel ~level ~env e =
+    check ?print_toplevel ~level ~env e;
+    if !debug then
+      Printf.printf "\n# %s : %s\n\n%!" (Term.print_term e) (Type.print e.t)
+  in
   (* The toplevel position of the (un-dereferenced) type is the actual parsing
      position of the value. When we synthesize a type against which the type of
      the term is unified, we have to set the position information in order not
@@ -213,7 +221,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           with Not_found -> raise (Unbound (e.t.Type.pos, var))
         in
         e.t >: Typing.instantiate ~level ~generalized orig;
-        if Lazy.force debug then
+        if Lazy.force Term.debug then
           Printf.eprintf "Instantiate %s : %s becomes %s\n" var
             (Type.print orig) (Type.print e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
@@ -265,7 +273,7 @@ let check ?(ignored = false) ~throw e =
   let print_toplevel = !Configure.display_types in
   try
     let env = Environment.default_typing_environment () in
-    check ~print_toplevel ~throw ~level:(List.length env) ~env e;
+    check ~print_toplevel ~throw ~level:0 ~env e;
     if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
       add_task (fun () -> Format.printf "@[<2>-     :@ %a@]@." Type.pp_type e.t);
     if ignored && not (can_ignore e.t) then throw (Ignored e);
