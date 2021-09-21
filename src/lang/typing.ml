@@ -202,7 +202,7 @@ let satisfies_constraint b = function
                   if g <> String then
                     raise (Unsatisfied_constraint (Dtools, b'))
               | Var ({ contents = Free _ } as v) ->
-                  (* TODO: we should check the constraints and the lower bound *)
+                  (* TODO: we should check the constraints *)
                   v := Link (Invariant, make ?pos:b.pos (Ground String))
               | _ -> raise (Unsatisfied_constraint (Dtools, b')))
         | Var { contents = Free v } ->
