@@ -64,7 +64,7 @@ let rec occur_check (a : var) b =
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
-    | Ground _ -> ()
+    | Ground _ | Bot -> ()
     | Var { contents = Free b } ->
         if a.name = b.name then raise (Occur_check (a, b0));
         b.level <- min a.level b.level
@@ -185,6 +185,8 @@ let rec sup ~pos a b =
       | _ -> None
   in
   match ((deref a).descr, (deref b).descr) with
+    | Bot, _ -> b
+    | _, Bot -> a
     | Var { contents = Free _ }, _ -> b
     | _, Var { contents = Free _ } -> a
     | Nullable a, Nullable b -> mk (Nullable (sup a b))
@@ -269,21 +271,6 @@ let rec ( <: ) a b =
   match (a.descr, b.descr) with
     | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v' ->
         ()
-    | _, Var ({ contents = Link (Covariant, b') } as var) ->
-        (* When the variable is covariant, we take the opportunity here to correct
-           bad choices. For instance, if we took int, but then have a 'a?, we
-           change our mind and use int? instead. *)
-        let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
-        (try b' <: b''
-         with _ ->
-           failwith
-             (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
-                (Type.print b'')));
-        if b'' != b' then var := Link (Covariant, b'');
-        a <: b''
-    | Var ({ contents = Link (Covariant, a') } as var), _ ->
-        var := Link (Invariant, a');
-        a <: b
     | _, Var { contents = Link (_, b) } -> a <: b
     | Var { contents = Link (_, a) }, _ -> a <: b
     | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
@@ -404,6 +391,19 @@ let rec ( <: ) a b =
           (* Can't do more concise than a full representation, as the problem
              isn't local. *)
           raise (Error (repr a, repr b)))
+    | _, Var ({ contents = Free v } as var) ->
+        (* When the variable is covariant, we take the opportunity here to correct
+           bad choices. For instance, if we took int, but then have a 'a?, we
+           change our mind and use int? instead. *)
+        let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
+        (try b' <: b''
+         with _ ->
+           failwith
+             (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
+                (Type.print b'')));
+        if b'' != b' then var := Link (Covariant, b'');
+        a <: b''
+        (*
     | _, Var { contents = Free v }
     (* Force dropping the methods when we have constraints (see #1496) unless
        we are comparing records (see #1930). *)
@@ -412,6 +412,7 @@ let rec ( <: ) a b =
         try bind ~variance:Covariant b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)))
+*)
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
     | Meth (l, (g1, t1), _, u1), Meth (l', (g2, t2), _, u2) when l = l' -> (

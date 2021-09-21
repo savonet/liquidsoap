@@ -147,7 +147,7 @@ and descr =
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
 
-and invar = Free of var | Link of variance * t
+and invar = Free of var | Link of t
 
 and var = {
   name : int;
@@ -187,7 +187,7 @@ let make ?pos d = { pos; descr = d }
     by instantiations. One should (almost) never work on a non-dereferenced
     type. *)
 let rec deref t =
-  match t.descr with Var { contents = Link (_, t) } -> deref t | _ -> t
+  match t.descr with Var { contents = Link t } -> deref t | _ -> t
 
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
@@ -338,9 +338,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Var { contents = Free var } ->
             if List.exists (var_eq var) g then uvar g var (repr g var.lower)
             else evar var (repr g var.lower)
-        | Var { contents = Link (Covariant, t) } when !debug ->
-            `Debug ("[>", repr g t, "]")
-        | Var { contents = Link (_, t) } -> repr g t)
+        | Var { contents = Link t } -> repr g t)
   in
   repr generalized t
 
@@ -798,9 +796,7 @@ let instantiate ~level ~generalized =
               in
               let* t = aux t in
               return (Arrow (p, t))
-          | Var { contents = Link (_, t) } ->
-              (* TOOD: we remove the link here, it would be too difficult to preserve
-                 sharing. We could at least keep it when no variable is changed. *)
+          | Var { contents = Link t } ->
               let* t = aux t in
               return t.descr
       in

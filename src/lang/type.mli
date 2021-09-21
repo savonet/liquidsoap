@@ -77,7 +77,7 @@ and descr =
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
 
-and invar = Free of var | Link of variance * t
+and invar = Free of var | Link of t
 
 and var = {
   name : int;
