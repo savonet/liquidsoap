@@ -105,7 +105,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
 
-  fallback(id=id, track_sensitive=true, list.add(s, sources))
+  fallback(id=id, track_sensitive=true, s::sources)
 end
 
 # At the beginning of every track, select a random ready child.
@@ -131,7 +131,7 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
       let (current_weight, indexes) =
         if source.is_ready(s) then
           weight = weight()
-          indexes = list.add((current_weight, current_weight+weight, index), indexes)
+          indexes = (current_weight, current_weight+weight, index) :: indexes
           (current_weight + weight, indexes)
         else
           (current_weight, indexes)
@@ -182,5 +182,5 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
 
-  fallback(id=id, track_sensitive=true, list.add(s, sources))
+  fallback(id=id, track_sensitive=true, s::sources)
 end
