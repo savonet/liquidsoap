@@ -140,6 +140,9 @@ test_ffmpeg_distributed_hls:
 test_ffmpeg_raw_hls:
 	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_raw_hls.liq
 
+test_taglib: files/audio/@mp3(mono).mp3
+	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -"  media/test_taglib.liq
+
 include $(top_srcdir)/Makefile.rules
 
 clean:
