@@ -24,8 +24,8 @@
 
 open Type
 
-let () = Type.debug := false
-let () = Type.debug_levels := false
+let () = Type.debug := true
+let () = Type.debug_levels := true
 let debug_subtyping = ref false
 
 type env = (string * scheme) list

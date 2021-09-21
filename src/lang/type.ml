@@ -307,7 +307,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
           Hashtbl.add evars var.name name;
           name
       in
-      `EVar (Printf.sprintf "?%s%s" constr_symbols s, lower, c))
+      `EVar (Printf.sprintf "'%s%s" constr_symbols s, lower, c))
   in
   let rec repr g t =
     if filter_out t then `Ellipsis
