@@ -108,16 +108,19 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  Lang.add_builtin "list.add" ~category:`List
-    ~descr:"Add an element at the top of a list."
-    [("", a, None, None); ("", Lang.list_t a, None, None)]
-    (Lang.list_t a)
-    (fun p ->
-      let x, l =
-        match p with [("", x); ("", l)] -> (x, l) | _ -> assert false
-      in
-      let l = Lang.to_list l in
-      Lang.list (x :: l))
+  List.iter
+    (fun name ->
+      Lang.add_builtin name ~category:`List
+        ~descr:"Add an element at the top of a list."
+        [("", a, None, None); ("", Lang.list_t a, None, None)]
+        (Lang.list_t a)
+        (fun p ->
+          let x, l =
+            match p with [("", x); ("", l)] -> (x, l) | _ -> assert false
+          in
+          let l = Lang.to_list l in
+          Lang.list (x :: l)))
+    ["list.add"; "_::_"]
 
 let () =
   let t = Lang.list_t (Lang.univ_t ()) in

@@ -333,7 +333,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
       if list.length(m) >= 2 then
         key = list.hd(default="",m)
         value = string.concat(separator="=",list.tl(m))
-        list.add((key,value),cur)
+        (key,value)::cur
       else
         cur
       end

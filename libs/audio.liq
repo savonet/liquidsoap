@@ -264,8 +264,8 @@ def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf)
         (0., 0.)
       end
     s = add([sine(row, duration=duration), sine(col, duration=duration)])
-    l := list.add(blank(duration=delay), !l)
-    l := list.add(s, !l)
+    l := blank(duration=delay) :: !l
+    l := s :: !l
   end
   l = list.rev(!l)
   sequence(l)

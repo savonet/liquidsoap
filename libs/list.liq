@@ -32,7 +32,7 @@ end
 def list.init(n, f)
   def rec aux(i)
     if i == n then [] else
-      list.add(f(i), aux(i+1))
+      f(i)::aux(i+1)
     end
   end
   if n < 0 then [] else aux(0) end
@@ -332,14 +332,14 @@ def list.insert(index, new_element, l) =
   end
 
   if index == 0 then
-    list.add(new_element, l)
+    new_element::l
   else
     def f(cur, el) =
       let (pos, l) = cur
       l = if pos+1 == index then
-          list.add(new_element, list.add(el, l))
+          new_element::el::l
         else
-          list.add(el, l)
+          el::l
         end
       (pos+1, l)
     end
@@ -363,7 +363,7 @@ end
 def list.prefix(n, l)
   def rec aux(n, l)
     if n <= 0 or list.is_empty(l) then [] else
-      list.add(list.hd(l), aux(n-1, list.tl(l)))
+      list.hd(l)::aux(n-1, list.tl(l))
     end
   end
   aux(n, l)

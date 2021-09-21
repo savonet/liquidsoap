@@ -12,6 +12,7 @@ def t(x, y)
 end
   
 def f() =
+  t(1::2::[3,4], [1,2,3,4])
   t(list.hd(default=0,[]), 0)
   t(list.hd([5,6]), 5)
   t(try list.hd([]) catch _ do 9 end, 9)

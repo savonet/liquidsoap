@@ -81,7 +81,7 @@ def request.player(~simultaneous=true)
 
     def play(r)
       collect()
-      l := list.add(request.once(r), !l)
+      l := request.once(r)::!l
     end
 
     source.dynamic({add(normalize=false, !l)}).{play=play, length={collect(); list.length(!l)}}
