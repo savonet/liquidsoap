@@ -200,7 +200,6 @@ module Make (Harbor : T) = struct
             Pcre.get_substring sub 1
           with Not_found -> mime
         in
-        Generator.set_mode generator `Undefined;
         match Decoder.get_stream_decoder ~ctype:self#ctype mime with
           | Some d ->
               create_decoder <- d;
