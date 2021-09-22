@@ -400,6 +400,8 @@ and ( <: ) (a : t) (b : t) =
             | _ -> false
         in
         (* TODO: there should be many other cases we want to avoid here... *)
+        (* TODO: it might be better to switch this case with next ones. *)
+        (* TOOD: correct raised errors. *)
         match (deref b).descr with
           | Nullable b
             when Type.eq b a || List.mem Num v.constraints
@@ -420,6 +422,8 @@ and ( <: ) (a : t) (b : t) =
         (* If the type is simple enough we keep the constraint, otherwise, we bind
            as usual. Functions are not simple because we need to have those
            explicitly in order to detect optional arguments. *)
+        (* TODO: we could allow arrows here if were were smarter to find
+           optional arguments in lower bounds. *)
         (* TODO: refine... *)
         let rec simple a =
           match (deref a).descr with

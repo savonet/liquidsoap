@@ -270,7 +270,7 @@ def playlist.reloadable(
       l
     end
   end
-  on_fail = if loop then on_fail else null() end
+  on_fail = if loop then null(on_fail) else null() end
 
   # Create the source
   files := load_playlist()
