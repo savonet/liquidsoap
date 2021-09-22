@@ -240,6 +240,7 @@ let escape_utf8_string = escape_string escape_utf8_formatter
 let escape_ascii_string = escape_string escape_ascii_formatter
 let quote_utf8_string s = Printf.sprintf "\"%s\"" (escape_utf8_string s)
 let quote_ascii_string s = Printf.sprintf "\"%s\"" (escape_ascii_string s)
+let quote_string s = try quote_utf8_string s with _ -> quote_ascii_string s
 let unescape_utf8_pattern = "\\\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"
 let unescape_hex_pattern = "\\\\x[0-9a-fA-F][0-9a-fA-F]"
 let unescape_octal_pattern = "\\\\[0-9][0-9][0-9]"

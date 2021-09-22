@@ -178,7 +178,7 @@ let report lexbuf f =
         (if start.Lexing.pos_fname = "" then "L"
         else
           Printf.sprintf "File %s, l"
-            (Utils.quote_utf8_string start.Lexing.pos_fname))
+            (Utils.quote_string start.Lexing.pos_fname))
         start.Lexing.pos_lnum
         (start.Lexing.pos_cnum - start.Lexing.pos_bol)
         (if buf = "" then "" else Printf.sprintf " before %S" buf)
@@ -268,7 +268,7 @@ let interactive () =
      @.";
   if Dtools.Log.conf_file#get then
     Format.printf "Logs can be found in %s.\n@."
-      (Utils.quote_utf8_string Dtools.Log.conf_file_path#get);
+      (Utils.quote_string Dtools.Log.conf_file_path#get);
   let lexbuf =
     (* See ocaml-community/sedlex#45 *)
     let chunk_size = 512 in
