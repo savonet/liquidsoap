@@ -395,14 +395,13 @@ jobs:
         run: echo "##[set-output name=assets;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | xargs)"
         id: list_assets
       - name: Upload assets to release
-        uses: meeDamian/github-release@2.0
+        uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ needs.build_details.outputs.branch }}
           files:  ${{ steps.list_assets.outputs.assets }}
           prerelease: true
-          gzip: false
-          allow_override: true
+          draft: true
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
