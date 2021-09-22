@@ -81,8 +81,7 @@ class once ~kind ~name ~timeout request =
           decoder <- Request.get_decoder request;
           assert (decoder <> None);
           remaining <- -1;
-          self#log#important "Prepared %s (RID %d)."
-            (Utils.quote_utf8_string file)
+          self#log#important "Prepared %s (RID %d)." (Utils.quote_string file)
             (Request.get_id request)))
 
     method private end_track forced =
@@ -187,8 +186,7 @@ class virtual unqueued ~kind ~name =
                and it can be decoded. *)
             let file = Option.get (Request.get_filename req) in
             let decoder = Option.get (Request.get_decoder req) in
-            self#log#important "Prepared %s (RID %d)."
-              (Utils.quote_utf8_string file)
+            self#log#important "Prepared %s (RID %d)." (Utils.quote_string file)
               (Request.get_id req);
 
             (* We use this mutex to avoid seeking and filling at the same time.. *)

@@ -324,10 +324,9 @@ let read_metadata t =
   let indicator = peek_indicator t in
   let name = indicator.string in
   if not (file_exists name) then
-    log#important "File %s does not exist!" (Utils.quote_utf8_string name)
+    log#important "File %s does not exist!" (Utils.quote_string name)
   else if not (file_is_readable name) then
-    log#important "Read permission denied for %s!"
-      (Utils.quote_utf8_string name)
+    log#important "Read permission denied for %s!" (Utils.quote_string name)
   else
     List.iter
       (fun (_, resolver) ->
@@ -356,7 +355,7 @@ let local_check t =
         let metadata = get_all_metadata t in
         if not (file_is_readable name) then (
           log#important "Read permission denied for %s!"
-            (Utils.quote_utf8_string name);
+            (Utils.quote_string name);
           add_log t "Read permission denied!";
           pop_indicator t)
         else (
@@ -375,8 +374,7 @@ let local_check t =
 let push_indicators t l =
   if l <> [] then (
     let hd = List.hd l in
-    add_log t
-      (Printf.sprintf "Pushed [%s;...]." (Utils.quote_utf8_string hd.string));
+    add_log t (Printf.sprintf "Pushed [%s;...]." (Utils.quote_string hd.string));
     t.indicators <- l :: t.indicators;
     t.decoder <- None;
 
@@ -596,7 +594,7 @@ let resolve ~ctype t timeout =
               | Some handler ->
                   add_log t
                     (Printf.sprintf "Resolving %s (timeout %.0fs)..."
-                       (Utils.quote_utf8_string i.string)
+                       (Utils.quote_string i.string)
                        timeout);
                   let production =
                     handler.resolve ~log:(add_log t) arg maxtime
@@ -605,19 +603,19 @@ let resolve ~ctype t timeout =
                     log#info
                       "Failed to resolve %s! For more info, see server command \
                        `request.trace %d`."
-                      (Utils.quote_utf8_string i.string)
+                      (Utils.quote_string i.string)
                       t.id;
                     ignore (pop_indicator t))
                   else push_indicators t production
               | None ->
                   log#important "Unknown protocol %S in URI %s!" proto
-                    (Utils.quote_utf8_string i.string);
+                    (Utils.quote_string i.string);
                   add_log t "Unknown protocol!";
                   pop_indicator t)
         | None ->
             let log_level = if i.string = "" then 4 else 3 in
             log#f log_level "Nonexistent file or ill-formed URI %s!"
-              (Utils.quote_utf8_string i.string);
+              (Utils.quote_string i.string);
             add_log t "Nonexistent file or ill-formed URI!";
             pop_indicator t)
   in

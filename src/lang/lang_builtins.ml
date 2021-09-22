@@ -569,15 +569,14 @@ let () =
       if not (Sys.file_exists f) then
         Runtime_error.error
           ~message:
-            (Printf.sprintf "File %s does not exist!"
-               (Utils.quote_utf8_string f))
+            (Printf.sprintf "File %s does not exist!" (Utils.quote_string f))
           "playlist";
       if Sys.is_directory f then
         Runtime_error.error
           ~message:
             (Printf.sprintf
                "File %s is a directory! A regular file was expected."
-               (Utils.quote_utf8_string f))
+               (Utils.quote_string f))
           "playlist";
       let content = Utils.read_all f in
       let pwd =
