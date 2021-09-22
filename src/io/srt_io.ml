@@ -759,7 +759,6 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
     let on_connect_cur = !on_connect in
     (on_connect :=
        fun () ->
-         Generator.set_mode generator `Undefined;
          (match dump with
            | Some fname -> dump_chan <- Some (open_out_bin fname)
            | None -> ());
