@@ -497,8 +497,9 @@ and ( <: ) (a : t) (b : t) =
           let a' = demeth a in
           match a'.descr with
             | Var { contents = Free _ } ->
-                a' <: make (Meth (l, (g2, t2), "", var ()));
-                a <: b
+                let a'' = var () in
+                a' <: make (Meth (l, (g2, t2), "", a''));
+                a'' <: b
             | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))))
         )
     | Meth (l, _, _, u1), _ -> hide_meth l u1 <: b
