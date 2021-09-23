@@ -242,6 +242,10 @@ let rec token lexbuf =
     | "true" -> BOOL true
     | "false" -> BOOL false
     | int_literal -> INT (int_of_string (Sedlexing.Utf8.lexeme lexbuf))
+    | Plus decimal_digit, ".{" ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let matched = String.sub matched 0 (String.length matched - 2) in
+        PP_INT_DOT_LCUR (int_of_string matched)
     | Star decimal_digit, '.', Star decimal_digit ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let idx = String.index matched '.' in

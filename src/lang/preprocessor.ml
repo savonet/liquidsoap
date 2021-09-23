@@ -391,6 +391,31 @@ let parse_comments tokenizer =
   in
   token
 
+(** Special token in order to avoid 3.{s = "a"} to be parsed as a float followed
+    by a record. *)
+let int_meth tokenizer =
+  let q = Queue.create () in
+  let fill () =
+    match tokenizer () with
+      | Parser.PP_INT_DOT_LCUR n, (spos, epos) ->
+          let a n pos =
+            { pos with Lexing.pos_cnum = pos.Lexing.pos_cnum - n }
+          in
+          Queue.add_seq q
+            (List.to_seq
+               [
+                 (Parser.INT n, (spos, a 2 epos));
+                 (Parser.DOT, (a 2 spos, a 1 epos));
+                 (Parser.LCUR, (a 1 spos, epos));
+               ])
+      | t -> Queue.add t q
+  in
+  let token () =
+    if Queue.is_empty q then fill ();
+    Queue.pop q
+  in
+  token
+
 (** Change MINUS to UMINUS if the minus is not preceded by a number (or an
    expression which could produce a number). *)
 let uminus tokenizer =
@@ -479,4 +504,4 @@ let expand_define tokenizer =
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname ~pwd lexbuf =
   mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
-  |> expand_string |> uminus |> strip_newlines |> expand_define
+  |> expand_string |> int_meth |> uminus |> strip_newlines |> expand_define

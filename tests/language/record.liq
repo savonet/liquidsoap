@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq
 
 success = ref(true)
 
@@ -53,6 +53,10 @@ def f() =
   t(counter(), 3)
   counter.reset()
   t(counter(), 1)
+
+  # Float / field disambiguation
+  r = 3.{s = "a"}
+  _ = r.s
 
   # Open
   r = ()

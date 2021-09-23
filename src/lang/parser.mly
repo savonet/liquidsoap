@@ -32,7 +32,7 @@ open Parser_helper
 %token <string> VARLBRA
 %token <string> STRING
 %token <string * char list> REGEXP
-%token <int> INT
+%token <int> INT PP_INT_DOT_LCUR
 %token <float> FLOAT
 %token <bool> BOOL
 %token <int option list> TIME
