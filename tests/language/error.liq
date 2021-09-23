@@ -27,7 +27,7 @@ def f() =
   # Works as expected with no errors
   ret = try
     4
-  catch _ in [e] do
+  catch _ : [e] do
     5
   end
 
@@ -69,10 +69,10 @@ def f() =
       try
         error.raise(e, "msg");
         "bla"
-      catch _ in [e'] do
+      catch _ : [e'] do
         "blo"
       end
-    catch _ in [e] do
+    catch _ : [e] do
       "gni"
     end
   t(ret, "gni")
@@ -83,10 +83,10 @@ def f() =
       try
         error.raise(e, "msg");
         "bla"
-      catch _ in [] do
+      catch _ : [] do
         "blo"
       end
-    catch _ in [e] do
+    catch _ : [e] do
       "gni"
     end
   t(ret, "gni")
@@ -97,10 +97,10 @@ def f() =
       try
         error.raise(e, "msg");
         "bla"
-      catch _ in [e, e'] do
+      catch _ : [e, e'] do
         "blo"
       end
-    catch _ in [e] do
+    catch _ : [e] do
       "gni"
     end
   t(ret, "blo")

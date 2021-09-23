@@ -44,7 +44,7 @@ open Parser_helper
 %token <Doc.item * (string*string) list * (string*string) list> DEF
 %token REPLACES
 %token COALESCE
-%token TRY CATCH IN DO
+%token TRY CATCH DO
 %token IF THEN ELSE ELSIF
 %token SLASH
 %token OPEN
@@ -166,7 +166,7 @@ expr:
                                        let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
                                        mk ~pos:$loc (App (op, ["",$1;"",handler])) }
-  | TRY exprs CATCH bindvar IN varlist DO exprs END
+  | TRY exprs CATCH bindvar COLON varlist DO exprs END
                                      { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, Type.var ~pos:$loc($4) (), None] in
                                        let errors = mk_list ~pos:$loc $6 in
@@ -282,7 +282,7 @@ inner_tuple:
 app_list_elem:
   | VAR GETS expr { [$1,$3] }
   | expr          { ["",$1] }
-  | ARGS_OF LPAR var RPAR        { app_of ~only:[] ~except:[] ~pos:$loc $3 }
+  | ARGS_OF LPAR VAR RPAR        { app_of ~only:[] ~except:[] ~pos:$loc $3 }
   | ARGS_OF LPAR subfield RPAR
                                  { app_of ~only:[] ~except:[] ~pos:$loc (String.concat "." $3) }
   | ARGS_OF LPAR VARLBRA args_of_params RBRA RPAR { app_of ~pos:$loc ~only:(fst $4) ~except:(snd $4) $3 }
@@ -305,7 +305,7 @@ subfield:
   | VAR DOT in_subfield { $1::$3 }
 
 in_subfield:
-  | var { [$1] }
+  | VAR { [$1] }
   | VAR DOT in_subfield { $1::$3 }
 
 pattern_list:
@@ -337,16 +337,12 @@ list_binding:
 
 list_bind:
   | bindvar COMMA list_bind { $1::(fst $3), snd $3 }
-  | DOTDOTDOT var           { [], Some $2 }
+  | DOTDOTDOT VAR           { [], Some $2 }
   | bindvar                 { [$1], None }
 
 replaces:
   | { false }
   | REPLACES { true }
-
-var:
-  | VAR { $1 }
-  | IN  { "in" }
 
 varlpar:
   | VARLPAR         { [$1] }
@@ -357,12 +353,12 @@ arglist:
   | arg                   { $1 }
   | arg COMMA arglist     { $1@$3 }
 arg:
-  | TILD var opt { [$2, $2, Type.var ~pos:$loc($2) (), $3] }
-  | TILD LPAR var COLON ty RPAR opt { [$3, $3, $5, $7 ] }
-  | TILD var GETS UNDERSCORE opt { [$2, "_", Type.var ~pos:$loc($2) (), $5] }
+  | TILD VAR opt { [$2, $2, Type.var ~pos:$loc($2) (), $3] }
+  | TILD LPAR VAR COLON ty RPAR opt { [$3, $3, $5, $7 ] }
+  | TILD VAR GETS UNDERSCORE opt { [$2, "_", Type.var ~pos:$loc($2) (), $5] }
   | bindvar opt  { ["", $1, Type.var ~pos:$loc($1) (), $2] }
   | LPAR bindvar COLON ty RPAR opt { ["", $2, $4, $6] }
-  | ARGS_OF LPAR var RPAR { args_of ~only:[] ~except:[] ~pos:$loc $3 }
+  | ARGS_OF LPAR VAR RPAR { args_of ~only:[] ~except:[] ~pos:$loc $3 }
   | ARGS_OF LPAR subfield RPAR
                           { args_of ~only:[] ~except:[] ~pos:$loc (String.concat "." $3) }
   | ARGS_OF LPAR VARLBRA args_of_params RBRA RPAR { args_of ~pos:$loc ~only:(fst $4) ~except:(snd $4) $3 }
@@ -372,10 +368,10 @@ opt:
   | GETS expr { Some $2 }
   |           { None }
 args_of_params:
-  | var                          { [$1], [] }
-  | GET var                      { [], [$2] }
-  | var COMMA args_of_params     { $1::(fst $3), (snd $3) }
-  | GET var COMMA args_of_params { (fst $4), $2::(snd $4) }
+  | VAR                          { [$1], [] }
+  | GET VAR                      { [], [$2] }
+  | VAR COMMA args_of_params     { $1::(fst $3), (snd $3) }
+  | GET VAR COMMA args_of_params { (fst $4), $2::(snd $4) }
 subfield_lbra:
   | VAR DOT in_subfield_lbra { $1::$3 }
 in_subfield_lbra:
