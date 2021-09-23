@@ -31,7 +31,7 @@ open Parser_helper
 %token <string> VARLPAR
 %token <string> VARLBRA
 %token <string> STRING
-%token <int> INT
+%token <int> INT PP_INT_DOT_LCUR
 %token <float> FLOAT
 %token <bool> BOOL
 %token <int option list> TIME
