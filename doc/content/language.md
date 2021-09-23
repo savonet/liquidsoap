@@ -976,6 +976,96 @@ will print
 
 (note that the string is modified but not the fields `duration` and `bpm`).
 
+Patterns
+--------
+
+As explained earlier, you can use several contructions to extract data from structured values such
+as `let [x, y] = l` and etc. These constructions are called _patterns_.
+
+Patterns allows to quickly access values nested deeply inside structured values in a way that remains pretty intuitive when
+reading the code.
+
+Patterns are constructed using _variable placeholders_, which are either a variable name such as: `x`, `foo`, etc. or
+the special symbol `_` for any ignored value.
+
+### List patterns
+
+List patterns are composed of variable placeholders, etc. and spreads of the form:
+`...<variable placeholder>` such as: `...z`. The spread `..._` 
+can be simply written `...`. See below for an example.
+
+You can use any combination of:
+* Forward variable names: these capture the first elements of the list.
+* One spread: this captures any remaining element as a list.
+* Backward variable names: these capture the last elements of a the list.
+
+Here are some examples:
+```liquidsoap
+# Forward capture:
+let [x, y, z] = [1, 2, 3]
+# x = 1, y = 2, z = 3
+
+# Forward capture with spread:
+let [x, y, ...z] = [1, 2, 3, 4]
+# x = 1, y = 2, z = [3, 4]
+
+# Forward capture with ignored values:
+let [_, x, ...z] = [1, 2, 3, 4]
+# x = 2, z = [3, 4] 
+
+# Full capture:
+let [x, y, ...z, t, u, v] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+# x = 1, y = 2, z = [3, 4, 5, 6, 7], t = 7, u = 8, v = 9
+
+# Backward capture only.
+let [..., t, u, v] = [1, 2, 3, 4, 5]
+# t = 3, u = 4, v = 5
+```
+
+### Tuple patterns
+
+Tuple patterns are pretty straight forward and consist of any sequence of variable captures:
+```liquidsoap
+let (x, y, _, z) = (123, "aabbcc", true, 3.14)
+# x = 1, y = "aabbcc", z = 3.14
+```
+
+### Record and module patterns
+
+Record and module patterns consist of either variable names (not variable capture!), which capture method values
+or variable names with an associated pattern.
+
+Record patterns are of the form: `{<captured methods>}` while module patterns are of the form: `<variable capture>.{<captured methods>}`
+
+Here are some examples:
+```liquidsoap
+# Record capture
+let {foo, bar} = {foo = 123, bar = "baz", gni = true}
+# foo = 123, bar = "baz"
+
+# Module capture
+let v.{foo, bar} = "aabbcc".{foo = 123, bar = "baz", gni = true}
+# v = "aabbcc", foo = 123, bar = "baz"
+
+# Module capture with ignored value
+let _.{foo, bar} = "aabbcc".{foo = 123, bar = "baz", gni = true}
+# foo = 123, bar = "baz"
+
+# Record capture with sub-patterns. Same works for module!
+let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
+# foo = [1, 2, 3], x = 1, y = 2, z = 3, gni = "baz"
+```
+
+## Combining patterns
+
+As seen with record and modules, patterns can be combined at will, for instance, these
+are all valid patterns:
+```liquidsoap
+let [{foo}, {gni}, ..._, {baz}] = l
+
+let (_.{ bla = [..._, z] }, t, _, u) = x
+```
+
 Advanced values
 ---------------
 

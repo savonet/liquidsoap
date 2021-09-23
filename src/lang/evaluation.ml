@@ -41,12 +41,61 @@ let lookup (env : Value.lazy_env) var =
     failwith
       (Printf.sprintf "Internal error: variable %s not in environment." var)
 
-let eval_pat pat v =
+let rec eval_pat pat v =
   let rec aux env pat v =
     match (pat, v) with
       | PVar x, v -> (x, v) :: env
       | PTuple pl, { Value.value = Value.Tuple l } ->
           List.fold_left2 aux env pl l
+      (* The parser parses [x,y,z] as PList ([], None, l) *)
+      | PList (([] as l'), (None as spread), l), { Value.value = Value.List lv }
+      | PList (l, spread, l'), { Value.value = Value.List lv } ->
+          let ln = List.length l in
+          let ln' = List.length l' in
+          let lvn = List.length lv in
+          if lvn < ln + ln' then
+            Runtime_error.error
+              ~message:
+                "List value does not have enough elements to fit the \
+                 extraction pattern!"
+              "not_found";
+          let lv =
+            List.mapi
+              (fun pos v ->
+                match pos with
+                  | _ when pos < ln -> (`First, v)
+                  | _ when lvn - ln' <= pos -> (`Second, v)
+                  | _ -> (`Spread, v))
+              lv
+          in
+          let ll =
+            List.map snd (List.filter (fun (lbl, _) -> lbl = `First) lv)
+          in
+          let ls =
+            List.map snd (List.filter (fun (lbl, _) -> lbl = `Spread) lv)
+          in
+          let ll' =
+            List.map snd (List.filter (fun (lbl, _) -> lbl = `Second) lv)
+          in
+          let spread_env =
+            match spread with
+              | None -> []
+              | Some s -> [([s], Value.{ v with value = List ls })]
+          in
+          List.fold_left2 aux [] l' ll'
+          @ spread_env @ env
+          @ List.fold_left2 aux [] l ll
+          @ env
+      | PMeth (pat, l), _ ->
+          let m, v = Value.split_meths v in
+          let env = match pat with None -> env | Some pat -> aux env pat v in
+          List.fold_left
+            (fun env (lbl, pat) ->
+              let v = List.assoc lbl m in
+              (match pat with None -> [] | Some pat -> eval_pat pat v)
+              @ [([lbl], v)]
+              @ env)
+            env l
       | _ -> assert false
   in
   aux [] pat v
@@ -414,8 +463,8 @@ let rec eval_toplevel ?(interactive = false) t =
                   let old_t = snd (Type.invokes old_t l) in
                   let old = Value.invokes old l in
                   (Type.remeth old_t def.t, Value.remeth old (eval def))
-              | PTuple _ ->
-                  failwith "TODO: cannot replace toplevel tuples for now")
+              | PMeth _ | PList _ | PTuple _ ->
+                  failwith "TODO: cannot replace toplevel patterns for now")
         in
         toplevel_add comment pat ~t:(generalized, def_t) def;
         if Lazy.force debug then

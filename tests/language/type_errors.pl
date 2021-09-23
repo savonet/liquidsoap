@@ -91,6 +91,11 @@ incorrect('def f(x) = output.file(%vorbis(stereo),"",x) output.file(%vorbis(mono
 incorrect('add([output.file(%vorbis(stereo),"",blank()),output.file(%vorbis(mono),"",blank())])');
 incorrect('add([mean(blank()),audio_to_stereo(add([]))])');
 
+section("PATTERNS");
+incorrect("let [x = {foo}, y = (foo), z] = l");
+incorrect("let _.{foo=123} = {foo=123}");
+incorrect("let v.{foo=123} = {foo=123}");
+
 section("ENCODERS");
 correct('%ffmpeg(%video(codec="h264_nvenc"))');
 correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel="none"))');

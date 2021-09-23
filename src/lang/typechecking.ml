@@ -68,6 +68,44 @@ let rec type_of_pat ~level ~pos = function
       in
       let l = List.rev l in
       (env, Type.make ?pos (Type.Tuple l))
+  | PList (l, spread, l') ->
+      let fold_env l ty =
+        List.fold_left
+          (fun (env, ty) p ->
+            let env', ty' = type_of_pat ~level ~pos p in
+            let ty = Typing.sup ~pos ty ty' in
+            Typing.(ty' <: ty);
+            (env' @ env, ty))
+          ([], ty) l
+      in
+      let ty = Type.var ~level ?pos () in
+      let env, ty = fold_env l ty in
+      let env', ty = fold_env l' ty in
+      let spread_env =
+        match spread with
+          | None -> []
+          | Some v -> [([v], Type.make ?pos (Type.List ty))]
+      in
+      (env' @ spread_env @ env, Type.make ?pos (Type.List ty))
+  | PMeth (pat, l) ->
+      let env, ty =
+        match pat with
+          | None -> ([], Type.make ?pos (Type.Tuple []))
+          | Some pat -> type_of_pat ~level ~pos pat
+      in
+      let env, ty =
+        List.fold_left
+          (fun (env, ty) (lbl, p) ->
+            let env', a =
+              match p with
+                | None -> ([], Type.var ~level ?pos ())
+                | Some pat -> type_of_pat ~level ~pos pat
+            in
+            let ty = Type.make ?pos (Type.Meth (lbl, ([], a), "", ty)) in
+            (env' @ [([lbl], a)] @ env, ty))
+          (env, ty) l
+      in
+      (env, ty)
 
 (* Type-check an expression. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =

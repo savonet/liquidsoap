@@ -171,34 +171,6 @@ let mk_fun ~pos args body =
 let mk_let ~pos (doc, replace, pat, def) body =
   mk ~pos (Let { doc; replace; pat; gen = []; def; body })
 
-let mk_list_let ~pos ((vars, dots), def) body =
-  let list_var_name = "_" in
-  let list_var () = mk ~pos (Var list_var_name) in
-  let mk_let ~pos var def body =
-    mk_let ~pos ((Doc.none (), [], []), false, PVar [var], def) body
-  in
-  let body =
-    match dots with
-      | None -> body
-      | Some var -> mk_let ~pos var (list_var ()) body
-  in
-  let body =
-    List.fold_left
-      (fun body var ->
-        let list = mk ~pos (Var "list") in
-        let tl = mk ~pos (Invoke (list, "tl")) in
-        let tl = mk ~pos (App (tl, [("", list_var ())])) in
-        let body = mk_let ~pos list_var_name tl body in
-        if var = "_" then body
-        else (
-          let list = mk ~pos (Var "list") in
-          let hd = mk ~pos (Invoke (list, "hd")) in
-          let hd = mk ~pos (App (hd, [("", list_var ())])) in
-          mk_let ~pos var hd body))
-      body (List.rev vars)
-  in
-  mk_let ~pos list_var_name def body
-
 let mk_rec_fun ~pos pat args body =
   let name = match pat with PVar [name] -> name | _ -> assert false in
   let bound = List.map (fun (_, x, _, _) -> x) args in
