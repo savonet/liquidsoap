@@ -390,8 +390,11 @@ let toplevel_add (doc, params, methods) pat ~t v =
        meths
    in
    if meths <> [] then doc#add_subsection "_methods" (Type.doc_of_meths meths));
+  let env, pa = Typechecking.type_of_pat ~level:max_int ~pos:None pat in
+  Typing.(t <: pa);
   List.iter
     (fun (x, v) ->
+      let t = List.assoc x env in
       Environment.add_builtin ~override:true ~doc x ((generalized, t), v))
     (eval_pat pat v)
 
