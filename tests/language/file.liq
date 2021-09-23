@@ -15,7 +15,7 @@ def f() =
   try
     ignore(file.read("mqlskjdfdjnsi"))
     success := false
-  catch e in [file.error] do () end
+  catch e : [file.error] do () end
   
   if !success then test.pass() else test.fail() end
 end

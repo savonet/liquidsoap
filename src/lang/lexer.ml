@@ -244,7 +244,6 @@ let rec token lexbuf =
     | "-" -> MINUS
     | "while" -> WHILE
     | "for" -> FOR
-    | "in" -> IN
     | "to" -> TO
     | "do" -> DO
     | "not" -> NOT

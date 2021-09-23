@@ -1036,7 +1036,7 @@ Specific errors can be catched with the syntax
 ```liquidsoap
 try
   ...
-catch err in l do
+catch err : l do
   ...
 end
 ```

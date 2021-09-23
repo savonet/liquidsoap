@@ -504,13 +504,12 @@ let strip_newlines tokenizer =
       | None -> (
           match tokenizer () with
             | Parser.PP_ENDL, _ -> token ()
-            | (Parser.VAR _, _ | Parser.IN, _) as v ->
+            | (Parser.VAR _, _) as v ->
                 state := Some v;
                 token ()
             | x -> x)
       | Some ((Parser.VAR var, _) as v) -> inject_varlpar var v
       | Some ((Parser.UNDERSCORE, _) as v) -> inject_varlpar "_" v
-      | Some ((Parser.IN, _) as v) -> inject_varlpar "in" v
       | Some x ->
           state := None;
           x

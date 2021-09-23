@@ -89,7 +89,7 @@ def f() =
   try
     ignore(list.insert(23, 2, [1, 2, 3]))
     test.fail()
-  catch err in [error.not_found] do
+  catch err : [error.not_found] do
     t(error.kind(err), "not_found")
     t(error.message(err), "List should have at least 23 elemments")    
   end
