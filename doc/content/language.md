@@ -982,11 +982,18 @@ Patterns
 As explained earlier, you can use several contructions to extract data from structured values such
 as `let [x, y] = l` and etc. These constructions are called _patterns_.
 
-Patterns allows to quickly access values nested deeply inside structured values in a way that remains pretty intuitive when
+Patterns allows to quickly access values nested deeply inside structured data in a way that remains pretty intuitive when
 reading the code.
 
 Patterns are constructed using _variable placeholders_, which are either a variable name such as: `x`, `foo`, etc. or
 the special symbol `_` for any ignored value.
+
+### Tuple patterns
+
+Tuple patterns are pretty straight forward and consist of any sequence of variable captures:
+```liquidsoap
+let (x, y, _, z) = (123, "aabbcc", true, 3.14)
+# x = 1, y = "aabbcc", z = 3.14
 
 ### List patterns
 
@@ -995,6 +1002,7 @@ List patterns are composed of variable placeholders, etc. and spreads of the for
 can be simply written `...`. See below for an example.
 
 You can use any combination of:
+
 * Forward variable names: these capture the first elements of the list.
 * One spread: this captures any remaining element as a list.
 * Backward variable names: these capture the last elements of a the list.
@@ -1020,14 +1028,6 @@ let [x, y, ...z, t, u, v] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 # Backward capture only.
 let [..., t, u, v] = [1, 2, 3, 4, 5]
 # t = 3, u = 4, v = 5
-```
-
-### Tuple patterns
-
-Tuple patterns are pretty straight forward and consist of any sequence of variable captures:
-```liquidsoap
-let (x, y, _, z) = (123, "aabbcc", true, 3.14)
-# x = 1, y = "aabbcc", z = 3.14
 ```
 
 ### Record and module patterns
