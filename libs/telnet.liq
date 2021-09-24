@@ -1,6 +1,6 @@
 %ifdef input.gstreamer.audio_video
 # @docof input.gstreamer.audio_video
-def input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
+def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
   s = input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video))
 
   server.register(namespace=s.id(), description="Set gstreamer pipeline state to play",
@@ -32,7 +32,7 @@ end
 %endif
 
 # @docof blank.strip
-def blank.strip(%argsof(blank.strip), s) =
+def replaces blank.strip(%argsof(blank.strip), s) =
   s = blank.strip(%argsof(blank.strip), s)
 
   server.register(namespace=s.id(), description="Check if the source is stripping.",
@@ -44,7 +44,7 @@ def blank.strip(%argsof(blank.strip), s) =
 end
 
 # @docof output.external
-def output.external(%argsof(output.external), f, p, s) =
+def replaces output.external(%argsof(output.external), f, p, s) =
   s = output.external(%argsof(output.external), f, p, s)
 
   server.register(namespace=s.id(), description="Re-open the output.",
@@ -57,7 +57,7 @@ def output.external(%argsof(output.external), f, p, s) =
 end
 
 # @docof input.external.avi
-def input.external.avi(%argsof(input.external.avi), s) =
+def replaces input.external.avi(%argsof(input.external.avi), s) =
   s = input.external.avi(%argsof(input.external.avi), s)
 
   server.register(namespace=s.id(), description="Show internal buffer length (in seconds).",
@@ -70,7 +70,7 @@ def input.external.avi(%argsof(input.external.avi), s) =
 end
 
 # @docof input.harbor
-def input.harbor(%argsof(input.harbor), s) =
+def replaces input.harbor(%argsof(input.harbor), s) =
   s = input.harbor(%argsof(input.harbor), s)
 
   server.register(namespace=s.id(), description="Stop current source client, if connected.",
@@ -94,7 +94,7 @@ end
 
 %ifdef input.http
 # @docof input.http
-def input.http(%argsof(input.http), s) =
+def replaces input.http(%argsof(input.http), s) =
   s = input.http(%argsof(input.http), s)
 
   server.register(namespace=s.id(), description="Start the source, if needed.",
