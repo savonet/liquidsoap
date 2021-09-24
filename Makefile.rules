@@ -168,7 +168,7 @@ print-distdir:
 print-tarball-filename:
 	@printf $(DISTDIR).tar.bz2
 
-tarball: configure pre-distclean dist
+tarball: dist
 	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)
 	rm -rf $(DISTDIR)
 
