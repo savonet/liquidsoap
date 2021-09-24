@@ -119,8 +119,6 @@ exprs:
   | expr s exprs             { mk ~pos:$loc (Seq ($1,$3)) }
   | binding s                { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
   | binding s exprs          { mk_let ~pos:$loc($1) $1 $3 }
-  | list_binding s           { mk_list_let ~pos:$loc $1 (mk ~pos:$loc unit) }
-  | list_binding s exprs     { mk_list_let ~pos:$loc $1 $3 }
 
 (* Sequences of expressions without bindings *)
 exprss:
@@ -159,14 +157,14 @@ expr:
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | WHILE expr DO exprs END          { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "while"), ["", mk_fun ~pos:$loc($2) [] $2; "", mk_fun ~pos:$loc($4) [] $4])) }
-  | FOR bindvar GETS expr DO exprs END
+  | FOR optvar GETS expr DO exprs END
                                      { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, Type.var ~pos:$loc($2) (), None] $6])) }
   | expr TO expr                     { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($2) (Var "iterator"), "int")), ["", $1; "", $3])) }
   | expr COALESCE expr               { let null = mk ~pos:$loc($1) (Var "null") in
                                        let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
                                        mk ~pos:$loc (App (op, ["",$1;"",handler])) }
-  | TRY exprs CATCH bindvar COLON varlist DO exprs END
+  | TRY exprs CATCH optvar COLON varlist DO exprs END
                                      { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, Type.var ~pos:$loc($4) (), None] in
                                        let errors = mk_list ~pos:$loc $6 in
@@ -174,7 +172,7 @@ expr:
                                        let error_module = mk ~pos:$loc($1) (Var "error") in
                                        let op = mk ~pos:$loc($1) (Invoke (error_module, "catch")) in
                                        mk ~pos:$loc (App (op, ["errors", errors; "", fn; "", handler])) }
-  | TRY exprs CATCH bindvar DO exprs END { let fn = mk_fun ~pos:$loc($2) [] $2 in
+  | TRY exprs CATCH optvar DO exprs END { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, Type.var ~pos:$loc($4) (), None] in
                                        let handler = mk_fun ~pos:$loc($6) err_arg $6 in
                                        let errors = mk ~pos:$loc Null in
@@ -293,27 +291,67 @@ app_list:
   | app_list_elem                { $1 }
   | app_list_elem COMMA app_list { $1@$3 }
 
-bindvar:
-  | VAR { $1 }
+optvar:
+  | VAR        { $1 }
   | UNDERSCORE { "_" }
 
+pattern_list:
+  | pattern                    { [$1] }
+  | pattern_list COMMA pattern { $1@[$3] }
+
+spread:
+  | DOTDOTDOT        { "_" }
+  | DOTDOTDOT optvar { $2 }
+
+pattern_list_with_spread:
+  | spread                                       { [], Some $1, [] }
+  | pattern_list                                 { [], None, $1 }
+  | spread COMMA pattern_list                    { [], Some $1, $3 }
+  | pattern_list COMMA spread                    { $1, Some $3, [] }
+  | pattern_list COMMA spread COMMA pattern_list { $1, Some $3, $5 } 
+
+tuple_pattern:
+  | LPAR pattern_list RPAR             { PTuple $2 }
+
+list_pattern:
+  | LBRA pattern_list_with_spread RBRA { PList $2 }
+
+meth_pattern_el:
+  | VAR              { $1, None }
+  | VAR GETS pattern { $1, Some $3 }
+
+meth_pattern_list:
+  | meth_pattern_el                         { [$1] }
+  | meth_pattern_el COMMA meth_pattern_list { $1::$3 }
+
+record_pattern:
+  | LCUR meth_pattern_list RCUR { $2 }
+
+meth_pattern:
+  | record_pattern                   { PMeth (None,              $1) }
+  | VAR DOT record_pattern           { PMeth (Some (PVar [$1]),  $3) }
+  | UNDERSCORE DOT record_pattern    { PMeth (Some (PVar ["_"]), $3) }
+  | tuple_pattern DOT record_pattern { PMeth (Some $1,           $3) }
+  | list_pattern DOT record_pattern  { PMeth (Some $1,           $3) }
+
+var_pattern:
+  | optvar { PVar [$1] }
+
 pattern:
-  | bindvar { PVar [$1] }
-  | LPAR pattern_list RPAR { PTuple $2 }
+  | var_pattern   { $1 }
+  | tuple_pattern { $1 }
+  | list_pattern  { $1 }
+  | meth_pattern  { $1 }
 
 subfield:
   | VAR DOT in_subfield { $1::$3 }
 
 in_subfield:
-  | VAR { [$1] }
+  | VAR                 { [$1] }
   | VAR DOT in_subfield { $1::$3 }
 
-pattern_list:
-  | pattern COMMA pattern { [$1;$3] }
-  | pattern COMMA pattern_list { $1::$3 }
-
 binding:
-  | bindvar GETS expr { (Doc.none (),[],[]),false,PVar [$1],$3 }
+  | optvar GETS expr { (Doc.none (),[],[]),false,PVar [$1],$3 }
   | LET replaces pattern GETS expr { (Doc.none (),[],[]),$2,$3,$5 }
   | LET replaces subfield GETS expr { (Doc.none (),[],[]),$2,PVar $3,$5 }
   | DEF replaces pattern g exprs END { $1,$2,$3,$5 }
@@ -332,14 +370,6 @@ binding:
       doc,false,pat,body
     }
 
-list_binding:
-  | LET LBRA list_bind RBRA GETS expr { $3,$6 }
-
-list_bind:
-  | bindvar COMMA list_bind { $1::(fst $3), snd $3 }
-  | DOTDOTDOT VAR           { [], Some $2 }
-  | bindvar                 { [$1], None }
-
 replaces:
   | { false }
   | REPLACES { true }
@@ -356,8 +386,8 @@ arg:
   | TILD VAR opt { [$2, $2, Type.var ~pos:$loc($2) (), $3] }
   | TILD LPAR VAR COLON ty RPAR opt { [$3, $3, $5, $7 ] }
   | TILD VAR GETS UNDERSCORE opt { [$2, "_", Type.var ~pos:$loc($2) (), $5] }
-  | bindvar opt  { ["", $1, Type.var ~pos:$loc($1) (), $2] }
-  | LPAR bindvar COLON ty RPAR opt { ["", $2, $4, $6] }
+  | optvar opt  { ["", $1, Type.var ~pos:$loc($1) (), $2] }
+  | LPAR optvar COLON ty RPAR opt { ["", $2, $4, $6] }
   | ARGS_OF LPAR VAR RPAR { args_of ~only:[] ~except:[] ~pos:$loc $3 }
   | ARGS_OF LPAR subfield RPAR
                           { args_of ~only:[] ~except:[] ~pos:$loc (String.concat "." $3) }

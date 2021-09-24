@@ -355,6 +355,9 @@ and in_term =
 and pattern =
   | PVar of string list  (** a field *)
   | PTuple of pattern list  (** a tuple *)
+  | PList of (pattern list * string option * pattern list) (* a list *)
+  | PMeth of (pattern option * (string * pattern option) list)
+(* a value with methods *)
 
 type term = t
 
@@ -367,6 +370,24 @@ let is_ground x =
 let rec string_of_pat = function
   | PVar l -> String.concat "." l
   | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
+  | PList (l, spread, l') ->
+      "["
+      ^ String.concat ", "
+          (List.map string_of_pat l
+          @ (match spread with None -> [] | Some v -> ["..." ^ v])
+          @ List.map string_of_pat l')
+      ^ "]"
+  | PMeth (pat, l) ->
+      (match pat with None -> "" | Some pat -> string_of_pat pat ^ ".")
+      ^ "{"
+      ^ String.concat ", "
+          (List.map
+             (fun (lbl, pat) ->
+               match pat with
+                 | None -> lbl
+                 | Some pat -> lbl ^ ": " ^ string_of_pat pat)
+             l)
+      ^ "}"
 
 (** Print terms, (almost) assuming they are in normal form. *)
 let rec print v =
@@ -423,12 +444,40 @@ let rec free_vars_pat = function
   | PVar [_] -> Vars.empty
   | PVar (x :: _) -> Vars.singleton x
   | PTuple l -> List.fold_left Vars.union Vars.empty (List.map free_vars_pat l)
+  | PList (l, spread, l') ->
+      List.fold_left Vars.union Vars.empty
+        (List.map free_vars_pat
+           (l @ (match spread with None -> [] | Some v -> [PVar [v]]) @ l'))
+  | PMeth (pat, l) ->
+      List.fold_left Vars.union
+        (match pat with None -> Vars.empty | Some pat -> free_vars_pat pat)
+        (List.map free_vars_pat
+           (List.fold_left
+              (fun cur (lbl, pat) ->
+                [PVar [lbl]]
+                @ (match pat with None -> [] | Some pat -> [pat])
+                @ cur)
+              [] l))
 
 let rec bound_vars_pat = function
   | PVar [] -> assert false
   | PVar [x] -> Vars.singleton x
   | PVar _ -> Vars.empty
   | PTuple l -> List.fold_left Vars.union Vars.empty (List.map bound_vars_pat l)
+  | PList (l, spread, l') ->
+      List.fold_left Vars.union Vars.empty
+        (List.map bound_vars_pat
+           (l @ (match spread with None -> [] | Some v -> [PVar [v]]) @ l'))
+  | PMeth (pat, l) ->
+      List.fold_left Vars.union
+        (match pat with None -> Vars.empty | Some pat -> bound_vars_pat pat)
+        (List.map bound_vars_pat
+           (List.fold_left
+              (fun cur (lbl, pat) ->
+                [PVar [lbl]]
+                @ (match pat with None -> [] | Some pat -> [pat])
+                @ cur)
+              [] l))
 
 let rec free_vars tm =
   match tm.term with

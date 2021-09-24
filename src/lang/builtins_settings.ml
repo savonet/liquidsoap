@@ -155,8 +155,8 @@ let settings_module =
      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
      Lang.add_builtin_base ~category:`Liquidsoap "settings"
        ~descr:"All settings." !settings.Lang.value settings_t)
-(* Hack to keep track of latest settings at runtime. *)
 
+(** Hack to keep track of latest settings at runtime. *)
 let () =
   Lang.add_builtin ~category:`Liquidsoap "set_settings_ref"
     ~descr:"Internal use only!" ~flags:[`Hidden]
