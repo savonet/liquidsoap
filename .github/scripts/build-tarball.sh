@@ -30,5 +30,5 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 cd liquidsoap
 make
-make -C doc language.dtd liquidsoap.1 content/protocols.md content/reference.md: content/reference-extras.md content/settings.md
+make -C doc language.dtd liquidsoap.1 content/protocols.md content/reference.md content/reference-extras.md content/settings.md
 make tarball
