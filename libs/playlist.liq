@@ -424,7 +424,9 @@ def replaces playlist(
   server.register(namespace=id, description="Skip current song in the playlist.", usage="skip", "skip", fun (_) -> begin s.skip(); "OK" end)
   server.register(namespace=id, description="Return up to 10 next URIs to be played.", usage="next", "next", fun (n) -> begin
     n = max(10, int_of_string(default=10, n))
-    requests = list.fold((fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur), [], s.queue())
+    current = s.current()
+    requests = [...(null.defined(current) ? [null.get(current)] : []), ...(s.queue())]
+    requests = list.fold((fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur), [], requests)
     string.concat(separator="\n", list.map((fun (r) -> begin
       m = request.metadata(r)
       get = fun (lbl) -> list.assoc(default="?", lbl, m)
