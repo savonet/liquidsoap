@@ -20,11 +20,17 @@
 
  *****************************************************************************)
 
+let raise exn =
+  let bt = Printexc.get_raw_backtrace () in
+  Lang.raise_as_runtime ~bt ~kind:"eval" exn
+
 let () =
-  Lang.add_builtin ~category:`Liquidsoap "eval"
-    ~descr:"Evaluate a string as an expression in the toplevel environment."
-    ~flags:[`Hidden] [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
-      let s = Lang.to_string (Lang.assoc "" 1 p) in
-      match Runtime.eval s with
-        | None -> Lang.string ""
-        | Some v -> Lang.string (Lang.print_value v))
+  Lang.add_builtin ~category:`Liquidsoap "_eval_"
+    ~descr:"Parse and evaluate a string." ~flags:[`Hidden]
+    [("type", Value.RuntimeType.t, None, None); ("", Lang.string_t, None, None)]
+    (Lang.univ_t ()) (fun p ->
+      try
+        let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
+        let s = Lang.to_string (List.assoc "" p) in
+        Runtime.eval ~ty s
+      with exn -> raise exn)

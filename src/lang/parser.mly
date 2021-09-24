@@ -39,9 +39,10 @@ open Parser_helper
 %token <int option list * int option list> INTERVAL
 %token <string> ENCODER
 %token EOF
-%token BEGIN END REC GETS TILD QUESTION LET
+%token <Parser_helper.let_decoration> LET
+%token BEGIN END GETS TILD QUESTION
 (* name, arguments, methods *)
-%token <Doc.item * (string*string) list * (string*string) list> DEF
+%token <(Doc.item * (string*string) list * (string*string) list)*Parser_helper.let_decoration> DEF
 %token REPLACES
 %token COALESCE
 %token TRY CATCH DO
@@ -65,7 +66,8 @@ open Parser_helper
 %token <[ `Eq | `Geq | `Leq | `Gt | `Lt] * string> PP_IFVERSION
 %token ARGS_OF
 %token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
-%token PP_ENDL PP_DEF PP_DEFINE
+%token <Parser_helper.let_decoration> PP_DEF
+%token PP_ENDL PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 %token WHILE FOR TO
@@ -351,28 +353,13 @@ in_subfield:
   | VAR DOT in_subfield { $1::$3 }
 
 binding:
-  | optvar GETS expr { (Doc.none (),[],[]),false,PVar [$1],$3 }
-  | LET replaces pattern GETS expr { (Doc.none (),[],[]),$2,$3,$5 }
-  | LET replaces subfield GETS expr { (Doc.none (),[],[]),$2,PVar $3,$5 }
-  | DEF replaces pattern g exprs END { $1,$2,$3,$5 }
-  | DEF replaces subfield g exprs END { $1,$2,PVar $3,$5 }
-  | DEF replaces varlpar arglist RPAR g exprs END {
-      let arglist = $4 in
-      let body = mk_fun ~pos:$loc arglist $7 in
-      $1,$2,PVar $3,body
-        }
-  (* We don't handle recursive fields for now... *)
-  | DEF REC VARLPAR arglist RPAR g exprs END {
-      let doc = $1 in
-      let pat = PVar [$3] in
-      let arglist = $4 in
-      let body = mk_rec_fun ~pos:$loc pat arglist $7 in
-      doc,false,pat,body
-    }
-
-replaces:
-  | { false }
-  | REPLACES { true }
+  | optvar GETS expr         { (Doc.none (),[],[]), `None,  PVar [$1], None,    $3 }
+  | LET pattern GETS expr    { (Doc.none (),[],[]), $1,     $2,        None,    $4 }
+  | LET subfield GETS expr   { (Doc.none (),[],[]), $1,     PVar $2,   None,    $4 }
+  | DEF pattern g exprs END  { fst $1,              snd $1, $2,        None,    $4 }
+  | DEF subfield g exprs END { fst $1,              snd $1, PVar $2,   None,    $4 }
+  | DEF varlpar arglist RPAR g exprs END
+                             { fst $1,              snd $1, PVar $2, Some $3,   $6 }
 
 varlpar:
   | VARLPAR         { [$1] }

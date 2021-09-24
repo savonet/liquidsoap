@@ -46,4 +46,4 @@ val from_string : ?parse_only:bool -> lib:bool -> string -> unit
 val interactive : unit -> unit
 
 (** Evaluate a string *)
-val eval : string -> Value.t option
+val eval : ty:Type.t -> string -> Value.t

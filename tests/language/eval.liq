@@ -49,6 +49,22 @@ def f() =
   t("16", { "bla" == (true ? "bla" : "foo") })
   t("17", { "foo" == (false ? "bla" : "foo") })
 
+  # Generic eval
+  let eval x = "{foo = 123, gni = \"aabbcc\"}"
+  t("18", { x.foo == 123 })
+  t("19", { x.gni == "aabbcc"})
+
+  # Eval with sources!
+  let eval x = "output.dummy(id='bla', blank())"
+  t("20", { x.id() == "bla"})
+
+  # Eval with patterns
+  let eval {foo, gni = [x, y]} = "{foo = 123, gni = [1,2]}"
+  t("21", { foo == 123 })
+  t("22", { gni == [1, 2]})
+  t("23", { x == 1})
+  t("24", { y == 2})
+
   if !fail then test.fail() else test.pass() end
 end
 

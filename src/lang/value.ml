@@ -231,3 +231,12 @@ module MkAbstract (Def : AbstractDef) = struct
   module Term = Term.MkAbstract (Def)
   include MkAbstractFromTerm (Term)
 end
+
+module RuntimeType = MkAbstract (struct
+  type content = Type.t
+
+  let name = "type"
+  let descr _ = "type"
+  let to_json ~compact:_ ~json5:_ _ = "\"<type>\""
+  let compare = Stdlib.compare
+end)
