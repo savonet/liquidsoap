@@ -86,7 +86,7 @@ def f() =
       catch err : [] do
         "blo"
       end
-    catch : [e] do
+    catch _ : [e] do
       "gni"
     end
   t(ret, "gni")
