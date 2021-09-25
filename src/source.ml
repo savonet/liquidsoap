@@ -25,7 +25,8 @@
   *
   * Sources can produce a stream, if something pulls it.
   * Sources can pull streams from other sources (such non-elementary sources
-  * are called operators). But who starts pulling?
+  * are called operators).
+  * But who starts pulling?
   *
   * Some sources have a noticeable effect, for example outputs.
   * Some are indirectly needed by outputs.
