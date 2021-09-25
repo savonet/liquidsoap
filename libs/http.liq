@@ -247,7 +247,6 @@ def http.post.stream(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=
   ignore(http_version)
   ignore(redirect)
   ignore(timeout)
-  ignore(on_body_data)
   error.raise(error.not_found, "Please install ocurl to enable http.post.stream")
   ().{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
@@ -268,7 +267,6 @@ def http.put.stream(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=t
   ignore(http_version)
   ignore(redirect)
   ignore(timeout)
-  ignore(on_body_data)
   error.raise(error.not_found, "Please install ocurl to enable http.put.stream")
   ().{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
