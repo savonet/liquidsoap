@@ -991,9 +991,11 @@ the special symbol `_` for any ignored value.
 ### Tuple patterns
 
 Tuple patterns are pretty straight forward and consist of any sequence of variable captures:
+
 ```liquidsoap
 let (x, y, _, z) = (123, "aabbcc", true, 3.14)
 # x = 1, y = "aabbcc", z = 3.14
+```
 
 ### List patterns
 
