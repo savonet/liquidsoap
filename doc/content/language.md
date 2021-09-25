@@ -1063,9 +1063,9 @@ let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
 As seen with record and modules, patterns can be combined at will, for instance, these
 are all valid patterns:
 ```liquidsoap
-let [{foo}, {gni}, ..._, {baz}] = l
+let [{foo}, {gni}, ..., {baz}] = l
 
-let (_.{ bla = [..._, z] }, t, _, u) = x
+let (_.{ bla = [..., z] }, t, _, u) = x
 ```
 
 Advanced values
