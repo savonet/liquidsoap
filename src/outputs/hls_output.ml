@@ -423,7 +423,7 @@ class hls_output p =
   in
   let source = Lang.assoc "" 3 p in
   let main_playlist_filename = Lang.to_string (List.assoc "playlist" p) in
-  let main_playlist_path = directory ^^ main_playlist_filename in
+  let main_playlist_filename = directory ^^ main_playlist_filename in
   let segments_per_playlist = Lang.to_int (List.assoc "segments" p) in
   let max_segments =
     segments_per_playlist + Lang.to_int (List.assoc "segments_overhead" p)
@@ -607,8 +607,8 @@ class hls_output p =
 
     method private write_main_playlist =
       if not main_playlist_writen then (
-        self#log#debug "Writing playlist %s.." main_playlist_path;
-        let oc = self#open_out main_playlist_path in
+        self#log#debug "Writing playlist %s.." main_playlist_filename;
+        let oc = self#open_out main_playlist_filename in
         output_string oc "#EXTM3U\r\n";
         output_string oc
           (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (Lazy.force x_version));
@@ -630,7 +630,7 @@ class hls_output p =
 
     method private cleanup_playlists =
       List.iter (fun s -> self#unlink (self#playlist_name s)) streams;
-      self#unlink main_playlist_path
+      self#unlink main_playlist_filename
 
     method start =
       (match persist_at with
