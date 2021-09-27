@@ -5,6 +5,8 @@ New:
 
 - Added support for variables in encoders (#1858)
 - Added support for regular expressions (#1881)
+- Added generalized support for value extraction patterns (#1970)
+- Added support for string getter for `http.{post,put}` operations (#1984)
 
 2.0.0 (unreleased)
 =====

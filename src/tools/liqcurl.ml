@@ -118,21 +118,6 @@ let () =
 let fail msg =
   raise Runtime_error.(Runtime_error { kind = "http"; msg; pos = [] })
 
-let ftp_request ~timeout ~url () =
-  let connection = new Curl.handle in
-  try
-    connection#set_url url;
-    let body = Buffer.create 1024 in
-    connection#set_writefunction (fun s ->
-        Buffer.add_string body s;
-        String.length s);
-    connection#set_timeout timeout;
-    connection#perform;
-    connection#cleanup
-  with exn ->
-    connection#cleanup;
-    raise exn
-
 let parse_http_answer s =
   let f v c s = (v, c, s) in
   try Scanf.sscanf s "HTTP/%s %i %[^\r^\n]" f with
@@ -163,14 +148,18 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     connection#set_timeout timeout;
     (match request with
       | `Get -> connection#set_httpget true
-      | `Post data ->
+      | `Post (len, get_data) ->
           connection#set_post true;
-          connection#set_postfieldsize (String.length data);
-          connection#set_postfields data
-      | `Put data ->
+          (match len with
+            | Some len -> connection#set_postfieldsizelarge len
+            | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
+          connection#set_readfunction get_data
+      | `Put (len, get_data) ->
           connection#set_put true;
-          connection#set_postfieldsize (String.length data);
-          connection#set_postfields data
+          (match len with
+            | Some len -> connection#set_postfieldsizelarge len
+            | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
+          connection#set_readfunction get_data
       | `Head -> connection#set_nobody true
       | `Delete -> connection#set_customrequest "DELETE");
     let response_headers = Buffer.create 1024 in

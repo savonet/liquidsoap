@@ -40,7 +40,20 @@ module Liq_http = struct
         int_of_float
           (match timeout with None -> !default_timeout | Some t -> t)
       in
-      let request = match request with Get -> `Get | Post s -> `Post s in
+      let mk_read s =
+        let buf = Buffer.create 10 in
+        Buffer.add_string buf s;
+        fun len ->
+          let len = min (Buffer.length buf) len in
+          let ret = Buffer.sub buf 0 len in
+          Utils.buffer_drop buf len;
+          ret
+      in
+      let request =
+        match request with
+          | Get -> `Get
+          | Post s -> `Post (Some (Int64.of_int (String.length s)), mk_read s)
+      in
       let url = Printf.sprintf "http://%s:%d%s" host port url in
       let data = Buffer.create 1024 in
       let x, code, y, _ =

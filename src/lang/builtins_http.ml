@@ -51,7 +51,15 @@ let add_http_request ~stream_body ~descr ~request name =
   in
   let params =
     if List.mem request [Get; Head; Delete] then []
-    else [("data", Lang.string_t, Some (Lang.string ""), Some "POST data.")]
+    else
+      [
+        ( "data",
+          Lang.getter_t (Lang.nullable_t Lang.string_t),
+          Some (Lang.string ""),
+          Some
+            "POST data. Use a `string?` getter to stream data and return \
+             `null` when all data has been passed." );
+      ]
   in
   let params =
     params
@@ -81,8 +89,8 @@ let add_http_request ~stream_body ~descr ~request name =
           Lang.fun_t [(false, "", Lang.nullable_t Lang.string_t)] Lang.unit_t,
           None,
           Some
-            "function called when receiving response body data. `null` means \
-             that all the data has been passed." );
+            "function called when receiving response body data. `null` or \
+             `\"\"` means that all the data has been passed." );
       ]
     else []
   in
@@ -114,17 +122,38 @@ let add_http_request ~stream_body ~descr ~request name =
           ( (fun s -> ignore (Option.map (Buffer.add_string body) s)),
             fun () -> Buffer.contents body ))
       in
+      let get_data () =
+        let data = List.assoc "data" p in
+        let buf = Buffer.create 10 in
+        let len, refill =
+          match (Lang.demeth data).Lang.value with
+            | Lang.Ground (Lang.Ground.String s) ->
+                Buffer.add_string buf s;
+                (Some (Int64.of_int (String.length s)), fun () -> ())
+            | _ -> (
+                let fn = Lang.to_getter data in
+                ( None,
+                  fun () ->
+                    match (Lang.demeth (fn ())).Lang.value with
+                      | Lang.Ground (Lang.Ground.String s) ->
+                          Buffer.add_string buf s
+                      | _ -> () ))
+        in
+        ( len,
+          fun len ->
+            refill ();
+            let len = min (Buffer.length buf) len in
+            let ret = Buffer.sub buf 0 len in
+            Utils.buffer_drop buf len;
+            ret )
+      in
       let protocol_version, status_code, status_message, headers =
         try
           let request =
             match request with
               | Get -> `Get
-              | Post ->
-                  let data = Lang.to_string (List.assoc "data" p) in
-                  `Post data
-              | Put ->
-                  let data = Lang.to_string (List.assoc "data" p) in
-                  `Put data
+              | Post -> `Post (get_data ())
+              | Put -> `Put (get_data ())
               | Head -> `Head
               | Delete -> `Delete
           in
