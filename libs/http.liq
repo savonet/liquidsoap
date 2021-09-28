@@ -231,7 +231,7 @@ def http.get(~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10,
   "you should never see this".{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.post(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10, _) =
+def http.post(~data={""}, ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10, _) =
   ignore(data)
   ignore(headers)
   ignore(http_version)
@@ -241,7 +241,7 @@ def http.post(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~
   "you should never see this".{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.post.stream(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10, _, ~on_body_data=_) =
+def http.post.stream(~data={""}, ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10, _, ~on_body_data=_) =
   ignore(data)
   ignore(headers)
   ignore(http_version)
@@ -251,7 +251,7 @@ def http.post.stream(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=
   ().{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.put(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10, _) =
+def http.put(~data={""}, ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10, _) =
   ignore(data)
   ignore(headers)
   ignore(http_version)
@@ -261,7 +261,7 @@ def http.put(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~t
   "you should never see this".{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.put.stream(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10, _, ~on_body_data=_) =
+def http.put.stream(~data={""}, ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10, _, ~on_body_data=_) =
   ignore(data)
   ignore(headers)
   ignore(http_version)
