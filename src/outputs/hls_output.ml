@@ -329,7 +329,7 @@ class hls_output p =
         (Error.Invalid_value (streams, "The list of streams cannot be empty"));
     l
   in
-  let streams =
+  let mk_streams, streams =
     let f s =
       let name, fmt = Lang.to_product s in
       let name = Lang.to_string name in
@@ -405,8 +405,8 @@ class hls_output p =
         discontinuity_count = 0;
       }
     in
-    let streams = List.map f streams in
-    streams
+    let mk_streams () = List.map f streams in
+    (mk_streams, mk_streams ())
   in
   let x_version =
     lazy
@@ -441,6 +441,7 @@ class hls_output p =
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams
 
+    val mutable streams = streams
     val mutable current_metadata = None
     val mutable state : hls_state = `Idle
 
@@ -656,6 +657,7 @@ class hls_output p =
          in
          self#send data
        with _ -> ());
+      streams <- mk_streams ();
       match persist_at with
         | Some persist_at ->
             self#log#info "Saving state to %s.." (Utils.quote_string persist_at);
