@@ -184,14 +184,16 @@ let rec token lexbuf =
     | "%argsof" -> ARGS_OF
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF
-    | "def" -> PP_DEF
-    | "replaces" -> REPLACES
+    | "def", Plus skipped, "rec" -> PP_DEF `Recursive
+    | "def", Plus skipped, "replaces" -> PP_DEF `Replaces
+    | "def" -> PP_DEF `None
     | "try" -> TRY
     | "catch" -> CATCH
     | "do" -> DO
-    | "let" -> LET
+    | "let", Plus skipped, "replaces" -> LET `Replaces
+    | "let", Plus skipped, "eval" -> LET `Eval
+    | "let" -> LET `None
     | "fun" -> FUN
-    | "rec" -> REC
     | '=' -> GETS
     | "end" -> END
     | "begin" -> BEGIN

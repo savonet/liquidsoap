@@ -25,6 +25,14 @@
 open Term
 open Ground
 
+type let_decoration = [ `None | `Recursive | `Replaces | `Eval ]
+
+let string_of_let_decoration = function
+  | `None -> ""
+  | `Recursive -> "rec"
+  | `Replaces -> "replaces"
+  | `Eval -> "eval"
+
 let gen_args_of ~only ~except ~pos get_args name =
   match Environment.get_builtin name with
     | Some ((_, t), Value.{ value = Fun (args, _, _, _) })
@@ -168,15 +176,50 @@ let mk_fun ~pos args body =
   let fv = Term.free_vars ~bound body in
   mk ~pos (Fun (fv, args, body))
 
-let mk_let ~pos (doc, replace, pat, def) body =
-  mk ~pos (Let { doc; replace; pat; gen = []; def; body })
-
 let mk_rec_fun ~pos pat args body =
-  let name = match pat with PVar [name] -> name | _ -> assert false in
+  let name =
+    match pat with
+      | PVar l when l <> [] -> List.hd (List.rev l)
+      | _ -> assert false
+  in
   let bound = List.map (fun (_, x, _, _) -> x) args in
   let bound = name :: bound in
   let fv = Term.free_vars ~bound body in
   mk ~pos (RFun (name, fv, args, body))
+
+let mk_eval ~pos (doc, pat, def, body) =
+  let ty = Type.var ~level:(-1) ~pos () in
+  let tty = Value.RuntimeType.to_term ty in
+  let eval = mk ~pos (Var "_eval_") in
+  let def = mk ~pos (App (eval, [("type", tty); ("", def)])) in
+  let def = mk ~pos (Cast (def, ty)) in
+  mk ~pos (Let { doc; replace = false; pat; gen = []; def; body })
+
+let mk_let ~pos (doc, decoration, pat, arglist, def) body =
+  match (arglist, decoration) with
+    | Some arglist, `None | Some arglist, `Replaces ->
+        let replace = decoration = `Replaces in
+        let def = mk_fun ~pos arglist def in
+        mk ~pos (Let { doc; replace; pat; gen = []; def; body })
+    | Some arglist, `Recursive ->
+        let def = mk_rec_fun ~pos pat arglist def in
+        mk ~pos (Let { doc; replace = false; pat; gen = []; def; body })
+    | None, `None | None, `Replaces ->
+        let replace = decoration = `Replaces in
+        mk ~pos (Let { doc; replace; pat; gen = []; def; body })
+    | None, `Eval -> mk_eval ~pos (doc, pat, def, body)
+    | Some _, v ->
+        raise
+          (Parse_error
+             ( pos,
+               string_of_let_decoration v
+               ^ " does not apply to function assignments" ))
+    | None, v ->
+        raise
+          (Parse_error
+             ( pos,
+               string_of_let_decoration v
+               ^ " only applies to function assignments" ))
 
 let mk_encoder ~pos e p = mk ~pos (Encoder (e, p))
 

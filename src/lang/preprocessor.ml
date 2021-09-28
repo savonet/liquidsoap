@@ -221,7 +221,7 @@ type doc_type = [ `Full | `Argsof of string list ]
 (* Glue the documenting comments to the corresponding PP_DEF (read pre-DEF) *
    and strip out other comments. *)
 let parse_comments tokenizer =
-  let documented_def (doc, doc_startp) (startp, endp) =
+  let documented_def decoration (doc, doc_startp) (startp, endp) =
     let startp =
       match doc_startp with Some startp -> startp | None -> startp
     in
@@ -373,7 +373,7 @@ let parse_comments tokenizer =
         | `Category c -> doc#add_subsection "_category" (Doc.trivial c)
         | `Flag c -> doc#add_subsection "_flag" (Doc.trivial c))
       special;
-    (Parser.DEF (doc, params, methods), (startp, endp))
+    (Parser.DEF ((doc, params, methods), decoration), (startp, endp))
   in
   let comment = ref ([], None) in
   let rec token () =
@@ -381,10 +381,10 @@ let parse_comments tokenizer =
       | Parser.PP_COMMENT c, (startp, _) ->
           comment := (c, Some startp);
           token ()
-      | Parser.PP_DEF, pos ->
+      | Parser.PP_DEF decoration, pos ->
           let c = !comment in
           comment := ([], None);
-          documented_def c pos
+          documented_def decoration c pos
       | x ->
           comment := ([], None);
           x

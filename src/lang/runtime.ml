@@ -243,17 +243,14 @@ let from_string ?parse_only ~lib expr =
   let lexbuf = Sedlexing.Utf8.from_string expr in
   from_lexbuf ?parse_only ~ns:None ~lib lexbuf
 
-let eval s =
-  try
-    let lexbuf = Sedlexing.Utf8.from_string s in
-    let expr = mk_expr ~pwd:"/nonexistent" Parser.program lexbuf in
-    Clock.collect_after (fun () ->
-        report lexbuf (fun ~throw () ->
-            Typechecking.check ~throw ~ignored:false expr);
-        Some (Evaluation.eval expr))
-  with e ->
-    Printf.eprintf "Evaluating %S failed: %s!" s (Printexc.to_string e);
-    None
+let eval ~ty s =
+  let lexbuf = Sedlexing.Utf8.from_string s in
+  let expr = mk_expr ~pwd:(Unix.getcwd ()) Parser.program lexbuf in
+  let expr = Term.(make (Cast (expr, ty))) in
+  Clock.collect_after (fun () ->
+      report lexbuf (fun ~throw () ->
+          Typechecking.check ~throw ~ignored:true expr);
+      Evaluation.eval expr)
 
 let from_in_channel ?parse_only ~lib x =
   from_in_channel ?parse_only ~ns:None ~lib x
