@@ -1,7 +1,7 @@
 let error.not_found = error.register("not_found")
 let error.assertion = error.register("assertion")
 let error.invalid = error.register("invalid")
-let error.eval = errpr.register("eval")
+let error.eval = error.register("eval")
 
 # Ensure that a condition is satisfied (raise `error.assertion` exception
 # otherwise).
