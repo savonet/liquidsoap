@@ -219,8 +219,7 @@ end
 let output.youtube = ()
 let output.youtube.live = ()
 
-%ifencoder %ffmpeg
-# Stream to youtube.
+# Stream to youtube using RTMP.
 # @category Output
 # @flag extra
 # @param ~id Force the value of the source ID.
@@ -228,53 +227,68 @@ let output.youtube.live = ()
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
-# @param ~url URL to stream to
-# @param ~bitrate Bitrate of the video (in kbps)
-# @param ~quality Quality of the video (low / medium / high)
+# @param ~url RTMP URL to stream to
+# @param ~encoder Encoder to use (most likely a `%ffmpeg` encoder)
 # @param ~key Your secret youtube key
-def output.youtube.live(~id=null(), ~fallible=false, ~on_start={()}, ~on_stop={()},
-                           ~start=true, ~url="rtmp://a.rtmp.youtube.com/live2",
-                           ~bitrate=2500,~quality="medium",~key,s)
-  url   = "#{url}/#{key}"
-  fps   = video.frame.rate()
-  enc   = %ffmpeg(format="flv",
-          %video(codec="libx264", pixel_format="yuv420p",
-                 b="#{bitrate}k", preset=quality, r=fps, g=fps*2),
-          %audio(codec="libmp3lame", samplerate=audio.samplerate(), b="128k"))
-  output.url(id=id, fallible=fallible, on_start=on_start, on_stop=on_stop, start=start, url=url, enc, s)
+def output.youtube.live.rtmp(~id=null(), ~fallible=false, ~on_start={()}, ~on_stop={()},
+                             ~start=true, ~url="rtmp://a.rtmp.youtube.com/live2",
+                             ~(key:string),~encoder,s)
+  output.url(id=id, fallible=fallible, on_start=on_start, on_stop=on_stop, start=start, url="#{url}/#{key}", encoder, s)
 end
-%endif
 
-# Stream to youtube.
+# Stream to youtube using HLS
 # @category Output
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~flush Perform a flush after each write.
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
-# @param ~reopen_delay Prevent re-opening within that delay, in seconds.
-# @param ~reopen_on_metadata Re-open on every new metadata information.
-# @param ~reopen_when When should the output be re-opened.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
-# @param ~url URL to stream to
-# @param ~bitrate Bitrate of the video (in kbps)
-# @param ~quality Quality of the video (low / medium / high)
+# @param ~url HLS URL to stream to
+# @param ~encoder Encoder to use (most likely a `%ffmpeg` encoder)
 # @param ~key Your secret youtube key
-def output.youtube.live.ffmpeg(~id=null(),~flush=false, ~fallible=false,
-                           ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
-                           ~reopen_on_metadata=false, ~reopen_when={false},
-                           ~start=true, ~url="rtmp://a.rtmp.youtube.com/live2",
-                           ~bitrate=2500,~quality="medium",~key,s)
-  # Output parameters
-  fps = video.frame.rate()
-  samplerate = audio.samplerate()
-  key = (key : string)
-  cmd = "-deinterlace -vcodec libx264 -pix_fmt yuv420p -preset #{quality} -r #{fps} -g $((#{fps} * 2)) \
-          -b:v #{bitrate}k -acodec libmp3lame -ar #{samplerate} -threads 6 -qscale:v 3 -b:a 128k \
-          -bufsize 512k -f flv \"#{url}/#{key}\""
-  output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay,
-                         reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
+def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_stop={()},
+                             ~start=true, ~url="https://a.upload.youtube.com/http_upload_hls",
+                             ~(key:string),~encoder,s)
+  id = string.id.default(default="output.youtube.live.rtmp", id)
+
+  def file_url(fname) =
+    "#{url}?cid=#{key}&copy=0&file=#{fname}"
+  end
+
+  def file_upload(fname) = fun () ->
+    try
+      ignore(http.post(data=file.read(fname),file_url(path.basename(fname))))
+    catch err do
+      log(label=id, level=3, "Error while uploading: #{err}")
+    end
+  end
+
+  def on_file_change(~state, fname) =
+    if state == "closed" and path.basename(fname) != "main.m3u8" then
+      thread.run(file_upload(fname))
+    end
+  end
+
+  tmpdir = file.temp_dir("hls","")
+ 
+  on_shutdown({file.rmdir(tmpdir)})
+
+  output.file.hls(
+    id=id,
+    start=start,
+    fallible=fallible,
+    on_stop=on_stop,
+    on_start=on_start,
+    playlist="main.m3u8",
+    segment_duration=4.0,
+    segments=5,
+    segments_overhead=5,
+    on_file_change=on_file_change,
+    tmpdir,
+    [("live", encoder)],
+    s
+  )
 end
 
 let video.add_text.best = video.add_text.native

@@ -7,6 +7,11 @@ New:
 - Added support for regular expressions (#1881)
 - Added generalized support for value extraction patterns (#1970)
 - Added support for string getter for `http.{post,put}` operations (#1984)
+- Added `output.youtube.live.hls`
+
+Changes:
+- `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
+  `quality` arguments and added a single encoder argument to allow stream copy and more.
 
 2.0.0 (unreleased)
 =====
