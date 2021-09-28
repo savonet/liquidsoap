@@ -132,11 +132,17 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
   source.set_name(s, "playlist.list.reloadable")
 
   # The reload function
-  def reload(p) =
+  def reload(~empty_queue=true, p) =
     log.debug(label=id, "Reloading playlist.")
     playlist_orig := p
     playlist := randomize(!playlist_orig)
     has_stopped := false
+
+    if empty_queue then
+      q = s.queue()
+      s.set_queue([])
+      list.iter(request.destroy, q)
+    end
   end
 
   # When we have more than max_fail failures in a row, we wait for 1 second
@@ -208,96 +214,6 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
   s.{reload = reload}
 end
 
-# Read a playlist or a directory, play all files and stop. It returns a pair
-# `(reload,source)` where `reload` is a function of type `(?uri:string)->unit`
-# that can be used to reload the source and `source` is the actual source. The
-# reload function can optionally be called with a new playlist URI, otherwise,
-# it reloads the previous URI.
-# @category Source / Input
-# @param ~id Force the value of the source ID.
-# @param ~check_next Function used to filter next tracks. A candidate track is \
-#   only validated if the function returns true on it. The function is called \
-#   before resolution, hence metadata will only be available for requests \
-#   corresponding to local files. This is typically used to avoid repetitions, \
-#   but be careful: if the function rejects all attempts, the playlist will \
-#   enter into a consuming loop and stop playing anything.
-# @param ~prefetch How many requests should be queued in advance.
-# @param ~loop Loop on the playlist.
-# @param ~mime_type Default MIME type for the playlist. `null` means \
-#  automatic detection.
-# @param ~mode Play the files in the playlist either in the order ("normal" mode), \
-#  or shuffle the playlist each time it is loaded, and play it in this order for a \
-#  whole round ("randomize" mode), or pick a random file in the playlist each time \
-#  ("random" mode).
-# @param ~native Use native implementation.
-# @param ~on_done Function executed when the playlist is finished.
-# @param ~on_reload Callback called after playlist has reloaded.
-# @param ~prefix Add a constant prefix to all requests. Useful for passing extra \
-#  information using annotate, or for resolution through a particular protocol, \
-#  such as replaygain.
-# @param ~timeout Timeout (in sec.) for a single download.
-# @param uri Playlist URI.
-# @method reload Reload the playlist.
-# @method length Length of the of the playlist (the number of songs it contains).
-def playlist.reloadable(
-  ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, ~mime_type=null(),
-  ~mode="randomize", ~native=false, ~on_done={()}, ~on_reload=(fun (_) -> ()),
-  ~prefix="", ~timeout=20., uri) =
-  id = id ?? playlist.id(default="playlist.reloadable", uri)
-  # URI of the current playlist
-  playlist_uri=ref(uri)
-  # List of files in the current playlist
-  files=ref([])
-
-  # The load function
-  def load_playlist() =
-    playlist_uri = path.home.unrelate(!playlist_uri)
-    log.info(label=id, "Reloading playlist.")
-    files = playlist.files(id=id, mime_type=mime_type, timeout=timeout, playlist_uri)
-    list.map(fun(file) -> prefix^file, files)
-  end
-
-  # Try to reload playlist when the playlist is looped and has failed.
-  def on_fail()
-    l = load_playlist()
-    if l == [] then
-      log.info("Failed to reload playlist after failure.")
-      # We add a dummy request in order for the playlist not to stop.
-      ["???failed???"]
-    else
-      log.info("Successfully reload playlist after failure.")
-      l
-    end
-  end
-  on_fail = if loop then on_fail else null() end
-
-  # Create the source
-  files := load_playlist()
-
-  s = playlist.list(
-    id=id, check_next=check_next, prefetch=prefetch, loop=loop, mode=mode,
-    native=native, on_done=on_done, on_fail=on_fail, timeout=timeout, !files)
-
-  source.set_name(s, "playlist.reloadable")
-
-  # The reload function
-  def reload(~uri=null()) =
-    if null.defined(uri)  then
-      playlist_uri := null.get(uri)
-    end
-    log(label=id,"Reloading playlist with URI #{!playlist_uri}.")
-    files := load_playlist()
-    s.reload(!files)
-    on_reload(!playlist_uri)
-  end
-
-  def length() =
-    list.length(!files)
-  end
-
-  s.{reload = reload, length = length}
-end
-
 # Read a playlist or a directory and play all files.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -342,11 +258,39 @@ def replaces playlist(
       reload_mode
     end
 
-  uri = ref(uri)
   round = ref(0)
 
-  # Will be filled with the actual reload function
-  reloader_ref = ref(fun()->())
+  # URI of the current playlist
+  playlist_uri=ref(uri)
+  # List of files in the current playlist
+  files=ref([])
+  # The reload function
+  reloader_ref = ref(fun (~empty_queue=true) -> ignore(empty_queue))
+
+  # The load function
+  def load_playlist() =
+    playlist_uri = path.home.unrelate(!playlist_uri)
+    log.info(label=id, "Reloading playlist.")
+    files = playlist.files(id=id, mime_type=mime_type, timeout=timeout, playlist_uri)
+    list.map(fun(file) -> prefix^file, files)
+  end
+
+  # Try to reload playlist when the playlist is looped and has failed.
+  def on_fail()
+    l = load_playlist()
+    if l == [] then
+      log.info("Failed to reload playlist after failure.")
+      # We add a dummy request in order for the playlist not to stop.
+      ["???failed???"]
+    else
+      log.info("Successfully reload playlist after failure.")
+      l
+    end
+  end
+  on_fail = if loop then on_fail else null() end
+
+  # Create the source
+  files := load_playlist()
 
   # Reload when the playlist is done
   def on_done()
@@ -368,12 +312,25 @@ def replaces playlist(
     on_reload(uri)
   end 
 
-  s = playlist.reloadable(
-    id=id, check_next=check_next, prefetch=prefetch, loop=loop,
-    mime_type=mime_type, mode=mode, native=native, on_done=on_done,
-    prefix=prefix, timeout=timeout, on_reload=on_reload, !uri)
+  s = playlist.list(
+    id=id, check_next=check_next, prefetch=prefetch, loop=loop, mode=mode,
+    native=native, on_done=on_done, on_fail=on_fail, timeout=timeout, !files)
 
+  # The reload function
+  def s.reload(~empty_queue=true, ~uri=null()) =
+    if null.defined(uri)  then
+      playlist_uri := null.get(uri)
+    end
+    log(label=id,"Reloading playlist with URI #{!playlist_uri}.")
+    files := load_playlist()
+    s.reload(empty_queue=empty_queue, !files)
+    on_reload(!playlist_uri)
+  end
   reloader_ref := s.reload
+
+  def s.length() =
+    list.length(!files)
+  end
 
   source.set_name(s, "playlist")
 
@@ -383,13 +340,13 @@ def replaces playlist(
     thread.run(delay=n, every=n, s.reload)
   elsif reload_mode == "watch" then
     watcher =
-      if file.exists(!uri) then
-         ref(null(file.watch(!uri, s.reload)))
+      if file.exists(!playlist_uri) then
+         ref(null(file.watch(!playlist_uri, s.reload)))
       else
          ref(null())
       end
 
-    watched_uri = ref(!uri)
+    watched_uri = ref(!playlist_uri)
 
     def watcher_reload(uri) =
       if uri != !watched_uri then
@@ -435,12 +392,12 @@ def replaces playlist(
   server.register(namespace=id, description="Reload the playlist, unless already being loaded.", usage="reload", "reload", fun (_) -> begin s.reload(); "OK" end)
 
   def uri_cmd (uri') =
-    if uri' == "" then !uri
+    if uri' == "" then !playlist_uri
     else
       if reload_mode == "watch" then
         log.important(label=id, "Warning: the watched file is not updated for now when changing the uri!")
       end # TODO
-      uri := uri'
+      playlist_uri := uri'
       s.reload(uri=uri')
       "OK"
     end
