@@ -188,7 +188,7 @@ let mk_rec_fun ~pos pat args body =
   mk ~pos (RFun (name, fv, args, body))
 
 let mk_eval ~pos (doc, pat, def, body) =
-  let ty = Type.var ~level:(-1) () in
+  let ty = Type.var ~level:(-1) ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let eval = mk ~pos (Var "_eval_") in
   let def = mk ~pos (App (eval, [("type", tty); ("", def)])) in
