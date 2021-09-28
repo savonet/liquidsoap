@@ -25,6 +25,7 @@ end
 def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~queue=[], ~timeout=20.)
   id = string.id.default(default="request.queue", id)
   queue = ref(queue)
+  fetch = ref(fun () -> true)
   def next()
     reqs = !queue
     queue := []
@@ -33,6 +34,8 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
   def push(r)
     log.info(label=id, "Pushing #{r} on the queue.")
     queue := list.append(!queue, [r])
+    fn = !fetch
+    ignore(fn())
   end
   def push_uri(uri)
     r = request.create(uri)
@@ -42,9 +45,10 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
     if native then
       stdlib_native.request.dynamic.list(id=id, timeout=timeout, next)
     else
-      (request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(!queue)}, next) : source_methods)
+      request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(!queue)}, next)
     end
   source.set_name(s, "request.queue")
+  fetch := s.fetch
   if interactive then
     namespace = if id == "" then "queue" else id end
     def push(uri)
