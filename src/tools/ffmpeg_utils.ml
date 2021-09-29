@@ -75,7 +75,7 @@ let () =
               log#severe "Invalid value for \"ffmpeg.log.verbosity\"!";
               `Quiet
       in
-      let level = conf_level#get in
+      (* let level = conf_level#get in *)
       Avutil.Log.set_level verbosity)
 
 (*
