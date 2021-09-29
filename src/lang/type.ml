@@ -131,7 +131,7 @@ type variance = Covariant | Contravariant | Invariant
   * This is useful in order to know what can or cannot be generalized:
   * you need to compare the level of an abstraction and those of a ref or
   * source. *)
-type t = { pos : pos option; descr : descr; json_repr : json_repr option }
+type t = { pos : pos option; descr : descr }
 
 and constructed = { constructor : string; params : (variance * t) list }
 
@@ -142,19 +142,18 @@ and meth = {
   json_name : string option;
 }
 
+and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
+
 and descr =
   | Constr of constructed
   | Ground of ground
   | Getter of t
-  | List of t
+  | List of repr_t
   | Tuple of t list
   | Nullable of t
   | Meth of meth * t
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
-
-(* Only used for associative lists at the moment. *)
-and json_repr = [ `Object ]
 
 and invar = Free of var | Link of variance * t
 
@@ -184,7 +183,7 @@ type repr =
 and var_repr = string * constraints
 
 let var_eq v v' = v.name = v'.name
-let make ?json_repr ?pos d = { pos; descr = d; json_repr }
+let make ?pos d = { pos; descr = d }
 
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced
@@ -321,7 +320,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       match t.descr with
         | Ground g -> `Ground g
         | Getter t -> `Getter (repr g t)
-        | List t -> `List (repr g t)
+        | List { t } -> `List (repr g t)
         | Tuple l -> `Tuple (List.map (repr g) l)
         | Nullable t -> `Nullable (repr g t)
         | Meth ({ meth = l; scheme = g', u }, v) ->
@@ -653,7 +652,7 @@ let filter_vars f t =
     match t.descr with
       | Ground _ -> l
       | Getter t -> aux l t
-      | List t | Nullable t -> aux l t
+      | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Meth ({ scheme = g, t }, u) ->
           let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in

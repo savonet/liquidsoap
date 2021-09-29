@@ -213,10 +213,10 @@ expr:
 ty:
   | VAR                        { mk_ty ~pos:$loc $1 }
   | ty QUESTION                { Type.make (Type.Nullable $1) }
-  | LBRA ty RBRA               { Type.make (Type.List $2) }
+  | LBRA ty RBRA               { Type.make (Type.(List {t = $2; json_repr = `Tuple})) }
   | LPAR ty_tuple RPAR         { Type.make (Type.Tuple $2) }
   | LPAR argsty RPAR YIELDS ty { Type.make (Type.Arrow ($2,$5)) }
-  | LCUR VERT ty VERT RCUR     { Type.(make ~json_repr:`Object (List (make (Tuple [make (Ground String); $3])))) }
+  | LCUR VERT ty VERT RCUR     { Type.make (Type.(List {t = (make (Tuple [make (Ground String); $3])); json_repr = `Object})) }
   | LCUR record_ty RCUR        { $2 }
   | ty DOT LCUR record_ty RCUR { Type.remeth $4 $1 }
   | ty_source                  { $1 }

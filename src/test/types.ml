@@ -22,7 +22,9 @@ let () =
   should_work (Ground Bool) (var ()).descr (Ground Bool);
 
   should_fail (Ground Bool) (Ground Int);
-  should_fail (List (make (Ground Bool))) (List (make (Ground Int)));
+  should_fail
+    (List { t = make (Ground Bool); json_repr = `Tuple })
+    (List { t = make (Ground Int); json_repr = `Tuple });
 
   let mk_meth meth ty t =
     Meth ({ meth; scheme = ([], make ty); doc = ""; json_name = None }, make t)

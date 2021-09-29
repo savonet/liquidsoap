@@ -104,7 +104,7 @@ let args_of, app_of =
   and term_of_value ~pos t ({ Value.value } as v) =
     let get_list_type () =
       match (Type.deref t).Type.descr with
-        | Type.List t -> t
+        | Type.(List { t }) -> t
         | _ -> assert false
     in
     let get_tuple_type pos =

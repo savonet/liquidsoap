@@ -61,7 +61,7 @@ type constraints = constr list
 
 val print_constr : constr -> string
 
-type t = { pos : pos option; descr : descr; json_repr : json_repr option }
+type t = { pos : pos option; descr : descr }
 
 and constructed = { constructor : string; params : (variance * t) list }
 
@@ -72,19 +72,18 @@ and meth = {
   json_name : string option;
 }
 
+and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
+
 and descr =
   | Constr of constructed
   | Ground of ground
   | Getter of t
-  | List of t
+  | List of repr_t
   | Tuple of t list
   | Nullable of t
   | Meth of meth * t
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
-
-(* Only used for associative lists at the moment. *)
-and json_repr = [ `Object ]
 
 and invar = Free of var | Link of variance * t
 
@@ -95,7 +94,7 @@ and scheme = var list * t
 val unit : descr
 
 (** Create a type from its value. *)
-val make : ?json_repr:json_repr -> ?pos:pos -> descr -> t
+val make : ?pos:pos -> descr -> t
 
 (** Remove links in a type: this function should always be called before
     matching on types. *)

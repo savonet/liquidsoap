@@ -57,10 +57,12 @@ let of_product_t t =
   match of_tuple_t t with [a; b] -> (a, b) | _ -> assert false
 
 let fun_t p b = Type.make (Type.Arrow (p, b))
-let list_t t = Type.make (Type.List t)
+let list_t t = Type.make Type.(List { t; json_repr = `Tuple })
 
 let of_list_t t =
-  match (Type.deref t).Type.descr with Type.List t -> t | _ -> assert false
+  match (Type.deref t).Type.descr with
+    | Type.(List { t }) -> t
+    | _ -> assert false
 
 let nullable_t t = Type.make (Type.Nullable t)
 let ref_t t = Term.ref_t t

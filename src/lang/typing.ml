@@ -102,7 +102,7 @@ let copy_with (subst : Subst.t) t =
             Constr { c with params }
         | Ground _ as g -> g
         | Getter t -> Getter (aux t)
-        | List t -> List (aux t)
+        | List { t; json_repr } -> List { t = aux t; json_repr }
         | Nullable t -> Nullable (aux t)
         | Tuple l -> Tuple (List.map aux l)
         | Meth (({ scheme = g, t } as m), u) ->
@@ -152,7 +152,7 @@ let rec occur_check (a : var) b =
     | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
     | Tuple l -> List.iter (occur_check a) l
     | Getter t -> occur_check a t
-    | List t -> occur_check a t
+    | List { t } -> occur_check a t
     | Nullable t -> occur_check a t
     | Meth ({ scheme = _, t }, u) ->
         (* We assume that a is not a generalized variable of t. *)
@@ -185,7 +185,7 @@ let satisfies_constraint b = function
                   check a)
                 m
           | Tuple l -> List.iter (fun b -> check b) l
-          | List b -> check b
+          | List { t = b } -> check b
           | Nullable b -> check b
           | _ -> raise (Unsatisfied_constraint (Ord, b))
       in
@@ -196,7 +196,7 @@ let satisfies_constraint b = function
             if not (List.mem g [Bool; Int; Float; String]) then
               raise (Unsatisfied_constraint (Dtools, b))
         | Tuple [] -> ()
-        | List b' -> (
+        | List { t = b' } -> (
             match (deref b').descr with
               | Ground g ->
                   if g <> String then
@@ -270,7 +270,7 @@ exception Incompatible
     function so that it should always be followed by a subtyping. *)
 let rec sup ~pos a b =
   let sup = sup ~pos in
-  let mk descr = { pos; descr; json_repr = None } in
+  let mk descr = { pos; descr } in
   let scheme_sup t t' =
     match (t, t') with ([], t), ([], t') -> ([], sup t t') | _ -> t'
   in
@@ -287,7 +287,8 @@ let rec sup ~pos a b =
     | Nullable a, Nullable b -> mk (Nullable (sup a b))
     | Nullable a, _ -> mk (Nullable (sup a b))
     | _, Nullable b -> mk (Nullable (sup a b))
-    | List a, List b -> mk (List (sup a b))
+    | List { t = a }, List { t = b } ->
+        mk (List { t = sup a b; json_repr = `Tuple })
     | Arrow (p, a), Arrow (q, b) ->
         if List.length p <> List.length q then raise Incompatible;
         mk (Arrow (q, sup a b))
@@ -413,7 +414,7 @@ let rec ( <: ) a b =
           (* same name => same arity *)
         in
         aux [] c1.params c2.params
-    | List t1, List t2 -> (
+    | List { t = t1 }, List { t = t2 } -> (
         try t1 <: t2 with Error (a, b) -> raise (Error (`List a, `List b)))
     | Nullable t1, Nullable t2 -> (
         try t1 <: t2
