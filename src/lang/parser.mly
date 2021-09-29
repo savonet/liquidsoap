@@ -49,7 +49,7 @@ open Parser_helper
 %token IF THEN ELSE ELSIF
 %token SLASH
 %token OPEN
-%token LPAR RPAR COMMA SEQ SEQSEQ COLON COLONCOLON DOT
+%token LPAR RPAR COMMA SEQ SEQSEQ COLON COLONCOLON DOT VERT
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
 %token DOTDOTDOT
@@ -216,7 +216,21 @@ ty:
   | LBRA ty RBRA               { Type.make (Type.List $2) }
   | LPAR ty_tuple RPAR         { Type.make (Type.Tuple $2) }
   | LPAR argsty RPAR YIELDS ty { Type.make (Type.Arrow ($2,$5)) }
+  | LCUR VERT ty VERT RCUR     { Type.(make ~json_repr:`Object (List (make (Tuple [make (Ground String); $3])))) }
+  | LCUR record_ty RCUR        { $2 }
+  | ty DOT LCUR record_ty RCUR { Type.remeth $4 $1 }
   | ty_source                  { $1 }
+
+record_ty:
+  |                         { Type.make (Type.Tuple []) }
+  | meth_ty                 { let name, ty, json_name = $1 in
+                              Type.meth ~pos:$loc ?json_name name ([], ty) (Type.make (Type.Tuple [])) }
+  | meth_ty COMMA record_ty { let name, ty, json_name = $1 in
+                              Type.meth ~pos:$loc ?json_name name ([], ty) $3 }  
+
+meth_ty:
+  | VAR COLON ty                 { $1, $3, None }
+  | VARLPAR STRING RPAR COLON ty { $1, $5, Some $2 }
 
 ty_source:
   | VARLPAR RPAR                  { mk_source_ty ~pos:$loc $1 [] }

@@ -222,6 +222,7 @@ let rec token lexbuf =
     | "~" -> TILD
     | "?" -> QUESTION
     | "-" -> MINUS
+    | "|" -> VERT
     | "while" -> WHILE
     | "for" -> FOR
     | "to" -> TO

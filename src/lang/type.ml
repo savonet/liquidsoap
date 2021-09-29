@@ -131,9 +131,16 @@ type variance = Covariant | Contravariant | Invariant
   * This is useful in order to know what can or cannot be generalized:
   * you need to compare the level of an abstraction and those of a ref or
   * source. *)
-type t = { pos : pos option; descr : descr }
+type t = { pos : pos option; descr : descr; json_repr : json_repr option }
 
 and constructed = { constructor : string; params : (variance * t) list }
+
+and meth = {
+  meth : string;
+  scheme : scheme;
+  doc : string;
+  json_name : string option;
+}
 
 and descr =
   | Constr of constructed
@@ -142,9 +149,12 @@ and descr =
   | List of t
   | Tuple of t list
   | Nullable of t
-  | Meth of string * scheme * string * t (* label, type, documentation, type to decorate *)
+  | Meth of meth * t
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
+
+(* Only used for associative lists at the moment. *)
+and json_repr = [ `Object ]
 
 and invar = Free of var | Link of variance * t
 
@@ -174,7 +184,7 @@ type repr =
 and var_repr = string * constraints
 
 let var_eq v v' = v.name = v'.name
-let make ?pos d = { pos; descr = d }
+let make ?json_repr ?pos d = { pos; descr = d; json_repr }
 
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced
@@ -185,22 +195,23 @@ let rec deref t =
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
   let t = deref t in
-  match t.descr with Meth (_, _, _, t) -> demeth t | _ -> t
+  match t.descr with Meth (_, t) -> demeth t | _ -> t
 
 let rec remeth t u =
   let t = deref t in
   match t.descr with
-    | Meth (l, v, d, t) -> { t with descr = Meth (l, v, d, remeth t u) }
+    | Meth (m, t) -> { t with descr = Meth (m, remeth t u) }
     | _ -> u
 
 let rec invoke t l =
   match (deref t).descr with
-    | Meth (l', t, _, _) when l = l' -> t
-    | Meth (_, _, _, t) -> invoke t l
+    | Meth (m, _) when m.meth = l -> m.scheme
+    | Meth (_, t) -> invoke t l
     | _ -> raise Not_found
 
 (** Add a method. *)
-let meth ?pos l v ?(doc = "") t = make ?pos (Meth (l, v, doc, t))
+let meth ?pos ?json_name meth scheme ?(doc = "") t =
+  make ?pos (Meth ({ meth; scheme; doc; json_name }, t))
 
 (** Add methods. *)
 let rec meths ?pos l v t =
@@ -217,10 +228,10 @@ let split_meths t =
   let rec aux hide t =
     let t = deref t in
     match t.descr with
-      | Meth (l, v, d, t) ->
-          let m, t = aux (l :: hide) t in
-          let m = if List.mem l hide then m else (l, (v, d)) :: m in
-          (m, t)
+      | Meth (m, t) ->
+          let meth, t = aux (m.meth :: hide) t in
+          let meth = if List.mem m.meth hide then meth else m :: meth in
+          (meth, t)
       | _ -> ([], t)
   in
   aux [] t
@@ -313,7 +324,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | List t -> `List (repr g t)
         | Tuple l -> `Tuple (List.map (repr g) l)
         | Nullable t -> `Nullable (repr g t)
-        | Meth (l, (g', u), _, v) ->
+        | Meth ({ meth = l; scheme = g', u }, v) ->
             let gen =
               List.map
                 (fun v -> match uvar (g' @ g) v with `UVar v -> v)
@@ -644,7 +655,7 @@ let filter_vars f t =
       | Getter t -> aux l t
       | List t | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
-      | Meth (_, (g, t), _, u) ->
+      | Meth ({ scheme = g, t }, u) ->
           let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
@@ -675,7 +686,7 @@ let doc_of_type ~generalized t =
 let doc_of_meths m =
   let items = new Doc.item "" in
   List.iter
-    (fun (m, ((generalized, t), doc)) ->
+    (fun { meth = m; scheme = generalized, t; doc } ->
       let i = new Doc.item ~sort:false doc in
       i#add_subsection "type" (doc_of_type ~generalized t);
       items#add_subsection m i)

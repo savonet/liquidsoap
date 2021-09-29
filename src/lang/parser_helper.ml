@@ -114,7 +114,7 @@ let args_of, app_of =
     in
     let get_meth_type () =
       match (Type.deref t).Type.descr with
-        | Type.Meth (_, _, _, t) -> t
+        | Type.Meth (_, t) -> t
         | _ -> assert false
     in
     let term =

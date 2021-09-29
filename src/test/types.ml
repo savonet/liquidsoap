@@ -24,19 +24,23 @@ let () =
   should_fail (Ground Bool) (Ground Int);
   should_fail (List (make (Ground Bool))) (List (make (Ground Int)));
 
-  let m = Meth ("aa", ([], make (Ground Int)), "", make (Ground Bool)) in
+  let mk_meth meth ty t =
+    Meth ({ meth; scheme = ([], make ty); doc = ""; json_name = None }, make t)
+  in
+
+  let m = mk_meth "aa" (Ground Int) (Ground Bool) in
 
   should_work m (Ground Bool) (Ground Bool);
 
-  let n = Meth ("b", ([], make (Ground Bool)), "", make m) in
+  let n = mk_meth "b" (Ground Bool) m in
 
   should_work m n m;
 
-  let n = Meth ("aa", ([], make (Ground Int)), "", make (Ground Int)) in
+  let n = mk_meth "aa" (Ground Int) (Ground Int) in
 
   should_fail m n;
 
-  let n = Meth ("aa", ([], make (Ground Bool)), "", make (Ground Bool)) in
+  let n = mk_meth "aa" (Ground Bool) (Ground Bool) in
 
   should_fail m n;
 

@@ -61,9 +61,16 @@ type constraints = constr list
 
 val print_constr : constr -> string
 
-type t = { pos : pos option; descr : descr }
+type t = { pos : pos option; descr : descr; json_repr : json_repr option }
 
 and constructed = { constructor : string; params : (variance * t) list }
+
+and meth = {
+  meth : string;
+  scheme : scheme;
+  doc : string;
+  json_name : string option;
+}
 
 and descr =
   | Constr of constructed
@@ -72,9 +79,12 @@ and descr =
   | List of t
   | Tuple of t list
   | Nullable of t
-  | Meth of string * scheme * string * t
+  | Meth of meth * t
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
+
+(* Only used for associative lists at the moment. *)
+and json_repr = [ `Object ]
 
 and invar = Free of var | Link of variance * t
 
@@ -85,7 +95,7 @@ and scheme = var list * t
 val unit : descr
 
 (** Create a type from its value. *)
-val make : ?pos:pos -> descr -> t
+val make : ?json_repr:json_repr -> ?pos:pos -> descr -> t
 
 (** Remove links in a type: this function should always be called before
     matching on types. *)
@@ -102,7 +112,8 @@ val var_eq : var -> var -> bool
 val filter_vars : (var -> bool) -> t -> var list
 
 (** Add a method to a type. *)
-val meth : ?pos:pos -> string -> scheme -> ?doc:string -> t -> t
+val meth :
+  ?pos:pos -> ?json_name:string -> string -> scheme -> ?doc:string -> t -> t
 
 (** Add a submethod to a type. *)
 val meths : ?pos:pos -> string list -> scheme -> t -> t
@@ -111,7 +122,7 @@ val meths : ?pos:pos -> string list -> scheme -> t -> t
 val demeth : t -> t
 
 (** Split a type between methods and the main type. *)
-val split_meths : t -> (string * (scheme * string)) list * t
+val split_meths : t -> meth list * t
 
 (** Put the methods of the first type around the second type. *)
 val remeth : t -> t -> t
@@ -163,4 +174,4 @@ val pp_scheme : Format.formatter -> scheme -> unit
 val print : ?generalized:var list -> t -> string
 val print_scheme : scheme -> string
 val doc_of_type : generalized:var list -> t -> Doc.item
-val doc_of_meths : (string * (scheme * string)) list -> Doc.item
+val doc_of_meths : meth list -> Doc.item

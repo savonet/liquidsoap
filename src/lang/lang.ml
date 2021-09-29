@@ -734,7 +734,9 @@ let add_operator =
     let return_t =
       if category = `Output then (
         let m, _ = Type.split_meths return_t in
-        let m = List.map (fun (x, (y, z)) -> (x, y, z)) m in
+        let m =
+          List.map (fun Type.{ meth = x; scheme = y; doc = z } -> (x, y, z)) m
+        in
         method_t unit_t m)
       else return_t
     in

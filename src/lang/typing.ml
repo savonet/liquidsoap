@@ -35,8 +35,8 @@ let has_meth a = match (deref a).descr with Meth _ -> true | _ -> false
 
 let rec hide_meth l a =
   match (deref a).descr with
-    | Meth (l', _, _, u) when l' = l -> hide_meth l u
-    | Meth (l', t, d, u) -> { a with descr = Meth (l', t, d, hide_meth l u) }
+    | Meth ({ meth = l' }, u) when l' = l -> hide_meth l u
+    | Meth (m, u) -> { a with descr = Meth (m, hide_meth l u) }
     | _ -> a
 
 (** {1 Type generalization and instantiation}
@@ -105,11 +105,11 @@ let copy_with (subst : Subst.t) t =
         | List t -> List (aux t)
         | Nullable t -> Nullable (aux t)
         | Tuple l -> Tuple (List.map aux l)
-        | Meth (l, (g, t), d, u) ->
+        | Meth (({ scheme = g, t } as m), u) ->
             (* We assume that we don't substitute generalized variables. *)
             if !debug then
               assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
-            Meth (l, (g, aux t), d, aux u)
+            Meth ({ m with scheme = (g, aux t) }, aux u)
         | Arrow (p, t) ->
             Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t)
         | Var { contents = Link (_, t) } ->
@@ -154,7 +154,7 @@ let rec occur_check (a : var) b =
     | Getter t -> occur_check a t
     | List t -> occur_check a t
     | Nullable t -> occur_check a t
-    | Meth (_, (_, t), _, u) ->
+    | Meth ({ scheme = _, t }, u) ->
         (* We assume that a is not a generalized variable of t. *)
         occur_check a t;
         occur_check a u
@@ -180,7 +180,7 @@ let satisfies_constraint b = function
           | Tuple [] ->
               (* For records, we want to ensure that all fields are ordered. *)
               List.iter
-                (fun (_, ((v, a), _)) ->
+                (fun Type.{ scheme = v, a } ->
                   if v <> [] then raise (Unsatisfied_constraint (Ord, a));
                   check a)
                 m
@@ -270,14 +270,14 @@ exception Incompatible
     function so that it should always be followed by a subtyping. *)
 let rec sup ~pos a b =
   let sup = sup ~pos in
-  let mk descr = { pos; descr } in
+  let mk descr = { pos; descr; json_repr = None } in
   let scheme_sup t t' =
     match (t, t') with ([], t), ([], t') -> ([], sup t t') | _ -> t'
   in
   let rec meth_type l a =
     match (deref a).descr with
-      | Meth (l', t, _, _) when l = l' -> Some t
-      | Meth (_, _, _, a) -> meth_type l a
+      | Meth ({ meth = l'; scheme = t }, _) when l = l' -> Some t
+      | Meth (_, a) -> meth_type l a
       | Var { contents = Free _ } -> Some ([], var ?pos ())
       | _ -> None
   in
@@ -298,17 +298,19 @@ let rec sup ~pos a b =
         (* It might happen that we compare abstract values. *)
         (try if g <> g' then raise Incompatible with _ -> ());
         mk (Ground g')
-    | Meth (l, t, _, a), Meth (l', t', d', b) when l = l' ->
-        mk (Meth (l, scheme_sup t t', d', sup a b))
-    | Meth (l, t, d, a), _ -> (
-        match meth_type l b with
+    | Meth (m, a), Meth (m', b) when m.meth = m'.meth ->
+        mk (Meth ({ m' with scheme = scheme_sup m.scheme m'.scheme }, sup a b))
+    | Meth (m, a), _ -> (
+        match meth_type m.meth b with
           (* TODO: I guess that we should hide other methods named l *)
-          | Some t' -> mk (Meth (l, scheme_sup t' t, d, sup a b))
+          | Some t' ->
+              mk (Meth ({ m with scheme = scheme_sup t' m.scheme }, sup a b))
           | None -> sup a b)
-    | _, Meth (l, t, d, b) -> (
-        match meth_type l a with
+    | _, Meth (m, b) -> (
+        match meth_type m.meth a with
           (* TODO: I guess that we should hide other methods named l *)
-          | Some t' -> mk (Meth (l, scheme_sup t' t, d, sup a b))
+          | Some t' ->
+              mk (Meth ({ m with scheme = scheme_sup t' m.scheme }, sup a b))
           | None -> sup a b)
     | ( Constr { constructor = c; params = a },
         Constr { constructor = d; params = b } ) ->
@@ -511,7 +513,9 @@ let rec ( <: ) a b =
           raise (Error (repr a, repr b)))
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
-    | Meth (l, (g1, t1), _, u1), Meth (l', (g2, t2), _, u2) when l = l' -> (
+    | ( Meth ({ meth = l; scheme = g1, t1 }, u1),
+        Meth ({ meth = l'; scheme = g2, t2 }, u2) )
+      when l = l' -> (
         (* Handle explicitly this case in order to avoid #1842. *)
         try
           (* TODO: we should perform proper type scheme subtyping, but this
@@ -524,7 +528,7 @@ let rec ( <: ) a b =
           Printexc.raise_with_backtrace
             (Error (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis)))
             bt)
-    | _, Meth (l, (g2, t2), _, u2) -> (
+    | _, Meth ({ meth = l; scheme = g2, t2 }, u2) -> (
         try
           let g1, t1 = invoke a l in
           (try
@@ -548,11 +552,20 @@ let rec ( <: ) a b =
           let a' = demeth a in
           match a'.descr with
             | Var { contents = Free _ } ->
-                a' <: make (Meth (l, (g2, t2), "", var ()));
+                a'
+                <: make
+                     (Meth
+                        ( {
+                            meth = l;
+                            scheme = (g2, t2);
+                            doc = "";
+                            json_name = None;
+                          },
+                          var () ));
                 a <: b
             | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))))
         )
-    | Meth (l, _, _, u1), _ -> hide_meth l u1 <: b
+    | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
     | _, Getter t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
     | _, _ ->

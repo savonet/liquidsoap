@@ -158,7 +158,17 @@ def f() =
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw(sample_rate=44100, channel_layout="5.1"),video=ffmpeg.video.raw(pixel_format=yuva420p),midi=midi))
 
   let ([x]:[int]) = [123]
-  
+
+  ([]:{|int|})
+  ([("bla", 3.14)]:{|float|})
+
+  ({foo = 123}:{foo:int})
+  ({foo = 123}:{foo("✨ name ✨"):int})
+  (123.{foo=3.14,gni="aabbcc"}:int.{foo:float,gni:string})
+  (123.{foo=3.14,gni="aabbcc"}:int.{foo("✨ name ✨"):float,gni:string})
+  (():{})
+  (():unit.{})
+ 
   test.pass()
 end
 
