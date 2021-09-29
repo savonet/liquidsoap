@@ -71,21 +71,21 @@ let rec type_of_pat ~level ~pos = function
   | PList (l, spread, l') ->
       let fold_env l ty =
         List.fold_left
-          (fun (env, ty) p ->
+          (fun (env, ty, ety) p ->
             let env', ty' = type_of_pat ~level ~pos p in
             let ty = Typing.sup ~pos ty ty' in
-            Typing.(ty' <: ty);
-            (env' @ env, ty))
-          ([], ty) l
+            (env' @ env, ty, ty' :: ety))
+          ([], ty, []) l
       in
       let ty = Type.var ~level ?pos () in
-      let env, ty = fold_env l ty in
-      let env', ty = fold_env l' ty in
+      let env, ty, ety = fold_env l ty in
+      let env', ty, ety' = fold_env l' ty in
       let spread_env =
         match spread with
           | None -> []
           | Some v -> [([v], Type.make ?pos (Type.List ty))]
       in
+      List.iter (fun ety -> Typing.(ety <: ty)) (ety @ ety');
       (env' @ spread_env @ env, Type.make ?pos (Type.List ty))
   | PMeth (pat, l) ->
       let env, ty =

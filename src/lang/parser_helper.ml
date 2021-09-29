@@ -187,27 +187,38 @@ let mk_rec_fun ~pos pat args body =
   let fv = Term.free_vars ~bound body in
   mk ~pos (RFun (name, fv, args, body))
 
-let mk_eval ~pos (doc, pat, def, body) =
-  let ty = Type.var ~level:(-1) ~pos () in
+let mk_eval ~pos (doc, pat, def, body, cast) =
+  let ty =
+    match cast with Some ty -> ty | None -> Type.var ~level:(-1) ~pos ()
+  in
   let tty = Value.RuntimeType.to_term ty in
   let eval = mk ~pos (Var "_eval_") in
   let def = mk ~pos (App (eval, [("type", tty); ("", def)])) in
   let def = mk ~pos (Cast (def, ty)) in
   mk ~pos (Let { doc; replace = false; pat; gen = []; def; body })
 
-let mk_let ~pos (doc, decoration, pat, arglist, def) body =
+let mk_let ~pos (doc, decoration, pat, arglist, def, cast) body =
   match (arglist, decoration) with
     | Some arglist, `None | Some arglist, `Replaces ->
         let replace = decoration = `Replaces in
         let def = mk_fun ~pos arglist def in
+        let def =
+          match cast with Some ty -> mk ~pos (Cast (def, ty)) | None -> def
+        in
         mk ~pos (Let { doc; replace; pat; gen = []; def; body })
     | Some arglist, `Recursive ->
         let def = mk_rec_fun ~pos pat arglist def in
+        let def =
+          match cast with Some ty -> mk ~pos (Cast (def, ty)) | None -> def
+        in
         mk ~pos (Let { doc; replace = false; pat; gen = []; def; body })
     | None, `None | None, `Replaces ->
         let replace = decoration = `Replaces in
+        let def =
+          match cast with Some ty -> mk ~pos (Cast (def, ty)) | None -> def
+        in
         mk ~pos (Let { doc; replace; pat; gen = []; def; body })
-    | None, `Eval -> mk_eval ~pos (doc, pat, def, body)
+    | None, `Eval -> mk_eval ~pos (doc, pat, def, body, cast)
     | Some _, v ->
         raise
           (Parse_error

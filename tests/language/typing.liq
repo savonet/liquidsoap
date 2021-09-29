@@ -156,6 +156,8 @@ def f() =
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.copy,video=ffmpeg.video.copy,midi=midi))
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw,video=ffmpeg.video.raw,midi=midi))
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw(sample_rate=44100, channel_layout="5.1"),video=ffmpeg.video.raw(pixel_format=yuva420p),midi=midi))
+
+  let ([x]:[int]) = [123]
   
   test.pass()
 end

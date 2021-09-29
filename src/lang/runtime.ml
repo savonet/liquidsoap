@@ -243,13 +243,12 @@ let from_string ?parse_only ~lib expr =
   let lexbuf = Sedlexing.Utf8.from_string expr in
   from_lexbuf ?parse_only ~ns:None ~lib lexbuf
 
-let eval ~ty s =
+let eval ~ignored ~ty s =
   let lexbuf = Sedlexing.Utf8.from_string s in
   let expr = mk_expr ~pwd:(Unix.getcwd ()) Parser.program lexbuf in
   let expr = Term.(make (Cast (expr, ty))) in
   Clock.collect_after (fun () ->
-      report lexbuf (fun ~throw () ->
-          Typechecking.check ~throw ~ignored:true expr);
+      report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
       Evaluation.eval expr)
 
 let from_in_channel ?parse_only ~lib x =

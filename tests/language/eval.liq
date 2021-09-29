@@ -65,6 +65,10 @@ def f() =
   t("23", { x == 1})
   t("24", { y == 2})
 
+  # Eval with type cast
+  let eval ([x, y]:[int]) = "[123,456]"
+  t("25", { (x, y) == (123, 456) })
+
   if !fail then test.fail() else test.pass() end
 end
 

@@ -32,5 +32,9 @@ let () =
       try
         let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
         let s = Lang.to_string (List.assoc "" p) in
-        Runtime.eval ~ty s
+        let v = Runtime.eval ~ignored:false ~ty s in
+        (match Type.((demeth (deref ty)).descr) with
+          | Type.Var _ -> Typing.(ty <: Lang.unit_t)
+          | _ -> ());
+        v
       with exn -> raise exn)

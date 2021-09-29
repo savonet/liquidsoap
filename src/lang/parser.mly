@@ -353,13 +353,17 @@ in_subfield:
   | VAR DOT in_subfield { $1::$3 }
 
 binding:
-  | optvar GETS expr         { (Doc.none (),[],[]), `None,  PVar [$1], None,    $3 }
-  | LET pattern GETS expr    { (Doc.none (),[],[]), $1,     $2,        None,    $4 }
-  | LET subfield GETS expr   { (Doc.none (),[],[]), $1,     PVar $2,   None,    $4 }
-  | DEF pattern g exprs END  { fst $1,              snd $1, $2,        None,    $4 }
-  | DEF subfield g exprs END { fst $1,              snd $1, PVar $2,   None,    $4 }
+  | optvar GETS expr         { (Doc.none (),[],[]), `None,  PVar [$1], None,    $3, None }
+  | LET pattern GETS expr    { (Doc.none (),[],[]), $1,     $2,        None,    $4, None }
+  | LET LPAR pattern COLON ty RPAR GETS expr
+                             { (Doc.none (),[],[]), $1,     $3,        None,    $8, Some $5 }
+  | LET subfield GETS expr   { (Doc.none (),[],[]), $1,     PVar $2,   None,    $4, None }
+  | DEF pattern g exprs END  { fst $1,              snd $1, $2,        None,    $4, None }
+  | DEF LPAR pattern COLON ty RPAR g exprs END 
+                             { fst $1,              snd $1, $3,        None,    $8, Some $5 }
+  | DEF subfield g exprs END { fst $1,              snd $1, PVar $2,   None,    $4, None }
   | DEF varlpar arglist RPAR g exprs END
-                             { fst $1,              snd $1, PVar $2, Some $3,   $6 }
+                             { fst $1,              snd $1, PVar $2, Some $3,   $6, None }
 
 varlpar:
   | VARLPAR         { [$1] }
