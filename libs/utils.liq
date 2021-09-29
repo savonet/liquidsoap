@@ -57,13 +57,17 @@ def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"]
   # Load from persistency file
   if null.defined(persistency) then
     if file.exists(null.get(persistency)) then
-      l := json.parse(default=[("", 0.)], file.contents(null.get(persistency)))
+      let json.parse ( parsed : [(string * float)]? ) = file.contents(null.get(persistency))
+      if null.defined(parsed) then
+         l := null.get(parsed)
+      end
     end
   end
   # Save into persistency file
   def save()
     if null.defined(persistency) then
-      file.write(data=json.stringify(!l), null.get(persistency))
+      let json.stringify data = !l 
+      file.write(data=data, null.get(persistency))
     end
   end
   # Remove too old elements

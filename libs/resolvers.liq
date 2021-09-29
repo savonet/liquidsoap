@@ -25,8 +25,9 @@ def youtube_playlist_parser(~pwd="",url) =
   binary = null.get(settings.protocol.youtube_dl.path())
 
   def parse_line(line) =
-    parsed = json.parse(default=[("url","foo")],line)
-    url = list.assoc(default="","url",parsed)
+    let json.parse ( parsed  : {url : string}? ) = line
+    parsed = parsed ?? {url = "foo"}
+    url = parsed.url
     ([],"youtube-dl:#{url}")
   end
 

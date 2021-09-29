@@ -21,44 +21,32 @@ def on_done () =
   ijson = process.read("ffprobe -v quiet -print_format json -show_streams '#{fname}'")
   ojson = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
 
-  iformat = json.parse(default=[("streams", [[("samplerate", "0")]])], ijson)
-  oformat = json.parse(default=[("streams", [[("samplerate", "0")]])], ojson)
+  let json.parse ( iparsed : {
+    streams: [{
+      channel_layout: string?,
+      sample_rate: string?,
+      sample_fmt: string?,
+      codec_name: string?,
+      pix_fmt: string?
+    }]
+  }) = ijson
 
-  istreams = list.assoc(default=[], "streams", iformat)
-  ostreams = list.assoc(default=[], "streams", oformat)
+  let json.parse ( oparsed : {
+    streams: [{
+      channel_layout: string?,
+      sample_rate: string?,
+      sample_fmt: string?,
+      codec_name: string?,
+      pix_fmt: string?
+    }]
+  }) = ojson
 
-  params = ["channel_layout", "sample_rate",
-            "sample_fmt", "codec_name", "pix_fmt"]
+  filter = list.filter((fun (s) -> null.defined(s.codec_name)))
+  sort = list.sort((fun (s1, s2) -> if s1.codec_name < s2.codec_name then -1 else 1 end))
+  let [iaudio, ivideo] = sort(filter(iparsed.streams))
+  let [oaudio, ovideo] = sort(filter(oparsed.streams))
 
-  def get(codec, l) =
-    def f(l) =
-      def g(e) =
-        snd(e) == codec
-      end
-      list.exists(g, l)
-    end
-    list.find(f, l)
-  end
-  iaudio = get("aac", istreams)
-  oaudio = get("aac", ostreams)
-  ovideo = get("h264", ostreams)
-
-  def m(s) =
-    def f(e) =
-      let (p, _) = e
-      list.mem(p, params)
-    end
-    list.filter(f, s)
-  end
-
-  streams = [m(ovideo), m(oaudio)]
-
-  expected = [
-    [("pix_fmt", "yuv420p"), ("codec_name", "h264")],
-    m(iaudio)
-  ]
-
-  if streams == expected then
+  if iaudio == oaudio and ivideo == ovideo then
     test.pass()
   else
     test.fail()

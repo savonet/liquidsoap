@@ -415,8 +415,11 @@ let rec ( <: ) a b =
           (* same name => same arity *)
         in
         aux [] c1.params c2.params
-    | List { t = t1 }, List { t = t2 } -> (
-        try t1 <: t2 with Error (a, b) -> raise (Error (`List a, `List b)))
+    | List { t = t1; json_repr = repr1 }, List { t = t2; json_repr = repr2 }
+      -> (
+        try t1 <: t2
+        with Error (a, b) ->
+          raise (Error (`List (a, repr1), `List (b, repr2))))
     | Nullable t1, Nullable t2 -> (
         try t1 <: t2
         with Error (a, b) -> raise (Error (`Nullable a, `Nullable b)))
@@ -517,8 +520,8 @@ let rec ( <: ) a b =
           raise (Error (Repr.make a, Repr.make b)))
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
-    | ( Meth ({ meth = l; scheme = g1, t1 }, u1),
-        Meth ({ meth = l'; scheme = g2, t2 }, u2) )
+    | ( Meth ({ meth = l; scheme = g1, t1; json_name = json_name1 }, u1),
+        Meth ({ meth = l'; scheme = g2, t2; json_name = json_name2 }, u2) )
       when l = l' -> (
         (* Handle explicitly this case in order to avoid #1842. *)
         try
@@ -530,9 +533,11 @@ let rec ( <: ) a b =
         with Error (a, b) ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
-            (Error (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis)))
+            (Error
+               ( `Meth (l, ([], a), json_name1, `Ellipsis),
+                 `Meth (l, ([], b), json_name2, `Ellipsis) ))
             bt)
-    | _, Meth ({ meth = l; scheme = g2, t2 }, u2) -> (
+    | _, Meth ({ meth = l; scheme = g2, t2; json_name }, u2) -> (
         try
           let g1, t1 = invoke a l in
           (try
@@ -544,13 +549,14 @@ let rec ( <: ) a b =
              let bt = Printexc.get_raw_backtrace () in
              Printexc.raise_with_backtrace
                (Error
-                  (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis)))
+                  ( `Meth (l, ([], a), None, `Ellipsis),
+                    `Meth (l, ([], b), json_name, `Ellipsis) ))
                bt);
           try a <: hide_meth l u2
           with Error (a, b) ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace
-              (Error (a, `Meth (l, ([], `Ellipsis), b)))
+              (Error (a, `Meth (l, ([], `Ellipsis), json_name, b)))
               bt
         with Not_found -> (
           let a' = demeth a in
@@ -569,7 +575,9 @@ let rec ( <: ) a b =
                 a <: b
             | _ ->
                 raise
-                  (Error (Repr.make a, `Meth (l, ([], `Ellipsis), `Ellipsis)))))
+                  (Error
+                     ( Repr.make a,
+                       `Meth (l, ([], `Ellipsis), json_name, `Ellipsis) ))))
     | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
     | _, Getter t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))

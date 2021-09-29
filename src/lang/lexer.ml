@@ -191,6 +191,12 @@ let rec token lexbuf =
     | "do" -> DO
     | "let", Plus skipped, "replaces" -> LET `Replaces
     | "let", Plus skipped, "eval" -> LET `Eval
+    | "let", Plus skipped, "json.parse", Star skipped, '[' ->
+        LETLBRA `Json_parse
+    | "let", Plus skipped, "json.parse" -> LET `Json_parse
+    | "let", Plus skipped, "json.stringify", Star skipped, '[' ->
+        LETLBRA `Json_stringify
+    | "let", Plus skipped, "json.stringify" -> LET `Json_stringify
     | "let" -> LET `None
     | "fun" -> FUN
     | '=' -> GETS
@@ -383,7 +389,9 @@ and read_string c pos buf lexbuf =
     | '\\', '\n', Star skipped -> read_string c pos buf lexbuf
     | '\\', any ->
         if c <> '/' then (
-          let pos = Repr.string_of_single_pos pos in
+          let pos =
+            Repr.string_of_pos (pos, snd (Sedlexing.lexing_positions lexbuf))
+          in
           Printf.printf
             "Warning at position %s: illegal backslash escape in string.\n" pos);
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);

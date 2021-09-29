@@ -219,12 +219,14 @@ server.register(usage="set <name> = <value>", description="Set the value of a va
 # @category Interactive
 # @param fname Name of the file.
 def interactive.save(fname)
-  float = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_float)
-  int = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_int)
-  bool = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_bool)
-  string = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_string)
-  vars = (float, int, bool, string)
-  file.write(data=json.stringify(vars), fname)
+  let json.stringify data = {
+    float = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_float),
+    int = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_int),
+    bool = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_bool),
+    string = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_string)
+  }
+
+  file.write(data=data, fname)
 end
 
 # Load the value of interactive variables from a file.
@@ -232,11 +234,17 @@ end
 # @param fname Name of the file.
 def interactive.load(fname)
   vars = file.contents(fname)
-  let (float, int, bool, string) = json.parse(default=([("",0.)],[("",0)],[("",false)],[("","")]), vars)
-  list.iter(fun (nv) -> try interactive.float.set (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, float )
-  list.iter(fun (nv) -> try interactive.int.set   (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, int   )
-  list.iter(fun (nv) -> try interactive.bool.set  (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, bool  )
-  list.iter(fun (nv) -> try interactive.string.set(fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, string)
+  let json.parse ( vars: {
+    float : [(string * float)],
+    int : [(string * int)],
+    bool : [(string * bool)],
+    string : [(string * string)] 
+  } ) = vars
+
+  list.iter(fun (nv) -> try interactive.float.set (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, vars.float )
+  list.iter(fun (nv) -> try interactive.int.set   (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, vars.int   )
+  list.iter(fun (nv) -> try interactive.bool.set  (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, vars.bool  )
+  list.iter(fun (nv) -> try interactive.string.set(fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, vars.string)
 end
 
 # Make the value of interactive variables persistent: they are loaded from the

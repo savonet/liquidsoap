@@ -37,11 +37,27 @@ def enable_external_ffmpeg_decoder() =
 
   def ffprobe_test(fname) =
     j = process.read("#{ffprobe} -print_format json -show_streams #{string.quote(fname)}")
-    default = [("streams",[[("channels",0)]])]
-    data = json.parse(default=default,j)
-    streams = list.assoc(default=[],"streams",data)
-    stream = list.hd(default=[],streams)
-    list.assoc(default=0,"channels",stream)
+
+    let json.parse ( parsed : {
+      streams : [{
+        channels : int?
+      }]
+    }?) = j
+
+    if null.defined(parsed) then
+      parsed = null.get(parsed)
+
+      streams = parsed.streams
+      stream = list.find(
+        default={channels = null(0)},
+        (fun (x) -> null.defined(x.channels)),
+        streams
+      )
+
+      stream.channels ?? 0
+    else
+      0
+    end
   end
 
   if file.which(ffmpeg) != null() and file.which (ffprobe) != null() then
