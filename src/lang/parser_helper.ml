@@ -188,9 +188,7 @@ let mk_rec_fun ~pos pat args body =
   mk ~pos (RFun (name, fv, args, body))
 
 let mk_eval ~pos (doc, pat, def, body, cast) =
-  let ty =
-    match cast with Some ty -> ty | None -> Type.var ~level:(-1) ~pos ()
-  in
+  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let eval = mk ~pos (Var "_eval_") in
   let def = mk ~pos (App (eval, [("type", tty); ("", def)])) in
