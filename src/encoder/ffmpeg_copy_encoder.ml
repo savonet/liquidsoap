@@ -46,11 +46,8 @@ let mk_stream_copy ~video_size ~get_data output =
 
   let video_size () = !video_size_ref in
 
-  let stream_time_base = lazy (Av.get_time_base (Option.get !stream)) in
-
-  let to_stream_time_base ~time_base v =
-    let dst = Lazy.force stream_time_base in
-    Ffmpeg_utils.convert_time_base ~src:time_base ~dst v
+  let to_main_time_base ~time_base v =
+    Ffmpeg_utils.convert_time_base ~src:time_base ~dst:main_time_base v
   in
 
   let total_duration = ref 0L in
@@ -62,7 +59,7 @@ let mk_stream_copy ~video_size ~get_data output =
       (Option.map
          (fun d ->
            total_duration :=
-             Int64.add !total_duration (to_stream_time_base ~time_base d))
+             Int64.add !total_duration (to_main_time_base ~time_base d))
          d)
   in
   let check_start stream_idx =
@@ -74,7 +71,7 @@ let mk_stream_copy ~video_size ~get_data output =
   in
   let adjust_ts ~time_base =
     Option.map (fun ts ->
-        Int64.add (to_stream_time_base ~time_base ts) !last_start)
+        Int64.add (to_main_time_base ~time_base ts) !last_start)
   in
 
   let was_keyframe = ref false in
@@ -106,7 +103,7 @@ let mk_stream_copy ~video_size ~get_data output =
           Packet.set_dts packet packet_dts;
           Packet.set_duration packet
             (Option.map
-               (to_stream_time_base ~time_base)
+               (to_main_time_base ~time_base)
                (Packet.get_duration packet));
 
           if List.mem `Keyframe Avcodec.Packet.(get_flags packet) then
