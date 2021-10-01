@@ -204,7 +204,8 @@ let unpack_image ~width ~height = function
 let convert_time_base ~src ~dst pts =
   let num = src.Avutil.num * dst.Avutil.den in
   let den = src.Avutil.den * dst.Avutil.num in
-  Int64.div (Int64.mul pts (Int64.of_int num)) (Int64.of_int den)
+  if den = 0 then Int64.max_int
+  else Int64.div (Int64.mul pts (Int64.of_int num)) (Int64.of_int den)
 
 exception
   Found of (Avcodec.Video.hardware_context option * Avutil.Pixel_format.t)
