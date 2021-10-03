@@ -21,7 +21,7 @@ WORKDIR /tmp/liquidsoap-full
 
 RUN rm -rf website/savonet.github.io
 
-RUN git checkout master && git reset --hard HEAD && git pull && make init && make update
+RUN rm -rf docker website && git fetch && git checkout master && git reset --hard HEAD && git pull && make init && make update
 
 # Remove after next base image rebuild
 RUN rm -rf ocaml-lastfm/src/lastfm_constants.ml
