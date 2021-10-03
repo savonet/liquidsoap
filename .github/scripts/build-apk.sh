@@ -16,7 +16,7 @@ TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-
 if [ -z "${IS_RELEASE}" ]; then
   APK_PACKAGE="liquidsoap-${TAG}-${ALPINE_ARCH}"
 else
-  APK_PACKAGE="liquidsoap"
+  APK_PACKAGE="liquidsoap-${ALPINE_ARCH}"
 fi
 
 echo "Building ${APK_PACKAGE}.."
