@@ -399,7 +399,7 @@ jobs:
       - name: Upload assets to release
         uses: toots/action-gh-release@master
         with:
-          token: ${{ secrets.RELEASE_ASSET_UPLOAD_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
           files:  ${{ env.RELEASE_ASSETS }}
           prerelease: true
