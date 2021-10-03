@@ -13,7 +13,7 @@ Changes:
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
   `quality` arguments and added a single encoder argument to allow stream copy and more.
 
-2.0.0 (unreleased)
+2.0.0 (03-10-2021)
 =====
 
 New:
@@ -112,6 +112,8 @@ New:
 - Added `%ifversion` and `%else` preprocessing commands (#1682).
 - Added `dtmf` and `dtmf.detect` to generate and detect DTMF tones (#1796).
 - Added `sine.detect` to detect sines (#1796).
+- Added `on_air_timestamp` to request's metadata to get the request's `on_air` time
+  as a Unix timestamp (#1871)
 
 Changed:
 
@@ -227,6 +229,7 @@ Fixed:
 - Fixed fade-out in crossfades when crossfade duration is the same as fade-out duration (#1351).
 - Fixed osc server not workin when daemonized (#1365).
 - Fixed glitchy audio when using `input.harbor` (#1944)
+- Fixed `"tracknumber"` and `"year"` returning `0` in taglib (#1901) 
 
 Removed:
 - LiGuidsoap, the old Liquidsoap GUI. 🪦
