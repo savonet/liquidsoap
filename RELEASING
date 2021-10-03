@@ -2,25 +2,17 @@
 - How to release liquidsoap -
 -----------------------------
 
- [] Run tests! We have too few, but we do have some: "make test".
+ [] Run the CI. This should run the tests and prepare all the assets.
+ [] Update the versioned dependencies in `liquidsoap.opam`, release 
+    pending dependent bindings (see below on how to publish to `opam`).
  [] Update copyright years in headers and check that all files have license
      headers.
- [] Check version in VERSION
  [] Set git_snapshot to false in configure.ac, run ./bootstrap and ./configure
  [] Check contents in the man pages (mainly doc/liquidsoap.1.md).
- [] Update dependencies in doc/content/build.md
  [] Fill-in CHANGES, with the release date.
- [] make clean
- [] make tarball
- [] In website: copy reference.txt settings.txt and protocols.txt,
-    update documentation.txt.
-
-At least on one configuration (preferably all-yes)
------------------------------
-
- [] Check that the tarball builds correctly.
- [] Check that the doc builds correctly.
- [] Check that the installation works.
+ [] Download the tarball from the CI, add header to reference.txt,
+    copy doc/content to website/content/doc-<version>, update
+    website/Makefile to add the new version.
 
 Version number
 --------------
@@ -49,29 +41,13 @@ The special keywords alpha and beta invalidate compatibility rules:
 obviously, 0.9.x and 1.0.0 beta may be incompatible, but 1.0.0 beta1
 and beta2 may also be incompatible.
 
-------------------------------
-- Releasing the full tarball -
-------------------------------
+Opam packages
+-------------
 
-All this happens at toplevel in the repository.
+Packages can be published to opam using `opam publish`. Make sure to check upstream
+for improvement made on the package files before sending the updates. `opam`
+versioning for version suffix is: `x.y.z~suffix`. It is not compatible with 
+liquidsoap's `configure` based version detection so make sure to avoid depending
+on version-suffixed packages. 
 
-If possible, use the official tarballs released on sf.net.
-To download the latest library tarballs in the latest subdir, just run:
-  make download_latest
 
-Then run:
-  make full
-This creates liquidsoap-$version-full.tar.bz2, ready for upload,
-and leaves the liquidsoap-$version-full directory for running a test:
-  cd liquidsoap-$version-full ; cp PACKAGES.default PACKAGES ; \
-  ./configure && make
-
-The full release includes all libraries listed in PACKAGES.default,
-even those which are commented out. It looks up the latest version number
-from the configure.ac of each library. Then it tries to use the latest
-official tarball, otherwise it builds a tarball from the current code
-of the library.
-
-All this only works with libraries that have a decent configure and build
-system. Libraries may be temporarily removed from PACKAGES.default
-to ignore them from the process.
