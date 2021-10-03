@@ -392,18 +392,18 @@ jobs:
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: List assets to upload
-        run: echo "##[set-output name=assets;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | xargs)"
-        id: list_assets
+        run: |
+          echo "RELEASE_ASSETS<<EOF" >> $GITHUB_ENV
+          find artifacts/${{ needs.build_details.outputs.sha }} -type f >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
       - name: Upload assets to release
-        uses: meeDamian/github-release@2.0
+        uses: toots/action-gh-release@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ needs.build_details.outputs.branch }}
-          files:  ${{ steps.list_assets.outputs.assets }}
-          draft: true
+          tag_name: ${{ needs.build_details.outputs.branch }}
+          files:  ${{ env.RELEASE_ASSETS }}
           prerelease: true
-          gzip: false
-          allow_override: true
+          draft: true
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
