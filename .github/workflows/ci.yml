@@ -394,7 +394,7 @@ jobs:
       - name: List assets to upload
         run: |
           echo "RELEASE_ASSETS<<EOF" >> $GITHUB_ENV
-          find artifacts/${{ needs.build_details.outputs.sha }} -type f | head -c -1 >> $GITHUB_ENV
+          find artifacts/${{ needs.build_details.outputs.sha }} -type f >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
       - name: Upload assets to release
         uses: toots/action-gh-release@master
