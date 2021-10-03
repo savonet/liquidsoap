@@ -206,7 +206,7 @@ jobs:
           mkdir -p /tmp/alpine
           rm -rf /tmp/alpine/*
           chown -R opam /tmp/alpine 
-          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} ${{ needs.build_details.outputs.is_release }
+          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} ${{ needs.build_details.outputs.is_release }}
       - name: Upload alpine packages artifacts
         if: matrix.os == 'alpine'
         uses: savonet/aws-s3-docker-action@master
