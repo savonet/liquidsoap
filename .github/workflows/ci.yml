@@ -397,7 +397,7 @@ jobs:
           find artifacts/${{ needs.build_details.outputs.sha }} -type f >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
       - name: Upload assets to release
-        uses: softprops/action-gh-release@v1
+        uses: toots/action-gh-release@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
