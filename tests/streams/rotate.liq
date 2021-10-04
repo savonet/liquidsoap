@@ -33,5 +33,5 @@ end
 jingles.on_track(ot(false))
 music.on_track(ot(true))
 
-radio = rotate(weights=[1,2], [jingles,music])
+radio = rotate(weights=[2,1], [music,jingles])
 output.dummy(fallible=true, radio)
