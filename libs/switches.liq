@@ -52,10 +52,15 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
            ~transition_length=5., ~transitions=[],
            ~weights=[], sources) =
   weights = list.map(getter.function, weights)
-  picked_index = ref(-1)
-  tracks_played = ref(0)
   default_weight = {1}
 
+  # Currently selected index
+  picked_index = ref(-1)
+  # Number of tracks played in the currently picked index
+  tracks_played = ref(0)
+
+  # Find index of next source to play, i.e. first ready source after currently
+  # selected one.
   def pick() =
     tracks_played := 0
 
@@ -74,14 +79,12 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
     end
   end
 
+  # Add condition to i-th source.
   def add_condition(index, s) =
+    # Weight of the source
     weight = list.nth(default=default_weight, weights, index)
 
-    def f(_) =
-      tracks_played := !tracks_played + 1
-    end
-
-    source.on_track(s, f)
+    source.on_track(s, fun(_) -> ref.incr(tracks_played))
 
     def cond() =
       if !picked_index == -1 then pick() end
@@ -90,8 +93,8 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
         if !tracks_played < weight () then
           true
         else
-           pick()
-           !picked_index == index
+          pick()
+          !picked_index == index
         end
       else
         false
