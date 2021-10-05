@@ -4,6 +4,8 @@
 
 %include "test.liq"
 
+test.skip()
+
 jingles = mksafe(playlist(mode="normal", "jingles"))
 music   = mksafe(playlist(mode="normal", "playlist"))
 
