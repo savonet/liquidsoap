@@ -163,9 +163,9 @@ def f() =
   ([("bla", 3.14)]:{|float|})
 
   ({foo = 123}:{foo:int})
-  ({foo = 123}:{foo("✨ name ✨"):int})
+  ({foo = 123}:{foo as "✨ name ✨": int})
   (123.{foo=3.14,gni="aabbcc"}:int.{foo:float,gni:string})
-  (123.{foo=3.14,gni="aabbcc"}:int.{foo("✨ name ✨"):float,gni:string})
+  (123.{foo=3.14,gni="aabbcc"}:int.{foo as "✨ name ✨":float,gni:string})
   (():{})
   (():unit.{})
  

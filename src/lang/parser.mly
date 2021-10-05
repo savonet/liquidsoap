@@ -30,6 +30,7 @@ open Parser_helper
 %token <string> VAR
 %token <string> VARLPAR
 %token <string> VARLBRA
+%token <string * string> VARAS
 %token <string> STRING
 %token <string * char list> REGEXP
 %token <int> INT PP_INT_DOT_LCUR
@@ -229,8 +230,8 @@ record_ty:
                               Type.meth ~pos:$loc ?json_name name ([], ty) $3 }  
 
 meth_ty:
-  | VAR COLON ty                 { $1, $3, None }
-  | VARLPAR STRING RPAR COLON ty { $1, $5, Some $2 }
+  | VAR COLON ty   { $1,     $3, None }
+  | VARAS COLON ty { fst $1, $3, Some (snd $1) }
 
 ty_source:
   | VARLPAR RPAR                  { mk_source_ty ~pos:$loc $1 [] }
