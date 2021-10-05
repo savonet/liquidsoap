@@ -96,7 +96,6 @@ let var_lit =
     ( var_underscore
     | Star '_', var_char, Star (var_char | decimal_digit | '_' | '\'') )]
 
-let var_ref = [%sedlex.regexp? "ref", Plus (var_char | decimal_digit | '\'')]
 let var = [%sedlex.regexp? var_lit | so | math | other_math]
 let encoder = [%sedlex.regexp? '%', Plus (var_char | decimal_digit | '.')]
 
@@ -236,7 +235,6 @@ let rec token lexbuf =
     | "mod" -> BIN3 (Sedlexing.Utf8.lexeme lexbuf)
     | "??" -> COALESCE
     | "*" -> TIMES
-    | var_ref -> VAR (Sedlexing.Utf8.lexeme lexbuf)
     | "!" -> GET
     | ":=" -> SET
     | '_' -> UNDERSCORE
