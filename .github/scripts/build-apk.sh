@@ -5,6 +5,7 @@ set -e
 BRANCH=$1
 ARCH=$2
 ALPINE_ARCH=$3
+IS_RELEASE=$4
 
 cd /tmp/liquidsoap-full/liquidsoap
 
@@ -12,7 +13,11 @@ APK_VERSION=`opam show -f version . | cut -d'~' -f 1`
 
 TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
 
-APK_PACKAGE="liquidsoap-${TAG}-${ALPINE_ARCH}"
+if [ -z "${IS_RELEASE}" ]; then
+  APK_PACKAGE="liquidsoap-${TAG}-${ALPINE_ARCH}"
+else
+  APK_PACKAGE="liquidsoap-${ALPINE_ARCH}"
+fi
 
 echo "Building ${APK_PACKAGE}.."
 
