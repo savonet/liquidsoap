@@ -341,6 +341,19 @@ let mk_source_ty ~pos name args =
 
   Term.source_t (Term.frame_kind_t audio video midi)
 
+let mk_json_assoc_object_ty ~pos = function
+  | ( { Type.descr = Type.Tuple [{ Type.descr = Type.Ground Type.String }; ty] },
+      "json",
+      "object" ) ->
+      Type.(
+        make ~pos
+          (List
+             {
+               t = make ~pos (Tuple [make (Ground String); ty]);
+               json_repr = `Object;
+             }))
+  | _ -> raise (Parse_error (pos, "Invalid type constructor"))
+
 let mk_ty ~pos name =
   match name with
     | "_" -> Type.var ()

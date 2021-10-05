@@ -209,6 +209,7 @@ let rec token lexbuf =
     | '.' -> DOT
     | "..." -> DOTDOTDOT
     | '[' -> LBRA
+    | ']', Plus skipped, "as", Plus skipped -> RBRAS
     | ']' -> RBRA
     | '(' -> LPAR
     | ')' -> RPAR
@@ -222,7 +223,6 @@ let rec token lexbuf =
     | "~" -> TILD
     | "?" -> QUESTION
     | "-" -> MINUS
-    | "|" -> VERT
     | "while" -> WHILE
     | "for" -> FOR
     | "to" -> TO

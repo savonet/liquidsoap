@@ -159,8 +159,8 @@ def f() =
 
   let ([x]:[int]) = [123]
 
-  ([]:{|int|})
-  ([("bla", 3.14)]:{|float|})
+  ([]:[(string * int)] as json.object)
+  ([("bla", 3.14)]:[(string * float)] as json.object)
 
   ({foo = 123}:{foo:int})
   ({foo = 123}:{foo as "✨ name ✨": int})
