@@ -204,12 +204,16 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                                ])
                         in
                         let s =
-                          new Max_duration.max_duration
-                            ~kind ~override_meta ~duration:transition_length s
-                        in
-                        let s =
-                          new Sequence.sequence
-                            ~kind ~merge:true [s; new_source]
+                          match s#id with
+                            | id when id = new_source#id -> s
+                            | _ ->
+                                let s =
+                                  new Max_duration.max_duration
+                                    ~kind ~override_meta
+                                    ~duration:transition_length s
+                                in
+                                new Sequence.sequence
+                                  ~kind ~merge:true [s; new_source]
                         in
                         Clock.unify s#clock self#clock;
                         s#get_ready activation;
