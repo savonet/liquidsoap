@@ -46,8 +46,7 @@ def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
         files = playlist.parse(mime=mime_type, pl)
         def file_request(el) =
           let (meta, file) = el
-          s = list.fold(fun (cur, el) ->
-          "#{cur},#{fst(el)}=#{string.escape(snd(el))}", "", meta)
+          s = string.concat(separator=",", list.map(fun(el)->"#{fst(el)}=#{string.quote(snd(el))}", meta))
           if s == "" then
             file
           else
