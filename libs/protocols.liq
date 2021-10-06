@@ -14,6 +14,10 @@ let settings.protocol.replaygain.path = settings.make(
   description="ReplayGain path",
   "#{configure.bindir}/extract-replaygain"
 )
+let settings.protocol.replaygain.tag = settings.make(
+  description="Tag used to annotate ReplayGain",
+  "replaygain_track_gain"
+)
 
 # @flag hidden
 def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
@@ -33,19 +37,20 @@ end
 # Register the replaygain protocol.
 # @flag hidden
 def replaygain_protocol(~rlog=_,~maxtime,arg)
- delay = maxtime - time()
- # The extraction program
- extract_replaygain = settings.protocol.replaygain.path()
- ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
- if ret != "" then
-  ["annotate:replaygain_track_gain=\"#{ret}\":#{arg}"]
- else
-  [arg]
- end
+  delay = maxtime - time()
+  # The extraction program
+  extract_replaygain = settings.protocol.replaygain.path()
+  ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
+  if ret != "" then
+    tag = settings.protocol.replaygain.tag()
+    ["annotate:#{tag}=\"#{ret}\":#{arg}"]
+  else
+    [arg]
+  end
 end
 add_protocol("replaygain", replaygain_protocol,
              syntax="replaygain:uri",
-             doc="Compute replaygain value using the extract-replaygain script. \
+             doc="Compute ReplayGain value using the extract-replaygain script. \
                   Adds returned value as `\"replaygain_track_gain\"` metadata")
 
 let settings.protocol.process = settings.make.protocol("process")
