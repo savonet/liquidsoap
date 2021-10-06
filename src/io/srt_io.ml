@@ -629,7 +629,6 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
             -1.
           with exn ->
             self#log#important "Connect failed: %s" (Printexc.to_string exn);
-            !on_disconnect ();
             if not task_should_stop then 0. else -1.)
         ()
 
