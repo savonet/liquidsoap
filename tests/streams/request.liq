@@ -7,7 +7,7 @@
 settings.log.level.set(4)
 
 def next() =
-  [request.create("file1.mp3")]
+  [request.create("files/file1.mp3")]
 end
 
 r = request.dynamic.list(prefetch=1, next)
@@ -18,13 +18,13 @@ def f() =
   if not r.is_ready() then
     0.1
   else
-    if not r.add(request.create("file2.mp3")) then
+    if not r.add(request.create("files/file2.mp3")) then
       test.fail()
     end
 
     r.set_queue([
-      request.create("file2.mp3"),
-      request.create("file3.mp3")
+      request.create("files/file2.mp3"),
+      request.create("files/file3.mp3")
     ])
   
     q = r.queue()
@@ -40,7 +40,7 @@ def f() =
     end
 
     c = null.get(c)
-    if request.filename(c) != "file1.mp3" then
+    if request.filename(c) != "files/file1.mp3" then
       test.fail()
     end
 

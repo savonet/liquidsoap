@@ -4,8 +4,8 @@
 
 %include "test.liq"
 
-jingles = mksafe(playlist(mode="normal", "jingles"))
-music   = mksafe(playlist(mode="normal", "playlist"))
+jingles = mksafe(playlist(mode="normal", "files/jingles"))
+music   = mksafe(playlist(mode="normal", "files/playlist"))
 
 rounds = 3
 played = ref([])

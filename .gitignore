@@ -35,6 +35,7 @@ tests/media/files/
 tests/media/test_encoder.liq
 tests/media/test_stream_audio.liq
 tests/media/test_stream_video.liq
+tests/streams/files/
 src/test/readavi
 src/test/*_test
 src/test/JSON_parse

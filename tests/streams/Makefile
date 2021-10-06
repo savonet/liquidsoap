@@ -1,21 +1,27 @@
+.PHONY: test
+
 LIQ = $(sort $(wildcard *.liq))
 TESTS = $(filter-out test, $(basename $(LIQ)))
 DISTFILES = Makefile $(LIQ)
 top_srcdir = $(shell realpath ../..)
 
+include $(top_srcdir)/Makefile.rules
+
 test: files $(TESTS)
 
 files:
-	if [ ! -e file1.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=220:duration=5" -ac 2 file1.mp3 ; fi
-	if [ ! -e file2.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 file2.mp3 ; fi
-	if [ ! -e file3.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=880:duration=5" -ac 2 file3.mp3 ; fi
-	if [ ! -e jingle1.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=220:duration=2" -ac 2 jingle1.mp3 ; fi
-	if [ ! -e jingle2.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=440:duration=2" -ac 2 jingle2.mp3 ; fi
-	if [ ! -e jingl3.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=880:duration=2" -ac 2 jingle3.mp3 ; fi
+	mkdir -p files
+	ffmpeg -f lavfi -i "sine=frequency=220:duration=5" -ac 2 files/file1.mp3
+	ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 files/file2.mp3
+	ffmpeg -f lavfi -i "sine=frequency=880:duration=5" -ac 2 files/file3.mp3
+	ffmpeg -f lavfi -i "sine=frequency=220:duration=2" -ac 2 files/jingle1.mp3
+	ffmpeg -f lavfi -i "sine=frequency=440:duration=2" -ac 2 files/jingle2.mp3
+	ffmpeg -f lavfi -i "sine=frequency=880:duration=2" -ac 2 files/jingle3.mp3
+	echo "jingle1.mp3\njingle2.mp3\njingle3.mp3" > files/jingles
+	echo "file1.mp3\nfile2.mp3\nfile3.mp3" > files/playlist 
+
+clean:
+	rm -rf files
 
 %: %.liq
 	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" streams/$<
-
-include $(top_srcdir)/Makefile.rules
-
-.PHONY: test files

@@ -5,7 +5,7 @@
 %include "test.liq"
 
 mic = sine()
-bed = mksafe(playlist("playlist"))
+bed = mksafe(playlist("files/playlist"))
 
 radio = add([mic, bed])
 

@@ -4,9 +4,9 @@
 
 %include "test.liq"
 
-day     = playlist("playlist")
-night   = playlist("playlist")
-jingles = playlist("playlist")
+day     = playlist("files/playlist")
+night   = playlist("files/playlist")
+jingles = playlist("files/playlist")
 
 # Day / night switch
 radio = switch([({8h-20h}, day), ({20h-8h}, night)])
