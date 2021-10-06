@@ -4,6 +4,7 @@
 Fixes:
 * Fixed switch-based sources not respecting track boundaries when
   using default transitions one track only per selected source. (#1999)
+* Fixed playlist annotation. (#2005)
 
 2.0.0 (03-10-2021)
 =====
