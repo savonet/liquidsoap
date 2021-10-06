@@ -88,6 +88,13 @@ let parse f =
           in
           let text = String.sub data start len in
           let text = recode encoding text in
+          let id, text =
+            if id = "TXXX" && String.contains text '\000' then (
+              let n = String.index text '\000' in
+              ( String.sub text 0 n,
+                String.sub text (n + 1) (String.length text - (n + 1)) ))
+            else (id, text)
+          in
           tags := (id, text) :: !tags)
         else tags := (id, data) :: !tags)
     with Exit -> ()
