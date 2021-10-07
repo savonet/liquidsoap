@@ -163,9 +163,9 @@ def f() =
   ([("bla", 3.14)]:[(string * float)] as json.object)
 
   ({foo = 123}:{foo:int})
-  ({foo = 123}:{foo as "✨ name ✨": int})
+  ({foo = 123}:{"✨ name ✨" as foo: int})
   (123.{foo=3.14,gni="aabbcc"}:int.{foo:float,gni:string})
-  (123.{foo=3.14,gni="aabbcc"}:int.{foo as "✨ name ✨":float,gni:string})
+  (123.{foo=3.14,gni="aabbcc"}:int.{"✨ name ✨" as foo:float,gni:string})
   (():{})
   (():unit.{})
  

@@ -343,6 +343,7 @@ let mk_source_ty ~pos name args =
 
 let mk_json_assoc_object_ty ~pos = function
   | ( { Type.descr = Type.Tuple [{ Type.descr = Type.Ground Type.String }; ty] },
+      "as",
       "json",
       "object" ) ->
       Type.(

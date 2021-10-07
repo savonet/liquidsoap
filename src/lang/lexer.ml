@@ -209,7 +209,6 @@ let rec token lexbuf =
     | '.' -> DOT
     | "..." -> DOTDOTDOT
     | '[' -> LBRA
-    | ']', Plus skipped, "as", Plus skipped -> RBRAS
     | ']' -> RBRA
     | '(' -> LPAR
     | ')' -> RPAR
@@ -273,21 +272,6 @@ let rec token lexbuf =
         in
         let t2 = String.trim t2 in
         INTERVAL (parse_time t1, parse_time t2)
-    | var, Plus skipped, "as", Plus skipped, '"' ->
-        let var =
-          let lexbuf =
-            Sedlexing.Utf8.from_string (Sedlexing.Utf8.lexeme lexbuf)
-          in
-          match%sedlex lexbuf with
-            | var -> Sedlexing.Utf8.lexeme lexbuf
-            | _ -> assert false
-        in
-        let s =
-          read_string '"'
-            (fst (Sedlexing.lexing_positions lexbuf))
-            (Buffer.create 17) lexbuf
-        in
-        VARAS (var, s)
     | var -> VAR (Sedlexing.Utf8.lexeme lexbuf)
     | '"' ->
         STRING

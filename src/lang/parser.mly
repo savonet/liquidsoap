@@ -30,7 +30,6 @@ open Parser_helper
 %token <string> VAR
 %token <string> VARLPAR
 %token <string> VARLBRA
-%token <string * string> VARAS
 %token <string> STRING
 %token <string * char list> REGEXP
 %token <int> INT PP_INT_DOT_LCUR
@@ -52,7 +51,6 @@ open Parser_helper
 %token OPEN
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON COLONCOLON DOT
 %token LBRA RBRA LCUR RCUR
-%token RBRAS
 %token FUN YIELDS
 %token DOTDOTDOT
 %token <string> BINB
@@ -213,15 +211,15 @@ expr:
   | TIME                           { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
 ty:
-  | VAR                        { mk_ty ~pos:$loc $1 }
-  | ty QUESTION                { Type.make ~pos:$loc (Type.Nullable $1) }
-  | LBRA ty RBRA               { Type.make ~pos:$loc (Type.(List {t = $2; json_repr = `Tuple})) }
-  | LBRA ty RBRAS VAR DOT VAR  { mk_json_assoc_object_ty ~pos:$loc ($2,$4,$6) }
-  | LPAR ty_tuple RPAR         { Type.make ~pos:$loc (Type.Tuple $2) }
-  | LPAR argsty RPAR YIELDS ty { Type.make ~pos:$loc (Type.Arrow ($2,$5)) }
-  | LCUR record_ty RCUR        { $2 }
-  | ty DOT LCUR record_ty RCUR { Type.remeth $4 $1 }
-  | ty_source                  { $1 }
+  | VAR                          { mk_ty ~pos:$loc $1 }
+  | ty QUESTION                  { Type.make ~pos:$loc (Type.Nullable $1) }
+  | LBRA ty RBRA                 { Type.make ~pos:$loc (Type.(List {t = $2; json_repr = `Tuple})) }
+  | LBRA ty RBRA VAR VAR DOT VAR { mk_json_assoc_object_ty ~pos:$loc ($2,$4,$5,$7) }
+  | LPAR ty_tuple RPAR           { Type.make ~pos:$loc (Type.Tuple $2) }
+  | LPAR argsty RPAR YIELDS ty   { Type.make ~pos:$loc (Type.Arrow ($2,$5)) }
+  | LCUR record_ty RCUR          { $2 }
+  | ty DOT LCUR record_ty RCUR   { Type.remeth $4 $1 }
+  | ty_source                    { $1 }
 
 record_ty:
   |                         { Type.make ~pos:$loc (Type.Tuple []) }
@@ -231,8 +229,11 @@ record_ty:
                               Type.meth ~pos:$loc ?json_name name ([], ty) $3 }  
 
 meth_ty:
-  | VAR COLON ty   { $1,     $3, None }
-  | VARAS COLON ty { fst $1, $3, Some (snd $1) }
+  | VAR COLON ty            { $1, $3, None }
+  | STRING VAR VAR COLON ty {
+       match $2 with
+         |"as" ->             $3, $5, Some $3
+         | _ -> raise (Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:
   | VARLPAR RPAR                  { mk_source_ty ~pos:$loc $1 [] }
