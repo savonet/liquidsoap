@@ -65,14 +65,23 @@ type t = { pos : pos option; descr : descr }
 
 and constructed = { constructor : string; params : (variance * t) list }
 
+and meth = {
+  meth : string;
+  scheme : scheme;
+  doc : string;
+  json_name : string option;
+}
+
+and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
+
 and descr =
   | Constr of constructed
   | Ground of ground
   | Getter of t
-  | List of t
+  | List of repr_t
   | Tuple of t list
   | Nullable of t
-  | Meth of string * scheme * string * t
+  | Meth of meth * t
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
 
@@ -102,7 +111,8 @@ val var_eq : var -> var -> bool
 val filter_vars : (var -> bool) -> t -> var list
 
 (** Add a method to a type. *)
-val meth : ?pos:pos -> string -> scheme -> ?doc:string -> t -> t
+val meth :
+  ?pos:pos -> ?json_name:string -> string -> scheme -> ?doc:string -> t -> t
 
 (** Add a submethod to a type. *)
 val meths : ?pos:pos -> string list -> scheme -> t -> t
@@ -111,7 +121,7 @@ val meths : ?pos:pos -> string list -> scheme -> t -> t
 val demeth : t -> t
 
 (** Split a type between methods and the main type. *)
-val split_meths : t -> (string * (scheme * string)) list * t
+val split_meths : t -> meth list * t
 
 (** Put the methods of the first type around the second type. *)
 val remeth : t -> t -> t
@@ -163,4 +173,4 @@ val pp_scheme : Format.formatter -> scheme -> unit
 val print : ?generalized:var list -> t -> string
 val print_scheme : scheme -> string
 val doc_of_type : generalized:var list -> t -> Doc.item
-val doc_of_meths : (string * (scheme * string)) list -> Doc.item
+val doc_of_meths : meth list -> Doc.item

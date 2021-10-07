@@ -104,7 +104,7 @@ let args_of, app_of =
   and term_of_value ~pos t ({ Value.value } as v) =
     let get_list_type () =
       match (Type.deref t).Type.descr with
-        | Type.List t -> t
+        | Type.(List { t }) -> t
         | _ -> assert false
     in
     let get_tuple_type pos =
@@ -114,7 +114,7 @@ let args_of, app_of =
     in
     let get_meth_type () =
       match (Type.deref t).Type.descr with
-        | Type.Meth (_, _, _, t) -> t
+        | Type.Meth (_, t) -> t
         | _ -> assert false
     in
     let term =
@@ -338,6 +338,20 @@ let mk_source_ty ~pos name args =
   let midi = mk_kind ~pos !midi in
 
   Term.source_t (Term.frame_kind_t audio video midi)
+
+let mk_json_assoc_object_ty ~pos = function
+  | ( { Type.descr = Type.Tuple [{ Type.descr = Type.Ground Type.String }; ty] },
+      "as",
+      "json",
+      "object" ) ->
+      Type.(
+        make ~pos
+          (List
+             {
+               t = make ~pos (Tuple [make (Ground String); ty]);
+               json_repr = `Object;
+             }))
+  | _ -> raise (Parse_error (pos, "Invalid type constructor"))
 
 let mk_ty ~pos name =
   match name with

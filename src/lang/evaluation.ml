@@ -375,7 +375,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
   let rec ptypes t =
     match (Type.deref t).Type.descr with
       | Type.Arrow (p, _) -> p
-      | Type.Meth (_, _, _, t) -> ptypes t
+      | Type.Meth (_, t) -> ptypes t
       | _ -> []
   in
   let ptypes = ptypes t in
@@ -432,10 +432,10 @@ let toplevel_add (doc, params, methods) pat ~t v =
    doc#add_subsection "_type" (Type.doc_of_type ~generalized t);
    let meths =
      List.map
-       (fun (l, (t, d)) ->
+       (fun Type.({ meth = l; doc = d } as m) ->
          (* Override description by the one given in comment if it exists. *)
          let d = try List.assoc l methods with Not_found -> d in
-         (l, (t, d)))
+         Type.{ m with doc = d })
        meths
    in
    if meths <> [] then doc#add_subsection "_methods" (Type.doc_of_meths meths));

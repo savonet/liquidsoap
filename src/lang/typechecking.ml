@@ -83,10 +83,12 @@ let rec type_of_pat ~level ~pos = function
       let spread_env =
         match spread with
           | None -> []
-          | Some v -> [([v], Type.make ?pos (Type.List ty))]
+          | Some v ->
+              [([v], Type.make ?pos Type.(List { t = ty; json_repr = `Tuple }))]
       in
       List.iter (fun ety -> Typing.(ety <: ty)) (ety @ ety');
-      (env' @ spread_env @ env, Type.make ?pos (Type.List ty))
+      ( env' @ spread_env @ env,
+        Type.make ?pos Type.(List { t = ty; json_repr = `Tuple }) )
   | PMeth (pat, l) ->
       let env, ty =
         match pat with
@@ -101,7 +103,18 @@ let rec type_of_pat ~level ~pos = function
                 | None -> ([], Type.var ~level ?pos ())
                 | Some pat -> type_of_pat ~level ~pos pat
             in
-            let ty = Type.make ?pos (Type.Meth (lbl, ([], a), "", ty)) in
+            let ty =
+              Type.make ?pos
+                Type.(
+                  Meth
+                    ( {
+                        meth = lbl;
+                        scheme = ([], a);
+                        doc = "";
+                        json_name = None;
+                      },
+                      ty ))
+            in
             (env' @ [([lbl], a)] @ env, ty))
           (env, ty) l
       in
@@ -166,7 +179,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         List.iter (fun x -> check ~level ~env x) l;
         let t = Type.var ~level ?pos () in
         List.iter (fun e -> e.t <: t) l;
-        e.t >: mk (Type.List t)
+        e.t >: mk Type.(List { t; json_repr = `Tuple })
     | Tuple l ->
         List.iter (fun a -> check ~level ~env a) l;
         e.t >: mk (Type.Tuple (List.map (fun a -> a.t) l))
@@ -178,12 +191,21 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     | Meth (l, a, b) ->
         check ~level ~env a;
         check ~level ~env b;
-        e.t >: mk (Type.Meth (l, Typing.generalize ~level a.t, "", b.t))
+        e.t
+        >: mk
+             (Type.Meth
+                ( {
+                    Type.meth = l;
+                    scheme = Typing.generalize ~level a.t;
+                    doc = "";
+                    json_name = None;
+                  },
+                  b.t ))
     | Invoke (a, l) ->
         check ~level ~env a;
         let rec aux t =
           match (Type.deref t).Type.descr with
-            | Type.Meth (l', (generalized, b), _, c) ->
+            | Type.(Meth ({ meth = l'; scheme = generalized, b }, c)) ->
                 if l = l' then Typing.instantiate ~level ~generalized b
                 else aux c
             | _ ->
@@ -192,7 +214,17 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                    enough for records. *)
                 let x = Type.var ~level ?pos () in
                 let y = Type.var ~level ?pos () in
-                a.t <: mk (Type.Meth (l, ([], x), "", y));
+                a.t
+                <: mk
+                     Type.(
+                       Meth
+                         ( {
+                             meth = l;
+                             scheme = ([], x);
+                             doc = "";
+                             json_name = None;
+                           },
+                           y ));
                 x
         in
         e.t >: aux a.t
@@ -201,7 +233,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         a.t <: mk Type.unit;
         let rec aux env t =
           match (Type.deref t).Type.descr with
-            | Type.Meth (l, (g, u), _, t) -> aux ((l, (g, u)) :: env) t
+            | Type.(Meth ({ meth = l; scheme = g, u }, t)) ->
+                aux ((l, (g, u)) :: env) t
             | _ -> env
         in
         let env = aux env a.t in

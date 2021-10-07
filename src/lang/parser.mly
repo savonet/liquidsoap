@@ -211,12 +211,29 @@ expr:
   | TIME                           { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
 ty:
-  | VAR                        { mk_ty ~pos:$loc $1 }
-  | ty QUESTION                { Type.make (Type.Nullable $1) }
-  | LBRA ty RBRA               { Type.make (Type.List $2) }
-  | LPAR ty_tuple RPAR         { Type.make (Type.Tuple $2) }
-  | LPAR argsty RPAR YIELDS ty { Type.make (Type.Arrow ($2,$5)) }
-  | ty_source                  { $1 }
+  | VAR                          { mk_ty ~pos:$loc $1 }
+  | ty QUESTION                  { Type.make ~pos:$loc (Type.Nullable $1) }
+  | LBRA ty RBRA                 { Type.make ~pos:$loc (Type.(List {t = $2; json_repr = `Tuple})) }
+  | LBRA ty RBRA VAR VAR DOT VAR { mk_json_assoc_object_ty ~pos:$loc ($2,$4,$5,$7) }
+  | LPAR ty_tuple RPAR           { Type.make ~pos:$loc (Type.Tuple $2) }
+  | LPAR argsty RPAR YIELDS ty   { Type.make ~pos:$loc (Type.Arrow ($2,$5)) }
+  | LCUR record_ty RCUR          { $2 }
+  | ty DOT LCUR record_ty RCUR   { Type.remeth $4 $1 }
+  | ty_source                    { $1 }
+
+record_ty:
+  |                         { Type.make ~pos:$loc (Type.Tuple []) }
+  | meth_ty                 { let name, ty, json_name = $1 in
+                              Type.meth ~pos:$loc ?json_name name ([], ty) (Type.make ~pos:$loc (Type.Tuple [])) }
+  | meth_ty COMMA record_ty { let name, ty, json_name = $1 in
+                              Type.meth ~pos:$loc ?json_name name ([], ty) $3 }  
+
+meth_ty:
+  | VAR COLON ty            { $1, $3, None }
+  | STRING VAR VAR COLON ty {
+       match $2 with
+         |"as" ->             $3, $5, Some $3
+         | _ -> raise (Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:
   | VARLPAR RPAR                  { mk_source_ty ~pos:$loc $1 [] }
