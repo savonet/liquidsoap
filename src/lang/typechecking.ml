@@ -282,8 +282,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                         else a
                       in
                       (l, (g, Type.meths ~pos ~level ll (generalized, a) t))
-                    with Not_found ->
-                      raise (Unbound (pos, String.concat "." (l :: ll)))))
+                    with Not_found -> raise (Unbound (pos, l))))
             penv
         in
         let env = penv @ env in
