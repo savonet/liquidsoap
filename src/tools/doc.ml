@@ -88,7 +88,7 @@ let rec to_json (doc : item) =
     `Assoc ss)
 
 let print_json (doc : item) print_string =
-  print_string (JSON.to_string (to_json doc));
+  print_string (Json.to_string ~compact:false ~json5:false (to_json doc));
   print_string "\n"
 
 let print_functions (doc : item) print_string =

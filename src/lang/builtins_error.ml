@@ -46,8 +46,15 @@ module ErrorDef = struct
     Printf.sprintf "error(kind=%s,message=%s%s)" (Utils.quote_string kind)
       (Utils.quote_string msg) (Utils.quote_string pos)
 
-  let to_json ~compact:_ ~json5:_ v =
-    Printf.sprintf "%s" (Utils.quote_string (descr v))
+  let to_json _ =
+    raise
+      Runtime_error.(
+        Runtime_error
+          {
+            kind = "json";
+            msg = "Error cannot be represented as json";
+            pos = [];
+          })
 
   let compare = Stdlib.compare
 end

@@ -73,6 +73,3 @@ val libs_versions : string
 
 (** File watch utility. *)
 val file_watcher : File_watcher.watch ref
-
-(** JSON parser. *)
-module JSON : module type of JSON

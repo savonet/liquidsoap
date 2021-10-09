@@ -18,6 +18,8 @@ src/configure.ml
 src/auto_clean
 src/lang/parser.ml
 src/lang/parser.mli
+src/tools/json_parser.ml
+src/tools/json_parser.mli
 src/*_depend
 src/liquidsoap
 doc/html
@@ -36,6 +38,8 @@ tests/media/test_encoder.liq
 tests/media/test_stream_audio.liq
 tests/media/test_stream_video.liq
 tests/streams/files/
+src/test/json
+src/test/json5
 src/test/readavi
 src/test/*_test
 src/test/JSON_parse

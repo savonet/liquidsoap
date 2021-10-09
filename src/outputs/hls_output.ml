@@ -673,7 +673,7 @@ class hls_output p =
       self#log#info "Reading state file at %s.." (Utils.quote_string persist_at);
       let fd = open_out_bin persist_at in
       let streams =
-        `List
+        `Tuple
           (List.map
              (fun { name; position; discontinuity_count } ->
                `Assoc
@@ -687,16 +687,17 @@ class hls_output p =
       let segments =
         `Assoc
           (List.map
-             (fun (s, l) -> (s, `List (List.map json_of_segment !l)))
+             (fun (s, l) -> (s, `Tuple (List.map json_of_segment !l)))
              segments)
       in
       output_string fd
-        (JSON.to_string (`Assoc [("streams", streams); ("segments", segments)]));
+        (Json.to_string ~compact:false ~json5:false
+           (`Assoc [("streams", streams); ("segments", segments)]));
       close_out fd
 
     method private read_state persist_at =
       let saved_streams, saved_segments =
-        match JSON.from_string (Utils.read_all persist_at) with
+        match Json.from_string (Utils.read_all persist_at) with
           | `Assoc [("streams", streams); ("segments", segments)] ->
               (streams, segments)
           | _ -> raise Invalid_state
@@ -712,14 +713,14 @@ class hls_output p =
                 ] ->
                 (name, position, discontinuity_count)
             | _ -> raise Invalid_state)
-          (match saved_streams with `List l -> l | _ -> raise Invalid_state)
+          (match saved_streams with `Tuple l -> l | _ -> raise Invalid_state)
       in
       let saved_segments =
         match saved_segments with
           | `Assoc l ->
               List.map
                 (function
-                  | s, `List segments ->
+                  | s, `Tuple segments ->
                       (s, ref (List.map segment_of_json segments))
                   | _ -> raise Invalid_state)
                 l

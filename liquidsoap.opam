@@ -78,7 +78,6 @@ depopts: [
   "tsdl-ttf"
   "vorbis"
   "xmlplaylist"
-  "yojson"
 ]
 conflicts: [
   "alsa" {< "0.3.0"}

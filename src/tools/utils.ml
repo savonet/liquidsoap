@@ -277,7 +277,8 @@ let unescape_hex_char s =
 let unescape_utf8_char s =
   let b = Buffer.create 1 in
   let s = String.sub s 2 4 in
-  Buffer.add_utf_8_uchar b (Uchar.of_int (int_of_string ("0x" ^ s)));
+  let c = try Uchar.of_int (int_of_string ("0x" ^ s)) with _ -> Uchar.rep in
+  Buffer.add_utf_8_uchar b c;
   Buffer.contents b
 
 let unescape_char = function
