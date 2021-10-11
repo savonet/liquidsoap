@@ -147,7 +147,7 @@ let () =
       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
 let () =
-  Lang.add_builtin "file.fopen" ~category:`File
+  Lang.add_builtin "file.open" ~category:`File
     [
       ("read", Lang.bool_t, Some (Lang.bool true), Some "Open file for reading");
       ( "write",
@@ -158,6 +158,10 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Truncate to 0 length if existing" );
+      ( "create",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Create if nonexistent" );
       ( "append",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -192,6 +196,7 @@ let () =
         [
           ("truncate", Unix.O_TRUNC);
           ("append", Unix.O_APPEND);
+          ("create", Unix.O_CREAT);
           ("non_blocking", Unix.O_NONBLOCK);
         ]
       in

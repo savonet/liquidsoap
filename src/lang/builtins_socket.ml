@@ -25,7 +25,17 @@ module SocketValue = struct
     type content = Unix.file_descr
 
     let name = "socket"
-    let to_json ~compact:_ ~json5:_ _ = "<socket>"
+
+    let to_json _ =
+      raise
+        Runtime_error.(
+          Runtime_error
+            {
+              kind = "json";
+              msg = "Socket cannot be represented as json";
+              pos = [];
+            })
+
     let descr _ = "<socket>"
     let compare = Stdlib.compare
   end)
@@ -50,9 +60,9 @@ module SocketValue = struct
         "Read data from a socket. Reading is done when the function returns an \
          empty srring `\"\"`.",
         fun fd ->
+          let buflen = Utils.pagesize in
+          let buf = Bytes.create buflen in
           Lang.val_fun [] (fun _ ->
-              let buflen = Utils.pagesize in
-              let buf = Bytes.create buflen in
               try
                 let ic = Unix.in_channel_of_descr fd in
                 let n = input ic buf 0 buflen in

@@ -205,6 +205,16 @@ let rec token lexbuf =
         let e = Sedlexing.Utf8.lexeme lexbuf in
         let e = String.sub e 1 (String.length e - 1) in
         ENCODER e
+    | '.', Star skipped, var ->
+        let m = Sedlexing.Utf8.lexeme lexbuf in
+        let lexbuf = Sedlexing.Utf8.from_string m in
+        let rec f () =
+          match%sedlex lexbuf with
+            | '.', Star skipped -> f ()
+            | var -> DOTVAR (Sedlexing.Utf8.lexeme lexbuf)
+            | _ -> assert false
+        in
+        f ()
     | '.' -> DOT
     | "..." -> DOTDOTDOT
     | '[' -> LBRA

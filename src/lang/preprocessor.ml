@@ -416,6 +416,23 @@ let int_meth tokenizer =
   in
   token
 
+(* Replace DOTVAR v with DOT, VAR v *)
+let dotvar tokenizer =
+  let state = ref None in
+  let token () =
+    match !state with
+      | Some t ->
+          state := None;
+          t
+      | None -> (
+          match tokenizer () with
+            | Parser.DOTVAR v, pos ->
+                state := Some (Parser.VAR v, pos);
+                (Parser.DOT, pos)
+            | t -> t)
+  in
+  token
+
 (** Change MINUS to UMINUS if the minus is not preceded by a number (or an
    expression which could produce a number). *)
 let uminus tokenizer =
@@ -503,4 +520,5 @@ let expand_define tokenizer =
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname ~pwd lexbuf =
   mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
-  |> expand_string |> int_meth |> uminus |> strip_newlines |> expand_define
+  |> expand_string |> int_meth |> dotvar |> uminus |> strip_newlines
+  |> expand_define

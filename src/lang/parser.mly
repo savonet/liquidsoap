@@ -50,6 +50,7 @@ open Parser_helper
 %token SLASH
 %token OPEN
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON COLONCOLON DOT
+%token <string> DOTVAR
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
 %token DOTDOTDOT
