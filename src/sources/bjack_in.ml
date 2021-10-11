@@ -36,7 +36,7 @@ class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
     inherit
       Start_stop.active_source
         ~name:"input.jack" ~content_kind:kind ~clock_safe ~on_start ~on_stop
-          ~fallible ~autostart () as active_source
+          ~get_clock:bjack_clock ~fallible ~autostart () as active_source
 
     inherit [Bytes.t] IoRing.input ~nb_blocks as ioring
 

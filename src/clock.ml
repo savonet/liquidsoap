@@ -135,10 +135,13 @@ let sync_descr = function
   | `CPU -> "CPU sync"
   | `None -> "no sync"
 
-class clock ?(start = true) ?(sync = `Auto) id =
+class clock ?start ?(sync = `Auto) id =
   object (self)
     initializer Clocks.add clocks (self :> Source.clock)
     method id = id
+    val mutable start = start
+    method start = start
+    method set_start b = start <- Some b
     method sync_mode : Source.sync = sync
     val log = Log.make ["clock"; id]
 
@@ -398,7 +401,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
           log#info "Stopping %d sources..." (List.length leaving);
           List.iter (fun (s : active_source) -> leave s) leaving);
         if
-          start
+          Option.value ~default:true start
           && List.exists (function `Active, _ -> true | _ -> false) outputs
         then
           do_running (fun () ->

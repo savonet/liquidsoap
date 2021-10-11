@@ -53,14 +53,18 @@ class virtual base ~check_self_sync children_val =
 
     method private set_clock =
       child_clock <-
-        Some
-          (Clock.create_known
-             (new Clock.clock ~start:false (Printf.sprintf "%s.child" self#id)));
+        Some (Clock.create_unknown ~start:false ~sources:[] ~sub_clocks:[] ());
 
       Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[self#child_clock]);
+        (Clock.create_unknown ~sources:[] ~sub_clocks:[self#child_clock] ());
 
       List.iter (fun c -> Clock.unify self#child_clock c#clock) children;
+
+      if not (Source.Clock_variables.is_known self#child_clock) then (
+        let c =
+          new Clock.clock ~start:false (Printf.sprintf "%s.child" self#id)
+        in
+        Clock.unify (Clock.create_known c) self#child_clock);
 
       Gc.finalise (finalise_child_clock self#child_clock) self
 

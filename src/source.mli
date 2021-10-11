@@ -281,6 +281,8 @@ class type clock =
     method id : string
 
     method sync_mode : sync
+    method start : bool option
+    method set_start : bool -> unit
 
     (** Attach an active source to the clock. *)
     method attach : active_source -> unit
@@ -308,8 +310,10 @@ module Clock_variables : sig
   val to_string : clock_variable -> string
 
   val create_unknown :
+    ?start:bool ->
     sources:active_source list ->
     sub_clocks:clock_variable list ->
+    unit ->
     clock_variable
 
   val create_known : clock -> clock_variable

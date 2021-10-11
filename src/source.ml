@@ -83,6 +83,8 @@ class type ['a, 'b] proto_clock =
   object
     method id : string
     method sync_mode : sync
+    method start : bool option
+    method set_start : bool -> unit
 
     (** Attach an active source, detach active sources by filter. *)
 
@@ -135,28 +137,37 @@ type 'a var =
   | Link of 'a link_t ref  (** a universal variable *)
   | Known of ('a, 'a var) proto_clock  (** a constant variable *)
 
+and 'a unknown = {
+  sources : 'a list;
+  sub_clocks : 'a var list;
+  start : bool option;
+}
+
 (** Contents of a clock variable. *)
 and 'a link_t =
-  | Unknown of 'a list * 'a var list
+  | Unknown of 'a unknown
       (** the clock variable is unknown but depends on other variables *)
   | Same_as of 'a var  (** the clock variable is substituted by another *)
 
 let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG" <> None
 let create_known c = Known c
 
-let create_unknown ~sources ~sub_clocks =
-  Link (ref (Unknown (sources, sub_clocks)))
+let create_unknown ?start ~sources ~sub_clocks () =
+  Link (ref (Unknown { sources; sub_clocks; start }))
 
 let rec deref = function Link { contents = Same_as a } -> deref a | x -> x
 
 let rec variable_to_string = function
   | Link { contents = Same_as c } -> variable_to_string c
-  | Link ({ contents = Unknown (sources, clocks) } as r) ->
-      Printf.sprintf "?(%x:%d)[%s]" (Obj.magic r) (List.length sources)
-        (String.concat "," (List.map variable_to_string clocks))
+  | Link ({ contents = Unknown { sources; sub_clocks; start } } as r) ->
+      Printf.sprintf "?(%x:%d)[%s][start=%s]" (Obj.magic r)
+        (List.length sources)
+        (String.concat "," (List.map variable_to_string sub_clocks))
+        (match start with None -> "default" | Some b -> string_of_bool b)
   | Known c ->
-      Printf.sprintf "%s[%s]" c#id
+      Printf.sprintf "%s[%s][start=%s]" c#id
         (String.concat "," (List.map variable_to_string c#sub_clocks))
+        (match c#start with None -> "default" | Some b -> string_of_bool b)
 
 (** Equality modulo dereferencing, does not identify two variables
   * with the same sources and clocks. *)
@@ -173,7 +184,7 @@ exception Clock_loop of string * string
 
 let rec sub_clocks = function
   | Known c -> c#sub_clocks
-  | Link { contents = Unknown (_, sc) } -> sc
+  | Link { contents = Unknown { sub_clocks } } -> sub_clocks
   | Link { contents = Same_as x } -> sub_clocks x
 
 let occurs_check x y =
@@ -199,18 +210,47 @@ let rec unify a b =
         if s <> s' then
           raise (Clock_conflict (variable_to_string a, variable_to_string b))
     | Link ra, Link rb when ra == rb -> ()
-    | ( Link ({ contents = Unknown (sa, ca) } as ra),
-        Link ({ contents = Unknown (sb, cb) } as rb) ) ->
+    | ( Link
+          ({
+             contents =
+               Unknown { sources = sa; sub_clocks = ca; start = starta };
+           } as ra),
+        Link
+          ({
+             contents =
+               Unknown { sources = sb; sub_clocks = cb; start = startb };
+           } as rb) ) ->
+        let start =
+          match (starta, startb) with
+            | None, _ -> startb
+            | _, None -> starta
+            | Some b, Some b' when b = b' -> Some b
+            | _ ->
+                raise
+                  (Clock_conflict (variable_to_string a, variable_to_string b))
+        in
         occurs_check a b;
         let merge =
           let s = List.sort_uniq Stdlib.compare (List.rev_append sa sb) in
           let sc = List.sort_uniq Stdlib.compare (List.rev_append ca cb) in
-          Link (ref (Unknown (s, sc)))
+          Link (ref (Unknown { sources = s; sub_clocks = sc; start }))
         in
         ra := Same_as merge;
         rb := Same_as merge
-    | Known c, Link ({ contents = Unknown (s, sc) } as r)
-    | Link ({ contents = Unknown (s, sc) } as r), Known c ->
+    | ( Known c,
+        Link
+          ({ contents = Unknown { sources = s; sub_clocks = sc; start } } as r)
+      )
+    | ( Link
+          ({ contents = Unknown { sources = s; sub_clocks = sc; start } } as r),
+        Known c ) ->
+        (match (c#start, start) with
+          | Some _, None | None, None -> ()
+          | None, Some b -> c#set_start b
+          | Some b, Some b' when b = b' -> ()
+          | _ ->
+              raise
+                (Clock_conflict (variable_to_string a, variable_to_string b)));
         occurs_check (Known c) (Link r);
         List.iter c#attach s;
         List.iter c#attach_clock sc;
@@ -220,8 +260,14 @@ let rec forget var subclock =
   match var with
     | Known c -> c#detach_clock subclock
     | Link { contents = Same_as a } -> forget a subclock
-    | Link ({ contents = Unknown (sources, clocks) } as r) ->
-        r := Unknown (sources, List.filter (( <> ) subclock) clocks)
+    | Link ({ contents = Unknown { sources; sub_clocks; start } } as r) ->
+        r :=
+          Unknown
+            {
+              sources;
+              sub_clocks = List.filter (( <> ) subclock) sub_clocks;
+              start;
+            }
 
 (** Kind with variables in order to unify kinds. *)
 module Kind = struct
@@ -425,7 +471,9 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
      * We need a #set_clock method with a default behavior that can
      * be overridden, and it needs to be called at initialization:
      * #wake_up is too late since it's the clock who initiates it. *)
-    val clock : active_operator var = create_unknown ~sources:[] ~sub_clocks:[]
+    val clock : active_operator var =
+      create_unknown ~sources:[] ~sub_clocks:[] ()
+
     method clock = clock
     method virtual self_sync : self_sync
 
@@ -786,7 +834,7 @@ and virtual active_operator ?name ?audio_in ?video_in ?midi_in content_kind
     add_new_output (self :> active_operator);
     ignore
       (unify self#clock
-         (create_unknown ~sources:[(self :> active_operator)] ~sub_clocks:[]))
+         (create_unknown ~sources:[(self :> active_operator)] ~sub_clocks:[] ()))
 
     method is_active = true
 
@@ -816,6 +864,8 @@ type clock_variable = active_source var
 class type clock =
   object
     method id : string
+    method start : bool option
+    method set_start : bool -> unit
     method sync_mode : sync
     method attach : active_source -> unit
     method detach : (active_source -> bool) -> unit
@@ -834,7 +884,7 @@ module Clock_variables = struct
 
   let subclocks v =
     match deref v with
-      | Link { contents = Unknown (_, sc) } -> sc
+      | Link { contents = Unknown { sub_clocks = sc } } -> sc
       | _ -> assert false
 
   let unify = unify
