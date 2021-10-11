@@ -41,7 +41,7 @@ module Ground : sig
 
   type content = Term.Ground.content = {
     descr : unit -> string;
-    to_json : compact:bool -> json5:bool -> unit -> string;
+    to_json : unit -> Json.t;
     compare : t -> int;
     typ : Type.ground;
   }

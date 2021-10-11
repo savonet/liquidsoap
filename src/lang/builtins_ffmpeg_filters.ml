@@ -53,7 +53,18 @@ module Graph = Value.MkAbstract (struct
 
   let name = "ffmpeg.filter.graph"
   let descr _ = name
-  let to_json ~compact:_ ~json5:_ v = Printf.sprintf "%S" (descr v)
+
+  let to_json _ =
+    raise
+      Runtime_error.(
+        Runtime_error
+          {
+            kind = "json";
+            msg =
+              Printf.sprintf "Ffmpeg filter graph cannot be represented as json";
+            pos = [];
+          })
+
   let compare = Stdlib.compare
 end)
 
@@ -65,7 +76,17 @@ module Audio = Value.MkAbstract (struct
 
   let name = "ffmpeg.filter.audio"
   let descr _ = name
-  let to_json ~compact:_ ~json5:_ v = Printf.sprintf "%S" (descr v)
+
+  let to_json _ =
+    raise
+      Runtime_error.(
+        Runtime_error
+          {
+            kind = "json";
+            msg = "Ffmpeg filter audio input cannot be represented as json";
+            pos = [];
+          })
+
   let compare = Stdlib.compare
 end)
 
@@ -77,7 +98,17 @@ module Video = Value.MkAbstract (struct
 
   let name = "ffmpeg.filter.video"
   let descr _ = name
-  let to_json ~compact:_ ~json5:_ v = Printf.sprintf "%S" (descr v)
+
+  let to_json _ =
+    raise
+      Runtime_error.(
+        Runtime_error
+          {
+            kind = "json";
+            msg = "Ffmpeg filter video input cannot be represented as json";
+            pos = [];
+          })
+
   let compare = Stdlib.compare
 end)
 

@@ -858,20 +858,6 @@ cat >> src/configure.ml <<EOCONF
 let file_watcher = ref File_watcher_mtime.watch
 EOCONF
 
-# Yojson
-
-AC_CHECK_OCAML_BINDING([yojson])
-
-if test -z "${W_YOJSON}"; then
-cat >> src/configure.ml <<__BLAH__
-module JSON = JSON
-__BLAH__
-else
-cat >> src/configure.ml <<__BLAH__
-module JSON = struct include Yojson.Basic let from_string s = from_string s let to_string j = pretty_to_string j end
-__BLAH__
-fi
-
 # OCaml bindings
 
 AC_CHECK_OCAML_BINDING([faad])
@@ -1114,7 +1100,6 @@ cat <<EOMSG
    - ssl               : $w_SSL
    - posix-time2       : $w_POSIX_TIME2
    - windows service   : $w_WINSVC
-   - yojson            : $w_YOJSON
 
  * Monitoring
    - Prometheus        : $w_PROMETHEUS_APP
@@ -1214,7 +1199,6 @@ variables {
   inotify-enabled: $b_INOTIFY
   lo-enabled: $b_LO
   magic-enabled: $b_MAGIC
-  yojson-enabled: $b_YOJSON
   ssl-enabled: $b_SSL
   secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
   srt-enabled: $b_SRT

@@ -174,7 +174,9 @@ io = io/udp_io.ml \
 
 tools = tools/extralib.ml tools/lifecycle.ml \
 	tools/stringView.ml tools/strings.ml tools/utils.ml \
-        tools/runtime_error.ml tools/JSON.ml tools/doc.ml tools/plug.ml \
+	tools/runtime_error.ml \
+	tools/json_base.ml tools/json_parser.ml tools/json_lexer.ml tools/json.ml \
+        tools/doc.ml tools/plug.ml \
 	tools/rqueue.ml tools/unifier.ml \
 	$(if $(W_FFMPEG_AVDEVICE),tools/liqavdevice.ml) \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \

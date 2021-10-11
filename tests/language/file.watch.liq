@@ -3,7 +3,7 @@
 %include "test.liq"
 
 success = ref(false)
-  
+
 def f() =
   fname = "/tmp/fw"
   file.write(data="abc", fname)

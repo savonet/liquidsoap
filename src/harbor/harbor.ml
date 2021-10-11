@@ -525,7 +525,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let json_string_of = function `String s -> s | _ -> raise Not_found in
     let extract_packet s =
       let json =
-        match Configure.JSON.from_string s with
+        match Json.from_string s with
           | `Assoc json -> json
           | _ -> raise Not_found
       in

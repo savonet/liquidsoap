@@ -8,6 +8,10 @@ New:
 - Added generalized support for value extraction patterns (#1970)
 - Added support for string getter for `http.{post,put}` operations (#1984)
 - Added `output.youtube.live.hls`
+- Rewrote out internal JSON parser/renderer (#2011).
+  **Breaking change** values that cannot be represented as `JSON` will now raise
+  `error.json` when converted to `JSON`. `infinite` and `nan` floats can be exported
+  using the `json5` export format.
 
 Changes:
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and

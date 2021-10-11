@@ -237,6 +237,16 @@ module RuntimeType = MkAbstract (struct
 
   let name = "type"
   let descr _ = "type"
-  let to_json ~compact:_ ~json5:_ _ = "\"<type>\""
+
+  let to_json _ =
+    raise
+      Runtime_error.(
+        Runtime_error
+          {
+            kind = "json";
+            msg = "Types cannot be represented as json";
+            pos = [];
+          })
+
   let compare = Stdlib.compare
 end)

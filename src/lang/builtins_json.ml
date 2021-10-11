@@ -23,110 +23,42 @@
 open Lang
 
 let log = Log.make ["lang"; "json"]
-let to_json_ref = ref (fun ~compact:_ ~json5:_ _ -> assert false)
 
-module JSON = Value.MkAbstract (struct
-  type content = (string, value) Hashtbl.t
+let rec json_of_value v : Json.t =
+  match v.Value.value with
+    | Value.Null -> `Null
+    | Value.Ground g -> Term.Ground.to_json g
+    | Value.List l -> `Tuple (List.map json_of_value l)
+    | Value.Tuple l -> `Tuple (List.map json_of_value l)
+    | Value.Meth _ -> (
+        let m, v = Value.split_meths v in
+        match v.Value.value with
+          | Value.Tuple [] ->
+              `Assoc (List.map (fun (l, v) -> (l, json_of_value v)) m)
+          | _ -> json_of_value v)
+    | _ ->
+        raise
+          Runtime_error.(
+            Runtime_error
+              {
+                kind = "json";
+                msg =
+                  Printf.sprintf "Value %s cannot be represented as json"
+                    (Value.print_value v);
+                pos = (match v.Value.pos with Some p -> [p] | None -> []);
+              })
+
+module JsonValue = Value.MkAbstract (struct
+  type content = (string, Lang.value) Hashtbl.t
 
   let name = "json"
   let descr _ = "json"
 
-  let to_json ~compact ~json5 v =
-    if Hashtbl.length v > 0 then
-      !to_json_ref ~compact ~json5
-        (record (Hashtbl.fold (fun k v l -> (k, v) :: l) v []))
-    else "{}"
+  let to_json v =
+    `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value v) :: l) v [])
 
   let compare = Stdlib.compare
 end)
-
-let rec to_json_compact ~json5 v =
-  match v.value with
-    | Ground g -> Term.Ground.to_json ~compact:true ~json5 g
-    | List l ->
-        Printf.sprintf "[%s]"
-          (String.concat "," (List.map (to_json_compact ~json5) l))
-    | Null -> "null"
-    | Tuple l ->
-        "[" ^ String.concat "," (List.map (to_json_compact ~json5) l) ^ "]"
-    | Meth _ -> (
-        let m, v = Value.split_meths v in
-        match v.value with
-          | Tuple [] ->
-              let l =
-                List.map
-                  (fun (l, v) ->
-                    Printf.sprintf "\"%s\":%s" l (to_json_compact ~json5 v))
-                  m
-              in
-              Printf.sprintf "{%s}" (String.concat "," l)
-          | _ -> to_json_compact ~json5 v)
-    | Source _ -> "\"<source>\""
-    | Ref v -> Printf.sprintf "{\"reference\": %s}" (to_json_compact ~json5 !v)
-    | Encoder e -> Utils.quote_string (Encoder.string_of_format e)
-    | FFI _ | Fun _ -> "\"<fun>\""
-
-let rec to_json_pp ~json5 f v =
-  match v.value with
-    | Ground g ->
-        Format.fprintf f "%s" (Term.Ground.to_json ~compact:false ~json5 g)
-    | List l ->
-        let print f l =
-          let len = List.length l in
-          let f pos x =
-            if pos < len - 1 then
-              Format.fprintf f "%a,@;<1 0>" (to_json_pp ~json5) x
-            else Format.fprintf f "%a" (to_json_pp ~json5) x;
-            pos + 1
-          in
-          ignore (List.fold_left f 0 l)
-        in
-        Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
-    | Tuple l ->
-        Format.fprintf f "@[[@;<1 1>@[";
-        let rec aux = function
-          | [] -> ()
-          | [p] -> Format.fprintf f "%a" (to_json_pp ~json5) p
-          | p :: l ->
-              Format.fprintf f "%a,@;<1 0>" (to_json_pp ~json5) p;
-              aux l
-        in
-        aux l;
-        Format.fprintf f "@]@;<1 0>]@]"
-    | Meth _ -> (
-        let l, v = Value.split_meths v in
-        match v.value with
-          | Tuple [] ->
-              Format.fprintf f "@{{@;<1 1>@[";
-              let rec aux = function
-                | [] -> ()
-                | [(k, v)] ->
-                    Format.fprintf f "%s: %a" (Utils.quote_string k)
-                      (to_json_pp ~json5) v
-                | (k, v) :: l ->
-                    Format.fprintf f "%s: %a,@;<1 0>" (Utils.quote_string k)
-                      (to_json_pp ~json5) v;
-                    aux l
-              in
-              aux l;
-              Format.fprintf f "@]@;<1 0>}@]"
-          | _ -> Format.fprintf f "%a" (to_json_pp ~json5) v)
-    | Ref v ->
-        Format.fprintf f "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
-          (to_json_pp ~json5) !v
-    | _ -> Format.fprintf f "%s" (to_json_compact ~json5 v)
-
-let to_json_pp ~json5 v =
-  let b = Buffer.create 10 in
-  let f = Format.formatter_of_buffer b in
-  ignore (to_json_pp ~json5 f v);
-  Format.pp_print_flush f ();
-  Buffer.contents b
-
-let to_json ~compact ~json5 v =
-  if compact then to_json_compact ~json5 v else to_json_pp ~json5 v
-
-let () = to_json_ref := to_json
 
 let () =
   let val_t = univ_t () in
@@ -158,14 +90,14 @@ let () =
     ]
   in
   let t =
-    method_t JSON.t
+    method_t JsonValue.t
       (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
   in
   add_builtin "json" ~category:`String ~descr:"Create a generic json object" []
     t (fun _ ->
       let v = Hashtbl.create 10 in
       let meth = List.map (fun (name, _, _, fn) -> (name, fn v)) meth in
-      Lang.meth (JSON.to_value v) meth)
+      Lang.meth (JsonValue.to_value v) meth)
 
 let () =
   add_builtin "json.stringify" ~category:`String
@@ -179,7 +111,8 @@ let () =
     (fun p ->
       let compact = to_bool (List.assoc "compact" p) in
       let json5 = to_bool (List.assoc "json5" p) in
-      let v = to_json ~compact ~json5 (List.assoc "" p) in
+      let v = List.assoc "" p in
+      let v = Json.to_string ~compact ~json5 (json_of_value v) in
       string v)
 
 exception Failed
@@ -205,12 +138,12 @@ let rec of_json d j =
     | Ground (Ground.String _), `Int i -> string (string_of_int i)
     | Ground (Ground.String _), `Float x -> string (string_of_float x)
     | Ground (Ground.String _), `Bool b -> string (string_of_bool b)
-    | List [], `List [] -> list []
-    | List (d :: _), `List l ->
+    | List [], `Tuple [] -> list []
+    | List (d :: _), `Tuple l ->
         (* TODO: we could also try with other elements of the default list... *)
         let l = List.map (of_json d) l in
         list l
-    | Tuple dd, `List jj when List.length dd = List.length jj ->
+    | Tuple dd, `Tuple jj when List.length dd = List.length jj ->
         tuple (List.map2 of_json dd jj)
     | ( List ({ value = Tuple [{ value = Ground (Ground.String _) }; d] } :: _),
         `Assoc l ) ->
@@ -261,7 +194,7 @@ let () =
       let default = List.assoc "default" p in
       let s = to_string (List.assoc "" p) in
       try
-        let json = Configure.JSON.from_string s in
+        let json = Json.from_string s in
         of_json default json
       with e ->
         log#info "JSON parsing failed: %s" (Printexc.to_string e);
