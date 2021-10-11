@@ -210,7 +210,7 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
 builtins = lang/lang_builtins.ml \
-           lang/builtins_ref.ml \
+           lang/builtins_ref.ml lang/builtins_socket.ml \
            lang/builtins_bool.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_regexp.ml lang/builtins_json.ml \
            lang/builtins_request.ml lang/builtins_error.ml \

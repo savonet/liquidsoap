@@ -147,130 +147,68 @@ let () =
       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
 let () =
-  Lang.add_builtin "file.read" ~category:`File [("", Lang.string_t, None, None)]
-    (Lang.fun_t [] Lang.string_t)
-    ~descr:
-      "Read the content of a file. Returns a function of type `()->string`. \
-       File is done reading when function returns the empty string `\"\"`."
-    (fun p ->
-      let f = Lang.to_string (List.assoc "" p) in
-      let mk_fn fn = Lang.val_fun [] (fun _ -> Lang.string (fn ())) in
-      try
-        let ic = ref (Some (open_in_bin f)) in
-        let buflen = Utils.pagesize in
-        let buf = Bytes.create buflen in
-        let fn () =
-          match !ic with
-            | Some c ->
-                let n = input c buf 0 buflen in
-                if n = 0 then (
-                  close_in c;
-                  ic := None);
-                Bytes.sub_string buf 0 n
-            | None -> ""
-        in
-        mk_fn fn
-      with e ->
-        let message =
-          Printf.sprintf "The file %s could not be read: %s" f
-            (Printexc.to_string e)
-        in
-        Lang.error ~message "file")
-
-let () =
-  Lang.add_builtin "file.write" ~category:`File
+  Lang.add_builtin "file.fopen" ~category:`File
     [
-      ( "data",
-        Lang.getter_t (Lang.nullable_t Lang.string_t),
-        None,
-        Some
-          "Data to write. If passing a callback `() -> string?`, the callback \
-           must return `null` when it has finished sending all its data." );
+      ("read", Lang.bool_t, Some (Lang.bool true), Some "Open file for reading");
+      ( "write",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Open filet for writing" );
+      ( "truncate",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Truncate to 0 length if existing" );
       ( "append",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Append data if file exists." );
-      ( "perms",
-        Lang.int_t,
-        Some (Lang.int 0o644),
-        Some "Default file rights if created" );
-      ("", Lang.string_t, None, Some "Path to write to");
-    ]
-    Lang.unit_t ~descr:"Write data to a file."
-    (fun p ->
-      let data =
-        let data = List.assoc "data" p in
-        match (Lang.demeth data).Lang.value with
-          | Lang.Ground (Lang.Ground.String s) ->
-              let is_done = ref false in
-              fun () ->
-                if not !is_done then (
-                  is_done := true;
-                  Lang.string s)
-                else Lang.null
-          | _ -> Lang.to_getter data
-      in
-      let append = Lang.to_bool (List.assoc "append" p) in
-      let perms = Lang.to_int (List.assoc "perms" p) in
-      let f = Lang.to_string (List.assoc "" p) in
-      let flag = if append then Open_append else Open_trunc in
-      let flags = [flag; Open_wronly; Open_creat; Open_binary] in
-      try
-        let oc = open_out_gen flags perms f in
-        let rec f () =
-          match Lang.to_option (data ()) with
-            | None -> ()
-            | Some data ->
-                output_string oc (Lang.to_string data);
-                f ()
-        in
-        f ();
-        close_out oc;
-        Lang.unit
-      with e ->
-        let message =
-          Printf.sprintf "The file %s could not be written: %s" f
-            (Printexc.to_string e)
-        in
-        Lang.error ~message "file")
-
-let () =
-  Lang.add_builtin "file.write.stream" ~category:`File
-    [
-      ( "append",
+      ( "non_blocking",
         Lang.bool_t,
         Some (Lang.bool false),
-        Some "Append data if file exists." );
+        Some "Open in non-blocking mode." );
       ( "perms",
         Lang.int_t,
         Some (Lang.int 0o644),
-        Some "Default file rights if created" );
-      ("", Lang.string_t, None, Some "Path to write to");
+        Some "Default file rights if created. Default: `0o644`" );
+      ("", Lang.string_t, None, None);
     ]
-    (Lang.fun_t [(false, "", Lang.nullable_t Lang.string_t)] Lang.unit_t)
-    ~descr:
-      "Stream data to a file. Returns a callback to write to the file. Execute \
-       with `null` to signify the end of the writing operation."
+    Builtins_socket.SocketValue.t ~descr:"Open a file."
     (fun p ->
-      let append = Lang.to_bool (List.assoc "append" p) in
-      let perms = Lang.to_int (List.assoc "perms" p) in
-      let f = Lang.to_string (List.assoc "" p) in
-      let flag = if append then Open_append else Open_trunc in
-      let flags = [flag; Open_wronly; Open_creat; Open_binary] in
-      let oc =
-        try open_out_gen flags perms f
-        with e ->
-          let message =
-            Printf.sprintf "The file %s could not be opened: %s" f
-              (Printexc.to_string e)
-          in
-          Lang.error ~message "file"
+      let read = Lang.to_bool (List.assoc "read" p) in
+      let write = Lang.to_bool (List.assoc "write" p) in
+      let read_flag =
+        match (read, write) with
+          | true, false -> Unix.O_RDONLY
+          | false, true -> Unix.O_WRONLY
+          | true, true -> Unix.O_RDWR
+          | false, false ->
+              Runtime_error.error
+                ~message:
+                  "At least one of: `read` or `write` must be `true` when \
+                   opening a file!"
+                "file"
       in
-      Lang.val_fun [("", "", None)] (fun p ->
-          (match Lang.to_option (List.assoc "" p) with
-            | None -> close_out oc
-            | Some s -> output_string oc (Lang.to_string s));
-          Lang.unit))
+      let flags =
+        [
+          ("truncate", Unix.O_TRUNC);
+          ("append", Unix.O_APPEND);
+          ("non_blocking", Unix.O_NONBLOCK);
+        ]
+      in
+      let flags =
+        List.fold_left
+          (fun flags (name, flag) ->
+            if Lang.to_bool (List.assoc name p) then flag :: flags else flags)
+          [read_flag] flags
+      in
+      let file_perms = Lang.to_int (List.assoc "perms" p) in
+      let path = Utils.home_unrelate (Lang.to_string (List.assoc "" p)) in
+      try
+        Builtins_socket.SocketValue.to_value
+          (Unix.openfile path flags file_perms)
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"file" exn)
 
 let () =
   Lang.add_builtin "file.watch" ~category:`File

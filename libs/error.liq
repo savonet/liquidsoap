@@ -2,6 +2,8 @@ let error.not_found = error.register("not_found")
 let error.assertion = error.register("assertion")
 let error.invalid = error.register("invalid")
 let error.eval = error.register("eval")
+let error.file = error.register("file")
+let error.socket = error.register("socket")
 
 # Ensure that a condition is satisfied (raise `error.assertion` exception
 # otherwise).
