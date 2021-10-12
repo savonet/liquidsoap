@@ -26,7 +26,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
 
       def file_request(idx,el) =
         let (meta,file) = el
-        s = list.fold(fun (cur, el) -> "#{cur},#{fst(el)}=#{string.escape(snd(el))}", "", meta)
+        s = list.fold(fun (cur, el) -> "#{cur},#{fst(el)}=#{string.escape(encoding=\"ascii\", snd(el))}", "", meta)
         s = if s == "" then file else "annotate:#{s}:#{file}" end
         (pl_sequence+idx, s)
       end
