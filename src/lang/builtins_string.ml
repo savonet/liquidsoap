@@ -132,8 +132,21 @@ let () =
           | `Ascii -> Utils.ascii_next
           | `Utf8 -> Utils.utf8_next
       in
-      Lang.string
-        (Utils.escape_string (Utils.escape ~special_char ~escape_char ~next) s))
+      try
+        Lang.string
+          (Utils.escape_string
+             (Utils.escape ~special_char ~escape_char ~next)
+             s)
+      with _ ->
+        Runtime_error.error
+          ~message:
+            (Printf.sprintf "Error while escaping %s string.%s"
+               (match encoding with `Utf8 -> "utf8" | `Ascii -> "ascii")
+               (if encoding <> `Ascii then
+                " If you are not sure about the string's encoding, you should \
+                 use `\"ascii\"` as this encoding never fails."
+               else ""))
+          "string")
 
 let () =
   Lang.add_builtin "string.escape.all"
