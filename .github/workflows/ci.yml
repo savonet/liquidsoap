@@ -394,10 +394,10 @@ jobs:
       - name: List assets to upload
         run: |
           echo "RELEASE_ASSETS<<EOF" >> $GITHUB_ENV
-          find artifacts/${{ needs.build_details.outputs.sha }} -type f >> $GITHUB_ENV
+          find artifacts/${{ needs.build_details.outputs.sha }} -type f | sort -u >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
       - name: Upload assets to release
-        uses: toots/action-gh-release@liquidsoap
+        uses: softprops/action-gh-release@liquidsoap
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
