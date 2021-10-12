@@ -157,11 +157,13 @@ let () =
       ( "truncate",
         Lang.bool_t,
         Some (Lang.bool false),
-        Some "Truncate to 0 length if existing" );
+        Some "Truncate to 0 length if existing." );
       ( "create",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Create if nonexistent" );
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
+        Some
+          "Create if nonexistent. Default: `false` in read-only mode, `true` \
+           when writing." );
       ( "append",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -192,11 +194,17 @@ let () =
                    opening a file!"
                 "file"
       in
+      let create = Lang.to_valued_option Lang.to_bool (List.assoc "create" p) in
       let flags =
+        read_flag
+        :: Option.value
+             ~default:(if write then [Unix.O_CREAT] else [])
+             (Option.map (fun x -> if x then [Unix.O_CREAT] else []) create)
+      in
+      let opt_flags =
         [
           ("truncate", Unix.O_TRUNC);
           ("append", Unix.O_APPEND);
-          ("create", Unix.O_CREAT);
           ("non_blocking", Unix.O_NONBLOCK);
         ]
       in
@@ -204,7 +212,7 @@ let () =
         List.fold_left
           (fun flags (name, flag) ->
             if Lang.to_bool (List.assoc name p) then flag :: flags else flags)
-          [read_flag] flags
+          flags opt_flags
       in
       let file_perms = Lang.to_int (List.assoc "perms" p) in
       let path = Utils.home_unrelate (Lang.to_string (List.assoc "" p)) in
