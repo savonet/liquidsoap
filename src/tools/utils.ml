@@ -133,6 +133,7 @@ let escape ~special_char ~next ~escape_char f s =
   let len = String.length s in
   let rec f pos =
     let new_pos = next s (pos : int) in
+    if len < new_pos then failwith "String parsing failed!";
     let s = String.sub s pos (new_pos - pos) in
     if special_char s then out (escape_char s) else out s;
     if new_pos < len then f new_pos
@@ -145,7 +146,7 @@ let utf8_next s i =
     | '\192' .. '\223' -> i + 2
     | '\224' .. '\239' -> i + 3
     | '\240' .. '\247' -> i + 4
-    | _ -> i + 1
+    | _ -> failwith "invalid utf8"
 
 (* Return the utf8 char code of the first utf8 character in the given
    string. *)
@@ -207,9 +208,6 @@ let escape_char ~escape_fun = function
   | c -> escape_fun c
 
 let escape_utf8_char =
-  let utf8_char_code s =
-    try utf8_char_code s with _ -> Uchar.to_int Uchar.rep
-  in
   escape_char ~escape_fun:(fun s -> Printf.sprintf "\\u%04X" (utf8_char_code s))
 
 let escape_utf8_formatter =

@@ -21,6 +21,24 @@ let from_string ?(pos = []) ?(json5 = false) s =
           Runtime_error.(
             Runtime_error { kind = "json"; msg = "Parse error"; pos })
 
+(* Special version of utf8 quoting that uses [Uchar.rep]
+   when a character cannot be escaped. *)
+let quote_utf8_string =
+  let escape_char =
+    let utf8_char_code s =
+      try Utils.utf8_char_code s with _ -> Uchar.to_int Uchar.rep
+    in
+    Utils.escape_char ~escape_fun:(fun s ->
+        Printf.sprintf "\\u%04X" (utf8_char_code s))
+  in
+  let next s i =
+    try Utils.utf8_next s i with _ -> max (String.length s) (i + 1)
+  in
+  let escape_utf8_formatter =
+    Utils.escape ~special_char:Utils.utf8_special_char ~escape_char ~next
+  in
+  fun s -> Printf.sprintf "\"%s\"" (Utils.escape_string escape_utf8_formatter s)
+
 let rec to_string_compact ~json5 = function
   | `Null -> "null"
   | `String s -> Utils.quote_utf8_string s
