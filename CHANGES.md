@@ -12,6 +12,7 @@ New:
   **Breaking change** values that cannot be represented as `JSON` will now raise
   `error.json` when converted to `JSON`. `infinite` and `nan` floats can be exported
   using the `json5` export format.
+- Added socket API (#2014)
 
 Changes:
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
