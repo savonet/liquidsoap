@@ -2,7 +2,7 @@
 # done reading when function returns the empty string `""`.
 # @category File
 def file.read(fname) =
-  fd = file.open(read=true, write=false, fname)
+  fd = file.open(write=false, fname)
   is_done = ref(false)
   def read() =
     if !is_done then
@@ -28,7 +28,7 @@ let file.write = ()
 # @param ~perms Default file rights if created. Default: `0o644`.
 # @param path Path to write to
 def file.write.stream(~perms=0o644, ~append=false, path) =
-  fd = file.open(write=true, read=false, append=append, perms=perms, path)
+  fd = file.open(write=true, append=append, perms=perms, path)
   def write(s) =
     s = s ?? ""
     if s == "" then fd.close() else

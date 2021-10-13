@@ -149,15 +149,10 @@ let () =
 let () =
   Lang.add_builtin "file.open" ~category:`File
     [
-      ("read", Lang.bool_t, Some (Lang.bool true), Some "Open file for reading");
       ( "write",
         Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Open filet for writing" );
-      ( "truncate",
-        Lang.bool_t,
         Some (Lang.bool false),
-        Some "Truncate to 0 length if existing." );
+        Some "Open file for writing" );
       ( "create",
         Lang.nullable_t Lang.bool_t,
         Some Lang.null,
@@ -180,39 +175,26 @@ let () =
     ]
     Builtins_socket.SocketValue.t ~descr:"Open a file."
     (fun p ->
-      let read = Lang.to_bool (List.assoc "read" p) in
       let write = Lang.to_bool (List.assoc "write" p) in
-      let read_flag =
-        match (read, write) with
-          | true, false -> Unix.O_RDONLY
-          | false, true -> Unix.O_WRONLY
-          | true, true -> Unix.O_RDWR
-          | false, false ->
-              Runtime_error.error
-                ~message:
-                  "At least one of: `read` or `write` must be `true` when \
-                   opening a file!"
-                "file"
-      in
+      let access_flag = if write then Unix.O_RDWR else Unix.O_RDONLY in
       let create = Lang.to_valued_option Lang.to_bool (List.assoc "create" p) in
-      let flags =
-        read_flag
-        :: Option.value
-             ~default:(if write then [Unix.O_CREAT] else [])
-             (Option.map (fun x -> if x then [Unix.O_CREAT] else []) create)
+      let create_flags =
+        Option.value
+          ~default:(if write then [Unix.O_CREAT] else [])
+          (Option.map (fun x -> if x then [Unix.O_CREAT] else []) create)
       in
-      let opt_flags =
-        [
-          ("truncate", Unix.O_TRUNC);
-          ("append", Unix.O_APPEND);
-          ("non_blocking", Unix.O_NONBLOCK);
-        ]
+      let data_flags =
+        match (write, Lang.to_bool (List.assoc "append" p)) with
+          | true, true -> [Unix.O_APPEND]
+          | true, false -> [Unix.O_TRUNC]
+          | false, _ -> []
+      in
+      let non_blocking_flags =
+        if Lang.to_bool (List.assoc "non_blocking" p) then [Unix.O_NONBLOCK]
+        else []
       in
       let flags =
-        List.fold_left
-          (fun flags (name, flag) ->
-            if Lang.to_bool (List.assoc name p) then flag :: flags else flags)
-          flags opt_flags
+        [access_flag] @ create_flags @ data_flags @ non_blocking_flags
       in
       let file_perms = Lang.to_int (List.assoc "perms" p) in
       let path = Utils.home_unrelate (Lang.to_string (List.assoc "" p)) in
