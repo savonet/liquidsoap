@@ -48,9 +48,14 @@ module SocketValue = struct
         fun fd ->
           Lang.val_fun [("", "", None)] (fun p ->
               let data = Lang.to_string (List.assoc "" p) in
+              let data = Bytes.of_string data in
+              let len = Bytes.length data in
               try
-                let oc = Unix.out_channel_of_descr fd in
-                output_string oc data;
+                let rec f pos =
+                  let n = Unix.write fd data pos (len - pos) in
+                  if n < len then f (pos + n)
+                in
+                f 0;
                 Lang.unit
               with exn ->
                 let bt = Printexc.get_raw_backtrace () in
@@ -64,8 +69,7 @@ module SocketValue = struct
           let buf = Bytes.create buflen in
           Lang.val_fun [] (fun _ ->
               try
-                let ic = Unix.in_channel_of_descr fd in
-                let n = input ic buf 0 buflen in
+                let n = Unix.read fd buf 0 buflen in
                 Lang.string (Bytes.sub_string buf 0 n)
               with exn ->
                 let bt = Printexc.get_raw_backtrace () in
