@@ -539,3 +539,10 @@ def error.message(err) =
   deprecated("error.message", "")
   err.message
 end
+
+# Deprecated: use `playlist` instead
+# @flag deprecated
+def playlist.reloadable(~id=null(), ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri) =
+  deprecated("playlist.reloadable", "playlist")
+  playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri)
+end
