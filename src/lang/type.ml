@@ -127,10 +127,6 @@ let print_constr = function
 
 type variance = Covariant | Contravariant | Invariant
 
-(** Every type gets a level annotation.
-  * This is useful in order to know what can or cannot be generalized:
-  * you need to compare the level of an abstraction and those of a ref or
-  * source. *)
 type t = { pos : pos option; descr : descr }
 
 and constructed = { constructor : string; params : (variance * t) list }
@@ -153,11 +149,19 @@ and descr =
   | Nullable of t
   | Meth of meth * t
   | Arrow of (bool * string * t) list * t
-  | Var of invar ref
+  | Var of var
 
-and invar = Free of var | Link of variance * t
-
-and var = { name : int; mutable level : int; mutable constraints : constraints }
+and var = {
+  name : int;
+  (* unique identifier for the variable *)
+  level : int;
+  (* generalization level *)
+  mutable lower : t list;
+  (* lower bounds for the variable *)
+  mutable upper : t list;
+  (* upper bounds for the variable *)
+  mutable constraints : constraints;
+}
 
 and scheme = var list * t
 
@@ -180,30 +184,26 @@ type repr =
     string * repr * string
     (* add annotations before / after, mostly used for debugging *) ]
 
-and var_repr = string * constraints
+and var_repr = {
+  vr_name : string;
+  vr_constraints : constraints;
+  vr_lower : repr list;
+  vr_upper : repr list;
+}
 
 let var_eq v v' = v.name = v'.name
 let make ?pos d = { pos; descr = d }
 
-(** Dereferencing gives you the meaning of a term, going through links created
-    by instantiations. One should (almost) never work on a non-dereferenced
-    type. *)
-let rec deref t =
-  match t.descr with Var { contents = Link (_, t) } -> deref t | _ -> t
-
-(** Remove methods. This function also removes links. *)
-let rec demeth t =
-  let t = deref t in
-  match t.descr with Meth (_, t) -> demeth t | _ -> t
+(** Remove methods. *)
+let rec demeth t = match t.descr with Meth (_, t) -> demeth t | _ -> t
 
 let rec remeth t u =
-  let t = deref t in
   match t.descr with
     | Meth (m, t) -> { t with descr = Meth (m, remeth t u) }
     | _ -> u
 
 let rec invoke t l =
-  match (deref t).descr with
+  match t.descr with
     | Meth (m, _) when m.meth = l -> m.scheme
     | Meth (_, t) -> invoke t l
     | _ -> raise Not_found
@@ -225,7 +225,6 @@ let rec meths ?pos l v t =
 (** Split the methods from the type. *)
 let split_meths t =
   let rec aux hide t =
-    let t = deref t in
     match t.descr with
       | Meth (m, t) ->
           let meth, t = aux (m.meth :: hide) t in
@@ -234,6 +233,22 @@ let split_meths t =
       | _ -> ([], t)
   in
   aux [] t
+
+(** Create a fresh variable. *)
+let var =
+  let name =
+    let c = ref (-1) in
+    fun () ->
+      incr c;
+      !c
+  in
+  let f ?(constraints = []) ?(lower = []) ?(upper = []) ?(level = max_int) ?pos
+      () =
+    let name = name () in
+    let v = { name; level; constraints; lower; upper } in
+    make ?pos (Var v)
+  in
+  f
 
 (** Given a strictly positive integer, generate a name in [a-z]+:
   * a, b, ... z, aa, ab, ... az, ba, ... *)
@@ -271,7 +286,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
-  let uvar g var =
+  let uvar g ~lower ~upper var =
     let constr_symbols, c = split_constr var.constraints in
     let rec index n = function
       | v :: tl ->
@@ -281,7 +296,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    `UVar (v, c)
+    `UVar
+      { vr_name = v; vr_constraints = c; vr_lower = lower; vr_upper = upper }
   in
   let counter =
     let c = ref 0 in
@@ -290,7 +306,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       !c
   in
   let evars = Hashtbl.create 10 in
-  let evar var =
+  let evar ~lower ~upper var =
     let constr_symbols, c = split_constr var.constraints in
     if !debug then (
       let v =
@@ -303,7 +319,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
           Printf.sprintf "%s[%s]" v level)
         else v
       in
-      `EVar (v, c))
+      `EVar
+        { vr_name = v; vr_constraints = c; vr_lower = lower; vr_upper = upper })
     else (
       let s =
         try Hashtbl.find evars var.name
@@ -312,7 +329,13 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
           Hashtbl.add evars var.name name;
           name
       in
-      `EVar (Printf.sprintf "'%s%s" constr_symbols s, c))
+      `EVar
+        {
+          vr_name = Printf.sprintf "'%s%s" constr_symbols s;
+          vr_constraints = c;
+          vr_lower = lower;
+          vr_upper = upper;
+        })
   in
   let rec repr g t =
     if filter_out t then `Ellipsis
@@ -326,7 +349,11 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Meth ({ meth = l; scheme = g', u }, v) ->
             let gen =
               List.map
-                (fun v -> match uvar (g' @ g) v with `UVar v -> v)
+                (fun v ->
+                  let g = g' @ g in
+                  let lower = List.map (repr g) v.lower in
+                  let upper = List.map (repr g) v.upper in
+                  match uvar ~lower ~upper g v with `UVar v -> v)
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
@@ -336,11 +363,11 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
-        | Var { contents = Free var } ->
-            if List.exists (var_eq var) g then uvar g var else evar var
-        | Var { contents = Link (Covariant, t) } when !debug ->
-            `Debug ("[>", repr g t, "]")
-        | Var { contents = Link (_, t) } -> repr g t)
+        | Var v ->
+            let lower = List.map (repr g) v.lower in
+            let upper = List.map (repr g) v.upper in
+            if List.exists (var_eq v) g then uvar ~lower ~upper g v
+            else evar ~lower ~upper v)
   in
   repr generalized t
 
@@ -394,7 +421,7 @@ let print_repr f t =
     | `Constr (name, params) ->
         Format.open_box (1 + String.length name);
         Format.fprintf f "%s(" name;
-        let vars = print_list vars params in
+        let vars = print_list vars (List.map snd params) in
         Format.fprintf f ")";
         Format.close_box ();
         vars
@@ -491,15 +518,29 @@ let print_repr f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
         vars
-    | `EVar (a, [InternalMedia]) ->
+    | `EVar { vr_name = a; vr_constraints = [InternalMedia] } ->
         Format.fprintf f "?internal(%s)" a;
         vars
-    | `UVar (a, [InternalMedia]) ->
+    | `UVar { vr_name = a; vr_constraints = [InternalMedia] } ->
         Format.fprintf f "internal(%s)" a;
         vars
-    | `EVar (name, c) | `UVar (name, c) ->
-        Format.fprintf f "%s" name;
-        if c <> [] then DS.add (name, c) vars else vars
+    | `EVar v | `UVar v ->
+        let vars =
+          if v.vr_lower = [] && v.vr_upper = [] then (
+            Format.fprintf f "%s" v.vr_name;
+            vars)
+          else (
+            Format.fprintf f "[ ";
+            let vars = print_list ~sep:" ∩ " vars v.vr_lower in
+            Format.fprintf f " < ";
+            Format.fprintf f "%s" v.vr_name;
+            Format.fprintf f " < ";
+            let vars = print_list ~sep:" ∪ " vars v.vr_upper in
+            Format.fprintf f "  ]";
+            vars)
+        in
+        if v.vr_constraints <> [] then DS.add (v.vr_name, v.vr_constraints) vars
+        else vars
     | `Arrow (p, t) ->
         if par then Format.fprintf f "@[<hov 1>("
         else Format.fprintf f "@[<hov 0>";
@@ -529,10 +570,10 @@ let print_repr f t =
         let vars = print ~par:false vars b in
         Format.fprintf f "%s" c;
         vars
-  and print_list ?(first = true) ?(acc = []) vars = function
+  and print_list ?(first = true) ?(acc = []) ?(sep = ",") vars = function
     | [] -> vars
-    | (_, x) :: l ->
-        if not first then Format.fprintf f ",";
+    | x :: l ->
+        if not first then Format.fprintf f "%s" sep;
         let vars = print ~par:false vars x in
         print_list ~first:false ~acc:(x :: acc) vars l
   in
@@ -540,12 +581,12 @@ let print_repr f t =
   begin
     match t with
     (* We're only printing a variable: ignore its [repr]esentation. *)
-    | `EVar (_, c) when c <> [] ->
+    | `EVar v when v.vr_constraints <> [] ->
         Format.fprintf f "something that is %s"
-          (String.concat " and " (List.map print_constr c))
-    | `UVar (_, c) when c <> [] ->
+          (String.concat " and " (List.map print_constr v.vr_constraints))
+    | `UVar v when v.vr_constraints <> [] ->
         Format.fprintf f "anything that is %s"
-          (String.concat " and " (List.map print_constr c))
+          (String.concat " and " (List.map print_constr v.vr_constraints))
     (* Print the full thing, then display constraints *)
     | _ ->
         let constraints = print ~par:false DS.empty t in
@@ -590,7 +631,7 @@ let pp_scheme f (generalized, t) =
   if !debug then
     List.iter
       (fun v ->
-        print_repr f (repr ~generalized (make (Var (ref (Free v)))));
+        print_repr f (repr ~generalized (make (Var v)));
         Format.fprintf f ".")
       generalized;
   print_repr f (repr ~generalized t)
@@ -613,7 +654,7 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
         Format.printf "this value has no method %s@." l
     | _ ->
         let inferred_pos a =
-          let dpos = (deref a).pos in
+          let dpos = a.pos in
           if a.pos = dpos then ""
           else (
             match dpos with
@@ -632,23 +673,10 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
                   (print_pos ~prefix:"" p))
           print_repr b (inferred_pos tb)
 
-let var =
-  let name =
-    let c = ref (-1) in
-    fun () ->
-      incr c;
-      !c
-  in
-  let f ?(constraints = []) ?(level = max_int) ?pos () =
-    let name = name () in
-    make ?pos (Var (ref (Free { name; level; constraints })))
-  in
-  f
-
+(*
 (** Find all the free variables satisfying a predicate. *)
 let filter_vars f t =
   let rec aux l t =
-    let t = deref t in
     match t.descr with
       | Ground _ -> l
       | Getter t -> aux l t
@@ -664,6 +692,7 @@ let filter_vars f t =
       | Var { contents = Link _ } -> assert false
   in
   aux [] t
+*)
 
 let rec invokes t = function
   | l :: ll ->
