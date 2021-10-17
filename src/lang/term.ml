@@ -433,7 +433,7 @@ let make ?pos ?t e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
-      (Type.string_of_pos_opt t.Type.pos)
+      (Repr.string_of_pos_opt t.Type.pos)
       (try to_string { t; term = e } with _ -> "<?>")
       (Repr.string_of_type t);
   { t; term = e }

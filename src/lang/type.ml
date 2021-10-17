@@ -41,11 +41,6 @@ let debug_levels = ref false
 
 type pos = Runtime_error.pos
 
-let string_of_single_pos = Runtime_error.print_single_pos
-let string_of_pos = Runtime_error.print_pos
-let string_of_pos_opt = Runtime_error.print_pos_opt
-let string_of_pos_list = Runtime_error.print_pos_list
-
 (** Ground types *)
 
 type ground = ..

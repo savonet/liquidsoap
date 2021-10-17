@@ -30,11 +30,6 @@ val debug_levels : bool ref
 
 type pos = Lexing.position * Lexing.position
 
-val string_of_single_pos : Lexing.position -> string
-val string_of_pos : ?prefix:string -> pos -> string
-val string_of_pos_opt : ?prefix:string -> pos option -> string
-val string_of_pos_list : ?prefix:string -> pos list -> string
-
 (** {1 Ground types} *)
 
 type variance = Covariant | Contravariant | Invariant

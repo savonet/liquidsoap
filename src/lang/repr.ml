@@ -27,6 +27,11 @@ let show_record_schemes = ref true
 
 open Type
 
+let string_of_single_pos = Runtime_error.print_single_pos
+let string_of_pos = Runtime_error.print_pos
+let string_of_pos_opt = Runtime_error.print_pos_opt
+let string_of_pos_list = Runtime_error.print_pos_list
+
 type t =
   [ `Constr of string * (variance * t) list
   | `Ground of ground

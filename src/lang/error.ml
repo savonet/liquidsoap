@@ -30,14 +30,14 @@ exception Kind_conflict of (Type.pos option * string * string)
 let () =
   Printexc.register_printer (function
     | Clock_conflict (pos, a, b) ->
-        let pos = Type.string_of_pos_opt pos in
+        let pos = Repr.string_of_pos_opt pos in
         Some
           (Printf.sprintf
              "Clock_conflict: At position: %s, a source cannot belong to two \
               clocks (%s, %s)"
              pos a b)
     | Clock_loop (pos, a, b) ->
-        let pos = Type.string_of_pos_opt pos in
+        let pos = Repr.string_of_pos_opt pos in
         Some
           (Printf.sprintf
              "Clock_loop: At position: %s, cannot unify two nested clocks \

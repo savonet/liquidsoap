@@ -383,7 +383,7 @@ and read_string c pos buf lexbuf =
     | '\\', '\n', Star skipped -> read_string c pos buf lexbuf
     | '\\', any ->
         if c <> '/' then (
-          let pos = Type.string_of_single_pos pos in
+          let pos = Repr.string_of_single_pos pos in
           Printf.printf
             "Warning at position %s: illegal backslash escape in string.\n" pos);
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
