@@ -133,4 +133,6 @@ val invoke : t -> string -> scheme
 val invokes : t -> string list -> scheme
 
 val to_string_fun : (?generalized:var list -> t -> string) ref
+
+(** String representation of a type. *)
 val to_string : ?generalized:var list -> t -> string
