@@ -215,6 +215,7 @@ let var =
     let v = { name; level; constraints; lower; upper } in
     make ?pos (Var v)
   in
+  f
 
 (*
 (** Find all the free variables satisfying a predicate. *)

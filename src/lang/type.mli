@@ -102,8 +102,8 @@ val var : ?constraints:constraints -> ?level:int -> ?pos:pos -> unit -> t
     compare variables (as opposed to =). *)
 val var_eq : var -> var -> bool
 
-(** Find all variables satisfying a predicate. *)
-val filter_vars : (var -> bool) -> t -> var list
+(* (\** Find all variables satisfying a predicate. *\) *)
+(* val filter_vars : (var -> bool) -> t -> var list *)
 
 (** Add a method to a type. *)
 val meth :
