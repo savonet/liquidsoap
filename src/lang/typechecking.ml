@@ -123,11 +123,11 @@ let rec type_of_pat ~level ~pos = function
 (* Type-check an expression. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let check = check ~throw in
-  if !debug then Printf.printf "\n# %s : ?\n\n%!" (Term.print e);
+  if !debug then Printf.printf "\n# %s : ?\n\n%!" (Term.to_string e);
   let check ?print_toplevel ~level ~env e =
     check ?print_toplevel ~level ~env e;
     if !debug then
-      Printf.printf "\n# %s : %s\n\n%!" (Term.print e) (Type.print e.t)
+      Printf.printf "\n# %s : %s\n\n%!" (Term.to_string e) (Type.to_string e.t)
   in
   (* The toplevel position of the (un-dereferenced) type is the actual parsing
      position of the value. When we synthesize a type against which the type of
@@ -171,7 +171,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           with Not_found ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace
-              (Unsupported_format (pos, Term.print e))
+              (Unsupported_format (pos, Term.to_string e))
               bt
         in
         e.t >: t
@@ -298,7 +298,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         e.t >: Typing.instantiate ~level ~generalized orig;
         if Lazy.force Term.debug then
           Printf.eprintf "Instantiate %s : %s becomes %s\n" var
-            (Type.print orig) (Type.print e.t)
+            (Type.to_string orig) (Type.to_string e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
         check ~level:(level + 1) ~env def;
         let generalized =
@@ -319,7 +319,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                     in
                     if !debug then
                       Printf.printf "\nLET %s : %s\n%!" x
-                        (Type.print_scheme (generalized, a));
+                        (Repr.string_of_scheme (generalized, a));
                     (x, (generalized, a))
                 | l :: ll -> (
                     try
@@ -341,7 +341,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 (let name = string_of_pat pat in
                  let l = String.length name and max = 5 in
                  if l >= max then name else name ^ String.make (max - l) ' ')
-                (fun f t -> Type.pp_scheme f (generalized, t))
+                (fun f t -> Repr.print_scheme f (generalized, t))
                 def.t);
         check ~print_toplevel ~level ~env body;
         e.t >: body.t
@@ -353,7 +353,8 @@ let check ?(ignored = false) ~throw e =
     let env = Environment.default_typing_environment () in
     check ~print_toplevel ~throw ~level:0 ~env e;
     if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
-      add_task (fun () -> Format.printf "@[<2>-     :@ %a@]@." Type.pp_type e.t);
+      add_task (fun () ->
+          Format.printf "@[<2>-     :@ %a@]@." Repr.print_type e.t);
     if ignored && not (can_ignore e.t) then throw (Ignored e);
     pop_tasks ()
   with e ->

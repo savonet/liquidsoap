@@ -243,7 +243,8 @@ let bind ?(variance = Invariant) a b =
       | Var ({ contents = Free a } as v) -> (v, a)
       | _ -> assert false
   in
-  if !debug then Printf.printf "\n%s := %s\n%!" (print a0) (print b);
+  if !debug then
+    Printf.printf "\n%s := %s\n%!" (Type.to_string a0) (Type.to_string b);
   let b = deref b in
   occur_check a b;
   satisfies_constraints b a.constraints;
@@ -332,18 +333,18 @@ let rec sup ~pos a b =
     | _, _ ->
         if !debug_subtyping then
           failwith
-            (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.print a)
-               (Type.print b))
+            (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.to_string a)
+               (Type.to_string b))
         else raise Incompatible
 
 let sup ~pos a b =
   let b' = sup ~pos a b in
   if !debug_subtyping && b' != b then
-    Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.print a) (Type.print b)
-      (Type.print b');
+    Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.to_string a)
+      (Type.to_string b) (Type.to_string b');
   b'
 
-exception Error of (repr * repr)
+exception Error of (Repr.t * Repr.t)
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
@@ -365,7 +366,7 @@ exception Error of (repr * repr)
   * In case of error, generate an explanation. *)
 let rec ( <: ) a b =
   if !debug || !debug_subtyping then
-    Printf.printf "\n%s <: %s\n%!" (print a) (print b);
+    Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
   match (a.descr, b.descr) with
     | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v' ->
         ()
@@ -377,8 +378,8 @@ let rec ( <: ) a b =
         (try b' <: b''
          with _ ->
            failwith
-             (Printf.sprintf "sup did to increase: %s !< %s" (Type.print b')
-                (Type.print b'')));
+             (Printf.sprintf "sup did to increase: %s !< %s" (Type.to_string b')
+                (Type.to_string b'')));
         if b'' != b' then var := Link (Covariant, b'');
         a <: b''
     | Var ({ contents = Link (Covariant, a') } as var), _ ->
@@ -491,8 +492,10 @@ let rec ( <: ) a b =
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
             | Error _ -> assert false)
     | Ground (Format k), Ground (Format k') -> (
-        try Frame_content.merge k k' with _ -> raise (Error (repr a, repr b)))
-    | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
+        try Frame_content.merge k k'
+        with _ -> raise (Error (Repr.make a, Repr.make b)))
+    | Ground x, Ground y ->
+        if x <> y then raise (Error (Repr.make a, Repr.make b))
     | Getter t1, Getter t2 -> (
         try t1 <: t2 with Error (a, b) -> raise (Error (`Getter a, `Getter b)))
     | Arrow ([], t1), Getter t2 -> (
@@ -503,7 +506,7 @@ let rec ( <: ) a b =
         with Occur_check _ | Unsatisfied_constraint _ ->
           (* Can't do more concise than a full representation, as the problem
              isn't local. *)
-          raise (Error (repr a, repr b)))
+          raise (Error (Repr.make a, Repr.make b)))
     | _, Var { contents = Free v }
     (* Force dropping the methods when we have constraints (see #1496) unless
        we are comparing records (see #1930). *)
@@ -511,7 +514,7 @@ let rec ( <: ) a b =
       -> (
         try bind ~variance:Covariant b a
         with Occur_check _ | Unsatisfied_constraint _ ->
-          raise (Error (repr a, repr b)))
+          raise (Error (Repr.make a, Repr.make b)))
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
     | ( Meth ({ meth = l; scheme = g1, t1 }, u1),
@@ -564,8 +567,9 @@ let rec ( <: ) a b =
                           },
                           var () ));
                 a <: b
-            | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))))
-        )
+            | _ ->
+                raise
+                  (Error (Repr.make a, `Meth (l, ([], `Ellipsis), `Ellipsis)))))
     | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
     | _, Getter t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
@@ -581,18 +585,18 @@ let rec ( <: ) a b =
               already := true;
               x
         in
-        let a = repr ~filter_out:(filter ()) a in
-        let b = repr ~filter_out:(filter ()) b in
+        let a = Repr.make ~filter_out:(filter ()) a in
+        let b = Repr.make ~filter_out:(filter ()) b in
         raise (Error (a, b))
 
 let ( >: ) a b =
   try b <: a
   with Error (y, x) ->
     let bt = Printexc.get_raw_backtrace () in
-    Printexc.raise_with_backtrace (Type_error (true, b, a, y, x)) bt
+    Printexc.raise_with_backtrace (Repr.Type_error (true, b, a, y, x)) bt
 
 let ( <: ) a b =
   try a <: b
   with Error (x, y) ->
     let bt = Printexc.get_raw_backtrace () in
-    Printexc.raise_with_backtrace (Type_error (false, a, b, x, y)) bt
+    Printexc.raise_with_backtrace (Repr.Type_error (false, a, b, x, y)) bt

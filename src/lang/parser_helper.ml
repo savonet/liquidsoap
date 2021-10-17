@@ -90,7 +90,7 @@ let args_of, app_of =
                    Printf.sprintf
                      "Cannot get argument type of %s, this is not a function, \
                       it has type: %s."
-                     name (Type.print t) ))
+                     name (Type.to_string t) ))
     in
     List.map
       (fun (n, n', v) ->

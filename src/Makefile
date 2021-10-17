@@ -250,7 +250,8 @@ liquidsoap_sources= \
 	$(if $(W_ALSA), alsa_settings.ml)
 
 liquidsoap_sources += \
-	lang/type.ml lang/typing.ml lang/profiler.ml lang/term.ml lang/value.ml \
+	lang/type.ml lang/repr.ml lang/typing.ml \
+	lang/profiler.ml lang/term.ml lang/value.ml \
 	lang/lang_encoder.ml $(lang_encoders) \
 	lang/environment.ml lang/typechecking.ml \
 	lang/evaluation.ml lang/error.ml lang/documentation.ml \
