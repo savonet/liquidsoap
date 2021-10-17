@@ -140,10 +140,11 @@ let rec eval ~env tm =
                     | Type.Ground (Type.Format fmt) -> `Format fmt
                     | Type.Var _ ->
                         `Kind (Frame_content.kind_of_string constructor)
-                    | _ -> failwith ("Unhandled content: " ^ Type.print tm.t))
+                    | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
+                  )
               | Type.Constr { Type.constructor = "none" } ->
                   `Kind (Frame_content.kind_of_string "none")
-              | _ -> failwith ("Unhandled content: " ^ Type.print tm.t)
+              | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
           in
           let k = of_frame_kind_t k in
           let k =
@@ -399,7 +400,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
           with Not_found -> (`Unknown, pvalues)
         in
         let item = Doc.trivial (if descr = "" then "(no doc)" else descr) in
-        item#add_subsection "type" (Type.doc_of_type ~generalized t);
+        item#add_subsection "type" (Repr.doc_of_type ~generalized t);
         item#add_subsection "default"
           (Doc.trivial
              (match default with
@@ -414,7 +415,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
     (fun (s, _) ->
       Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
         (string_of_pat pat)
-        (Type.print_pos_opt v.Value.pos))
+        (Type.string_of_pos_opt v.Value.pos))
     params;
   (let meths, t =
      let meths, t = Type.split_meths t in
@@ -429,7 +430,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
            (meths, { t with Type.descr = Type.Arrow (p, a) })
        | _ -> (meths, t)
    in
-   doc#add_subsection "_type" (Type.doc_of_type ~generalized t);
+   doc#add_subsection "_type" (Repr.doc_of_type ~generalized t);
    let meths =
      List.map
        (fun Type.({ meth = l; doc = d } as m) ->
@@ -438,7 +439,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
          Type.{ m with doc = d })
        meths
    in
-   if meths <> [] then doc#add_subsection "_methods" (Type.doc_of_meths meths));
+   if meths <> [] then doc#add_subsection "_methods" (Repr.doc_of_meths meths));
   let env, pa = Typechecking.type_of_pat ~level:max_int ~pos:None pat in
   Typing.(t <: pa);
   List.iter
@@ -469,11 +470,11 @@ let rec eval_toplevel ?(interactive = false) t =
         toplevel_add comment pat ~t:(generalized, def_t) def;
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
-            (Type.print ~generalized def_t);
+            (Type.to_string ~generalized def_t);
         let var = string_of_pat pat in
         if interactive && var <> "_" then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." var
-            (fun f t -> Type.pp_scheme f (generalized, t))
+            (fun f t -> Repr.print_scheme f (generalized, t))
             def_t (Value.print_value def);
         eval_toplevel ~interactive body
     | Seq (a, b) ->
@@ -484,5 +485,6 @@ let rec eval_toplevel ?(interactive = false) t =
     | _ ->
         let v = eval t in
         if interactive && t.term <> unit then
-          Format.printf "- : %a = %s@." Type.pp_type t.t (Value.print_value v);
+          Format.printf "- : %a = %s@." Repr.print_type t.t
+            (Value.print_value v);
         v

@@ -178,7 +178,7 @@ type proto = (string * t * value option * string option) list
 let doc_of_prototype_item ~generalized t d doc =
   let doc = match doc with None -> "(no doc)" | Some d -> d in
   let item = new Doc.item doc in
-  item#add_subsection "type" (Type.doc_of_type ~generalized t);
+  item#add_subsection "type" (Repr.doc_of_type ~generalized t);
   item#add_subsection "default"
     (match d with
       | None -> Doc.trivial "None"
@@ -196,12 +196,12 @@ let to_plugin_doc category flags main_doc proto return_t =
   let generalized = Type.filter_vars (fun _ -> true) t in
   item#add_subsection "_category"
     (Doc.trivial (Documentation.string_of_category category));
-  item#add_subsection "_type" (Type.doc_of_type ~generalized t);
+  item#add_subsection "_type" (Repr.doc_of_type ~generalized t);
   List.iter
     (fun f ->
       item#add_subsection "_flag" (Doc.trivial (Documentation.string_of_flag f)))
     flags;
-  if meths <> [] then item#add_subsection "_methods" (Type.doc_of_meths meths);
+  if meths <> [] then item#add_subsection "_methods" (Repr.doc_of_meths meths);
   List.iter
     (fun (l, t, d, doc) ->
       item#add_subsection
@@ -246,7 +246,7 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let generalized = Type.filter_vars (fun _ -> true) t in
   doc#add_subsection "_category"
     (Doc.trivial (Documentation.string_of_category category));
-  doc#add_subsection "_type" (Type.doc_of_type ~generalized t);
+  doc#add_subsection "_type" (Repr.doc_of_type ~generalized t);
   List.iter
     (fun f ->
       doc#add_subsection "_flag" (Doc.trivial (Documentation.string_of_flag f)))

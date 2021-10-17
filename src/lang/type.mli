@@ -30,10 +30,10 @@ val debug_levels : bool ref
 
 type pos = Lexing.position * Lexing.position
 
-val print_single_pos : Lexing.position -> string
-val print_pos : ?prefix:string -> pos -> string
-val print_pos_opt : ?prefix:string -> pos option -> string
-val print_pos_list : ?prefix:string -> pos list -> string
+val string_of_single_pos : Lexing.position -> string
+val string_of_pos : ?prefix:string -> pos -> string
+val string_of_pos_opt : ?prefix:string -> pos option -> string
+val string_of_pos_list : ?prefix:string -> pos list -> string
 
 (** {1 Ground types} *)
 
@@ -49,7 +49,7 @@ type ground +=
   | Format of Frame_content.format
 
 val register_ground_printer : (ground -> string option) -> unit
-val print_ground : ground -> string
+val string_of_ground : ground -> string
 val register_ground_resolver : (string -> ground option) -> unit
 val resolve_ground : string -> ground
 val resolve_ground_opt : string -> ground option
@@ -59,7 +59,7 @@ val resolve_ground_opt : string -> ground option
 type constr = Num | Ord | Dtools | InternalMedia
 type constraints = constr list
 
-val print_constr : constr -> string
+val string_of_constr : constr -> string
 
 type t = { pos : pos option; descr : descr }
 
@@ -132,45 +132,5 @@ val invoke : t -> string -> scheme
 (** Type of a submethod in a type. *)
 val invokes : t -> string list -> scheme
 
-(** {1 Representation of types} *)
-
-(** Representation of a type. *)
-type repr =
-  [ `Constr of string * (variance * repr) list
-  | `Ground of ground
-  | `List of repr
-  | `Tuple of repr list
-  | `Nullable of repr
-  | `Meth of string * (var_repr list * repr) * repr
-  | `Arrow of (bool * string * repr) list * repr
-  | `Getter of repr
-  | `EVar of var_repr  (** existential variable *)
-  | `UVar of var_repr  (** universal variable *)
-  | `Ellipsis  (** omitted sub-term *)
-  | `Range_Ellipsis  (** omitted sub-terms (in a list, e.g. list of args) *)
-  | `Debug of string * repr * string ]
-
-and var_repr = string * constraints
-
-(** Representation of a type. *)
-val repr : ?filter_out:(t -> bool) -> ?generalized:var list -> t -> repr
-
-(** Print the representation of a type. *)
-val print_repr : Format.formatter -> repr -> unit
-
-(** {1 Typing errors} *)
-
-type explanation = bool * t * t * repr * repr
-
-exception Type_error of explanation
-
-val print_type_error : (string -> unit) -> explanation -> unit
-
-(** {1 Printing and documentation} *)
-
-val pp_type : Format.formatter -> t -> unit
-val pp_scheme : Format.formatter -> scheme -> unit
-val print : ?generalized:var list -> t -> string
-val print_scheme : scheme -> string
-val doc_of_type : generalized:var list -> t -> Doc.item
-val doc_of_meths : meth list -> Doc.item
+val to_string_fun : (?generalized:var list -> t -> string) ref
+val to_string : ?generalized:var list -> t -> string
