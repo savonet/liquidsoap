@@ -78,11 +78,19 @@ and descr =
   | Nullable of t
   | Meth of meth * t
   | Arrow of (bool * string * t) list * t
-  | Var of invar ref
+  | Var of var
 
-and invar = Free of var | Link of variance * t
-
-and var = { name : int; mutable level : int; mutable constraints : constraints }
+and var = {
+  name : int;
+  (* unique identifier for the variable *)
+  level : int;
+  (* generalization level *)
+  mutable lower : t list;
+  (* lower bounds for the variable *)
+  mutable upper : t list;
+  (* upper bounds for the variable *)
+  mutable constraints : constraints;
+}
 
 and scheme = var list * t
 
@@ -90,10 +98,6 @@ val unit : descr
 
 (** Create a type from its value. *)
 val make : ?pos:pos -> descr -> t
-
-(** Remove links in a type: this function should always be called before
-    matching on types. *)
-val deref : t -> t
 
 (** Create a fresh variable. *)
 val var : ?constraints:constraints -> ?level:int -> ?pos:pos -> unit -> t
