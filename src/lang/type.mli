@@ -83,7 +83,7 @@ and descr =
 and var = {
   name : int;
   (* unique identifier for the variable *)
-  level : int;
+  mutable level : int;
   (* generalization level *)
   mutable lower : t list;
   (* lower bounds for the variable *)
@@ -113,8 +113,11 @@ val var :
     compare variables (as opposed to =). *)
 val var_eq : var -> var -> bool
 
-(* (\** Find all variables satisfying a predicate. *\) *)
-(* val filter_vars : (var -> bool) -> t -> var list *)
+(** Equality between types. *)
+val eq : t -> t -> bool
+
+(** Find all variables satisfying a predicate. *)
+val filter_vars : (var -> bool) -> t -> var list
 
 (** Add a method to a type. *)
 val meth :

@@ -143,10 +143,11 @@ and descr =
   | Arrow of (bool * string * t) list * t
   | Var of var
 
+(* TODO: constraints should go away an be re-implemented with bounds. *)
 and var = {
   name : int;
   (* unique identifier for the variable *)
-  level : int;
+  mutable level : int;
   (* generalization level *)
   mutable lower : t list;
   (* lower bounds for the variable *)
@@ -160,6 +161,46 @@ and scheme = var list * t
 let unit = Tuple []
 let var_eq v v' = v.name = v'.name
 let make ?pos d = { pos; descr = d }
+
+(* The match is heavy but this ensures that we don't miss constructors if we add new ones. *)
+
+(** Equality between types. This equality is strict: the order of methods matters, etc. *)
+let rec eq t u =
+  let scheme_eq (g, t) (g', t') =
+    List.length g = List.length g' && List.for_all2 var_eq g g' && eq t t'
+  in
+  if t == u then true
+  else (
+    match (t.descr, u.descr) with
+      | Constr c, Constr c' ->
+          c.constructor = c'.constructor
+          && List.for_all2
+               (fun (v, t) (v', t') -> v = v' && eq t t')
+               c.params c'.params
+      | Constr _, _ -> false
+      | Ground g, Ground g' -> g = g'
+      | Ground _, _ -> false
+      | Getter t, Getter u -> eq t u
+      | Getter _, _ -> false
+      | List t, List u -> eq t.t u.t
+      | List _, _ -> false
+      | Tuple l, Tuple l' ->
+          List.length l = List.length l' && List.for_all2 eq l l'
+      | Tuple _, _ -> false
+      | Nullable t, Nullable u -> eq t u
+      | Nullable _, _ -> false
+      | Meth (m, t), Meth (m', t') ->
+          m.meth = m'.meth && scheme_eq m.scheme m'.scheme && eq t t'
+      | Meth _, _ -> false
+      | Arrow (l, t), Arrow (l', t') ->
+          List.length l = List.length l'
+          && List.for_all2
+               (fun (o, l, t) (o', l', t') -> o = o' && l = l' && eq t t')
+               l l'
+          && eq t t'
+      | Arrow _, _ -> false
+      | Var v, Var v' -> var_eq v v'
+      | Var _, _ -> false)
 
 (** Remove methods. *)
 let rec demeth t = match t.descr with Meth (_, t) -> demeth t | _ -> t
@@ -217,7 +258,6 @@ let var =
   in
   f
 
-(*
 (** Find all the free variables satisfying a predicate. *)
 let filter_vars f t =
   let rec aux l t =
@@ -231,12 +271,9 @@ let filter_vars f t =
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
-      | Var { contents = Free var } ->
-          if f var && not (List.exists (var_eq var) l) then var :: l else l
-      | Var { contents = Link _ } -> assert false
+      | Var v -> if f v && not (List.exists (var_eq v) l) then v :: l else l
   in
   aux [] t
-*)
 
 let rec invokes t = function
   | l :: ll ->
