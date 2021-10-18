@@ -35,10 +35,10 @@ let string_of_pos_list = Runtime_error.print_pos_list
 type t =
   [ `Constr of string * (variance * t) list
   | `Ground of ground
-  | `List of t
+  | `List of t * [ `Object | `Tuple ]
   | `Tuple of t list
   | `Nullable of t
-  | `Meth of string * (var list * t) * t
+  | `Meth of string * (var list * t) * string option * t
   | `Arrow of (bool * string * t) list * t
   | `Getter of t
   | `EVar of var (* existential variable *)
@@ -136,16 +136,16 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
       match t.descr with
         | Ground g -> `Ground g
         | Getter t -> `Getter (repr g t)
-        | List { t } -> `List (repr g t)
+        | List { t; json_repr } -> `List (repr g t, json_repr)
         | Tuple l -> `Tuple (List.map (repr g) l)
         | Nullable t -> `Nullable (repr g t)
-        | Meth ({ meth = l; scheme = g', u }, v) ->
+        | Meth ({ meth = l; scheme = g', u; json_name }, v) ->
             let gen =
               List.map
                 (fun v -> match uvar (g' @ g) v with `UVar v -> v)
                 (List.sort_uniq compare g')
             in
-            `Meth (l, (gen, repr (g' @ g) u), repr g v)
+            `Meth (l, (gen, repr (g' @ g) u), json_name, repr g v)
         | Constr { constructor; params } ->
             `Constr (constructor, List.map (fun (l, t) -> (l, repr g t)) params)
         | Arrow (args, t) ->
@@ -236,20 +236,21 @@ let print f t =
         let vars = print ~par:true vars t in
         Format.fprintf f "?";
         vars
-    | `Meth (l, (_, a), b) as t ->
+    | `Meth (l, (_, a), _, b) as t ->
         if not !debug then (
           (* Find all methods. *)
           let rec aux = function
-            | `Meth (l, t, u) ->
+            | `Meth (l, t, json_name, u) ->
                 let m, u = aux u in
-                ((l, t) :: m, u)
+                ((l, t, json_name) :: m, u)
             | u -> ([], u)
           in
           let m, t = aux t in
           (* Filter out duplicates. *)
           let rec aux = function
-            | (l, t) :: m ->
-                (l, t) :: aux (List.filter (fun (l', _) -> l <> l') m)
+            | (l, t, json_name) :: m ->
+                (l, t, json_name)
+                :: aux (List.filter (fun (l', _, _) -> l <> l') m)
             | [] -> []
           in
           let m = aux m in
@@ -276,10 +277,22 @@ let print f t =
                 if !show_record_schemes then gen (List.sort compare g) else ""
               in
               let rec aux vars = function
-                | [(l, (g, t))] ->
+                | [(l, (g, t), Some json_name)] ->
+                    Format.fprintf f "%s as %s : %s"
+                      (Utils.quote_utf8_string json_name)
+                      l (gen g);
+                    print ~par:true vars t
+                | [(l, (g, t), None)] ->
                     Format.fprintf f "%s : %s" l (gen g);
                     print ~par:true vars t
-                | (l, (g, t)) :: m ->
+                | (l, (g, t), Some json_name) :: m ->
+                    Format.fprintf f "%s as %s : %s"
+                      (Utils.quote_utf8_string json_name)
+                      l (gen g);
+                    let vars = print ~par:false vars t in
+                    Format.fprintf f ",@ ";
+                    aux vars m
+                | (l, (g, t), None) :: m ->
                     Format.fprintf f "%s : %s" l (gen g);
                     let vars = print ~par:false vars t in
                     Format.fprintf f ",@ ";
@@ -296,10 +309,15 @@ let print f t =
           let vars = print ~par:false vars a in
           Format.fprintf f "}";
           vars)
-    | `List t ->
+    | `List (t, `Tuple) ->
         Format.fprintf f "@[<1>[";
         let vars = print ~par:false vars t in
         Format.fprintf f "]@]";
+        vars
+    | `List (t, `Object) ->
+        Format.fprintf f "@[<1>[";
+        let vars = print ~par:false vars t in
+        Format.fprintf f "] as json.object@]";
         vars
     | `Getter t ->
         Format.fprintf f "{";
@@ -425,7 +443,7 @@ exception Type_error of explanation
 let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
   error_header (string_of_pos_opt ta.pos);
   match b with
-    | `Meth (l, ([], `Ellipsis), `Ellipsis) when not flipped ->
+    | `Meth (l, ([], `Ellipsis), _, `Ellipsis) when not flipped ->
         Format.printf "this value has no method %s@." l
     | _ ->
         let inferred_pos a =

@@ -39,7 +39,8 @@ open Parser_helper
 %token <int option list * int option list> INTERVAL
 %token <string> ENCODER
 %token EOF
-%token <Parser_helper.let_decoration> LET
+%token <Parser_helper.lexer_let_decoration> LET
+%token <Parser_helper.lexer_let_decoration> LETLBRA
 %token BEGIN END GETS TILD QUESTION
 (* name, arguments, methods *)
 %token <(Doc.item * (string*string) list * (string*string) list)*Parser_helper.let_decoration> DEF
@@ -67,7 +68,7 @@ open Parser_helper
 %token <[ `Eq | `Geq | `Leq | `Gt | `Lt] * string> PP_IFVERSION
 %token ARGS_OF
 %token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
-%token <Parser_helper.let_decoration> PP_DEF
+%token <Parser_helper.lexer_let_decoration> PP_DEF
 %token PP_ENDL PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
@@ -212,6 +213,7 @@ expr:
   | TIME                           { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
 ty:
+  | UNDERSCORE                   { Type.var ~pos:$loc () }
   | VAR                          { mk_ty ~pos:$loc $1 }
   | ty QUESTION                  { Type.make ~pos:$loc (Type.Nullable $1) }
   | LBRA ty RBRA                 { Type.make ~pos:$loc (Type.(List {t = $2; json_repr = `Tuple})) }
@@ -233,7 +235,7 @@ meth_ty:
   | VAR COLON ty            { $1, $3, None }
   | STRING VAR VAR COLON ty {
        match $2 with
-         |"as" ->             $3, $5, Some $3
+         |"as" ->             $3, $5, Some $1
          | _ -> raise (Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:
@@ -316,6 +318,7 @@ optvar:
   | UNDERSCORE { "_" }
 
 pattern_list:
+  |                            { [] }
   | pattern                    { [$1] }
   | pattern_list COMMA pattern { $1@[$3] }
 
@@ -325,7 +328,7 @@ spread:
 
 pattern_list_with_spread:
   | spread                                       { [], Some $1, [] }
-  | pattern_list                                 { [], None, $1 }
+  | pattern_list                                 { [], None,    $1 }
   | spread COMMA pattern_list                    { [], Some $1, $3 }
   | pattern_list COMMA spread                    { $1, Some $3, [] }
   | pattern_list COMMA spread COMMA pattern_list { $1, Some $3, $5 } 
@@ -341,6 +344,7 @@ meth_pattern_el:
   | VAR GETS pattern { $1, Some $3 }
 
 meth_pattern_list:
+  |                                         { [] }
   | meth_pattern_el                         { [$1] }
   | meth_pattern_el COMMA meth_pattern_list { $1::$3 }
 
@@ -370,12 +374,28 @@ in_subfield:
   | VAR                 { [$1] }
   | VAR DOT in_subfield { $1::$3 }
 
+let_opt_el:
+  | VAR           { $1, mk ~pos:$loc (Var $1) }
+  | VAR GETS expr { $1, $3 }
+
+let_opt:
+  | let_opt_el               { [$1] }
+  | let_opt_el COMMA let_opt { $1::$3 }
+
+_let:
+  | LET { Parser_helper.let_decoration_of_lexer_let_decoration $1 } 
+  | LETLBRA let_opt RBRA {
+      match $1 with
+        | `Json_parse     -> `Json_parse (Parser_helper.args_of_json_parse ~pos:$loc $2)
+        | `Json_stringify -> `Json_stringify (Parser_helper.args_of_json_stringify ~pos:$loc $2)
+        | _ -> raise (Parse_error ($loc, "Invalid let constructor")) }
+
 binding:
   | optvar GETS expr         { (Doc.none (),[],[]), `None,  PVar [$1], None,    $3, None }
-  | LET pattern GETS expr    { (Doc.none (),[],[]), $1,     $2,        None,    $4, None }
-  | LET LPAR pattern COLON ty RPAR GETS expr
+  | _let pattern GETS expr   { (Doc.none (),[],[]), $1,     $2,        None,    $4, None }
+  | _let LPAR pattern COLON ty RPAR GETS expr
                              { (Doc.none (),[],[]), $1,     $3,        None,    $8, Some $5 }
-  | LET subfield GETS expr   { (Doc.none (),[],[]), $1,     PVar $2,   None,    $4, None }
+  | _let subfield GETS expr  { (Doc.none (),[],[]), $1,     PVar $2,   None,    $4, None }
   | DEF pattern g exprs END  { fst $1,              snd $1, $2,        None,    $4, None }
   | DEF LPAR pattern COLON ty RPAR g exprs END 
                              { fst $1,              snd $1, $3,        None,    $8, Some $5 }

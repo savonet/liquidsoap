@@ -22,12 +22,16 @@ clock.assign_new(sync='none',[s])
 def on_done () =
   j = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
 
-  string_format = json.parse(default=[("streams", [[("samplerate", "0")]])], j)
-  stream = list.hd(default=[], list.assoc(default=[], "streams", string_format))
-  framerate = list.assoc(default="0","r_frame_rate",stream)
-  codec = list.assoc(default="0","codec_name",stream)
+  let json.parse ( parsed: {
+    streams: [{
+      r_frame_rate: string,
+      codec_name: string
+    }]
+  }) = j
 
-  if framerate == "45/1" and codec == "h264" then
+  let [stream] = parsed.streams
+
+  if stream.r_frame_rate == "45/1" and stream.codec_name == "h264" then
     test.pass()
   else
     test.fail()

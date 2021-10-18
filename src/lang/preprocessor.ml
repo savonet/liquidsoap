@@ -382,6 +382,9 @@ let parse_comments tokenizer =
           comment := (c, Some startp);
           token ()
       | Parser.PP_DEF decoration, pos ->
+          let decoration =
+            Parser_helper.let_decoration_of_lexer_let_decoration decoration
+          in
           let c = !comment in
           comment := ([], None);
           documented_def decoration c pos

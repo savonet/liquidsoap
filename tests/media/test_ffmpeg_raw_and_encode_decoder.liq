@@ -20,29 +20,25 @@ clock.assign_new(sync='none',[s])
 def on_done () =
   j = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
 
-  format = json.parse(default=[("streams", [[("samplerate", "0")]])], j)
+  let json.parse ( parsed : {
+    streams: [{
+      channel_layout: string?,
+      sample_rate: string?,
+      sample_fmt: string?,
+      codec_name: string?,
+      pix_fmt: string?
+    }]
+  }) = j
 
-  streams = list.assoc(default=[], "streams", format)
+  video_stream = list.find((fun (stream) -> null.defined(stream.pix_fmt)), parsed.streams)
+  audio_stream = list.find((fun (stream) -> null.defined(stream.sample_rate)), parsed.streams)
 
-  params = ["channel_layout", "sample_rate",
-            "sample_fmt", "codec_name", "pix_fmt"]
-
-  def m(s) =
-    def f(e) =
-      let (p, _) = e
-      list.mem(p, params)
-    end
-    list.filter(f, s)
-  end
-
-  streams = list.map(m, streams)
-
-  expected = [
-    [("channel_layout", "stereo"), ("sample_rate", "44100"), ("sample_fmt", "fltp"), ("codec_name", "aac")],
-    [("pix_fmt", "yuv420p"), ("codec_name", "h264")]
-  ]
-
-  if streams == expected then
+  if null.get(video_stream.codec_name) == "h264" and
+     null.get(video_stream.pix_fmt) == "yuv420p" and
+     null.get(audio_stream.channel_layout) == "stereo" and
+     null.get(audio_stream.codec_name) == "aac" and
+     null.get(audio_stream.sample_fmt) == "fltp" and
+     null.get(audio_stream.sample_rate) == "44100" then
     test.pass()
   else
     test.fail()

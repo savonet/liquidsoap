@@ -138,9 +138,9 @@ let metadata.json = ()
 # `string.data_uri.encode`.
 # @category String 
 # @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
-# @param ~base64 Encode cover data as `base64`
-# @argsof json.stringify
-def metadata.json.stringify(~coverart_mime=null(), ~base64=true, %argsof(json.stringify), m) =
+# @param ~compact Output compact text.
+# @param ~json5 Use json5 extended spec.
+def metadata.json.stringify(~coverart_mime=null(), ~base64=true, ~compact=false, ~json5=false, m) =
   c = metadata.cover(coverart_mime=coverart_mime, m)
   m = metadata.cover.remove(m)
   m = metadata.export(m)
@@ -152,14 +152,14 @@ def metadata.json.stringify(~coverart_mime=null(), ~base64=true, %argsof(json.st
     else
       m
     end
-  j = json()
-  list.iter((fun (v) -> j.add(fst(v), (snd(v):string))), m)
-  json.stringify(%argsof(json.stringify), j)
+
+  let json.stringify[compact, json5] (data : [(string * string)] as json.object) = m
+  data
 end
 
 # Parse metadata from JSON object
 # @category String
 def metadata.json.parse(s) =
-  m = json.parse(default=[("invalid","invalid")], s)
-  if m == [("invalid","invalid")] then [] else m end
+  let json.parse ( m : [(string * string)]? ) = s
+  m ?? []
 end

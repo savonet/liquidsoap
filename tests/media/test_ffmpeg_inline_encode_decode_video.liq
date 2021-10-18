@@ -23,28 +23,17 @@ def on_done () =
   def check(out) =
     j = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
 
-    format = json.parse(default=[("streams", [[("samplerate", "0")]])], j)
+    let json.parse ( parsed : {
+      streams: [{
+        codec_name: string,
+        pix_fmt: string
+      }]
+    }) = j
 
-    streams = list.assoc(default=[], "streams", format)
+   let [stream] = parsed.streams
 
-    params = ["channel_layout", "sample_rate",
-              "sample_fmt", "codec_name", "pix_fmt"]
-
-    def m(s) =
-      def f(e) =
-        let (p, _) = e
-        list.mem(p, params)
-      end
-      list.filter(f, s)
-    end
-
-    streams = list.map(m, streams)
-
-    expected = [
-      [("pix_fmt", "yuv420p"), ("codec_name", "h264")]
-    ]
-    
-    streams == expected
+    stream.codec_name == "h264" and
+    stream.pix_fmt == "yuv420p"
   end
 
   todo := !todo - 1

@@ -6,7 +6,9 @@ success = ref(true)
 
 def t(x, y)
   if x != y then
-    print("Failure: got #{json.stringify(x)} instead of #{json.stringify(y)}")
+    let json.stringify x = x
+    let json.stringify y = y
+    print("Failure: got #{x} instead of #{y}")
     success := false
   end
 end

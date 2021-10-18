@@ -34,15 +34,16 @@ def on_done () =
 
   j = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
 
-  int_format = json.parse(default=[("streams", [[("channels", 0)]])], j)
-  stream = list.hd(default=[], list.assoc(default=[], "streams", int_format))
-  channels = list.assoc(default=0,"channels",stream)
+  let json.parse ( parsed: {
+    streams: [{
+      channels: int,
+      sample_rate: string
+    }]
+  }) = j
 
-  string_format = json.parse(default=[("streams", [[("samplerate", "0")]])], j)
-  stream = list.hd(default=[], list.assoc(default=[], "streams", string_format))
-  samplerate = list.assoc(default="0","sample_rate",stream)
+  let [stream] = parsed.streams
 
-  if pass_digest and channels == 2 and samplerate == "48000" then
+  if pass_digest and stream.channels == 2 and stream.sample_rate == "48000" then
     test.pass()
   else
     test.fail()
