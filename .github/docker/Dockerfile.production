@@ -1,4 +1,4 @@
-FROM debian:testing-slim
+FROM debian:bullseye-slim
 
 ARG DEB_FILE
 ARG DEB_DEBUG_FILE
