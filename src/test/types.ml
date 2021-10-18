@@ -4,9 +4,9 @@ let should_work t t' r =
   let t = make t in
   let t' = make t' in
   let r = make r in
-  Printf.printf "Finding min for %s and %s\n%!" (print t) (print t');
+  Printf.printf "Finding min for %s and %s\n%!" (to_string t) (to_string t');
   let m = Typing.sup ~pos:None t t' in
-  Printf.printf "Got: %s, expect %s\n%!" (print m) (print r);
+  Printf.printf "Got: %s, expect %s\n%!" (to_string m) (to_string r);
   Typing.(m <: r);
   Typing.(t <: m);
   Typing.(t' <: m)
