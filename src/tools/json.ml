@@ -41,7 +41,7 @@ let quote_utf8_string =
 
 let rec to_string_compact ~json5 = function
   | `Null -> "null"
-  | `String s -> Utils.quote_utf8_string s
+  | `String s -> quote_utf8_string s
   | `Bool b -> string_of_bool b
   | `Int i -> string_of_int i
   | `Float f -> (
