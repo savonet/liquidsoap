@@ -49,7 +49,12 @@ type t =
     string * t * string
     (* add annotations before / after, mostly used for debugging *) ]
 
-and var = string * constraints
+and var = {
+  name : string;
+  constraints : constraints;
+  lower : t list;
+  upper : t list;
+}
 
 (** Given a strictly positive integer, generate a name in [a-z]+:
     a, b, ... z, aa, ab, ... az, ba, ... *)
@@ -87,8 +92,8 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
-  let uvar g var =
-    let constr_symbols, c = split_constr var.constraints in
+  let uvar g ~lower ~upper var =
+    let constr_symbols, c = split_constr var.Type.constraints in
     let rec index n = function
       | v :: tl ->
           if var_eq v var then Printf.sprintf "'%s%s" constr_symbols (name n)
@@ -97,7 +102,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    `UVar (v, c)
+    `UVar { name = v; constraints = c; lower; upper }
   in
   let counter =
     let c = ref 0 in
@@ -106,20 +111,20 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
       !c
   in
   let evars = Hashtbl.create 10 in
-  let evar var =
-    let constr_symbols, c = split_constr var.constraints in
+  let evar ~lower ~upper var =
+    let constr_symbols, c = split_constr var.Type.constraints in
     if !debug then (
       let v =
         Printf.sprintf "'%s%s" constr_symbols (evar_global_name var.name)
       in
       let v =
         if !debug_levels then (
-          let level = var.level in
+          let level = var.Type.level in
           let level = if level = max_int then "∞" else string_of_int level in
           Printf.sprintf "%s[%s]" v level)
         else v
       in
-      `EVar (v, c))
+      `EVar { name = v; constraints = c; lower; upper })
     else (
       let s =
         try Hashtbl.find evars var.name
@@ -128,7 +133,13 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
           Hashtbl.add evars var.name name;
           name
       in
-      `EVar (Printf.sprintf "'%s%s" constr_symbols s, c))
+      `EVar
+        {
+          name = Printf.sprintf "'%s%s" constr_symbols s;
+          constraints = c;
+          lower;
+          upper;
+        })
   in
   let rec repr g t =
     if filter_out t then `Ellipsis
@@ -142,7 +153,11 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | Meth ({ meth = l; scheme = g', u }, v) ->
             let gen =
               List.map
-                (fun v -> match uvar (g' @ g) v with `UVar v -> v)
+                (fun v ->
+                  let g = g' @ g in
+                  let lower = List.map (repr g) v.Type.lower in
+                  let upper = List.map (repr g) v.Type.upper in
+                  match uvar ~lower ~upper g v with `UVar v -> v)
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
@@ -152,11 +167,11 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
-        | Var { contents = Free var } ->
-            if List.exists (var_eq var) g then uvar g var else evar var
-        | Var { contents = Link (Covariant, t) } when !debug ->
-            `Debug ("[>", repr g t, "]")
-        | Var { contents = Link (_, t) } -> repr g t)
+        | Var v ->
+            let lower = List.map (repr g) v.lower in
+            let upper = List.map (repr g) v.upper in
+            if List.exists (var_eq v) g then uvar ~lower ~upper g v
+            else evar ~lower ~upper v)
   in
   repr generalized t
 
@@ -209,7 +224,7 @@ let print f t =
     | `Constr (name, params) ->
         Format.open_box (1 + String.length name);
         Format.fprintf f "%s(" name;
-        let vars = print_list vars params in
+        let vars = print_list vars (List.map snd params) in
         Format.fprintf f ")";
         Format.close_box ();
         vars
@@ -306,15 +321,29 @@ let print f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
         vars
-    | `EVar (a, [InternalMedia]) ->
+    | `EVar { name = a; constraints = [InternalMedia] } ->
         Format.fprintf f "?internal(%s)" a;
         vars
-    | `UVar (a, [InternalMedia]) ->
+    | `UVar { name = a; constraints = [InternalMedia] } ->
         Format.fprintf f "internal(%s)" a;
         vars
-    | `EVar (name, c) | `UVar (name, c) ->
-        Format.fprintf f "%s" name;
-        if c <> [] then DS.add (name, c) vars else vars
+    | `EVar v | `UVar v ->
+        let vars =
+          if v.lower = [] && v.upper = [] then (
+            Format.fprintf f "%s" v.name;
+            vars)
+          else (
+            Format.fprintf f "[ ";
+            let vars = print_list ~sep:" ∩ " vars v.lower in
+            Format.fprintf f " < ";
+            Format.fprintf f "%s" v.name;
+            Format.fprintf f " < ";
+            let vars = print_list ~sep:" ∪ " vars v.upper in
+            Format.fprintf f "  ]";
+            vars)
+        in
+        if v.constraints <> [] then DS.add (v.name, v.constraints) vars
+        else vars
     | `Arrow (p, t) ->
         if par then Format.fprintf f "@[<hov 1>("
         else Format.fprintf f "@[<hov 0>";
@@ -344,12 +373,12 @@ let print f t =
         let vars = print ~par:false vars b in
         Format.fprintf f "%s" c;
         vars
-  and print_list ?(first = true) ?(acc = []) vars = function
+  and print_list ?(first = true) ?(acc = []) ?(sep = ",") vars = function
     | [] -> vars
-    | (_, x) :: l ->
-        if not first then Format.fprintf f ",";
+    | x :: l ->
+        if not first then Format.fprintf f "%s" sep;
         let vars = print ~par:false vars x in
-        print_list ~first:false ~acc:(x :: acc) vars l
+        print_list ~first:false ~acc:(x :: acc) ~sep vars l
   in
   Format.fprintf f "@[";
   begin

@@ -100,7 +100,14 @@ val unit : descr
 val make : ?pos:pos -> descr -> t
 
 (** Create a fresh variable. *)
-val var : ?constraints:constraints -> ?level:int -> ?pos:pos -> unit -> t
+val var :
+  ?constraints:constraints ->
+  ?lower:t list ->
+  ?upper:t list ->
+  ?level:int ->
+  ?pos:pos ->
+  unit ->
+  t
 
 (** Compare two variables for equality. This comparison should always be used to
     compare variables (as opposed to =). *)
