@@ -115,7 +115,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     let constr_symbols, c = split_constr var.Type.constraints in
     if !debug then (
       let v =
-        Printf.sprintf "'%s%s" constr_symbols (evar_global_name var.name)
+        Printf.sprintf "'%s%s" constr_symbols (evar_global_name var.Type.name)
       in
       let v =
         if !debug_levels then (
@@ -127,10 +127,10 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
       `EVar { name = v; constraints = c; lower; upper })
     else (
       let s =
-        try Hashtbl.find evars var.name
+        try Hashtbl.find evars var.Type.name
         with Not_found ->
           let name = String.uppercase_ascii (name (counter ())) in
-          Hashtbl.add evars var.name name;
+          Hashtbl.add evars var.Type.name name;
           name
       in
       `EVar
@@ -168,8 +168,8 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Var v ->
-            let lower = List.map (repr g) v.lower in
-            let upper = List.map (repr g) v.upper in
+            let lower = List.map (repr g) v.Type.lower in
+            let upper = List.map (repr g) v.Type.upper in
             if List.exists (var_eq v) g then uvar ~lower ~upper g v
             else evar ~lower ~upper v)
   in
@@ -185,7 +185,7 @@ end)
 (** Print a type representation. Unless in debug mode, variable identifiers are
     not shown, and variable names are generated. Names are only meaningful over
     one printing, as they are re-used. *)
-let print f t =
+let print f (t : t) =
   (* Display the type and return the list of variables that occur in it.
    * The [par] params tells whether (..)->.. should be surrounded by
    * parenthesis or not. *)
@@ -284,7 +284,7 @@ let print f t =
             if m = [] then vars
             else (
               let rec gen = function
-                | (x, _) :: g -> x ^ "." ^ gen g
+                | v :: g -> (v : var).name ^ "." ^ gen g
                 | [] -> ""
               in
               let gen g =
@@ -384,12 +384,12 @@ let print f t =
   begin
     match t with
     (* We're only printing a variable: ignore its [repr]esentation. *)
-    | `EVar (_, c) when c <> [] ->
+    | `EVar v when v.constraints <> [] ->
         Format.fprintf f "something that is %s"
-          (String.concat " and " (List.map string_of_constr c))
-    | `UVar (_, c) when c <> [] ->
+          (String.concat " and " (List.map string_of_constr v.constraints))
+    | `UVar v when v.constraints <> [] ->
         Format.fprintf f "anything that is %s"
-          (String.concat " and " (List.map string_of_constr c))
+          (String.concat " and " (List.map string_of_constr v.constraints))
     (* Print the full thing, then display constraints *)
     | _ ->
         let constraints = print ~par:false DS.empty t in
@@ -434,7 +434,7 @@ let print_scheme f (generalized, t) =
   if !debug then
     List.iter
       (fun v ->
-        print f (make ~generalized (Type.make (Var (ref (Free v)))));
+        print f (make ~generalized (Type.make (Var v)));
         Format.fprintf f ".")
       generalized;
   print f (make ~generalized t)
@@ -458,7 +458,7 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
         Format.printf "this value has no method %s@." l
     | _ ->
         let inferred_pos a =
-          let dpos = (deref a).pos in
+          let dpos = a.pos in
           if a.pos = dpos then ""
           else (
             match dpos with
