@@ -19,7 +19,7 @@ let () =
 
 (* Test adding submethods. *)
 let () =
-  let print t = Printf.printf "%s\n%!" (Type.print t) in
+  let print t = Printf.printf "%s\n%!" (Type.to_string t) in
   let t = Type.make (Type.Ground Type.Int) in
   print t;
   let t = Type.meth "f" ([], Type.make (Type.Ground Type.Float)) t in
