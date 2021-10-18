@@ -1,6 +1,10 @@
 2.0.1 (unreleased)
 =====
 
+Changed:
+* Removed `encode_metadata` option in `input.file.hls` as it does nothing with
+  the main encoder for HLS format, `%ffmpeg` (#2023)
+
 Fixes:
 * Fixed switch-based sources not respecting track boundaries when
   using default transitions one track only per selected source. (#1999)
