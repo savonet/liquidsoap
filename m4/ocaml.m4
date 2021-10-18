@@ -163,7 +163,7 @@ AC_DEFUN([AC_PROG_CAMLP4],
 
 
   AC_ARG_ENABLE([camlp4],
-    AC_HELP_STRING([--disable-camlp4],
+    AS_HELP_STRING([--disable-camlp4],
                    [disable camlp4 auto-detection.]))
 
   # checking for camlp4
@@ -241,7 +241,7 @@ AC_DEFUN([AC_CHECK_OCAML_PKG],
 [dnl
   AC_REQUIRE([AC_PROG_FINDLIB])dnl
 
-  AC_ARG_WITH([$1-dir],AC_HELP_STRING([--with-$1-dir=path],
+  AC_ARG_WITH([$1-dir],AS_HELP_STRING([--with-$1-dir=path],
               [use "path" as the location of ocaml-$1 (autodetected by default)]))
   AC_MSG_CHECKING([for OCaml library $1])
 
