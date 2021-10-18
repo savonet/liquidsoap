@@ -43,7 +43,7 @@ else
 fi
 
 AC_ARG_WITH([binding()-dir],
-   AC_HELP_STRING(
+   AS_HELP_STRING(
       [--with-binding()-dir=path],
       [look for ocaml-binding() library in "path" (autodetected by default)]))
 

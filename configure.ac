@@ -163,7 +163,7 @@ if test -z `which pkg-config 2>/dev/null` ; then
 fi
 
 AC_ARG_WITH([bash-completion-dir],
-   AC_HELP_STRING(
+   AS_HELP_STRING(
       [--with-bash-completion-dir=path],
       [path to directory used to install bash-completion files (autodetected by default)]))
 
@@ -728,7 +728,7 @@ AC_ARG_ENABLE([camomile],
 AC_CHECK_OCAML_BINDING([camomile])
 
 AC_ARG_WITH([camomile-data-dir],
-   AC_HELP_STRING(
+   AS_HELP_STRING(
       [--with-camomile-data-dir=path],
       [path to camomile data files (autodetected by default)]))
 

@@ -1,6 +1,6 @@
 AC_DEFUN([AC_CHECK_OCAML_COMPILERS],[
 OCAMLFIND_LDCONF=""
-AC_ARG_ENABLE([ldconf], AC_HELP_STRING([--disable-ldconf],[don't modify the dynamic loader configuration file (default is enable)]),[ac_enable_ldconf=$enableval],[ac_enable_ldconf=$enableval],[ac_enable_ldconf=yes])
+AC_ARG_ENABLE([ldconf], AS_HELP_STRING([--disable-ldconf],[don't modify the dynamic loader configuration file (default is enable)]),[ac_enable_ldconf=$enableval],[ac_enable_ldconf=$enableval],[ac_enable_ldconf=yes])
 if test "$ac_enable_ldconf" = no ; then
 	AC_MSG_RESULT([disabling modification of ld.conf])
 	OCAMLFIND_LDCONF=dummy
@@ -30,7 +30,7 @@ AC_CHECK_HEADER([caml/threads.h],[CAML_THREADS=yes],[],[#include <caml/misc.h>])
 CFLAGS=${old_CFLAGS}
 
 AC_ARG_ENABLE([debugging],
-   AC_HELP_STRING(
+   AS_HELP_STRING(
       [--disable-debugging],
       [disable debugging information (backtrace printing in particular)]))
 
@@ -39,7 +39,7 @@ if test "$enable_debugging" \!= "no" ; then
 fi
 
 AC_ARG_WITH([ocaml-warnings],
-   AC_HELP_STRING(
+   AS_HELP_STRING(
       [--with-ocaml-warnings=WARNINGS],
       [Enable specific list of ocaml compiler warnings.]))
 
@@ -50,7 +50,7 @@ else
 fi
 
 AC_ARG_ENABLE([profiling],
-   AC_HELP_STRING(
+   AS_HELP_STRING(
       [--enable-profiling],
       [compile to generate profiling information]))
 if test "x$enable_profiling" = "xyes" ; then
@@ -59,12 +59,12 @@ fi
 AC_SUBST(OCAMLNCFLAGS)
 
 AC_ARG_ENABLE([nativecode],
-   AC_HELP_STRING(
+   AS_HELP_STRING(
       [--disable-nativecode],
       [compile in bytecode]))
 
 AC_ARG_ENABLE([custom],
-   AC_HELP_STRING(
+   AS_HELP_STRING(
       [--disable-custom],
       [disable custom mode for bytecode compilation (use if you know what you are doing)]))
 
