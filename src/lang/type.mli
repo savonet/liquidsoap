@@ -119,6 +119,9 @@ val eq : t -> t -> bool
 (** Find all variables satisfying a predicate. *)
 val filter_vars : (var -> bool) -> t -> var list
 
+(** Maximal level occurring in a type. *)
+val max_level : t -> int
+
 (** Add a method to a type. *)
 val meth :
   ?pos:pos -> ?json_name:string -> string -> scheme -> ?doc:string -> t -> t

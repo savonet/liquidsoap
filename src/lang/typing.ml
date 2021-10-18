@@ -370,23 +370,16 @@ let rec ( <: ) =
     else (
       match (a.descr, b.descr) with
         | Var v, Var v' when var_eq v v' -> ()
-        | _, Var ({ contents = Link (Covariant, b') } as var) ->
-            (* When the variable is covariant, we take the opportunity here to correct
-               bad choices. For instance, if we took int, but then have a 'a?, we
-               change our mind and use int? instead. *)
-            let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
-            (try b' <: b''
-             with _ ->
-               failwith
-                 (Printf.sprintf "sup did to increase: %s !< %s"
-                    (Type.to_string b') (Type.to_string b'')));
-            if b'' != b' then var := Link (Covariant, b'');
-            a <: b''
-        | Var ({ contents = Link (Covariant, a') } as var), _ ->
-            var := Link (Invariant, a');
-            a <: b
-        | _, Var { contents = Link (_, b) } -> a <: b
-        | Var { contents = Link (_, a) }, _ -> a <: b
+        | Var v, _ ->
+            if max_level b > v.level then failwith "TODO";
+            if not (List.exists (Type.eq b) v.upper) then
+              v.upper <- b :: v.upper;
+            List.iter (fun a -> a <: b) v.lower
+        | _, Var v ->
+            if max_level a > v.level then failwith "TODO";
+            if not (List.exists (Type.eq a) v.lower) then
+              v.lower <- a :: v.lower;
+            List.iter (fun b -> a <: b) v.upper
         | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
             let rec aux pre p1 p2 =
               match (p1, p2) with
@@ -421,6 +414,8 @@ let rec ( <: ) =
         | Nullable t1, Nullable t2 -> (
             try t1 <: t2
             with Error (a, b) -> raise (Error (`Nullable a, `Nullable b)))
+        | _, Nullable t2 -> (
+            try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
         | Tuple l, Tuple m ->
             if List.length l <> List.length m then (
               let l = List.map (fun _ -> `Ellipsis) l in
@@ -508,22 +503,6 @@ let rec ( <: ) =
         | Arrow ([], t1), Getter t2 -> (
             try t1 <: t2
             with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
-        | Var { contents = Free _ }, _ -> (
-            try bind a b
-            with Occur_check _ | Unsatisfied_constraint _ ->
-              (* Can't do more concise than a full representation, as the problem
-                 isn't local. *)
-              raise (Error (Repr.make a, Repr.make b)))
-        | _, Var { contents = Free v }
-        (* Force dropping the methods when we have constraints (see #1496) unless
-           we are comparing records (see #1930). *)
-          when (not (has_meth a))
-               || v.constraints = [] || (demeth a).descr = unit -> (
-            try bind ~variance:Covariant b a
-            with Occur_check _ | Unsatisfied_constraint _ ->
-              raise (Error (Repr.make a, Repr.make b)))
-        | _, Nullable t2 -> (
-            try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
         | ( Meth ({ meth = l; scheme = g1, t1 }, u1),
             Meth ({ meth = l'; scheme = g2, t2 }, u2) )
           when l = l' -> (
@@ -564,7 +543,7 @@ let rec ( <: ) =
             with Not_found -> (
               let a' = demeth a in
               match a'.descr with
-                | Var { contents = Free _ } ->
+                | Var _ ->
                     a'
                     <: make
                          (Meth
@@ -589,7 +568,7 @@ let rec ( <: ) =
             let filter () =
               let already = ref false in
               function
-              | { descr = Var { contents = Link _ }; _ } -> false
+              | { descr = Var _; _ } -> false
               | _ ->
                   let x = !already in
                   already := true;

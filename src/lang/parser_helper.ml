@@ -79,7 +79,7 @@ let gen_args_of ~only ~except ~pos get_args name =
 let args_of, app_of =
   let rec get_args ~pos t args =
     let get_arg_type t name =
-      match (Type.deref t).Type.descr with
+      match t.Type.descr with
         | Type.Arrow (l, _) ->
             let _, _, t = List.find (fun (_, n, _) -> n = name) l in
             t
@@ -103,19 +103,15 @@ let args_of, app_of =
       args
   and term_of_value ~pos t ({ Value.value } as v) =
     let get_list_type () =
-      match (Type.deref t).Type.descr with
-        | Type.(List { t }) -> t
-        | _ -> assert false
+      match t.Type.descr with Type.(List { t }) -> t | _ -> assert false
     in
     let get_tuple_type pos =
-      match (Type.deref t).Type.descr with
+      match t.Type.descr with
         | Type.Tuple t -> List.nth t pos
         | _ -> assert false
     in
     let get_meth_type () =
-      match (Type.deref t).Type.descr with
-        | Type.Meth (_, t) -> t
-        | _ -> assert false
+      match t.Type.descr with Type.Meth (_, t) -> t | _ -> assert false
     in
     let term =
       match value with

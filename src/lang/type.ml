@@ -271,9 +271,23 @@ let filter_vars f t =
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
-      | Var v -> if f v && not (List.exists (var_eq v) l) then v :: l else l
+      | Var v ->
+          let l = if f v && not (List.exists (var_eq v) l) then v :: l else l in
+          let l = List.fold_left aux l v.lower in
+          let l = List.fold_left aux l v.upper in
+          l
   in
   aux [] t
+
+let max_level t =
+  let l = ref (-1) in
+  ignore
+    (filter_vars
+       (fun v ->
+         l := max !l v.level;
+         false)
+       t);
+  !l
 
 let rec invokes t = function
   | l :: ll ->

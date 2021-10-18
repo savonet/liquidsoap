@@ -57,7 +57,7 @@ let strict = ref false
 
 let throw print_error = function
   (* Warnings *)
-  | Term.Ignored tm when Term.is_fun (Type.deref tm.Term.t) ->
+  | Term.Ignored tm when Term.is_fun tm.Term.t ->
       flush_all ();
       warning_header 1 (Repr.string_of_pos_opt tm.Term.t.Type.pos);
       Format.printf
@@ -65,7 +65,7 @@ let throw print_error = function
          arguments are missing.@]@."
         (Type.to_string tm.Term.t);
       if !strict then raise Error
-  | Term.Ignored tm when Term.is_source (Type.deref tm.Term.t) ->
+  | Term.Ignored tm when Term.is_source tm.Term.t ->
       flush_all ();
       warning_header 2 (Repr.string_of_pos_opt tm.Term.t.Type.pos);
       Format.printf

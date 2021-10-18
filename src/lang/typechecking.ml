@@ -71,15 +71,14 @@ let rec type_of_pat ~level ~pos = function
   | PList (l, spread, l') ->
       let fold_env l ty =
         List.fold_left
-          (fun (env, ty, ety) p ->
+          (fun (env, ety) p ->
             let env', ty' = type_of_pat ~level ~pos p in
-            let ty = Typing.sup ~pos ty ty' in
-            (env' @ env, ty, ty' :: ety))
-          ([], ty, []) l
+            (env' @ env, ty' :: ety))
+          ([], []) l
       in
       let ty = Type.var ~level ?pos () in
-      let env, ty, ety = fold_env l ty in
-      let env', ty, ety' = fold_env l' ty in
+      let env, ety = fold_env l ty in
+      let env', ety' = fold_env l' ty in
       let spread_env =
         match spread with
           | None -> []
@@ -204,7 +203,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     | Invoke (a, l) ->
         check ~level ~env a;
         let rec aux t =
-          match (Type.deref t).Type.descr with
+          match t.Type.descr with
             | Type.(Meth ({ meth = l'; scheme = generalized, b }, c)) ->
                 if l = l' then Typing.instantiate ~level ~generalized b
                 else aux c
@@ -232,7 +231,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~level ~env a;
         a.t <: mk Type.unit;
         let rec aux env t =
-          match (Type.deref t).Type.descr with
+          match t.Type.descr with
             | Type.(Meth ({ meth = l; scheme = g, u }, t)) ->
                 aux ((l, (g, u)) :: env) t
             | _ -> env
@@ -352,7 +351,7 @@ let check ?(ignored = false) ~throw e =
   try
     let env = Environment.default_typing_environment () in
     check ~print_toplevel ~throw ~level:0 ~env e;
-    if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
+    if print_toplevel && e.t.Type.descr <> Type.unit then
       add_task (fun () ->
           Format.printf "@[<2>-     :@ %a@]@." Repr.print_type e.t);
     if ignored && not (can_ignore e.t) then throw (Ignored e);

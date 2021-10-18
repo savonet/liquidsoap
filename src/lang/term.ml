@@ -123,7 +123,6 @@ let kind_t ?pos kind =
              })
 
 let of_frame_kind_t t =
-  let t = Type.deref t in
   match t.Type.descr with
     | Type.Constr
         {
@@ -131,11 +130,13 @@ let of_frame_kind_t t =
           Type.params = [(_, audio); (_, video); (_, midi)];
         } ->
         { Frame.audio; video; midi }
-    | Type.Var ({ contents = Type.Free _ } as var) ->
+    | Type.Var var ->
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
-        var := Type.Link (Type.Invariant, frame_kind_t audio video midi);
+        let k = frame_kind_t audio video midi in
+        var.lower <- k :: var.lower;
+        var.upper <- k :: var.upper;
         { Frame.audio; video; midi }
     | _ -> assert false
 
@@ -155,7 +156,7 @@ let source_t ?pos k =
 let source_methods_t = ref (fun () : Type.t -> assert false)
 
 let of_source_t t =
-  match (Type.deref t).Type.descr with
+  match t.Type.descr with
     | Type.Constr { Type.constructor = "source"; Type.params = [(_, t)] } -> t
     | _ -> assert false
 
@@ -515,15 +516,14 @@ let free_vars ?(bound = []) body =
   Vars.diff (free_vars body) (Vars.of_list bound)
 
 (** Values which can be ignored (and will thus not raise a warning if
-   ignored). *)
+    ignored). *)
 let can_ignore t =
   match (Type.demeth t).Type.descr with
     | Type.Tuple [] | Type.Var _ -> true
     | _ -> false
 
 (* TODO: what about functions with methods? *)
-let is_fun t =
-  match (Type.deref t).Type.descr with Type.Arrow _ -> true | _ -> false
+let is_fun t = match t.Type.descr with Type.Arrow _ -> true | _ -> false
 
 let is_source t =
   match (Type.demeth t).Type.descr with
