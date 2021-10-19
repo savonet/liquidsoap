@@ -34,14 +34,7 @@ type pos = Lexing.position * Lexing.position
 
 type variance = Covariant | Contravariant | Invariant
 type ground = ..
-
-type ground +=
-  | Bool
-  | Int
-  | String
-  | Float
-  | Request
-  | Format of Frame_content.format
+type ground += Bool | Int | String | Float | Format of Frame_content.format
 
 val register_ground_printer : (ground -> string option) -> unit
 val string_of_ground : ground -> string

@@ -44,14 +44,7 @@ type pos = Runtime_error.pos
 (** Ground types *)
 
 type ground = ..
-
-type ground +=
-  | Bool
-  | Int
-  | String
-  | Float
-  | Request
-  | Format of Frame_content.format
+type ground += Bool | Int | String | Float | Format of Frame_content.format
 
 let ground_printers = Queue.create ()
 let register_ground_printer fn = Queue.add fn ground_printers
@@ -67,7 +60,6 @@ let () =
     | Bool -> Some "bool"
     | Int -> Some "int"
     | Float -> Some "float"
-    | Request -> Some "request"
     | Format p -> Some (Frame_content.string_of_format p)
     | _ -> None);
   register_ground_resolver (function
@@ -75,7 +67,6 @@ let () =
     | "bool" -> Some Bool
     | "int" -> Some Int
     | "float" -> Some Float
-    | "request" -> Some Request
     | _ -> None)
 
 let string_of_ground v =

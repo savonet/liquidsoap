@@ -74,7 +74,6 @@ let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t t = Term.source_t t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
-let request_t = Term.request_t ()
 let kind_t k = Term.kind_t k
 let kind_none_t = Term.kind_t Frame.none
 let empty = { Frame.audio = Frame.none; video = Frame.none; midi = Frame.none }
@@ -136,7 +135,6 @@ let rec meth v0 = function
 
 let record = meth unit
 let source s = mk (Source s)
-let request r = mk (Ground (Request r))
 let reference x = mk (Ref x)
 let val_fun p f = mk (FFI (p, [], f))
 
@@ -414,9 +412,6 @@ let to_source t =
 
 let to_format t =
   match (demeth t).value with Encoder f -> f | _ -> assert false
-
-let to_request t =
-  match (demeth t).value with Ground (Request r) -> r | _ -> assert false
 
 let to_int t =
   match (demeth t).value with Ground (Int s) -> s | _ -> assert false

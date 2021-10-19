@@ -159,8 +159,6 @@ let of_source_t t =
     | Type.Constr { Type.constructor = "source"; Type.params = [(_, t)] } -> t
     | _ -> assert false
 
-let request_t ?pos () = Type.make ?pos (Type.Ground Type.Request)
-
 let type_of_format ~pos f =
   let kind = Encoder.kind_of_format f in
   let audio = kind_t ~pos kind.Frame.audio in
@@ -210,12 +208,7 @@ module Ground = struct
   let to_type (v : t) = (find v).typ
   let compare (v : t) = (find v).compare
 
-  type t +=
-    | Bool of bool
-    | Int of int
-    | String of string
-    | Float of float
-    | Request of Request.t
+  type t += Bool of bool | Int of int | String of string | Float of float
 
   let () =
     register (function
@@ -261,23 +254,6 @@ module Ground = struct
               compare;
               typ = Type.Float;
             }
-      | Request r ->
-          let descr () = Printf.sprintf "<request(id=%d)>" (Request.get_id r) in
-          let to_json () =
-            raise
-              (Runtime_error
-                 {
-                   kind = "json";
-                   msg = "Requests cannot be represented as json";
-                   pos = [];
-                 })
-          in
-          let compare = function
-            | Request r' ->
-                Stdlib.compare (Request.get_id r) (Request.get_id r')
-            | _ -> assert false
-          in
-          Some { descr; compare; to_json; typ = Type.Request }
       | _ -> None)
 end
 

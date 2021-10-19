@@ -178,7 +178,6 @@ val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_source : value -> Source.source
 val to_format : value -> Encoder.format
-val to_request : value -> Request.t
 val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_num : value -> [ `Int of int | `Float of float ]
@@ -216,7 +215,6 @@ val list_t : t -> t
 val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
-val request_t : t
 val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t
@@ -248,7 +246,6 @@ val string : string -> value
 val list : value list -> value
 val null : value
 val source : Source.source -> value
-val request : Request.t -> value
 val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
