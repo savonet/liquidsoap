@@ -142,6 +142,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
       q = s.queue()
       s.set_queue([])
       list.iter(request.destroy, q)
+      ignore(s.fetch())
     end
   end
 
