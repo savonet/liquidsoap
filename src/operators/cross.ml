@@ -41,7 +41,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
       Child_support.base ~check_self_sync:true [val_source] as child_support
 
     initializer Kind.unify s#kind kind
-    method stype = Source.Fallible
+    method stype = `Fallible
 
     (* This is complicated. crossfade should never be used with [self_sync]
      * sources but we do not have a static way of knowing it at the moment.

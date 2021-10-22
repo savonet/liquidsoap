@@ -152,7 +152,7 @@ class audio_input ~pass_metadata ~bufferize kind =
       output <- Some v
 
     method self_sync = (`Static, false)
-    method stype = Source.Fallible
+    method stype = `Fallible
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
@@ -256,7 +256,7 @@ class video_input ~pass_metadata ~bufferize ~fps kind =
       output <- Some v
 
     method self_sync = (`Static, false)
-    method stype = Source.Fallible
+    method stype = `Fallible
     method remaining = Generator.remaining generator
 
     method private flush_buffer =

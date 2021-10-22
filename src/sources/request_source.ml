@@ -42,7 +42,7 @@ class once ~kind ~name ~timeout request =
   object (self)
     inherit source kind ~name as super
     method self_sync = (`Static, false)
-    method stype = Fallible
+    method stype = `Fallible
 
     (* True means that the request has already been played or could not be
        resolved. *)
@@ -268,7 +268,7 @@ let priority = Tutils.Maybe_blocking
 class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
   object (self)
     inherit unqueued ~kind ~name as super
-    method stype = Fallible
+    method stype = `Fallible
     method virtual get_next_request : Request.t option
     val qlock = Mutex.create ()
     val retrieved : queue_item Queue.t = Queue.create ()

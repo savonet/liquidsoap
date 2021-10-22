@@ -28,10 +28,7 @@ class virtual source ?name ~seek kind duration =
   let track_size = Option.map Frame.main_of_seconds duration in
   object (self)
     inherit Source.source ?name kind
-
-    method stype =
-      if track_size = None then Source.Infallible else Source.Fallible
-
+    method stype = if track_size = None then `Infallible else `Fallible
     val mutable remaining = track_size
     method is_ready = remaining <> Some 0
     method seek x = if seek then x else 0

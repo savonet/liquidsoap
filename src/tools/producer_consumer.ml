@@ -27,9 +27,7 @@ module Generator = Generator.From_audio_video
     may have different content-kind when this is used in the muxers. *)
 class producer ~check_self_sync ~consumers_val ~name ~kind g =
   let consumers = List.map Lang.to_source consumers_val in
-  let infallible =
-    List.for_all (fun s -> s#stype = Source.Infallible) consumers
-  in
+  let infallible = List.for_all (fun s -> s#stype = `Infallible) consumers in
   let self_sync_type = Utils.self_sync_type consumers in
   object (self)
     inherit Source.source kind ~name as super
@@ -39,7 +37,7 @@ class producer ~check_self_sync ~consumers_val ~name ~kind g =
       ( Lazy.force self_sync_type,
         List.fold_left (fun cur s -> cur || snd s#self_sync) false consumers )
 
-    method stype = if infallible then Source.Infallible else Source.Fallible
+    method stype = if infallible then `Infallible else `Fallible
 
     method remaining =
       match List.fold_left (fun r p -> min r p#remaining) (-1) consumers with
@@ -94,7 +92,7 @@ let write_to_buffer ~content g = function
 
 class consumer ~write_frame ~name ~kind ~source () =
   let s = Lang.to_source source in
-  let infallible = s#stype = Source.Infallible in
+  let infallible = s#stype = `Infallible in
   let noop () = () in
   object
     inherit

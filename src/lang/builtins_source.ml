@@ -71,8 +71,7 @@ let () =
     ~descr:"Indicate if a source may fail, i.e. may not be ready to stream."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
-    (fun p ->
-      Lang.bool ((Lang.to_source (List.assoc "" p))#stype == Source.Fallible))
+    (fun p -> Lang.bool ((Lang.to_source (List.assoc "" p))#stype == `Fallible))
 
 let () =
   Lang.add_builtin "source.is_ready" ~category:`Liquidsoap

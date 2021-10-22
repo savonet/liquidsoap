@@ -23,7 +23,7 @@
 class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
   object (self)
     inherit Source.source ~name:"source.dynamic" kind
-    method stype = if infallible then Source.Infallible else Source.Fallible
+    method stype = if infallible then `Infallible else `Fallible
     val mutable activation = []
 
     (* The dynamic stuff: #select calls the selection function and changes

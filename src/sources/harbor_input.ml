@@ -85,7 +85,7 @@ module Make (Harbor : T) = struct
           =
         login
 
-      method stype = Source.Fallible
+      method stype = `Fallible
       method icy_charset = icy_charset
       method meta_charset = meta_charset
 

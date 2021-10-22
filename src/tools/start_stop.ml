@@ -72,7 +72,7 @@ class virtual active_source ?get_clock ~name ~content_kind ~clock_safe
   object (self)
     inherit Source.active_source ~name content_kind as super
     inherit base ~on_start ~on_stop as base
-    method stype = if fallible then Source.Fallible else Source.Infallible
+    method stype = if fallible then `Fallible else `Infallible
     method private wake_up _ = if autostart then base#transition_to `Started
     method private sleep = base#transition_to `Stopped
     method is_ready = state = `Started
@@ -160,7 +160,7 @@ let meth :
         "Ask the source or output to stop.",
         fun s ->
           val_fun [] (fun _ ->
-              if s#stype = Source.Infallible then
+              if s#stype = `Infallible then
                 raise
                   Term.(
                     Runtime_error

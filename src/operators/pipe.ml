@@ -141,7 +141,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
     val mutable handler = None
     val to_write = Queue.create ()
-    method stype = Source.Fallible
+    method stype = `Fallible
 
     method private get_handler =
       match handler with Some h -> h | None -> raise Process_handler.Finished

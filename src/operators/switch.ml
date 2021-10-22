@@ -341,10 +341,10 @@ class lang_switch ~kind ~override_meta ~all_predicates ~transition_length mode
       if
         List.exists
           (fun (d, single, s) ->
-            s.source#stype = Infallible && (not single) && trivially_true d)
+            s.source#stype = `Infallible && (not single) && trivially_true d)
           children
-      then Infallible
-      else Fallible
+      then `Infallible
+      else `Fallible
   end
 
 let () =

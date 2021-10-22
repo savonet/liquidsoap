@@ -23,7 +23,7 @@
 class fail ~kind name =
   object
     inherit Source.source ~name kind
-    method stype = Source.Fallible
+    method stype = `Fallible
     method is_ready = false
     method self_sync = (`Static, false)
     method remaining = 0

@@ -55,7 +55,7 @@ let note_of_char c = array_index c + 72
 class keyboard ~kind =
   object (self)
     inherit Source.active_source ~name:"input.keyboard" kind
-    method stype = Source.Infallible
+    method stype = `Infallible
     method is_ready = true
     method remaining = -1
     method abort_track = ()

@@ -44,9 +44,9 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
     val sources = List.rev sources
 
     method stype =
-      if List.exists (fun (_, s) -> s#stype = Infallible) sources then
-        Infallible
-      else Fallible
+      if List.exists (fun (_, s) -> s#stype = `Infallible) sources then
+        `Infallible
+      else `Fallible
 
     method self_sync =
       ( Lazy.force self_sync_type,

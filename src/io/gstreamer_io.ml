@@ -477,7 +477,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
     method pause_cmd = self#set_state Element.State_paused
     method play_cmd = self#set_state Element.State_playing
     method restart_cmd = self#restart
-    method stype = Source.Fallible
+    method stype = `Fallible
     method remaining = -1
 
     (* Source is ready when ready = true and gst has some audio or some video. *)

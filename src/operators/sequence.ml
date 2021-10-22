@@ -38,7 +38,7 @@ class sequence ~kind ?(merge = false) sources =
         match sources with hd :: _ -> snd hd#self_sync | [] -> false )
 
     method stype =
-      match List.rev sources with hd :: _ -> hd#stype | [] -> Source.Fallible
+      match List.rev sources with hd :: _ -> hd#stype | [] -> `Fallible
 
     method private wake_up activation =
       List.iter

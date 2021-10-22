@@ -623,7 +623,7 @@ let source_methods =
     ( "fallible",
       ([], bool_t),
       "Indicate if a source may fail, i.e. may not be ready to stream.",
-      fun s -> bool (s#stype = Source.Fallible) );
+      fun s -> bool (s#stype = `Fallible) );
     ( "shutdown",
       ([], fun_t [] unit_t),
       "Deactivate a source.",

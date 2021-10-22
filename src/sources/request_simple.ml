@@ -76,7 +76,7 @@ class unqueued ~kind ~timeout request =
       if String.length filename < 15 then self#set_id filename;
       super#wake_up x
 
-    method stype = Infallible
+    method stype = `Infallible
     method get_next_file = Some request
   end
 

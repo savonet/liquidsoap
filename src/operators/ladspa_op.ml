@@ -71,7 +71,7 @@ class virtual base ~kind source =
 class virtual base_nosource ~kind =
   object
     inherit source ~name:"ladspa" kind
-    method stype = Infallible
+    method stype = `Infallible
     method is_ready = true
     method self_sync = (`Static, false)
     val mutable must_fail = false

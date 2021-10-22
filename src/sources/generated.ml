@@ -142,7 +142,7 @@ module Make (Generator : Generator.S) = struct
     object
       inherit Source.source ~name:"buffer" kind
       inherit source generator ~bufferize:0. ~empty_on_abort:true
-      method stype = Source.Fallible
+      method stype = `Fallible
     end
 end
 

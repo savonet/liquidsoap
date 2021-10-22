@@ -47,7 +47,7 @@ class virtual base ~kind source =
 class virtual base_nosource ~kind =
   object
     inherit source ~name:"lilv" kind
-    method stype = Infallible
+    method stype = `Infallible
     method is_ready = true
     val mutable must_fail = false
     method abort_track = must_fail <- true

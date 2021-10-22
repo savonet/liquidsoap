@@ -48,7 +48,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     initializer
     (* This should be done before the active_operator initializer
      * attaches us to a clock. *)
-    if infallible && source#stype <> Infallible then
+    if infallible && source#stype <> `Infallible then
       raise (Error.Invalid_value (val_source, "That source is fallible"))
 
     inherit active_operator ~name:output_kind content_kind [source] as super
@@ -57,7 +57,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     method virtual private stop : unit
     method virtual private send_frame : Frame.t -> unit
     method self_sync = source#self_sync
-    method stype = if infallible then Source.Infallible else Source.Fallible
+    method stype = if infallible then `Infallible else `Fallible
 
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)

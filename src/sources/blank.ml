@@ -32,7 +32,7 @@ class blank ~kind duration =
     val mutable remaining = ticks
 
     method remaining = remaining
-    method stype = Infallible
+    method stype = `Infallible
     method is_ready = true
     method self_sync = (`Static, false)
     method seek x = x

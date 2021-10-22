@@ -37,7 +37,7 @@ class max_duration ~kind ~override_meta ~duration source =
       s#get_ready activation
 
     method private sleep = s#leave (self :> Source.operator)
-    method stype = Source.Fallible
+    method stype = `Fallible
     method is_ready = remaining > 0 && s#is_ready
     method abort_track = s#abort_track
 

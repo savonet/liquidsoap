@@ -38,7 +38,7 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
     (** The header was already read. *)
     val mutable header_read = false
 
-    method stype = Source.Fallible
+    method stype = `Fallible
 
     method wake_up _ =
       let on_stdout reader =

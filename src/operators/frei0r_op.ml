@@ -84,8 +84,8 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
 
     method stype =
       match (source#stype, source2#stype) with
-        | Infallible, Infallible -> Infallible
-        | _ -> Fallible
+        | `Infallible, `Infallible -> `Infallible
+        | _ -> `Fallible
 
     method remaining =
       match (source#remaining, source2#remaining) with
@@ -157,7 +157,7 @@ class frei0r_source ~kind ~name bgra instance params =
   let dt = 1. /. float fps in
   object
     inherit source ~name:("frei0r." ^ name) kind
-    method stype = Infallible
+    method stype = `Infallible
     method is_ready = true
     method self_sync = (`Static, false)
     val mutable must_fail = false

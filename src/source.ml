@@ -44,7 +44,7 @@
   * Don't mess with this, type errors will give you a hard time!
   * (By the way, there's no problem of scope escaping for class type
   *  since those are structural, not nominal like a variant type.) *)
-type source_t = Fallible | Infallible
+type source_t = [ `Fallible | `Infallible ]
 
 (** {1 Proto clocks} 
   *

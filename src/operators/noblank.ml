@@ -115,7 +115,7 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
      *  - keep pulling data from the source during those times. *)
     inherit active_operator ~name:"blank.strip" kind [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
-    method stype = Fallible
+    method stype = `Fallible
     method is_ready = (not self#is_blank) && source#is_ready
     method remaining = if self#is_blank then 0 else source#remaining
     method seek n = if self#is_blank then 0 else source#seek n
@@ -160,7 +160,7 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
 
     val mutable stripping = false
     val mutable beginning = true
-    method stype = Fallible
+    method stype = `Fallible
     method is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
