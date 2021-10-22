@@ -186,7 +186,7 @@ let () =
           Lang.to_source (f "") )
       in
       let track_sensitive = Lang.to_bool (f "track_sensitive") in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new normalize
         ~kind ~track_sensitive src
         (fun () -> Audio.lin_of_dB (target ()))

@@ -412,7 +412,7 @@ module Make (T : T) = struct
       (** File descriptor where to dump. *)
       inherit
         Output.encoded
-          ~content_kind:(Source.Kind.of_kind kind) ~output_kind:T.source_name
+          ~content_kind:(Kind.of_kind kind) ~output_kind:T.source_name
             ~infallible ~autostart ~on_start ~on_stop ~name:mount source
 
       val mutable dump = None

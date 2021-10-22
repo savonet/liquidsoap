@@ -106,7 +106,7 @@ module type T = sig
   (* Source input *)
 
   class virtual source :
-    kind:Source.Kind.t
+    kind:Kind.t
     -> object
          inherit Source.source
 

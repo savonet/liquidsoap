@@ -482,7 +482,7 @@ let () =
       let source_val = Lang.assoc "" 2 p in
 
       let kind =
-        Source.Kind.of_kind
+        Kind.of_kind
           Frame.
             {
               (* We need to make sure that we are using a format here to
@@ -504,8 +504,7 @@ let () =
           | Source.Clock_conflict (a, b) ->
               raise (Error.Clock_conflict (pos, a, b))
           | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-          | Source.Kind.Conflict (a, b) ->
-              raise (Error.Kind_conflict (pos, a, b))
+          | Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
       in
       Queue.add s#clock graph.clocks;
 
@@ -552,7 +551,7 @@ let () =
       let graph = Graph.of_value graph_v in
 
       let kind =
-        Source.Kind.of_kind
+        Kind.of_kind
           Frame.
             {
               audio = `Kind Ffmpeg_raw_content.Audio.kind;
@@ -599,7 +598,7 @@ let () =
       let source_val = Lang.assoc "" 2 p in
 
       let kind =
-        Source.Kind.of_kind
+        Kind.of_kind
           Frame.
             {
               (* We need to make sure that we are using a format here to
@@ -621,8 +620,7 @@ let () =
           | Source.Clock_conflict (a, b) ->
               raise (Error.Clock_conflict (pos, a, b))
           | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-          | Source.Kind.Conflict (a, b) ->
-              raise (Error.Kind_conflict (pos, a, b))
+          | Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
       in
       Queue.add s#clock graph.clocks;
 
@@ -676,7 +674,7 @@ let () =
       let fps = Option.value fps ~default:Frame.video_rate in
 
       let kind =
-        Source.Kind.of_kind
+        Kind.of_kind
           Frame.
             {
               audio = none;

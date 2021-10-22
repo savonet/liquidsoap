@@ -95,5 +95,5 @@ let () =
         Frame.main_of_seconds (Lang.to_float (Lang.assoc "" 1 p))
       in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new max_duration ~kind ~override_meta ~duration s)

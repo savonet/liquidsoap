@@ -210,7 +210,7 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new output ~infallible ~on_start ~on_stop ~start ~kind p
         :> Output.output));
   Lang.add_operator "input.pulseaudio"
@@ -219,5 +219,5 @@ let () =
     ~return_t:k ~category:`Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
     (fun p ->
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new input ~kind p)

@@ -142,7 +142,7 @@ let () =
        which is played as much as available."
     ~return_t:k
     (fun p ->
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new sequence
         ~kind
         ~merge:(Lang.to_bool (List.assoc "merge" p))
@@ -159,5 +159,5 @@ let () =
        as one big track, so `on_track()` will not trigger for example."
     ~return_t:k
     (fun p ->
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))

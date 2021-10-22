@@ -215,5 +215,5 @@ let () =
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let window = Lang.to_float_getter (f "window") in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new lufs ~kind window src)

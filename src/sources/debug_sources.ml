@@ -41,7 +41,7 @@ let () =
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
     ~return_t [] (fun _ ->
-      (let kind = Source.Kind.of_kind kind in
+      (let kind = Kind.of_kind kind in
        new fail ~kind "source.fail"
         :> Source.source))
 
@@ -66,6 +66,6 @@ let () =
     ~descr:
       "A source that errors during its initialization phase, used for testing \
        and debugging." ~flags:[`Experimental] ~return_t [] (fun _ ->
-      (let kind = Source.Kind.of_kind kind in
+      (let kind = Kind.of_kind kind in
        new fail_init ~kind
         :> Source.source))

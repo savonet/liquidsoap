@@ -183,5 +183,5 @@ let register =
       let insert_missing = Lang.to_bool (Lang.assoc "insert_missing" 1 p) in
       let source = Lang.to_source (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new append ~kind ~insert_missing ~merge source f)

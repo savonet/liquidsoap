@@ -32,7 +32,7 @@ class drop ?(audio = false) ?(video = false) ?(midi = false) ~name source =
       midi = (if midi then Frame.none else `Any);
     }
   in
-  let kind = Source.Kind.of_kind kind in
+  let kind = Kind.of_kind kind in
   object
     inherit Source.operator ?audio_in ?video_in ?midi_in kind [source] ~name
 

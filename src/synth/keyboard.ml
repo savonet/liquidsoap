@@ -133,5 +133,5 @@ let () =
   Lang.add_operator "input.keyboard" [] ~return_t ~category:`Input
     ~flags:[`Hidden; `Experimental] ~descr:"Play notes from the keyboard."
     (fun _ ->
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new keyboard ~kind :> Source.source))

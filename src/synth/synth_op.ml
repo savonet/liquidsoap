@@ -95,7 +95,7 @@ let register obj name descr =
         else None
       in
       let src = Lang.to_source (f "") in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new synth ~kind (obj adsr) src chan volume :> Source.source));
   let kind =
     { Frame.audio = Frame.audio_mono; video = `Any; midi = Frame.midi_n 16 }
@@ -141,11 +141,11 @@ let register obj name descr =
       let synths =
         Array.init (Lazy.force Frame.midi_channels) (fun c ->
             ( (fun () -> 1.),
-              let kind = Source.Kind.of_kind kind in
+              let kind = Kind.of_kind kind in
               new synth ~kind (obj adsr) src c 1. ))
       in
       let synths = Array.to_list synths in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new Add.add
          ~kind
          ~renorm:(fun () -> false)

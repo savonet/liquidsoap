@@ -37,8 +37,8 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:(Source.Kind.of_kind kind)
-          ~name ~output_kind:"output.alsa" source start as super
+        ~infallible ~on_stop ~on_start ~content_kind:(Kind.of_kind kind) ~name
+          ~output_kind:"output.alsa" source start as super
 
     inherit [Frame_content.Audio.data] IoRing.output ~nb_blocks as ioring
     val mutable initialized = false

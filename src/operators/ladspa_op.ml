@@ -327,7 +327,7 @@ let register_descr plugin_name descr_n d inputs outputs =
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in
       let params = params p in
-      let output_kind = Source.Kind.of_kind output_kind in
+      let output_kind = Kind.of_kind output_kind in
       if ni = 0 then
         new ladspa_nosource ~kind:output_kind plugin_name descr_n outputs params
       else if mono then

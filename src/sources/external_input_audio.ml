@@ -117,7 +117,7 @@ let () =
         Lang.audio_params
           { Frame_content.Contents.channel_layout = lazy channel_layout }
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
       let resampler = Decoder_utils.samplerate_converter () in
       let convert =
@@ -159,7 +159,7 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new external_input
          ~kind ~restart ~bufferize ~log_overfull ~read_header ~restart_on_error
          ~max ~name:"input.external.wav" ~converter command

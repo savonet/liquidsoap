@@ -90,5 +90,5 @@ let () =
             (Error.Invalid_value (f "feedback", "feedback should be negative"));
         fun () -> Audio.lin_of_dB (feedback ())
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new echo ~kind src duration feedback pp)

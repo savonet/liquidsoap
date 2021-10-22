@@ -85,9 +85,7 @@ let note_of_char c =
 class keyboard ~kind velocity =
   let () = Sdl_utils.init [Sdl.Init.events; Sdl.Init.video] in
   object (self)
-    inherit
-      Source.active_source ~name:"input.keyboard.sdl" (Source.Kind.of_kind kind)
-
+    inherit Source.active_source ~name:"input.keyboard.sdl" (Kind.of_kind kind)
     method stype = Source.Infallible
     method is_ready = true
     method remaining = -1

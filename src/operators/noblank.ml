@@ -271,7 +271,7 @@ let () =
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new detect
         ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
         ~on_blank ~on_noise s);
@@ -289,7 +289,7 @@ let () =
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new strip
         ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s);
   Lang.add_operator "blank.eat" ~return_t ~category:`Track
@@ -313,7 +313,7 @@ let () =
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new eat
         ~kind ~at_beginning ~track_sensitive ~start_blank ~max_blank ~min_noise
         ~threshold s)

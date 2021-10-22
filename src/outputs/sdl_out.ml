@@ -34,7 +34,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
     inherit
       Output.output
         ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~on_start ~on_stop
-          ~content_kind:(Source.Kind.of_kind kind) source autostart
+          ~content_kind:(Kind.of_kind kind) source autostart
 
     val mutable fullscreen = false
     val mutable window = None

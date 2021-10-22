@@ -153,5 +153,5 @@ let () =
       let window = List.assoc "window" p |> Lang.to_float_getter in
       let window () = window () /. 1000. in
       let src = List.assoc "" p |> Lang.to_source in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new gate ~kind ~threshold ~attack ~release ~hold ~range ~window src)

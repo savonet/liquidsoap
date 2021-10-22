@@ -153,7 +153,7 @@ let register name init render_text =
         in
         let speed = speed / Lazy.force Frame.video_rate in
         let meta = if meta = "" then None else Some meta in
-        let kind = Source.Kind.of_kind kind in
+        let kind = Kind.of_kind kind in
         (new text
            ~kind init render_text ttf ttf_size color x y speed cycle meta txt
            source

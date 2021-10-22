@@ -40,7 +40,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
     inherit
       Child_support.base ~check_self_sync:true [val_source] as child_support
 
-    initializer Source.Kind.unify s#kind kind
+    initializer Kind.unify s#kind kind
     method stype = Source.Fallible
 
     (* This is complicated. crossfade should never be used with [self_sync]
@@ -494,7 +494,7 @@ let () =
       let conservative = Lang.to_bool (List.assoc "conservative" p) in
       let active = Lang.to_bool (List.assoc "active" p) in
       let source = Lang.assoc "" 2 p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       let c =
         new cross
           ~kind source transition ~conservative ~active ~cross_length ~rms_width

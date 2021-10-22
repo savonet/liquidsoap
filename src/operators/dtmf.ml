@@ -281,7 +281,7 @@ let () =
       let debug = List.assoc "debug" p |> Lang.to_bool_getter in
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let callback = Lang.assoc "" 2 p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback s
         :> Source.source))
 
@@ -409,7 +409,7 @@ let () =
       in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
       let callback = Lang.assoc "" 3 p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new detect
          ~kind ~duration ~bands ~threshold ~smoothing ~debug ~frequencies
          callback s

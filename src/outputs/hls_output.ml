@@ -421,9 +421,7 @@ class hls_output p =
     segments_per_playlist + Lang.to_int (List.assoc "segments_overhead" p)
   in
   let file_perm = Lang.to_int (List.assoc "perm" p) in
-  let kind =
-    Source.Kind.of_kind (Encoder.kind_of_format (List.hd streams).format)
-  in
+  let kind = Kind.of_kind (Encoder.kind_of_format (List.hd streams).format) in
   object (self)
     inherit
       Output.encoded

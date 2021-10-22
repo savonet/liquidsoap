@@ -79,5 +79,5 @@ let () =
           Lang.to_float_getter (f "feedback"),
           Lang.to_source (f "") )
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new comb ~kind src duration (fun () -> Audio.lin_of_dB (feedback ())))

@@ -29,7 +29,7 @@ open Producer_consumer
 let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   let g = Generator.create `Both in
   let main_kind =
-    Source.Kind.of_kind
+    Kind.of_kind
       Frame.
         {
           audio = (if main_content = `Audio then `Any else none);
@@ -49,7 +49,7 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
       ~name:main_output_kind ~kind:main_kind ~source:main_source ()
   in
   let aux_kind =
-    Source.Kind.of_kind
+    Kind.of_kind
       Frame.
         {
           audio = (if aux_content = `Audio then `Any else none);
@@ -84,10 +84,9 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
       ~check_self_sync:false
       ~consumers_val:
         (List.map (fun c -> Lang.source (c :> Source.source)) [main; aux])
-      ~kind:(Source.Kind.of_kind Lang.any)
-      ~name g
+      ~kind:(Kind.of_kind Lang.any) ~name g
   in
-  Source.Kind.unify muxed_kind producer#kind;
+  Kind.unify muxed_kind producer#kind;
   producer
 
 let () =

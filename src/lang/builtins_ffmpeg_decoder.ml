@@ -519,16 +519,13 @@ let mk_encoder mode =
       let consumer =
         new Producer_consumer.consumer
           ~write_frame:decode_frame ~name:(id ^ ".consumer")
-          ~kind:(Source.Kind.of_kind source_kind)
-          ~source ()
+          ~kind:(Kind.of_kind source_kind) ~source ()
       in
       new Producer_consumer.producer
       (* We are expecting real-rate with a couple of hickups.. *)
         ~check_self_sync:false
         ~consumers_val:[Lang.source (consumer :> Source.source)]
-        ~name:(id ^ ".producer")
-        ~kind:(Source.Kind.of_kind return_kind)
-        generator)
+        ~name:(id ^ ".producer") ~kind:(Kind.of_kind return_kind) generator)
 
 let () =
   List.iter mk_encoder

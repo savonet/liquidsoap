@@ -37,7 +37,7 @@ class basic source =
     inherit
       Source.operator
         ~audio_in:Frame.audio_pcm
-        (Source.Kind.of_kind Lang.audio_stereo)
+        (Kind.of_kind Lang.audio_stereo)
         [source] ~name:"audio_to_stereo"
 
     inherit

@@ -114,5 +114,5 @@ let () =
           | "high" -> High_pass
           | _ -> raise (Error.Invalid_value (mode, "valid values are low|high"))
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new filter ~kind src freq wet mode :> Source.source))

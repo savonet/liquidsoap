@@ -318,7 +318,7 @@ let register_plugin fname =
       in
       let f v = List.assoc v p in
       let params = params instance p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       if inputs = 1 then (
         let source = Lang.to_source (f "") in
         new frei0r_filter ~kind ~name bgra instance params source)

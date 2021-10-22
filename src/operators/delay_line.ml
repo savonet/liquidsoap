@@ -88,5 +88,5 @@ let () =
     (fun p ->
       let duration = Lang.assoc "" 1 p |> Lang.to_float_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new delay ~kind s duration)

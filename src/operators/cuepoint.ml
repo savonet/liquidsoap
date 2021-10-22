@@ -226,5 +226,5 @@ let () =
       let on_cue_out = Lang.assoc "on_cue_out" 1 p in
       let on_cue_out () = ignore (Lang.apply on_cue_out []) in
       let s = Lang.assoc "" 1 p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out s)

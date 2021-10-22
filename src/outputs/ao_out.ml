@@ -159,7 +159,7 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new output
          ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
          ?channels_matrix ~options source start

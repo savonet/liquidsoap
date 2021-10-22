@@ -52,7 +52,7 @@ let () =
     (fun p ->
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new on_frame ~kind f s)
 
 (** Operations on frames. *)
@@ -87,7 +87,7 @@ let op name descr f_t f default =
     ~meth:[("frame_" ^ name, ([], f_t), descr, fun s -> s#value)]
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new frame_op ~name ~kind f default s)
 
 let () =

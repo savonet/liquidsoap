@@ -41,7 +41,7 @@ class audio_output ~pass_metadata ~name ~kind source_val =
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
           ~output_kind:"ffmpeg.filter.input" source_val true
 
-    initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
+    initializer Kind.unify (Lang.to_source source_val)#kind self#kind
     val mutable input = fun _ -> ()
     method set_input fn = input <- fn
     val mutable init : Avutil.audio Avutil.frame -> unit = fun _ -> assert false
@@ -88,7 +88,7 @@ class video_output ~pass_metadata ~kind ~name source_val =
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
           ~output_kind:"ffmpeg.filter.input" source_val true
 
-    initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
+    initializer Kind.unify (Lang.to_source source_val)#kind self#kind
     val mutable input : Swscale.Frame.t -> unit = fun _ -> ()
     method set_input fn = input <- fn
     val mutable init : Avutil.video Avutil.frame -> unit = fun _ -> assert false

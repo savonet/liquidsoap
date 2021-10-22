@@ -148,7 +148,7 @@ let rec eval ~env tm =
           in
           let k = of_frame_kind_t k in
           let k =
-            Source.Kind.of_kind
+            Kind.of_kind
               {
                 Frame.audio = frame_content_of_t k.Frame.audio;
                 video = frame_content_of_t k.Frame.video;
@@ -160,7 +160,7 @@ let rec eval ~env tm =
             | v -> v
           in
           match demeth v with
-            | Value.Source s -> Source.Kind.unify s#kind k
+            | Value.Source s -> Kind.unify s#kind k
             | _ ->
                 raise
                   (Internal_error

@@ -235,7 +235,7 @@ let () =
                (fmt, "Cannot get a stream encoder for that format"))
       in
       let source = Lang.assoc "" 2 p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new output
          ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
          ~encoder_factory:fmt source
@@ -278,7 +278,7 @@ let () =
                      "Cannot get a stream decoder for this MIME" ))
           | Some decoder_factory -> decoder_factory
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new input
          ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
         :> Source.source))

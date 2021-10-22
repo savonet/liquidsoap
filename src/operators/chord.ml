@@ -133,5 +133,4 @@ let () =
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let metadata = Lang.to_string (f "metadata") in
-      (new chord ~kind:(Source.Kind.of_kind Lang.any) metadata src
-        :> Source.source))
+      (new chord ~kind:(Kind.of_kind Lang.any) metadata src :> Source.source))

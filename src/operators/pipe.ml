@@ -362,7 +362,7 @@ let () =
       let data_len =
         match data_len with None -> -1 | Some v -> Lang.to_int v
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new pipe
          ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
          ~restart_on_error ~process src

@@ -136,5 +136,5 @@ let () =
       let freq_min = Lang.to_float (f "freq_min") in
       let freq_max = Lang.to_float (f "freq_max") in
       let src = Lang.to_source (f "") in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new pitch ~kind 10 length freq_min freq_max src :> Source.source))

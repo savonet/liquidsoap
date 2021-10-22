@@ -78,5 +78,5 @@ let () =
     ]
     (fun p ->
       let d = Lang.to_float (List.assoc "duration" p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new blank ~kind d :> source))

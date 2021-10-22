@@ -135,5 +135,5 @@ let () =
                 (Error.Invalid_value
                    (mode, "valid values are low|high|band|notch"))
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new filter ~kind src freq q wet mode :> Source.source))

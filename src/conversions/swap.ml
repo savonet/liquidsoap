@@ -59,5 +59,5 @@ let () =
     ~descr:"Swap two channels of a stereo source."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new swap ~kind s)

@@ -110,7 +110,7 @@ let () =
     [("", Lang.source_t return_t, None, None)]
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       let s = new insert_metadata ~kind s in
       s)
 

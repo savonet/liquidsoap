@@ -35,7 +35,7 @@ let lilv_enabled =
 
 class virtual base ~kind source =
   object
-    inherit operator ~name:"lilv" (Source.Kind.of_kind kind) [source]
+    inherit operator ~name:"lilv" (Kind.of_kind kind) [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -327,7 +327,7 @@ let register_plugin plugin =
       let params = params p in
       if ni = 0 then
         new lilv_nosource
-          ~kind:(Source.Kind.of_kind (Lang.audio_n no))
+          ~kind:(Kind.of_kind (Lang.audio_n no))
           plugin outputs params
       else if no = 0 then
         (* TODO: can we really use such a type? *)

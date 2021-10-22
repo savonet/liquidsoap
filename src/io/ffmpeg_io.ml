@@ -420,7 +420,7 @@ let register_input is_http =
       in
       let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
       let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       if is_http then (
         let timeout = Lang.to_float (List.assoc "timeout" p) in
         let user_agent = Lang.to_string (List.assoc "user_agent" p) in

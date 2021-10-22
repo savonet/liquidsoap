@@ -123,5 +123,5 @@ let () =
       let src = f "" in
       let ratio = Lang.to_float_getter (f "ratio") in
       let randomize = Lang.to_float_getter (f "randomize") in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new accelerate ~kind ~ratio ~randomize src)

@@ -126,5 +126,5 @@ let () =
       let tempo = Lang.to_float_getter (f "tempo") in
       let pitch = Lang.to_float_getter (f "pitch") in
       let s = f "" in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new soundtouch ~kind s rate tempo pitch :> Source.source))

@@ -82,5 +82,5 @@ let () =
     (fun p ->
       let duration = List.assoc "duration" p |> Lang.to_float_getter in
       let src = List.assoc "" p |> Lang.to_source in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new rms ~kind ~tau:duration src)

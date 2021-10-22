@@ -88,5 +88,5 @@ let () =
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       let o = Lang.to_option (Lang.assoc "override" 1 p) in
       let o = Option.map Lang.to_string o in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new amplify ~kind s o c)

@@ -30,7 +30,7 @@ type handler = {
 }
 
 class once :
-  kind:Source.Kind.t
+  kind:Kind.t
   -> name:string
   -> timeout:float
   -> Request.t
@@ -47,7 +47,7 @@ class once :
      end
 
 class virtual unqueued :
-  kind:Source.Kind.t
+  kind:Kind.t
   -> name:string
   -> object
        (** [get_next_file] is the only thing you've got to define,
@@ -70,7 +70,7 @@ type queue_item = {
 }
 
 class virtual queued :
-  kind:Source.Kind.t
+  kind:Kind.t
   -> name:string
   -> ?prefetch:int
   -> ?timeout:float

@@ -39,7 +39,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
       Start_stop.active_source
         ~name:"input.alsa" ~fallible ~on_start ~on_stop ~autostart:start
           ~clock_safe ~get_clock:Alsa_settings.get_clock
-          ~content_kind:(Source.Kind.of_kind kind) () as active_source
+          ~content_kind:(Kind.of_kind kind) () as active_source
 
     inherit [Frame_content.Audio.data] IoRing.input ~nb_blocks as ioring
     val mutable initialized = false

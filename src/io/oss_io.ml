@@ -43,8 +43,8 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:(Source.Kind.of_kind kind)
-          ~name ~output_kind:"output.oss" val_source start as super
+        ~infallible ~on_stop ~on_start ~content_kind:(Kind.of_kind kind) ~name
+          ~output_kind:"output.oss" val_source start as super
 
     method private set_clock =
       super#set_clock;
@@ -87,7 +87,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   object (self)
     inherit
       Start_stop.active_source
-        ~get_clock ~clock_safe ~content_kind:(Source.Kind.of_kind kind)
+        ~get_clock ~clock_safe ~content_kind:(Kind.of_kind kind)
         ~name:(Printf.sprintf "oss_in(%s)" dev)
         ~on_start ~on_stop ~fallible ~autostart:start ()
 

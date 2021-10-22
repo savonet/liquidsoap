@@ -54,7 +54,7 @@ let () =
     (fun p ->
       let timeout = List.assoc "timeout" p |> Lang.to_float in
       let r = List.assoc "" p |> Builtins_request.Value.of_value in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new once ~kind ~name:"request.once" ~timeout r)
 
 exception Invalid_URI of string
@@ -114,7 +114,7 @@ let () =
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let l, t = extract_queued_params p in
       let uri = Lang.to_string val_uri in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       if (not fallible) && Request.is_static uri then (
         let request = Request.create ~persistent:true uri in
         (new unqueued ~kind ~timeout:t request :> source))
@@ -129,7 +129,7 @@ let () =
        WARNING: if used uncarefully, it can crash your application!"
     [("", Builtins_request.Value.t, None, None)] ~return_t:t (fun p ->
       let request = Builtins_request.Value.of_value (List.assoc "" p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new unqueued ~kind ~timeout:60. request :> source))
 
 class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
@@ -276,5 +276,5 @@ let () =
       let available = Lang.to_bool_getter (List.assoc "available" p) in
       let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in
       let l, t = extract_queued_params p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new dynamic ~kind ~available ~retry_delay f l t)

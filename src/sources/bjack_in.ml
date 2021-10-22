@@ -145,7 +145,7 @@ let () =
       in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new jack_in
          ~kind ~clock_safe ~nb_blocks ~server ~fallible ~on_start ~on_stop
          ~autostart

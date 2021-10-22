@@ -176,7 +176,7 @@ let () =
           Lang.to_float_getter (f "slope"),
           Lang.to_source (f "") )
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new biquad ~kind src `Low_shelf freq param (fun () -> 0.)
         :> Source.source))
 
@@ -200,7 +200,7 @@ let () =
           Lang.to_float_getter (f "slope"),
           Lang.to_source (f "") )
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new biquad ~kind src `High_shelf freq param (fun () -> 0.)
         :> Source.source))
 
@@ -221,7 +221,7 @@ let () =
           Lang.to_float_getter (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new biquad ~kind src `Low_pass freq param (fun () -> 0.)
         :> Source.source))
 
@@ -242,7 +242,7 @@ let () =
           Lang.to_float_getter (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new biquad ~kind src `High_pass freq param (fun () -> 0.)
         :> Source.source))
 
@@ -263,7 +263,7 @@ let () =
           Lang.to_float_getter (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new biquad ~kind src `Band_pass freq param (fun () -> 0.)
         :> Source.source))
 
@@ -287,7 +287,7 @@ let () =
           Lang.to_float_getter (f "bandwidth"),
           Lang.to_source (f "") )
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new biquad ~kind src `All_pass freq param (fun () -> 0.)
         :> Source.source))
 
@@ -308,7 +308,7 @@ let () =
           Lang.to_float_getter (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new biquad ~kind src `Notch freq param (fun () -> 0.) :> Source.source))
 
 let () =
@@ -333,5 +333,5 @@ let () =
           Lang.to_float_getter (f "gain"),
           Lang.to_source (f "") )
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new biquad ~kind src `Peaking freq param gain :> Source.source))

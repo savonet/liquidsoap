@@ -69,7 +69,7 @@ class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
              match s with
                | None -> ()
                | Some s ->
-                   Source.Kind.unify s#kind self#kind;
+                   Kind.unify s#kind self#kind;
                    Clock.unify s#clock self#clock;
                    s#get_ready activation;
                    self#unregister_source ~already_locked:true;
@@ -177,7 +177,7 @@ let () =
       let resurection_time =
         List.assoc "resurection_time" p |> Lang.to_valued_option Lang.to_float
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new dyn
         ~kind ~init ~track_sensitive ~infallible ~resurection_time
         (List.assoc "" p))

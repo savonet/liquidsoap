@@ -118,5 +118,5 @@ let () =
       let f v = List.assoc v p in
       let src = f "" in
       let ratio = Lang.to_float_getter (f "ratio") in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new resample ~kind ~ratio src)

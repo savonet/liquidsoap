@@ -80,5 +80,5 @@ let () =
       let delay = Lang.to_float_getter (List.assoc "delay" p) in
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new on_end ~kind ~delay f s)

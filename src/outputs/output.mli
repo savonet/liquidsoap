@@ -26,7 +26,7 @@
 val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
-  content_kind:Source.Kind.t
+  content_kind:Kind.t
   -> output_kind:string
   -> ?name:string
   -> infallible:bool
@@ -36,35 +36,20 @@ class virtual output :
   -> bool
   -> object
        inherit Source.active_source
-
        method stype : Source.source_t
-
        method self_sync : Source.self_sync
-
        method remaining : int
-
        method output : unit
-
        method private get_frame : Frame.t -> unit
-
        method abort_track : unit
-
        method is_ready : bool
-
        method state : Start_stop.state
-
        method transition_to : Start_stop.state -> unit
-
        method private add_metadata : Request.metadata -> unit
-
        method private metadata_queue : Request.metadata Queue.t
-
        method private reset : unit
-
        method virtual private send_frame : Frame.t -> unit
-
        method virtual private start : unit
-
        method virtual private stop : unit
      end
 
@@ -72,7 +57,7 @@ class virtual output :
 val meth : (string * Lang.scheme * string * (output -> Lang.value)) list
 
 class virtual encoded :
-  content_kind:Source.Kind.t
+  content_kind:Kind.t
   -> output_kind:string
   -> name:string
   -> infallible:bool
@@ -82,20 +67,15 @@ class virtual encoded :
   -> Lang.value
   -> object
        inherit output
-
        method private send_frame : Frame.t -> unit
-
        method virtual private encode : Frame.t -> int -> int -> 'a
 
        method virtual private insert_metadata :
          Meta_format.export_metadata -> unit
 
        method virtual private send : 'a -> unit
-
        method private reset : unit
-
        method virtual private start : unit
-
        method virtual private stop : unit
      end
 
@@ -104,16 +84,12 @@ class dummy :
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> autostart:bool
-  -> kind:Source.Kind.t
+  -> kind:Kind.t
   -> Lang.value
   -> object
        inherit output
-
        method private reset : unit
-
        method private start : unit
-
        method private stop : unit
-
        method private send_frame : Frame.t -> unit
      end

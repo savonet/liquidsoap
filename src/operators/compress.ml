@@ -247,7 +247,7 @@ let () =
       let window = List.assoc "window" p |> Lang.to_float_getter in
       let wet = List.assoc "wet" p |> Lang.to_float_getter in
       let s = List.assoc "" p |> Lang.to_source in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new compress
         ~kind ~attack ~release ~lookahead ~ratio ~knee ~threshold
         ~track_sensitive ~pre_gain ~make_up_gain ~window ~wet s)

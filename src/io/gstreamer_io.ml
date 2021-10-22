@@ -351,7 +351,7 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new output
          ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start
          ("", Some pipeline, None)
@@ -382,7 +382,7 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new output
          ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start
          ("", None, Some pipeline)
@@ -432,7 +432,7 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new output
          ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking
          source start
@@ -714,7 +714,7 @@ let () =
       let video_pipeline =
         Lang.to_string_getter (List.assoc "video_pipeline" p)
       in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       new audio_video_input
         p kind
         (pipeline, Some audio_pipeline, Some video_pipeline))
@@ -734,7 +734,7 @@ let () =
   Lang.add_operator "input.gstreamer.audio" proto ~return_t ~category:`Input
     ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new audio_video_input p kind ((fun () -> ""), Some pipeline, None)
         :> Source.source))
 
@@ -753,6 +753,6 @@ let () =
   Lang.add_operator "input.gstreamer.video" proto ~return_t ~category:`Input
     ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new audio_video_input p kind ((fun () -> ""), None, Some pipeline)
         :> Source.source))

@@ -27,7 +27,7 @@ class mean ~normalize source =
     inherit
       operator
         ~audio_in:Frame.audio_pcm
-        (Source.Kind.of_kind Lang.audio_mono)
+        (Kind.of_kind Lang.audio_mono)
         [source] ~name:"mean"
 
     inherit

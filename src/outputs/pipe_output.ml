@@ -104,7 +104,7 @@ class url_output p =
            (format_val, "Encoding format does not support output url!"))
   in
   let format = Encoder.with_url_output format url in
-  let kind = Source.Kind.of_kind (Encoder.kind_of_format format) in
+  let kind = Kind.of_kind (Encoder.kind_of_format format) in
   let source = Lang.assoc "" 2 p in
   let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
@@ -387,7 +387,7 @@ let file_proto kind =
 let new_file_output p =
   let format_val = Lang.assoc "" 1 p in
   let format = Lang.to_format format_val in
-  let kind = Source.Kind.of_kind (Encoder.kind_of_format format) in
+  let kind = Kind.of_kind (Encoder.kind_of_format format) in
   if Encoder.file_output format then
     (new file_output_using_encoder ~format_val ~kind p :> piped_output)
   else (new file_output ~format_val ~kind p :> piped_output)
@@ -403,7 +403,7 @@ let () =
 class external_output p =
   let format_val = Lang.assoc "" 1 p in
   let format = Lang.to_format format_val in
-  let kind = Source.Kind.of_kind (Encoder.kind_of_format format) in
+  let kind = Kind.of_kind (Encoder.kind_of_format format) in
   let process = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)

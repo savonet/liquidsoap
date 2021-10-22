@@ -61,7 +61,7 @@ let add name g =
         Some ("Frequency of the " ^ name ^ ".") );
     ]
     (fun p ->
-      let kind = Source.Kind.of_kind kind in
+      let kind = Kind.of_kind kind in
       (new gen
          ~seek:true ~kind name g
          (Lang.to_float_getter (List.assoc "" p))
