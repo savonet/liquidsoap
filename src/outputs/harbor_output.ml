@@ -33,7 +33,7 @@ module Make (T : T) = struct
     type priority = Tutils.priority
 
     let scheduler = Tutils.scheduler
-    let priority = Tutils.Non_blocking
+    let priority = `Non_blocking
   end
 
   module Duppy_m = Duppy.Monad.Mutex.Factory (Mutex_control)
@@ -255,7 +255,7 @@ module Make (T : T) = struct
 
   let rec client_task c =
     let __pa_duppy_0 =
-      Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
+      Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
         (Tutils.mutexify c.mutex
            (fun () ->
              let buflen = Strings.Mutable.length c.buffer in
@@ -275,10 +275,10 @@ module Make (T : T) = struct
                  (fun () -> Duppy_m.unlock c.condition_m))
           else
             Duppy.Monad.Io.write ?timeout:(Some c.timeout)
-              ~priority:Tutils.Non_blocking c.handler (Strings.to_bytes data))
+              ~priority:`Non_blocking c.handler (Strings.to_bytes data))
           (fun () ->
             let __pa_duppy_0 =
-              Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
+              Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
                 (let ret = Tutils.mutexify c.mutex (fun () -> c.state) () in
                  Duppy.Monad.return ret)
             in
@@ -518,7 +518,7 @@ module Make (T : T) = struct
               || auth_function <> None
              then (
               let default_user = Option.value default_user ~default:"" in
-              Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
+              Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
                 (Harbor.http_auth_check ~args ~login:(default_user, login) s
                    headers))
              else Duppy.Monad.return ())
@@ -529,7 +529,7 @@ module Make (T : T) = struct
                    client.state <- Done;
                    Harbor.reply s))
           (fun () ->
-            Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
+            Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
               (Harbor.relayed reply (fun () ->
                    self#log#info "Client %s connected" ip;
                    Tutils.mutexify clients_m

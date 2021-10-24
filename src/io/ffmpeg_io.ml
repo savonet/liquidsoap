@@ -133,7 +133,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
               | Some t -> Duppy.Async.wake_up t
               | None ->
                   let t =
-                    Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
+                    Duppy.Async.add ~priority:`Blocking Tutils.scheduler
                       self#connect_fn
                   in
                   connect_task <- Some t;

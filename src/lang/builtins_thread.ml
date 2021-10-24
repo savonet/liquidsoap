@@ -54,8 +54,8 @@ let () =
       let delay = Lang.to_float (List.assoc "delay" p) in
       let f = List.assoc "" p in
       let priority =
-        if Lang.to_bool (List.assoc "fast" p) then Tutils.Maybe_blocking
-        else Tutils.Blocking
+        if Lang.to_bool (List.assoc "fast" p) then `Maybe_blocking
+        else `Blocking
       in
       let rec task delay =
         {

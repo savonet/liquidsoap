@@ -173,7 +173,7 @@ module Mutex_control = struct
   type priority = Tutils.priority
 
   let scheduler = Tutils.scheduler
-  let priority = Tutils.Non_blocking
+  let priority = `Non_blocking
 end
 
 module Duppy_m = Duppy.Monad.Mutex.Factory (Mutex_control)
@@ -298,7 +298,7 @@ let handle_client socket ip =
     let __pa_duppy_0 =
       Duppy.Monad.Io.read
         ?timeout:(Some (get_timeout ()))
-        ~priority:Tutils.Non_blocking ~marker:(Duppy.Io.Split "[\r\n]+") h
+        ~priority:`Non_blocking ~marker:(Duppy.Io.Split "[\r\n]+") h
     in
     Duppy.Monad.bind __pa_duppy_0 (fun req ->
         let rec run exec =
@@ -312,7 +312,7 @@ let handle_client socket ip =
                 Duppy.Monad.bind
                   (Duppy.Monad.Io.write
                      ?timeout:(Some (get_timeout ()))
-                     ~priority:Tutils.Non_blocking h
+                     ~priority:`Non_blocking h
                      (Bytes.of_string opts.payload))
                   (fun () ->
                     Unix.setsockopt socket Unix.TCP_NODELAY true;
@@ -321,14 +321,14 @@ let handle_client socket ip =
                 let __pa_duppy_0 =
                   Duppy.Monad.Io.read
                     ?timeout:(Some (get_timeout ()))
-                    ~priority:Tutils.Non_blocking ~marker:opts.payload h
+                    ~priority:`Non_blocking ~marker:opts.payload h
                 in
                 Duppy.Monad.bind __pa_duppy_0 (fun ret ->
                     run (fun () -> opts.after ret))
             | e -> Duppy.Monad.raise e
         in
         let __pa_duppy_0 =
-          Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
+          Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
             (run (fun () -> exec req))
         in
         Duppy.Monad.bind __pa_duppy_0 (fun ans ->
@@ -336,11 +336,11 @@ let handle_client socket ip =
               (Duppy.Monad.bind
                  (Duppy.Monad.Io.write
                     ?timeout:(Some (* "BEGIN\r\n"; *) (get_timeout ()))
-                    ~priority:Tutils.Non_blocking h (Bytes.of_string ans))
+                    ~priority:`Non_blocking h (Bytes.of_string ans))
                  (fun () ->
                    Duppy.Monad.Io.write
                      ?timeout:(Some (get_timeout ()))
-                     ~priority:Tutils.Non_blocking h
+                     ~priority:`Non_blocking h
                      (Bytes.of_string "\r\nEND\r\n")))
               (fun () -> Duppy.Monad.return ())))
   in
@@ -364,7 +364,7 @@ let handle_client socket ip =
             log#f conf_log_level#get "Client %s disconnected." ip;
             close ()
           in
-          Duppy.Io.write ~timeout:(get_timeout ()) ~priority:Tutils.Non_blocking
+          Duppy.Io.write ~timeout:(get_timeout ()) ~priority:`Non_blocking
             ~on_error ~exec Tutils.scheduler ~string:(Bytes.of_string msg)
             socket
       | _ ->
@@ -396,7 +396,7 @@ let start_socket () =
          (Printexc.to_string e));
     [
       {
-        Duppy.Task.priority = Tutils.Non_blocking;
+        Duppy.Task.priority = `Non_blocking;
         events = [`Read sock];
         handler = incoming;
       };
@@ -420,7 +420,7 @@ let start_socket () =
   Unix.chmod socket_path rights;
   Duppy.Task.add Tutils.scheduler
     {
-      Duppy.Task.priority = Tutils.Non_blocking;
+      Duppy.Task.priority = `Non_blocking;
       events = [`Read sock];
       handler = incoming;
     }
@@ -451,7 +451,7 @@ let start_telnet () =
          (Printexc.to_string e));
     [
       {
-        Duppy.Task.priority = Tutils.Non_blocking;
+        Duppy.Task.priority = `Non_blocking;
         events = [`Read sock];
         handler = incoming;
       };
@@ -465,7 +465,7 @@ let start_telnet () =
   Unix.listen sock max_conn;
   Duppy.Task.add Tutils.scheduler
     {
-      Duppy.Task.priority = Tutils.Non_blocking;
+      Duppy.Task.priority = `Non_blocking;
       events = [`Read sock];
       handler = incoming;
     }

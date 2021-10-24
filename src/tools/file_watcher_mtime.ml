@@ -40,13 +40,7 @@ let rec handler _ =
           if mtime' <> mtime then callback ();
           w.mtime <- mtime')
         !watched;
-      [
-        {
-          Duppy.Task.priority = Tutils.Maybe_blocking;
-          events = [`Delay 1.];
-          handler;
-        };
-      ])
+      [{ Duppy.Task.priority = `Maybe_blocking; events = [`Delay 1.]; handler }])
     ()
 
 let watch : File_watcher.watch =
@@ -59,7 +53,7 @@ let watch : File_watcher.watch =
           launched := true;
           Duppy.Task.add Tutils.scheduler
             {
-              Duppy.Task.priority = Tutils.Maybe_blocking;
+              Duppy.Task.priority = `Maybe_blocking;
               events = [`Delay 1.];
               handler;
             }

@@ -223,11 +223,11 @@ let create ~queue f x s =
     ()
 
 type priority =
-  | Blocking  (** For example a last.fm submission. *)
-  | Maybe_blocking  (** Request resolutions vary a lot. *)
-  | Non_blocking  (** Non-blocking tasks like the server. *)
+  [ `Blocking  (** For example a last.fm submission. *)
+  | `Maybe_blocking  (** Request resolutions vary a lot. *)
+  | `Non_blocking  (** Non-blocking tasks like the server. *) ]
 
-let scheduler = Duppy.create ()
+let scheduler : priority Duppy.scheduler = Duppy.create ()
 let started = ref false
 let started_m = Mutex.create ()
 let has_started = mutexify started_m (fun () -> !started)
@@ -263,11 +263,11 @@ let start () =
   done;
   for i = 1 to fast_queues#get do
     let name = Printf.sprintf "fast queue #%d" i in
-    new_queue ~name ~priorities:(fun x -> x = Maybe_blocking) ()
+    new_queue ~name ~priorities:(fun x -> x = `Maybe_blocking) ()
   done;
   for i = 1 to non_blocking_queues#get do
     let name = Printf.sprintf "non-blocking queue #%d" i in
-    new_queue ~priorities:(fun x -> x = Non_blocking) ~name ()
+    new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
   done;
   mutexify started_m (fun () -> started := true) ()
 
@@ -318,9 +318,9 @@ let start_forwarding () =
               split [] (j + 1)
           | _ -> String.sub buffer i (n - i) :: acc
       in
-      [task ~priority:Non_blocking (f (split acc 0))]
+      [task ~priority:`Non_blocking (f (split acc 0))]
     in
-    Duppy.Task.add scheduler (task ~priority:Maybe_blocking (f []))
+    Duppy.Task.add scheduler (task ~priority:`Maybe_blocking (f []))
   in
   forward in_stdout log_stdout;
   forward in_stderr log_stderr

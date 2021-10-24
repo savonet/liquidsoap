@@ -93,7 +93,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
                 ~samplesize)
           ();
-        `Reschedule Tutils.Non_blocking)
+        `Reschedule `Non_blocking)
       else (
         let len = pull bytes 0 Utils.pagesize in
         let data = converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
@@ -263,7 +263,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         Some
           (Process_handler.run ~on_stop:self#on_stop ~on_start:self#on_start
              ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
-             ~priority:Tutils.Blocking ~on_stderr:self#on_stderr ~log process)
+             ~priority:`Blocking ~on_stderr:self#on_stderr ~log process)
 
     method abort_track = source#abort_track
 

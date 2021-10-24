@@ -257,7 +257,7 @@ type queue_item = {
 }
 
 (* Scheduler priority for request resolutions. *)
-let priority = Tutils.Maybe_blocking
+let priority = `Maybe_blocking
 
 (** Same thing, with a queue in which we prefetch files, which requests are
     given by [get_next_request]. Heuristical settings determining how the source

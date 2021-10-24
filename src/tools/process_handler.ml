@@ -132,7 +132,7 @@ let puller in_pipe fd buf ofs len =
 let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     command =
   let with_default default = function None -> default | Some v -> v in
-  let priority = with_default Tutils.Non_blocking priority in
+  let priority = with_default `Non_blocking priority in
   let env = with_default (Unix.environment ()) env in
   let log = with_default (fun _ -> ()) log in
   let on_start = with_default (fun _ -> `Continue) on_start in

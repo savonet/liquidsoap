@@ -319,7 +319,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     Duppy.Monad.bind __pa_duppy_0 (fun s ->
         (* Authentication can be blocking. *)
-        Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
+        Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
           (let user, auth_f = s#login in
            let user = if requested_user = "" then user else requested_user in
            if auth_f ~socket:h.Duppy.Monad.Io.socket user password then
@@ -419,7 +419,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           http_reply "No login / password supplied."
 
   let exec_http_auth_check ?args ~login h headers =
-    Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
+    Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
       (http_auth_check ?args ~login h.Duppy.Monad.Io.socket headers)
 
   (* We do not implement anything with this handler for now. *)
@@ -561,11 +561,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     Duppy.Monad.bind
       (Duppy.Monad.Io.write ?timeout:(Some conf_timeout#get)
-         ~priority:Tutils.Non_blocking h
+         ~priority:`Non_blocking h
          (Bytes.of_string (Websocket.upgrade headers)))
       (fun () ->
         let __pa_duppy_0 =
-          Duppy.Monad.Io.exec ~priority:Tutils.Blocking h
+          Duppy.Monad.Io.exec ~priority:`Blocking h
             (read_hello h.Duppy.Monad.Io.socket)
         in
         Duppy.Monad.bind __pa_duppy_0 (fun (stype, huri, user, password) ->
@@ -775,7 +775,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         | _ -> ans_404 ()
     with
       | Handled handler ->
-          Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
+          Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
             (handler ~protocol ~data ~headers ~socket:h.Duppy.Monad.Io.socket
                uri)
       | e ->
@@ -787,7 +787,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     (* Read and process lines *)
     let __pa_duppy_0 =
       Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
-        ~priority:Tutils.Non_blocking
+        ~priority:`Non_blocking
         ~marker:
           (match icy with
             | true -> Duppy.Io.Split "[\r]?\n"
@@ -848,7 +848,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                             ~priority:
                               (* ICY = true means that authentication has already
                                  happened *)
-                              Tutils.Maybe_blocking h
+                              `Maybe_blocking h
                             (let valid_user, auth_f = s#login in
                              if
                                not
@@ -879,8 +879,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   let __pa_duppy_0 =
                     if len > 0 then
                       Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
-                        ~priority:Tutils.Non_blocking
-                        ~marker:(Duppy.Io.Length len) h
+                        ~priority:`Non_blocking ~marker:(Duppy.Io.Length len) h
                     else Duppy.Monad.return ""
                   in
                   Duppy.Monad.bind __pa_duppy_0 (fun data ->
@@ -889,13 +888,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               | `Shout when icy ->
                   Duppy.Monad.bind
                     (Duppy.Monad.Io.write ?timeout:(Some conf_timeout#get)
-                       ~priority:Tutils.Non_blocking h
+                       ~priority:`Non_blocking h
                        (Bytes.of_string "OK2\r\nicy-caps:11\r\n\r\n"))
                     (fun () ->
                       (* Now parsing headers *)
                       let __pa_duppy_0 =
                         Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
-                          ~priority:Tutils.Non_blocking
+                          ~priority:`Non_blocking
                           ~marker:(Duppy.Io.Split "[\r]?\n[\r]?\n") h
                       in
                       Duppy.Monad.bind __pa_duppy_0 (fun s ->
@@ -965,7 +964,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             ignore (on_error e);
             close ()
           in
-          Duppy.Io.write ~timeout:conf_timeout#get ~priority:Tutils.Non_blocking
+          Duppy.Io.write ~timeout:conf_timeout#get ~priority:`Non_blocking
             ~on_error ~string:(Bytes.of_string s) ~exec Tutils.scheduler socket
         in
         Duppy.Monad.run ~return:reply ~raise:reply (handle_client ~port ~icy h)
@@ -985,7 +984,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         List.iter process_client (List.map get_sock e);
         [
           {
-            Task.priority = Tutils.Non_blocking;
+            Task.priority = `Non_blocking;
             events;
             handler = incoming ~port ~icy events out_s;
           };
@@ -1012,7 +1011,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let events = `Read in_s :: List.map (open_socket port) bind_addrs in
     Task.add Tutils.scheduler
       {
-        Task.priority = Tutils.Non_blocking;
+        Task.priority = `Non_blocking;
         events;
         handler = incoming ~port ~icy events in_s;
       };

@@ -38,7 +38,7 @@ let rec watchdog () =
           events;
         [watchdog ()])
   in
-  { Duppy.Task.priority = Tutils.Maybe_blocking; events = [`Read fd]; handler }
+  { Duppy.Task.priority = `Maybe_blocking; events = [`Read fd]; handler }
 
 let watch : File_watcher.watch =
  fun e file f ->

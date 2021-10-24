@@ -100,7 +100,7 @@ class keyboard ~kind =
           [
             {
               Duppy.Task.handler = task;
-              priority = Tutils.Non_blocking;
+              priority = `Non_blocking;
               events = [`Read Unix.stdin];
             };
           ])
@@ -108,7 +108,7 @@ class keyboard ~kind =
       Duppy.Task.add Tutils.scheduler
         {
           Duppy.Task.handler = task;
-          priority = Tutils.Non_blocking;
+          priority = `Non_blocking;
           events = [`Read Unix.stdin];
         }
 

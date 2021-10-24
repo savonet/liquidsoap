@@ -49,9 +49,9 @@ val join_all : unit -> unit
 
 (** Priorities for the different scheduler usages. *)
 type priority =
-  | Blocking  (** For example a last.fm submission. *)
-  | Maybe_blocking  (** Request resolutions vary a lot. *)
-  | Non_blocking  (** Non-blocking tasks like the server. *)
+  [ `Blocking  (** For example a last.fm submission. *)
+  | `Maybe_blocking  (** Request resolutions vary a lot. *)
+  | `Non_blocking  (** Non-blocking tasks like the server. *) ]
 
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler

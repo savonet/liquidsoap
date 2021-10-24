@@ -225,9 +225,7 @@ let init host =
       reason (Printexc.to_string e);
       -1.
   in
-  let task =
-    Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler do_submit
-  in
+  let task = Duppy.Async.add ~priority:`Blocking Tutils.scheduler do_submit in
   { task; submit_m; submissions }
 
 let submit (user, password) task length source stype songs =

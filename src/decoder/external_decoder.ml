@@ -49,7 +49,7 @@ let external_input process input =
   in
   let log = log#important "%s" in
   (* reading from input is blocking.. *)
-  let priority = Tutils.Blocking in
+  let priority = `Blocking in
   let process =
     Process_handler.run ~priority ~on_stdin ~on_stderr ~log process
   in

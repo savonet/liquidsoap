@@ -504,7 +504,7 @@ module Poll = struct
                (Printexc.to_string exn));
           -1.
 
-  let task = Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler process
+  let task = Duppy.Async.add ~priority:`Blocking Tutils.scheduler process
 
   let add_socket ~mode socket fn =
     Srt.setsockflag socket Srt.sndsyn false;
@@ -578,7 +578,7 @@ class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
        fun () ->
          if stats_interval > 0. then (
            let t =
-             Duppy.Async.add ~priority:Tutils.Non_blocking Tutils.scheduler
+             Duppy.Async.add ~priority:`Non_blocking Tutils.scheduler
                self#collect_stats
            in
            stats_task <- Some t;
@@ -640,7 +640,7 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
             | Some t -> Duppy.Async.wake_up t
             | None ->
                 let t =
-                  Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
+                  Duppy.Async.add ~priority:`Blocking Tutils.scheduler
                     self#connect_fn
                 in
                 connect_task <- Some t;

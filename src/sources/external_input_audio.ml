@@ -154,7 +154,7 @@ let () =
           Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize
         in
         (converter_ref := fun data -> resampler ~samplerate (convert data));
-        `Reschedule Tutils.Non_blocking
+        `Reschedule `Non_blocking
       in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in

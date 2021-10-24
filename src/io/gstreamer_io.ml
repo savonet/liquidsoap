@@ -145,7 +145,7 @@ class virtual ['a, 'b] element_factory ~on_error =
       if delay >= 0. then
         Duppy.Task.add Tutils.scheduler
           {
-            Duppy.Task.priority = Tutils.Non_blocking;
+            Duppy.Task.priority = `Non_blocking;
             events = [`Delay delay];
             handler =
               (fun _ ->
@@ -197,7 +197,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
          GStreamer is waiting for some data before answering that we are
          playing. *)
       (* ignore (Element.get_state el.bin); *)
-      self#register_task ~priority:Tutils.Blocking Tutils.scheduler
+      self#register_task ~priority:`Blocking Tutils.scheduler
 
     method stop =
       self#stop_task;
@@ -504,7 +504,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
     method wake_up activations =
       super#wake_up activations;
       try
-        self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
+        self#register_task ~priority:`Blocking Tutils.scheduler;
         ignore (Element.set_state self#get_element.bin Element.State_playing);
         ignore (Element.get_state self#get_element.bin)
       with exn ->
