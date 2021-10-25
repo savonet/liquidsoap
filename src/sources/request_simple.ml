@@ -150,6 +150,10 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
     (* First cache last requests. *)
     val mutable last_requests = []
+    method last_requests = self#mutexify (fun () -> last_requests) ()
+
+    method clear_last_requests =
+      self#mutexify (fun () -> last_requests <- []) ()
 
     method private get_next_requests =
       try
@@ -226,7 +230,8 @@ let () =
                 Lang.list
                   (Queue.fold
                      (fun c i -> Lang.request i.request :: c)
-                     [] s#queue)) );
+                     [] s#queue
+                  @ List.map Lang.request s#last_requests)) );
         ( "add",
           ([], Lang.fun_t [(false, "", Lang.request_t)] Lang.bool_t),
           "Add a request ot the queue. Requests are resolved before being \
@@ -254,6 +259,7 @@ let () =
                   (fun request -> Queue.push { request; expired = false } q)
                   l;
                 s#set_queue q;
+                s#clear_last_requests;
                 Lang.unit) );
         ( "current",
           ([], Lang.fun_t [] (Lang.nullable_t Lang.request_t)),

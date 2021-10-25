@@ -10,6 +10,7 @@ Fixes:
   using default transitions one track only per selected source. (#1999)
 * Fixed playlist annotation. (#2005)
 * Raise a proper runtime exception when `string.escape` fails. (#2010)
+* Account for internal caching in `request.dynamic.list`'s `queue` and `set_queue` methods.
 
 2.0.0 (03-10-2021)
 =====
