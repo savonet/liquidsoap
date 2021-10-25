@@ -213,7 +213,7 @@ builtins = lang/lang_builtins.ml \
            lang/builtins_ref.ml lang/builtins_socket.ml \
            lang/builtins_bool.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_regexp.ml \
-           lang/builtins_json.ml lang/builtins_error.ml \
+           lang/builtins_json.ml \
            lang/builtins_null.ml lang/builtins_settings.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
@@ -254,8 +254,10 @@ liquidsoap_sources += \
 	lang/profiler.ml lang/term.ml lang/value.ml \
 	lang/lang_encoder.ml $(lang_encoders) \
 	lang/environment.ml lang/typechecking.ml \
-	lang/evaluation.ml lang/error.ml lang/documentation.ml \
-	lang/lang.ml lang/modules.ml \
+	lang/evaluation.ml lang/error.ml \
+        lang/documentation.ml lang/lang_core.ml \
+	lang/lang_error.ml lang/lang_source.ml \
+        lang/lang.ml lang/modules.ml \
 	lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
 	lang/preprocessor.ml lang/runtime.ml \
         lang/builtins_request.ml \

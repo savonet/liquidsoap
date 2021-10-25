@@ -65,78 +65,84 @@ module Error = struct
   let meths =
     [
       ( "kind",
-        ([], Lang.string_t),
+        ([], Lang_core.string_t),
         "Error kind.",
-        fun { kind } -> Lang.string kind );
+        fun { kind } -> Lang_core.string kind );
       ( "message",
-        ([], Lang.string_t),
+        ([], Lang_core.string_t),
         "Error message.",
-        fun { msg } -> Lang.string msg );
+        fun { msg } -> Lang_core.string msg );
       ( "positions",
-        ([], Lang.(list_t string_t)),
+        ([], Lang_core.(list_t string_t)),
         "Error positions.",
         fun { pos } ->
-          Lang.list
+          Lang_core.list
             (List.map
-               (fun pos -> Lang.string (Runtime_error.print_pos pos))
+               (fun pos -> Lang_core.string (Runtime_error.print_pos pos))
                pos) );
     ]
 
   let t =
-    Lang.method_t t (List.map (fun (lbl, t, descr, _) -> (lbl, t, descr)) meths)
+    Lang_core.method_t t
+      (List.map (fun (lbl, t, descr, _) -> (lbl, t, descr)) meths)
 
   let to_value err =
-    Lang.meth (to_value err)
+    Lang_core.meth (to_value err)
       (List.map (fun (lbl, _, _, m) -> (lbl, m err)) meths)
 
-  let of_value err = of_value (Lang.demeth err)
+  let of_value err = of_value (Lang_core.demeth err)
 end
 
-let () = Lang.add_module "error"
+let () = Lang_core.add_module "error"
 
 let () =
-  Lang.add_builtin "error.register" ~category:`Liquidsoap
+  Lang_core.add_builtin "error.register" ~category:`Liquidsoap
     ~descr:"Register an error of the given kind"
-    [("", Lang.string_t, None, Some "Kind of the error")] Error.t (fun p ->
-      let kind = Lang.to_string (List.assoc "" p) in
+    [("", Lang_core.string_t, None, Some "Kind of the error")] Error.t (fun p ->
+      let kind = Lang_core.to_string (List.assoc "" p) in
       Error.to_value { kind; msg = ""; pos = [] })
 
 let () =
-  Lang.add_builtin "error.raise" ~category:`Liquidsoap ~descr:"Raise an error."
+  Lang_core.add_builtin "error.raise" ~category:`Liquidsoap
+    ~descr:"Raise an error."
     [
       ("", Error.t, None, Some "Error kind.");
       ( "",
-        Lang.string_t,
-        Some (Lang.string ""),
+        Lang_core.string_t,
+        Some (Lang_core.string ""),
         Some "Description of the error." );
     ]
-    (Lang.univ_t ())
+    (Lang_core.univ_t ())
     (fun p ->
-      let { kind } = Error.of_value (Lang.assoc "" 1 p) in
-      let msg = Lang.to_string (Lang.assoc "" 2 p) in
+      let { kind } = Error.of_value (Lang_core.assoc "" 1 p) in
+      let msg = Lang_core.to_string (Lang_core.assoc "" 2 p) in
       raise (Term.Runtime_error { Term.kind; msg; pos = [] }))
 
+let error_t = Error.t
+let error = Error.to_value
+let to_error = Error.of_value
+
 let () =
-  let a = Lang.univ_t () in
-  Lang.add_builtin "error.catch" ~category:`Liquidsoap ~flags:[`Hidden]
+  let a = Lang_core.univ_t () in
+  Lang_core.add_builtin "error.catch" ~category:`Liquidsoap ~flags:[`Hidden]
     ~descr:"Execute a function, catching eventual exceptions."
     [
       ( "errors",
-        Lang.nullable_t (Lang.list_t Error.t),
+        Lang_core.nullable_t (Lang_core.list_t Error.t),
         None,
         Some "Kinds of errors to catch. Catches all errors if not set." );
-      ("", Lang.fun_t [] a, None, Some "Function to execute.");
-      ("", Lang.fun_t [(false, "", Error.t)] a, None, Some "Error handler.");
+      ("", Lang_core.fun_t [] a, None, Some "Function to execute.");
+      ("", Lang_core.fun_t [(false, "", Error.t)] a, None, Some "Error handler.");
     ]
     a
     (fun p ->
       let errors =
         Option.map
-          (fun v -> List.map Error.of_value (Lang.to_list v))
-          (Lang.to_option (Lang.assoc "errors" 1 p))
+          (fun v -> List.map Error.of_value (Lang_core.to_list v))
+          (Lang_core.to_option (Lang_core.assoc "errors" 1 p))
       in
-      let f = Lang.to_fun (Lang.assoc "" 1 p) in
-      let h = Lang.to_fun (Lang.assoc "" 2 p) in
+      let f = Lang_core.to_fun (Lang_core.assoc "" 1 p) in
+      let h = Lang_core.to_fun (Lang_core.assoc "" 2 p) in
       try f []
       with
       | Term.Runtime_error { Term.kind; msg }

@@ -76,7 +76,7 @@ let () =
       [
         (false, "backtrace", Lang.string_t);
         (false, "thread_name", Lang.string_t);
-        (false, "", Builtins_error.Error.t);
+        (false, "", Lang.error_t);
       ]
       Lang.unit_t
   in
@@ -84,21 +84,15 @@ let () =
     ~descr:
       "Register the function to be called when an error of the given kind is \
        raised in a thread. Catches all errors if first argument is `null`."
-    [
-      ("", Lang.nullable_t Builtins_error.Error.t, None, None);
-      ("", fun_t, None, None);
-    ]
+    [("", Lang.nullable_t Lang.error_t, None, None); ("", fun_t, None, None)]
     Lang.unit_t
     (fun p ->
-      let on_err = Lang.to_option (Lang.assoc "" 1 p) in
-      let on_err = Option.map Builtins_error.Error.of_value on_err in
+      let on_err = Lang.to_valued_option Lang.to_error (Lang.assoc "" 1 p) in
       let fn = Lang.assoc "" 2 p in
       let handler ~bt ~name err =
         match (err, on_err) with
           | Term.(Runtime_error { kind; msg; _ }), None ->
-              let error =
-                Builtins_error.(Error.to_value { kind; msg; pos = [] })
-              in
+              let error = Lang.error { Runtime_error.kind; msg; pos = [] } in
               let bt = Lang.string bt in
               let name = Lang.string name in
               ignore
@@ -106,10 +100,8 @@ let () =
                    [("backtrace", bt); ("thread_name", name); ("", error)]);
               true
           | Term.(Runtime_error { kind; msg; _ }), Some err
-            when kind = err.Builtins_error.kind ->
-              let error =
-                Builtins_error.(Error.to_value { kind; msg; pos = [] })
-              in
+            when kind = err.Runtime_error.kind ->
+              let error = Lang.error { Runtime_error.kind; msg; pos = [] } in
               let bt = Lang.string bt in
               let name = Lang.string name in
               ignore
