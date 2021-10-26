@@ -345,4 +345,5 @@ let mk_ty ~pos name =
     | "string" -> Type.make (Type.Ground Type.String)
     | "source" -> mk_source_ty ~pos "source" []
     | "source_methods" -> !Term.source_methods_t ()
+    | "request" -> Type.make (Type.Ground Type.Request)
     | _ -> raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."))

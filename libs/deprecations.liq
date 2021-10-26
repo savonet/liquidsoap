@@ -497,3 +497,29 @@ def http_response_stream(%argsof(http.response.stream)) =
   deprecated("http_response_stream", "http.response.stream")
   http.response.stream(%argsof(http.response.stream))
 end
+
+# Deprecated: use `request.dynamic` instead
+# @flag deprecated
+def request.dynamic.list(%argsof(request.dynamic), f) =
+  deprecated("request.dynamic.list", "request.dynamic")
+
+  add = ref (fun (_) -> ())
+
+  def f() =
+    l = f()
+    if l != [] then
+      let [r, ...q] = list.rev(l)
+      r = (r:request)
+      list.iter(!add, list.rev(q))
+      null(r)
+    else
+      null()
+    end
+  end
+
+  s = request.dynamic(%argsof(request.dynamic), f)
+
+  add := fun (r) -> ignore(s.add(r))
+
+  s
+end
