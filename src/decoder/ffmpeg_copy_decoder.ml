@@ -55,7 +55,9 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
               } ))
           packets
       in
-      let data = { Ffmpeg_content_base.params = Some params; data } in
+      let data =
+        { Ffmpeg_content_base.params = Some params; data; size = duration }
+      in
       let data = lift_data data in
       put_data ?pts:None buffer.Decoder.generator data 0 duration
     with Empty | Corrupt (* Might want to change that later. *) -> ()
