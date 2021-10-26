@@ -135,8 +135,7 @@ let () =
 class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
   object (self)
     inherit
-      Request_source.queued
-        ~kind ~name:"request.dynamic.list" ~prefetch ~timeout () as super
+      Request_source.queued ~kind ~name:"request.dynamic" ~prefetch ~timeout () as super
 
     val mutable retry_status = None
 
@@ -148,56 +147,36 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
             if available () then super#notify_new_request;
             false
 
-    (* First cache last requests. *)
-    val mutable last_requests = []
-    method last_requests = self#mutexify (fun () -> last_requests) ()
-
-    method clear_last_requests =
-      self#mutexify (fun () -> last_requests <- []) ()
-
-    method private get_next_requests =
+    method private get_next_request =
       try
-        if available () then (
-          let reqs =
-            List.map Lang.to_request (Lang.to_list (Lang.apply f []))
-          in
-          List.iter
-            (fun req -> Request.set_root_metadata req "source" self#id)
-            reqs;
-          reqs)
-        else []
+        match
+          (available (), Lang.to_valued_option Lang.to_request (Lang.apply f []))
+        with
+          | false, _ -> None
+          | true, Some r ->
+              Request.set_root_metadata r "source" self#id;
+              Some r
+          | true, None ->
+              retry_status <- Some (Unix.gettimeofday () +. retry_delay ());
+              None
       with e ->
         log#severe "Failed to obtain a media request!";
         raise e
-
-    method get_next_request =
-      match last_requests with
-        | req :: tl ->
-            last_requests <- tl;
-            Some req
-        | [] -> (
-            match self#get_next_requests with
-              | req :: tl ->
-                  last_requests <- tl;
-                  Some req
-              | [] ->
-                  retry_status <- Some (Unix.gettimeofday () +. retry_delay ());
-                  None)
   end
 
 let () =
   let log = Log.make ["request"; "dynamic"] in
   let kind = Lang.any in
   let t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "request.dynamic.list" ~category:`Input
+  Lang.add_operator "request.dynamic" ~category:`Input
     ~descr:"Play request dynamically created by a given function."
-    (("", Lang.fun_t [] (Lang.list_t Lang.request_t), None, None)
+    (("", Lang.fun_t [] (Lang.nullable_t Lang.request_t), None, None)
     :: ( "retry_delay",
          Lang.getter_t Lang.float_t,
          Some (Lang.float 0.1),
          Some
-           "Retry after a given time (in seconds) when callback returns an \
-            empty list." )
+           "Retry after a given time (in seconds) when callback returns `null`."
+       )
     :: ( "available",
          Lang.getter_t Lang.bool_t,
          Some (Lang.bool true),
@@ -230,11 +209,10 @@ let () =
                 Lang.list
                   (Queue.fold
                      (fun c i -> Lang.request i.request :: c)
-                     [] s#queue
-                  @ List.map Lang.request s#last_requests)) );
+                     [] s#queue)) );
         ( "add",
           ([], Lang.fun_t [(false, "", Lang.request_t)] Lang.bool_t),
-          "Add a request ot the queue. Requests are resolved before being \
+          "Add a request to the queue. Requests are resolved before being \
            added. Returns `true` if the request was successfully added.",
           fun s ->
             Lang.val_fun [("", "", None)] (fun p ->
@@ -259,7 +237,6 @@ let () =
                   (fun request -> Queue.push { request; expired = false } q)
                   l;
                 s#set_queue q;
-                s#clear_last_requests;
                 Lang.unit) );
         ( "current",
           ([], Lang.fun_t [] (Lang.nullable_t Lang.request_t)),
