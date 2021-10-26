@@ -176,6 +176,7 @@ val to_string : value -> string
 val to_string_getter : value -> unit -> string
 val to_float : value -> float
 val to_float_getter : value -> unit -> float
+val to_error : value -> Runtime_error.runtime_error
 val to_source : value -> Source.source
 val to_format : value -> Encoder.format
 val to_int : value -> int
@@ -215,6 +216,7 @@ val list_t : t -> t
 val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
+val error_t : t
 val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t
@@ -245,6 +247,7 @@ val float : float -> value
 val string : string -> value
 val list : value list -> value
 val null : value
+val error : Runtime_error.runtime_error -> value
 val source : Source.source -> value
 val product : value -> value -> value
 val tuple : value list -> value
@@ -265,7 +268,7 @@ val val_cst_fun : (string * value option) list -> value -> value
 val metadata : Frame.metadata -> value
 
 (** Raise an error. *)
-val error :
+val raise_error :
   ?bt:Printexc.raw_backtrace -> ?pos:pos list -> ?message:string -> string -> 'a
 
 (** Re-raise an error as a runtime error. *)

@@ -405,4 +405,4 @@ let () =
         Lang.string (Digest.to_hex (Digest.file file))
       else (
         let message = Printf.sprintf "The file %s does not exist." file in
-        Lang.error ~message "file"))
+        Lang.raise_error ~message "file"))
