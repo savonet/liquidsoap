@@ -7,10 +7,10 @@
 settings.log.level.set(4)
 
 def next() =
-  [request.create("files/file1.mp3")]
+  request.create("files/file1.mp3")
 end
 
-r = request.dynamic.list(prefetch=1, next)
+r = request.dynamic(prefetch=1, next)
 
 output.dummy(fallible=true, r)
 

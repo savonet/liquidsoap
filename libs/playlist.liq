@@ -115,7 +115,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
 
   # Delay the creation of next after the source because we need it to resolve
   # requests at the right content type.
-  next_fun = ref(fun () -> [])
+  next_fun = ref(fun () -> null())
 
   def next()
     f = !next_fun
@@ -125,9 +125,9 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
   # Instantiate the source
   s =
     if native then
-      stdlib_native.request.dynamic.list(id=id, next)
+      stdlib_native.request.dynamic(id=id, next)
     else
-      request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, retry_delay=1., available={not !has_stopped}, next)
+      request.dynamic(id=id, prefetch=prefetch, timeout=timeout, retry_delay=1., available={not !has_stopped}, next)
     end
   source.set_name(s, "playlist.list.reloadable")
 
@@ -175,7 +175,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
       end
     if file == "" or (!failed_count >= max_fail and time() < !failed_time + 1.) then
       # Playlist failed too many times recently, don't try next for now.
-      []
+      null()
     else
       log.debug(label=id, "Next song will be \"#{file}\".")
       r = request.create(file)
@@ -196,7 +196,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
         check_next = null.get(check_next)
         failed_count := 0
         if check_next(r) then
-          [r]
+          null(r)
         else
           log.info(label=id, "Request #{request.uri(r)} rejected by check_next.")
           request.destroy(r)
@@ -204,7 +204,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
         end
       else
         # We accept everything by default
-        [r]
+        null(r)
       end
     end
   end

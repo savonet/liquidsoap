@@ -57,9 +57,9 @@ def input.hls.native(~id=null(),~reload=10.,uri)
       let (_,ret) = list.hd(default=(1,""),!playlistr)
       playlistr := list.tl(!playlistr)
       sequence := !sequence + 1
-      [request.create(ret)]
+      null(request.create(ret))
     else
-      []
+      null()
     end
   end
 
@@ -79,7 +79,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
   end
   find_stream ()
 
-  source = request.dynamic.list(id=id,prefetch=10,next)
+  source = request.dynamic(id=id,prefetch=10,next)
 
   source = merge_tracks(source)
 

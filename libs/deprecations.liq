@@ -546,3 +546,29 @@ def playlist.reloadable(~id=null(), ~mime_type="", ~mode="randomize", ~on_track=
   deprecated("playlist.reloadable", "playlist")
   playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri)
 end
+
+# Deprecated: use `request.dynamic` instead
+# @flag deprecated
+def request.dynamic.list(%argsof(request.dynamic), f) =
+  deprecated("request.dynamic.list", "request.dynamic")
+
+  add = ref (fun (_) -> ())
+
+  def f() =
+    l = f()
+    if l != [] then
+      let [r, ...q] = list.rev(l)
+      r = (r:request)
+      list.iter(!add, list.rev(q))
+      null(r)
+    else
+      null()
+    end
+  end
+
+  s = request.dynamic(%argsof(request.dynamic), f)
+
+  add := fun (r) -> ignore(s.add(r))
+
+  s
+end

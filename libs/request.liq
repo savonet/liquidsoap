@@ -2,13 +2,13 @@ let request.queue = ()
 
 let stdlib_native = native
 
-# @docof request.dynamic.list
+# @docof request.dynamic
 # @param ~native Use native implementation.
-def replaces request.dynamic(%argsof(request.dynamic.list), ~native=false, f) =
+def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
   if native then
-    stdlib_native.request.dynamic(%argsof(request.dynamic.list), f)
+    stdlib_native.request.dynamic(%argsof(request.dynamic), f)
   else
-    request.dynamic.list(%argsof(request.dynamic.list), {null.to_list(f())})
+    request.dynamic(%argsof(request.dynamic), f)
   end
 end
 
@@ -26,14 +26,18 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
   id = string.id.default(default="request.queue", id)
   queue = ref(queue)
   fetch = ref(fun () -> true)
-  def next()
-    reqs = !queue
-    queue := []
-    reqs
+  def next() =
+    if !queue != [] then
+      let [r, ...q] = !queue
+      queue := q
+      null((r:request))
+    else
+      null()
+    end
   end
   def push(r)
     log.info(label=id, "Pushing #{r} on the queue.")
-    queue := list.append(!queue, [r])
+    queue := [...!queue, r]
     fn = !fetch
     ignore(fn())
   end
@@ -43,9 +47,9 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
   end
   s =
     if native then
-      stdlib_native.request.dynamic.list(id=id, timeout=timeout, next)
+      stdlib_native.request.dynamic(id=id, timeout=timeout, next)
     else
-      request.dynamic.list(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(!queue)}, next)
+      request.dynamic(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(!queue)}, next)
     end
   source.set_name(s, "request.queue")
   fetch := s.fetch

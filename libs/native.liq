@@ -78,8 +78,8 @@ end
 # This allows doing `open native`
 let native.request = request
 
-# @docof request.dynamic.list
-def native.request.dynamic(%argsof(request.dynamic.list), f)
+# @docof request.dynamic
+def native.request.dynamic(%argsof(request.dynamic), f)
   ignore(available)
   ignore(timeout)
 
@@ -164,20 +164,4 @@ def native.request.dynamic(%argsof(request.dynamic.list), f)
     set_queue=set_queue,
     current=get_current
   }
-end
-
-# @docof request.dynamic.list
-def native.request.dynamic.list(%argsof(request.dynamic.list), f)
-  fn = ref({null()})
-
-  def next() =
-    fn = !fn
-    fn()
-  end
-
-  s = native.request.dynamic(%argsof(request.dynamic.list), next)
-
-  fn := {list.iter(fun (r) -> ignore(s.add(r)), f()); null()}
-
-  s
 end
