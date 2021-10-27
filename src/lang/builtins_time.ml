@@ -103,3 +103,35 @@ let () =
     (fun p ->
       let t = nullable_time (List.assoc "" p) in
       return (Unix.gmtime t))
+
+let () =
+  Lang.add_builtin ~category:`Liquidsoap "time.predicate"
+    ~descr:"Parse a string as a time predicate"
+    [("", Lang.string_t, None, None)] (Lang.fun_t [] Lang.bool_t) (fun p ->
+      let v = List.assoc "" p in
+      let predicate = Lang.to_string v in
+      let lexbuf = Sedlexing.Utf8.from_string predicate in
+      try
+        let processor =
+          MenhirLib.Convert.Simplified.traditional2revised Parser.time_predicate
+        in
+        let tokenizer () =
+          let token = Lexer.token lexbuf in
+          let startp, endp = Sedlexing.lexing_positions lexbuf in
+          (token, startp, endp)
+        in
+        let predicate = processor tokenizer in
+        Lang.val_fun [] (fun _ -> Evaluation.eval predicate)
+      with _ ->
+        raise
+          Runtime_error.(
+            Runtime_error
+              {
+                kind = "string";
+                msg =
+                  Printf.sprintf "Failed to parse %s as time predicate"
+                    predicate;
+                pos =
+                  Option.value ~default:[]
+                    (Option.map (fun v -> [v]) v.Value.pos);
+              }))
