@@ -310,6 +310,22 @@ predicates are
 Above, `w` stands for weekday: 1 is Monday, 2 is Tuesday, and so on. Sunday is
 both 0 and 7.
 
+Time predicate can also be parsed at runtime, for instance if you want to create
+them dynamically. The syntax is:
+
+```liquidsoap
+# f = time.predicate("00m-30m");;
+f : () -> bool = <fun>
+```
+
+Be aware that, if parsing fails, it will raise `error.string`:
+
+```liquidsoap
+# f = time.predicate("foo")
+Error 14: Uncaught runtime error:
+type: string, message: "Failed to parse foo as time predicate"
+```
+
 ### Unit
 
 Some functions, such as `print`, do not return a meaningful value: we are
