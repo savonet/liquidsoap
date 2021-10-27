@@ -103,6 +103,9 @@ open Parser_helper
 %start annotate
 %type <(string * string) list> annotate
 
+%start time_predicate
+%type <Term.t> time_predicate
+
 %%
 
 program:
@@ -209,8 +212,11 @@ expr:
   | expr BIN3 expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",$1;"",$3])) }
   | expr TIMES expr                { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var "*"), ["",$1;"",$3])) }
   | expr MINUS expr                { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var "-"), ["",$1;"",$3])) }
-  | INTERVAL                       { mk_time_pred ~pos:$loc (between ~pos:$loc (fst $1) (snd $1)) }
-  | TIME                           { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
+  | time_predicate                 { $1 }
+
+time_predicate:
+  | INTERVAL { mk_time_pred ~pos:$loc (between ~pos:$loc (fst $1) (snd $1)) }
+  | TIME     { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
 ty:
   | UNDERSCORE                   { Type.var ~pos:$loc () }
