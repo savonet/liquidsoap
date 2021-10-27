@@ -36,7 +36,7 @@ class once :
   -> Request.t
   -> object
        inherit Source.source
-       method stype : Source.source_t
+       method stype : [ `Fallible | `Infallible ]
        method self_sync : Source.self_sync
        method is_ready : bool
        method request : Request.t
@@ -76,7 +76,7 @@ class virtual queued :
   -> ?timeout:float
   -> unit
   -> object
-       method stype : Source.source_t
+       method stype : [ `Fallible | `Infallible ]
 
        (** You should only define this. *)
        method virtual get_next_request : Request.t option

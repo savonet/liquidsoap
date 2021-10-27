@@ -36,7 +36,7 @@ class virtual output :
   -> bool
   -> object
        inherit Source.active_source
-       method stype : Source.source_t
+       method stype : [ `Fallible | `Infallible ]
        method self_sync : Source.self_sync
        method remaining : int
        method output : unit
