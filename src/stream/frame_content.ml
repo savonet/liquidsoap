@@ -59,6 +59,7 @@ module type ContentSpecs = sig
   val make : size:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
   val fill : data -> int -> data -> int -> int -> unit
+  val length : data -> int
   val sub : data -> int -> int -> data
   val copy : data -> data
   val clear : data -> unit
@@ -164,6 +165,7 @@ let parse_param kind label value =
 type data_handler = {
   blit : int -> data -> int -> int -> unit;
   fill : int -> data -> int -> int -> unit;
+  length : unit -> int;
   sub : int -> int -> data;
   is_empty : unit -> bool;
   copy : unit -> data;
@@ -185,6 +187,7 @@ let get_data_handler v =
   with Found_data h -> h
 
 let make ~size k = (get_params_handler k).make size
+let length src = (get_data_handler src).length ()
 let blit src = (get_data_handler src).blit
 let fill src = (get_data_handler src).fill
 let sub d = (get_data_handler d).sub
@@ -288,6 +291,7 @@ module MkContent (C : ContentSpecs) :
             {
               blit = blit d;
               fill = fill d;
+              length = (fun () -> C.length d);
               sub = (fun ofs len -> Data (C.sub d ofs len));
               is_empty = (fun () -> C.is_empty d);
               copy = (fun () -> Data (C.copy d));
@@ -319,6 +323,7 @@ module NoneSpecs = struct
   let clear _ = ()
   let blit _ _ _ _ _ = ()
   let fill _ _ _ _ _ = ()
+  let length _ = 0
   let sub _ _ _ = ()
   let copy _ = ()
   let params _ = ()
@@ -373,6 +378,7 @@ module AudioSpecs = struct
       src dst
 
   let fill = blit
+  let length d = Frame_settings.main_of_audio (Audio.length d)
 
   let sub data ofs len =
     let ( ! ) = audio_of_main in
@@ -493,6 +499,8 @@ module VideoSpecs = struct
       Video.set dst (dst_pos + i) (Video.get src (src_pos + i))
     done
 
+  let length d = Frame_settings.main_of_video (Video.length d)
+
   let sub data ofs len =
     let ( ! ) = Frame_settings.video_of_main in
     Array.sub data !ofs !len
@@ -545,6 +553,7 @@ module MidiSpecs = struct
     Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
 
   let fill = blit
+  let length d = Frame_settings.main_of_midi (MIDI.Multitrack.duration d)
 
   let sub data ofs len =
     let ( ! ) = midi_of_main in

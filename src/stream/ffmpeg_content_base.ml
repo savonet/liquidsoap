@@ -58,3 +58,10 @@ let fill src src_pos dst dst_pos len =
 let blit = fill
 let copy { data; params } = { data; params }
 let params { params } = params
+
+(* We don't account for content block length yet to total length is
+   the largest pts. *)
+let length { data } =
+  match List.sort (fun (p, _) (p', _) -> Stdlib.compare p' p) data with
+    | (pos, _) :: _ -> pos
+    | [] -> 0
