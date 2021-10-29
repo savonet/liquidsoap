@@ -129,9 +129,10 @@ let () =
               {
                 kind = "string";
                 msg =
-                  Printf.sprintf "Failed to parse %s as time predicate"
-                    predicate;
+                  Some
+                    (Printf.sprintf "Failed to parse %s as time predicate"
+                       predicate);
                 pos =
                   Option.value ~default:[]
-                    (Option.map (fun v -> [v]) v.Value.pos);
+                    (Option.map (fun v -> [v]) v.Term.Value.pos);
               }))
