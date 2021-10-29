@@ -34,6 +34,12 @@ module BaseSpecs = struct
   type kind = [ `Raw ]
 
   let kind = `Raw
+
+  (* No frame copy for now. *)
+  let blit = fill
+
+  let copy : 'a. ('a, 'b) content -> ('a, 'b) content =
+   fun src -> copy ~copy:(fun x -> x) src
 end
 
 module AudioSpecs = struct

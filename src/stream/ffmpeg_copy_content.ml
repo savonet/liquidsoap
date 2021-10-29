@@ -42,6 +42,22 @@ module BaseSpecs = struct
       | None, p | p, None -> p
       | p, p' when compatible p p' -> p
       | _ -> failwith "Incompatible format!"
+
+  let copy_packet p = { p with packet = Avcodec.Packet.dup p.packet }
+
+  let blit :
+        'a 'b.
+        ('a, 'b packet) content ->
+        int ->
+        ('a, 'b packet) content ->
+        int ->
+        int ->
+        unit =
+   fun src src_pos dst dst_pos len ->
+    blit ~copy:copy_packet src src_pos dst dst_pos len
+
+  let copy : 'a 'b. ('a, 'b packet) content -> ('a, 'b packet) content =
+   fun src -> copy ~copy:copy_packet src
 end
 
 module AudioSpecs = struct
