@@ -37,26 +37,42 @@ let sub c ofs len =
     data = List.filter (fun (pos, _) -> ofs <= pos && pos < ofs + len) c.data;
   }
 
-let fill src src_pos dst dst_pos len =
+let blit :
+      'a 'b.
+      copy:('b -> 'b) ->
+      ('a, 'b) content ->
+      int ->
+      ('a, 'b) content ->
+      int ->
+      int ->
+      unit =
+ fun ~copy src src_pos dst dst_pos len ->
   (* No compatibility check here, it's
      assumed to have been done beforehand. *)
   dst.params <- src.params;
+  let data =
+    List.filter (fun (pos, _) -> pos <= dst_pos || dst_pos + len < pos) dst.data
+  in
   let src_end = src_pos + len in
   let data =
     List.fold_left
       (fun data (pos, p) ->
         if src_pos <= pos && pos < src_end then (
           let pos = dst_pos + (pos - src_pos) in
-          (pos, p) :: data)
+          (pos, copy p) :: data)
         else data)
-      dst.data src.data
+      data src.data
   in
   dst.data <- List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') data
 
-(* FFmpeg content is currently opaque and immutable. Therefore, it
-   is safe to pass it around without copying. *)
-let blit = fill
-let copy { data; params } = { data; params }
+let fill :
+      'a 'b. ('a, 'b) content -> int -> ('a, 'b) content -> int -> int -> unit =
+ fun src src_pos dst dst_pos len ->
+  blit ~copy:(fun x -> x) src src_pos dst dst_pos len
+
+let copy ~copy { data; params } =
+  { data = List.map (fun (pos, x) -> (pos, copy x)) data; params }
+
 let params { params } = params
 
 (* We don't account for content block length yet to total length is
