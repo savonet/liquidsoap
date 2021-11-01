@@ -125,8 +125,8 @@ let create_content ctype = map_fields (make ~size:!!size) ctype
 let create ctype =
   { pts = 0L; breaks = []; metadata = []; content = create_content ctype }
 
-let dummy =
-  let data = Frame_content.None.data in
+let dummy () =
+  let data = Frame_content.None.data !!size in
   {
     pts = 0L;
     breaks = [];

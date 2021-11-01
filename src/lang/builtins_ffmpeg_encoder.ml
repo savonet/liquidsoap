@@ -89,7 +89,9 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data } in
+                  let data =
+                    { Ffmpeg_content_base.params; data; size = duration }
+                  in
                   let data = Ffmpeg_copy_content.Audio.lift_data data in
                   Producer_consumer.(
                     Generator.put_audio generator data 0 duration)
@@ -137,7 +139,9 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
                               } ))
                           frames
                       in
-                      let data = { Ffmpeg_content_base.params; data } in
+                      let data =
+                        { Ffmpeg_content_base.params; data; size = duration }
+                      in
                       let data = Ffmpeg_raw_content.Audio.lift_data data in
                       Producer_consumer.(
                         Generator.put_audio generator data 0 duration)
@@ -262,7 +266,9 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data } in
+                  let data =
+                    { Ffmpeg_content_base.params; data; size = duration }
+                  in
                   let data = Ffmpeg_copy_content.Video.lift_data data in
                   Producer_consumer.(
                     Generator.put_video generator data 0 duration)
@@ -313,7 +319,9 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           ))
                         frames
                     in
-                    let data = { Ffmpeg_content_base.params; data } in
+                    let data =
+                      { Ffmpeg_content_base.params; data; size = duration }
+                    in
                     let data = Ffmpeg_raw_content.Video.lift_data data in
                     Producer_consumer.(
                       Generator.put_video generator data 0 duration)

@@ -57,16 +57,10 @@ module type ContentSpecs = sig
    * into [dst]. *)
   val blit : data -> int -> data -> int -> int -> unit
 
-  (* [fill src src_pos dst dst_pos len] assigns data from [src]
-   * into [dst] without copying when possible. *)
-  val fill : data -> int -> data -> int -> int -> unit
-
   (* Returns length in main ticks. *)
   val length : data -> int
-  val sub : data -> int -> int -> data
   val copy : data -> data
   val clear : data -> unit
-  val is_empty : data -> bool
 
   (** Params *)
 
@@ -152,7 +146,7 @@ val kind_of_string : string -> kind
 (* None content type is abstract and only used
    via its params and data. *)
 module None : sig
-  val data : Contents.data
+  val data : int -> Contents.data
   val format : Contents.format
   val is_format : Contents.format -> bool
 end

@@ -77,8 +77,8 @@ class resample ~kind ~ratio source_val =
         let len = Audio.length pcm in
         ( {
             Frame.audio = Frame_content.Audio.lift_data pcm;
-            video = Frame_content.None.data;
-            midi = Frame_content.None.data;
+            video = Frame_content.None.data len;
+            midi = Frame_content.None.data len;
           },
           len )
       in

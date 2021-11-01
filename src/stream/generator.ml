@@ -554,7 +554,8 @@ module From_audio_video = struct
       | `Audio ->
           t.current_video_pts <-
             put_frames ~pts ~current_pts:t.current_video_pts t.current_video
-              Frame_content.None.data 0 l
+              Frame_content.None.(data l)
+              0 l
       | `Both -> ()
       | _ -> assert false
     end;
@@ -573,7 +574,8 @@ module From_audio_video = struct
       | `Video ->
           t.current_audio_pts <-
             put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio
-              Frame_content.None.data 0 l
+              Frame_content.None.(data l)
+              0 l
       | _ -> ()
     end;
     sync_content t

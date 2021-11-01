@@ -58,12 +58,9 @@ module type ContentSpecs = sig
 
   val make : size:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
-  val fill : data -> int -> data -> int -> int -> unit
   val length : data -> int
-  val sub : data -> int -> int -> data
   val copy : data -> data
   val clear : data -> unit
-  val is_empty : data -> bool
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -217,6 +214,9 @@ let duplicate p = (get_params_handler p).duplicate ()
 let compatible p p' = (get_params_handler p).compatible p'
 let string_of_kind f = (get_kind_handler f).string_of_kind ()
 
+type 'a chunk = { data : 'a; offset : int; size : int }
+type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
+
 module MkContent (C : ContentSpecs) :
   Content
     with type kind = C.kind
@@ -224,15 +224,81 @@ module MkContent (C : ContentSpecs) :
      and type data = C.data = struct
   type Contents.kind += Kind of C.kind
   type Contents.format += Format of C.params Unifier.t
-  type Contents.data += Data of C.data
+  type Contents.data += Data of (C.params, C.data) chunks
 
-  let blit src src_ofs dst dst_ofs len =
-    let dst = match dst with Data dst -> dst | _ -> raise Invalid in
-    C.blit src src_ofs dst dst_ofs len
+  let params { params } = params
 
-  let fill src src_ofs dst dst_ofs len =
+  let sub data ofs len =
+    let start = ofs in
+    let stop = start + len in
+    {
+      data with
+      chunks =
+        List.rev
+          (snd
+             (List.fold_left
+                (fun (pos, cur) { data; offset; size } ->
+                  let cur =
+                    (* This is essentially a segment overlap calculation. *)
+                    let start = max 0 (start - pos) in
+                    let stop = min size (stop - pos) in
+                    if start < stop then (
+                      let offset = offset + start in
+                      let size = stop - start in
+                      { data; offset; size } :: cur)
+                    else cur
+                  in
+                  (pos + size, cur))
+                (0, []) data.chunks));
+    }
+
+  let length { chunks } =
+    List.fold_left (fun cur { size } -> cur + size) 0 chunks
+
+  let is_empty d = length d = 0
+
+  let copy_chunks =
+    List.map (fun chunk -> { chunk with data = C.copy chunk.data })
+
+  let copy data = { data with chunks = copy_chunks data.chunks }
+
+  let fill src src_pos dst dst_pos len =
     let dst = match dst with Data dst -> dst | _ -> raise Invalid in
-    C.fill src src_ofs dst dst_ofs len
+    dst.params <- src.params;
+    let dst_len = length dst in
+    dst.chunks <-
+      (sub dst 0 dst_pos).chunks @ (sub src src_pos len).chunks
+      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
+    assert (dst_len = length dst)
+
+  let consolidate_chunks d =
+    let size = length d in
+    if size = 0 then d.chunks <- []
+    else (
+      let buf = C.make ~size d.params in
+      ignore
+        (List.fold_left
+           (fun pos { data; offset; size } ->
+             C.blit data offset buf pos size;
+             pos + size)
+           0 d.chunks);
+      d.chunks <- [{ offset = 0; size; data = buf }]);
+    d
+
+  let blit src src_pos dst dst_pos len =
+    let dst = match dst with Data dst -> dst | _ -> raise Invalid in
+    dst.params <- src.params;
+    let dst_len = length dst in
+    dst.chunks <-
+      (sub dst 0 dst_pos).chunks
+      @ (consolidate_chunks (sub src src_pos len)).chunks
+      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
+    assert (dst_len = length dst)
+
+  let clear d = List.iter (fun { data } -> C.clear data) d.chunks
+
+  let make ~size params =
+    { params; chunks = [{ data = C.make ~size params; offset = 0; size }] }
 
   let merge p p' =
     let p' = match p' with Format p' -> p' | _ -> raise Invalid in
@@ -270,7 +336,7 @@ module MkContent (C : ContentSpecs) :
           Some
             {
               kind = (fun () -> Kind C.kind);
-              make = (fun size -> Data (C.make ~size (Unifier.deref p)));
+              make = (fun size -> Data (make ~size (Unifier.deref p)));
               merge = (fun p' -> merge p p');
               duplicate = (fun () -> Format Unifier.(make (deref p)));
               compatible = (fun p' -> compatible p p');
@@ -291,12 +357,12 @@ module MkContent (C : ContentSpecs) :
             {
               blit = blit d;
               fill = fill d;
-              length = (fun () -> C.length d);
-              sub = (fun ofs len -> Data (C.sub d ofs len));
-              is_empty = (fun () -> C.is_empty d);
-              copy = (fun () -> Data (C.copy d));
-              format = (fun () -> Format (Unifier.make (C.params d)));
-              clear = (fun () -> C.clear d);
+              length = (fun () -> length d);
+              sub = (fun ofs len -> Data (sub d ofs len));
+              is_empty = (fun () -> is_empty d);
+              copy = (fun () -> Data (copy d));
+              format = (fun () -> Format (Unifier.make (params d)));
+              clear = (fun () -> clear d);
             }
       | _ -> None)
 
@@ -307,8 +373,23 @@ module MkContent (C : ContentSpecs) :
   let lift_params p = Format (Unifier.make p)
   let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
   let is_data = function Data _ -> true | _ -> false
-  let lift_data d = Data d
-  let get_data = function Data d -> d | _ -> raise Invalid
+
+  let lift_data d =
+    Data
+      {
+        params = C.params d;
+        chunks = [{ offset = 0; size = C.length d; data = d }];
+      }
+
+  let get_data = function
+    | Data d -> (
+        match (consolidate_chunks d).chunks with
+          | [] -> C.make ~size:0 d.params
+          | [{ offset = 0; size; data }] ->
+              assert (size = C.length data);
+              data
+          | _ -> assert false)
+    | _ -> raise Invalid
 
   include C
 end
@@ -316,16 +397,13 @@ end
 module NoneSpecs = struct
   type kind = unit
   type params = unit
-  type data = unit
+  type data = int
 
-  let is_empty _ = true
-  let make ~size:_ _ = ()
+  let make ~size _ = size
   let clear _ = ()
   let blit _ _ _ _ _ = ()
-  let fill _ _ _ _ _ = ()
-  let length _ = 0
-  let sub _ _ _ = ()
-  let copy _ = ()
+  let length c = c
+  let copy c = c
   let params _ = ()
   let merge _ _ = ()
   let compatible _ _ = true
@@ -340,7 +418,7 @@ end
 module None = struct
   include MkContent (NoneSpecs)
 
-  let data = lift_data ()
+  let data x = lift_data x
   let format = lift_params ()
 end
 
@@ -360,8 +438,6 @@ module AudioSpecs = struct
       | `Stereo -> "stereo"
       | `Five_point_one -> "5.1"
 
-  let is_empty d = Audio.length d = 0
-
   let merge p p' =
     assert (!!(p.channel_layout) = !!(p'.channel_layout));
     p
@@ -377,13 +453,7 @@ module AudioSpecs = struct
           (Audio.Mono.sub a' !dst_pos !len))
       src dst
 
-  let fill = blit
   let length d = Frame_settings.main_of_audio (Audio.length d)
-
-  let sub data ofs len =
-    let ( ! ) = audio_of_main in
-    Audio.sub data !ofs !len
-
   let copy d = Array.map Audio.Mono.copy d
 
   let param_of_channels = function
@@ -449,7 +519,6 @@ module VideoSpecs = struct
   type data = Video.t
 
   let string_of_kind = function `Yuv420p -> "yuva420p"
-  let is_empty d = Video.length d = 0
 
   let make ~size { width; height } =
     let width = !!(Option.value ~default:video_width width) in
@@ -491,20 +560,7 @@ module VideoSpecs = struct
     let ( ! ) = Frame_settings.video_of_main in
     Video.blit src !src_pos dst !dst_pos !len
 
-  let fill src src_pos dst dst_pos len =
-    let ( ! ) = Frame_settings.video_of_main in
-    let dst_pos = !dst_pos in
-    let src_pos = !src_pos in
-    for i = 0 to !len do
-      Video.set dst (dst_pos + i) (Video.get src (src_pos + i))
-    done
-
   let length d = Frame_settings.main_of_video (Video.length d)
-
-  let sub data ofs len =
-    let ( ! ) = Frame_settings.video_of_main in
-    Array.sub data !ofs !len
-
   let copy = Video.copy
 
   let params data =
@@ -538,7 +594,6 @@ module MidiSpecs = struct
   type params = Contents.midi_params
   type data = MIDI.Multitrack.t
 
-  let is_empty m = MIDI.Multitrack.duration m = 0
   let string_of_kind = function `Midi -> "midi"
   let string_of_params { channels } = Printf.sprintf "channels=%d" channels
 
@@ -552,15 +607,7 @@ module MidiSpecs = struct
     let ( ! ) = midi_of_main in
     Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
 
-  let fill = blit
   let length d = Frame_settings.main_of_midi (MIDI.Multitrack.duration d)
-
-  let sub data ofs len =
-    let ( ! ) = midi_of_main in
-    let d = MIDI.Multitrack.create (MIDI.Multitrack.channels data) !len in
-    blit data !ofs d 0 !len;
-    d
-
   let copy m = Array.map MIDI.copy m
   let params m = { channels = MIDI.Multitrack.channels m }
   let kind = `Midi

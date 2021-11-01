@@ -70,7 +70,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
     (* An audio frame for intermediate computations. It is used to buffer the
        end and beginnings of tracks. Its past metadata should mimic that of the
        main stream in order to avoid metadata duplication. *)
-    val mutable buf_frame = Frame.dummy
+    val mutable buf_frame = Frame.dummy ()
 
     method private reset_analysis =
       gen_before <- Generator.create ();
