@@ -71,7 +71,7 @@ class soundtouch ~kind source_val rate tempo pitch =
         ignore (Soundtouch.get_samples_ba st tmp);
         let tmp = Audio.deinterleave self#audio_channels tmp in
         Generator.put_audio abg
-          (Frame_content.Audio.lift_data tmp)
+          (Content.Audio.lift_data tmp)
           0
           (Frame.main_of_audio available));
       if AFrame.is_partial databuf then Generator.add_break abg;

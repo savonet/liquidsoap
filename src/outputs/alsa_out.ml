@@ -40,7 +40,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         ~infallible ~on_stop ~on_start ~content_kind:(Kind.of_kind kind) ~name
           ~output_kind:"output.alsa" source start as super
 
-    inherit [Frame_content.Audio.data] IoRing.output ~nb_blocks as ioring
+    inherit [Content.Audio.data] IoRing.output ~nb_blocks as ioring
     val mutable initialized = false
 
     method wake_up a =

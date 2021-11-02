@@ -51,7 +51,7 @@ class still_frame ~name ~kind (source : source) =
             let v = VFrame.get_content buf source in
             match v with
               | Some (v, off, _) ->
-                  let v = Frame_content.Video.get_data v in
+                  let v = Content.Video.get_data v in
                   let i = Video.get v off in
                   let i = i |> Image.YUV420.to_RGBA32 |> Image.RGBA32.to_BMP in
                   let oc = open_out f in

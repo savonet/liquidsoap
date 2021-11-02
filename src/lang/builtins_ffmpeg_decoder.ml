@@ -70,7 +70,7 @@ let decode_audio_frame ~mode generator =
               (!last_pts, InternalResampler.flush converter)
       in
       let len = Audio.length data in
-      let data = Frame_content.Audio.lift_data data in
+      let data = Content.Audio.lift_data data in
       Producer_consumer.(
         Generator.put_audio generator ?pts data 0 (Frame.main_of_audio len))
   in
@@ -189,8 +189,8 @@ let decode_audio_frame ~mode generator =
 
   let convert
         : 'a 'b.
-          get_data:(Frame_content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
-          decoder:([ `Frame of Frame_content.data | `Flush ] -> unit) ->
+          get_data:(Content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
+          decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
           [ `Frame of Frame.t | `Flush ] ->
           unit =
    fun ~get_data ~decoder -> function
@@ -293,7 +293,7 @@ let decode_video_frame ~mode generator =
               (InternalScaler.convert scaler data)
           in
           let data = Video.single img in
-          let data = Frame_content.Video.lift_data data in
+          let data = Content.Video.lift_data data in
           Producer_consumer.(
             Generator.put_video generator ?pts data 0 (Frame.main_of_video 1)))
   in
@@ -384,8 +384,8 @@ let decode_video_frame ~mode generator =
 
   let convert
         : 'a 'b.
-          get_data:(Frame_content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
-          decoder:([ `Frame of Frame_content.data | `Flush ] -> unit) ->
+          get_data:(Content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
+          decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
           [ `Frame of Frame.t | `Flush ] ->
           unit =
    fun ~get_data ~decoder -> function

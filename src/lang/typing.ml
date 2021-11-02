@@ -212,13 +212,13 @@ let satisfies_constraint b = function
   | InternalMedia -> (
       let is_internal name =
         try
-          let kind = Frame_content.kind_of_string name in
-          Frame_content.is_internal kind
-        with Frame_content.Invalid -> false
+          let kind = Content.kind_of_string name in
+          Content.is_internal kind
+        with Content.Invalid -> false
       in
       match b.descr with
         | Constr { constructor } when is_internal constructor -> ()
-        | Ground (Format f) when Frame_content.(is_internal (kind f)) -> ()
+        | Ground (Format f) when Content.(is_internal (kind f)) -> ()
         | Var { contents = Free v } ->
             if not (List.mem InternalMedia v.constraints) then
               v.constraints <- InternalMedia :: v.constraints
@@ -495,7 +495,7 @@ let rec ( <: ) a b =
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
             | Error _ -> assert false)
     | Ground (Format k), Ground (Format k') -> (
-        try Frame_content.merge k k'
+        try Content.merge k k'
         with _ -> raise (Error (Repr.make a, Repr.make b)))
     | Ground x, Ground y ->
         if x <> y then raise (Error (Repr.make a, Repr.make b))

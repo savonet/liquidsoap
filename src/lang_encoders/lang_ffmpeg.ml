@@ -30,12 +30,10 @@ let kind_of_encoder p =
         match p with
           | "", `Encoder ("audio.copy", _) ->
               `Format
-                Frame_content.(
-                  default_format (kind_of_string "ffmpeg.audio.copy"))
+                Content.(default_format (kind_of_string "ffmpeg.audio.copy"))
           | "", `Encoder ("audio.raw", _) ->
               `Format
-                Frame_content.(
-                  default_format (kind_of_string "ffmpeg.audio.raw"))
+                Content.(default_format (kind_of_string "ffmpeg.audio.raw"))
           | "", `Encoder ("audio", p) ->
               let channels =
                 try
@@ -51,7 +49,7 @@ let kind_of_encoder p =
                   | Exit -> raise Not_found
               in
               `Format
-                Frame_content.(
+                Content.(
                   Audio.lift_params
                     {
                       Contents.channel_layout =
@@ -68,14 +66,12 @@ let kind_of_encoder p =
         match p with
           | "", `Encoder ("video.copy", _) ->
               `Format
-                Frame_content.(
-                  default_format (kind_of_string "ffmpeg.video.copy"))
+                Content.(default_format (kind_of_string "ffmpeg.video.copy"))
           | "", `Encoder ("video.raw", _) ->
               `Format
-                Frame_content.(
-                  default_format (kind_of_string "ffmpeg.video.raw"))
+                Content.(default_format (kind_of_string "ffmpeg.video.raw"))
           | "", `Encoder ("video", _) ->
-              `Format Frame_content.(default_format Video.kind)
+              `Format Content.(default_format Video.kind)
           | _ -> audio)
       Frame.none p
   in

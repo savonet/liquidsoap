@@ -74,7 +74,7 @@ module AudioSpecs = struct
     { channel_layout = None; sample_format = None; sample_rate = None }
 
   let string_of_params { channel_layout; sample_format; sample_rate } =
-    Frame_content.print_optional
+    Content.print_optional
       [
         ( "channel_layout",
           Option.map
@@ -122,19 +122,18 @@ module AudioSpecs = struct
   let merge p p' =
     {
       channel_layout =
-        Frame_content.merge_param ~name:"channel_layout"
+        Content.merge_param ~name:"channel_layout"
           (p.channel_layout, p'.channel_layout);
       sample_format =
-        Frame_content.merge_param ~name:"sample_format"
+        Content.merge_param ~name:"sample_format"
           (p.sample_format, p'.sample_format);
       sample_rate =
-        Frame_content.merge_param ~name:"sample_rate"
-          (p.sample_rate, p'.sample_rate);
+        Content.merge_param ~name:"sample_rate" (p.sample_rate, p'.sample_rate);
     }
 end
 
 module Audio = struct
-  include Frame_content.MkContent (AudioSpecs)
+  include Content.MkContent (AudioSpecs)
 
   let kind = lift_kind `Raw
 end
@@ -174,7 +173,7 @@ module VideoSpecs = struct
     { width = None; height = None; pixel_format = None; pixel_aspect = None }
 
   let string_of_params { width; height; pixel_format; pixel_aspect } =
-    Frame_content.print_optional
+    Content.print_optional
       [
         ("width", Option.map string_of_int width);
         ("height", Option.map string_of_int height);
@@ -242,19 +241,19 @@ module VideoSpecs = struct
 
   let merge p p' =
     {
-      width = Frame_content.merge_param ~name:"width" (p.width, p'.width);
-      height = Frame_content.merge_param ~name:"height" (p.height, p'.height);
+      width = Content.merge_param ~name:"width" (p.width, p'.width);
+      height = Content.merge_param ~name:"height" (p.height, p'.height);
       pixel_format =
-        Frame_content.merge_param ~name:"pixel_format"
+        Content.merge_param ~name:"pixel_format"
           (p.pixel_format, p'.pixel_format);
       pixel_aspect =
-        Frame_content.merge_param ~name:"pixel_aspect"
+        Content.merge_param ~name:"pixel_aspect"
           (p.pixel_aspect, p'.pixel_aspect);
     }
 end
 
 module Video = struct
-  include Frame_content.MkContent (VideoSpecs)
+  include Content.MkContent (VideoSpecs)
 
   let kind = lift_kind `Raw
 end

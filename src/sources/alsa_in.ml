@@ -41,7 +41,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
           ~clock_safe ~get_clock:Alsa_settings.get_clock
           ~content_kind:(Kind.of_kind kind) () as active_source
 
-    inherit [Frame_content.Audio.data] IoRing.input ~nb_blocks as ioring
+    inherit [Content.Audio.data] IoRing.input ~nb_blocks as ioring
     val mutable initialized = false
     method self_sync = (`Static, true)
 
@@ -61,7 +61,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
     val mutable sample_freq = Lazy.force Frame.audio_rate
 
     val mutable read_fun =
-      fun pcm (buf : Frame_content.Audio.data) ofs len ->
+      fun pcm (buf : Content.Audio.data) ofs len ->
         Pcm.readn_float_ba pcm (Audio.sub buf ofs len)
 
     val mutable device = None

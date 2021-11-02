@@ -34,13 +34,13 @@ class noise ~kind duration =
          let len = Frame.audio_of_main len in
          let b = AFrame.pcm frame in
          Audio.Generator.white_noise (Audio.sub b off len)
-       with Frame_content.Invalid -> ());
+       with Content.Invalid -> ());
       try
         let off = Frame.video_of_main off in
         let len = Frame.video_of_main len in
         let b = VFrame.yuva420p frame in
         Video.iter Video.Image.randomize b off len
-      with Frame_content.Invalid -> ()
+      with Content.Invalid -> ()
   end
 
 let () =

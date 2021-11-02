@@ -148,10 +148,10 @@ let file_type ~ctype:_ filename =
       in
       Some
         {
-          Frame.video = Frame_content.None.format;
-          midi = Frame_content.None.format;
+          Frame.video = Content.None.format;
+          midi = Content.None.format;
           audio =
-            Frame_content.(
+            Content.(
               Audio.lift_params
                 {
                   Contents.channel_layout =

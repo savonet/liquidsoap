@@ -69,8 +69,7 @@ class lilv_mono ~kind (source : source) plugin input output params =
     method wake_up a =
       super#wake_up a;
       let i =
-        Array.init
-          (Frame_content.Audio.channels_of_format self#ctype.Frame.audio)
+        Array.init (Content.Audio.channels_of_format self#ctype.Frame.audio)
           (fun _ ->
             Plugin.instantiate plugin
               (float_of_int (Lazy.force Frame.audio_rate)))

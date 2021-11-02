@@ -101,7 +101,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let len = Audio.length data in
         let buffered = Generator.length abg in
         Generator.put_audio abg
-          (Frame_content.Audio.lift_data data)
+          (Content.Audio.lift_data data)
           0 (Frame.main_of_audio len);
         let to_replay =
           Tutils.mutexify mutex

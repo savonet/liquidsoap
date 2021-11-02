@@ -60,7 +60,7 @@ class frei0r_filter ~kind ~name bgra instance params (source : source) =
         | None -> ()
         | Some (rgb, offset, length) ->
             params ();
-            let rgb = Frame_content.Video.get_data rgb in
+            let rgb = Content.Video.get_data rgb in
             for i = offset to offset + length - 1 do
               (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
               let img = Video.get rgb i in
@@ -130,8 +130,8 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
              * because there's usually only one image per video frame. *)
             assert (offset = offset');
             let length = min length length' in
-            let rgb = Frame_content.Video.get_data rgb in
-            let rgb' = Frame_content.Video.get_data rgb' in
+            let rgb = Content.Video.get_data rgb in
+            let rgb' = Content.Video.get_data rgb' in
             for i = offset to offset + length - 1 do
               (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
               let img = Video.get rgb i in

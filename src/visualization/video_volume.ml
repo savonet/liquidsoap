@@ -80,9 +80,9 @@ class visu ~kind source =
           Frame.(
             create
               {
-                audio = Frame_content.None.format;
-                video = Frame_content.(default_format Video.kind);
-                midi = Frame_content.None.format;
+                audio = Content.None.format;
+                video = Content.(default_format Video.kind);
+                midi = Content.None.format;
               })
         in
         Frame.set_video frame (VFrame.content vFrame);

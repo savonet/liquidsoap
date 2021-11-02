@@ -162,9 +162,9 @@ let file_type ~ctype:_ filename =
         rate channels;
       Some
         {
-          Frame.audio = Frame_content.Audio.format_of_channels channels;
-          video = Frame_content.None.format;
-          midi = Frame_content.None.format;
+          Frame.audio = Content.Audio.format_of_channels channels;
+          video = Content.None.format;
+          midi = Content.None.format;
         })
 
 let file_decoder ~metadata:_ ~ctype filename =
@@ -241,9 +241,9 @@ let file_type ~ctype:_ filename =
         rate channels;
       Some
         {
-          Frame.audio = Frame_content.Audio.format_of_channels channels;
-          video = Frame_content.None.format;
-          midi = Frame_content.None.format;
+          Frame.audio = Content.Audio.format_of_channels channels;
+          video = Content.None.format;
+          midi = Content.None.format;
         })
 
 let mp4_mime_types =

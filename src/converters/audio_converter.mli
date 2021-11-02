@@ -44,8 +44,7 @@ module Samplerate : sig
   (** [resample converter ratio data]: converts input data at given
       ratio. Raises [Invalid_data] if number of channels do not match the number
       passed at [create]. *)
-  val resample :
-    t -> float -> Frame_content.Audio.data -> Frame_content.Audio.data
+  val resample : t -> float -> Content.Audio.data -> Content.Audio.data
 end
 
 module Channel_layout : sig
@@ -53,10 +52,7 @@ module Channel_layout : sig
   exception Invalid_data
 
   type layout = [ `Mono | `Stereo | `Five_point_one ]
-
-  type converter =
-    layout -> layout -> Frame_content.Audio.data -> Frame_content.Audio.data
-
+  type converter = layout -> layout -> Content.Audio.data -> Content.Audio.data
   type t
 
   val channels_of_layout : layout -> int
@@ -70,5 +66,5 @@ module Channel_layout : sig
   (** [convert converter data]: converts input data to the destination layout.
       Raises [Invalid_data] if input layout does not match the layout passed
       as [create]. *)
-  val convert : t -> Frame_content.Audio.data -> Frame_content.Audio.data
+  val convert : t -> Content.Audio.data -> Content.Audio.data
 end

@@ -1,4 +1,4 @@
-open Frame_content
+open Content
 open Frame
 
 let () =

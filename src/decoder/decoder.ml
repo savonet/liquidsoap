@@ -63,8 +63,8 @@ type fps = Decoder_utils.fps = { num : int; den : int }
     - Implicit content drop *)
 type buffer = {
   generator : G.t;
-  put_pcm : ?pts:Int64.t -> samplerate:int -> Frame_content.Audio.data -> unit;
-  put_yuva420p : ?pts:Int64.t -> fps:fps -> Frame_content.Video.data -> unit;
+  put_pcm : ?pts:Int64.t -> samplerate:int -> Content.Audio.data -> unit;
+  put_yuva420p : ?pts:Int64.t -> fps:fps -> Content.Video.data -> unit;
 }
 
 type decoder = {
@@ -245,13 +245,13 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     ext_ok || mime_ok)
 
 let channel_layout audio =
-  Lazy.force Frame_content.(Audio.(get_params audio).Contents.channel_layout)
+  Lazy.force Content.(Audio.(get_params audio).Contents.channel_layout)
 
-let none = Frame_content.None.format
+let none = Content.None.format
 
 let can_decode_type decoded_type target_type =
   let can_convert_audio audio =
-    Frame_content.None.is_format audio
+    Content.None.is_format audio
     || Audio_converter.Channel_layout.(
          try
            ignore
@@ -270,19 +270,16 @@ let can_decode_type decoded_type target_type =
           if can_convert_audio audio then audio else decoded_type.Frame.audio
         in
         let video =
-          if Frame_content.None.is_format video then none
+          if Content.None.is_format video then none
           else decoded_type.Frame.video
         in
         let midi =
-          if Frame_content.None.is_format midi then none
-          else decoded_type.Frame.midi
+          if Content.None.is_format midi then none else decoded_type.Frame.midi
         in
         Frame.compatible target_type { Frame.audio; video; midi }
 
 let decoder_modes ctype =
-  match
-    Frame.map_fields (fun c -> not (Frame_content.None.is_format c)) ctype
-  with
+  match Frame.map_fields (fun c -> not (Content.None.is_format c)) ctype with
     | Frame.{ audio = true; video = true; midi = false } -> [`Audio_video]
     | Frame.{ audio = true; video = false; midi = false } ->
         [`Audio; `Audio_video]
@@ -427,9 +424,7 @@ let get_stream_decoder ~ctype mime =
 
 let mk_buffer ~ctype generator =
   let mode =
-    match
-      Frame.map_fields (fun c -> not (Frame_content.None.is_format c)) ctype
-    with
+    match Frame.map_fields (fun c -> not (Content.None.is_format c)) ctype with
       | Frame.{ audio = true; video = true } -> `Both
       | Frame.{ audio = true; video = false } -> `Audio
       | Frame.{ audio = false; video = true } -> `Video
@@ -462,7 +457,7 @@ let mk_buffer ~ctype generator =
         let data = resampler ~samplerate data in
         let data = (get_channel_converter ()) data in
         let len = Audio.length data in
-        let data = Frame_content.Audio.lift_data data in
+        let data = Content.Audio.lift_data data in
         G.put_audio ?pts generator data 0 (Frame.main_of_audio len))
     else fun ?pts:_ ~samplerate:_ _ -> ()
   in
@@ -478,7 +473,7 @@ let mk_buffer ~ctype generator =
         let data = Array.map video_scale data in
         let data = video_resample ~in_freq:fps ~out_freq data in
         let len = Video.length data in
-        let data = Frame_content.Video.lift_data data in
+        let data = Content.Video.lift_data data in
         G.put_video ?pts generator data 0 (Frame.main_of_video len))
     else fun ?pts:_ ~fps:_ _ -> ()
   in

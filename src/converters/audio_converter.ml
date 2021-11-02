@@ -106,13 +106,11 @@ module Channel_layout = struct
   exception Invalid_data
 
   type layout = [ `Mono | `Stereo | `Five_point_one ]
-
-  type converter =
-    layout -> layout -> Frame_content.Audio.data -> Frame_content.Audio.data
+  type converter = layout -> layout -> Content.Audio.data -> Content.Audio.data
 
   type t = {
     src : layout;
-    converter : Frame_content.Audio.data -> Frame_content.Audio.data;
+    converter : Content.Audio.data -> Content.Audio.data;
   }
 
   let channel_layout_conf =

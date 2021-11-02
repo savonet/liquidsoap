@@ -5,11 +5,11 @@ let () =
   let frame_size = Lazy.force Frame.size in
   let gen = G.create `Both in
   let put_audio ~pts gen ofs len =
-    let data = Frame_content.None.data len in
+    let data = Content.None.data len in
     G.put_audio ~pts gen data ofs len
   in
   let put_video ~pts gen ofs len =
-    let data = Frame_content.None.data len in
+    let data = Content.None.data len in
     G.put_video ~pts gen data ofs len
   in
   (* Set this:

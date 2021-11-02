@@ -47,11 +47,11 @@ let content_type { audio; video; midi } =
     match deref v with
       | `Internal | `Any -> (
           match t with
-            | `Audio -> Frame_content.default_audio ()
-            | `Video -> Frame_content.default_video ()
-            | `Midi -> Frame_content.default_midi ())
+            | `Audio -> Content.default_audio ()
+            | `Video -> Content.default_video ()
+            | `Midi -> Content.default_midi ())
       | `Format f -> f
-      | `Kind k -> Frame_content.default_format k
+      | `Kind k -> Content.default_format k
   in
   {
     Frame.audio = get `Audio audio;
@@ -70,19 +70,17 @@ let unify_kind k k' =
       (* Formats *)
       | `Kind ki, `Kind ki' when ki = ki' -> Unifier.(k <-- k')
       (* Params *)
-      | `Format f, `Format f' -> Frame_content.merge f f'
+      | `Format f, `Format f' -> Content.merge f f'
       (* Format/params *)
-      | `Kind ki, `Format f when Frame_content.kind f = ki -> Unifier.(k <-- k')
-      | `Format f, `Kind ki when Frame_content.kind f = ki -> Unifier.(k' <-- k)
+      | `Kind ki, `Format f when Content.kind f = ki -> Unifier.(k <-- k')
+      | `Format f, `Kind ki when Content.kind f = ki -> Unifier.(k' <-- k)
       (* `Internal/'a *)
       | `Internal, `Internal -> Unifier.(k <-- k')
-      | `Internal, `Kind ki when Frame_content.is_internal ki ->
+      | `Internal, `Kind ki when Content.is_internal ki -> Unifier.(k <-- k')
+      | `Internal, `Format f when Content.(is_internal (kind f)) ->
           Unifier.(k <-- k')
-      | `Internal, `Format f when Frame_content.(is_internal (kind f)) ->
-          Unifier.(k <-- k')
-      | `Kind ki, `Internal when Frame_content.is_internal ki ->
-          Unifier.(k' <-- k)
-      | `Format f, `Internal when Frame_content.(is_internal (kind f)) ->
+      | `Kind ki, `Internal when Content.is_internal ki -> Unifier.(k' <-- k)
+      | `Format f, `Internal when Content.(is_internal (kind f)) ->
           Unifier.(k' <-- k)
       (* Any/'a *)
       | `Any, _ -> Unifier.(k <-- k')

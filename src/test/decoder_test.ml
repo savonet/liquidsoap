@@ -19,19 +19,19 @@ let () =
   Frame_settings.conf_video_default#set true
 
 let () =
-  let none = Frame_content.None.format in
+  let none = Content.None.format in
   let mono =
-    Frame_content.(Audio.lift_params { Contents.channel_layout = lazy `Mono })
+    Content.(Audio.lift_params { Contents.channel_layout = lazy `Mono })
   in
   let stereo =
-    Frame_content.(Audio.lift_params { Contents.channel_layout = lazy `Stereo })
+    Content.(Audio.lift_params { Contents.channel_layout = lazy `Stereo })
   in
   let five_point_one =
-    Frame_content.(
+    Content.(
       Audio.lift_params { Contents.channel_layout = lazy `Five_point_one })
   in
-  let yuva420p = Frame_content.default_video () in
-  let midi = Frame_content.(Midi.lift_params { Contents.channels = 1 }) in
+  let yuva420p = Content.default_video () in
+  let midi = Content.(Midi.lift_params { Contents.channels = 1 }) in
   assert (
     Decoder.can_decode_type
       { audio = stereo; video = none; midi = none }

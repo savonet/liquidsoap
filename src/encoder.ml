@@ -39,7 +39,7 @@ let audio_kind n =
     if n = 0 then Frame.none
     else
       `Format
-        Frame_content.(
+        Content.(
           Audio.lift_params
             {
               Contents.channel_layout =
@@ -51,7 +51,7 @@ let audio_kind n =
 let audio_video_kind n =
   {
     (audio_kind n) with
-    Frame.video = `Format Frame_content.(default_format Video.kind);
+    Frame.video = `Format Content.(default_format Video.kind);
   }
 
 let kind_of_format = function
@@ -66,17 +66,15 @@ let kind_of_format = function
           | None -> Frame.none
           | Some `Copy ->
               `Format
-                Frame_content.(
-                  default_format (kind_of_string "ffmpeg.audio.copy"))
+                Content.(default_format (kind_of_string "ffmpeg.audio.copy"))
           | Some (`Raw _) ->
               `Format
-                Frame_content.(
-                  default_format (kind_of_string "ffmpeg.audio.raw"))
+                Content.(default_format (kind_of_string "ffmpeg.audio.raw"))
           | Some (`Internal _) ->
               let channels = m.Ffmpeg_format.channels in
               assert (channels > 0);
               `Format
-                Frame_content.(
+                Content.(
                   Audio.lift_params
                     {
                       Contents.channel_layout =
@@ -90,14 +88,11 @@ let kind_of_format = function
           | None -> Frame.none
           | Some `Copy ->
               `Format
-                Frame_content.(
-                  default_format (kind_of_string "ffmpeg.video.copy"))
+                Content.(default_format (kind_of_string "ffmpeg.video.copy"))
           | Some (`Raw _) ->
               `Format
-                Frame_content.(
-                  default_format (kind_of_string "ffmpeg.video.raw"))
-          | Some (`Internal _) ->
-              `Format Frame_content.(default_format Video.kind)
+                Content.(default_format (kind_of_string "ffmpeg.video.raw"))
+          | Some (`Internal _) -> `Format Content.(default_format Video.kind)
       in
       { Frame.audio; video; midi = Frame.none }
   | FdkAacEnc m -> audio_kind m.Fdkaac_format.channels

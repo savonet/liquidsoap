@@ -64,7 +64,7 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
     method private get_frame ab =
       match VFrame.get_content ab source with
         | Some (rgb, off, len) ->
-            let rgb = Frame_content.Video.get_data rgb in
+            let rgb = Content.Video.get_data rgb in
             let tf = self#get_text_frame in
             let tfw = Video.Image.width tf in
             let text =

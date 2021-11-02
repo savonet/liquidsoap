@@ -92,7 +92,7 @@ let create_stream process input =
   ret
 
 let audio_n n =
-  Frame_content.(
+  Content.(
     Audio.lift_params
       {
         Contents.channel_layout =
@@ -108,8 +108,8 @@ let test_ctype f filename =
   else
     Some
       {
-        Frame.video = Frame_content.None.format;
-        midi = Frame_content.None.format;
+        Frame.video = Content.None.format;
+        midi = Content.None.format;
         (* TODO: this is not perfect *)
         audio =
           (if ret < 0 then audio_n (Lazy.force Frame.audio_channels)
@@ -165,8 +165,8 @@ let external_input_oblivious process filename prebuf =
   let ctype =
     {
       Frame.audio = audio_n (Lazy.force Frame.audio_channels);
-      video = Frame_content.None.format;
-      midi = Frame_content.None.format;
+      video = Content.None.format;
+      midi = Content.None.format;
     }
   in
   let gen = Generator.create ~log_overfull:false ~log:(log#info "%s") `Audio in

@@ -20,9 +20,9 @@ let () =
   let format = "application/ffmpeg" in
   let ctype =
     {
-      Frame.audio = Frame_content.default_audio ();
-      video = Frame_content.None.format;
-      midi = Frame_content.None.format;
+      Frame.audio = Content.default_audio ();
+      video = Content.None.format;
+      midi = Content.None.format;
     }
   in
   let frame = Frame.create ctype in

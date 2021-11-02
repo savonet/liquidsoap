@@ -146,12 +146,12 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
       | Some "mp4" ->
           encode ~encoder frame start len;
           if encoder.video_stream <> None then (
-            let d = Frame_content.sub (Frame.video frame) start len in
-            video_sent := !video_sent || not (Frame_content.is_empty d))
+            let d = Content.sub (Frame.video frame) start len in
+            video_sent := !video_sent || not (Content.is_empty d))
           else video_sent := true;
           if encoder.audio_stream <> None then (
-            let d = Frame_content.sub (Frame.audio frame) start len in
-            audio_sent := !audio_sent || not (Frame_content.is_empty d))
+            let d = Content.sub (Frame.audio frame) start len in
+            audio_sent := !audio_sent || not (Content.is_empty d))
           else audio_sent := true;
           if not (!audio_sent && !video_sent) then raise Encoder.Not_enough_data;
           Av.flush encoder.output;

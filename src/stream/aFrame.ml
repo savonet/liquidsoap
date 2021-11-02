@@ -29,7 +29,7 @@ type t = Frame.t
 let sot = audio_of_main
 let tos = main_of_audio
 let content = Frame.audio
-let pcm b = Frame_content.Audio.get_data (content b)
+let pcm b = Content.Audio.get_data (content b)
 
 let to_s16le b =
   let fpcm = pcm b in

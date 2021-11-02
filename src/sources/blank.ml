@@ -51,12 +51,12 @@ class blank ~kind duration =
            (Audio.sub (AFrame.pcm ab)
               (Frame.audio_of_main position)
               (Frame.audio_of_main length))
-       with Frame_content.Invalid -> ());
+       with Content.Invalid -> ());
 
       (* Video *)
       (try
          Video.blank (VFrame.yuva420p ab) video_pos (Frame.video_of_main length)
-       with Frame_content.Invalid -> ());
+       with Content.Invalid -> ());
 
       Frame.add_break ab (position + length);
       if Frame.is_partial ab then remaining <- ticks

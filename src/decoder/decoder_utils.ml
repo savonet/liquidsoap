@@ -1,29 +1,29 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2021 Savonet team
+    Liquidsoap, a programmable audio stream generator.
+    Copyright 2003-2021 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details, fully stated in the COPYING
+    file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
-*****************************************************************************)
+  *****************************************************************************)
 
 open Mm
 
 type samplerate_converter =
-  samplerate:int -> Frame_content.Audio.data -> Frame_content.Audio.data
+  samplerate:int -> Content.Audio.data -> Content.Audio.data
 
 let samplerate_converter () =
   let state = ref None in
@@ -42,7 +42,7 @@ let samplerate_converter () =
           state := Some (converter, _channels);
           Audio_converter.Samplerate.resample converter ratio audio_buf
 
-type wav_converter = string -> Frame_content.Audio.data
+type wav_converter = string -> Content.Audio.data
 
 let from_iff ~format ~channels ~samplesize =
   let sample_bytes = samplesize / 8 in
@@ -69,7 +69,7 @@ let from_iff ~format ~channels ~samplesize =
     to_audio src 0 dst;
     dst
 
-type channels_converter = Frame_content.Audio.data -> Frame_content.Audio.data
+type channels_converter = Content.Audio.data -> Content.Audio.data
 
 let channels_converter dst =
   let converter = ref None in

@@ -201,8 +201,7 @@ let () =
     | Incompatible_format (f, f') ->
         Some
           (Printf.sprintf
-             "Frame_content.Incompatible_format: formats %s and %s are \
-              incompatible!"
+             "Content.Incompatible_format: formats %s and %s are incompatible!"
              (string_of_format f) (string_of_format f'))
     | _ -> None)
 

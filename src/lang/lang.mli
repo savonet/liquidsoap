@@ -138,7 +138,7 @@ val internal : Frame.content_kind
 
 (* Audio (PCM format) *)
 val audio_pcm : Frame.content_kind
-val audio_params : Frame_content.Audio.params -> Frame.content_kind
+val audio_params : Content.Audio.params -> Frame.content_kind
 val audio_n : int -> Frame.content_kind
 val audio_mono : Frame.content_kind
 val audio_stereo : Frame.content_kind

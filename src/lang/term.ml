@@ -110,15 +110,15 @@ let kind_t ?pos kind =
         Type.make ?pos
           (Type.Constr
              {
-               Type.constructor = Frame_content.string_of_kind k;
+               Type.constructor = Content.string_of_kind k;
                Type.params = [(Type.Covariant, evar ())];
              })
     | `Format f ->
-        let k = Frame_content.kind f in
+        let k = Content.kind f in
         Type.make ?pos
           (Type.Constr
              {
-               Type.constructor = Frame_content.string_of_kind k;
+               Type.constructor = Content.string_of_kind k;
                Type.params = [(Type.Covariant, mk_format f)];
              })
 

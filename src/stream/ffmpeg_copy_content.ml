@@ -70,7 +70,7 @@ module AudioSpecs = struct
   type data = (params, audio packet) content
 
   let string_of_params params =
-    Frame_content.print_optional
+    Content.print_optional
       [
         ( "codec",
           Option.map
@@ -110,7 +110,7 @@ module AudioSpecs = struct
 end
 
 module Audio = struct
-  include Frame_content.MkContent (AudioSpecs)
+  include Content.MkContent (AudioSpecs)
 
   let kind = lift_kind `Copy
 end
@@ -125,7 +125,7 @@ module VideoSpecs = struct
   type data = (params, video packet) content
 
   let string_of_params params =
-    Frame_content.print_optional
+    Content.print_optional
       [
         ( "codec",
           Option.map
@@ -174,7 +174,7 @@ module VideoSpecs = struct
 end
 
 module Video = struct
-  include Frame_content.MkContent (VideoSpecs)
+  include Content.MkContent (VideoSpecs)
 
   let kind = lift_kind `Copy
 end

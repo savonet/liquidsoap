@@ -30,10 +30,7 @@ val map_fields : ('a -> 'b) -> 'a fields -> 'b fields
 
 (** High-level description of the content. *)
 type kind =
-  [ `Any
-  | `Internal
-  | `Kind of Frame_content.kind
-  | `Format of Frame_content.format ]
+  [ `Any | `Internal | `Kind of Content.kind | `Format of Content.format ]
 
 (* Some common kind. Audio is PCM, video YUV420p *)
 val none : kind
@@ -48,9 +45,9 @@ val midi_n : int -> kind
 type content_kind = kind fields
 
 (** Precise description of the channel types for the current track. *)
-type content_type = Frame_content.format fields
+type content_type = Content.format fields
 
-type content = Frame_content.data fields
+type content = Content.data fields
 
 (** [blit_content c1 o1 c2 o2 l] fills [l] data from [c1] starting at offset
     [o1] into [c2] starting at offset [o2], avoiding copy when possible. All numerical values are in
@@ -92,22 +89,22 @@ val content : t -> content
 val set_content : t -> content -> unit
 
 (** Get a frame's audio content. *)
-val audio : t -> Frame_content.data
+val audio : t -> Content.data
 
 (** Set a frame's audio content. *)
-val set_audio : t -> Frame_content.data -> unit
+val set_audio : t -> Content.data -> unit
 
 (** Get a frame's video content. *)
-val video : t -> Frame_content.data
+val video : t -> Content.data
 
 (** Set a frame's video content. *)
-val set_video : t -> Frame_content.data -> unit
+val set_video : t -> Content.data -> unit
 
 (** Get a frame's midi content. *)
-val midi : t -> Frame_content.data
+val midi : t -> Content.data
 
 (** Set a frame's midi content. *)
-val set_midi : t -> Frame_content.data -> unit
+val set_midi : t -> Content.data -> unit
 
 (** Position of the end of the last chunk of the frame (i.e. the offset of the
     end of the frame). *)

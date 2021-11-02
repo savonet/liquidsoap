@@ -55,12 +55,11 @@ val add_break : t -> int -> unit
   * and returns the produced chunk of video content.
   * It is possible that a successful filling produced audio samples
   * but no video sample. *)
-val get_content :
-  Frame.t -> Source.source -> (Frame_content.data * int * int) option
+val get_content : Frame.t -> Source.source -> (Content.data * int * int) option
 
 (** Get video contents. Raises [Not_found] is frame has no video *)
-val content : t -> Frame_content.data
+val content : t -> Content.data
 
-(** Get yuva420p video content. Raises [Frame_content.Invalid] if video
+(** Get yuva420p video content. Raises [Content.Invalid] if video
   * content is not yuva420p and [Not_found] if frame has no video content. *)
-val yuva420p : t -> Frame_content.Video.data
+val yuva420p : t -> Content.Video.data

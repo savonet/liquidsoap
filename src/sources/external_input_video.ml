@@ -77,7 +77,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#severe "%s";
-      if self#ctype.Frame.audio = Frame_content.None.format then
+      if self#ctype.Frame.audio = Content.None.format then
         Generator.set_mode abg `Video;
       Generator.set_content_type abg self#ctype;
       self#log#debug "Generator mode: %s."
@@ -222,13 +222,13 @@ let () =
                      (width * height * 3));
               let data = (Option.get !video_converter) data in
               Generator.put_video abg
-                (Frame_content.Video.lift_data (Video.single data))
+                (Content.Video.lift_data (Video.single data))
                 0 (Frame.main_of_video 1)
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
               let data = converter data in
               Generator.put_audio abg
-                (Frame_content.Audio.lift_data data)
+                (Content.Audio.lift_data data)
                 0
                 (Frame.main_of_audio (Audio.length data))
           | _ -> failwith "Invalid chunk."
@@ -303,7 +303,7 @@ let () =
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
         Generator.put_video abg
-          (Frame_content.Video.lift_data (Video.single data))
+          (Content.Video.lift_data (Video.single data))
           0 (Frame.main_of_video 1)
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in

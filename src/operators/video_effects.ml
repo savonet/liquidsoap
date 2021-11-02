@@ -36,9 +36,8 @@ class effect ~name ~kind effect (source : source) =
     method private get_frame buf =
       match VFrame.get_content buf source with
         | Some (rgb, offset, length) -> (
-            try
-              Video.iter effect (Frame_content.Video.get_data rgb) offset length
-            with Frame_content.Invalid -> ())
+            try Video.iter effect (Content.Video.get_data rgb) offset length
+            with Content.Invalid -> ())
         | _ -> ()
   end
 

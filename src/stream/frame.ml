@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 include Frame_settings
-open Frame_content
+open Content
 
 (** Data types *)
 
@@ -29,10 +29,7 @@ type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
 (** High-level description of the content. *)
 type kind =
-  [ `Any
-  | `Internal
-  | `Kind of Frame_content.kind
-  | `Format of Frame_content.format ]
+  [ `Any | `Internal | `Kind of Content.kind | `Format of Content.format ]
 
 let none = `Format None.format
 let audio_pcm = `Kind Audio.kind
@@ -88,9 +85,9 @@ let string_of_content_kind = string_of_fields string_of_kind
 let string_of_content_type = string_of_fields string_of_format
 
 let compatible c c' =
-  Frame_content.compatible c.audio c'.audio
-  && Frame_content.compatible c.video c'.video
-  && Frame_content.compatible c.midi c'.midi
+  Content.compatible c.audio c'.audio
+  && Content.compatible c.video c'.video
+  && Content.compatible c.midi c'.midi
 
 (* Frames *)
 
@@ -126,7 +123,7 @@ let create ctype =
   { pts = 0L; breaks = []; metadata = []; content = create_content ctype }
 
 let dummy () =
-  let data = Frame_content.None.data !!size in
+  let data = Content.None.data !!size in
   {
     pts = 0L;
     breaks = [];
@@ -153,9 +150,9 @@ let set_breaks b breaks = b.breaks <- breaks
 let add_break b br = b.breaks <- br :: b.breaks
 
 let clear (b : t) =
-  Frame_content.clear b.content.audio;
-  Frame_content.clear b.content.video;
-  Frame_content.clear b.content.midi;
+  Content.clear b.content.audio;
+  Content.clear b.content.video;
+  Content.clear b.content.midi;
   b.breaks <- [];
   b.metadata <- []
 
@@ -165,9 +162,9 @@ let clear_from (b : t) pos =
 
 (* Same as clear but leaves the last metadata at position -1. *)
 let advance b =
-  Frame_content.clear b.content.audio;
-  Frame_content.clear b.content.video;
-  Frame_content.clear b.content.midi;
+  Content.clear b.content.audio;
+  Content.clear b.content.video;
+  Content.clear b.content.midi;
   b.pts <- Int64.succ b.pts;
   b.breaks <- [];
   b.metadata <- []

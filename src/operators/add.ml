@@ -118,7 +118,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                   (Audio.sub (AFrame.pcm buffer)
                      (Frame.audio_of_main offset)
                      (Frame.audio_of_main (already - offset)))
-              with Frame_content.Invalid -> ());
+              with Content.Invalid -> ());
             if rank > 0 then (
               (* The region grows, make sure it is clean before adding.
                * TODO the same should be done for video. *)
@@ -133,7 +133,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                  Audio.add
                    (Audio.sub (AFrame.pcm buf) offset (already - offset))
                    (Audio.sub (AFrame.pcm tmp) offset (already - offset))
-               with Frame_content.Invalid -> ());
+               with Content.Invalid -> ());
 
               try
                 let vbuf = VFrame.yuva420p buf in
@@ -142,7 +142,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                 for i = !offset to !already - 1 do
                   video_loop rank (Video.get vbuf i) (Video.get vtmp i)
                 done
-              with Frame_content.Invalid -> ())
+              with Content.Invalid -> ())
             else (
               try
                 let vbuf = VFrame.yuva420p buf in
@@ -150,7 +150,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                 for i = !offset to !already - 1 do
                   video_init (Video.get vbuf i)
                 done
-              with Frame_content.Invalid -> ());
+              with Content.Invalid -> ());
             (rank + 1, max end_offset already))
           (0, offset) sources
       in

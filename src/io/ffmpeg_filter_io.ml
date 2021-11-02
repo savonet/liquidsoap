@@ -147,7 +147,7 @@ class audio_input ~pass_metadata ~bufferize kind =
           sample_format = Some Avfilter.(sample_format v.context);
         }
       in
-      Frame_content.merge self#ctype.Frame.audio
+      Content.merge self#ctype.Frame.audio
         (Ffmpeg_raw_content.Audio.lift_params output_format);
       output <- Some v
 
@@ -252,7 +252,7 @@ class video_input ~pass_metadata ~bufferize ~fps kind =
           pixel_aspect = Some Avfilter.(sample_aspect_ratio v.context);
         }
       in
-      Frame_content.merge self#ctype.Frame.video
+      Content.merge self#ctype.Frame.video
         (Ffmpeg_raw_content.Video.lift_params output_format);
       output <- Some v
 

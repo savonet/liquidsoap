@@ -238,9 +238,9 @@ let file_type ~ctype:_ filename =
         (Utils.quote_string filename)
         audio video;
       let audio =
-        if audio = 0 then Frame_content.None.format
+        if audio = 0 then Content.None.format
         else
-          Frame_content.(
+          Content.(
             Audio.lift_params
               {
                 Contents.channel_layout =
@@ -248,10 +248,10 @@ let file_type ~ctype:_ filename =
               })
       in
       let video =
-        if video = 0 then Frame_content.None.format
-        else Frame_content.(default_format Video.kind)
+        if video = 0 then Content.None.format
+        else Content.(default_format Video.kind)
       in
-      Some { Frame.audio; video; midi = Frame_content.None.format })
+      Some { Frame.audio; video; midi = Content.None.format })
 
 let mime_types =
   Dtools.Conf.list

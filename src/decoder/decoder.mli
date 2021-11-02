@@ -51,8 +51,8 @@ type fps = Decoder_utils.fps = { num : int; den : int }
     - Implicit content drop *)
 type buffer = {
   generator : G.t;
-  put_pcm : ?pts:Int64.t -> samplerate:int -> Frame_content.Audio.data -> unit;
-  put_yuva420p : ?pts:Int64.t -> fps:fps -> Frame_content.Video.data -> unit;
+  put_pcm : ?pts:Int64.t -> samplerate:int -> Content.Audio.data -> unit;
+  put_yuva420p : ?pts:Int64.t -> fps:fps -> Content.Video.data -> unit;
 }
 
 type decoder = {

@@ -48,8 +48,8 @@ module type S_Asio = sig
   val fill : t -> Frame.t -> unit
   val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
   val add_break : ?sync:bool -> ?pos:int -> t -> unit
-  val put_audio : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
-  val put_video : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
+  val put_audio : ?pts:int64 -> t -> Content.data -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Content.data -> int -> int -> unit
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
@@ -356,11 +356,11 @@ module From_audio_video = struct
   type t = {
     mutable mode : mode;
     mutable current_audio_pts : int64;
-    current_audio : Frame_content.data content Generator.t;
-    audio : Frame_content.data content Generator.t;
+    current_audio : Content.data content Generator.t;
+    audio : Content.data content Generator.t;
     mutable current_video_pts : int64;
-    current_video : Frame_content.data content Generator.t;
-    video : Frame_content.data content Generator.t;
+    current_video : Content.data content Generator.t;
+    video : Content.data content Generator.t;
     mutable metadata : (int * Frame.metadata) list;
     mutable breaks : int list;
   }
@@ -554,7 +554,7 @@ module From_audio_video = struct
       | `Audio ->
           t.current_video_pts <-
             put_frames ~pts ~current_pts:t.current_video_pts t.current_video
-              Frame_content.None.(data l)
+              Content.None.(data l)
               0 l
       | `Both -> ()
       | _ -> assert false
@@ -574,7 +574,7 @@ module From_audio_video = struct
       | `Video ->
           t.current_audio_pts <-
             put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio
-              Frame_content.None.(data l)
+              Content.None.(data l)
               0 l
       | _ -> ()
     end;
@@ -695,13 +695,13 @@ module From_audio_video = struct
     if mode = `Both || mode = `Audio then
       List.iter
         (fun ({ data }, apos, apos', al) ->
-          Frame_content.blit data apos (AFrame.content frame) (fpos + apos') al)
+          Content.blit data apos (AFrame.content frame) (fpos + apos') al)
         audio;
 
     if mode = `Both || mode = `Video then
       List.iter
         (fun ({ data }, vpos, vpos', vl) ->
-          Frame_content.blit data vpos (VFrame.content frame) (fpos + vpos') vl)
+          Content.blit data vpos (VFrame.content frame) (fpos + vpos') vl)
         video;
 
     Frame.add_break frame (fpos + l);

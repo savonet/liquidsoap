@@ -560,19 +560,19 @@ let get_type ~ctype ~url container =
     failwith "No valid stream found in file.";
   let audio =
     match (audio_params, ctype.Frame.audio) with
-      | None, _ -> Frame_content.None.format
+      | None, _ -> Content.None.format
       | Some p, format when Ffmpeg_copy_content.Audio.is_format format ->
           ignore
-            (Frame_content.merge format
+            (Content.merge format
                Ffmpeg_copy_content.(Audio.lift_params (Some p)));
           format
       | Some p, format when Ffmpeg_raw_content.Audio.is_format format ->
           ignore
-            (Frame_content.merge format
+            (Content.merge format
                Ffmpeg_raw_content.(Audio.lift_params (AudioSpecs.mk_params p)));
           format
       | Some p, _ ->
-          Frame_content.(
+          Content.(
             Audio.lift_params
               {
                 Contents.channel_layout =
@@ -583,20 +583,20 @@ let get_type ~ctype ~url container =
   in
   let video =
     match (video_params, ctype.Frame.video) with
-      | None, _ -> Frame_content.None.format
+      | None, _ -> Content.None.format
       | Some p, format when Ffmpeg_copy_content.Video.is_format format ->
           ignore
-            (Frame_content.merge format
+            (Content.merge format
                Ffmpeg_copy_content.(Video.lift_params (Some p)));
           format
       | Some p, format when Ffmpeg_raw_content.Video.is_format format ->
           ignore
-            (Frame_content.merge format
+            (Content.merge format
                Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params p)));
           format
-      | _ -> Frame_content.(default_format Video.kind)
+      | _ -> Content.(default_format Video.kind)
   in
-  let ctype = { Frame.audio; video; midi = Frame_content.None.format } in
+  let ctype = { Frame.audio; video; midi = Content.None.format } in
   log#info "ffmpeg recognizes %s as: %s and content-type: %s."
     (Utils.quote_string url)
     (String.concat ", " (List.rev descr))
@@ -700,7 +700,7 @@ let mk_streams ~ctype container =
   let audio =
     try
       match ctype.Frame.audio with
-        | f when Frame_content.None.is_format f -> None
+        | f when Content.None.is_format f -> None
         | f when Ffmpeg_copy_content.Audio.is_format f ->
             Some
               (`Packet
@@ -709,7 +709,7 @@ let mk_streams ~ctype container =
             Some
               (`Frame (Ffmpeg_raw_decoder.mk_audio_decoder ~format:f container))
         | f ->
-            let channels = Frame_content.Audio.channels_of_format f in
+            let channels = Content.Audio.channels_of_format f in
             Some
               (`Frame
                 (Ffmpeg_internal_decoder.mk_audio_decoder ~channels container))
@@ -718,7 +718,7 @@ let mk_streams ~ctype container =
   let video =
     try
       match ctype.Frame.video with
-        | f when Frame_content.None.is_format f -> None
+        | f when Content.None.is_format f -> None
         | f when Ffmpeg_copy_content.Video.is_format f ->
             Some
               (`Packet
@@ -847,12 +847,12 @@ let get_file_type ~ctype filename =
   match (Utils.get_ext_opt filename, ctype.Frame.video) with
     | Some ext, format
       when List.mem ext image_file_extensions#get
-           && Frame_content.Video.is_format format ->
+           && Content.Video.is_format format ->
         Frame.
           {
-            audio = Frame_content.None.format;
-            video = Frame_content.None.format;
-            midi = Frame_content.None.format;
+            audio = Content.None.format;
+            video = Content.None.format;
+            midi = Content.None.format;
           }
     | _ ->
         let container = Av.open_input filename in

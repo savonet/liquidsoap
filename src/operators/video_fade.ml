@@ -69,7 +69,7 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
       if Frame.is_partial ab then state <- `Idle;
       match video_content with
         | Some (rgb, off, len) ->
-            let rgb = Frame_content.Video.get_data rgb in
+            let rgb = Content.Video.get_data rgb in
             if count < length then
               for i = 0 to min (len - 1) (length - count - 1) do
                 let m = fade (count + i) in
@@ -129,7 +129,7 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
             (* Process the buffer *)
             match if n >= 0 && n < length then Some n else None with
               | Some n ->
-                  let rgb = Frame_content.Video.get_data rgb in
+                  let rgb = Content.Video.get_data rgb in
                   for i = 0 to len - 1 do
                     let m = fade (n - i) in
                     fadefun (Video.get rgb (off + i)) m

@@ -83,18 +83,16 @@ let audio_pcm = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any }
 
 let audio_params p =
   {
-    Frame.audio = `Format (Frame_content.Audio.lift_params p);
+    Frame.audio = `Format (Content.Audio.lift_params p);
     video = `Any;
     midi = `Any;
   }
 
 let audio_n n = { Frame.audio = Frame.audio_n n; video = `Any; midi = `Any }
-
-let audio_mono =
-  audio_params { Frame_content.Contents.channel_layout = lazy `Mono }
+let audio_mono = audio_params { Content.Contents.channel_layout = lazy `Mono }
 
 let audio_stereo =
-  audio_params { Frame_content.Contents.channel_layout = lazy `Stereo }
+  audio_params { Content.Contents.channel_layout = lazy `Stereo }
 
 let video_yuva420p =
   { Frame.audio = `Any; video = Frame.video_yuva420p; midi = `Any }
@@ -105,9 +103,7 @@ let midi_n n =
   {
     Frame.audio = `Any;
     video = `Any;
-    midi =
-      `Format
-        (Frame_content.Midi.lift_params { Frame_content.Contents.channels = n });
+    midi = `Format (Content.Midi.lift_params { Content.Contents.channels = n });
   }
 
 let kind_type_of_kind_format fields =

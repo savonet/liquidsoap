@@ -25,11 +25,11 @@ open Mm
 (** Resampling module for any Frame.content *)
 
 type samplerate_converter =
-  samplerate:int -> Frame_content.Audio.data -> Frame_content.Audio.data
+  samplerate:int -> Content.Audio.data -> Content.Audio.data
 
 val samplerate_converter : unit -> samplerate_converter
 
-type wav_converter = string -> Frame_content.Audio.data
+type wav_converter = string -> Content.Audio.data
 
 (** samplesize is in bits.
     Formats: unsigned 8 bit (u8) or
@@ -37,7 +37,7 @@ type wav_converter = string -> Frame_content.Audio.data
 val from_iff :
   format:Wav_aiff.format -> channels:int -> samplesize:int -> wav_converter
 
-type channels_converter = Frame_content.Audio.data -> Frame_content.Audio.data
+type channels_converter = Content.Audio.data -> Content.Audio.data
 
 val channels_converter :
   Audio_converter.Channel_layout.layout -> channels_converter
@@ -50,5 +50,5 @@ val video_resample :
   unit ->
   in_freq:fps ->
   out_freq:fps ->
-  Frame_content.Video.data ->
-  Frame_content.Video.data
+  Content.Video.data ->
+  Content.Video.data

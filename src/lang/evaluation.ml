@@ -138,12 +138,11 @@ let rec eval ~env tm =
               | Type.Constr { Type.constructor; params = [(_, t)] } -> (
                   match (Type.deref t).Type.descr with
                     | Type.Ground (Type.Format fmt) -> `Format fmt
-                    | Type.Var _ ->
-                        `Kind (Frame_content.kind_of_string constructor)
+                    | Type.Var _ -> `Kind (Content.kind_of_string constructor)
                     | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
                   )
               | Type.Constr { Type.constructor = "none" } ->
-                  `Kind (Frame_content.kind_of_string "none")
+                  `Kind (Content.kind_of_string "none")
               | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
           in
           let k = of_frame_kind_t k in

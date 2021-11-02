@@ -397,20 +397,16 @@ let mk_kind ~pos (kind, params) =
   if kind = "any" then Type.var ~pos ()
   else (
     try
-      let k = Frame_content.kind_of_string kind in
+      let k = Content.kind_of_string kind in
       match params with
         | [] -> Term.kind_t (`Kind k)
         | [("", "any")] -> Type.var ()
         | [("", "internal")] -> Type.var ~constraints:[Type.InternalMedia] ()
         | param :: params ->
-            let mk_format (label, value) =
-              Frame_content.parse_param k label value
-            in
+            let mk_format (label, value) = Content.parse_param k label value in
             let f = mk_format param in
-            List.iter
-              (fun param -> Frame_content.merge f (mk_format param))
-              params;
-            assert (k = Frame_content.kind f);
+            List.iter (fun param -> Content.merge f (mk_format param)) params;
+            assert (k = Content.kind f);
             Term.kind_t (`Format f)
     with _ ->
       let params =
