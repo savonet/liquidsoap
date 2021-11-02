@@ -36,8 +36,7 @@ let () =
                       Ffmpeg_copy_encoder.mk_stream_copy
                         ~video_size:(fun _ -> None)
                         ~get_data:(fun frame ->
-                          Ffmpeg_copy_content.Audio.get_data
-                            Frame.(frame.content.audio))
+                          Ffmpeg_copy_content.Audio.get_data (Frame.audio frame))
                 | None | Some (`Internal (Some _)) | Some (`Raw (Some _)) ->
                     Ffmpeg_internal_encoder.mk_audio
                 | Some (`Internal None) ->
@@ -50,8 +49,7 @@ let () =
                 | Some `Copy ->
                     fun ~ffmpeg:_ ~options:_ ->
                       let get_data frame =
-                        Ffmpeg_copy_content.Video.get_data
-                          Frame.(frame.content.video)
+                        Ffmpeg_copy_content.Video.get_data (Frame.video frame)
                       in
                       let video_size frame =
                         let { Ffmpeg_content_base.params } = get_data frame in

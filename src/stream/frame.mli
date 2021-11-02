@@ -69,18 +69,7 @@ type metadata = (string, string) Hashtbl.t
 val metadata_of_list : (string * string) list -> metadata
 
 (** A frame. *)
-type t = {
-  (* Presentation time, in multiple of frame size. *)
-  mutable pts : int64;
-  (* End of track markers. A break at the end of the
-     buffer is not an end of track (if needed, the
-     end-of-track needs to be put at the beginning
-     of the next frame). *)
-  mutable breaks : int list;
-  (* Metadata along with the time they occur. *)
-  mutable metadata : (int * metadata) list;
-  mutable content : content;
-}
+type t
 
 (** {2 Content-independent frame operations} *)
 
@@ -95,6 +84,12 @@ val dummy : unit -> t
 
 (** Get a frame's content type. *)
 val content_type : t -> content_type
+
+(** Get a frame's content. *)
+val content : t -> content
+
+(** Set a frame's content. *)
+val set_content : t -> content -> unit
 
 (** Get a frame's audio content. *)
 val audio : t -> Frame_content.data

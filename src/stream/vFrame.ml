@@ -31,7 +31,7 @@ let vot ?round x =
     | None | Some `Down -> Frame.video_of_main x
     | Some `Up -> Frame.video_of_main (x + Lazy.force Frame.video_rate - 1)
 
-let content b = b.content.video
+let content = Frame.video
 let yuva420p b = Frame_content.Video.get_data (content b)
 let size _ = vot (Lazy.force size)
 let next_sample_position t = vot ~round:`Up (Frame.position t)
@@ -47,4 +47,4 @@ let get_content frame source =
   in
   let v0 = vot ~round:`Up p0 in
   let v1 = vot ~round:`Down p1 in
-  if v0 < v1 then Some (frame.content.video, v0, v1 - v0) else None
+  if v0 < v1 then Some (content frame, v0, v1 - v0) else None

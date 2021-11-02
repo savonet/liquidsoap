@@ -256,7 +256,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
       self#update_cross_length buf_frame start;
       Generator.feed gen_before
         ~metadata:(Frame.get_all_metadata buf_frame)
-        buf_frame.Frame.content
+        (Frame.content buf_frame)
         (Frame.main_of_audio start)
         (Frame.main_of_audio (stop - start));
 
@@ -293,7 +293,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
         in
         Generator.feed gen_after
           ~metadata:(Frame.get_all_metadata buf_frame)
-          buf_frame.Frame.content
+          (Frame.content buf_frame)
           (Frame.main_of_audio start)
           (Frame.main_of_audio (stop - start));
         let after_len = Generator.length gen_after in

@@ -284,7 +284,7 @@ module From_frames = struct
           (List.filter (fun x -> x < position) (Frame.breaks frame));
 
     (* Feed all content layers into the generator. *)
-    let content = frame.Frame.content in
+    let content = Frame.content frame in
     let content =
       match copy with
         | `None -> content
@@ -306,7 +306,7 @@ module From_frames = struct
     let blocks = Generator.get fg.generator needed in
     List.iter
       (fun (block, o, o', size) ->
-        let dst = frame.Frame.content in
+        let dst = Frame.content frame in
         Frame.fill_content block o dst (offset + o') size)
       blocks;
     List.iter
@@ -601,7 +601,7 @@ module From_audio_video = struct
     let pts = Frame.pts frame in
     let mode = match mode with Some mode -> mode | None -> t.mode in
     let pos = Frame.position frame in
-    let content = frame.Frame.content in
+    let content = Frame.content frame in
 
     match mode with
       | `Audio ->
@@ -795,7 +795,7 @@ module From_audio_video_plus = struct
         let p = Frame.position frame in
         let breaks = Frame.breaks frame in
         Super.fill t.gen frame;
-        let c = frame.Frame.content in
+        let c = Frame.content frame in
         match t.ctype with
           | None -> t.ctype <- Some (Frame.type_of_content c)
           | Some ctype ->

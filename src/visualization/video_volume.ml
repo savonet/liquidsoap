@@ -85,8 +85,7 @@ class visu ~kind source =
                 midi = Frame_content.None.format;
               })
         in
-        Frame.(
-          frame.content <- { frame.content with video = vFrame.content.video });
+        Frame.set_video frame (VFrame.content vFrame);
 
         (* Feed the volume buffer. *)
         let acontent = AFrame.pcm frame in

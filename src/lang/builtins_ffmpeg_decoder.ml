@@ -195,7 +195,7 @@ let decode_audio_frame ~mode generator =
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
-        let frame = Frame.(frame.content.audio) in
+        let frame = Frame.audio frame in
         let { Ffmpeg_content_base.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush
@@ -390,7 +390,7 @@ let decode_video_frame ~mode generator =
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
-        let frame = Frame.(frame.content.video) in
+        let frame = Frame.video frame in
         let { Ffmpeg_content_base.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush

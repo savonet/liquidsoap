@@ -53,7 +53,7 @@ class audio_output ~pass_metadata ~name ~kind source_val =
     method send_frame memo =
       let frames =
         Ffmpeg_raw_content.(
-          (Audio.get_data Frame.(memo.content.audio)).VideoSpecs.data)
+          (Audio.get_data (AFrame.content memo)).AudioSpecs.data)
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->
@@ -100,7 +100,7 @@ class video_output ~pass_metadata ~kind ~name source_val =
     method send_frame memo =
       let frames =
         Ffmpeg_raw_content.(
-          (Video.get_data Frame.(memo.content.video)).VideoSpecs.data)
+          (Video.get_data (VFrame.content memo)).VideoSpecs.data)
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->

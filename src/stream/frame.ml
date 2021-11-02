@@ -135,6 +135,8 @@ let dummy () =
   }
 
 let content_type { content } = map_fields format content
+let content { content } = content
+let set_content frame content = frame.content <- content
 let audio { content; _ } = content.audio
 let set_audio frame audio = frame.content <- { frame.content with audio }
 let video { content; _ } = content.video
