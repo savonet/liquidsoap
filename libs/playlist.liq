@@ -191,12 +191,12 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
           end
         end
         failed_time := time()
-        next()
+        (next():request?)
       elsif null.defined(check_next) then
         check_next = null.get(check_next)
         failed_count := 0
         if check_next(r) then
-          null(r)
+          r
         else
           log.info(label=id, "Request #{request.uri(r)} rejected by check_next.")
           request.destroy(r)
@@ -204,7 +204,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
         end
       else
         # We accept everything by default
-        null(r)
+        r
       end
     end
   end

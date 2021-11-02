@@ -561,7 +561,7 @@ def request.dynamic.list(%argsof(request.dynamic), f) =
       let [r, ...q] = list.rev(l)
       r = (r:request)
       list.iter(!add, list.rev(q))
-      null(r)
+      r
     else
       null()
     end

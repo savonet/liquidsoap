@@ -57,7 +57,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
       let (_,ret) = list.hd(default=(1,""),!playlistr)
       playlistr := list.tl(!playlistr)
       sequence := !sequence + 1
-      null(request.create(ret))
+      request.create(ret)
     else
       null()
     end

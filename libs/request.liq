@@ -30,7 +30,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
     if !queue != [] then
       let [r, ...q] = !queue
       queue := q
-      null((r:request))
+      (r:request)
     else
       null()
     end
