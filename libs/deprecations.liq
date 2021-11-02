@@ -544,6 +544,7 @@ end
 # @flag deprecated
 def playlist.reloadable(~id=null(), ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri) =
   deprecated("playlist.reloadable", "playlist")
+  ignore(on_track)
   playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri)
 end
 
