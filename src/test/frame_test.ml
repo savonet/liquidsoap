@@ -1,8 +1,8 @@
-open Content
 open Frame
+module None = Content.None
 
 let () =
-  Frame_settings.lazy_config_eval := true;
+  Frame_base.lazy_config_eval := true;
 
   let src =
     create { audio = None.format; video = None.format; midi = None.format }

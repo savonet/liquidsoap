@@ -24,6 +24,9 @@ open Mm
 
 (** Generic content registration API. *)
 
+type 'a chunk = { data : 'a; offset : int; size : int }
+type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
+
 module Contents : sig
   type kind
   type format
@@ -53,13 +56,16 @@ module type ContentSpecs = sig
   (* Size is in main ticks. *)
   val make : size:int -> params -> data
 
-  (* [blit src src_pos dst dst_pos len] copies data from [src] 
-   * into [dst]. *)
+  (* TODO: This will be removed when reworking
+     the streaming API. *)
   val blit : data -> int -> data -> int -> int -> unit
 
   (* Returns length in main ticks. *)
   val length : data -> int
   val copy : data -> data
+
+  (* TODO: this will be removed when rewriting
+     streaming API. *)
   val clear : data -> unit
 
   (** Params *)
@@ -88,6 +94,7 @@ module type Content = sig
   val is_data : Contents.data -> bool
   val lift_data : data -> Contents.data
   val get_data : Contents.data -> data
+  val get_chunked_data : Contents.data -> (params, data) chunks
 
   (** Format *)
 
@@ -116,12 +123,19 @@ type data = Contents.data
 
 val make : size:int -> format -> data
 val length : data -> int
+
+(* TODO: This will be removed when reworking
+   the streaming API. *)
 val blit : data -> int -> data -> int -> int -> unit
 val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
 val copy : data -> data
+
+(* TODO: This will be removed when reworking
+   the streaming API. *)
 val clear : data -> unit
 val is_empty : data -> bool
+val append : data -> data -> data
 
 (** Format *)
 
@@ -146,6 +160,7 @@ val kind_of_string : string -> kind
 (* None content type is abstract and only used
    via its params and data. *)
 module None : sig
+  val is_data : Contents.data -> bool
   val data : int -> Contents.data
   val format : Contents.format
   val is_format : Contents.format -> bool
@@ -181,6 +196,59 @@ module Midi : sig
        and type data = MIDI.Multitrack.buffer
 
   val kind : Contents.kind
+end
+
+module Metadata : sig
+  include Content with type kind = [ `Metadata ] and type params = unit
+
+  val format : format
+  val lift_data : size:int -> (int * Frame_base.metadata) list -> Contents.data
+  val get_data : Contents.data -> (int * Frame_base.metadata) list
+  val set_data : Contents.data -> (int * Frame_base.metadata) list -> unit
+end
+
+module Breaks : sig
+  include Content with type kind = [ `Breaks ] and type params = unit
+
+  val format : format
+  val lift_data : size:int -> int list -> Contents.data
+  val get_data : Contents.data -> int list
+  val set_data : Contents.data -> int list -> unit
+end
+
+(** Meta content module for frame data. Should never be used for source content type! *)
+module Frame : sig
+  type 'a frame_content = {
+    breaks : 'a;
+    metadata : 'a;
+    media : 'a Frame_base.fields;
+  }
+
+  include Content with type data = Contents.data frame_content
+
+  val lift_params : Contents.format Frame_base.fields -> Contents.format
+
+  (* TODO: This will be removed when reworking
+     the streaming API. *)
+  val blit_media : Contents.data -> int -> Contents.data -> int -> int -> unit
+  val get_audio : Contents.data -> Contents.data
+  val set_audio : Contents.data -> Contents.data -> unit
+  val get_video : Contents.data -> Contents.data
+  val set_video : Contents.data -> Contents.data -> unit
+  val get_midi : Contents.data -> Contents.data
+  val set_midi : Contents.data -> Contents.data -> unit
+  val get_breaks : Contents.data -> int list
+  val add_break : Contents.data -> int -> unit
+  val set_breaks : Contents.data -> int list -> unit
+  val get_all_metadata : Contents.data -> (int * Frame_base.metadata) list
+
+  val set_all_metadata :
+    Contents.data -> (int * Frame_base.metadata) list -> unit
+
+  val set_metadata : Contents.data -> int -> Frame_base.metadata -> unit
+  val get_metadata : Contents.data -> int -> Frame_base.metadata option
+  val free_metadata : Contents.data -> int -> unit
+  val free_all_metadata : Contents.data -> unit
 end
 
 val default_audio : unit -> Contents.format

@@ -52,7 +52,7 @@ module None = struct
 end
 
 module AudioSpecs = struct
-  open Frame_settings
+  open Frame_base
   open Contents
 
   type kind = [ `Pcm ]
@@ -82,7 +82,7 @@ module AudioSpecs = struct
           (Audio.Mono.sub a' !dst_pos !len))
       src dst
 
-  let length d = Frame_settings.main_of_audio (Audio.length d)
+  let length d = Frame_base.main_of_audio (Audio.length d)
   let copy d = Array.map Audio.Mono.copy d
 
   let param_of_channels = function
@@ -107,7 +107,7 @@ module AudioSpecs = struct
   let kind = `Pcm
 
   let default_params _ =
-    param_of_channels (Lazy.force Frame_settings.audio_channels)
+    param_of_channels (Lazy.force Frame_base.audio_channels)
 
   let clear _ = ()
 
@@ -140,7 +140,7 @@ module Audio = struct
 end
 
 module VideoSpecs = struct
-  open Frame_settings
+  open Frame_base
   open Contents
 
   type kind = [ `Yuv420p ]
@@ -186,10 +186,10 @@ module VideoSpecs = struct
     compare (p.width, p'.width) && compare (p.height, p'.height)
 
   let blit src src_pos dst dst_pos len =
-    let ( ! ) = Frame_settings.video_of_main in
+    let ( ! ) = Frame_base.video_of_main in
     Video.blit src !src_pos dst !dst_pos !len
 
-  let length d = Frame_settings.main_of_video (Video.length d)
+  let length d = Frame_base.main_of_video (Video.length d)
   let copy = Video.copy
 
   let params data =
@@ -216,7 +216,7 @@ module Video = struct
 end
 
 module MidiSpecs = struct
-  open Frame_settings
+  open Frame_base
   open Contents
 
   type kind = [ `Midi ]
@@ -236,11 +236,11 @@ module MidiSpecs = struct
     let ( ! ) = midi_of_main in
     Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
 
-  let length d = Frame_settings.main_of_midi (MIDI.Multitrack.duration d)
+  let length d = Frame_base.main_of_midi (MIDI.Multitrack.duration d)
   let copy m = Array.map MIDI.copy m
   let params m = { channels = MIDI.Multitrack.channels m }
   let kind = `Midi
-  let default_params _ = { channels = Lazy.force Frame_settings.midi_channels }
+  let default_params _ = { channels = Lazy.force Frame_base.midi_channels }
   let clear _ = ()
 
   let make ~size { channels } =
@@ -261,20 +261,20 @@ module Midi = struct
 end
 
 let default_audio () =
-  let channels = Lazy.force Frame_settings.audio_channels in
+  let channels = Lazy.force Frame_base.audio_channels in
   if channels = 0 then None.format else Audio.format_of_channels channels
 
 let default_video () =
-  if Lazy.force Frame_settings.default_video_enabled then
+  if Lazy.force Frame_base.default_video_enabled then
     Video.lift_params
       {
-        Contents.width = Some Frame_settings.video_width;
-        height = Some Frame_settings.video_height;
+        Contents.width = Some Frame_base.video_width;
+        height = Some Frame_base.video_height;
       }
   else None.format
 
 let default_midi () =
-  let channels = Lazy.force Frame_settings.midi_channels in
+  let channels = Lazy.force Frame_base.midi_channels in
   if channels = 0 then None.format else Midi.lift_params { Contents.channels }
 
 let is_internal f =

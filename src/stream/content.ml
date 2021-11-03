@@ -22,3 +22,5 @@
 
 include Content_base
 include Content_internal
+include Content_timed
+include Content_frame

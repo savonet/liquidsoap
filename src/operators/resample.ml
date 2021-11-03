@@ -22,7 +22,6 @@
 
 open Mm
 open Source
-module Generator = Generator.From_frames
 
 class resample ~kind ~ratio source_val =
   let source = Lang.to_source source_val in
@@ -32,7 +31,7 @@ class resample ~kind ~ratio source_val =
       ~write_frame:(fun frame -> !write_frame_ref frame)
       ~name:"stretch.consumer" ~kind ~source:source_val ()
   in
-  let generator = Generator.create () in
+  let generator = Generator.create `Audio in
   object (self)
     inherit operator ~name:"stretch" kind [(consumer :> Source.source)] as super
 
@@ -74,19 +73,13 @@ class resample ~kind ~ratio source_val =
         let content = Audio.sub content 0 (AFrame.position frame) in
         let converter = Option.get converter in
         let pcm = Audio_converter.Samplerate.resample converter ratio content in
-        let len = Audio.length pcm in
-        ( {
-            Frame.audio = Content.Audio.lift_data pcm;
-            video = Content.None.data len;
-            midi = Content.None.data len;
-          },
-          len )
+        (Content.Audio.lift_data pcm, Audio.length pcm)
       in
       let convert x = int_of_float (float x *. ratio) in
-      let metadata =
-        List.map (fun (i, m) -> (convert i, m)) (Frame.get_all_metadata frame)
-      in
-      Generator.feed generator ~metadata ~copy:`None content 0 len;
+      Generator.put_audio generator content 0 len;
+      List.iter
+        (fun (i, m) -> Generator.add_metadata ~pos:(convert i) generator m)
+        (Frame.get_all_metadata frame);
       if Frame.is_partial frame then Generator.add_break generator
 
     method private get_frame frame =

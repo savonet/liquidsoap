@@ -71,8 +71,7 @@ let decode_audio_frame ~mode generator =
       in
       let len = Audio.length data in
       let data = Content.Audio.lift_data data in
-      Producer_consumer.(
-        Generator.put_audio generator ?pts data 0 (Frame.main_of_audio len))
+      Generator.put_audio generator ?pts data 0 (Frame.main_of_audio len)
   in
 
   let mk_copy_decoder () =
@@ -294,8 +293,7 @@ let decode_video_frame ~mode generator =
           in
           let data = Video.single img in
           let data = Content.Video.lift_data data in
-          Producer_consumer.(
-            Generator.put_video generator ?pts data 0 (Frame.main_of_video 1)))
+          Generator.put_video generator ?pts data 0 (Frame.main_of_video 1))
   in
 
   let mk_copy_decoder () =
@@ -468,7 +466,7 @@ let mk_encoder mode =
           | `Video_raw | `Video_encoded -> `Video
           | `Both_raw | `Both_encoded -> `Both
       in
-      let generator = Producer_consumer.Generator.create content in
+      let generator = Generator.create content in
 
       let mk_decode_frame () =
         let decode_audio_frame =
@@ -488,12 +486,10 @@ let mk_encoder mode =
         let decode_frame = function
           | `Frame frame ->
               List.iter
-                (fun (pos, m) ->
-                  Producer_consumer.Generator.add_metadata ~pos generator m)
+                (fun (pos, m) -> Generator.add_metadata ~pos generator m)
                 (Frame.get_all_metadata frame);
               List.iter
-                (fun pos ->
-                  Producer_consumer.Generator.add_break ~pos generator)
+                (fun pos -> Generator.add_break ~pos generator)
                 (List.filter (fun x -> x < size) (Frame.breaks frame));
               ignore
                 (Option.map (fun fn -> fn (`Frame frame)) decode_video_frame);

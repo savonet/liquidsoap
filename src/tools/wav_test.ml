@@ -28,7 +28,7 @@ let file =
 
 let fd = Wav.fopen file
 let format = Wav.format fd
-let abg = Mixer.Generator.create ()
+let abg = Generator.create `Both
 let ab = Mixer.Buffer.create ()
 let buflen = Mixer.Buffer.size
 let buf = Bytes.make buflen 'x'
@@ -40,9 +40,9 @@ let () =
   while !running do
     begin
       try
-        while Mixer.Generator.should_be_feeded abg do
+        while Generator.should_be_feeded abg do
           let l = Wav.sample fd buf 0 buflen in
-          Mixer.Generator.feed abg format (String.sub buf 0 l)
+          Generator.feed abg format (String.sub buf 0 l)
         done
       with End_of_file -> running := false
     end;

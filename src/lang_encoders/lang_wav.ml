@@ -25,18 +25,18 @@ open Ground
 
 let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
 
+let defaults () =
+  {
+    Wav_format.samplesize = 16;
+    header = true;
+    duration = None;
+    (* We use a hardcoded value in order not to force the evaluation of the
+                     number of channels too early, see #933. *)
+    channels = 2;
+    samplerate = Frame.audio_rate;
+  }
+
 let make params =
-  let defaults =
-    {
-      Wav_format.samplesize = 16;
-      header = true;
-      duration = None;
-      (* We use a hardcoded value in order not to force the evaluation of the
-                       number of channels too early, see #933. *)
-      channels = 2;
-      samplerate = Frame.audio_rate;
-    }
-  in
   let wav =
     List.fold_left
       (fun f -> function
@@ -63,7 +63,7 @@ let make params =
         | "header", `Value { value = Ground (Bool b); _ } ->
             { f with Wav_format.header = b }
         | t -> raise (Lang_encoder.generic_error t))
-      defaults params
+      (defaults ()) params
   in
   Encoder.WAV wav
 

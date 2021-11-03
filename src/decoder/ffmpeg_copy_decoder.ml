@@ -23,7 +23,6 @@
 (** Decode ffmpeg packets. *)
 
 open Avcodec
-module G = Decoder.G
 
 let log = Log.make ["ffmpeg"; "decoder"; "copy"]
 
@@ -71,7 +70,8 @@ let mk_audio_decoder ~format container =
   let lift_data data = Ffmpeg_copy_content.Audio.lift_data data in
   ( idx,
     stream,
-    mk_decoder ~lift_data ~stream_time_base ~put_data:G.put_audio params )
+    mk_decoder ~lift_data ~stream_time_base ~put_data:Generator.put_audio params
+  )
 
 let mk_video_decoder ~format container =
   let idx, stream, params = Av.find_best_video_stream container in
@@ -82,4 +82,5 @@ let mk_video_decoder ~format container =
   let lift_data data = Ffmpeg_copy_content.Video.lift_data data in
   ( idx,
     stream,
-    mk_decoder ~lift_data ~stream_time_base ~put_data:G.put_video params )
+    mk_decoder ~lift_data ~stream_time_base ~put_data:Generator.put_video params
+  )

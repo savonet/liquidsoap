@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Generator = Generator.From_audio_video
-
 (** The source which produces data by reading the buffer.
     We do NOT want to use [operator] here b/c the [consumers]
     may have different content-kind when this is used in the muxers. *)

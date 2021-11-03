@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Source
-module Generator = Generator.From_frames
 
 class accelerate ~kind ~ratio ~randomize source_val =
   let source = Lang.to_source source_val in

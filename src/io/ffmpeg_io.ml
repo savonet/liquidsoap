@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-module Generator = Generator.From_audio_video_plus
-module Generated = Generated.Make (Generator)
-
 exception Not_connected
 
 let normalize_metadata =
@@ -99,9 +96,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           Ffmpeg_decoder.mk_decoder ?audio ?video ~decode_first_metadata:true
             ~target_position:(ref None) input
         in
-        Generator.set_rewrite_metadata generator (fun m ->
-            Hashtbl.replace m "source_url" url;
-            m);
         let get_metadata () =
           normalize_metadata
             (Av.get_input_metadata input
