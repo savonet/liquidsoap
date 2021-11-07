@@ -15,6 +15,7 @@ Fixes:
 * Raise a proper runtime exception when `string.escape` fails. (#2010)
 * Account for internal caching in `request.dynamic.list`'s `queue` and `set_queue` methods.
 * Keep buffering for crossfade when new source has track mark but is still ready.
+* Added missing output `start`/`stop` commands.
 
 2.0.0 (03-10-2021)
 =====

@@ -100,7 +100,8 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.sdl"
     (Output.proto @ [("", Lang.source_t k, None, None)])
-    ~return_t:k ~category:`Output ~descr:"Display a video using SDL."
+    ~return_t:k ~category:`Output ~meth:Output.meth
+    ~descr:"Display a video using SDL."
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -114,7 +115,7 @@ let () =
       in
       let source = List.assoc "" p in
       (new output ~infallible ~autostart ~on_start ~on_stop ~kind source
-        :> Source.source))
+        :> Output.output))
 
 let () =
   Lang.add_builtin

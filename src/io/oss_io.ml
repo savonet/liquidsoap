@@ -139,7 +139,7 @@ let () =
           Some "OSS device to use." );
         ("", Lang.source_t k, None, None);
       ])
-    ~return_t:k ~category:`Output
+    ~return_t:k ~category:`Output ~meth:Output.meth
     ~descr:"Output the source's stream to an OSS output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -158,7 +158,7 @@ let () =
       let source = List.assoc "" p in
       (new output
          ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
-        :> Source.source));
+        :> Output.output));
   let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
   Lang.add_operator "input.oss"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)

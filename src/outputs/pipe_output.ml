@@ -130,12 +130,12 @@ class url_output p =
 let () =
   let return_t = Lang.univ_t () in
   Lang.add_operator "output.url" (url_proto return_t) ~return_t
-    ~category:`Output
+    ~category:`Output ~meth:Output.meth
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
        expected output or to encode to files that need full control from the \
        encoder, e.g. `%ffmpeg` with `rtmp` output." (fun p ->
-      (new url_output p :> Source.source))
+      (new url_output p :> Output.output))
 
 (** Piped virtual class: open/close pipe,
   * implements metadata interpolation and
@@ -395,8 +395,9 @@ let new_file_output p =
 let () =
   let return_t = Lang.univ_t () in
   Lang.add_operator "output.file" (file_proto return_t) ~return_t
-    ~category:`Output ~descr:"Output the source stream to a file." (fun p ->
-      (new_file_output p :> Source.source))
+    ~category:`Output ~meth:Output.meth
+    ~descr:"Output the source stream to a file." (fun p ->
+      (new_file_output p :> Output.output))
 
 (** External output *)
 
@@ -434,18 +435,24 @@ let pipe_proto kind descr =
 
 let () =
   let return_t = Lang.univ_t () in
+  let meth =
+    List.map
+      (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
+      Output.meth
+  in
   Lang.add_operator "output.external"
     (pipe_proto return_t "Process to pipe data to.")
     ~return_t ~category:`Output
     ~meth:
-      [
-        ( "reopen",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Reopen the pipe.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                s#reopen_cmd;
-                Lang.unit) );
-      ]
+      (meth
+      @ [
+          ( "reopen",
+            ([], Lang.fun_t [] Lang.unit_t),
+            "Reopen the pipe.",
+            fun s ->
+              Lang.val_fun [] (fun _ ->
+                  s#reopen_cmd;
+                  Lang.unit) );
+        ])
     ~descr:"Send the stream to a process' standard input."
     (fun p -> new external_output p)
