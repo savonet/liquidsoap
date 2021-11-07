@@ -331,8 +331,8 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio"
     (output_proto ~return_t ~pipeline:"autoaudiosink")
-    ~category:`Output ~descr:"Output stream to a GStreamer pipeline." ~return_t
-    (fun p ->
+    ~category:`Output ~meth:Output.meth
+    ~descr:"Output stream to a GStreamer pipeline." ~return_t (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -355,15 +355,15 @@ let () =
       (new output
          ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start
          ("", Some pipeline, None)
-        :> Source.source))
+        :> Output.output))
 
 let () =
   let kind = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any } in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.video"
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
-    ~category:`Output ~descr:"Output stream to a GStreamer pipeline." ~return_t
-    (fun p ->
+    ~category:`Output ~meth:Output.meth
+    ~descr:"Output stream to a GStreamer pipeline." ~return_t (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -386,7 +386,7 @@ let () =
       (new output
          ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start
          ("", None, Some pipeline)
-        :> Source.source))
+        :> Output.output))
 
 let () =
   let kind =
@@ -409,7 +409,8 @@ let () =
           Some (Lang.bool true),
           Some "Pushing buffers is blocking." );
       ])
-    ~category:`Output ~descr:"Output stream to a GStreamer pipeline." ~return_t
+    ~category:`Output ~meth:Output.meth
+    ~descr:"Output stream to a GStreamer pipeline." ~return_t
     (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
@@ -437,7 +438,7 @@ let () =
          ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking
          source start
          (pipeline, Some audio_pipeline, Some video_pipeline)
-        :> Source.source))
+        :> Output.output))
 
 (***** Input *****)
 
