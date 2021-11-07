@@ -85,6 +85,14 @@ def f() =
   let json.stringify s = ({foo = 123}:{ "✨foo✨" as foo: int})
   t(s, "{ \"✨foo✨\": 123\n}")
 
+  let b = json()
+  b.add("b", 1)
+  let json.stringify s = {
+     a = null({a=1}),
+     b = null(b)
+  }
+  t(s, "{ \"b\": { \"b\": 1 }, \"a\": { \"a\": 1 }\n}")
+
   data = "123"
   let json.parse ( x : int ) = data
   t(x, 123)

@@ -93,7 +93,7 @@ let rec json_of_typed_value ~ty v : Json.t =
                (fun idx ty -> json_of_typed_value ~ty (List.nth l idx))
                t)
       | Value.Meth _, _ -> (
-          let tm, ty = Type.split_meths ty in
+          let tm, ty = Type.split_meths _ty in
           let m, v = Value.split_meths v in
           match ty.Type.descr with
             | Type.Var _ | Type.Tuple [] ->
