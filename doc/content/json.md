@@ -306,7 +306,7 @@ end
 # f : (float) -> unit = <fun>
 
 f(infinity);;
-# error(kind="json",message="Infinite or Nan number cannot be represented in JSON. You might want to consider using the `json5` representation.""")
+# error(kind="json",message="Infinite or Nan number cannot be represented in JSON. You might want to consider using the `json5` representation.")
 ```
 
 Generic JSON objects
