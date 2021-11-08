@@ -38,13 +38,14 @@ module ErrorDef = struct
   let descr { kind; msg; pos } =
     let pos =
       if pos <> [] then
-        Printf.sprintf ",positions=%s"
-          (String.concat ", "
-             (List.map (fun pos -> Runtime_error.print_pos pos) pos))
+        Utils.quote_string
+          (Printf.sprintf ",positions=%s"
+             (String.concat ", "
+                (List.map (fun pos -> Runtime_error.print_pos pos) pos)))
       else ""
     in
     Printf.sprintf "error(kind=%s,message=%s%s)" (Utils.quote_string kind)
-      (Utils.quote_string msg) (Utils.quote_string pos)
+      (Utils.quote_string msg) pos
 
   let to_json _ =
     raise
