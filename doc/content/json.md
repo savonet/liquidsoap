@@ -284,7 +284,7 @@ end
 
 This function can take any variable, hence the type `'a` for its argument. This means that we _do not know_ in advance the 
 type for its variable. In this case, we assume it can be anything and, in particular, it can be a  _nullable_ type so, returning `"null"` 
-is acceptable. Therefore, if we pass an `infinity` float number, it prints `null`:
+is acceptable. Therefore, if we pass an `infinity` float number, which is not representable by default, it prints `null`:
 
 ```liquidsoap
 f(infinity);;
