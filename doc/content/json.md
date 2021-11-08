@@ -268,12 +268,12 @@ The `json.stringify` syntax supports the following arguments:
 * `json5`: allow `json5` representations, in particular infinite and `NaN` floating point numbers. Default: `false`
 * `compact`: output a compact value instead of a human-readable value. Default: `false`.
 
-Please not that export is based on types attached to the variables passed to it. Consider this example for instance:
+Please note that export is based on types attached to the variables passed to it. Consider this example for instance:
 
 ```liquidsoap
 def f(data)
   try
-    let json.stringify d = (data:float)
+    let json.stringify d = data
     print(d)
   catch err do
     print(err)
@@ -282,16 +282,16 @@ end
 # f : ('a) -> unit = <fun>
 ```
 
-This function can take any variable `data`, hence the type `'a` for its argument. This means that we _do not know_ in advance the 
+This function can take any variable, hence the type `'a` for its argument. This means that we _do not know_ in advance the 
 type for its variable. In this case, we assume it can be anything and, in particular, it can be a  _nullable_ type so, returning `"null"` 
-is acceptable. Therefore, if we pass an `infinity` float number, it will return `"null"`:
+is acceptable. Therefore, if we pass an `infinity` float number, it prints `null`:
 
 ```liquidsoap
 f(infinity);;
 # null
 ```
 
-In cases like this, we recommend adding some type annotations to make sure that the function knows what kind of 
+In cases like this, we recommend using type annotations to make sure that the function knows what kind of 
 variable it should expect, for instance here:
 
 ```liquidsoap
