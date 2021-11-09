@@ -56,14 +56,9 @@ let rec type_of_json = function
   | `Int _ -> Lang.int_t
   | `Null -> Lang.(nullable_t (univ_t ()))
 
-let rec nullable_deref ty =
+let nullable_deref ty =
   let ty = Type.deref ty in
-  match ty.Type.descr with
-    | Type.Var _ ->
-        Typing.(ty <: Lang.nullable_t (Lang.univ_t ()));
-        nullable_deref ty
-    | Type.Nullable ty -> (true, ty)
-    | _ -> (false, ty)
+  match ty.Type.descr with Type.Nullable ty -> (true, ty) | _ -> (false, ty)
 
 let rec json_of_typed_value ~ty v : Json.t =
   let nullable, _ty = nullable_deref ty in

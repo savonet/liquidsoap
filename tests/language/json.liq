@@ -267,6 +267,17 @@ def f() =
   let json.stringify j = j
   t(j, '{ "record": { "b": "ert", "a": 1 }, "key_with_methods": "value",\n"bla": "bar", "baz": 3.14\n}')
 
+  e = ref(null())
+  def f(data)
+    try
+      let json.stringify d = data
+      ignore(d)
+    catch err do
+      e := err
+    end
+  end
+  if not null.defined(e) then test.fail() end
+
   if !success then
     test.pass()
   else
