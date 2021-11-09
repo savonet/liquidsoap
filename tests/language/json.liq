@@ -276,7 +276,9 @@ def f() =
       e := err
     end
   end
-  if not null.defined(e) then test.fail() end
+
+  f(infinity)
+  if not null.defined(!e) then success := false end
 
   if !success then
     test.pass()
