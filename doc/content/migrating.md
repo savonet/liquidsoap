@@ -22,6 +22,53 @@ From 1.4.x to 2.0.0
 
 `audio_to_stereo` should not be required in most situations anymore. `liquidsoap` can handle channels conversions transparently now! 
 
+### Type errors with list of sources
+
+Now that sources have their own methods, the actual list of methods attached to each source can vary from one to the next. For instance,
+`playlist` has a `reload` method but `input.http` does not. This currently confuses the type checker and leads to errors that look like this:
+
+```liquidsoap
+At script.liq, line xxx, char yyy-zzz:
+Error 5: this value has type
+  _ * source(audio=?A, video=?B, midi=?C)
+  .{
+    time : () -> float,
+    shutdown : () -> unit,
+    fallible : bool,
+    skip : () -> unit,
+    seek : (float) -> float,
+    is_active : () -> bool,
+    is_up : () -> bool,
+    log : 
+    {level : (() -> int?).{set : ((int) -> unit)}
+    },
+    self_sync : () -> bool,
+    duration : () -> float,
+    elapsed : () -> float,
+    remaining : () -> float,
+    on_track : ((([string * string]) -> unit)) -> unit,
+    on_leave : ((() -> unit)) -> unit,
+    on_shutdown : ((() -> unit)) -> unit,
+    on_metadata : ((([string * string]) -> unit)) -> unit,
+    is_ready : () -> bool,
+    id : () -> string,
+    selected : (() -> source(audio=?D, video=?E, midi=?F)?)
+  }
+but it should be a subtype of the type of the value at radio.liq, line 122, char 2-21
+  _ * _.{reload : _}
+```
+
+In such cases, we recommend to give a little nodge to the typechecker by using the `(s:source)` type annotation where a list of source is causing the issue. For instance:
+
+```liquidsoap
+s = fallback([
+  (s1:source),
+  (s2:source),
+  (s3:source)
+])
+```
+This tells the type checker not to worry about the source methods and just focus on what matters, that they are actually sources.. 🙂
+
 ### Http input and operators
 
 In order to provide as much compatibility as possible with the different HTTP procotols and implementation, we have decided
