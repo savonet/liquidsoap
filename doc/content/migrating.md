@@ -22,7 +22,7 @@ From 1.4.x to 2.0.0
 
 `audio_to_stereo` should not be required in most situations anymore. `liquidsoap` can handle channels conversions transparently now! 
 
-### Type errors with list of sources
+### Type errors with lists of sources
 
 Now that sources have their own methods, the actual list of methods attached to each source can vary from one to the next. For instance,
 `playlist` has a `reload` method but `input.http` does not. This currently confuses the type checker and leads to errors that look like this:
@@ -58,7 +58,7 @@ but it should be a subtype of the type of the value at radio.liq, line 122, char
   _ * _.{reload : _}
 ```
 
-In such cases, we recommend to give a little nodge to the typechecker by using the `(s:source)` type annotation where a list of source is causing the issue. For instance:
+In such cases, we recommend to give a little nudge to the typechecker by using the `(s:source)` type annotation where a list of source is causing the issue. For instance:
 
 ```liquidsoap
 s = fallback([
