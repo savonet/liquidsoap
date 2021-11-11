@@ -51,8 +51,12 @@ type pending = {
   mutable pending : Content.data option;
 }
 
+type overfull = [ `Drop_old of int ]
+
 type t = {
   m : Mutex.t;
+  overfull : overfull option;
+  log : string -> unit;
   mutable mode : mode;
   mutable synced : Content.data option;
   audio : pending;
@@ -61,9 +65,15 @@ type t = {
   mutable breaks : Content.data;
 }
 
-let create ?overfull ?log ?log_overfull mode =
+let _log = Log.make ["generator"]
+
+let create ?overfull ?log ?(log_overfull = true) mode =
+  let log = Option.value ~default:(_log#info "%s") log in
+  let log = if log_overfull then log else fun _ -> () in
   {
     m = Mutex.create ();
+    overfull;
+    log;
     mode;
     synced = None;
     audio = { frames = Queue.create (); pts = 0L; pending = None };
@@ -75,20 +85,20 @@ let create ?overfull ?log ?log_overfull mode =
 let mode g = Tutils.mutexify g.m (fun () -> g.mode) ()
 let set_mode g m = Tutils.mutexify g.m (fun () -> g.mode <- m) ()
 
-let clear_pending p =
+let _clear_pending p =
   Queue.clear p.frames;
   p.pending <- None
 
-let clear_async g =
-  clear_pending g.audio;
-  clear_pending g.video;
+let _clear_async g =
+  _clear_pending g.audio;
+  _clear_pending g.video;
   g.metadata <- Content.sub g.metadata 0 0;
   g.breaks <- Content.sub g.breaks 0 0
 
 let clear g =
   Tutils.mutexify g.m
     (fun () ->
-      clear_async g;
+      _clear_async g;
       g.synced <- None)
     ()
 
@@ -113,12 +123,11 @@ let video_length g =
 let _length g = content_length g.synced
 let length g = Tutils.mutexify g.m (fun () -> _length g) ()
 
-let buffered_length g =
-  Tutils.mutexify g.m
-    (fun () ->
-      content_length g.synced
-      + max (pending_length g.audio) (pending_length g.video))
-    ()
+let _buffered_length g =
+  content_length g.synced
+  + max (pending_length g.audio) (pending_length g.video)
+
+let buffered_length g = Tutils.mutexify g.m (fun () -> _buffered_length g) ()
 
 let _remaining g =
   match g.synced with
@@ -141,12 +150,41 @@ let add_metadata ?(pos = 0) g m =
 let add_break ?(sync = false) ?(pos = 0) g =
   Tutils.mutexify g.m
     (fun () ->
-      if sync then clear_async g;
+      if sync then _clear_async g;
       let size = max pos (Content.length g.breaks) in
       g.breaks <- Content.Breaks.(lift_data ~size (pos :: get_data g.breaks)))
     ()
 
+let _remove g len =
+  g.synced <-
+    Some (Content.sub (Option.get g.synced) len (content_length g.synced - len))
+
+let remove g len = Tutils.mutexify g.m (fun () -> _remove g len) ()
+
+let _check_overfull g =
+  match g.overfull with
+    | Some (`Drop_old max_len) when max_len < _buffered_length g ->
+        (* First remove from the synced buffer. *)
+        let len = min (_length g) (_buffered_length g - max_len) in
+        _remove g len;
+        let len =
+          if max_len < _buffered_length g then (
+            let len = len + _buffered_length g in
+            _clear_async g;
+            len)
+          else len
+        in
+        let len_time = Frame.seconds_of_main len in
+        g.log
+          (Printf.sprintf
+             "Buffer overrun: Dropping %.2fs. Consider increasing the max \
+              buffer size!"
+             len_time)
+    | _ -> ()
+
 let rec sync_content g =
+  _check_overfull g;
+
   let size = Lazy.force Frame.size in
   match (Queue.peek_opt g.audio.frames, Queue.peek_opt g.video.frames) with
     | Some (p, audio), Some (p', video) when p = p' ->
@@ -255,12 +293,6 @@ let feed ?(copy : [ `None | `Audio | `Video | `Both ] = `Both) ?mode g content
 
 let feed_from_frame ?copy ?mode g frame =
   feed ?copy ?mode g (Frame.content frame) 0 (Frame.position frame)
-
-let _remove g len =
-  g.synced <-
-    Some (Content.sub (Option.get g.synced) len (content_length g.synced - len))
-
-let remove g len = Tutils.mutexify g.m (fun () -> _remove g len) ()
 
 let get g len =
   Tutils.mutexify g.m
