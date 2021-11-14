@@ -333,7 +333,7 @@ let mk_video ~ffmpeg ~options output =
 
   let mk_converter ~pixel_format ~time_base ~stream_idx () =
     let c =
-      Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
+      Ffmpeg_avfilter_utils.Fps.init ~width:target_width ~height:target_height
         ~pixel_format ~time_base ~pixel_aspect ~target_fps ()
     in
     converter := Some (pixel_format, time_base, stream_idx, c);
@@ -360,8 +360,8 @@ let mk_video ~ffmpeg ~options output =
         ~pixel_format:(Avutil.Video.frame_get_pixel_format frame)
         ()
     in
-    let time_base = Ffmpeg_utils.Fps.time_base converter in
-    Ffmpeg_utils.Fps.convert converter frame (fun frame ->
+    let time_base = Ffmpeg_avfilter_utils.Fps.time_base converter in
+    Ffmpeg_avfilter_utils.Fps.convert converter frame (fun frame ->
         let frame_pts =
           Option.map
             (fun pts ->

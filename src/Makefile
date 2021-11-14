@@ -237,6 +237,7 @@ builtins = lang/lang_builtins.ml \
 liquidsoap_sources= \
 	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
 	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_utils.ml) \
+        $(if $(W_FFMPEG_AVFILTER),tools/ffmpeg_avfilter_utils.ml) \
         converters/video_converter.ml \
 	decoder/decoder_utils.ml decoder/decoder.ml \
         tools/liq_time.ml $(if $(W_POSIX_TIME2),tools/liq_posix_time.ml) \

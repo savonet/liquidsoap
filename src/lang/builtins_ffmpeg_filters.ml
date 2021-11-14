@@ -48,6 +48,9 @@ let init_graph graph =
   if Queue.fold (fun b v -> b && v ()) true graph.input_inits then
     Queue.iter Lazy.force graph.init
 
+let initiated graph =
+  Queue.fold (fun cur q -> cur && Lazy.is_val q) true graph.init
+
 module Graph = Lang.MkAbstract (struct
   type content = graph
 
@@ -274,7 +277,7 @@ let get_config graph =
                "Graph variables cannot be used outside of ffmpeg.filter.create!"
              ))
 
-let apply_filter ~args_parser ~filter p =
+let apply_filter ~args_parser ~filter ~sources_t p =
   Avfilter.(
     let graph_v = Lang.assoc "" 1 p in
     let config = get_config graph_v in
@@ -282,56 +285,88 @@ let apply_filter ~args_parser ~filter p =
     let name = uniq_name filter.name in
     let flags = filter.flags in
     let filter = attach ~args:(args_parser p []) ~name filter config in
-    let audio_inputs_c = List.length filter.io.inputs.audio in
-    let get_input ~mode ~ofs idx =
-      if List.mem `Dynamic_inputs flags then (
-        let v = Lang.assoc "" (if mode = `Audio then 2 else 3) p in
-        let inputs = Lang.to_list v in
-        if List.length inputs <= idx then
-          raise
-            (Error.Invalid_value
-               ( v,
-                 Printf.sprintf "Invalid number of input for filter %s"
-                   filter.name ));
-        List.nth inputs idx)
-      else Lang.assoc "" (idx + ofs + 2) p
+    let meths =
+      [
+        ( "process_command",
+          Lang.val_fun
+            [
+              ("fast", "fast", Some (Lang.bool false));
+              ("", "", None);
+              ("", "", None);
+            ]
+            (fun p ->
+              let fast = Lang.to_bool (List.assoc "fast" p) in
+              let flags = if fast then [`Fast] else [] in
+              let cmd = Lang.to_string (Lang.assoc "" 1 p) in
+              let arg = Lang.to_string (Lang.assoc "" 2 p) in
+              if initiated graph then (
+                try
+                  Lang.string (Avfilter.process_command ~flags ~cmd ~arg filter)
+                with exn ->
+                  let bt = Printexc.get_raw_backtrace () in
+                  Lang.raise_as_runtime ~bt ~kind:"ffmpeg.filter" exn)
+              else Lang.string "graph not started!") );
+      ]
     in
-    Queue.push
-      (lazy
-        (List.iteri
-           (fun idx input ->
-             let output =
-               match Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx) with
-                 | `Output output -> Lazy.force output
-                 | _ -> assert false
-             in
-             link output input)
-           filter.io.inputs.audio;
-         List.iteri
-           (fun idx input ->
-             let output =
-               match
-                 Video.of_value (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
-               with
-                 | `Output output -> output
-                 | _ -> assert false
-             in
-             link (Lazy.force output) input)
-           filter.io.inputs.video))
-      graph.init;
-    let audio =
-      List.map
-        (fun p -> Audio.to_value (`Output (lazy p)))
-        filter.io.outputs.audio
+    let apply =
+      Lang.val_fun
+        (List.map (fun (_, lbl, _) -> (lbl, lbl, None)) sources_t)
+        (fun p ->
+          let audio_inputs_c = List.length filter.io.inputs.audio in
+          let get_input ~mode ~ofs idx =
+            if List.mem `Dynamic_inputs flags then (
+              let v = Lang.assoc "" (if mode = `Audio then 1 else 2) p in
+              let inputs = Lang.to_list v in
+              if List.length inputs <= idx then
+                raise
+                  (Error.Invalid_value
+                     ( v,
+                       Printf.sprintf "Invalid number of input for filter %s"
+                         filter.name ));
+              List.nth inputs idx)
+            else Lang.assoc "" (idx + ofs + 1) p
+          in
+          Queue.push
+            (lazy
+              (List.iteri
+                 (fun idx input ->
+                   let output =
+                     match
+                       Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx)
+                     with
+                       | `Output output -> Lazy.force output
+                       | _ -> assert false
+                   in
+                   link output input)
+                 filter.io.inputs.audio;
+               List.iteri
+                 (fun idx input ->
+                   let output =
+                     match
+                       Video.of_value
+                         (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
+                     with
+                       | `Output output -> output
+                       | _ -> assert false
+                   in
+                   link (Lazy.force output) input)
+                 filter.io.inputs.video))
+            graph.init;
+          let audio =
+            List.map
+              (fun p -> Audio.to_value (`Output (lazy p)))
+              filter.io.outputs.audio
+          in
+          let video =
+            List.map
+              (fun p -> Video.to_value (`Output (lazy p)))
+              filter.io.outputs.video
+          in
+          if List.mem `Dynamic_outputs flags then
+            Lang.tuple [Lang.list audio; Lang.list video]
+          else (match audio @ video with [x] -> x | l -> Lang.tuple l))
     in
-    let video =
-      List.map
-        (fun p -> Video.to_value (`Output (lazy p)))
-        filter.io.outputs.video
-    in
-    if List.mem `Dynamic_outputs flags then
-      Lang.tuple [Lang.list audio; Lang.list video]
-    else (match audio @ video with [x] -> x | l -> Lang.tuple l))
+    Lang.meth apply meths)
 
 let () =
   Avfilter.(
@@ -349,17 +384,34 @@ let () =
     List.iter
       (fun ({ name; description; io; flags } as filter) ->
         let args, args_parser = mk_options filter in
-        let input_t =
-          args
-          @ [("", Graph.t, None, None)]
-          @ List.map
-              (fun t -> ("", t, None, None))
-              (mk_av_t ~flags ~mode:`Input io.inputs)
+        let args_t = args @ [("", Graph.t, None, None)] in
+        let sources_t =
+          List.map
+            (fun t -> (false, "", t))
+            (mk_av_t ~flags ~mode:`Input io.inputs)
         in
         let output_t =
           match mk_av_t ~flags ~mode:`Output io.outputs with
             | [x] -> x
             | l -> Lang.tuple_t l
+        in
+        let return_t =
+          Lang.method_t
+            (Lang.fun_t sources_t output_t)
+            [
+              ( "process_command",
+                ( [],
+                  Lang.fun_t
+                    [
+                      (true, "fast", Lang.bool_t);
+                      (false, "", Lang.string_t);
+                      (false, "", Lang.string_t);
+                    ]
+                    Lang.string_t ),
+                "`process_command(?fast, \"command\", \"argument\")` sends the \
+                 given command to this filter. Set `fast` to `true` to only \
+                 execute the command when it is fast." );
+            ]
         in
         let explanation =
           String.concat " "
@@ -384,8 +436,36 @@ let () =
             (if explanation <> "" then " " ^ explanation else "")
         in
         Lang.add_builtin ~category:`Filter ("ffmpeg.filter." ^ name) ~descr
-          ~flags:[`Extra] input_t output_t
-          (apply_filter ~args_parser ~filter))
+          ~flags:[`Extra]
+          (args_t @ List.map (fun (_, lbl, t) -> (lbl, t, None, None)) sources_t)
+          output_t
+          (fun p ->
+            let named_args = List.filter (fun (lbl, _) -> lbl <> "") p in
+            let unnamed_args = List.filter (fun (lbl, _) -> lbl = "") p in
+            (* Unnamed args are ordered. The last [n] ones are from [sources_t] *)
+            let n_sources = List.length sources_t in
+            let n_args = List.length unnamed_args in
+            let unnamed_args, inputs =
+              List.fold_left
+                (fun (args, inputs) el ->
+                  if List.length args < n_args - n_sources then
+                    (args @ [el], inputs)
+                  else (args, inputs @ [el]))
+                ([], []) unnamed_args
+            in
+            let args = named_args @ unnamed_args in
+            let filter = apply_filter ~args_parser ~filter ~sources_t args in
+            Lang.apply filter inputs);
+        Lang.add_builtin ~category:`Filter
+          ("ffmpeg.filter." ^ name ^ ".create")
+          ~descr:
+            (Printf.sprintf
+               "%s. Use this operator to initiate the filter independently of \
+                its inputs, to be able to send commands to the filter \
+                instance."
+               descr)
+          ~flags:[`Extra] args_t return_t
+          (apply_filter ~args_parser ~filter ~sources_t))
       filters)
 
 let abuffer_args frame =
@@ -420,8 +500,12 @@ let () =
   let video_frame =
     { Frame.audio = Frame.none; video = raw_video_format; midi = Frame.none }
   in
-  let audio_t = Lang.(source_t (kind_type_of_kind_format audio_frame)) in
-  let video_t = Lang.(source_t (kind_type_of_kind_format video_frame)) in
+  let audio_t =
+    Lang.(source_t ~methods:true (kind_type_of_kind_format audio_frame))
+  in
+  let video_t =
+    Lang.(source_t ~methods:true (kind_type_of_kind_format video_frame))
+  in
 
   let output_base_proto =
     [
