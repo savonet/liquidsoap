@@ -192,6 +192,29 @@ exported as lists. See our [JSON documentation page](json.html) for more details
 Convenience functions have been added to convert metadata to and from JSON object format: `metadata.json.stringify` and
 `metadata.json.parse`.
 
+### Returned types from output operators
+
+Starting with liquidsoap `2.0.0`, output operators return the empty value `()` while they previously returned a source.
+
+This helps enforce the fact that outputs should be end-points of your scripting graphs. However, in some cases, this can cause
+issues while migrating old scripts, in particular if the returned value of an output was used in the script.
+
+The way to fix this is to apply your operator to the source directly underneath the output. For instance, the following clock assignment: 
+```liquidsoap
+s = ...
+
+clock.assign_new([output.icecast(..., s)])
+```
+
+Should now be written:
+```liquidsoap
+s = ...
+
+clock.assign_new([s], ...)
+
+output.icecast(..., s)
+```
+
 ### Deprecated operators
 
 Some operators have been deprecated. For most of them, we provide a backward-compatible support 
