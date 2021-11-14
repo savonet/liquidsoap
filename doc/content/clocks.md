@@ -183,7 +183,7 @@ If you want to run an output as fast as your CPU allows,
 just attach it to a new clock without synchronization:
 
 ```liquidsoap
-clock.assign_new(sync="none",[output.file(%vorbis,"audio.ogg",source)])
+clock.assign_new(sync="none",[source])
 ```
 
 This will automatically attach the appropriate sources to that clock.
@@ -250,9 +250,14 @@ high quality wanted):
 ```liquidsoap
 input = input.oss()
 
-clock.assign_new(id="icecast",
-  [output.icecast(%mp3,mount="blah",mksafe(buffer(input)))])
+# Icecast source, with its own clock:
+icecast_source = mksafe(buffer(input))
+clock.assign_new(id="icecast", [icecast_source])
 
+# Output to icecast:
+output.icecast(%mp3,mount="blah",icecast_source)
+
+# File output:
 output.file(
   %mp3,"record-%Y-%m-%d-%H-%M-%S.mp3",
   input)
@@ -289,8 +294,9 @@ twice. You should run it as `liquidsoap EXPR -- FILE`
 and observe that it fully exploits two cores:
 ```liquidsoap
 def one()
-  clock.assign_new(sync="none",
-        [output.file(%mp3,"/dev/null",single(argv(1)))])
+  s = single(argv(1))
+  clock.assign_new(sync="none",[s])
+  output.file(%mp3,"/dev/null",s)
 end
 one()
 one()
