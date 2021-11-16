@@ -128,18 +128,16 @@ let register name init render_text =
           Some (Lang.bool true),
           Some "Cycle text when it reaches left boundary." );
         ( "metadata",
-          Lang.string_t,
-          Some (Lang.string ""),
-          Some
-            "Change text on a particular metadata (empty string means \
-             disabled)." );
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
+          Some "Change text on a particular metadata." );
         ("", Lang.getter_t Lang.string_t, None, Some "Text to display.");
         ("", Lang.source_t k, None, None);
       ]
       ~return_t:k ~category:`Video ~descr:"Display a text."
       (fun p ->
         let f v = List.assoc v p in
-        let ttf, ttf_size, color, x, y, speed, cycle, meta, txt, source =
+        let ttf, ttf_size, color, x, y, speed, cycle, txt, source =
           ( Lang.to_string (f "font"),
             Lang.to_int (f "size"),
             Lang.to_int (f "color"),
@@ -147,12 +145,13 @@ let register name init render_text =
             Lang.to_int_getter (f "y"),
             Lang.to_int (f "speed"),
             Lang.to_bool (f "cycle"),
-            Lang.to_string (f "metadata"),
             Lang.to_string_getter (Lang.assoc "" 1 p),
             Lang.to_source (Lang.assoc "" 2 p) )
         in
         let speed = speed / Lazy.force Frame.video_rate in
-        let meta = if meta = "" then None else Some meta in
+        let meta =
+          Lang.to_valued_option Lang.to_string (List.assoc "metadata" p)
+        in
         let kind = Kind.of_kind kind in
         (new text
            ~kind init render_text ttf ttf_size color x y speed cycle meta txt

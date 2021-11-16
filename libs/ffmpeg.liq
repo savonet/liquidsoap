@@ -35,29 +35,132 @@ end
 %endif
 
 %ifdef ffmpeg.filter.drawtext
-# Display a text.
+let video.add_text.ffmpeg = ()
+
+# Display a text. Use this operator inside ffmpeg filters.
 # @category Source / Video Processing
-# @param ~color Color of the text.
-# @param ~font Font to use.
-# @param ~size Size of the text.
+# @param ~color Text color (in 0xRRGGBB format).
+# @param ~cycle Cycle text when it reaches left boundary.
+# @param ~font Path to ttf font file.
+# @param ~metadata Change text on a particular metadata (empty string means disabled).
+# @param ~size Font size.
+# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
+#               according to x and y in case they are variable).
+# @param ~graph a ffmpeg filter graph to attach this filter to.
 # @param ~x x offset.
 # @param ~y y offset.
-# @param text Text to display.
-# @param s Source on which the text should be added.
-def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, text, s)
+# @params d Text to display.
+def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font="",
+                              ~metadata=null(),~size=18,~speed=70,~x=getter(10),~y=getter(10),
+                              ~graph, d, s) =
   color = "0x" ^ string.hex_of_int(pad=6, color)
-  fontfile =
+
+  fontfile = 
     if font == "" then
       null()
     else
       font
     end
-  def mkfilter(graph)
-    s = ffmpeg.filter.video.input(graph, s)
-    s = ffmpeg.filter.drawtext(fontfile=fontfile, fontsize="#{size}", x="#{x}", y="#{y}", fontcolor=color, text=text, graph, s)
-    ffmpeg.filter.video.output(graph, s)
+
+  x =
+    if speed != 0 then
+      last_time = ref(time())
+      changed = getter.changes(x)
+      effective_x = ref(getter.get(x))
+      getter({
+        begin
+          cur_time = time()
+          traveled_to = int(float(speed) * (cur_time - !last_time))
+          last_time := cur_time
+          if changed() then
+            effective_x := getter.get(x)
+          else
+            effective_x := !effective_x - traveled_to
+          end
+          if !effective_x < 0 then
+            effective_x := video.frame.width() - !effective_x
+          end
+          !effective_x
+        end})
+    else
+      x
+    end
+
+  filter = ffmpeg.filter.drawtext.create(
+                                  fontfile=fontfile, fontsize="#{size}", x="#{getter.get(x)}", y="#{getter.get(y)}",
+                                  fontcolor=color, text=d, graph)
+
+  filters = [{
+    args = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}"}),
+    filter = filter
+  }]
+
+  filters =
+    if cycle then
+      x = getter({"min(#{getter.get(x)}-w,#{getter.get(x)}-text_w)"})
+      [...filters,{
+        args   = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}"}),
+        filter = ffmpeg.filter.drawtext.create(
+                                      fontfile=fontfile, fontsize="#{size}", x="#{getter.get(x)}", y="#{getter.get(y)}",
+                                      fontcolor=color, text=d, graph)}]
+    else filters end
+
+  changed = getter.changes(getter({(getter.get(x),getter.get(y))}))
+  def on_change()
+    ignore(getter.get(x))
+    ignore(getter.get(y))
+    if changed() then
+      list.iter((fun (el) ->
+        ignore(el.filter.process_command("reinit", getter.get(el.args)))), filters)
+    end
   end
-  mux_audio(audio=drop_video(s), ffmpeg.filter.create(mkfilter))
+
+  def on_metadata(m) =
+    if null.defined(metadata) then
+      meta = null.get(metadata)
+      d = string.quote(m[meta])
+      if d != "" then
+        log(level=3,  label="ffmpeg.filter.drawtext", "Setting new text #{d} from metadata #{meta}") 
+        list.iter((fun (el) ->
+           ignore(el.filter.process_command("reinit", "text=#{d}"))), filters)
+      end
+    end
+  end
+
+  s.on_metadata(on_metadata)
+  s = source.on_frame(s, on_change)
+  s = ffmpeg.filter.video.input(graph, s)
+
+  list.fold((fun (cur, el) -> el.filter(cur)), s, filters)
+end
+
+# Display a text.
+# @category Source / Video Processing
+# @param ~id Force the value of the source ID.
+# @param ~color Text color (in 0xRRGGBB format).
+# @param ~cycle Cycle text when it reaches left boundary.
+# @param ~font Path to ttf font file.
+# @param ~metadata Change text on a particular metadata (empty string means disabled).
+# @param ~size Font size.
+# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
+#               according to x and y in case they are variable).
+# @param ~x x offset.
+# @param ~y y offset.
+# @params d Text to display.
+def replaces video.add_text.ffmpeg(~id=null(),~color=0xffffff,~cycle=true,~font="",
+                          ~metadata=null(),~size=18,~speed=70,~x=getter(10),~y=getter(10),
+                          d, s) =
+  id =  string.id.default(default="video.add_text.ffmpeg", id)
+  s = ffmpeg.raw.encode.audio_video(%ffmpeg(%audio.raw, %video.raw), s)
+  v = drop_audio(s)
+  def mkfilter(graph)
+    v = video.add_text.ffmpeg.raw(color=color,cycle=cycle,font=font,metadata=metadata,
+                                  size=size,speed=speed,x=x,y=y,graph=graph,d,v)
+    ffmpeg.filter.video.output(graph, v)
+  end
+  v = ffmpeg.filter.create(mkfilter)
+  s = mux_audio(id=id,audio=drop_video(s),v)
+  ffmpeg.raw.decode.audio_video(s)
 end
 %endif
 

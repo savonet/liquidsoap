@@ -202,9 +202,10 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
   let mk_fps_converter ~target_pixel_format =
     fps_converter :=
       Some
-        (Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
-           ~pixel_format:target_pixel_format ~time_base:internal_time_base
-           ~pixel_aspect:target_pixel_aspect ~target_fps ())
+        (Ffmpeg_avfilter_utils.Fps.init ~width:target_width
+           ~height:target_height ~pixel_format:target_pixel_format
+           ~time_base:internal_time_base ~pixel_aspect:target_pixel_aspect
+           ~target_fps ())
   in
 
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
@@ -222,7 +223,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
           mk_fps_converter ~target_pixel_format;
 
           let time_base =
-            Ffmpeg_utils.Fps.time_base (Option.get !fps_converter)
+            Ffmpeg_avfilter_utils.Fps.time_base (Option.get !fps_converter)
           in
 
           let hwaccel = format.Ffmpeg_format.hwaccel in
@@ -285,7 +286,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
           mk_fps_converter ~target_pixel_format;
 
           let time_base =
-            Ffmpeg_utils.Fps.time_base (Option.get !fps_converter)
+            Ffmpeg_avfilter_utils.Fps.time_base (Option.get !fps_converter)
           in
 
           let params =
@@ -332,8 +333,8 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
   (* We don't know packet duration in advance so we have to infer
      it from the next packet. *)
   let encode_ffmpeg_frame frame =
-    Ffmpeg_utils.Fps.convert (Option.get !fps_converter) frame (fun frame ->
-        encode_frame (`Frame frame))
+    Ffmpeg_avfilter_utils.Fps.convert (Option.get !fps_converter) frame
+      (fun frame -> encode_frame (`Frame frame))
   in
 
   let nb_frames = ref 0L in
