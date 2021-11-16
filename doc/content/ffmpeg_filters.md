@@ -79,6 +79,41 @@ applies a `hflip` filter (flips the video vertically), creates a video output fr
 FFmpeg filters are very powerful, they can also convert audio to video, for instance displaying information about the 
 stream, and they can combined into powerful graph processing filters.
 
+## Filter commands
+
+Some filters support [changing options at runtime](https://ffmpeg.org/ffmpeg-filters.html#Changing-options-at-runtime-with-a-command) with a command. These are also
+supported in liquidsoap.
+
+In order to do so, you have to use a slightly different API:
+
+```liquidsoap
+def dynamic_volume(s) =
+  def mkfilter(graph) =
+    filter = ffmpeg.filter.volume.create(graph)
+
+    def set_volume(v) =
+      ignore(filter.process_command("volume", string_of_int(v)))
+    end
+
+    s = ffmpeg.filter.audio.input(graph, s)
+    s = filter(s)
+    s = ffmpeg.filter.audio.output(graph, s)
+
+    (s, set_volume)
+  end
+
+  ffmpeg.filter.create(mkfilter)
+end
+
+let (s, set_volume) = dynamic_volume(s)
+```
+
+First, we instantiate a volume filter via `ffmpeg.filter.volume.create`. The filter instance has a `process_command`, which we use to create the `set_volume` function. Then,
+we apply the expected input to the filter and return the pair `(s, set_volume)` of source and function.
+
+The `ffmpeg.filter.<filter>.create` API is intended for advanced use if you want to use filter commands. Otherwise, `ffmpeg.filter.<filter>` provides a more straight forward
+API to filters.
+
 ## Filters with dynamic inputs or outputs
 
 Filters with dynamic inputs or outputs can have multiple inputs or outputs, decided at run-time. Typically, `ffmpeg.filter.split`

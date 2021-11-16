@@ -228,7 +228,7 @@ let decode_video_frame ~mode generator =
           (Ffmpeg_utils.liq_frame_pixel_format ())
       in
       let fps_converter =
-        Ffmpeg_utils.Fps.init ~width ~height ~pixel_format ~time_base
+        Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format ~time_base
           ?pixel_aspect ~target_fps ()
       in
       converter := Some (scaler, fps_converter);
@@ -269,8 +269,8 @@ let decode_video_frame ~mode generator =
         get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
           ~stream_idx ()
       in
-      let fps_time_base = Ffmpeg_utils.Fps.time_base fps_converter in
-      Ffmpeg_utils.Fps.convert fps_converter frame (fun data ->
+      let fps_time_base = Ffmpeg_avfilter_utils.Fps.time_base fps_converter in
+      Ffmpeg_avfilter_utils.Fps.convert fps_converter frame (fun data ->
           let pts =
             match (Ffmpeg_utils.best_pts data, !pts_offset) with
               | Some pts, Some offset ->

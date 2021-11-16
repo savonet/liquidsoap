@@ -90,6 +90,11 @@ test_ffmpeg_filter: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $<" media/test_ffmpeg_filter.liq "FFmpeg filter test for $$i" || exit; \
 	done
 
+test_ffmpeg_add_text: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
+	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $<" media/test_ffmpeg_add_text.liq "FFmpeg add text filter test for $$i" || exit; \
+	done
+
 test_ffmpeg_audio_decoder: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_FILES:%="%"); do \
 	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_audio_decoder.liq "FFmpeg audio decoder test for $$i" || exit; \

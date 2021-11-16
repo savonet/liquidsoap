@@ -107,10 +107,10 @@ let mk_video_decoder container =
       Generator.add_metadata buffer.Decoder.generator m)
   in
   let converter =
-    Ffmpeg_utils.Fps.init ~width ~height ~pixel_format ~time_base ~pixel_aspect
-      ~target_fps ()
+    Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format ~time_base
+      ~pixel_aspect ~target_fps ()
   in
   ( idx,
     stream,
-    fun ~buffer frame -> Ffmpeg_utils.Fps.convert converter frame (cb ~buffer)
-  )
+    fun ~buffer frame ->
+      Ffmpeg_avfilter_utils.Fps.convert converter frame (cb ~buffer) )

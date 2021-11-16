@@ -54,26 +54,6 @@ val mk_hardware_context :
   ([< `Audio | `Video ], Avcodec.encode) Avcodec.codec ->
   Avcodec.Video.hardware_context option * Avutil.Pixel_format.t
 
-module Fps : sig
-  type t
-
-  val time_base : t -> Avutil.rational
-
-  val init :
-    width:int ->
-    height:int ->
-    pixel_format:Avutil.Pixel_format.t ->
-    time_base:Avutil.rational ->
-    ?pixel_aspect:Avutil.rational ->
-    ?source_fps:int ->
-    target_fps:int ->
-    unit ->
-    t
-
-  val convert :
-    t -> [ `Video ] Avutil.frame -> ([ `Video ] Avutil.frame -> unit) -> unit
-end
-
 (* Ffmpeg doesn't really support a consistent duration API. Thus, we
    use PTS increment between packets to emulate duration. This means that
    a packet's duration is, in effect, the time between the last packet and

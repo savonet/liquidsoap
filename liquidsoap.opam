@@ -93,7 +93,7 @@ conflicts: [
   "ffmpeg-av" {< "1.0.1"}
   "ffmpeg-avcodec" {< "1.0.1"}
   "ffmpeg-avdevice" {< "1.0.1"}
-  "ffmpeg-avfilter" {< "1.0.1"}
+  "ffmpeg-avfilter" {< "1.1.0"}
   "ffmpeg-swresample" {< "1.0.1"}
   "ffmpeg-swscale" {< "1.0.1"}
   "flac" {< "0.3.0"}

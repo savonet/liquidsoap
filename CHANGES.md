@@ -3,6 +3,8 @@
 
 New:
 * Added `time.predicate` to parse time predicates at runtime.
+* Added support for ffmpeg filter commands, unify `video.add_text.ffmpeg`
+  with other operators, make it the default when available. (#2050)
 
 Changed:
 * Removed `encode_metadata` option in `input.file.hls` as it does nothing with
