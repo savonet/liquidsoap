@@ -207,21 +207,21 @@ let proto kind =
         Some (Lang.float 30.),
         Some "Timeout for network read and write." );
       ( "user",
-        Lang.string_t,
-        Some (Lang.string ""),
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some
           "User for shout source connection. Defaults to \"source\" for \
            icecast connections. Useful only in special cases, like with \
            per-mountpoint users." );
       ("password", Lang.string_t, Some (Lang.string "hackme"), None);
       ( "encoding",
-        Lang.string_t,
-        Some (Lang.string ""),
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some
           "Encoding used to send metadata and stream info (name, genre and \
-           description). If empty, defaults to \"UTF-8\" for \"http(s)\" \
+           description). If null, defaults to \"UTF-8\" for \"http(s)\" \
            protocol and \"ISO-8859-1\" for \"icy\" protocol." );
-      ("genre", Lang.string_t, Some (Lang.string ""), None);
+      ("genre", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ( "protocol",
         Lang.string_t,
         Some (Lang.string "http"),
@@ -244,8 +244,8 @@ let proto kind =
         Some
           "Send new metadata using the ICY protocol. One of: \"guess\", \
            \"true\", \"false\"" );
-      ("url", Lang.string_t, Some (Lang.string ""), None);
-      ("description", Lang.string_t, Some (Lang.string ""), None);
+      ("url", Lang.nullable_t Lang.string_t, Some Lang.null, None);
+      ("description", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ( "on_connect",
         Lang.fun_t [] Lang.unit_t,
         Some (Lang.val_cst_fun [] Lang.unit),
@@ -279,6 +279,7 @@ let proto kind =
 class output ~kind p =
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
+  let s_opt v = e (Lang.to_valued_option Lang.to_string) v in
   let on_connect = List.assoc "on_connect" p in
   let on_disconnect = List.assoc "on_disconnect" p in
   let on_error = List.assoc "on_error" p in
@@ -338,9 +339,9 @@ class output ~kind p =
                   either 'true' or 'false'." ))
   in
   let out_enc =
-    match Lang.to_string (List.assoc "encoding" p) with
-      | "" -> if protocol = Cry.Icy then "ISO-8859-1" else "UTF-8"
-      | s -> String.uppercase_ascii s
+    match s_opt "encoding" with
+      | None | Some "" -> if protocol = Cry.Icy then "ISO-8859-1" else "UTF-8"
+      | Some s -> String.uppercase_ascii s
   in
   let source = Lang.assoc "" 2 p in
   let icy_id = Lang.to_int (List.assoc "icy_id" p) in
@@ -372,22 +373,24 @@ class output ~kind p =
   let host = s "host" in
   let port = e Lang.to_int "port" in
   let user =
-    match (protocol, s "user") with
-      | Cry.Http _, "" | Cry.Https _, "" -> "source"
-      | _, user -> user
+    match (protocol, s_opt "user") with
+      | Cry.Http _, None | Cry.Https _, None -> "source"
+      | _, user -> Option.value ~default:"" user
   in
   let password = s "password" in
-  let genre = Configure.recode_tag ~out_enc (s "genre") in
-  let url = s "url" in
+  let genre =
+    Option.map (fun s -> Configure.recode_tag ~out_enc s) (s_opt "genre")
+  in
+  let url = s_opt "url" in
   let timeout = e Lang.to_float "timeout" in
   let connection_timeout =
     let v = e Lang.to_float "connection_timeout" in
     if v > 0. then Some v else None
   in
-  let dumpfile =
-    Lang.to_valued_option Lang.to_string (List.assoc "dumpfile" p)
+  let dumpfile = s_opt "dumpfile" in
+  let description =
+    Option.map (fun s -> Configure.recode_tag ~out_enc s) (s_opt "description")
   in
-  let description = Configure.recode_tag ~out_enc (s "description") in
   let public = e Lang.to_bool "public" in
   let headers =
     List.map
@@ -552,7 +555,7 @@ class output ~kind p =
         with Not_found -> Printf.sprintf "liquidsoap %s" Configure.version
       in
       let source =
-        Cry.connection ~host ~port ~user ~password ~genre ~url ~description
+        Cry.connection ~host ~port ~user ~password ?genre ?url ?description
           ~name ~public ~protocol ~mount ~chunked ~audio_info ~user_agent
           ~content_type:data.format ()
       in

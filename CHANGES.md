@@ -9,6 +9,7 @@ New:
 Changed:
 * Removed `encode_metadata` option in `input.file.hls` as it does nothing with
   the main encoder for HLS format, `%ffmpeg` (#2023)
+* Converted `output.icecast` optional parameters to `nullable`.
 
 Fixes:
 * Fixed switch-based sources not respecting track boundaries when
