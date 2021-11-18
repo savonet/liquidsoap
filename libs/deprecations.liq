@@ -573,3 +573,10 @@ def request.dynamic.list(%argsof(request.dynamic), f) =
 
   s
 end
+
+# Deprecated: use `let json.stringify` instead.
+# @flag deprecated
+def json_of(~compact=false, x)
+  let json.stringify[compact=compact] s = x
+  s
+end
