@@ -19,6 +19,10 @@ Fixes:
 * Account for internal caching in `request.dynamic.list`'s `queue` and `set_queue` methods.
 * Keep buffering for crossfade when new source has track mark but is still ready.
 * Added missing output `start`/`stop` commands.
+* Fixed `perms`, `dir_perms` and `append` not bring honored when delegating file output
+  to the encoder.
+* Fixed base directory not being created when delegating file output to the encoder.
+  (#2069)
 
 2.0.0 (03-10-2021)
 =====

@@ -57,7 +57,7 @@ val bitrate : format -> int
 (** Encoders that can output to a file. *)
 val file_output : format -> bool
 
-val with_file_output : format -> string -> format
+val with_file_output : ?append:bool -> format -> string -> format
 
 (** Encoders that can output to a arbitrary url. *)
 val url_output : format -> bool

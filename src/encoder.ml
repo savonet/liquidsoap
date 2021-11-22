@@ -201,9 +201,16 @@ let bitrate = function
 (** Encoders that can output to a file. *)
 let file_output = function Ffmpeg _ -> true | _ -> false
 
-let with_file_output encoder file =
+let with_file_output ?(append = false) encoder file =
   match encoder with
-    | Ffmpeg opts -> Ffmpeg { opts with Ffmpeg_format.output = `Url file }
+    | Ffmpeg opts ->
+        Hashtbl.replace opts.Ffmpeg_format.other_opts "truncate"
+          (`Int (if append then 0 else 1));
+        Ffmpeg
+          {
+            opts with
+            Ffmpeg_format.output = `Url (Printf.sprintf "file:%s" file);
+          }
     | _ -> failwith "No file output!"
 
 (** Encoders that can output to a arbitrary url. *)
