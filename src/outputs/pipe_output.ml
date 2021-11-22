@@ -256,19 +256,21 @@ let chan_proto kind arg_doc =
   ]
   @ pipe_proto kind arg_doc
 
-class virtual chan_output p =
+class virtual ['a] chan_output p =
   let flush = Lang.to_bool (List.assoc "flush" p) in
   object (self)
-    val mutable chan = None
-    method virtual open_chan : out_channel
-    method virtual close_chan : out_channel -> unit
+    val mutable chan : 'a option = None
+    method virtual open_chan : 'a
+    method virtual close_chan : 'a -> unit
+    method virtual output_substring : 'a -> string -> int -> int -> unit
+    method virtual flush : 'a -> unit
     method open_pipe = chan <- Some self#open_chan
 
     method write_pipe b ofs len =
       let chan = Option.get chan in
       try
-        output_substring chan b ofs len;
-        if flush then Stdlib.flush chan
+        self#output_substring chan b ofs len;
+        if flush then self#flush chan
       with Sys_error e ->
         let bt = Printexc.get_raw_backtrace () in
         Runtime_error.error ~bt ~message:e "system"
@@ -282,10 +284,13 @@ class virtual chan_output p =
 
 (** File output *)
 
-class virtual file_output_base p =
+class virtual ['a] file_output_base p =
   let filename = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let on_close = List.assoc "on_close" p in
   let on_close s = Lang.to_unit (Lang.apply on_close [("", Lang.string s)]) in
+  let perm = Lang.to_int (List.assoc "perm" p) in
+  let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
+  let append = Lang.to_bool (List.assoc "append" p) in
   object (self)
     val mutable current_filename = None
     method virtual interpolate : ?subst:(string -> string) -> string -> string
@@ -298,18 +303,7 @@ class virtual file_output_base p =
       let subst m = Pcre.substitute ~pat:"/" ~subst:(fun _ -> "-") m in
       self#interpolate ~subst filename
 
-    method private on_close = on_close
-  end
-
-class file_output ~format_val ~kind p =
-  let append = Lang.to_bool (List.assoc "append" p) in
-  let perm = Lang.to_int (List.assoc "perm" p) in
-  let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
-  object (self)
-    inherit piped_output ~kind p
-    inherit chan_output p
-    inherit file_output_base p
-    method encoder_factory = encoder_factory format_val
+    method virtual open_out_gen : open_flag list -> int -> string -> 'a
 
     method open_chan =
       let mode =
@@ -319,38 +313,67 @@ class file_output ~format_val ~kind p =
       let filename = self#filename in
       try
         Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
-        let fd = open_out_gen mode perm filename in
+        let fd = self#open_out_gen mode perm filename in
         current_filename <- Some filename;
-        set_binary_mode_out fd true;
         fd
       with Sys_error e ->
         let bt = Printexc.get_raw_backtrace () in
         Runtime_error.error ~bt ~message:e "system"
 
+    method virtual close_out : 'a -> unit
+
     method close_chan fd =
       try
-        close_out fd;
+        self#close_out fd;
         self#on_close (Option.get current_filename);
         current_filename <- None
       with Sys_error e ->
         let bt = Printexc.get_raw_backtrace () in
         Runtime_error.error ~bt ~message:e "system"
+
+    method private on_close = on_close
+  end
+
+class file_output ~format_val ~kind p =
+  object
+    inherit piped_output ~kind p
+    inherit [out_channel] chan_output p
+    inherit [out_channel] file_output_base p
+    method encoder_factory = encoder_factory format_val
+
+    method open_out_gen mode perm filename =
+      let fd = open_out_gen mode perm filename in
+      set_binary_mode_out fd true;
+      fd
+
+    method output_substring = output_substring
+    method flush = flush
+    method close_out = close_out
   end
 
 class file_output_using_encoder ~format_val ~kind p =
   let format = Lang.to_format format_val in
+  let append = Lang.to_bool (List.assoc "append" p) in
+  let p = ("append", Lang.bool true) :: List.remove_assoc "append" p in
   object (self)
     inherit piped_output ~kind p
-    inherit file_output_base p
+    inherit [unit] chan_output p
+    inherit [unit] file_output_base p
 
     method encoder_factory name meta =
-      let format = Encoder.with_file_output format self#filename in
+      (* Make sure the file is created with the right perms. *)
+      ignore self#open_chan;
+      let format = Encoder.with_file_output ~append format self#filename in
       encoder_factory ~format format_val name meta
 
-    method is_open = true
-    method open_pipe = ()
-    method close_pipe = ()
-    method write_pipe _ _ _ = ()
+    method open_out_gen mode perms filename =
+      let fd = open_out_gen mode perms filename in
+      close_out fd;
+      ()
+
+    method output_substring () _ _ _ = ()
+    method flush () = ()
+    method close_out () = ()
   end
 
 let file_proto kind =
@@ -409,7 +432,7 @@ class external_output p =
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
     inherit piped_output ~kind p
-    inherit chan_output p
+    inherit [out_channel] chan_output p
     method encoder_factory = encoder_factory format_val
     method self_sync = (`Static, self_sync)
 
@@ -421,6 +444,10 @@ class external_output p =
     method close_chan chan =
       try ignore (Unix.close_process_out chan)
       with Sys_error msg when msg = "Broken pipe" -> ()
+
+    method output_substring = output_substring
+    method flush = flush
+    method close_out = close_out
   end
 
 let pipe_proto kind descr =
