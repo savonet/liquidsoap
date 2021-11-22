@@ -10,7 +10,7 @@ fi
 
 echo "Detected branch: ${BRANCH}"
 
-if [[ "${BRANCH}" =~ ^v[0-9] ]]; then
+if [[ "${BRANCH}" =~ ^v[0-9] ]] && ! [[ "${BRANCH}" =~ preview$ ]]; then
   echo "Branch is release branch"
   IS_RELEASE=true
 else
