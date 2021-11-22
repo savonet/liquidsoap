@@ -40,7 +40,7 @@ type self_sync = [ `Static | `Dynamic ] * bool
 
 (** The liveness type of a source indicates whether or not it can
   * fail to broadcast.
-  * A Infallible source never fails; it is always ready. *)
+  * A [Infallible] source never fails; it is always ready. *)
 type source_t = Fallible | Infallible
 
 (** Instrumentation. *)
