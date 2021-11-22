@@ -86,7 +86,7 @@ end
 # Remove an interactive variable.
 # @param name Name of the variable.
 # @category Interactive
-# flag hidden
+# @flag hidden
 def interactive.bool.remove(name)
   interactive.remove(name)
   variables_bool := list.assoc.remove.all(name, !variables_bool)
