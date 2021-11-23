@@ -329,8 +329,7 @@ let () =
 
 let () =
   Lang.add_builtin "json.stringify" ~category:`String
-    ~flags:[`Hidden; `Deprecated]
-    ~descr:"Deprecated. Please use `let json.stringify ... instead."
+    ~descr:"Convert a value to a json string."
     [
       ( "compact",
         Lang.bool_t,
@@ -344,9 +343,6 @@ let () =
     ]
     Lang.string_t
     (fun p ->
-      Lang_builtins.log_deprecated#important
-        "WARNING: \"json.stringify\" is deprecated and will be removed in \
-         future version. Please use \"let json.stringify ...\" instead";
       let compact = Lang.to_bool (List.assoc "compact" p) in
       let json5 = Lang.to_bool (List.assoc "json5" p) in
       let v = List.assoc "" p in
@@ -355,9 +351,9 @@ let () =
 
 let () =
   Lang.add_builtin "_internal_json_renderer_" ~category:`String ~flags:[`Hidden]
-    ~descr:"Internal JSON rendered"
+    ~descr:"Internal JSON renderer"
     [
-      ("type", Value.RuntimeType.t, None, Some "Runtime type");
+      ("type", Value.RuntimeType.t, None, Some "Runtime type.");
       ( "compact",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -482,15 +478,29 @@ let rec deprecated_of_json d j =
 
 let () =
   let t = Lang.univ_t () in
-  Lang.add_builtin ~category:`String ~flags:[`Deprecated; `Hidden]
-    ~descr:"Deprecated: use `let json.parse ..`" "json.parse"
+  Lang.add_builtin ~category:`String
+    ~descr:
+      "Parse a json string into a liquidsoap value. The value provided in the \
+       `default` parameter is quite important: only the part of the JSON data \
+       which has the same type as the `default` parameter will be kept \
+       (heterogeneous data cannot be represented in Liquidsoap because of \
+       typing). For instance, if the JSON `j` is\n\
+       ```\n\
+       {\n\
+      \ \"a\": \"test\",\n\
+      \ \"b\": 5\n\
+       }\n\
+       ```\n\
+       the value returned by `json.parse(default=[(\"\",0)], j)` will be \
+       `[(\"b\",5)]`: the pair `(\"a\",\"test\")` is not kept because it is \
+       not of type `string * int`. The use of the alternative `let json.parse \
+       ...` is recommended instead of this function, because it allows \
+       specifying the expected type for the value instead of infering it from \
+       the default value." "json.parse"
     [
       ("default", t, None, Some "Default value if string cannot be parsed.");
       ("", Lang.string_t, None, None);
     ] t (fun p ->
-      Lang_builtins.log_deprecated#important
-        "WARNING: \"json.parse\" is deprecated and will be removed in future \
-         version. Please use \"let json.parse ...\" instead";
       let default = List.assoc "default" p in
       let s = Lang.to_string (List.assoc "" p) in
       try
