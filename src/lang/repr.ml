@@ -38,7 +38,9 @@ type t =
   | `List of t * [ `Object | `Tuple ]
   | `Tuple of t list
   | `Nullable of t
-  | `Meth of string * (var list * t) * string option * t
+  | `Meth of
+    string * (var list * t) * string option * t
+    (* label, type scheme, JSON name, base type *)
   | `Arrow of (bool * string * t) list * t
   | `Getter of t
   | `EVar of var (* existential variable *)
@@ -156,6 +158,8 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
             if List.exists (var_eq var) g then uvar g var else evar var
         | Var { contents = Link (Covariant, t) } when !debug ->
             `Debug ("[>", repr g t, "]")
+        | Var { contents = Link (Contravariant, t) } when !debug ->
+            `Debug ("[<", repr g t, "]")
         | Var { contents = Link (_, t) } -> repr g t)
   in
   repr generalized t

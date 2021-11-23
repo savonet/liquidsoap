@@ -524,18 +524,25 @@ let rec ( <: ) a b =
         Meth ({ meth = l'; scheme = g2, t2; json_name = json_name2 }, u2) )
       when l = l' -> (
         (* Handle explicitly this case in order to avoid #1842. *)
-        try
-          (* TODO: we should perform proper type scheme subtyping, but this
-                is a good approximation for now... *)
-          instantiate ~level:(-1) ~generalized:g1 t1
-          <: instantiate ~level:(-1) ~generalized:g2 t2;
-          u1 <: u2
+        (try
+           (* TODO: we should perform proper type scheme subtyping, but this
+                 is a good approximation for now... *)
+           instantiate ~level:(-1) ~generalized:g1 t1
+           <: instantiate ~level:(-1) ~generalized:g2 t2
+         with Error (a, b) ->
+           let bt = Printexc.get_raw_backtrace () in
+           Printexc.raise_with_backtrace
+             (Error
+                ( `Meth (l, ([], a), json_name1, `Ellipsis),
+                  `Meth (l, ([], b), json_name2, `Ellipsis) ))
+             bt);
+        try u1 <: u2
         with Error (a, b) ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
             (Error
-               ( `Meth (l, ([], a), json_name1, `Ellipsis),
-                 `Meth (l, ([], b), json_name2, `Ellipsis) ))
+               ( `Meth (l, ([], `Ellipsis), json_name1, a),
+                 `Meth (l, ([], `Ellipsis), json_name2, b) ))
             bt)
     | _, Meth ({ meth = l; scheme = g2, t2; json_name }, u2) -> (
         try
