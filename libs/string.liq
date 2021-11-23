@@ -2,7 +2,6 @@
 # recognized. Hence, special characters should be escaped.
 # @category String
 def string.match(~pattern, s) =
-  deprecated("string.match", "r/_/.test(_)")
   regexp(pattern).test(s)
 end
 
