@@ -329,7 +329,7 @@ let () =
 
 let () =
   Lang.add_builtin "_internal_json_renderer_" ~category:`String ~flags:[`Hidden]
-    ~descr:"Internal JSON renderer"
+    ~descr:"Internal JSON renderer."
     [
       ("type", Value.RuntimeType.t, None, Some "Runtime type.");
       ( "compact",
