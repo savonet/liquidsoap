@@ -328,36 +328,10 @@ let () =
       Lang.meth (JsonValue.to_value v) meth)
 
 let () =
-  Lang.add_builtin "json.stringify" ~category:`String
-    ~flags:[`Hidden; `Deprecated]
-    ~descr:"Deprecated. Please use `let json.stringify ... instead."
-    [
-      ( "compact",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Output compact text." );
-      ( "json5",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Use json5 extended spec." );
-      ("", Lang.univ_t (), None, None);
-    ]
-    Lang.string_t
-    (fun p ->
-      Lang_builtins.log_deprecated#important
-        "WARNING: \"json.stringify\" is deprecated and will be removed in \
-         future version. Please use \"let json.stringify ...\" instead";
-      let compact = Lang.to_bool (List.assoc "compact" p) in
-      let json5 = Lang.to_bool (List.assoc "json5" p) in
-      let v = List.assoc "" p in
-      let v = Json.to_string ~compact ~json5 (json_of_value v) in
-      Lang.string v)
-
-let () =
   Lang.add_builtin "_internal_json_renderer_" ~category:`String ~flags:[`Hidden]
-    ~descr:"Internal JSON rendered"
+    ~descr:"Internal JSON renderer."
     [
-      ("type", Value.RuntimeType.t, None, Some "Runtime type");
+      ("type", Value.RuntimeType.t, None, Some "Runtime type.");
       ( "compact",
         Lang.bool_t,
         Some (Lang.bool false),
