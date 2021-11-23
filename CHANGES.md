@@ -23,6 +23,7 @@ Fixes:
   to the encoder.
 * Fixed base directory not being created when delegating file output to the encoder.
   (#2069)
+* Use `process.quote` in process calls (#2031)
 
 2.0.0 (03-10-2021)
 =====

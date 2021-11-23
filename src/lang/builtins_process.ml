@@ -254,5 +254,5 @@ let () =
        argument in a command line, escaping all meta-characters. Warning: \
        under Windows, the output is only suitable for use with programs that \
        follow the standard Windows quoting conventions."
-    [("", Lang.string_t, None, Some "File name")] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, Some "String to escape")] Lang.string_t (fun p ->
       Lang.string (Filename.quote (Lang.to_string (List.assoc "" p))))

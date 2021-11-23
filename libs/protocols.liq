@@ -23,7 +23,7 @@ let settings.protocol.replaygain.tag = settings.make(
 def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
                      ~delay=_,file)
   log = log.info(label="extract.replaygain")
-  p = process.run("#{extract_replaygain} #{string.quote(file)}")
+  p = process.run("#{extract_replaygain} #{process.quote(file)}")
   stdout = string.replace(pattern='\\n', fun (_) -> "", p.stdout)
   if p.status == "exit" and p.status.code == 0 then
     stdout
@@ -83,8 +83,8 @@ def process_protocol(~rlog=_,~maxtime,arg)
   output = file.temp("liq-process", ".#{extname}")
 
   def resolve(input) =
-    cmd = cmd % [("input",string.quote(input)),
-                 ("output",string.quote(output)),
+    cmd = cmd % [("input",process.quote(input)),
+                 ("output",process.quote(output)),
                  ("colon",":")]
 
     log.info("Executing #{cmd}")
@@ -236,7 +236,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   end
 
   delay = maxtime - time()
-  cmd = "#{binary} --get-title --get-filename -- #{string.quote(arg)}"
+  cmd = "#{binary} --get-title --get-filename -- #{process.quote(arg)}"
   log(level=4,"Executing #{cmd}")
   x = process.read.lines(timeout=delay,cmd)
 
@@ -250,7 +250,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   title = list.hd(default="",x)
   ext   = file.extension(leading_dot=false,list.nth(default="",x,1))
 
-  cmd = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{string.quote(arg)}"
+  cmd = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{process.quote(arg)}"
   cmd = process_uri(extname=ext,cmd)
 
   if title != "" then
@@ -329,7 +329,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
   end
 
   def parse_metadata(file) =
-    cmd = "#{ffmpeg} -i #{string.quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
+    cmd = "#{ffmpeg} -i #{process.quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
     delay = maxtime - time()
     log(level=4,"Executing #{cmd}")
     lines = process.read.lines(timeout=delay,cmd)
@@ -469,7 +469,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     fades = fades(r)
     replaygain_filter = replaygain_filter(filename)
 
-    cmd = "#{ffmpeg} -y -i $(input) #{cue_points} #{fades} #{replaygain_filter} #{string.quote(wav)}"
+    cmd = "#{ffmpeg} -y -i $(input) #{cue_points} #{fades} #{replaygain_filter} #{process.quote(wav)}"
 
     uri = process_uri(extname="wav",uri=filename,cmd)
 
@@ -520,7 +520,7 @@ let settings.protocol.text2wave.path = settings.make(
 # @flag hidden
 def text2wave_protocol(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.text2wave.path()
-  [process_uri(extname="wav", "echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
+  [process_uri(extname="wav", "echo #{process.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
 add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
@@ -537,7 +537,7 @@ let settings.protocol.gtts.path = settings.make(
 # @flag hidden
 def gtts_protocol(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.gtts.path()
-  [process_uri(extname="mp3", "#{binary} -o $(output) #{string.quote(arg)}")]
+  [process_uri(extname="mp3", "#{binary} -o $(output) #{process.quote(arg)}")]
 end
 add_protocol(static=true,"gtts",gtts_protocol,
              doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
@@ -604,7 +604,7 @@ def aws_base() =
 
   aws =
     if null.defined(endpoint) then
-      "#{aws} --endpoint-url #{string.quote(null.get(endpoint))}"
+      "#{aws} --endpoint-url #{process.quote(null.get(endpoint))}"
     else
       aws
     end
@@ -612,7 +612,7 @@ def aws_base() =
   profile = settings.protocol.aws.profile()
 
   if null.defined(profile) then
-    "#{aws} --profile #{string.quote(null.get(profile))}"
+    "#{aws} --profile #{process.quote(null.get(profile))}"
   else
     aws
   end
@@ -622,7 +622,7 @@ end
 # @flag hidden
 def s3_protocol(~rlog=_, ~maxtime=_, arg) =
   extname = file.extension(leading_dot=false,dir_sep="/",arg)
-  arg = string.quote("s3:#{arg}")
+  arg = process.quote("s3:#{arg}")
   [process_uri(extname=extname,"#{aws_base()} s3 cp #{arg} $(output)")]
 end
 add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
@@ -649,7 +649,7 @@ def polly_protocol(~rlog=_, ~maxtime=_, text) =
 
   voice_id = settings.protocol.aws.polly.voice()
 
-  cmd = "#{aws} --text #{string.quote(text)} --voice-id #{string.quote(voice_id)} $(output)"
+  cmd = "#{aws} --text #{process.quote(text)} --voice-id #{process.quote(voice_id)} $(output)"
 
   [process_uri(extname=extname,cmd)]
 end

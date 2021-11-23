@@ -60,7 +60,7 @@ end
 def get_mime(fname) =
   def file_method(fname) =
     if process.test("which file") then
-      list.hd(default="", process.read.lines("file -b --mime-type #{string.quote(fname)}"))
+      list.hd(default="", process.read.lines("file -b --mime-type #{process.quote(fname)}"))
     else
       ""
     end

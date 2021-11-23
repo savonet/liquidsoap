@@ -182,7 +182,7 @@ end
 
 # @flag hidden
 def get_mime_process(file) =
-  list.hd(default="", process.read.lines("file -b -I #{string.quote(file)}"))
+  list.hd(default="", process.read.lines("file -b -I #{process.quote(file)}"))
 end
 
 # @flag hidden
