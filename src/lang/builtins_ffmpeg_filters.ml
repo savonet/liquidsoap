@@ -526,10 +526,10 @@ let () =
   let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.kind in
   let raw_video_format = `Kind Ffmpeg_raw_content.Video.kind in
   let audio_frame =
-    { Frame.audio = raw_audio_format; video = Frame.none; midi = Frame.none }
+    { Frame.audio = raw_audio_format; video = `Any; midi = `Any }
   in
   let video_frame =
-    { Frame.audio = Frame.none; video = raw_video_format; midi = Frame.none }
+    { Frame.audio = `Any; video = raw_video_format; midi = `Any }
   in
   let audio_t =
     Lang.(source_t ~methods:true (kind_type_of_kind_format audio_frame))
@@ -574,8 +574,8 @@ let () =
               audio =
                 `Format
                   Ffmpeg_raw_content.Audio.(lift_params (default_params `Raw));
-              video = Frame.none;
-              midi = Frame.none;
+              video = `Any;
+              midi = `Any;
             }
       in
       let name = uniq_name "abuffer" in
@@ -687,11 +687,11 @@ let () =
             {
               (* We need to make sure that we are using a format here to
                  ensure that its params are properly unified with the underlying source. *)
-              audio = Frame.none;
+              audio = `Any;
               video =
                 `Format
                   Ffmpeg_raw_content.Video.(lift_params (default_params `Raw));
-              midi = Frame.none;
+              midi = `Any;
             }
       in
       let name = uniq_name "buffer" in
