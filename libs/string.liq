@@ -1,3 +1,38 @@
+# Match a string with an expression. Perl compatible regular expressions are
+# recognized. Hence, special characters should be escaped.
+# @category String
+def string.match(~pattern, s) =
+  deprecated("string.match", "r/_/.test(_)")
+  regexp(pattern).test(s)
+end
+
+# Extract substrings from a string. Perl compatible regular expressions are
+# recognized. Hence, special characters should be escaped. Returns a list of
+# (index,value). If the list does not have a pair associated to some index, it
+# means that the corresponding pattern was not found.
+# @category String
+def string.extract(~pattern, s) =
+  regexp(pattern).exec(s)
+end
+
+# Replace all substrings matched by a pattern by another string returned by a
+# function.
+# @category String
+# @param ~pattern Pattern (regular expression) of substrings which should be replaced.
+# @param f Function getting a matched substring an returning the string to replace it with.
+# @param s String whose substrings should be replaced.
+def string.replace(~pattern, f, s) =
+  regexp(flags=["g"], pattern).replace(f, s)
+end
+
+# Split a string at "separator". Perl compatible regular expressions are
+# recognized. Hence, special characters should be escaped.
+# @category String
+def string.split(~separator, s) =
+  deprecated("string.split", "r/_/.split(_)")
+  regexp(separator).split(s)
+end
+
 # Test whether a string contains a given prefix, substring or suffix.
 # @category String
 # @param ~prefix Prefix to look for.
