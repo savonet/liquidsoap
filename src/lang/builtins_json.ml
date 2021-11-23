@@ -329,7 +329,7 @@ let () =
 
 let () =
   Lang.add_builtin "json.stringify" ~category:`String
-    ~descr:"Convert a value to a json string."
+    ~descr:"Convert a value to a JSON string."
     [
       ( "compact",
         Lang.bool_t,
