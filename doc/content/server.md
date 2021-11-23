@@ -63,9 +63,10 @@ Another simple way to test the telnet server consists in using the
 ```liquidsoap
 server.harbor()
 ```
+server.harbor api: https://www.liquidsoap.info/doc-2.0.0/reference-extras.html#server.harbor
 
 command which will start a web interface accessible at
-<http://localhost:8080/telnet> providing an emulation of a telnet.
+<http://localhost:8000/telnet> providing an emulation of a telnet.
 
 Interactive variables
 ---------------------
@@ -118,9 +119,11 @@ A nice web interface can be obtained by running
 ```liquidsoap
 interactive.harbor()
 ```
+interactive.harbor api: https://www.liquidsoap.info/doc-2.0.0/reference.html#interactive.harbor
+
 
 after all interactive variables have been defined. This will start a web server
-accessible at <http://localhost:8080/interactive> on which you can easily change
+accessible at <http://localhost:8000/interactive> on which you can easily change
 the values for the interactive variables.
 
 ### Persistency
