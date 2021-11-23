@@ -1,5 +1,6 @@
 # Match a string with an expression. Perl compatible regular expressions are
-# recognized. Hence, special characters should be escaped.
+# recognized. Hence, special characters should be escaped. Alternatively, one
+# can use the the `r/_/.test(_)` syntax for regular expressions.
 # @category String
 def string.match(~pattern, s) =
   regexp(pattern).test(s)
@@ -8,14 +9,16 @@ end
 # Extract substrings from a string. Perl compatible regular expressions are
 # recognized. Hence, special characters should be escaped. Returns a list of
 # (index,value). If the list does not have a pair associated to some index, it
-# means that the corresponding pattern was not found.
+# means that the corresponding pattern was not found. Alter natively, one can
+# use the `r/_/.exec(_)` syntax for regular expressions.
 # @category String
 def string.extract(~pattern, s) =
   regexp(pattern).exec(s)
 end
 
 # Replace all substrings matched by a pattern by another string returned by a
-# function.
+# function. Alternatively, one can use the `r/_/g.replace(_)` syntax for regular
+# expressions.
 # @category String
 # @param ~pattern Pattern (regular expression) of substrings which should be replaced.
 # @param f Function getting a matched substring an returning the string to replace it with.
@@ -25,7 +28,8 @@ def string.replace(~pattern, f, s) =
 end
 
 # Split a string at "separator". Perl compatible regular expressions are
-# recognized. Hence, special characters should be escaped.
+# recognized. Hence, special characters should be escaped. Alternatively, one
+# can use the `r/_/.split(_)` syntax for regular expressions.
 # @category String
 def string.split(~separator, s) =
   regexp(separator).split(s)
