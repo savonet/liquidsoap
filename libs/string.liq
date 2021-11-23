@@ -29,7 +29,6 @@ end
 # recognized. Hence, special characters should be escaped.
 # @category String
 def string.split(~separator, s) =
-  deprecated("string.split", "r/_/.split(_)")
   regexp(separator).split(s)
 end
 
