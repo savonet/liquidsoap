@@ -25,6 +25,8 @@ export OPAMJOBS=$CPU_CORES
 export CC=""
 
 eval `opam config env`
+opam repository set-url default https://github.com/ocaml/opam-repository.git
+opam update
 opam remove -y ffmpeg-windows
 opam upgrade -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` liquidsoap-windows
 
