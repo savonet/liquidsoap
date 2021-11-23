@@ -63,6 +63,12 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s)
   !ans
 end
 
+# Test whether a string is a valid integer.
+# @category String
+def string.is_int(s)
+  string.match(pattern="^\\d+$", s)
+end
+
 let string.binary = ()
 
 # Value of a positive (unsigned) integer encoded using native memory representation.
