@@ -328,28 +328,6 @@ let () =
       Lang.meth (JsonValue.to_value v) meth)
 
 let () =
-  Lang.add_builtin "json.stringify" ~category:`String
-    ~descr:"Convert a value to a JSON string."
-    [
-      ( "compact",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Output compact text." );
-      ( "json5",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Use json5 extended spec." );
-      ("", Lang.univ_t (), None, None);
-    ]
-    Lang.string_t
-    (fun p ->
-      let compact = Lang.to_bool (List.assoc "compact" p) in
-      let json5 = Lang.to_bool (List.assoc "json5" p) in
-      let v = List.assoc "" p in
-      let v = Json.to_string ~compact ~json5 (json_of_value v) in
-      Lang.string v)
-
-let () =
   Lang.add_builtin "_internal_json_renderer_" ~category:`String ~flags:[`Hidden]
     ~descr:"Internal JSON renderer"
     [
