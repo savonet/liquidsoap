@@ -93,6 +93,7 @@ end
   * of associations. Other EVars are not copied, so sharing is
   * preserved. *)
 let copy_with (subst : Subst.t) t =
+  let vars = ref [] in
   let rec aux t =
     let descr =
       match t.descr with
@@ -113,10 +114,16 @@ let copy_with (subst : Subst.t) t =
             Meth ({ m with scheme = (g, aux t) }, aux u)
         | Arrow (p, t) ->
             Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t)
-        | Var { contents = Link (_, t) } ->
-            (* TOOD: we remove the link here, it would be too difficult to preserve
-               sharing. We could at least keep it when no variable is changed. *)
-            (aux t).descr
+        | Var { contents = Link (v, t) as x } -> (
+            (* We remember already copied variables in order to preserve
+               sharing. *)
+            (* TODO: a logarithmic data structure would be better... *)
+            match List.assq_opt x !vars with
+              | Some t' -> t'
+              | None ->
+                  let t' = Var (ref (Link (v, aux t))) in
+                  vars := (x, t') :: !vars;
+                  t')
     in
     { t with descr }
   in
