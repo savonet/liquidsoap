@@ -1119,9 +1119,6 @@ cat <<EOMSG
  * Monitoring
    - Prometheus        : $w_PROMETHEUS_APP
 
- * Graphical interfaces
-   - Python GUI        : $w_PYTHON
-
  -----------------------------------------------------------------------------
 
  You may now compile liquidsoap by running "$MAKE".
