@@ -26,6 +26,8 @@ val debug : bool ref
 (** Show variables levels. *)
 val debug_levels : bool ref
 
+val debug_variance : bool ref
+
 (** {1 Positions} *)
 
 (** Position in a file. *)

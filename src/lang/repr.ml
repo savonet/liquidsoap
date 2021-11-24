@@ -156,9 +156,11 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
                 repr g t )
         | Var { contents = Free var } ->
             if List.exists (var_eq var) g then uvar g var else evar var
-        | Var { contents = Link (Covariant, t) } when !debug ->
+        | Var { contents = Link (Covariant, t) } when !debug || !debug_variance
+          ->
             `Debug ("[>", repr g t, "]")
-        | Var { contents = Link (Contravariant, t) } when !debug ->
+        | Var { contents = Link (Contravariant, t) }
+          when !debug || !debug_variance ->
             `Debug ("[<", repr g t, "]")
         | Var { contents = Link (_, t) } -> repr g t)
   in

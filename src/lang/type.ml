@@ -22,6 +22,7 @@
 
 let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
 let debug_levels = ref false
+let debug_variance = ref false
 
 (* Type information comes attached to the AST from the parsing,
  * with appropriate sharing of the type variables. Then the type inference
