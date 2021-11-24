@@ -28,6 +28,7 @@ val debug_levels : bool ref
 
 (** {1 Positions} *)
 
+(** Position in a file. *)
 type pos = Lexing.position * Lexing.position
 
 (** {1 Ground types} *)
@@ -44,20 +45,29 @@ val resolve_ground_opt : string -> ground option
 
 (** {1 Types} *)
 
-type constr = Num | Ord | Dtools | InternalMedia
+(** Constraint on the types a type variable can be substituted with. *)
+type constr =
+  | Num  (** a number *)
+  | Ord  (** an orderable type *)
+  | Dtools  (** something useable by dtools *)
+  | InternalMedia  (** a media type *)
+
+(** Constraints on a type variable. *)
 type constraints = constr list
 
 val string_of_constr : constr -> string
 
 type t = { pos : pos option; descr : descr }
 
+(** A type constructor applied to arguments (e.g. source). *)
 and constructed = { constructor : string; params : (variance * t) list }
 
+(** A method. *)
 and meth = {
-  meth : string;
-  scheme : scheme;
-  doc : string;
-  json_name : string option;
+  meth : string;  (** name of the method *)
+  scheme : scheme;  (** type sheme *)
+  doc : string;  (** documentation *)
+  json_name : string option;  (** name when represented as JSON *)
 }
 
 and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
@@ -73,10 +83,14 @@ and descr =
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
 
-and invar = Free of var | Link of variance * t
+(** Contents of a variable. *)
+and invar =
+  | Free of var  (** the variable is free *)
+  | Link of variance * t  (** the variable has bee substituted *)
 
 and var = { name : int; mutable level : int; mutable constraints : constraints }
 
+(** A type scheme (i.e. a type with universally quantified variables). *)
 and scheme = var list * t
 
 val unit : descr
