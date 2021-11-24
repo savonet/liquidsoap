@@ -31,6 +31,7 @@ let debug_subtyping = ref false
 
 type env = (string * scheme) list
 
+(*
 (** Do we have a method. *)
 let has_meth a = match (deref a).descr with Meth _ -> true | _ -> false
 
@@ -39,6 +40,7 @@ let rec hide_meth l a =
     | Meth ({ meth = l' }, u) when l' = l -> hide_meth l u
     | Meth (m, u) -> { a with descr = Meth (m, hide_meth l u) }
     | _ -> a
+*)
 
 (** {1 Type generalization and instantiation}
   *
@@ -89,51 +91,46 @@ module Subst = struct
   let is_identity (s : t) = M.is_empty s
 end
 
-(** Copy a term, substituting some EVars as indicated by a list
-  * of associations. Other EVars are not copied, so sharing is
-  * preserved. *)
-let copy_with (subst : Subst.t) t =
-  let rec aux t =
-    let descr =
-      match t.descr with
-        | Var { contents = Free v } as var -> (
-            try (Subst.value subst v).descr with Not_found -> var)
-        | Constr c ->
-            let params = List.map (fun (v, t) -> (v, aux t)) c.params in
-            Constr { c with params }
-        | Ground _ as g -> g
-        | Getter t -> Getter (aux t)
-        | List { t; json_repr } -> List { t = aux t; json_repr }
-        | Nullable t -> Nullable (aux t)
-        | Tuple l -> Tuple (List.map aux l)
-        | Meth (({ scheme = g, t } as m), u) ->
-            (* We assume that we don't substitute generalized variables. *)
-            if !debug then
-              assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
-            Meth ({ m with scheme = (g, aux t) }, aux u)
-        | Arrow (p, t) ->
-            Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t)
-        | Var { contents = Link (_, t) } ->
-            (* TOOD: we remove the link here, it would be too difficult to preserve
-               sharing. We could at least keep it when no variable is changed. *)
-            (aux t).descr
-    in
-    { t with descr }
-  in
-  if Subst.is_identity subst then t else aux t
-
 (** Instantiate a type scheme, given as a type together with a list of
     generalized variables. Fresh variables are created with the given (current)
     level, and attached to the appropriate constraints. This erases position
     information, since they usually become irrelevant. *)
 let instantiate ~level ~generalized =
-  let subst =
-    List.map
-      (fun v -> (v, var ~level ~constraints:v.constraints ()))
-      generalized
+  let memo = ref ([] : (Type.var * Type.descr) list) in
+  let rec subst_var v =
+    try List.assoc v !memo
+    with Not_found ->
+      if List.mem v generalized then (
+        let x = var ~level ~constraints:v.constraints () in
+        memo := (v, x.descr) :: !memo;
+        let v' = match x.descr with Var v' -> v' | _ -> assert false in
+        v'.lower <- copy v.lower;
+        v'.upper <- copy v.upper;
+        x.descr)
+      else Var v
+  and copy t =
+    let descr =
+      match t.descr with
+        | Var v -> subst_var v
+        | Constr c ->
+            let params = List.map (fun (v, t) -> (v, copy t)) c.params in
+            Constr { c with params }
+        | Ground _ as g -> g
+        | Getter t -> Getter (copy t)
+        | List { t; json_repr } -> List { t = copy t; json_repr }
+        | Nullable t -> Nullable (copy t)
+        | Tuple l -> Tuple (List.map copy l)
+        | Meth (({ scheme = g, t } as m), u) ->
+            (* We assume that we don't substitute generalized variables. *)
+            if !debug then
+              assert (List.for_all (fun (v, _) -> not (List.mem v g)) !memo);
+            Meth ({ m with scheme = (g, copy t) }, copy u)
+        | Arrow (p, t) ->
+            Arrow (List.map (fun (o, l, t) -> (o, l, copy t)) p, copy t)
+    in
+    { t with descr }
   in
-  let subst = Subst.of_list subst in
-  fun t -> copy_with subst t
+  copy
 
 (** {1 Assignation} *)
 
@@ -142,6 +139,7 @@ exception Occur_check of var * t
 
 exception Unsatisfied_constraint of constr * t
 
+(*
 (** Check that [a] (a dereferenced type variable) does not occur in [b],
     and prepare the instantiation [a<-b] by adjusting the levels. *)
 let rec occur_check (a : var) b =
@@ -165,7 +163,10 @@ let rec occur_check (a : var) b =
         if a.name = b.name then raise (Occur_check (a, b0));
         b.level <- min a.level b.level
     | Var { contents = Link _ } -> assert false
+*)
 
+(* TODO: restore this *)
+(*
 (** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
 let satisfies_constraint b = function
   | Ord ->
@@ -233,7 +234,9 @@ let satisfies_constraint b = function
         | _ -> raise (Unsatisfied_constraint (Num, b)))
 
 let satisfies_constraints b c = List.iter (satisfies_constraint b) c
+*)
 
+(*
 (** Make a variable link to given type *)
 let bind ?(variance = Invariant) a b =
   let a0 = a in
@@ -252,7 +255,9 @@ let bind ?(variance = Invariant) a b =
      now). *)
   let variance = if a.constraints <> [] then Invariant else variance in
   v := Link (variance, b)
+*)
 
+(*
 (** Lower all type variables to given level. *)
 let update_level ~level a =
   let x = Type.var ~level () in
@@ -260,11 +265,13 @@ let update_level ~level a =
     match x.descr with Var { contents = Free x } -> x | _ -> assert false
   in
   occur_check x a
+*)
 
 (** {1 Subtype checking/inference} *)
 
 exception Incompatible
 
+(*
 (** Approximated supremum of two types. We grow the second argument so that it
     has a chance be be greater than the first. No binding is performed by this
     function so that it should always be followed by a subtyping. *)
@@ -335,6 +342,9 @@ let rec sup ~pos a b =
             (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.to_string a)
                (Type.to_string b))
         else raise Incompatible
+*)
+
+let sup a b = failwith "TODO"
 
 let sup ~pos a b =
   let b' = sup ~pos a b in

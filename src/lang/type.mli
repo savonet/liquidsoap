@@ -83,14 +83,16 @@ and descr =
   | Nullable of t
   | Meth of meth * t
   | Arrow of (bool * string * t) list * t
-  | Var of invar ref
+  | Var of var
 
 (** Contents of a variable. *)
-and invar =
-  | Free of var  (** the variable is free *)
-  | Link of variance * t  (** the variable has bee substituted *)
-
-and var = { name : int; mutable level : int; mutable constraints : constraints }
+and var = {
+  name : int;
+  mutable level : int;
+  mutable constraints : constraints;
+  mutable lower : t;
+  mutable upper : t;
+}
 
 (** A type scheme (i.e. a type with universally quantified variables). *)
 and scheme = var list * t
@@ -100,12 +102,19 @@ val unit : descr
 (** Create a type from its value. *)
 val make : ?pos:pos -> descr -> t
 
-(** Remove links in a type: this function should always be called before
-    matching on types. *)
-val deref : t -> t
+(* (\** Remove links in a type: this function should always be called before *)
+(* matching on types. *\) *)
+(* val deref : t -> t *)
 
 (** Create a fresh variable. *)
-val var : ?constraints:constraints -> ?level:int -> ?pos:pos -> unit -> t
+val var :
+  ?constraints:constraints ->
+  ?level:int ->
+  ?lower:t ->
+  ?upper:t ->
+  ?pos:pos ->
+  unit ->
+  t
 
 (** Compare two variables for equality. This comparison should always be used to
     compare variables (as opposed to =). *)
@@ -118,23 +127,23 @@ val filter_vars : (var -> bool) -> t -> var list
 val meth :
   ?pos:pos -> ?json_name:string -> string -> scheme -> ?doc:string -> t -> t
 
-(** Add a submethod to a type. *)
-val meths : ?pos:pos -> string list -> scheme -> t -> t
+(* (\** Add a submethod to a type. *\) *)
+(* val meths : ?pos:pos -> string list -> scheme -> t -> t *)
 
-(** Remove all methods in a type. *)
-val demeth : t -> t
+(* (\** Remove all methods in a type. *\) *)
+(* val demeth : t -> t *)
 
-(** Split a type between methods and the main type. *)
-val split_meths : t -> meth list * t
+(* (\** Split a type between methods and the main type. *\) *)
+(* val split_meths : t -> meth list * t *)
 
-(** Put the methods of the first type around the second type. *)
-val remeth : t -> t -> t
+(* (\** Put the methods of the first type around the second type. *\) *)
+(* val remeth : t -> t -> t *)
 
-(** Type of a method in a type. *)
-val invoke : t -> string -> scheme
+(* (\** Type of a method in a type. *\) *)
+(* val invoke : t -> string -> scheme *)
 
-(** Type of a submethod in a type. *)
-val invokes : t -> string list -> scheme
+(* (\** Type of a submethod in a type. *\) *)
+(* val invokes : t -> string list -> scheme *)
 
 val to_string_fun : (?generalized:var list -> t -> string) ref
 

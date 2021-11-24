@@ -43,8 +43,8 @@ type t =
     (* label, type scheme, JSON name, base type *)
   | `Arrow of (bool * string * t) list * t
   | `Getter of t
-  | `EVar of var (* existential variable *)
-  | `UVar of var (* universal variable *)
+  | `EVar of t option * var * t option (* existential variable *)
+  | `UVar of t option * var * t option (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
   | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of
@@ -89,7 +89,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
-  let uvar g var =
+  let uvar ~lower ~upper g var =
     let constr_symbols, c = split_constr var.constraints in
     let rec index n = function
       | v :: tl ->
@@ -99,7 +99,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    `UVar (v, c)
+    `UVar (lower, (v, c), upper)
   in
   let counter =
     let c = ref 0 in
@@ -108,7 +108,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
       !c
   in
   let evars = Hashtbl.create 10 in
-  let evar var =
+  let evar ~lower ~upper var =
     let constr_symbols, c = split_constr var.constraints in
     if !debug then (
       let v =
@@ -121,7 +121,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
           Printf.sprintf "%s[%s]" v level)
         else v
       in
-      `EVar (v, c))
+      `EVar (lower, (v, c), upper))
     else (
       let s =
         try Hashtbl.find evars var.name
@@ -130,8 +130,9 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
           Hashtbl.add evars var.name name;
           name
       in
-      `EVar (Printf.sprintf "'%s%s" constr_symbols s, c))
+      `EVar (lower, (Printf.sprintf "'%s%s" constr_symbols s, c), upper))
   in
+  (* p is the polarity and g are generalized variables *)
   let rec repr g t =
     if filter_out t then `Ellipsis
     else (
@@ -144,7 +145,9 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | Meth ({ meth = l; scheme = g', u; json_name }, v) ->
             let gen =
               List.map
-                (fun v -> match uvar (g' @ g) v with `UVar v -> v)
+                (fun v ->
+                  match uvar ~lower:None ~upper:None (g' @ g) v with
+                    | `UVar (_, v, _) -> v)
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), json_name, repr g v)
@@ -154,15 +157,17 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
-        | Var { contents = Free var } ->
-            if List.exists (var_eq var) g then uvar g var else evar var
-        | Var { contents = Link (Covariant, t) } when !debug || !debug_variance
-          ->
-            `Debug ("[>", repr g t, "]")
-        | Var { contents = Link (Contravariant, t) }
-          when !debug || !debug_variance ->
-            `Debug ("[<", repr g t, "]")
-        | Var { contents = Link (_, t) } -> repr g t)
+        | Var var ->
+            let lower =
+              if var.lower.descr = Var var then None
+              else Some (repr g var.lower)
+            in
+            let upper =
+              if var.upper.descr = Var var then None
+              else Some (repr g var.upper)
+            in
+            if List.exists (var_eq var) g then uvar ~lower ~upper g var
+            else evar ~lower ~upper var)
   in
   repr generalized t
 
@@ -176,7 +181,7 @@ end)
 (** Print a type representation. Unless in debug mode, variable identifiers are
     not shown, and variable names are generated. Names are only meaningful over
     one printing, as they are re-used. *)
-let print f t =
+let print f (t : t) =
   (* Display the type and return the list of variables that occur in it.
    * The [par] params tells whether (..)->.. should be surrounded by
    * parenthesis or not. *)
@@ -330,14 +335,32 @@ let print f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
         vars
-    | `EVar (a, [InternalMedia]) ->
+    | `EVar (_, (a, [InternalMedia]), _) ->
         Format.fprintf f "?internal(%s)" a;
         vars
-    | `UVar (a, [InternalMedia]) ->
+    | `UVar (_, (a, [InternalMedia]), _) ->
         Format.fprintf f "internal(%s)" a;
         vars
-    | `EVar (name, c) | `UVar (name, c) ->
-        Format.fprintf f "%s" name;
+    | `EVar (lower, (name, c), upper) | `UVar (lower, (name, c), upper) ->
+        let vars =
+          if lower = None && upper = None then (
+            Format.fprintf f "%s" name;
+            vars)
+          else (
+            Format.fprintf f "[";
+            let vars =
+              match lower with
+                | None -> vars
+                | Some lower -> print ~par:false vars lower
+            in
+            Format.fprintf f "< %s <" name;
+            let vars =
+              match upper with
+                | None -> vars
+                | Some upper -> print ~par:false vars upper
+            in
+            vars)
+        in
         if c <> [] then DS.add (name, c) vars else vars
     | `Arrow (p, t) ->
         if par then Format.fprintf f "@[<hov 1>("
@@ -379,10 +402,10 @@ let print f t =
   begin
     match t with
     (* We're only printing a variable: ignore its [repr]esentation. *)
-    | `EVar (_, c) when c <> [] ->
+    | `EVar (_, (_, c), _) when c <> [] ->
         Format.fprintf f "something that is %s"
           (String.concat " and " (List.map string_of_constr c))
-    | `UVar (_, c) when c <> [] ->
+    | `UVar (_, (_, c), _) when c <> [] ->
         Format.fprintf f "anything that is %s"
           (String.concat " and " (List.map string_of_constr c))
     (* Print the full thing, then display constraints *)
@@ -429,7 +452,7 @@ let print_scheme f (generalized, t) =
   if !debug then
     List.iter
       (fun v ->
-        print f (make ~generalized (Type.make (Var (ref (Free v)))));
+        print f (make ~generalized (Type.make (Var v)));
         Format.fprintf f ".")
       generalized;
   print f (make ~generalized t)
@@ -453,7 +476,8 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
         Format.printf "this value has no method %s@." l
     | _ ->
         let inferred_pos a =
-          let dpos = (deref a).pos in
+          (* TODO: can we restore this? *)
+          let dpos = a.pos in
           if a.pos = dpos then ""
           else (
             match dpos with

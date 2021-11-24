@@ -137,11 +137,16 @@ and descr =
   | Nullable of t
   | Meth of meth * t
   | Arrow of (bool * string * t) list * t
-  | Var of invar ref
+  | Var of var
 
-and invar = Free of var | Link of variance * t
-
-and var = { name : int; mutable level : int; mutable constraints : constraints }
+(* TODO: constraints should go in upper... *)
+and var = {
+  name : int;
+  mutable level : int;
+  mutable constraints : constraints;
+  mutable lower : t;
+  mutable upper : t;
+}
 
 and scheme = var list * t
 
@@ -149,12 +154,7 @@ let unit = Tuple []
 let var_eq v v' = v.name = v'.name
 let make ?pos d = { pos; descr = d }
 
-(** Dereferencing gives you the meaning of a term, going through links created
-    by instantiations. One should (almost) never work on a non-dereferenced
-    type. *)
-let rec deref t =
-  match t.descr with Var { contents = Link (_, t) } -> deref t | _ -> t
-
+(*
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
   let t = deref t in
@@ -171,11 +171,13 @@ let rec invoke t l =
     | Meth (m, _) when m.meth = l -> m.scheme
     | Meth (_, t) -> invoke t l
     | _ -> raise Not_found
+*)
 
 (** Add a method. *)
 let meth ?pos ?json_name meth scheme ?(doc = "") t =
   make ?pos (Meth ({ meth; scheme; doc; json_name }, t))
 
+(*
 (** Add methods. *)
 let rec meths ?pos l v t =
   match l with
@@ -185,7 +187,9 @@ let rec meths ?pos l v t =
         let g, tl = invoke t l in
         let v = meths ?pos ll v tl in
         meth ?pos l (g, v) t
+*)
 
+(*
 (** Split the methods from the type. *)
 let split_meths t =
   let rec aux hide t =
@@ -198,6 +202,7 @@ let split_meths t =
       | _ -> ([], t)
   in
   aux [] t
+*)
 
 let var =
   let name =
@@ -206,16 +211,37 @@ let var =
       incr c;
       !c
   in
-  let f ?(constraints = []) ?(level = max_int) ?pos () =
+  let f ?(constraints = []) ?(level = max_int) ?lower ?upper ?pos () =
     let name = name () in
-    make ?pos (Var (ref (Free { name; level; constraints })))
+    (* We are duplicating code here, but this is the only way to go with the
+       current syntactic constraints on recursive values. *)
+    match (lower, upper) with
+      | None, None ->
+          let rec t =
+            {
+              pos;
+              descr = Var { name; level; constraints; lower = t; upper = t };
+            }
+          in
+          t
+      | Some lower, None ->
+          let rec t =
+            { pos; descr = Var { name; level; constraints; lower; upper = t } }
+          in
+          t
+      | None, Some upper ->
+          let rec t =
+            { pos; descr = Var { name; level; constraints; lower = t; upper } }
+          in
+          t
+      | Some lower, Some upper ->
+          make ?pos (Var { name; level; constraints; lower; upper })
   in
   f
 
 (** Find all the free variables satisfying a predicate. *)
 let filter_vars f t =
   let rec aux l t =
-    let t = deref t in
     match t.descr with
       | Ground _ -> l
       | Getter t -> aux l t
@@ -226,17 +252,20 @@ let filter_vars f t =
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
-      | Var { contents = Free var } ->
-          if f var && not (List.exists (var_eq var) l) then var :: l else l
-      | Var { contents = Link _ } -> assert false
+      | Var x ->
+          let l = aux l x.lower in
+          let l = aux l x.upper in
+          if f x && not (List.exists (var_eq x) l) then x :: l else l
   in
   aux [] t
 
+(*
 let rec invokes t = function
   | l :: ll ->
       let g, t = invoke t l in
       if ll = [] then (g, t) else invokes t ll
   | [] -> ([], t)
+*)
 
 let to_string_fun =
   ref (fun ?generalized:_ _ -> failwith "Type.to_string not defined yet")
