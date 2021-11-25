@@ -162,7 +162,7 @@ jobs:
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/${{ github.run_number }}/core
       - name: Build doc
-        if: startsWith(matrix.os, 'debian') || startsWith(matrix.os, 'ubuntu')
+        if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-doc.sh
@@ -172,21 +172,21 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build debian package
-        if: startsWith(matrix.os, 'debian') || startsWith(matrix.os, 'ubuntu')
+        if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           chown -R opam /tmp/${{ github.run_number }}/debian
           sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ needs.build_details.outputs.is_release }}
       - name: Upload debian packages artifacts
-        if: (startsWith(matrix.os, 'debian') || startsWith(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
+        if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/debian
           if-no-files-found: error
       - name: Upload debian armhf packages artifacts
-        if: startsWith(matrix.os, 'debian') && matrix.platform == 'armhf'
+        if: contains(matrix.os, 'debian') && matrix.platform == 'armhf'
         uses: savonet/aws-s3-docker-action@master
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
