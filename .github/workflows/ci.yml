@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: savonet/liquidsoap-ci:debian_bullseye_amd64
-      options: --user opam -v ${{ github.workspace }}/${{ github.run_number }}/tarball:/tmp/${{ github.run_number }}/tarball
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}/tarball:/tmp/${{ github.run_number }}/tarball
     env:
       HOME: /home/opam
     steps:
@@ -46,16 +46,16 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           rm -rf doc/content/build.md doc/content/install.md
-          git fetch origin $GITHUB_SHA
-          git checkout $GITHUB_SHA
+          sudo -u opam -E git fetch origin $GITHUB_SHA
+          sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build tarball
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          ./.github/scripts/build-tarball.sh
+          sudo -u opam -E ./.github/scripts/build-tarball.sh
       - name: Get filename
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          ./.github/scripts/tarball-filename.sh
+          sudo -u opam -E ./.github/scripts/tarball-filename.sh
         id: tarball_filename
       - name: Copy tarball
         run: |
@@ -178,7 +178,7 @@ jobs:
             platform: arm64
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
-      options: --user opam -v ${{ github.workspace }}/${{ github.run_number }}/debian:/tmp/${{ github.run_number }}/debian -v ${{ github.workspace }}/${{ github.run_number }}/alpine:/tmp/${{ github.run_number }}/alpine
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}/debian:/tmp/${{ github.run_number }}/debian -v ${{ github.workspace }}/${{ github.run_number }}/alpine:/tmp/${{ github.run_number }}/alpine
     env:
       HOME: /home/opam
     steps:
@@ -189,25 +189,27 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           rm -rf doc/content/build.md doc/content/install.md
-          git fetch origin $GITHUB_SHA
-          git checkout $GITHUB_SHA
+          sudo -u opam -E git fetch origin $GITHUB_SHA
+          sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
-          ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/${{ github.run_number }}/core
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          ./.github/scripts/build-doc.sh
+          sudo -u opam -E ./.github/scripts/build-doc.sh
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
         run: |
+          mkdir -p /tmp/${{ github.run_number }}/debian
+          chown -R opam /tmp/${{ github.run_number }}/debian
           cd /tmp/liquidsoap-full/liquidsoap
-          ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ needs.build_details.outputs.is_release }}
+          sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ needs.build_details.outputs.is_release }}
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
         uses: actions/upload-artifact@v2
@@ -231,8 +233,8 @@ jobs:
           apk add alpine-sdk
           adduser opam abuild
           mkdir -p /tmp/${{ github.run_number }}/alpine
-          rm -rf /tmp/${{ github.run_number }}/alpine/*
-          ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} ${{ needs.build_details.outputs.is_release }}
+          chown -R opam /tmp/${{ github.run_number }}/alpine
+          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} ${{ needs.build_details.outputs.is_release }}
       - name: Upload alpine packages artifacts
         if: matrix.os == 'alpine'
         uses: savonet/aws-s3-docker-action@master
@@ -360,7 +362,7 @@ jobs:
         system: [x64]
     container:
       image: savonet/liquidsoap-win32-deps-${{ matrix.system }}
-      options: --user opam -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/workspace/${{ github.run_number }}
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/workspace/${{ github.run_number }}
     env:
       OPAM_DEPS: ao-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-avutil-windows,ffmpeg-avcodec-windows,ffmpeg-av-windows,ffmpeg-avfilter-windows,ffmpeg-swresample-windows,ffmpeg-swscale-windows,menhir-windows,mm-windows,ocurl-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows.0.2.0,taglib-windows,winsvc-windows,yojson-windows
     steps:
@@ -377,10 +379,11 @@ jobs:
           git remote add origin https://github.com/${{ github.repository }}.git
           git fetch --depth 1 origin ${{ github.sha }}
           git checkout FETCH_HEAD
+          chown -R opam /tmp/workspace/${{ github.run_number }}
       - name: Add local packages
         run: |
           cd /tmp/workspace/${{ github.run_number }}/liquidsoap/
-          ./.github/scripts/add-local-opam-packages.sh
+          gosu opam:root ./.github/scripts/add-local-opam-packages.sh
       - name: Build mxe dependencies
         run : |
           cd /usr/src/mxe/
@@ -388,7 +391,7 @@ jobs:
       - name: Build windows binary
         run: |
           cd /tmp/workspace/${{ github.run_number }}
-          ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
+          gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
         id: build
       - name: Upload artifact
         uses: actions/upload-artifact@v2
