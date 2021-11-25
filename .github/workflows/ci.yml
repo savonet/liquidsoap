@@ -154,7 +154,7 @@ jobs:
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
       - name: Update Debian packages
-        if: matrix.os != 'alpine'
+        if: startsWith(matrix.os, 'debian')
         run: |
           apt-get update
           apt-get -y dist-upgrade
@@ -171,31 +171,31 @@ jobs:
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
       - name: Build doc
-        if: matrix.os != 'alpine'
+        if: startsWith(matrix.os, 'debian')
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-doc.sh
       - name: Run tests
-        if: matrix.os != 'alpine' && matrix.platform != 'armhf'
+        if: matrix.os == 'debian_bullseye'
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build debian package
-        if: matrix.os != 'alpine'
+        if: startsWith(matrix.os, 'debian')
         id: build_deb
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           chown -R opam /tmp/debian
           sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ needs.build_details.outputs.is_release }}
       - name: Upload debian packages artifacts
-        if: matrix.os != 'alpine' && matrix.platform != 'armhf'
+        if: startsWith(matrix.os, 'debian') && matrix.platform != 'armhf'
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/debian
           if-no-files-found: error
       - name: Upload debian armhf packages artifacts
-        if: matrix.os != 'alpine' && matrix.platform == 'armhf'
+        if: startsWith(matrix.os, 'debian') && matrix.platform == 'armhf'
         uses: savonet/aws-s3-docker-action@master
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
