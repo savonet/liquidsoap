@@ -158,6 +158,17 @@ jobs:
         if: matrix.platform != 'armhf'
         run: 
           sudo -u opam -E opam install -y posix-time2
+      - name: Update Debian packages
+        if: matrix.os != 'alpine'
+        run: |
+          apt-get update
+          apt-get -y dist-upgrade
+      - name: Update Alpine packages
+        if: matrix.os == 'alpine'
+        run: |
+          apk update
+          apk add --upgrade apk-tools
+          apk upgrade --available
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
