@@ -117,7 +117,7 @@ jobs:
         run: |
           ulimit -c unlimited
           mkdir -p /tmp/${{ github.run_number }}/core
-          chown -R opam /tmp/${{ github.run_number }}
+          chown -R opam /tmp/${{ github.run_number }}/core
           echo /tmp/${{ github.run_number }}/core/core.%h.%e.%t > /proc/sys/kernel/core_pattern
       - name: Checkout code
         run: |
@@ -207,7 +207,7 @@ jobs:
         id: build_deb
         run: |
           mkdir -p /tmp/${{ github.run_number }}/debian
-          chown -R opam /tmp/${{ github.run_number }}
+          chown -R opam /tmp/${{ github.run_number }}/debian
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ needs.build_details.outputs.is_release }}
       - name: Upload debian packages artifacts
@@ -233,7 +233,7 @@ jobs:
           apk add alpine-sdk
           adduser opam abuild
           mkdir -p /tmp/${{ github.run_number }}/alpine
-          chown -R opam /tmp/${{ github.run_number }}
+          chown -R opam /tmp/${{ github.run_number }}/alpine
           sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} ${{ needs.build_details.outputs.is_release }}
       - name: Upload alpine packages artifacts
         if: matrix.os == 'alpine'
@@ -356,8 +356,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_details
     if: ${{ needs.build_details.outputs.should_build_code }}
+    strategy:
+      fail-fast: false
+      matrix:
+        system: [x64]
     container:
-      image: savonet/liquidsoap-win32-deps-x64
+      image: savonet/liquidsoap-win32-deps-${{ matrix.system }}
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/workspace/${{ github.run_number }}
     env:
       OPAM_DEPS: ao-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-avutil-windows,ffmpeg-avcodec-windows,ffmpeg-av-windows,ffmpeg-avfilter-windows,ffmpeg-swresample-windows,ffmpeg-swscale-windows,menhir-windows,mm-windows,ocurl-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows.0.2.0,taglib-windows,winsvc-windows,yojson-windows
@@ -387,7 +391,7 @@ jobs:
       - name: Build windows binary
         run: |
           cd /tmp/workspace/${{ github.run_number }}/liquidsoap
-          gosu opam:root ./.github/scripts/build-win32.sh x64 ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
+          gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
         id: build
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -437,7 +441,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        platform: [amd64, arm64, armhf]
         include:
           - platform: amd64
             runs-on: ubuntu-latest
@@ -475,9 +479,8 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     needs: [build_details, build_posix, fetch_s3_artifacts]
     strategy:
-      fail-fast: false
       matrix:
-        platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        platform: [amd64, arm64, armhf]
         include:
           - platform: amd64
             runs-on: ubuntu-latest
