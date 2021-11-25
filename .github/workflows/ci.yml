@@ -390,7 +390,7 @@ jobs:
           cat /home/opam/mxe-deps | xargs make
       - name: Build windows binary
         run: |
-          cd /tmp/workspace/${{ github.run_number }}
+          cd /tmp/workspace/${{ github.run_number }}/liquidsoap
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
         id: build
       - name: Upload artifact
