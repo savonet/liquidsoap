@@ -116,10 +116,6 @@ val var :
   unit ->
   t
 
-(** Compare two variables for equality. This comparison should always be used to
-    compare variables (as opposed to =). *)
-val var_eq : var -> var -> bool
-
 (** Find all variables satisfying a predicate. *)
 val filter_vars : (var -> bool) -> t -> var list
 

@@ -151,7 +151,6 @@ and var = {
 and scheme = var list * t
 
 let unit = Tuple []
-let var_eq v v' = v.name = v'.name
 let make ?pos d = { pos; descr = d }
 
 (*
@@ -255,7 +254,7 @@ let filter_vars f t =
       | Var x ->
           let l = aux l x.lower in
           let l = aux l x.upper in
-          if f x && not (List.exists (var_eq x) l) then x :: l else l
+          if f x && not (List.mem x l) then x :: l else l
   in
   aux [] t
 

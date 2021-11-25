@@ -93,7 +93,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     let constr_symbols, c = split_constr var.constraints in
     let rec index n = function
       | v :: tl ->
-          if var_eq v var then Printf.sprintf "'%s%s" constr_symbols (name n)
+          if v = var then Printf.sprintf "'%s%s" constr_symbols (name n)
           else index (n + 1) tl
       | [] -> assert false
     in
@@ -166,7 +166,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
               if var.upper.descr = Var var then None
               else Some (repr g var.upper)
             in
-            if List.exists (var_eq var) g then uvar ~lower ~upper g var
+            if List.mem var g then uvar ~lower ~upper g var
             else evar ~lower ~upper var)
   in
   repr generalized t
