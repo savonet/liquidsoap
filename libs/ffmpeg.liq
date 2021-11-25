@@ -131,7 +131,11 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font="",
   s = source.on_frame(s, on_change)
   s = ffmpeg.filter.video.input(graph, s)
 
-  list.fold((fun (cur, el) -> el.filter(cur)), s, filters)
+  list.fold((fun (cur, el) ->
+    begin
+      el.filter.set_input(cur)
+      el.filter.output
+    end), s, filters)
 end
 
 # Display a text.
