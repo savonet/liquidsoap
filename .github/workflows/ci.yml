@@ -153,11 +153,6 @@ jobs:
           rm -rf doc/content/build.md doc/content/install.md
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
-      # Remove after liquidsoap 2.0 release
-      - name: Install posix-time2
-        if: matrix.platform != 'armhf'
-        run: 
-          sudo -u opam -E opam install -y posix-time2
       - name: Update Debian packages
         if: matrix.os != 'alpine'
         run: |
