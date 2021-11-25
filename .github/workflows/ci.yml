@@ -108,7 +108,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.build_details.outputs.build_os) }}
-        platform: ${{ fromJson(needs.build_details.outputs.build_platform }}
+        platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include:
           - platform: amd64
             runs-on: ubuntu-latest
