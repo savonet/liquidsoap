@@ -178,7 +178,7 @@ jobs:
             platform: arm64
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
-      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}/debian:/tmp/${{ github.run_number }}/debian -v ${{ github.workspace }}/${{ github.run_number }}/alpine:/tmp/${{ github.run_number }}/alpine
+      options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}/debian:/tmp/${{ github.run_number }}/debian -v ${{ github.workspace }}/${{ github.run_number }}/alpine:/tmp/${{ github.run_number }}/alpine
     env:
       HOME: /home/opam
     steps:
