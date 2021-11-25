@@ -42,8 +42,6 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 fakeroot debian/rules binary
 
-cp /tmp/liquidsoap-full/*.deb /tmp/debian
-
-ls -lA /tmp/debian
+cp /tmp/liquidsoap-full/*.deb /tmp/${GITHUB_RUN_NUMBER}/debian
 
 echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-1_$ARCH"

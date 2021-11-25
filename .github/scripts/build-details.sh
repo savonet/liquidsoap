@@ -18,6 +18,16 @@ else
   IS_RELEASE=
 fi
 
+if [[ "${BRANCH}" =~ ^v[0-9] ]]; then
+  echo "Branch is versioned: building on all architectures"
+  BUILD_OS='["arm32v7_debian_bullseye", "debian_testing", "debian_buster", "debian_bullseye", "ubuntu_groovy", "ubuntu_focal", "alpine"]'
+  BUILD_PLATFORM='["amd64", "arm64", "armhf"]'
+else
+  echo "Branch is not versioned: building on amd64 only"
+  BUILD_OS='["debian_testing", "debian_buster", "debian_bullseye", "ubuntu_groovy", "ubuntu_focal", "alpine"]'
+  BUILD_PLATFORM='["amd64"]'
+fi
+
 if [[ "${BRANCH}" = "main" ]] || [[ -n "${IS_RELEASE}" ]]; then
   echo "Branch has a docker release"
   DOCKER_RELEASE=true
@@ -30,10 +40,12 @@ SHA=`git rev-parse --short HEAD`
 
 echo "##[set-output name=branch;]${BRANCH}"
 echo "##[set-output name=is_release;]${IS_RELEASE}"
+echo "##[set-output name=build_os;]${BUILD_OS}"
+echo "##[set-output name=build_platform;]${BUILD_PLATFORM}"
 echo "##[set-output name=docker_release;]${DOCKER_RELEASE}"
 echo "##[set-output name=sha;]${SHA}"
 
-git fetch origin main
+git fetch origin main > /dev/null 2>&1
 CHANGED_SRC_FILES=`git diff --name-only origin/main..HEAD | grep '^src/' | xargs`
 CHANGED_LIBS_FILES=`git diff --name-only origin/main..HEAD | grep '^libs/' | xargs`
 
@@ -46,5 +58,4 @@ else
 fi
 
 echo "##[set-output name=should_build_code;]${SHOULD_BUILD_CODE}"
-
 echo "##[set-output name=s3-artifact-basepath;]s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"

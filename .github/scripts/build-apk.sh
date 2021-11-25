@@ -33,7 +33,7 @@ cp liquidsoap/.github/alpine/liquidsoap.pre-install ${APK_PACKAGE}.pre-install
 abuild-keygen -a -n
 abuild
 
-mv /home/opam/packages/tmp/${ALPINE_ARCH}/${APK_PACKAGE}-${APK_VERSION}-r0.apk /tmp/alpine
-mv /home/opam/packages/tmp/${ALPINE_ARCH}/${APK_PACKAGE}-dbg-${APK_VERSION}-r0.apk /tmp/alpine
+mv /home/opam/packages/tmp/${ALPINE_ARCH}/${APK_PACKAGE}-${APK_VERSION}-r0.apk /tmp/${GITHUB_RUN_NUMBER}/alpine
+mv /home/opam/packages/tmp/${ALPINE_ARCH}/${APK_PACKAGE}-dbg-${APK_VERSION}-r0.apk /tmp/${GITHUB_RUN_NUMBER}/alpine
 
 echo "##[set-output name=basename;]${APK_PACKAGE}-${APK_VERSION}-r0.apk"
