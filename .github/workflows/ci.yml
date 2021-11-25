@@ -360,7 +360,7 @@ jobs:
         system: [x64]
     container:
       image: savonet/liquidsoap-win32-deps-${{ matrix.system }}
-      options: -v ${{ github.workspace }}/${{ github.run_number }}:/workspace/${{ github.run_number }}
+      options: -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/workspace/${{ github.run_number }}
     env:
       OPAM_DEPS: ao-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-avutil-windows,ffmpeg-avcodec-windows,ffmpeg-av-windows,ffmpeg-avfilter-windows,ffmpeg-swresample-windows,ffmpeg-swscale-windows,menhir-windows,mm-windows,ocurl-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows.0.2.0,taglib-windows,winsvc-windows,yojson-windows
     steps:
@@ -369,7 +369,7 @@ jobs:
         id: cpu_cores
       - name: Checkout code
         run: |
-          cd /workspace/${{ github.run_number }}
+          cd /tmp/workspace/${{ github.run_number }}
           rm -rf *
           mkdir liquidsoap
           cd liquidsoap
@@ -379,14 +379,16 @@ jobs:
           git checkout FETCH_HEAD
       - name: Add local packages
         run: |
-          /workspace/${{ github.run_number }}/liquidsoap/.github/scripts/add-local-opam-packages.sh
+          cd /tmp/workspace/${{ github.run_number }}/liquidsoap/
+          ./.github/scripts/add-local-opam-packages.sh
       - name: Build mxe dependencies
         run : |
           cd /usr/src/mxe/
           cat /home/opam/mxe-deps | xargs make
       - name: Build windows binary
         run: |
-          /workspace/${{ github.run_number }}/liquidsoap/.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
+          cd /tmp/workspace/${{ github.run_number }}
+          ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
         id: build
       - name: Upload artifact
         uses: actions/upload-artifact@v2
