@@ -153,31 +153,46 @@ and scheme = var list * t
 let unit = Tuple []
 let make ?pos d = { pos; descr = d }
 
+let lower a =
+  let rec aux seen a =
+    match a.descr with
+      | Var v when not (List.mem v seen) -> aux (v :: seen) v.lower
+      | _ -> a
+  in
+  aux [] a
+
+(** Underapproximation of the methods in a type. *)
+let rec methods a =
+  match (lower a).descr with Meth (m, a) -> m :: methods a | _ -> []
+
 (*
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
   let t = deref t in
   match t.descr with Meth (_, t) -> demeth t | _ -> t
+*)
 
-let rec remeth t u =
-  let t = deref t in
-  match t.descr with
-    | Meth (m, t) -> { t with descr = Meth (m, remeth t u) }
-    | _ -> u
+let remeth t u =
+  List.fold_left (fun u m -> { t with descr = Meth (m, u) }) u (methods t)
 
 let rec invoke t l =
-  match (deref t).descr with
+  match (lower t).descr with
     | Meth (m, _) when m.meth = l -> m.scheme
     | Meth (_, t) -> invoke t l
     | _ -> raise Not_found
-*)
+
+let rec invokes t = function
+  | l :: ll ->
+      let g, t = invoke t l in
+      if ll = [] then (g, t) else invokes t ll
+  | [] -> ([], t)
 
 (** Add a method. *)
 let meth ?pos ?json_name meth scheme ?(doc = "") t =
   make ?pos (Meth ({ meth; scheme; doc; json_name }, t))
 
 (*
-(** Add methods. *)
+(** Add a submethod. *)
 let rec meths ?pos l v t =
   match l with
     | [] -> assert false
@@ -257,14 +272,6 @@ let filter_vars f t =
           if f x && not (List.mem x l) then x :: l else l
   in
   aux [] t
-
-(*
-let rec invokes t = function
-  | l :: ll ->
-      let g, t = invoke t l in
-      if ll = [] then (g, t) else invokes t ll
-  | [] -> ([], t)
-*)
 
 let to_string_fun =
   ref (fun ?generalized:_ _ -> failwith "Type.to_string not defined yet")

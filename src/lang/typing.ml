@@ -68,6 +68,7 @@ let generalizable ~level t = filter_vars (fun v -> v.level > level) t
 
 let generalize ~level t : scheme = (generalizable ~level t, t)
 
+(*
 (** Substitutions. *)
 module Subst = struct
   module M = Map.Make (struct
@@ -90,6 +91,7 @@ module Subst = struct
   (** Whether we have the identity substitution. *)
   let is_identity (s : t) = M.is_empty s
 end
+*)
 
 (** Instantiate a type scheme, given as a type together with a list of
     generalized variables. Fresh variables are created with the given (current)
@@ -134,8 +136,8 @@ let instantiate ~level ~generalized =
 
 (** {1 Assignation} *)
 
-(** These two exceptions can be raised when attempting to assign a variable. *)
-exception Occur_check of var * t
+(* (\** These two exceptions can be raised when attempting to assign a variable. *\) *)
+(* exception Occur_check of var * t *)
 
 exception Unsatisfied_constraint of constr * t
 
@@ -276,7 +278,7 @@ let rec update_level ?(generalized = []) ~level a =
     | Constr c -> List.iter (fun (_, a) -> update_level a) c.params
     | Getter a -> update_level a
     | List a -> update_level a.t
-    | Tuple l -> List.iter update_level l
+    | Tuple l -> List.iter (fun a -> update_level a) l
     | Nullable a -> update_level a
     | Meth (m, a) ->
         update_scheme m.scheme;

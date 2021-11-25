@@ -132,16 +132,18 @@ val meth :
 (* (\** Split a type between methods and the main type. *\) *)
 (* val split_meths : t -> meth list * t *)
 
-(* (\** Put the methods of the first type around the second type. *\) *)
-(* val remeth : t -> t -> t *)
+(** Put the methods of the first type around the second type. *)
+val remeth : t -> t -> t
 
-(* (\** Type of a method in a type. *\) *)
-(* val invoke : t -> string -> scheme *)
+(** Type of a method in a type. *)
+val invoke : t -> string -> scheme
 
-(* (\** Type of a submethod in a type. *\) *)
-(* val invokes : t -> string list -> scheme *)
+(** Type of a submethod in a type. *)
+val invokes : t -> string list -> scheme
 
 val to_string_fun : (?generalized:var list -> t -> string) ref
 
 (** String representation of a type. *)
 val to_string : ?generalized:var list -> t -> string
+
+val lower : t -> t

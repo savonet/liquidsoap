@@ -204,7 +204,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     | Invoke (a, l) ->
         check ~level ~env a;
         let rec aux t =
-          match (Type.deref t).Type.descr with
+          match (Type.lower t).Type.descr with
             | Type.(Meth ({ meth = l'; scheme = generalized, b }, c)) ->
                 if l = l' then Typing.instantiate ~level ~generalized b
                 else aux c
@@ -232,7 +232,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~level ~env a;
         a.t <: mk Type.unit;
         let rec aux env t =
-          match (Type.deref t).Type.descr with
+          match (Type.lower t).Type.descr with
             | Type.(Meth ({ meth = l; scheme = g, u }, t)) ->
                 aux ((l, (g, u)) :: env) t
             | _ -> env
@@ -253,7 +253,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
            better error messages. Otherwise generate its type and unify -- in
            that case the optionality can't be guessed and mandatory is the
            default. *)
-        match (Type.demeth a.t).Type.descr with
+        match (Type.lower a.t).Type.descr with
           | Type.Arrow (ap, t) ->
               (* Find in l the first arg labeled lbl, return it together with the
                  remaining of the list. *)
@@ -352,7 +352,7 @@ let check ?(ignored = false) ~throw e =
   try
     let env = Environment.default_typing_environment () in
     check ~print_toplevel ~throw ~level:0 ~env e;
-    if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
+    if print_toplevel && (Type.lower e.t).Type.descr <> Type.unit then
       add_task (fun () ->
           Format.printf "@[<2>-     :@ %a@]@." Repr.print_type e.t);
     if ignored && not (can_ignore e.t) then throw (Ignored e);
