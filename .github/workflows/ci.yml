@@ -155,17 +155,6 @@ jobs:
           rm -rf doc/content/build.md doc/content/install.md
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
-      - name: Update Debian packages
-        if: startsWith(matrix.os, 'debian') || startsWith(matrix.os, 'ubuntu')
-        run: |
-          apt-get update
-          apt-get -y dist-upgrade
-      - name: Update Alpine packages
-        if: matrix.os == 'alpine'
-        run: |
-          apk update
-          apk add --upgrade apk-tools
-          apk upgrade --available
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
