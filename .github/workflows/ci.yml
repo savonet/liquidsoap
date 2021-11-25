@@ -156,7 +156,7 @@ jobs:
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
       - name: Update Debian packages
-        if: startsWith(matrix.os, 'debian')
+        if: startsWith(matrix.os, 'debian') || startsWith(matrix.os, 'ubuntu')
         run: |
           apt-get update
           apt-get -y dist-upgrade
@@ -173,7 +173,7 @@ jobs:
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/${{ github.run_number }}/core
       - name: Build doc
-        if: startsWith(matrix.os, 'debian')
+        if: startsWith(matrix.os, 'debian') || startsWith(matrix.os, 'ubuntu')
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-doc.sh
@@ -183,14 +183,14 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build debian package
-        if: startsWith(matrix.os, 'debian')
+        if: startsWith(matrix.os, 'debian') || startsWith(matrix.os, 'ubuntu')
         id: build_deb
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           chown -R opam /tmp/${{ github.run_number }}/debian
           sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ needs.build_details.outputs.is_release }}
       - name: Upload debian packages artifacts
-        if: startsWith(matrix.os, 'debian') && matrix.platform != 'armhf'
+        if: (startsWith(matrix.os, 'debian') || startsWith(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
