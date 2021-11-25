@@ -62,6 +62,7 @@ depopts: [
   "opus"
   "osx-secure-transport"
   "portaudio"
+  "posix-time2"
   "pulseaudio"
   "prometheus-liquidsoap"
   "samplerate"
