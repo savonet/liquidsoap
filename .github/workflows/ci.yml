@@ -141,6 +141,10 @@ jobs:
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
           path: ${{ github.workspace }}/${{ github.run_number }}/core
+      - name: Cleanup
+        if: ${{ always() }}
+        run: |
+          rm -rf /tmp/${{ github.run_number }}
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
@@ -249,6 +253,10 @@ jobs:
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
           path: ${{ github.workspace }}/${{ github.run_number }}/core
+      - name: Cleanup
+        if: ${{ always() }}
+        run: |
+          rm -rf /tmp/${{ github.run_number }}
 
   fetch_s3_artifacts:
     runs-on: ubuntu-latest
@@ -362,7 +370,7 @@ jobs:
         system: [x64]
     container:
       image: savonet/liquidsoap-win32-deps-${{ matrix.system }}
-      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/workspace/${{ github.run_number }}
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       OPAM_DEPS: ao-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-avutil-windows,ffmpeg-avcodec-windows,ffmpeg-av-windows,ffmpeg-avfilter-windows,ffmpeg-swresample-windows,ffmpeg-swscale-windows,menhir-windows,mm-windows,ocurl-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows.0.2.0,taglib-windows,winsvc-windows,yojson-windows
     steps:
@@ -371,7 +379,7 @@ jobs:
         id: cpu_cores
       - name: Checkout code
         run: |
-          cd /tmp/workspace/${{ github.run_number }}
+          cd /tmp/${{ github.run_number }}
           rm -rf *
           mkdir liquidsoap
           cd liquidsoap
@@ -379,10 +387,10 @@ jobs:
           git remote add origin https://github.com/${{ github.repository }}.git
           git fetch --depth 1 origin ${{ github.sha }}
           git checkout FETCH_HEAD
-          chown -R opam /tmp/workspace/${{ github.run_number }}
+          chown -R opam /tmp/${{ github.run_number }}
       - name: Add local packages
         run: |
-          cd /tmp/workspace/${{ github.run_number }}/liquidsoap/
+          cd /tmp/${{ github.run_number }}/liquidsoap/
           gosu opam:root ./.github/scripts/add-local-opam-packages.sh
       - name: Build mxe dependencies
         run : |
@@ -390,7 +398,7 @@ jobs:
           cat /home/opam/mxe-deps | xargs make
       - name: Build windows binary
         run: |
-          cd /tmp/workspace/${{ github.run_number }}/liquidsoap
+          cd /tmp/${{ github.run_number }}/liquidsoap
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
         id: build
       - name: Upload artifact
@@ -399,6 +407,10 @@ jobs:
           name: ${{ steps.build.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/win32
           if-no-files-found: error
+      - name: Cleanup
+        if: ${{ always() }}
+        run: |
+          rm -rf /tmp/${{ github.run_number }}
 
   update_release:
     runs-on: ubuntu-latest
