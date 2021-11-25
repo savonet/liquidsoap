@@ -92,11 +92,12 @@ def dynamic_volume(s) =
     filter = ffmpeg.filter.volume.create(graph)
 
     def set_volume(v) =
-      ignore(filter.process_command("volume", string_of_int(v)))
+      ignore(filter.process_command("volume", "#{v}"))
     end
 
     s = ffmpeg.filter.audio.input(graph, s)
-    s = filter(s)
+    filter.set_input(s)
+    s = filter.output
     s = ffmpeg.filter.audio.output(graph, s)
 
     (s, set_volume)
