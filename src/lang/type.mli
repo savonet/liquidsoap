@@ -123,14 +123,14 @@ val filter_vars : (var -> bool) -> t -> var list
 val meth :
   ?pos:pos -> ?json_name:string -> string -> scheme -> ?doc:string -> t -> t
 
-(* (\** Add a submethod to a type. *\) *)
-(* val meths : ?pos:pos -> string list -> scheme -> t -> t *)
+(** Add a submethod to a type. *)
+val submeth : ?pos:pos -> string list -> scheme -> t -> t
 
-(* (\** Remove all methods in a type. *\) *)
-(* val demeth : t -> t *)
+(** Remove all methods in a type. *)
+val demeth : t -> t
 
-(* (\** Split a type between methods and the main type. *\) *)
-(* val split_meths : t -> meth list * t *)
+(** Split a type between methods and the main type. *)
+val split_meths : t -> meth list * t
 
 (** Put the methods of the first type around the second type. *)
 val remeth : t -> t -> t
@@ -147,3 +147,6 @@ val to_string_fun : (?generalized:var list -> t -> string) ref
 val to_string : ?generalized:var list -> t -> string
 
 val lower : t -> t
+val can_ignore : t -> bool
+val is_fun : t -> bool
+val is_source : t -> bool

@@ -495,20 +495,6 @@ let rec free_vars tm =
 let free_vars ?(bound = []) body =
   Vars.diff (free_vars body) (Vars.of_list bound)
 
-(** Values which can be ignored (and will thus not raise a warning if
-    ignored). *)
-let can_ignore t =
-  match (Type.lower t).Type.descr with Type.Tuple [] -> true | _ -> false
-
-(* TODO: what about functions with methods? *)
-let is_fun t =
-  match (Type.lower t).Type.descr with Type.Arrow _ -> true | _ -> false
-
-let is_source t =
-  match (Type.lower t).Type.descr with
-    | Type.Constr { Type.constructor = "source"; _ } -> true
-    | _ -> false
-
 (** {1 Basic checks and errors} *)
 
 exception Unbound of Type.pos option * string
@@ -595,7 +581,9 @@ let check_unused ~throw ~lib tm =
                      at toplevel (sort of a lib situation...) *)
                   if
                     s <> "_"
-                    && not (can_ignore def.t || (toplevel && is_fun def.t))
+                    && not
+                         (Type.can_ignore def.t
+                         || (toplevel && Type.is_fun def.t))
                   then (
                     let start_pos = fst (Option.get tm.t.Type.pos) in
                     throw (Unused_variable (s, start_pos))))

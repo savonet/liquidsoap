@@ -161,18 +161,14 @@ let lower a =
   in
   aux [] a
 
-(** Underapproximation of the methods in a type. *)
-let rec methods a =
-  match (lower a).descr with Meth (m, a) -> m :: methods a | _ -> []
-
-(*
 (** Remove methods. This function also removes links. *)
-let rec demeth t =
-  let t = deref t in
-  match t.descr with Meth (_, t) -> demeth t | _ -> t
-*)
+let rec demeth t = match (lower t).descr with Meth (_, t) -> demeth t | _ -> t
 
 let remeth t u =
+  (* Underapproximation of the methods in a type. *)
+  let rec methods a =
+    match (lower a).descr with Meth (m, a) -> m :: methods a | _ -> []
+  in
   List.fold_left (fun u m -> { t with descr = Meth (m, u) }) u (methods t)
 
 let rec invoke t l =
@@ -191,23 +187,20 @@ let rec invokes t = function
 let meth ?pos ?json_name meth scheme ?(doc = "") t =
   make ?pos (Meth ({ meth; scheme; doc; json_name }, t))
 
-(*
-(** Add a submethod. *)
-let rec meths ?pos l v t =
+(** Add a submethod to a type. *)
+let rec submeth ?pos l v t =
   match l with
     | [] -> assert false
     | [l] -> meth ?pos l v t
     | l :: ll ->
         let g, tl = invoke t l in
-        let v = meths ?pos ll v tl in
+        let v = submeth ?pos ll v tl in
         meth ?pos l (g, v) t
-*)
 
-(*
 (** Split the methods from the type. *)
 let split_meths t =
   let rec aux hide t =
-    let t = deref t in
+    let t = lower t in
     match t.descr with
       | Meth (m, t) ->
           let meth, t = aux (m.meth :: hide) t in
@@ -216,7 +209,6 @@ let split_meths t =
       | _ -> ([], t)
   in
   aux [] t
-*)
 
 let var =
   let name =
@@ -277,3 +269,15 @@ let to_string_fun =
   ref (fun ?generalized:_ _ -> failwith "Type.to_string not defined yet")
 
 let to_string ?generalized (t : t) : string = !to_string_fun ?generalized t
+
+(** Values which can be ignored (and will thus not raise a warning if
+    ignored). *)
+let can_ignore t = match (lower t).descr with Tuple [] -> true | _ -> false
+
+(* TODO: what about functions with methods? *)
+let is_fun t = match (lower t).descr with Arrow _ -> true | _ -> false
+
+let is_source t =
+  match (lower t).descr with
+    | Constr { constructor = "source"; _ } -> true
+    | _ -> false

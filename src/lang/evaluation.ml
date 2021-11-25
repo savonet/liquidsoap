@@ -129,14 +129,15 @@ let rec eval ~env tm =
   let mk v =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)
-    (match (Type.deref tm.t).Type.descr with
+    (* TODO: do we want upper here? *)
+    (match (Type.lower tm.t).Type.descr with
       | Type.Constr
           { Type.constructor = "source"; params = [(Type.Invariant, k)] } -> (
           let frame_content_of_t t =
-            match (Type.deref t).Type.descr with
+            match (Type.lower t).Type.descr with
               | Type.Var _ -> `Any
               | Type.Constr { Type.constructor; params = [(_, t)] } -> (
-                  match (Type.deref t).Type.descr with
+                  match (Type.lower t).Type.descr with
                     | Type.Ground (Type.Format fmt) -> `Format fmt
                     | Type.Var _ -> `Kind (Content.kind_of_string constructor)
                     | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
@@ -373,7 +374,7 @@ let eval ?env tm =
 let toplevel_add (doc, params, methods) pat ~t v =
   let generalized, t = t in
   let rec ptypes t =
-    match (Type.deref t).Type.descr with
+    match (Type.lower t).Type.descr with
       | Type.Arrow (p, _) -> p
       | Type.Meth (_, t) -> ptypes t
       | _ -> []
@@ -418,7 +419,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
     params;
   (let meths, t =
      let meths, t = Type.split_meths t in
-     match (Type.deref t).Type.descr with
+     match (Type.lower t).Type.descr with
        | Type.Arrow (p, a) ->
            let meths, a = Type.split_meths a in
            (* Note that in case we have a function, we drop the methods around,

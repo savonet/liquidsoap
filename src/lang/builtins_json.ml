@@ -57,7 +57,7 @@ let rec type_of_json = function
   | `Null -> Lang.(nullable_t (univ_t ()))
 
 let nullable_deref ty =
-  let ty = Type.deref ty in
+  let ty = Type.lower ty in
   match ty.Type.descr with Type.Nullable ty -> (true, ty) | _ -> (false, ty)
 
 let rec json_of_typed_value ~ty v : Json.t =
@@ -173,7 +173,7 @@ let rec value_of_typed_json ~ty json =
           let meth =
             List.map
               (fun Type.{ meth; json_name; scheme = _, ty } ->
-                let ty = Type.deref ty in
+                let ty = Type.lower ty in
                 let lbl = Option.value ~default:meth json_name in
                 let nullable_meth, _ = nullable_deref ty in
                 let v =
@@ -287,11 +287,7 @@ end)
 
 let () =
   let val_t = Lang.univ_t () in
-  let var =
-    match val_t.Type.descr with
-      | Type.Var { contents = Type.Free v } -> v
-      | _ -> assert false
-  in
+  let var = match val_t.Type.descr with Type.Var v -> v | _ -> assert false in
   let meth =
     [
       ( "add",

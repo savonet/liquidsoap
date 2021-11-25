@@ -51,7 +51,7 @@ let rec method_t t0 = function
   | (l, t, doc) :: r -> Type.meth l t ~doc (method_t t0 r)
 
 let of_tuple_t t =
-  match (Type.deref t).Type.descr with Type.Tuple l -> l | _ -> assert false
+  match (Type.lower t).Type.descr with Type.Tuple l -> l | _ -> assert false
 
 let of_product_t t =
   match of_tuple_t t with [a; b] -> (a, b) | _ -> assert false
@@ -60,7 +60,7 @@ let fun_t p b = Type.make (Type.Arrow (p, b))
 let list_t t = Type.make Type.(List { t; json_repr = `Tuple })
 
 let of_list_t t =
-  match (Type.deref t).Type.descr with
+  match (Type.lower t).Type.descr with
     | Type.(List { t }) -> t
     | _ -> assert false
 

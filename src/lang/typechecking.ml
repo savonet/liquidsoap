@@ -242,7 +242,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         e.t >: b.t
     | Seq (a, b) ->
         check ~env ~level a;
-        if not (can_ignore a.t) then throw (Ignored a);
+        if not (Type.can_ignore a.t) then throw (Ignored a);
         check ~print_toplevel ~level ~env b;
         e.t >: b.t
     | App (a, l) -> (
@@ -329,7 +329,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                         if replace then Type.remeth (snd (Type.invokes t ll)) a
                         else a
                       in
-                      (l, (g, Type.meths ?pos ll (generalized, a) t))
+                      (l, (g, Type.submeth ?pos ll (generalized, a) t))
                     with Not_found -> raise (Unbound (pos, l))))
             penv
         in
@@ -355,7 +355,7 @@ let check ?(ignored = false) ~throw e =
     if print_toplevel && (Type.lower e.t).Type.descr <> Type.unit then
       add_task (fun () ->
           Format.printf "@[<2>-     :@ %a@]@." Repr.print_type e.t);
-    if ignored && not (can_ignore e.t) then throw (Ignored e);
+    if ignored && not (Type.can_ignore e.t) then throw (Ignored e);
     pop_tasks ()
   with e ->
     let bt = Printexc.get_raw_backtrace () in
