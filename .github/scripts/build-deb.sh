@@ -5,7 +5,8 @@ set -e
 GITHUB_SHA=$1
 BRANCH=$2
 DOCKER_TAG=$3
-IS_RELEASE=$4
+PLATFORM=$4
+IS_RELEASE=$5
 
 ARCH=`dpkg --print-architecture`
 
@@ -42,6 +43,6 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 fakeroot debian/rules binary
 
-cp /tmp/liquidsoap-full/*.deb /tmp/${GITHUB_RUN_NUMBER}/debian
+cp /tmp/liquidsoap-full/*.deb /tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}debian
 
 echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-1_$ARCH"
