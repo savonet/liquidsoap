@@ -468,7 +468,7 @@ let () =
             in
             let args = named_args @ unnamed_args in
             let filter = apply_filter ~args_parser ~filter ~sources_t args in
-            ignore (Lang.apply (Term.Value.invoke filter "set_intput") inputs);
+            ignore (Lang.apply (Term.Value.invoke filter "set_input") inputs);
             Term.Value.invoke filter "output");
         Lang.add_builtin ~category:`Filter
           ("ffmpeg.filter." ^ name ^ ".create")
