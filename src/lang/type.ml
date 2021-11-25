@@ -111,10 +111,6 @@ let string_of_constr = function
 
 type variance = Covariant | Contravariant | Invariant
 
-(** Every type gets a level annotation.
-  * This is useful in order to know what can or cannot be generalized:
-  * you need to compare the level of an abstraction and those of a ref or
-  * source. *)
 type t = { pos : pos option; descr : descr }
 
 and constructed = { constructor : string; params : (variance * t) list }
@@ -152,14 +148,73 @@ and scheme = var list * t
 
 let unit = Tuple []
 let make ?pos d = { pos; descr = d }
+let var_eq v v' = v.name = v'.name
+
+let rec eq a b =
+  match (a.descr, b.descr) with
+    | Constr c1, Constr c2 ->
+        c1.constructor = c2.constructor
+        && List.for_all2
+             (fun (v1, a1) (v2, a2) -> v1 = v2 && eq a1 a2)
+             c1.params c2.params
+    | Constr _, _ | _, Constr _ -> false
+    | Ground g1, Ground g2 -> g1 = g2
+    | Ground _, _ | _, Ground _ -> false
+    | Getter a1, Getter a2 -> eq a1 a2
+    | Getter _, _ | _, Getter _ -> false
+    | List a1, List a2 -> eq a1.t a2.t
+    | List _, _ | _, List _ -> false
+    | Tuple l1, Tuple l2 ->
+        List.length l1 = List.length l2 && List.for_all2 eq l1 l2
+    | Tuple _, _ | _, Tuple _ -> false
+    | Nullable a1, Nullable a2 -> eq a1 a2
+    | Nullable _, _ | _, Nullable _ -> false
+    | Meth (m1, a1), Meth (m2, a2) ->
+        m1.meth = m2.meth && scheme_eq m1.scheme m2.scheme && eq a1 a2
+    | Meth _, _ | _, Meth _ -> false
+    | Arrow (l1, a1), Arrow (l2, a2) ->
+        List.length l1 = List.length l2
+        && List.for_all2
+             (fun (o1, l1, a1) (o2, l2, a2) -> o1 = o2 && l1 = l2 && eq a1 a2)
+             l1 l2
+        && eq a1 a2
+    | Arrow _, _ | _, Arrow _ -> false
+    | Var x1, Var x2 -> var_eq x1 x2
+(* | Var _, _ | _, Var _ -> false *)
+
+(* TODO: we could do alpha-conversion... *)
+and scheme_eq (g1, a1) (g2, a2) =
+  List.length g1 = List.length g2 && List.for_all2 var_eq g1 g2 && eq a1 a2
+
+module Vars = struct
+  type t = var list
+
+  let empty : t = []
+  let add x (vars : t) = x :: vars
+  let mem x (vars : t) = List.exists (var_eq x) vars
+end
 
 let lower a =
-  let rec aux seen a =
+  let seen = ref Vars.empty in
+  let rec aux a =
     match a.descr with
-      | Var v when not (List.mem v seen) -> aux (v :: seen) v.lower
+      | Var v when not (Vars.mem v !seen) ->
+          seen := Vars.add v !seen;
+          aux v.lower
       | _ -> a
   in
-  aux [] a
+  aux a
+
+let upper a =
+  let seen = ref Vars.empty in
+  let rec aux a =
+    match a.descr with
+      | Var v when not (Vars.mem v !seen) ->
+          seen := Vars.add v !seen;
+          aux v.upper
+      | _ -> a
+  in
+  aux a
 
 (** Remove methods. This function also removes links. *)
 let rec demeth t = match (lower t).descr with Meth (_, t) -> demeth t | _ -> t
@@ -247,6 +302,7 @@ let var =
 
 (** Find all the free variables satisfying a predicate. *)
 let filter_vars f t =
+  let seen = ref Vars.empty in
   let rec aux l t =
     match t.descr with
       | Ground _ -> l
@@ -254,14 +310,16 @@ let filter_vars f t =
       | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Meth ({ scheme = g, t }, u) ->
-          let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
+          let l = List.filter (fun v -> not (Vars.mem v g)) (aux l t) in
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
+      | Var x when Vars.mem x !seen -> l
       | Var x ->
+          seen := x :: !seen;
           let l = aux l x.lower in
           let l = aux l x.upper in
-          if f x && not (List.mem x l) then x :: l else l
+          if f x && not (Vars.mem x l) then x :: l else l
   in
   aux [] t
 

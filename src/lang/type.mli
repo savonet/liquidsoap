@@ -97,6 +97,18 @@ and var = {
 (** A type scheme (i.e. a type with universally quantified variables). *)
 and scheme = var list * t
 
+val var_eq : var -> var -> bool
+val eq : t -> t -> bool
+val scheme_eq : scheme -> scheme -> bool
+
+module Vars : sig
+  type t = var list
+
+  val empty : t
+  val add : var -> t -> t
+  val mem : var -> t -> bool
+end
+
 val unit : descr
 
 (** Create a type from its value. *)
@@ -146,6 +158,7 @@ val to_string_fun : (?generalized:var list -> t -> string) ref
 (** String representation of a type. *)
 val to_string : ?generalized:var list -> t -> string
 
+val upper : t -> t
 val lower : t -> t
 val can_ignore : t -> bool
 val is_fun : t -> bool

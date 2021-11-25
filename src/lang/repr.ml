@@ -93,7 +93,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     let constr_symbols, c = split_constr var.constraints in
     let rec index n = function
       | v :: tl ->
-          if v = var then Printf.sprintf "'%s%s" constr_symbols (name n)
+          if var_eq v var then Printf.sprintf "'%s%s" constr_symbols (name n)
           else index (n + 1) tl
       | [] -> assert false
     in
@@ -158,15 +158,11 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Var var ->
-            let lower =
-              if var.lower.descr = Var var then None
-              else Some (repr g var.lower)
-            in
-            let upper =
-              if var.upper.descr = Var var then None
-              else Some (repr g var.upper)
-            in
-            if List.mem var g then uvar ~lower ~upper g var
+            let lower = lower t in
+            let lower = if eq lower t then None else Some (repr g lower) in
+            let upper = upper t in
+            let upper = if eq upper t then None else Some (repr g upper) in
+            if Vars.mem var g then uvar ~lower ~upper g var
             else evar ~lower ~upper var)
   in
   repr generalized t
