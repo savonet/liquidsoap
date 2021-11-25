@@ -100,6 +100,42 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           ./.github/scripts/build-doc.sh
 
+  run_tests:
+    runs-on: ubuntu-latest
+    needs: build_details
+    if: ${{ needs.build_details.outputs.should_build_code }}
+    container:
+      image: savonet/liquidsoap-ci:debian_bullseye_amd64
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    env:
+      HOME: /home/opam
+    steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@v1
+        id: cpu_cores
+      - name: Enable core dump
+        run: |
+          ulimit -c unlimited
+          mkdir -p /tmp/${{ github.run_number }}/core
+          chown -R opam /tmp/${{ github.run_number }}/core
+          echo /tmp/${{ github.run_number }}/core/core.%h.%e.%t > /proc/sys/kernel/core_pattern
+      - name: Checkout code
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          rm -rf doc/content/build.md doc/content/install.md
+          sudo -u opam -E git fetch origin $GITHUB_SHA
+          sudo -u opam -E git checkout $GITHUB_SHA
+      - name: Build
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
+          cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/${{ github.run_number }}/core
+      - name: Run tests
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
+
   build_posix:
     runs-on: ${{ matrix.runs-on }}
     needs: build_details
@@ -166,11 +202,6 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-doc.sh
-      - name: Run tests
-        if: matrix.os == 'debian_bullseye'
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
