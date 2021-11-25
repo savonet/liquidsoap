@@ -359,8 +359,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
               let v = List.assoc "" p in
               if !input_set then
                 Runtime_error.error
-                  ~pos:
-                    (match v.Term.Value.pos with None -> [] | Some p -> [p])
+                  ~pos:(match v.Value.pos with None -> [] | Some p -> [p])
                   ~message:"Filter input already set!" "ffmpeg.filter";
               let audio_inputs_c = List.length filter.io.inputs.audio in
               let get_input ~mode ~ofs idx =
@@ -499,8 +498,8 @@ let () =
             in
             let args = named_args @ unnamed_args in
             let filter = apply_filter ~args_parser ~filter ~sources_t args in
-            ignore (Lang.apply (Term.Value.invoke filter "set_intput") inputs);
-            Term.Value.invoke filter "output");
+            ignore (Lang.apply (Value.invoke filter "set_intput") inputs);
+            Value.invoke filter "output");
         Lang.add_builtin ~category:`Filter
           ("ffmpeg.filter." ^ name ^ ".create")
           ~descr:
