@@ -144,7 +144,7 @@ jobs:
       - name: Cleanup
         if: ${{ always() }}
         run: |
-          rm -rf /tmp/${{ github.run_number }}
+          rm -rf /tmp/${{ github.run_number }}/*
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
@@ -256,7 +256,7 @@ jobs:
       - name: Cleanup
         if: ${{ always() }}
         run: |
-          rm -rf /tmp/${{ github.run_number }}
+          rm -rf /tmp/${{ github.run_number }}/*
 
   fetch_s3_artifacts:
     runs-on: ubuntu-latest
@@ -387,7 +387,7 @@ jobs:
           git remote add origin https://github.com/${{ github.repository }}.git
           git fetch --depth 1 origin ${{ github.sha }}
           git checkout FETCH_HEAD
-          chown -R opam /tmp/${{ github.run_number }}
+          chown -R opam /tmp/${{ github.run_number }}/liquidsoap
       - name: Add local packages
         run: |
           cd /tmp/${{ github.run_number }}/liquidsoap/
@@ -410,7 +410,7 @@ jobs:
       - name: Cleanup
         if: ${{ always() }}
         run: |
-          rm -rf /tmp/${{ github.run_number }}
+          rm -rf /tmp/${{ github.run_number }}/*
 
   update_release:
     runs-on: ubuntu-latest
