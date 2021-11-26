@@ -22,6 +22,7 @@ jobs:
       is_release: ${{ steps.build_details.outputs.is_release }}
       build_os: ${{ steps.build_details.outputs.build_os }}
       build_platform: ${{ steps.build_details.outputs.build_platform }}
+      build_include: ${{ steps.build_details.outputs.build_include }}
       docker_release: ${{ steps.build_details.outputs.docker_release }}
       should_build_code: ${{ steps.build_details.outputs.should_build_code }}
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
@@ -160,16 +161,7 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.build_details.outputs.build_os) }}
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
-        include:
-          - platform: amd64
-            runs-on: ubuntu-latest
-            alpine-arch: x86_64 
-          - platform: arm64
-            runs-on: self-hosted
-            alpine-arch: aarch64
-          - platform: armhf
-            runs-on: self-hosted
-            alpine-arch: armv7
+        include: ${{ fromJson(needs.build_details.outputs.build_include) }}
         exclude:
           - os: debian_testing
             platform: armhf
@@ -445,17 +437,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [amd64, arm64, armhf]
-        include:
-          - platform: amd64
-            runs-on: ubuntu-latest
-            docker-platform: linux/amd64
-          - platform: arm64
-            runs-on: self-hosted
-            docker-platform: linux/arm64
-          - platform: armhf
-            runs-on: self-hosted
-            docker-platform: linux/arm/v7
+        platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -483,21 +466,10 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     needs: [build_details, build_posix, fetch_s3_artifacts]
     strategy:
+      fail-fast: false
       matrix:
-        platform: [amd64, arm64, armhf]
-        include:
-          - platform: amd64
-            runs-on: ubuntu-latest
-            docker-platform: linux/amd64
-            alpine-arch: x86_64
-          - platform: arm64
-            runs-on: self-hosted
-            alpine-arch: aarch64
-            docker-platform: linux/arm64
-          - platform: armhf
-            runs-on: self-hosted
-            alpine-arch: armv7
-            docker-platform: linux/arm/v7
+        platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
