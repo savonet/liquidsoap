@@ -20,7 +20,7 @@ fi
 
 if [[ "${BRANCH}" =~ ^v[0-9] ]]; then
   echo "Branch is versioned: building on all architectures"
-  BUILD_OS='["arm32v7_debian_bullseye", "debian_testing", "debian_buster", "debian_bullseye", "ubuntu_groovy", "ubuntu_focal", "alpine"]'
+  BUILD_OS='["debian_testing", "debian_buster", "debian_bullseye", "ubuntu_groovy", "ubuntu_focal", "alpine"]'
   BUILD_PLATFORM='["amd64", "arm64", "armhf"]'
 else
   echo "Branch is not versioned: building on amd64 only"
