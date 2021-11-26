@@ -153,6 +153,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     in
     let proto_t = List.rev proto_t in
     check ~level ~env body;
+    Printf.printf "body (%s) type: %s\n%!" (Term.to_string body)
+      (Type.to_string body.t);
     e.t >: mk (Type.Arrow (proto_t, body.t))
   in
   match e.term with

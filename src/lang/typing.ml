@@ -139,17 +139,13 @@ let instantiate ~level ~generalized =
 (** {1 Assignation} *)
 
 (* (\** These two exceptions can be raised when attempting to assign a variable. *\) *)
-(* exception Occur_check of var * t *)
-
+exception Occur_check
 exception Unsatisfied_constraint of constr * t
 
-(*
-(** Check that [a] (a dereferenced type variable) does not occur in [b],
-    and prepare the instantiation [a<-b] by adjusting the levels. *)
+(** Check that a variable [a] does not occur in a type [b]. *)
 let rec occur_check (a : var) b =
-  let b0 = b in
-  let b = deref b in
   match b.descr with
+    | Bot | Top -> ()
     | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
     | Tuple l -> List.iter (occur_check a) l
     | Getter t -> occur_check a t
@@ -163,11 +159,10 @@ let rec occur_check (a : var) b =
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
     | Ground _ -> ()
-    | Var { contents = Free b } ->
-        if a.name = b.name then raise (Occur_check (a, b0));
-        b.level <- min a.level b.level
-    | Var { contents = Link _ } -> assert false
-*)
+    | Var x ->
+        if var_eq x a then raise Occur_check;
+        occur_check a x.lower;
+        occur_check a x.upper
 
 (* TODO: restore this *)
 (*
@@ -559,12 +554,14 @@ and ( <: ) =
             try t1 <: t2
             with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
         | _, Var x ->
-            (* TODO: levels *)
             a <: x.upper;
+            occur_check x a;
+            update_level ~level:x.level a;
             x.lower <- sup ~pos:a.pos x.lower a
         | Var x, _ ->
-            (* TODO: levels *)
             x.lower <: b;
+            occur_check x b;
+            update_level ~level:x.level b;
             x.upper <- inf ~pos:b.pos x.upper b
         | _, _ ->
             (* The superficial representation is enough for explaining the

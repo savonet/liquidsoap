@@ -25,6 +25,8 @@
 (** Show generalized variables in records. *)
 let show_record_schemes = ref true
 
+let show_bounds = ref true
+
 open Type
 
 let string_of_single_pos = Runtime_error.print_single_pos
@@ -135,17 +137,17 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
       `EVar (lower, (Printf.sprintf "'%s%s" constr_symbols s, c), upper))
   in
   (* p is the polarity and g are generalized variables *)
-  let rec repr g t =
+  let rec repr p g t =
     if filter_out t then `Ellipsis
     else (
       match t.descr with
         | Bot -> `Bot
         | Top -> `Top
         | Ground g -> `Ground g
-        | Getter t -> `Getter (repr g t)
-        | List { t; json_repr } -> `List (repr g t, json_repr)
-        | Tuple l -> `Tuple (List.map (repr g) l)
-        | Nullable t -> `Nullable (repr g t)
+        | Getter t -> `Getter (repr p g t)
+        | List { t; json_repr } -> `List (repr p g t, json_repr)
+        | Tuple l -> `Tuple (List.map (repr p g) l)
+        | Nullable t -> `Nullable (repr p g t)
         | Meth ({ meth = l; scheme = g', u; json_name }, v) ->
             let gen =
               List.map
@@ -154,20 +156,30 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
                     | `UVar (_, v, _) -> v)
                 (List.sort_uniq compare g')
             in
-            `Meth (l, (gen, repr (g' @ g) u), json_name, repr g v)
+            `Meth (l, (gen, repr p (g' @ g) u), json_name, repr p g v)
         | Constr { constructor; params } ->
-            `Constr (constructor, List.map (fun (l, t) -> (l, repr g t)) params)
+            `Constr
+              ( constructor,
+                List.map
+                  (fun (l, t) ->
+                    (l, repr (if l = Contravariant then not p else p) g t))
+                  params )
         | Arrow (args, t) ->
             `Arrow
-              ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
-                repr g t )
+              ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr (not p) g t)) args,
+                repr p g t )
         | Var var ->
-            let lower = repr g (lower t) in
-            let upper = repr g (upper t) in
-            if Vars.mem var g then uvar ~lower ~upper g var
-            else evar ~lower ~upper var)
+            if !show_bounds then (
+              let lower = repr p g var.lower in
+              let upper = repr p g var.upper in
+              (* let lower = repr g (lower t) in *)
+              (* let upper = repr g (upper t) in *)
+              if Vars.mem var g then uvar ~lower ~upper g var
+              else evar ~lower ~upper var)
+            else if p then repr p g var.lower
+            else repr p g var.upper)
   in
-  repr generalized t
+  repr true generalized t
 
 (** Sets of type descriptions. *)
 module DS = Set.Make (struct
@@ -353,11 +365,18 @@ let print f (t : t) =
           else (
             Format.fprintf f "[";
             let vars =
-              if lower = `Bot then vars else print ~par:false vars lower
+              if lower = `Bot then vars
+              else (
+                let vars = print ~par:false vars lower in
+                Format.fprintf f "< ";
+                vars)
             in
-            Format.fprintf f "< %s <" name;
+            Format.fprintf f "%s" name;
             let vars =
-              if upper = `Top then vars else print ~par:false vars upper
+              if upper = `Top then vars
+              else (
+                Format.fprintf f " <";
+                print ~par:false vars upper)
             in
             Format.fprintf f "]";
             vars)
@@ -403,12 +422,15 @@ let print f (t : t) =
   begin
     match t with
     (* We're only printing a variable: ignore its [repr]esentation. *)
+    (* TODO: uncomment when debugged *)
+    (*
     | `EVar (_, (_, c), _) when c <> [] ->
         Format.fprintf f "something that is %s"
           (String.concat " and " (List.map string_of_constr c))
     | `UVar (_, (_, c), _) when c <> [] ->
         Format.fprintf f "anything that is %s"
           (String.concat " and " (List.map string_of_constr c))
+    *)
     (* Print the full thing, then display constraints *)
     | _ ->
         let constraints = print ~par:false DS.empty t in
