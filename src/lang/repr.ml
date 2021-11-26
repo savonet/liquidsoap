@@ -33,7 +33,9 @@ let string_of_pos_opt = Runtime_error.print_pos_opt
 let string_of_pos_list = Runtime_error.print_pos_list
 
 type t =
-  [ `Constr of string * (variance * t) list
+  [ `Bot
+  | `Top
+  | `Constr of string * (variance * t) list
   | `Ground of ground
   | `List of t * [ `Object | `Tuple ]
   | `Tuple of t list
@@ -43,8 +45,8 @@ type t =
     (* label, type scheme, JSON name, base type *)
   | `Arrow of (bool * string * t) list * t
   | `Getter of t
-  | `EVar of t option * var * t option (* existential variable *)
-  | `UVar of t option * var * t option (* universal variable *)
+  | `EVar of t * var * t (* existential variable *)
+  | `UVar of t * var * t (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
   | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
   | `Debug of
@@ -71,7 +73,7 @@ let name =
 (** Generate a globally unique name for evars (used for debugging only). *)
 let evar_global_name =
   let evars = Hashtbl.create 10 in
-  let n = ref (-1) in
+  let n = ref 0 in
   fun i ->
     try Hashtbl.find evars i
     with Not_found ->
@@ -137,6 +139,8 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     if filter_out t then `Ellipsis
     else (
       match t.descr with
+        | Bot -> `Bot
+        | Top -> `Top
         | Ground g -> `Ground g
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
@@ -158,10 +162,8 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Var var ->
-            let lower = lower t in
-            let lower = if eq lower t then None else Some (repr g lower) in
-            let upper = upper t in
-            let upper = if eq upper t then None else Some (repr g upper) in
+            let lower = repr g (lower t) in
+            let upper = repr g (upper t) in
             if Vars.mem var g then uvar ~lower ~upper g var
             else evar ~lower ~upper var)
   in
@@ -182,6 +184,12 @@ let print f (t : t) =
    * The [par] params tells whether (..)->.. should be surrounded by
    * parenthesis or not. *)
   let rec print ~par vars : t -> DS.t = function
+    | `Bot ->
+        Format.fprintf f "⊥";
+        vars
+    | `Top ->
+        Format.fprintf f "⊤";
+        vars
     | `Constr ("stream_kind", params) -> (
         (* Let's assume that stream_kind occurs only inside a source
          * or format type -- this should be pretty much true with the
@@ -339,22 +347,19 @@ let print f (t : t) =
         vars
     | `EVar (lower, (name, c), upper) | `UVar (lower, (name, c), upper) ->
         let vars =
-          if lower = None && upper = None then (
+          if lower = `Bot && upper = `Top then (
             Format.fprintf f "%s" name;
             vars)
           else (
             Format.fprintf f "[";
             let vars =
-              match lower with
-                | None -> vars
-                | Some lower -> print ~par:false vars lower
+              if lower = `Bot then vars else print ~par:false vars lower
             in
             Format.fprintf f "< %s <" name;
             let vars =
-              match upper with
-                | None -> vars
-                | Some upper -> print ~par:false vars upper
+              if upper = `Top then vars else print ~par:false vars upper
             in
+            Format.fprintf f "]";
             vars)
         in
         if c <> [] then DS.add (name, c) vars else vars

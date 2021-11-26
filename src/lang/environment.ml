@@ -33,7 +33,6 @@ let default_typing_environment () =
   List.map (fun (x, (t, _)) -> (x, t)) !builtins_env
 
 let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
-  Printf.printf "add_builtin': %s\n%!" (String.concat "." name);
   if register then builtins#register ?doc (String.concat "." name) ((g, t), v);
   match name with
     | [name] ->

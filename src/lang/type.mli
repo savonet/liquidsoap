@@ -75,6 +75,8 @@ and meth = {
 and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
 and descr =
+  | Bot
+  | Top
   | Constr of constructed
   | Ground of ground
   | Getter of t

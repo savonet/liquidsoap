@@ -27,7 +27,7 @@ open Type
 let () = Type.debug := false
 let () = Type.debug_levels := false
 let () = Type.debug_variance := false
-let debug_subtyping = ref false
+let debug_subtyping = ref true
 
 type env = (string * scheme) list
 
@@ -114,6 +114,8 @@ let instantiate ~level ~generalized =
     let descr =
       match t.descr with
         | Var v -> subst_var v
+        | Bot -> Bot
+        | Top -> Top
         | Constr c ->
             let params = List.map (fun (v, t) -> (v, copy t)) c.params in
             Constr { c with params }
@@ -274,7 +276,7 @@ let rec update_level ?(generalized = []) ~level a =
           update_level v.lower;
           update_level v.upper;
           v.level <- min v.level level)
-    | Ground _ -> ()
+    | Bot | Top | Ground _ -> ()
     | Constr c -> List.iter (fun (_, a) -> update_level a) c.params
     | Getter a -> update_level a
     | List a -> update_level a.t
@@ -290,6 +292,7 @@ let rec update_level ?(generalized = []) ~level a =
 (** {1 Subtype checking/inference} *)
 
 exception Incompatible
+exception Error of (Repr.t * Repr.t)
 
 (*
 (** Approximated supremum of two types. We grow the second argument so that it
@@ -364,16 +367,42 @@ let rec sup ~pos a b =
         else raise Incompatible
 *)
 
-let sup ~pos a b = failwith "TODO"
+let rec merge ~pos ~dir a b =
+  let merge = merge ~pos ~dir in
+  let mk descr = { pos; descr } in
+  match (a.descr, b.descr) with
+    | Ground g, Ground g' when g = g' -> a
+    | Bot, _ when dir = `Sup -> b
+    | _, Bot when dir = `Sup -> a
+    | Top, _ when dir = `Inf -> b
+    | _, Top when dir = `Inf -> a
+    | Var _, _ ->
+        a <: b;
+        a
+    | _, Var _ ->
+        b <: a;
+        b
+    | _, _ ->
+        if !debug_subtyping then
+          failwith
+            (Printf.sprintf "\nFailed %s: %s ∨ %s\n\n%!"
+               (match dir with `Sup -> "sup" | `Inf -> "inf")
+               (Type.to_string a) (Type.to_string b))
+        else raise Incompatible
 
-let sup ~pos a b =
-  let b' = sup ~pos a b in
+and sup ~pos a b =
+  let b' = merge ~dir:`Sup ~pos a b in
   if !debug_subtyping && b' != b then
     Printf.printf "sup: %s \\/ %s = %s\n%! " (Type.to_string a)
       (Type.to_string b) (Type.to_string b');
   b'
 
-exception Error of (Repr.t * Repr.t)
+and inf ~pos a b =
+  let b' = merge ~dir:`Inf ~pos a b in
+  if !debug_subtyping && b' != b then
+    Printf.printf "sup: %s ∧ %s = %s\n%! " (Type.to_string a) (Type.to_string b)
+      (Type.to_string b');
+  b'
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
@@ -391,9 +420,9 @@ exception Error of (Repr.t * Repr.t)
  * optional argument; whereas with a mandatory argument it is expected to wait
  * for it. *)
 
-(** Ensure that a<:b, perform unification if needed.
-  * In case of error, generate an explanation. *)
-let rec ( <: ) =
+(** Ensure that a<:b, perform unification if needed. In case of error, generate
+    an explanation. *)
+and ( <: ) =
   let cache = ref [] in
   fun a b ->
     if List.mem (a, b) !cache then ()
@@ -402,6 +431,8 @@ let rec ( <: ) =
       if !debug || !debug_subtyping then
         Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
       match (a.descr, b.descr) with
+        | Bot, _ -> ()
+        | _, Top -> ()
         | Var v, Var v' when v = v' -> ()
         | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
             let rec aux pre p1 p2 =
@@ -527,6 +558,14 @@ let rec ( <: ) =
         | Arrow ([], t1), Getter t2 -> (
             try t1 <: t2
             with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
+        | _, Var x ->
+            (* TODO: levels *)
+            a <: x.upper;
+            x.lower <- sup ~pos:a.pos x.lower a
+        | Var x, _ ->
+            (* TODO: levels *)
+            x.lower <: b;
+            x.upper <- inf ~pos:b.pos x.upper b
         | _, _ ->
             (* The superficial representation is enough for explaining the
                mismatch. *)

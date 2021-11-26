@@ -1,13 +1,16 @@
-#!../../src/liquidsoap
+#!../../src/liquidsoap --debug-lang
 
 # Simple tests without the standard library.
 
-def pass()
-  print("Test passed!")
-  shutdown()
-end
+_ = 2
+_ = 2 + 2
 
-def fail()
-  print("Test failed!")
-  exit(1)
-end
+# def pass()
+  # print("Test passed!")
+  # shutdown()
+# end
+
+# def fail()
+  # print("Test failed!")
+  # exit(1)
+# end

@@ -125,6 +125,8 @@ and meth = {
 and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
 and descr =
+  | Bot
+  | Top
   | Constr of constructed
   | Ground of ground
   | Getter of t
@@ -152,6 +154,9 @@ let var_eq v v' = v.name = v'.name
 
 let rec eq a b =
   match (a.descr, b.descr) with
+    | Bot, Bot | Top, Top -> true
+    | Bot, _ | _, Bot -> false
+    | Top, _ | _, Top -> false
     | Constr c1, Constr c2 ->
         c1.constructor = c2.constructor
         && List.for_all2
@@ -272,40 +277,22 @@ let var =
       incr c;
       !c
   in
-  let f ?(constraints = []) ?(level = max_int) ?lower ?upper ?pos () =
+  fun ?(constraints = []) ?(level = max_int) ?lower ?upper ?pos () ->
     let name = name () in
-    (* We are duplicating code here, but this is the only way to go with the
-       current syntactic constraints on recursive values. *)
-    match (lower, upper) with
-      | None, None ->
-          let rec t =
-            {
-              pos;
-              descr = Var { name; level; constraints; lower = t; upper = t };
-            }
-          in
-          t
-      | Some lower, None ->
-          let rec t =
-            { pos; descr = Var { name; level; constraints; lower; upper = t } }
-          in
-          t
-      | None, Some upper ->
-          let rec t =
-            { pos; descr = Var { name; level; constraints; lower = t; upper } }
-          in
-          t
-      | Some lower, Some upper ->
-          make ?pos (Var { name; level; constraints; lower; upper })
-  in
-  f
+    let lower =
+      match lower with Some lower -> lower | None -> make ?pos Bot
+    in
+    let upper =
+      match upper with Some upper -> upper | None -> make ?pos Top
+    in
+    make ?pos (Var { name; level; constraints; lower; upper })
 
 (** Find all the free variables satisfying a predicate. *)
 let filter_vars f t =
   let seen = ref Vars.empty in
   let rec aux l t =
     match t.descr with
-      | Ground _ -> l
+      | Bot | Top | Ground _ -> l
       | Getter t -> aux l t
       | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
