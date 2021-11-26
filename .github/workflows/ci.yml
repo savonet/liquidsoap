@@ -280,65 +280,77 @@ jobs:
           path: ${{ steps.apk_amd64_dbg.outputs.path }}
           if-no-files-found: error
       - name: Get alpine arm64 package name
+        if: contains(needs.build_details.outputs.build_platform, 'arm64')
         id: apk_arm64
         run: |
           echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64 | xargs basename)"
-      - name: Upload alpine amd64 package
+      - name: Upload alpine arm64 package
+        if: contains(needs.build_details.outputs.build_platform, 'arm64')
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.apk_arm64.outputs.name }}
           path: ${{ steps.apk_arm64.outputs.path }}
           if-no-files-found: error
       - name: Get alpine arm64 debug package name
+        if: contains(needs.build_details.outputs.build_platform, 'arm64')
         id: apk_arm64_dbg
         run: |
           echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64 | xargs basename)"
       - name: Upload alpine amd64 debug package
+        if: contains(needs.build_details.outputs.build_platform, 'arm64')
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.apk_arm64_dbg.outputs.name }}
           path: ${{ steps.apk_arm64_dbg.outputs.path }}
           if-no-files-found: error
-      - name: Get alpine armv7 package name
-        id: apk_armv7
+      - name: Get alpine armhf package name
+        if: contains(needs.build_details.outputs.build_platform, 'armhf')
+        id: apk_armhf
         run: |
           echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7 | xargs basename)"
-      - name: Upload alpine amd64 package
+      - name: Upload alpine armhf package
+        if: contains(needs.build_details.outputs.build_platform, 'armhf')
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ steps.apk_armv7.outputs.name }}
+          name: ${{ steps.apk_armhf.outputs.name }}
           path: ${{ steps.apk_armv7.outputs.path }}
           if-no-files-found: error
-      - name: Get alpine armv7 debug package name
-        id: apk_armv7_dbg
+      - name: Get alpine armhf debug package name
+        if: contains(needs.build_details.outputs.build_platform, 'armhf')
+        id: apk_armhf_dbg
         run: |
           echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7 | xargs basename)"
-      - name: Upload alpine amd64 debug package
+      - name: Upload alpine amrhf debug package
+        if: contains(needs.build_details.outputs.build_platform, 'armhf')
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ steps.apk_armv7_dbg.outputs.name }}
-          path: ${{ steps.apk_armv7_dbg.outputs.path }}
+          name: ${{ steps.apk_armhf_dbg.outputs.name }}
+          path: ${{ steps.apk_armhf_dbg.outputs.path }}
           if-no-files-found: error
       - name: Get debian armhf package name
+        if: contains(needs.build_details.outputs.build_platform, 'armhf')
         id: deb_armhf
         run: |
           echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf | xargs basename)"
       - name: Upload debian armhf package
+        if: contains(needs.build_details.outputs.build_platform, 'armhf')
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.deb_armhf.outputs.name }}
           path: ${{ steps.deb_armhf.outputs.path }}
       - name: Get debian armhf debug package name
+        if: contains(needs.build_details.outputs.build_platform, 'armhf')
         id: deb_armhf_dbg
         run: |
           echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf | xargs basename)"
       - name: Upload debian armhf debug package
+        if: contains(needs.build_details.outputs.build_platform, 'armhf')
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.deb_armhf_dbg.outputs.name }}
