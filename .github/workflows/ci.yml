@@ -205,7 +205,6 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
-          cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/${{ github.run_number }}/core
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         run: |
@@ -358,6 +357,10 @@ jobs:
         with:
           name: ${{ steps.deb_armhf_dbg.outputs.name }}
           path: ${{ steps.deb_armhf_dbg.outputs.path }}
+      - name: Cleanup
+        if: ${{ always() }}
+        run: |
+          rm -rf /tmp/${{ github.run_number }}/s3-artifacts
 
   build_win32:
     runs-on: ubuntu-latest

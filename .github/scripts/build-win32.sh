@@ -39,7 +39,7 @@ cp -rf `ocamlfind -toolchain windows ocamlc -where`/../../share/camomile .
 cd ..
 zip -r liquidsoap-$BUILD.zip liquidsoap-$BUILD
 
-mkdir -p /tmp/workspace/${GITHUB_RUN_NUMBER}/win32
-mv liquidsoap-$BUILD.zip /tmp/workspace/${GITHUB_RUN_NUMBER}/win32
+mkdir -p /tmp/${GITHUB_RUN_NUMBER}/win32
+mv liquidsoap-$BUILD.zip /tmp/${GITHUB_RUN_NUMBER}/win32
 
 echo "##[set-output name=basename;]liquidsoap-${BUILD}"
