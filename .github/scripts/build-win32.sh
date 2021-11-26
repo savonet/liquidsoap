@@ -25,7 +25,9 @@ export OPAMJOBS=$CPU_CORES
 export CC=""
 
 eval `opam config env`
-opam remove -y ffmpeg-windows
+opam repository set-url default https://github.com/ocaml/opam-repository.git
+opam update
+opam remove -y ffmpeg-windows mm-windows
 opam upgrade -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` liquidsoap-windows
 
 cd ~
@@ -37,7 +39,6 @@ cp -rf `ocamlfind -toolchain windows ocamlc -where`/../../share/camomile .
 cd ..
 zip -r liquidsoap-$BUILD.zip liquidsoap-$BUILD
 
-mkdir -p /workspace/win32
-mv liquidsoap-$BUILD.zip /workspace/win32
+mv liquidsoap-$BUILD.zip /tmp/${GITHUB_RUN_NUMBER}/win32/dist
 
 echo "##[set-output name=basename;]liquidsoap-${BUILD}"
