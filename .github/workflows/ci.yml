@@ -381,38 +381,34 @@ jobs:
         id: cpu_cores
       - name: Checkout code
         run: |
-          cd /tmp/${{ github.run_number }}
-          rm -rf *
-          mkdir liquidsoap
-          cd liquidsoap
+          mkdir -p /tmp/${{ github.run_number }}/win32/liquidsoap
+          cd /tmp/${{ github.run_number }}/win32/liquidsoap
           git init
           git remote add origin https://github.com/${{ github.repository }}.git
           git fetch --depth 1 origin ${{ github.sha }}
           git checkout FETCH_HEAD
-          chown -R opam /tmp/${{ github.run_number }}/liquidsoap
+          chown -R opam /tmp/${{ github.run_number }}/win32
       - name: Add local packages
         run: |
-          cd /tmp/${{ github.run_number }}/liquidsoap/
+          cd /tmp/${{ github.run_number }}/win32/liquidsoap/
           gosu opam:root ./.github/scripts/add-local-opam-packages.sh
-      - name: Build mxe dependencies
-        run : |
-          cd /usr/src/mxe/
-          cat /home/opam/mxe-deps | xargs make
       - name: Build windows binary
         run: |
-          cd /tmp/${{ github.run_number }}/liquidsoap
+          mkdir -p /tmp/${{ github.run_number }}/win32/dist
+          chown -R opam /tmp/${{ github.run_number }}/win32/dist
+          cd /tmp/${{ github.run_number }}/win32/liquidsoap
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
         id: build
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build.outputs.basename }}
-          path: ${{ github.workspace }}/${{ github.run_number }}/win32
+          path: ${{ github.workspace }}/${{ github.run_number }}/win32/dist
           if-no-files-found: error
       - name: Cleanup
         if: ${{ always() }}
         run: |
-          rm -rf /tmp/${{ github.run_number }}/liquidsoap /tmp/${{ github.run_number }}/win32
+          rm -rf /tmp/${{ github.run_number }}/win32
 
   update_release:
     runs-on: ubuntu-latest
