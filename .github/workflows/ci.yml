@@ -316,7 +316,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.apk_armhf.outputs.name }}
-          path: ${{ steps.apk_armv7.outputs.path }}
+          path: ${{ steps.apk_armhf.outputs.path }}
           if-no-files-found: error
       - name: Get alpine armhf debug package name
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
