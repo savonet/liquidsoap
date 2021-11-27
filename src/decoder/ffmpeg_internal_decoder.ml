@@ -108,7 +108,7 @@ let mk_video_decoder container =
   in
   let converter =
     Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format ~time_base
-      ~pixel_aspect ~target_fps ()
+      ?pixel_aspect ~target_fps ()
   in
   ( idx,
     stream,
