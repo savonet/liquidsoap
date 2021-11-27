@@ -73,8 +73,6 @@ module type Fdkaac_t = sig
 end
 
 module Register (Fdkaac : Fdkaac_t) = struct
-  module G = Generator.Generator
-
   let create_encoder params =
     let encoder = Fdkaac.Encoder.create params.Fdkaac_format.channels in
     let bandwidth =

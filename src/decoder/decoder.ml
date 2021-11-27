@@ -50,8 +50,6 @@ type file = string
 (** A stream is identified by a MIME type. *)
 type stream = string
 
-module G = Generator.From_audio_video_plus
-
 type fps = Decoder_utils.fps = { num : int; den : int }
 
 (* Buffer passed to decoder. This wraps around
@@ -62,7 +60,7 @@ type fps = Decoder_utils.fps = { num : int; den : int }
     - Implicit fps conversion
     - Implicit content drop *)
 type buffer = {
-  generator : G.t;
+  generator : Generator.t;
   put_pcm : ?pts:Int64.t -> samplerate:int -> Content.Audio.data -> unit;
   put_yuva420p : ?pts:Int64.t -> fps:fps -> Content.Video.data -> unit;
 }
@@ -431,7 +429,7 @@ let mk_buffer ~ctype generator =
       | _ -> failwith "Invalid type for buffer!"
   in
 
-  G.set_mode generator mode;
+  Generator.set_mode generator mode;
 
   let put_pcm =
     if mode <> `Video then (
@@ -458,7 +456,7 @@ let mk_buffer ~ctype generator =
         let data = (get_channel_converter ()) data in
         let len = Audio.length data in
         let data = Content.Audio.lift_data data in
-        G.put_audio ?pts generator data 0 (Frame.main_of_audio len))
+        Generator.put_audio ?pts generator data 0 (Frame.main_of_audio len))
     else fun ?pts:_ ~samplerate:_ _ -> ()
   in
 
@@ -474,7 +472,7 @@ let mk_buffer ~ctype generator =
         let data = video_resample ~in_freq:fps ~out_freq data in
         let len = Video.length data in
         let data = Content.Video.lift_data data in
-        G.put_video ?pts generator data 0 (Frame.main_of_video len))
+        Generator.put_video ?pts generator data 0 (Frame.main_of_video len))
     else fun ?pts:_ ~fps:_ _ -> ()
   in
 
@@ -485,13 +483,15 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
   let decoding_done = ref false in
 
   let remaining frame offset =
-    remaining () + G.length buffer.generator + Frame.position frame - offset
+    remaining ()
+    + Generator.length buffer.generator
+    + Frame.position frame - offset
   in
 
   let fill frame =
     if not !decoding_done then (
       try
-        while G.length buffer.generator < prebuf do
+        while Generator.length buffer.generator < prebuf do
           decoder.decode buffer
         done
       with e ->
@@ -504,7 +504,7 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
         if conf_debug#get then raise e);
 
     let offset = Frame.position frame in
-    G.fill buffer.generator frame;
+    Generator.fill buffer.generator frame;
 
     try remaining frame offset
     with e ->
@@ -515,20 +515,20 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
   in
 
   let fseek len =
-    let gen_len = G.length buffer.generator in
+    let gen_len = Generator.length buffer.generator in
     if len < 0 || len > gen_len then (
-      G.clear buffer.generator;
+      Generator.clear buffer.generator;
       gen_len + decoder.seek (len - gen_len))
     else (
       (* Seek within the pre-buffered data if possible *)
-      G.remove buffer.generator len;
+      Generator.remove buffer.generator len;
       len)
   in
   { fill; fseek; close }
 
 let file_decoder ~filename ~close ~remaining ~ctype decoder =
   let generator =
-    G.create ~log_overfull:false ~log:(log#info "%s") `Undefined
+    Generator.create ~log_overfull:false ~log:(log#info "%s") `Undefined
   in
   let buffer = mk_buffer ~ctype generator in
   mk_decoder ~filename ~close ~remaining ~buffer decoder
@@ -555,16 +555,16 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
   in
 
   let generator =
-    G.create ~log:(log#info "%s") ~log_overfull:false `Undefined
+    Generator.create ~log:(log#info "%s") ~log_overfull:false `Undefined
   in
   let buffer = mk_buffer ~ctype generator in
   let decoder = create_decoder input in
 
   let out_ticks = ref 0 in
   let decode buffer =
-    let start = G.length buffer.generator in
+    let start = Generator.length buffer.generator in
     decoder.decode buffer;
-    let stop = G.length buffer.generator in
+    let stop = Generator.length buffer.generator in
     out_ticks := !out_ticks + stop - start
   in
 

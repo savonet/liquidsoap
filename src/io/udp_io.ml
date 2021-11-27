@@ -105,9 +105,6 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
       Strings.iter (fun s o l -> ignore (socket_send s o l)) data
   end
 
-module Generator = Generator.From_audio_video_plus
-module Generated = Generated.Make (Generator)
-
 class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
   let max_ticks = 2 * Frame.main_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it

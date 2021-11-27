@@ -146,8 +146,6 @@ let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =
 
 let log = Log.make ["decoder"; "external"; "oblivious"]
 
-module Generator = Decoder.G
-
 let external_input_oblivious process filename prebuf =
   let command = process filename in
   let process =

@@ -193,10 +193,10 @@ tools = tools/extralib.ml tools/lifecycle.ml \
 	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml) \
 	$(if $(W_PROMETHEUS),tools/liq_prometheus.ml)
 
-stream = stream/frame_settings.ml \
-         stream/content_base.ml stream/content_internal.ml stream/content.ml \
+stream = stream/frame_base.ml stream/content_base.ml stream/content_internal.ml \
+         stream/content_timed.ml stream/content_frame.ml stream/content.ml \
          stream/frame.ml stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
-         stream/generator.ml stream/kind.ml \
+         stream/generator.ml stream/metadata_generator.ml stream/kind.ml \
 	 $(if $(W_FFMPEG_AVCODEC), stream/ffmpeg_content_base.ml stream/ffmpeg_copy_content.ml) \
          $(if $(W_FFMPEG_DECODER), stream/ffmpeg_raw_content.ml) \
          $(if $(W_GSTREAMER),tools/gstreamer_utils.ml)

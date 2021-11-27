@@ -22,8 +22,6 @@
 
 (** Connect sources to FFmpeg filters. *)
 
-module Generator = Generator.From_audio_video
-
 let noop () = ()
 
 (** From the script perspective, the operator sending data to a filter graph

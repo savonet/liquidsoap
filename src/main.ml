@@ -443,7 +443,7 @@ let () =
         Lifecycle.on_core_shutdown (fun _ -> Sys.remove default_log));
 
       (* Allow frame settings to be evaluated here: *)
-      Frame_settings.lazy_config_eval := true;
+      Frame_base.lazy_config_eval := true;
 
       do_eval ~lib:!last_item_lib)
 

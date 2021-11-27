@@ -27,9 +27,6 @@ open Unsigned
 exception Done
 exception Not_connected
 
-module G = Generator
-module Generator = Generator.From_audio_video_plus
-
 let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
