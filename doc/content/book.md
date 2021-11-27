@@ -8,4 +8,5 @@ progressive presentation of Liquidsoap.
 
 [![The Liquidsoap book](/assets/img/book.svg){height=600px}](https://www.amazon.com/dp/B095PVTYR3)
 
-It can be [ordered from Amazon](https://www.amazon.com/dp/B095PVTYR3) (or [read online](https://github.com/savonet/book/raw/main/book.pdf)).
+It can be [ordered from Amazon](https://www.amazon.com/dp/B095PVTYR3)
+(or [read online](http://www.liquidsoap.info/book/book.pdf)).

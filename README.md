@@ -39,7 +39,9 @@ HTML documentation is in doc/html/index.html
 ([mirrored](https://www.liquidsoap.info/doc.html) on the [Savonet
 website](http://liquidsoap.info))
 
-We also have written _the Liquidsoap book_ which is [available online](https://github.com/savonet/book/raw/main/book.pdf) and in [physical version](https://www.amazon.com/dp/B095PVTYR3).
+We also have written _the Liquidsoap book_ which is [available
+online](http://www.liquidsoap.info/book/book.pdf) and in [physical
+version](https://www.amazon.com/dp/B095PVTYR3).
 
 License
 -------

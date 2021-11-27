@@ -1,9 +1,9 @@
 # Error raised when a problem occurred when accessing files.
-# @category System
+# @category File
 let file.error = error.register("file")
 
 # Read the whole contents of a file.
-# @category System
+# @category File
 def file.contents(fname) =
   fn = file.read(fname)
   def rec f(cur) =
@@ -18,19 +18,19 @@ def file.contents(fname) =
 end
 
 # Get the list of lines of a file.
-# @category System
+# @category File
 def file.lines(fname)
   string.split(separator="\n", file.contents(fname))
 end
 
 # Iterate over the lines of a file.
-# @category System
+# @category File
 def file.lines.iterator(fname)
   list.iterator(file.lines(fname))
 end
 
 # Iterate over the contents of a file.
-# @category System
+# @category File
 def file.iterator(fname)
   f = file.read(fname)
   fun () -> begin
@@ -40,13 +40,13 @@ def file.iterator(fname)
 end
 
 # Dummy implementation of file.mime
-# @category System
+# @category File
 def file.mime_default(_)
   ""
 end
 %ifdef file.mime
 # Alias of file.mime (because it is available)
-# @category System
+# @category File
 def file.mime_default(fname)
   file.mime(fname)
 end
@@ -55,7 +55,7 @@ end
 # Generic mime test. First try to use file.mime if it exist.  Otherwise try to
 # get the value using the file binary. Returns "" (empty string) if no value
 # can be found.
-# @category System
+# @category File
 # @param file The file to test
 def get_mime(fname) =
   def file_method(fname) =
@@ -76,7 +76,7 @@ def get_mime(fname) =
 end
 
 # Getter to the contents of a file.
-# @category System
+# @category File
 # @param fname Name of the file from which the contents should be taken.
 def file.getter(fname)
   contents = ref("")
@@ -89,7 +89,7 @@ def file.getter(fname)
 end
 
 # Float getter from a file.
-# @category System
+# @category File
 # @param fname Name of the file from which the contents should be taken.
 # @param ~default Default value when the file contains invalid data.
 def file.getter.float(~default=0., fname)
