@@ -249,7 +249,7 @@ class video_input ~pass_metadata ~bufferize ~fps kind =
           Ffmpeg_raw_content.VideoSpecs.width = Some Avfilter.(width v.context);
           height = Some Avfilter.(height v.context);
           pixel_format = Some Avfilter.(pixel_format v.context);
-          pixel_aspect = Some Avfilter.(sample_aspect_ratio v.context);
+          pixel_aspect = Avfilter.(pixel_aspect v.context);
         }
       in
       Content.merge self#ctype.Frame.video
