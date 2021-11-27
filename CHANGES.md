@@ -18,6 +18,33 @@ Changes:
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
   `quality` arguments and added a single encoder argument to allow stream copy and more.
 
+2.0.1 (27-11-2021)
+=====
+
+New:
+* Added `time.predicate` to parse time predicates at runtime.
+* Added support for ffmpeg filter commands, unify `video.add_text.ffmpeg`
+  with other operators, make it the default when available. (#2050)
+
+Changed:
+* Removed `encode_metadata` option in `input.file.hls` as it does nothing with
+  the main encoder for HLS format, `%ffmpeg` (#2023)
+* Converted `output.icecast` optional parameters to `nullable`.
+
+Fixes:
+* Fixed switch-based sources not respecting track boundaries when
+  using default transitions one track only per selected source. (#1999)
+* Fixed playlist annotation. (#2005)
+* Raise a proper runtime exception when `string.escape` fails. (#2010)
+* Account for internal caching in `request.dynamic.list`'s `queue` and `set_queue` methods.
+* Keep buffering for crossfade when new source has track mark but is still ready.
+* Added missing output `start`/`stop` commands.
+* Fixed `perms`, `dir_perms` and `append` not bring honored when delegating file output
+  to the encoder.
+* Fixed base directory not being created when delegating file output to the encoder.
+  (#2069)
+* Use `process.quote` in process calls (#2031)
+
 2.0.0 (03-10-2021)
 =====
 
