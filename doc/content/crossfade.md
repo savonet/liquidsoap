@@ -20,89 +20,78 @@ Example
 Liquidsoap also includes a ready-to-use operator defined using `cross`, it is called `crossfade` and is defined in the pervasive helper script `utils.liq`. Its code is:
 
 ```liquidsoap
-# Crossfade between tracks, 
-# taking the respective volume levels 
-# into account in the choice of the 
-# transition.
+# Smart transition for crossfade
 # @category Source / Track Processing
-# @param ~start_next   Crossing duration, if any.
-# @param ~fade_in      Fade-in duration, if any.
-# @param ~fade_out     Fade-out duration, if any.
-# @param ~width        Width of the volume analysis window.
-# @param ~conservative Always prepare for
-#                      a premature end-of-track.
-# @param s             The input source.
-def crossfade (~start_next=5.,~fade_in=3.,
-               ~fade_out=3., ~width=2.,
-               ~conservative=false,s)
-  high   = -20.
-  medium = -32.
-  margin = 4.
-  fade.out = fade.out(type="sin",duration=fade_out)
-  fade.in  = fade.in(type="sin",duration=fade_in)
-  add = fun (a,b) -> add(normalize=false,[b,a])
-  log = log(label="crossfade")
+# @param ~log Default logger
+# @param ~fade_in  Fade-in duration, if any.
+# @param ~fade_out Fade-out duration, if any.
+# @param ~high     Value, in dB, for loud sound level.
+# @param ~medium   Value, in dB, for medium sound level.
+# @param ~margin   Margin to detect sources that have too different sound level for crossing.
+# @param ~default Smart crossfade: transition used when no rule applies (default: sequence).
+# @param a Ending track
+# @param b Starting track
+def cross.smart(~log=log(label="cross.smart"),
+                ~fade_in=3.,~fade_out=3.,
+                ~default=(fun (a,b) -> (sequence([a, b]):source)),
+                ~high=-15., ~medium=-32., ~margin=4.,
+                a, b)
+  let fade.out = fade.out(type="sin",duration=fade_out)
+  let fade.in  = fade.in(type="sin",duration=fade_in)
+  add = fun (a,b) -> add(normalize=false,[b, a])
 
-  def transition(a,b,ma,mb,sa,sb)
+  # This is for the type system..
+  ignore(a.metadata["foo"])
+  ignore(b.metadata["foo"])
 
-    list.iter(fun(x)-> 
-       log(level=4,"Before: #{x}"),ma)
-    list.iter(fun(x)-> 
-       log(level=4,"After : #{x}"),mb)
-
-    if
-      # If A and B and not too loud and close, 
-      # fully cross-fade them.
-      a <= medium and 
-      b <= medium and 
-      abs(a - b) <= margin
+  if
+    # If A and B are not too loud and close, fully cross-fade them.
+    a.db_level <= medium and b.db_level <= medium and abs(a.db_level - b.db_level) <= margin
     then
+      log("Old <= medium, new <= medium and |old-new| <= margin.")
+      log("Old and new source are not too loud and close.")
       log("Transition: crossed, fade-in, fade-out.")
-      add(fade.out(sa),fade.in(sb))
+      add(fade.out(a.source),fade.in(b.source))
 
-    elsif
-      # If B is significantly louder than A, 
-      # only fade-out A.
-      # We don't want to fade almost silent things, 
-      # ask for >medium.
-      b >= a + margin and a >= medium and b <= high
+  elsif
+    # If B is significantly louder than A, only fade-out A.
+    # We don't want to fade almost silent things, ask for >medium.
+    b.db_level >= a.db_level + margin and a.db_level >= medium and b.db_level <= high
+  then
+    log("new >= old + margin, old >= medium and new <= high.")
+    log("New source is significantly louder than old one.")
+    log("Transition: crossed, fade-out.")
+    add(fade.out(a.source),b.source)
+
+  elsif
+    # Opposite as the previous one.
+    a.db_level >= b.db_level + margin and b.db_level >= medium and a.db_level <= high
     then
-      log("Transition: crossed, fade-out.")
-      add(fade.out(sa),sb)
+    log("old >= new + margin, new >= medium and old <= high")
+    log("Old source is significantly louder than new one.")
+    log("Transition: crossed, fade-in.")
+    add(a.source,fade.in(b.source))
 
-    elsif
-      # Do not fade if it's already very low.
-      b >= a + margin and a <= medium and b <= high
-    then
-      log("Transition: crossed, no fade-out.")
-      add(sa,sb)
+  elsif
+    # Do not fade if it's already very low.
+    b.db_level >= a.db_level + margin and a.db_level <= medium and b.db_level <= high
+  then
+    log("new >= old + margin, old <= medium and new <= high.")
+    log("Do not fade if it's already very low.")
+    log("Transition: crossed, no fade.")
+    add(a.source,b.source)
 
-    elsif
-      # Opposite as the previous one.
-      a >= b + margin and b >= medium and a <= high
-    then
-      log("Transition: crossed, fade-in.")
-      add(sa,fade.in(sb))
+  # What to do with a loud end and a quiet beginning ?
+  # A good idea is to use a jingle to separate the two tracks,
+  # but that's another story.
 
-    # What to do with a loud end and 
-    # a quiet beginning ?
-    # A good idea is to use a jingle to separate 
-    # the two tracks, but that's another story.
-
-    else
-      # Otherwise, A and B are just too loud 
-      # to overlap nicely, or the difference 
-      # between them is too large and 
-      # overlapping would completely mask one 
-      # of them.
-      log("No transition: just sequencing.")
-      sequence([sa, sb])
-    end
+  else
+    # Otherwise, A and B are just too loud to overlap nicely, or the
+    # difference between them is too large and overlapping would completely
+    # mask one of them.
+    log("No transition: using default.")
+    default(a.source, b.source)
   end
-
-  cross(width=width, duration=start_next, 
-        conservative=conservative,
-        transition,s)
 end
 ```
 
