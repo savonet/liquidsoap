@@ -564,14 +564,14 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     val mutable on_metadata : (Frame.metadata -> unit) list = []
 
     method on_metadata =
-      self#mutexify (fun fn -> on_metadata <- fn :: on_metadata)
+      self#mutexify (fun fn -> on_metadata <- on_metadata @ [fn])
 
     val mutable on_track : (Frame.metadata -> unit) list = []
 
     (* We want to notify of new tracks on the next call after a
        partial frame. *)
     val mutable was_partial = true
-    method on_track = self#mutexify (fun fn -> on_track <- fn :: on_track)
+    method on_track = self#mutexify (fun fn -> on_track <- on_track @ [fn])
 
     method private instrumented_get_frame buf =
       let start_time = Unix.gettimeofday () in
