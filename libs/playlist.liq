@@ -147,7 +147,13 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
 
   # The (real) next function
   def rec next() =
-    if loop and list.length(!playlist) == 0 then playlist := randomize(!playlist_orig) end
+    if loop and list.is_empty(!playlist) then
+      on_loop()
+      # The above function might have reloaded the playlist
+      if list.is_empty(!playlist) then
+        playlist := randomize(!playlist_orig)
+      end
+    end
     file =
       if list.length(!playlist) > 0 then
         if mode == "random" then
