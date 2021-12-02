@@ -81,6 +81,7 @@ let stdlib_native = native
 #  whole round ("randomize" mode), or pick a random file in the playlist each time \
 #  ("random" mode).
 # @param ~native Use native implementation.
+# @param ~on_loop Function executed when the playlist is about to loop.
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~max_fail When this number of requests fail to resolve, the whole playlists is considered as failed and `on_fail` is called.
 # @param ~on_fail Function executed when too many requests failed and returning the contents of a fixed playlist.
@@ -88,7 +89,7 @@ let stdlib_native = native
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
 def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
-                  ~mode="normal", ~native=false, ~on_done={()}, ~max_fail=10, ~on_fail=null(), ~timeout=20., playlist)
+                  ~mode="normal", ~native=false, ~on_loop={()}, ~on_done={()}, ~max_fail=10, ~on_fail=null(), ~timeout=20., playlist)
   id = string.id.default(default="playlist.list", id)
   mode =
     if not list.mem(mode, ["normal", "random", "randomize"]) then
@@ -153,7 +154,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
 
   # The (real) next function
   def rec next() =
-    if loop and list.length(!playlist) == 0 then playlist := randomize(!playlist_orig) end
+    if loop and list.length(!playlist) == 0 then on_loop(); playlist := randomize(!playlist_orig) end
     file =
       if list.length(!playlist) > 0 then
         if mode == "random" then
@@ -254,7 +255,8 @@ def replaces playlist(
 
   reload_mode =
     if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then
-      log.severe(label=id, "Invalid reload mode: #{mode}"); "seconds"
+      log.severe(label=id, "Invalid reload mode: #{mode}")
+      "seconds"
     else
       reload_mode
     end
@@ -294,7 +296,7 @@ def replaces playlist(
   files := load_playlist()
 
   # Reload when the playlist is done
-  def on_done()
+  def on_loop()
     reloader = !reloader_ref
     if reload_mode == "rounds" and reload > 0 then
       round := !round + 1
@@ -315,7 +317,7 @@ def replaces playlist(
 
   s = playlist.list(
     id=id, check_next=check_next, prefetch=prefetch, loop=loop, mode=mode,
-    native=native, on_done=on_done, on_fail=on_fail, timeout=timeout, !files)
+    native=native, on_loop=on_loop, on_fail=on_fail, timeout=timeout, !files)
 
   # The reload function
   def s.reload(~empty_queue=true, ~uri=null()) =
