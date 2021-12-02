@@ -88,6 +88,7 @@ let stdlib_native = native
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
+# @method remaining Songs remaining to be played.
 def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
                   ~mode="normal", ~native=false, ~on_loop={()}, ~on_done={()}, ~max_fail=10, ~on_fail=null(), ~timeout=20., playlist)
   id = string.id.default(default="playlist.list", id)
@@ -212,8 +213,13 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
 
   next_fun := next
 
+  # List of songs remaining to be played
+  def remaining()
+    !playlist
+  end
+
   # Return
-  s.{reload = reload}
+  s.{reload = reload, remaining = remaining}
 end
 
 # Read a playlist or a directory and play all files.
