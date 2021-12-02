@@ -94,6 +94,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
     if not list.mem(mode, ["normal", "random", "randomize"]) then
       log.severe(label=id, "Invalid mode: #{mode}"); "randomize"
     else mode end
+  check_next = check_next ?? fun(_) -> true
 
   # Original playlist when loaded
   playlist_orig = ref(playlist)
@@ -185,8 +186,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
         end
         failed_time := time()
         next()
-      elsif null.defined(check_next) then
-        check_next = null.get(check_next)
+      else
         failed_count := 0
         if check_next(r) then
           null(r)
@@ -195,9 +195,6 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
           request.destroy(r)
           next()
         end
-      else
-        # We accept everything by default
-        null(r)
       end
     end
   end
