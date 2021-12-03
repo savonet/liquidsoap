@@ -52,32 +52,6 @@ let rec print_pos_list ?prefix = function
   | [pos] -> print_pos ?prefix pos
   | pos :: l -> print_pos_list ?prefix l ^ ", " ^ print_pos ?prefix pos
 
-(** Given a position, find the relevant excerpt. *)
-let excerpt (start, stop) =
-  try
-    if start.Lexing.pos_fname <> stop.Lexing.pos_fname then raise Exit;
-    let fname = start.Lexing.pos_fname in
-    let l1 = start.Lexing.pos_lnum in
-    let l2 = stop.Lexing.pos_lnum in
-    let ic = open_in fname in
-    let n = ref 1 in
-    while !n < l1 do
-      ignore (input_line ic);
-      incr n
-    done;
-    let lines = ref [] in
-    while !n <= l2 do
-      lines := input_line ic :: !lines;
-      incr n
-    done;
-    close_in ic;
-    let lines = List.rev !lines in
-    let s = String.concat "\n" lines ^ "\n" in
-    Some s
-  with _ -> None
-
-let excerpt_opt = function Some pos -> excerpt pos | None -> None
-
 type runtime_error = { kind : string; msg : string; pos : pos list }
 
 exception Runtime_error of runtime_error
