@@ -27,7 +27,6 @@ let show_record_schemes = ref true
 
 open Type
 
-let string_of_single_pos = Runtime_error.print_single_pos
 let string_of_pos = Runtime_error.print_pos
 let string_of_pos_opt = Runtime_error.print_pos_opt
 let string_of_pos_list = Runtime_error.print_pos_list
@@ -447,7 +446,7 @@ type explanation = bool * Type.t * Type.t * t * t
 exception Type_error of explanation
 
 let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
-  error_header (string_of_pos_opt ta.pos);
+  error_header ta.pos;
   match b with
     | `Meth (l, ([], `Ellipsis), _, `Ellipsis) when not flipped ->
         Format.printf "this value has no method %s@." l

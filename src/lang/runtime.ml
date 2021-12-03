@@ -44,10 +44,14 @@ let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
 
 let error_header idx pos =
-  Format.printf "@[%s:\n%s %i: " (position pos) error idx
+  let e = Option.value (Runtime_error.excerpt_opt pos) ~default:"" in
+  let pos = Repr.string_of_pos_opt pos in
+  Format.printf "@[%s:\n%s%s %i: " (position pos) e error idx
 
 let warning_header idx pos =
-  Format.printf "@[%s:\n%s %i: " (position pos) warning idx
+  let e = Option.value (Runtime_error.excerpt_opt pos) ~default:"" in
+  let pos = Repr.string_of_pos_opt pos in
+  Format.printf "@[%s:\n%s%s %i: " (position pos) e warning idx
 
 (** Exception raised by report_error after an error has been displayed.
   * Unknown errors are re-raised, so that their content is not totally lost. *)
@@ -59,7 +63,7 @@ let throw print_error = function
   (* Warnings *)
   | Term.Ignored tm when Term.is_fun (Type.deref tm.Term.t) ->
       flush_all ();
-      warning_header 1 (Repr.string_of_pos_opt tm.Term.t.Type.pos);
+      warning_header 1 tm.Term.t.Type.pos;
       Format.printf
         "This function application is partial,@ being of type %s.@ Maybe some \
          arguments are missing.@]@."
@@ -67,19 +71,19 @@ let throw print_error = function
       if !strict then raise Error
   | Term.Ignored tm when Term.is_source (Type.deref tm.Term.t) ->
       flush_all ();
-      warning_header 2 (Repr.string_of_pos_opt tm.Term.t.Type.pos);
+      warning_header 2 tm.Term.t.Type.pos;
       Format.printf
         "This source is unused, maybe it needs to@ be connected to an \
          output.@]@.";
       if !strict then raise Error
   | Term.Ignored tm ->
       flush_all ();
-      warning_header 3 (Repr.string_of_pos_opt tm.Term.t.Type.pos);
+      warning_header 3 tm.Term.t.Type.pos;
       Format.printf "This expression should have type unit.@]@.";
       if !strict then raise Error
   | Term.Unused_variable (s, pos) ->
       flush_all ();
-      warning_header 4 (Repr.string_of_single_pos pos);
+      warning_header 4 (Some pos);
       Format.printf "Unused variable %s@]@." s;
       if !strict then raise Error
   (* Errors *)
@@ -90,12 +94,10 @@ let throw print_error = function
       print_error 2 "Parse error";
       raise Error
   | Term.Parse_error (pos, s) ->
-      let pos = Repr.string_of_pos pos in
-      error_header 3 pos;
+      error_header 3 (Some pos);
       Format.printf "%s@]@." s;
       raise Error
   | Term.Unbound (pos, s) ->
-      let pos = Repr.string_of_pos_opt pos in
       error_header 4 pos;
       Format.printf "Undefined variable %s@]@." s;
       raise Error
@@ -105,9 +107,8 @@ let throw print_error = function
       raise Error
   | Term.No_label (f, lbl, first, x) ->
       let pos_f = Repr.string_of_pos_opt f.Term.t.Type.pos in
-      let pos_x = Repr.string_of_pos_opt x.Term.t.Type.pos in
       flush_all ();
-      error_header 6 pos_x;
+      error_header 6 x.Term.t.Type.pos;
       Format.printf
         "Cannot apply that parameter because the function %s@ has %s@ %s!@]@."
         pos_f
@@ -116,11 +117,11 @@ let throw print_error = function
         else Format.sprintf "argument labeled %S" lbl);
       raise Error
   | Error.Invalid_value (v, msg) ->
-      error_header 7 (Repr.string_of_pos_opt v.Value.pos);
+      error_header 7 v.Value.pos;
       Format.printf "Invalid value:@ %s@]@." msg;
       raise Error
   | Lang_encoder.Encoder_error (pos, s) ->
-      error_header 8 (Repr.string_of_pos_opt pos);
+      error_header 8 pos;
       Format.printf "%s@]@." (String.capitalize_ascii s);
       raise Error
   | Failure s ->
@@ -129,19 +130,18 @@ let throw print_error = function
   | Error.Clock_conflict (pos, a, b) ->
       (* TODO better printing of clock errors: we don't have position
        *   information, use the source's ID *)
-      error_header 10 (Repr.string_of_pos_opt pos);
+      error_header 10 pos;
       Format.printf "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
       raise Error
   | Error.Clock_loop (pos, a, b) ->
-      error_header 11 (Repr.string_of_pos_opt pos);
+      error_header 11 pos;
       Format.printf "Cannot unify two nested clocks (%s,@ %s).@]@." a b;
       raise Error
   | Error.Kind_conflict (pos, a, b) ->
-      error_header 10 (Repr.string_of_pos_opt pos);
+      error_header 10 pos;
       Format.printf "Source kinds don't match@ (%s vs@ %s).@]@." a b;
       raise Error
   | Term.Unsupported_format (pos, fmt) ->
-      let pos = Repr.string_of_pos_opt pos in
       error_header 12 pos;
       Format.printf
         "Unsupported format: %s.@ You must be missing an optional \
@@ -149,28 +149,31 @@ let throw print_error = function
         fmt;
       raise Error
   | Term.Internal_error (pos, e) ->
-      let pos = Repr.string_of_pos_list pos in
       (* Bad luck, error 13 should never have happened. *)
-      error_header 13 pos;
-      Format.printf "Internal error: %s@]@." e;
+      error_header 13 (try Some (List.hd pos) with _ -> None);
+      let pos = Repr.string_of_pos_list pos in
+      Format.printf "Internal error: %s,@ stack: %s@]@." e pos;
       raise Error
   | Term.Runtime_error { Term.kind; msg; pos } ->
+      error_header 14 (try Some (List.hd pos) with _ -> None);
       let pos = Repr.string_of_pos_list pos in
-      error_header 14 pos;
-      Format.printf "Uncaught runtime error:@ type: %s,@ message: %s@]@." kind
-        (Printf.sprintf "%s" (Utils.quote_string msg));
+      Format.printf
+        "Uncaught runtime error:@ type: %s,@ message: %s,@ stack: %s@]@." kind
+        (Printf.sprintf "%s" (Utils.quote_string msg))
+        pos;
       raise Error
   | Sedlexing.MalFormed -> print_error 13 "Malformed file."
   | End_of_file -> raise End_of_file
   | e ->
       let bt = Printexc.get_backtrace () in
-      error_header (-1) "unknown position";
+      error_header (-1) None;
       Format.printf "Exception raised: %s@.%s@]@." (Printexc.to_string e) bt;
       raise Error
 
 let report lexbuf f =
   let print_error idx error =
     flush_all ();
+    (*
     let pos =
       let start = snd (Sedlexing.lexing_positions lexbuf) in
       let buf = Sedlexing.Utf8.lexeme lexbuf in
@@ -183,7 +186,9 @@ let report lexbuf f =
         (start.Lexing.pos_cnum - start.Lexing.pos_bol)
         (if buf = "" then "" else Printf.sprintf " before %S" buf)
     in
-    error_header idx pos;
+    *)
+    let pos = Sedlexing.lexing_positions lexbuf in
+    error_header idx (Some pos);
     Format.printf "%s\n@]@." error
   in
   let throw = throw print_error in

@@ -26,14 +26,6 @@
 
 type pos = Lexing.position * Lexing.position
 
-let print_single_pos l =
-  let file =
-    if l.Lexing.pos_fname = "" then ""
-    else Printf.sprintf "file %s, " l.Lexing.pos_fname
-  in
-  let line, col = (l.Lexing.pos_lnum, l.Lexing.pos_cnum - l.Lexing.pos_bol) in
-  Printf.sprintf "%sline %d, char %d" file line col
-
 let print_pos ?(prefix = "at ") (start, stop) =
   let prefix =
     match start.Lexing.pos_fname with
@@ -59,6 +51,32 @@ let rec print_pos_list ?prefix = function
   | [] -> "unknown position"
   | [pos] -> print_pos ?prefix pos
   | pos :: l -> print_pos_list ?prefix l ^ ", " ^ print_pos ?prefix pos
+
+(** Given a position, find the relevant excerpt. *)
+let excerpt (start, stop) =
+  try
+    if start.Lexing.pos_fname <> stop.Lexing.pos_fname then raise Exit;
+    let fname = start.Lexing.pos_fname in
+    let l1 = start.Lexing.pos_lnum in
+    let l2 = stop.Lexing.pos_lnum in
+    let ic = open_in fname in
+    let n = ref 1 in
+    while !n < l1 do
+      ignore (input_line ic);
+      incr n
+    done;
+    let lines = ref [] in
+    while !n <= l2 do
+      lines := input_line ic :: !lines;
+      incr n
+    done;
+    close_in ic;
+    let lines = List.rev !lines in
+    let s = String.concat "\n" lines ^ "\n" in
+    Some s
+  with _ -> None
+
+let excerpt_opt = function Some pos -> excerpt pos | None -> None
 
 type runtime_error = { kind : string; msg : string; pos : pos list }
 
