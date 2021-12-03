@@ -51,6 +51,12 @@ let excerpt (start, stop) =
     done;
     close_in ic;
     let lines = Array.of_list (List.rev !lines) in
+    let lines =
+      let n = Array.length lines in
+      if Array.length lines > 5 then
+        [| lines.(0); lines.(1); "..."; lines.(n - 2); lines.(n - 1) |]
+      else lines
+    in
     let insert_at x n s =
       let s1 = String.sub s 0 n in
       let s2 = String.sub s n (String.length s - n) in
