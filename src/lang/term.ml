@@ -463,7 +463,7 @@ exception No_label of t * string * bool * t
   * This cannot be done at parse-time (as for the computatin of the
   * free variables of functions) because we need types, as well as
   * the ability to distinguish toplevel and inner let-in terms. *)
-exception Unused_variable of (string * Lexing.position)
+exception Unused_variable of (string * Type.pos)
 
 let check_unused ~throw ~lib tm =
   let rec check ?(toplevel = false) v tm =
@@ -498,9 +498,8 @@ let check_unused ~throw ~lib tm =
           let v = check v body in
           Vars.iter
             (fun x ->
-              if Vars.mem x v && x <> "_" then (
-                let pos = fst (Option.get tm.t.Type.pos) in
-                throw (Unused_variable (x, pos))))
+              if Vars.mem x v && x <> "_" then
+                throw (Unused_variable (x, Option.get tm.t.Type.pos)))
             bound;
           (* Restore masked variables. The masking variables have been used but
              it does not count for the ones they masked. Bound variables have
@@ -525,9 +524,7 @@ let check_unused ~throw ~lib tm =
                   if
                     s <> "_"
                     && not (can_ignore def.t || (toplevel && is_fun def.t))
-                  then (
-                    let start_pos = fst (Option.get tm.t.Type.pos) in
-                    throw (Unused_variable (s, start_pos))))
+                  then throw (Unused_variable (s, Option.get tm.t.Type.pos)))
               bvpat;
           Vars.union v mask
   in

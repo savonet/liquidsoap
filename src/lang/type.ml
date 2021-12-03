@@ -537,7 +537,7 @@ type explanation = bool * t * t * repr * repr
 exception Type_error of explanation
 
 let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
-  error_header (print_pos_opt ta.pos);
+  error_header ta.pos;
   match b with
     | `Meth (l, ([], `Ellipsis), `Ellipsis) when not flipped ->
         Format.printf "this value has no method %s@." l

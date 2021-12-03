@@ -145,7 +145,7 @@ type explanation = bool * t * t * repr * repr
 
 exception Type_error of explanation
 
-val print_type_error : (string -> unit) -> explanation -> unit
+val print_type_error : (pos option -> unit) -> explanation -> unit
 
 (** {1 Printing and documentation} *)
 

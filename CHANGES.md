@@ -1,6 +1,9 @@
 2.0.2 (unreleased)
 =====
 
+New:
+* Show code excerpts on errors (#2086)
+
 Fixed:
 * Fixed unbound buffer in muxing operators (#2054)
 * Return correct positions when parsing strings (#2095)

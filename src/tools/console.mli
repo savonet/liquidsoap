@@ -34,3 +34,5 @@ type text_style =
   | `white ]
 
 val colorize : text_style list -> string -> string
+val start_color : text_style list -> string
+val stop_color : unit -> string
