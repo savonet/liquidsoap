@@ -46,12 +46,12 @@ let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
 let error_header idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
   let pos = Repr.string_of_pos_opt pos in
-  Format.printf "@[%s:\n%s%s %i: " (position pos) e error idx
+  Format.printf "@[%s:\n%s\n%s %i: " (position pos) e error idx
 
 let warning_header idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
   let pos = Repr.string_of_pos_opt pos in
-  Format.printf "@[%s:\n%s%s %i: " (position pos) e warning idx
+  Format.printf "@[%s:\n%s\n%s %i: " (position pos) e warning idx
 
 (** Exception raised by report_error after an error has been displayed.
   * Unknown errors are re-raised, so that their content is not totally lost. *)
