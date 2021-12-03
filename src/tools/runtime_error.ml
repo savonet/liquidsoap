@@ -26,14 +26,6 @@
 
 type pos = Lexing.position * Lexing.position
 
-let print_single_pos l =
-  let file =
-    if l.Lexing.pos_fname = "" then ""
-    else Printf.sprintf "file %s, " l.Lexing.pos_fname
-  in
-  let line, col = (l.Lexing.pos_lnum, l.Lexing.pos_cnum - l.Lexing.pos_bol) in
-  Printf.sprintf "%sline %d, char %d" file line col
-
 let print_pos ?(prefix = "at ") (start, stop) =
   let prefix =
     match start.Lexing.pos_fname with

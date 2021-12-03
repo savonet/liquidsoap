@@ -27,10 +27,57 @@ let show_record_schemes = ref true
 
 open Type
 
-let string_of_single_pos = Runtime_error.print_single_pos
 let string_of_pos = Runtime_error.print_pos
 let string_of_pos_opt = Runtime_error.print_pos_opt
 let string_of_pos_list = Runtime_error.print_pos_list
+
+(** Given a position, find the relevant excerpt. *)
+let excerpt (start, stop) =
+  try
+    if start.Lexing.pos_fname <> stop.Lexing.pos_fname then raise Exit;
+    let fname = start.Lexing.pos_fname in
+    let l1 = start.Lexing.pos_lnum in
+    let l2 = stop.Lexing.pos_lnum in
+    let ic = open_in fname in
+    let n = ref 1 in
+    while !n < l1 do
+      ignore (input_line ic);
+      incr n
+    done;
+    let lines = ref [] in
+    while !n <= l2 do
+      lines := input_line ic :: !lines;
+      incr n
+    done;
+    close_in ic;
+    let lines = Array.of_list (List.rev !lines) in
+    let lines =
+      let n = Array.length lines in
+      if Array.length lines > 5 then
+        [| lines.(0); lines.(1); "..."; lines.(n - 2); lines.(n - 1) |]
+      else lines
+    in
+    let insert_at x n s =
+      let s1 = String.sub s 0 n in
+      let s2 = String.sub s n (String.length s - n) in
+      s1 ^ x ^ s2
+    in
+    (* The order is important here because both lines might be the same. *)
+    lines.(Array.length lines - 1) <-
+      insert_at (Console.stop_color ())
+        (stop.Lexing.pos_cnum - stop.Lexing.pos_bol)
+        lines.(Array.length lines - 1);
+    lines.(0) <-
+      insert_at
+        (Console.start_color [`red])
+        (start.Lexing.pos_cnum - start.Lexing.pos_bol)
+        lines.(0);
+    let lines = Array.to_list lines in
+    let s = String.concat "\n" lines ^ "\n" in
+    Some s
+  with _ -> None
+
+let excerpt_opt = function Some pos -> excerpt pos | None -> None
 
 type t =
   [ `Constr of string * (variance * t) list
@@ -447,7 +494,7 @@ type explanation = bool * Type.t * Type.t * t * t
 exception Type_error of explanation
 
 let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
-  error_header (string_of_pos_opt ta.pos);
+  error_header ta.pos;
   match b with
     | `Meth (l, ([], `Ellipsis), _, `Ellipsis) when not flipped ->
         Format.printf "this value has no method %s@." l

@@ -81,3 +81,10 @@ let colorize styles s =
     Printf.sprintf "\027[%sm%s\027[0m"
       (String.concat ";" (List.map style_code styles))
       s
+
+let start_color styles =
+  if not (color ()) then ""
+  else
+    Printf.sprintf "\027[%sm" (String.concat ";" (List.map style_code styles))
+
+let stop_color () = if not (color ()) then "" else "\027[0m"
