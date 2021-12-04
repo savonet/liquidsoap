@@ -41,12 +41,6 @@ type t = Float | Int | Bool
 
 let log = Log.make ["LADSPA extension"]
 
-let ladspa_enabled =
-  try
-    let venv = Unix.getenv "LIQ_LADSPA" in
-    venv = "1" || venv = "true"
-  with Not_found -> true
-
 let ladspa_dirs =
   try String.split_on_char ':' (Unix.getenv "LIQ_LADSPA_DIRS")
   with Not_found ->
@@ -389,5 +383,4 @@ let register_plugins () =
   in
   List.iter add ladspa_dirs
 
-let () =
-  Lifecycle.before_init (fun () -> if ladspa_enabled then register_plugins ())
+let () = External_plugins.register ~keyword:"ladspa" register_plugins

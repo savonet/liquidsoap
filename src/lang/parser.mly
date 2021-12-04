@@ -144,7 +144,7 @@ expr:
   | BOOL                             { mk ~pos:$loc (Ground (Bool $1)) }
   | FLOAT                            { mk ~pos:$loc (Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
-  | VAR                              { mk ~pos:$loc (Var $1) }
+  | VAR                              { External_plugins.trigger $1; mk ~pos:$loc (Var $1) }
   | varlist                          { mk_list ~pos:$loc $1 }
   | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke (mk ~pos:$loc($1) (Var "ref"), "get")), ["", $2])) }
   | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($1) (Var "ref"), "set")), ["", $1; "", $3])) }
@@ -154,7 +154,7 @@ expr:
   | expr DOT LCUR record RCUR        { $4 ~pos:$loc $1 }
   | LCUR record RCUR                 { $2 ~pos:$loc (mk ~pos:$loc (Tuple [])) }
   | LCUR RCUR                        { mk ~pos:$loc (Tuple []) }
-  | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
+  | expr DOT VAR                     { External_plugins.trigger $3; mk ~pos:$loc (Invoke ($1, $3)) }
   | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)), $4)) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | expr COLONCOLON expr             { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var "_::_"), ["", $1; "", $3])) }

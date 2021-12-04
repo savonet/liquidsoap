@@ -27,12 +27,6 @@ open Lilv
 let () = Lang.add_module "lv2"
 let log = Log.make ["Lilv LV2"]
 
-let lilv_enabled =
-  try
-    let venv = Unix.getenv "LIQ_LILV" in
-    venv = "1" || venv = "true"
-  with Not_found -> true
-
 class virtual base ~kind source =
   object
     inherit operator ~name:"lilv" (Kind.of_kind kind) [source]
@@ -354,5 +348,4 @@ let register_plugins () =
   World.load_all world;
   Plugins.iter register_plugin (World.plugins world)
 
-let () =
-  Lifecycle.before_init (fun () -> if lilv_enabled then register_plugins ())
+let () = External_plugins.register ~keyword:"lv2" register_plugins
