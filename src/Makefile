@@ -299,6 +299,3 @@ ifneq ($(BYTE),)
 	$(OCAMLFIND) install liquidsoap META
   endif
 endif
-
-profile:
-	$(MAKE) OCAMLC="$(OCAMLC) -S -p"
