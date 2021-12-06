@@ -370,7 +370,7 @@ let eval ?env tm =
 (** Add toplevel definitions to [builtins] so they can be looked during the
     evaluation of the next scripts. Also try to generate a structured
     documentation from the source code. *)
-let toplevel_add ((doc : Doc.item), params, methods) pat ~t v =
+let toplevel_add (doc, params, methods) pat ~t v =
   let generalized, t = t in
   let rec ptypes t =
     match (Type.deref t).Type.descr with
