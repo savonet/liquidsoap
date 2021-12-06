@@ -156,8 +156,9 @@ let metadata m =
 
 let to_proto_doc ~syntax ~static doc =
   let item = new Doc.item ~sort:false doc in
-  item#add_subsection "syntax" (Doc.trivial syntax);
-  item#add_subsection "static" (Doc.trivial (string_of_bool static));
+  item#add_subsection "syntax" (Lazy.from_val (Doc.trivial syntax));
+  item#add_subsection "static"
+    (Lazy.from_val (Doc.trivial (string_of_bool static)));
   item
 
 let add_protocol ~syntax ~doc ~static name resolver =
@@ -172,11 +173,12 @@ type proto = (string * t * value option * string option) list
 let doc_of_prototype_item ~generalized t d doc =
   let doc = match doc with None -> "(no doc)" | Some d -> d in
   let item = new Doc.item doc in
-  item#add_subsection "type" (Repr.doc_of_type ~generalized t);
+  item#add_subsection "type"
+    (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
   item#add_subsection "default"
     (match d with
-      | None -> Doc.trivial "None"
-      | Some d -> Doc.trivial (print_value d));
+      | None -> Lazy.from_val (Doc.trivial "None")
+      | Some d -> Lazy.from_fun (fun () -> Doc.trivial (print_value d)));
   item
 
 let builtin_type p t =
@@ -189,18 +191,23 @@ let to_plugin_doc category flags main_doc proto return_t =
   let t = builtin_type proto return_t in
   let generalized = Type.filter_vars (fun _ -> true) t in
   item#add_subsection "_category"
-    (Doc.trivial (Documentation.string_of_category category));
-  item#add_subsection "_type" (Repr.doc_of_type ~generalized t);
+    (Lazy.from_fun (fun () ->
+         Doc.trivial (Documentation.string_of_category category)));
+  item#add_subsection "_type"
+    (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
   List.iter
     (fun f ->
-      item#add_subsection "_flag" (Doc.trivial (Documentation.string_of_flag f)))
+      item#add_subsection "_flag"
+        (Lazy.from_fun (fun () -> Doc.trivial (Documentation.string_of_flag f))))
     flags;
-  if meths <> [] then item#add_subsection "_methods" (Repr.doc_of_meths meths);
+  if meths <> [] then
+    item#add_subsection "_methods"
+      (Lazy.from_fun (fun () -> Repr.doc_of_meths meths));
   List.iter
     (fun (l, t, d, doc) ->
       item#add_subsection
         (if l = "" then "(unlabeled)" else l)
-        (doc_of_prototype_item ~generalized t d doc))
+        (Lazy.from_fun (fun () -> doc_of_prototype_item ~generalized t d doc)))
     proto;
   item
 
@@ -239,11 +246,14 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let value = { pos = t.Type.pos; value } in
   let generalized = Type.filter_vars (fun _ -> true) t in
   doc#add_subsection "_category"
-    (Doc.trivial (Documentation.string_of_category category));
-  doc#add_subsection "_type" (Repr.doc_of_type ~generalized t);
+    (Lazy.from_fun (fun () ->
+         Doc.trivial (Documentation.string_of_category category)));
+  doc#add_subsection "_type"
+    (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
   List.iter
     (fun f ->
-      doc#add_subsection "_flag" (Doc.trivial (Documentation.string_of_flag f)))
+      doc#add_subsection "_flag"
+        (Lazy.from_fun (fun () -> Doc.trivial (Documentation.string_of_flag f))))
     flags;
   Environment.add_builtin ~doc
     (String.split_on_char '.' name)
