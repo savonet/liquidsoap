@@ -370,8 +370,9 @@ let parse_comments tokenizer =
     in
     List.iter
       (function
-        | `Category c -> doc#add_subsection "_category" (Doc.trivial c)
-        | `Flag c -> doc#add_subsection "_flag" (Doc.trivial c))
+        | `Category c ->
+            doc#add_subsection "_category" (Lazy.from_val (Doc.trivial c))
+        | `Flag c -> doc#add_subsection "_flag" (Lazy.from_val (Doc.trivial c)))
       special;
     (Parser.DEF ((doc, params, methods), decoration), (startp, endp))
   in

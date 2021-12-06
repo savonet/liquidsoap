@@ -35,9 +35,9 @@ class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
       in
       let doc () =
         match (doc, sdoc) with
-          | Some d, _ -> d
-          | _, None -> Doc.trivial "(no doc)"
-          | _, Some s -> Doc.trivial s
+          | Some d, _ -> Lazy.force d
+          | None, None -> Doc.trivial "(no doc)"
+          | None, Some s -> Doc.trivial s
       in
       if duplicates then (
         subsections <- (plugin, Lazy.from_fun doc) :: subsections;

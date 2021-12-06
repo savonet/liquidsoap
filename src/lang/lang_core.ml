@@ -162,7 +162,8 @@ let to_proto_doc ~syntax ~static doc =
   item
 
 let add_protocol ~syntax ~doc ~static name resolver =
-  let doc = to_proto_doc ~syntax ~static doc in
+  let doc () = to_proto_doc ~syntax ~static doc in
+  let doc = Lazy.from_fun doc in
   let spec = { Request.static; resolve = resolver } in
   Request.protocols#register ~doc name spec
 
@@ -236,26 +237,31 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
     }
   in
   let generalized = Type.filter_vars (fun _ -> true) t in
-  Environment.add_builtin
-    ~doc:(to_plugin_doc category flags descr proto return_t)
+  let doc () = to_plugin_doc category flags descr proto return_t in
+  let doc = Lazy.from_fun doc in
+  Environment.add_builtin ~doc
     (String.split_on_char '.' name)
     ((generalized, t), value)
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
-  let doc = new Doc.item ~sort:false descr in
   let value = { pos = t.Type.pos; value } in
   let generalized = Type.filter_vars (fun _ -> true) t in
-  doc#add_subsection "_category"
-    (Lazy.from_fun (fun () ->
-         Doc.trivial (Documentation.string_of_category category)));
-  doc#add_subsection "_type"
-    (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
-  List.iter
-    (fun f ->
-      doc#add_subsection "_flag"
-        (Lazy.from_fun (fun () -> Doc.trivial (Documentation.string_of_flag f))))
-    flags;
-  Environment.add_builtin ~doc
+  let doc () =
+    let doc = new Doc.item ~sort:false descr in
+    doc#add_subsection "_category"
+      (Lazy.from_fun (fun () ->
+           Doc.trivial (Documentation.string_of_category category)));
+    doc#add_subsection "_type"
+      (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
+    List.iter
+      (fun f ->
+        doc#add_subsection "_flag"
+          (Lazy.from_fun (fun () ->
+               Doc.trivial (Documentation.string_of_flag f))))
+      flags;
+    doc
+  in
+  Environment.add_builtin ~doc:(Lazy.from_fun doc)
     (String.split_on_char '.' name)
     ((generalized, t), value)
 
