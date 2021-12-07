@@ -534,8 +534,12 @@ let doc_of_meths m =
   let items = new Doc.item "" in
   List.iter
     (fun { meth = m; scheme = generalized, t; doc } ->
-      let i = new Doc.item ~sort:false doc in
-      i#add_subsection "type" (doc_of_type ~generalized t);
-      items#add_subsection m i)
+      let i () =
+        let i = new Doc.item ~sort:false doc in
+        i#add_subsection "type"
+          (Lazy.from_fun (fun () -> doc_of_type ~generalized t));
+        i
+      in
+      items#add_subsection m (Lazy.from_fun i))
     m;
   items

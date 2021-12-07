@@ -291,6 +291,9 @@ let register_plugin plugin =
   let inputs, outputs = get_audio_ports plugin in
   let ni = Array.length inputs in
   let no = Array.length outputs in
+  (* Ensure that we support the number of channels. *)
+  ignore (Audio_converter.Channel_layout.layout_of_channels ni);
+  ignore (Audio_converter.Channel_layout.layout_of_channels no);
   let liq_params, params = params_of_plugin plugin in
   let mono = ni = 1 && no = 1 in
   let input_kind = Lang.audio_n ni in

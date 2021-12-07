@@ -28,9 +28,12 @@ class item ?(sort = true) (doc : string) =
   object
     val doc = doc
     method get_doc = doc
-    val mutable subsections : (string * item) list = []
-    method get_subsections = sort subsections
-    method get_subsection name = List.assoc name subsections
+    val mutable subsections : (string * item Lazy.t) list = []
+
+    method get_subsections =
+      sort subsections |> List.map (fun (k, v) -> (k, Lazy.force v))
+
+    method get_subsection name = Lazy.force (List.assoc name subsections)
     method has_subsection name = List.mem_assoc name subsections
 
     method add_subsection label item =
