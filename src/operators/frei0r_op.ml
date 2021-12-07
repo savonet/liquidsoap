@@ -30,6 +30,12 @@ type t = Float | Int | Bool
 
 let log = Log.make ["frei0r"]
 
+let frei0r_enable =
+  try
+    let venv = Unix.getenv "LIQ_FREI0R" in
+    venv = "1" || venv = "true"
+  with Not_found -> true
+
 let plugin_dirs =
   try
     let path = Unix.getenv "LIQ_FREI0R_PATH" in
@@ -347,4 +353,5 @@ let register_plugins () =
   in
   List.iter add plugin_dirs
 
-let () = External_plugins.register ~keyword:"frei0r" register_plugins
+let () =
+  Lifecycle.before_init (fun () -> if frei0r_enable then register_plugins ())

@@ -1,7 +1,7 @@
 SUBDIRS=tools \
 	decoder playlists encoder protocols stream lang \
 	ogg_formats converters operators sources conversions outputs io \
-	visualization synth harbor lang_encoders encoder_formats externals
+	visualization synth harbor lang_encoders encoder_formats
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
@@ -98,6 +98,9 @@ operators = \
 	operators/still_frame.ml operators/dtmf.ml \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
+	$(if $(W_LADSPA),operators/ladspa_op.ml) \
+	$(if $(W_LILV),operators/lilv_op.ml) \
+	$(if $(W_FREI0R),operators/frei0r_op.ml) \
 	$(if $(W_GD),operators/video_text_gd.ml) \
 	$(if $(W_SDL_TTF),operators/video_text_sdl.ml) \
 	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
@@ -204,13 +207,8 @@ visualization = \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml)
 
 synth = synth/keyboard.ml synth/synth_op.ml \
-	$(if $(W_SDL),synth/keyboard_sdl.ml)
-
-externals = \
-	$(if $(W_FREI0R),operators/frei0r_op.ml) \
-	$(if $(W_LILV),operators/lilv_op.ml) \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
-	$(if $(W_LADSPA),operators/ladspa_op.ml)
+	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
 builtins = lang/lang_builtins.ml \
            lang/builtins_ref.ml lang/builtins_socket.ml \
@@ -262,7 +260,6 @@ liquidsoap_sources += \
         lang/documentation.ml lang/lang_core.ml \
 	lang/lang_error.ml lang/lang_source.ml \
         lang/lang.ml lang/modules.ml \
-	lang/external_plugins.ml \
 	lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
 	lang/preprocessor.ml lang/runtime.ml \
         lang/builtins_request.ml \
