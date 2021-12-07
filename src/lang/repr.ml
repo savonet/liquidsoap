@@ -339,7 +339,7 @@ let print f t =
                     print ~par:true vars t
                 | [(l, (g, t), None)] ->
                     Format.fprintf f "%s : %s" l (gen g);
-                    print ~par:true vars t
+                    print ~par:false vars t
                 | (l, (g, t), Some json_name) :: m ->
                     Format.fprintf f "%s as %s : %s"
                       (Utils.quote_utf8_string json_name)
