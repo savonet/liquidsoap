@@ -23,6 +23,9 @@
 let loader = ref (fun () -> ())
 let keywords : (string, unit -> unit) Hashtbl.t = Hashtbl.create 10
 
+(** Register a function to be called to register external plugins when a
+    particular keyword is present. We need a particular mechanism here because
+    those plugins have to be loaded very early (before typing time). *)
 let register ?keyword f =
   let f =
     let already = ref false in
@@ -40,8 +43,10 @@ let register ?keyword f =
 
 let trigger_enabled = ref false
 
+(** Launch the function associated with a keyword (if any). *)
 let trigger k =
   if !trigger_enabled then (
     match Hashtbl.find_opt keywords k with Some f -> f () | None -> ())
 
+(** Load all the external plugins. *)
 let load () = !loader ()
