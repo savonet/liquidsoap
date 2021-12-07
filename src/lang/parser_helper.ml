@@ -190,7 +190,12 @@ let args_of, app_of =
   let app_of = gen_args_of get_app in
   (args_of, app_of)
 
-let mk = Term.make
+let mk ~pos e =
+  (match e with
+    | Var x -> External_plugins.trigger x
+    | Invoke ({ term = Var x }, y) -> External_plugins.trigger (x ^ "." ^ y)
+    | _ -> ());
+  Term.make ~pos e
 
 let append_list ~pos x v =
   match (x, v) with
