@@ -337,6 +337,10 @@ let register_descr plugin_name descr_n d inputs outputs =
 let register_descr plugin_name descr_n d inputs outputs =
   (* We do not register plugins without outputs for now. *)
   try
+    ignore
+      (Audio_converter.Channel_layout.layout_of_channels (Array.length inputs));
+    ignore
+      (Audio_converter.Channel_layout.layout_of_channels (Array.length outputs));
     if outputs <> [||] then register_descr plugin_name descr_n d inputs outputs
   with Audio_converter.Channel_layout.Unsupported ->
     log#info

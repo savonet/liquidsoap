@@ -35,7 +35,7 @@ val builtins : Doc.item
 val add_builtin :
   ?override:bool ->
   ?register:bool ->
-  ?doc:Doc.item ->
+  ?doc:Doc.item Lazy.t ->
   string list ->
   Type.scheme * Value.t ->
   unit

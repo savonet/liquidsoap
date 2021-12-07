@@ -398,15 +398,22 @@ let toplevel_add (doc, params, methods) pat ~t v =
             (`Known (List.assoc label pvalues), List.remove_assoc label pvalues)
           with Not_found -> (`Unknown, pvalues)
         in
-        let item = Doc.trivial (if descr = "" then "(no doc)" else descr) in
-        item#add_subsection "type" (Repr.doc_of_type ~generalized t);
-        item#add_subsection "default"
-          (Doc.trivial
-             (match default with
-               | `Unknown -> "???"
-               | `Known (Some v) -> Value.print_value v
-               | `Known None -> "None"));
-        doc#add_subsection (if label = "" then "(unlabeled)" else label) item;
+        let item () =
+          let item = Doc.trivial (if descr = "" then "(no doc)" else descr) in
+          item#add_subsection "type"
+            (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
+          item#add_subsection "default"
+            (Lazy.from_fun (fun () ->
+                 Doc.trivial
+                   (match default with
+                     | `Unknown -> "???"
+                     | `Known (Some v) -> Value.print_value v
+                     | `Known None -> "None")));
+          item
+        in
+        doc#add_subsection
+          (if label = "" then "(unlabeled)" else label)
+          (Lazy.from_fun item);
         (params, pvalues))
       (params, pvalues) ptypes
   in
@@ -429,7 +436,8 @@ let toplevel_add (doc, params, methods) pat ~t v =
            (meths, { t with Type.descr = Type.Arrow (p, a) })
        | _ -> (meths, t)
    in
-   doc#add_subsection "_type" (Repr.doc_of_type ~generalized t);
+   doc#add_subsection "_type"
+     (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
    let meths =
      List.map
        (fun Type.({ meth = l; doc = d } as m) ->
@@ -438,13 +446,16 @@ let toplevel_add (doc, params, methods) pat ~t v =
          Type.{ m with doc = d })
        meths
    in
-   if meths <> [] then doc#add_subsection "_methods" (Repr.doc_of_meths meths));
+   if meths <> [] then
+     doc#add_subsection "_methods"
+       (Lazy.from_fun (fun () -> Repr.doc_of_meths meths)));
   let env, pa = Typechecking.type_of_pat ~level:max_int ~pos:None pat in
   Typing.(t <: pa);
   List.iter
     (fun (x, v) ->
       let t = List.assoc x env in
-      Environment.add_builtin ~override:true ~doc x ((generalized, t), v))
+      Environment.add_builtin ~override:true ~doc:(Lazy.from_val doc) x
+        ((generalized, t), v))
     (eval_pat pat v)
 
 let rec eval_toplevel ?(interactive = false) t =
