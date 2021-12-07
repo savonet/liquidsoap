@@ -74,9 +74,6 @@ depopts: [
   "taglib"
   "theora"
   "sdl-liquidsoap"
-  "tsdl"
-  "tsdl-image"
-  "tsdl-ttf"
   "vorbis"
   "xmlplaylist"
 ]
