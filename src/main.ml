@@ -90,7 +90,10 @@ let load_libs =
       Runtime.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
         ~parse_only:!parse_only ();
       loaded := true;
-      Configure.display_types := save)
+      Configure.display_types := save);
+    (* Once the standard library loaded, we want the keyword to trigger the
+       loading of external libraries. *)
+    External_plugins.trigger_enabled := true
 
 (** Evaluate a script or expression.
   * This used to be done immediately, which made it possible to
@@ -132,18 +135,19 @@ let do_eval, eval =
       force ~lib:true;
       delayed := Some (eval src) )
 
-let load_libs () =
+let load_libs ~externals () =
   do_eval ~lib:true;
-  load_libs ()
+  load_libs ();
+  if externals then External_plugins.load ()
 
 let lang_doc name =
   run_streams := false;
-  load_libs ();
+  load_libs ~externals:true ();
   try Doc.print_lang (Environment.builtins#get_subsection name)
   with Not_found -> Printf.printf "Plugin not found!\n%!"
 
 let process_request s =
-  load_libs ();
+  load_libs ~externals:false ();
   run_streams := false;
   let req = Request.create s in
   match Request.resolve ~ctype:None req 20. with
@@ -266,7 +270,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              load_libs ();
+              load_libs ~externals:true ();
               Utils.kprint_string ~pager:true
                 (Doc.print_xml (Plug.plugs : Doc.item))),
           Printf.sprintf
@@ -276,7 +280,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              load_libs ();
+              load_libs ~externals:true ();
               Utils.kprint_string ~pager:true
                 (Doc.print_json (Plug.plugs : Doc.item))),
           Printf.sprintf
@@ -286,7 +290,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              load_libs ();
+              load_libs ~externals:true ();
               Utils.kprint_string ~pager:true
                 (Doc.print (Plug.plugs : Doc.item))),
           Printf.sprintf
@@ -296,7 +300,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              load_libs ();
+              load_libs ~externals:true ();
               Utils.kprint_string ~pager:true
                 (Doc.print_functions (Plug.plugs : Doc.item))),
           Printf.sprintf "List all functions." );
@@ -304,7 +308,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              load_libs ();
+              load_libs ~externals:true ();
               Utils.kprint_string ~pager:true
                 (Doc.print_functions_md ~extra:false (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all functions in markdown." );
@@ -312,7 +316,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              load_libs ();
+              load_libs ~externals:true ();
               Utils.kprint_string ~pager:true
                 (Doc.print_functions_md ~extra:true (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all extra functions in markdown." );
@@ -320,7 +324,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              load_libs ();
+              load_libs ~externals:false ();
               Utils.kprint_string ~pager:true
                 (Doc.print_protocols_md (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all protocols in markdown." );
@@ -354,7 +358,7 @@ let options =
         ( ["--list-settings"],
           Arg.Unit
             (fun () ->
-              load_libs ();
+              load_libs ~externals:false ();
               Utils.print_string ~pager:true
                 (Builtins_settings.print_settings ());
               exit 0),
@@ -536,7 +540,7 @@ let () =
       in
       if !run_streams then
         if !interactive then (
-          load_libs ();
+          load_libs ~externals:false ();
           check_directories ();
           ignore (Thread.create Runtime.interactive ());
           Dtools.Init.init main)
