@@ -308,7 +308,9 @@ let print f t =
           in
           let m = aux m in
           (* Put latest addition last. *)
-          let m = List.rev m in
+          (* let m = List.rev m in *)
+          (* Sort methods according to label. *)
+          let m = List.sort (fun (l, _, _) (l', _, _) -> compare l l') m in
           (* First print the main value. *)
           let vars =
             if t = `Tuple [] then (
