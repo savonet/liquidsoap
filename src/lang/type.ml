@@ -111,10 +111,6 @@ let string_of_constr = function
 
 type variance = Covariant | Contravariant | Invariant
 
-(** Every type gets a level annotation.
-  * This is useful in order to know what can or cannot be generalized:
-  * you need to compare the level of an abstraction and those of a ref or
-  * source. *)
 type t = { pos : pos option; descr : descr }
 
 and constructed = { constructor : string; params : (variance * t) list }
