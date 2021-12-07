@@ -445,7 +445,7 @@ jobs:
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, build_posix, fetch_s3_artifacts]
+    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
     strategy:
       fail-fast: false
       matrix:
@@ -476,7 +476,7 @@ jobs:
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, build_posix, fetch_s3_artifacts]
+    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
     strategy:
       fail-fast: false
       matrix:
