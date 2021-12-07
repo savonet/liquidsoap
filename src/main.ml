@@ -90,7 +90,10 @@ let load_libs =
       Runtime.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
         ~parse_only:!parse_only ();
       loaded := true;
-      Configure.display_types := save)
+      Configure.display_types := save);
+    (* Once the standard library loaded, we want the keyword to trigger the
+       loading of external libraries. *)
+    External_plugins.trigger_enabled := true
 
 (** Evaluate a script or expression.
   * This used to be done immediately, which made it possible to

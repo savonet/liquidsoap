@@ -38,7 +38,10 @@ let register ?keyword f =
        f ());
   match keyword with None -> () | Some k -> Hashtbl.add keywords k f
 
+let trigger_enabled = ref false
+
 let trigger k =
-  match Hashtbl.find_opt keywords k with Some f -> f () | None -> ()
+  if !trigger_enabled then (
+    match Hashtbl.find_opt keywords k with Some f -> f () | None -> ())
 
 let load () = !loader ()

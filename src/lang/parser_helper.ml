@@ -191,7 +191,10 @@ let args_of, app_of =
   (args_of, app_of)
 
 let mk ~pos e =
-  (match e with Var x -> External_plugins.trigger x | _ -> ());
+  (match e with
+    | Var x -> External_plugins.trigger x
+    | Invoke ({ term = Var x }, y) -> External_plugins.trigger (x ^ "." ^ y)
+    | _ -> ());
   Term.make ~pos e
 
 let append_list ~pos x v =
