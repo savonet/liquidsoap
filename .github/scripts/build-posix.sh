@@ -6,6 +6,14 @@ export CPU_CORES=$1
 
 eval $(opam config env)
 
+echo "\n### Build workarounds\n"
+
+# See: https://github.com/sanette/tsdl-image/issues/2
+cd /tmp
+git clone https://github.com/sanette/tsdl-image.git
+cd tsdl-image
+opam install -y .
+
 cd /tmp/liquidsoap-full
 
 echo "\n### Preparing bindings\n"
