@@ -47,10 +47,13 @@ let print_pos_opt ?prefix = function
   | Some pos -> print_pos ?prefix pos
   | None -> "unknown position"
 
-let rec print_pos_list ?prefix = function
+let rec print_pos_list ?(newlines = false) ?prefix = function
   | [] -> "unknown position"
   | [pos] -> print_pos ?prefix pos
-  | pos :: l -> print_pos_list ?prefix l ^ ", " ^ print_pos ?prefix pos
+  | pos :: l ->
+      print_pos_list ~newlines ?prefix l
+      ^ (if newlines then ",\n" else ", ")
+      ^ print_pos ?prefix pos
 
 type runtime_error = { kind : string; msg : string; pos : pos list }
 

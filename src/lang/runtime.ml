@@ -157,14 +157,15 @@ let throw print_error = function
   | Term.Internal_error (pos, e) ->
       (* Bad luck, error 13 should never have happened. *)
       error_header 13 (try Some (List.last pos) with _ -> None);
-      let pos = Repr.string_of_pos_list pos in
-      Format.printf "Internal error: %s,@ stack: %s@]@." e pos;
+      let pos = Repr.string_of_pos_list ~newlines:true pos in
+      Format.printf "Internal error: %s,@ stack:\n%s\n@]@." e pos;
       raise Error
   | Term.Runtime_error { Term.kind; msg; pos } ->
       error_header 14 (try Some (List.last pos) with _ -> None);
-      let pos = Repr.string_of_pos_list pos in
+      let pos = Repr.string_of_pos_list ~newlines:true pos in
       Format.printf
-        "Uncaught runtime error:@ type: %s,@ message: %s,@ stack: %s@]@." kind
+        "Uncaught runtime error:@ type: %s,@ message: %s,@\nstack: %s\n@]@."
+        kind
         (Printf.sprintf "%s" (Utils.quote_string msg))
         pos;
       raise Error
