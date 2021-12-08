@@ -472,6 +472,11 @@ let print f t =
   end;
   Format.fprintf f "@]"
 
+let to_string t =
+  print Format.str_formatter t;
+  Format.fprintf Format.str_formatter "@?";
+  Format.flush_str_formatter ()
+
 let print_type f t = print f (make t)
 
 let print_scheme f (generalized, t) =
@@ -483,11 +488,7 @@ let print_scheme f (generalized, t) =
       generalized;
   print f (make ~generalized t)
 
-let string_of_type ?generalized t : string =
-  print Format.str_formatter (make ?generalized t);
-  Format.fprintf Format.str_formatter "@?";
-  Format.flush_str_formatter ()
-
+let string_of_type ?generalized t = to_string (make ?generalized t)
 let () = Type.to_string_fun := string_of_type
 let string_of_scheme (g, t) = string_of_type ~generalized:g t
 
