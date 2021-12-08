@@ -22,6 +22,12 @@
 
 (** {1 Running} *)
 
+module List = struct
+  include List
+
+  let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
+end
+
 let () = Lang.apply_fun := Evaluation.apply
 
 let type_and_run ~throw ~lib ast =
@@ -150,12 +156,12 @@ let throw print_error = function
       raise Error
   | Term.Internal_error (pos, e) ->
       (* Bad luck, error 13 should never have happened. *)
-      error_header 13 (try Some (List.hd pos) with _ -> None);
+      error_header 13 (try Some (List.last pos) with _ -> None);
       let pos = Repr.string_of_pos_list pos in
       Format.printf "Internal error: %s,@ stack: %s@]@." e pos;
       raise Error
   | Term.Runtime_error { Term.kind; msg; pos } ->
-      error_header 14 (try Some (List.hd pos) with _ -> None);
+      error_header 14 (try Some (List.last pos) with _ -> None);
       let pos = Repr.string_of_pos_list pos in
       Format.printf
         "Uncaught runtime error:@ type: %s,@ message: %s,@ stack: %s@]@." kind
