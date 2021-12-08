@@ -25,6 +25,9 @@
 (** Show generalized variables in records. *)
 let show_record_schemes = ref true
 
+(** Use globally unique names for existential variables. *)
+let global_evar_names = ref false
+
 open Type
 
 let string_of_pos = Runtime_error.print_pos
@@ -157,7 +160,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
   let evars = Hashtbl.create 10 in
   let evar var =
     let constr_symbols, c = split_constr var.constraints in
-    if !debug then (
+    if !global_evar_names || !debug then (
       let v =
         Printf.sprintf "'%s%s" constr_symbols (evar_global_name var.name)
       in
