@@ -203,7 +203,7 @@ let rec eval ~env tm =
                 raise
                   (Internal_error
                      ( Option.to_list tm.t.Type.pos,
-                       "invoked method " ^ l ^ " not found" ))
+                       "invoked method `" ^ l ^ "` not found" ))
         in
         aux (eval ~env t)
     | Open (t, u) ->
