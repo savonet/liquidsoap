@@ -27,6 +27,7 @@ open Type
 let () = Type.debug := false
 let () = Type.debug_levels := false
 let () = Type.debug_variance := false
+let () = Repr.global_evar_names := false
 let debug_subtyping = ref false
 
 type env = (string * scheme) list
@@ -281,60 +282,66 @@ let rec sup ~pos a b =
       | Var { contents = Free _ } -> Some ([], var ?pos ())
       | _ -> None
   in
-  match ((deref a).descr, (deref b).descr) with
-    | Var { contents = Free _ }, _ -> b
-    | _, Var { contents = Free _ } -> a
-    | Nullable a, Nullable b -> mk (Nullable (sup a b))
-    | Nullable a, _ -> mk (Nullable (sup a b))
-    | _, Nullable b -> mk (Nullable (sup a b))
-    | List { t = a }, List { t = b } ->
-        mk (List { t = sup a b; json_repr = `Tuple })
-    | Arrow (p, a), Arrow (q, b) ->
-        if List.length p <> List.length q then raise Incompatible;
-        mk (Arrow (q, sup a b))
-    | Tuple l, Tuple m ->
-        if List.length l <> List.length m then raise Incompatible;
-        mk (Tuple (List.map2 sup l m))
-    | Ground g, Ground g' ->
-        (* It might happen that we compare abstract values. *)
-        (try if g <> g' then raise Incompatible with _ -> ());
-        mk (Ground g')
-    | Meth (m, a), Meth (m', b) when m.meth = m'.meth ->
-        mk (Meth ({ m' with scheme = scheme_sup m.scheme m'.scheme }, sup a b))
-    | Meth (m, a), _ -> (
-        match meth_type m.meth b with
-          (* TODO: I guess that we should hide other methods named l *)
-          | Some t' ->
-              mk (Meth ({ m with scheme = scheme_sup t' m.scheme }, sup a b))
-          | None -> sup a b)
-    | _, Meth (m, b) -> (
-        match meth_type m.meth a with
-          (* TODO: I guess that we should hide other methods named l *)
-          | Some t' ->
-              mk (Meth ({ m with scheme = scheme_sup t' m.scheme }, sup a b))
-          | None -> sup a b)
-    | ( Constr { constructor = c; params = a },
-        Constr { constructor = d; params = b } ) ->
-        if c <> d || List.length a <> List.length b then raise Incompatible;
-        let params =
-          List.map2
-            (fun (v, a) (v', b) ->
-              if v <> v' then raise Incompatible;
-              (v, sup a b))
-            a b
-        in
-        mk (Constr { constructor = c; params })
-    | Getter a, Getter b -> mk (Getter (sup a b))
-    | Getter a, Arrow ([], b) -> mk (Getter (sup a b))
-    | Getter a, _ -> mk (Getter (sup a b))
-    | Arrow ([], a), Getter b -> mk (Getter (sup a b))
-    | _, Getter b -> mk (Getter (sup a b))
-    | _, _ ->
-        if !debug_subtyping then
-          failwith
-            (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.to_string a)
-               (Type.to_string b))
-        else raise Incompatible
+  if a == b then a
+  else (
+    match ((deref a).descr, (deref b).descr) with
+      | Var { contents = Free _ }, _ -> b
+      | _, Var { contents = Free _ } -> a
+      | Nullable a, Nullable b -> mk (Nullable (sup a b))
+      | Nullable a, _ -> mk (Nullable (sup a b))
+      | _, Nullable b -> mk (Nullable (sup a b))
+      | List { t = a }, List { t = b } ->
+          mk (List { t = sup a b; json_repr = `Tuple })
+      | Arrow (p, a), Arrow (q, b) ->
+          if List.length p <> List.length q then raise Incompatible;
+          mk (Arrow (q, sup a b))
+      | Tuple l, Tuple m ->
+          if List.length l <> List.length m then raise Incompatible;
+          mk (Tuple (List.map2 sup l m))
+      | Ground g, Ground g' ->
+          (* It might happen that we compare abstract values. *)
+          if g <> g' then raise Incompatible;
+          mk (Ground g)
+      | Meth (m, a), _ -> (
+          let a = hide_meth m.meth a in
+          match meth_type m.meth b with
+            | Some t' -> (
+                try
+                  mk
+                    (Meth ({ m with scheme = scheme_sup t' m.scheme }, sup a b))
+                with Incompatible -> sup a b)
+            | None -> sup a b)
+      | _, Meth (m, b) -> (
+          let b = hide_meth m.meth b in
+          match meth_type m.meth a with
+            | Some t' -> (
+                try
+                  mk
+                    (Meth ({ m with scheme = scheme_sup t' m.scheme }, sup a b))
+                with Incompatible -> sup a b)
+            | None -> sup a b)
+      | ( Constr { constructor = c; params = a },
+          Constr { constructor = d; params = b } ) ->
+          if c <> d || List.length a <> List.length b then raise Incompatible;
+          let params =
+            List.map2
+              (fun (v, a) (v', b) ->
+                if v <> v' then raise Incompatible;
+                (v, sup a b))
+              a b
+          in
+          mk (Constr { constructor = c; params })
+      | Getter a, Getter b -> mk (Getter (sup a b))
+      | Getter a, Arrow ([], b) -> mk (Getter (sup a b))
+      | Getter a, _ -> mk (Getter (sup a b))
+      | Arrow ([], a), Getter b -> mk (Getter (sup a b))
+      | _, Getter b -> mk (Getter (sup a b))
+      | _, _ ->
+          if !debug_subtyping then
+            failwith
+              (Printf.sprintf "\nFailed sup: %s \\/ %s\n\n%!" (Type.to_string a)
+                 (Type.to_string b))
+          else raise Incompatible)
 
 let sup ~pos a b =
   let b' = sup ~pos a b in
@@ -344,6 +351,14 @@ let sup ~pos a b =
   b'
 
 exception Error of (Repr.t * Repr.t)
+
+let () =
+  Printexc.register_printer (function
+    | Error (a, b) ->
+        Some
+          (Printf.sprintf "Typing error: %s vs %s" (Repr.to_string a)
+             (Repr.to_string b))
+    | _ -> None)
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
@@ -366,242 +381,248 @@ exception Error of (Repr.t * Repr.t)
 let rec ( <: ) a b =
   if !debug || !debug_subtyping then
     Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
-  match (a.descr, b.descr) with
-    | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v' ->
-        ()
-    | _, Var ({ contents = Link (Covariant, b') } as var) ->
-        (* When the variable is covariant, we take the opportunity here to correct
-           bad choices. For instance, if we took int, but then have a 'a?, we
-           change our mind and use int? instead. *)
-        let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
-        (try b' <: b''
-         with _ ->
-           failwith
-             (Printf.sprintf "sup did to increase: %s !< %s" (Type.to_string b')
-                (Type.to_string b'')));
-        if b'' != b' then var := Link (Covariant, b'');
-        a <: b''
-    | Var ({ contents = Link (Covariant, a') } as var), _ ->
-        var := Link (Invariant, a');
-        a <: b
-    | _, Var { contents = Link (_, b) } -> a <: b
-    | Var { contents = Link (_, a) }, _ -> a <: b
-    | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
-        let rec aux pre p1 p2 =
-          match (p1, p2) with
-            | (v1, h1) :: t1, (v2, h2) :: t2 ->
+  if a != b then (
+    match (a.descr, b.descr) with
+      | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v'
+        ->
+          ()
+      | _, Var ({ contents = Link (Covariant, b') } as var) ->
+          (* When the variable is covariant, we take the opportunity here to correct
+             bad choices. For instance, if we took int, but then have a 'a?, we
+             change our mind and use int? instead. *)
+          let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
+          (try b' <: b''
+           with e ->
+             failwith
+               (Printf.sprintf "sup did to increase: %s !< %s (%s)"
+                  (Type.to_string b') (Type.to_string b'')
+                  (Printexc.to_string e)));
+          if b'' != b' then var := Link (Covariant, b'');
+          a <: b''
+      | Var ({ contents = Link (Covariant, a') } as var), _ ->
+          var := Link (Invariant, a');
+          a <: b
+      | _, Var { contents = Link (_, b) } -> a <: b
+      | Var { contents = Link (_, a) }, _ -> a <: b
+      | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
+          let rec aux pre p1 p2 =
+            match (p1, p2) with
+              | (v1, h1) :: t1, (v2, h2) :: t2 ->
+                  begin
+                    try
+                      let v = if v1 = v2 then v1 else Invariant in
+                      match v with
+                        | Covariant -> h1 <: h2
+                        | Contravariant -> h2 <: h1
+                        | Invariant ->
+                            h1 <: h2;
+                            h2 <: h1
+                    with Error (a, b) ->
+                      let bt = Printexc.get_raw_backtrace () in
+                      let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
+                      Printexc.raise_with_backtrace
+                        (Error
+                           ( `Constr (c1.constructor, pre @ [(v1, a)] @ post),
+                             `Constr (c1.constructor, pre @ [(v2, b)] @ post) ))
+                        bt
+                  end;
+                  aux ((v1, `Ellipsis) :: pre) t1 t2
+              | [], [] -> ()
+              | _ -> assert false
+            (* same name => same arity *)
+          in
+          aux [] c1.params c2.params
+      | List { t = t1; json_repr = repr1 }, List { t = t2; json_repr = repr2 }
+        -> (
+          try t1 <: t2
+          with Error (a, b) ->
+            raise (Error (`List (a, repr1), `List (b, repr2))))
+      | Nullable t1, Nullable t2 -> (
+          try t1 <: t2
+          with Error (a, b) -> raise (Error (`Nullable a, `Nullable b)))
+      | Tuple l, Tuple m ->
+          if List.length l <> List.length m then (
+            let l = List.map (fun _ -> `Ellipsis) l in
+            let m = List.map (fun _ -> `Ellipsis) m in
+            raise (Error (`Tuple l, `Tuple m)));
+          let n = ref 0 in
+          List.iter2
+            (fun a b ->
+              incr n;
+              try a <: b
+              with Error (a, b) ->
+                let bt = Printexc.get_raw_backtrace () in
+                let l = List.init (!n - 1) (fun _ -> `Ellipsis) in
+                let l' = List.init (List.length m - !n) (fun _ -> `Ellipsis) in
+                Printexc.raise_with_backtrace
+                  (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l')))
+                  bt)
+            l m
+      | Arrow (l12, t), Arrow (l, t') ->
+          (* Here, it must be that l12 = l1@l2 where l1 is essentially l modulo
+             order and either l2 is erasable and t<:t' or (l2)->t <: t'. *)
+          let ellipsis = (false, "", `Range_Ellipsis) in
+          let elide (o, l, _) = (o, l, `Ellipsis) in
+          let l1, l2 =
+            List.fold_left
+              (* Start with [l2:=l12], [l1:=[]] and move each param [o,lbl]
+                 required by [l] from [l2] to [l1]. *)
+                (fun (l1, l2) (o, lbl, t) ->
+                (* Search for a param with optionality o and label lbl. Returns
+                   the first matching parameter and the list without it. *)
+                let rec get_param acc = function
+                  | [] ->
+                      raise
+                        (Error
+                           ( `Arrow
+                               ( List.rev_append l1 (List.map elide l2),
+                                 `Ellipsis ),
+                             `Arrow
+                               ( List.rev (ellipsis :: (o, lbl, `Ellipsis) :: l1),
+                                 `Ellipsis ) ))
+                  | (o', lbl', t') :: tl ->
+                      if o = o' && lbl = lbl' then
+                        ((o', lbl', t'), List.rev_append acc tl)
+                      else get_param ((o', lbl', t') :: acc) tl
+                in
+                let (o, lbl, t'), l2' = get_param [] l2 in
+                (* Check on-the-fly that the types match. *)
                 begin
-                  try
-                    let v = if v1 = v2 then v1 else Invariant in
-                    match v with
-                      | Covariant -> h1 <: h2
-                      | Contravariant -> h2 <: h1
-                      | Invariant ->
-                          h1 <: h2;
-                          h2 <: h1
-                  with Error (a, b) ->
+                  try t <: t'
+                  with Error (t, t') ->
                     let bt = Printexc.get_raw_backtrace () in
-                    let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
-                    Printexc.raise_with_backtrace
-                      (Error
-                         ( `Constr (c1.constructor, pre @ [(v1, a)] @ post),
-                           `Constr (c1.constructor, pre @ [(v2, b)] @ post) ))
-                      bt
+                    let make t =
+                      `Arrow
+                        (List.rev (ellipsis :: (o, lbl, t) :: l1), `Ellipsis)
+                    in
+                    Printexc.raise_with_backtrace (Error (make t', make t)) bt
                 end;
-                aux ((v1, `Ellipsis) :: pre) t1 t2
-            | [], [] -> ()
-            | _ -> assert false
-          (* same name => same arity *)
-        in
-        aux [] c1.params c2.params
-    | List { t = t1; json_repr = repr1 }, List { t = t2; json_repr = repr2 }
-      -> (
-        try t1 <: t2
-        with Error (a, b) ->
-          raise (Error (`List (a, repr1), `List (b, repr2))))
-    | Nullable t1, Nullable t2 -> (
-        try t1 <: t2
-        with Error (a, b) -> raise (Error (`Nullable a, `Nullable b)))
-    | Tuple l, Tuple m ->
-        if List.length l <> List.length m then (
-          let l = List.map (fun _ -> `Ellipsis) l in
-          let m = List.map (fun _ -> `Ellipsis) m in
-          raise (Error (`Tuple l, `Tuple m)));
-        let n = ref 0 in
-        List.iter2
-          (fun a b ->
-            incr n;
-            try a <: b
-            with Error (a, b) ->
+                ((o, lbl, `Ellipsis) :: l1, l2'))
+              ([], l12) l
+          in
+          let l1 = List.rev l1 in
+          if List.for_all (fun (o, _, _) -> o) l2 then (
+            try t <: t'
+            with Error (t, t') ->
               let bt = Printexc.get_raw_backtrace () in
-              let l = List.init (!n - 1) (fun _ -> `Ellipsis) in
-              let l' = List.init (List.length m - !n) (fun _ -> `Ellipsis) in
               Printexc.raise_with_backtrace
-                (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l')))
+                (Error (`Arrow ([ellipsis], t), `Arrow ([ellipsis], t')))
                 bt)
-          l m
-    | Arrow (l12, t), Arrow (l, t') ->
-        (* Here, it must be that l12 = l1@l2 where l1 is essentially l modulo
-           order and either l2 is erasable and t<:t' or (l2)->t <: t'. *)
-        let ellipsis = (false, "", `Range_Ellipsis) in
-        let elide (o, l, _) = (o, l, `Ellipsis) in
-        let l1, l2 =
-          List.fold_left
-            (* Start with [l2:=l12], [l1:=[]] and move each param [o,lbl]
-               required by [l] from [l2] to [l1]. *)
-              (fun (l1, l2) (o, lbl, t) ->
-              (* Search for a param with optionality o and label lbl. Returns
-                 the first matching parameter and the list without it. *)
-              let rec get_param acc = function
-                | [] ->
-                    raise
-                      (Error
-                         ( `Arrow
-                             (List.rev_append l1 (List.map elide l2), `Ellipsis),
-                           `Arrow
-                             ( List.rev (ellipsis :: (o, lbl, `Ellipsis) :: l1),
-                               `Ellipsis ) ))
-                | (o', lbl', t') :: tl ->
-                    if o = o' && lbl = lbl' then
-                      ((o', lbl', t'), List.rev_append acc tl)
-                    else get_param ((o', lbl', t') :: acc) tl
-              in
-              let (o, lbl, t'), l2' = get_param [] l2 in
-              (* Check on-the-fly that the types match. *)
-              begin
-                try t <: t'
-                with Error (t, t') ->
-                  let bt = Printexc.get_raw_backtrace () in
-                  let make t =
-                    `Arrow (List.rev (ellipsis :: (o, lbl, t) :: l1), `Ellipsis)
-                  in
-                  Printexc.raise_with_backtrace (Error (make t', make t)) bt
-              end;
-              ((o, lbl, `Ellipsis) :: l1, l2'))
-            ([], l12) l
-        in
-        let l1 = List.rev l1 in
-        if List.for_all (fun (o, _, _) -> o) l2 then (
-          try t <: t'
-          with Error (t, t') ->
-            let bt = Printexc.get_raw_backtrace () in
-            Printexc.raise_with_backtrace
-              (Error (`Arrow ([ellipsis], t), `Arrow ([ellipsis], t')))
-              bt)
-        else (
-          try { a with descr = Arrow (l2, t) } <: t' with
-            | Error (`Arrow (p, t), t') ->
-                raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
-            | Error _ -> assert false)
-    | Ground (Format k), Ground (Format k') -> (
-        try Content.merge k k'
-        with _ -> raise (Error (Repr.make a, Repr.make b)))
-    | Ground x, Ground y ->
-        if x <> y then raise (Error (Repr.make a, Repr.make b))
-    | Getter t1, Getter t2 -> (
-        try t1 <: t2 with Error (a, b) -> raise (Error (`Getter a, `Getter b)))
-    | Arrow ([], t1), Getter t2 -> (
-        try t1 <: t2
-        with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
-    | Var { contents = Free _ }, _ -> (
-        try bind a b
-        with Occur_check _ | Unsatisfied_constraint _ ->
-          (* Can't do more concise than a full representation, as the problem
-             isn't local. *)
-          raise (Error (Repr.make a, Repr.make b)))
-    | _, Var { contents = Free v }
-    (* Force dropping the methods when we have constraints (see #1496) unless
-       we are comparing records (see #1930). *)
-      when (not (has_meth a)) || v.constraints = [] || (demeth a).descr = unit
-      -> (
-        try bind ~variance:Covariant b a
-        with Occur_check _ | Unsatisfied_constraint _ ->
-          raise (Error (Repr.make a, Repr.make b)))
-    | _, Nullable t2 -> (
-        try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
-    | ( Meth ({ meth = l; scheme = g1, t1; json_name = json_name1 }, u1),
-        Meth ({ meth = l'; scheme = g2, t2; json_name = json_name2 }, u2) )
-      when l = l' -> (
-        (* Handle explicitly this case in order to avoid #1842. *)
-        (try
-           (* TODO: we should perform proper type scheme subtyping, but this
-                 is a good approximation for now... *)
-           instantiate ~level:(-1) ~generalized:g1 t1
-           <: instantiate ~level:(-1) ~generalized:g2 t2
-         with Error (a, b) ->
-           let bt = Printexc.get_raw_backtrace () in
-           Printexc.raise_with_backtrace
-             (Error
-                ( `Meth (l, ([], a), json_name1, `Ellipsis),
-                  `Meth (l, ([], b), json_name2, `Ellipsis) ))
-             bt);
-        try u1 <: u2
-        with Error (a, b) ->
-          let bt = Printexc.get_raw_backtrace () in
-          Printexc.raise_with_backtrace
-            (Error
-               ( `Meth (l, ([], `Ellipsis), json_name1, a),
-                 `Meth (l, ([], `Ellipsis), json_name2, b) ))
-            bt)
-    | _, Meth ({ meth = l; scheme = g2, t2; json_name }, u2) -> (
-        try
-          let g1, t1 = invoke a l in
+          else (
+            try { a with descr = Arrow (l2, t) } <: t' with
+              | Error (`Arrow (p, t), t') ->
+                  raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
+              | Error _ -> assert false)
+      | Ground (Format k), Ground (Format k') -> (
+          try Content.merge k k'
+          with _ -> raise (Error (Repr.make a, Repr.make b)))
+      | Ground x, Ground y ->
+          if x <> y then raise (Error (Repr.make a, Repr.make b))
+      | Getter t1, Getter t2 -> (
+          try t1 <: t2
+          with Error (a, b) -> raise (Error (`Getter a, `Getter b)))
+      | Arrow ([], t1), Getter t2 -> (
+          try t1 <: t2
+          with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
+      | Var { contents = Free _ }, _ -> (
+          try bind a b
+          with Occur_check _ | Unsatisfied_constraint _ ->
+            (* Can't do more concise than a full representation, as the problem
+               isn't local. *)
+            raise (Error (Repr.make a, Repr.make b)))
+      | _, Var { contents = Free v }
+      (* Force dropping the methods when we have constraints (see #1496) unless
+         we are comparing records (see #1930). *)
+        when (not (has_meth a)) || v.constraints = [] || (demeth a).descr = unit
+        -> (
+          try bind ~variance:Covariant b a
+          with Occur_check _ | Unsatisfied_constraint _ ->
+            raise (Error (Repr.make a, Repr.make b)))
+      | _, Nullable t2 -> (
+          try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
+      | ( Meth ({ meth = l; scheme = g1, t1; json_name = json_name1 }, u1),
+          Meth ({ meth = l'; scheme = g2, t2; json_name = json_name2 }, u2) )
+        when l = l' -> (
+          (* Handle explicitly this case in order to avoid #1842. *)
           (try
              (* TODO: we should perform proper type scheme subtyping, but this
-                is a good approximation for now... *)
+                   is a good approximation for now... *)
              instantiate ~level:(-1) ~generalized:g1 t1
              <: instantiate ~level:(-1) ~generalized:g2 t2
            with Error (a, b) ->
              let bt = Printexc.get_raw_backtrace () in
              Printexc.raise_with_backtrace
                (Error
-                  ( `Meth (l, ([], a), None, `Ellipsis),
-                    `Meth (l, ([], b), json_name, `Ellipsis) ))
+                  ( `Meth (l, ([], a), json_name1, `Ellipsis),
+                    `Meth (l, ([], b), json_name2, `Ellipsis) ))
                bt);
-          try a <: hide_meth l u2
+          try hide_meth l u1 <: hide_meth l u2
           with Error (a, b) ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace
-              (Error (a, `Meth (l, ([], `Ellipsis), json_name, b)))
-              bt
-        with Not_found -> (
-          let a' = demeth a in
-          match a'.descr with
-            | Var { contents = Free _ } ->
-                a'
-                <: make
-                     (Meth
-                        ( {
-                            meth = l;
-                            scheme = (g2, t2);
-                            doc = "";
-                            json_name = None;
-                          },
-                          var () ));
-                a <: b
+              (Error
+                 ( `Meth (l, ([], `Ellipsis), json_name1, a),
+                   `Meth (l, ([], `Ellipsis), json_name2, b) ))
+              bt)
+      | _, Meth ({ meth = l; scheme = g2, t2; json_name }, u2) -> (
+          try
+            let g1, t1 = invoke a l in
+            (try
+               (* TODO: we should perform proper type scheme subtyping, but this
+                  is a good approximation for now... *)
+               instantiate ~level:(-1) ~generalized:g1 t1
+               <: instantiate ~level:(-1) ~generalized:g2 t2
+             with Error (a, b) ->
+               let bt = Printexc.get_raw_backtrace () in
+               Printexc.raise_with_backtrace
+                 (Error
+                    ( `Meth (l, ([], a), None, `Ellipsis),
+                      `Meth (l, ([], b), json_name, `Ellipsis) ))
+                 bt);
+            try a <: hide_meth l u2
+            with Error (a, b) ->
+              let bt = Printexc.get_raw_backtrace () in
+              Printexc.raise_with_backtrace
+                (Error (a, `Meth (l, ([], `Ellipsis), json_name, b)))
+                bt
+          with Not_found -> (
+            let a' = demeth a in
+            match a'.descr with
+              | Var { contents = Free _ } ->
+                  a'
+                  <: make
+                       (Meth
+                          ( {
+                              meth = l;
+                              scheme = (g2, t2);
+                              doc = "";
+                              json_name = None;
+                            },
+                            var () ));
+                  a <: b
+              | _ ->
+                  raise
+                    (Error
+                       ( Repr.make a,
+                         `Meth (l, ([], `Ellipsis), json_name, `Ellipsis) ))))
+      | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
+      | _, Getter t2 -> (
+          try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
+      | _, _ ->
+          (* The superficial representation is enough for explaining the
+             mismatch. *)
+          let filter () =
+            let already = ref false in
+            function
+            | { descr = Var { contents = Link _ }; _ } -> false
             | _ ->
-                raise
-                  (Error
-                     ( Repr.make a,
-                       `Meth (l, ([], `Ellipsis), json_name, `Ellipsis) ))))
-    | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
-    | _, Getter t2 -> (
-        try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
-    | _, _ ->
-        (* The superficial representation is enough for explaining the
-           mismatch. *)
-        let filter () =
-          let already = ref false in
-          function
-          | { descr = Var { contents = Link _ }; _ } -> false
-          | _ ->
-              let x = !already in
-              already := true;
-              x
-        in
-        let a = Repr.make ~filter_out:(filter ()) a in
-        let b = Repr.make ~filter_out:(filter ()) b in
-        raise (Error (a, b))
+                let x = !already in
+                already := true;
+                x
+          in
+          let a = Repr.make ~filter_out:(filter ()) a in
+          let b = Repr.make ~filter_out:(filter ()) b in
+          raise (Error (a, b)))
 
 let ( >: ) a b =
   try b <: a

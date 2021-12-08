@@ -80,6 +80,9 @@ def f() =
   _ = if true then {a = 4, b = 5} else {a = 4} end
   _ = if true then {a = 4} else {a = 4, b = 5} end
 
+  # Fields with incompatible types
+  _ = [{a = 4, b = 5, c = 6}, {a = "a", b = 2, d = "d"}]
+
   # Equality
   t({a = 5} == {a = 5}, true)
   t({a = 5} == {a = 6}, false)
