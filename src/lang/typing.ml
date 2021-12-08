@@ -299,7 +299,9 @@ let rec sup ~pos a b =
           if List.length l <> List.length m then raise Incompatible;
           mk (Tuple (List.map2 sup l m))
       | Ground g, Ground g' ->
-          if g <> g' then raise Incompatible;
+          (* We might try to compare functional values here. *)
+          let eq = try g = g' with _ -> false in
+          if not eq then raise Incompatible;
           mk (Ground g)
       | Meth (m, a), _ -> (
           let a = hide_meth m.meth a in
