@@ -22,8 +22,6 @@
 
 open Extralib
 
-let log_deprecated = Log.make ["deprecated"]
-
 let () =
   Lang.add_builtin_base ~category:`Liquidsoap
     ~descr:"Liquidsoap version string." "liquidsoap.version"

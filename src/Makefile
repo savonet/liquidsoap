@@ -1,5 +1,5 @@
 SUBDIRS=tools \
-	decoder playlists encoder protocols stream lang \
+	decoder playlists encoder protocols stream lang builtins \
 	ogg_formats converters operators sources conversions outputs io \
 	visualization synth harbor lang_encoders encoder_formats
 
@@ -210,31 +210,31 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
-builtins = lang/lang_builtins.ml \
-           lang/builtins_ref.ml lang/builtins_socket.ml \
-           lang/builtins_bool.ml lang/builtins_list.ml \
-           lang/builtins_string.ml lang/builtins_regexp.ml \
-           lang/builtins_json.ml \
-           lang/builtins_null.ml lang/builtins_settings.ml \
-           lang/builtins_time.ml lang/builtins_callbacks.ml \
-           lang/builtins_server.ml lang/builtins_math.ml \
-	   lang/builtins_files.ml lang/builtins_resolvers.ml \
-           lang/builtins_thread.ml lang/builtins_process.ml \
-           lang/builtins_source.ml lang/builtins_getter.ml \
-           lang/builtins_profiler.ml lang/builtins_eval.ml \
-	   $(if $(W_CURL),lang/builtins_http.ml) \
-           lang/builtins_harbor.ml \
-           $(if $(W_SSL),lang/builtins_harbor_ssl.ml) \
-           $(if $(W_OSX_SECURE_TRANSPORT),lang/builtins_harbor_secure_transport.ml) \
-           $(if $(W_LO),lang/builtins_lo.ml) \
-           $(if $(W_MAGIC),lang/builtins_magic.ml) \
-           $(if $(W_CRY),lang/builtins_cry.ml) \
-           $(if $(W_LASTFM),lang/builtins_lastfm.ml) \
-           $(if $(W_PROMETHEUS),lang/builtins_prometheus.ml) \
-           lang/builtins_ffmpeg_base.ml \
-           $(if $(W_FFMPEG_ENCODER),lang/builtins_ffmpeg_encoder.ml) \
-           $(if $(W_FFMPEG_DECODER),lang/builtins_ffmpeg_decoder.ml) \
-           $(if $(W_FFMPEG_LIQ_FILTER),lang/builtins_ffmpeg_filters.ml)
+builtins = builtins/builtins_lang.ml \
+           builtins/builtins_ref.ml builtins/builtins_socket.ml \
+           builtins/builtins_bool.ml builtins/builtins_list.ml \
+           builtins/builtins_string.ml builtins/builtins_regexp.ml \
+           builtins/builtins_json.ml \
+           builtins/builtins_null.ml builtins/builtins_settings.ml \
+           builtins/builtins_time.ml builtins/builtins_callbacks.ml \
+           builtins/builtins_server.ml builtins/builtins_math.ml \
+	   builtins/builtins_files.ml builtins/builtins_resolvers.ml \
+           builtins/builtins_thread.ml builtins/builtins_process.ml \
+           builtins/builtins_source.ml builtins/builtins_getter.ml \
+           builtins/builtins_profiler.ml builtins/builtins_eval.ml \
+	   $(if $(W_CURL),builtins/builtins_http.ml) \
+           builtins/builtins_harbor.ml \
+           $(if $(W_SSL),builtins/builtins_harbor_ssl.ml) \
+           $(if $(W_OSX_SECURE_TRANSPORT),builtins/builtins_harbor_secure_transport.ml) \
+           $(if $(W_LO),builtins/builtins_lo.ml) \
+           $(if $(W_MAGIC),builtins/builtins_magic.ml) \
+           $(if $(W_CRY),builtins/builtins_cry.ml) \
+           $(if $(W_LASTFM),builtins/builtins_lastfm.ml) \
+           $(if $(W_PROMETHEUS),builtins/builtins_prometheus.ml) \
+           builtins/builtins_ffmpeg_base.ml \
+           $(if $(W_FFMPEG_ENCODER),builtins/builtins_ffmpeg_encoder.ml) \
+           $(if $(W_FFMPEG_DECODER),builtins/builtins_ffmpeg_decoder.ml) \
+           $(if $(W_FFMPEG_LIQ_FILTER),builtins/builtins_ffmpeg_filters.ml)
 
 liquidsoap_sources= \
 	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
@@ -262,7 +262,7 @@ liquidsoap_sources += \
         lang/lang.ml lang/modules.ml \
 	lang/parser_helper.ml lang/parser.ml lang/lexer.ml \
 	lang/preprocessor.ml lang/runtime.ml \
-        lang/builtins_request.ml \
+	builtins/builtins_request.ml \
 	tools/child_support.ml \
 	tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
