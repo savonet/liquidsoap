@@ -139,7 +139,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     let constr_symbols, c = split_constr var.constraints in
     let rec index n = function
       | v :: tl ->
-          if var_eq v var then Printf.sprintf "'%s%s" constr_symbols (name n)
+          if Var.eq v var then Printf.sprintf "'%s%s" constr_symbols (name n)
           else index (n + 1) tl
       | [] -> assert false
     in
@@ -201,7 +201,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | Var { contents = Free var } ->
-            if List.exists (var_eq var) g then uvar g var else evar var
+            if List.exists (Var.eq var) g then uvar g var else evar var
         | Var { contents = Link (Covariant, t) } when !debug || !debug_variance
           ->
             `Debug ("[>", repr g t, "]")

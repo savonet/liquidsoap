@@ -162,7 +162,7 @@ let rec occur_check (a : var) b =
         occur_check a t
     | Ground _ -> ()
     | Var { contents = Free b } ->
-        if Type.var_eq a b then raise (Occur_check (a, b0))
+        if Type.Var.eq a b then raise (Occur_check (a, b0))
     | Var { contents = Link _ } -> assert false
 
 (** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
@@ -243,7 +243,7 @@ let rec update_level ?(generalized = []) level a =
   in
   match a.descr with
     | Var { contents = Free x } ->
-        if not (List.exists (Type.var_eq x) generalized) then
+        if not (List.exists (Var.eq x) generalized) then
           x.level <- min level x.level
     | Var { contents = Link (_, a) } -> update_level a
     | Constr c -> List.iter (fun (_, a) -> update_level a) c.params
@@ -405,7 +405,7 @@ let rec ( <: ) a b =
     Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
   if a != b then (
     match (a.descr, b.descr) with
-      | Var { contents = Free v }, Var { contents = Free v' } when var_eq v v'
+      | Var { contents = Free v }, Var { contents = Free v' } when Var.eq v v'
         ->
           ()
       | _, Var ({ contents = Link (Covariant, b') } as var) ->

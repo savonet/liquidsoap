@@ -158,9 +158,23 @@ and scheme = var list * t
 
 let unit = Tuple []
 
-(** Compare two variables for equality. This comparison should always be used to
-    compare variables (as opposed to =). *)
-let var_eq v v' = v.name = v'.name
+(** Operations on variables. *)
+module Var = struct
+  type t = var
+
+  (** Compare two variables for equality. This comparison should always be used
+      to compare variables (as opposed to =). *)
+  let eq v v' = v.name = v'.name
+
+  let compare v v' = compare v.name v'.name
+end
+
+(** Sets of variables. *)
+module Vars = struct
+  include Set.Make (Var)
+
+  let add_list l v = add_seq (List.to_seq l) v
+end
 
 (** Create a type from its value. *)
 let make ?pos d = { pos; descr = d }
@@ -253,7 +267,7 @@ let filter_vars f t =
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | Var { contents = Free var } ->
-          if f var && not (List.exists (var_eq var) l) then var :: l else l
+          if f var && not (List.exists (Var.eq var) l) then var :: l else l
       | Var { contents = Link _ } -> assert false
   in
   aux [] t
