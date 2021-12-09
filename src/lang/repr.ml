@@ -121,7 +121,7 @@ let name =
 (** Generate a globally unique name for evars (used for debugging only). *)
 let evar_global_name =
   let evars = Hashtbl.create 10 in
-  let n = ref (-1) in
+  let n = ref 0 in
   fun i ->
     try Hashtbl.find evars i
     with Not_found ->
