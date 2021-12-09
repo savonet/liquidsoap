@@ -497,15 +497,6 @@ let can_ignore t =
     | Type.Tuple [] | Type.Var _ -> true
     | _ -> false
 
-(* TODO: what about functions with methods? *)
-let is_fun t =
-  match (Type.deref t).Type.descr with Type.Arrow _ -> true | _ -> false
-
-let is_source t =
-  match (Type.demeth t).Type.descr with
-    | Type.Constr { Type.constructor = "source"; _ } -> true
-    | _ -> false
-
 (** {1 Basic checks and errors} *)
 
 exception Unbound of Type.pos option * string
@@ -591,7 +582,7 @@ let check_unused ~throw ~lib tm =
                      at toplevel (sort of a lib situation...) *)
                   if
                     s <> "_"
-                    && not (can_ignore def.t || (toplevel && is_fun def.t))
+                    && not (can_ignore def.t || (toplevel && Type.is_fun def.t))
                   then throw (Unused_variable (s, Option.get tm.t.Type.pos)))
               bvpat;
           Vars.union v mask

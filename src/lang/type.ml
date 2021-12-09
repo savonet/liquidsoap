@@ -262,7 +262,16 @@ let filter_vars f t =
   aux [] t
 
 let to_string_fun =
-  ref (fun ?generalized:_ _ -> failwith "Type.to_string not defined yet")
+  ref (fun ?(generalized : var list option) _ ->
+      ignore generalized;
+      failwith "Type.to_string not defined yet")
 
 (** String representation of a type. *)
 let to_string ?generalized (t : t) : string = !to_string_fun ?generalized t
+
+let is_fun t = match (demeth t).descr with Arrow _ -> true | _ -> false
+
+let is_source t =
+  match (demeth t).descr with
+    | Constr { constructor = "source"; _ } -> true
+    | _ -> false
