@@ -142,10 +142,10 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
       List.fold_left
         (fun (p, env) -> function
           | lbl, var, kind, None ->
-              update_level ~level kind;
+              update_level level kind;
               ((false, lbl, kind) :: p, (var, ([], kind)) :: env)
           | lbl, var, kind, Some v ->
-              update_level ~level kind;
+              update_level level kind;
               base_check v;
               v.t <: kind;
               ((true, lbl, kind) :: p, (var, ([], kind)) :: env))

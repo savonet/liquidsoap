@@ -34,7 +34,7 @@ val instantiate : level:int -> generalized:var list -> t -> t
 val generalize : level:int -> t -> scheme
 
 (** Lower all type variables to given level. *)
-val update_level : level:int -> t -> unit
+val update_level : ?generalized:Type.var list -> int -> t -> unit
 
 (** Subtyping. *)
 val ( <: ) : t -> t -> unit
