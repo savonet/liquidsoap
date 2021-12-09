@@ -305,7 +305,9 @@ let rec sup ~pos a b =
           mk (Ground g)
       | Meth (m, a), _ -> (
           let a = hide_meth m.meth a in
-          match meth_type m.meth b with
+          let mb = meth_type m.meth b in
+          let b = hide_meth m.meth b in
+          match mb with
             | Some t' -> (
                 try
                   mk
@@ -314,7 +316,9 @@ let rec sup ~pos a b =
             | None -> sup a b)
       | _, Meth (m, b) -> (
           let b = hide_meth m.meth b in
-          match meth_type m.meth a with
+          let ma = meth_type m.meth a in
+          let a = hide_meth m.meth a in
+          match ma with
             | Some t' -> (
                 try
                   mk
