@@ -20,8 +20,12 @@
 
  *****************************************************************************)
 
+(** Show debugging information. *)
 let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
+
+(** Show variables levels. *)
 let debug_levels = ref false
+
 let debug_variance = ref false
 
 (* Type information comes attached to the AST from the parsing,
@@ -40,6 +44,7 @@ let debug_variance = ref false
  * Finally, constraints can be attached to existential (unknown, '_a)
  * and universal ('a) type variables. *)
 
+(** Position in a file. *)
 type pos = Runtime_error.pos
 
 (** Ground types *)
@@ -98,7 +103,14 @@ let resolve_ground_opt name =
 
 (** Type constraints *)
 
-type constr = Num | Ord | Dtools | InternalMedia
+(** Constraint on the types a type variable can be substituted with. *)
+type constr =
+  | Num  (** a number *)
+  | Ord  (** an orderable type *)
+  | Dtools  (** something useable by dtools *)
+  | InternalMedia  (** a media type *)
+
+(** Constraints on a type variable. *)
 type constraints = constr list
 
 let string_of_constr = function
@@ -107,19 +119,21 @@ let string_of_constr = function
   | Dtools -> "unit, bool, int, float, string or [string]"
   | InternalMedia -> "an internal media type (none, pcm, yuva420p or midi)"
 
-(** Types *)
+(** {2 Types} *)
 
 type variance = Covariant | Contravariant | Invariant
 
 type t = { pos : pos option; descr : descr }
 
+(** A type constructor applied to arguments (e.g. source). *)
 and constructed = { constructor : string; params : (variance * t) list }
 
+(** A method. *)
 and meth = {
-  meth : string;
-  scheme : scheme;
-  doc : string;
-  json_name : string option;
+  meth : string;  (** name of the method *)
+  scheme : scheme;  (** type sheme *)
+  doc : string;  (** documentation *)
+  json_name : string option;  (** name when represented as JSON *)
 }
 
 and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
@@ -135,14 +149,23 @@ and descr =
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
 
-and invar = Free of var | Link of variance * t
+(** Contents of a variable. *)
+and invar =
+  | Free of var  (** the variable is free *)
+  | Link of variance * t  (** the variable has bee substituted *)
 
 and var = { name : int; mutable level : int; mutable constraints : constraints }
 
+(** A type scheme (i.e. a type with universally quantified variables). *)
 and scheme = var list * t
 
 let unit = Tuple []
+
+(** Compare two variables for equality. This comparison should always be used to
+    compare variables (as opposed to =). *)
 let var_eq v v' = v.name = v'.name
+
+(** Create a type from its value. *)
 let make ?pos d = { pos; descr = d }
 
 (** Dereferencing gives you the meaning of a term, going through links created
@@ -156,23 +179,32 @@ let rec demeth t =
   let t = deref t in
   match t.descr with Meth (_, t) -> demeth t | _ -> t
 
+(** Put the methods of the first type around the second type. *)
 let rec remeth t u =
   let t = deref t in
   match t.descr with
     | Meth (m, t) -> { t with descr = Meth (m, remeth t u) }
     | _ -> u
 
+(** Type of a method in a type. *)
 let rec invoke t l =
   match (deref t).descr with
     | Meth (m, _) when m.meth = l -> m.scheme
     | Meth (_, t) -> invoke t l
     | _ -> raise Not_found
 
-(** Add a method. *)
+(** Type of a submethod in a type. *)
+let rec invokes t = function
+  | l :: ll ->
+      let g, t = invoke t l in
+      if ll = [] then (g, t) else invokes t ll
+  | [] -> ([], t)
+
+(** Add a method to a type. *)
 let meth ?pos ?json_name meth scheme ?(doc = "") t =
   make ?pos (Meth ({ meth; scheme; doc; json_name }, t))
 
-(** Add methods. *)
+(** Add a submethod to a type. *)
 let rec meths ?pos l v t =
   match l with
     | [] -> assert false
@@ -195,6 +227,7 @@ let split_meths t =
   in
   aux [] t
 
+(** Create a fresh variable. *)
 let var =
   let name =
     let c = ref (-1) in
@@ -228,13 +261,8 @@ let filter_vars f t =
   in
   aux [] t
 
-let rec invokes t = function
-  | l :: ll ->
-      let g, t = invoke t l in
-      if ll = [] then (g, t) else invokes t ll
-  | [] -> ([], t)
-
 let to_string_fun =
   ref (fun ?generalized:_ _ -> failwith "Type.to_string not defined yet")
 
+(** String representation of a type. *)
 let to_string ?generalized (t : t) : string = !to_string_fun ?generalized t
