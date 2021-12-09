@@ -503,7 +503,7 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
   error_header ta.pos;
   match b with
     | `Meth (l, ([], `Ellipsis), _, `Ellipsis) when not flipped ->
-        Format.printf "this value has no method %s@." l
+        Format.printf "this value has no method `%s`@." l
     | _ ->
         let inferred_pos a =
           let dpos = (deref a).pos in
