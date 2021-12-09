@@ -25,7 +25,7 @@
 (** Ground values. *)
 module Ground = Term.Ground
 
-type t = { pos : Type.pos option; value : in_value }
+type t = { pos : Pos.Option.t; value : in_value }
 
 and env = (string * t) list
 

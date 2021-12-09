@@ -30,10 +30,6 @@ let global_evar_names = ref false
 
 open Type
 
-let string_of_pos = Runtime_error.print_pos
-let string_of_pos_opt = Runtime_error.print_pos_opt
-let string_of_pos_list = Runtime_error.print_pos_list
-
 (** Given a position, find the relevant excerpt. *)
 let excerpt (start, stop) =
   try
@@ -511,7 +507,7 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
           else (
             match dpos with
               | None -> ""
-              | Some p -> " (inferred at " ^ string_of_pos ~prefix:"" p ^ ")")
+              | Some p -> " (inferred at " ^ Pos.to_string ~prefix:"" p ^ ")")
         in
         let ta, tb, a, b = if flipped then (tb, ta, b, a) else (ta, tb, a, b) in
         Format.printf "this value has type@.@[<2>  %a@]%s@ " print a
@@ -522,7 +518,7 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
             | None -> ""
             | Some p ->
                 Printf.sprintf " the type of the value at %s"
-                  (string_of_pos ~prefix:"" p))
+                  (Pos.to_string ~prefix:"" p))
           print b (inferred_pos tb)
 
 (** {1 Documentation} *)

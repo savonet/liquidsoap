@@ -26,31 +26,28 @@
 include Runtime_error
 
 (** An internal error. Those should not happen in theory... *)
-exception Internal_error of (pos list * string)
+exception Internal_error of (Pos.t list * string)
 
 (** A parsing error. *)
-exception Parse_error of (pos * string)
+exception Parse_error of (Pos.t * string)
 
 (** Unsupported format *)
-exception Unsupported_format of (pos option * string)
+exception Unsupported_format of (Pos.t option * string)
 
 let () =
   Printexc.register_printer (function
     | Internal_error (pos, e) ->
         Some
           (Printf.sprintf "Lang_values.Internal_error at %s: %s"
-             (Runtime_error.print_pos_list pos)
-             e)
+             (Pos.List.to_string pos) e)
     | Parse_error (pos, e) ->
         Some
           (Printf.sprintf "Lang_values.Parse_error at %s: %s"
-             (Runtime_error.print_pos pos)
-             e)
+             (Pos.to_string pos) e)
     | Unsupported_format (pos, e) ->
         Some
           (Printf.sprintf "Lang_values.Unsupported_format at %s: %s"
-             (Runtime_error.print_pos_opt pos)
-             e)
+             (Pos.Option.to_string pos) e)
     | _ -> None)
 
 let conf =
@@ -409,7 +406,7 @@ let make ?pos ?t e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
-      (Repr.string_of_pos_opt t.Type.pos)
+      (Pos.Option.to_string t.Type.pos)
       (try to_string { t; term = e } with _ -> "<?>")
       (Repr.string_of_type t);
   { t; term = e }
@@ -499,7 +496,7 @@ let can_ignore t =
 
 (** {1 Basic checks and errors} *)
 
-exception Unbound of Type.pos option * string
+exception Unbound of Pos.Option.t * string
 exception Ignored of t
 
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
@@ -514,7 +511,7 @@ exception No_label of t * string * bool * t
   * This cannot be done at parse-time (as for the computatin of the
   * free variables of functions) because we need types, as well as
   * the ability to distinguish toplevel and inner let-in terms. *)
-exception Unused_variable of (string * Type.pos)
+exception Unused_variable of (string * Pos.t)
 
 let check_unused ~throw ~lib tm =
   let rec check ?(toplevel = false) v tm =

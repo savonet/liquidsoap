@@ -172,7 +172,8 @@ io = io/udp_io.ml \
 	$(if $(W_FFMPEG_LIQ_FILTER),io/ffmpeg_filter_io.ml) \
 	$(if $(W_FFMPEG_AV),io/ffmpeg_io.ml)
 
-tools = tools/extralib.ml tools/lifecycle.ml \
+tools = tools/log.ml tools/pos.ml \
+	tools/extralib.ml tools/lifecycle.ml \
 	tools/stringView.ml tools/strings.ml tools/utils.ml \
 	tools/runtime_error.ml \
 	tools/json_base.ml tools/json_parser.ml tools/json_lexer.ml tools/json.ml \
@@ -237,7 +238,7 @@ builtins = builtins/builtins_lang.ml \
            $(if $(W_FFMPEG_LIQ_FILTER),builtins/builtins_ffmpeg_filters.ml)
 
 liquidsoap_sources= \
-	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
+	$(tools) converters/audio_converter.ml $(stream) \
 	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_utils.ml) \
         $(if $(W_FFMPEG_AVFILTER),tools/ffmpeg_avfilter_utils.ml) \
         converters/video_converter.ml \

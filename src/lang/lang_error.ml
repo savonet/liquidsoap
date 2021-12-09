@@ -22,12 +22,10 @@
 
 include Runtime_error
 
-type pos = Runtime_error.pos
-
 type error = Runtime_error.runtime_error = {
   kind : string;
   msg : string;
-  pos : pos list;
+  pos : Pos.List.t;
 }
 
 module ErrorDef = struct
@@ -40,8 +38,7 @@ module ErrorDef = struct
       if pos <> [] then
         Utils.quote_string
           (Printf.sprintf ",positions=%s"
-             (String.concat ", "
-                (List.map (fun pos -> Runtime_error.print_pos pos) pos)))
+             (Pos.List.to_string ~newlines:false pos))
       else ""
     in
     Printf.sprintf "error(kind=%s,message=%s%s)" (Utils.quote_string kind)
@@ -78,9 +75,7 @@ module Error = struct
         "Error positions.",
         fun { pos } ->
           Lang_core.list
-            (List.map
-               (fun pos -> Lang_core.string (Runtime_error.print_pos pos))
-               pos) );
+            (List.map (fun pos -> Lang_core.string (Pos.to_string pos)) pos) );
     ]
 
   let t =

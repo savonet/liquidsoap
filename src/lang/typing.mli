@@ -43,4 +43,4 @@ val ( <: ) : t -> t -> unit
 val ( >: ) : t -> t -> unit
 
 (** Supremeum of two types. *)
-val sup : pos:pos option -> t -> t -> t
+val sup : pos:Pos.Option.t -> t -> t -> t

@@ -23,6 +23,6 @@
 (** Runtime error, should eventually disappear. *)
 exception Invalid_value of Value.t * string
 
-exception Clock_conflict of (Type.pos option * string * string)
-exception Clock_loop of (Type.pos option * string * string)
-exception Kind_conflict of (Type.pos option * string * string)
+exception Clock_conflict of (Pos.Option.t * string * string)
+exception Clock_loop of (Pos.Option.t * string * string)
+exception Kind_conflict of (Pos.Option.t * string * string)

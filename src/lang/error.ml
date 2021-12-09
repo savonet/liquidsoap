@@ -23,21 +23,21 @@
 (** Runtime error, should eventually disappear. *)
 exception Invalid_value of Value.t * string
 
-exception Clock_conflict of (Type.pos option * string * string)
-exception Clock_loop of (Type.pos option * string * string)
-exception Kind_conflict of (Type.pos option * string * string)
+exception Clock_conflict of (Pos.Option.t * string * string)
+exception Clock_loop of (Pos.Option.t * string * string)
+exception Kind_conflict of (Pos.Option.t * string * string)
 
 let () =
   Printexc.register_printer (function
     | Clock_conflict (pos, a, b) ->
-        let pos = Repr.string_of_pos_opt pos in
+        let pos = Pos.Option.to_string pos in
         Some
           (Printf.sprintf
              "Clock_conflict: At position: %s, a source cannot belong to two \
               clocks (%s, %s)"
              pos a b)
     | Clock_loop (pos, a, b) ->
-        let pos = Repr.string_of_pos_opt pos in
+        let pos = Pos.Option.to_string pos in
         Some
           (Printf.sprintf
              "Clock_loop: At position: %s, cannot unify two nested clocks \

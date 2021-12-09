@@ -421,7 +421,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
     (fun (s, _) ->
       Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
         (string_of_pat pat)
-        (Repr.string_of_pos_opt v.Value.pos))
+        (Pos.Option.to_string v.Value.pos))
     params;
   (let meths, t =
      let meths, t = Type.split_meths t in

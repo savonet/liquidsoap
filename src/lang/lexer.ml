@@ -390,7 +390,7 @@ and read_string c pos buf lexbuf =
     | '\\', any ->
         if c <> '/' then (
           let pos =
-            Repr.string_of_pos (pos, snd (Sedlexing.lexing_positions lexbuf))
+            Pos.to_string (pos, snd (Sedlexing.lexing_positions lexbuf))
           in
           Printf.printf
             "Warning at position %s: illegal backslash escape in string.\n" pos);

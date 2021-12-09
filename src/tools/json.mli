@@ -7,5 +7,5 @@ type t =
   | `Int of int
   | `Null ]
 
-val from_string : ?pos:Runtime_error.pos list -> ?json5:bool -> string -> t
+val from_string : ?pos:Pos.List.t -> ?json5:bool -> string -> t
 val to_string : ?compact:bool -> ?json5:bool -> t -> string

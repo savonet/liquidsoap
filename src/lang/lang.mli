@@ -29,9 +29,6 @@ type t = Type.t
 
 type scheme = Type.scheme
 
-(** Position in source code. *)
-type pos = Type.pos
-
 (** {2 Values} *)
 
 (** A typed value. *)
@@ -50,7 +47,7 @@ module Ground : sig
   val to_string : t -> string
 end
 
-type value = Value.t = { pos : pos option; value : in_value }
+type value = Value.t = { pos : Pos.Option.t; value : in_value }
 
 and env = (string * value) list
 
@@ -269,7 +266,11 @@ val metadata : Frame.metadata -> value
 
 (** Raise an error. *)
 val raise_error :
-  ?bt:Printexc.raw_backtrace -> ?pos:pos list -> ?message:string -> string -> 'a
+  ?bt:Printexc.raw_backtrace ->
+  ?pos:Pos.List.t ->
+  ?message:string ->
+  string ->
+  'a
 
 (** Re-raise an error as a runtime error. *)
 val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a

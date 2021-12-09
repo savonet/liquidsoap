@@ -44,9 +44,6 @@ let debug_variance = ref false
  * Finally, constraints can be attached to existential (unknown, '_a)
  * and universal ('a) type variables. *)
 
-(** Position in a file. *)
-type pos = Runtime_error.pos
-
 (** Ground types *)
 
 type ground = ..
@@ -123,7 +120,7 @@ let string_of_constr = function
 
 type variance = Covariant | Contravariant | Invariant
 
-type t = { pos : pos option; descr : descr }
+type t = { pos : Pos.Option.t; descr : descr }
 
 (** A type constructor applied to arguments (e.g. source). *)
 and constructed = { constructor : string; params : (variance * t) list }

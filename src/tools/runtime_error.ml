@@ -22,40 +22,7 @@
 
 (** An error at runtime. *)
 
-(** Positions *)
-
-type pos = Lexing.position * Lexing.position
-
-let print_pos ?(prefix = "at ") (start, stop) =
-  let prefix =
-    match start.Lexing.pos_fname with
-      | "" -> prefix
-      | file -> prefix ^ file ^ ", "
-  in
-  let f l = (l.Lexing.pos_lnum, l.Lexing.pos_cnum - l.Lexing.pos_bol) in
-  let lstart, cstart = f start in
-  let lstop, cstop = f stop in
-  if lstart = lstop then
-    if cstop = cstart + 1 then
-      Printf.sprintf "%sline %d, char %d" prefix lstart cstart
-    else Printf.sprintf "%sline %d, char %d-%d" prefix lstart cstart cstop
-  else
-    Printf.sprintf "%sline %d char %d - line %d char %d" prefix lstart cstart
-      lstop cstop
-
-let print_pos_opt ?prefix = function
-  | Some pos -> print_pos ?prefix pos
-  | None -> "unknown position"
-
-let rec print_pos_list ?(newlines = false) ?prefix = function
-  | [] -> "unknown position"
-  | [pos] -> print_pos ?prefix pos
-  | pos :: l ->
-      print_pos_list ~newlines ?prefix l
-      ^ (if newlines then ",\n" else ", ")
-      ^ print_pos ?prefix pos
-
-type runtime_error = { kind : string; msg : string; pos : pos list }
+type runtime_error = { kind : string; msg : string; pos : Pos.t list }
 
 exception Runtime_error of runtime_error
 
@@ -65,7 +32,7 @@ let () =
         Some
           (Printf.sprintf "Lang.Runtime_error { kind: %s, msg: %s, pos: [%s] }"
              (Utils.quote_string kind) (Utils.quote_string msg)
-             (String.concat ", " (List.map (fun pos -> print_pos pos) pos)))
+             (String.concat ", " (List.map (fun pos -> Pos.to_string pos) pos)))
     | _ -> None)
 
 let error ?bt ?(pos = []) ?(message = "") kind =

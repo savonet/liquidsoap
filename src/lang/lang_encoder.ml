@@ -23,7 +23,7 @@
 open Term
 open Term.Ground
 
-exception Encoder_error of (Term.pos option * string)
+exception Encoder_error of (Pos.Option.t * string)
 
 let has_started = ref false
 let () = Lifecycle.before_start (fun () -> has_started := true)

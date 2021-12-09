@@ -22,12 +22,6 @@
 
 (** {1 Running} *)
 
-module List = struct
-  include List
-
-  let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
-end
-
 let () = Lang.apply_fun := Evaluation.apply
 
 let type_and_run ~throw ~lib ast =
@@ -51,12 +45,12 @@ let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
 
 let error_header idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
-  let pos = Repr.string_of_pos_opt pos in
+  let pos = Pos.Option.to_string pos in
   Format.printf "@[%s:\n%s\n%s %i: " (position pos) e error idx
 
 let warning_header idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
-  let pos = Repr.string_of_pos_opt pos in
+  let pos = Pos.Option.to_string pos in
   Format.printf "@[%s:\n%s\n%s %i: " (position pos) e warning idx
 
 (** Exception raised by report_error after an error has been displayed.
@@ -112,7 +106,7 @@ let throw print_error = function
       Repr.print_type_error (error_header 5) explain;
       raise Error
   | Term.No_label (f, lbl, first, x) ->
-      let pos_f = Repr.string_of_pos_opt f.Term.t.Type.pos in
+      let pos_f = Pos.Option.to_string f.Term.t.Type.pos in
       flush_all ();
       error_header 6 x.Term.t.Type.pos;
       Format.printf
@@ -156,13 +150,13 @@ let throw print_error = function
       raise Error
   | Term.Internal_error (pos, e) ->
       (* Bad luck, error 13 should never have happened. *)
-      error_header 13 (try Some (List.last pos) with _ -> None);
-      let pos = Repr.string_of_pos_list ~newlines:true pos in
+      error_header 13 (try Some (Pos.List.to_pos pos) with _ -> None);
+      let pos = Pos.List.to_string ~newlines:true pos in
       Format.printf "Internal error: %s,@ stack:\n%s\n@]@." e pos;
       raise Error
   | Term.Runtime_error { Term.kind; msg; pos } ->
-      error_header 14 (try Some (List.last pos) with _ -> None);
-      let pos = Repr.string_of_pos_list ~newlines:true pos in
+      error_header 14 (try Some (Pos.List.to_pos pos) with _ -> None);
+      let pos = Pos.List.to_string ~newlines:true pos in
       Format.printf
         "Uncaught runtime error:@ type: %s,@ message: %s,@\nstack: %s\n@]@."
         kind
