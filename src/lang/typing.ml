@@ -146,8 +146,6 @@ exception Unsatisfied_constraint of constr * t
 (** Check that [a] (a dereferenced type variable) does not occur in [b] and
     prepare the instantiation [a<-b] by adjusting the levels. *)
 let rec occur_check (a : var) b =
-  let b0 = b in
-  let b = deref b in
   match b.descr with
     | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
     | Tuple l -> List.iter (occur_check a) l
@@ -165,10 +163,10 @@ let rec occur_check (a : var) b =
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
     | Ground _ -> ()
-    | Var { contents = Free b } ->
-        if Type.Var.eq a b then raise (Occur_check (a, b0));
-        b.level <- min a.level b.level
-    | Var { contents = Link _ } -> assert false
+    | Var { contents = Free x } ->
+        if Type.Var.eq a x then raise (Occur_check (a, b));
+        x.level <- min a.level x.level
+    | Var { contents = Link (_, b) } -> occur_check a b
 
 (** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
 let satisfies_constraint b = function
