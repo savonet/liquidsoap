@@ -143,7 +143,8 @@ exception Occur_check of var * t
 
 exception Unsatisfied_constraint of constr * t
 
-(** Check that [a] (a dereferenced type variable) does not occur in [b]. *)
+(** Check that [a] (a dereferenced type variable) does not occur in [b] and
+    prepare the instantiation [a<-b] by adjusting the levels. *)
 let rec occur_check (a : var) b =
   let b0 = b in
   let b = deref b in
@@ -153,8 +154,11 @@ let rec occur_check (a : var) b =
     | Getter t -> occur_check a t
     | List { t } -> occur_check a t
     | Nullable t -> occur_check a t
-    | Meth ({ scheme = _, t }, u) ->
+    | Meth ({ scheme = g, t }, u) ->
         (* We assume that a is not a generalized variable of t. *)
+        (* TODO: we should not lower the level of bound variables, but this
+           complicates the code and has little effect. *)
+        assert (not (List.exists (Var.eq a) g));
         occur_check a t;
         occur_check a u
     | Arrow (p, t) ->
@@ -162,7 +166,8 @@ let rec occur_check (a : var) b =
         occur_check a t
     | Ground _ -> ()
     | Var { contents = Free b } ->
-        if Type.Var.eq a b then raise (Occur_check (a, b0))
+        if Type.Var.eq a b then raise (Occur_check (a, b0));
+        b.level <- min a.level b.level
     | Var { contents = Link _ } -> assert false
 
 (** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
@@ -233,32 +238,6 @@ let satisfies_constraint b = function
 
 let satisfies_constraints b c = List.iter (satisfies_constraint b) c
 
-(* Note: this is not combined with occur_check as usual because this is more
-   clear this way and we can properly handle schemes present in methods. *)
-
-(** Lower all type variables to given level. *)
-let rec update_level ?(generalized = []) level a =
-  let update_level ?(generalized = generalized) =
-    update_level ~generalized level
-  in
-  match a.descr with
-    | Var { contents = Free x } ->
-        if not (List.exists (Var.eq x) generalized) then
-          x.level <- min level x.level
-    | Var { contents = Link (_, a) } -> update_level a
-    | Constr c -> List.iter (fun (_, a) -> update_level a) c.params
-    | Ground _ -> ()
-    | Getter a | Nullable a -> update_level a
-    | List l -> update_level l.t
-    | Tuple l -> List.iter (fun a -> update_level a) l
-    | Meth (m, b) ->
-        let g, a = m.scheme in
-        update_level ~generalized:(g @ generalized) a;
-        update_level b
-    | Arrow (l, b) ->
-        List.iter (fun (_, _, a) -> update_level a) l;
-        update_level b
-
 (** Make a variable link to given type. *)
 let bind ?(variance = Invariant) a b =
   let a0 = a in
@@ -271,13 +250,21 @@ let bind ?(variance = Invariant) a b =
     Printf.printf "\n%s := %s\n%!" (Type.to_string a0) (Type.to_string b);
   let b = deref b in
   occur_check a b;
-  update_level a.level b;
+  (* update_level a.level b; *)
   satisfies_constraints b a.constraints;
   let b = if b.pos = None then { b with pos = a0.pos } else b in
   (* We do not want to check the constraints when we increase the types (for
      now). *)
   let variance = if a.constraints <> [] then Invariant else variance in
   v := Link (variance, b)
+
+(** Lower all type variables to given level. *)
+let update_level level a =
+  let x = Type.var ~level () in
+  let x =
+    match x.descr with Var { contents = Free x } -> x | _ -> assert false
+  in
+  occur_check x a
 
 (** {1 Subtype checking/inference} *)
 
