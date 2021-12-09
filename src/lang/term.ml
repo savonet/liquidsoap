@@ -165,15 +165,6 @@ let type_of_format ~pos f =
 
 (** {2 Terms} *)
 
-(** The way we implement this mini-language is not very efficient. It should not
-    matter, since very little computation is done here. It is mostly used for a
-    single run on startup to build the sources, and then sometimes for building
-    transitions. Terms are small, no recursion is possible. In order to report
-    informative errors, including runtime errors (invalid values of a valid type
-    given to a FF) we need to keep a complete AST all the way long.  We actually
-    don't need the types anymore after the static checking, but I don't want to
-    bother with stripping down to another datatype. *)
-
 (** Sets of variables. *)
 module Vars = Set.Make (String)
 
