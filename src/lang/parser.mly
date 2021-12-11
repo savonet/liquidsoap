@@ -30,6 +30,7 @@ open Parser_helper
 %token <string> VAR
 %token <string> VARLPAR
 %token <string> VARLBRA
+%token <string * (Lexing.position * Lexing.position)> PP_STRING
 %token <string> STRING
 %token <int> INT PP_INT_DOT_LCUR
 %token <float> FLOAT

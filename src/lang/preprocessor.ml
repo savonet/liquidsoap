@@ -29,9 +29,9 @@ let trd3 (_, _, z) = z
 let mk_tokenizer ?(fname = "") lexbuf =
   Sedlexing.set_filename lexbuf fname;
   fun () ->
-    let token = Lexer.token lexbuf in
-    let pos = Sedlexing.lexing_positions lexbuf in
-    (token, pos)
+    match Lexer.token lexbuf with
+      | Parser.PP_STRING (s, pos) -> (Parser.STRING s, pos)
+      | token -> (token, Sedlexing.lexing_positions lexbuf)
 
 (* TODO: also parse optional arguments? *)
 let get_encoder_format tokenizer =
@@ -543,5 +543,10 @@ let expand_define tokenizer =
 
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname ~pwd lexbuf =
-  mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
-  |> expand_string |> int_meth |> uminus |> strip_newlines |> expand_define
+  let tokenizer =
+    mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
+    |> expand_string |> int_meth |> uminus |> strip_newlines |> expand_define
+  in
+  fun () ->
+    let t, (startp, endp) = tokenizer () in
+    (t, startp, endp)

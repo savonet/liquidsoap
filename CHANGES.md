@@ -3,6 +3,7 @@
 
 Fixed:
 * Fixed unbound buffer in muxing operators (#2054)
+* Return correct positions when parsing strings (#2095)
 
 2.0.1 (27-11-2021)
 =====
