@@ -84,7 +84,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
     # Weight of the source
     weight = list.nth(default=default_weight, weights, index)
 
-    source.on_track(s, fun(_) -> ref.incr(tracks_played))
+    s = source.on_track(s, fun(_) -> ref.incr(tracks_played))
 
     def cond() =
       if !picked_index == -1 then pick() end
@@ -171,7 +171,7 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
       next_index := -1
     end 
 
-    source.on_track(s, f)
+    s = source.on_track(s, f)
 
     def cond() =
       if !next_index == -1 then pick() end

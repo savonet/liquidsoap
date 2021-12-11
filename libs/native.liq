@@ -8,7 +8,7 @@ let native = ()
 def native.once(s)
   # source.available(track_sensitive=true, s, predicate.first({true}))
   a = ref(true)
-  source.on_track(s, fun(_) -> a := false)
+  s = source.on_track(s, fun(_) -> a := false)
   source.available(s, {!a})
 end
 
@@ -59,7 +59,7 @@ def native.sequence(~id=null(), sources)
     end
   end
 
-  source.on_track(s, ot)
+  s = source.on_track(s, ot)
   s
 end
 

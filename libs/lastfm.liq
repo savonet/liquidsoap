@@ -67,7 +67,7 @@ def audioscrobbler.submit.full(
   f = audioscrobbler.nowplaying(
         user=user,password=password,
         host=host,port=port,length=length)
-  source_on_metadata(s, f)
+  s = source_on_metadata(s, f)
   f = fun (rem,m) ->
       # Avoid skipped songs
       if rem > 0. or force then

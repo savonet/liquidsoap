@@ -13,7 +13,7 @@ def metadata.getter.base(init, map, metadata, s)
     v = m[metadata]
     if v != "" then x := map(v) end
   end
-  source.on_metadata(s, f)
+  s.on_metadata(f)
   {!x}
 end
 
