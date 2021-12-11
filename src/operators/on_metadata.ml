@@ -45,8 +45,9 @@ class on_metadata ~kind f s =
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "on_metadata"
+  Lang.add_operator "source.on_metadata"
     [
+      ("", Lang.source_t return_t, None, None);
       ( "",
         Lang.fun_t
           [
@@ -57,12 +58,11 @@ let () =
         Some
           "Function called on every metadata packet in the stream. It should \
            be fast because it is executed in the main streaming thread." );
-      ("", Lang.source_t return_t, None, None);
     ]
     ~category:`Track ~descr:"Call a given handler on metadata packets."
     ~return_t
     (fun p ->
-      let f = Lang.assoc "" 1 p in
-      let s = Lang.to_source (Lang.assoc "" 2 p) in
+      let s = Lang.assoc "" 1 p |> Lang.to_source in
+      let f = Lang.assoc "" 2 p in
       let kind = Kind.of_kind kind in
       new on_metadata ~kind f s)
