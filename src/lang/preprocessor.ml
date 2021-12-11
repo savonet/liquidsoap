@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type tokenizer = unit -> Parser.token * (Lexing.position * Lexing.position)
+type tokenizer = unit -> Parser.token * Pos.t
 
 let fst3 (x, _, _) = x
 let snd3 (_, y, _) = y
@@ -29,9 +29,10 @@ let trd3 (_, _, z) = z
 let mk_tokenizer ?(fname = "") lexbuf =
   Sedlexing.set_filename lexbuf fname;
   fun () ->
-    let token = Lexer.token lexbuf in
-    let pos = Sedlexing.lexing_positions lexbuf in
-    (token, pos)
+    match Lexer.token lexbuf with
+      | Parser.PP_STRING (s, pos) -> (Parser.STRING s, pos)
+      | Parser.PP_REGEXP (r, flags, pos) -> (Parser.REGEXP (r, flags), pos)
+      | token -> (token, Sedlexing.lexing_positions lexbuf)
 
 (* The Lang_lexer is not quite enough for our needs, so we first define
    convenient layers between it and the parser. First a pre-processor which
@@ -523,6 +524,11 @@ let expand_define tokenizer =
 
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname ~pwd lexbuf =
-  mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
-  |> expand_string |> int_meth |> dotvar |> uminus |> strip_newlines
-  |> expand_define
+  let tokenizer =
+    mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
+    |> expand_string |> int_meth |> dotvar |> uminus |> strip_newlines
+    |> expand_define
+  in
+  fun () ->
+    let t, (startp, endp) = tokenizer () in
+    (t, startp, endp)

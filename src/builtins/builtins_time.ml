@@ -115,11 +115,7 @@ let () =
         let processor =
           MenhirLib.Convert.Simplified.traditional2revised Parser.time_predicate
         in
-        let tokenizer () =
-          let token = Lexer.token lexbuf in
-          let startp, endp = Sedlexing.lexing_positions lexbuf in
-          (token, startp, endp)
-        in
+        let tokenizer = Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
         let predicate = processor tokenizer in
         Lang.val_fun [] (fun _ -> Evaluation.eval predicate)
       with _ ->

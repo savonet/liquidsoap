@@ -35,11 +35,7 @@ let parse s =
     let processor =
       MenhirLib.Convert.Simplified.traditional2revised Parser.annotate
     in
-    let tokenizer () =
-      let token = Lexer.token lexbuf in
-      let startp, endp = Sedlexing.lexing_positions lexbuf in
-      (token, startp, endp)
-    in
+    let tokenizer = Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
     let metadata = processor tokenizer in
     let b = Buffer.create 10 in
     let rec f () =

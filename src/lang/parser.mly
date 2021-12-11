@@ -30,8 +30,10 @@ open Parser_helper
 %token <string> VAR
 %token <string> VARLPAR
 %token <string> VARLBRA
-%token <string> STRING
-%token <string * char list> REGEXP
+%token <string * Pos.t> PP_STRING
+%token <string * char list * Pos.t> PP_REGEXP
+%token <string > STRING
+%token <string * char list > REGEXP
 %token <int> INT PP_INT_DOT_LCUR
 %token <float> FLOAT
 %token <bool> BOOL

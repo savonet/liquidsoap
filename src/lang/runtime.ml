@@ -201,10 +201,6 @@ let report lexbuf f =
 let mk_expr ?fname ~pwd processor lexbuf =
   let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
   let tokenizer = Preprocessor.mk_tokenizer ?fname ~pwd lexbuf in
-  let tokenizer () =
-    let token, (startp, endp) = tokenizer () in
-    (token, startp, endp)
-  in
   processor tokenizer
 
 let from_lexbuf ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib

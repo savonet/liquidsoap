@@ -288,23 +288,21 @@ let rec token lexbuf =
         INTERVAL (parse_time t1, parse_time t2)
     | var -> VAR (Sedlexing.Utf8.lexeme lexbuf)
     | '"' ->
-        STRING
-          (read_string '"'
-             (fst (Sedlexing.lexing_positions lexbuf))
-             (Buffer.create 17) lexbuf)
+        let startp, _ = Sedlexing.lexing_positions lexbuf in
+        let s = read_string '"' startp (Buffer.create 17) lexbuf in
+        let _, endp = Sedlexing.lexing_positions lexbuf in
+        PP_STRING (s, (startp, endp))
     | '\'' ->
-        STRING
-          (read_string '\''
-             (fst (Sedlexing.lexing_positions lexbuf))
-             (Buffer.create 17) lexbuf)
+        let startp, _ = Sedlexing.lexing_positions lexbuf in
+        let s = read_string '\'' startp (Buffer.create 17) lexbuf in
+        let _, endp = Sedlexing.lexing_positions lexbuf in
+        PP_STRING (s, (startp, endp))
     | "r/" ->
-        let regexp =
-          read_string '/'
-            (fst (Sedlexing.lexing_positions lexbuf))
-            (Buffer.create 17) lexbuf
-        in
+        let startp, _ = Sedlexing.lexing_positions lexbuf in
+        let regexp = read_string '/' startp (Buffer.create 17) lexbuf in
         let flags = read_regexp_flags [] lexbuf in
-        REGEXP (regexp, flags)
+        let _, endp = Sedlexing.lexing_positions lexbuf in
+        PP_REGEXP (regexp, flags, (startp, endp))
     | _ ->
         raise
           (Term.Parse_error
