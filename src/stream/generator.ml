@@ -55,7 +55,7 @@ type overfull = [ `Drop_old of int ]
 
 type t = {
   m : Mutex.t;
-  overfull : overfull option;
+  overfull : overfull;
   log : string -> unit;
   mutable mode : mode;
   mutable synced : Content.data option;
@@ -67,7 +67,21 @@ type t = {
 
 let _log = Log.make ["generator"]
 
+let conf =
+  Dtools.Conf.void ~p:(Configure.conf#plug "buffer") "Buffer configuration"
+
+let conf_default_max_buffer_length =
+  Dtools.Conf.float
+    ~p:(conf#plug "default_max_buffer_length")
+    ~d:5. "Default max buffer length when not provided otherwise"
+
 let create ?overfull ?log ?(log_overfull = true) mode =
+  let overfull =
+    Option.value
+      ~default:
+        (`Drop_old (Frame.main_of_seconds conf_default_max_buffer_length#get))
+      overfull
+  in
   let log = Option.value ~default:(_log#info "%s") log in
   let log = if log_overfull then log else fun _ -> () in
   {
@@ -163,7 +177,7 @@ let remove g len = Tutils.mutexify g.m (fun () -> _remove g len) ()
 
 let _check_overfull g =
   match g.overfull with
-    | Some (`Drop_old max_len) when max_len < _buffered_length g ->
+    | `Drop_old max_len when max_len < _buffered_length g ->
         (* First remove from the synced buffer. *)
         let len = min (_length g) (_buffered_length g - max_len) in
         _remove g len;
