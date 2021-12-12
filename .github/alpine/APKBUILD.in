@@ -1,7 +1,7 @@
 pkgname=@APK_PACKAGE@
 subpackages="$pkgname-dbg"
 pkgver=@APK_VERSION@
-pkgrel=0
+pkgrel=@APK_RELEASE@
 pkgdesc="Swiss-army knife for multimedia streaming"
 url="https://github.com/savonet/liquidsoap"
 arch="all"
