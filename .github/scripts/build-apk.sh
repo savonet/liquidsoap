@@ -27,7 +27,8 @@ cd /tmp/liquidsoap-full
 
 cat liquidsoap/.github/alpine/APKBUILD.in | \
   sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}#" | \
-  sed -e "s#@APK_VERSION@#${APK_VERSION}#" \
+  sed -e "s#@APK_VERSION@#${APK_VERSION}#" | \
+  sed -e "s#@APK_RELEASE@#${APK_RELEASE}#" \
   > APKBUILD
 
 cp liquidsoap/.github/alpine/liquidsoap.pre-install ${APK_PACKAGE}.pre-install
