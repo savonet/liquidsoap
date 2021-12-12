@@ -11,14 +11,14 @@ def f(_)
 end
 
 s = sine()
-s = source.on_metadata(s,f)
-# s.on_metadata(f)
 s = insert_metadata(s)
 
 def insert()
   print("Inserting metadata")
   s.insert_metadata([("test", "bla")])
 end
+
+s = source.on_metadata(s,f)
 
 thread.run(delay=1., insert)
 
