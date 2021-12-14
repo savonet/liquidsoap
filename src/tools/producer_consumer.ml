@@ -85,7 +85,10 @@ type write_payload = [ `Frame of Frame.t | `Flush ]
 type write_frame = write_payload -> unit
 
 let write_to_buffer ~content g = function
-  | `Frame frame -> Generator.feed_from_frame ~mode:content g frame
+  | `Frame frame ->
+      Generator.feed_from_frame ~mode:content g frame;
+      let excess = Generator.length g - Lazy.force Frame.size in
+      if 0 < excess then Generator.remove g excess
   | `Flush -> ()
 
 class consumer ~write_frame ~name ~kind ~source () =
