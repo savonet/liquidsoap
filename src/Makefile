@@ -78,6 +78,7 @@ sources = \
 operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
 	operators/on_end.ml operators/on_frame.ml operators/delay.ml \
+	operators/on_track.ml operators/on_metadata.ml \
 	operators/max_duration.ml operators/sequence.ml operators/add.ml \
 	operators/switch.ml operators/cross.ml \
 	operators/pitch.ml operators/pipe.ml operators/filter.ml \

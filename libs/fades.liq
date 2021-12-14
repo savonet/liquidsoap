@@ -129,15 +129,17 @@ def fade.out(~id="fade.out",~duration=3.,
     end
   end
 
-  source.on_metadata(s, update_fade)
+  s = source.on_metadata(s, update_fade)
   delay = fun () -> !duration
-  if track_sensitive then
-    source.on_track(s, stop_fade)
-  else
-    start_fade(!duration, [])
-  end
-  s = if track_sensitive then source.on_end(s,delay=delay,start_fade) else s end
-  fade.scale(id=id,apply,s)
+  s =
+    if track_sensitive then
+      source.on_track(s, stop_fade)
+    else
+      start_fade(!duration, [])
+      s
+    end
+  s = if track_sensitive then source.on_end(s, delay=delay, start_fade) else s end
+  fade.scale(id=id, apply, s)
 end
 
 # Fade when the metadata trigger is received and then skip.
@@ -191,9 +193,9 @@ def fade.skip(~id="fade.skip",~duration=5.,
     end
   end
 
-  source.on_metadata(s, update_fade)
-  source.on_track(s, stop_fade)
-  fade.scale(id=id,apply,s)
+  s = source.on_metadata(s, update_fade)
+  s = source.on_track(s, stop_fade)
+  fade.scale(id=id, apply, s)
 end
 
 # Fade the beginning of tracks.
@@ -236,8 +238,8 @@ def fade.in(~id="fade.in",~duration=3.,
     end
   end
 
-  source.on_metadata(s, update_fade)
-  if track_sensitive then source.on_track(s, start_fade) else start_fade([]) end
+  s = source.on_metadata(s, update_fade)
+  s = if track_sensitive then source.on_track(s, start_fade) else start_fade([]); s end
 
   fade.scale(id=id,apply,s)
 end

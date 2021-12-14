@@ -146,34 +146,6 @@ let () =
       Lang.float (frame_position +. in_frame_position))
 
 let () =
-  Lang.add_builtin "source.on_metadata" ~category:`Liquidsoap
-    ~descr:"Call a given handler on metadata packets."
-    [
-      ("", Lang.source_t (Lang.univ_t ()), None, None);
-      ("", Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t, None, None);
-    ]
-    Lang.unit_t
-    (fun p ->
-      let s = Lang.assoc "" 1 p |> Lang.to_source in
-      let f = Lang.assoc "" 2 p in
-      s#on_metadata (fun m -> ignore (Lang.apply f [("", Lang.metadata m)]));
-      Lang.unit)
-
-let () =
-  Lang.add_builtin "source.on_track" ~category:`Liquidsoap
-    ~descr:"Call a given handler on new tracks."
-    [
-      ("", Lang.source_t (Lang.univ_t ()), None, None);
-      ("", Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t, None, None);
-    ]
-    Lang.unit_t
-    (fun p ->
-      let s = Lang.assoc "" 1 p |> Lang.to_source in
-      let f = Lang.assoc "" 2 p in
-      s#on_track (fun m -> ignore (Lang.apply f [("", Lang.metadata m)]));
-      Lang.unit)
-
-let () =
   Lang.add_builtin "source.on_leave" ~category:`System
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);
