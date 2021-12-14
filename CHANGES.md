@@ -8,15 +8,16 @@ New:
 - Added generalized support for value extraction patterns (#1970)
 - Added support for string getter for `http.{post,put}` operations (#1984)
 - Added `output.youtube.live.hls`
-- Rewrote out internal JSON parser/renderer (#2011).
-  **Breaking change** values that cannot be represented as `JSON` will now raise
-  `error.json` when converted to `JSON`. `infinite` and `nan` floats can be exported
-  using the `json5` export format.
-- Added socket API (#2014)
+- Rewrote out internal JSON parser/renderer (#2011). **Breaking change** values
+  that cannot be represented as `JSON` will now raise `error.json` when
+  converted to `JSON`. `infinite` and `nan` floats can be exported using the
+  `json5` export format.
+- Added socket API (#2014).
 
 Changes:
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
-  `quality` arguments and added a single encoder argument to allow stream copy and more.
+  `quality` arguments and added a single encoder argument to allow stream copy
+  and more.
 - `source.on_metadata` and `source.on_track` now return a source as this was the
   case in previous versions, and associated handlers are triggered only when the
   returned source is pulled (#2103).
@@ -39,13 +40,14 @@ Fixes:
   using default transitions one track only per selected source. (#1999)
 * Fixed playlist annotation. (#2005)
 * Raise a proper runtime exception when `string.escape` fails. (#2010)
-* Account for internal caching in `request.dynamic.list`'s `queue` and `set_queue` methods.
+* Account for internal caching in `request.dynamic.list`'s `queue` and
+  `set_queue` methods.
 * Keep buffering for crossfade when new source has track mark but is still ready.
 * Added missing output `start`/`stop` commands.
-* Fixed `perms`, `dir_perms` and `append` not bring honored when delegating file output
-  to the encoder.
-* Fixed base directory not being created when delegating file output to the encoder.
-  (#2069)
+* Fixed `perms`, `dir_perms` and `append` not bring honored when delegating file
+  output to the encoder.
+* Fixed base directory not being created when delegating file output to the
+  encoder (#2069).
 * Use `process.quote` in process calls (#2031)
 
 2.0.0 (03-10-2021)
@@ -57,16 +59,17 @@ New:
 - Add support for optional values with `null.*` (#1242).
 - Add support for `x ? y : z` syntax (#1266).
 - Added support for list spread and deconstruction syntax (#1269).
-- Add support for generic JSON objects, map `(string, 'a)` lists to regular lists,
-  add support for json5 floats (`NaN`, `Infinity`), return `null` for those otherwise,
-  rename `json_of` into `json.stringify` and `of_json` into `json.parse` with
-  deprecation (#1824)
+- Add support for generic JSON objects, map `(string, 'a)` lists to regular
+  lists, add support for json5 floats (`NaN`, `Infinity`), return `null` for
+  those otherwise, rename `json_of` into `json.stringify` and `of_json` into
+  `json.parse` with deprecation (#1824)
 - Added support for video encoding and decoding using `ffmpeg` (#1038).
 - Added support for hardware-accelerated video encoding using `ffmpeg` (#1380)
 - Added support for ffmpeg filters (#1038).
 - Added video support to `output.hls` (#1391).
 - Added mp4 support to `output.hls` (#1391).
-- Added `output.url` for encoders that support handling data output (currently only `%ffmpeg`) (#1038).
+- Added `output.url` for encoders that support handling data output (currently
+  only `%ffmpeg`) (#1038).
 - Added `output.file.dash.ffmpeg`.
 - Added LV2 support (#906).
 - Added `string.nth` (#970).
@@ -111,7 +114,8 @@ New:
 - Add support for records and methods (#1197).
 - Rename `unsafe.single.infallible` to `single.infallible`.
 - Add `list.indexed`.
-- Added optional support for high-resolution time and latency control on POSIX systems (#1050).
+- Added optional support for high-resolution time and latency control on POSIX
+  systems (#1050).
 - Added syntax for `for` and `while` loops (#1252).
 - Added a bunch of source-related methods (#1379).
 - Added `min` and `max` functions.
@@ -135,7 +139,8 @@ New:
   `compress.old` (#868, #869).
 - Added `stereo.width`.
 - Added `file.mkdir`.
-- Added support for harbor's connected address in auth function and as a method (#1364).
+- Added support for harbor's connected address in auth function and as a method
+  (#1364).
 - Added `time.up`.
 - Added `video.cover`.
 - Added `video.still_frame`.
@@ -230,10 +235,10 @@ Changed:
   last functions is now optional (#1320).
 - Dropped optional `gavl` video converter in favor of `ffmpeg`.
 - Remove `persist` argument in `output.*.hls` and use nullable value for `persist_at`.
-- Deprecated source server commands in favor or direct call to source methods. Added
-  wrappers for some of the old commands (#1379).
-- Deprecated catch-all `input` and `output` in favor or setting your desired input or 
-  output explicitly.
+- Deprecated source server commands in favor or direct call to source
+  methods. Added wrappers for some of the old commands (#1379).
+- Deprecated catch-all `input` and `output` in favor or setting your desired
+  input or output explicitly.
 - Implement `interactive.*` on script side (#1493).
 - `file.write` does not return a boolean anymore, exceptions are used for
   exceptional cases (#1500).
@@ -261,7 +266,8 @@ Fixed:
 - Improve the quality of `video.add_text.gd` (#1188).
 - Exit with non-zero code on errors.
 - Fixed parsing of http URI arguments with `=` in them (#1340).
-- Fixed fade-out in crossfades when crossfade duration is the same as fade-out duration (#1351).
+- Fixed fade-out in crossfades when crossfade duration is the same as fade-out
+  duration (#1351).
 - Fixed osc server not workin when daemonized (#1365).
 - Fixed glitchy audio when using `input.harbor` (#1944)
 - Fixed `"tracknumber"` and `"year"` returning `0` in taglib (#1901) 
@@ -278,7 +284,8 @@ New:
 Changed:
 - Fetch mime type using curl first when available.
 - Make override metadata name case-sensitive in `amplify` (#1323)
-- Harnessed playlist file resolver to better support some combination of protocols and file resolution (#1362)
+- Harnessed playlist file resolver to better support some combination of
+  protocols and file resolution (#1362)
 
 Fixed:
 - Remote file resolution when passing URLs with spaces (#1410)
@@ -286,7 +293,8 @@ Fixed:
 - Fixed `input.harbor` shoutcast client connection (#1353)
 - Fixed exception reporting when output fails to start (#1372)
 - Fixed `random` track selection (#1468)
-- Fixed playlist request leak when using `reload="watch"` with `inotify` on a folder (#1451)
+- Fixed playlist request leak when using `reload="watch"` with `inotify` on a
+  folder (#1451)
 - Deadlock when LO server thread crashes (#1409)
 
 1.4.3 (14-09-2020)
@@ -321,10 +329,12 @@ Fixed:
 - Use 443 as default port for https (#1127)
 - Fix implementation of `rotate` (#1129).
 - Register audio/opus mime type for ogg decoding (#1089)
-- Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
+- Re-encode name, genre and description in `output.icecast` using the given
+  encoding (#1092)
 - Accept 24 bits per sample in %flac encoder (#1073).
 - Fix rare stack overflow during clock unification (#1108).
-- Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
+- Prevent metadata inserted via `insert_metadata` from being visible to
+  underlying sources (#1115)
 - Fix `cross()` fallability.
 - Fix decoder remaining time when decoding is done (#1159)
 - Fixed crash when cleaning up `output.hls`
@@ -355,10 +365,12 @@ Fixed:
 - Use 443 as default port for https (#1127)
 - Fix implementation of `rotate` (#1129).
 - Register audio/opus mime type for ogg decoding (#1089)
-- Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
+- Re-encode name, genre and description in `output.icecast` using the given
+  encoding (#1092)
 - Accept 24 bits per sample in %flac encoder (#1073).
 - Fix rare stack overflow during clock unification (#1108).
-- Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
+- Prevent metadata inserted via `insert_metadata` from being visible to
+  underlying sources (#1115)
 - Fix `cross()` fallability.
 - Fix decoder remaining time when decoding is done (#1159)
 - Fixed crash when cleaning up `output.hls`
@@ -381,7 +393,8 @@ New:
 - Added `input.{file,harbor}.hls` to read HLS stream (#59, #295, #296).
 - Added `output.hls` to natively stream in HLS (#758).
 - Added `%ffmpeg` native encoder, only for audio encoding for now (#952)
-- Added ffmpeg-based stream decoder, limited to mime type `application/ffmpeg` for now.
+- Added ffmpeg-based stream decoder, limited to mime type `application/ffmpeg`
+  for now.
 - Added `(to_){string,float,int,bool}_getter` operators to handle getters in
   script side.
 - Made `p` parameter in `smooth_add` a `float` getter (#601)
@@ -397,7 +410,8 @@ New:
   @RecursiveGreen. (#778)
 - Added support for sandboxing `run_process` calls. (#785)
 - Added `harbor.{http,https}.static` to serve static path.
-- Added `log.{critical,severe,important,info,warning,debug}`. Use aliases in code as well (#800, #801, #802)
+- Added `log.{critical,severe,important,info,warning,debug}`. Use aliases in
+  code as well (#800, #801, #802)
 - Added `sleep` function.
 - Added `mkavailable` function.
 - Added `fade.skip` function. (#804)
@@ -483,7 +497,8 @@ Changed:
   protocol. Rename protocol to `ffmpeg`. (#909)
 - `list.assoc` and `list.assoc.remove` require an ordered type as first
   component.
-- Renamed `quote` to `string.quote`, removed `process.quote` in favor or `string.quote` (#1635)
+- Renamed `quote` to `string.quote`, removed `process.quote` in favor or
+  `string.quote` (#1635)
 - Added `phase_inversion={true/false}` to `%opus` encoder (#937)
 - Fixed encoders forcing frame rate and audio channels too early (#933)
 - Change filename to a string getter in file-based outputs. (#198)
@@ -595,7 +610,8 @@ Changed:
 - Removed asynchronous mode for `output.gstreamer.audio_video`
 - Reworked `smartcross` internal logic (#596)
 - Enabled `replaygain` on `m4a` files, thanks to @gilou (#604)
-- Added `encoding` parameter to `output.shoutcast` to allow alternative string encoding for metadata updates (#411)
+- Added `encoding` parameter to `output.shoutcast` to allow alternative string
+  encoding for metadata updates (#411)
 - Deprecated `rewrite_metadata`
 
 Fixed:
@@ -635,7 +651,8 @@ Fixed:
 
 - Fixed memory leak in `output.icecast` connection method. (#490)
 - Fixed `mutexify`
-- Make sure that metadata are always passed in increasing position order in `map_metadata` (#469)
+- Make sure that metadata are always passed in increasing position order in
+  `map_metadata` (#469)
 
 1.3.2 (02-09-2017)
 =====
@@ -669,8 +686,8 @@ New:
 
 Fixed:
 
-- Fixed `run_process`, `get_process_lines`, `get_process_output` when compiling with
-  OCaml <= 4.03 (#437, #439)
+- Fixed `run_process`, `get_process_lines`, `get_process_output` when compiling
+  with OCaml <= 4.03 (#437, #439)
 - Calls to wait_for while the scheduler isn't running (#442)
 - Revert default handling of environment in run_process, get_process_lines,
   get_process_output to passing calling process' environment by default.
@@ -702,14 +719,16 @@ New:
 - Added replay_metadata to input.harbor()
 - Added \<char code> syntax for strings (#368)
 - Added string.sub
-- Added run_process to run a process with optional environment and return (stdout,stderr,exit_status)
+- Added `run_process` to run a process with optional environment and return
+  (stdout,stderr,exit_status)
 - Added add_playlist_parser to register new playlist parsers
 - Added optional static parameter to add_protocol
 - Added file.temp to create fresh temporary filename
 - Added process: protocol
 - Reimplemented curl-based fetch process using process:
 - Added s3:// protocol to fetch files from AWS S3 using the AWS CLI.
-- Added polly: protocol to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().
+- Added polly: protocol to enable speech synthesis using AWS polly. Generated
+  files are mono so make sure you use audio_to_stereo().
 - Added youtube-dl: protocol to resolved requests using youtube-dl
 - Added which() to find an executable within the $PATH
 - Added register() to allow to register new configuration settings
@@ -718,7 +737,8 @@ Changed:
 
 - Reverted default value for --error_as_warnings option, renamed to --strict.
 - Moved say: protocol registration to utils.liq.
-- Moved get_process_lines and get_process_output to utils.liq, added optional env parameter
+- Moved `get_process_lines` and `get_process_output` to utils.liq, added
+  optional env parameter
 - Set conservative=true by default in cross() and smartcross()
 
 Deprecated (can be removed in any future version):
@@ -729,7 +749,8 @@ Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
 - dirac/schroedinger video encoder: obsolete, abandoned upstream.
-- force_mpeg option in taglib metadata decoder. Has not been used for years and allows to decouple taglib code from the mad decoder.
+- force_mpeg option in taglib metadata decoder. Has not been used for years and
+  allows to decouple taglib code from the mad decoder.
 
 Bugfixes:
 
