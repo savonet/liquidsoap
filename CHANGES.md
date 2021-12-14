@@ -17,6 +17,9 @@ New:
 Changes:
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
   `quality` arguments and added a single encoder argument to allow stream copy and more.
+- `source.on_metadata` and `source.on_track` now return a source as this was the
+  case in previous versions, and associated handlers are triggered only when the
+  returned source is pulled (#2103).
 
 2.0.1 (27-11-2021)
 =====
