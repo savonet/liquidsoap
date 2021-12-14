@@ -11,6 +11,25 @@ From 1.4.x to 2.0.0
 
 `audio_to_stereo` should not be required in most situations anymore. `liquidsoap` can handle channels conversions transparently now! 
 
+### `auth` function in `input.harbor`
+
+The type of the `auth` function in `input.harbor` has changed. Where before, you would do:
+
+```liquidsoap
+def auth(user, password) =
+  ...
+end
+```
+
+You would now do:
+```liquidsoap
+def auth(params)
+  user     = params.user
+  password = params.password
+  ...
+end
+```
+
 ### Type errors with lists of sources
 
 Now that sources have their own methods, the actual list of methods attached to each source can vary from one to the next. For instance,
