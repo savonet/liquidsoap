@@ -159,9 +159,7 @@ let throw print_error = function
       let pos = Pos.List.to_string ~newlines:true pos in
       Format.printf
         "Uncaught runtime error:@ type: %s,@ message: %s,@\nstack: %s\n@]@."
-        kind
-        (Printf.sprintf "%s" (Utils.quote_string msg))
-        pos;
+        kind (Utils.quote_string msg) pos;
       raise Error
   | Sedlexing.MalFormed -> print_error 13 "Malformed file."
   | End_of_file -> raise End_of_file
@@ -174,20 +172,6 @@ let throw print_error = function
 let report lexbuf f =
   let print_error idx error =
     flush_all ();
-    (*
-    let pos =
-      let start = snd (Sedlexing.lexing_positions lexbuf) in
-      let buf = Sedlexing.Utf8.lexeme lexbuf in
-      Printf.sprintf "%sine %d, char %d%s"
-        (if start.Lexing.pos_fname = "" then "L"
-        else
-          Printf.sprintf "File %s, l"
-            (Utils.quote_string start.Lexing.pos_fname))
-        start.Lexing.pos_lnum
-        (start.Lexing.pos_cnum - start.Lexing.pos_bol)
-        (if buf = "" then "" else Printf.sprintf " before %S" buf)
-    in
-    *)
     let pos = Sedlexing.lexing_positions lexbuf in
     error_header idx (Some pos);
     Format.printf "%s\n@]@." error
