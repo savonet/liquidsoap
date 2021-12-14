@@ -7,6 +7,7 @@ BRANCH=$2
 DOCKER_TAG=$3
 PLATFORM=$4
 IS_RELEASE=$5
+DEB_RELEASE=1
 
 ARCH=`dpkg --print-architecture`
 
@@ -39,10 +40,10 @@ cp -f debian/control.in debian/control
 
 sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}#g" -i debian/control
 
-dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-1" "Build ${COMMIT_SHORT}"
+dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"
 
 fakeroot debian/rules binary
 
 cp /tmp/liquidsoap-full/*.deb /tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian
 
-echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-1_$ARCH"
+echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
