@@ -1,6 +1,9 @@
 2.0.2 (unreleased)
 =====
 
+Fixed:
+* Fixed unbound buffer in muxing operators (#2054)
+
 2.0.1 (27-11-2021)
 =====
 
@@ -14,7 +17,7 @@ Changed:
   the main encoder for HLS format, `%ffmpeg` (#2023)
 * Converted `output.icecast` optional parameters to `nullable`.
 
-Fixes:
+Fixed:
 * Fixed switch-based sources not respecting track boundaries when
   using default transitions one track only per selected source. (#1999)
 * Fixed playlist annotation. (#2005)
