@@ -26,15 +26,6 @@ being available through traditional distribution channels, are bundled in the
 [liquidsoap-&lt;version&gt;-full.tar.bz2](https://github.com/savonet/liquidsoap/releases)
 tarballs for easier builds.
 
-Libraries not developed by Savonet are:
-
-- camlimages
-- camomile
-- gd4o
-- ocaml-pcre
-- ocaml-magic
-- tsdl / tsdl-ttf / tsdl-image
-
 ### Mandatory dependencies:
 
 | Dependency     | Version                   |
@@ -49,10 +40,11 @@ Libraries not developed by Savonet are:
 
 ### Recommended dependencies:
 
-| Dependency       | Version                    | Functionality                  |
-| ---------------- | -------------------------- | ------------------------------ |
-| camomile         | @camomile_version_descr@   | Charset recoding in metadata   |
-| ocaml-samplerate | @samplerate_version_descr@ | Libsamplerate audio conversion |
+| Dependency       | Version                       | Functionality                         |
+| ---------------- | ----------------------------- | ------------------------------------- |
+| camomile         | @camomile_version_descr@      | Charset recoding in metadata          |
+| ocurl            | @ocurl_version_descr@         | File download                         |
+| ocaml-ffmpeg     | @ffmpeg_avutil_version_descr@ | Comprehensive audio and video support |
 
 ### Optional dependencies:
 
@@ -75,6 +67,7 @@ Libraries not developed by Savonet are:
 | ocaml-ladspa        | @ladspa_version_descr@               | LADSPA plugins                                |
 | ocaml-lame          | @lame_version_descr@                 | MP3 encoding                                  |
 | ocaml-lastfm        | @lastfm_version_descr@               | Lastfm scrobbling                             |
+| ocaml-lilv          | @lilv_version_descr@                 | Lilv plugins                                  |
 | ocaml-lo            | @lo_version_descr@                   | OSC (Open Sound Control) support              |
 | ocaml-mad           | @mad_version_descr@                  | MP3 decoding                                  |
 | ocaml-magic         | @magic_version_descr@                | File type detection                           |
@@ -83,6 +76,7 @@ Libraries not developed by Savonet are:
 | ocaml-portaudio     | @portaudio_version_descr@            | Portaudio I/O                                 |
 | ocaml-pulseaudio    | @pulseaudio_version_descr@           | PulseAudio I/O                                |
 | ocaml-shine         | @shine_version_descr@                | Fixed-point MP3 encoding                      |
+| ocaml-samplerate    | @samplerate_version_descr@           | Libsamplerate audio conversion                |
 | ocaml-soundtouch    | @soundtouch_version_descr@           | Libsoundtouch's audio effects                 |
 | ocaml-speex         | @speex_version_descr@                | Ogg/Speex codec                               |
 | ocaml-srt           | @srt_version_descr@                  | SRT I/O                                       |
@@ -102,7 +96,6 @@ Libraries not developed by Savonet are:
 | Dependency          | Functionality                                     |
 | ------------------- | ------------------------------------------------- |
 | awscli              | `s3://` and `polly://` protocol support           |
-| curl                | `http`/`https`/`ftp` protocol support             |
 | ffmpeg              | external I/O, `replay_gain` level computation, .. |
 | youtube-dl          | youtube video and playlist support                |
 
