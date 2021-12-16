@@ -228,13 +228,7 @@ let escape_ascii_formatter =
   escape ~special_char:ascii_special_char ~escape_char:escape_hex_char
     ~next:ascii_next
 
-let escape_string escape s =
-  let b = Buffer.create (String.length s) in
-  let f = Format.formatter_of_buffer b in
-  escape f s;
-  Format.pp_print_flush f ();
-  Buffer.contents b
-
+let escape_string = Format.asprintf "%a"
 let escape_utf8_string = escape_string escape_utf8_formatter
 let escape_ascii_string = escape_string escape_ascii_formatter
 let quote_utf8_string s = Printf.sprintf "\"%s\"" (escape_utf8_string s)

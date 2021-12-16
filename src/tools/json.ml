@@ -75,42 +75,29 @@ let rec to_string_compact ~json5 = function
       in
       Printf.sprintf "{%s}" (String.concat "," l)
 
+let pp_list sep ppx f l =
+  let pp_sep f () = Format.fprintf f "%s@ " sep in
+  Format.pp_print_list ~pp_sep ppx f l
+
 let rec to_string_pp ~json5 f v =
   match v with
+    | `Tuple [] -> Format.fprintf f "[]"
     | `Tuple l ->
-        Format.fprintf f "@[[@;<1 1>@[";
-        let rec aux = function
-          | [] -> ()
-          | [p] -> Format.fprintf f "%a" (to_string_pp ~json5) p
-          | p :: l ->
-              Format.fprintf f "%a,@;<1 0>" (to_string_pp ~json5) p;
-              aux l
-        in
-        aux l;
-        Format.fprintf f "@]@;<1 0>]@]"
+        Format.fprintf f "[@;<1 0>%a@;<1 -2>]"
+          (pp_list "," (to_string_pp ~json5))
+          l
+    | `Assoc [] -> Format.fprintf f "{}"
     | `Assoc l ->
-        Format.fprintf f "@{{@;<1 1>@[";
-        let rec aux = function
-          | [] -> ()
-          | [(k, v)] ->
-              Format.fprintf f "%s: %a" (Utils.quote_string k)
-                (to_string_pp ~json5) v
-          | (k, v) :: l ->
-              Format.fprintf f "%s: %a,@;<1 0>" (Utils.quote_string k)
-                (to_string_pp ~json5) v;
-              aux l
+        let format_field f (k, v) =
+          Format.fprintf f "@[<hv2>%s: %a@]" (Utils.quote_string k)
+            (to_string_pp ~json5) v
         in
-        aux l;
-        Format.fprintf f "@]@;<1 0>}@]"
+        Format.fprintf f "{@;<1 0>%a@;<1 -2>}" (pp_list "," format_field) l
     | `Null | `String _ | `Int _ | `Float _ | `Bool _ ->
         Format.fprintf f "%s" (to_string_compact ~json5 v)
 
 let to_string_pp ~json5 v =
-  let b = Buffer.create 10 in
-  let f = Format.formatter_of_buffer b in
-  ignore (to_string_pp ~json5 f v);
-  Format.pp_print_flush f ();
-  Buffer.contents b
+  Format.asprintf "@[<hv2>%a@]" (to_string_pp ~json5) v
 
 let to_string ?(compact = true) ?(json5 = false) v =
   if compact then to_string_compact ~json5 v else to_string_pp ~json5 v
