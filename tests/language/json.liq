@@ -34,7 +34,7 @@ def f() =
   u([3],[])
   u([("x",0)],json.parse(default=[("x",0)],"{\"a\" : 4}"))
 
-  t(json.stringify(()), '[  ]')
+  t(json.stringify(()), '[]')
   t(json.stringify("a"), '"a"')
   t(json.stringify("©"), '"©"')
   t(json.stringify('"'), '"\\""')
@@ -56,7 +56,12 @@ def f() =
   j.add("key_with_methods", "value".{method = 123})
   j.add("record", { a = 1, b = "ert"})
   j.remove("foo")
-  t(json.stringify(j), '{ "record": { "b": "ert", "a": 1 }, "key_with_methods": "value",\n"bla": "bar", "baz": 3.14\n}')
+  t(json.stringify(j), '{
+  "record": { "b": "ert", "a": 1 },
+  "key_with_methods": "value",
+  "bla": "bar",
+  "baz": 3.14
+}')
 
   if !success then
     test.pass()
