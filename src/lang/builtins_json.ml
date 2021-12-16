@@ -65,62 +65,36 @@ let rec to_json_compact ~json5 v =
     | Lang.Encoder e -> Utils.quote_string (Encoder.string_of_format e)
     | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
 
+let pp_list sep ppx f l =
+  let pp_sep f () = Format.fprintf f "%s@ " sep in
+  Format.pp_print_list ~pp_sep ppx f l
+
 let rec to_json_pp ~json5 f v =
   match v.Lang.value with
     | Lang.Ground g ->
         Format.fprintf f "%s" (Term.Ground.to_json ~compact:false ~json5 g)
-    | Lang.List l ->
-        let print f l =
-          let len = List.length l in
-          let f pos x =
-            if pos < len - 1 then
-              Format.fprintf f "%a,@;<1 0>" (to_json_pp ~json5) x
-            else Format.fprintf f "%a" (to_json_pp ~json5) x;
-            pos + 1
-          in
-          ignore (List.fold_left f 0 l)
-        in
-        Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
-    | Lang.Tuple l ->
-        Format.fprintf f "@[[@;<1 1>@[";
-        let rec aux = function
-          | [] -> ()
-          | [p] -> Format.fprintf f "%a" (to_json_pp ~json5) p
-          | p :: l ->
-              Format.fprintf f "%a,@;<1 0>" (to_json_pp ~json5) p;
-              aux l
-        in
-        aux l;
-        Format.fprintf f "@]@;<1 0>]@]"
+    | Lang.Tuple [] | Lang.List [] -> Format.fprintf f "[]"
+    | Lang.Tuple l | Lang.List l ->
+        Format.fprintf f "[@;<1 0>%a@;<1 -2>]"
+          (pp_list "," (to_json_pp ~json5))
+          l
     | Lang.Meth _ -> (
         let l, v = Term.Value.split_meths v in
         match v.Lang.value with
           | Lang.Tuple [] ->
-              Format.fprintf f "@{{@;<1 1>@[";
-              let rec aux = function
-                | [] -> ()
-                | [(k, v)] ->
-                    Format.fprintf f "%s: %a" (Utils.quote_string k)
-                      (to_json_pp ~json5) v
-                | (k, v) :: l ->
-                    Format.fprintf f "%s: %a,@;<1 0>" (Utils.quote_string k)
-                      (to_json_pp ~json5) v;
-                    aux l
+              let format_field f (k, v) =
+                Format.fprintf f "@[<hv2>%s: %a@]" (Utils.quote_string k)
+                  (to_json_pp ~json5) v
               in
-              aux l;
-              Format.fprintf f "@]@;<1 0>}@]"
+              Format.fprintf f "{@;<1 0>%a@;<1 -2>}" (pp_list "," format_field)
+                l
           | _ -> Format.fprintf f "%a" (to_json_pp ~json5) v)
     | Lang.Ref v ->
         Format.fprintf f "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
           (to_json_pp ~json5) !v
     | _ -> Format.fprintf f "%s" (to_json_compact ~json5 v)
 
-let to_json_pp ~json5 v =
-  let b = Buffer.create 10 in
-  let f = Format.formatter_of_buffer b in
-  ignore (to_json_pp ~json5 f v);
-  Format.pp_print_flush f ();
-  Buffer.contents b
+let to_json_pp ~json5 v = Format.asprintf "@[<hv2>%a@]" (to_json_pp ~json5) v
 
 let to_json ~compact ~json5 v =
   if compact then to_json_compact ~json5 v else to_json_pp ~json5 v
