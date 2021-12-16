@@ -38,7 +38,7 @@ end
 
 def f() =
   let json.stringify s = ()
-  t(s, '[  ]')
+  t(s, '[]')
 
   let json.stringify s = "a"
   t(s, '"a"')
@@ -80,10 +80,10 @@ def f() =
   t(s, 'NaN')
 
   let json.stringify s = ([("foo",123), ("bar", 456)]:[(string * int)] as json.object)
-  t(s, "{ \"foo\": 123, \"bar\": 456\n}")
+  t(s, "{ \"foo\": 123, \"bar\": 456 }")
 
   let json.stringify s = ({foo = 123}:{ "✨foo✨" as foo: int})
-  t(s, "{ \"✨foo✨\": 123\n}")
+  t(s, "{ \"✨foo✨\": 123 }")
 
   let b = json()
   b.add("b", 1)
@@ -91,7 +91,7 @@ def f() =
      a = null({a=1}),
      b = null(b)
   }
-  t(s, "{ \"b\": { \"b\": 1 }, \"a\": { \"a\": 1 }\n}")
+  t(s, "{ \"b\": { \"b\": 1 }, \"a\": { \"a\": 1 } }")
 
   data = "123"
   let json.parse ( x : int ) = data
@@ -265,7 +265,12 @@ def f() =
   j.add("record", { a = 1, b = "ert"})
   j.remove("foo")
   let json.stringify j = j
-  t(j, '{ "record": { "b": "ert", "a": 1 }, "key_with_methods": "value",\n"bla": "bar", "baz": 3.14\n}')
+  t(j, '{
+  "record": { "b": "ert", "a": 1 },
+  "key_with_methods": "value",
+  "bla": "bar",
+  "baz": 3.14
+}')
 
   e = ref(null())
   def f(data)
