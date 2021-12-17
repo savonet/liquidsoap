@@ -487,8 +487,13 @@ let print_scheme f (generalized, t) =
       generalized;
   print f (make ~generalized t)
 
+(** String representation of a type. *)
 let string_of_type ?generalized t = to_string (make ?generalized t)
+
+(* This is filled in there in order to avoid cyclic dependencies. *)
 let () = Type.to_string_fun := string_of_type
+
+(** String representation of a type scheme. *)
 let string_of_scheme (g, t) = string_of_type ~generalized:g t
 
 type explanation = bool * Type.t * Type.t * t * t
