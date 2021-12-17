@@ -3,6 +3,7 @@
 
 New:
 
+<<<<<<< HEAD
 - Added support for variables in encoders (#1858)
 - Added support for regular expressions (#1881)
 - Added generalized support for value extraction patterns (#1970)
@@ -21,6 +22,12 @@ Changes:
 - `source.on_metadata` and `source.on_track` now return a source as this was the
   case in previous versions, and associated handlers are triggered only when the
   returned source is pulled (#2103).
+=======
+Fixed:
+* Fixed unbound buffer in muxing operators (#2054)
+* Return correct positions when parsing strings (#2095)
+* Deadlock when shutting down with `input.rtmp` (#2089)
+>>>>>>> 7a010a7e (Fix deadlock when shutting down input.rtmp in listening mode.)
 
 2.0.1 (27-11-2021)
 =====

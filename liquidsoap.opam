@@ -86,13 +86,13 @@ conflicts: [
   "faad" {< "0.5.0"}
   "fdkaac" {< "0.3.1"}
   "ffmpeg" {< "1.1.0"}
-  "ffmpeg-avutil" {< "1.1.0"}
-  "ffmpeg-av" {< "1.1.0"}
-  "ffmpeg-avcodec" {< "1.1.0"}
-  "ffmpeg-avdevice" {< "1.1.0"}
-  "ffmpeg-avfilter" {< "1.1.0"}
-  "ffmpeg-swresample" {< "1.1.0"}
-  "ffmpeg-swscale" {< "1.1.0"}
+  "ffmpeg-avutil" {< "1.1.1"}
+  "ffmpeg-av" {< "1.1.1"}
+  "ffmpeg-avcodec" {< "1.1.1"}
+  "ffmpeg-avdevice" {< "1.1.1"}
+  "ffmpeg-avfilter" {< "1.1.1"}
+  "ffmpeg-swresample" {< "1.1.1"}
+  "ffmpeg-swscale" {< "1.1.1"}
   "flac" {< "0.3.0"}
   "frei0r" {< "0.1.0"}
   "gstreamer" {< "0.3.1"}

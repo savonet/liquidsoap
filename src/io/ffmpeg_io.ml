@@ -64,6 +64,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     method private start = self#connect
     method private stop = self#disconnect
+    val mutable interrupt = false
+    method interrupt = self#mutexify (fun () -> interrupt)
     val mutable url = url
     method url = url ()
     method set_url u = url <- u
@@ -79,7 +81,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         source_status <- `Polling;
         let opts = Hashtbl.copy opts in
         let url = self#url in
-        let input = Av.open_input ?format ~opts url in
+        let input = Av.open_input ~interrupt:self#interrupt ?format ~opts url in
         if Hashtbl.length opts > 0 then
           failwith
             (Printf.sprintf "Unrecognized options: %s"
@@ -122,6 +124,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private connect =
       self#mutexify
         (fun () ->
+          interrupt <- false;
           if container = None then (
             match connect_task with
               | Some t -> Duppy.Async.wake_up t
@@ -137,6 +140,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private disconnect =
       self#mutexify
         (fun () ->
+          interrupt <- true;
           match container with
             | None -> ()
             | Some (input, _, _) ->
