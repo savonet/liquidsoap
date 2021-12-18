@@ -62,11 +62,11 @@ and a harbor input with mountpoint `"foo"` on port `3567`. Additionally, if an h
 source uses custom port `n` with shoutcast (ICY) source protocol enabled, shoutcast
 source clients should set their connection port to `n+1`.
 
-The `auth` function is a function, that takes a pair `(user,password)` and returns a boolean representing whether the user 
+The `auth` function is a function, that takes a record `{user, password, address}` and returns a boolean representing whether the user 
 should be granted access or not. Typical example can be:
 
 ```liquidsoap
-def auth(user,password) = 
+def auth(args) = 
   # Call an external process to check 
   # the credentials:
   # The script will return the string 
@@ -75,7 +75,7 @@ def auth(user,password) =
   # First call the script. Make sure to apply proper escaping
   # of the arguments to prevent command injection!
   ret = process.read.lines("/path/to/script \
-         --user=#{user} --password=#{password}")
+         --user=#{args.user} --password=#{args.password}")
   # Then get the first line of its output
   ret = list.hd(default="",ret)
   # Finally returns the boolean represented 
