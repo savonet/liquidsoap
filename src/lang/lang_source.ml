@@ -44,6 +44,15 @@ let source_methods =
             let f = assoc "" 1 p in
             s#on_metadata (fun m -> ignore (apply f [("", metadata m)]));
             unit) );
+    ( "on_get_ready",
+      ([], fun_t [(false, "", fun_t [] unit_t)] unit_t),
+      "Register a function to be called after the source is asked to get \
+       ready. This is when, for instance, the source's final ID is set.",
+      fun s ->
+        val_fun [("", "", None)] (fun p ->
+            let f = assoc "" 1 p in
+            s#on_get_ready (fun () -> ignore (apply f []));
+            unit) );
     ( "on_shutdown",
       ([], fun_t [(false, "", fun_t [] unit_t)] unit_t),
       "Register a function to be called when source shuts down.",
