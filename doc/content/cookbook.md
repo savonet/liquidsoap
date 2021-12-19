@@ -324,7 +324,7 @@ An example can be:
 
 ```liquidsoap
 # Serveur settings
-settings.harbor.bind_addr.set("0.0.0.0")
+settings.harbor.bind_addrs.set(["0.0.0.0"])
 
 # An emergency file
 emergency = single("/path/to/emergency/single.ogg")
