@@ -527,6 +527,11 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
               caching <- true;
               self#log#debug "Enabling caching mode: %s." msg)
 
+    val mutable on_get_ready = []
+
+    method on_get_ready =
+      self#mutexify (fun fn -> on_get_ready <- on_get_ready @ [fn])
+
     (* Ask for initialization.
      * The current implementation makes it dangerous to call #get_ready from
      * another thread than the Root one, as interleaving with #get is
@@ -548,19 +553,20 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       in
       self#iter_watchers (fun w ->
           w.get_ready ~stype:self#stype ~is_active:self#is_active ~id:self#id
-            ~ctype:self#ctype ~clock_id ~clock_sync_mode)
+            ~ctype:self#ctype ~clock_id ~clock_sync_mode);
+      let on_get_ready = self#mutexify (fun () -> on_get_ready) () in
+      List.iter (fun fn -> fn ()) on_get_ready
 
     val mutable on_leave = []
-    method on_leave = self#mutexify (fun fn -> on_leave <- fn :: on_leave)
+    method on_leave = self#mutexify (fun fn -> on_leave <- on_leave @ [fn])
 
     (* Release the source, which will shutdown if possible.
      * The current implementation makes it dangerous to call #leave from
      * another thread than the Root one, as interleaving with #get is
      * forbidden. *)
     method leave ?(failed_to_start = true) ?(dynamic = false) src =
-      self#mutexify
-        (fun () -> List.iter (fun fn -> try fn () with _ -> ()) on_leave)
-        ();
+      let on_leave = self#mutexify (fun () -> on_leave) () in
+      List.iter (fun fn -> fn ()) on_leave;
       let rec remove acc = function
         | [] when failed_to_start -> []
         | [] ->

@@ -3,6 +3,11 @@
 
 New:
 * Show code excerpts on errors (#2086)
+* Added `on_get_ready` callback to sources, to be
+  executed after a source's has initialized.
+* Added `flush_and_skip` telnet command to `request.dynamic`
+  to empty the request's queue before skipping the current
+  track, forcing a full reload.
 
 Fixed:
 * Fixed unbound buffer in muxing operators (#2054)
