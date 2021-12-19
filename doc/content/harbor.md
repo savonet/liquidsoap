@@ -108,7 +108,7 @@ The source client may use any of the recognized audio input codec. Hence, when u
 A sample code can be:
 
 ```liquidsoap
-settings.harbor.bind_addr.set("0.0.0.0")
+settings.harbor.bind_addrs.set(["0.0.0.0"])
 
 # Some code...
 

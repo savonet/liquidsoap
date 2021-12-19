@@ -45,7 +45,7 @@ settings.server.telnet.set(true)
 
 # Enable harbor for any external
 # connection
-settings.harbor.bind_addr.set("0.0.0.0")
+settings.harbor.bind_addrs.set(["0.0.0.0"])
 
 # Verbose logs
 log.level.set(4)
