@@ -13,6 +13,8 @@ Fixed:
 * Fixed unbound buffer in muxing operators (#2054)
 * Return correct positions when parsing strings (#2095)
 * Deadlock when shutting down with `input.rtmp` (#2089)
+* Fixed `request.queue` `queue` telnet command returning
+  nothing (#2088)
 
 2.0.1 (27-11-2021)
 =====
