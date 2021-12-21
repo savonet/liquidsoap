@@ -23,16 +23,11 @@
 let log = Log.make ["lifecycle"]
 
 let make_action ?(before = []) ?(after = []) name =
-  let on_action = ref (fun () -> log#debug "At stage: %S" name) in
-  let atom = Dtools.Init.make ~before ~after ~name (fun () -> !on_action ()) in
+  let on_actions = ref [(fun () -> log#debug "At stage: %S" name)] in
+  let on_action () = List.iter (fun fn -> fn ()) !on_actions in
+  let atom = Dtools.Init.make ~before ~after ~name on_action in
   let before_action f = ignore (Dtools.Init.make ~before:[atom] f) in
-  let on_action fn =
-    let cur = !on_action in
-    on_action :=
-      fun () ->
-        cur ();
-        fn ()
-  in
+  let on_action fn = on_actions := !on_actions @ [fn] in
   let after_action f = ignore (Dtools.Init.make ~after:[atom] f) in
   (atom, before_action, on_action, after_action)
 
