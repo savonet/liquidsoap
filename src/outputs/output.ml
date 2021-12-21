@@ -65,7 +65,6 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
 
     method private register_telnet =
       if not registered_telnet then (
-        Printf.printf "Registering telnet with id: %s\n%!" self#id;
         registered_telnet <- true;
         (* Add a few more server controls *)
         let ns = [self#id] in

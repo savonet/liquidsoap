@@ -1,3 +1,21 @@
+# @docof request.dynamic
+def replaces request.dynamic(%argsof(request.dynamic), fn) =
+  s = request.dynamic(%argsof(request.dynamic), fn)
+
+  s.on_get_ready({
+    server.register(namespace=s.id(), description="Flush the queue and skip the current track",
+                    "flush_and_skip", fun (_) -> try
+                      s.set_queue([])
+                      s.skip()
+                      "Done."
+                    catch err do
+                      "Error while flushing and skipping source: #{err}"
+                    end) 
+  })
+
+  s
+end
+
 %ifdef input.gstreamer.audio_video
 # @docof input.gstreamer.audio_video
 def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
