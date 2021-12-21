@@ -65,7 +65,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private start = self#connect
     method private stop = self#disconnect
     val mutable interrupt = false
-    method interrupt = self#mutexify (fun () -> interrupt)
+    val interrupt_m = Mutex.create ()
+    method interrupt = Tutils.mutexify interrupt_m (fun () -> interrupt)
     val mutable url = url
     method url = url ()
     method set_url u = url <- u
@@ -124,7 +125,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private connect =
       self#mutexify
         (fun () ->
-          interrupt <- false;
           if container = None then (
             match connect_task with
               | Some t -> Duppy.Async.wake_up t
@@ -140,10 +140,10 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private disconnect =
       self#mutexify
         (fun () ->
-          interrupt <- true;
           match container with
             | None -> ()
             | Some (input, _, _) ->
+                Tutils.mutexify interrupt_m (fun () -> interrupt <- true) ();
                 (try Av.close input
                  with exn ->
                    let bt = Printexc.get_backtrace () in
@@ -152,6 +152,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                         (Printexc.to_string exn)));
                 container <- None;
                 source_status <- `Stopped;
+                Tutils.mutexify interrupt_m (fun () -> interrupt <- false) ();
                 on_disconnect ())
         ()
 
