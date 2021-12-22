@@ -5,8 +5,9 @@ out = "files/ffmpeg_copy_concat/concat.mp4"
 
 s1 = single("files/ffmpeg_copy_concat/first-concat.mp4")
 s2 = single("files/ffmpeg_copy_concat/second-concat.mp4")
+s3 = single("files/ffmpeg_copy_concat/third-concat.mp4")
 
-s = sequence([s1,s2,switch([])])
+s = sequence([s1,s2,s3,switch([])])
 
 clock.assign_new(sync='none',[s])
 
@@ -15,8 +16,8 @@ def on_done () =
   format = json.parse(default=[("streams", [[("foo", "0")]])], ojson)
   stream = list.hd(list.assoc(default=[], "streams", format))
 
-  # Actual time is 49.93..
-  if int(float_of_string(stream["duration"])) == 49 then
+  # Actual time is 59.93..
+  if int(float_of_string(stream["duration"])) == 59 then
     test.pass()
   else
     test.fail()

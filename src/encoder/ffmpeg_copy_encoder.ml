@@ -64,10 +64,11 @@ let mk_stream_copy ~video_size ~get_data output =
       | _ ->
           current_stream_idx := Some stream_idx;
           offset := Option.value ~default:0L dts;
-          current_position := Int64.sub !current_position !offset;
-          last_start := !current_position);
+          last_start := Int64.sub !current_position !offset);
     ignore
-      (Option.map (fun dts -> current_position := Int64.sub dts !offset) dts);
+      (Option.map
+         (fun dts -> current_position := Int64.add dts !last_start)
+         dts);
     ignore
       (Option.map
          (fun duration ->

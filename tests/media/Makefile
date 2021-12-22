@@ -156,7 +156,11 @@ files/ffmpeg_copy_concat/second-concat.mp4:
 	mkdir -p files/ffmpeg_copy_concat
 	ffmpeg -f lavfi -i testsrc=duration=30:size=1280x720:rate=30 -vf 'setpts=N+756' $@
 
-test_ffmpeg_copy_concat: files/ffmpeg_copy_concat/first-concat.mp4 files/ffmpeg_copy_concat/second-concat.mp4
+files/ffmpeg_copy_concat/third-concat.mp4:
+	mkdir -p files/ffmpeg_copy_concat
+	ffmpeg -f lavfi -i testsrc=duration=10:size=1280x720:rate=30 -vf 'setpts=N+245' $@
+
+test_ffmpeg_copy_concat: files/ffmpeg_copy_concat/first-concat.mp4 files/ffmpeg_copy_concat/second-concat.mp4 files/ffmpeg_copy_concat/third-concat.mp4
 	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_copy_concat.liq
 
 include $(top_srcdir)/Makefile.rules
