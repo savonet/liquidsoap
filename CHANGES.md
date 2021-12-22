@@ -10,6 +10,8 @@ New:
   track, forcing a full reload.
 
 Fixed:
+* Fixed ffmpeg copy encoder crash when switching between
+  streams.
 * Fixed unbound buffer in muxing operators (#2054)
 * Return correct positions when parsing strings (#2095)
 * Deadlock when shutting down with `input.rtmp` (#2089)

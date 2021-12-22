@@ -1,11 +1,11 @@
-.PHONY: test_encoder test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_filter test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder
+.PHONY: test_encoder test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_filter test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_ffmpeg_copy_concat
 
 .NOTPARALLEL: test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder
 
 DISTFILES = Makefile $(wildcard *.sh) $(wildcard *.liq *.liq.in *.json)
 top_srcdir = $(shell realpath ../..)
 
-test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_filter test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_ffmpeg_raw_hls test_ffmpeg_inline_encode_decode_audio test_ffmpeg_inline_encode_decode_video test_ffmpeg_inline_encode_decode test_ffmpeg_distributed_hls # test_stream_audio test_stream_video
+test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_filter test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_ffmpeg_raw_hls test_ffmpeg_inline_encode_decode_audio test_ffmpeg_inline_encode_decode_video test_ffmpeg_inline_encode_decode test_ffmpeg_distributed_hls test_ffmpeg_copy_concat # test_stream_audio test_stream_video
 
 AUDIO_TEST_FORMATS = \
   @flac(stereo).flac \
@@ -147,6 +147,17 @@ test_ffmpeg_raw_hls:
 
 test_taglib: files/audio/@mp3(mono).mp3
 	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -"  media/test_taglib.liq
+
+files/ffmpeg_copy_concat/first-concat.mp4:
+	mkdir -p files/ffmpeg_copy_concat
+	ffmpeg -f lavfi -i testsrc=duration=20:size=1280x720:rate=30 -vf 'setpts=N+1235' $@ 
+
+files/ffmpeg_copy_concat/second-concat.mp4:
+	mkdir -p files/ffmpeg_copy_concat
+	ffmpeg -f lavfi -i testsrc=duration=30:size=1280x720:rate=30 -vf 'setpts=N+756' $@
+
+test_ffmpeg_copy_concat: files/ffmpeg_copy_concat/first-concat.mp4 files/ffmpeg_copy_concat/second-concat.mp4
+	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_copy_concat.liq
 
 include $(top_srcdir)/Makefile.rules
 
