@@ -50,24 +50,29 @@ let mk_stream_copy ~video_size ~get_data output =
     Ffmpeg_utils.convert_time_base ~src:time_base ~dst:main_time_base v
   in
 
-  let total_duration = ref 0L in
+  let current_position = ref 0L in
   let last_start = ref 0L in
-  let last_stream_idx = ref None in
+  let current_stream_idx = ref None in
+  let offset = ref 0L in
 
-  let incr_duration ~time_base d =
-    ignore
-      (Option.map
-         (fun d ->
-           total_duration :=
-             Int64.add !total_duration (to_main_time_base ~time_base d))
-         d)
-  in
-  let check_start stream_idx =
-    match !last_stream_idx with
+  let check_stream ~packet ~time_base stream_idx =
+    let to_main = Option.map (to_main_time_base ~time_base) in
+    let dts = to_main (Avcodec.Packet.get_dts packet) in
+    let duration = to_main (Avcodec.Packet.get_duration packet) in
+    (match !current_stream_idx with
       | Some idx when idx = stream_idx -> ()
       | _ ->
-          last_stream_idx := Some stream_idx;
-          last_start := !total_duration
+          current_stream_idx := Some stream_idx;
+          offset := Option.value ~default:0L dts;
+          current_position := Int64.sub !current_position !offset;
+          last_start := !current_position);
+    ignore
+      (Option.map (fun dts -> current_position := Int64.sub dts !offset) dts);
+    ignore
+      (Option.map
+         (fun duration ->
+           current_position := Int64.add !current_position duration)
+         duration)
   in
   let adjust_ts ~time_base =
     Option.map (fun ts ->
@@ -86,11 +91,7 @@ let mk_stream_copy ~video_size ~get_data output =
       (fun (pos, { Ffmpeg_copy_content.packet; time_base; stream_idx }) ->
         let stream = Option.get !stream in
         if start <= pos && pos < stop then (
-          check_start stream_idx;
-
-          let packet = Avcodec.Packet.dup packet in
-
-          incr_duration ~time_base (Avcodec.Packet.get_duration packet);
+          check_stream ~packet ~time_base stream_idx;
 
           let packet_pts =
             adjust_ts ~time_base (Avcodec.Packet.get_pts packet)
@@ -98,6 +99,8 @@ let mk_stream_copy ~video_size ~get_data output =
           let packet_dts =
             adjust_ts ~time_base (Avcodec.Packet.get_dts packet)
           in
+
+          let packet = Avcodec.Packet.dup packet in
 
           Packet.set_pts packet packet_pts;
           Packet.set_dts packet packet_dts;
