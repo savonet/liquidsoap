@@ -135,6 +135,9 @@ class virtual source :
            or anything custom. *)
        method private set_clock : unit
 
+       (** Register a callback when get_ready is called. *)
+       method on_get_ready : (unit -> unit) -> unit
+
        (** The operator says to the source that he will ask it frames. *)
        method get_ready : ?dynamic:bool -> source list -> unit
 

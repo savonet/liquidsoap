@@ -3,12 +3,21 @@
 
 New:
 * Show code excerpts on errors (#2086)
+* Added `on_get_ready` callback to sources, to be
+  executed after a source's has initialized.
+* Added `flush_and_skip` telnet command to `request.dynamic`
+  to empty the request's queue before skipping the current
+  track, forcing a full reload.
 
 Fixed:
+* Fixed ffmpeg copy encoder crash when switching between
+  streams.
 * Fixed unbound buffer in muxing operators (#2054)
 * Return correct positions when parsing strings (#2095)
 * Deadlock when shutting down with `input.rtmp` (#2089)
 * Add timeout to srt operations (#2082)
+* Fixed `request.queue` `queue` telnet command returning
+  nothing (#2088)
 
 2.0.1 (27-11-2021)
 =====
