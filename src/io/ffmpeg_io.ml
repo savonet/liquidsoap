@@ -67,6 +67,11 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     val mutable interrupt = false
     val interrupt_m = Mutex.create ()
     method interrupt = Tutils.mutexify interrupt_m (fun () -> interrupt)
+
+    initializer
+    Lifecycle.on_core_shutdown
+      (Tutils.mutexify interrupt_m (fun () -> interrupt <- true))
+
     val mutable url = url
     method url = url ()
     method set_url u = url <- u
@@ -143,6 +148,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           match container with
             | None -> ()
             | Some (input, _, _) ->
+                Printf.printf "Setting interrupt to true\n%!";
                 Tutils.mutexify interrupt_m (fun () -> interrupt <- true) ();
                 (try Av.close input
                  with exn ->
