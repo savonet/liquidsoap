@@ -15,6 +15,7 @@ Fixed:
 * Fixed unbound buffer in muxing operators (#2054)
 * Return correct positions when parsing strings (#2095)
 * Deadlock when shutting down with `input.rtmp` (#2089)
+* Add timeout to srt operations (#2082)
 * Fixed `request.queue` `queue` telnet command returning
   nothing (#2088)
 

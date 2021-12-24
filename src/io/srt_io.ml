@@ -63,6 +63,25 @@ let common_options ~mode =
       Lang.string_t,
       Some (Lang.string "0.0.0.0"),
       Some "Address to bind on the local machine. Used only in listener mode" );
+    ( "read_timeout",
+      Lang.nullable_t Lang.int_t,
+      Some (Lang.int 1_000),
+      Some
+        "Timeout, in milliseconds, after which read operations are aborted if \
+         no data was received, indefinite if `null`." );
+    ( "write_timeout",
+      Lang.nullable_t Lang.int_t,
+      Some (Lang.int 1_000),
+      Some
+        "Timeout, in milliseconds, after which write operations are aborted if \
+         no data was received, indefinite if `null`." );
+    ( "connection_timeout",
+      Lang.nullable_t Lang.int_t,
+      Some
+        (match mode with `Listener -> Lang.null | `Caller -> Lang.int 3_000),
+      Some
+        "Timeout, in milliseconds, after which initial connection operations \
+         are aborted if no data was received, indefinite if `null`." );
     ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
     ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");
     ( "stats_interval",
@@ -406,10 +425,22 @@ let parse_common_options p =
   let stats_interval =
     float (Lang.to_int (List.assoc "stats_interval" p)) /. 1000.
   in
+  let read_timeout =
+    Lang.to_valued_option Lang.to_int (List.assoc "read_timeout" p)
+  in
+  let write_timeout =
+    Lang.to_valued_option Lang.to_int (List.assoc "write_timeout" p)
+  in
+  let connection_timeout =
+    Lang.to_valued_option Lang.to_int (List.assoc "connection_timeout" p)
+  in
   ( mode_of_value (List.assoc "mode" p),
     Lang.to_string (List.assoc "host" p),
     Lang.to_int (List.assoc "port" p),
     bind_address,
+    read_timeout,
+    write_timeout,
+    connection_timeout,
     Lang.to_int (List.assoc "payload_size" p),
     Lang.to_bool (List.assoc "messageapi" p),
     stats_interval,
@@ -593,8 +624,8 @@ class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
         current_on_disconnect ()
   end
 
-class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
-  ~on_disconnect =
+class virtual caller ~payload_size ~messageapi ~hostname ~port
+  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
   object (self)
     method virtual should_stop : bool
     val mutable connect_task = None
@@ -622,6 +653,18 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
             let s = mk_socket ~payload_size ~messageapi () in
             Srt.setsockflag s Srt.sndsyn true;
             Srt.setsockflag s Srt.rcvsyn true;
+            ignore
+              (Option.map
+                 (fun v -> Srt.(setsockflag s conntimeo v))
+                 connection_timeout);
+            ignore
+              (Option.map
+                 (fun v -> Srt.(setsockflag s sndtimeo v))
+                 write_timeout);
+            ignore
+              (Option.map
+                 (fun v -> Srt.(setsockflag s rcvtimeo v))
+                 read_timeout);
             Srt.connect s sockaddr;
             socket <- Some s;
             self#log#important "Client connected!";
@@ -662,8 +705,8 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
         ()
   end
 
-class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
-  ~on_disconnect =
+class virtual listener ~payload_size ~messageapi ~bind_address
+  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
   object (self)
     val mutable client_data = None
     method virtual log : Log.t
@@ -683,13 +726,25 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
     method private connect =
       let on_connect s =
         try
+          ignore
+            (Option.map
+               (fun v -> Srt.(setsockflag s conntimeo v))
+               connection_timeout);
           let client, origin = Srt.accept s in
           (try self#log#info "New connection from %s" (string_of_address origin)
            with exn ->
              self#log#important "Error while fetching connection source: %s"
                (Printexc.to_string exn));
-          Srt.setsockflag client Srt.sndsyn true;
-          Srt.setsockflag client Srt.rcvsyn true;
+          Srt.(setsockflag client sndsyn true);
+          Srt.(setsockflag client rcvsyn true);
+          ignore
+            (Option.map
+               (fun v -> Srt.(setsockflag client sndtimeo v))
+               write_timeout);
+          ignore
+            (Option.map
+               (fun v -> Srt.(setsockflag client rcvtimeo v))
+               read_timeout);
           if self#should_stop then (
             close_socket client;
             raise Done);
@@ -844,8 +899,9 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
   end
 
 class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
-  ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~messageapi ~dump
-  ~on_start ~on_stop ~autostart format =
+  ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~read_timeout
+  ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start ~on_stop
+  ~autostart format =
   object
     inherit
       input_base
@@ -855,12 +911,14 @@ class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
 
     inherit
       listener
-        ~bind_address ~payload_size ~messageapi ~on_connect ~on_disconnect
+        ~bind_address ~payload_size ~read_timeout ~write_timeout
+          ~connection_timeout ~messageapi ~on_connect ~on_disconnect
   end
 
 class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
-  ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~messageapi ~dump
-  ~on_start ~on_stop ~autostart format =
+  ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~read_timeout
+  ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start ~on_stop
+  ~autostart format =
   object
     inherit
       input_base
@@ -870,7 +928,8 @@ class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
 
     inherit
       caller
-        ~hostname ~port ~payload_size ~messageapi ~on_connect ~on_disconnect
+        ~hostname ~port ~payload_size ~read_timeout ~write_timeout
+          ~connection_timeout ~messageapi ~on_connect ~on_disconnect
   end
 
 let () =
@@ -912,6 +971,9 @@ let () =
             hostname,
             port,
             bind_address,
+            read_timeout,
+            write_timeout,
+            connection_timeout,
             payload_size,
             messageapi,
             stats_interval,
@@ -940,15 +1002,17 @@ let () =
       match mode with
         | `Listener ->
             (new input_listener
-               ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
+               ~kind ~bind_address ~read_timeout ~write_timeout
+               ~connection_timeout ~payload_size ~clock_safe ~on_connect
                ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
                ~dump ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source ; stats : Srt.Stats.t option >)
         | `Caller ->
             (new input_caller
                ~kind ~hostname ~port ~payload_size ~clock_safe ~on_connect
-               ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
-               ~dump ~on_start ~on_stop ~autostart format
+               ~read_timeout ~write_timeout ~connection_timeout ~stats_interval
+               ~on_disconnect ~messageapi ~max ~log_overfull ~dump ~on_start
+               ~on_stop ~autostart format
               :> < Start_stop.active_source ; stats : Srt.Stats.t option >))
 
 class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
@@ -1044,7 +1108,8 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
 
 class output_caller ~kind ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect ~port
-  ~hostname ~encoder_factory source =
+  ~hostname ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory
+  source =
   object
     inherit
       output_base
@@ -1054,12 +1119,14 @@ class output_caller ~kind ~payload_size ~messageapi ~on_start ~on_stop
 
     inherit
       caller
-        ~hostname ~port ~payload_size ~messageapi ~on_connect ~on_disconnect
+        ~hostname ~port ~payload_size ~read_timeout ~write_timeout
+          ~connection_timeout ~messageapi ~on_connect ~on_disconnect
   end
 
 class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect
-  ~bind_address ~encoder_factory source =
+  ~bind_address ~read_timeout ~write_timeout ~connection_timeout
+  ~encoder_factory source =
   object
     inherit
       output_base
@@ -1069,7 +1136,8 @@ class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
 
     inherit
       listener
-        ~bind_address ~payload_size ~messageapi ~on_connect ~on_disconnect
+        ~bind_address ~payload_size ~read_timeout ~write_timeout
+          ~connection_timeout ~messageapi ~on_connect ~on_disconnect
   end
 
 let () =
@@ -1094,6 +1162,9 @@ let () =
             hostname,
             port,
             bind_address,
+            read_timeout,
+            write_timeout,
+            connection_timeout,
             payload_size,
             messageapi,
             stats_interval,
@@ -1126,12 +1197,14 @@ let () =
         | `Caller ->
             (new output_caller
                ~kind ~hostname ~port ~payload_size ~autostart ~on_start ~on_stop
-               ~stats_interval ~infallible ~messageapi ~encoder_factory
-               ~on_connect ~on_disconnect source
+               ~stats_interval ~read_timeout ~write_timeout ~connection_timeout
+               ~infallible ~messageapi ~encoder_factory ~on_connect
+               ~on_disconnect source
               :> < Output.output ; stats : Srt.Stats.t option >)
         | `Listener ->
             (new output_listener
-               ~kind ~bind_address ~payload_size ~autostart ~on_start ~on_stop
+               ~kind ~bind_address ~read_timeout ~write_timeout
+               ~connection_timeout ~payload_size ~autostart ~on_start ~on_stop
                ~infallible ~stats_interval ~messageapi ~encoder_factory
                ~on_connect ~on_disconnect source
               :> < Output.output ; stats : Srt.Stats.t option >))
