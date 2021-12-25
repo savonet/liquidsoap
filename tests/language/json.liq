@@ -39,6 +39,7 @@ def f() =
   t(json.stringify("©"), '"©"')
   t(json.stringify('"'), '"\\""')
   t(json.stringify('\\'), '"\\\\"')
+  t(json.stringify("aa'bb"), "\"aa'bb\"")
   t(json.stringify(infinity), 'null')
   t(json.stringify((0.-infinity)), 'null')
   t(json.stringify(nan), 'null')

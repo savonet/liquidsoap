@@ -18,6 +18,8 @@ Fixed:
 * Add timeout to srt operations (#2082)
 * Fixed `request.queue` `queue` telnet command returning
   nothing (#2088)
+* Fixed single quotes bring eascaped in json stringify.
+  (#2120)
 
 2.0.1 (27-11-2021)
 =====
