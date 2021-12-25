@@ -96,6 +96,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
       in
       let weight = if power then sqrt weight else weight in
       (* Sum contributions. *)
+      let breaks = AFrame.breaks buf in
       let offset = AFrame.position buf in
       let _, end_offset =
         List.fold_left
@@ -106,7 +107,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
               if rank = 0 then buf
               else (
                 Frame.clear tmp;
-                if 0 < offset then Frame.set_breaks tmp [offset];
+                Frame.set_breaks tmp breaks;
                 tmp)
             in
             s#get buffer;
