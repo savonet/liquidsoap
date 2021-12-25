@@ -106,7 +106,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
               if rank = 0 then buf
               else (
                 Frame.clear tmp;
-                Frame.set_breaks tmp [offset];
+                if 0 < offset then Frame.set_breaks tmp [offset];
                 tmp)
             in
             s#get buffer;

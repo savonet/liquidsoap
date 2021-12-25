@@ -659,8 +659,6 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             assert false))
       else (
         let memo = self#memo in
-        (* The get_chunk below expects at lease one break at the current position. *)
-        if Frame.breaks memo = [] then Frame.set_breaks memo [0];
         try Frame.get_chunk buf memo
         with Frame.No_chunk ->
           if not self#is_ready then silent_end_track ()
