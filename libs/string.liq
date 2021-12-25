@@ -136,9 +136,16 @@ end
 # By default, the string is assumed to be `"utf8"` encoded and is escaped
 # following JSON and javascript specification.
 # @category String
-# @argsof string.escape.special_char
-def string.quote(%argsof(string.escape.special_char), s) =
-  s = string.escape(%argsof(string.escape.special_char), s)
+# @param ~encoding One of: `"ascii"` or `"utf8"`.
+def string.quote(~encoding="utf8", s) =
+  def special_char(~encoding=encoding, s)
+    if s == "'" then
+      false
+    else
+      string.escape.special_char(encoding=encoding, s)
+    end
+  end
+  s = string.escape(special_char=special_char, encoding=encoding, s)
   "\"#{s}\""
 end
 

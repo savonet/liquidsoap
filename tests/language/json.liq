@@ -40,6 +40,9 @@ def f() =
   let json.stringify s = ()
   t(s, '[]')
 
+  let json.stringify s = "aa'bb"
+  t(s, "\"aa'bb\"")
+
   let json.stringify s = "a"
   t(s, '"a"')
 

@@ -35,7 +35,9 @@ let quote_utf8_string =
     try Utils.utf8_next s i with _ -> max (String.length s) (i + 1)
   in
   let escape_utf8_formatter =
-    Utils.escape ~special_char:Utils.utf8_special_char ~escape_char ~next
+    Utils.escape
+      ~special_char:(function "'" -> false | x -> Utils.utf8_special_char x)
+      ~escape_char ~next
   in
   fun s -> Printf.sprintf "\"%s\"" (Utils.escape_string escape_utf8_formatter s)
 

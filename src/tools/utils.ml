@@ -210,9 +210,8 @@ let escape_char ~escape_fun = function
 let escape_utf8_char =
   escape_char ~escape_fun:(fun s -> Printf.sprintf "\\u%04X" (utf8_char_code s))
 
-let escape_utf8_formatter =
-  escape ~special_char:utf8_special_char ~escape_char:escape_utf8_char
-    ~next:utf8_next
+let escape_utf8_formatter ?(special_char = utf8_special_char) =
+  escape ~special_char ~escape_char:escape_utf8_char ~next:utf8_next
 
 let escape_hex_char =
   escape_char ~escape_fun:(fun s ->
@@ -224,15 +223,29 @@ let escape_octal_char =
 (* We use the \xhh syntax to make sure the resulting string is also consistently readable in
    OCaml. \nnn can be tricky since they are octal sequences in liquidsoap and digital sequences
    in OCaml. *)
-let escape_ascii_formatter =
-  escape ~special_char:ascii_special_char ~escape_char:escape_hex_char
-    ~next:ascii_next
+let escape_ascii_formatter ?(special_char = ascii_special_char) =
+  escape ~special_char ~escape_char:escape_hex_char ~next:ascii_next
 
 let escape_string = Format.asprintf "%a"
-let escape_utf8_string = escape_string escape_utf8_formatter
-let escape_ascii_string = escape_string escape_ascii_formatter
-let quote_utf8_string s = Printf.sprintf "\"%s\"" (escape_utf8_string s)
-let quote_ascii_string s = Printf.sprintf "\"%s\"" (escape_ascii_string s)
+
+let escape_utf8_string ?special_char =
+  escape_string (escape_utf8_formatter ?special_char)
+
+let escape_ascii_string ?special_char =
+  escape_string (escape_ascii_formatter ?special_char)
+
+let quote_utf8_string s =
+  Printf.sprintf "\"%s\""
+    (escape_utf8_string
+       ~special_char:(function "'" -> false | x -> utf8_special_char x)
+       s)
+
+let quote_ascii_string s =
+  Printf.sprintf "\"%s\""
+    (escape_ascii_string
+       ~special_char:(function "'" -> false | x -> ascii_special_char x)
+       s)
+
 let quote_string s = try quote_utf8_string s with _ -> quote_ascii_string s
 let unescape_utf8_pattern = "\\\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"
 let unescape_hex_pattern = "\\\\x[0-9a-fA-F][0-9a-fA-F]"
