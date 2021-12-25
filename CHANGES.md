@@ -20,6 +20,8 @@ Fixed:
   nothing (#2088)
 * Fixed single quotes bring eascaped in json stringify.
   (#2120)
+* Fixed frame caching issues when no initial break was 
+  present in the memoized frame. (#2109. AzuraCast/AzuraCast#4825)
 
 2.0.1 (27-11-2021)
 =====
