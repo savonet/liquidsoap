@@ -27,6 +27,11 @@ depends: [
   "conf-which" {build}
   "pcre"
   "sedlex" {>= "2.2"}
+  "flac" {with-test}
+  "lame" {with-test}
+  "ffmpeg" {with-test}
+  "vorbis" {with-test}
+  "opus" {with-test}
 ]
 depopts: [
   "alsa"
@@ -74,6 +79,9 @@ depopts: [
   "taglib"
   "theora"
   "sdl-liquidsoap"
+  "tsdl"
+  "tsdl-image"
+  "tsdl-ttf"
   "vorbis"
   "xmlplaylist"
 ]
@@ -140,6 +148,7 @@ build: [
   ]
   [make "clean"] {dev}
   [make]
+  [make "test"] {with-test}
 ]
 install: [make "install"]
 post-messages: [
