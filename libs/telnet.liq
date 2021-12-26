@@ -2,7 +2,7 @@
 def replaces request.dynamic(%argsof(request.dynamic), fn) =
   s = request.dynamic(%argsof(request.dynamic), fn)
 
-  s.on_get_ready({
+  s.on_get_ready(memoize({
     server.register(namespace=s.id(), description="Flush the queue and skip the current track",
                     "flush_and_skip", fun (_) -> try
                       s.set_queue([])
@@ -11,7 +11,7 @@ def replaces request.dynamic(%argsof(request.dynamic), fn) =
                     catch err do
                       "Error while flushing and skipping source: #{err}"
                     end) 
-  })
+  }))
 
   s
 end
@@ -21,7 +21,7 @@ end
 def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
   s = input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video))
 
-  s.on_get_ready({
+  s.on_get_ready(memoize({
     begin
       server.register(namespace=s.id(), description="Set gstreamer pipeline state to play",
                       "play", fun (_) -> try
@@ -47,7 +47,7 @@ def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
                         "Error while restarting pipeline: #{err}"
                       end)
     end
-  })
+  }))
 
   s
 end
@@ -57,12 +57,12 @@ end
 def replaces blank.strip(%argsof(blank.strip), s) =
   s = blank.strip(%argsof(blank.strip), s)
 
-  s.on_get_ready({
+  s.on_get_ready(memoize({
     server.register(namespace=s.id(), description="Check if the source is stripping.",
                     "is_stripping", fun (_) -> begin
                       "#{s.is_blank()}"
                     end)
-  })
+  }))
 
   s
 end
@@ -71,13 +71,13 @@ end
 def replaces output.external(%argsof(output.external), f, p, s) =
   s = output.external(%argsof(output.external), f, p, s)
 
-  s.on_get_ready({
+  s.on_get_ready(memoize({
     server.register(namespace=s.id(), description="Re-open the output.",
                     "reopen", fun (_) -> begin
                       s.reopen()
                       "Done."
                     end)
-  })
+  }))
 
   s
 end
@@ -86,13 +86,13 @@ end
 def replaces input.external.avi(%argsof(input.external.avi), s) =
   s = input.external.avi(%argsof(input.external.avi), s)
 
-  s.on_get_ready({
+  s.on_get_ready(memoize({
     server.register(namespace=s.id(), description="Show internal buffer length (in seconds).",
                     "buffer_length", fun (_) -> begin
                       let (audio, video, total) = s.buffer_length()
                       "audio buffer length: #{audio}\nvideo buffer length: #{video}\ntotal buffer length: #{total}"
                     end)
-  })
+  }))
 
   s
 end
@@ -101,7 +101,7 @@ end
 def replaces input.harbor(%argsof(input.harbor), s) =
   s = input.harbor(%argsof(input.harbor), s)
 
-  s.on_get_ready({
+  s.on_get_ready(memoize({
     begin
       server.register(namespace=s.id(), description="Stop current source client, if connected.",
                      "stop", fun (_) -> begin
@@ -119,7 +119,7 @@ def replaces input.harbor(%argsof(input.harbor), s) =
                         "#{s.buffer_length()}"
                       end)
     end
-  })
+  }))
 
   s
 end
@@ -129,7 +129,7 @@ end
 def replaces input.http(%argsof(input.http), s) =
   s = input.http(%argsof(input.http), s)
 
-  s.on_get_ready({
+  s.on_get_ready(memoize({
     begin
       server.register(namespace=s.id(), description="Start the source, if needed.",
                       "start", fun (_) -> begin
@@ -166,7 +166,7 @@ def replaces input.http(%argsof(input.http), s) =
                         "#{s.buffer_length()}"
                       end)
     end
-  })
+  }))
 
   s
 end

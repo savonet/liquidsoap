@@ -95,3 +95,18 @@ end
 # Top-level init module for convenience
 # @flag hidden
 init = settings.init
+
+# Memoize the result of a function,
+# making sure it is only executed once.
+def memoize(fn) =
+  cached_result = ref([])
+  fun () -> begin
+    if !cached_result != [] then
+      list.hd(!cached_result)
+    else
+      result = fn()
+      cached_result := [result]
+      result
+    end
+  end
+end
