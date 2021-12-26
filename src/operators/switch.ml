@@ -29,16 +29,7 @@ open Source
 
 (* A transition is a value of type (source,source) -> source *)
 type transition = Lang.value
-
-type child = {
-  source : source;
-  transition : transition;
-  (* Also remind the current metadata in order to be able to restore it
-   * when switching back in the middle of a track. This is an expected
-   * behaviour, but notice that it makes extra assumptions about the nature of
-   * metadata, tying them to the notion of track. *)
-  mutable cur_meta : Request.metadata option;
-}
+type child = { source : source; transition : transition }
 
 (** The switch can either happen at any time in the stream (insensitive)
   * or only at track limits (sensitive). *)
@@ -190,7 +181,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                            * else (this is thanks to Frame.get_chunk).
                            * A quicker hack might have been doable if there wasn't a
                            * transition in between. *)
-                          match c.cur_meta with
+                          match c.source#last_metadata with
                             | Some m when replay_meta ->
                                 new Insert_metadata.replay ~kind m c.source
                             | _ -> c.source
@@ -244,28 +235,8 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
               (* Our #is_ready, and caching, ensure the following. *)
               assert (selected <> None);
               self#get_frame ab
-          | Some (c, s) ->
+          | Some (_, s) ->
               s#get ab;
-              c.cur_meta <-
-                (if Frame.is_partial ab then None
-                else (
-                  match
-                    List.fold_left
-                      (function
-                        | None -> fun (p, m) -> Some (p, m)
-                        | Some (curp, curm) ->
-                            fun (p, m) ->
-                              Some
-                                (if p >= curp && p <= Frame.position ab then
-                                 (p, m)
-                                else (curp, curm)))
-                      (match c.cur_meta with
-                        | None -> None
-                        | Some m -> Some (-1, m))
-                      (Frame.get_all_metadata ab)
-                  with
-                    | None -> None
-                    | Some (_, m) -> Some (Hashtbl.copy m)));
               if Frame.is_partial ab then reselect ~forget:true ()
               else if not (mode ()) then reselect ())
 
@@ -453,7 +424,7 @@ let () =
       in
       let children =
         List.map2
-          (fun t (f, s) -> (f, { source = s; cur_meta = None; transition = t }))
+          (fun t (f, s) -> (f, { source = s; transition = t }))
           tr children
       in
       let children =

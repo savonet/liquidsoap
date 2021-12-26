@@ -647,6 +647,8 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             memo <- Some m;
             m
 
+    val mutable last_metadata = None
+    method last_metadata = self#mutexify (fun () -> last_metadata) ()
     val mutable on_metadata : (Frame.metadata -> unit) list = []
 
     method on_metadata =
@@ -679,6 +681,10 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
           self#log#debug "Got metadata at position %d: calling handlers..." i;
           List.iter (fun fn -> fn m) on_metadata)
         metadata;
+      (match List.rev metadata with
+        | (_, m) :: _ ->
+            self#mutexify (fun () -> last_metadata <- Some (Hashtbl.copy m)) ()
+        | [] -> ());
       self#mutexify
         (fun () ->
           if was_partial then (
@@ -750,8 +756,9 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             if List.length b + 1 <> List.length (Frame.breaks memo) then (
               self#log#severe "#get_frame didn't add exactly one break!";
               assert false)
-            else if p < Frame.position memo then self#get buf
-            else Frame.add_break buf (Frame.position buf)))
+            else if Frame.is_partial buf then
+              if p < Frame.position memo then self#get buf
+              else Frame.add_break buf (Frame.position buf)))
 
     (* That's the way the source produces audio data.
      * It cannot be called directly, but [#get] should be used instead, for

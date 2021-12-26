@@ -8,6 +8,8 @@ New:
 * Added `flush_and_skip` telnet command to `request.dynamic`
   to empty the request's queue before skipping the current
   track, forcing a full reload.
+* Added `last_metadata` method on sources to return the 
+  last metadata produced by the source.
 
 Fixed:
 * Fixed ffmpeg copy encoder crash when switching between
@@ -22,6 +24,8 @@ Fixed:
   (#2120)
 * Fixed frame caching issues when no initial break was 
   present in the memoized frame. (#2109. AzuraCast/AzuraCast#4825)
+* Fixed `replay_metadata` not replaying metadata from active sources
+  (#2109)
 
 2.0.1 (27-11-2021)
 =====

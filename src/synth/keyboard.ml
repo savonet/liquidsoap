@@ -60,7 +60,10 @@ class keyboard ~kind =
     method remaining = -1
     method abort_track = ()
     method self_sync = (`Static, false)
-    method output = if AFrame.is_partial self#memo then self#get_frame self#memo
+
+    method output =
+      if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
+
     val mutable ev = MIDI.create (MFrame.size ())
     val ev_m = Mutex.create ()
 
