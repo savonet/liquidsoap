@@ -96,8 +96,7 @@ class virtual active_source ?get_clock ~name ~content_kind ~clock_safe
     method virtual private memo : Frame.t
 
     method private output =
-      if self#is_ready && AFrame.is_partial self#memo then
-        self#get_frame self#memo
+      if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
   end
 
 let output_proto =

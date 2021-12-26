@@ -72,8 +72,7 @@ module Make (Harbor : T) = struct
           | None -> "no source client connected"
 
       method private output =
-        if self#is_ready && AFrame.is_partial self#memo then
-          self#get_frame self#memo
+        if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
 
       method reset = self#disconnect ~lock:true
       method buffer_length_cmd = Frame.seconds_of_audio self#length

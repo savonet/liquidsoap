@@ -179,6 +179,9 @@ class virtual source :
            and without checking that the source is ready. *)
        method get : Frame.t -> unit
 
+       (** The source's last metadata. *)
+       method last_metadata : Frame.metadata option
+
        (** Register a callback to be called on new metadata *)
        method on_metadata : (Frame.metadata -> unit) -> unit
 

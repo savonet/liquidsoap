@@ -36,6 +36,12 @@ let source_methods =
        source is currently streaming, just that its resources are all properly \
        initialized.",
       fun s -> val_fun [] (fun _ -> bool s#is_ready) );
+    ( "last_metadata",
+      ([], fun_t [(false, "", fun_t [] (nullable_t metadata_t))] unit_t),
+      "Return the last metadata from the source.",
+      fun s ->
+        val_fun [] (fun _ ->
+            match s#last_metadata with None -> null | Some m -> metadata m) );
     ( "on_metadata",
       ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
       "Call a given handler on metadata packets.",

@@ -147,7 +147,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     (* The output process *)
     val mutable skip = false
     method private skip = skip <- true
-    method private get_frame buf = source#get buf
+    method private get_frame buf = if Frame.is_partial buf then source#get buf
 
     method private output =
       if self#is_ready && state <> `Stopped then
