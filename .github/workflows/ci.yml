@@ -152,6 +152,20 @@ jobs:
         run: |
           rm -rf /tmp/${{ github.run_number }}/core
 
+  build_opam:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v1
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v2
+      - name: Install ${{ inputs.package }}
+        run: |
+          opam install --with-test --deps-only --cli=2.1 --confirm-level=unsafe-yes .
+          opam install --with-test --cli=2.1 --confirm-level=unsafe-yes .
+          opam remove --cli=2.1 --confirm-level=unsafe-yes liquidsoap
+
+
   build_posix:
     runs-on: ${{ matrix.runs-on }}
     needs: build_details
