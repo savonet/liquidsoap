@@ -46,7 +46,7 @@ AC_ARG_WITH([ocaml-warnings],
 if test -n "${with_ocaml_warnings}" ; then
   OCAMLFLAGS="$OCAMLFLAGS -w +${with_ocaml_warnings}"
 else
-  OCAMLFLAGS="$OCAMLFLAGS -w +A-4@5-7@8-9@11@12@20-35-44-45-50"
+  OCAMLFLAGS="$OCAMLFLAGS -w +A-4@5-7@8-9@11@12@20-35-44-45-50-70"
 fi
 
 AC_ARG_ENABLE([profiling],
