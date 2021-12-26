@@ -59,7 +59,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
       push(r)
       "#{request.id(r)}"
     end
-    s.on_get_ready({
+    s.on_get_ready(memoize({
       begin
         server.register(namespace=s.id(), description="Flush the queue and skip the current track",
                         "flush_and_skip", fun (_) -> try
@@ -78,7 +78,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
         def skip(_) = s.skip(); "Done." end
         server.register(namespace=s.id(), description="Skip current song.", usage="skip", "skip", skip)
       end
-    })
+    }))
   end
   s.{push=push.{uri=push_uri}, length={list.length(!queue)}}
 end
