@@ -2,6 +2,12 @@
 
 %include "test.liq"
 
+uname_s = string.trim(process.run("uname -s").stdout)
+
+if uname_s == "Darwin" then
+  test.skip()
+end
+
 success = ref(false)
 
 def f() =
