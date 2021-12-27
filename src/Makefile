@@ -31,17 +31,17 @@ ogg_muxer = \
 audio_converters = \
 	converters/audio/native_audio_converter.ml \
 	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml) \
-	$(if $(W_FFMPEG_SWRESAMPLE),converters/audio/ffmpeg_audio_converter.ml)
+	$(if $(W_FFMPEG),converters/audio/ffmpeg_audio_converter.ml)
 
 video_converters = \
 	converters/video/native_video_converter.ml \
-	$(if $(W_FFMPEG_SWSCALE),converters/video/ffmpeg_video_converter.ml)
+	$(if $(W_FFMPEG),converters/video/ffmpeg_video_converter.ml)
 
 decoders = \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
-	$(if $(W_FFMPEG_DECODER),decoder/ffmpeg_decoder_common.ml decoder/ffmpeg_internal_decoder.ml decoder/ffmpeg_raw_decoder.ml decoder/ffmpeg_copy_decoder.ml decoder/ffmpeg_decoder.ml decoder/image/ffmpeg_image_decoder.ml) \
+	$(if $(W_FFMPEG),decoder/ffmpeg_decoder_common.ml decoder/ffmpeg_internal_decoder.ml decoder/ffmpeg_raw_decoder.ml decoder/ffmpeg_copy_decoder.ml decoder/ffmpeg_decoder.ml decoder/image/ffmpeg_image_decoder.ml) \
 	$(if $(W_FLAC),decoder/liq_flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
 	$(if $(W_OGG),decoder/liq_ogg_decoder.ml) \
@@ -120,7 +120,7 @@ encoders = \
 	$(if $(W_SHINE),encoder/shine_encoder.ml) \
 	$(if $(W_LAME),encoder/lame_encoder_builtin.ml) \
 	$(if $(W_FLAC),encoder/flac_encoder.ml) \
-        $(if $(W_FFMPEG_ENCODER),encoder/ffmpeg_encoder_common.ml encoder/ffmpeg_internal_encoder.ml encoder/ffmpeg_copy_encoder.ml encoder/ffmpeg_encoder.ml) \
+        $(if $(W_FFMPEG),encoder/ffmpeg_encoder_common.ml encoder/ffmpeg_internal_encoder.ml encoder/ffmpeg_copy_encoder.ml encoder/ffmpeg_encoder.ml) \
 	$(if $(W_FDKAAC),encoder/fdkaac_encoder_builtin.ml) \
 	$(if $(W_TAGLIB),encoder/taglib_id3v2.ml) \
 	$(if $(W_GSTREAMER),encoder/gstreamer_encoder.ml)
@@ -128,7 +128,7 @@ encoders = \
 lang_encoders = \
   lang/lang_encoders.ml \
   lang_encoders/lang_avi.ml lang_encoders/lang_external_encoder.ml lang_encoders/lang_fdkaac.ml \
-  lang_encoders/lang_ffmpeg.ml $(if $(W_FFMPEG_ENCODER),lang_encoders/lang_ffmpeg_opt.ml) lang_encoders/lang_flac.ml lang_encoders/lang_gstreamer.ml \
+  lang_encoders/lang_ffmpeg.ml $(if $(W_FFMPEG),lang_encoders/lang_ffmpeg_opt.ml) lang_encoders/lang_flac.ml lang_encoders/lang_gstreamer.ml \
   lang_encoders/lang_mp3.ml lang_encoders/lang_opus.ml lang_encoders/lang_shine.ml \
   lang_encoders/lang_speex.ml lang_encoders/lang_theora.ml lang_encoders/lang_vorbis.ml \
   lang_encoders/lang_wav.ml
@@ -170,14 +170,14 @@ io = io/udp_io.ml \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
 	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml) \
-	$(if $(W_FFMPEG_LIQ_FILTER),io/ffmpeg_filter_io.ml) \
-	$(if $(W_FFMPEG_AV),io/ffmpeg_io.ml)
+	$(if $(W_FFMPEG),io/ffmpeg_filter_io.ml) \
+	$(if $(W_FFMPEG),io/ffmpeg_io.ml)
 
 tools = tools/extralib.ml tools/lifecycle.ml \
 	tools/stringView.ml tools/strings.ml tools/runtime_error.ml \
         tools/utils.ml tools/JSON.ml tools/doc.ml tools/plug.ml \
 	tools/rqueue.ml tools/unifier.ml \
-	$(if $(W_FFMPEG_AVDEVICE),tools/liqavdevice.ml) \
+	$(if $(W_FFMPEG),tools/liqavdevice.ml) \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml \
@@ -195,8 +195,8 @@ tools = tools/extralib.ml tools/lifecycle.ml \
 stream = stream/frame_settings.ml stream/frame_content.ml \
          stream/frame.ml stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
          stream/generator.ml \
-	 $(if $(W_FFMPEG_AVCODEC), stream/ffmpeg_content_base.ml stream/ffmpeg_copy_content.ml) \
-         $(if $(W_FFMPEG_DECODER), stream/ffmpeg_raw_content.ml) \
+	 $(if $(W_FFMPEG), stream/ffmpeg_content_base.ml stream/ffmpeg_copy_content.ml) \
+         $(if $(W_FFMPEG), stream/ffmpeg_raw_content.ml) \
          $(if $(W_GSTREAMER),tools/gstreamer_utils.ml)
 
 visualization = \
@@ -230,14 +230,11 @@ builtins = lang/lang_builtins.ml \
            $(if $(W_LASTFM),lang/builtins_lastfm.ml) \
            $(if $(W_PROMETHEUS),lang/builtins_prometheus.ml) \
            lang/builtins_ffmpeg_base.ml \
-           $(if $(W_FFMPEG_ENCODER),lang/builtins_ffmpeg_encoder.ml) \
-           $(if $(W_FFMPEG_DECODER),lang/builtins_ffmpeg_decoder.ml) \
-           $(if $(W_FFMPEG_LIQ_FILTER),lang/builtins_ffmpeg_filters.ml)
+           $(if $(W_FFMPEG),lang/builtins_ffmpeg_encoder.ml lang/builtins_ffmpeg_decoder.ml lang/builtins_ffmpeg_filters.ml)
 
 liquidsoap_sources= \
 	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
-	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_utils.ml) \
-        $(if $(W_FFMPEG_AVFILTER),tools/ffmpeg_avfilter_utils.ml) \
+	$(if $(W_FFMPEG),tools/ffmpeg_utils.ml tools/ffmpeg_avfilter_utils.ml) \
         converters/video_converter.ml \
 	decoder/decoder_utils.ml decoder/decoder.ml \
         tools/liq_time.ml $(if $(W_POSIX_TIME2),tools/liq_posix_time.ml) \

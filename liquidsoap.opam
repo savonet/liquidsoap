@@ -42,13 +42,7 @@ depopts: [
   "dssi"
   "faad"
   "fdkaac"
-  "ffmpeg-avutil"
-  "ffmpeg-av"
-  "ffmpeg-avcodec"
-  "ffmpeg-avdevice"
-  "ffmpeg-avfilter"
-  "ffmpeg-swresample"
-  "ffmpeg-swscale"
+  "ffmpeg"
   "flac"
   "frei0r"
   "gd"
@@ -95,13 +89,6 @@ conflicts: [
   "faad" {< "0.5.0"}
   "fdkaac" {< "0.3.1"}
   "ffmpeg" {< "1.1.0"}
-  "ffmpeg-avutil" {< "1.1.1"}
-  "ffmpeg-av" {< "1.1.1"}
-  "ffmpeg-avcodec" {< "1.1.1"}
-  "ffmpeg-avdevice" {< "1.1.1"}
-  "ffmpeg-avfilter" {< "1.1.1"}
-  "ffmpeg-swresample" {< "1.1.1"}
-  "ffmpeg-swscale" {< "1.1.1"}
   "flac" {< "0.3.0"}
   "frei0r" {< "0.1.0"}
   "gstreamer" {< "0.3.1"}
@@ -162,11 +149,11 @@ for more information."""
   """\
 We noticed that you did not install any mp3 decoder. This is a feature most
 users want. You might need to install the mad or ffmpeg package."""
-    {success & !mad-enabled & !ffmpeg-decoder-enabled}
+    {success & !mad-enabled & !ffmpeg-enabled}
   """\
 We noticed that you did not install any mp3 encoder. This is a feature most
 users want. You might need to install the lame or shine package."""
-    {success & !lame-enabled & !shine-enabled & !ffmpeg-encoder-enabled}
+    {success & !lame-enabled & !shine-enabled & !ffmpeg-enabled}
   """\
 We noticed that you did not install the taglib package that provides support
 for reading metatadata in audio files. This is a feature most users want."""
