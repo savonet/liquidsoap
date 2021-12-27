@@ -572,51 +572,7 @@ AC_CHECK_OCAML_BINDING([theora.decoder],[theora])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg-avutil], [], [], [], [avutil])
-AC_CHECK_OCAML_BINDING([ffmpeg-avcodec], [ffmpeg-avutil], [], [], [avcodec])
-AC_CHECK_OCAML_BINDING([ffmpeg-avdevice], [ffmpeg-avdevice], [], [], [avdevice])
-AC_CHECK_OCAML_BINDING([ffmpeg-av], [ffmpeg-avutil ffmpeg-avcodec], [], [], [av])
-AC_CHECK_OCAML_BINDING([ffmpeg-avfilter], [ffmpeg-avutil], [], [], [avfilter])
-AC_CHECK_OCAML_BINDING([ffmpeg-swresample], [ffmpeg-avutil ffmpeg-avcodec], [], [], [swresample])
-AC_CHECK_OCAML_BINDING([ffmpeg-swscale], [ffmpeg-avutil], [], [], [swscale])
-
-if test -n "${W_FFMPEG_AV}" && test -n "${W_FFMPEG_AVFILTER}" &&
-   test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
-  W_FFMPEG_DECODER=yes
-  w_FFMPEG_DECODER=yes
-  b_FFMPEG_DECODER=true
-else
-  W_FFMPEG_DECODER=""
-  w_FFMPEG_DECODER="no (require ffmpeg-av, ffmpeg-avfilter, ffmpeg-swscale and ffmpeg-swresample)"
-  b_FFMPEG_DECODER=false
-fi
-
-AC_SUBST(W_FFMPEG_DECODER)
-
-if test -n "${W_FFMPEG_AV}" && test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
-  W_FFMPEG_ENCODER=yes
-  w_FFMPEG_ENCODER=yes
-  b_FFMPEG_ENCODER=true
-else
-  W_FFMPEG_ENCODER=""
-  w_FFMPEG_ENCODER="no (require ffmpeg-av, ffmpeg-swscale and ffmpeg-swresample)"
-  b_FFMPEG_ENCODER=false
-fi
-
-AC_SUBST(W_FFMPEG_ENCODER)
-
-if test -n "${W_FFMPEG_AVFILTER}" &&
-   test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
-  W_FFMPEG_LIQ_FILTER=yes
-  w_FFMPEG_LIQ_FILTER=yes
-  b_FFMPEG_LIQ_FILTER=true
-else
-  W_FFMPEG_LIQ_FILTER=""
-  w_FFMPEG_LIQ_FILTER="no (require ffmpeg-avfilter, ffmpeg-swscale and ffmpeg-swresample)"
-  b_FFMPEG_LIQ_FILTER=false
-fi
-
-AC_SUBST(W_FFMPEG_LIQ_FILTER)
+AC_CHECK_OCAML_BINDING([ffmpeg])
 
 #
 # Jack
@@ -1028,7 +984,7 @@ cat <<EOMSG
  * Supported input formats
    - MP3               : $w_MAD
    - AAC               : $w_FAAD
-   - Ffmpeg            : $w_FFMPEG_DECODER
+   - FFmpeg            : $w_FFMPEG
    - Flac (native)     : $w_FLAC
    - Flac (ogg)        : $w_FLAC_OGG
    - Lastfm            : $w_LASTFM
@@ -1040,7 +996,7 @@ cat <<EOMSG
 
  * Supported output formats
    - FDK-AAC           : $w_FDKAAC
-   - Ffmpeg            : $w_FFMPEG_ENCODER
+   - FFmpeg            : $w_FFMPEG
    - MP3               : $w_LAME
    - MP3 (fixed-point) : $w_SHINE
    - Opus              : $w_OPUS
@@ -1056,7 +1012,7 @@ cat <<EOMSG
  * Input / output
    - ALSA              : $w_ALSA
    - AO                : $w_AO
-   - FFmpeg            : $w_FFMPEG_AV
+   - FFmpeg            : $w_FFMPEG
    - Icecast/Shoutcast : $w_CRY
    - GStreamer         : $w_GSTREAMER
    - JACK              : $w_BJACK
@@ -1066,7 +1022,7 @@ cat <<EOMSG
    - SRT               : $w_SRT
 
  * Audio manipulation
-   - FFmpeg            : $w_FFMPEG_SWRESAMPLE
+   - FFmpeg            : $w_FFMPEG
    - LADSPA            : $w_LADSPA
    - Lilv              : $w_LILV
    - Samplerate        : $w_SAMPLERATE
@@ -1074,7 +1030,7 @@ cat <<EOMSG
 
  * Video manipulation
    - camlimages        : $w_CAMLIMAGES
-   - FFmpeg            : $w_FFMPEG_SWSCALE
+   - FFmpeg            : $w_FFMPEG
    - frei0r            : $w_FREI0R
    - SDL-image         : $w_TSDL_IMAGE
    - SDL-ttf           : $w_TSDL_TTF
@@ -1089,8 +1045,8 @@ cat <<EOMSG
 
  * Additional libraries
    - URI resolver      : $w_CURL
-   - FFmpeg filters:   : $w_FFMPEG_LIQ_FILTER
-   - FFmpeg devices    : $w_FFMPEG_AVDEVICE
+   - FFmpeg filters:   : $w_FFMPEG
+   - FFmpeg devices    : $w_FFMPEG
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
    - lastfm            : $w_LASTFM
@@ -1158,16 +1114,7 @@ variables {
   ogg_flac-enabled: $b_FLAC_OGG
   mad-enabled: $b_MAD
   faad-enabled: $b_FAAD
-  ffmpeg-avutil-enabled: $b_FFMPEG_AVUTIL
-  ffmpeg-av-enabled: $b_FFMPEG_AV
-  ffmpeg-avcodec-enabled: $b_FFMPEG_AVCODEC
-  ffmpeg-avdevice-enabled: $b_FFMPEG_AVDEVICE
-  ffmpeg-avfilter-enabled: $b_FFMPEG_AVFILTER
-  ffmpeg-swresample-enabled: $b_FFMPEG_SWRESAMPLE
-  ffmpeg-swscale-enabled: $b_FFMPEG_SWSCALE
-  ffmpeg-decoder-enabled: $b_FFMPEG_DECODER
-  ffmpeg-encoder-enabled: $b_FFMPEG_ENCODER
-  ffmpeg-liq-filter-enabled: $b_FFMPEG_LIQ_FILTER
+  ffmpeg-enabled: $b_FFMPEG
   xmlplaylist-enabled: $b_XMLPLAYLIST
   lastfm-enabled: $b_LASTFM
   lame-enabled: $b_LAME
