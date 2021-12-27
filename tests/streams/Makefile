@@ -11,7 +11,7 @@ files:
 	if [ ! -e file3.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=880:duration=5" -ac 2 file3.mp3 ; fi
 	if [ ! -e jingle1.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=220:duration=2" -ac 2 jingle1.mp3 ; fi
 	if [ ! -e jingle2.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=440:duration=2" -ac 2 jingle2.mp3 ; fi
-	if [ ! -e jingl3.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=880:duration=2" -ac 2 jingle3.mp3 ; fi
+	if [ ! -e jingle3.mp3 ] ; then ffmpeg -f lavfi -i "sine=frequency=880:duration=2" -ac 2 jingle3.mp3 ; fi
 
 %: %.liq
 	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" streams/$<
