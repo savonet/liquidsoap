@@ -22,6 +22,35 @@ Changes:
   case in previous versions, and associated handlers are triggered only when the
   returned source is pulled (#2103).
 
+2.0.2 (28-12-2021)
+=====
+
+New:
+* Show code excerpts on errors (#2086)
+* Added `on_get_ready` callback to sources, to be
+  executed after a source's has initialized.
+* Added `flush_and_skip` telnet command to `request.dynamic`
+  to empty the request's queue before skipping the current
+  track, forcing a full reload.
+* Added `last_metadata` method on sources to return the
+  last metadata produced by the source.
+
+Fixed:
+* Fixed ffmpeg copy encoder crash when switching between
+  streams.
+* Fixed unbound buffer in muxing operators (#2054)
+* Return correct positions when parsing strings (#2095)
+* Deadlock when shutting down with `input.rtmp` (#2089)
+* Add timeout to srt operations (#2082)
+* Fixed `request.queue` `queue` telnet command returning
+  nothing (#2088)
+* Fixed single quotes bring eascaped in json stringify.
+  (#2120)
+* Fixed frame caching issues when no initial break was
+  present in the memoized frame. (#2109. AzuraCast/AzuraCast#4825)
+* Fixed `replay_metadata` not replaying metadata from active sources
+  (#2109)
+
 2.0.1 (27-11-2021)
 =====
 
