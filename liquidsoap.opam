@@ -30,6 +30,7 @@ depends: [
   "cry" {with-test}
   "ocurl" {with-test}
   "flac" {with-test}
+  "inotify" {with-test}
   "lame" {with-test}
   "ffmpeg" {with-test}
   "vorbis" {with-test}
