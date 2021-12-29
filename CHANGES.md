@@ -44,7 +44,7 @@ Fixed:
 * Add timeout to srt operations (#2082)
 * Fixed `request.queue` `queue` telnet command returning
   nothing (#2088)
-* Fixed single quotes bring eascaped in json stringify.
+* Fixed single quotes being escaped in json stringify.
   (#2120)
 * Fixed frame caching issues when no initial break was
   present in the memoized frame. (#2109. AzuraCast/AzuraCast#4825)
