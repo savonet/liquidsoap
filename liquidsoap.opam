@@ -175,5 +175,8 @@ be able to use any HTTPS feature. You might want to install one of ssl or
 osx-secure-transport package."""
     {success & !ssl-enabled & !secure-transport-enabled}
 ]
-depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
+depexts: [
+  ["ffmpeg"] {with-test & (os-family = "debian" | os-family = "ubuntu")}
+  ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
+]
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
