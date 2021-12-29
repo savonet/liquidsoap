@@ -27,14 +27,6 @@ depends: [
   "conf-which" {build}
   "pcre"
   "sedlex" {>= "2.2"}
-  "cry" {with-test}
-  "ocurl" {with-test}
-  "flac" {with-test}
-  "inotify" {with-test}
-  "lame" {with-test}
-  "ffmpeg" {with-test}
-  "vorbis" {with-test}
-  "opus" {with-test}
 ]
 depopts: [
   "alsa"
@@ -140,7 +132,6 @@ build: [
   ]
   [make "clean"] {dev}
   [make]
-  [make "test"] {with-test}
 ]
 install: [make "install"]
 post-messages: [
