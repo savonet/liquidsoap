@@ -8,6 +8,10 @@ eval $(opam config env)
 
 cd /tmp/liquidsoap-full
 
+opam update
+opam remove -y ocamlsdl sdl-liquidsoap
+opam depext -yi tsdl-image.0.3.2
+
 echo "\n### Preparing bindings\n"
 
 git pull
