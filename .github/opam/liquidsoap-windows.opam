@@ -20,7 +20,7 @@ depends: [
   "camomile-windows" {>= "1.0.0"}
   "dtools-windows" {>= "0.4.4"}
   "duppy-windows" {>= "0.9.1"}
-  "menhir-windows" {>= "20180703"}
+  "menhir-windows" {>= "20180703" & <= "20211128"}
   "mm-windows" {>= "0.7.0"}
   "ocamlfind" {build}
   "conf-pkg-config" {build}
@@ -80,19 +80,13 @@ conflicts: [
   "dssi-windows" {< "0.1.3"}
   "faad-windows" {< "0.5.0"}
   "fdkaac-windows" {< "0.3.1"}
-  "ffmpeg-windows" {< "1.0.0"}
-  "ffmpeg-avutil-windows" {< "1.0.1"}
-  "ffmpeg-av-windows" {< "1.0.1"}
-  "ffmpeg-avcodec-windows" {< "1.0.1"}
-  "ffmpeg-avdevice-windows" {< "1.0.1"}
-  "ffmpeg-avfilter-windows" {< "1.1.0"}
-  "ffmpeg-swresample-windows" {< "1.0.1"}
-  "ffmpeg-swscale-windows" {< "1.0.1"}
+  "ffmpeg-windows" {< "1.1.1"}
+  "ffmpeg-avutil-windows" {< "1.1.1"}
   "flac-windows" {< "0.3.0"}
   "frei0r-windows" {< "0.1.0"}
   "gstreamer-windows" {< "0.3.1"}
   "ladspa-windows" {< "0.2.0"}
-  "lame-windows" {< "0.3.4"}
+  "lame-windows" {< "0.3.5"}
   "lastfm-windows" {< "0.3.0"}
   "lo-windows" {< "0.2.0"}
   "mad-windows" {< "0.5.0"}
@@ -107,7 +101,8 @@ conflicts: [
   "speex-windows" {< "0.4.0"}
   "srt-windows" {< "0.2.1"}
   "ssl-windows" {< "0.5.2"}
-  "taglib-windows" {< "0.3.0"}
+  "taglib-windows" {< "0.3.7"}
+  "tsdl-image-windows" {< "0.3.2"}
   "theora-windows" {< "0.4.0"}
   "vorbis-windows" {< "0.8.0"}
   "xmlplaylist-windows" {< "0.1.3"}
@@ -132,11 +127,11 @@ for more information."""
   """\
 We noticed that you did not install any mp3 decoder. This is a feature most
 users want. You might need to install the mad or ffmpeg package."""
-    {success & !mad-enabled & !ffmpeg-decoder-enabled}
+    {success & !mad-enabled & !ffmpeg-enabled}
   """\
 We noticed that you did not install any mp3 encoder. This is a feature most
 users want. You might need to install the lame or shine package."""
-    {success & !lame-enabled & !shine-enabled & !ffmpeg-encoder-enabled}
+    {success & !lame-enabled & !shine-enabled & !ffmpeg-enabled}
   """\
 We noticed that you did not install the taglib package that provides support
 for reading metatadata in audio files. This is a feature most users want."""
