@@ -1,5 +1,5 @@
 opam-version: "2.0"
-version: "2.1.0"
+version: "2.0.2"
 synopsis: "Swiss-army knife for multimedia streaming"
 description: """\
 Liquidsoap is a powerful and flexible language for describing your
@@ -105,7 +105,7 @@ conflicts: [
   "shine-windows" {< "0.2.0"}
   "soundtouch-windows" {< "0.1.9"}
   "speex-windows" {< "0.4.0"}
-  "srt-windows" {< "0.1.2"}
+  "srt-windows" {< "0.2.1"}
   "ssl-windows" {< "0.5.2"}
   "taglib-windows" {< "0.3.0"}
   "theora-windows" {< "0.4.0"}
