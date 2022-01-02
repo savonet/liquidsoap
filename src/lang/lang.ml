@@ -608,7 +608,7 @@ let source_methods =
        initialized.",
       fun s -> val_fun [] (fun _ -> bool s#is_ready) );
     ( "last_metadata",
-      ([], fun_t [(false, "", fun_t [] (nullable_t metadata_t))] unit_t),
+      ([], fun_t [] (nullable_t metadata_t)),
       "Return the last metadata from the source.",
       fun s ->
         val_fun [] (fun _ ->
