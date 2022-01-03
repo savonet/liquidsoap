@@ -4,7 +4,6 @@ set -e
 
 SYSTEM=$1
 BRANCH=$2
-OCAML_VERSION=4.11.1
 CPU_CORES=$3
 OPAM_PREFIX=`opam var prefix`
 PWD=`dirname $0`
@@ -27,7 +26,6 @@ export CC=""
 eval `opam config env`
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 opam update
-opam remove -y ffmpeg-windows
 opam upgrade -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` liquidsoap-windows
 
 cd ~
