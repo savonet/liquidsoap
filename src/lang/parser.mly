@@ -108,6 +108,62 @@ open Parser_helper
 %start time_predicate
 %type <Term.t> time_predicate
 
+%type <Parser_helper.let_decoration> _let
+%type <string> annotate_key
+%type <(string * string) list> annotate_metadata
+%type <string> annotate_value
+%type <Parser_helper.app_list_elem list> app_list
+%type <Parser_helper.app_list_elem> app_list_elem
+%type <Parser_helper.arglist> arg
+%type <Parser_helper.arglist> arglist
+%type <string list * string list> args_of_params
+%type <(bool * string * Type.t) list> argsty
+%type <bool * string * Type.t> argty
+%type <Parser_helper.binding> binding
+%type <Parser_helper.encoder_opt> encoder_opt
+%type <Parser_helper.encoder_param> encoder_param
+%type <Parser_helper.encoder_param list> encoder_params
+%type <Term.t> expr
+%type <Term.t> exprs
+%type <Term.t> exprss
+%type <unit> g
+%type <Term.t> if_elsif
+%type <string list> in_subfield
+%type <string list> in_subfield_lbra
+%type <Parser_helper.inner_list_item list> inner_list
+%type <Parser_helper.inner_list_item> inner_list_item
+%type <Term.t list> inner_tuple
+%type <Parser_helper.let_opt_el list> let_opt
+%type <Parser_helper.let_opt_el> let_opt_el
+%type <Term.pattern> list_pattern
+%type <Term.pattern> meth_pattern
+%type <Parser_helper.meth_pattern_el> meth_pattern_el
+%type <Parser_helper.meth_pattern_el list> meth_pattern_list
+%type <string * Type.t * string option> meth_ty
+%type <Term.t option> opt
+%type <string> optvar
+%type <Term.pattern> pattern
+%type <Term.pattern list> pattern_list
+%type <Term.pattern list * string * Term.pattern list> pattern_list_with_spread
+%type <Parser_helper.record> record
+%type <Parser_helper.meth_pattern_el list> record_pattern
+%type <Type.t> record_ty
+%type <unit> s
+%type <string> spread
+%type <string list> subfield
+%type <string list> subfield_lbra
+%type <Term.pattern> tuple_pattern
+%type <Type.t> ty
+%type <Parser_helper.ty_content> ty_content
+%type <Parser_helper.ty_content_arg> ty_content_arg
+%type <Parser_helper.ty_content_args> ty_content_args
+%type <Type.t> ty_source
+%type <(string * Parser_helper.ty_content) list> ty_source_params
+%type <Type.t list> ty_tuple
+%type <Term.pattern> var_pattern
+%type <Parser_helper.varlist> varlist
+%type <string list> varlpar
+
 %%
 
 program:

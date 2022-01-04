@@ -272,8 +272,10 @@ end
 
 type t = { mutable t : Type.t; term : in_term }
 
+and doc = Doc.item * (string * string) list * (string * string) list
+
 and let_t = {
-  doc : Doc.item * (string * string) list * (string * string) list;
+  doc : doc;
   (* name, arguments, methods *)
   replace : bool;
   (* whether the definition replaces a previously existing one (keeping methods) *)

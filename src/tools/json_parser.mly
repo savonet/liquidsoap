@@ -34,8 +34,18 @@
 %start json
 %type <Json_base.t> json 
 
+%type <Json_base.t> json_value
+%type <string * Json_base.t> json_object_entry
+%type <(string * Json_base.t) list> json_object
+%type <Json_base.t list> json_array
+
 %start json5
 %type <Json_base.t> json5
+
+%type <Json_base.t> json5_value
+%type <string * Json_base.t> json5_object_entry
+%type <(string * Json_base.t) list> json5_object
+%type <Json_base.t list> json5_array
 
 %%
 

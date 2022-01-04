@@ -25,6 +25,8 @@
 open Term
 open Ground
 
+type arglist = (string * string * Type.t * Term.t option) list
+
 type lexer_let_decoration =
   [ `None | `Recursive | `Replaces | `Eval | `Json_parse | `Json_stringify ]
 
@@ -35,6 +37,30 @@ type let_decoration =
   | `Eval
   | `Json_parse of (string * Term.t) list
   | `Json_stringify of (string * Term.t) list ]
+
+type app_list_elem = (string * Term.t) list
+
+type binding =
+  Term.doc
+  * let_decoration
+  * Term.pattern
+  * arglist option
+  * Term.t
+  * Type.t option
+
+type encoder_param =
+  string * [ `Term of Term.t | `Encoder of string * encoder_opt ]
+
+and encoder_opt = encoder_param list
+
+type inner_list_item = [ `Ellipsis of Term.t | `Expr of Term.t ]
+type let_opt_el = string * Term.t
+type record = pos:Lexing.position * Lexing.position -> Term.t -> Term.t
+type ty_content_arg = string * string
+type ty_content_args = ty_content_arg list
+type ty_content = string * ty_content_args
+type varlist = [ `List of Term.t list | `App of Term.t ]
+type meth_pattern_el = string * Term.pattern option
 
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
