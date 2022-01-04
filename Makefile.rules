@@ -82,8 +82,7 @@ _OCAML_LFLAGS=$($(PROG)_ocamllflags)
 
 $(PROG)_depend: $($(PROG)_sources) $($(PROG)_headers)
 	$(V)echo OCAMLDEP
-	$(V)$(OCAMLDEP) $(_DEP_OPTS) $(DEP_OPTS) \
-		$($(PROG)_sources) $($(PROG)_headers) > $@
+	$(V)$(OCAMLDEP) $(_DEP_OPTS) $(DEP_OPTS) $($(PROG)_sources) $($(PROG)_headers) > $@
 
 dll$(PROG).so: $($(PROG)_c_files:.c=.o)
 	$(V)echo OCAMLMKLIB -o dll$(PROG).so
@@ -116,7 +115,7 @@ endif
 %_depend: %.mly
 	@echo $@ >> auto_clean
 	$(V)echo MENHIRDEP $<
-	$(V)$(MENHIR) --ocamldep "$(OCAMLDEP) $(DEP_OPTS)" --depend --unused-tokens $< | sed 's/cmo/cmx/g' > $@
+	$(V)$(MENHIR) --ocamldep "$(OCAMLDEP) $(DEP_OPTS)" --depend --unused-tokens $< | sed 's/cmo/$(o)/g' > $@
 
 %.ml %.mli: %.mly
 	@echo "*** from $< to $@"
@@ -204,8 +203,7 @@ endif
 ifdef ocaml_progs
 doc-auto: all-auto-ocaml-prog
 	for prog in $(ocaml_progs) ; do \
-		PROG=$$prog $(MAKE) $(top_srcdir)/autodoc/$$prog/index.html \
-                || exit $$? ; \
+		PROG=$$prog $(MAKE) $(top_srcdir)/autodoc/$$prog/index.html || exit $$? ; \
 	done
 endif
 
