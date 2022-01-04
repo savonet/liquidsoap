@@ -73,11 +73,12 @@ all-auto-ocaml-prog:
 ifdef PROG
 $(PROG)_mly=$(wildcard $($(PROG)_sources:.ml=.mly))
 $(PROG)_headers=$(wildcard $($(PROG)_sources:.ml=.mli)) $($(PROG)_mly:.mly=.mli)
+$(PROG)_depends=$(PROG)_depend $($(PROG)_mly:.mly=_depend)
 # Grab program-specific flags
 _OCAML_CFLAGS=$($(PROG)_ocamlcflags)
 _OCAML_LFLAGS=$($(PROG)_ocamllflags)
 
--include $(PROG)_depend
+-include $($(PROG)_depends)
 
 $(PROG)_depend: $($(PROG)_sources) $($(PROG)_headers)
 	$(V)echo OCAMLDEP
@@ -112,10 +113,17 @@ $(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs)
 		$(c_link)
 endif
 
+%_depend: %.mly
+	@echo $@ >> auto_clean
+	$(V)echo MENHIRDEP $<
+	$(V)$(MENHIR) --ocamldep "$(OCAMLDEP) $(DEP_OPTS)" --depend --unused-tokens $< | sed 's/cmo/cmx/g' > $@
+
 %.ml %.mli: %.mly
+	@echo "*** from $< to $@"
+	@echo "PROG: $(PROG)"
 	@echo $(<:.mly=.mli) $(<:.mly=.ml) $(<:.mly=.conflicts) >> auto_clean
 	$(V)echo MENHIR $<
-	$(V)$(MENHIR) --unused-tokens --explain $<
+	$(V)$(MENHIR) --ocamlc '$(OCAMLC) $(_OCAML_CFLAGS) $(OCAML_CFLAGS)' --infer --unused-tokens --explain $<
 
 %.$(o): %.ml
 	$(V)echo $(OCAMLCOMP) -c $<
