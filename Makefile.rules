@@ -73,7 +73,7 @@ all-auto-ocaml-prog:
 ifdef PROG
 $(PROG)_mly=$(wildcard $($(PROG)_sources:.ml=.mly))
 $(PROG)_headers=$(wildcard $($(PROG)_sources:.ml=.mli)) $($(PROG)_mly:.mly=.mli)
-$(PROG)_depends=$(PROG)_depend $($(PROG)_mly:.mly=_depend)
+$(PROG)_depends=$($(PROG)_mly:.mly=_depend) $(PROG)_depend
 # Grab program-specific flags
 _OCAML_CFLAGS=$($(PROG)_ocamlcflags)
 _OCAML_LFLAGS=$($(PROG)_ocamllflags)
@@ -119,6 +119,7 @@ endif
 
 %.ml %.mli: %.mly
 	@echo "*** from $< to $@"
+	@echo "need $^"
 	@echo "PROG: $(PROG)"
 	@echo $(<:.mly=.mli) $(<:.mly=.ml) $(<:.mly=.conflicts) >> auto_clean
 	$(V)echo MENHIR $<
