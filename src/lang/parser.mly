@@ -112,7 +112,7 @@ open Parser_helper
 %type <string> annotate_key
 %type <(string * string) list> annotate_metadata
 %type <string> annotate_value
-%type <Parser_helper.app_list_elem list> app_list
+%type <Parser_helper.app_list_elem> app_list
 %type <Parser_helper.app_list_elem> app_list_elem
 %type <Parser_helper.arglist> arg
 %type <Parser_helper.arglist> arglist
@@ -130,7 +130,7 @@ open Parser_helper
 %type <Term.t> if_elsif
 %type <string list> in_subfield
 %type <string list> in_subfield_lbra
-%type <Parser_helper.inner_list_item list> inner_list
+%type <Parser_helper.inner_list> inner_list
 %type <Parser_helper.inner_list_item> inner_list_item
 %type <Term.t list> inner_tuple
 %type <Parser_helper.let_opt_el list> let_opt
@@ -144,7 +144,7 @@ open Parser_helper
 %type <string> optvar
 %type <Term.pattern> pattern
 %type <Term.pattern list> pattern_list
-%type <Term.pattern list * string * Term.pattern list> pattern_list_with_spread
+%type <Term.pattern list * string option * Term.pattern list> pattern_list_with_spread
 %type <Parser_helper.record> record
 %type <Parser_helper.meth_pattern_el list> record_pattern
 %type <Type.t> record_ty

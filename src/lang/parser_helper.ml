@@ -54,6 +54,7 @@ type encoder_param =
 and encoder_opt = encoder_param list
 
 type inner_list_item = [ `Ellipsis of Term.t | `Expr of Term.t ]
+type inner_list = [ `App of Term.t | `List of Term.t list ]
 type let_opt_el = string * Term.t
 type record = pos:Lexing.position * Lexing.position -> Term.t -> Term.t
 type ty_content_arg = string * string
