@@ -1,4 +1,4 @@
-#!../src/liquidsoap ../libs/stdlib.liq ../libs/deprecations.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq
 
 %include "test.liq"
 
@@ -16,6 +16,9 @@ def f() =
   t(file.is_directory("/"), true)
   t(file.is_directory("~"), true)
   t(file.is_directory("XXX"), false)
+
+  t(liquidsoap.version.at_least("2.0.0"), true)
+  t(liquidsoap.version.at_least("666.0.0"), false)
 
   if !success then test.pass() else test.fail() end
 end

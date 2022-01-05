@@ -40,7 +40,19 @@ let () =
       ("rundir", "PID file directory", Configure.rundir);
       ("logdir", "logging directory", Configure.logdir);
       ("default_font", "default font file", Configure.default_font);
-    ]
+    ];
+  Lang.add_builtin ~category:`Liquidsoap
+    ~descr:"Ensure that Liquidsoap version is greater or equal to given one."
+    "liquidsoap.version.at_least"
+    [("", Lang.string_t, None, Some "Minimal version.")]
+    Lang.bool_t
+    (fun p ->
+      let v = List.assoc "" p |> Lang.to_string in
+      Lang.bool
+        (Utils.Version.compare
+           (Utils.Version.of_string v)
+           (Utils.Version.of_string Configure.version)
+        <= 0))
 
 let () =
   Lang.add_builtin_base "liquidsoap.executable" ~category:`Liquidsoap
@@ -307,8 +319,10 @@ let () =
 
 let () =
   Lang.add_builtin "metadata.export" ~category:`Liquidsoap
-    ~descr:"Filter-out internal metadata." [("", Lang.metadata_t, None, None)]
-    Lang.metadata_t (fun p ->
+    ~descr:"Filter-out internal metadata."
+    [("", Lang.metadata_t, None, None)]
+    Lang.metadata_t
+    (fun p ->
       Lang.metadata
         (Meta_format.to_metadata
            (Meta_format.export_metadata (Lang.to_metadata (List.assoc "" p)))))
@@ -390,7 +404,9 @@ let () =
       "Immediately stop the application. This should only be used in extreme \
        cases or to specify an exit value. The recommended way of stopping \
        Liquidsoap is to use shutdown."
-    [("", Lang.int_t, None, Some "Exit value.")] Lang.unit_t (fun p ->
+    [("", Lang.int_t, None, Some "Exit value.")]
+    Lang.unit_t
+    (fun p ->
       let n = Lang.to_int (List.assoc "" p) in
       exit n)
 
@@ -399,7 +415,8 @@ let () =
     ~descr:
       "Sleep for a given amount of seconds (beware that it freezes the thread \
        executing it)."
-    [("", Lang.float_t, None, Some "Number of seconds of sleep.")] Lang.unit_t
+    [("", Lang.float_t, None, Some "Number of seconds of sleep.")]
+    Lang.unit_t
     (fun p ->
       let t = Lang.to_float (List.assoc "" p) in
       let t = int_of_float (t +. 0.5) in
@@ -409,7 +426,9 @@ let () =
 let () =
   let reopen name descr f =
     Lang.add_builtin name ~category:`System ~descr
-      [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
+      [("", Lang.string_t, None, None)]
+      Lang.unit_t
+      (fun p ->
         let file = Lang.to_string (List.assoc "" p) in
         f file;
         Lang.unit)
@@ -447,7 +466,9 @@ let () =
     [
       ("", Lang.string_t, None, Some "Variable to be set.");
       ("", Lang.string_t, None, Some "Value to set.");
-    ] Lang.unit_t (fun p ->
+    ]
+    Lang.unit_t
+    (fun p ->
       let label = Lang.to_string (Lang.assoc "" 1 p) in
       let value = Lang.to_string (Lang.assoc "" 2 p) in
       Unix.putenv label value;
@@ -609,7 +630,9 @@ let () =
 let () =
   Lang.add_builtin "seconds_of_main" ~category:`Liquidsoap
     ~descr:"Convert a number of main ticks in seconds."
-    [("", Lang.int_t, None, None)] Lang.float_t (fun p ->
+    [("", Lang.int_t, None, None)]
+    Lang.float_t
+    (fun p ->
       Lang.float (Frame.seconds_of_main (Lang.to_int (List.assoc "" p))))
 
 let () =
@@ -679,7 +702,8 @@ let () =
 
 let () =
   Lang.add_builtin "iterator.int" ~category:`Liquidsoap
-    ~descr:"Iterator on integers." ~flags:[`Hidden]
+    ~descr:"Iterator on integers."
+    ~flags:[`Hidden]
     [
       ("", Lang.int_t, None, Some "First value.");
       ("", Lang.int_t, None, Some "Last value (included).");
