@@ -55,9 +55,6 @@ module type ContentSpecs = sig
 
   (* Size is in main ticks. *)
   val make : size:int -> params -> data
-
-  (* TODO: This will be removed when reworking
-     the streaming API. *)
   val blit : data -> int -> data -> int -> int -> unit
 
   (* Returns length in main ticks. *)
@@ -119,9 +116,6 @@ type data = Contents.data
 
 val make : size:int -> format -> data
 val length : data -> int
-
-(* TODO: This will be removed when reworking
-   the streaming API. *)
 val blit : data -> int -> data -> int -> int -> unit
 val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
@@ -219,9 +213,6 @@ module Frame : sig
   include Content with type data = Contents.data frame_content
 
   val lift_params : Contents.format Frame_base.fields -> Contents.format
-
-  (* TODO: This will be removed when reworking
-     the streaming API. *)
   val blit_media : Contents.data -> int -> Contents.data -> int -> int -> unit
   val get_audio : Contents.data -> Contents.data
   val set_audio : Contents.data -> Contents.data -> unit
