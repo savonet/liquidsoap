@@ -29,7 +29,6 @@ module NoneSpecs = struct
   type data = int
 
   let make ~size _ = size
-  let clear _ = ()
   let blit _ _ _ _ _ = ()
   let length c = c
   let copy c = c
@@ -109,8 +108,6 @@ module AudioSpecs = struct
   let default_params _ =
     param_of_channels (Lazy.force Frame_base.audio_channels)
 
-  let clear _ = ()
-
   let make ~size { channel_layout } =
     let channels =
       match !!channel_layout with
@@ -153,8 +150,6 @@ module VideoSpecs = struct
     let width = !!(Option.value ~default:video_width width) in
     let height = !!(Option.value ~default:video_height height) in
     Video.make (video_of_main size) width height
-
-  let clear _ = ()
 
   let string_of_params { width; height } =
     print_optional

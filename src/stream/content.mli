@@ -64,10 +64,6 @@ module type ContentSpecs = sig
   val length : data -> int
   val copy : data -> data
 
-  (* TODO: this will be removed when rewriting
-     streaming API. *)
-  val clear : data -> unit
-
   (** Params *)
 
   val params : data -> params
@@ -130,10 +126,6 @@ val blit : data -> int -> data -> int -> int -> unit
 val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
 val copy : data -> data
-
-(* TODO: This will be removed when reworking
-   the streaming API. *)
-val clear : data -> unit
 val is_empty : data -> bool
 val append : data -> data -> data
 

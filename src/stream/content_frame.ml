@@ -54,7 +54,6 @@ module Specs = struct
     Content_base.length d.track_marks
 
   let copy = map Content_base.copy
-  let clear d = ignore (map Content_base.clear d)
   let params = map Content_base.format
 
   let merge p p' =

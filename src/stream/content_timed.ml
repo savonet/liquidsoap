@@ -29,7 +29,6 @@ module Specs = struct
   }
 
   let make ~size params = { params; size; data = [] }
-  let clear d = d.data <- []
   let is_empty { data } = data = []
 
   let sort : 'a. (int * 'a) list -> (int * 'a) list =

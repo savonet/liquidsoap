@@ -61,7 +61,6 @@ module type ContentSpecs = sig
   val blit : data -> int -> data -> int -> int -> unit
   val length : data -> int
   val copy : data -> data
-  val clear : data -> unit
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -169,7 +168,6 @@ type data_handler = {
   is_empty : unit -> bool;
   copy : unit -> data;
   format : unit -> format;
-  clear : unit -> unit;
   append : data -> data;
 }
 
@@ -194,7 +192,6 @@ let sub d = (get_data_handler d).sub
 let is_empty c = (get_data_handler c).is_empty ()
 let copy c = (get_data_handler c).copy ()
 let format c = (get_data_handler c).format ()
-let clear c = (get_data_handler c).clear ()
 let append d = (get_data_handler d).append
 let kind p = (get_params_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
@@ -298,8 +295,6 @@ module MkContent (C : ContentSpecs) = struct
       @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
     assert (dst_len = length dst)
 
-  let clear d = List.iter (fun { data } -> C.clear data) d.chunks
-
   let make ~size params =
     { params; chunks = [{ data = C.make ~size params; offset = 0; size }] }
 
@@ -365,7 +360,6 @@ module MkContent (C : ContentSpecs) = struct
               is_empty = (fun () -> is_empty d);
               copy = (fun () -> Data (copy d));
               format = (fun () -> Format (Unifier.make (params d)));
-              clear = (fun () -> clear d);
               append = append d;
             }
       | _ -> None)

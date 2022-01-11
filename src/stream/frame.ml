@@ -130,12 +130,10 @@ let position b = match track_marks b with [] -> 0 | a :: _ -> a
 let is_partial b = position b < !!size
 let set_track_marks { content } = Content.Frame.set_track_marks content
 let add_track_mark { content } = Content.Frame.add_track_mark content
-let clear (b : t) = Content.clear b.content
+let clear (b : t) = ()
 
 (* Same as clear but leaves the last metadata at position -1. *)
-let advance b =
-  Content.clear b.content;
-  b.pts <- Int64.succ b.pts
+let advance b = b.pts <- Int64.succ b.pts
 
 (** Presentation time stuff. *)
 
