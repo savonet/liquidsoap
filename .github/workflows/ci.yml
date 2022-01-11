@@ -90,12 +90,16 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           rm -rf doc/content/build.md doc/content/install.md
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
+          git remote set-url origin https://github.com/savonet/liquidsoap.git
           git fetch origin $GITHUB_SHA
           git checkout $GITHUB_SHA
       - name: Build
         run: |
           cd /tmp/liquidsoap-full
+          git remote set-url origin https://github.com/savonet/liquidsoap-full.git
+          git fetch && git checkout origin/master -- Makefile.git
+          make public
+          git reset --hard
           git pull
           cp PACKAGES.minimal PACKAGES
           eval $(opam config env) && ocamlfind query curl | xargs rm -rf

@@ -10,6 +10,10 @@ opam install -y posix-time2
 cd /tmp/liquidsoap-full
 
 git remote set-url origin https://github.com/savonet/liquidsoap-full.git
+git fetch && git checkout origin/master -- Makefile.git
+make public
+git reset --hard
+
 git pull
 make clean
 make public
