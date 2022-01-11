@@ -14,6 +14,7 @@ opam depext -yi tsdl-image.0.3.2
 
 echo "\n### Preparing bindings\n"
 
+git remote set-url origin git remote set-url origin https://github.com/savonet/liquidsoap-full.git
 git pull
 make clean
 make public

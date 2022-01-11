@@ -9,8 +9,10 @@ opam install -y posix-time2
 
 cd /tmp/liquidsoap-full
 
+git remote set-url origin git remote set-url origin https://github.com/savonet/liquidsoap-full.git
 git pull
 make clean
+make public
 make update
 
 cd liquidsoap
