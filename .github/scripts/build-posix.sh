@@ -16,6 +16,7 @@ echo "\n### Preparing bindings\n"
 
 git pull
 make clean
+make public
 make update
 
 echo "\n### Checking out CI commit\n"
