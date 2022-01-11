@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2021 Savonet team
+  Copyright 2003-2022 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,5 +35,4 @@ let () =
 
 (* Register audio/opus mime *)
 let () =
-  Liq_ogg_decoder.mime_types#set
-    ("audio/opus" :: Liq_ogg_decoder.mime_types#get)
+  Liq_ogg_decoder.mime_types#set ("audio/opus" :: Liq_ogg_decoder.mime_types#get)
