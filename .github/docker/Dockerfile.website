@@ -21,7 +21,7 @@ WORKDIR /tmp/liquidsoap-full
 
 RUN rm -rf website/savonet.github.io
 
-RUN git remote set-url origin git remote set-url origin https://github.com/savonet/liquidsoap-full.git && \
+RUN git remote set-url origin https://github.com/savonet/liquidsoap-full.git && \
     git checkout master && \
     git reset --hard HEAD && \
     git pull
