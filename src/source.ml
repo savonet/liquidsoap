@@ -584,7 +584,14 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     method private instrumented_get_frame buf =
       let start_time = Unix.gettimeofday () in
       let start_position = Frame.position buf in
+      let track_marks = Frame.track_marks buf in
       self#get_frame buf;
+      if
+        Frame.position buf = start_position
+        && Frame.track_marks buf = track_marks
+      then (
+        self#log#severe "#get_frame did not create new content!";
+        assert false);
       let end_time = Unix.gettimeofday () in
       let end_position = Frame.position buf in
       let is_partial = Frame.is_partial buf in
@@ -630,55 +637,22 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
      * round ([#after_output]). *)
     method get buf =
       assert (Frame.is_partial buf);
+      let buf_pos = Frame.position buf in
 
-      (* In some cases we can't avoid #get being called on a non-ready
-       * source, for example:
-       * - A starts pumping B, stops in the middle of the track
-       * - B finishes its track, becomes unavailable
-       * - A starts streaming again, needs to receive an EOT before
-       *   having to worry about availability.
-       *
-       *   Another important example is crossfade, if e.g. a transition
-       *   returns a failling source.
-       *
-       * So we add special cases where, instead of calling #get_frame, we
-       * call silent_end_track to properly end a track by inserting a track_mark.
-       *
-       * This makes the whole protocol a bit sloppy as it weakens constraints
-       * tying #is_ready and #get, preventing the detection of "bad" calls
-       * of #get without prior check of #is_ready.
-       *
-       * This fix makes it really important to keep #is_ready = true during a
-       * track, otherwise the track will be ended without the source noticing! *)
-      let silent_end_track () = Frame.add_track_mark buf (Frame.position buf) in
+      let silent_end_track () = Frame.add_track_mark buf buf_pos in
       if not caching then
         if not self#is_ready then silent_end_track ()
-        else (
-          let b = Frame.track_marks buf in
-          self#instrumented_get_frame buf;
-          if List.length b + 1 > List.length (Frame.track_marks buf) then (
-            self#log#severe "#get_frame added too many track_marks!";
-            assert false);
-          if List.length b + 1 < List.length (Frame.track_marks buf) then (
-            self#log#severe
-              "#get_frame returned a buffer without enough track_marks!";
-            assert false))
+        else self#instrumented_get_frame buf
       else (
         let memo = self#memo in
-        try Frame.get_chunk buf memo
-        with Frame.No_chunk ->
-          if not self#is_ready then silent_end_track ()
-          else (
-            (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
-            let b = Frame.track_marks memo in
-            let p = Frame.position memo in
-            self#instrumented_get_frame memo;
-            if List.length b + 1 <> List.length (Frame.track_marks memo) then (
-              self#log#severe "#get_frame didn't add exactly one track_mark!";
-              assert false)
-            else if Frame.is_partial buf then
-              if p < Frame.position memo then self#get buf
-              else Frame.add_track_mark buf (Frame.position buf)))
+        let memo_pos = Frame.position memo in
+        if buf_pos < memo_pos then
+          Frame.append buf
+            (Content.sub (Frame.content memo) buf_pos (memo_pos - buf_pos))
+        else if not self#is_ready then silent_end_track ()
+        else (
+          self#instrumented_get_frame memo;
+          self#get buf))
 
     (* That's the way the source produces audio data.
      * It cannot be called directly, but [#get] should be used instead, for

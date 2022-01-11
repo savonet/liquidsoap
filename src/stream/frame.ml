@@ -99,7 +99,7 @@ type t = {
 
 (** Create a content chunk. All chunks have the same size. *)
 let create_content ctype =
-  Content.make ~size:!!size (Content.Frame.lift_params ctype)
+  Content.make ~size:0 (Content.Frame.lift_params ctype)
 
 let create ctype = { pts = 0L; content = create_content ctype }
 
@@ -111,6 +111,7 @@ let dummy () =
   }
 
 let content { content } = content
+let append b content = b.content <- Content.append b.content content
 let audio { content } = Content.Frame.get_audio content
 let set_audio { content } = Content.Frame.set_audio content
 let video { content } = Content.Frame.get_video content
@@ -126,11 +127,11 @@ let content_type frame =
 
 (* TODO: historically, track_marks are ordered with most recent first. *)
 let track_marks { content } = List.rev (Content.Frame.get_track_marks content)
-let position b = match track_marks b with [] -> 0 | a :: _ -> a
+let position { content } = Content.length content
 let is_partial b = position b < !!size
 let set_track_marks { content } = Content.Frame.set_track_marks content
 let add_track_mark { content } = Content.Frame.add_track_mark content
-let clear (b : t) = ()
+let clear (b : t) = b.content <- Content.sub b.content 0 0
 
 (* Same as clear but leaves the last metadata at position -1. *)
 let advance b = b.pts <- Int64.succ b.pts
@@ -148,87 +149,3 @@ let set_metadata { content } = Content.Frame.set_metadata content
 let get_metadata { content } = Content.Frame.get_metadata content
 let free_metadata { content } = Content.Frame.free_metadata content
 let free_all_metadata { content } = Content.Frame.free_all_metadata content
-
-(** Copy data from [src] to [dst]. *)
-let blit src src_pos dst dst_pos len =
-  Content.Frame.blit_media src.content src_pos dst.content dst_pos len
-
-(** Raised by [get_chunk] when no chunk is available. *)
-exception No_chunk
-
-exception Not_equal
-
-(** [get_chunk dst src] gets the (end of) next chunk from [src]
-  * (a chunk is a region of a frame between two track_marks).
-  * Metadata relevant to the copied chunk is copied as well,
-  * and content layout is changed if needed. *)
-let get_chunk ab from =
-  assert (is_partial ab);
-  let p = position ab in
-  let copy_chunk i =
-    add_track_mark ab i;
-    blit from p ab p (i - p);
-
-    (* If the last metadata before [p] differ in [from] and [ab],
-     * copy the one from [from] to [p] in [ab].
-     * NOTE (toots): This mechanism is super weird. See last test
-       in src/test/frame_test.ml. I suspect that it is here b/c we
-       have gotten into the habit of caching the last metadata at
-       position -1 and that this is meant to surface it at position 0
-       of the next chunk. I sure hope that we can revisit this mechanism
-       at some point in the future.. *)
-    begin
-      let is_meta_equal m m' =
-        try
-          if Hashtbl.length m <> Hashtbl.length m' then raise Not_equal;
-          Hashtbl.iter
-            (fun v l ->
-              match Hashtbl.find_opt m' v with
-                | Some l' when l = l' -> ()
-                | _ -> raise Not_equal)
-            m;
-          true
-        with Not_equal -> false
-      in
-      let before_p l =
-        match
-          List.sort
-            (fun (a, _) (b, _) -> compare b a) (* the greatest *)
-            (List.filter (fun x -> fst x < p) l)
-          (* that is less than p *)
-        with
-          | [] -> None
-          | x :: _ -> Some (snd x)
-      in
-      match
-        (before_p (get_all_metadata from), before_p (get_all_metadata ab))
-      with
-        | Some b, None -> set_metadata ab p b
-        | Some b, Some a when not (is_meta_equal a b) -> set_metadata ab p b
-        | _ -> ()
-    end;
-
-    (* Copy new metadata blocks for this chunk.
-     * We exclude blocks at the end of chunk, leaving them to be copied
-     * during the next get_chunk. *)
-    List.iter
-      (fun (mp, m) -> if p <= mp && mp < i then set_metadata ab mp m)
-      (get_all_metadata from)
-  in
-  let rec aux foffset f =
-    (* We always have p >= foffset *)
-    match f with
-      | [] -> raise No_chunk
-      | i :: tl ->
-          (* TrackMarks are between ticks, they do range from 0 to size. *)
-          assert (0 <= i && i <= !!size);
-          if i = 0 && track_marks ab = [] then
-            (* The only empty track that we copy,
-             * trying to copy empty tracks in the middle could be useful
-             * for packets like those forged by add, with a fake first track_mark,
-             * but isn't needed (yet) and is painful to implement. *)
-            copy_chunk 0
-          else if foffset <= p && i > p then copy_chunk i
-          else aux i tl
-  in
-  aux 0 (List.rev (track_marks from))

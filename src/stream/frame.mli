@@ -72,6 +72,9 @@ val content_type : t -> content_type
 (** Get a frame's content. *)
 val content : t -> Content.data
 
+(** Append content to a frame. *)
+val append : t -> Content.data -> unit
+
 (** Get a frame's audio content. *)
 val audio : t -> Content.data
 
@@ -142,12 +145,6 @@ val get_all_metadata : t -> (int * metadata) list
 
 (** Set all metadata. *)
 val set_all_metadata : t -> (int * metadata) list -> unit
-
-(** {2 Content operations} *)
-
-exception No_chunk
-
-val get_chunk : t -> t -> unit
 
 (** {2 Compatibilities between content values, types and kinds} *)
 

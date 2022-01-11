@@ -189,15 +189,13 @@ let rec sync_content g =
   let size = Lazy.force Frame.size in
   match (Queue.peek_opt g.audio.frames, Queue.peek_opt g.video.frames) with
     | Some (p, audio), Some (p', video) when p = p' ->
-        let metadata = Content.make ~size Content.Metadata.format in
         let len = min size (Content.length g.metadata) in
-        Content.blit g.metadata 0 metadata 0 len;
+        let metadata = Content.sub g.metadata 0 len in
         g.metadata <-
           Content.sub g.metadata len (Content.length g.metadata - len);
 
-        let track_marks = Content.make ~size Content.TrackMarks.format in
         let len = min size (Content.length g.track_marks) in
-        Content.blit g.track_marks 0 track_marks 0 len;
+        let track_marks = Content.sub g.track_marks 0 len in
         g.track_marks <-
           Content.sub g.track_marks len (Content.length g.track_marks - len);
 
@@ -317,7 +315,7 @@ let fill g frame =
       let b = Frame.track_marks frame in
       let m = Frame.get_all_metadata frame in
       if 0 < len then (
-        Content.blit (Option.get g.synced) 0 (Frame.content frame) pos len;
+        Frame.append frame (Content.sub (Option.get g.synced) 0 len);
         _remove g len);
       (* TODO: Frame content erases all track_marks and metadata. We add this to be backward compatible
          with existing call sites. This will be better once we cleanup the streaming API. *)
