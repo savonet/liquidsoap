@@ -26,12 +26,12 @@
  * - Sources are animated via their output
  * - Each round of streaming is called a clock tick
  * - A unit of data during a clock tick is called a frame
- * - Frames contain breaks which indicate filling positions during the clock tick.
+ * - Frames contain track_marks which indicate filling positions during the clock tick.
  * - Sources implement a [#get_frame] method which fills a frame with as much data
  *   as is available at each clock tick.
  * - The source gets a frame at a given position, fills it with as much data it can
- *   and add a break at the position last filled
- * - Each call to [#get_frame] must add exactly one break, even if no data could be
+ *   and add a track_mark at the position last filled
+ * - Each call to [#get_frame] must add exactly one track_mark, even if no data could be
  *   added.
  * - If [#get_frame] does not fill the frame entirely, it is considered that the
  *   current track has ended. [#get_frame] can be called again if the source's

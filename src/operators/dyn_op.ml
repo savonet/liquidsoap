@@ -104,7 +104,7 @@ class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
       begin
         match source with
         | Some s -> s#get frame
-        | None -> Frame.add_break frame (Frame.position frame)
+        | None -> Frame.add_track_mark frame (Frame.position frame)
       end;
       if (not track_sensitive) || Frame.is_partial frame then self#select
 

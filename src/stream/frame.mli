@@ -112,16 +112,16 @@ val pts : t -> int64
 (** Set presentation time. *)
 val set_pts : t -> int64 -> unit
 
-(** {3 Breaks} *)
+(** {3 TrackMarks} *)
 
-(** List of breaks in a frame. *)
-val breaks : t -> int list
+(** List of track_marks in a frame. *)
+val track_marks : t -> int list
 
-(** Set all the breaks of a frame. *)
-val set_breaks : t -> int list -> unit
+(** Set all the track_marks of a frame. *)
+val set_track_marks : t -> int list -> unit
 
-(** Add a break to a frame (which should be past its current end position). *)
-val add_break : t -> int -> unit
+(** Add a track_mark to a frame (which should be past its current end position). *)
+val add_track_mark : t -> int -> unit
 
 (** {3 Metadata} *)
 

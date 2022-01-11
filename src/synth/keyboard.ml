@@ -127,7 +127,7 @@ class keyboard ~kind =
       for c = 0 to Array.length m - 1 do
         MIDI.blit_all m.(c) t
       done;
-      MFrame.add_break frame (MFrame.size ())
+      MFrame.add_track_mark frame (MFrame.size ())
   end
 
 let () =

@@ -189,7 +189,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
             else (
               self#log#info "Buffering end of track...";
               status <- `Before;
-              Frame.set_breaks buf_frame [Frame.position frame];
+              Frame.set_track_marks buf_frame [Frame.position frame];
               Frame.set_all_metadata buf_frame [];
               self#buffering cross_length;
               if status <> `Limit then
@@ -213,7 +213,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
             else
               (* If not, finish this track, which requires our callers
                * to wait that we become ready again. *)
-              Frame.add_break frame (Frame.position frame)
+              Frame.add_track_mark frame (Frame.position frame)
         | `After when (Option.get transition_source)#is_ready ->
             (Option.get transition_source)#get frame;
             needs_tick <- true;
@@ -222,13 +222,13 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
               self#cleanup_transition_source;
 
               (* If underlying source if ready, try to continue filling up the frame
-               * using it. Each call to [get_frame] must add exactly one break so
-               * call it again and then remove the intermediate break that was just
+               * using it. Each call to [get_frame] must add exactly one track_mark so
+               * call it again and then remove the intermediate track_mark that was just
                * just added. *)
               if source#is_ready then (
                 self#get_frame frame;
-                Frame.set_breaks frame
-                  (match Frame.breaks frame with
+                Frame.set_track_marks frame
+                  (match Frame.track_marks frame with
                     | b :: _ :: l -> b :: l
                     | _ -> assert false)))
         | `After ->
@@ -274,7 +274,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
 
       (* Should we buffer more or are we done ? *)
       if AFrame.is_partial buf_frame then (
-        Generator.add_break gen_before;
+        Generator.add_track_mark gen_before;
         status <- `Limit)
       else if n > 0 then self#buffering (n - stop + start)
 
@@ -307,7 +307,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
         self#save_last_metadata `After buf_frame;
         self#update_cross_length buf_frame start;
         if AFrame.is_partial buf_frame && not source#is_ready then
-          Generator.add_break gen_after
+          Generator.add_track_mark gen_after
         else (
           self#child_tick;
           if after_len < before_len then f ())

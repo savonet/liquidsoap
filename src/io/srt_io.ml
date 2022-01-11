@@ -827,7 +827,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
 
     method seek _ = 0
     method remaining = -1
-    method abort_track = Generator.add_break generator
+    method abort_track = Generator.add_track_mark generator
 
     method is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
@@ -883,7 +883,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         self#disconnect;
         if not self#should_stop then self#connect;
-        Frame.add_break frame pos
+        Frame.add_track_mark frame pos
 
     method private start =
       self#set_should_stop false;

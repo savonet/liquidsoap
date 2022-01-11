@@ -130,7 +130,7 @@ let create_decoder ~metadata img =
       if !duration = -1 then VFrame.size frame
       else min (VFrame.size frame) (start + !duration)
     in
-    VFrame.add_break frame stop;
+    VFrame.add_track_mark frame stop;
     for i = start to stop - 1 do
       (* TODO: One could think of avoiding the creation of a blank video layer
        * that will be overwritten immediately. However, in most cases an old

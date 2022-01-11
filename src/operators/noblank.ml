@@ -124,16 +124,16 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
 
     method private get_frame ab =
       let p0 = AFrame.position ab in
-      let b0 = AFrame.breaks ab in
+      let b0 = AFrame.track_marks ab in
       source#get ab;
       self#check_blank ab p0;
 
       (* It's useless to strip metadata, because [ab] is [memo]
        * and metadata will not be copied from it outside of the track. *)
-      if self#is_blank then AFrame.set_breaks ab (p0 :: b0)
+      if self#is_blank then AFrame.set_track_marks ab (p0 :: b0)
 
     method private output =
-      (* We only #get once in memo; this is why we can set_breaks every time
+      (* We only #get once in memo; this is why we can set_track_marks every time
        * in #get_frame.
        * This behavior makes time flow slower than expected, but doesn't seem
        * harmful. The advantage of doing this is that if stripping stops because
@@ -169,11 +169,11 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
 
     method private get_frame ab =
       let first = ref true in
-      let breaks = AFrame.breaks ab in
+      let track_marks = AFrame.track_marks ab in
       (* Do at least one round of pulling data from the source into [ab],
        * and as many as needed for getting rid of silence. *)
       while !first || stripping do
-        if not !first then AFrame.set_breaks ab breaks;
+        if not !first then AFrame.set_track_marks ab track_marks;
         first := false;
         let p0 = AFrame.position ab in
         source#get ab;

@@ -143,7 +143,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
           (Audio.Mono.sub buffer.(c) 0 buffer_length)
           (Audio.Mono.sub fbuf.(c) 0 buffer_length)
       done;
-      AFrame.add_break buf buffer_length
+      AFrame.add_track_mark buf buffer_length
 
     method reset = ()
   end

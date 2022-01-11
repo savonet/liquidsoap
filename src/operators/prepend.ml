@@ -35,10 +35,10 @@ class prepend ~kind ~merge source f =
             (* TODO how does that play with caching ? *)
             let peek = Frame.create self#ctype in
             let peekpos = AFrame.size () - 1 in
-            AFrame.add_break peek peekpos;
+            AFrame.add_track_mark peek peekpos;
             source#get peek;
             if AFrame.is_partial peek then
-              AFrame.add_break buf (AFrame.position buf)
+              AFrame.add_track_mark buf (AFrame.position buf)
             else (
               let inhibit, lang_m =
                 match AFrame.get_metadata peek peekpos with
@@ -76,10 +76,10 @@ class prepend ~kind ~merge source f =
               | None -> ()
             end;
             state <- `Replay;
-            AFrame.add_break buf (p + 1);
+            AFrame.add_track_mark buf (p + 1);
             self#get_frame buf;
-            AFrame.set_breaks buf
-              (List.filter (( <> ) (p + 1)) (AFrame.breaks buf))
+            AFrame.set_track_marks buf
+              (List.filter (( <> ) (p + 1)) (AFrame.track_marks buf))
         | `Replay ->
             source#get buf;
             if AFrame.is_partial buf then state <- `Idle
@@ -91,8 +91,8 @@ class prepend ~kind ~merge source f =
               if merge then (
                 let pos = AFrame.position buf in
                 self#get_frame buf;
-                AFrame.set_breaks buf
-                  (Utils.remove_one (( = ) pos) (AFrame.breaks buf))))
+                AFrame.set_track_marks buf
+                  (Utils.remove_one (( = ) pos) (AFrame.track_marks buf))))
 
     method stype = source#stype
 

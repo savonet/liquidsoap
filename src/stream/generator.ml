@@ -62,7 +62,7 @@ type t = {
   audio : pending;
   video : pending;
   mutable metadata : Content.data;
-  mutable breaks : Content.data;
+  mutable track_marks : Content.data;
 }
 
 let _log = Log.make ["generator"]
@@ -79,7 +79,7 @@ let create ?overfull ?log ?(log_overfull = true) mode =
     audio = { frames = Queue.create (); pts = 0L; pending = None };
     video = { frames = Queue.create (); pts = 0L; pending = None };
     metadata = Content.make ~size:0 Content.Metadata.format;
-    breaks = Content.make ~size:0 Content.Breaks.format;
+    track_marks = Content.make ~size:0 Content.TrackMarks.format;
   }
 
 let mode g = Tutils.mutexify g.m (fun () -> g.mode) ()
@@ -93,7 +93,7 @@ let _clear_async g =
   _clear_pending g.audio;
   _clear_pending g.video;
   g.metadata <- Content.sub g.metadata 0 0;
-  g.breaks <- Content.sub g.breaks 0 0
+  g.track_marks <- Content.sub g.track_marks 0 0
 
 let clear g =
   Tutils.mutexify g.m
@@ -133,7 +133,7 @@ let _remaining g =
   match g.synced with
     | None -> 0
     | Some synced -> (
-        match List.rev (Content.Frame.get_breaks synced) with
+        match List.rev (Content.Frame.get_track_marks synced) with
           | a :: _ -> a
           | _ -> -1)
 
@@ -147,12 +147,13 @@ let add_metadata ?(pos = 0) g m =
         Content.Metadata.(lift_data ~size ((pos, m) :: get_data g.metadata)))
     ()
 
-let add_break ?(sync = false) ?(pos = 0) g =
+let add_track_mark ?(sync = false) ?(pos = 0) g =
   Tutils.mutexify g.m
     (fun () ->
       if sync then _clear_async g;
-      let size = max pos (Content.length g.breaks) in
-      g.breaks <- Content.Breaks.(lift_data ~size (pos :: get_data g.breaks)))
+      let size = max pos (Content.length g.track_marks) in
+      g.track_marks <-
+        Content.TrackMarks.(lift_data ~size (pos :: get_data g.track_marks)))
     ()
 
 let _remove g len =
@@ -194,16 +195,17 @@ let rec sync_content g =
         g.metadata <-
           Content.sub g.metadata len (Content.length g.metadata - len);
 
-        let breaks = Content.make ~size Content.Breaks.format in
-        let len = min size (Content.length g.breaks) in
-        Content.blit g.breaks 0 breaks 0 len;
-        g.breaks <- Content.sub g.breaks len (Content.length g.breaks - len);
+        let track_marks = Content.make ~size Content.TrackMarks.format in
+        let len = min size (Content.length g.track_marks) in
+        Content.blit g.track_marks 0 track_marks 0 len;
+        g.track_marks <-
+          Content.sub g.track_marks len (Content.length g.track_marks - len);
 
         let c =
           Content.Frame.(
             lift_data
               {
-                breaks;
+                track_marks;
                 metadata;
                 media =
                   {
@@ -312,13 +314,13 @@ let fill g frame =
       let pos = Frame.position frame in
       let size = Lazy.force Frame.size in
       let len = min (size - pos) len in
-      let b = Frame.breaks frame in
+      let b = Frame.track_marks frame in
       let m = Frame.get_all_metadata frame in
       if 0 < len then (
         Content.blit (Option.get g.synced) 0 (Frame.content frame) pos len;
         _remove g len);
-      (* TODO: Frame content erases all breaks and metadata. We add this to be backward compatible
+      (* TODO: Frame content erases all track_marks and metadata. We add this to be backward compatible
          with existing call sites. This will be better once we cleanup the streaming API. *)
-      Frame.set_breaks frame ((pos + len) :: b);
+      Frame.set_track_marks frame ((pos + len) :: b);
       Frame.set_all_metadata frame (m @ Frame.get_all_metadata frame))
     ()

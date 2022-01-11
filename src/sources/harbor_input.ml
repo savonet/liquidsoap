@@ -160,8 +160,8 @@ module Make (Harbor : T) = struct
             decoder.Decoder.decode buffer
           done
         with e ->
-          (* Feeding has stopped: adding a break here. *)
-          Generator.add_break ~sync:true generator;
+          (* Feeding has stopped: adding a track_mark here. *)
+          Generator.add_track_mark ~sync:true generator;
           self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
           self#disconnect ~lock:true;
           if debug then raise e

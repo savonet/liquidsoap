@@ -25,14 +25,14 @@ open Frame_base
 (* Meta content for frame. Should never be used for content resolution,
    hence the [assert false] below. *)
 module Specs = struct
-  type 'a frame_content = { breaks : 'a; metadata : 'a; media : 'a fields }
+  type 'a frame_content = { track_marks : 'a; metadata : 'a; media : 'a fields }
   type kind = [ `Frame_content ]
   type params = Content_base.format frame_content
   type data = Content_base.data frame_content
 
-  let map fn { breaks; metadata; media = { audio; video; midi } } =
+  let map fn { track_marks; metadata; media = { audio; video; midi } } =
     {
-      breaks = fn breaks;
+      track_marks = fn track_marks;
       metadata = fn metadata;
       media = { audio = fn audio; video = fn video; midi = fn midi };
     }
@@ -40,25 +40,25 @@ module Specs = struct
   let make ~size = map (Content_base.make ~size)
 
   let blit src src_pos dst dst_pos len =
-    Content_base.blit src.breaks src_pos dst.breaks dst_pos len;
+    Content_base.blit src.track_marks src_pos dst.track_marks dst_pos len;
     Content_base.blit src.metadata src_pos dst.metadata dst_pos len;
     Content_base.blit src.media.audio src_pos dst.media.audio dst_pos len;
     Content_base.blit src.media.video src_pos dst.media.video dst_pos len;
     Content_base.blit src.media.midi src_pos dst.media.midi dst_pos len
 
   let length d =
-    assert (Content_base.(length d.breaks = length d.metadata));
+    assert (Content_base.(length d.track_marks = length d.metadata));
     assert (Content_base.(length d.metadata = length d.media.audio));
     assert (Content_base.(length d.media.audio = length d.media.video));
     assert (Content_base.(length d.media.video = length d.media.midi));
-    Content_base.length d.breaks
+    Content_base.length d.track_marks
 
   let copy = map Content_base.copy
   let clear d = ignore (map Content_base.clear d)
   let params = map Content_base.format
 
   let merge p p' =
-    ignore (Content_base.merge p.breaks p'.breaks);
+    ignore (Content_base.merge p.track_marks p'.track_marks);
     ignore (Content_base.merge p.metadata p'.metadata);
     ignore (Content_base.merge p.media.audio p'.media.audio);
     ignore (Content_base.merge p.media.video p'.media.video);
@@ -66,7 +66,7 @@ module Specs = struct
     p
 
   let compatible p p' =
-    Content_base.compatible p.breaks p'.breaks
+    Content_base.compatible p.track_marks p'.track_marks
     && Content_base.compatible p.metadata p'.metadata
     && Content_base.compatible p.media.audio p'.media.audio
     && Content_base.compatible p.media.video p'.media.video
@@ -92,7 +92,7 @@ module Frame = struct
   let lift_params media =
     lift_params
       {
-        breaks = Content_timed.Breaks.lift_params ();
+        track_marks = Content_timed.TrackMarks.lift_params ();
         metadata = Content_timed.Metadata.lift_params ();
         media;
       }
@@ -112,18 +112,20 @@ module Frame = struct
     let params = get_params (Content_base.format d) in
     let size = Content_base.length d in
     let d = get_chunked_data d in
-    let breaks, metadata, audio, video, midi =
+    let track_marks, metadata, audio, video, midi =
       List.fold_left
-        (fun (breaks, metadata, audio, video, midi)
+        (fun (track_marks, metadata, audio, video, midi)
              { Content_base.data; offset; size } ->
-          let breaks = breaks @ [Content_base.sub data.breaks offset size] in
+          let track_marks =
+            track_marks @ [Content_base.sub data.track_marks offset size]
+          in
           let metadata =
             metadata @ [Content_base.sub data.metadata offset size]
           in
           let audio = audio @ [Content_base.sub data.media.audio offset size] in
           let video = video @ [Content_base.sub data.media.video offset size] in
           let midi = midi @ [Content_base.sub data.media.midi offset size] in
-          (breaks, metadata, audio, video, midi))
+          (track_marks, metadata, audio, video, midi))
         ([], [], [], [], []) d.Content_base.chunks
     in
     let concat ~make = function
@@ -137,7 +139,8 @@ module Frame = struct
           size;
           data =
             {
-              breaks = concat ~make:(Content_base.make params.breaks) breaks;
+              track_marks =
+                concat ~make:(Content_base.make params.track_marks) track_marks;
               metadata =
                 concat ~make:(Content_base.make params.metadata) metadata;
               media =
@@ -198,22 +201,24 @@ module Frame = struct
     let data = { data with media = { data.media with midi = c } } in
     d.Content_base.chunks <- [{ Content_base.size; offset; data }]
 
-  let get_breaks d =
+  let get_track_marks d =
     match (consolidate_chunks d).Content_base.chunks with
       | [] -> []
-      | [{ Content_base.data = { breaks } }] ->
-          Content_timed.Breaks.get_data breaks
+      | [{ Content_base.data = { track_marks } }] ->
+          Content_timed.TrackMarks.get_data track_marks
       | _ -> assert false
 
-  let set_breaks d b =
+  let set_track_marks d b =
     let d = consolidate_chunks d in
     assert (List.length d.Content_base.chunks = 1);
     let { Content_base.data; size; offset } = List.hd d.Content_base.chunks in
     assert (offset = 0);
-    let data = { data with breaks = Content_timed.Breaks.lift_data ~size b } in
+    let data =
+      { data with track_marks = Content_timed.TrackMarks.lift_data ~size b }
+    in
     d.Content_base.chunks <- [{ Content_base.size; offset; data }]
 
-  let add_break b br = set_breaks b (br :: get_breaks b)
+  let add_track_mark b br = set_track_marks b (br :: get_track_marks b)
 
   let get_all_metadata d =
     match (consolidate_chunks d).Content_base.chunks with

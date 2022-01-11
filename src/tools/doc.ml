@@ -240,7 +240,7 @@ let print (doc : item) print_string =
 let print_lang (i : item) =
   let b = Buffer.create 1024 in
   let ff = Format.formatter_of_buffer b in
-  (* Allow breaking on spaces. *)
+  (* Allow track_marking on spaces. *)
   let print_string_split f s =
     (* Did we just see a backtick? *)
     let backtick = ref false in
@@ -257,7 +257,8 @@ let print_lang (i : item) =
         else Format.pp_print_char f c)
       s
   in
-  Format.fprintf ff "@.@[%a@]@." print_string_split (Utils.unbreak_md i#get_doc);
+  Format.fprintf ff "@.@[%a@]@." print_string_split
+    (Utils.untrack_mark_md i#get_doc);
   let sub = i#get_subsections in
   let sub =
     Format.fprintf ff "@.Type: %s@." (i#get_subsection "_type")#get_doc;

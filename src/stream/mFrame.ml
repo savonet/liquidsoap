@@ -30,7 +30,7 @@ let size () = mot (Lazy.force Frame.size)
 let position t = mot (position t)
 let content = Frame.midi
 let midi b = Content.Midi.get_data (content b)
-let add_break t i = add_break t (tom i)
+let add_track_mark t i = add_track_mark t (tom i)
 let is_partial = is_partial
 
 type metadata = (string, string) Hashtbl.t

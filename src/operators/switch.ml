@@ -226,7 +226,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
       assert (selected = None || cached_selected = None);
       if need_eot then (
         need_eot <- false;
-        Frame.add_break ab (Frame.position ab))
+        Frame.add_track_mark ab (Frame.position ab))
       else (
         match selected with
           | None ->

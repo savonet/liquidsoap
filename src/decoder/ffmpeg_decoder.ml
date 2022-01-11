@@ -685,11 +685,11 @@ let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
       with
         | Avutil.Error `Invalid_data -> f ()
         | Avutil.Error `Eof ->
-            Generator.add_break ?sync:(Some true) buffer.Decoder.generator;
+            Generator.add_track_mark ?sync:(Some true) buffer.Decoder.generator;
             raise End_of_file
         | exn ->
             let bt = Printexc.get_raw_backtrace () in
-            Generator.add_break ?sync:(Some true) buffer.Decoder.generator;
+            Generator.add_track_mark ?sync:(Some true) buffer.Decoder.generator;
             Printexc.raise_with_backtrace exn bt
     in
     f ()

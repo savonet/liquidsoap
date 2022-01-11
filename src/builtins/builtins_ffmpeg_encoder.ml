@@ -572,8 +572,8 @@ let mk_encoder mode =
                 (fun (pos, m) -> Generator.add_metadata ~pos generator m)
                 (Frame.get_all_metadata frame);
               List.iter
-                (fun pos -> Generator.add_break ~pos generator)
-                (List.filter (fun x -> x < size) (Frame.breaks frame));
+                (fun pos -> Generator.add_track_mark ~pos generator)
+                (List.filter (fun x -> x < size) (Frame.track_marks frame));
               ignore
                 (Option.map (fun fn -> fn (`Frame frame)) encode_video_frame);
               ignore

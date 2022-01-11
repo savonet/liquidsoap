@@ -115,14 +115,14 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
             self#log#info "Performing skip.";
             should_fail <- false;
             if empty_on_abort then Generator.clear generator;
-            Frame.add_break ab (Frame.position ab))
+            Frame.add_track_mark ab (Frame.position ab))
           else (
             Generator.fill generator ab;
 
             (* Currently, we don't enter the buffering phase between tracks
              * even when there's not enough data in the buffer. This is mostly
-             * historical because there was initially no breaks in generators.
-             * This may sometimes be better to do it (to avoid a lag breaking
+             * historical because there was initially no track_marks in generators.
+             * This may sometimes be better to do it (to avoid a lag track_marking
              * the new track) but not always (a total disconnection should cause
              * the start of a new track anyway, since the content after it
              * has nothing to do with the content before the connection). *)

@@ -363,7 +363,7 @@ let parse_comments tokenizer =
     let main, special, params, methods = parse_doc ([], [], [], []) doc in
     let main = List.rev main and params = List.rev params in
     let main = String.concat "\n" main in
-    let main = Utils.unbreak_md main in
+    let main = Utils.untrack_mark_md main in
     (* let main = String.concat "\n" main in *)
     let doc =
       let sort = false in

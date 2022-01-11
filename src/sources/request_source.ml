@@ -105,7 +105,7 @@ class once ~kind ~name ~timeout request =
       if must_fail then (
         must_fail <- false;
         over <- true;
-        Frame.add_break buf (Frame.position buf))
+        Frame.add_track_mark buf (Frame.position buf))
       else (
         if send_metadata then (
           Request.on_air request;
@@ -226,7 +226,7 @@ class virtual unqueued ~kind ~name =
           (fun () ->
             if must_fail then (
               must_fail <- false;
-              Frame.add_break buf (Frame.position buf);
+              Frame.add_track_mark buf (Frame.position buf);
               false)
             else (
               match current with

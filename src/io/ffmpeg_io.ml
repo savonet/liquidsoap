@@ -54,7 +54,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     val mutable container = None
     val generator = generator
     method remaining = -1
-    method abort_track = Generator.add_break generator
+    method abort_track = Generator.add_track_mark generator
 
     method is_ready =
       super#is_ready && self#mutexify (fun () -> container <> None) ()
@@ -184,13 +184,13 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           let meta = Hashtbl.create (List.length m) in
           List.iter (fun (lbl, v) -> Hashtbl.replace meta lbl v) m;
           Generator.add_metadata generator meta;
-          if new_track_on_metadata then Generator.add_break generator;
+          if new_track_on_metadata then Generator.add_track_mark generator;
           last_metadata <- m)
       with exn ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
-        Frame.add_break frame pos;
+        Frame.add_track_mark frame pos;
         self#reconnect
 
     method wake_up act =

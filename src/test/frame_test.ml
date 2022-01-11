@@ -7,7 +7,7 @@ let () =
   let src =
     create { audio = None.format; video = None.format; midi = None.format }
   in
-  add_break src (Lazy.force size);
+  add_track_mark src (Lazy.force size);
   let m = Hashtbl.create 1 in
   Hashtbl.add m "foo" "bar";
   set_all_metadata src [(0, m)];
@@ -17,7 +17,7 @@ let () =
   let dst =
     create { audio = None.format; video = None.format; midi = None.format }
   in
-  add_break dst 1;
+  add_track_mark dst 1;
   get_chunk dst src;
   assert (get_all_metadata dst = [(1, m)]);
 
@@ -26,7 +26,7 @@ let () =
   let dst =
     create { audio = None.format; video = None.format; midi = None.format }
   in
-  add_break dst 1;
+  add_track_mark dst 1;
   let m' = Hashtbl.create 1 in
   Hashtbl.add m' "foo" "bar";
   set_all_metadata dst [(0, m')];
@@ -38,7 +38,7 @@ let () =
   let dst =
     create { audio = None.format; video = None.format; midi = None.format }
   in
-  add_break dst 1;
+  add_track_mark dst 1;
   let m' = Hashtbl.create 1 in
   Hashtbl.add m' "gni" "gno";
   set_all_metadata dst [(0, m')];

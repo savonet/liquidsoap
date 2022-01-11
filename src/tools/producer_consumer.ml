@@ -58,15 +58,15 @@ class producer ~check_self_sync ~consumers_val ~name ~kind g =
         consumers
 
     method private get_frame buf =
-      let b = Frame.breaks buf in
+      let b = Frame.track_marks buf in
       while Generator.length g < Lazy.force Frame.size && self#is_ready do
         self#child_tick
       done;
       needs_tick <- false;
       Generator.fill g buf;
-      if List.length b + 1 <> List.length (Frame.breaks buf) then (
+      if List.length b + 1 <> List.length (Frame.track_marks buf) then (
         let cur_pos = Frame.position buf in
-        Frame.set_breaks buf (b @ [cur_pos]))
+        Frame.set_track_marks buf (b @ [cur_pos]))
 
     method before_output =
       super#before_output;
@@ -77,7 +77,7 @@ class producer ~check_self_sync ~consumers_val ~name ~kind g =
       child_support#after_output
 
     method abort_track =
-      Generator.add_break g;
+      Generator.add_track_mark g;
       List.iter (fun c -> c#abort_track) consumers
   end
 

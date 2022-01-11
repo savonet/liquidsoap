@@ -149,7 +149,7 @@ class keyboard ~kind velocity =
         MIDI.clear_all m.(c);
         MIDI.merge m.(c) t
       done;
-      MFrame.add_break frame (MFrame.size ())
+      MFrame.add_track_mark frame (MFrame.size ())
   end
 
 let () =

@@ -35,7 +35,7 @@ let content = Frame.video
 let yuva420p b = Content.Video.get_data (content b)
 let size _ = vot (Lazy.force size)
 let next_sample_position t = vot ~round:`Up (Frame.position t)
-let add_break t i = add_break t (tov i)
+let add_track_mark t i = add_track_mark t (tov i)
 let is_partial t = is_partial t
 let position t = vot (position t)
 

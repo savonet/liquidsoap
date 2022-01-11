@@ -98,7 +98,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       (* We enforce that all contents end together, otherwise there will
        * be a lag between different content types in the next track. *)
       if not merge_tracks then
-        Generator.add_break ~sync:true buffer.Decoder.generator;
+        Generator.add_track_mark ~sync:true buffer.Decoder.generator;
     ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_playing)
   in
   let decode buffer =

@@ -161,7 +161,7 @@ class lilv_nosource ~kind plugin outputs params =
 
     method private get_frame buf =
       if must_fail then (
-        AFrame.add_break buf (AFrame.position buf);
+        AFrame.add_track_mark buf (AFrame.position buf);
         must_fail <- false)
       else (
         let offset = AFrame.position buf in
@@ -178,7 +178,7 @@ class lilv_nosource ~kind plugin outputs params =
             (Audio.Mono.sub b.(c) offset len)
         done;
         Plugin.Instance.run inst len;
-        AFrame.add_break buf position)
+        AFrame.add_track_mark buf position)
   end
 
 (** An LV2 plugin without audio output (e.g. to observe the stream). The input

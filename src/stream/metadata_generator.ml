@@ -24,27 +24,27 @@
 
 type t = {
   mutable metadata : (int * Frame.metadata) list;
-  mutable breaks : int list;
+  mutable track_marks : int list;
   mutable length : int;
 }
 
-let create () = { metadata = []; breaks = []; length = 0 }
+let create () = { metadata = []; track_marks = []; length = 0 }
 
 let clear g =
   g.metadata <- [];
-  g.breaks <- [];
+  g.track_marks <- [];
   g.length <- 0
 
 let advance g len =
   g.metadata <- List.map (fun (t, m) -> (t - len, m)) g.metadata;
   g.metadata <- List.filter (fun (t, _) -> t >= 0) g.metadata;
-  g.breaks <- List.map (fun t -> t - len) g.breaks;
-  g.breaks <- List.filter (fun t -> t >= 0) g.breaks;
+  g.track_marks <- List.map (fun t -> t - len) g.track_marks;
+  g.track_marks <- List.filter (fun t -> t >= 0) g.track_marks;
   g.length <- g.length - len;
   assert (g.length >= 0)
 
 let length g = g.length
-let remaining g = match g.breaks with a :: _ -> a | _ -> -1
+let remaining g = match g.track_marks with a :: _ -> a | _ -> -1
 let metadata g len = List.filter (fun (t, _) -> t < len) g.metadata
 
 let feed_from_frame g frame =
@@ -53,22 +53,22 @@ let feed_from_frame g frame =
   g.metadata <-
     g.metadata
     @ List.map (fun (t, m) -> (length + t, m)) (Frame.get_all_metadata frame);
-  g.breaks <-
-    g.breaks
+  g.track_marks <-
+    g.track_marks
     @ List.map
         (fun t -> length + t)
-        (* Filter out the last break, which only marks the end of frame, not a
+        (* Filter out the last track_mark, which only marks the end of frame, not a
          * track limit (doesn't mean is_partial). *)
-        (List.filter (fun x -> x < size) (Frame.breaks frame));
+        (List.filter (fun x -> x < size) (Frame.track_marks frame));
   let frame_length =
     let rec aux = function [t] -> t | _ :: tl -> aux tl | [] -> size in
-    aux (Frame.breaks frame)
+    aux (Frame.track_marks frame)
   in
   g.length <- g.length + frame_length
 
-let drop_initial_break g =
-  match g.breaks with
-    | 0 :: tl -> g.breaks <- tl
+let drop_initial_track_mark g =
+  match g.track_marks with
+    | 0 :: tl -> g.track_marks <- tl
     | [] -> () (* end of stream / underrun... *)
     | _ -> assert false
 
@@ -86,8 +86,8 @@ let fill g frame =
   advance g needed;
 
   (* Mark the end of this filling. If the frame is partial it must be because
-   * of a break in the generator, or because the generator is emptying.
-   * Conversely, each break in the generator must cause a partial frame, so
+   * of a track_mark in the generator, or because the generator is emptying.
+   * Conversely, each track_mark in the generator must cause a partial frame, so
    * don't remove any if it isn't partial. *)
-  Frame.add_break frame (offset + needed);
-  if Frame.is_partial frame then drop_initial_break g
+  Frame.add_track_mark frame (offset + needed);
+  if Frame.is_partial frame then drop_initial_track_mark g

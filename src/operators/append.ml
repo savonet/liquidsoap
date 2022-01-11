@@ -59,8 +59,8 @@ class append ~kind ~insert_missing ~merge source f =
                       if merge then (
                         let pos = Frame.position buf in
                         self#get_frame buf;
-                        Frame.set_breaks buf
-                          (Utils.remove_one (( = ) pos) (Frame.breaks buf))))
+                        Frame.set_track_marks buf
+                          (Utils.remove_one (( = ) pos) (Frame.track_marks buf))))
                     else (
                       self#log#important
                         "Track ends and append source is not ready: won't \
@@ -83,8 +83,8 @@ class append ~kind ~insert_missing ~merge source f =
                 if merge then (
                   let pos = Frame.position buf in
                   self#get_frame buf;
-                  Frame.set_breaks buf
-                    (Utils.remove_one (( = ) pos) (Frame.breaks buf))))
+                  Frame.set_track_marks buf
+                    (Utils.remove_one (( = ) pos) (Frame.track_marks buf))))
               else (
                 self#log#important
                   "Track ends and append source is not ready: won't append.";

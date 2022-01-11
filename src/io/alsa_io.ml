@@ -263,7 +263,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
               !r (Audio.length buf);
           r := !r + read pcm buf !r (samples_per_frame - !r)
         done;
-        AFrame.add_break frame (AFrame.size ())
+        AFrame.add_track_mark frame (AFrame.size ())
       with e ->
         begin
           match e with

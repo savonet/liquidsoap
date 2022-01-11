@@ -48,8 +48,8 @@ val position : t -> int
 (** Position (in video samples) of the next video sample to fill-in. *)
 val next_sample_position : t -> int
 
-(** Add a break at given video position. *)
-val add_break : t -> int -> unit
+(** Add a track_mark at given video position. *)
+val add_track_mark : t -> int -> unit
 
 (** [get_content source frame] has [source] fill [frame],
   * and returns the produced chunk of video content.

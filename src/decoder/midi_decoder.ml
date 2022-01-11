@@ -54,7 +54,7 @@ let decoder file =
         (fun () -> fd#read (Lazy.force Frame.midi_rate) m 0 buflen)
         ()
     in
-    MFrame.add_break buf r;
+    MFrame.add_track_mark buf r;
     0
   in
   { Decoder.fill; fseek = (fun _ -> 0); close }

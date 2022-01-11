@@ -207,8 +207,8 @@ module Metadata : sig
   val set_data : Contents.data -> (int * Frame_base.metadata) list -> unit
 end
 
-module Breaks : sig
-  include Content with type kind = [ `Breaks ] and type params = unit
+module TrackMarks : sig
+  include Content with type kind = [ `TrackMarks ] and type params = unit
 
   val format : format
   val lift_data : size:int -> int list -> Contents.data
@@ -219,7 +219,7 @@ end
 (** Meta content module for frame data. Should never be used for source content type! *)
 module Frame : sig
   type 'a frame_content = {
-    breaks : 'a;
+    track_marks : 'a;
     metadata : 'a;
     media : 'a Frame_base.fields;
   }
@@ -237,9 +237,9 @@ module Frame : sig
   val set_video : Contents.data -> Contents.data -> unit
   val get_midi : Contents.data -> Contents.data
   val set_midi : Contents.data -> Contents.data -> unit
-  val get_breaks : Contents.data -> int list
-  val add_break : Contents.data -> int -> unit
-  val set_breaks : Contents.data -> int list -> unit
+  val get_track_marks : Contents.data -> int list
+  val add_track_mark : Contents.data -> int -> unit
+  val set_track_marks : Contents.data -> int list -> unit
   val get_all_metadata : Contents.data -> (int * Frame_base.metadata) list
 
   val set_all_metadata :

@@ -58,7 +58,7 @@ class blank ~kind duration =
          Video.blank (VFrame.yuva420p ab) video_pos (Frame.video_of_main length)
        with Content.Invalid -> ());
 
-      Frame.add_break ab (position + length);
+      Frame.add_track_mark ab (position + length);
       if Frame.is_partial ab then remaining <- ticks
       else if remaining > 0 then remaining <- remaining - length
   end

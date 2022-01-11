@@ -309,9 +309,9 @@ let unescape_string =
   let rex = Pcre.regexp_or unescape_patterns in
   Pcre.substitute ~rex ~subst:unescape_char
 
-(** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
-let unbreak_md md =
-  let must_break = function
+(** Remove line track_marks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
+let untrack_mark_md md =
+  let must_track_mark = function
     | "" :: _ -> true
     | "```" :: _ -> true
     | line :: _ when line.[0] = '-' (* itemize *) -> true
@@ -321,7 +321,7 @@ let unbreak_md md =
     | [] -> ""
     | [line] -> line
     | "```" :: lines -> "```\n" ^ verb lines
-    | line :: lines when line = "" || must_break lines ->
+    | line :: lines when line = "" || must_track_mark lines ->
         line ^ "\n" ^ text lines
     | line :: lines -> line ^ " " ^ text lines
   and verb = function

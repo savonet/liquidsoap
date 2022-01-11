@@ -115,7 +115,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
                 | Some t -> string_of_float (Frame.seconds_of_main t));
             (cue_in, cue_out)
 
-    method private cue_in ~breaks ~length ?(in_pos = 0) ?out_pos buf =
+    method private cue_in ~track_marks ~length ?(in_pos = 0) ?out_pos buf =
       self#log#important "Cueing in...";
       on_cue_in ();
       let seek_pos = in_pos - length in
@@ -128,7 +128,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
               (Frame.seconds_of_main (seeked_pos + length))
               (Frame.seconds_of_main in_pos);
 
-          Frame.set_breaks buf breaks;
+          Frame.set_track_marks buf track_marks;
           let pos = Frame.position buf in
 
           self#child_tick;
@@ -151,20 +151,20 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
         | Some pos when pos < elapsed ->
             self#log#important
               "Initial seek reached %i ticks past cue-out point!" (elapsed - pos);
-            self#cue_out ~breaks buf
+            self#cue_out ~track_marks buf
         | Some pos -> `Cue_out (elapsed, pos)
 
-    method private cue_out ~breaks buf =
+    method private cue_out ~track_marks buf =
       self#log#important "Cueing out...";
       source#abort_track;
       self#child_tick;
-      Frame.set_breaks buf breaks;
-      Frame.add_break buf (Frame.position buf);
+      Frame.set_track_marks buf track_marks;
+      Frame.add_track_mark buf (Frame.position buf);
       on_cue_out ();
       `Idle
 
     method private get_frame buf =
-      let breaks = Frame.breaks buf in
+      let track_marks = Frame.track_marks buf in
       let pos = Frame.position buf in
       source#get buf;
       let new_pos = Frame.position buf in
@@ -184,10 +184,10 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
               self#log#debug "Cue out at %.03f s."
                 (Option.get out_pos |> Frame.seconds_of_main);
 
-            track_state <- self#cue_in ~breaks ~length ?in_pos ?out_pos buf
+            track_state <- self#cue_in ~track_marks ~length ?in_pos ?out_pos buf
         | false, `No_cue_out -> ()
         | false, `Cue_out (elapsed, cue_out) when cue_out < elapsed + length ->
-            track_state <- self#cue_out ~breaks buf
+            track_state <- self#cue_out ~track_marks buf
         | false, `Cue_out (elapsed, cue_out) ->
             track_state <- `Cue_out (elapsed + length, cue_out)
   end

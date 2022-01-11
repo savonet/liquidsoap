@@ -178,7 +178,7 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
           decoder.Decoder.decode buffer
         done
       with e ->
-        Generator.add_break ~sync:true generator;
+        Generator.add_track_mark ~sync:true generator;
 
         (* Closing the socket is slightly overkill but
          * we need to recreate the decoder anyway, which

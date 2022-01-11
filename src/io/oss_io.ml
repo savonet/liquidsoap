@@ -120,7 +120,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       (* TODO: recursive read ? *)
       assert (len = r);
       Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf;
-      AFrame.add_break frame (AFrame.size ())
+      AFrame.add_track_mark frame (AFrame.size ())
   end
 
 let () =

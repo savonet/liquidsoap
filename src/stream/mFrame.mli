@@ -8,11 +8,11 @@ val is_partial : t -> bool
 (** Number size of a MIDI frame. *)
 val size : unit -> int
 
-(** Position of the first break. *)
+(** Position of the first track_mark. *)
 val position : t -> int
 
-(** Add a break. *)
-val add_break : t -> int -> unit
+(** Add a track_mark. *)
+val add_track_mark : t -> int -> unit
 
 type metadata = (string, string) Hashtbl.t
 

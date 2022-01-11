@@ -86,8 +86,8 @@ class sequence ~kind ?(merge = false) sources =
             if merge && self#is_ready then (
               let pos = Frame.position buf in
               self#get_frame buf;
-              Frame.set_breaks buf
-                (Utils.remove_one (( = ) pos) (Frame.breaks buf))))))
+              Frame.set_track_marks buf
+                (Utils.remove_one (( = ) pos) (Frame.track_marks buf))))))
       else (
         match seq_sources with
           | a :: (_ :: _ as tl) ->
@@ -116,8 +116,8 @@ class merge_tracks ~kind source =
       if Frame.is_partial buf && source#is_ready then (
         self#log#info "End of track: merging.";
         self#get_frame buf;
-        Frame.set_breaks buf
-          (match Frame.breaks buf with
+        Frame.set_track_marks buf
+          (match Frame.track_marks buf with
             | b :: _ :: l -> b :: l
             | _ -> assert false))
   end

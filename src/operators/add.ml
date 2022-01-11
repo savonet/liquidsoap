@@ -62,7 +62,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
     method is_ready = List.exists (fun (_, s) -> s#is_ready) sources
     method seek n = match sources with [(_, s)] -> s#seek n | _ -> 0
 
-    (* We fill the buffer as much as possible, removing internal breaks.
+    (* We fill the buffer as much as possible, removing internal track_marks.
      * Every ready source is asked for as much data as possible, by asking
      * it to fill the intermediate [tmp] buffer. Then that data is added
      * to the main buffer [buf], possibly with some amplitude change.
@@ -96,7 +96,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
       in
       let weight = if power then sqrt weight else weight in
       (* Sum contributions. *)
-      let breaks = AFrame.breaks buf in
+      let track_marks = AFrame.track_marks buf in
       let offset = AFrame.position buf in
       let _, end_offset =
         List.fold_left
@@ -107,7 +107,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
               if rank = 0 then buf
               else (
                 Frame.clear tmp;
-                Frame.set_breaks tmp breaks;
+                Frame.set_track_marks tmp track_marks;
                 tmp)
             in
             s#get buffer;
@@ -157,9 +157,9 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
       in
       (* If the other sources have filled more than the first one, the end of
          track in buf gets overridden. *)
-      match Frame.breaks buf with
-        | pos :: breaks when pos < end_offset ->
-            Frame.set_breaks buf (end_offset :: breaks)
+      match Frame.track_marks buf with
+        | pos :: track_marks when pos < end_offset ->
+            Frame.set_track_marks buf (end_offset :: track_marks)
         | _ -> ()
   end
 

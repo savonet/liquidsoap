@@ -249,6 +249,6 @@ class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
       output_chunks frame
         (0
         :: List.sort compare
-             (List.map fst (Frame.get_all_metadata frame) @ Frame.breaks frame)
-        )
+             (List.map fst (Frame.get_all_metadata frame)
+             @ Frame.track_marks frame))
   end

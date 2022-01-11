@@ -46,7 +46,7 @@ class soundtouch ~kind source_val rate tempo pitch =
     method remaining = -1
 
     method abort_track =
-      Generator.add_break abg;
+      Generator.add_track_mark abg;
       source#abort_track
 
     method private write_frame =
@@ -73,7 +73,7 @@ class soundtouch ~kind source_val rate tempo pitch =
           (Content.Audio.lift_data tmp)
           0
           (Frame.main_of_audio available));
-      if AFrame.is_partial databuf then Generator.add_break abg;
+      if AFrame.is_partial databuf then Generator.add_track_mark abg;
 
       (* It's almost impossible to know where to add metadata,
        * b/c of tempo so we add then right here. *)

@@ -25,8 +25,8 @@ open Source
 
 type next_stop =
   [ `Metadata of Frame.metadata
-  | `Break_and_metadata of Frame.metadata
-  | `Break
+  | `TrackMark_and_metadata of Frame.metadata
+  | `TrackMark
   | `Sleep
   | `Nothing ]
 
@@ -126,11 +126,11 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         begin
           match to_replay with
           | -1, _ -> ()
-          | _, `Break_and_metadata m ->
+          | _, `TrackMark_and_metadata m ->
               Generator.add_metadata abg m;
-              Generator.add_break abg
+              Generator.add_track_mark abg
           | _, `Metadata m -> Generator.add_metadata abg m
-          | _, `Break -> Generator.add_break abg
+          | _, `TrackMark -> Generator.add_track_mark abg
           | _ -> ()
         end;
         if abg_max_len < buffered + len then
@@ -178,7 +178,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               let len = pos - ofs in
               let next =
                 if pos = slen && Frame.is_partial self#tmp then
-                  `Break_and_metadata m
+                  `TrackMark_and_metadata m
                 else `Metadata m
               in
               Queue.push { sbuf; next; ofs; len } to_write;
@@ -187,7 +187,9 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         in
         if ofs < slen then (
           let len = slen - ofs in
-          let next = if Frame.is_partial self#tmp then `Break else `Nothing in
+          let next =
+            if Frame.is_partial self#tmp then `TrackMark else `Nothing
+          in
           Queue.push { sbuf; next; ofs; len } to_write))
 
     method private on_stdin pusher =
@@ -235,15 +237,15 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
           match (should_restart, ret) with
             | false, _ -> false
             | _, `Sleep -> false
-            | _, `Break_and_metadata m ->
+            | _, `TrackMark_and_metadata m ->
                 Generator.add_metadata abg m;
-                Generator.add_break abg;
+                Generator.add_track_mark abg;
                 true
             | _, `Metadata m ->
                 Generator.add_metadata abg m;
                 true
-            | _, `Break ->
-                Generator.add_break abg;
+            | _, `TrackMark ->
+                Generator.add_track_mark abg;
                 true
             | _, `Nothing -> restart)
 

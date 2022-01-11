@@ -80,7 +80,7 @@ class resample ~kind ~ratio source_val =
       List.iter
         (fun (i, m) -> Generator.add_metadata ~pos:(convert i) generator m)
         (Frame.get_all_metadata frame);
-      if Frame.is_partial frame then Generator.add_break generator
+      if Frame.is_partial frame then Generator.add_track_mark generator
 
     method private get_frame frame =
       while

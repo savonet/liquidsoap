@@ -109,7 +109,7 @@ class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
         (Bytes.unsafe_to_string buffer)
         0
         (Audio.sub fbuf 0 samples_per_frame);
-      AFrame.add_break buf samples_per_frame
+      AFrame.add_track_mark buf samples_per_frame
 
     method reset = ()
   end

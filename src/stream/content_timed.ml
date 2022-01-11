@@ -116,17 +116,17 @@ module Metadata = struct
       (get_data d).Specs.data
 end
 
-module BreaksSpecs = struct
+module TrackMarksSpecs = struct
   include Specs
 
-  type kind = [ `Breaks ]
+  type kind = [ `TrackMarks ]
   type params = unit
   type data = (params, unit) content
 
-  let kind = `Breaks
-  let string_of_kind _ = "breaks"
-  let kind_of_string = function "breaks" -> Some `Breaks | _ -> None
-  let string_of_params () = "breaks"
+  let kind = `TrackMarks
+  let string_of_kind _ = "track_marks"
+  let kind_of_string = function "track_marks" -> Some `TrackMarks | _ -> None
+  let string_of_params () = "track_marks"
   let compatible _ _ = true
   let default_params _ = ()
   let parse_param _ _ = Some ()
@@ -135,8 +135,8 @@ module BreaksSpecs = struct
   let copy = copy ~copy:(fun () -> ())
 end
 
-module Breaks = struct
-  include Content_base.MkContent (BreaksSpecs)
+module TrackMarks = struct
+  include Content_base.MkContent (TrackMarksSpecs)
 
   let format = lift_params ()
 

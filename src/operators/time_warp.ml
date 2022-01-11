@@ -181,7 +181,7 @@ module AdaptativeBuffer = struct
   module MG = Metadata_generator
 
   (* The kind of value shared by a producer and a consumer. *)
-  (* TODO: also have breaks and metadata as in generators. *)
+  (* TODO: also have track_marks and metadata as in generators. *)
   type control = {
     lock : Mutex.t;
     rb : RB.t;
@@ -268,7 +268,7 @@ module AdaptativeBuffer = struct
             let buf = AFrame.pcm frame in
             let salen = scale alen in
             fill buf aofs alen salen;
-            Frame.add_break frame (ofs + len);
+            Frame.add_track_mark frame (ofs + len);
 
             (* self#log#debug "filled %d from %d (x %f)" len ofs scaling; *)
 
@@ -276,7 +276,7 @@ module AdaptativeBuffer = struct
             let md = MG.metadata c.mg (scale len) in
             List.iter (fun (t, m) -> Frame.set_metadata frame (unscale t) m) md;
             MG.advance c.mg (min (Frame.main_of_audio salen) (MG.length c.mg));
-            if Frame.is_partial frame then MG.drop_initial_break c.mg;
+            if Frame.is_partial frame then MG.drop_initial_track_mark c.mg;
 
             (* If there is no data left, we should buffer again. *)
             if RB.read_space c.rb = 0 then (

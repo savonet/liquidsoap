@@ -114,7 +114,7 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
       (* Prepare buffer for the second source
        * at the same position as final buffer. *)
       Frame.clear tmp;
-      Frame.set_breaks tmp [Frame.position buf];
+      Frame.set_track_marks tmp [Frame.position buf];
 
       (* Get content in respective buffers *)
       let c = VFrame.get_content buf source in
@@ -168,7 +168,7 @@ class frei0r_source ~kind ~name bgra instance params =
     method private get_frame frame =
       if must_fail then (
         must_fail <- false;
-        VFrame.add_break frame (VFrame.position frame))
+        VFrame.add_track_mark frame (VFrame.position frame))
       else (
         params ();
         let start = VFrame.position frame in
@@ -184,7 +184,7 @@ class frei0r_source ~kind ~name bgra instance params =
           Video.set rgb i img;
           t <- t +. dt
         done;
-        VFrame.add_break frame stop)
+        VFrame.add_track_mark frame stop)
   end
 
 (** Make a list of parameters. *)

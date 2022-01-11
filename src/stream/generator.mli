@@ -56,7 +56,7 @@ val length : t -> int
 val buffered_length : t -> int
 val remaining : t -> int
 val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
-val add_break : ?sync:bool -> ?pos:int -> t -> unit
+val add_track_mark : ?sync:bool -> ?pos:int -> t -> unit
 val remove : t -> int -> unit
 val clear : t -> unit
 val put_audio : ?pts:int64 -> t -> Content.data -> int -> int -> unit

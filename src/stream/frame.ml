@@ -124,12 +124,12 @@ let content_type frame =
 
 (** Content independent *)
 
-(* TODO: historically, breaks are ordered with most recent first. *)
-let breaks { content } = List.rev (Content.Frame.get_breaks content)
-let position b = match breaks b with [] -> 0 | a :: _ -> a
+(* TODO: historically, track_marks are ordered with most recent first. *)
+let track_marks { content } = List.rev (Content.Frame.get_track_marks content)
+let position b = match track_marks b with [] -> 0 | a :: _ -> a
 let is_partial b = position b < !!size
-let set_breaks { content } = Content.Frame.set_breaks content
-let add_break { content } = Content.Frame.add_break content
+let set_track_marks { content } = Content.Frame.set_track_marks content
+let add_track_mark { content } = Content.Frame.add_track_mark content
 let clear (b : t) = Content.clear b.content
 
 (* Same as clear but leaves the last metadata at position -1. *)
@@ -161,14 +161,14 @@ exception No_chunk
 exception Not_equal
 
 (** [get_chunk dst src] gets the (end of) next chunk from [src]
-  * (a chunk is a region of a frame between two breaks).
+  * (a chunk is a region of a frame between two track_marks).
   * Metadata relevant to the copied chunk is copied as well,
   * and content layout is changed if needed. *)
 let get_chunk ab from =
   assert (is_partial ab);
   let p = position ab in
   let copy_chunk i =
-    add_break ab i;
+    add_track_mark ab i;
     blit from p ab p (i - p);
 
     (* If the last metadata before [p] differ in [from] and [ab],
@@ -222,15 +222,15 @@ let get_chunk ab from =
     match f with
       | [] -> raise No_chunk
       | i :: tl ->
-          (* Breaks are between ticks, they do range from 0 to size. *)
+          (* TrackMarks are between ticks, they do range from 0 to size. *)
           assert (0 <= i && i <= !!size);
-          if i = 0 && breaks ab = [] then
+          if i = 0 && track_marks ab = [] then
             (* The only empty track that we copy,
              * trying to copy empty tracks in the middle could be useful
-             * for packets like those forged by add, with a fake first break,
+             * for packets like those forged by add, with a fake first track_mark,
              * but isn't needed (yet) and is painful to implement. *)
             copy_chunk 0
           else if foffset <= p && i > p then copy_chunk i
           else aux i tl
   in
-  aux 0 (List.rev (breaks from))
+  aux 0 (List.rev (track_marks from))

@@ -104,7 +104,7 @@ let create_decoder ?(merge_tracks = false) source input =
       (* We enforce that all contents end together, otherwise there will
        * be a lag between different content types in the next track. *)
       if not merge_tracks then
-        Generator.add_break ~sync:true buffer.Decoder.generator);
+        Generator.add_track_mark ~sync:true buffer.Decoder.generator);
     let add_meta f t =
       (* Initial metadata in files is handled separately. *)
       if source = `Stream || (merge_tracks && not !first_meta) then (

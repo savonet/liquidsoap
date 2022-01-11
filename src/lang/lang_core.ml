@@ -334,7 +334,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
               (* Do not walk inside references, otherwise the list of "contained"
                  sources may change from one time to the next, which makes it
                  impossible to avoid ill-balanced activations. Not walking inside
-                 references does not break things more than they are already:
+                 references does not track_mark things more than they are already:
                  detecting sharing in presence of references to sources cannot be
                  done statically anyway. We display a fat log message to warn
                  about this risky situation. *)

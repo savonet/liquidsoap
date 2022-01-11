@@ -178,7 +178,7 @@ class ladspa_nosource ~kind plugin descr outputs params =
 
     method private get_frame buf =
       if must_fail then (
-        AFrame.add_break buf (AFrame.position buf);
+        AFrame.add_track_mark buf (AFrame.position buf);
         must_fail <- false)
       else (
         let offset = AFrame.position buf in
@@ -193,7 +193,7 @@ class ladspa_nosource ~kind plugin descr outputs params =
             (Audio.Mono.sub b.(c) offset len)
         done;
         Descriptor.run inst len;
-        AFrame.add_break buf position)
+        AFrame.add_track_mark buf position)
   end
 
 (* List the indexes of control ports. *)

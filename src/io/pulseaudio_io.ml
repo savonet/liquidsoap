@@ -176,7 +176,7 @@ class input ~kind p =
             Bigarray.Array1.unsafe_get ibuf ((i * self#audio_channels) + c)
         done
       done;
-      AFrame.add_break frame (AFrame.size ())
+      AFrame.add_track_mark frame (AFrame.size ())
   end
 
 let () =

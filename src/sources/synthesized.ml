@@ -43,7 +43,7 @@ class virtual source ?name ~seek kind duration =
 
     method private get_frame frame =
       if must_fail then (
-        Frame.add_break frame (Frame.position frame);
+        Frame.add_track_mark frame (Frame.position frame);
         must_fail <- false;
         if track_size <> None then remaining <- Some 0)
       else (
@@ -57,5 +57,5 @@ class virtual source ?name ~seek kind duration =
                 len
         in
         self#synthesize frame off len;
-        Frame.add_break frame (off + len))
+        Frame.add_track_mark frame (off + len))
   end

@@ -642,7 +642,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
        *   returns a failling source.
        *
        * So we add special cases where, instead of calling #get_frame, we
-       * call silent_end_track to properly end a track by inserting a break.
+       * call silent_end_track to properly end a track by inserting a track_mark.
        *
        * This makes the whole protocol a bit sloppy as it weakens constraints
        * tying #is_ready and #get, preventing the detection of "bad" calls
@@ -650,18 +650,18 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
        *
        * This fix makes it really important to keep #is_ready = true during a
        * track, otherwise the track will be ended without the source noticing! *)
-      let silent_end_track () = Frame.add_break buf (Frame.position buf) in
+      let silent_end_track () = Frame.add_track_mark buf (Frame.position buf) in
       if not caching then
         if not self#is_ready then silent_end_track ()
         else (
-          let b = Frame.breaks buf in
+          let b = Frame.track_marks buf in
           self#instrumented_get_frame buf;
-          if List.length b + 1 > List.length (Frame.breaks buf) then (
-            self#log#severe "#get_frame added too many breaks!";
+          if List.length b + 1 > List.length (Frame.track_marks buf) then (
+            self#log#severe "#get_frame added too many track_marks!";
             assert false);
-          if List.length b + 1 < List.length (Frame.breaks buf) then (
+          if List.length b + 1 < List.length (Frame.track_marks buf) then (
             self#log#severe
-              "#get_frame returned a buffer without enough breaks!";
+              "#get_frame returned a buffer without enough track_marks!";
             assert false))
       else (
         let memo = self#memo in
@@ -670,15 +670,15 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
           if not self#is_ready then silent_end_track ()
           else (
             (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
-            let b = Frame.breaks memo in
+            let b = Frame.track_marks memo in
             let p = Frame.position memo in
             self#instrumented_get_frame memo;
-            if List.length b + 1 <> List.length (Frame.breaks memo) then (
-              self#log#severe "#get_frame didn't add exactly one break!";
+            if List.length b + 1 <> List.length (Frame.track_marks memo) then (
+              self#log#severe "#get_frame didn't add exactly one track_mark!";
               assert false)
             else if Frame.is_partial buf then
               if p < Frame.position memo then self#get buf
-              else Frame.add_break buf (Frame.position buf)))
+              else Frame.add_track_mark buf (Frame.position buf)))
 
     (* That's the way the source produces audio data.
      * It cannot be called directly, but [#get] should be used instead, for
