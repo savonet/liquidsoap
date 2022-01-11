@@ -134,7 +134,9 @@ let add_track_mark { content } = Content.Frame.add_track_mark content
 let clear (b : t) = b.content <- Content.sub b.content 0 0
 
 (* Same as clear but leaves the last metadata at position -1. *)
-let advance b = b.pts <- Int64.succ b.pts
+let advance b =
+  clear b;
+  b.pts <- Int64.succ b.pts
 
 (** Presentation time stuff. *)
 
