@@ -47,6 +47,7 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           rm -rf doc/content/build.md doc/content/install.md
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build tarball
@@ -89,6 +90,7 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           rm -rf doc/content/build.md doc/content/install.md
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           git fetch origin $GITHUB_SHA
           git checkout $GITHUB_SHA
       - name: Build
@@ -129,6 +131,7 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           rm -rf doc/content/build.md doc/content/install.md
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build
@@ -195,6 +198,7 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           rm -rf doc/content/build.md doc/content/install.md
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build
