@@ -454,7 +454,17 @@ let conf_log =
   Dtools.Conf.bool ~p:(conf_srt#plug "log") ~d:true
     "Route srt logs through liquidsoap's logs"
 
-let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") ~d:5 "Level"
+let conf_verbosity =
+  Dtools.Conf.string
+    ~p:(conf_log#plug "verbosity")
+    "Verbosity" ~d:"warning"
+    ~comments:
+      [
+        "Set SRT log level, one of: \"critical\", \"error\", ";
+        "\"warning\", \"notice\" or \"debug\"";
+      ]
+
+let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") ~d:4 "Level"
 let conf_poll = Dtools.Conf.void ~p:(conf_srt#plug "poll") "Poll configuration"
 
 let conf_timeout =
@@ -552,7 +562,20 @@ end
 let () =
   Srt.startup ();
   Lifecycle.before_start (fun () ->
-      if conf_log#get then Srt.Log.set_handler log_handler);
+      if conf_log#get then (
+        let level =
+          match conf_verbosity#get with
+            | "critical" -> `Critical
+            | "error" -> `Error
+            | "warning" -> `Warning
+            | "notice" -> `Notice
+            | "debug" -> `Debug
+            | _ ->
+                log#severe "Invalid value for \"srt.log.verbosity\"!";
+                `Error
+        in
+        Srt.Log.setloglevel level;
+        Srt.Log.set_handler log_handler));
   Lifecycle.after_scheduler_shutdown (fun () ->
       Srt.Poll.release Poll.t.Poll.p;
       Srt.cleanup ())
