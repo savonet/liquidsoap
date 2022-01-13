@@ -21,14 +21,20 @@ WORKDIR /tmp/liquidsoap-full
 
 RUN rm -rf website/savonet.github.io
 
-RUN git checkout master && git reset --hard HEAD && git pull
+RUN git remote set-url origin https://github.com/savonet/liquidsoap-full.git && \
+    git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git && \
+    make public && \
+    git reset --hard && \
+    git checkout master && \
+    git reset --hard HEAD && \
+    git pull
 
 # Remove after next base image rebuild
 RUN rm -rf ocaml-lastfm/src/lastfm_constants.ml
 
 RUN eval $(opam config env) && make clean
 
-RUN make update
+RUN make public && make update
 
 RUN cp PACKAGES.default PACKAGES
 
