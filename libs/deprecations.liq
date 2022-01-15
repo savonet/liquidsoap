@@ -523,3 +523,11 @@ def request.dynamic.list(%argsof(request.dynamic), f) =
 
   s
 end
+
+# Deprecated: use `process.run` instead
+# @flag deprecated
+def run_process(%argsof(process.run), p) =
+  deprecated("run_process", "process.run")
+  x = process.run(%argsof(process.run), p)
+  (x.stdout, x.stderr, ("#{x.status}", x.status.description))
+end
