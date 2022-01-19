@@ -31,6 +31,7 @@ def f() =
   t(list.assoc.mem(5,[(4,"bla"),(5,"foo"),(6,"gni")]), true)
   t(list.map(fun (x) -> 2*x,[1,2,3]), [2,4,6])
   t(list.map(fun (x) -> 2.*x,[1.,2.,3.]), [2.,4.,6.])
+  t(list.map.right(fun (x) -> 2*x,[1,2,3]), [2,4,6])
   t(list.mapi(fun (i,x) -> i+x,[1,1,2]), [1,2,4])
   t(list.filter(fun (x) -> x mod 2 == 0,[1,2,3,4,5]), [2,4])
   t(list.remove(1,[3,1,2,1,1]), [3,2,1,1])
@@ -98,6 +99,9 @@ def f() =
     t(err.kind, "not_found")
     t(err.message, "List should have at least 23 elemments")    
   end
+
+  # Test huge lists, see #2162.
+  # l = list.init(100000, fun(i) -> i)
   
   if !success then test.pass() else test.fail() end
 end

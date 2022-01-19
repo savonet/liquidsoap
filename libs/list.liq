@@ -104,6 +104,13 @@ def list.map(f, l)
   aux(l)
 end
 
+# Map a function on every element of a list, starting from the right. This
+# function is tail-recursive.
+# @category List
+def list.map.right(f, l)
+  list.ind(l, [], fun(x, _, l) -> list.cons(f(x), l))
+end
+
 # Map a function on every element of a list, along with its index.
 # @category List
 def list.mapi(f, l)
