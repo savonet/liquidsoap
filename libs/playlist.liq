@@ -53,7 +53,7 @@ def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
             "annotate:#{s}:#{file}"
           end
         end
-        list.map(file_request, files)
+        list.map.right(file_request, files)
       else
         log.important(label=id, "Couldn't read playlist: request resolution failed.")
         []
@@ -284,7 +284,7 @@ def replaces playlist(
     playlist_uri = path.home.unrelate(!playlist_uri)
     log.info(label=id, "Reloading playlist.")
     files = playlist.files(id=id, mime_type=mime_type, timeout=timeout, playlist_uri)
-    list.map(fun(file) -> prefix^file, files)
+    list.map.right(fun(file) -> prefix^file, files)
   end
 
   # Try to reload playlist when the playlist is looped and has failed.
