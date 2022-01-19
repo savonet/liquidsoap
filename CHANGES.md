@@ -1,3 +1,10 @@
+2.0.3 (unreleased)
+=====
+
+Fixed:
+* Make sure metadata are replayed when switching to a source for the
+  first time in switches/fallback (#2138)
+
 2.0.2 (28-12-2021)
 =====
 

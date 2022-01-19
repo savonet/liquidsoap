@@ -156,12 +156,21 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
               match selected with
                 | None ->
                     self#log#important "Switch to %s." c.source#id;
-
-                    (* The source is already ready, this call is only there for
-                     * allowing an uniform treatment of switches, triggering
-                     * a #leave call. *)
-                    c.source#get_ready activation;
-                    selected <- Some (c, c.source)
+                    let new_source =
+                      (* Force insertion of old metadata if relevant.
+                       * It can't be done in a static way: we need to start
+                       * pulling data to see if new metadata comes out, in case
+                       * the source was shared and kept streaming from somewhere
+                       * else (this is thanks to Frame.get_chunk).
+                       * A quicker hack might have been doable if there wasn't a
+                       * transition in between. *)
+                      match c.source#last_metadata with
+                        | Some m when replay_meta ->
+                            new Insert_metadata.replay ~kind m c.source
+                        | _ -> c.source
+                    in
+                    new_source#get_ready activation;
+                    selected <- Some (c, new_source)
                 | Some (old_c, old_s) when old_c != c ->
                     self#log#important "Switch to %s with%s transition."
                       c.source#id
