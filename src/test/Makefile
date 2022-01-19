@@ -23,7 +23,7 @@ run_stream_decoder_test: stream_decoder_test test.mp3
 json:
 	git clone --depth 1 https://github.com/nst/JSONTestSuite json
 	cd json && mv test_parsing/*.json .
-	cd json && find . -type d -d 1 | grep -v '^\.$$' | xargs rm -rf
+	cd json && find . -maxdepth 1 -type d | grep -v '^\.$$' | xargs rm -rf
 
 json5:
 	git clone --depth 1 https://github.com/json5/json5-tests.git json5
