@@ -89,7 +89,7 @@ def f() =
   # There used to be a bug where [x] would loose all its methods.
   x = 1
   let x.foo = "bla"
-  list.add(x, [(2).{foo = "gni"}])
+  list.add(x, [2.{foo = "gni"}])
 
   try
     ignore(list.insert(23, 2, [1, 2, 3]))
