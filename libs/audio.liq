@@ -172,7 +172,7 @@ end
 # @param s Source whose bass should be boosted
 def bass_boost(~frequency=getter(200.), ~gain=getter(10.), s)
   bass = limit(pre_gain=gain, filter.iir.eq.low(frequency=frequency, s))
-  add(normalize=false, [s, bass])
+  add([s, bass])
 end
 
 # Amplify source tracks according to replaygain metadata. This operator does not
