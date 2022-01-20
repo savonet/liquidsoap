@@ -113,6 +113,13 @@ def list.map(f, l)
   aux(l)
 end
 
+# Map a function on every element of a list, starting from the right. This
+# function is tail-recursive.
+# @category List
+def list.map.right(f, l)
+  list.ind(l, [], fun(x, _, l) -> list.cons(f(x), l))
+end
+
 # Map a function on every element of a list, along with its index.
 # @category List
 def list.mapi(f, l)
@@ -141,6 +148,16 @@ def list.fold(f, x, l)
     list.case(l, x, fun (e, l) -> aux(f(x, e), l))
   end
   aux(x, l)
+end
+
+# Fold a function on every element of a list. Similar to `list.fold` but
+# iterates from the right of the list. It is slightly more efficient than
+# `list.fold`.
+# @category List
+# @param f Function `f` for which `f(x,e)` which will be called on every element `e` with the current value of `x`, returning the new value of `x`.
+# @param x Initial value x1, to be updated by successive calls of `f(x,e)`.
+def list.fold.right(f, x, l)
+  list.ind(l, x, fun (e, _, r) -> f(e, r))
 end
 
 # Fold a function on every element of a list. Similar to `list.fold` but
