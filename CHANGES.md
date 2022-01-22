@@ -1,6 +1,9 @@
 2.0.3 (unreleased)
 =====
 
+New:
+* Added support for memory debugging using `memtrace`
+
 Fixed:
 * Make sure metadata are replayed when switching to a source for the
   first time in switches/fallback (#2138)
