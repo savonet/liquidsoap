@@ -1044,8 +1044,8 @@ cat <<EOMSG
    - SDL               : $w_TSDL
 
  * Additional libraries
-   - URI resolver      : $w_CURL
-   - FFmpeg filters:   : $w_FFMPEG
+   - http requests     : $w_CURL
+   - FFmpeg filters    : $w_FFMPEG
    - FFmpeg devices    : $w_FFMPEG
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
@@ -1107,49 +1107,51 @@ fi
 cat >| liquidsoap.config <<EOCFG
 opam-version: "2.0"
 variables {
-  vorbis-enabled: $b_VORBIS
-  theora-enabled: $b_THEORA
-  speex-enabled: $b_SPEEX
-  flac-enabled: $b_FLAC
-  ogg_flac-enabled: $b_FLAC_OGG
-  mad-enabled: $b_MAD
-  faad-enabled: $b_FAAD
-  ffmpeg-enabled: $b_FFMPEG
-  xmlplaylist-enabled: $b_XMLPLAYLIST
-  lastfm-enabled: $b_LASTFM
-  lame-enabled: $b_LAME
-  shine-enabled: $b_SHINE
-  fdkaac-enabled: $b_FDKAAC
-  opus-enabled: $b_OPUS
-  taglib-enabled: $b_TAGLIB
-  camomile-enabled: $b_CAMOMILE
-  cry-enabled: $b_CRY
-  ao-enabled: $b_AO
-  ogg-enabled: $b_OGG
   alsa-enabled: $b_ALSA
-  portaudio-enabled: $b_PORTAUDIO
-  pulseaudio-enabled: $b_PULSEAUDIO
+  ao-enabled: $b_AO
   bjack-enabled: $b_BJACK
-  gstreamer-enabled: $b_GSTREAMER
-  samplerate-enabled: $b_SAMPLERATE
-  soundtouch-enabled: $b_SOUNDTOUCH
-  ladspa-enabled: $b_LADSPA
-  frei0r-enabled: $b_FREI0R
   camlimages-enabled: $b_CAMLIMAGES
+  camomile-enabled: $b_CAMOMILE
+  curl-enabled: $b_CURL
+  cry-enabled: $b_CRY
   dssi-enabled: $b_DSSI
+  faad-enabled: $b_FAAD
+  fdkaac-enabled: $b_FDKAAC
+  ffmpeg-enabled: $b_FFMPEG
+  flac-enabled: $b_FLAC
+  frei0r-enabled: $b_FREI0R
+  gd-enabled: $b_GD
   graphics-enabled: $b_GRAPHICS
+  gstreamer-enabled: $b_GSTREAMER
+  inotify-enabled: $b_INOTIFY
+  ladspa-enabled: $b_LADSPA
+  lame-enabled: $b_LAME
+  lastfm-enabled: $b_LASTFM
+  lo-enabled: $b_LO
+  mad-enabled: $b_MAD
+  magic-enabled: $b_MAGIC
+  ogg-enabled: $b_OGG
+  ogg_flac-enabled: $b_FLAC_OGG
+  opus-enabled: $b_OPUS
+  portaudio-enabled: $b_PORTAUDIO
+  posix-time2-enabled: $b_POSIX_TIME2
+  prometheus-enabled: $b_PROMETHEUS_APP
+  pulseaudio-enabled: $b_PULSEAUDIO
+  samplerate-enabled: $b_SAMPLERATE
   sdl-enabled: $b_TSDL
   sdl-image-enabled: $b_TSDL_IMAGE
   sdl-ttf-enabled: $b_TSDL_TTF
-  posix-time2-enabled: $b_POSIX_TIME2
-  gd-enabled: $b_GD
-  inotify-enabled: $b_INOTIFY
-  lo-enabled: $b_LO
-  magic-enabled: $b_MAGIC
-  ssl-enabled: $b_SSL
   secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
+  shine-enabled: $b_SHINE
+  soundtouch-enabled: $b_SOUNDTOUCH
+  speex-enabled: $b_SPEEX
   srt-enabled: $b_SRT
+  ssl-enabled: $b_SSL
+  taglib-enabled: $b_TAGLIB
+  theora-enabled: $b_THEORA
+  vorbis-enabled: $b_VORBIS
   winscv-enabled: $b_WINSVC
-  prometheus-enabled: $b_PROMETHEUS_APP
+  xmlplaylist-enabled: $b_XMLPLAYLIST
+  yojson-enabled: $b_YOJSON
 }
 EOCFG
