@@ -185,6 +185,7 @@ tools = tools/extralib.ml tools/lifecycle.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	configure.ml tools/console.ml tools/process_handler.ml \
 	tools/http.ml \
+        $(if $(W_MEMTRACE),tools/liqmemtrace.ml) \
 	$(if $(W_CURL),tools/liqcurl.ml) \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \

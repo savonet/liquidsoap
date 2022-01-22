@@ -393,6 +393,12 @@ AC_SUBST(MENHIR)
 AC_CHECK_OCAML_BINDING([curl])
 
 #
+# Memtrace
+#
+
+AC_CHECK_OCAML_BINDING([memtrace])
+
+#
 # Dtools
 #
 
@@ -1066,6 +1072,7 @@ cat <<EOMSG
    - lastfm            : $w_LASTFM
    - lo                : $w_LO
    - magic             : $w_MAGIC
+   - memtrace          : $w_MEMTRACE
    - SecureTransport   : $w_OSX_SECURE_TRANSPORT
    - ssl               : $w_SSL
    - posix-time2       : $w_POSIX_TIME2
@@ -1145,6 +1152,7 @@ variables {
   lo-enabled: $b_LO
   mad-enabled: $b_MAD
   magic-enabled: $b_MAGIC
+  memtrace-enabled: $b_MEMTRACE
   ogg-enabled: $b_OGG
   ogg_flac-enabled: $b_FLAC_OGG
   opus-enabled: $b_OPUS
