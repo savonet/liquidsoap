@@ -51,6 +51,7 @@ depopts: [
   "lo"
   "mad"
   "magic"
+  "memtrace"
   "ocurl"
   "ogg"
   "opus"
