@@ -460,6 +460,7 @@ let final_cleanup () =
   log#important "Cleaning downloaded files...";
   Request.clean ();
   log#important "Freeing memory...";
+  Gc.full_major ();
   Gc.full_major ()
 
 let sync_cleanup () =
