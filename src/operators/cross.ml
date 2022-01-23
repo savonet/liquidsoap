@@ -262,19 +262,13 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
 
       (* Analyze them *)
       let pcm = AFrame.pcm buf_frame in
-      for i = start to stop - 1 do
-        let squares =
-          Array.fold_left
-            (fun squares track ->
-              let x = track.{i} in
-              squares +. (x *. x))
-            0. pcm
-        in
-        rms_before <- rms_before -. mem_before.(mem_i) +. squares;
-        mem_before.(mem_i) <- squares;
-        mem_i <- (mem_i + 1) mod rms_width;
-        rmsi_before <- min rms_width (rmsi_before + 1)
-      done;
+      let len = stop - start in
+      let pcm = Audio.sub pcm start len in
+      let squares = Audio.squares pcm in
+      rms_before <- rms_before -. mem_before.(mem_i) +. squares;
+      mem_before.(mem_i) <- squares;
+      mem_i <- (mem_i + len) mod rms_width;
+      rmsi_before <- min rms_width (rmsi_before + len);
 
       (* Should we buffer more or are we done ? *)
       if AFrame.is_partial buf_frame then (
@@ -299,17 +293,11 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
         let after_len = Generator.length gen_after in
         if after_len <= rms_width then (
           let pcm = AFrame.pcm buf_frame in
-          for i = start to stop - 1 do
-            let squares =
-              Array.fold_left
-                (fun squares track ->
-                  let x = track.{i} in
-                  squares +. (x *. x))
-                0. pcm
-            in
-            rms_after <- rms_after +. squares;
-            rmsi_after <- rmsi_after + 1
-          done);
+          let len = stop - start in
+          let pcm = Audio.sub pcm start len in
+          let squares = Audio.squares pcm in
+          rms_after <- rms_after +. squares;
+          rmsi_after <- rmsi_after + len);
         self#save_last_metadata `After buf_frame;
         self#update_cross_length buf_frame start;
         if AFrame.is_partial buf_frame && not source#is_ready then
