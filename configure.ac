@@ -1160,6 +1160,5 @@ variables {
   vorbis-enabled: $b_VORBIS
   winscv-enabled: $b_WINSVC
   xmlplaylist-enabled: $b_XMLPLAYLIST
-  yojson-enabled: $b_YOJSON
 }
 EOCFG
