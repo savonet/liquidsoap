@@ -145,7 +145,7 @@ let file_type filename =
   Tutils.finalize
     ~k:(fun () -> Mad.close fd)
     (fun () ->
-      ignore (Mad.decode_frame_float fd);
+      ignore (Mad.decode_frame_float_ba fd);
       let f = Mad.get_frame_format fd in
       let layer =
         match f.Mad.layer with
