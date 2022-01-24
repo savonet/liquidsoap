@@ -579,7 +579,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       else static_activations <- remove [] static_activations;
       self#update_caching_mode;
       if static_activations = [] && dynamic_activations = [] then (
-        source_log#debug "Source %s gets down." id;
+        source_log#info "Source %s gets down." id;
         self#mutexify
           (fun () ->
             List.iter (fun fn -> try fn () with _ -> ()) on_shutdown;
