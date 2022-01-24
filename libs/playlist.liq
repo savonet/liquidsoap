@@ -353,7 +353,7 @@ def replaces playlist(
   elsif reload_mode == "watch" then
     watcher =
       if file.exists(!playlist_uri) then
-         ref(null(file.watch(!playlist_uri, s.reload)))
+         ref(file.watch(!playlist_uri, s.reload))
       else
          ref(null())
       end
