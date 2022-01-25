@@ -166,16 +166,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                        * transition in between. *)
                       match c.source#last_metadata with
                         | Some m when replay_meta ->
-                            let s =
-                              new Insert_metadata.replay ~kind m c.source
-                            in
-                            let s =
-                              new Max_duration.max_duration
-                                ~kind ~override_meta ~duration:transition_length
-                                s
-                            in
-                            new Sequence.sequence
-                              ~kind ~merge:true [s; c.source]
+                            new Insert_metadata.replay ~kind m c.source
                         | _ -> c.source
                     in
                     new_source#get_ready activation;
