@@ -23,7 +23,7 @@
 open Mm
 open Source
 
-class effect ~name ~kind effect (source : source) =
+class effect ~name ~kind (source : source) effect =
   object
     inherit operator ~name kind [source]
     method stype = source#stype
@@ -41,7 +41,7 @@ class effect ~name ~kind effect (source : source) =
         | _ -> ()
   end
 
-let kind = Lang.any
+let kind = Kind.of_kind Lang.any
 let return_t = Lang.kind_type_of_kind_format Lang.any
 
 let () =
@@ -52,8 +52,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      let kind = Kind.of_kind kind in
-      new effect ~name ~kind Video.Image.Effect.greyscale src)
+      new effect ~name ~kind src Video.Image.Effect.greyscale)
 
 let () =
   let name = "video.sepia" in
@@ -63,8 +62,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      let kind = Kind.of_kind kind in
-      new effect ~name ~kind Video.Image.Effect.sepia src)
+      new effect ~name ~kind src Video.Image.Effect.sepia)
 
 let () =
   let name = "video.invert" in
@@ -74,8 +72,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      let kind = Kind.of_kind kind in
-      new effect ~name ~kind Video.Image.Effect.invert src)
+      new effect ~name ~kind src Video.Image.Effect.invert)
 
 let () =
   let name = "video.opacity" in
@@ -91,11 +88,8 @@ let () =
     (fun p ->
       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
-      let kind = Kind.of_kind kind in
-      new effect
-        ~name ~kind
-        (fun buf -> Video.Image.Effect.Alpha.scale buf (a ()))
-        src)
+      new effect ~name ~kind src (fun buf ->
+          Video.Image.Effect.Alpha.scale buf (a ())))
 
 let () =
   let name = "video.fill" in
@@ -115,13 +109,71 @@ let () =
       let color () =
         Image.Pixel.yuv_of_rgb (Image.RGB8.Color.of_int (color ()))
       in
-      let kind = Kind.of_kind kind in
-      new effect
-        ~name ~kind
-        (fun buf ->
+      new effect ~name ~kind src (fun buf ->
           Image.YUV420.fill buf (color ());
-          Image.YUV420.fill_alpha buf 0xff)
-        src)
+          Image.YUV420.fill_alpha buf 0xff))
+
+let () =
+  let name = "video.persistence" in
+  Lang.add_operator name
+    [
+      ( "duration",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 1.),
+        Some "Persistence duration in seconds." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Make images of the video persistent."
+    (fun p ->
+      let duration = List.assoc "duration" p |> Lang.to_float_getter in
+      let src = List.assoc "" p |> Lang.to_source in
+      let fps = Lazy.force Frame.video_rate |> float_of_int in
+      let prev = ref (Image.YUV420.create 0 0) in
+      new effect ~name ~kind src (fun buf ->
+          let duration = duration () in
+          if duration > 0. then (
+            let alpha = 1. -. (1. /. (duration *. fps)) in
+            let alpha = int_of_float (255. *. alpha) in
+            Image.YUV420.fill_alpha !prev alpha;
+            Image.YUV420.add !prev buf;
+            prev := Image.YUV420.copy buf)))
+
+let () =
+  let name = "video.rectangle" in
+  Lang.add_operator name
+    [
+      ( "x",
+        Lang.getter_t Lang.int_t,
+        Some (Lang.int 0),
+        Some "Horizontal offset." );
+      ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "Vertical offset.");
+      ("width", Lang.getter_t Lang.int_t, None, Some "Width.");
+      ("height", Lang.getter_t Lang.int_t, None, Some "Height.");
+      ( "color",
+        Lang.getter_t Lang.int_t,
+        Some (Lang.int 0),
+        Some "Color to fill the image with (0xAARRGGBB)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Draw a rectangle."
+    (fun p ->
+      let x = List.assoc "x" p |> Lang.to_int_getter in
+      let y = List.assoc "y" p |> Lang.to_int_getter in
+      let width = List.assoc "width" p |> Lang.to_int_getter in
+      let height = List.assoc "height" p |> Lang.to_int_getter in
+      let color = List.assoc "color" p |> Lang.to_int_getter in
+      let src = List.assoc "" p |> Lang.to_source in
+      new effect ~name ~kind src (fun buf ->
+          let x = x () in
+          let y = y () in
+          let width = width () in
+          let height = height () in
+          let c =
+            color () |> Image.RGB8.Color.of_int |> Image.Pixel.yuv_of_rgb
+          in
+          let r = Image.YUV420.create width height in
+          Image.YUV420.fill r c;
+          Image.YUV420.add r ~x ~y buf))
 
 (*
 let () =
@@ -239,10 +291,7 @@ let () =
       let height = Lang.to_valued_option Lang.to_int_getter (f "height") in
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
-      let kind = Kind.of_kind kind in
-      new effect
-        ~name ~kind
-        (fun buf ->
+      new effect ~name ~kind src (fun buf ->
           let owidth = Video.Image.width buf in
           let oheight = Video.Image.height buf in
           let width = match width with None -> owidth | Some w -> w () in
@@ -261,8 +310,7 @@ let () =
           Video.Image.scale buf dst;
           Video.Image.blank buf;
           Video.Image.fill_alpha buf 0;
-          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf)
-        src)
+          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf))
 
 let () =
   let name = "video.opacity.box" in
@@ -285,13 +333,9 @@ let () =
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
       let alpha = Lang.to_float_getter (f "alpha") in
-      let kind = Kind.of_kind kind in
-      new effect
-        ~name ~kind
-        (fun buf ->
+      new effect ~name ~kind src (fun buf ->
           Image.YUV420.box_alpha buf (ox ()) (oy ()) (width ()) (height ())
-            (alpha ()))
-        src)
+            (alpha ())))
 
 let () =
   let name = "video.scale" in
@@ -324,10 +368,7 @@ let () =
           Lang.to_int_getter (f "x"),
           Lang.to_int_getter (f "y") )
       in
-      let kind = Kind.of_kind kind in
-      new effect
-        ~name ~kind
-        (fun buf ->
+      new effect ~name ~kind src (fun buf ->
           let round x = int_of_float (x +. 0.5) in
           let width =
             Video.Image.width buf |> float_of_int
@@ -343,5 +384,4 @@ let () =
           Video.Image.scale buf dst;
           Video.Image.blank buf;
           Video.Image.fill_alpha buf 0;
-          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf)
-        src)
+          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf))

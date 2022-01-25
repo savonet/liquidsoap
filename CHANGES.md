@@ -14,6 +14,8 @@ New:
   `json5` export format.
 - Added socket API (#2014).
 - Added `liquidsoap.version.at_least`.
+- Added `video.rectangle`, `video.persistence`.
+- Added `video.vumeter`.
 
 Changes:
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
