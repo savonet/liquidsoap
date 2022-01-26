@@ -181,6 +181,22 @@ end
 # @category Source / Sound Processing
 # @param s Source to be amplified.
 def replaygain(s)
+  s = insert_metadata(s)
+  # Normalize opus gain
+  def f(m)
+    def f(m)
+      let (k, v) = m
+      if k == "r128_track_gain" then
+        v = int_of_string(v)
+        v = lin_of_dB(float(v) / 256.)
+        ("replaygain_track_gain", string_of_float(v))
+      else
+        (k, v)
+      end
+    end
+    list.map(f, m)
+  end
+  s = map_metadata(f, s)
   amplify(override="replaygain_track_gain", 1., s)
 end
 
