@@ -89,7 +89,6 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
 
     (* Give a default value for the transition source. *)
     val mutable transition_source = None
-    val mutable pending_after = Generator.create `Both
 
     method private prepare_transition_source s =
       let s = (s :> source) in
@@ -179,14 +178,8 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
     method private get_frame frame =
       match status with
         | `Idle ->
-            let rem = if conservative then 0 else source#remaining in
-            if rem < 0 || rem > cross_length then (
-              let p = Frame.position frame in
-              source#get frame;
-              self#save_last_metadata `Before frame;
-              self#update_cross_length frame p;
-              needs_tick <- true)
-            else (
+            let rem = source#remaining in
+            if conservative || (0 <= rem && rem <= cross_length) then (
               self#log#info "Buffering end of track...";
               status <- `Before;
               Frame.set_breaks buf_frame [Frame.position frame];
@@ -195,6 +188,12 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
               if status <> `Limit then
                 self#log#info "More buffering will be needed.";
               self#get_frame frame)
+            else (
+              let p = Frame.position frame in
+              source#get frame;
+              self#save_last_metadata `Before frame;
+              self#update_cross_length frame p;
+              needs_tick <- true)
         | `Before ->
             (* We started buffering but the track didn't end.
              * Play the beginning of the buffer while filling it more. *)
@@ -217,7 +216,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
         | `After when (Option.get transition_source)#is_ready ->
             (Option.get transition_source)#get frame;
             needs_tick <- true;
-            if Generator.length pending_after = 0 && Frame.is_partial frame then (
+            if Frame.is_partial frame then (
               status <- `Idle;
               self#cleanup_transition_source;
 
@@ -368,7 +367,6 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
       in
       self#cleanup_transition_source;
       self#prepare_transition_source compound;
-      pending_after <- gen_after;
       status <- `After;
       self#reset_analysis
 
