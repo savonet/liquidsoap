@@ -16,6 +16,7 @@ New:
 - Added `liquidsoap.version.at_least`.
 - Added `video.rectangle`, `video.persistence`.
 - Added `video.vumeter`.
+- Added `video.slideshow`.
 
 Changes:
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and

@@ -329,3 +329,46 @@ def replaces video.add_text(~id=null(),~color=0xffffff,~cycle=true,~font="",
      metadata=metadata,size=size,color=color,
      speed=speed,x=x,y=y,d,s)
 end
+
+# Display a slideshow (typically of pictures).
+# @param ~cylic Go to the first picture after the last.
+# @param ~advance Skip to the next file after this amount of time in seconds (negative means never).
+# @param l List of files to display.
+# @method append Append a list of files to the slideshow.
+# @method clear Clear the list of files in the slideshow.
+# @method next Go to next file.
+# @method prev Go to previous file.
+def video.slideshow(~id=null(), ~cyclic=getter(true), ~advance=getter(-1.), l=[])
+  id = string.id.default(default="video.slideshow", id)
+  l = ref(l)
+  n = ref(-1)
+  s = source.dynamic()
+  # Set current file to the nth.
+  def set(n')
+    if 0 <= n' and n' < list.length(!l) and n' != !n then
+      n := n'
+      s.set(request.once(request.create(list.nth(!l, !n))))
+    end
+  end
+  def next()
+    log.debug(label=id, "Going to next file")
+    n' = !n + 1
+    n' = if n' >= list.length(!l) then if getter.get(cyclic) then 0 else list.length(!l) - 1 end else n' end
+    set(n')
+  end
+  def prev()
+    log.debug(label=id, "Going to previous file")
+    n' = !n - 1
+    n' = if n' < 0 then if getter.get(cyclic) then list.length(!l) - 1 else 0 end else n' end
+    set(n')
+  end
+  def clear()
+    l := []
+  end
+  def append(l')
+    l := list.append(!l, l')
+  end
+  set(0)
+  if getter.get(advance) >= 0. then thread.run(delay=getter.get(advance), every=advance, next) end
+  s.{append=append, clear=clear, next=next, prev=prev}
+end
