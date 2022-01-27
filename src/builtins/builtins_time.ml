@@ -129,13 +129,13 @@ let () =
       let tm = List.assoc "" p in
       let tm =
         {
-          Utils.tm_sec = Lang.to_int (Term.invoke tm "sec");
-          tm_min = Lang.to_int (Term.invoke tm "min");
-          tm_hour = Lang.to_int (Term.invoke tm "hour");
-          tm_mday = Lang.to_int (Term.invoke tm "day");
-          tm_mon = Lang.to_int (Term.invoke tm "month") - 1;
-          tm_year = Lang.to_int (Term.invoke tm "year") - 1900;
-          tm_isdst = Lang.to_valued_option Lang.to_bool (Term.invoke tm "dst");
+          Utils.tm_sec = Lang.to_int (Value.invoke tm "sec");
+          tm_min = Lang.to_int (Value.invoke tm "min");
+          tm_hour = Lang.to_int (Value.invoke tm "hour");
+          tm_mday = Lang.to_int (Value.invoke tm "day");
+          tm_mon = Lang.to_int (Value.invoke tm "month") - 1;
+          tm_year = Lang.to_int (Value.invoke tm "year") - 1900;
+          tm_isdst = Lang.to_valued_option Lang.to_bool (Value.invoke tm "dst");
         }
       in
       Lang.float (Utils.mktime tm))
