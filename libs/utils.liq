@@ -110,3 +110,11 @@ def memoize(fn) =
     end
   end
 end
+
+# Set the current time zone. This is
+# equivalent to setting the `TZ` environment
+# variable.
+# @category Liquidsoap
+def time.zone.set(tz) =
+  setenv("TZ", tz)
+end

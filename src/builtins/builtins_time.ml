@@ -102,7 +102,28 @@ let () =
     time_t
     (fun p ->
       let t = nullable_time (List.assoc "" p) in
-      return (Unix.gmtime t))
+      return (Unix.gmtime t));
+  Lang.add_builtin ~category:`Liquidsoap "time.make"
+    ~descr:
+      "Convert a date and time in the local timezone into a time, in seconds, \
+       since 00:00:00 GMT, Jan. 1, 1970."
+    [("", time_t, None, None)] Lang.float_t (fun p ->
+      let tm = List.assoc "" p in
+      let tm =
+        {
+          Utils.tm_sec = Lang.to_int (Term.Value.invoke tm "sec");
+          tm_min = Lang.to_int (Term.Value.invoke tm "min");
+          tm_hour = Lang.to_int (Term.Value.invoke tm "hour");
+          tm_mday = Lang.to_int (Term.Value.invoke tm "mday");
+          tm_mon = Lang.to_int (Term.Value.invoke tm "mon");
+          tm_year = Lang.to_int (Term.Value.invoke tm "year");
+          tm_wday = Lang.to_int (Term.Value.invoke tm "wday");
+          tm_yday = Lang.to_int (Term.Value.invoke tm "yday");
+          tm_isdst =
+            Lang.to_valued_option Lang.to_bool (Term.Value.invoke tm "isdst");
+        }
+      in
+      Lang.float (Utils.mktime tm))
 
 let () =
   Lang.add_builtin ~category:`Liquidsoap "time.predicate"
@@ -131,3 +152,21 @@ let () =
                   Option.value ~default:[]
                     (Option.map (fun v -> [v]) v.Value.pos);
               }))
+
+let () =
+  let tz_t =
+    Lang.method_t Lang.string_t
+      [
+        ("daylight", ([], Lang.string_t), "Daylight Savings Time");
+        ( "utc_diff",
+          ([], Lang.int_t),
+          "Difference in seconds between the current timezone and UTC." );
+      ]
+  in
+  Lang.add_builtin ~category:`Liquidsoap "time.zone"
+    ~descr:"Returns a description of the time zone set for the running process."
+    [] tz_t (fun _ ->
+      let std, dst = Utils.timezone_by_name () in
+      let tz = Utils.timezone () in
+      Lang.meth (Lang.string std)
+        [("daylight", Lang.string dst); ("utc_diff", Lang.int tz)])
