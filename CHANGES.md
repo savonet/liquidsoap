@@ -3,6 +3,7 @@
 
 New:
 * Added support for memory debugging using `memtrace`
+* Added `time.{zone,zone.set,make}` (#2178)
 
 Fixed:
 * Make sure metadata are replayed when switching to a source for the

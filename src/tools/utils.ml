@@ -397,6 +397,24 @@ let which_opt ~path s = try Some (which ~path s) with Not_found -> None
 external timezone : unit -> int = "liquidsoap_get_timezone"
   [@@noalloc]
 
+external timezone_by_name : unit -> string * string
+  = "liquidsoap_get_timezone_by_name"
+
+(* Same as [Unix.mktime] but honnors [isdst] *)
+type tm = {
+  tm_sec : int;
+  tm_min : int;
+  tm_hour : int;
+  tm_mday : int;
+  tm_mon : int;
+  tm_year : int;
+  tm_wday : int;
+  tm_yday : int;
+  tm_isdst : bool option;
+}
+
+external mktime : tm -> float = "liquidsoap_mktime"
+
 let string_of_timezone tz =
   (* TODO: not sure about why we need this... *)
   let tz = -tz in
