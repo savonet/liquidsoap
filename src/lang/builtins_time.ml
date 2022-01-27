@@ -62,7 +62,7 @@ let () =
         ("year", ([], Lang.int_t), "Year.");
         ( "week_day",
           ([], Lang.int_t),
-          "Day of week (Sunday is 1, Saturday is 7)." );
+          "Day of week (Sunday is 0 or 7, Saturday is 6)." );
         ("year_day", ([], Lang.int_t), "Day of year.");
         ("dst", ([], Lang.bool_t), "Daylight time savings in effect.");
       ]
@@ -76,7 +76,7 @@ let () =
         ("day", Lang.int tm.Unix.tm_mday);
         ("month", Lang.int (1 + tm.Unix.tm_mon));
         ("year", Lang.int (1900 + tm.Unix.tm_year));
-        ("week_day", Lang.int (1 + tm.Unix.tm_wday));
+        ("week_day", Lang.int tm.Unix.tm_wday);
         ("year_day", Lang.int (1 + tm.Unix.tm_yday));
         ("dst", Lang.bool tm.Unix.tm_isdst);
       ]
