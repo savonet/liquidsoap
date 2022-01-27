@@ -52,7 +52,7 @@ let hls_proto kind =
     let info_t =
       Lang.record_t
         [
-          ("bandwidth", Lang.string_t);
+          ("bandwidth", Lang.int_t);
           ("codecs", Lang.string_t);
           ("extname", Lang.string_t);
           ("video_size", Lang.nullable_t (Lang.product_t Lang.int_t Lang.int_t));
