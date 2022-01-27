@@ -331,7 +331,6 @@ def replaces video.add_text(~id=null(),~color=0xffffff,~cycle=true,~font="",
 end
 
 # Display a slideshow (typically of pictures).
-# @param ~cylic Go to the first picture after the last.
 # @param ~advance Skip to the next file after this amount of time in seconds (negative means never).
 # @param l List of files to display.
 # @method append Append a list of files to the slideshow.
