@@ -25,6 +25,7 @@ Changes:
 - `source.on_metadata` and `source.on_track` now return a source as this was the
   case in previous versions, and associated handlers are triggered only when the
   returned source is pulled (#2103).
+- Made `streams_info` parameter of `output.file.hls` a record (#2173)
 
 2.0.2 (28-12-2021)
 =====
