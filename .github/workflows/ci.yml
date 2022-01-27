@@ -154,7 +154,11 @@ jobs:
         with:
           name: core-dump
           path: ${{ github.workspace }}/${{ github.run_number }}/core
-      - name: Setup tmate session
+      - name: Prepare remote session
+        if: ${{ failure() }}
+        run: |
+          cp rf /tmp/liquidsoap-full /tmp/${{ github.run_number }}/
+      - name: Start remote session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
       - name: Cleanup
