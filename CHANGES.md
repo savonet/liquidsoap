@@ -5,6 +5,10 @@ New:
 * Added support for memory debugging using `memtrace`
 * Added `time.{zone,zone.set,make}` (#2178)
 
+Changed:
+* `year` method as returned in `time.local` and `time.utc` now
+  returns the actual year instead of years since 1900 (#2178)
+
 Fixed:
 * Make sure metadata are replayed when switching to a source for the
   first time in switches/fallback (#2138)
