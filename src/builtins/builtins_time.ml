@@ -57,12 +57,14 @@ let () =
         ("sec", ([], Lang.int_t), "Seconds.");
         ("min", ([], Lang.int_t), "Minutes.");
         ("hour", ([], Lang.int_t), "Hours.");
-        ("mday", ([], Lang.int_t), "Day of month (between 1 and 31).");
-        ("mon", ([], Lang.int_t), "Month of year (between 0 and 11).");
-        ("year", ([], Lang.int_t), "Year - 1900.");
-        ("wday", ([], Lang.int_t), "Day of week (Sunday is 0).");
-        ("yday", ([], Lang.int_t), "Day of year (between 0 and 365).");
-        ("isdst", ([], Lang.bool_t), "Daylight time savings in effect.");
+        ("day", ([], Lang.int_t), "Day of month.");
+        ("month", ([], Lang.int_t), "Month of year.");
+        ("year", ([], Lang.int_t), "Year.");
+        ( "week_day",
+          ([], Lang.int_t),
+          "Day of week (Sunday is 1, Saturday is 7)." );
+        ("year_day", ([], Lang.int_t), "Day of year.");
+        ("dst", ([], Lang.bool_t), "Daylight time savings in effect.");
       ]
   in
   let return tm =
@@ -71,12 +73,12 @@ let () =
         ("sec", Lang.int tm.Unix.tm_sec);
         ("min", Lang.int tm.Unix.tm_min);
         ("hour", Lang.int tm.Unix.tm_hour);
-        ("mday", Lang.int tm.Unix.tm_mday);
-        ("mon", Lang.int tm.Unix.tm_mon);
+        ("day", Lang.int tm.Unix.tm_mday);
+        ("month", Lang.int (1 + tm.Unix.tm_mon));
         ("year", Lang.int (1900 + tm.Unix.tm_year));
-        ("wday", Lang.int tm.Unix.tm_wday);
-        ("yday", Lang.int tm.Unix.tm_yday);
-        ("isdst", Lang.bool tm.Unix.tm_isdst);
+        ("week_day", Lang.int (1 + tm.Unix.tm_wday));
+        ("year_day", Lang.int (1 + tm.Unix.tm_yday));
+        ("dst", Lang.bool tm.Unix.tm_isdst);
       ]
   in
   let nullable_time v =
@@ -111,10 +113,10 @@ let () =
         ("sec", ([], Lang.int_t), "Seconds.");
         ("min", ([], Lang.int_t), "Minutes.");
         ("hour", ([], Lang.int_t), "Hours.");
-        ("mday", ([], Lang.int_t), "Day of month (between 1 and 31).");
-        ("mon", ([], Lang.int_t), "Month of year (between 0 and 11).");
+        ("day", ([], Lang.int_t), "Day of month.");
+        ("month", ([], Lang.int_t), "Month of year.");
         ("year", ([], Lang.int_t), "Year.");
-        ( "isdst",
+        ( "dst",
           ([], Lang.nullable_t Lang.bool_t),
           "Daylight time savings in effect." );
       ]
@@ -130,11 +132,11 @@ let () =
           Utils.tm_sec = Lang.to_int (Term.Value.invoke tm "sec");
           tm_min = Lang.to_int (Term.Value.invoke tm "min");
           tm_hour = Lang.to_int (Term.Value.invoke tm "hour");
-          tm_mday = Lang.to_int (Term.Value.invoke tm "mday");
-          tm_mon = Lang.to_int (Term.Value.invoke tm "mon");
+          tm_mday = Lang.to_int (Term.Value.invoke tm "day");
+          tm_mon = Lang.to_int (Term.Value.invoke tm "month") - 1;
           tm_year = Lang.to_int (Term.Value.invoke tm "year") - 1900;
           tm_isdst =
-            Lang.to_valued_option Lang.to_bool (Term.Value.invoke tm "isdst");
+            Lang.to_valued_option Lang.to_bool (Term.Value.invoke tm "dst");
         }
       in
       Lang.float (Utils.mktime tm))
