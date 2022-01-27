@@ -154,6 +154,9 @@ jobs:
         with:
           name: core-dump
           path: ${{ github.workspace }}/${{ github.run_number }}/core
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
       - name: Cleanup
         if: ${{ always() }}
         run: |
