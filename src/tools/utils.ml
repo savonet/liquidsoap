@@ -24,7 +24,7 @@
 external force_locale : unit -> unit = "liquidsoap_set_locale" [@@noalloc]
 
 (** Get page size. *)
-external pagesize : unit -> int = "liquidsoao_get_pagesize"
+external pagesize : unit -> int = "liquidsoap_get_pagesize"
   [@@noalloc]
 
 let pagesize = pagesize ()
