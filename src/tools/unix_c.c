@@ -37,7 +37,7 @@ CAMLprim value liquidsoap_get_timezone() {
   return Val_long(timezone);
 }
 
-CAMLprim value liquidsoao_get_pagesize() {
+CAMLprim value liquidsoap_get_pagesize() {
 #ifdef WIN32
   SYSTEM_INFO systemInfo;
   GetSystemInfo(&systemInfo);
