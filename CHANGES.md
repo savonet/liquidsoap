@@ -8,6 +8,15 @@ New:
 Changed:
 * `year` method as returned in `time.local` and `time.utc` now
   returns the actual year instead of years since 1900 (#2178)
+* `mday`, `mon`, `wday` and `yday` methods as returned in `time.local`
+   and `time.utc` has been renamed to, resp., `day`, `month`, `week_day`
+   and `year_day` (#2178)
+* `month` method as returned in `time.local` and `time.utc` now
+  returns the month as a number between `1` and `12` (#2178)
+* `week_day` method as returned in `time.local` and `time.utc` now
+  returns the week day as a number between `1` and `7` (#2178)
+* `year_day` method as returned in `time.local` and `time.utc` now
+  returns the week day as a number between `1` and `264` (#2178)
 
 Fixed:
 * Make sure metadata are replayed when switching to a source for the
