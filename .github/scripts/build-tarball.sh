@@ -4,8 +4,7 @@ set -e
 
 eval $(opam config env)
 
-# Remove after liquidsoap 2.0 release
-opam install -y posix-time2
+opam depext -yi menhir.20211128
 
 cd /tmp/liquidsoap-full
 
