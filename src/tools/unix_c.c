@@ -61,9 +61,9 @@ CAMLprim value liquidsoap_mktime(value _tm) {
   tm.tm_mday = Int_val(Field(_tm, 3));
   tm.tm_mon = Int_val(Field(_tm, 4));
   tm.tm_year = Int_val(Field(_tm, 5));
-  tm.tm_wday = Int_val(Field(_tm, 6));
-  tm.tm_yday = Int_val(Field(_tm, 7));
-  tm.tm_isdst = Field(_tm, 8) == Val_int(0) ? -1 : Bool_val(Field(Field(_tm, 8), 0));
+  tm.tm_wday = 0;
+  tm.tm_yday = 0;
+  tm.tm_isdst = Field(_tm, 6) == Val_int(0) ? -1 : Bool_val(Field(Field(_tm, 6), 0));
   time = mktime(&tm);
   if (time == -1) unix_error(ERANGE, "mktime", Nothing);
 

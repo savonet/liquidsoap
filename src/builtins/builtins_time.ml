@@ -73,7 +73,7 @@ let () =
         ("hour", Lang.int tm.Unix.tm_hour);
         ("mday", Lang.int tm.Unix.tm_mday);
         ("mon", Lang.int tm.Unix.tm_mon);
-        ("year", Lang.int tm.Unix.tm_year);
+        ("year", Lang.int (1900 + tm.Unix.tm_year));
         ("wday", Lang.int tm.Unix.tm_wday);
         ("yday", Lang.int tm.Unix.tm_yday);
         ("isdst", Lang.bool tm.Unix.tm_isdst);
@@ -102,7 +102,23 @@ let () =
     time_t
     (fun p ->
       let t = nullable_time (List.assoc "" p) in
-      return (Unix.gmtime t));
+      return (Unix.gmtime t))
+
+let () =
+  let time_t =
+    Lang.method_t Lang.unit_t
+      [
+        ("sec", ([], Lang.int_t), "Seconds.");
+        ("min", ([], Lang.int_t), "Minutes.");
+        ("hour", ([], Lang.int_t), "Hours.");
+        ("mday", ([], Lang.int_t), "Day of month (between 1 and 31).");
+        ("mon", ([], Lang.int_t), "Month of year (between 0 and 11).");
+        ("year", ([], Lang.int_t), "Year.");
+        ( "isdst",
+          ([], Lang.nullable_t Lang.bool_t),
+          "Daylight time savings in effect." );
+      ]
+  in
   Lang.add_builtin ~category:`Liquidsoap "time.make"
     ~descr:
       "Convert a date and time in the local timezone into a time, in seconds, \
@@ -116,9 +132,7 @@ let () =
           tm_hour = Lang.to_int (Term.Value.invoke tm "hour");
           tm_mday = Lang.to_int (Term.Value.invoke tm "mday");
           tm_mon = Lang.to_int (Term.Value.invoke tm "mon");
-          tm_year = Lang.to_int (Term.Value.invoke tm "year");
-          tm_wday = Lang.to_int (Term.Value.invoke tm "wday");
-          tm_yday = Lang.to_int (Term.Value.invoke tm "yday");
+          tm_year = Lang.to_int (Term.Value.invoke tm "year") - 1900;
           tm_isdst =
             Lang.to_valued_option Lang.to_bool (Term.Value.invoke tm "isdst");
         }

@@ -408,8 +408,6 @@ type tm = {
   tm_mday : int;
   tm_mon : int;
   tm_year : int;
-  tm_wday : int;
-  tm_yday : int;
   tm_isdst : bool option;
 }
 
