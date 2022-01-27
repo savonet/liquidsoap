@@ -10,7 +10,7 @@ cd /tmp/liquidsoap-full
 
 opam update
 opam remove -y ocamlsdl sdl-liquidsoap
-opam depext -yi tsdl-image.0.3.2
+opam depext -yi tsdl-image.0.3.2 menhir.20211128
 
 echo "\n### Preparing bindings\n"
 
