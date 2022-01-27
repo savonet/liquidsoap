@@ -179,8 +179,9 @@ end
 # compute itself the replaygain: you can use either `enable_replaygain_metadata`
 # or the `replaygain:` protocol for this.
 # @category Source / Sound Processing
+# @param ~ebu_r128 Also amplify according to EBU R128 tags.
 # @param s Source to be amplified.
-def replaygain(s)
+def replaygain(~ebu_r128=true, s)
   s = insert_metadata(s)
   # Normalize opus gain
   def f(m)
@@ -195,7 +196,7 @@ def replaygain(s)
         (k, v)
       end
     end
-    list.map(f, m)
+    if ebu_r128 then list.map(f, m) else m end
   end
   s = map_metadata(f, s)
   amplify(override="replaygain_track_gain", 1., s)
