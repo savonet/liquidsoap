@@ -9,7 +9,7 @@ Changed:
 * `year` method as returned in `time.local` and `time.utc` now
   returns the actual year instead of years since 1900 (#2178)
 * `mday`, `mon`, `wday` and `yday` methods as returned in `time.local`
-   and `time.utc` has been renamed to, resp., `day`, `month`, `week_day`
+   and `time.utc` have been renamed to, resp., `day`, `month`, `week_day`
    and `year_day` (#2178)
 * `month` method as returned in `time.local` and `time.utc` now
   returns the month as a number between `1` and `12` (#2178)
