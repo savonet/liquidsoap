@@ -44,3 +44,16 @@ def getter.changes(x)
     else false end
   end
 end
+
+# Give the latest value among two getters.
+# @category Liquidsoap
+def getter.merge(x, y)
+  v = ref(getter.get(x))
+  x = getter.on_change(fun(x) -> v := x, x)
+  y = getter.on_change(fun(y) -> v := y, y)
+  fun () -> begin
+    ignore(x())
+    ignore(y())
+    !v
+  end
+end

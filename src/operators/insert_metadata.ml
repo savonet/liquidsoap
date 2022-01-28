@@ -24,6 +24,7 @@ open Source
 
 exception Error
 
+(* This is an internal operator. *)
 class insert_metadata ~kind source =
   object (self)
     inherit operator ~name:"insert_metadata" kind [source]
@@ -47,11 +48,12 @@ class insert_metadata ~kind source =
     method private add_metadata frame pos =
       Tutils.mutexify lock_m
         (fun () ->
-          match metadata with
-            | None -> ()
-            | Some m ->
+          (match (metadata, Frame.get_metadata frame pos) with
+            | Some m, None ->
                 metadata <- None;
-                Frame.set_metadata frame pos m)
+                Frame.set_metadata frame pos m
+            | _ -> ());
+          metadata <- None)
         ()
 
     method private insert_track =

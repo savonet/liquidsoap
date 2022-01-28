@@ -50,3 +50,8 @@ echo "\n### Compiling\n"
 
 cd liquidsoap
 make -j $CPU_CORES
+
+echo "\n### Basic tests\n"
+
+./src/liquidsoap --no-stdlib --version
+./src/liquidsoap --no-stdlib ./libs/stdlib.liq --check 'print("hello world")'

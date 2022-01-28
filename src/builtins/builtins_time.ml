@@ -57,12 +57,14 @@ let () =
         ("sec", ([], Lang.int_t), "Seconds.");
         ("min", ([], Lang.int_t), "Minutes.");
         ("hour", ([], Lang.int_t), "Hours.");
-        ("mday", ([], Lang.int_t), "Day of month (between 1 and 31).");
-        ("mon", ([], Lang.int_t), "Month of year (between 0 and 11).");
-        ("year", ([], Lang.int_t), "Year - 1900.");
-        ("wday", ([], Lang.int_t), "Day of week (Sunday is 0).");
-        ("yday", ([], Lang.int_t), "Day of year (between 0 and 365).");
-        ("isdst", ([], Lang.bool_t), "Daylight time savings in effect.");
+        ("day", ([], Lang.int_t), "Day of month.");
+        ("month", ([], Lang.int_t), "Month of year.");
+        ("year", ([], Lang.int_t), "Year.");
+        ( "week_day",
+          ([], Lang.int_t),
+          "Day of week (Sunday is 0 or 7, Saturday is 6)." );
+        ("year_day", ([], Lang.int_t), "Day of year.");
+        ("dst", ([], Lang.bool_t), "Daylight time savings in effect.");
       ]
   in
   let return tm =
@@ -71,12 +73,12 @@ let () =
         ("sec", Lang.int tm.Unix.tm_sec);
         ("min", Lang.int tm.Unix.tm_min);
         ("hour", Lang.int tm.Unix.tm_hour);
-        ("mday", Lang.int tm.Unix.tm_mday);
-        ("mon", Lang.int tm.Unix.tm_mon);
-        ("year", Lang.int tm.Unix.tm_year);
-        ("wday", Lang.int tm.Unix.tm_wday);
-        ("yday", Lang.int tm.Unix.tm_yday);
-        ("isdst", Lang.bool tm.Unix.tm_isdst);
+        ("day", Lang.int tm.Unix.tm_mday);
+        ("month", Lang.int (1 + tm.Unix.tm_mon));
+        ("year", Lang.int (1900 + tm.Unix.tm_year));
+        ("week_day", Lang.int tm.Unix.tm_wday);
+        ("year_day", Lang.int (1 + tm.Unix.tm_yday));
+        ("dst", Lang.bool tm.Unix.tm_isdst);
       ]
   in
   let nullable_time v =
@@ -105,6 +107,40 @@ let () =
       return (Unix.gmtime t))
 
 let () =
+  let time_t =
+    Lang.method_t Lang.unit_t
+      [
+        ("sec", ([], Lang.int_t), "Seconds.");
+        ("min", ([], Lang.int_t), "Minutes.");
+        ("hour", ([], Lang.int_t), "Hours.");
+        ("day", ([], Lang.int_t), "Day of month.");
+        ("month", ([], Lang.int_t), "Month of year.");
+        ("year", ([], Lang.int_t), "Year.");
+        ( "dst",
+          ([], Lang.nullable_t Lang.bool_t),
+          "Daylight time savings in effect." );
+      ]
+  in
+  Lang.add_builtin ~category:`Liquidsoap "time.make"
+    ~descr:
+      "Convert a date and time in the local timezone into a time, in seconds, \
+       since 00:00:00 GMT, Jan. 1, 1970."
+    [("", time_t, None, None)] Lang.float_t (fun p ->
+      let tm = List.assoc "" p in
+      let tm =
+        {
+          Utils.tm_sec = Lang.to_int (Value.invoke tm "sec");
+          tm_min = Lang.to_int (Value.invoke tm "min");
+          tm_hour = Lang.to_int (Value.invoke tm "hour");
+          tm_mday = Lang.to_int (Value.invoke tm "day");
+          tm_mon = Lang.to_int (Value.invoke tm "month") - 1;
+          tm_year = Lang.to_int (Value.invoke tm "year") - 1900;
+          tm_isdst = Lang.to_valued_option Lang.to_bool (Value.invoke tm "dst");
+        }
+      in
+      Lang.float (Utils.mktime tm))
+
+let () =
   Lang.add_builtin ~category:`Liquidsoap "time.predicate"
     ~descr:"Parse a string as a time predicate"
     [("", Lang.string_t, None, None)] (Lang.fun_t [] Lang.bool_t) (fun p ->
@@ -131,3 +167,21 @@ let () =
                   Option.value ~default:[]
                     (Option.map (fun v -> [v]) v.Value.pos);
               }))
+
+let () =
+  let tz_t =
+    Lang.method_t Lang.string_t
+      [
+        ("daylight", ([], Lang.string_t), "Daylight Savings Time");
+        ( "utc_diff",
+          ([], Lang.int_t),
+          "Difference in seconds between the current timezone and UTC." );
+      ]
+  in
+  Lang.add_builtin ~category:`Liquidsoap "time.zone"
+    ~descr:"Returns a description of the time zone set for the running process."
+    [] tz_t (fun _ ->
+      let std, dst = Utils.timezone_by_name () in
+      let tz = Utils.timezone () in
+      Lang.meth (Lang.string std)
+        [("daylight", Lang.string dst); ("utc_diff", Lang.int tz)])
