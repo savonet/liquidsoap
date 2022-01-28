@@ -165,6 +165,7 @@ jobs:
 
   build_opam:
     runs-on: ubuntu-latest
+    if: needs.build_details.outputs.is_release
     steps:
       - name: Checkout latest code
         uses: actions/checkout@v1
