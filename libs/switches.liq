@@ -53,15 +53,16 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
            ~weights=[], sources) =
   weights = list.map(getter.function, weights)
   picked_index = ref(-1)
-  tracks_played = ref(0)
   default_weight = {1}
+  failed = (source.fail():source)
+  tracks_played = list.map(fun (s) -> (s.id(), ref(0)), sources)
 
   def pick() =
-    tracks_played := 0
+    list.iter((fun (el) -> snd(el) := 0), tracks_played)
 
     if list.exists(source.is_ready, sources) then
       def rec f(index) =
-        s = list.nth(default=(source.fail():source), sources, index)
+        s = list.nth(default=failed, sources, index)
         if source.is_ready(s) then
           picked_index := index
         else
@@ -77,17 +78,11 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
   def add_condition(index, s) =
     weight = list.nth(default=default_weight, weights, index)
 
-    def f(_) =
-      tracks_played := !tracks_played + 1
-    end
-
-    source.on_track(s, f)
-
     def cond() =
       if !picked_index == -1 then pick() end
 
       if !picked_index == index then
-        if !tracks_played < weight () then
+        if !list.assoc(s.id(), tracks_played) < weight () then
           true
         else
            pick()
@@ -104,6 +99,18 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
   s = switch(override=override, replay_metadata=replay_metadata, track_sensitive=true,
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
+
+  def f(_) =
+    if null.defined(s.selected()) then
+      selected_id = source.id(null.get(s.selected()))
+      if list.mem_assoc(selected_id, tracks_played) then
+        played = list.assoc(selected_id, tracks_played)
+        played := !played + 1
+      end
+    end
+  end
+
+  source.on_track(s, f)
 
   def replaces s =
     fallback(id=id, track_sensitive=true, list.add((s:source), sources))
@@ -168,12 +175,6 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
   end
 
   def add_condition(index, s) =
-    def f(_) =
-      next_index := -1
-    end 
-
-    source.on_track(s, f)
-
     def cond() =
       if !next_index == -1 then pick() end
       !next_index == index  
@@ -185,6 +186,12 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
   s = switch(override=override, replay_metadata=replay_metadata, track_sensitive=true,
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
+
+  def f(_) =
+    next_index := -1
+  end
+
+  source.on_track(s, f)
 
   def replaces s =
     fallback(id=id, track_sensitive=true, list.add((s:source), sources))
