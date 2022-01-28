@@ -47,18 +47,4 @@ echo "##[set-output name=build_platform;]${BUILD_PLATFORM}"
 echo "##[set-output name=build_include;]${BUILD_INCLUDE}"
 echo "##[set-output name=docker_release;]${DOCKER_RELEASE}"
 echo "##[set-output name=sha;]${SHA}"
-
-git fetch origin main > /dev/null 2>&1
-CHANGED_SRC_FILES=`git diff --name-only origin/main..HEAD | grep '^src/' | xargs`
-CHANGED_LIBS_FILES=`git diff --name-only origin/main..HEAD | grep '^libs/' | xargs`
-
-if [[ "${IS_RELEASE}" = "true" ]] || [[ "${BRANCH}" = "main" ]] || [[ -n "${CHANGED_SRC_FILES}" ]] || [[ -n "${CHANGED_LIBS_FILES}" ]]; then
-  echo "Code should be built during this run"
-  SHOULD_BUILD_CODE=true
-else
-  echo "No need to build the code during this run"
-  SHOULD_BUILD_CODE=
-fi
-
-echo "##[set-output name=should_build_code;]${SHOULD_BUILD_CODE}"
 echo "##[set-output name=s3-artifact-basepath;]s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
