@@ -16,7 +16,7 @@ Changed:
 * `week_day` method as returned in `time.local` and `time.utc` now
   returns the week day as a number between `1` and `7` (#2178)
 * `year_day` method as returned in `time.local` and `time.utc` now
-  returns the week day as a number between `1` and `365` (#2178)
+  returns the week day as a number between `1` and `366` (#2178)
 
 Fixed:
 * Make sure metadata are replayed when switching to a source for the
