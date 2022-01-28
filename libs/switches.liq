@@ -108,7 +108,11 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
 
-  fallback(id=id, track_sensitive=true, s::sources)
+  def replaces s =
+    fallback(id=id, track_sensitive=true, s::sources)
+  end
+
+  s
 end
 
 # At the beginning of every track, select a random ready child.
@@ -185,5 +189,9 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
 
-  fallback(id=id, track_sensitive=true, s::sources)
+  def replaces s =
+    fallback(id=id, track_sensitive=true, s::sources)
+  end
+  
+  s
 end
