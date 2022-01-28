@@ -35,6 +35,8 @@ type child = { source : source; transition : transition }
   * or only at track limits (sensitive). *)
 type track_mode = Sensitive | Insensitive
 
+type selection = { child : child; effective_source : source }
+
 class virtual switch ~kind ~name ~override_meta ~transition_length
   ?(mode = fun () -> true) ?(replay_meta = true) (cases : child list) =
   let sources = ref (List.map (fun c -> c.source) cases) in
@@ -52,7 +54,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
   object (self)
     inherit operator ~name kind (List.map (fun x -> x.source) cases)
     val mutable transition_length = transition_length
-    val mutable selected : (child * source) option = None
+    val mutable selected : selection option = None
 
     (** We have to explicitly manage our children as they are dynamically created
     * by application of the transition functions. In particular we need a list
@@ -93,7 +95,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
       begin
         match selected with
         | None -> ()
-        | Some (_, s) -> s#after_output
+        | Some s -> s.effective_source#after_output
       end;
       List.iter (fun s -> s#after_output) to_finish;
       to_finish <- [];
@@ -123,7 +125,9 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
             (fun s -> s#leave ~dynamic:true (self :> source))
             transition)
         cases;
-      match selected with None -> () | Some (_, s) -> s#leave (self :> source)
+      match selected with
+        | None -> ()
+        | Some s -> s.effective_source#leave (self :> source)
 
     method is_ready = need_eot || selected <> None || self#cached_select <> None
 
@@ -137,7 +141,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
     method self_sync =
       ( Lazy.force self_sync_type,
         match selected with
-          | Some (_, source) -> snd source#self_sync
+          | Some s -> snd s.effective_source#self_sync
           | None -> List.exists (fun c -> snd c.source#self_sync) cases )
 
     method private get_frame ab =
@@ -170,17 +174,19 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                         | _ -> c.source
                     in
                     new_source#get_ready activation;
-                    selected <- Some (c, new_source)
-                | Some (old_c, old_s) when old_c != c ->
+                    selected <-
+                      Some { child = c; effective_source = new_source }
+                | Some old_selection when old_selection.child.source != c.source
+                  ->
                     self#log#important "Switch to %s with%s transition."
                       c.source#id
                       (if forget then " forgetful" else "");
-                    old_s#leave (self :> source);
-                    to_finish <- old_s :: to_finish;
+                    old_selection.effective_source#leave (self :> source);
+                    to_finish <- old_selection.effective_source :: to_finish;
                     Clock.collect_after (fun () ->
                         let old_source =
                           if forget then Debug_sources.empty kind
-                          else old_c.source
+                          else old_selection.child.source
                         in
                         let new_source =
                           (* Force insertion of old metadata if relevant.
@@ -217,16 +223,16 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                         in
                         Clock.unify s#clock self#clock;
                         s#get_ready activation;
-                        selected <- Some (c, s))
+                        selected <- Some { child = c; effective_source = s })
                 | _ ->
                     (* We are staying on the same child,
                      * don't start a new track. *)
                     need_eot <- false)
           | None -> (
               match selected with
-                | Some (_, old_s) ->
-                    old_s#leave (self :> source);
-                    to_finish <- old_s :: to_finish;
+                | Some old_s ->
+                    old_s.effective_source#leave (self :> source);
+                    to_finish <- old_s.effective_source :: to_finish;
                     selected <- None
                 | None -> ())
       in
@@ -244,19 +250,23 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
               (* Our #is_ready, and caching, ensure the following. *)
               assert (selected <> None);
               self#get_frame ab
-          | Some (_, s) ->
-              s#get ab;
+          | Some s ->
+              s.effective_source#get ab;
               if Frame.is_partial ab then reselect ~forget:true ()
               else if not (mode ()) then reselect ())
 
     method remaining =
-      match selected with None -> 0 | Some (_, s) -> s#remaining
+      match selected with None -> 0 | Some s -> s.effective_source#remaining
 
     method abort_track =
-      match selected with Some (_, s) -> s#abort_track | None -> ()
+      match selected with
+        | Some s -> s.effective_source#abort_track
+        | None -> ()
 
-    method seek n = match selected with Some (_, s) -> s#seek n | None -> 0
-    method selected = Option.map (fun (c, _) -> c.source) selected
+    method seek n =
+      match selected with Some s -> s.effective_source#seek n | None -> 0
+
+    method selected = Option.map (fun { child } -> child.source) selected
   end
 
 (** Common tools for Lang bindings of switch operators *)
@@ -303,7 +313,7 @@ class lang_switch ~kind ~override_meta ~all_predicates ~transition_length mode
     method private select =
       let selected s =
         match selected with
-          | Some (child, _) when child == s -> true
+          | Some { child } when child.source == s.source -> true
           | _ -> false
       in
       try
