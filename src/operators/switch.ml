@@ -265,7 +265,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
       match selected with Some (_, s) -> s#abort_track | None -> ()
 
     method seek n = match selected with Some (_, s) -> s#seek n | None -> 0
-    method selected = Option.map (fun (_, s) -> s) selected
+    method selected = Option.map (fun (c, _) -> c.source) selected
   end
 
 (** Common tools for Lang bindings of switch operators *)
