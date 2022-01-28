@@ -62,8 +62,8 @@ let () =
         ("year", ([], Lang.int_t), "Year.");
         ( "week_day",
           ([], Lang.int_t),
-          "Day of week (Sunday is 0 or 7, Saturday is 6)." );
-        ("year_day", ([], Lang.int_t), "Day of year.");
+          "Day of week (Sunday is `0` or `7`, Saturday is `6`)." );
+        ("year_day", ([], Lang.int_t), "Day of year, between `1` and `366`.");
         ("dst", ([], Lang.bool_t), "Daylight time savings in effect.");
       ]
   in
