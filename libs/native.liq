@@ -18,7 +18,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.
 def native.fallback(~id=null(), ~track_sensitive=true, sources)
-  fail = source.fail()
+  fail = (source.fail() : source)
 
   def s()
     list.find(default=fail, source.is_ready, sources)

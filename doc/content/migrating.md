@@ -15,6 +15,10 @@ First-class [regular expression](language.html#regular-expressions) are introduc
 * `string.replace(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/g.replace(<string>)`
 * `string.split(separator=<regexp>, <string>)` is replaced by: `r/<regexp>/.split(<string>)`
 
+### Deprecations
+
+* `list.mem_assoc` is replaced by `list.assoc.mem`
+
 From 1.4.x to 2.0.0
 -------------------
 

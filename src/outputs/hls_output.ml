@@ -49,9 +49,16 @@ let hls_proto kind =
         Lang.string (Printf.sprintf "%s_%d.%s" sname position extname))
   in
   let stream_info_t =
-    let video_size_t = Lang.nullable_t (Lang.product_t Lang.int_t Lang.int_t) in
-    Lang.product_t Lang.string_t
-      (Lang.tuple_t [Lang.int_t; Lang.string_t; Lang.string_t; video_size_t])
+    let info_t =
+      Lang.record_t
+        [
+          ("bandwidth", Lang.int_t);
+          ("codecs", Lang.string_t);
+          ("extname", Lang.string_t);
+          ("video_size", Lang.nullable_t (Lang.product_t Lang.int_t Lang.int_t));
+        ]
+    in
+    Lang.product_t Lang.string_t info_t
   in
   Output.proto
   @ [
@@ -295,12 +302,10 @@ class hls_output p =
     List.map
       (fun el ->
         let name, specs = Lang.to_product el in
-        let bandwidth, codecs, extname, video_size =
-          match Lang.to_tuple specs with
-            | [bandwidth; codecs; extname; video_size] ->
-                (bandwidth, codecs, extname, video_size)
-            | _ -> assert false
-        in
+        let bandwidth = Value.invoke specs "bandwidth" in
+        let codecs = Value.invoke specs "codecs" in
+        let extname = Value.invoke specs "extname" in
+        let video_size = Value.invoke specs "video_size" in
         ( Lang.to_string name,
           ( lazy (Lang.to_int bandwidth),
             lazy (Lang.to_string codecs),
