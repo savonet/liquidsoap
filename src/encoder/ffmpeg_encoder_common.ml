@@ -40,6 +40,36 @@ type handler = {
   mutable started : bool;
 }
 
+type stream_data = { idx : Int64.t; mutable last_start : Int64.t }
+
+module Stream = Weak.Make (struct
+  type t = stream_data
+
+  let equal x y = x.idx = y.idx
+  let hash x = Int64.to_int x.idx
+end)
+
+(* We lazily store last_start when concatenating
+   streams. The idea is to always have the greatest
+   possible offset, for instance if we concatenate:
+     a: ------>als
+     v: ----------->vls
+   the last start should be vls so we end up with:
+     a: ------>     -------->
+     v: ----------->--------> *)
+let mk_stream_store () =
+  let store = Stream.create 1 in
+  fun ~last_start idx ->
+    let data = { idx; last_start } in
+    match Stream.find_opt store data with
+      | None ->
+          Stream.add store data;
+          data
+      | Some data ->
+          if data.last_start < last_start then
+            data.last_start <- last_start;
+          data
+
 let mk_format ffmpeg =
   match (ffmpeg.Ffmpeg_format.format, ffmpeg.Ffmpeg_format.output) with
     | short_name, `Url filename ->
