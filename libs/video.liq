@@ -253,20 +253,20 @@ end
 
 let video.add_text.best = video.add_text.native
 
-%ifdef video.add_text.gd
-let replaces video.add_text.best = video.add_text.gd
-%endif
-
 %ifdef video.add_text.gstreamer
 let replaces video.add_text.best = video.add_text.gstreamer
 %endif
 
-%ifdef video.add_text.sdl
-let video.add_text.best = video.add_text.sdl
+%ifdef video.add_text.gd
+let replaces video.add_text.best = video.add_text.gd
 %endif
 
 %ifdef video.add_text.ffmpeg
 let video.add_text.best = video.add_text.ffmpeg
+%endif
+
+%ifdef video.add_text.sdl
+let video.add_text.best = video.add_text.sdl
 %endif
 
 # Display a text using the first available operator in: SDL, GStreamer, gd or native.
