@@ -104,6 +104,7 @@ operators = \
 	$(if $(W_FREI0R),operators/frei0r_op.ml) \
 	$(if $(W_GD),operators/video_text_gd.ml) \
 	$(if $(W_SDL_TTF),operators/video_text_sdl.ml) \
+	$(if $(W_CAMLIMAGES),operators/video_text_camlimages.ml) \
 	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
 
 conversions = \
