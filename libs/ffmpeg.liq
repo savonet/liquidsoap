@@ -87,10 +87,10 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font="",
 
   filter = ffmpeg.filter.drawtext.create(
                                   fontfile=fontfile, fontsize="#{size}", x="#{getter.get(x)}", y="#{getter.get(y)}",
-                                  fontcolor=color, text=d, graph)
+                                  fontcolor=color, text=getter.get(d), graph)
 
   filters = [{
-    args = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}"}),
+    args = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{getter.get(d)}"}),
     filter = filter
   }]
 
@@ -98,16 +98,17 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font="",
     if cycle then
       x = getter({"min(#{getter.get(x)}-w,#{getter.get(x)}-text_w)"})
       [...filters,{
-        args   = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}"}),
+        args   = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{getter.get(d)}"}),
         filter = ffmpeg.filter.drawtext.create(
                                       fontfile=fontfile, fontsize="#{size}", x="#{getter.get(x)}", y="#{getter.get(y)}",
-                                      fontcolor=color, text=d, graph)}]
+                                      fontcolor=color, text=getter.get(d), graph)}]
     else filters end
 
-  changed = getter.changes(getter({(getter.get(x),getter.get(y))}))
+  changed = getter.changes(getter({(getter.get(x),getter.get(y),getter.get(d))}))
   def on_change()
     ignore(getter.get(x))
     ignore(getter.get(y))
+    ignore(getter.get(d))
     if changed() then
       list.iter((fun (el) ->
         ignore(el.filter.process_command("reinit", getter.get(el.args)))), filters)
