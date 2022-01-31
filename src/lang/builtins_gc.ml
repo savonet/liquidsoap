@@ -110,4 +110,5 @@ let () =
       "Print the current values of the memory management counters in \
        human-readable form." [] Lang.unit_t (fun _ ->
       Gc.print_stat stdout;
+      flush stdout;
       Lang.unit)
