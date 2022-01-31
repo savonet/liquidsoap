@@ -112,3 +112,75 @@ let () =
       Gc.print_stat stdout;
       flush stdout;
       Lang.unit)
+
+let () =
+  let control_t =
+    Lang.record_t
+      [
+        ("minor_heap_size", Lang.int_t);
+        ("major_heap_increment", Lang.int_t);
+        ("space_overhead", Lang.int_t);
+        ("verbose", Lang.int_t);
+        ("max_overhead", Lang.int_t);
+        ("stack_limit", Lang.int_t);
+        ("allocation_policy", Lang.int_t);
+        ("window_size", Lang.int_t);
+        ("custom_major_ratio", Lang.int_t);
+        ("custom_minor_ratio", Lang.int_t);
+        ("custom_minor_max_size", Lang.int_t);
+      ]
+  in
+  let control
+      {
+        Gc.minor_heap_size;
+        major_heap_increment;
+        space_overhead;
+        verbose;
+        max_overhead;
+        stack_limit;
+        allocation_policy;
+        window_size;
+        custom_major_ratio;
+        custom_minor_ratio;
+        custom_minor_max_size;
+      } =
+    Lang.record
+      [
+        ("minor_heap_size", Lang.int minor_heap_size);
+        ("major_heap_increment", Lang.int major_heap_increment);
+        ("space_overhead", Lang.int space_overhead);
+        ("verbose", Lang.int verbose);
+        ("max_overhead", Lang.int max_overhead);
+        ("stack_limit", Lang.int stack_limit);
+        ("allocation_policy", Lang.int allocation_policy);
+        ("window_size", Lang.int window_size);
+        ("custom_major_ratio", Lang.int custom_major_ratio);
+        ("custom_minor_ratio", Lang.int custom_minor_ratio);
+        ("custom_minor_max_size", Lang.int custom_minor_max_size);
+      ]
+  in
+  let to_control v =
+    let f n = Lang.to_int (Term.Value.invoke v n) in
+    {
+      Gc.minor_heap_size = f "minor_heap_size";
+      major_heap_increment = f "major_heap_increment";
+      space_overhead = f "space_overhead";
+      verbose = f "verbose";
+      max_overhead = f "max_overhead";
+      stack_limit = f "stack_limit";
+      allocation_policy = f "allocation_policy";
+      window_size = f "window_size";
+      custom_major_ratio = f "custom_major_ratio";
+      custom_minor_ratio = f "custom_minor_ratio";
+      custom_minor_max_size = f "custom_minor_max_size";
+    }
+  in
+  Lang.add_builtin "gc.get" ~category:`Liquidsoap
+    ~descr:"Return the current values of the GC parameters" [] control_t
+    (fun _ -> control (Gc.get ()));
+  Lang.add_builtin "gc.set" ~category:`Liquidsoap
+    ~descr:"Set the GC parameters." [("", control_t, None, None)] Lang.unit_t
+    (fun p ->
+      let c = to_control (List.assoc "" p) in
+      Gc.set c;
+      Lang.unit)
