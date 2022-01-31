@@ -160,7 +160,7 @@ let () =
       ]
   in
   let to_control v =
-    let f n = Lang.to_int (Term.Value.invoke v n) in
+    let f n = Lang.to_int (Value.invoke v n) in
     {
       Gc.minor_heap_size = f "minor_heap_size";
       major_heap_increment = f "major_heap_increment";
