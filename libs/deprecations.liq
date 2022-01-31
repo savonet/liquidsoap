@@ -531,3 +531,10 @@ def run_process(%argsof(process.run), p) =
   x = process.run(%argsof(process.run), p)
   (x.stdout, x.stderr, ("#{x.status}", x.status.description))
 end
+
+# Deprecated: use `gc.full_major` instead
+# @flag deprecated
+def garbage_collect() =
+  deprecated("garbage_collec", "gc.full_major")
+  gc.full_major()
+end

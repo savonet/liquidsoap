@@ -422,12 +422,6 @@ let () =
     (Utils.reopen_out stderr)
 
 let () =
-  Lang.add_builtin "garbage_collect" ~category:`Liquidsoap
-    ~descr:"Trigger full major garbage collection." [] Lang.unit_t (fun _ ->
-      Gc.full_major ();
-      Lang.unit)
-
-let () =
   Lang.add_builtin "getpid" ~category:`System [] Lang.int_t
     ~descr:"Get the process' pid." (fun _ -> Lang.int (Unix.getpid ()))
 

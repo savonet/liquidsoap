@@ -4,6 +4,9 @@
 New:
 * Added support for memory debugging using `memtrace`
 * Added `time.{zone,zone.set,make}` (#2178)
+* Added `gc` module, rename `garbage_collect` as `gc.full_major`
+  with deprecated compatiblity wrapper, added `gc.stat`,
+  `gc.quick_stat` and `gc.print_stat`.
 
 Changed:
 * `year` method as returned in `time.local` and `time.utc` now
