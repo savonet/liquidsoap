@@ -560,3 +560,10 @@ def list.mem_assoc(x,y) =
   deprecated("list.mem_assoc", "list.assoc.mem")
   list.assoc.mem(x,y)
 end
+
+# Deprecated: use `gc.full_major` instead
+# @flag deprecated
+def garbage_collect() =
+  deprecated("garbage_collec", "gc.full_major")
+  gc.full_major()
+end
