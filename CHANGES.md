@@ -23,6 +23,7 @@ Changed:
 Fixed:
 * Make sure metadata are replayed when switching to a source for the
   first time in switches/fallback (#2138)
+* Bring back `video.add_text.sdl` (#2187)
 
 2.0.2 (28-12-2021)
 =====
