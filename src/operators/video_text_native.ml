@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let log = Log.make ["video"; "add_text"; "native"]
+
 let prebitmap =
   [
     ('A', [| " * "; "* *"; "***"; "* *"; "* *" |]);
@@ -96,7 +98,7 @@ let char_space = 1
 let line_space = 2
 
 let render_text ~font ~size text =
-  (* TODO: we ignore font for now... *)
+  log#important "video.add_text.native does not support custom fonts yet!";
   let () = ignore font in
   (* Compute bitmap as a matrix of booleans. *)
   let bmp =
