@@ -9,6 +9,9 @@ New:
   `gc.quick_stat`, `gc.print_stat` and `gc.{get,set}`.
 
 Changed:
+* Bumped `input.harbor` default buffer to `12.` to make it possible
+  to use it with `crossfade` transitions without changing default
+  values (#2156)
 * `year` method as returned in `time.local` and `time.utc` now
   returns the actual year instead of years since 1900 (#2178)
 * `mday`, `mon`, `wday` and `yday` methods as returned in `time.local`
