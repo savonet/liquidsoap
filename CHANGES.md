@@ -19,6 +19,9 @@ New:
 - Added `video.slideshow`.
 
 Changes:
+
+- Removed support for partial application, which should avoid some type errors
+  and improve performance.
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
   `quality` arguments and added a single encoder argument to allow stream copy
   and more.
