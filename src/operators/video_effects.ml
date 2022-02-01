@@ -195,14 +195,14 @@ let () =
 let () =
   Lang.add_operator "video.opacity.blur"
     [
-      "", Lang.source_t kind, None, None
+      "", Lang.source_t return_t, None, None
     ]
     ~return_t
     ~category:`Video
     ~descr:"Blur opacity of video."
     (fun p ->
        let src = Lang.to_source (Lang.assoc "" 1 p) in
-         new effect ~kind Image.Effect.Alpha.blur src)
+         new effect ~kind src Image.YUV420.Effect.Alpha.blur)
 
 let () =
   Lang.add_operator "video.lomo"
@@ -401,20 +401,21 @@ let () =
           Lang.to_int_getter (f "x"),
           Lang.to_int_getter (f "y") )
       in
-      new effect ~name ~kind src (fun buf ->
+      new effect_map ~name ~kind src (fun buf ->
+          let buf = Video.Canvas.Image.render buf in
           let round x = int_of_float (x +. 0.5) in
+          let c = c () in
+          let cx = c *. cx () in
+          let cy = c *. cy () in
           let width =
-            Video.Image.width buf |> float_of_int
-            |> ( *. ) (c () *. cx ())
-            |> round
+            Video.Image.width buf |> float_of_int |> ( *. ) cx |> round
           in
           let height =
-            Video.Image.height buf |> float_of_int
-            |> ( *. ) (c () *. cy ())
-            |> round
+            Video.Image.height buf |> float_of_int |> ( *. ) cy |> round
           in
           let dst = Video.Image.create width height in
           Image.YUV420.scale buf dst;
-          Video.Image.blank buf;
-          Video.Image.fill_alpha buf 0;
-          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf))
+          Video.Canvas.Image.make ~x:(ox ()) ~y:(oy ())
+            ~width:(Lazy.force Frame.video_width)
+            ~height:(Lazy.force Frame.video_height)
+            dst))
