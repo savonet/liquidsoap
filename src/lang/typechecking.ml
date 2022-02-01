@@ -286,7 +286,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                   (fun (o, l, t) -> if o then None else Some (l, t))
                   ap
               in
-              if mandatory <> [] then raise (Term.Missing_arguments mandatory);
+              if mandatory <> [] then
+                raise (Term.Missing_arguments (pos, mandatory));
               e.t >: t
           | _ ->
               let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in

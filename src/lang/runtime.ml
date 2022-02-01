@@ -161,7 +161,17 @@ let throw print_error = function
         "Uncaught runtime error:@ type: %s,@ message: %s,@\nstack: %s\n@]@."
         kind (Utils.quote_string msg) pos;
       raise Error
-  | Sedlexing.MalFormed -> print_error 13 "Malformed file."
+  | Sedlexing.MalFormed -> print_error 15 "Malformed file."
+  | Term.Missing_arguments (pos, args) ->
+      let args =
+        List.map
+          (fun (l, t) -> (if l = "" then "" else l ^ " : ") ^ Type.to_string t)
+          args
+        |> String.concat ", "
+      in
+      error_header 15 pos;
+      Format.printf "Missing arguments in function application: %s.@]@." args;
+      raise Error
   | End_of_file -> raise End_of_file
   | e ->
       let bt = Printexc.get_backtrace () in
