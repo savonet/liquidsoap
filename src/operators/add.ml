@@ -137,19 +137,20 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                with Content.Invalid -> ());
 
               try
-                let vbuf = VFrame.yuva420p buf in
-                let vtmp = VFrame.yuva420p tmp in
+                let vbuf = VFrame.data buf in
+                let vtmp = VFrame.data tmp in
                 let ( ! ) = Frame.video_of_main in
                 for i = !offset to !already - 1 do
-                  video_loop rank (Video.get vbuf i) (Video.get vtmp i)
+                  video_loop rank (Video.Canvas.get vbuf i)
+                    (Video.Canvas.get vtmp i)
                 done
               with Content.Invalid -> ())
             else (
               try
-                let vbuf = VFrame.yuva420p buf in
+                let vbuf = VFrame.data buf in
                 let ( ! ) = Frame.video_of_main in
                 for i = !offset to !already - 1 do
-                  video_init (Video.get vbuf i)
+                  video_init (Video.Canvas.get vbuf i)
                 done
               with Content.Invalid -> ());
             (rank + 1, max end_offset already))
@@ -212,7 +213,7 @@ let () =
          ~kind ~renorm ~power
          (List.map2 (fun w s -> (w, s)) weights sources)
          (fun _ -> ())
-         (fun _ buf tmp -> Video.Image.add tmp buf)
+         (fun _ buf tmp -> Video.Canvas.Image.add tmp buf)
         :> Source.source))
 
 let tile_pos n =
@@ -232,6 +233,7 @@ let tile_pos n =
   in
   horiz (n / 2) (n - (n / 2))
 
+(*
 let () =
   let kind = Lang.video_yuva420p in
   let kind_t = Lang.kind_type_of_kind_format kind in
@@ -287,7 +289,7 @@ let () =
         scale tmp tmp';
         Video.Image.add tmp' ~x ~y buf
       in
-      let video_init buf = video_loop 0 buf buf in
+      let video_init (buf : Content.Video.data) = video_loop 0 buf buf in
       if List.length weights <> List.length sources then
         raise
           (Error.Invalid_value
@@ -299,3 +301,4 @@ let () =
          (List.map2 (fun w s -> (w, s)) weights sources)
          video_init video_loop
         :> Source.source))
+*)

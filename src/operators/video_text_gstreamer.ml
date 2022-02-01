@@ -39,7 +39,7 @@ let render_text ~font ~size text =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let get_pixel i j =
-    let z, _, _, _ = Video.Image.get_pixel_rgba img i j in
+    let z, _, _, _ = Image.YUV420.get_pixel_rgba img i j in
     z
   in
   (* Normalize the pixel values, we get shade otherwise, see #1190. *)

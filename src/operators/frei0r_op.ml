@@ -63,7 +63,7 @@ class frei0r_filter ~kind ~name bgra instance params (source : source) =
             let rgb = Content.Video.get_data rgb in
             for i = offset to offset + length - 1 do
               (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
-              let img = Video.get rgb i in
+              let img = Video.Canvas.render rgb i in
               let img = Image.YUV420.to_RGBA32 img in
               if bgra then Image.RGBA32.swap_rb img;
               let src = Image.RGBA32.data (Image.RGBA32.copy img) in
@@ -71,7 +71,7 @@ class frei0r_filter ~kind ~name bgra instance params (source : source) =
               Frei0r.update1 instance t src dst;
               if bgra then Image.RGBA32.swap_rb img;
               let img = Image.YUV420.of_RGBA32 img in
-              Video.set rgb i img;
+              Video.Canvas.put rgb i img;
               t <- t +. dt
             done
   end
@@ -134,9 +134,10 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
             let rgb' = Content.Video.get_data rgb' in
             for i = offset to offset + length - 1 do
               (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
-              let img = Video.get rgb i in
+              let img = Video.Canvas.render rgb i in
               let img = Image.YUV420.to_RGBA32 img in
-              let img' = Video.get rgb' i in
+              let img' = Video.Canvas.get rgb' i in
+              let img' = Video.Canvas.Image.render img' in
               let img' = Image.YUV420.to_RGBA32 img' in
               if bgra then Image.RGBA32.swap_rb img;
               if bgra then Image.RGBA32.swap_rb img';
@@ -146,7 +147,7 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
               Frei0r.update2 instance t src src' dst;
               if bgra then Image.RGBA32.swap_rb img;
               let img = Image.YUV420.of_RGBA32 img in
-              Video.set rgb i img;
+              Video.Canvas.put rgb i img;
               t <- t +. dt
             done
         | _ -> ()
@@ -173,15 +174,15 @@ class frei0r_source ~kind ~name bgra instance params =
         params ();
         let start = VFrame.position frame in
         let stop = VFrame.size () in
-        let rgb = VFrame.yuva420p frame in
+        let rgb = VFrame.data frame in
         for i = start to stop - 1 do
-          let img = Video.get rgb i in
+          let img = Video.Canvas.render rgb i in
           let img = Image.YUV420.to_RGBA32 img in
           let dst = Image.RGBA32.data img in
           Frei0r.update0 instance t dst;
           if bgra then Image.RGBA32.swap_rb img;
           let img = Image.YUV420.of_RGBA32 img in
-          Video.set rgb i img;
+          Video.Canvas.put rgb i img;
           t <- t +. dt
         done;
         VFrame.add_break frame stop)

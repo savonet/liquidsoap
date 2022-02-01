@@ -143,16 +143,16 @@ module VideoSpecs = struct
   open Frame_base
   open Contents
 
-  type kind = [ `Yuv420p ]
+  type kind = [ `Canvas ]
   type params = Contents.video_params
-  type data = Video.t
+  type data = Video.Canvas.t
 
-  let string_of_kind = function `Yuv420p -> "yuva420p"
+  let string_of_kind = function `Canvas -> "yuva420p"
 
-  let make ~size { width; height } =
-    let width = !!(Option.value ~default:video_width width) in
-    let height = !!(Option.value ~default:video_height height) in
-    Video.make (video_of_main size) width height
+  let make ~size (p : params) : data =
+    let width = !!(Option.value ~default:video_width p.width) in
+    let height = !!(Option.value ~default:video_height p.height) in
+    Video.Canvas.make (video_of_main size) (width, height)
 
   let clear _ = ()
 
@@ -187,32 +187,28 @@ module VideoSpecs = struct
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = Frame_base.video_of_main in
-    Video.blit src !src_pos dst !dst_pos !len
+    Video.Canvas.blit src !src_pos dst !dst_pos !len
 
-  let length d = Frame_base.main_of_video (Video.length d)
-  let copy = Video.copy
+  let length d = Frame_base.main_of_video (Video.Canvas.length d)
+  let copy = Video.Canvas.copy
 
-  let params data =
-    if Array.length data = 0 then { width = None; height = None }
-    else (
-      let i = data.(0) in
+  let params d =
+    if Array.length d = 0 then { width = None; height = None }
+    else
       {
-        width = Some (lazy (Video.Image.width i));
-        height = Some (lazy (Video.Image.height i));
-      })
+        width = Some (lazy (Video.Canvas.Image.width d.(0)));
+        height = Some (lazy (Video.Canvas.Image.height d.(0)));
+      }
 
-  let kind = `Yuv420p
+  let kind = `Canvas
   let default_params _ = { width = None; height = None }
-
-  let kind_of_string = function
-    | "yuva420p" | "video" -> Some `Yuv420p
-    | _ -> None
+  let kind_of_string = function "canvas" | "video" -> Some `Canvas | _ -> None
 end
 
 module Video = struct
   include MkContent (VideoSpecs)
 
-  let kind = lift_kind `Yuv420p
+  let kind = lift_kind `Canvas
 end
 
 module MidiSpecs = struct

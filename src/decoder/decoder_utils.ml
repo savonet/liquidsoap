@@ -131,8 +131,8 @@ let video_resample ~in_freq ~out_freq =
 
 let video_resample () =
   let state = ref None in
-  let exec resampler data = resampler data 0 (Array.length data) in
-  fun ~in_freq ~out_freq data ->
+  let exec resampler data = resampler data 0 (Video.Canvas.length data) in
+  fun ~in_freq ~out_freq (data : Content.Video.data) : Content.Video.data ->
     if in_freq = out_freq then data
     else (
       match !state with

@@ -52,8 +52,11 @@ class still_frame ~name ~kind (source : source) =
             match v with
               | Some (v, off, _) ->
                   let v = Content.Video.get_data v in
-                  let i = Video.get v off in
-                  let i = i |> Image.YUV420.to_RGBA32 |> Image.RGBA32.to_BMP in
+                  let i = Video.Canvas.get v off in
+                  let i =
+                    i |> Video.Canvas.Image.render |> Image.YUV420.to_RGBA32
+                    |> Image.RGBA32.to_BMP
+                  in
                   let oc = open_out f in
                   output_string oc i;
                   close_out oc;

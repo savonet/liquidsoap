@@ -36,7 +36,10 @@ class effect ~name ~kind (source : source) effect =
     method private get_frame buf =
       match VFrame.get_content buf source with
         | Some (rgb, offset, length) -> (
-            try Video.iter effect (Content.Video.get_data rgb) offset length
+            try
+              Video.Canvas.iter effect
+                (Content.Video.get_data rgb)
+                offset length
             with Content.Invalid -> ())
         | _ -> ()
   end
@@ -52,7 +55,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name ~kind src Video.Image.Effect.greyscale)
+      new effect ~name ~kind src Image.YUV420.Effect.greyscale)
 
 let () =
   let name = "video.sepia" in
@@ -62,7 +65,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name ~kind src Video.Image.Effect.sepia)
+      new effect ~name ~kind src Image.YUV420.Effect.sepia)
 
 let () =
   let name = "video.invert" in
@@ -72,7 +75,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name ~kind src Video.Image.Effect.invert)
+      new effect ~name ~kind src Image.YUV420.Effect.invert)
 
 let () =
   let name = "video.opacity" in
@@ -89,7 +92,7 @@ let () =
       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
       new effect ~name ~kind src (fun buf ->
-          Video.Image.Effect.Alpha.scale buf (a ())))
+          Image.YUV420.Effect.Alpha.scale buf (a ())))
 
 let () =
   let name = "video.fill" in
@@ -307,7 +310,7 @@ let () =
             else assert false
           in
           let dst = Video.Image.create width height in
-          Video.Image.scale buf dst;
+          Image.YUV420.scale buf dst;
           Video.Image.blank buf;
           Video.Image.fill_alpha buf 0;
           Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf))
@@ -381,7 +384,7 @@ let () =
             |> round
           in
           let dst = Video.Image.create width height in
-          Video.Image.scale buf dst;
+          Image.YUV420.scale buf dst;
           Video.Image.blank buf;
           Video.Image.fill_alpha buf 0;
           Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf))

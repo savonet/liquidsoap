@@ -84,7 +84,8 @@ let off_string iw ih ox oy =
 
 let create_decoder ~metadata img =
   (* Dimensions. *)
-  let img_w, img_h = Video.Image.dimensions img in
+  let img_w = Image.YUV420.width img in
+  let img_h = Image.YUV420.height img in
   let width = try Hashtbl.find metadata "width" with Not_found -> "" in
   let height = try Hashtbl.find metadata "height" with Not_found -> "" in
   let width, height = wh_string img_w img_h width height in

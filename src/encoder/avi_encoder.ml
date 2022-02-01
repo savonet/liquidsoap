@@ -47,12 +47,12 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =
-    let vbuf = VFrame.yuva420p frame in
+    let vbuf = VFrame.data frame in
     let vstart = Frame.video_of_main start in
     let vlen = Frame.video_of_main len in
     let data = Strings.Mutable.empty () in
     for i = vstart to vstart + vlen - 1 do
-      let img = Video.get vbuf i in
+      let img = Video.Canvas.render vbuf i in
       (* TODO: change stride otherwise *)
       let width = Image.YUV420.width img in
       assert (Image.YUV420.y_stride img = width);
