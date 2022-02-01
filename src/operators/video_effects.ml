@@ -179,7 +179,7 @@ let () =
       let height = List.assoc "height" p |> Lang.to_int_getter in
       let color = List.assoc "color" p |> Lang.to_int_getter in
       let src = List.assoc "" p |> Lang.to_source in
-      new effect ~name ~kind src (fun buf ->
+      new effect_map ~name ~kind src (fun buf ->
           let x = x () in
           let y = y () in
           let width = width () in
@@ -189,7 +189,8 @@ let () =
           in
           let r = Image.YUV420.create width height in
           Image.YUV420.fill r c;
-          Image.YUV420.add r ~x ~y buf))
+          let r = Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) r in
+          Video.Canvas.Image.add r buf))
 
 (*
 let () =
