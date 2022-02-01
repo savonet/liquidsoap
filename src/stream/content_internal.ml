@@ -202,7 +202,10 @@ module VideoSpecs = struct
 
   let kind = `Canvas
   let default_params _ = { width = None; height = None }
-  let kind_of_string = function "canvas" | "video" -> Some `Canvas | _ -> None
+
+  let kind_of_string = function
+    | "yuva420p" | "canvas" | "video" -> Some `Canvas
+    | _ -> None
 end
 
 module Video = struct
