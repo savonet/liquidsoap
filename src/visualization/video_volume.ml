@@ -29,8 +29,6 @@ let backpoints = 200
 let group_size = 1764
 let f_group_size = float group_size
 
-(* TODO: restore *)
-(*
 class visu ~kind source =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
@@ -108,20 +106,13 @@ class visu ~kind source =
         let stop = start + Frame.video_of_main len in
         for f = start to stop - 1 do
           let img = ref (Video.Canvas.Image.create width height) in
-          let line img c p q =
-            let f i j =
-              if
-                0 <= i
-                && i < Image.YUV420.width img
-                && 0 <= j
-                && j < Image.YUV420.height img
-              then Image.YUV420.set_pixel_rgba img i j c
-            in
-            Image.Draw.line f p q
+          let line c p q =
+            img :=
+              Video.Canvas.Image.add (Video.Canvas.Image.Draw.line p q c) !img
           in
           for i = 0 to self#audio_channels - 1 do
             let y = int_of_float (volheight *. float i) in
-            line buf (90, 90, 90, 0xff) (0, y) (width - 1, y);
+            line (90, 90, 90, 0xff) (0, y) (width - 1, y);
             for chan = 0 to self#audio_channels - 1 do
               let vol = vol.(chan) in
               let chan_height = int_of_float (volheight *. float chan) in
@@ -141,12 +132,12 @@ class visu ~kind source =
                           (volheight *. vol.((i + pos) mod backpoints)))
                     - 1 )
                 in
-                line buf (0, 0xff, 0, 0xff) !pt0 pt1;
+                line (0, 0xff, 0, 0xff) !pt0 pt1;
                 pt0 := pt1
               done
             done
           done;
-          Video.Canvas.set buf f img
+          Video.Canvas.set buf f !img
         done)
   end
 
@@ -162,4 +153,3 @@ let () =
       let src = Lang.to_source (f "") in
       let kind = Kind.of_kind kind in
       (new visu ~kind src :> Source.source))
-*)
