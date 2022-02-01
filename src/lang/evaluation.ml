@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+(** Make positions more precise in applications (but should be a bit slower). *)
+let precise_application_pos = false
+
 (** {1 Evaluation} *)
 
 open Term
@@ -283,23 +286,25 @@ let rec eval ~env tm =
         else ans ()
 
 and apply f l =
-  (*
   (* Position of the whole application. *)
-  let rec pos = function
-    | [(_, v)] -> (
-        match (f.Value.pos, v.Value.pos) with
-          | Some (p, _), Some (_, q) -> Some (p, q)
-          | Some pos, None -> Some pos
-          | None, Some pos -> Some pos
-          | None, None -> None)
-    | _ :: l -> pos l
-    | [] -> f.Value.pos
+  let pos =
+    if precise_application_pos then (
+      let rec pos = function
+        | [(_, v)] -> (
+            match (f.Value.pos, v.Value.pos) with
+              | Some (p, _), Some (_, q) -> Some (p, q)
+              | Some pos, None -> Some pos
+              | None, Some pos -> Some pos
+              | None, None -> None)
+        | _ :: l -> pos l
+        | [] -> f.Value.pos
+      in
+      pos l)
+    else
+      (* NB: the above is more precise (we get the arguments), but I don't think
+         this is worth the price: we compute it for every application... *)
+      f.Value.pos
   in
-  let pos = pos l in
-  *)
-  (* NB: the above is more precise (we get the arguments), but I don't think
-     this is worth the price: we compute it for every application... *)
-  let pos = f.Value.pos in
   (* Extract the components of the function, whether it's explicit or foreign,
      together with a rewrapping function for creating a closure in case of
      partial application. *)
