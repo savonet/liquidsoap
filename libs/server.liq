@@ -36,7 +36,7 @@ def server.insert_metadata(~id=null(),s) =
     #is difficult to achieve with regexps
     l = r/,/.split(s)
     def f(l,x) =
-      sub = r/\"/.replace(fun (_) -> '"')
+      def sub(s) = r/\"/.replace(fun (_) -> '"', s) end
       if x != "" then
         ret = r/([^=]+)\s*=\s*"((?:\"|[^"])*)"/.exec(x)
         if ret[1] != "" then

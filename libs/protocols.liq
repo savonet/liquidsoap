@@ -22,7 +22,7 @@ let settings.protocol.replaygain.tag = settings.make(
 # @flag hidden
 def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
                      ~delay=_,file)
-  log = log.info(label="extract.replaygain")
+  def log(x) = log.info(label="extract.replaygain",x) end
   p = process.run("#{extract_replaygain} #{process.quote(file)}")
   stdout = r/\n/.replace(fun (_) -> "", p.stdout)
   if p.status == "exit" and p.status.code == 0 then
@@ -152,11 +152,9 @@ end
 def http_protocol(proto,~rlog,~maxtime,arg) =
   uri = "#{proto}:#{arg}"
 
-  log = log(label="procol.external")
-
   def log(~level,s) =
     rlog(s)
-    log(level=level,s)
+    log(label="procol.external",level=level,s)
   end
 
   timeout = maxtime - time()
@@ -207,10 +205,11 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
   [output]
 end
 
-# Register download protocol
+# Register download protocol.
 # @flag hidden
 def add_http_protocol(proto) =
-  add_protocol(temporary=true,syntax="#{proto}://...",doc="Download http URLs using curl",proto,http_protocol(proto))
+  def http_protocol(~rlog,~maxtime,arg) = http_protocol(proto,rlog=rlog,maxtime=maxtime,arg) end
+  add_protocol(temporary=true,syntax="#{proto}://...",doc="Download http URLs using curl",proto,http_protocol)
 end
 list.iter(add_http_protocol,["http","https"])
 %endif
@@ -228,11 +227,9 @@ let settings.protocol.youtube_dl.path = settings.make(
 def youtube_dl_protocol(~rlog,~maxtime,arg)
   binary = settings.protocol.youtube_dl.path()
 
-  log = log(label="protocol.youtube-dl")
-
   def log(~level,s) =
     rlog(s)
-    log(level=level,s)
+    log(label="protocol.youtube-dl",level=level,s)
   end
 
   delay = maxtime - time()
@@ -308,11 +305,9 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
   metadata = settings.protocol.ffmpeg.metadata()
   replaygain = settings.protocol.ffmpeg.replaygain()
 
-  log = log(label="protocol.ffmpeg")
-
   def log(~level,s) =
     rlog(s)
-    log(level=level,s)
+    log(label="protocol.ffmpeg",level=level,s)
   end
 
   def annotate(m) =
