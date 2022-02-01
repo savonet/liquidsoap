@@ -88,6 +88,10 @@ let create_decoder ~metadata img =
   let img_h = Image.YUV420.height img in
   let width = try Hashtbl.find metadata "width" with Not_found -> "" in
   let height = try Hashtbl.find metadata "height" with Not_found -> "" in
+  (* TODO: shouldn't we have a way to retrieve the information of the target
+     size we want here? *)
+  let target_width = Lazy.force Frame.video_width in
+  let target_height = Lazy.force Frame.video_height in
   let width, height = wh_string img_w img_h width height in
   (* Offset. *)
   let off_x = try Hashtbl.find metadata "x" with Not_found -> "" in
@@ -104,15 +108,12 @@ let create_decoder ~metadata img =
         img')
     in
     let img =
-      let img' =
-        Video.Image.create
-          (Lazy.force Frame.video_width)
-          (Lazy.force Frame.video_height)
-      in
-      Video.Image.blank img';
-      Image.YUV420.fill_alpha img' 0;
-      Video.Image.add img img' ~x:off_x ~y:off_y;
-      img'
+      Video.Canvas.Image.make ~width:target_width ~height:target_height img
+    in
+    let img = Video.Canvas.Image.translate off_x off_y img in
+    let img =
+      Video.Canvas.Image.add img
+        (Video.Canvas.Image.create target_width target_height)
     in
     img
   in
@@ -125,7 +126,7 @@ let create_decoder ~metadata img =
   let duration = ref duration in
   let close () = () in
   let fill frame =
-    let video = VFrame.yuva420p frame in
+    let video = VFrame.data frame in
     let start = VFrame.next_sample_position frame in
     let stop =
       if !duration = -1 then VFrame.size frame
@@ -138,7 +139,7 @@ let create_decoder ~metadata img =
        * layer will be re-used.  In fact, we might even need to explicitly
        * blankify because our image might be transparent and the current frame
        * might contain random stuff. *)
-      Video.Image.blit img (Video.get video i)
+      Video.Canvas.set video i img
     done;
     if !duration = -1 then -1
     else (
