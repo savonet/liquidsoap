@@ -419,3 +419,41 @@ let () =
             ~width:(Lazy.force Frame.video_width)
             ~height:(Lazy.force Frame.video_height)
             dst))
+
+let () =
+  let name = "video.line" in
+  Lang.add_operator name
+    [
+      ( "color",
+        Lang.getter_t Lang.int_t,
+        Some (Lang.int 0xffffff),
+        Some "Color to fill the image with (0xRRGGBB)." );
+      ( "",
+        Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
+        None,
+        Some "Start point." );
+      ( "",
+        Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
+        None,
+        Some "End point." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Draw a line on the video."
+    (fun param ->
+      let to_point_getter v =
+        let v = Lang.to_getter v in
+        fun () ->
+          let x, y = v () |> Lang.to_product in
+          (Lang.to_int x, Lang.to_int y)
+      in
+      let p = Lang.assoc "" 1 param |> to_point_getter in
+      let q = Lang.assoc "" 2 param |> to_point_getter in
+      let s = Lang.assoc "" 3 param |> Lang.to_source in
+      let color = List.assoc "color" param |> Lang.to_int_getter in
+      new effect_map ~name ~kind s (fun buf ->
+          let r, g, b = color () |> Image.RGB8.Color.of_int in
+          (* TODO: we could keep the image if the values did not change *)
+          let line =
+            Video.Canvas.Image.Draw.line (p ()) (q ()) (r, g, b, 0xff)
+          in
+          Video.Canvas.Image.add line buf))
