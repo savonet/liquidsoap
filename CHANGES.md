@@ -17,6 +17,7 @@ New:
 - Added `video.rectangle`, `video.persistence`.
 - Added `video.vumeter`.
 - Added `video.slideshow`.
+- Added `video.add_text.camlimages` (#2202).
 
 Changes:
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
