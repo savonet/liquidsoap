@@ -21,7 +21,7 @@ New:
 Changes:
 
 - Removed support for partial application, which should avoid some type errors
-  and improve performance.
+  and improve performance (#2204).
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
   `quality` arguments and added a single encoder argument to allow stream copy
   and more.
