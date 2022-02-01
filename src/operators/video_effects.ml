@@ -23,7 +23,7 @@
 open Mm
 open Source
 
-class effect ~name ~kind (source : source) effect =
+class virtual base ~name ~kind (source : source) f =
   object
     inherit operator ~name kind [source]
     method stype = source#stype
@@ -36,12 +36,25 @@ class effect ~name ~kind (source : source) effect =
     method private get_frame buf =
       match VFrame.get_content buf source with
         | Some (rgb, offset, length) -> (
-            try
-              Video.Canvas.iter effect
-                (Content.Video.get_data rgb)
-                offset length
+            try f (Content.Video.get_data rgb) offset length
             with Content.Invalid -> ())
         | _ -> ()
+  end
+
+class effect ~name ~kind (source : source) effect =
+  object
+    inherit
+      base
+        ~name ~kind source
+        (fun buf off len -> Video.Canvas.iter effect buf off len)
+  end
+
+class effect_map ~name ~kind (source : source) effect =
+  object
+    inherit
+      base
+        ~name ~kind source
+        (fun buf off len -> Video.Canvas.map effect buf off len)
   end
 
 let kind = Kind.of_kind Lang.any
@@ -339,6 +352,23 @@ let () =
       new effect ~name ~kind src (fun buf ->
           Image.YUV420.box_alpha buf (ox ()) (oy ()) (width ()) (height ())
             (alpha ())))
+
+let () =
+  let name = "video.translate" in
+  Lang.add_operator name
+    [
+      ("x", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Translate video."
+    (fun p ->
+      let f v = List.assoc v p in
+      let src = f "" |> Lang.to_source in
+      let dx = f "x" |> Lang.to_int_getter in
+      let dy = f "y" |> Lang.to_int_getter in
+      new effect_map ~name ~kind src (fun buf ->
+          Video.Canvas.Image.translate (dx ()) (dy ()) buf))
 
 let () =
   let name = "video.scale" in
