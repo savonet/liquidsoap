@@ -833,6 +833,7 @@ AC_CHECK_OCAML_BINDING([tsdl])
 AC_CHECK_OCAML_BINDING([tsdl-ttf],[tsdl])
 AC_CHECK_OCAML_BINDING([tsdl-image],[tsdl])
 AC_CHECK_OCAML_BINDING([camlimages],[],[],[camlimages.all_formats])
+AC_CHECK_OCAML_BINDING([camlimages.freetype],[],[],[camlimages.freetype])
 AC_CHECK_OCAML_BINDING([cohttp-lwt-unix])
 AC_CHECK_OCAML_BINDING([prometheus-app],[cohttp-lwt-unix])
 

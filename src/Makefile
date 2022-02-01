@@ -51,7 +51,7 @@ decoders = \
 	$(if $(W_FLAC_OGG),decoder/ogg_flac_duration.ml) \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
         decoder/id3v2_plug.ml \
-	$(if $(W_CAMLIMAGES),decoder/image/camlimages_decoder.ml) \
+	$(if $(W_CAMLIMAGES_FREETYPE),decoder/image/camlimages_decoder.ml) \
 	$(if $(W_SDL_IMAGE),decoder/image/sdlimage_decoder.ml) \
 	$(if $(W_GSTREAMER),decoder/gstreamer_decoder.ml)
 
@@ -104,6 +104,7 @@ operators = \
 	$(if $(W_FREI0R),operators/frei0r_op.ml) \
 	$(if $(W_GD),operators/video_text_gd.ml) \
 	$(if $(W_SDL_TTF),operators/video_text_sdl.ml) \
+	$(if $(W_CAMLIMAGES),operators/video_text_camlimages.ml) \
 	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
 
 conversions = \
