@@ -35,6 +35,9 @@ let remove_first filter =
   in
   aux []
 
+let rec rev_map_append f l1 l2 =
+  match l1 with [] -> l2 | a :: l -> rev_map_append f l (f a :: l2)
+
 let lookup (env : Value.lazy_env) var =
   try Lazy.force (List.assoc var env)
   with Not_found ->
@@ -280,6 +283,8 @@ let rec eval ~env tm =
         else ans ()
 
 and apply f l =
+  (*
+  (* Position of the whole application. *)
   let rec pos = function
     | [(_, v)] -> (
         match (f.Value.pos, v.Value.pos) with
@@ -290,8 +295,11 @@ and apply f l =
     | _ :: l -> pos l
     | [] -> f.Value.pos
   in
-  (* Position of the whole application. *)
-  let pos () = pos l in
+  let pos = pos l in
+  *)
+  (* NB: the above is more precise (we get the arguments), but I don't think
+     this is worth the price: we compute it for every application... *)
+  let pos = f.Value.pos in
   (* Extract the components of the function, whether it's explicit or foreign,
      together with a rewrapping function for creating a closure in case of
      partial application. *)
@@ -300,8 +308,10 @@ and apply f l =
       | Value.Fun (p, e, body) ->
           ( p,
             fun pe ->
-              let pe = List.map (fun (x, gv) -> (x, Lazy.from_val gv)) pe in
-              eval ~env:(List.rev_append pe e) body )
+              let env =
+                rev_map_append (fun (x, gv) -> (x, Lazy.from_val gv)) pe e
+              in
+              eval ~env body )
       | Value.FFI (p, f) -> (p, fun pe -> f (List.rev pe))
       | _ -> assert false
   in
@@ -311,14 +321,15 @@ and apply f l =
       | Runtime_error err ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
-            (Runtime_error { err with pos = Option.to_list (pos ()) @ err.pos })
+            (Runtime_error { err with pos = Option.to_list pos @ err.pos })
             bt
       | Internal_error (poss, e) ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
-            (Internal_error (Option.to_list (pos ()) @ poss, e))
+            (Internal_error (Option.to_list pos @ poss, e))
             bt
   in
+  (* Provide given arguments. *)
   let pe, p =
     List.fold_left
       (fun (pe, p) (lbl, v) ->
@@ -338,7 +349,7 @@ and apply f l =
              with the mount/name params of output.icecast.*, the printing of
              the error should succeed at getting a position information. *)
           let v = Option.get v in
-          { v with Value.pos = pos () } )
+          { v with Value.pos } )
         :: pe)
       pe p
   in
@@ -347,7 +358,7 @@ and apply f l =
      information. For example, if we build a fallible source and pass it to an
      operator that expects an infallible one, an error is issued about that
      FFI-made value and a position is needed. *)
-  { v with Value.pos = pos () }
+  { v with Value.pos }
 
 let eval ?env tm =
   let env =
