@@ -48,7 +48,6 @@ let () =
         ("compactions", Lang.int_t);
         ("top_heap_words", Lang.int_t);
         ("stack_size", Lang.int_t);
-        ("forced_major_collections", Lang.int_t);
       ]
   in
   let stat
@@ -69,7 +68,6 @@ let () =
         compactions;
         top_heap_words;
         stack_size;
-        forced_major_collections;
       } =
     Lang.record
       [
@@ -89,7 +87,6 @@ let () =
         ("compactions", Lang.int compactions);
         ("top_heap_words", Lang.int top_heap_words);
         ("stack_size", Lang.int stack_size);
-        ("forced_major_collections", Lang.int forced_major_collections);
       ]
   in
   Lang.add_builtin "gc.stat" ~category:`Liquidsoap
