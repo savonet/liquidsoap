@@ -305,11 +305,16 @@ let replaces video.add_text.best = video.add_text.gstreamer
 let video.add_text.best = video.add_text.sdl
 %endif
 
+%ifdef video.add_text.camlimages
+let video.add_text.best = video.add_text.camlimages
+%endif
+
 %ifdef video.add_text.ffmpeg
 let video.add_text.best = video.add_text.ffmpeg
 %endif
 
-# Display a text using the first available operator in: SDL, GStreamer, gd or native.
+# Display a text using the first available operator in: FFmpeg, camlimages, SDL,
+# GStreamer, gd or native.
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
