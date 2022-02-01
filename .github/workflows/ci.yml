@@ -23,6 +23,7 @@ jobs:
       build_os: ${{ steps.build_details.outputs.build_os }}
       build_platform: ${{ steps.build_details.outputs.build_platform }}
       build_include: ${{ steps.build_details.outputs.build_include }}
+      build_opam: ${{ steps.build_details.outputs.build_opam }}
       docker_release: ${{ steps.build_details.outputs.docker_release }}
       should_build_code: ${{ steps.build_details.outputs.should_build_code }}
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
@@ -161,7 +162,8 @@ jobs:
 
   build_opam:
     runs-on: ubuntu-latest
-    if: needs.build_details.outputs.is_release
+    needs: build_details
+    if: needs.build_details.outputs.build_opam 
     strategy:
       fail-fast: false
       matrix:
