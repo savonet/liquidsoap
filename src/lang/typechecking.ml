@@ -280,9 +280,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                           (lbl :: already, ap'))
                   ([], ap) l
               in
-              (* See if any mandatory argument remains, check the return type. *)
-              if List.for_all (fun (o, _, _) -> o) ap then e.t >: t
-              else e.t >: Type.make (Type.Arrow (ap, t))
+              (* See if any mandatory argument is missing. *)
+              let mandatory =
+                List.filter_map
+                  (fun (o, l, t) -> if o then None else Some (l, t))
+                  ap
+              in
+              if mandatory <> [] then raise (Term.Missing_arguments mandatory);
+              e.t >: t
           | _ ->
               let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
               a.t <: Type.make (Type.Arrow (p, e.t)))
