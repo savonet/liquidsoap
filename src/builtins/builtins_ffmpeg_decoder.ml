@@ -291,7 +291,7 @@ let decode_video_frame ~mode generator =
               ~height:internal_height
               (InternalScaler.convert scaler data)
           in
-          let data = Video.single img in
+          let data = Video.Canvas.single_image img in
           let data = Content.Video.lift_data data in
           Generator.put_video generator ?pts data 0 (Frame.main_of_video 1))
   in

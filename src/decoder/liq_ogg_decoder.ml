@@ -167,7 +167,7 @@ let create_decoder ?(merge_tracks = false) source input =
             den = info.Ogg_decoder.fps_denominator;
           }
         in
-        buffer.Decoder.put_yuva420p ~fps (Video.single rgb)
+        buffer.Decoder.put_yuva420p ~fps (Video.Canvas.single_image rgb)
       in
       let decode_audio, decode_video =
         if decode_audio && decode_video then

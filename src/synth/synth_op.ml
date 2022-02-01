@@ -152,7 +152,9 @@ let register obj name descr =
          ~power:(fun () -> false)
          synths
          (fun _ -> ())
-         (fun _ buf tmp -> Video.Image.add buf tmp)
+         (* TODO: restor *)
+         (* (fun _ buf tmp -> Video.Image.add buf tmp) *)
+           (fun _ _ _ -> ())
         :> Source.source))
 
 let () =

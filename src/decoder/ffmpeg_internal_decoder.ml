@@ -94,7 +94,7 @@ let mk_video_decoder container =
       Ffmpeg_utils.unpack_image ~width:target_width ~height:target_height
         (Scaler.convert scaler frame)
     in
-    let content = Video.single img in
+    let content = Video.Canvas.single_image img in
     buffer.Decoder.put_yuva420p ?pts:None
       ~fps:{ Decoder.num = target_fps; den = 1 }
       content;
