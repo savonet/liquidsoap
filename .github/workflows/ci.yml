@@ -161,7 +161,8 @@ jobs:
 
   build_opam:
     runs-on: ubuntu-latest
-    stragegy:
+    if: needs.build_details.outputs.is_release
+    strategy:
       fail-fast: false
       matrix:
         ocaml-compiler:
