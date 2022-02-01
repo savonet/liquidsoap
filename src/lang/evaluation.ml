@@ -291,7 +291,7 @@ and apply f l =
     | [] -> f.Value.pos
   in
   (* Position of the whole application. *)
-  let pos = pos l in
+  let pos () = pos l in
   (* Extract the components of the function, whether it's explicit or foreign,
      together with a rewrapping function for creating a closure in case of
      partial application. *)
@@ -311,12 +311,12 @@ and apply f l =
       | Runtime_error err ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
-            (Runtime_error { err with pos = Option.to_list pos @ err.pos })
+            (Runtime_error { err with pos = Option.to_list (pos ()) @ err.pos })
             bt
       | Internal_error (poss, e) ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
-            (Internal_error (Option.to_list pos @ poss, e))
+            (Internal_error (Option.to_list (pos ()) @ poss, e))
             bt
   in
   let pe, p =
@@ -338,7 +338,7 @@ and apply f l =
              with the mount/name params of output.icecast.*, the printing of
              the error should succeed at getting a position information. *)
           let v = Option.get v in
-          { v with Value.pos } )
+          { v with Value.pos = pos () } )
         :: pe)
       pe p
   in
@@ -347,7 +347,7 @@ and apply f l =
      information. For example, if we build a fallible source and pass it to an
      operator that expects an infallible one, an error is issued about that
      FFI-made value and a position is needed. *)
-  { v with Value.pos }
+  { v with Value.pos = pos () }
 
 let eval ?env tm =
   let env =
