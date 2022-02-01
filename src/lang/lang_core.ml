@@ -131,11 +131,11 @@ let rec meth v0 = function
 let record = meth unit
 let source s = mk (Source s)
 let reference x = mk (Ref x)
-let val_fun p f = mk (FFI (p, [], f))
+let val_fun p f = mk (FFI (p, f))
 
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
-  let f t tm = mk (Fun (p, [], [], { Term.t; Term.term = tm })) in
+  let f t tm = mk (Fun (p, [], { Term.t; Term.term = tm })) in
   let mkg t = Type.make (Type.Ground t) in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
@@ -146,7 +146,7 @@ let val_cst_fun p c =
     | Ground (Float i) -> f (mkg Type.Float) (Term.Ground (Term.Ground.Float i))
     | Ground (String i) ->
         f (mkg Type.String) (Term.Ground (Term.Ground.String i))
-    | _ -> mk (FFI (p, [], fun _ -> c))
+    | _ -> mk (FFI (p, fun _ -> c))
 
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
@@ -231,8 +231,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
   let value =
     {
       pos = None;
-      value =
-        FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f);
+      value = FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, f);
     }
   in
   let generalized = Type.filter_vars (fun _ -> true) t in
@@ -319,14 +318,12 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
         | Meth (_, a, b) ->
             iter_value a;
             iter_value b
-        | Fun (proto, pe, env, body) ->
+        | Fun (proto, env, body) ->
             (* The following is necessarily imprecise: we might see sources that
                will be unused in the execution of the function. *)
             iter_term env body;
-            List.iter (fun (_, v) -> iter_value v) pe;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-        | FFI (proto, pe, _) ->
-            List.iter (fun (_, v) -> iter_value v) pe;
+        | FFI (proto, _) ->
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
         | Ref r ->
             if List.memq r !static_analysis_failed then ()
@@ -475,7 +472,7 @@ let to_source_list l = List.map to_source (to_list l)
 
 let to_getter t =
   match (demeth t).value with
-    | Fun ([], _, _, _) | FFI ([], _, _) -> fun () -> apply t []
+    | Fun ([], _, _) | FFI ([], _) -> fun () -> apply t []
     | _ -> fun () -> t
 
 (** [assoc lbl n l] returns the [n]th element in [l]
