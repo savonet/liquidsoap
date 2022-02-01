@@ -211,23 +211,22 @@ let print_settings () =
   in
   let print_set ~path = function
     | Value.Tuple [] -> []
-    | value ->
+    | (Value.Fun ([], _, _) | Value.FFI ([], _)) as value ->
+        let value = Lang.apply { Value.pos = None; value } [] in
         [
-          (match Lang.apply { Value.pos = None; value } [] with
-            | v when v.Value.value = Value.Null ->
-                Printf.sprintf {|
-```liquidsoap
-%s.set(<value>)
-```
-|} path
-            | v ->
-                Printf.sprintf {|
+          Printf.sprintf {|
 ```liquidsoap
 %s.set(%s)
 ```
 |} path
-                  (Value.print_value v));
+            (if value.Value.value = Value.Null then "<value>"
+            else Value.print_value value);
         ]
+    | _ -> [Printf.sprintf {|
+```liquidsoap
+%s.set(<value>)
+```
+|} path]
   in
   let rec print_descr ~level ~path descr =
     Printf.sprintf {|
