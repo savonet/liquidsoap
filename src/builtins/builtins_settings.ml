@@ -222,11 +222,15 @@ let print_settings () =
             (if value.Value.value = Value.Null then "<value>"
             else Value.print_value value);
         ]
-    | _ -> [Printf.sprintf {|
+    | value ->
+        [
+          Printf.sprintf {|
 ```liquidsoap
-%s.set(<value>)
+%s.set(%s)
 ```
-|} path]
+|} path
+            (Value.print_value { Value.pos = None; value });
+        ]
   in
   let rec print_descr ~level ~path descr =
     Printf.sprintf {|
