@@ -20,40 +20,37 @@
 
  *****************************************************************************)
 
-open Color
+(* Based on https://gitlab.com/camlspotter/camlimages/-/blob/master/examples/ttfimg/ttfimg.ml *)
 
+let log = Log.make ["video"; "add_text"; "camlimages"]
 let init () = ()
 
 let render_text ~font ~size text =
-  let csize = float size *. 7.2 in
+  let csize = float size in
   let face = new OFreetype.face font 0 in
   face#set_char_size csize csize 72 72;
-  face#set_charmap (List.hd face#charmaps);
+  List.iter
+    (fun cmap ->
+      log#debug "available charmap: platform %d / encoding %d"
+        cmap.Freetype.platform_id cmap.Freetype.encoding_id)
+    face#charmaps;
+  (try face#set_charmap { Freetype.platform_id = 3; encoding_id = 1 }
+   with _ -> (
+     try face#set_charmap { Freetype.platform_id = 3; encoding_id = 0 }
+     with _ -> face#set_charmap (List.hd face#charmaps)));
   let encoded = Fttext.unicode_of_latin text in
   let x1, y1, x2, y2 = face#size encoded in
   let plus = 8 in
+  let w = truncate (x2 -. x1) + plus in
   let h = truncate (ceil y2) - truncate y1 + 1 + plus in
-  let bg = { r = 0; g = 0; b = 0 } in
-  let fg = { r = 255; g = 255; b = 255 } in
-  let rgb = new OImages.rgb24_filled (truncate (x2 -. x1) + plus) h bg in
-  OFreetype.draw_text face
-    (fun org level ->
-      let level' = 255 - level in
-      {
-        r = ((org.r * level') + (fg.r * level)) / 255;
-        g = ((org.g * level') + (fg.g * level)) / 255;
-        b = ((org.b * level') + (fg.b * level)) / 255;
-      })
-    (rgb :> Images.rgb OImages.map)
+  let img = Array.init h (fun _ -> Array.make w 0) in
+  OFreetype.draw_gen Freetype.Render_Normal Freetype.render_char 0.
+    (fun x y l -> try img.(y).(x) <- l with _ -> ())
+    face
     ((plus / 2) - truncate x1)
     (truncate y2 + (plus / 2))
     encoded;
-  let w = rgb#width in
-  let h = rgb#height in
-  let get_pixel x y =
-    let c = rgb#get x y in
-    (c.r + c.g + c.b) / (255 * 255)
-  in
+  let get_pixel x y = img.(y).(x) in
   (w, h, get_pixel)
 
 let () = Video_text.register "camlimages" init render_text
