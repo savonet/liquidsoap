@@ -213,6 +213,16 @@ module Video = struct
   include MkContent (VideoSpecs)
 
   let kind = lift_kind `Yuv420p
+
+  let dimensions_of_format p =
+    let p = get_params p in
+    let width =
+      Lazy.force (Option.value ~default:Frame_base.video_width p.width)
+    in
+    let height =
+      Lazy.force (Option.value ~default:Frame_base.video_height p.height)
+    in
+    (width, height)
 end
 
 module MidiSpecs = struct

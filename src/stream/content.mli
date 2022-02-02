@@ -29,7 +29,7 @@ type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
 
 module Contents : sig
   type kind
-  type format
+  type format = Content_base.Contents.format
   type data
 
   type audio_params = {

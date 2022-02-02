@@ -372,6 +372,9 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     method private audio_channels =
       Content.Audio.channels_of_format self#ctype.Frame.audio
 
+    method private video_dimensions =
+      Content_internal.Video.dimensions_of_format self#ctype.Frame.video
+
     (** Startup/shutdown.
     *
     * Get the source ready for streaming on demand, have it release resources
