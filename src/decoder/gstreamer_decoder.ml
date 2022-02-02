@@ -36,7 +36,8 @@ type gst = {
 }
 
 (** Generic decoder. *)
-let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
+let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
+    fname =
   let decode_audio, decode_video =
     match mode with
       | `Both -> (true, true)
@@ -90,8 +91,6 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
     in
     { bin; audio_sink; video_sink }
   in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
   let started = ref false in
   let init ~reset buffer =
     if reset then
@@ -201,7 +200,9 @@ let create_file_decoder filename content_type ctype =
   in
   let channels = channels content_type in
   let decoder, close, bin =
-    create_decoder ~channels ~merge_tracks:true ~mode `File filename
+    let width, height = Content.Video.dimensions_of_format ctype.Frame.video in
+    create_decoder ~width ~height ~channels ~merge_tracks:true ~mode `File
+      filename
   in
   let remaining () =
     let pos =
