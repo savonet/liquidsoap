@@ -466,7 +466,7 @@ let mk_buffer ~ctype generator =
       let video_resample = Decoder_utils.video_resample () in
       let video_scale =
         let width, height =
-          Content_internal.Video.dimensions_of_format ctype.Frame.video
+          Content.Video.dimensions_of_format ctype.Frame.video
         in
         Decoder_utils.video_scale ~width ~height ()
       in

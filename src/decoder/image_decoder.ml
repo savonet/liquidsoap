@@ -167,7 +167,7 @@ let () =
           (fun ~metadata ~ctype filename ->
             let img = Option.get (Decoder.get_image_file_decoder filename) in
             let width, height =
-              Content_internal.Video.dimensions_of_format ctype.Frame.video
+              Content.Video.dimensions_of_format ctype.Frame.video
             in
             create_decoder ~width ~height ~metadata img);
       stream_decoder = None;
