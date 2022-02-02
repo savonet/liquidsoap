@@ -63,6 +63,15 @@ let () =
       let channel = List.assoc "channel" p |> Lang.to_string in
       let limit = List.assoc "limit" p |> Lang.to_int in
       let s = ref [] in
+      let connect () =
+        log#info "Connecting to %s:%d..." server port;
+        C.connect_by_name ~server ~port ~nick ()
+      in
+      let connected connection =
+        log#info "Connected";
+        C.send_join ~connection ~channel;
+        C.send_privmsg ~connection ~target:channel ~message:"Hi everybody!"
+      in
       let callback _ result =
         match result with
           | Result.Ok { M.command = M.PRIVMSG (target, data); prefix }
@@ -87,15 +96,7 @@ let () =
            startup and clean the thread in the end... *)
         Tutils.create
           (fun () ->
-            C.reconnect_loop ~reconnect:false ~after:30
-              ~connect:(fun _ ->
-                log#info "Connecting to %s:%d..." server port;
-                C.connect_by_name ~server ~port ~nick ())
-              ~f:(fun connection ->
-                log#info "Connected";
-                C.send_join ~connection ~channel;
-                C.send_privmsg ~connection ~target:channel
-                  ~message:"Hi everybody!")
+            C.reconnect_loop ~reconnect:true ~after:30 ~connect ~f:connected
               ~callback ())
           () "irc.channel"
       in
