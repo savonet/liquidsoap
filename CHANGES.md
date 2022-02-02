@@ -30,11 +30,13 @@ Changed:
 * Added option to choose if `input.rtmp` should behave as
   a server or a client (#2197)
 * Allow dynamic text change in `video.add_text.ffmpeg` (#2189)
+* Removed `thread_name` argument from `thread.on_error` callbacks.
 
 Fixed:
 * Make sure metadata are replayed when switching to a source for the
   first time in switches/fallback (#2138)
 * Bring back `video.add_text.sdl` (#2187)
+* Fixed `thread.on_error` implementation (#2171)
 
 2.0.2 (28-12-2021)
 =====

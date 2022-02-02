@@ -56,10 +56,6 @@ type priority =
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler
 
-(** Register queue error handlers. Should return [true] if 
-    the exception was handler by the given callback. *)
-val error_handlers : (bt:string -> name:string -> exn -> bool) Stack.t
-
 (** {1 Misc} *)
 
 (** Waits for [f()] to become true on condition [c].

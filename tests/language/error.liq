@@ -114,8 +114,8 @@ def f() =
   end
 
   # Catches error
-  def on_error(~backtrace, ~thread_name, e) =
-    print("caught error #{e} from thread #{thread_name} and backtrace:\n#{backtrace}")
+  def on_error(~backtrace, e) =
+    print("caught error #{e} with backtrace:\n#{backtrace}")
     if error.kind(e) == "foo" then
       on_done()
     else
