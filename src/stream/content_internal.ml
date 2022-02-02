@@ -217,10 +217,14 @@ module Video = struct
   let dimensions_of_format p =
     let p = get_params p in
     let width =
-      Lazy.force (Option.value ~default:Frame_base.video_width p.width)
+      Lazy.force
+        (Option.value ~default:Frame_base.video_width
+           p.Content_base.Contents.width)
     in
     let height =
-      Lazy.force (Option.value ~default:Frame_base.video_height p.height)
+      Lazy.force
+        (Option.value ~default:Frame_base.video_height
+           p.Content_base.Contents.height)
     in
     (width, height)
 end

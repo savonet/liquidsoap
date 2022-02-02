@@ -70,7 +70,7 @@ let mk_audio_decoder ~channels container =
         List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
         Generator.add_metadata buffer.Decoder.generator m) )
 
-let mk_video_decoder container =
+let mk_video_decoder ~width ~height container =
   let idx, stream, codec = Av.find_best_video_stream container in
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
   let pixel_format =
@@ -78,11 +78,11 @@ let mk_video_decoder container =
       | None -> failwith "Pixel format unknown!"
       | Some f -> f
   in
+  let target_width = width in
+  let target_height = height in
   let width = Avcodec.Video.get_width codec in
   let height = Avcodec.Video.get_height codec in
   let target_fps = Lazy.force Frame.video_rate in
-  let target_width = Lazy.force Frame.video_width in
-  let target_height = Lazy.force Frame.video_height in
   let scaler =
     Scaler.create [] width height pixel_format target_width target_height
       (Ffmpeg_utils.liq_frame_pixel_format ())

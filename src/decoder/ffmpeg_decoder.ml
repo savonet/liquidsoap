@@ -724,8 +724,12 @@ let mk_streams ~ctype container =
         | f when Ffmpeg_raw_content.Video.is_format f ->
             Some
               (`Frame (Ffmpeg_raw_decoder.mk_video_decoder ~format:f container))
-        | _ ->
-            Some (`Frame (Ffmpeg_internal_decoder.mk_video_decoder container))
+        | f ->
+            let width, height = Content_internal.Video.dimensions_of_format f in
+            Some
+              (`Frame
+                (Ffmpeg_internal_decoder.mk_video_decoder ~width ~height
+                   container))
     with Avutil.Error _ -> None
   in
   (audio, video)
