@@ -236,7 +236,6 @@ let tile_pos n =
   in
   horiz (n / 2) (n - (n / 2))
 
-(*
 let () =
   let kind = Lang.video_yuva420p in
   let kind_t = Lang.kind_type_of_kind_format kind in
@@ -279,7 +278,9 @@ let () =
         let x, y, w, h = tp.(n) in
         let x, y, w, h =
           if proportional then (
-            let sw, sh = (Video.Image.width buf, Video.Image.height buf) in
+            let sw, sh =
+              (Video.Canvas.Image.width buf, Video.Canvas.Image.height buf)
+            in
             if w * sh < sw * h then (
               let h' = sh * w / sw in
               (x, y + ((h - h') / 2), w, h'))
@@ -288,11 +289,15 @@ let () =
               (x + ((w - w') / 2), y, w', h)))
           else (x, y, w, h)
         in
+        let tmp = Video.Canvas.Image.render tmp in
         let tmp' = Video.Image.create w h in
         scale tmp tmp';
-        Video.Image.add tmp' ~x ~y buf
+        let tmp' =
+          Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) tmp'
+        in
+        Video.Canvas.Image.add tmp' buf
       in
-      let video_init (buf : Content.Video.data) = video_loop 0 buf buf in
+      let video_init buf = video_loop 0 buf buf in
       if List.length weights <> List.length sources then
         raise
           (Error.Invalid_value
@@ -304,4 +309,3 @@ let () =
          (List.map2 (fun w s -> (w, s)) weights sources)
          video_init video_loop
         :> Source.source))
-*)
