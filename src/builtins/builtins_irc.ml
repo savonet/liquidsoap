@@ -53,7 +53,7 @@ let () =
         Some (Lang.string "#liquidsoap"),
         Some "IRC chan to join." );
       ("nick", Lang.string_t, Some (Lang.string "liquidbot"), Some "Nickname.");
-      ("limit", Lang.int_t, Some (Lang.int 6), Some "Limit to n last messages");
+      ("limit", Lang.int_t, Some (Lang.int 10), Some "Limit to n last messages");
     ]
     (Lang.fun_t [] Lang.string_t)
     (fun p ->
