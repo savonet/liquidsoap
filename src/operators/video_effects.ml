@@ -192,6 +192,35 @@ let () =
           let r = Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) r in
           Video.Canvas.Image.add r buf))
 
+let () =
+  let name = "video.transparent" in
+  Lang.add_operator name
+    [
+      ( "precision",
+        Lang.float_t,
+        Some (Lang.float 0.2),
+        Some
+          "Precision in color matching (0. means match precisely the color and \
+           1. means match every color)." );
+      ( "color",
+        Lang.int_t,
+        Some (Lang.int 0),
+        Some "Color which should be transparent (in 0xRRGGBB format)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Set a color to be transparent."
+    (fun p ->
+      let f v = List.assoc v p in
+      let prec, color, src =
+        ( Lang.to_float (f "precision"),
+          Lang.to_int (f "color"),
+          Lang.to_source (f "") )
+      in
+      let prec = int_of_float (prec *. 255.) in
+      let color = Image.RGB8.Color.of_int color |> Image.Pixel.yuv_of_rgb in
+      new effect ~name ~kind src (fun buf ->
+          Image.YUV420.alpha_of_color buf color prec))
+
 (*
 let () =
   Lang.add_operator "video.opacity.blur"
@@ -216,33 +245,6 @@ let () =
        let src = Lang.to_source (f "") in
        let kind = Kind.of_kind kind in
        new effect ~kind Image.Effect.lomo src)
-
-let () =
-  Lang.add_operator "video.transparent"
-    [
-      "precision", Lang.float_t, Some (Lang.float 0.),
-      Some "Precision in color matching (0. means match precisely the color \
-            and 1. means match every color).";
-
-      "color", Lang.int_t, Some (Lang.int 0),
-      Some "Color which should be transparent (in 0xRRGGBB format).";
-
-      "", Lang.source_t kind, None, None
-    ]
-    ~return_t
-    ~category:`Video
-    ~descr:"Set a color to be transparent."
-    (fun p ->
-       let f v = List.assoc v p in
-       let prec, color, src =
-         Lang.to_float (f "precision"),
-         Lang.to_int (f "color"),
-         Lang.to_source (f "")
-       in
-       let prec = int_of_float (prec *. 255.) in
-       let color = Image.RGB8.Color.of_int color in
-       let kind = Kind.of_kind kind in
-       new effect ~kind (fun buf -> Image.Effect.Alpha.of_color buf color prec) src)
 
 let () =
   Lang.add_operator "video.rotate"
