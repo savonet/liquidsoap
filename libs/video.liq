@@ -236,7 +236,7 @@ def output.youtube.live.rtmp(~id=null(), ~fallible=false, ~on_start={()}, ~on_st
   output.url(id=id, fallible=fallible, on_start=on_start, on_stop=on_stop, start=start, url="#{url}/#{key}", encoder, s)
 end
 
-# Stream to youtube using HLS
+# Stream to youtube using HLS.
 # @category Output
 # @flag extra
 # @param ~id Force the value of the source ID.
