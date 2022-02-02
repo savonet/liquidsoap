@@ -181,7 +181,7 @@ let () =
     [
       ( "precision",
         Lang.float_t,
-        Some (Lang.float 0.),
+        Some (Lang.float 0.2),
         Some
           "Precision in color matching (0. means match precisely the color and \
            1. means match every color)." );
