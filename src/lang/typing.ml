@@ -522,7 +522,9 @@ let rec ( <: ) a b =
               | Error _ -> assert false)
       | Ground (Format k), Ground (Format k') -> (
           try Content.merge k k'
-          with _ -> raise (Error (Repr.make a, Repr.make b)))
+          with _ ->
+            let bt = Printexc.get_raw_backtrace () in
+            Printexc.raise_with_backtrace (Error (Repr.make a, Repr.make b)) bt)
       | Ground x, Ground y ->
           if x <> y then raise (Error (Repr.make a, Repr.make b))
       | Getter t1, Getter t2 -> (

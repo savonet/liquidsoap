@@ -210,7 +210,9 @@ let () =
 
 let merge p p' =
   try (get_params_handler p).merge p'
-  with _ -> raise (Incompatible_format (p, p'))
+  with _ ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace (Incompatible_format (p, p')) bt
 
 let duplicate p = (get_params_handler p).duplicate ()
 let compatible p p' = (get_params_handler p).compatible p'
