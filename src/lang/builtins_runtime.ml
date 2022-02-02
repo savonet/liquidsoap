@@ -20,10 +20,13 @@
 
  *****************************************************************************)
 
-let () = Lang.add_module "gc"
+let () =
+  Lang.add_module "runtime";
+  Lang.add_module "runtime.gc";
+  Lang.add_module "runtime.sys"
 
 let () =
-  Lang.add_builtin "gc.full_major" ~category:`Liquidsoap
+  Lang.add_builtin "runtime.gc.full_major" ~category:`Liquidsoap
     ~descr:"Trigger full major garbage collection." [] Lang.unit_t (fun _ ->
       Gc.full_major ();
       Lang.unit)
@@ -89,12 +92,12 @@ let () =
         ("stack_size", Lang.int stack_size);
       ]
   in
-  Lang.add_builtin "gc.stat" ~category:`Liquidsoap
+  Lang.add_builtin "runtime.gc.stat" ~category:`Liquidsoap
     ~descr:
       "Return the current values of the memory management counters. This \
        function examines every heap block to get the statistics." [] stat_t
     (fun _ -> stat (Gc.stat ()));
-  Lang.add_builtin "gc.quick_stat" ~category:`Liquidsoap
+  Lang.add_builtin "runtime.gc.quick_stat" ~category:`Liquidsoap
     ~descr:
       "Same as stat except that `live_words`, `live_blocks`, `free_words`, \
        `free_blocks`, `largest_free`, and `fragments` are set to `0`. This \
@@ -102,7 +105,7 @@ let () =
        through the heap." [] stat_t (fun _ -> stat (Gc.quick_stat ()))
 
 let () =
-  Lang.add_builtin "gc.print_stat" ~category:`Liquidsoap
+  Lang.add_builtin "runtime.gc.print_stat" ~category:`Liquidsoap
     ~descr:
       "Print the current values of the memory management counters in \
        human-readable form." [] Lang.unit_t (fun _ ->
@@ -172,12 +175,21 @@ let () =
       custom_minor_max_size = f "custom_minor_max_size";
     }
   in
-  Lang.add_builtin "gc.get" ~category:`Liquidsoap
+  Lang.add_builtin "runtime.gc.get" ~category:`Liquidsoap
     ~descr:"Return the current values of the GC parameters" [] control_t
     (fun _ -> control (Gc.get ()));
-  Lang.add_builtin "gc.set" ~category:`Liquidsoap
+  Lang.add_builtin "runtime.gc.set" ~category:`Liquidsoap
     ~descr:"Set the GC parameters." [("", control_t, None, None)] Lang.unit_t
     (fun p ->
       let c = to_control (List.assoc "" p) in
       Gc.set c;
       Lang.unit)
+
+let () =
+  Lang.add_builtin_base ~category:`Liquidsoap
+    ~descr:
+      "Size of one word on the machine currently executing the program, in \
+       bits. Either `32` or `64`."
+    "runtime.sys.word_size"
+    Lang.(Ground (Ground.Int Sys.word_size))
+    Lang.int_t

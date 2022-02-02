@@ -37,5 +37,6 @@
 %include "visualization.liq"
 %include "profiler.liq"
 %include "io.liq"
+%include "runtime.liq"
 
 set_settings_ref(settings)

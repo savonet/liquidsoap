@@ -4,9 +4,13 @@
 New:
 * Added support for memory debugging using `memtrace`
 * Added `time.{zone,zone.set,make}` (#2178)
-* Added `gc` module, rename `garbage_collect` as `gc.full_major`
-  with deprecated compatiblity wrapper, added `gc.stat`,
-  `gc.quick_stat`, `gc.print_stat` and `gc.{get,set}`.
+* Added `runtime.gc` module, rename `garbage_collect` as `runtime.gc.full_major`
+  with deprecated compatiblity wrapper, added `runtime.gc.stat`,
+  `runtime.gc.quick_stat`, `runtine.gc.print_stat` and `runtime.gc.{get,set}`.
+* Added `runtime.sys.word_size`
+* Added optional support for `runtime.mem_usage`
+* Added `runtime.memory` wrapper to get info about the system and process'
+  memory usage.
 
 Changed:
 * Bumped `input.harbor` default buffer to `12.` to make it possible

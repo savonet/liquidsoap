@@ -210,7 +210,7 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
 builtins = lang/lang_builtins.ml \
-           lang/builtins_ref.ml lang/builtins_gc.ml \
+           lang/builtins_ref.ml lang/builtins_runtime.ml \
            lang/builtins_bool.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_json.ml \
            lang/builtins_request.ml lang/builtins_error.ml \
@@ -221,6 +221,7 @@ builtins = lang/lang_builtins.ml \
            lang/builtins_thread.ml lang/builtins_process.ml \
            lang/builtins_source.ml lang/builtins_getter.ml \
            lang/builtins_profiler.ml lang/builtins_eval.ml \
+           $(if $(W_MEM_USAGE),lang/builtins_mem_usage.ml) \
 	   $(if $(W_CURL),lang/builtins_http.ml) \
            lang/builtins_harbor.ml \
            $(if $(W_SSL),lang/builtins_harbor_ssl.ml) \

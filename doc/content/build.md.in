@@ -43,8 +43,8 @@ tarballs for easier builds.
 | Dependency       | Version                       | Functionality                         |
 | ---------------- | ----------------------------- | ------------------------------------- |
 | camomile         | @camomile_version_descr@      | Charset recoding in metadata          |
-| ocurl            | @ocurl_version_descr@         | File download                         |
-| ocaml-ffmpeg     | @ffmpeg_avutil_version_descr@ | Comprehensive audio and video support |
+| ocurl            | @curl_version_descr@          | File download                         |
+| ocaml-ffmpeg     | @ffmpeg_version_descr@        | Comprehensive audio and video support |
 
 ### Optional dependencies:
 
@@ -52,6 +52,8 @@ tarballs for easier builds.
 | ------------------- | ------------------------------------ | --------------------------------------------- |
 | camlimages          | @camlimages_version_descr@           | Image decoding                                |
 | gd4o                | @gd_version_descr@                   | Video.add_text() on servers without X         |
+| memtrace            | @memtrace_version_descr@             | Memory usage debugging                        |
+| memtrace            | @memtrace_version_descr@             | Memory usage debugging                        |
 | ocaml-alsa          | @alsa_version_descr@                 | ALSA I/O                                      |
 | ocaml-ao            | @ao_version_descr@                   | Output via libao                              |
 | ocaml-bjack         | @bjack_version_descr@                | Jack support                                  |
@@ -59,7 +61,6 @@ tarballs for easier builds.
 | ocaml-dssi          | @dssi_version_descr@                 | DSSI sound synthesis                          |
 | ocaml-faad          | @faad_version_descr@                 | AAC stream decoding                           |
 | ocaml-fdkaac        | @fdkaac_version_descr@               | AAC(+) encoding                               |
-| ocaml-ffmpeg        | @ffmpeg_avutil_version_descr@        | Audio and video tools from the ffmpeg library | 
 | ocaml-flac          | @flac_version_descr@                 | Flac and Ogg/Flac codec                       |
 | ocaml-frei0r        | @frei0r_version_descr@               | Frei0r plugins                                |
 | ocaml-gstreamer     | @gstreamer_version_descr@            | GStreamer input, output and encoding/decoding |
@@ -71,6 +72,7 @@ tarballs for easier builds.
 | ocaml-lo            | @lo_version_descr@                   | OSC (Open Sound Control) support              |
 | ocaml-mad           | @mad_version_descr@                  | MP3 decoding                                  |
 | ocaml-magic         | @magic_version_descr@                | File type detection                           |
+| ocaml-mem_usage     | @mem_usage_version_descr@            | Memory usage information                      |
 | ocaml-ogg           | @ogg_version_descr@                  | Ogg codecs                                    |
 | ocaml-opus          | @opus_version_descr@                 | Ogg/Opus codec                                |
 | ocaml-portaudio     | @portaudio_version_descr@            | Portaudio I/O                                 |
