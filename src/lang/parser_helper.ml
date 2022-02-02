@@ -102,8 +102,8 @@ let args_of_json_stringify ~pos args =
 
 let gen_args_of ~only ~except ~pos get_args name =
   match Environment.get_builtin name with
-    | Some ((_, t), Value.{ value = Fun (args, _, _, _) })
-    | Some ((_, t), Value.{ value = FFI (args, _, _) }) ->
+    | Some ((_, t), Value.{ value = Fun (args, _, _) })
+    | Some ((_, t), Value.{ value = FFI (args, _) }) ->
         let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in
         let filtered_args =
           if only <> [] then
@@ -198,7 +198,7 @@ let args_of, app_of =
         | Value.Meth (name, v, v') ->
             let t = get_meth_type () in
             Term.Meth (name, term_of_value ~pos t v, term_of_value ~pos t v')
-        | Value.Fun (args, [], [], body) ->
+        | Value.Fun (args, [], body) ->
             let body =
               Term.{ body with t = Type.make ~pos body.t.Type.descr }
             in

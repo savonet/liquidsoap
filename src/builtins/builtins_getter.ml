@@ -48,7 +48,7 @@ let () =
       let f = Lang.assoc "" 2 p in
       let g = Lang.assoc "" 3 p in
       match (Lang.demeth x).Lang.value with
-        | Lang.Fun ([], _, _, _) | Lang.FFI ([], _, _) -> Lang.apply g [("", x)]
+        | Lang.Fun ([], _, _) | Lang.FFI ([], _) -> Lang.apply g [("", x)]
         | _ -> Lang.apply f [("", x)])
 
 let () =
@@ -75,7 +75,7 @@ let () =
       let f = Lang.assoc "" 1 p in
       let x = Lang.assoc "" 2 p in
       match (Lang.demeth x).Lang.value with
-        | Lang.Fun ([], _, _, _) | Lang.FFI ([], _, _) ->
+        | Lang.Fun ([], _, _) | Lang.FFI ([], _) ->
             Lang.val_fun [] (fun _ -> Lang.apply f [("", Lang.apply x [])])
         | _ -> Lang.apply f [("", x)])
 
@@ -96,7 +96,7 @@ let () =
       let f = Lang.assoc "" 1 p in
       let x = Lang.assoc "" 2 p in
       match (Lang.demeth x).Lang.value with
-        | Lang.Fun ([], _, _, _) | Lang.FFI ([], _, _) ->
+        | Lang.Fun ([], _, _) | Lang.FFI ([], _) ->
             let last_x = ref (Lang.apply x []) in
             let last_y = ref (Lang.apply f [("", !last_x)]) in
             Lang.val_fun [] (fun _ ->

@@ -499,6 +499,10 @@ exception Ignored of t
   * more helpful. *)
 exception No_label of t * string * bool * t
 
+(** Some mandatory arguments with given label and typed were not passed to the
+    function during an application. *)
+exception Missing_arguments of Pos.Option.t * (string * Type.t) list
+
 (** Check that all let-bound variables are used.
   * No check is performed for variable arguments.
   * This cannot be done at parse-time (as for the computatin of the

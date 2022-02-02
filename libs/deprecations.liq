@@ -163,7 +163,7 @@ def register_flow(~server="",~user="default",~password="default",
                  ("email",email),
                  ("radio",radio)]
   def request(~cmd,~params) =
-    log = log(label=radio)
+    def log(~level,x) = log(label=radio,level=level,x) end
     log(level=4,"Processing command #{cmd} with arguments:")
     def log_arg(x) =
       let (label, value) = x
@@ -304,9 +304,9 @@ end
 
 # Deprecated: use `blank.detect` instead
 # @flag deprecated
-def on_blank(%argsof(blank.detect), s)
+def on_blank(%argsof(blank.detect), f, s)
   deprecated("on_blank", "blank.detect")
-  blank.detect(%argsof(blank.detect), s)
+  blank.detect(%argsof(blank.detect), f, s)
 end
 
 # Deprecated: use `blank.skip` instead

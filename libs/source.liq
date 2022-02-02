@@ -123,7 +123,7 @@ def overlap_sources(~id=null(),~normalize=false,
   end
 
   ready_list = list.map(fun (_) -> ref(false),sources)
-  grab_ready = list.nth(default=ref(false),ready_list)
+  grab_ready = fun(n) -> list.nth(default=ref(false),ready_list,n)
 
   def set_ready(pos,b) =
     is_ready = grab_ready(pos)
@@ -134,7 +134,7 @@ def overlap_sources(~id=null(),~normalize=false,
   def on_start_next(_,_) =
     set_ready(current_position(),true)
   end
-  on_offset = on_offset(force=true,override=start_next,on_start_next)
+  on_offset = fun(s) -> on_offset(force=true,override=start_next,on_start_next,s)
   sources = list.map(on_offset,sources)
 
   # Disable after each track

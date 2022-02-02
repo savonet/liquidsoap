@@ -62,11 +62,10 @@ and in_value = Value.in_value =
   | Null
   | Meth of string * value * value
   | Ref of value ref
-  | Fun of (string * string * value option) list * env * lazy_env * Term.t
-  (* A function with given arguments (argument label, argument variable,
-     default value), parameters already passed to the function, closure and
-     value. *)
-  | FFI of (string * string * value option) list * env * (env -> value)
+  | Fun of (string * string * value option) list * lazy_env * Term.t
+  (* A function with given arguments (argument label, argument variable, default
+     value), closure and value. *)
+  | FFI of (string * string * value option) list * (env -> value)
 
 val demeth : value -> value
 

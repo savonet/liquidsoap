@@ -8,7 +8,7 @@ fade = ()
 # @param ~duration Duration in seconds.
 # @param ~on_done Function to execute when the fade is finished
 def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
-  log = log(label="mkfade")
+  def log(x) = log(label="mkfade", x) end
 
   # Shape functions must map 0. -> 0. and 1. -> 1.
   pi = acos(-1.)
@@ -90,7 +90,7 @@ def fade.out(~id="fade.out",~duration=3.,
              ~override_type="liq_fade_type",
              ~track_sensitive=true,
              ~type="lin",s) =
-  log = log(label=source.id(s),level=4)
+  def log(x) = log(label=source.id(s),level=4,x) end
   fn = ref(fun () -> 1.)
   type = ref(type)
   duration = ref(duration)
@@ -155,7 +155,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
              ~override_type="liq_fade_skip",
              ~override_skip="liq_skip_meta",
              ~type="lin",s) =
-  log = log(label=source.id(s),level=4)
+  def log(x) = log(label=source.id(s),level=4,x) end
   fn = ref(fun () -> 1.)
   type = ref(type)
   duration = ref(duration)
@@ -211,7 +211,7 @@ def fade.in(~id="fade.in",~duration=3.,
             ~override_type="liq_fade_type",
             ~track_sensitive=true,
             ~type="lin",s) =
-  log = log(label=source.id(s),level=4)
+  def log(x) = log(label=source.id(s),level=4,x) end
   fn = ref(fun () -> 0.)
   duration = ref(duration)
   type = ref(type)
@@ -251,8 +251,8 @@ end
 # @param a Ending track
 # @param b Starting track
 def cross.simple(~fade_in=3.,~fade_out=3.,a,b)
-  let fade.out = fade.out(type="sin",duration=fade_out)
-  let fade.in  = fade.in(type="sin",duration=fade_in)
+  def fade.out(s) = fade.out(type="sin",duration=fade_out,s) end
+  def fade.in(s)  = fade.in(type="sin",duration=fade_in,s) end
   add = fun (a,b) -> add(normalize=false,[b, a])
 
   add(fade.out(a),fade.in(b))
@@ -269,13 +269,13 @@ end
 # @param ~default Smart crossfade: transition used when no rule applies (default: sequence).
 # @param a Ending track
 # @param b Starting track
-def cross.smart(~log=log(label="cross.smart"),
+def cross.smart(~log=fun(x)->log(label="cross.smart",x),
                 ~fade_in=3.,~fade_out=3.,
                 ~default=(fun (a,b) -> (sequence([a, b]):source)),
                 ~high=-15., ~medium=-32., ~margin=4.,
                 a, b)
-  let fade.out = fade.out(type="sin",duration=fade_out)
-  let fade.in  = fade.in(type="sin",duration=fade_in)
+  def fade.out(s) = fade.out(type="sin",duration=fade_out,s) end
+  def fade.in(s)  = fade.in(type="sin",duration=fade_in,s) end
   add = fun (a,b) -> add(normalize=false,[b, a])
 
   # This is for the type system..
@@ -366,7 +366,7 @@ def crossfade(~id=null(), ~duration=5.,~override_duration="liq_cross_duration",
               ~high=-15., ~medium=-32., ~margin=4.,
               ~minimum=(-1.),~width=2.,~conservative=true,s)
   id = string.id.default(default="crossfade", id)
-  log = log(label=id)
+  def log(~level=3,x) = log(label=id,level=level,x) end
 
   def simple_transition(a,b)
     list.iter(fun(x)-> log(level=4,"Before: #{x}"), metadata.cover.remove(a.metadata))

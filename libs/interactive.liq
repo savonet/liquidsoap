@@ -422,7 +422,7 @@ def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~desc
   interactive.create(name=name, description=description, osc=osc, type="float")
   r = ref(v)
   variables_float := (name, {ref=r, unit=unit, min=min, max=max, step=step }) :: !variables_float
-  ref.getter(r).{set = interactive.float.set(name), remove = {interactive.float.remove(name)}}
+  ref.getter(r).{set = fun(x) -> interactive.float.set(name, x), remove = {interactive.float.remove(name)}}
 end
 
 # Read an integer from an interactive input.
@@ -435,7 +435,7 @@ def replaces interactive.int(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="int")
   r = ref(v)
   variables_int := (name, {ref=r }) :: !variables_int
-  ref.getter(r).{set = interactive.int.set(name), remove = {interactive.int.remove(name)}}
+  ref.getter(r).{set = fun(x) -> interactive.int.set(name, x), remove = {interactive.int.remove(name)}}
 end
 
 # Read a boolean from an interactive input.
@@ -448,7 +448,7 @@ def replaces interactive.bool(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="bool")
   r = ref(v)
   variables_bool := (name, { ref=r }) :: !variables_bool
-  ref.getter(r).{set = interactive.bool.set(name), remove = {interactive.bool.remove(name)}}
+  ref.getter(r).{set = fun(x) -> interactive.bool.set(name, x), remove = {interactive.bool.remove(name)}}
 end
 
 # Read a string from an interactive input.
@@ -461,7 +461,7 @@ def replaces interactive.string(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="string")
   r = ref(v)
   variables_string := (name, { ref=r }) :: !variables_string
-  ref.getter(r).{set = interactive.string.set(name), remove = {interactive.string.remove(name)}}
+  ref.getter(r).{set = fun(x) -> interactive.string.set(name, x), remove = {interactive.string.remove(name)}}
 end
 
 # Create a multiband compressor whose parameters are interactive variables.

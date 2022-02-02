@@ -41,8 +41,8 @@ def on_done () =
     }]
   }) = ojson
 
-  filter = list.filter((fun (s) -> null.defined(s.codec_name)))
-  sort = list.sort((fun (s1, s2) -> if s1.codec_name < s2.codec_name then -1 else 1 end))
+  filter = fun(l) -> list.filter(fun (s) -> null.defined(s.codec_name), l)
+  sort = fun (l) -> list.sort(fun (s1, s2) -> if s1.codec_name < s2.codec_name then -1 else 1 end, l)
   let [iaudio, ivideo] = sort(filter(iparsed.streams))
   let [oaudio, ovideo] = sort(filter(oparsed.streams))
 
