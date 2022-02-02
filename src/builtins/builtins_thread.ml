@@ -137,7 +137,7 @@ let () =
       let m = Mutex.create () in
       let v = List.assoc "" p in
       match v.Lang.value with
-        | Lang.Fun (p, args, env, body) ->
+        | Lang.Fun (p, env, body) ->
             let fn args =
               Tutils.mutexify m
                 (fun () ->
@@ -145,14 +145,12 @@ let () =
                     List.map (fun (x, gv) -> (x, Lazy.from_val gv)) args
                   in
                   let env = List.rev_append args env in
-                  let v =
-                    { v with Lang.value = Lang.Fun ([], [], env, body) }
-                  in
+                  let v = { v with Lang.value = Lang.Fun ([], env, body) } in
                   Lang.apply v [])
                 ()
             in
-            { v with Lang.value = Lang.FFI (p, args, fn) }
-        | Lang.FFI (p, args, fn) ->
+            { v with Lang.value = Lang.FFI (p, fn) }
+        | Lang.FFI (p, fn) ->
             let fn args = Tutils.mutexify m (fun () -> fn args) () in
-            { v with Lang.value = Lang.FFI (p, args, fn) }
+            { v with Lang.value = Lang.FFI (p, fn) }
         | _ -> v)

@@ -76,12 +76,14 @@ incorrect('fallback(transitions=[],xxxxxxxxxxx=[])');
 incorrect('fallback(transitions=[],transitions=[])');
 
 section("FUNCTIONS");
-incorrect('fallback(transitions=[fun(~l)->1])');
-incorrect('fallback(transitions=[fun(~l=1)->1])');
-incorrect('fallback(transitions=[fun(x,y=blank())->y])');
-incorrect('fallback(transitions=[fun(x,y)->0])');
-correct('f=fallback(transitions=[fun(x,y,a=2)->x])');
-incorrect('fallback(transitions=[fun(x,y)->y+1])');
+# Partial application is not supported anymore
+incorrect('def f(x,y) = y end ignore(f(2))');
+incorrect('fallback(transitions=[fun(~l)->1],[blank()])');
+incorrect('fallback(transitions=[fun(~l=1)->1],[blank()])');
+incorrect('fallback(transitions=[fun(x,y=blank())->y],[blank()])');
+incorrect('fallback(transitions=[fun(x,y)->0],[blank()])');
+correct('fallback(transitions=[fun(x,y,a=2)->x],[blank()])');
+incorrect('fallback(transitions=[fun(x,y)->y+1],[blank()])');
 correct('x=fun(f)->f(3) y=x(fun(f,u="1")->u) ignore(y)');
 
 section("CONTENT KIND");

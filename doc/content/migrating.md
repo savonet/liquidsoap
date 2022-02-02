@@ -15,6 +15,42 @@ First-class [regular expression](language.html#regular-expressions) are introduc
 * `string.replace(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/g.replace(<string>)`
 * `string.split(separator=<regexp>, <string>)` is replaced by: `r/<regexp>/.split(<string>)`
 
+### Partial application
+
+In order to improve performance, avoid some programming errors and simplify the
+code, the support for partial application of functions was removed (from our
+experience it was not used much anyway). This means that you should now provide
+all required arguments for functions. The behavior corresponding to partial
+application can of course still be achieved by explicitly abstracting (with
+`fun(x) -> ...`) over some arguments.
+
+For instance, suppose that we defined the addition function with two arguments
+with
+
+```liquidsoap
+def add(x,y) = x + y end
+```
+
+and defined the successor function by partially applying it to the first
+argument
+
+```liquidsoap
+suc = add(1)
+```
+
+We now need to explicitly provide the second argument, and the `suc` function
+should now be defined as
+
+```liquidsoap
+suc = fun(x) -> add(1, x)
+```
+
+or
+
+```liquidsoap
+def suc(x) = add(1, x) end
+```
+
 ### Deprecations
 
 * `list.mem_assoc` is replaced by `list.assoc.mem`

@@ -146,10 +146,10 @@ end
 # @param s The input source.
 def sky(s)
   # 3-band crossover
-  low = filter.iir.eq.low(frequency = 168.)
-  mh = filter.iir.eq.high(frequency = 100.)
-  mid = filter.iir.eq.low(frequency = 1800.)
-  high = filter.iir.eq.high(frequency = 1366.)
+  low = fun(s) -> filter.iir.eq.low(frequency = 168., s)
+  mh = fun(s) -> filter.iir.eq.high(frequency = 100., s)
+  mid = fun(s) -> filter.iir.eq.low(frequency = 1800., s)
+  high = fun(s) -> filter.iir.eq.high(frequency = 1366., s)
 
   # Add back
   add(normalize = false,

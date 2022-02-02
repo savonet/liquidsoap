@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+(** Make positions more precise in applications (but should be a bit slower). *)
+let precise_application_pos = false
+
 (** {1 Evaluation} *)
 
 open Term
@@ -34,6 +37,9 @@ let remove_first filter =
         if filter hd then (hd, List.rev_append acc tl) else aux (hd :: acc) tl
   in
   aux []
+
+let rec rev_map_append f l1 l2 =
+  match l1 with [] -> l2 | a :: l -> rev_map_append f l (f a :: l2)
 
 let lookup (env : Value.lazy_env) var =
   try Lazy.force (List.assoc var env)
@@ -257,12 +263,12 @@ let rec eval ~env tm =
         eval ~env b
     | Fun (fv, p, body) ->
         let p, env = prepare_fun fv p env in
-        mk (Value.Fun (p, [], env, body))
+        mk (Value.Fun (p, env, body))
     | RFun (x, fv, p, body) ->
         let p, env = prepare_fun fv p env in
         let rec v () =
           let env = (x, Lazy.from_fun v) :: env in
-          { Value.pos = tm.t.Type.pos; value = Value.Fun (p, [], env, body) }
+          { Value.pos = tm.t.Type.pos; value = Value.Fun (p, env, body) }
         in
         v ()
     | Var var -> lookup env var
@@ -280,37 +286,38 @@ let rec eval ~env tm =
         else ans ()
 
 and apply f l =
-  let rec pos = function
-    | [(_, v)] -> (
-        match (f.Value.pos, v.Value.pos) with
-          | Some (p, _), Some (_, q) -> Some (p, q)
-          | Some pos, None -> Some pos
-          | None, Some pos -> Some pos
-          | None, None -> None)
-    | _ :: l -> pos l
-    | [] -> f.Value.pos
-  in
   (* Position of the whole application. *)
-  let pos = pos l in
-  let pos_f = f.Value.pos in
-  let mk ~pos v = { pos; Value.value = v } in
+  let pos =
+    if precise_application_pos then (
+      let rec pos = function
+        | [(_, v)] -> (
+            match (f.Value.pos, v.Value.pos) with
+              | Some (p, _), Some (_, q) -> Some (p, q)
+              | Some pos, None -> Some pos
+              | None, Some pos -> Some pos
+              | None, None -> None)
+        | _ :: l -> pos l
+        | [] -> f.Value.pos
+      in
+      pos l)
+    else
+      (* NB: the above is more precise (we get the arguments), but I don't think
+         this is worth the price: we compute it for every application... *)
+      f.Value.pos
+  in
   (* Extract the components of the function, whether it's explicit or foreign,
      together with a rewrapping function for creating a closure in case of
      partial application. *)
-  let p, pe, f, rewrap =
+  let p, f =
     match (Value.demeth f).Value.value with
-      | Value.Fun (p, pe, e, body) ->
+      | Value.Fun (p, e, body) ->
           ( p,
-            pe,
-            (fun pe ->
-              let pe = List.map (fun (x, gv) -> (x, Lazy.from_val gv)) pe in
-              eval ~env:(List.rev_append pe e) body),
-            fun p pe -> mk ~pos:pos_f (Value.Fun (p, pe, e, body)) )
-      | Value.FFI (p, pe, f) ->
-          ( p,
-            pe,
-            (fun pe -> f (List.rev pe)),
-            fun p pe -> mk ~pos:pos_f (Value.FFI (p, pe, f)) )
+            fun pe ->
+              let env =
+                rev_map_append (fun (x, gv) -> (x, Lazy.from_val gv)) pe e
+              in
+              eval ~env body )
+      | Value.FFI (p, f) -> (p, fun pe -> f (List.rev pe))
       | _ -> assert false
   in
   (* Record error positions. *)
@@ -327,36 +334,36 @@ and apply f l =
             (Internal_error (Option.to_list pos @ poss, e))
             bt
   in
+  (* Provide given arguments. *)
   let pe, p =
     List.fold_left
       (fun (pe, p) (lbl, v) ->
         let (_, var, _), p = remove_first (fun (l, _, _) -> l = lbl) p in
         ((var, v) :: pe, p))
-      (pe, p) l
+      ([], p) l
   in
-  if List.exists (fun (_, _, x) -> x = None) p then
-    (* Partial application. *)
-    rewrap p pe
-  else (
-    let pe =
-      List.fold_left
-        (fun pe (_, var, v) ->
-          ( var,
-            (* Set the position information on FFI's default values. Cf. r5008:
-               if an Invalid_value is raised on a default value, which happens
-               with the mount/name params of output.icecast.*, the printing of
-               the error should succeed at getting a position information. *)
-            let v = Option.get v in
-            { v with Value.pos } )
-          :: pe)
-        pe p
-    in
-    let v = f pe in
-    (* Similarly here, the result of an FFI call should have some position
-       information. For example, if we build a fallible source and pass it to an
-       operator that expects an infallible one, an error is issued about that
-       FFI-made value and a position is needed. *)
-    { v with Value.pos })
+  (* Add default values for remaining arguments. *)
+  let pe =
+    List.fold_left
+      (fun pe (_, var, v) ->
+        (* Typing should ensure that there are no mandatory arguments remaining. *)
+        assert (v <> None);
+        ( var,
+          (* Set the position information on FFI's default values. Cf. r5008:
+             if an Invalid_value is raised on a default value, which happens
+             with the mount/name params of output.icecast.*, the printing of
+             the error should succeed at getting a position information. *)
+          let v = Option.get v in
+          { v with Value.pos } )
+        :: pe)
+      pe p
+  in
+  let v = f pe in
+  (* Similarly here, the result of an FFI call should have some position
+     information. For example, if we build a fallible source and pass it to an
+     operator that expects an infallible one, an error is issued about that
+     FFI-made value and a position is needed. *)
+  { v with Value.pos }
 
 let eval ?env tm =
   let env =
@@ -381,7 +388,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
   let ptypes = ptypes t in
   let rec pvalues v =
     match v.Value.value with
-      | Value.Fun (p, _, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+      | Value.Fun (p, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
       | Value.Meth (_, _, v) -> pvalues v
       | _ -> []
   in

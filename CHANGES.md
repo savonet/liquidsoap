@@ -20,6 +20,9 @@ New:
 - Added `video.add_text.camlimages` (#2202).
 
 Changes:
+
+- Removed support for partial application, which should avoid some type errors,
+  improve performance and simplifies the code related to the reduction (#2204).
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
   `quality` arguments and added a single encoder argument to allow stream copy
   and more.

@@ -64,9 +64,11 @@ def audioscrobbler.submit.full(
      ~host="post.audioscrobbler.com",~port=80,
      ~source="broadcast",~length=false,
      ~delay=10.,~force=false,s) = 
-  f = audioscrobbler.nowplaying(
+  def f(m)
+    audioscrobbler.nowplaying(
         user=user,password=password,
-        host=host,port=port,length=length)
+        host=host,port=port,length=length,m)
+  end
   s = source_on_metadata(s, f)
   f = fun (rem,m) ->
       # Avoid skipped songs

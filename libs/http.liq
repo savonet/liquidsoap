@@ -163,7 +163,10 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
   end
 
   def register(method)
-    serve(method=method,"^#{basepath}",handler(method=method))
+    def handler(~protocol,~data,~headers,uri)
+      handler(method=method, protocol=protocol, data=data, headers=headers, uri)
+    end
+    serve(method=method, "^#{basepath}", handler)
   end
   list.iter(register, ["OPTIONS","HEAD","GET"])
 end

@@ -44,13 +44,12 @@ and in_value =
      implementation is safer this way. *)
   | Meth of string * t * t
   | Ref of t ref
-  (* The first environment contains the parameters already passed to the
-     function. Next parameters will be inserted between that and the second
-     env which is part of the closure. *)
-  | Fun of (string * string * t option) list * env * lazy_env * Term.t
+  (* Function with given list of argument name, argument variable and default
+     value, the (relevant part of the) closure, and the body. *)
+  | Fun of (string * string * t option) list * lazy_env * Term.t
   (* For a foreign function only the arguments are visible, the closure
      doesn't capture anything in the environment. *)
-  | FFI of (string * string * t option) list * env * (env -> t)
+  | FFI of (string * string * t option) list * (env -> t)
 
 type encoder_params = (string * [ `Value of t | `Encoder of encoder ]) list
 
@@ -92,8 +91,8 @@ let rec print_value v =
           match e.value with Tuple [] -> "" | _ -> print_value e ^ "."
         in
         e ^ "{" ^ m ^ "}"
-    | Fun ([], _, _, x) when Term.is_ground x -> "{" ^ Term.to_string x ^ "}"
-    | Fun (l, _, _, x) when Term.is_ground x ->
+    | Fun ([], _, x) when Term.is_ground x -> "{" ^ Term.to_string x ^ "}"
+    | Fun (l, _, x) when Term.is_ground x ->
         let f (label, _, value) =
           match (label, value) with
             | "", None -> "_"
