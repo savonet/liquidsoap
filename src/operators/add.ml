@@ -141,8 +141,11 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                 let vtmp = VFrame.data tmp in
                 let ( ! ) = Frame.video_of_main in
                 for i = !offset to !already - 1 do
-                  video_loop rank (Video.Canvas.get vbuf i)
-                    (Video.Canvas.get vtmp i)
+                  let img =
+                    video_loop rank (Video.Canvas.get vtmp i)
+                      (Video.Canvas.get vbuf i)
+                  in
+                  Video.Canvas.set vbuf i img
                 done
               with Content.Invalid -> ())
             else (
@@ -213,7 +216,7 @@ let () =
          ~kind ~renorm ~power
          (List.map2 (fun w s -> (w, s)) weights sources)
          (fun _ -> ())
-         (fun _ buf tmp -> Video.Canvas.Image.add tmp buf)
+         (fun _ tmp buf -> Video.Canvas.Image.add tmp buf)
         :> Source.source))
 
 let tile_pos n =
