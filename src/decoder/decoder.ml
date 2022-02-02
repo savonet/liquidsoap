@@ -321,10 +321,11 @@ let get_file_decoder ~metadata ~ctype filename =
                     raise (Found (name, decoded_type, specs))
                   else
                     log#info
-                      "Cannot decode file %s with decoder %s. Detected \
+                      "Cannot decode file %s with decoder %s as %s. Detected \
                        content: %s"
                       (Utils.quote_string filename)
                       name
+                      (Frame.string_of_content_type ctype)
                       (Frame.string_of_content_type decoded_type)
               | None -> ()
           with

@@ -182,7 +182,7 @@ module VideoSpecs = struct
   let compatible p p' =
     let compare = function
       | None, None -> true
-      | Some _, None | None, Some _ -> false
+      | Some _, None | None, Some _ -> true
       | Some x, Some y -> !!x = !!y
     in
     compare (p.width, p'.width) && compare (p.height, p'.height)
