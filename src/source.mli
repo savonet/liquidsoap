@@ -154,6 +154,8 @@ class virtual source :
        (** This method fails when content is not PCM. *)
        method private audio_channels : int
 
+       method private video_dimensions : int * int
+
        (** Retrieve the frame currently being filled. *)
        method memo : Frame.t
 
