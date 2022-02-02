@@ -865,6 +865,8 @@ AC_CHECK_OCAML_BINDING([srt],[srt.constants srt.types srt.stubs srt.stubs.locked
 AC_CHECK_OCAML_BINDING([lo])
 AC_CHECK_OCAML_BINDING([gd])
 
+AC_CHECK_OCAML_BINDING([irc-client-unix])
+
 # Winsvc (to run as a service)
 
 AC_CHECK_OCAML_BINDING([winsvc])
@@ -1062,6 +1064,7 @@ cat <<EOMSG
    - FFmpeg devices    : $w_FFMPEG
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
+   - irc               : $w_IRC_CLIENT_UNIX
    - lastfm            : $w_LASTFM
    - lo                : $w_LO
    - magic             : $w_MAGIC
