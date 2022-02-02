@@ -535,6 +535,6 @@ end
 # Deprecated: use `runtime.gc.full_major` instead
 # @flag deprecated
 def garbage_collect() =
-  deprecated("garbage_collec", "runtime.gc.full_major")
+  deprecated("garbage_collect", "runtime.gc.full_major")
   runtime.gc.full_major()
 end
