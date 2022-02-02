@@ -172,9 +172,11 @@ module VideoSpecs = struct
       | _ -> None
 
   let merge p p' =
+    let f = Option.map Lazy.force in
+    let g = Option.map Lazy.from_val in
     {
-      width = merge_param ~name:"width" (p.width, p'.width);
-      height = merge_param ~name:"height" (p.height, p'.height);
+      width = g (merge_param ~name:"width" (f p.width, f p'.width));
+      height = g (merge_param ~name:"height" (f p.height, f p'.height));
     }
 
   let compatible p p' =
