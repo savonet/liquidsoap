@@ -554,7 +554,6 @@ def run_process(%argsof(process.run), p) =
   (x.stdout, x.stderr, ("#{x.status}", x.status.description))
 end
 
-<<<<<<< HEAD
 # Deprecated: use `list.assoc.mem` instead
 # @flag deprecated
 def list.mem_assoc(x,y) =
