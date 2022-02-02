@@ -464,7 +464,12 @@ let mk_buffer ~ctype generator =
   let put_yuva420p =
     if mode <> `Audio then (
       let video_resample = Decoder_utils.video_resample () in
-      let video_scale = Decoder_utils.video_scale () in
+      let video_scale =
+        let width, height =
+          Content_internal.Video.dimensions_of_format ctype.Frame.video
+        in
+        Decoder_utils.video_scale ~width ~height ()
+      in
       let out_freq =
         Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
       in

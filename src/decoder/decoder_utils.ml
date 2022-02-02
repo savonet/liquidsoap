@@ -84,9 +84,9 @@ let channels_converter dst =
           converter := Some (c, _src);
           Audio_converter.Channel_layout.convert c data
 
-let video_scale () =
-  let dst_width = Lazy.force Frame.video_width in
-  let dst_height = Lazy.force Frame.video_height in
+let video_scale ~width ~height () =
+  let dst_width = width in
+  let dst_height = height in
   let video_scale = Video_converter.scaler () ~proportional:true in
   fun img ->
     let src_width = Video.Image.width img in
