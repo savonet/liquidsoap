@@ -725,7 +725,7 @@ let mk_streams ~ctype container =
             Some
               (`Frame (Ffmpeg_raw_decoder.mk_video_decoder ~format:f container))
         | f ->
-            let width, height = Content_internal.Video.dimensions_of_format f in
+            let width, height = Content.Video.dimensions_of_format f in
             Some
               (`Frame
                 (Ffmpeg_internal_decoder.mk_video_decoder ~width ~height

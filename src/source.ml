@@ -373,7 +373,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       Content.Audio.channels_of_format self#ctype.Frame.audio
 
     method private video_dimensions =
-      Content_internal.Video.dimensions_of_format self#ctype.Frame.video
+      Content.Video.dimensions_of_format self#ctype.Frame.video
 
     (** Startup/shutdown.
     *
