@@ -148,29 +148,13 @@ let no_problem = Condition.create ()
 
 exception Exit
 
-let error_handlers = Stack.create ()
-
-exception Error_processed
-
-let rec error_handler ~bt ~name exn =
-  try
-    Stack.iter
-      (fun handler -> if handler ~bt ~name exn then raise Error_processed)
-      error_handlers;
-    false
-  with
-    | Error_processed -> true
-    | exn ->
-        let bt = Printexc.get_backtrace () in
-        error_handler ~bt ~name exn
-
 let create ~queue f x s =
   let c = Condition.create () in
   let set = if queue then queues else all in
   mutexify lock
     (fun () ->
       let id =
-        let rec process x =
+        let process x =
           try
             f x;
             mutexify lock
@@ -181,15 +165,14 @@ let create ~queue f x s =
                 Condition.signal c)
               ()
           with e -> (
+            let raw_bt = Printexc.get_raw_backtrace () in
             let bt = Printexc.get_backtrace () in
             try
               match e with
                 | Exit -> log#info "Thread %S exited." s
                 | Failure e as exn ->
-                    let bt = Printexc.get_raw_backtrace () in
                     log#important "Thread %S failed: %s!" s e;
-                    Printexc.raise_with_backtrace exn bt
-                | e when queue && error_handler ~bt ~name:s e -> process x
+                    Printexc.raise_with_backtrace exn raw_bt
                 | e when queue ->
                     log#severe "Queue %s crashed with exception %s\n%s" s
                       (Printexc.to_string e) bt;
@@ -198,12 +181,10 @@ let create ~queue f x s =
                        Please report at: savonet-users@lists.sf.net";
                     exit 1
                 | e ->
-                    let bt = Printexc.get_raw_backtrace () in
                     log#important "Thread %S aborts with exception %s!" s
                       (Printexc.to_string e);
-                    Printexc.raise_with_backtrace e bt
+                    Printexc.raise_with_backtrace e raw_bt
             with e ->
-              let raw_bt = Printexc.get_raw_backtrace () in
               let l = Pcre.split ~pat:"\n" bt in
               List.iter (log#info "%s") l;
               mutexify lock
