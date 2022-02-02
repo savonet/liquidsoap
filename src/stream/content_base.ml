@@ -43,11 +43,10 @@ let merge_param ~name = function
   | _ -> failwith ("Incompatible " ^ name)
 
 let print_optional l =
-  String.concat ","
-    (List.fold_left
-       (fun cur (lbl, v) ->
-         match v with None -> cur | Some v -> (lbl ^ "=" ^ v) :: cur)
-       [] l)
+  List.filter_map
+    (fun (l, v) -> match v with Some v -> Some (l ^ "=" ^ v) | None -> None)
+    l
+  |> String.concat ","
 
 exception Invalid
 exception Incompatible_format of Contents.format * Contents.format
