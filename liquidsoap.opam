@@ -21,7 +21,7 @@ depends: [
   "dtools" {>= "0.4.4"}
   "duppy" {>= "0.9.1"}
   "menhir" {>= "20180703"}
-  "mm" {>= "0.7.5"}
+  "mm" {>= "0.8.0"}
   "ocamlfind" {build}
   "conf-pkg-config" {build}
   "conf-which" {build}
