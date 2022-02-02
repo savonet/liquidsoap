@@ -53,6 +53,7 @@ depopts: [
   "magic"
   "mem_usage"
   "memtrace"
+  "mem_usage"
   "ocurl"
   "ogg"
   "opus"
