@@ -38,6 +38,9 @@ cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
+# Remove after next release
+sed -e "s@ocaml-mm@ocaml-mem_usage\nocaml-mm@" -i PACKAGES
+
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 echo "\n### Compiling\n"
