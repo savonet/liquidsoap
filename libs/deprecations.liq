@@ -538,3 +538,12 @@ def garbage_collect() =
   deprecated("garbage_collect", "runtime.gc.full_major")
   runtime.gc.full_major()
 end
+
+%ifdef output.youtube.live.gstreamer
+# Deprecated: use `output.youtube.live.gstreamer`
+# @flag deprecated
+def replaces output.youtube.live(%argsof(output.youtube.live.gstreamer), s) =
+   deprecated("output.youtube.live", "output.youtube.live.gstreamer")
+   output.youtube.live.gstreamer(%argsof(output.youtube.live.gstreamer), s)
+end
+%endif
