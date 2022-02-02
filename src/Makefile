@@ -213,7 +213,7 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
-builtins = builtins/builtins_lang.ml builtins/builtins_gc.ml \
+builtins = builtins/builtins_lang.ml builtins/builtins_runtime.ml \
            builtins/builtins_ref.ml builtins/builtins_socket.ml \
            builtins/builtins_bool.ml builtins/builtins_list.ml \
            builtins/builtins_string.ml builtins/builtins_regexp.ml \
