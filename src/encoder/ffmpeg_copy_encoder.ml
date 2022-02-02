@@ -23,8 +23,9 @@
 (** FFMPEG copy encoder *)
 
 open Avcodec
+open Ffmpeg_encoder_common
 
-let mk_stream_copy ~video_size ~get_data output =
+let mk_stream_copy ~video_size ~get_stream ~get_data output =
   let stream = ref None in
   let video_size_ref = ref None in
   let codec_attr = ref None in
@@ -51,23 +52,21 @@ let mk_stream_copy ~video_size ~get_data output =
   in
 
   let current_position = ref 0L in
-  let last_start = ref 0L in
-  let current_stream_idx = ref None in
+  let current_stream = ref { idx = 0L; last_start = 0L } in
   let offset = ref 0L in
 
   let check_stream ~packet ~time_base stream_idx =
     let to_main = Option.map (to_main_time_base ~time_base) in
     let dts = to_main (Avcodec.Packet.get_dts packet) in
     let duration = to_main (Avcodec.Packet.get_duration packet) in
-    (match !current_stream_idx with
-      | Some idx when idx = stream_idx -> ()
-      | _ ->
-          current_stream_idx := Some stream_idx;
-          offset := Option.value ~default:0L dts;
-          last_start := Int64.sub !current_position !offset);
+    if !current_stream.idx <> stream_idx then (
+      offset := Option.value ~default:0L dts;
+      let last_start = Int64.sub !current_position !offset in
+      current_stream := get_stream ~last_start stream_idx);
     ignore
       (Option.map
-         (fun dts -> current_position := Int64.add dts !last_start)
+         (fun dts ->
+           current_position := Int64.add dts !current_stream.last_start)
          dts);
     ignore
       (Option.map
@@ -77,7 +76,7 @@ let mk_stream_copy ~video_size ~get_data output =
   in
   let adjust_ts ~time_base =
     Option.map (fun ts ->
-        Int64.add (to_main_time_base ~time_base ts) !last_start)
+        Int64.add (to_main_time_base ~time_base ts) !current_stream.last_start)
   in
 
   let was_keyframe = ref false in
