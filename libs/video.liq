@@ -193,7 +193,6 @@ let output.file.dash = ()
 
 # Output an MPEG-DASH playlist using ffmpeg
 # @category Output
-# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -221,7 +220,6 @@ let output.youtube.live = ()
 
 # Stream to youtube using RTMP.
 # @category Output
-# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
@@ -238,7 +236,6 @@ end
 
 # Stream to youtube using HLS.
 # @category Output
-# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
