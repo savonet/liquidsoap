@@ -399,6 +399,12 @@ AC_CHECK_OCAML_BINDING([curl])
 AC_CHECK_OCAML_BINDING([memtrace])
 
 #
+# Mem_usage
+#
+
+AC_CHECK_OCAML_BINDING([mem_usage])
+
+#
 # Dtools
 #
 
@@ -1060,6 +1066,7 @@ cat <<EOMSG
    - lo                : $w_LO
    - magic             : $w_MAGIC
    - memtrace          : $w_MEMTRACE
+   - mem_usage         : $w_MEM_USAGE
    - SecureTransport   : $w_OSX_SECURE_TRANSPORT
    - ssl               : $w_SSL
    - posix-time2       : $w_POSIX_TIME2
@@ -1139,6 +1146,7 @@ variables {
   mad-enabled: $b_MAD
   magic-enabled: $b_MAGIC
   memtrace-enabled: $b_MEMTRACE
+  mem_usage-enabled: $b_MEM_USAGE
   ogg-enabled: $b_OGG
   ogg_flac-enabled: $b_FLAC_OGG
   opus-enabled: $b_OPUS

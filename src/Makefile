@@ -225,6 +225,7 @@ builtins = builtins/builtins_lang.ml lang/builtins_gc.ml \
            builtins/builtins_thread.ml builtins/builtins_process.ml \
            builtins/builtins_source.ml builtins/builtins_getter.ml \
            builtins/builtins_profiler.ml builtins/builtins_eval.ml \
+           $(if $(W_MEM_USAGE),lang/builtins_mem_usage.ml) \
 	   $(if $(W_CURL),builtins/builtins_http.ml) \
            builtins/builtins_harbor.ml \
            $(if $(W_SSL),builtins/builtins_harbor_ssl.ml) \
