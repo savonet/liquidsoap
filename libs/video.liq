@@ -241,13 +241,16 @@ end
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
+# @param ~stream_info Informations about the stream (see `output.file.hls` for details).
 # @param ~url HLS URL to stream to
 # @param ~encoder Encoder to use (most likely a `%ffmpeg` encoder)
 # @param ~key Your secret youtube key
 def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_stop={()},
-                             ~start=true, ~url="https://a.upload.youtube.com/http_upload_hls",
-                             ~(key:string),~encoder,s)
+                            ~stream_info=null(),
+                            ~start=true, ~url="https://a.upload.youtube.com/http_upload_hls",
+                            ~(key:string), ~encoder, s)
   id = string.id.default(default="output.youtube.live.rtmp", id)
+  streams_info = if null.defined(stream_info) then [null.get(stream_info)] else [] end
 
   def file_url(fname) =
     "#{url}?cid=#{key}&copy=0&file=#{fname}"
@@ -281,6 +284,7 @@ def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_sto
     segment_duration=4.0,
     segments=5,
     segments_overhead=5,
+    streams_info=streams_info,
     on_file_change=on_file_change,
     tmpdir,
     [("live", encoder)],
