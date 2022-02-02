@@ -60,15 +60,9 @@ end)
 let mk_stream_store () =
   let store = Stream.create 1 in
   fun ~last_start idx ->
-    let data = { idx; last_start } in
-    match Stream.find_opt store data with
-      | None ->
-          Stream.add store data;
-          data
-      | Some data ->
-          if data.last_start < last_start then
-            data.last_start <- last_start;
-          data
+    let data = Stream.merge store { idx; last_start } in
+    if data.last_start < last_start then data.last_start <- last_start;
+    data
 
 let mk_format ffmpeg =
   match (ffmpeg.Ffmpeg_format.format, ffmpeg.Ffmpeg_format.output) with
