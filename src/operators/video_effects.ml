@@ -460,3 +460,23 @@ let () =
             Video.Canvas.Image.Draw.line (p ()) (q ()) (r, g, b, 0xff)
           in
           Video.Canvas.Image.add line buf))
+
+let () =
+  let name = "video.render" in
+  Lang.add_operator name
+    [
+      ( "transparent",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Make uncovered portions of the image transparent (they are black by \
+           default)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video
+    ~descr:"Render the video by computing the result of its canvas images."
+    (fun p ->
+      let transparent = List.assoc "transparent" p |> Lang.to_bool in
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect_map ~name ~kind s (fun buf ->
+          Video.Canvas.Image.rendered ~transparent buf))
