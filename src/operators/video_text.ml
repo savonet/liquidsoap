@@ -122,7 +122,7 @@ let register name init render_text =
         ("y", Lang.getter_t Lang.int_t, Some (Lang.int 10), Some "y offset.");
         ( "speed",
           Lang.int_t,
-          Some (Lang.int 70),
+          Some (Lang.int 0),
           Some
             "Horizontal speed in pixels per second (0 means no scrolling and \
              update according to x and y in case they are variable)." );
