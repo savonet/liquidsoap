@@ -468,13 +468,7 @@ let mk_buffer ~ctype generator =
         Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
       in
       fun ?pts ~fps (data : Content.Video.data) ->
-        let data =
-          Array.map
-            (fun img ->
-              img |> Video.Canvas.Image.render |> video_scale
-              |> Video.Canvas.Image.make)
-            data
-        in
+        let data = Array.map video_scale data in
         let data = video_resample ~in_freq:fps ~out_freq data in
         let len = Video.Canvas.length data in
         let data = Content.Video.lift_data data in

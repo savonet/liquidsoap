@@ -84,18 +84,19 @@ let channels_converter dst =
           converter := Some (c, _src);
           Audio_converter.Channel_layout.convert c data
 
-let video_scale () =
+let video_scale () : Video.Canvas.Image.t -> Video.Canvas.Image.t =
   let dst_width = Lazy.force Frame.video_width in
   let dst_height = Lazy.force Frame.video_height in
   let video_scale = Video_converter.scaler () ~proportional:true in
   fun img ->
-    let src_width = Video.Image.width img in
-    let src_height = Video.Image.height img in
+    let src_width = Video.Canvas.Image.width img in
+    let src_height = Video.Canvas.Image.height img in
     if (src_width, src_height) = (dst_width, dst_height) then img
     else (
-      let img2 = Video.Image.create dst_width dst_height in
+      let img = Video.Canvas.Image.render img in
+      let img2 = Image.YUV420.create dst_width dst_height in
       video_scale img img2;
-      img2)
+      Video.Canvas.Image.make img2)
 
 type fps = { num : int; den : int }
 
