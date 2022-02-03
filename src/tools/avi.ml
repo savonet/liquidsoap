@@ -60,13 +60,11 @@ let audio_chunk_strings b = chunk_strings "01wb" b
 let video_chunk_strings b = chunk_strings "00db" b
 let list = chunk "LIST"
 
-let header ~channels ~samplerate () =
+let header ~width ~height ~channels ~samplerate () =
   (* Writing in two steps because 0xffffffff cannot be represented on 32 bits
      architectures. *)
   let dword_max () = word 0xffff ^ word 0xffff in
   let video_rate = Lazy.force Frame.video_rate in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
   let avi_header =
     chunk "avih"
       (dword (1000000 / video_rate) (* microsec per frame *)

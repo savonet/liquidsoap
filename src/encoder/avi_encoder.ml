@@ -70,8 +70,10 @@ let encoder avi =
   let channels = avi.channels in
   let samplerate = Lazy.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
+  let width = Lazy.force avi.width in
+  let height = Lazy.force avi.height in
   (* TODO: use duration *)
-  let header = Avi.header ~channels ~samplerate () in
+  let header = Avi.header ~width ~height ~channels ~samplerate () in
   let need_header = ref true in
   let encode frame start len =
     let ans = encode_frame ~channels ~samplerate ~converter frame start len in

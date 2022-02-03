@@ -30,6 +30,8 @@ let make params =
          number of channels too early, see #933. *)
       Avi_format.channels = 2;
       samplerate = Frame.audio_rate;
+      width = Frame.video_width;
+      height = Frame.video_height;
     }
   in
   let avi =

@@ -26,6 +26,8 @@ type t = {
        we really need that for typing. *)
   samplerate : int Lazy.t;
   channels : int;
+  width : int Lazy.t;
+  height : int Lazy.t;
 }
 
 let to_string w =
