@@ -37,6 +37,7 @@ Fixed:
   first time in switches/fallback (#2138)
 * Bring back `video.add_text.sdl` (#2187)
 * Fixed `thread.on_error` implementation (#2171)
+* Fixed `ffmpeg` video scaling to make sure it always is proportional (#2211)
 
 2.0.2 (28-12-2021)
 =====

@@ -85,17 +85,38 @@ let mk_video_decoder container =
   let target_fps = Lazy.force Frame.video_rate in
   let target_width = Lazy.force Frame.video_width in
   let target_height = Lazy.force Frame.video_height in
-  let scaler =
-    Scaler.create [] width height pixel_format target_width target_height
-      (Ffmpeg_utils.liq_frame_pixel_format ())
+  let scale =
+    let scale_proportional (sw, sh) (tw, th) =
+      if th * sw < tw * sh then (sw * th / sh, th) else (tw, th * tw / sw)
+    in
+    (* Actual proportional width an height. *)
+    let aw, ah =
+      scale_proportional (width, height) (target_width, target_height)
+    in
+    let scaler =
+      Scaler.create [] width height pixel_format aw ah
+        (Ffmpeg_utils.liq_frame_pixel_format ())
+    in
+    fun frame ->
+      let img =
+        Scaler.convert scaler frame
+        |> Ffmpeg_utils.unpack_image ~width:aw ~height:ah
+      in
+      if aw = target_width && ah = target_height then img
+      else (
+        (* If the proportinal scaling does not fill the frame, we need to put it
+           in a bigger one. *)
+        let img' = Image.YUV420.create target_width target_height in
+        let x = (target_width - aw) / 2 in
+        let y = (target_height - ah) / 2 in
+        Image.YUV420.blank img';
+        Image.YUV420.add img ~x ~y img';
+        img')
   in
   let time_base = Av.get_time_base stream in
   let pixel_aspect = Av.get_pixel_aspect stream in
   let cb ~buffer frame =
-    let img =
-      Ffmpeg_utils.unpack_image ~width:target_width ~height:target_height
-        (Scaler.convert scaler frame)
-    in
+    let img = scale frame in
     let content = Video.single img in
     buffer.Decoder.put_yuva420p ?pts:None
       ~fps:{ Decoder.num = target_fps; den = 1 }
