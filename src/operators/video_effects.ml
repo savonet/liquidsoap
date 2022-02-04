@@ -467,7 +467,7 @@ let () =
     [
       ( "transparent",
         Lang.bool_t,
-        Some (Lang.bool false),
+        Some (Lang.bool true),
         Some
           "Make uncovered portions of the image transparent (they are black by \
            default)." );
@@ -480,3 +480,17 @@ let () =
       let s = List.assoc "" p |> Lang.to_source in
       new effect_map ~name ~kind s (fun buf ->
           Video.Canvas.Image.rendered ~transparent buf))
+
+let () =
+  let name = "video.crop" in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:`Video
+    ~descr:
+      "Make the bounding box of the current video start at upper left corner. \
+       This is useful to place centered videos for instance."
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect_map ~name ~kind s (fun buf ->
+          let (x, y), _ = Video.Canvas.Image.bounding_box buf in
+          Video.Canvas.Image.translate (-x) (-y) buf))
