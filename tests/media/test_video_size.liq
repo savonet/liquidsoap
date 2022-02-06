@@ -23,17 +23,17 @@ def on_done () =
   j = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
 
   let json.parse ( parsed: {
-    streams: [{
+    streams: ({
       width: int,
       height: int
-    }]
+    } * _)
   }) = j
 
-  let [stream] = parsed.streams
+  let stream = fst(parsed.streams)
 
   print("Output video size is #{stream.width}x#{stream.height}.")
 
-  if stream.width == 47 and stream.height == 51 then
+  if stream.width == 47 and stream.height == 52 then
     test.pass()
   else
     test.fail()
