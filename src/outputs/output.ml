@@ -63,9 +63,6 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
        change their id at initialization time. *)
     val mutable registered_telnet = false
 
-    method private video_dimensions =
-      Content.Video.dimensions_of_format self#ctype.Frame.video
-
     method private register_telnet =
       if not registered_telnet then (
         registered_telnet <- true;
