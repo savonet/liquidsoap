@@ -53,14 +53,29 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     let data = Strings.Mutable.empty () in
     for i = vstart to vstart + vlen - 1 do
       let img = Video.get vbuf i in
-      (* TODO: change stride otherwise *)
       let width = Image.YUV420.width img in
-      assert (Image.YUV420.y_stride img = width);
-      assert (Image.YUV420.uv_stride img = width / 2);
+      let height = Image.YUV420.height img in
       let y, u, v = Image.YUV420.data img in
-      Strings.Mutable.add data (Image.Data.to_string y);
-      Strings.Mutable.add data (Image.Data.to_string u);
-      Strings.Mutable.add data (Image.Data.to_string v)
+      let y = Image.Data.to_string y in
+      let u = Image.Data.to_string u in
+      let v = Image.Data.to_string v in
+      let y_stride = Image.YUV420.y_stride img in
+      let uv_stride = Image.YUV420.uv_stride img in
+      if y_stride = width then Strings.Mutable.add data y
+      else
+        for j = 0 to height - 1 do
+          Strings.Mutable.add_substring data y (j * y_stride) width
+        done;
+      if uv_stride = width / 2 then (
+        Strings.Mutable.add data u;
+        Strings.Mutable.add data v)
+      else (
+        for j = 0 to (height / 2) - 1 do
+          Strings.Mutable.add_substring data u (j * uv_stride) (width / 2)
+        done;
+        for j = 0 to (height / 2) - 1 do
+          Strings.Mutable.add_substring data v (j * uv_stride) (width / 2)
+        done)
     done;
     Avi.video_chunk_strings data
   in
