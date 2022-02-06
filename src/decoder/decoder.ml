@@ -466,7 +466,10 @@ let mk_buffer ~ctype generator =
       let video_resample = Decoder_utils.video_resample () in
       let video_scale =
         let width, height =
-          Content.Video.dimensions_of_format ctype.Frame.video
+          try Content.Video.dimensions_of_format ctype.Frame.video
+          with Content.Invalid ->
+            (* We might have encoded contents *)
+            (Lazy.force Frame.video_width, Lazy.force Frame.video_height)
         in
         Decoder_utils.video_scale ~width ~height ()
       in
