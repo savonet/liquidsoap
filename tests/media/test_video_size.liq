@@ -31,6 +31,8 @@ def on_done () =
 
   let [stream] = parsed.streams
 
+  print("Output video size is #{stream.width}x#{stream.height}.")
+
   if stream.width == 47 and stream.height == 51 then
     test.pass()
   else
