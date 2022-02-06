@@ -65,8 +65,8 @@ let throw print_error = function
       flush_all ();
       warning_header 1 tm.Term.t.Type.pos;
       Format.printf
-        "This function application is partial,@ being of type %s.@ Maybe some \
-         arguments are missing.@]@."
+        "Trying to ignore a function,@ which is of type %s.@ Did you forget to \
+         apply it to arguments?@]@."
         (Type.to_string tm.Term.t);
       if !strict then raise Error
   | Term.Ignored tm when Type.is_source tm.Term.t ->
