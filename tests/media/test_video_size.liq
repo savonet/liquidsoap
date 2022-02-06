@@ -6,8 +6,8 @@ audio.samplerate.set(48000)
 video.frame.rate.set(45)
 settings.decoder.decoders.set(["FFMPEG"])
 
-fname = argv(default="",1)
-out = "files/test_videos_size.mp4"
+fname = argv(default="files/video/@ffmpeg(format=mp4,@audio(codec=aac,channels=2),@video(codec=libx264)).mp4",1)
+out = "files/test_videos_size.avi"
 
 if file.exists(out) then
   file.remove(out)
@@ -40,4 +40,4 @@ def on_done () =
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mp4",%audio.none,%video(codec="libx264")), out, s)
+output.file(fallible=true, on_stop=on_done, %avi(width=47, height=52), out, s)
