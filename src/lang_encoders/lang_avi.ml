@@ -41,6 +41,10 @@ let make params =
             { f with Avi_format.channels = c }
         | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with Avi_format.samplerate = Lazy.from_val i }
+        | "width", `Value { value = Ground (Int i); _ } ->
+            { f with Avi_format.width = Lazy.from_val i }
+        | "height", `Value { value = Ground (Int i); _ } ->
+            { f with Avi_format.height = Lazy.from_val i }
         | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in
