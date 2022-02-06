@@ -67,8 +67,8 @@ def test.check(f) =
   output.dummy(blank())
 end
 
-def on_error(~backtrace, ~thread_name, error) =
-  print("Uncaught error in thread #{thread_name} while running test: #{error}\n#{backtrace}")
+def on_error(~backtrace, error) =
+  print("Uncaught error while running test: #{error}\n#{backtrace}")
   test.fail()
 end
 thread.on_error(null(), on_error)
