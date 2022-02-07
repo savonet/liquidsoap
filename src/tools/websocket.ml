@@ -95,6 +95,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
         (bit f.fin lsl 7)
         lor (bit f.rsv1 lsl 6)
         lor (bit f.rsv2 lsl 5)
+        lor (bit f.rsv3 lsl 4)
         lor f.opcode
       in
       let b0 = char_of_int b0 in

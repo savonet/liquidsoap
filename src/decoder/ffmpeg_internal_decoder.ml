@@ -85,7 +85,7 @@ let mk_video_decoder container =
   let target_height = Lazy.force Frame.video_height in
   let scale =
     let scale_proportional (sw, sh) (tw, th) =
-      if th * sw < tw * sh then (sw * th / sh, th) else (tw, th * tw / sw)
+      if th * sw < tw * sh then (sw * th / sh, th) else (tw, sh * tw / sw)
     in
     (* Actual proportional width an height. *)
     let aw, ah =
