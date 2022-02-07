@@ -132,11 +132,6 @@ let create_decoder ~width ~height ~metadata img =
     in
     VFrame.add_break frame stop;
     for i = start to stop - 1 do
-      (* TODO: One could think of avoiding the creation of a blank video layer
-       * that will be overwritten immediately. However, in most cases an old
-       * layer will be re-used.  In fact, we might even need to explicitly
-       * blankify because our image might be transparent and the current frame
-       * might contain random stuff. *)
       Video.Canvas.set video i img
     done;
     if !duration = -1 then -1
