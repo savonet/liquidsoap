@@ -446,7 +446,7 @@ let () =
           let r, g, b = color () |> Image.RGB8.Color.of_int in
           (* TODO: we could keep the image if the values did not change *)
           let line =
-            Video.Canvas.Image.Draw.line (p ()) (q ()) (r, g, b, 0xff)
+            Video.Canvas.Image.Draw.line (r, g, b, 0xff) (p ()) (q ())
           in
           Video.Canvas.Image.add line buf))
 

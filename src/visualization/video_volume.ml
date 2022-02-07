@@ -107,7 +107,7 @@ class visu ~kind source =
           let img = ref (Video.Canvas.Image.create width height) in
           let line c p q =
             img :=
-              Video.Canvas.Image.add (Video.Canvas.Image.Draw.line p q c) !img
+              Video.Canvas.Image.add (Video.Canvas.Image.Draw.line c p q) !img
           in
           for i = 0 to self#audio_channels - 1 do
             let y = int_of_float (volheight *. float i) in
