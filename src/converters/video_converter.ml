@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2021 Savonet team
+  Copyright 2003-2022 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -57,9 +57,9 @@ module Img = Image.Generic
   * was found *)
 type converter = proportional:bool -> Img.t -> Img.t -> unit
 
-(* A converter plugin is a name, a list of input formats, 
-  * a list of output formats,
-  * a function to create a converter. *)
+(* A converter plugin is a name, a list of input formats,
+   * a list of output formats,
+   * a function to create a converter. *)
 type converter_plug =
   Img.Pixel.format list * Img.Pixel.format list * (unit -> converter)
 
