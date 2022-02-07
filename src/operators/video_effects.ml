@@ -245,46 +245,26 @@ let () =
        let src = Lang.to_source (f "") in
        let kind = Kind.of_kind kind in
        new effect ~kind Image.Effect.lomo src)
+*)
 
 let () =
-  Lang.add_operator "video.rotate"
+  let name = "video.rotate" in
+  Lang.add_operator name
     [
-      "angle", Lang.float_getter_t 1, Some (Lang.float 0.),
-      Some "Initial angle in radians.";
-
-      "speed", Lang.float_getter_t 2, Some (Lang.float Utils.pi),
-      Some "Rotation speed in radians per sec.";
-
-      "", Lang.source_t kind, None, None
+      ( "angle",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.),
+        Some "Angle in radians." );
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t
-    ~category:`Video
-    ~descr:"Rotate video."
+    ~return_t ~category:`Video ~descr:"Rotate video."
     (fun p ->
-      let f v = List.assoc v p in
-      let src = Lang.to_source (f "") in
-      let a = Lang.to_float_getter (f "angle") in
-      let speed = Lang.to_float_getter (f "speed") in
-      let da =
-        let fps = float (Lazy.force Frame.video_rate) in
-        fun () ->
-          speed () /. fps
-      in
-      let angle = ref (a ()) in
-      let a_old = ref (a ()) in
-      let effect buf =
-        if a () <> !a_old then
-          (
-            a_old := a ();
-            angle := !a_old
-          )
-        else
-          angle := !angle +. da ();
-        Image.Effect.rotate buf !angle
-      in
-      let kind = Kind.of_kind kind in
-      new effect ~kind effect src)
- *)
+      let a = List.assoc "angle" p |> Lang.to_float_getter in
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect ~name ~kind s (fun buf ->
+          let x = Image.YUV420.width buf / 2 in
+          let y = Image.YUV420.height buf / 2 in
+          Image.YUV420.rotate (Image.YUV420.copy buf) x y (a ()) buf))
 
 let () =
   let name = "video.resize" in
