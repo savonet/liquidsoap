@@ -92,7 +92,7 @@ let create_decoder ?(merge_tracks = false) source input =
     in
     Ogg_decoder.init ~log:demuxer_log callbacks
   in
-  let video_scale = Video_converter.scaler () ~proportional:true in
+  let video_scale = Video_converter.scaler () in
   let started = ref false in
   let tracks = Ogg_decoder.get_standard_tracks decoder in
   let first_meta = ref true in

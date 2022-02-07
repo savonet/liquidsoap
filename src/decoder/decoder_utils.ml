@@ -87,26 +87,18 @@ let channels_converter dst =
 let video_scale ~width ~height () =
   let dst_width = width in
   let dst_height = height in
-  let video_scale = Video_converter.scaler () ~proportional:true in
+  let scaler = Video_converter.scaler () in
   fun img ->
     let src_width = Video.Canvas.Image.width img in
     let src_height = Video.Canvas.Image.height img in
-    if (src_width, src_height) = (dst_width, dst_height) then img
-    else (
-      let scl_width, scl_height =
-        if dst_height * src_width < dst_width * src_height then
-          (src_width * dst_height / src_height, dst_height)
-        else (dst_width, src_height * dst_width / src_width)
-      in
-      let img = Video.Canvas.Image.render img in
-      let img2 = Image.YUV420.create scl_width scl_height in
-      video_scale img img2;
-      let img2 = Video.Canvas.Image.make img2 in
-      let x = (dst_width - scl_width) / 2 in
-      let y = (dst_height - scl_height) / 2 in
-      img2
-      |> Video.Canvas.Image.translate x y
-      |> Video.Canvas.Image.viewport dst_width dst_height)
+    let n, d =
+      Image.Fraction.min (dst_width, src_width) (dst_height, src_height)
+    in
+    let x = (dst_width - (src_width * n / d)) / 2 in
+    let y = (dst_height - (src_height * n / d)) / 2 in
+    let img = Video.Canvas.Image.scale ~scaler (n, d) (n, d) img in
+    let img = Video.Canvas.Image.translate x y img in
+    img
 
 type fps = { num : int; den : int }
 

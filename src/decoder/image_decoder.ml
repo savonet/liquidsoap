@@ -96,25 +96,14 @@ let create_decoder ~width ~height ~metadata img =
   let off_y = try Hashtbl.find metadata "y" with Not_found -> "" in
   let off_x, off_y = off_string width height off_x off_y in
   log#debug "Decoding to %dx%d at %dx%d" width height off_x off_y;
-  let scale = Video_converter.scaler () in
+  let scaler = Video_converter.scaler () in
   let img =
-    let img =
-      if (width, height) = (img_w, img_h) then img
-      else (
-        let img' = Video.Image.create width height in
-        scale img img';
-        img')
-    in
-    let img =
-      Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
-    in
-    let img = Video.Canvas.Image.translate off_x off_y img in
-    let img =
-      Video.Canvas.Image.add img
-        (Video.Canvas.Image.create frame_width frame_height)
-    in
-    img
+    Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
   in
+  let img =
+    Video.Canvas.Image.scale ~scaler (width, img_w) (height, img_h) img
+  in
+  let img = Video.Canvas.Image.translate off_x off_y img in
   let duration =
     try
       let seconds = float_of_string (Hashtbl.find metadata "duration") in

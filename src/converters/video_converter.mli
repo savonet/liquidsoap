@@ -56,5 +56,4 @@ val find_converter :
   Image.Generic.t ->
   unit
 
-val scaler :
-  unit -> ?proportional:bool -> Video.Image.t -> Video.Image.t -> unit
+val scaler : unit -> Video.Image.t -> Video.Image.t -> unit

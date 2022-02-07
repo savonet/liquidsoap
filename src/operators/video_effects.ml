@@ -405,23 +405,14 @@ let () =
           Lang.to_int_getter (f "y") )
       in
       new effect_map ~name ~kind src (fun buf ->
-          let buf = Video.Canvas.Image.render buf in
-          let round x = int_of_float (x +. 0.5) in
           let c = c () in
           let cx = c *. cx () in
           let cy = c *. cy () in
-          let width =
-            Video.Image.width buf |> float_of_int |> ( *. ) cx |> round
-          in
-          let height =
-            Video.Image.height buf |> float_of_int |> ( *. ) cy |> round
-          in
-          let dst = Video.Image.create width height in
-          Image.YUV420.scale buf dst;
-          Video.Canvas.Image.make ~x:(ox ()) ~y:(oy ())
-            ~width:(Lazy.force Frame.video_width)
-            ~height:(Lazy.force Frame.video_height)
-            dst))
+          let d = 1080 in
+          let cx = int_of_float ((cx *. float d) +. 0.5) in
+          let cy = int_of_float ((cy *. float d) +. 0.5) in
+          let buf = Video.Canvas.Image.scale (cx, d) (cy, d) buf in
+          Video.Canvas.Image.translate (ox ()) (oy ()) buf))
 
 let () =
   let name = "video.line" in
