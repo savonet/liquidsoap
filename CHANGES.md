@@ -38,7 +38,8 @@ Changes:
   case in previous versions, and associated handlers are triggered only when the
   returned source is pulled (#2103).
 - Made `streams_info` parameter of `output.file.hls` a record (#2173).
-- Disable scrolling by default in `video.add_text`.
+- Disable scrolling by default in `video.add_text`. You can re-enable it by
+  using `video.add_text(speed=70, ...)`.
 
 2.0.2 (28-12-2021)
 =====
