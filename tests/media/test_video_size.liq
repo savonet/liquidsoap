@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../src/liquidsoap -i ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
 log.level.set(5)
@@ -7,6 +7,7 @@ video.frame.rate.set(45)
 settings.decoder.decoders.set(["FFMPEG"])
 
 fname = argv(default="files/video/@ffmpeg(format=mp4,@audio(codec=aac,channels=2),@video(codec=libx264)).mp4",1)
+# fname = argv(default="files/video/@ffmpeg(format=mp4,@audioDOTnone,@video(codec=libx264)).mp4",1)
 out = "files/test_videos_size.avi"
 
 if file.exists(out) then
@@ -14,8 +15,8 @@ if file.exists(out) then
 end
 
 s = (single(fname) : source(video=yuva420p(width=47, height=52)))
-
 s = once(s)
+s = mux_audio(audio=blank(), s)
 
 clock.assign_new(sync='none',[s])
 
