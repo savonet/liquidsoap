@@ -464,8 +464,6 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       | None, None ->
           failwith "There should be at least one audio or video pipeline!"
   in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
   let rlog = ref (fun _ -> ()) in
   let gen = Generator.create ~log_overfull ~log:(fun x -> !rlog x) content in
   object (self)
@@ -590,6 +588,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       done
 
     method private fill_video video =
+      let width, height = self#video_dimensions in
       while video.pending () > 0 && not self#is_generator_at_max do
         let b = video.pull () in
         let img =

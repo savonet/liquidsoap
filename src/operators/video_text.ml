@@ -26,8 +26,6 @@ open Source
 class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
   (source : source) =
   let () = init () in
-  (* let video_height = Lazy.force Frame.video_height in *)
-  let video_width = Lazy.force Frame.video_width in
   object (self)
     inherit operator ~name:"video.add_text" kind [source]
     method stype = source#stype
@@ -63,6 +61,7 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
             Option.get text_frame
 
     method private get_frame ab =
+      let _, video_width = self#video_dimensions in
       match VFrame.get_content ab source with
         | Some (rgb, off, len) ->
             let rgb = Content.Video.get_data rgb in

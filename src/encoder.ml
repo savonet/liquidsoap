@@ -110,7 +110,7 @@ let kind_of_format = function
       if video = None then audio_kind channels else audio_video_kind channels
   | External e ->
       let channels = e.External_encoder_format.channels in
-      if e.External_encoder_format.video then audio_video_kind channels
+      if e.External_encoder_format.video <> None then audio_video_kind channels
       else audio_kind channels
   | GStreamer ({ Gstreamer_format.has_video } as gst) ->
       let channels = Gstreamer_format.audio_channels gst in

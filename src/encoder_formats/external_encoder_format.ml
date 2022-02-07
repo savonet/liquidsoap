@@ -27,7 +27,7 @@ type restart_condition = Delay of int | Metadata | No_condition
 type t = {
   channels : int;
   samplerate : int Lazy.t;
-  video : bool;
+  video : (int Lazy.t * int Lazy.t) option;
   header : bool;
   restart_on_crash : bool;
   restart : restart_condition;
@@ -41,8 +41,15 @@ let to_string e =
       | Metadata -> "restart_on_metadata"
       | No_condition -> ""
   in
+  let video =
+    match e.video with
+      | None -> "video=false"
+      | Some (w, h) ->
+          Printf.sprintf "video=true,width=%d,height=%d" (Lazy.force w)
+            (Lazy.force h)
+  in
   Printf.sprintf
-    "%%external(channels=%i,samplerate=%i,video=%b,header=%b,restart_on_crash=%b,%s,process=%s)"
-    e.channels (Lazy.force e.samplerate) e.video e.header e.restart_on_crash
+    "%%external(channels=%i,samplerate=%i,%s,header=%b,restart_on_crash=%b,%s,process=%s)"
+    e.channels (Lazy.force e.samplerate) video e.header e.restart_on_crash
     (string_of_restart_condition e.restart)
     e.process

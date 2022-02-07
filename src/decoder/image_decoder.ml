@@ -82,16 +82,14 @@ let off_string iw ih ox oy =
   let oy = f ((frame_h - ih) / 2) frame_h oy in
   (ox, oy)
 
-let create_decoder ~metadata img =
+let create_decoder ~width ~height ~metadata img =
+  let frame_width = width in
+  let frame_height = height in
   (* Dimensions. *)
   let img_w = Image.YUV420.width img in
   let img_h = Image.YUV420.height img in
   let width = try Hashtbl.find metadata "width" with Not_found -> "" in
   let height = try Hashtbl.find metadata "height" with Not_found -> "" in
-  (* TODO: shouldn't we have a way to retrieve the information of the target
-     size we want here? *)
-  let target_width = Lazy.force Frame.video_width in
-  let target_height = Lazy.force Frame.video_height in
   let width, height = wh_string img_w img_h width height in
   (* Offset. *)
   let off_x = try Hashtbl.find metadata "x" with Not_found -> "" in
@@ -108,12 +106,12 @@ let create_decoder ~metadata img =
         img')
     in
     let img =
-      Video.Canvas.Image.make ~width:target_width ~height:target_height img
+      Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
     in
     let img = Video.Canvas.Image.translate off_x off_y img in
     let img =
       Video.Canvas.Image.add img
-        (Video.Canvas.Image.create target_width target_height)
+        (Video.Canvas.Image.create frame_width frame_height)
     in
     img
   in
@@ -168,8 +166,11 @@ let () =
           else None);
       file_decoder =
         Some
-          (fun ~metadata ~ctype:_ filename ->
+          (fun ~metadata ~ctype filename ->
             let img = Option.get (Decoder.get_image_file_decoder filename) in
-            create_decoder ~metadata img);
+            let width, height =
+              Content.Video.dimensions_of_format ctype.Frame.video
+            in
+            create_decoder ~width ~height ~metadata img);
       stream_decoder = None;
     }

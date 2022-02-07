@@ -32,7 +32,7 @@ let make params =
       (* We use a hardcoded value in order not to force the evaluation of the
            number of channels too early, see #933. *) = 2;
       samplerate = Frame.audio_rate;
-      video = false;
+      video = None;
       header = true;
       restart_on_crash = false;
       restart = External_encoder_format.No_condition;
@@ -46,8 +46,32 @@ let make params =
             { f with External_encoder_format.channels = c }
         | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with External_encoder_format.samplerate = Lazy.from_val i }
-        | "video", `Value { value = Ground (Bool h); _ } ->
-            { f with External_encoder_format.video = h }
+        | "video", `Value { value = Ground (Bool b); _ } ->
+            let w, h =
+              match f.External_encoder_format.video with
+                | None -> (Frame.video_width, Frame.video_height)
+                | Some (w, h) -> (w, h)
+            in
+            {
+              f with
+              External_encoder_format.video = (if b then Some (w, h) else None);
+            }
+        | "width", `Value { value = Ground (Int w); _ } ->
+            let _, h =
+              match f.External_encoder_format.video with
+                | None -> (Frame.video_width, Frame.video_height)
+                | Some (w, h) -> (w, h)
+            in
+            let w = Lazy.from_val w in
+            { f with External_encoder_format.video = Some (w, h) }
+        | "height", `Value { value = Ground (Int h); _ } ->
+            let w, _ =
+              match f.External_encoder_format.video with
+                | None -> (Frame.video_width, Frame.video_height)
+                | Some (w, h) -> (w, h)
+            in
+            let h = Lazy.from_val h in
+            { f with External_encoder_format.video = Some (w, h) }
         | "header", `Value { value = Ground (Bool h); _ } ->
             { f with External_encoder_format.header = h }
         | "restart_on_crash", `Value { value = Ground (Bool h); _ } ->

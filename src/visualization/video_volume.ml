@@ -30,8 +30,6 @@ let group_size = 1764
 let f_group_size = float group_size
 
 class visu ~kind source =
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
   object (self)
     inherit operator ~name:"video.volume" kind [source] as super
     method stype = source#stype
@@ -99,6 +97,7 @@ class visu ~kind source =
         done;
 
         (* Fill-in video information. *)
+        let width, height = self#video_dimensions in
         let volwidth = float width /. float backpoints in
         let volheight = float height /. float self#audio_channels in
         let buf = VFrame.data frame in
