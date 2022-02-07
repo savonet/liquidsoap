@@ -188,21 +188,18 @@ let rec transition_of_string p transition =
     | "slide_down" ->
         fun () buf t ->
           translate buf 0 (ifm (Video.Canvas.Image.height buf) (t -. 1.))
-    (* TODO: restore *)
-    (*
     | "grow" ->
         fun () img t ->
           let w = Video.Canvas.Image.width img in
           let h = Video.Canvas.Image.height img in
           let w' = ifm w t in
           let h' = ifm h t in
-          let tmp = Video.Canvas.Image.create w' h' in
-          Image.YUV420.scale img tmp;
-          Video.Image.fill_alpha img 0;
+          let img = Video.Canvas.Image.render img in
+          let out = Video.Image.create w' h' in
+          Image.YUV420.scale img out;
           let x = (w - w') / 2 in
           let y = (h - h') / 2 in
-          Video.Image.add ~x ~y tmp img
-    *)
+          Video.Canvas.Image.create w h |> Video.Canvas.Image.translate x y
     | "disc" ->
         fun () buf t ->
           let w = Video.Canvas.Image.width buf in
@@ -222,7 +219,7 @@ let rec transition_of_string p transition =
             "slide_up";
             "slide_down";
             "fade";
-            (* "grow"; *)
+            "grow";
             "disc";
           |]
         in
