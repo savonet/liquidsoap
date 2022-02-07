@@ -172,15 +172,17 @@ module VideoSpecs = struct
       | _ -> None
 
   let merge p p' =
+    let f = Option.map Lazy.force in
+    let g = Option.map Lazy.from_val in
     {
-      width = merge_param ~name:"width" (p.width, p'.width);
-      height = merge_param ~name:"height" (p.height, p'.height);
+      width = g (merge_param ~name:"width" (f p.width, f p'.width));
+      height = g (merge_param ~name:"height" (f p.height, f p'.height));
     }
 
   let compatible p p' =
     let compare = function
       | None, None -> true
-      | Some _, None | None, Some _ -> false
+      | Some _, None | None, Some _ -> true
       | Some x, Some y -> !!x = !!y
     in
     compare (p.width, p'.width) && compare (p.height, p'.height)
@@ -213,6 +215,20 @@ module Video = struct
   include MkContent (VideoSpecs)
 
   let kind = lift_kind `Yuv420p
+
+  let dimensions_of_format p =
+    let p = get_params p in
+    let width =
+      Lazy.force
+        (Option.value ~default:Frame_base.video_width
+           p.Content_base.Contents.width)
+    in
+    let height =
+      Lazy.force
+        (Option.value ~default:Frame_base.video_height
+           p.Content_base.Contents.height)
+    in
+    (width, height)
 end
 
 module MidiSpecs = struct

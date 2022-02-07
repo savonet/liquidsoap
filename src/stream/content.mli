@@ -186,6 +186,7 @@ module Video : sig
        and type data = Video.t
 
   val kind : Contents.kind
+  val dimensions_of_format : Contents.format -> int * int
 end
 
 module Midi : sig

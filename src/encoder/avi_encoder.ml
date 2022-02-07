@@ -26,7 +26,12 @@ open Mm
 
 open Avi_format
 
-let encode_frame ~channels ~samplerate ~converter frame start len =
+let log = Log.make ["avi"; "encoder"]
+
+let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
+    =
+  let target_width = width in
+  let target_height = height in
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
   let audio =
     let astart = Frame.audio_of_main start in
@@ -55,6 +60,12 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
       let img = Video.get vbuf i in
       let width = Image.YUV420.width img in
       let height = Image.YUV420.height img in
+      if width <> target_width || height <> target_height then
+        failwith
+          (Printf.sprintf
+             "Resizing is not yet supported by AVI encoder got %dx%d instead \
+              of %dx%d"
+             width height target_width target_height);
       let y, u, v = Image.YUV420.data img in
       let y = Image.Data.to_string y in
       let u = Image.Data.to_string u in
@@ -85,11 +96,18 @@ let encoder avi =
   let channels = avi.channels in
   let samplerate = Lazy.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
+  let width = Lazy.force avi.width in
+  let height = Lazy.force avi.height in
+  log#info "Encoding at %dx%d, %d channels, %d Hz.%!" width height channels
+    samplerate;
   (* TODO: use duration *)
-  let header = Avi.header ~channels ~samplerate () in
+  let header = Avi.header ~width ~height ~channels ~samplerate () in
   let need_header = ref true in
   let encode frame start len =
-    let ans = encode_frame ~channels ~samplerate ~converter frame start len in
+    let ans =
+      encode_frame ~channels ~samplerate ~width ~height ~converter frame start
+        len
+    in
     if !need_header then (
       need_header := false;
       Strings.dda header ans)
