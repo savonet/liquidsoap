@@ -310,9 +310,9 @@ let () =
       let height = Lang.to_valued_option Lang.to_int_getter (f "height") in
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
-      new effect ~name ~kind src (fun buf ->
-          let owidth = Video.Image.width buf in
-          let oheight = Video.Image.height buf in
+      new effect_map ~name ~kind src (fun buf ->
+          let owidth = Video.Canvas.Image.width buf in
+          let oheight = Video.Canvas.Image.height buf in
           let width = match width with None -> owidth | Some w -> w () in
           let height = match height with None -> oheight | Some h -> h () in
           let width, height =
@@ -325,11 +325,9 @@ let () =
             else if height < 0 then (width, oheight * width / owidth)
             else assert false
           in
-          let dst = Video.Image.create width height in
-          Image.YUV420.scale buf dst;
-          Video.Image.blank buf;
-          Video.Image.fill_alpha buf 0;
-          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf))
+          buf
+          |> Video.Canvas.Image.scale (width, owidth) (height, oheight)
+          |> Video.Canvas.Image.translate (ox ()) (oy ())))
 
 let () =
   let name = "video.opacity.box" in
