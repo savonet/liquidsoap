@@ -31,6 +31,10 @@ Changes:
   ```
   in order to force the decoding of a file to be performed at the 300×200
   resolution (#2212).
+- Video images are now _canvas_, which means that they do not directly contain
+  the images, but are constituted of multiple images placed at various
+  positions. This should make much more efficient operations such as making
+  videos from multiple ones, adding a logo, etc. (#2207)
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
   `quality` arguments and added a single encoder argument to allow stream copy
   and more.

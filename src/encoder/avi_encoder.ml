@@ -52,12 +52,12 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =
-    let vbuf = VFrame.yuva420p frame in
+    let vbuf = VFrame.data frame in
     let vstart = Frame.video_of_main start in
     let vlen = Frame.video_of_main len in
     let data = Strings.Mutable.empty () in
     for i = vstart to vstart + vlen - 1 do
-      let img = Video.get vbuf i in
+      let img = Video.Canvas.render vbuf i in
       let width = Image.YUV420.width img in
       let height = Image.YUV420.height img in
       if width <> target_width || height <> target_height then

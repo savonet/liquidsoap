@@ -137,19 +137,23 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
                with Content.Invalid -> ());
 
               try
-                let vbuf = VFrame.yuva420p buf in
-                let vtmp = VFrame.yuva420p tmp in
+                let vbuf = VFrame.data buf in
+                let vtmp = VFrame.data tmp in
                 let ( ! ) = Frame.video_of_main in
                 for i = !offset to !already - 1 do
-                  video_loop rank (Video.get vbuf i) (Video.get vtmp i)
+                  let img =
+                    video_loop rank (Video.Canvas.get vtmp i)
+                      (Video.Canvas.get vbuf i)
+                  in
+                  Video.Canvas.set vbuf i img
                 done
               with Content.Invalid -> ())
             else (
               try
-                let vbuf = VFrame.yuva420p buf in
+                let vbuf = VFrame.data buf in
                 let ( ! ) = Frame.video_of_main in
                 for i = !offset to !already - 1 do
-                  video_init (Video.get vbuf i)
+                  video_init (Video.Canvas.get vbuf i)
                 done
               with Content.Invalid -> ());
             (rank + 1, max end_offset already))
@@ -212,7 +216,7 @@ let () =
          ~kind ~renorm ~power
          (List.map2 (fun w s -> (w, s)) weights sources)
          (fun _ -> ())
-         (fun _ buf tmp -> Video.Image.add tmp buf)
+         (fun _ tmp buf -> Video.Canvas.Image.add tmp buf)
         :> Source.source))
 
 let tile_pos n =
@@ -274,7 +278,9 @@ let () =
         let x, y, w, h = tp.(n) in
         let x, y, w, h =
           if proportional then (
-            let sw, sh = (Video.Image.width buf, Video.Image.height buf) in
+            let sw, sh =
+              (Video.Canvas.Image.width buf, Video.Canvas.Image.height buf)
+            in
             if w * sh < sw * h then (
               let h' = sh * w / sw in
               (x, y + ((h - h') / 2), w, h'))
@@ -283,9 +289,13 @@ let () =
               (x + ((w - w') / 2), y, w', h)))
           else (x, y, w, h)
         in
+        let tmp = Video.Canvas.Image.render tmp in
         let tmp' = Video.Image.create w h in
         scale tmp tmp';
-        Video.Image.add tmp' ~x ~y buf
+        let tmp' =
+          Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) tmp'
+        in
+        Video.Canvas.Image.add tmp' buf
       in
       let video_init buf = video_loop 0 buf buf in
       if List.length weights <> List.length sources then

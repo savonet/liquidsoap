@@ -95,27 +95,22 @@ let mk_video_decoder ~width ~height container =
       Scaler.create [] width height pixel_format aw ah
         (Ffmpeg_utils.liq_frame_pixel_format ())
     in
-    fun frame ->
+    fun frame : Video.Canvas.Image.t ->
       let img =
         Scaler.convert scaler frame
         |> Ffmpeg_utils.unpack_image ~width:aw ~height:ah
       in
-      if aw = target_width && ah = target_height then img
-      else (
-        (* If the proportinal scaling does not fill the frame, we need to put it
-           in a bigger one. *)
-        let img' = Image.YUV420.create target_width target_height in
-        let x = (target_width - aw) / 2 in
-        let y = (target_height - ah) / 2 in
-        Image.YUV420.blank img';
-        Image.YUV420.add img ~x ~y img';
-        img')
+      let x = (target_width - aw) / 2 in
+      let y = (target_height - ah) / 2 in
+      Video.Canvas.Image.make img
+      |> Video.Canvas.Image.translate x y
+      |> Video.Canvas.Image.viewport target_width target_height
   in
   let time_base = Av.get_time_base stream in
   let pixel_aspect = Av.get_pixel_aspect stream in
   let cb ~buffer frame =
     let img = scale frame in
-    let content = Video.single img in
+    let content = Video.Canvas.single img in
     buffer.Decoder.put_yuva420p ?pts:None
       ~fps:{ Decoder.num = target_fps; den = 1 }
       content;

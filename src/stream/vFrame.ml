@@ -32,7 +32,7 @@ let vot ?round x =
     | Some `Up -> Frame.video_of_main (x + Lazy.force Frame.video_rate - 1)
 
 let content = Frame.video
-let yuva420p b = Content.Video.get_data (content b)
+let data b = Content.Video.get_data (content b)
 let size _ = vot (Lazy.force size)
 let next_sample_position t = vot ~round:`Up (Frame.position t)
 let add_break t i = add_break t (tov i)

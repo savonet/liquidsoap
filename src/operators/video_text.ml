@@ -47,9 +47,10 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let a = get_pixel_rgba x y in
-          Video.Image.set_pixel_rgba tf x y (tr, tg, tb, a)
+          Image.YUV420.set_pixel_rgba tf x y (tr, tg, tb, a)
         done
       done;
+      let tf = Video.Canvas.Image.make tf in
       text_frame <- Some tf
 
     method get_text_frame =
@@ -65,7 +66,7 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
         | Some (rgb, off, len) ->
             let rgb = Content.Video.get_data rgb in
             let tf = self#get_text_frame in
-            let tfw = Video.Image.width tf in
+            let tfw = Video.Canvas.Image.width tf in
             let text =
               match meta with
                 | None -> text ()
@@ -82,12 +83,14 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
               self#render_text cur_text);
             for i = off to off + len - 1 do
               if speed = 0 then (
-                Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y;
+                let tf = Video.Canvas.Image.translate pos_x pos_y tf in
+                Video.Canvas.map_image (Video.Canvas.Image.add tf) rgb i;
                 pos_x <- tx ();
                 pos_y <- ty ())
               else (
-                if pos_x <> -tfw then
-                  Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y;
+                if pos_x <> -tfw then (
+                  let tf = Video.Canvas.Image.translate pos_x pos_y tf in
+                  Video.Canvas.map_image (Video.Canvas.Image.add tf) rgb i);
                 pos_x <- pos_x - speed;
                 if pos_x < -tfw then
                   if cycle then pos_x <- video_width

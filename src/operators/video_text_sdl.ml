@@ -53,7 +53,7 @@ let render_text ~font ~size text =
   let get_pixel x y =
     assert (0 <= x && x < w);
     assert (0 <= y && y < h);
-    let r, _, _, _ = Video.Image.get_pixel_rgba img x y in
+    let r, _, _, _ = Image.YUV420.get_pixel_rgba img x y in
     r
   in
   (w, h, get_pixel)

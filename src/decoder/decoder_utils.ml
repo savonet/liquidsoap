@@ -89,8 +89,8 @@ let video_scale ~width ~height () =
   let dst_height = height in
   let video_scale = Video_converter.scaler () ~proportional:true in
   fun img ->
-    let src_width = Video.Image.width img in
-    let src_height = Video.Image.height img in
+    let src_width = Video.Canvas.Image.width img in
+    let src_height = Video.Canvas.Image.height img in
     if (src_width, src_height) = (dst_width, dst_height) then img
     else (
       let scl_width, scl_height =
@@ -98,16 +98,15 @@ let video_scale ~width ~height () =
           (src_width * dst_height / src_height, dst_height)
         else (dst_width, src_height * dst_width / src_width)
       in
-      let img2 = Video.Image.create scl_width scl_height in
+      let img = Video.Canvas.Image.render img in
+      let img2 = Image.YUV420.create scl_width scl_height in
       video_scale img img2;
-      if (scl_width, scl_height) = (dst_width, dst_height) then img2
-      else (
-        let img3 = Video.Image.create dst_width dst_height in
-        Video.Image.blank img3;
-        let x = (dst_width - scl_width) / 2 in
-        let y = (dst_height - scl_height) / 2 in
-        Image.YUV420.add img2 ~x ~y img3;
-        img3))
+      let img2 = Video.Canvas.Image.make img2 in
+      let x = (dst_width - scl_width) / 2 in
+      let y = (dst_height - scl_height) / 2 in
+      img2
+      |> Video.Canvas.Image.translate x y
+      |> Video.Canvas.Image.viewport dst_width dst_height)
 
 type fps = { num : int; den : int }
 
@@ -143,8 +142,8 @@ let video_resample ~in_freq ~out_freq =
 
 let video_resample () =
   let state = ref None in
-  let exec resampler data = resampler data 0 (Array.length data) in
-  fun ~in_freq ~out_freq data ->
+  let exec resampler data = resampler data 0 (Video.Canvas.length data) in
+  fun ~in_freq ~out_freq (data : Content.Video.data) : Content.Video.data ->
     if in_freq = out_freq then data
     else (
       match !state with
