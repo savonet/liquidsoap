@@ -24,7 +24,13 @@ Changes:
 - Removed support for partial application, which should avoid some type errors,
   improve performance and simplifies the code related to the reduction (#2204).
 - Video dimensions (width and height) can now be specified per stream in the
-  type and are then used instead of the default ones.
+  type and are then used instead of the default ones. For instance, you can now
+  write
+  ```
+  s = (single("file.mp4") : source(video(width=300,height=200)))
+  ```
+  in order to force the decoding of a file to be performed at the 300×200
+  resolution (#2212).
 - `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
   `quality` arguments and added a single encoder argument to allow stream copy
   and more.
