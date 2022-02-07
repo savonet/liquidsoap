@@ -835,49 +835,6 @@ end
 We do not detail much further this trait since it is unlikely to be used for
 radios, but you can see a few occurrences of it in the standard library.
 
-### Partial evaluation
-
-The final thing to know about functions in Liquidsoap is that they support
-_partial evaluation_ of functions. This means that if you call a function, but
-do not provide all the arguments, it will return a new function expecting only
-the remaining arguments. For instance, consider the multiplication function
-
-```liquidsoap
-def mul(x, y) = x * y end
-```
-
-which is of type
-
-```
-(float, float) -> float
-```
-
-taking two floats and returning their products. We can then define a function
-which will compute the double of its input by
-
-```liquidsoap
-double = mul(2.)
-```
-
-which is of type
-
-```
-(float) -> float
-```
-
-Since we have provided only the first argument to `mul`, the `double` will
-define is still a function waiting for a second argument `x` and returning
-`mul(2., x)`, as we can see in the interactive mode:
-
-```
-# def mul(x, y) = x * y end;;
-mul : (float, float) -> float = <fun>
-# double = mul(2.);;
-double : (float) -> float = <fun>
-# double(5.);;
-- : float = 10.0
-```
-
 Records and modules
 -------------------
 
