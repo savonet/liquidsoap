@@ -205,6 +205,14 @@ let to_plugin_doc category flags examples main_doc proto return_t =
       (Lazy.from_fun (fun () -> Repr.doc_of_meths meths));
   List.iter
     (fun e ->
+      let e =
+        if e.[0] = '\n' then String.sub e 1 (String.length e - 1) else e
+      in
+      let e =
+        if e.[String.length e - 1] = '\n' then
+          String.sub e 0 (String.length e - 1)
+        else e
+      in
       item#add_subsection "_example" (Lazy.from_fun (fun () -> new Doc.item e)))
     examples;
   List.iter
