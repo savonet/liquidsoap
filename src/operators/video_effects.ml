@@ -291,8 +291,8 @@ let () =
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
       new effect_map ~name ~kind src (fun buf ->
-          let owidth = Video.Canvas.Image.width buf in
-          let oheight = Video.Canvas.Image.height buf in
+          let (x, y), (owidth, oheight) = Video.Canvas.Image.bounding_box buf in
+          let buf = Video.Canvas.Image.translate (-x) (-y) buf in
           let width = match width with None -> owidth | Some w -> w () in
           let height = match height with None -> oheight | Some h -> h () in
           let width, height =
