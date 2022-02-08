@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Log.make ["video"; "add_text"; "native"]
+let log = Log.make ["video"; "text"; "native"]
 
 let prebitmap =
   [
