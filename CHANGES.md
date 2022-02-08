@@ -11,6 +11,8 @@ New:
 * Added optional support for `runtime.mem_usage`
 * Added `runtime.memory` wrapper to get info about the system and process'
   memory usage.
+* Added `configure.camomile_dir` to export expected location of camomile
+  directory when packaging liquidsoap.
 
 Changed:
 * Bumped `input.harbor` default buffer to `12.` to make it possible
