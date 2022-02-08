@@ -154,7 +154,7 @@ end
 def replaces video.add_text.ffmpeg(~id=null(),~color=0xffffff,~cycle=true,~font="",
                           ~metadata=null(),~size=18,~speed=70,~x=getter(10),~y=getter(10),
                           d, s) =
-  id =  string.id.default(default="video.add_text.ffmpeg", id)
+  id = string.id.default(default="video.add_text.ffmpeg", id)
   s = ffmpeg.raw.encode.audio_video(%ffmpeg(%audio.raw, %video.raw), s)
   v = drop_audio(s)
   def mkfilter(graph)

@@ -298,7 +298,12 @@ def add_text_builder(f) =
     x = if speed == 0 then x else
       fps = video.frame.rate()
       x = ref(getter.get(x))
-      {x := !x - getter.get(speed) / fps; !x}
+      def x()
+        if cycle and !x < 0 - video.frame.width() then x := video.frame.width() end
+        x := !x - getter.get(speed) / fps
+        !x
+      end
+      x
     end
     tref = ref(getter.get(text))
     text = if metadata == "" then text else {!tref} end
