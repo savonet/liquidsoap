@@ -33,6 +33,9 @@ val dynlink : bool
 (** Where to look for private executables. *)
 val bin_dir : string
 
+(** Where to find the camomile runtime files. *)
+val camomile_dir : string
+
 (** Standard path. *)
 val path : string list
 
