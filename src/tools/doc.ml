@@ -264,6 +264,12 @@ let print_lang (i : item) =
     List.remove_assoc "_type" sub
   in
   let sub =
+    try
+      Format.fprintf ff "@.Category: %s@." (List.assoc "_category" sub)#get_doc;
+      List.remove_assoc "_category" sub
+    with Not_found -> sub
+  in
+  let sub =
     let examples, sub = List.partition (fun (l, _) -> l = "_example") sub in
     let examples = List.map snd examples in
     let examples = List.map (fun e -> e#get_doc) examples in
@@ -273,12 +279,6 @@ let print_lang (i : item) =
         Format.fprintf ff "@[<2>%s@]@." e)
       examples;
     sub
-  in
-  let sub =
-    try
-      Format.fprintf ff "@.Category: %s@." (List.assoc "_category" sub)#get_doc;
-      List.remove_assoc "_category" sub
-    with Not_found -> sub
   in
   let meths, sub =
     try
