@@ -158,7 +158,7 @@ let print_functions_md ~extra (doc : item) print_string =
             List.iter
               (fun e ->
                 print_string "\nExample:\n\n";
-                Printf.ksprintf print_string "```\n%s\n```\n" e)
+                Printf.ksprintf print_string "```liquidsoap\n%s\n```\n" e)
               examples;
             let methods =
               let methods =
