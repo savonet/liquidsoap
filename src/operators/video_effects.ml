@@ -473,11 +473,11 @@ let () =
         ( "width",
           ([], Lang.fun_t [] Lang.int_t),
           "Width of video.",
-          fun _ -> Lang.int !width );
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !width) );
         ( "height",
           ([], Lang.fun_t [] Lang.int_t),
           "Height of video.",
-          fun _ -> Lang.int !height );
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !height) );
       ]
     ~return_t ~category:`Video
     ~descr:
@@ -503,19 +503,19 @@ let () =
         ( "x",
           ([], Lang.fun_t [] Lang.int_t),
           "x offset of video.",
-          fun _ -> Lang.int !x );
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !x) );
         ( "y",
           ([], Lang.fun_t [] Lang.int_t),
           "y offset of video.",
-          fun _ -> Lang.int !y );
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !y) );
         ( "width",
           ([], Lang.fun_t [] Lang.int_t),
           "Width of video.",
-          fun _ -> Lang.int !width );
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !width) );
         ( "height",
           ([], Lang.fun_t [] Lang.int_t),
           "Height of video.",
-          fun _ -> Lang.int !height );
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !height) );
       ]
     ~return_t ~category:`Video
     ~descr:
