@@ -480,7 +480,6 @@ let rec ( <: ) a b =
                 (* Check on-the-fly that the types match. *)
                 begin
                   try
-                    Printf.printf "label is %s : %b <: %b\n%!" lbl o o';
                     if (not o') && o then raise (Error (`Ellipsis, `Ellipsis));
                     t <: t'
                   with Error (t, t') ->
