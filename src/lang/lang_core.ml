@@ -185,7 +185,7 @@ let builtin_type p t =
   Type.make
     (Type.Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
 
-let to_plugin_doc category flags main_doc proto return_t =
+let to_plugin_doc category flags examples main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
   let meths, return_t = Type.split_meths return_t in
   let t = builtin_type proto return_t in
@@ -204,6 +204,10 @@ let to_plugin_doc category flags main_doc proto return_t =
     item#add_subsection "_methods"
       (Lazy.from_fun (fun () -> Repr.doc_of_meths meths));
   List.iter
+    (fun e ->
+      item#add_subsection "_example" (Lazy.from_fun (fun () -> new Doc.item e)))
+    examples;
+  List.iter
     (fun (l, t, d, doc) ->
       item#add_subsection
         (if l = "" then "(unlabeled)" else l)
@@ -213,8 +217,8 @@ let to_plugin_doc category flags main_doc proto return_t =
 
 let meth_fun = meth
 
-let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
-    f =
+let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
+    name proto return_t f =
   let return_t =
     if meth = [] then return_t
     else (
@@ -235,7 +239,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
     }
   in
   let generalized = Type.filter_vars (fun _ -> true) t in
-  let doc () = to_plugin_doc category flags descr proto return_t in
+  let doc () = to_plugin_doc category flags examples descr proto return_t in
   let doc = Lazy.from_fun doc in
   Environment.add_builtin ~doc
     (String.split_on_char '.' name)

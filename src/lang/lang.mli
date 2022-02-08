@@ -107,6 +107,7 @@ val add_builtin :
   descr:string ->
   ?flags:Documentation.flag list ->
   ?meth:(string * Type.scheme * string * value) list ->
+  ?examples:string list ->
   string ->
   proto ->
   t ->
