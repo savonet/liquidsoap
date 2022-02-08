@@ -13,6 +13,8 @@ New:
   memory usage.
 * Added `configure.camomile_dir` to export expected location of camomile
   directory when packaging liquidsoap.
+* Added `liquidsoap.chroot.make` to copy all files required for a liquidsoap
+  install.
 
 Changed:
 * Bumped `input.harbor` default buffer to `12.` to make it possible
