@@ -294,13 +294,22 @@ end
 
 # @flags hidden
 def add_text_builder(f) =
-  def at(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata="",~size=18,~speed=0,~x=getter(10),~y=getter(10),d,s)
+  def at(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata="",~size=18,~speed=0,~x=getter(10),~y=getter(10),text,s)
     x = if speed == 0 then x else
       fps = video.frame.rate()
       x = ref(getter.get(x))
       {x := !x - getter.get(speed) / fps; !x}
     end
-    t = f(id=id, duration=duration, color=color, font=font, size=size, d)
+    tref = ref(getter.get(text))
+    text = if metadata == "" then text else {!tref} end
+    def on_metadata(m)
+      m = m[metadata]
+      if m != "" then tref := m end
+    end
+    s = if metadata == "" then s else
+      source.on_metadata(s, on_metadata)
+    end
+    t = f(id=id, duration=duration, color=color, font=font, size=size, text)
     t = video.translate(x=x, y=y, t)
     add(normalize=false, [(s:source),t])
   end
@@ -403,9 +412,9 @@ def video.add_text.camlimages = add_text_builder(video.text.camlimages) end
 let video.add_text.best = video.add_text.camlimages
 %endif
 
-# %ifdef video.add_text.ffmpeg
-# let video.add_text.best = video.add_text.ffmpeg
-# %endif
+%ifdef video.add_text.ffmpeg
+let video.add_text.best = video.add_text.ffmpeg
+%endif
 
 # Add a text to a stream. Uses the first available operator in: FFmpeg,
 # camlimages, SDL, GStreamer, gd or native.
@@ -423,7 +432,7 @@ let video.add_text.best = video.add_text.camlimages
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata="",~size=18,~speed=0,~x=getter(10),~y=getter(10),d,s) =
-  video.add_text.best(id=id,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
+  video.add_text.best(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
 end
 
 # Display a slideshow (typically of pictures).
