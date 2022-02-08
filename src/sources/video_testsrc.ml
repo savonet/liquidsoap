@@ -22,7 +22,7 @@
 
 open Mm
 
-class testsrc ?(duration = None) ~kind () =
+class testsrc ?(duration = None) ~width ~height ~kind () =
   object (self)
     inherit Synthesized.source ~seek:true ~name:"video.testsrc" kind duration
     val mutable u0 = 0
@@ -39,7 +39,9 @@ class testsrc ?(duration = None) ~kind () =
     val mutable dvy' = 2
 
     method private synthesize frame off len =
-      let width, height = self#video_dimensions in
+      let frame_width, frame_height = self#video_dimensions in
+      let width = if width < 0 then frame_width else width in
+      let height = if height < 0 then frame_height else height in
       let off = Frame.video_of_main off in
       let len = Frame.video_of_main len in
       let buf = VFrame.data frame in
@@ -64,7 +66,8 @@ class testsrc ?(duration = None) ~kind () =
         if dvy < 0x4f then dvy <- abs dvy;
         if v0 + dvy > 0x1ff then dvy' <- -abs dvy';
         Image.YUV420.gradient_uv img (u0, v0) (dux, duy) (dvx, dvy);
-        buf.(i) <- Video.Canvas.Image.make img
+        buf.(i) <-
+          Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
       done
   end
 
@@ -72,6 +75,14 @@ let () =
   let kind = Lang.internal in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.testsrc" ~category:`Input
-    ~descr:"Generate a test video." [] ~return_t (fun _ ->
+    ~descr:"Generate a test video."
+    [
+      ("width", Lang.int_t, Some (Lang.int (-1)), None);
+      ("height", Lang.int_t, Some (Lang.int (-1)), None);
+    ]
+    ~return_t
+    (fun p ->
+      let width = List.assoc "width" p |> Lang.to_int in
+      let height = List.assoc "height" p |> Lang.to_int in
       let kind = Kind.of_kind kind in
-      new testsrc ~kind ())
+      new testsrc ~width ~height ~kind ())
