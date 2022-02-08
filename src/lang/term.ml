@@ -272,6 +272,7 @@ end
 
 type t = { mutable t : Type.t; term : in_term }
 
+(** Documentation for declarations: general documentation, parameters, methods. *)
 and doc = Doc.item * (string * string) list * (string * string) list
 
 and let_t = {
