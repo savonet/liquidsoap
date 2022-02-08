@@ -292,49 +292,49 @@ def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_sto
   )
 end
 
-let video.add_text.best = video.add_text.native
+# let video.add_text.best = video.add_text.native
 
-%ifdef video.add_text.gd
-let replaces video.add_text.best = video.add_text.gd
-%endif
+# %ifdef video.add_text.gd
+# let replaces video.add_text.best = video.add_text.gd
+# %endif
 
-%ifdef video.add_text.gstreamer
-let replaces video.add_text.best = video.add_text.gstreamer
-%endif
+# %ifdef video.add_text.gstreamer
+# let replaces video.add_text.best = video.add_text.gstreamer
+# %endif
 
-%ifdef video.add_text.sdl
-let video.add_text.best = video.add_text.sdl
-%endif
+# %ifdef video.add_text.sdl
+# let video.add_text.best = video.add_text.sdl
+# %endif
 
-%ifdef video.add_text.camlimages
-let video.add_text.best = video.add_text.camlimages
-%endif
+# %ifdef video.add_text.camlimages
+# let video.add_text.best = video.add_text.camlimages
+# %endif
 
-%ifdef video.add_text.ffmpeg
-let video.add_text.best = video.add_text.ffmpeg
-%endif
+# %ifdef video.add_text.ffmpeg
+# let video.add_text.best = video.add_text.ffmpeg
+# %endif
 
-# Display a text using the first available operator in: FFmpeg, camlimages, SDL,
-# GStreamer, gd or native.
-# @category Source / Video Processing
-# @param ~id Force the value of the source ID.
-# @param ~color Text color (in 0xRRGGBB format).
-# @param ~cycle Cycle text when it reaches left boundary.
-# @param ~font Path to ttf font file.
-# @param ~metadata Change text on a particular metadata (empty string means disabled).
-# @param ~size Font size.
-# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
-#               according to x and y in case they are variable).
-# @param ~x x offset.
-# @param ~y y offset.
-# @params d Text to display.
-def replaces video.add_text(~id=null(),~color=0xffffff,~cycle=true,~font="",
-                   ~metadata="",~size=18,~speed=70,~x=getter(10),~y=getter(10),
-                   d,s) =
-  video.add_text.best(id=id,cycle=cycle,font=font,
-     metadata=metadata,size=size,color=color,
-     speed=speed,x=x,y=y,d,s)
-end
+# # Display a text using the first available operator in: FFmpeg, camlimages, SDL,
+# # GStreamer, gd or native.
+# # @category Source / Video Processing
+# # @param ~id Force the value of the source ID.
+# # @param ~color Text color (in 0xRRGGBB format).
+# # @param ~cycle Cycle text when it reaches left boundary.
+# # @param ~font Path to ttf font file.
+# # @param ~metadata Change text on a particular metadata (empty string means disabled).
+# # @param ~size Font size.
+# # @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
+# #               according to x and y in case they are variable).
+# # @param ~x x offset.
+# # @param ~y y offset.
+# # @params d Text to display.
+# def replaces video.add_text(~id=null(),~color=0xffffff,~cycle=true,~font="",
+                   # ~metadata="",~size=18,~speed=70,~x=getter(10),~y=getter(10),
+                   # d,s) =
+  # video.add_text.best(id=id,cycle=cycle,font=font,
+     # metadata=metadata,size=size,color=color,
+     # speed=speed,x=x,y=y,d,s)
+# end
 
 # Display a slideshow (typically of pictures).
 # @param ~cyclic Go to the first picture after the last.
