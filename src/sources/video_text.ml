@@ -78,8 +78,8 @@ let register name init render_text =
     Lang.add_operator op
       [
         ( "font",
-          Lang.string_t,
-          Some (Lang.string Configure.default_font),
+          Lang.nullable_t Lang.string_t,
+          None,
           Some "Path to ttf font file." );
         ("size", Lang.int_t, Some (Lang.int 18), Some "Font size.");
         ( "color",
@@ -94,7 +94,10 @@ let register name init render_text =
       ]
       ~return_t:k ~category:`Video ~descr:"Display a text."
       (fun p ->
-        let ttf = List.assoc "font" p |> Lang.to_string in
+        let ttf =
+          List.assoc "font" p |> Lang.to_option |> Option.map Lang.to_string
+        in
+        let ttf = Option.value ~default:Configure.default_font ttf in
         let ttf_size = List.assoc "size" p |> Lang.to_int in
         let color = List.assoc "color" p |> Lang.to_int in
         let duration =
