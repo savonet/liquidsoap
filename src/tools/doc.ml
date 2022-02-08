@@ -148,8 +148,13 @@ let print_functions_md ~extra (doc : item) print_string =
             Printf.ksprintf print_string "### `%s`\n\n" f;
             Printf.ksprintf print_string "%s\n\n"
               (to_string (List.assoc "_info" desc));
-            Printf.ksprintf print_string "Type:\n```\n%s\n```\n\n"
+            Printf.ksprintf print_string "Type:\n\n```\n%s\n```\n\n"
               (to_string (List.assoc "_type" desc));
+            let examples =
+              List.filter_map
+                (function "_example", `String e -> Some e | _ -> None)
+                desc
+            in
             let methods =
               let methods =
                 try List.assoc "_methods" desc |> to_assoc
@@ -167,8 +172,16 @@ let print_functions_md ~extra (doc : item) print_string =
             let args =
               List.filter
                 (fun (n, _) ->
-                  n <> "_info" && n <> "_category" && n <> "_type"
-                  && n <> "_flag" && n <> "_methods")
+                  not
+                    (List.mem n
+                       [
+                         "_info";
+                         "_category";
+                         "_type";
+                         "_flag";
+                         "_methods";
+                         "_example";
+                       ]))
                 desc
             in
             let args =
@@ -200,6 +213,11 @@ let print_functions_md ~extra (doc : item) print_string =
                   let s = if s = "" then "" else ": " ^ s in
                   Printf.ksprintf print_string "- `%s` (of type `%s`)%s\n" l t s)
                 methods);
+            List.iter
+              (fun e ->
+                print_string "\nExample:\n\n";
+                Printf.ksprintf print_string "```\n%s\n```\n" e)
+              examples;
             if List.mem "experimental" flags then
               print_string "\nThis function is experimental.\n";
             print_string "\n"))
