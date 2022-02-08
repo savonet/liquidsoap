@@ -44,6 +44,8 @@ Changes:
 - Made `streams_info` parameter of `output.file.hls` a record (#2173).
 - Disable scrolling by default in `video.add_text`. You can re-enable it by
   using `video.add_text(speed=70, ...)`.
+- Added "example" sections to operators documentation, we now need to populate
+  those (#2227).
 
 2.0.2 (28-12-2021)
 =====
