@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Mm
-open Source
 
 let () = Lang.add_module "video.text"
 
@@ -63,7 +62,10 @@ class text ~kind init render_text ttf ttf_size color duration text =
       let tf = self#get_text_frame in
       let buf = VFrame.data frame in
       for i = off to off + len - 1 do
-        Video.Canvas.set buf i tf
+        let img = buf.(i) in
+        let width = Video.Canvas.Image.width img in
+        let height = Video.Canvas.Image.height img in
+        buf.(i) <- Video.Canvas.Image.viewport width height tf
       done
   end
 
