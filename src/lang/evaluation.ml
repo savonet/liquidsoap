@@ -277,7 +277,9 @@ let rec eval ~env tm =
         eval ~env b
     | App (f, l) ->
         let ans () =
-          apply (eval ~env f) (List.map (fun (l, t) -> (l, eval ~env t)) l)
+          let f = eval ~env f in
+          let l = List.map (fun (l, t) -> (l, eval ~env t)) l in
+          apply f l
         in
         if !profile then (
           match f.term with
