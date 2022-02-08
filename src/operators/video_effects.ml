@@ -233,19 +233,17 @@ let () =
     (fun p ->
        let src = Lang.to_source (Lang.assoc "" 1 p) in
          new effect ~kind src Image.YUV420.Effect.Alpha.blur)
+*)
 
 let () =
-  Lang.add_operator "video.lomo"
-    [ "", Lang.source_t kind, None, None ]
-    ~return_t
-    ~category:`Video
-    ~descr:"Emulate the \"Lomo effect\"."
+  let name = "video.lomo" in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:`Video ~descr:"Emulate the \"Lomo effect\"."
     (fun p ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-       let kind = Kind.of_kind kind in
-       new effect ~kind Image.Effect.lomo src)
-*)
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      new effect ~name ~kind src Image.YUV420.Effect.lomo)
 
 let () =
   let name = "video.rotate" in
