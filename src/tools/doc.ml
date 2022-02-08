@@ -155,6 +155,11 @@ let print_functions_md ~extra (doc : item) print_string =
                 (function "_example", `String e -> Some e | _ -> None)
                 desc
             in
+            List.iter
+              (fun e ->
+                print_string "\nExample:\n\n";
+                Printf.ksprintf print_string "```\n%s\n```\n" e)
+              examples;
             let methods =
               let methods =
                 try List.assoc "_methods" desc |> to_assoc
@@ -213,11 +218,6 @@ let print_functions_md ~extra (doc : item) print_string =
                   let s = if s = "" then "" else ": " ^ s in
                   Printf.ksprintf print_string "- `%s` (of type `%s`)%s\n" l t s)
                 methods);
-            List.iter
-              (fun e ->
-                print_string "\nExample:\n\n";
-                Printf.ksprintf print_string "```\n%s\n```\n" e)
-              examples;
             if List.mem "experimental" flags then
               print_string "\nThis function is experimental.\n";
             print_string "\n"))
