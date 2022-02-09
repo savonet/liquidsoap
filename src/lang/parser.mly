@@ -459,6 +459,7 @@ annotate:
   | annotate_metadata COLON { $1 } 
 
 annotate_metadata:
+  | COMMA annotate_metadata { $2 }
   | annotate_key GETS annotate_value COMMA annotate_metadata { ($1,$3)::$5 }
   | annotate_key GETS annotate_value { [$1, $3] }
 
