@@ -294,3 +294,6 @@ let default_midi () =
 
 let is_internal f =
   None.is_kind f || Audio.is_kind f || Video.is_kind f || Midi.is_kind f
+
+let is_internal_format f =
+  None.is_format f || Audio.is_format f || Video.is_format f || Midi.is_format f
