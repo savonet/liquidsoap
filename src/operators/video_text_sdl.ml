@@ -44,6 +44,7 @@ let render_text ~font ~size text =
   let ts =
     Sdl_utils.check (fun () -> Ttf.render_utf8_shaded font text white black) ()
   in
+  Ttf.close_font font;
   let img = Sdl_utils.Surface.to_img ts in
   let w = Video.Image.width img in
   let h = Video.Image.height img in
