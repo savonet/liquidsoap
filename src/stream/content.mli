@@ -255,7 +255,8 @@ end
 val default_audio : unit -> Contents.format
 val default_video : unit -> Contents.format
 val default_midi : unit -> Contents.format
-val is_internal : kind -> bool
+val is_internal_kind : kind -> bool
+val is_internal_format : format -> bool
 
 (* Some tools *)
 val merge_param : name:string -> 'a option * 'a option -> 'a option
