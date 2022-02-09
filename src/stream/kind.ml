@@ -76,11 +76,13 @@ let unify_kind k k' =
       | `Format f, `Kind ki when Content.kind f = ki -> Unifier.(k' <-- k)
       (* `Internal/'a *)
       | `Internal, `Internal -> Unifier.(k <-- k')
-      | `Internal, `Kind ki when Content.is_internal ki -> Unifier.(k <-- k')
-      | `Internal, `Format f when Content.(is_internal (kind f)) ->
+      | `Internal, `Kind ki when Content.is_internal_kind ki ->
           Unifier.(k <-- k')
-      | `Kind ki, `Internal when Content.is_internal ki -> Unifier.(k' <-- k)
-      | `Format f, `Internal when Content.(is_internal (kind f)) ->
+      | `Internal, `Format f when Content.(is_internal_format f) ->
+          Unifier.(k <-- k')
+      | `Kind ki, `Internal when Content.is_internal_kind ki ->
+          Unifier.(k' <-- k)
+      | `Format f, `Internal when Content.(is_internal_format f) ->
           Unifier.(k' <-- k)
       (* Any/'a *)
       | `Any, _ -> Unifier.(k <-- k')
