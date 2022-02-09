@@ -42,7 +42,12 @@ type channels_converter = Content.Audio.data -> Content.Audio.data
 val channels_converter :
   Audio_converter.Channel_layout.layout -> channels_converter
 
-val video_scale : unit -> Video.Image.t -> Video.Image.t
+val video_scale :
+  width:int ->
+  height:int ->
+  unit ->
+  Video.Canvas.Image.t ->
+  Video.Canvas.Image.t
 
 type fps = { num : int; den : int }
 

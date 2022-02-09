@@ -66,7 +66,7 @@ protocols = \
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml sources/debug_sources.ml \
 	sources/audio_gen.ml sources/request_source.ml sources/latest_metadata.ml \
-	sources/request_simple.ml sources/generated.ml \
+	sources/request_simple.ml sources/generated.ml sources/video_testsrc.ml \
 	harbor/harbor_base.ml harbor/harbor.ml sources/harbor_input.ml \
 	$(if $(W_SSL),harbor/harbor_ssl.ml sources/harbor_input_ssl.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),harbor/harbor_secure_transport.ml sources/harbor_input_secure_transport.ml) \

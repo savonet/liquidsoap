@@ -23,7 +23,7 @@
 open Mm
 open Source
 
-class effect ~name ~kind (source : source) effect =
+class virtual base ~name ~kind (source : source) f =
   object
     inherit operator ~name kind [source]
     method stype = source#stype
@@ -36,9 +36,25 @@ class effect ~name ~kind (source : source) effect =
     method private get_frame buf =
       match VFrame.get_content buf source with
         | Some (rgb, offset, length) -> (
-            try Video.iter effect (Content.Video.get_data rgb) offset length
+            try f (Content.Video.get_data rgb) offset length
             with Content.Invalid -> ())
         | _ -> ()
+  end
+
+class effect ~name ~kind (source : source) effect =
+  object
+    inherit
+      base
+        ~name ~kind source
+        (fun buf off len -> Video.Canvas.iter effect buf off len)
+  end
+
+class effect_map ~name ~kind (source : source) effect =
+  object
+    inherit
+      base
+        ~name ~kind source
+        (fun buf off len -> Video.Canvas.map effect buf off len)
   end
 
 let kind = Kind.of_kind Lang.any
@@ -52,7 +68,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name ~kind src Video.Image.Effect.greyscale)
+      new effect ~name ~kind src Image.YUV420.Effect.greyscale)
 
 let () =
   let name = "video.sepia" in
@@ -62,7 +78,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name ~kind src Video.Image.Effect.sepia)
+      new effect ~name ~kind src Image.YUV420.Effect.sepia)
 
 let () =
   let name = "video.invert" in
@@ -72,7 +88,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name ~kind src Video.Image.Effect.invert)
+      new effect ~name ~kind src Image.YUV420.Effect.invert)
 
 let () =
   let name = "video.opacity" in
@@ -89,7 +105,7 @@ let () =
       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
       new effect ~name ~kind src (fun buf ->
-          Video.Image.Effect.Alpha.scale buf (a ())))
+          Image.YUV420.Effect.Alpha.scale buf (a ())))
 
 let () =
   let name = "video.fill" in
@@ -163,7 +179,7 @@ let () =
       let height = List.assoc "height" p |> Lang.to_int_getter in
       let color = List.assoc "color" p |> Lang.to_int_getter in
       let src = List.assoc "" p |> Lang.to_source in
-      new effect ~name ~kind src (fun buf ->
+      new effect_map ~name ~kind src (fun buf ->
           let x = x () in
           let y = y () in
           let width = width () in
@@ -173,7 +189,8 @@ let () =
           in
           let r = Image.YUV420.create width height in
           Image.YUV420.fill r c;
-          Image.YUV420.add r ~x ~y buf))
+          let r = Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) r in
+          Video.Canvas.Image.add r buf))
 
 let () =
   let name = "video.transparent" in
@@ -208,66 +225,44 @@ let () =
 let () =
   Lang.add_operator "video.opacity.blur"
     [
-      "", Lang.source_t kind, None, None
+      "", Lang.source_t return_t, None, None
     ]
     ~return_t
     ~category:`Video
     ~descr:"Blur opacity of video."
     (fun p ->
        let src = Lang.to_source (Lang.assoc "" 1 p) in
-         new effect ~kind Image.Effect.Alpha.blur src)
+         new effect ~kind src Image.YUV420.Effect.Alpha.blur)
+*)
 
 let () =
-  Lang.add_operator "video.lomo"
-    [ "", Lang.source_t kind, None, None ]
-    ~return_t
-    ~category:`Video
-    ~descr:"Emulate the \"Lomo effect\"."
-    (fun p ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-       let kind = Kind.of_kind kind in
-       new effect ~kind Image.Effect.lomo src)
-
-let () =
-  Lang.add_operator "video.rotate"
-    [
-      "angle", Lang.float_getter_t 1, Some (Lang.float 0.),
-      Some "Initial angle in radians.";
-
-      "speed", Lang.float_getter_t 2, Some (Lang.float Utils.pi),
-      Some "Rotation speed in radians per sec.";
-
-      "", Lang.source_t kind, None, None
-    ]
-    ~return_t
-    ~category:`Video
-    ~descr:"Rotate video."
+  let name = "video.lomo" in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:`Video ~descr:"Emulate the \"Lomo effect\"."
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      let a = Lang.to_float_getter (f "angle") in
-      let speed = Lang.to_float_getter (f "speed") in
-      let da =
-        let fps = float (Lazy.force Frame.video_rate) in
-        fun () ->
-          speed () /. fps
-      in
-      let angle = ref (a ()) in
-      let a_old = ref (a ()) in
-      let effect buf =
-        if a () <> !a_old then
-          (
-            a_old := a ();
-            angle := !a_old
-          )
-        else
-          angle := !angle +. da ();
-        Image.Effect.rotate buf !angle
-      in
-      let kind = Kind.of_kind kind in
-      new effect ~kind effect src)
- *)
+      new effect ~name ~kind src Image.YUV420.Effect.lomo)
+
+let () =
+  let name = "video.rotate" in
+  Lang.add_operator name
+    [
+      ( "angle",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.),
+        Some "Angle in radians." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Rotate video."
+    (fun p ->
+      let a = List.assoc "angle" p |> Lang.to_float_getter in
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect ~name ~kind s (fun buf ->
+          let x = Image.YUV420.width buf / 2 in
+          let y = Image.YUV420.height buf / 2 in
+          Image.YUV420.rotate (Image.YUV420.copy buf) x y (a ()) buf))
 
 let () =
   let name = "video.resize" in
@@ -293,9 +288,9 @@ let () =
       let height = Lang.to_valued_option Lang.to_int_getter (f "height") in
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
-      new effect ~name ~kind src (fun buf ->
-          let owidth = Video.Image.width buf in
-          let oheight = Video.Image.height buf in
+      new effect_map ~name ~kind src (fun buf ->
+          let (x, y), (owidth, oheight) = Video.Canvas.Image.bounding_box buf in
+          let buf = Video.Canvas.Image.translate (-x) (-y) buf in
           let width = match width with None -> owidth | Some w -> w () in
           let height = match height with None -> oheight | Some h -> h () in
           let width, height =
@@ -308,11 +303,9 @@ let () =
             else if height < 0 then (width, oheight * width / owidth)
             else assert false
           in
-          let dst = Video.Image.create width height in
-          Video.Image.scale buf dst;
-          Video.Image.blank buf;
-          Video.Image.fill_alpha buf 0;
-          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf))
+          buf
+          |> Video.Canvas.Image.scale (width, owidth) (height, oheight)
+          |> Video.Canvas.Image.translate (ox ()) (oy ())))
 
 let () =
   let name = "video.opacity.box" in
@@ -338,6 +331,23 @@ let () =
       new effect ~name ~kind src (fun buf ->
           Image.YUV420.box_alpha buf (ox ()) (oy ()) (width ()) (height ())
             (alpha ())))
+
+let () =
+  let name = "video.translate" in
+  Lang.add_operator name
+    [
+      ("x", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Translate video."
+    (fun p ->
+      let f v = List.assoc v p in
+      let src = f "" |> Lang.to_source in
+      let dx = f "x" |> Lang.to_int_getter in
+      let dy = f "y" |> Lang.to_int_getter in
+      new effect_map ~name ~kind src (fun buf ->
+          Video.Canvas.Image.translate (dx ()) (dy ()) buf))
 
 let () =
   let name = "video.scale" in
@@ -370,20 +380,153 @@ let () =
           Lang.to_int_getter (f "x"),
           Lang.to_int_getter (f "y") )
       in
-      new effect ~name ~kind src (fun buf ->
-          let round x = int_of_float (x +. 0.5) in
-          let width =
-            Video.Image.width buf |> float_of_int
-            |> ( *. ) (c () *. cx ())
-            |> round
+      new effect_map ~name ~kind src (fun buf ->
+          let c = c () in
+          let cx = c *. cx () in
+          let cy = c *. cy () in
+          let d = 1080 in
+          let cx = int_of_float ((cx *. float d) +. 0.5) in
+          let cy = int_of_float ((cy *. float d) +. 0.5) in
+          let buf = Video.Canvas.Image.scale (cx, d) (cy, d) buf in
+          Video.Canvas.Image.translate (ox ()) (oy ()) buf))
+
+let () =
+  let name = "video.line" in
+  Lang.add_operator name
+    [
+      ( "color",
+        Lang.getter_t Lang.int_t,
+        Some (Lang.int 0xffffff),
+        Some "Color to fill the image with (0xRRGGBB)." );
+      ( "",
+        Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
+        None,
+        Some "Start point." );
+      ( "",
+        Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
+        None,
+        Some "End point." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Draw a line on the video."
+    (fun param ->
+      let to_point_getter v =
+        let v = Lang.to_getter v in
+        fun () ->
+          let x, y = v () |> Lang.to_product in
+          (Lang.to_int x, Lang.to_int y)
+      in
+      let p = Lang.assoc "" 1 param |> to_point_getter in
+      let q = Lang.assoc "" 2 param |> to_point_getter in
+      let s = Lang.assoc "" 3 param |> Lang.to_source in
+      let color = List.assoc "color" param |> Lang.to_int_getter in
+      new effect_map ~name ~kind s (fun buf ->
+          let r, g, b = color () |> Image.RGB8.Color.of_int in
+          (* TODO: we could keep the image if the values did not change *)
+          let line =
+            Video.Canvas.Image.Draw.line (r, g, b, 0xff) (p ()) (q ())
           in
-          let height =
-            Video.Image.height buf |> float_of_int
-            |> ( *. ) (c () *. cy ())
-            |> round
-          in
-          let dst = Video.Image.create width height in
-          Video.Image.scale buf dst;
-          Video.Image.blank buf;
-          Video.Image.fill_alpha buf 0;
-          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf))
+          Video.Canvas.Image.add line buf))
+
+let () =
+  let name = "video.render" in
+  Lang.add_operator name
+    [
+      ( "transparent",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Make uncovered portions of the image transparent (they are black by \
+           default)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video
+    ~descr:"Render the video by computing the result of its canvas images."
+    (fun p ->
+      let transparent = List.assoc "transparent" p |> Lang.to_bool in
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect_map ~name ~kind s (fun buf ->
+          Video.Canvas.Image.rendered ~transparent buf))
+
+let () =
+  let name = "video.crop" in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:`Video
+    ~descr:
+      "Make the bounding box of the current video start at upper left corner. \
+       This is useful to place centered videos for instance."
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect_map ~name ~kind s (fun buf ->
+          let (x, y), _ = Video.Canvas.Image.bounding_box buf in
+          Video.Canvas.Image.translate (-x) (-y) buf))
+
+let () =
+  let name = "video.dimensions" in
+  let width = ref 0 in
+  let height = ref 0 in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~meth:
+      [
+        ( "width",
+          ([], Lang.fun_t [] Lang.int_t),
+          "Width of video.",
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !width) );
+        ( "height",
+          ([], Lang.fun_t [] Lang.int_t),
+          "Height of video.",
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !height) );
+      ]
+    ~return_t ~category:`Video
+    ~descr:
+      "Retrieve the dimensions of the video through the `width` and `height` \
+       methods."
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect_map ~name ~kind s (fun buf ->
+          width := Video.Canvas.Image.width buf;
+          height := Video.Canvas.Image.height buf;
+          buf))
+
+let () =
+  let name = "video.bounding_box" in
+  let x = ref 0 in
+  let y = ref 0 in
+  let width = ref 0 in
+  let height = ref 0 in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~meth:
+      [
+        ( "x",
+          ([], Lang.fun_t [] Lang.int_t),
+          "x offset of video.",
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !x) );
+        ( "y",
+          ([], Lang.fun_t [] Lang.int_t),
+          "y offset of video.",
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !y) );
+        ( "width",
+          ([], Lang.fun_t [] Lang.int_t),
+          "Width of video.",
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !width) );
+        ( "height",
+          ([], Lang.fun_t [] Lang.int_t),
+          "Height of video.",
+          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !height) );
+      ]
+    ~return_t ~category:`Video
+    ~descr:
+      "Retrieve the origin (methods `x` / `y`) and the dimensions (methods \
+       `width` / `height`) of the bounding box of the video."
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect_map ~name ~kind s (fun buf ->
+          let (x', y'), (w, h) = Video.Canvas.Image.bounding_box buf in
+          x := x';
+          y := y';
+          width := w;
+          height := h;
+          buf))

@@ -38,8 +38,10 @@ class noise ~kind duration =
       try
         let off = Frame.video_of_main off in
         let len = Frame.video_of_main len in
-        let b = VFrame.yuva420p frame in
-        Video.iter Video.Image.randomize b off len
+        let b = VFrame.data frame in
+        Video.Canvas.map
+          (Video.Canvas.Image.iter Video.Image.randomize)
+          b off len
       with Content.Invalid -> ()
   end
 

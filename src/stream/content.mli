@@ -181,11 +181,12 @@ end
 module Video : sig
   include
     Content
-      with type kind = [ `Yuv420p ]
+      with type kind = [ `Canvas ]
        and type params = Contents.video_params
-       and type data = Video.t
+       and type data = Video.Canvas.t
 
   val kind : Contents.kind
+  val dimensions_of_format : Contents.format -> int * int
 end
 
 module Midi : sig

@@ -321,10 +321,11 @@ let get_file_decoder ~metadata ~ctype filename =
                     raise (Found (name, decoded_type, specs))
                   else
                     log#info
-                      "Cannot decode file %s with decoder %s. Detected \
+                      "Cannot decode file %s with decoder %s as %s. Detected \
                        content: %s"
                       (Utils.quote_string filename)
                       name
+                      (Frame.string_of_content_type ctype)
                       (Frame.string_of_content_type decoded_type)
               | None -> ()
           with
@@ -463,14 +464,22 @@ let mk_buffer ~ctype generator =
   let put_yuva420p =
     if mode <> `Audio then (
       let video_resample = Decoder_utils.video_resample () in
-      let video_scale = Decoder_utils.video_scale () in
+      let video_scale =
+        let width, height =
+          try Content.Video.dimensions_of_format ctype.Frame.video
+          with Content.Invalid ->
+            (* We might have encoded contents *)
+            (Lazy.force Frame.video_width, Lazy.force Frame.video_height)
+        in
+        Decoder_utils.video_scale ~width ~height ()
+      in
       let out_freq =
         Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
       in
-      fun ?pts ~fps data ->
+      fun ?pts ~fps (data : Content.Video.data) ->
         let data = Array.map video_scale data in
         let data = video_resample ~in_freq:fps ~out_freq data in
-        let len = Video.length data in
+        let len = Video.Canvas.length data in
         let data = Content.Video.lift_data data in
         Generator.put_video ?pts generator data 0 (Frame.main_of_video len))
     else fun ?pts:_ ~fps:_ _ -> ()

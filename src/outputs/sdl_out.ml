@@ -27,8 +27,6 @@ open Mm
 open Tsdl
 
 class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
-  let video_width = Lazy.force Frame.video_width in
-  let video_height = Lazy.force Frame.video_height in
   let () = Sdl_utils.init [Sdl.Init.video] in
   object (self)
     inherit
@@ -40,12 +38,12 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
     val mutable window = None
 
     method start =
+      let w, h = self#video_dimensions in
       window <-
         Some
           (Sdl_utils.check
              (fun () ->
-               Sdl.create_window "Liquidsoap" ~w:video_width ~h:video_height
-                 Sdl.Window.windowed)
+               Sdl.create_window "Liquidsoap" ~w ~h Sdl.Window.windowed)
              ());
       self#log#info "Initialized SDL video surface."
 
@@ -90,7 +88,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
       let window = Option.get window in
       let surface = Sdl_utils.check Sdl.get_window_surface window in
       (* We only display the first image of each frame *)
-      let rgb = Video.get (VFrame.yuva420p buf) 0 in
+      let rgb = Video.Canvas.render (VFrame.data buf) 0 in
       Sdl_utils.Surface.of_img surface rgb;
       Sdl_utils.check Sdl.update_window_surface window
   end

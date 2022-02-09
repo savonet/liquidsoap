@@ -55,7 +55,8 @@ class blank ~kind duration =
 
       (* Video *)
       (try
-         Video.blank (VFrame.yuva420p ab) video_pos (Frame.video_of_main length)
+         Video.Canvas.blank (VFrame.data ab) video_pos
+           (Frame.video_of_main length)
        with Content.Invalid -> ());
 
       Frame.add_break ab (position + length);

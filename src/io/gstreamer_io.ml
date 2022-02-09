@@ -274,9 +274,9 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
               (Option.get el.audio) data 0 (Bytes.length data));
           if has_video then (
-            let buf = VFrame.yuva420p frame in
-            for i = 0 to Video.length buf - 1 do
-              let img = Video.get buf i in
+            let buf = VFrame.data frame in
+            for i = 0 to Video.Canvas.length buf - 1 do
+              let img = Video.Canvas.render buf i in
               let y, u, v = Image.YUV420.data img in
               let buf =
                 Gstreamer.Buffer.of_data_list
@@ -464,8 +464,6 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       | None, None ->
           failwith "There should be at least one audio or video pipeline!"
   in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
   let rlog = ref (fun _ -> ()) in
   let gen = Generator.create ~log_overfull ~log:(fun x -> !rlog x) content in
   object (self)
@@ -590,17 +588,18 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       done
 
     method private fill_video video =
+      let width, height = self#video_dimensions in
       while video.pending () > 0 && not self#is_generator_at_max do
         let b = video.pull () in
         let img =
           Image.YUV420.make_data width height b (Image.Data.round 4 width)
             (Image.Data.round 4 (width / 2))
         in
-        let stream = Video.single img in
+        let stream = Video.Canvas.single_image img in
         Generator.put_video gen
           (Content.Video.lift_data stream)
           0
-          (Frame.main_of_video (Video.length stream))
+          (Frame.main_of_video (Video.Canvas.length stream))
       done
 
     method get_frame frame =

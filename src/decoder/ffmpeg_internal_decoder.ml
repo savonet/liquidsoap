@@ -70,7 +70,7 @@ let mk_audio_decoder ~channels container =
         List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
         Generator.add_metadata buffer.Decoder.generator m) )
 
-let mk_video_decoder container =
+let mk_video_decoder ~width ~height container =
   let idx, stream, codec = Av.find_best_video_stream container in
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
   let pixel_format =
@@ -78,23 +78,39 @@ let mk_video_decoder container =
       | None -> failwith "Pixel format unknown!"
       | Some f -> f
   in
+  let target_width = width in
+  let target_height = height in
   let width = Avcodec.Video.get_width codec in
   let height = Avcodec.Video.get_height codec in
   let target_fps = Lazy.force Frame.video_rate in
-  let target_width = Lazy.force Frame.video_width in
-  let target_height = Lazy.force Frame.video_height in
-  let scaler =
-    Scaler.create [] width height pixel_format target_width target_height
-      (Ffmpeg_utils.liq_frame_pixel_format ())
+  let scale =
+    let scale_proportional (sw, sh) (tw, th) =
+      if th * sw < tw * sh then (sw * th / sh, th) else (tw, sh * tw / sw)
+    in
+    (* Actual proportional width an height. *)
+    let aw, ah =
+      scale_proportional (width, height) (target_width, target_height)
+    in
+    let scaler =
+      Scaler.create [] width height pixel_format aw ah
+        (Ffmpeg_utils.liq_frame_pixel_format ())
+    in
+    fun frame : Video.Canvas.Image.t ->
+      let img =
+        Scaler.convert scaler frame
+        |> Ffmpeg_utils.unpack_image ~width:aw ~height:ah
+      in
+      let x = (target_width - aw) / 2 in
+      let y = (target_height - ah) / 2 in
+      Video.Canvas.Image.make img
+      |> Video.Canvas.Image.translate x y
+      |> Video.Canvas.Image.viewport target_width target_height
   in
   let time_base = Av.get_time_base stream in
   let pixel_aspect = Av.get_pixel_aspect stream in
   let cb ~buffer frame =
-    let img =
-      Ffmpeg_utils.unpack_image ~width:target_width ~height:target_height
-        (Scaler.convert scaler frame)
-    in
-    let content = Video.single img in
+    let img = scale frame in
+    let content = Video.Canvas.single img in
     buffer.Decoder.put_yuva420p ?pts:None
       ~fps:{ Decoder.num = target_fps; den = 1 }
       content;

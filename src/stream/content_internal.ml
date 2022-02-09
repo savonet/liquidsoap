@@ -143,16 +143,16 @@ module VideoSpecs = struct
   open Frame_base
   open Contents
 
-  type kind = [ `Yuv420p ]
+  type kind = [ `Canvas ]
   type params = Contents.video_params
-  type data = Video.t
+  type data = Video.Canvas.t
 
-  let string_of_kind = function `Yuv420p -> "yuva420p"
+  let string_of_kind = function `Canvas -> "yuva420p"
 
-  let make ~size { width; height } =
-    let width = !!(Option.value ~default:video_width width) in
-    let height = !!(Option.value ~default:video_height height) in
-    Video.make (video_of_main size) width height
+  let make ~size (p : params) : data =
+    let width = !!(Option.value ~default:video_width p.width) in
+    let height = !!(Option.value ~default:video_height p.height) in
+    Video.Canvas.make (video_of_main size) (width, height)
 
   let clear _ = ()
 
@@ -172,47 +172,62 @@ module VideoSpecs = struct
       | _ -> None
 
   let merge p p' =
+    let f = Option.map Lazy.force in
+    let g = Option.map Lazy.from_val in
     {
-      width = merge_param ~name:"width" (p.width, p'.width);
-      height = merge_param ~name:"height" (p.height, p'.height);
+      width = g (merge_param ~name:"width" (f p.width, f p'.width));
+      height = g (merge_param ~name:"height" (f p.height, f p'.height));
     }
 
   let compatible p p' =
     let compare = function
       | None, None -> true
-      | Some _, None | None, Some _ -> false
+      | Some _, None | None, Some _ -> true
       | Some x, Some y -> !!x = !!y
     in
     compare (p.width, p'.width) && compare (p.height, p'.height)
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = Frame_base.video_of_main in
-    Video.blit src !src_pos dst !dst_pos !len
+    Video.Canvas.blit src !src_pos dst !dst_pos !len
 
-  let length d = Frame_base.main_of_video (Video.length d)
-  let copy = Video.copy
+  let length d = Frame_base.main_of_video (Video.Canvas.length d)
+  let copy = Video.Canvas.copy
 
-  let params data =
-    if Array.length data = 0 then { width = None; height = None }
-    else (
-      let i = data.(0) in
+  let params d =
+    if Array.length d = 0 then { width = None; height = None }
+    else
       {
-        width = Some (lazy (Video.Image.width i));
-        height = Some (lazy (Video.Image.height i));
-      })
+        width = Some (lazy (Video.Canvas.Image.width d.(0)));
+        height = Some (lazy (Video.Canvas.Image.height d.(0)));
+      }
 
-  let kind = `Yuv420p
+  let kind = `Canvas
   let default_params _ = { width = None; height = None }
 
   let kind_of_string = function
-    | "yuva420p" | "video" -> Some `Yuv420p
+    | "yuva420p" | "canvas" | "video" -> Some `Canvas
     | _ -> None
 end
 
 module Video = struct
   include MkContent (VideoSpecs)
 
-  let kind = lift_kind `Yuv420p
+  let kind = lift_kind `Canvas
+
+  let dimensions_of_format p =
+    let p = get_params p in
+    let width =
+      Lazy.force
+        (Option.value ~default:Frame_base.video_width
+           p.Content_base.Contents.width)
+    in
+    let height =
+      Lazy.force
+        (Option.value ~default:Frame_base.video_height
+           p.Content_base.Contents.height)
+    in
+    (width, height)
 end
 
 module MidiSpecs = struct

@@ -157,11 +157,11 @@ let encoder ext =
         ~duration (Option.get gst.audio_src) data 0 (Bytes.length data));
     if videochans > 0 then (
       (* Put video. *)
-      let vbuf = VFrame.yuva420p frame in
+      let vbuf = VFrame.data frame in
       let vstart = Frame.video_of_main start in
       let vlen = Frame.video_of_main len in
       for i = vstart to vstart + vlen - 1 do
-        let img = Video.get vbuf i in
+        let img = Video.Canvas.render vbuf i in
         (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)
         assert (Image.YUV420.y_stride img = (Image.YUV420.width img + 3) / 4 * 4);
         assert (

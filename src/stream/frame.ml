@@ -94,7 +94,7 @@ let metadata_of_list l =
 type t = {
   (* Presentation time, in multiple of frame size. *)
   mutable pts : int64;
-  mutable content : Content.data;
+  content : Content.data;
 }
 
 (** Create a content chunk. All chunks have the same size. *)

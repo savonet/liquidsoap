@@ -388,9 +388,9 @@ let mk_video ~ffmpeg ~options output =
     fun frame start len ->
       let vstart = Frame.video_of_main start in
       let vstop = Frame.video_of_main (start + len) in
-      let vbuf = VFrame.yuva420p frame in
+      let vbuf = VFrame.data frame in
       for i = vstart to vstop - 1 do
-        let f = Video.get vbuf i in
+        let f = Video.Canvas.render vbuf i in
         let vdata = Ffmpeg_utils.pack_image f in
         let frame = InternalScaler.convert scaler vdata in
         Avutil.Frame.set_pts frame (Some !nb_frames);

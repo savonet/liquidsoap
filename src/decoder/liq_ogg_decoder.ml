@@ -92,7 +92,7 @@ let create_decoder ?(merge_tracks = false) source input =
     in
     Ogg_decoder.init ~log:demuxer_log callbacks
   in
-  let video_scale = Video_converter.scaler () ~proportional:true in
+  let video_scale = Video_converter.scaler () in
   let started = ref false in
   let tracks = Ogg_decoder.get_standard_tracks decoder in
   let first_meta = ref true in
@@ -167,7 +167,7 @@ let create_decoder ?(merge_tracks = false) source input =
             den = info.Ogg_decoder.fps_denominator;
           }
         in
-        buffer.Decoder.put_yuva420p ~fps (Video.single rgb)
+        buffer.Decoder.put_yuva420p ~fps (Video.Canvas.single_image rgb)
       in
       let decode_audio, decode_video =
         if decode_audio && decode_video then

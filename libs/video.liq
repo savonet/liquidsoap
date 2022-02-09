@@ -40,27 +40,11 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def video.add_image(~id=null(), ~width=getter(null()), ~height=getter(null()), ~x=getter(0), ~y=getter(0), ~file, s)
-  image =
-    if getter.is_constant(x) and getter.is_constant(y) and getter.is_constant(width) and getter.is_constant(height) then
-      x      = getter.get(x)
-      y      = getter.get(y)
-      width  = getter.get(width)
-      height = getter.get(height)
-      # This version is more efficient and does not mess up the dimensions (with
-      # the one below, images get decoded with transparent border which messes
-      # up their dimensions).
-      width = if null.defined(width) then "width=#{null.get(width)}" else "" end
-      height = if null.defined(height) then "height=#{null.get(height)}" else "" end
-      x = if x == 0 then "" else "x=#{x}" end
-      y = if y == 0 then "" else "y=#{y}" end
-      single(id=id,"annotate:#{width},#{height},#{x},#{y}:#{file}")
-    else
-      width = getter.map(fun (v) -> v ?? video.frame.width(), width)
-      height = getter.map(fun (v) -> v ?? video.frame.height(), height)
-      image = single(id=id, file)
-      video.resize(id=id, x=x, y=y, width=width, height=height, image)
-    end
+def video.add_image(~id=null(), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, s)
+  width = width ?? video.frame.width()
+  height = height ?? video.frame.height()
+  image = single(id=id, file)
+  image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
   image = mux_audio(audio=blank(), image)
   add([(s:source),image])
 end
@@ -193,7 +177,6 @@ let output.file.dash = ()
 
 # Output an MPEG-DASH playlist using ffmpeg
 # @category Output
-# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -221,7 +204,6 @@ let output.youtube.live = ()
 
 # Stream to youtube using RTMP.
 # @category Output
-# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
@@ -236,21 +218,23 @@ def output.youtube.live.rtmp(~id=null(), ~fallible=false, ~on_start={()}, ~on_st
   output.url(id=id, fallible=fallible, on_start=on_start, on_stop=on_stop, start=start, url="#{url}/#{key}", encoder, s)
 end
 
-# Stream to youtube using HLS
+# Stream to youtube using HLS.
 # @category Output
-# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
+# @param ~stream_info Informations about the stream (see `output.file.hls` for details).
 # @param ~url HLS URL to stream to
 # @param ~encoder Encoder to use (most likely a `%ffmpeg` encoder)
 # @param ~key Your secret youtube key
 def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_stop={()},
-                             ~start=true, ~url="https://a.upload.youtube.com/http_upload_hls",
-                             ~(key:string),~encoder,s)
+                            ~stream_info=null(),
+                            ~start=true, ~url="https://a.upload.youtube.com/http_upload_hls",
+                            ~(key:string), ~encoder, s)
   id = string.id.default(default="output.youtube.live.rtmp", id)
+  streams_info = if null.defined(stream_info) then [null.get(stream_info)] else [] end
 
   def file_url(fname) =
     "#{url}?cid=#{key}&copy=0&file=#{fname}"
@@ -284,6 +268,7 @@ def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_sto
     segment_duration=4.0,
     segments=5,
     segments_overhead=5,
+    streams_info=streams_info,
     on_file_change=on_file_change,
     tmpdir,
     [("live", encoder)],

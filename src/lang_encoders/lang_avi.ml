@@ -30,6 +30,8 @@ let make params =
          number of channels too early, see #933. *)
       Avi_format.channels = 2;
       samplerate = Frame.audio_rate;
+      width = Frame.video_width;
+      height = Frame.video_height;
     }
   in
   let avi =
@@ -39,6 +41,10 @@ let make params =
             { f with Avi_format.channels = c }
         | "samplerate", `Value { value = Ground (Int i); _ } ->
             { f with Avi_format.samplerate = Lazy.from_val i }
+        | "width", `Value { value = Ground (Int i); _ } ->
+            { f with Avi_format.width = Lazy.from_val i }
+        | "height", `Value { value = Ground (Int i); _ } ->
+            { f with Avi_format.height = Lazy.from_val i }
         | t -> raise (Lang_encoder.generic_error t))
       defaults params
   in

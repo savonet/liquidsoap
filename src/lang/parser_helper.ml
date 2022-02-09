@@ -240,7 +240,15 @@ let mk_list ~pos = function `List l -> mk ~pos (List l) | `App a -> a
 
 let mk_fun ~pos args body =
   let bound = List.map (fun (_, x, _, _) -> x) args in
-  let fv = Term.free_vars ~bound body in
+  let fv =
+    List.fold_left
+      (fun fv (_, _, _, d) ->
+        match d with
+          | Some d -> Term.Vars.union fv (Term.free_vars d)
+          | None -> fv)
+      Term.Vars.empty args
+  in
+  let fv = Term.Vars.union fv (Term.free_vars ~bound body) in
   mk ~pos (Fun (fv, args, body))
 
 let mk_let_json_stringify ~pos (args, pat, def, cast) body =

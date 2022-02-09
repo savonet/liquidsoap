@@ -46,10 +46,13 @@ let encoder id ext =
         decision)
   in
   let header =
-    if ext.video then
-      Avi.header ~channels:ext.channels
+    if ext.video <> None then (
+      let width, height = Option.get ext.video in
+      let width = Lazy.force width in
+      let height = Lazy.force height in
+      Avi.header ~width ~height ~channels:ext.channels
         ~samplerate:(Lazy.force ext.samplerate)
-        ()
+        ())
     else if ext.header then
       Wav_aiff.wav_header ~channels:ext.channels
         ~sample_rate:(Lazy.force ext.samplerate)
@@ -108,11 +111,14 @@ let encoder id ext =
   in
   let encode frame start len =
     let channels = ext.channels in
+    let samplerate = Lazy.force ext.samplerate in
+    let width, height = Option.get ext.video in
+    let width = Lazy.force width in
+    let height = Lazy.force height in
     let sbuf =
-      if ext.video then
-        Avi_encoder.encode_frame ~channels
-          ~samplerate:(Lazy.force ext.samplerate)
-          ~converter frame start len
+      if ext.video <> None then
+        Avi_encoder.encode_frame ~channels ~samplerate ~converter ~width ~height
+          frame start len
       else (
         let b = AFrame.pcm frame in
         let len = Frame.audio_of_main len in

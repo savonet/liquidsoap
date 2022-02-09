@@ -22,9 +22,7 @@
 open Mm
 
 class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
-  let video_width = Lazy.force Frame.video_width in
-  let video_height = Lazy.force Frame.video_height in
-  object
+  object (self)
     inherit
       Output.output
         ~name:"graphics" ~output_kind:"output.graphics" ~infallible ~on_start
@@ -34,13 +32,14 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
     method stop = sleep <- true
 
     method start =
+      let width, height = self#video_dimensions in
       Graphics.open_graph "";
       Graphics.set_window_title "Liquidsoap";
-      Graphics.resize_window video_width video_height;
+      Graphics.resize_window width height;
       sleep <- false
 
     method send_frame buf =
-      let rgb = Video.get (VFrame.yuva420p buf) 0 in
+      let rgb = Video.Canvas.render (VFrame.data buf) 0 in
       let img = Video.Image.to_int_image rgb in
       let img = Graphics.make_image img in
       Graphics.draw_image img 0 0

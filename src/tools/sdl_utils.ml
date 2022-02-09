@@ -67,7 +67,7 @@ module Surface = struct
                   pix.{(j * pitch) + (4 * i) + 0},
                   0xff )
               in
-              Video.Image.set_pixel_rgba img i j (r, g, b, a)
+              Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
             done
           done;
           Sdl.unlock_surface surface
@@ -82,7 +82,7 @@ module Surface = struct
                   pix.{(j * pitch) + (3 * i) + 2} )
               in
               let a = 0xff in
-              Video.Image.set_pixel_rgba img i j (r, g, b, a)
+              Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
             done
           done;
           Sdl.unlock_surface surface
@@ -93,7 +93,7 @@ module Surface = struct
             for i = 0 to width - 1 do
               let p = pix.{i + (j * pitch)} in
               let a = 0xff in
-              Video.Image.set_pixel_rgba img i j (p, p, p, a)
+              Image.YUV420.set_pixel_rgba img i j (p, p, p, a)
             done
           done;
           Sdl.unlock_surface surface
@@ -113,7 +113,7 @@ module Surface = struct
           let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
           for i = 0 to width - 1 do
             for j = 0 to height - 1 do
-              let r, g, b, _ = Video.Image.get_pixel_rgba img i j in
+              let r, g, b, _ = Image.YUV420.get_pixel_rgba img i j in
               pix.{(j * pitch) + (4 * i) + 0} <- b;
               pix.{(j * pitch) + (4 * i) + 1} <- g;
               pix.{(j * pitch) + (4 * i) + 2} <- r;

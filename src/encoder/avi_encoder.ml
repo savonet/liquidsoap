@@ -26,7 +26,12 @@ open Mm
 
 open Avi_format
 
-let encode_frame ~channels ~samplerate ~converter frame start len =
+let log = Log.make ["avi"; "encoder"]
+
+let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
+    =
+  let target_width = width in
+  let target_height = height in
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
   let audio =
     let astart = Frame.audio_of_main start in
@@ -47,20 +52,41 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =
-    let vbuf = VFrame.yuva420p frame in
+    let vbuf = VFrame.data frame in
     let vstart = Frame.video_of_main start in
     let vlen = Frame.video_of_main len in
     let data = Strings.Mutable.empty () in
     for i = vstart to vstart + vlen - 1 do
-      let img = Video.get vbuf i in
-      (* TODO: change stride otherwise *)
+      let img = Video.Canvas.render vbuf i in
       let width = Image.YUV420.width img in
-      assert (Image.YUV420.y_stride img = width);
-      assert (Image.YUV420.uv_stride img = width / 2);
+      let height = Image.YUV420.height img in
+      if width <> target_width || height <> target_height then
+        failwith
+          (Printf.sprintf
+             "Resizing is not yet supported by AVI encoder got %dx%d instead \
+              of %dx%d"
+             width height target_width target_height);
       let y, u, v = Image.YUV420.data img in
-      Strings.Mutable.add data (Image.Data.to_string y);
-      Strings.Mutable.add data (Image.Data.to_string u);
-      Strings.Mutable.add data (Image.Data.to_string v)
+      let y = Image.Data.to_string y in
+      let u = Image.Data.to_string u in
+      let v = Image.Data.to_string v in
+      let y_stride = Image.YUV420.y_stride img in
+      let uv_stride = Image.YUV420.uv_stride img in
+      if y_stride = width then Strings.Mutable.add data y
+      else
+        for j = 0 to height - 1 do
+          Strings.Mutable.add_substring data y (j * y_stride) width
+        done;
+      if uv_stride = width / 2 then (
+        Strings.Mutable.add data u;
+        Strings.Mutable.add data v)
+      else (
+        for j = 0 to (height / 2) - 1 do
+          Strings.Mutable.add_substring data u (j * uv_stride) (width / 2)
+        done;
+        for j = 0 to (height / 2) - 1 do
+          Strings.Mutable.add_substring data v (j * uv_stride) (width / 2)
+        done)
     done;
     Avi.video_chunk_strings data
   in
@@ -70,11 +96,18 @@ let encoder avi =
   let channels = avi.channels in
   let samplerate = Lazy.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
+  let width = Lazy.force avi.width in
+  let height = Lazy.force avi.height in
+  log#info "Encoding at %dx%d, %d channels, %d Hz.%!" width height channels
+    samplerate;
   (* TODO: use duration *)
-  let header = Avi.header ~channels ~samplerate () in
+  let header = Avi.header ~width ~height ~channels ~samplerate () in
   let need_header = ref true in
   let encode frame start len =
-    let ans = encode_frame ~channels ~samplerate ~converter frame start len in
+    let ans =
+      encode_frame ~channels ~samplerate ~width ~height ~converter frame start
+        len
+    in
     if !need_header then (
       need_header := false;
       Strings.dda header ans)

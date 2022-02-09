@@ -339,9 +339,9 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
   | `Frame frame ->
       let vstart = 0 in
       let vstop = VFrame.position frame in
-      let vbuf = VFrame.yuva420p frame in
+      let vbuf = VFrame.data frame in
       for i = vstart to vstop - 1 do
-        let f = Video.get vbuf i in
+        let f = Video.Canvas.render vbuf i in
         let vdata = Ffmpeg_utils.pack_image f in
         let frame = InternalScaler.convert (Option.get !scaler) vdata in
         Avutil.Frame.set_pts frame (Some !nb_frames);

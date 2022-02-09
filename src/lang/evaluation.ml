@@ -305,9 +305,7 @@ and apply f l =
          this is worth the price: we compute it for every application... *)
       f.Value.pos
   in
-  (* Extract the components of the function, whether it's explicit or foreign,
-     together with a rewrapping function for creating a closure in case of
-     partial application. *)
+  (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
     match (Value.demeth f).Value.value with
       | Value.Fun (p, e, body) ->
