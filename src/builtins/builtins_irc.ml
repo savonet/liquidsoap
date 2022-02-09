@@ -42,6 +42,13 @@ let () = Lang.add_module "irc"
 let () =
   Lang.add_builtin "irc.channel" ~category:`String
     ~descr:"Contents of an IRC channel."
+    (*
+    ~examples:[{|
+# Display messages in the #liquidsoap-test room over a video
+s = single("test.mp4")
+s = video.add_text.native(irc.channel(channel="#liquidsoap-test"), s)
+|}]
+*)
     [
       ( "server",
         Lang.string_t,
