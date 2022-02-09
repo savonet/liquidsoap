@@ -28,7 +28,6 @@ def image(~id=null(), ~fallible=false, file="")
     s.set(single(id=id, fallible=fallible, file))
   end
   set(file)
-  s = mux_audio(id=id, audio=blank(), s)
   s.{set=set}
 end
 
@@ -45,7 +44,6 @@ def video.add_image(~id=null(), ~width=null(), ~height=null(), ~x=getter(0), ~y=
   height = height ?? video.frame.height()
   image = single(id=id, file)
   image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
-  image = mux_audio(audio=blank(), image)
   add([(s:source),image])
 end
 
