@@ -44,6 +44,8 @@ Changes:
 - Made `streams_info` parameter of `output.file.hls` a record (#2173).
 - Disable scrolling by default in `video.add_text`. You can re-enable it by
   using `video.add_text(speed=70, ...)`.
+- Added "example" sections to operators documentation, we now need to populate
+  those (#2227).
 - Default implementation of `video.testsrc` is now builtin, previous
   implementation can be found under `video.testsrc.ffmpeg`.
 - Images can now generate blank audio if needed, no need to add

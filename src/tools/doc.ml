@@ -148,8 +148,18 @@ let print_functions_md ~extra (doc : item) print_string =
             Printf.ksprintf print_string "### `%s`\n\n" f;
             Printf.ksprintf print_string "%s\n\n"
               (to_string (List.assoc "_info" desc));
-            Printf.ksprintf print_string "Type:\n```\n%s\n```\n\n"
+            Printf.ksprintf print_string "Type:\n\n```\n%s\n```\n\n"
               (to_string (List.assoc "_type" desc));
+            let examples =
+              List.filter_map
+                (function "_example", `String e -> Some e | _ -> None)
+                desc
+            in
+            List.iter
+              (fun e ->
+                print_string "Example:\n\n";
+                Printf.ksprintf print_string "```liquidsoap\n%s\n```\n\n" e)
+              examples;
             let methods =
               let methods =
                 try List.assoc "_methods" desc |> to_assoc
@@ -167,8 +177,16 @@ let print_functions_md ~extra (doc : item) print_string =
             let args =
               List.filter
                 (fun (n, _) ->
-                  n <> "_info" && n <> "_category" && n <> "_type"
-                  && n <> "_flag" && n <> "_methods")
+                  not
+                    (List.mem n
+                       [
+                         "_info";
+                         "_category";
+                         "_type";
+                         "_flag";
+                         "_methods";
+                         "_example";
+                       ]))
                 desc
             in
             let args =
@@ -268,6 +286,17 @@ let print_lang (i : item) =
       Format.fprintf ff "@.Category: %s@." (List.assoc "_category" sub)#get_doc;
       List.remove_assoc "_category" sub
     with Not_found -> sub
+  in
+  let sub =
+    let examples, sub = List.partition (fun (l, _) -> l = "_example") sub in
+    let examples = List.map snd examples in
+    let examples = List.map (fun e -> e#get_doc) examples in
+    List.iter
+      (fun e ->
+        Format.fprintf ff "@.Example:@.@.";
+        Format.fprintf ff "@[<2>%s@]@." e)
+      examples;
+    sub
   in
   let meths, sub =
     try
