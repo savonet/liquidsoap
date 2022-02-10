@@ -85,20 +85,8 @@ let channels_converter dst =
           Audio_converter.Channel_layout.convert c data
 
 let video_scale ~width ~height () =
-  let dst_width = width in
-  let dst_height = height in
   let scaler = Video_converter.scaler () in
-  fun img ->
-    let src_width = Video.Canvas.Image.width img in
-    let src_height = Video.Canvas.Image.height img in
-    let n, d =
-      Image.Fraction.min (dst_width, src_width) (dst_height, src_height)
-    in
-    let x = (dst_width - (src_width * n / d)) / 2 in
-    let y = (dst_height - (src_height * n / d)) / 2 in
-    let img = Video.Canvas.Image.scale ~scaler (n, d) (n, d) img in
-    let img = Video.Canvas.Image.translate x y img in
-    img
+  Video.Canvas.Image.resize ~scaler width height
 
 type fps = { num : int; den : int }
 

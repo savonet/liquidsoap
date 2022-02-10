@@ -179,11 +179,11 @@ let () =
                 if
                   out_width = in_width && out_height = in_height
                   && video_format = `I420
-                then src
+                then Video.Canvas.Image.make src
                 else (
                   let dst = Video.Image.create out_width out_height in
                   video_scaler src dst;
-                  dst)
+                  Video.Canvas.Image.make dst)
               in
               video_converter := Some converter
           | `Audio (channels, samplerate) ->
@@ -218,8 +218,7 @@ let () =
                      (width * height * 3));
               let data = (Option.get !video_converter) data in
               Generator.put_video abg
-                (Content.Video.lift_data
-                   (Video.Canvas.single (Video.Canvas.Image.make data)))
+                (Content.Video.lift_data (Video.Canvas.single data))
                 0 (Frame.main_of_video 1)
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
