@@ -13,7 +13,7 @@ end
 # @param ~pattern Pattern drawn in the video: `"testsrc"`, `"testsrc2"`, `"smptebars"` or `"rgbtestsrc"`.
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~duration Duration of the source.
-def video.testsrc(~id=null(), ~pattern="testsrc", ~max_buffer=0.5, ~duration=null())
+def video.testsrc.ffmpeg(~id=null(), ~pattern="testsrc", ~max_buffer=0.5, ~duration=null())
   if not list.mem(pattern, ["testsrc", "testsrc2", "smptebars", "rgbtestsrc"]) then failwith("invalid pattern for video.testsrc.ffmpeg") end
   size = "size=#{video.frame.width()}x#{video.frame.height()}"
   rate = "rate=#{video.frame.rate()}"

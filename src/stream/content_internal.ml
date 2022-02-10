@@ -292,5 +292,8 @@ let default_midi () =
   let channels = Lazy.force Frame_base.midi_channels in
   if channels = 0 then None.format else Midi.lift_params { Contents.channels }
 
-let is_internal f =
+let is_internal_kind f =
   None.is_kind f || Audio.is_kind f || Video.is_kind f || Midi.is_kind f
+
+let is_internal_format f =
+  None.is_format f || Audio.is_format f || Video.is_format f || Midi.is_format f

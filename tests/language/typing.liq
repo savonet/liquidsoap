@@ -103,6 +103,13 @@ def f() =
   #  across two types. Here the sharing is actually the origin of the occur-check
   #  error. And it's not easy to understand..
   # omega = fun (x) -> x(x)
+
+  # The argument f of the function g is infered as taking a non-optional
+  # parameter x, whereas f has an optional parameter x. Subtyping should however
+  # accept this now that we have disable partial application.
+  g = fun(f) -> f(x=3)
+  f = fun(~x=3) -> x+5
+  ignore(g(f))
   
   # Now let's test ad-hoc polymorphism.
   

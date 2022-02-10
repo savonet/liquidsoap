@@ -214,12 +214,12 @@ let satisfies_constraint b = function
       let is_internal name =
         try
           let kind = Content.kind_of_string name in
-          Content.is_internal kind
+          Content.is_internal_kind kind
         with Content.Invalid -> false
       in
       match b.descr with
         | Constr { constructor } when is_internal constructor -> ()
-        | Ground (Format f) when Content.(is_internal (kind f)) -> ()
+        | Ground (Format f) when Content.(is_internal_format f) -> ()
         | Var { contents = Free v } ->
             if not (List.mem InternalMedia v.constraints) then
               v.constraints <- InternalMedia :: v.constraints
@@ -367,24 +367,9 @@ let () =
              (Repr.to_string b))
     | _ -> None)
 
-(* I'd like to add subtyping on unions of scalar types, but for now the only
- * non-trivial thing is the arrow.
- * We allow
- *  (L1@L2)->T <: (L1)->T        if L2 is purely optional
- *  (L1@L2)->T <: (L1)->(L2)->T  otherwise (at least one mandatory param in L2)
- *
- * Memo: A <: B means that any value of type A can be passed where a value
- * of type B can. Indeed, if you can pass a function, you can also pass the same
- * one with extra optional parameters.
- *
- * This relation must be transitive. Note that it is not safe to allow the
- * promotion of optional parameters into mandatory ones, because the function
- * with the optional parameter, when fully applied, applies implicitly its
- * optional argument; whereas with a mandatory argument it is expected to wait
- * for it. *)
-
-(** Ensure that a<:b, perform unification if needed.
-  * In case of error, generate an explanation. *)
+(** Ensure that a<:b, perform unification if needed. In case of error, generate
+    an explanation. We recall that A <: B means that any value of type A can be
+    passed where a value of type B can. This relation must be transitive. *)
 let rec ( <: ) a b =
   if !debug || !debug_subtyping then
     Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
@@ -467,7 +452,7 @@ let rec ( <: ) a b =
             l m
       | Arrow (l12, t), Arrow (l, t') ->
           (* Here, it must be that l12 = l1@l2 where l1 is essentially l modulo
-             order and either l2 is erasable and t<:t' or (l2)->t <: t'. *)
+             order and either l2 is erasable and t<:t'. *)
           let ellipsis = (false, "", `Range_Ellipsis) in
           let elide (o, l, _) = (o, l, `Ellipsis) in
           let l1, l2 =
@@ -475,8 +460,8 @@ let rec ( <: ) a b =
               (* Start with [l2:=l12], [l1:=[]] and move each param [o,lbl]
                  required by [l] from [l2] to [l1]. *)
                 (fun (l1, l2) (o, lbl, t) ->
-                (* Search for a param with optionality o and label lbl. Returns
-                   the first matching parameter and the list without it. *)
+                (* Search for a param with label lbl. Returns the first
+                   matching parameter and the list without it. *)
                 let rec get_param acc = function
                   | [] ->
                       raise
@@ -488,26 +473,30 @@ let rec ( <: ) a b =
                                ( List.rev (ellipsis :: (o, lbl, `Ellipsis) :: l1),
                                  `Ellipsis ) ))
                   | (o', lbl', t') :: tl ->
-                      if o = o' && lbl = lbl' then
-                        ((o', lbl', t'), List.rev_append acc tl)
+                      if lbl = lbl' then ((o', lbl', t'), List.rev_append acc tl)
                       else get_param ((o', lbl', t') :: acc) tl
                 in
-                let (o, lbl, t'), l2' = get_param [] l2 in
+                let (o', lbl, t'), l2' = get_param [] l2 in
                 (* Check on-the-fly that the types match. *)
                 begin
-                  try t <: t'
+                  try
+                    if (not o') && o then raise (Error (`Ellipsis, `Ellipsis));
+                    t <: t'
                   with Error (t, t') ->
                     let bt = Printexc.get_raw_backtrace () in
-                    let make t =
+                    let make o t =
                       `Arrow
                         (List.rev (ellipsis :: (o, lbl, t) :: l1), `Ellipsis)
                     in
-                    Printexc.raise_with_backtrace (Error (make t', make t)) bt
+                    Printexc.raise_with_backtrace
+                      (Error (make o' t', make o t))
+                      bt
                 end;
                 ((o, lbl, `Ellipsis) :: l1, l2'))
               ([], l12) l
           in
           let l1 = List.rev l1 in
+          ignore l1;
           if List.for_all (fun (o, _, _) -> o) l2 then (
             try t <: t'
             with Error (t, t') ->
@@ -516,10 +505,11 @@ let rec ( <: ) a b =
                 (Error (`Arrow ([ellipsis], t), `Arrow ([ellipsis], t')))
                 bt)
           else (
-            try { a with descr = Arrow (l2, t) } <: t' with
-              | Error (`Arrow (p, t), t') ->
-                  raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
-              | Error _ -> assert false)
+            let l2 = List.map (fun (o, l, t) -> (o, l, Repr.make t)) l2 in
+            raise
+              (Error
+                 ( `Arrow (l2 @ [ellipsis], `Ellipsis),
+                   `Arrow ([ellipsis], `Ellipsis) )))
       | Ground (Format k), Ground (Format k') -> (
           try Content.merge k k'
           with _ ->

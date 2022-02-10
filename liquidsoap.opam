@@ -135,6 +135,7 @@ build: [
   [make]
 ]
 install: [make "install"]
+remove: ["rm" "-rf" "%{lib}%/liquidsoap"]
 post-messages: [
   """\
 We're sorry that your liquidsoap install failed. Check out our installation

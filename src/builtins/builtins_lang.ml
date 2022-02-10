@@ -39,6 +39,7 @@ let () =
       ("bindir", "Internal script directory", Configure.bin_dir);
       ("rundir", "PID file directory", Configure.rundir);
       ("logdir", "logging directory", Configure.logdir);
+      ("camomile_dir", "camomile files directory", Configure.camomile_dir);
       ("default_font", "default font file", Configure.default_font);
     ];
   Lang.add_builtin ~category:`Liquidsoap

@@ -46,6 +46,10 @@ Changes:
   using `video.add_text(speed=70, ...)`.
 - Added "example" sections to operators documentation, we now need to populate
   those (#2227).
+- Default implementation of `video.testsrc` is now builtin, previous
+  implementation can be found under `video.testsrc.ffmpeg`.
+- Images can now generate blank audio if needed, no need to add
+  `mux_audio(audio=blank(),image)` anymore (#2230).
 
 2.0.2 (28-12-2021)
 =====
