@@ -6,6 +6,8 @@ First some outlines:
 
 * This example is meant to create a new source and outputs. It is not easy currently to change a source being streamed
 * The idea is to create a new output using a telnet/server command.
+* In order for a liquidsoap script to run without an active sort at startup, it is necessary to include settings.init.force_start.set(true) at the start of the script. 
+
 
 In this example, we will register a command that creates a playlist source using an uri passed
 as argument and outputs it to a fixed icecast output.
