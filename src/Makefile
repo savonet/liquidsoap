@@ -225,7 +225,6 @@ builtins = \
         builtins/builtins_thread.ml builtins/builtins_process.ml \
         builtins/builtins_source.ml builtins/builtins_getter.ml \
         builtins/builtins_profiler.ml builtins/builtins_eval.ml \
-        $(if $(W_MEM_USAGE),builtins/builtins_mem_usage.ml) \
 	$(if $(W_CURL),builtins/builtins_http.ml) \
         builtins/builtins_harbor.ml \
         $(if $(W_SSL),builtins/builtins_harbor_ssl.ml) \
@@ -238,6 +237,7 @@ builtins = \
         builtins/builtins_ffmpeg_base.ml \
         $(if $(W_FFMPEG),builtins/builtins_ffmpeg_encoder.ml builtins/builtins_ffmpeg_decoder.ml builtins/builtins_ffmpeg_filters.ml) \
 	$(if $(W_IRC),builtins/builtins_irc.ml)
+	$(if $(W_MEM_USAGE),builtins/builtins_mem_usage.ml) \
 
 liquidsoap_sources = \
 	$(tools) converters/audio_converter.ml $(stream) \
