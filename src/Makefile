@@ -299,7 +299,9 @@ endif
 
 include ../Makefile.defs
 
-all: $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
+all: liquidsoap
+
+liquidsoap: $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
 	$(V)echo $(OCAMLCOMP) -o liquidsoap$(EXEEXT)
 	$(V)$(OCAMLC) -o liquidsoap$(EXEEXT) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) $(_OCAML_LFLAGS) $(OCAML_LFLAGS) $(liquidsoap_sources:.ml=.$(o)) $(c_link)
 
