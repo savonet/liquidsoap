@@ -59,6 +59,7 @@ class effect_map ~name ~kind (source : source) effect =
 
 let kind = Kind.of_kind Lang.any
 let return_t = Lang.kind_type_of_kind_format Lang.any
+let () = Lang.add_module "video.alpha"
 
 let () =
   let name = "video.greyscale" in
@@ -108,7 +109,7 @@ let () =
           Image.YUV420.Effect.Alpha.scale buf (a ())))
 
 let () =
-  let name = "video.remove_alpha" in
+  let name = "video.alpha.remove" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:`Video ~descr:"Remove α channel."
@@ -202,7 +203,7 @@ let () =
           Video.Canvas.Image.add r buf))
 
 let () =
-  let name = "video.transparent" in
+  let name = "video.alpha.of_color" in
   Lang.add_operator name
     [
       ( "precision",
