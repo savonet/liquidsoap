@@ -108,6 +108,15 @@ let () =
           Image.YUV420.Effect.Alpha.scale buf (a ())))
 
 let () =
+  let name = "video.remove_alpha" in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:`Video ~descr:"Remove α channel."
+    (fun p ->
+      let src = Lang.to_source (List.assoc "" p) in
+      new effect ~name ~kind src (fun img -> Image.YUV420.fill_alpha img 0xff))
+
+let () =
   let name = "video.fill" in
   Lang.add_operator name
     [
