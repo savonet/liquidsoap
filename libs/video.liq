@@ -361,6 +361,13 @@ def video.add_text.gstreamer = add_text_builder(video.text.gstreamer) end
 let replaces video.add_text.best = video.add_text.gstreamer
 %endif
 
+
+%ifdef video.add_text.ffmpeg
+# Note, this does not have higher priority because it is much slower than other
+# implementations.
+let video.add_text.best = video.add_text.ffmpeg
+%endif
+
 %ifdef video.text.sdl
 # Add a text to a stream (SDL implementation).
 # @category Source / Video Processing
@@ -399,12 +406,8 @@ def video.add_text.camlimages = add_text_builder(video.text.camlimages) end
 let video.add_text.best = video.add_text.camlimages
 %endif
 
-%ifdef video.add_text.ffmpeg
-let video.add_text.best = video.add_text.ffmpeg
-%endif
-
-# Add a text to a stream. Uses the first available operator in: FFmpeg,
-# camlimages, SDL, GStreamer, gd or native.
+# Add a text to a stream. Uses the first available operator in: camlimages, SDL,
+# FFmpeg, GStreamer, gd or native.
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
