@@ -1,5 +1,5 @@
 DISTFILES = Makefile $(shell find . -name \*.mli) $(shell find . -name \*.ml) $(shell find . -name \*.c)
-SUBDIRS = builtins conversions converters decoder encoder encoder_formats harbor io lang operators outputs protocols sources stream tools
+INCDIRS = builtins conversions converters decoder encoder encoder_formats harbor io lang lang_encoders ogg_formats operators outputs protocols sources stream tools
 
 liquidsoap_c_files = tools/unix_c.c \
   $(if $(W_OSS),io/oss_io_c.c)
@@ -276,7 +276,7 @@ liquidsoap_sources += \
 	shebang.ml $(builtins) main.ml \
 	$(if $(W_WINSVC),runner_service.ml,runner.ml)
 
-OCAMLDEP_FLAGS = $(patsubst %,-I %,$(SUBDIRS))
+OCAMLDEP_FLAGS = $(patsubst %,-I %,$(INCDIRS))
 OCAML_CFLAGS = -thread $(OCAMLDEP_FLAGS)
 _OCAML_CFLAGS=$(liquidsoap_ocamlcflags)
 _OCAML_LFLAGS=$(liquidsoap_ocamllflags)
@@ -304,7 +304,8 @@ all: $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
 	$(V)$(OCAMLC) -o liquidsoap$(EXEEXT) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) $(_OCAML_LFLAGS) $(OCAML_LFLAGS) $(liquidsoap_sources:.ml=.$(o)) $(c_link)
 
 clean:
-	rm -f $(wildcard $(liquidsoap_sources):.ml:$(o)) $(wildcard $(liquidsoap_sources):.ml=$(i))
+	@echo "Cleaning..."
+	@rm -f $(liquidsoap_sources:.ml=.$(o)) $(liquidsoap_sources:.ml=.$(i)) depend
 
 install:
 	$(INSTALL) -d $(bindir)
@@ -329,7 +330,7 @@ configure.ml:
 
 depend: $(liquidsoap_sources) $(liquidsoap_headers)
 	$(V)echo OCAMLDEP
-	$(V)$(OCAMLDEP) $(_DEP_OPTS) $(DEP_OPTS) $(liquidsoap_sources) $(liquidsoap_headers) > $@
+	$(V)$(OCAMLDEP) $(_OCAMLDEP_FLAGS) $(OCAMLDEP_FLAGS) $(liquidsoap_sources) $(liquidsoap_headers) > $@
 
 include depend
 

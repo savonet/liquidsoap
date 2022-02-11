@@ -1,19 +1,16 @@
-SUBDIRS= src examples doc scripts tests libs
-DISTFILES = CHANGES CHANGES.md COPYING README README.md \
+DISTFILES = \
+	CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.h.in config.sub config.guess \
 	Makefile Makefile.defs.in Makefile.rules install-sh \
-        liquidsoap.opam
+	liquidsoap.opam
 DISTDIRS = m4
 
-top_srcdir=.
-include $(top_srcdir)/Makefile.rules
+all clean:
+	$(MAKE) -C src $@
 
-distclean: pre-distclean
+distclean:
 	rm -f Makefile.defs
-pre-distclean: clean
-	rm -rf config.log config.status config.h autom4te.cache \
-	       src/configure.ml scripts/liquidsoap.logrotate \
-	       liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
+	rm -rf config.log config.status config.h autom4te.cache src/configure.ml scripts/liquidsoap.logrotate liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
 	@$(MAKE) -C src/test test
@@ -59,7 +56,7 @@ doc-install:
 	$(MAKE) -C doc doc-install
 	$(MAKE) -C examples doc-install
 api-doc-install:
-	$(V)echo Installing developer documentation...
+	$(V)echo "Installing developer documentation..."
 	$(V)$(INSTALL) -d $(datadir)/doc/$(DISTDIR)/api
 	$(V)for doc in $(wildcard autodoc/liquidsoap/*.html autodoc/liquidsoap/*.css) ;\
 	do $(INSTALL_DATA) $$doc $(datadir)/doc/$(DISTDIR)/api ; \
@@ -67,7 +64,8 @@ api-doc-install:
 
 # user and group are defined in Makefile.defs, written by configure.
 
-install-local: doc-install
+install: doc-install
+	$(MAKE) -C src $@
 ifeq ($(INSTALL_DAEMON),yes)
 	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/log/liquidsoap
 	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/run/liquidsoap
@@ -87,3 +85,5 @@ endif
 	-$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
 	$(INSTALL_DIRECTORY) ${emacsdir}
 	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/
+
+-include Makefile.defs

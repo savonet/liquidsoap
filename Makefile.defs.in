@@ -40,7 +40,7 @@ OCAMLPATH = @OCAMLPATH@
 
 liquidsoap_ocamlcflags= @liquidsoap_ocamlcflags@
 liquidsoap_ocamllflags= @liquidsoap_ocamllflags@ -cclib "$(LDFLAGS)"
-_DEP_OPTS= @_DEP_OPTS@
+_OCAMLDEP_FLAGS= @_DEP_OPTS@
 
 # Make the building quiet
 V=@
