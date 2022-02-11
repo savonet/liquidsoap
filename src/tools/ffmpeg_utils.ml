@@ -108,7 +108,13 @@ let pack_image f =
   [| (y, sy); (u, s); (v, s) |]
 
 let unpack_image ~width ~height = function
-  | [| (y, sy); (u, s); (v, _) |] -> Image.YUV420.make width height y sy u v s
+  | [| (y, sy); (u, su); (v, sv) |] ->
+      assert (su = sv);
+      Image.YUV420.make width height y sy u v su
+  | [| (y, sy); (u, su); (v, sv); (alpha, sa) |] ->
+      assert (su = sv);
+      assert (sa = sy);
+      Image.YUV420.make width height ~alpha y sy u v su
   | _ -> assert false
 
 let convert_time_base ~src ~dst pts =
