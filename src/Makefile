@@ -41,7 +41,7 @@ text_decoders = \
 	decoder/text/video_text_native.ml \
 	$(if $(W_GD),decoder/text/video_text_gd.ml) \
 	$(if $(W_SDL_TTF),decoder/text/video_text_sdl.ml) \
-	$(if $(W_CAMLIMAGES),decoder/text/video_text_camlimages.ml) \
+	$(if $(W_CAMLIMAGES_FREETYPE),decoder/text/video_text_camlimages.ml) \
 	$(if $(W_GSTREAMER),decoder/text/video_text_gstreamer.ml)
 
 decoders = \
@@ -109,11 +109,7 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	$(if $(W_LILV),operators/lilv_op.ml) \
-	$(if $(W_FREI0R),operators/frei0r_op.ml) \
-	$(if $(W_GD),operators/video_text_gd.ml) \
-	$(if $(W_SDL_TTF),operators/video_text_sdl.ml) \
-	$(if $(W_CAMLIMAGES_FREETYPE),operators/video_text_camlimages.ml) \
-	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
+	$(if $(W_FREI0R),operators/frei0r_op.ml)
 
 conversions = \
 	conversions/conversion.ml conversions/audio_to_stereo.ml conversions/drop.ml \
