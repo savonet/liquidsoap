@@ -491,6 +491,19 @@ let () =
           buf))
 
 let () =
+  let name = "video.alpha_to_y" in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:`Video
+    ~descr:
+      "Convert the α channel to Y channel, thus converting opaque \
+       (resp. transparent) pixels to bright (resp. dark) ones. This is useful \
+       to observe the α channel."
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect ~name ~kind s Image.YUV420.alpha_to_y)
+
+let () =
   let name = "video.bounding_box" in
   let x = ref 0 in
   let y = ref 0 in
