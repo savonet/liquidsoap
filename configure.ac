@@ -1039,6 +1039,7 @@ cat <<EOMSG
 
  * Video manipulation
    - camlimages        : $w_CAMLIMAGES
+   - camlimages.ft     : $w_CAMLIMAGES_FREETYPE
    - FFmpeg            : $w_FFMPEG
    - frei0r            : $w_FREI0R
    - SDL-image         : $w_TSDL_IMAGE
