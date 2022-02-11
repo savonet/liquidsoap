@@ -1,0 +1,27 @@
+(executable
+ (name test)
+ (modules test)
+ (optional)
+ (libraries metadata)
+)
+
+(rule
+ (alias runtest)
+ (deps test.mp3 test.png test.jpg)
+ (action (run ./test.exe))
+)
+
+(rule
+ (target test.mp3)
+ (action (run ffmpeg -f lavfi -i "sine=frequency=440:sample_rate=44100:duration=10" -f mp3 -metadata "title=The title" -metadata "artist=The artist" -metadata "album=The album" test.mp3))
+)
+
+(rule
+ (target test.png)
+ (action (run ffmpeg -f lavfi -i color=size=320x240:color=blue -vf "drawtext=fontsize=30:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:text=Testing" -frames:v 1 test.png))
+)
+
+(rule
+ (target test.jpg)
+ (action (run ffmpeg -f lavfi -i color=size=320x240:color=blue -vf "drawtext=fontsize=30:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:text=Testing" -frames:v 1 test.jpg))
+)

@@ -46,13 +46,13 @@ let get_tags fname =
       not
         (Decoder.test_file ~log ~mimes:mime_types#get
            ~extensions:file_extensions#get fname)
-    then raise Id3v2.Invalid;
+    then raise Metadata.Invalid;
     let ic = open_in fname in
     Tutils.finalize
       ~k:(fun () -> close_in ic)
-      (fun () -> Id3v2.parse (input ic))
+      (fun () -> Metadata.ID3v2.parse (input ic))
   with
-    | Id3v2.Invalid -> []
+    | Metadata.Invalid -> []
     | e ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log ~bt
