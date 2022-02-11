@@ -37,10 +37,18 @@ video_converters = \
 	converters/video/native_video_converter.ml \
 	$(if $(W_FFMPEG),converters/video/ffmpeg_video_converter.ml)
 
+text_decoders = \
+	decoder/text/video_text_native.ml \
+	$(if $(W_GD),decoder/text/video_text_gd.ml) \
+	$(if $(W_SDL_TTF),decoder/text/video_text_sdl.ml) \
+	$(if $(W_CAMLIMAGES_FREETYPE),decoder/text/video_text_camlimages.ml) \
+	$(if $(W_GSTREAMER),decoder/text/video_text_gstreamer.ml)
+
 decoders = \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
+	$(text_decoders) \
 	$(if $(W_FFMPEG),decoder/ffmpeg_decoder_common.ml decoder/ffmpeg_internal_decoder.ml decoder/ffmpeg_raw_decoder.ml decoder/ffmpeg_copy_decoder.ml decoder/ffmpeg_decoder.ml decoder/image/ffmpeg_image_decoder.ml) \
 	$(if $(W_FLAC),decoder/liq_flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
@@ -66,7 +74,7 @@ protocols = \
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml sources/debug_sources.ml \
 	sources/audio_gen.ml sources/request_source.ml sources/latest_metadata.ml \
-	sources/request_simple.ml sources/generated.ml sources/video_testsrc.ml \
+	sources/request_simple.ml sources/generated.ml sources/video_testsrc.ml sources/video_text.ml \
 	harbor/harbor_base.ml harbor/harbor.ml sources/harbor_input.ml \
 	$(if $(W_SSL),harbor/harbor_ssl.ml sources/harbor_input_ssl.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),harbor/harbor_secure_transport.ml sources/harbor_input_secure_transport.ml) \
@@ -93,19 +101,15 @@ operators = \
 	operators/prepend.ml operators/lufs.ml operators/available.ml \
 	operators/midi_routing.ml operators/sleeper.ml \
 	operators/time_warp.ml operators/resample.ml \
-	operators/chord.ml operators/video_text.ml operators/window_op.ml \
+	operators/chord.ml operators/window_op.ml \
 	operators/rms_smooth.ml operators/delay_line.ml \
-	operators/video_text_native.ml operators/accelerate.ml \
+	operators/accelerate.ml \
 	operators/still_frame.ml operators/dtmf.ml \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	$(if $(W_LILV),operators/lilv_op.ml) \
-	$(if $(W_FREI0R),operators/frei0r_op.ml) \
-	$(if $(W_GD),operators/video_text_gd.ml) \
-	$(if $(W_SDL_TTF),operators/video_text_sdl.ml) \
-	$(if $(W_CAMLIMAGES_FREETYPE),operators/video_text_camlimages.ml) \
-	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
+	$(if $(W_FREI0R),operators/frei0r_op.ml)
 
 conversions = \
 	conversions/conversion.ml conversions/audio_to_stereo.ml conversions/drop.ml \
