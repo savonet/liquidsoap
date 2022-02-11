@@ -501,7 +501,7 @@ let () =
           buf))
 
 let () =
-  let name = "video.alpha_to_y" in
+  let name = "video.alpha.to_y" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:`Video
