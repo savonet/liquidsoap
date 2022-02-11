@@ -85,3 +85,13 @@ module Int = struct
       assert false
     with Exit -> !ans
 end
+
+(** Return the first application of f to x which does not raise invalid. *)
+let rec first_valid l x =
+  match l with
+  | f::l ->
+    (
+      try f x
+      with Invalid -> first_valid l x
+    )
+  | [] -> raise Invalid
