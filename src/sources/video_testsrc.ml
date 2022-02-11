@@ -65,7 +65,9 @@ class testsrc ?(duration = None) ~width ~height ~kind () =
         dvy <- dvy + dvy';
         if dvy < 0x4f then dvy <- abs dvy;
         if v0 + dvy > 0x1ff then dvy' <- -abs dvy';
-        Image.YUV420.gradient_uv img (u0, v0) (dux, duy) (dvx, dvy);
+        Image.YUV420.gradient_uv img (u0, v0)
+          (u0 + dux, v0 + dvx)
+          (u0 + duy, v0 + dvy);
         buf.(i) <-
           Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
       done

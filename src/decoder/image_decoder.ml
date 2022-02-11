@@ -82,7 +82,7 @@ let off_string iw ih ox oy =
   let oy = f ((frame_h - ih) / 2) frame_h oy in
   (ox, oy)
 
-let create_decoder ~width ~height ~metadata img =
+let create_decoder ~audio ~width ~height ~metadata img =
   let frame_width = width in
   let frame_height = height in
   (* Dimensions. *)
@@ -96,12 +96,14 @@ let create_decoder ~width ~height ~metadata img =
   let off_y = try Hashtbl.find metadata "y" with Not_found -> "" in
   let off_x, off_y = off_string width height off_x off_y in
   log#debug "Decoding to %dx%d at %dx%d" width height off_x off_y;
-  let scaler = Video_converter.scaler () in
   let img =
     Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
   in
+  (* TODO: we don't use scaler for now because it does not support alpha channel
+     and images can have those. *)
+  (* let scaler = Video_converter.scaler () in *)
   let img =
-    Video.Canvas.Image.scale ~scaler (width, img_w) (height, img_h) img
+    Video.Canvas.Image.scale (*~scaler*) (width, img_w) (height, img_h) img
   in
   let img = Video.Canvas.Image.translate off_x off_y img in
   let duration =
@@ -113,6 +115,8 @@ let create_decoder ~width ~height ~metadata img =
   let duration = ref duration in
   let close () = () in
   let fill frame =
+    let a0 = AFrame.position frame in
+    (* Fill in video. *)
     let video = VFrame.data frame in
     let start = VFrame.next_sample_position frame in
     let stop =
@@ -123,6 +127,8 @@ let create_decoder ~width ~height ~metadata img =
     for i = start to stop - 1 do
       Video.Canvas.set video i img
     done;
+    let a1 = AFrame.position frame in
+    if audio then AFrame.blankify frame a0 (a1 - a0);
     if !duration = -1 then -1
     else (
       duration := !duration - (stop - start);
@@ -133,17 +139,20 @@ let create_decoder ~width ~height ~metadata img =
 let () =
   Decoder.decoders#register "Image" ~sdoc:"Decoder for static images."
     {
-      Decoder.media_type = `Video;
+      Decoder.media_type = `Audio_video;
       priority = (fun () -> 1);
       file_extensions = (fun () -> None);
       mime_types = (fun () -> None);
       file_type =
-        (fun ~ctype:_ filename ->
-          if Decoder.get_image_file_decoder filename <> None then
+        (fun ~ctype filename ->
+          if
+            Decoder.get_image_file_decoder filename <> None
+            && Content.is_internal_format ctype.Frame.audio
+          then
             Some
               Frame.
                 {
-                  audio = Content.None.format;
+                  audio = ctype.audio;
                   video = Content.(default_format Video.kind);
                   midi = Content.None.format;
                 }
@@ -155,6 +164,8 @@ let () =
             let width, height =
               Content.Video.dimensions_of_format ctype.Frame.video
             in
-            create_decoder ~width ~height ~metadata img);
+            create_decoder
+              ~audio:(Content.Audio.is_format ctype.Frame.audio)
+              ~width ~height ~metadata img);
       stream_decoder = None;
     }

@@ -59,7 +59,7 @@ decoders = \
 	$(if $(W_FLAC_OGG),decoder/ogg_flac_duration.ml) \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
         decoder/id3v2_plug.ml \
-	$(if $(W_CAMLIMAGES_FREETYPE),decoder/image/camlimages_decoder.ml) \
+	$(if $(W_CAMLIMAGES),decoder/image/camlimages_decoder.ml) \
 	$(if $(W_SDL_IMAGE),decoder/image/sdlimage_decoder.ml) \
 	$(if $(W_GSTREAMER),decoder/gstreamer_decoder.ml)
 
@@ -109,7 +109,11 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	$(if $(W_LILV),operators/lilv_op.ml) \
-	$(if $(W_FREI0R),operators/frei0r_op.ml)
+	$(if $(W_FREI0R),operators/frei0r_op.ml) \
+	$(if $(W_GD),operators/video_text_gd.ml) \
+	$(if $(W_SDL_TTF),operators/video_text_sdl.ml) \
+	$(if $(W_CAMLIMAGES_FREETYPE),operators/video_text_camlimages.ml) \
+	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
 
 conversions = \
 	conversions/conversion.ml conversions/audio_to_stereo.ml conversions/drop.ml \
@@ -240,7 +244,8 @@ builtins = builtins/builtins_lang.ml builtins/builtins_runtime.ml \
            $(if $(W_LASTFM),builtins/builtins_lastfm.ml) \
            $(if $(W_PROMETHEUS),builtins/builtins_prometheus.ml) \
            builtins/builtins_ffmpeg_base.ml \
-           $(if $(W_FFMPEG),builtins/builtins_ffmpeg_encoder.ml builtins/builtins_ffmpeg_decoder.ml builtins/builtins_ffmpeg_filters.ml)
+           $(if $(W_FFMPEG),builtins/builtins_ffmpeg_encoder.ml builtins/builtins_ffmpeg_decoder.ml builtins/builtins_ffmpeg_filters.ml) \
+	   $(if $(W_IRC),builtins/builtins_irc.ml)
 
 liquidsoap_sources= \
 	$(tools) converters/audio_converter.ml $(stream) \

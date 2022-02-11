@@ -28,7 +28,6 @@ def image(~id=null(), ~fallible=false, file="")
     s.set(single(id=id, fallible=fallible, file))
   end
   set(file)
-  s = mux_audio(id=id, audio=blank(), s)
   s.{set=set}
 end
 
@@ -40,28 +39,11 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def video.add_image(~id=null(), ~width=getter(null()), ~height=getter(null()), ~x=getter(0), ~y=getter(0), ~file, s)
-  image =
-    if getter.is_constant(x) and getter.is_constant(y) and getter.is_constant(width) and getter.is_constant(height) then
-      x      = getter.get(x)
-      y      = getter.get(y)
-      width  = getter.get(width)
-      height = getter.get(height)
-      # This version is more efficient and does not mess up the dimensions (with
-      # the one below, images get decoded with transparent border which messes
-      # up their dimensions).
-      width = if null.defined(width) then "width=#{null.get(width)}" else "" end
-      height = if null.defined(height) then "height=#{null.get(height)}" else "" end
-      x = if x == 0 then "" else "x=#{x}" end
-      y = if y == 0 then "" else "y=#{y}" end
-      single(id=id,"annotate:#{width},#{height},#{x},#{y}:#{file}")
-    else
-      width = getter.map(fun (v) -> v ?? video.frame.width(), width)
-      height = getter.map(fun (v) -> v ?? video.frame.height(), height)
-      image = single(id=id, file)
-      video.resize(id=id, x=x, y=y, width=width, height=height, image)
-    end
-  image = mux_audio(audio=blank(), image)
+def video.add_image(~id=null(), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, s)
+  width = width ?? video.frame.width()
+  height = height ?? video.frame.height()
+  image = single(id=id, file)
+  image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
   add([(s:source),image])
 end
 

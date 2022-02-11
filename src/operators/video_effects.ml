@@ -59,6 +59,7 @@ class effect_map ~name ~kind (source : source) effect =
 
 let kind = Kind.of_kind Lang.any
 let return_t = Lang.kind_type_of_kind_format Lang.any
+let () = Lang.add_module "video.alpha"
 
 let () =
   let name = "video.greyscale" in
@@ -106,6 +107,15 @@ let () =
       let src = Lang.to_source (Lang.assoc "" 2 p) in
       new effect ~name ~kind src (fun buf ->
           Image.YUV420.Effect.Alpha.scale buf (a ())))
+
+let () =
+  let name = "video.alpha.remove" in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:`Video ~descr:"Remove α channel."
+    (fun p ->
+      let src = Lang.to_source (List.assoc "" p) in
+      new effect ~name ~kind src (fun img -> Image.YUV420.fill_alpha img 0xff))
 
 let () =
   let name = "video.fill" in
@@ -193,7 +203,7 @@ let () =
           Video.Canvas.Image.add r buf))
 
 let () =
-  let name = "video.transparent" in
+  let name = "video.alpha.of_color" in
   Lang.add_operator name
     [
       ( "precision",
@@ -489,6 +499,19 @@ let () =
           width := Video.Canvas.Image.width buf;
           height := Video.Canvas.Image.height buf;
           buf))
+
+let () =
+  let name = "video.alpha.to_y" in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:`Video
+    ~descr:
+      "Convert the α channel to Y channel, thus converting opaque \
+       (resp. transparent) pixels to bright (resp. dark) ones. This is useful \
+       to observe the α channel."
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect ~name ~kind s Image.YUV420.alpha_to_y)
 
 let () =
   let name = "video.bounding_box" in

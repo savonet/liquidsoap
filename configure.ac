@@ -710,30 +710,24 @@ else
     if test -n "${with_camomile_data_dir}" ; then
       camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
       cat >> src/configure.ml <<EOCONF
-module CamomileConfig =
-struct
-  let datadir = Filename.concat "${with_camomile_data_dir}" "database"
-  let localedir = Filename.concat "${with_camomile_data_dir}" "locales"
-  let charmapdir = Filename.concat "${with_camomile_data_dir}" "charmaps"
-  let unimapdir = Filename.concat "${with_camomile_data_dir}" "mappings"
-end
+let camomile_dir = "${with_camomile_data_dir}"
 EOCONF
     elif test -n "$w_CUSTOM_PATH" ; then
-      camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
       cat >> src/configure.ml <<EOCONF
-module CamomileConfig = 
-struct
-  let datadir = Filename.concat (get_dir "camomile") "database"
-  let localedir = Filename.concat (get_dir "camomile") "locales"
-  let charmapdir = Filename.concat (get_dir "camomile") "charmaps"
-  let unimapdir = Filename.concat (get_dir "camomile") "mappings"
-end
+let camomile_dir = get_dir "camomile"
 EOCONF
     else
-      camencoding=CamomileLibraryDefault.Camomile.CharEncoding
+      cat >> src/configure.ml <<EOCONF
+let camomile_dir = CamomileDefaultConfig__.InstallConfig.share_dir
+EOCONF
     fi
     cat >> src/configure.ml <<EOCONF
-module C = $camencoding
+module C = CamomileLibrary.CharEncoding.Configure(struct
+  let datadir = Filename.concat camomile_dir "database"
+  let localedir = Filename.concat camomile_dir "locales"
+  let charmapdir = Filename.concat camomile_dir "charmaps"
+  let unimapdir = Filename.concat camomile_dir "mappings"
+end)
 
 exception Unknown_encoding of string
 
@@ -864,6 +858,8 @@ AC_CHECK_OCAML_BINDING([srt],[srt.constants srt.types srt.stubs srt.stubs.locked
 
 AC_CHECK_OCAML_BINDING([lo])
 AC_CHECK_OCAML_BINDING([gd])
+
+AC_CHECK_OCAML_BINDING([irc-client-unix])
 
 # Winsvc (to run as a service)
 
@@ -1043,6 +1039,7 @@ cat <<EOMSG
 
  * Video manipulation
    - camlimages        : $w_CAMLIMAGES
+   - camlimages.ft     : $w_CAMLIMAGES_FREETYPE
    - FFmpeg            : $w_FFMPEG
    - frei0r            : $w_FREI0R
    - SDL-image         : $w_TSDL_IMAGE
@@ -1062,6 +1059,7 @@ cat <<EOMSG
    - FFmpeg devices    : $w_FFMPEG
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
+   - irc               : $w_IRC_CLIENT_UNIX
    - lastfm            : $w_LASTFM
    - lo                : $w_LO
    - magic             : $w_MAGIC

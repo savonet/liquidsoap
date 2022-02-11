@@ -214,12 +214,12 @@ let satisfies_constraint b = function
       let is_internal name =
         try
           let kind = Content.kind_of_string name in
-          Content.is_internal kind
+          Content.is_internal_kind kind
         with Content.Invalid -> false
       in
       match b.descr with
         | Constr { constructor } when is_internal constructor -> ()
-        | Ground (Format f) when Content.(is_internal (kind f)) -> ()
+        | Ground (Format f) when Content.(is_internal_format f) -> ()
         | Var { contents = Free v } ->
             if not (List.mem InternalMedia v.constraints) then
               v.constraints <- InternalMedia :: v.constraints

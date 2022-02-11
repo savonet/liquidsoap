@@ -576,3 +576,10 @@ def replaces output.youtube.live(%argsof(output.youtube.live.gstreamer), s) =
    output.youtube.live.gstreamer(%argsof(output.youtube.live.gstreamer), s)
 end
 %endif
+
+# Deprecated: use `video.alpha.of_color`
+# @flag deprecated
+def video.transparent(%argsof(video.alpha.of_color), s)
+  deprecated("video.transparent", "video.alpha.of_color")
+  video.alpha.of_color(%argsof(video.alpha.of_color), s)
+end
