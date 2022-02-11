@@ -18,6 +18,7 @@ New:
 - Added `video.vumeter`.
 - Added `video.slideshow`.
 - Added `video.add_text.camlimages` (#2202).
+- Added `video.text.*` and re-implemented `video.add_text.*` from those (#2226).
 - Added `irc.channel` operator to retrieve the contents of an IRC channel
   (#2210).
 

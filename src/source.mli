@@ -34,8 +34,10 @@ type clock_variable
   * protocol such as [input.srt]. *)
 type sync = [ `Auto | `CPU | `None ]
 
-(* Type for source's self_sync. A [`Static] self_sync should never change over
-   the source's lifetime. *)
+(** Type for source's self_sync. The boolean indicates whether the operator
+    takes care of synchronization by itself or not. The first component indicates
+    whether this value can change during the source's lifetime (it cannot if this
+    is [`Static]. *)
 type self_sync = [ `Static | `Dynamic ] * bool
 
 (** The liveness type of a source indicates whether or not it can
