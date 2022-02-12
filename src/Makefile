@@ -291,12 +291,15 @@ include ../Makefile.defs
 
 all: liquidsoap$(EXEEXT)
 
-doc: $(liquidsoap_doc_sources)
-	mkdir -p $(top_srcdir)/autodoc/$(PROG)
-	$(OCAMLFIND) ocamldoc -stars -sort -html -d $(top_srcdir)/autodoc/$(PROG) \
-	-t $(PROG) -I +threads \
-	$(OCAML_DFLAGS) $(_OCAML_DFLAGS) $(_OCAML_DFILES) $(_OCAML_DFILES_H)
+liquidsoap_doc_sources = $(liquidsoap_sources)
 
+_OCAML_DFLAGS = $(shell echo '$(_OCAML_CFLAGS) $(OCAML_CFLAGS)' | perl -pe '$$opt = "" ; s/"[^"]*"//g ; s/(-I\s*\S+|-package\s*\S+)/my $$a = $$1 ; if ($$a =~ m:-package\s*(\S)(\S+):) { $$opt="$$opt $$a -hide ".(uc $$1).$$2 } else { $$opt="$$opt $$a" }/eg ; $$_ = $$opt')
+_OCAML_DFILES = $(shell echo $(liquidsoap_doc_sources) | perl -pe 's/[^\s]+\.[co]//g')
+_OCAML_DFILES_H = $(wildcard $(_OCAML_DFILES:.ml=.mli))
+
+doc: $(liquidsoap_doc_sources)
+	mkdir -p ../autodoc/liquidsoap
+	$(OCAMLFIND) ocamldoc -stars -sort -html -d ../autodoc/liquidsoap -t Liquidsoap -I +threads $(OCAML_DFLAGS) $(_OCAML_DFLAGS) $(_OCAML_DFILES) $(_OCAML_DFILES_H)
 
 clean:
 	@echo "Cleaning..."

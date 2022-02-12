@@ -16,7 +16,7 @@ test:
 	@$(MAKE) -C src/test test
 	@$(MAKE) -C tests test
 
-.PHONY: finish-configure
+.PHONY: doc finish-configure
 
 finish-configure:
 ifneq ($(CUSTOM_PATH),yes)
@@ -49,7 +49,7 @@ endif
 	  sed -e s:@localstatedir@:$(localstatedir): > scripts/liquidsoap.logrotate
 
 .PHONY: doc-install api-doc-install
-doc-install:
+doc-install: doc
 	$(MAKE) -C doc doc-install
 	$(MAKE) -C examples doc-install
 api-doc-install:
