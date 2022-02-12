@@ -277,8 +277,6 @@ liquidsoap_sources += \
 	shebang.ml $(builtins) main.ml \
 	$(if $(W_WINSVC),runner_service.ml,runner.ml)
 
-include ../Makefile.defs
-
 OCAMLDEP_FLAGS = $(patsubst %,-I %,$(INCDIRS))
 OCAML_CFLAGS = -thread $(OCAMLDEP_FLAGS)
 _OCAML_CFLAGS = $(liquidsoap_ocamlcflags)
@@ -287,11 +285,20 @@ _OCAML_LFLAGS = $(liquidsoap_ocamllflags)
 liquidsoap_mly = $(wildcard $(liquidsoap_sources:.ml=.mly))
 liquidsoap_headers = $(wildcard $(liquidsoap_sources:.ml=.mli)) $(liquidsoap_mly:.mly=.mli)
 
-all: liquidsoap
+include ../Makefile.defs
 
-liquidsoap: $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
+all: liquidsoap$(EXEEXT)
+
+liquidsoap$(EXEEXT): $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
 	$(V)echo $(OCAMLCOMP) -o liquidsoap$(EXEEXT)
 	$(V)$(OCAMLC) -o liquidsoap$(EXEEXT) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) $(_OCAML_LFLAGS) $(OCAML_LFLAGS) $(liquidsoap_sources:.ml=.$(o)) $(c_link)
+
+doc: $(liquidsoap_doc_sources)
+	mkdir -p $(top_srcdir)/autodoc/$(PROG)
+	$(OCAMLFIND) ocamldoc -stars -sort -html -d $(top_srcdir)/autodoc/$(PROG) \
+	-t $(PROG) -I +threads \
+	$(OCAML_DFLAGS) $(_OCAML_DFLAGS) $(_OCAML_DFILES) $(_OCAML_DFILES_H)
+
 
 clean:
 	@echo "Cleaning..."

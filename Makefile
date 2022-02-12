@@ -5,7 +5,7 @@ DISTFILES = \
 	liquidsoap.opam
 DISTDIRS = m4
 
-all clean:
+all clean doc:
 	$(MAKE) -C src $@
 
 distclean:
@@ -15,9 +15,6 @@ distclean:
 test:
 	@$(MAKE) -C src/test test
 	@$(MAKE) -C tests test
-
-# Build liquidsoap as it will be used for building the doc
-doc-local: all
 
 .PHONY: finish-configure
 
