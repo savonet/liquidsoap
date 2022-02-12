@@ -277,6 +277,8 @@ liquidsoap_sources += \
 	shebang.ml $(builtins) main.ml \
 	$(if $(W_WINSVC),runner_service.ml,runner.ml)
 
+# Specific rules
+
 OCAMLDEP_FLAGS = $(patsubst %,-I %,$(INCDIRS))
 OCAML_CFLAGS = -thread $(OCAMLDEP_FLAGS)
 _OCAML_CFLAGS = $(liquidsoap_ocamlcflags)
@@ -288,10 +290,6 @@ liquidsoap_headers = $(wildcard $(liquidsoap_sources:.ml=.mli)) $(liquidsoap_mly
 include ../Makefile.defs
 
 all: liquidsoap$(EXEEXT)
-
-liquidsoap$(EXEEXT): $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
-	$(V)echo $(OCAMLCOMP) -o liquidsoap$(EXEEXT)
-	$(V)$(OCAMLC) -o liquidsoap$(EXEEXT) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) $(_OCAML_LFLAGS) $(OCAML_LFLAGS) $(liquidsoap_sources:.ml=.$(o)) $(c_link)
 
 doc: $(liquidsoap_doc_sources)
 	mkdir -p $(top_srcdir)/autodoc/$(PROG)
@@ -347,6 +345,10 @@ else
   c_objs=$(liquidsoap_c_files:.c=.o)
   c_link=$(c_objs)
 endif
+
+liquidsoap$(EXEEXT): $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
+	$(V)echo $(OCAMLCOMP) -o liquidsoap$(EXEEXT)
+	$(V)$(OCAMLC) -o liquidsoap$(EXEEXT) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) $(_OCAML_LFLAGS) $(OCAML_LFLAGS) $(liquidsoap_sources:.ml=.$(o)) $(c_link)
 
 # Generic rules
 
