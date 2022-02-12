@@ -1,8 +1,9 @@
 DISTFILES = Makefile $(shell find . -name \*.mli) $(shell find . -name \*.ml) $(shell find . -name \*.c)
 INCDIRS = builtins conversions converters decoder encoder encoder_formats harbor io lang lang_encoders ogg_formats operators outputs protocols sources stream tools
 
-liquidsoap_c_files = tools/unix_c.c \
-  $(if $(W_OSS),io/oss_io_c.c)
+liquidsoap_c_files = \
+	tools/unix_c.c \
+	$(if $(W_OSS),io/oss_io_c.c)
 
 ogg_demuxer = \
 	$(if $(W_SPEEX),ogg_formats/liq_speex_decoder.ml) \
@@ -284,19 +285,6 @@ _OCAML_LFLAGS=$(liquidsoap_ocamllflags)
 liquidsoap_mly = $(wildcard $(liquidsoap_sources:.ml=.mly))
 liquidsoap_headers = $(wildcard $(liquidsoap_sources:.ml=.mli)) $(liquidsoap_mly:.mly=.mli)
 
-ifeq ($(BYTE),yes)
-  ifeq ($(NO_CUSTOM),yes)
-      c_objs=dllliquidsoap.so $(liquidsoap_c_files:.c=.o)
-      c_link=-dllib dllliquidsoap.so
-  else
-    c_objs=$(liquidsoap_c_files:.c=.o)
-    c_link=-custom $(liquidsoap_c_files:.c=.o)
-  endif
-else
-  c_objs=$(liquidsoap_c_files:.c=.o)
-  c_link=$(c_objs)
-endif
-
 include ../Makefile.defs
 
 all: liquidsoap
@@ -307,7 +295,7 @@ liquidsoap: $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
 
 clean:
 	@echo "Cleaning..."
-	@rm -f $(liquidsoap_sources:.ml=.$(o)) $(liquidsoap_sources:.ml=.$(i)) depend
+	@rm -f $(liquidsoap_sources:.ml=.$(o)) $(liquidsoap_sources:.ml=.$(i)) $(liquidsoap_c_files:.c=.o) depend
 
 install:
 	$(INSTALL) -d $(bindir)
@@ -335,6 +323,23 @@ depend: $(liquidsoap_sources) $(liquidsoap_headers)
 	$(V)$(OCAMLDEP) $(_OCAMLDEP_FLAGS) $(OCAMLDEP_FLAGS) $(liquidsoap_sources) $(liquidsoap_headers) > $@
 
 include depend
+
+dllliquidsoap.so: $(liquidsoap_c_files:.c=.o)
+	$(V)echo OCAMLMKLIB -o dllliquidsoap.so
+	$(V)$(OCAMLMKLIB) -o liquidsoap $(liquidsoap_c_files:.c=.o)
+
+ifeq ($(BYTE),yes)
+  ifeq ($(NO_CUSTOM),yes)
+      c_objs=dllliquidsoap.so $(liquidsoap_c_files:.c=.o)
+      c_link=-dllib dllliquidsoap.so
+  else
+    c_objs=$(liquidsoap_c_files:.c=.o)
+    c_link=-custom $(liquidsoap_c_files:.c=.o)
+  endif
+else
+  c_objs=$(liquidsoap_c_files:.c=.o)
+  c_link=$(c_objs)
+endif
 
 # Generic rules
 
