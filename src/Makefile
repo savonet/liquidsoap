@@ -277,15 +277,15 @@ liquidsoap_sources += \
 	shebang.ml $(builtins) main.ml \
 	$(if $(W_WINSVC),runner_service.ml,runner.ml)
 
+include ../Makefile.defs
+
 OCAMLDEP_FLAGS = $(patsubst %,-I %,$(INCDIRS))
 OCAML_CFLAGS = -thread $(OCAMLDEP_FLAGS)
-_OCAML_CFLAGS=$(liquidsoap_ocamlcflags)
-_OCAML_LFLAGS=$(liquidsoap_ocamllflags)
+_OCAML_CFLAGS = $(liquidsoap_ocamlcflags)
+_OCAML_LFLAGS = $(liquidsoap_ocamllflags)
 
 liquidsoap_mly = $(wildcard $(liquidsoap_sources:.ml=.mly))
 liquidsoap_headers = $(wildcard $(liquidsoap_sources:.ml=.mli)) $(liquidsoap_mly:.mly=.mli)
-
-include ../Makefile.defs
 
 all: liquidsoap
 
