@@ -218,7 +218,7 @@ let rec value_of_typed_json ~ty json =
                  try value_of_typed_json ~ty v
                  with Failed v -> raise (Failed (nullable, `List v)))
                l)
-      | `Tuple l, Type.Tuple t ->
+      | `Tuple l, Type.Tuple t when tm = [] ->
           Lang.tuple
             (List.mapi
                (fun idx ty ->
