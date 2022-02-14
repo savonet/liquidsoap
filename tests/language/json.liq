@@ -160,9 +160,21 @@ def f() =
 
   let json.parse x = data
   ignore(x.foo + 1.0)
-  let (x, y, z) = x.nested.tuple
+  let (x, y, _) = x.nested.tuple
   ignore(x + 1)
   ignore(y + 3.14)
+
+  def failed_array () =
+    data = "[]"
+    let json.parse (val : { x : int }) = data
+    print(val.x)
+  end
+
+  test_parse_error(
+    "failed array parsing",
+    failed_array,
+    "Parsing error: json value cannot be parsed as type {x : int}"
+  )
 
   def failed_runtime () =
     let json.parse x = data
