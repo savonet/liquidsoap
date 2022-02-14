@@ -158,6 +158,7 @@ jobs:
 
   build_opam:
     runs-on: ubuntu-latest
+    if: needs.build_details.outputs.is_release
     strategy:
       fail-fast: false
       matrix:
@@ -172,12 +173,10 @@ jobs:
       - name: Checkout latest code
         uses: actions/checkout@v1
       - name: Setup OCaml
-        continue-on-error: ${{ !needs.build_details.outputs.is_release }}
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
       - name: Install liquidsoap
-        continue-on-error: ${{ !needs.build_details.outputs.is_release }}
         run: |
           opam install --cli=2.1 --confirm-level=unsafe-yes .
 
@@ -419,7 +418,6 @@ jobs:
           cd /tmp/${{ github.run_number }}/win32/liquidsoap/
           gosu opam:root ./.github/scripts/add-local-opam-packages.sh
       - name: Build windows binary
-        continue-on-error: ${{ !needs.build_details.outputs.is_release }}
         run: |
           mkdir -p /tmp/${{ github.run_number }}/win32/dist
           chown -R opam /tmp/${{ github.run_number }}/win32/dist
@@ -427,7 +425,6 @@ jobs:
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }}
         id: build
       - name: Upload artifact
-        if: ${{ success() }}
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build.outputs.basename }}
