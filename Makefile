@@ -4,10 +4,19 @@ DISTFILES = \
 	Makefile Makefile.defs.in install-sh \
 	liquidsoap.opam $(wildcard libs/*liq) scripts examples
 
-all clean doc:
+all:
 	# Work around leftover files on CI builders...
 	rm -f src/operators/video_text*
 	$(MAKE) -C src $@
+
+clean:
+	$(MAKE) -C src $@
+	$(MAKE) -C doc $@
+	$(MAKE) -C tests $@
+
+doc:
+	$(MAKE) -C src $@
+	$(MAKE) -C doc $@
 
 configure: configure.ac install-sh
 	./bootstrap

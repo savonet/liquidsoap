@@ -7,6 +7,10 @@ test:
 	@echo
 	@$(MAKE) -C performance $@
 
+clean:
+	$(MAKE) -C media $@
+	$(MAKE) -C streams $@
+
 DISTFILES = \
 	Makefile $(wildcard *.sh) $(wildcard *.liq) $(wildcard *.pl) \
 	$(wildcard fixme/*.liq) \

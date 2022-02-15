@@ -20,6 +20,9 @@ pdf: $(PDF)
 
 man: liquidsoap.1
 
+clean:
+	rm -rf html pdf liquidsoap.1 content/reference.md content/reference-extras.md content/protocols.md content/settings.md
+
 liquidsoap.1: liquidsoap.1.md
 	@echo "Generating $(@)..."
 	@pandoc -s -t man $< -o $@
@@ -48,7 +51,7 @@ content/settings.md: $(LIQUIDSOAP)
 
 VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
-doc-install:
+doc-install: doc
 	$(INSTALL) -d $(datadir)/doc/liquidsoap/html
 	if [ -f html/index.html ] ; then \
 	  cp -RfL html/* $(datadir)/doc/liquidsoap/html ; \
@@ -57,9 +60,6 @@ doc-install:
 	  $(INSTALL) -d $(mandir)/man1 ; \
 	  $(INSTALL_DATA) liquidsoap.1 $(mandir)/man1 ; \
 	fi
-
-clean-local:
-	rm -rf html pdf content/reference.md content/reference-extras.md content/protocols.md content/settings.md
 
 $(LIQUIDSOAP):
 	@echo "Liquidsoap does not seem to be built. You have to build it before."

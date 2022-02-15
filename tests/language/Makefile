@@ -1,5 +1,3 @@
-.PHONY: test type_errors
-
 LIQ = $(sort $(wildcard *.liq))
 TESTS = $(filter-out test, $(basename $(LIQ)))
 
@@ -10,3 +8,5 @@ test: $(TESTS) type_errors
 
 type_errors: type_errors.pl
 	@../run_test.sh /usr/bin/perl language/$<
+
+.PHONY: test type_errors
