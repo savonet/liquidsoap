@@ -4,7 +4,7 @@ DISTFILES = \
 	Makefile Makefile.defs.in install-sh \
 	liquidsoap.opam $(wildcard libs/*liq) scripts examples
 
-all clean doc:
+all doc:
 	rm -f src/operators/video_text*
 	$(MAKE) -C src $@
 

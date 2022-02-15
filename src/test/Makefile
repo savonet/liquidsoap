@@ -1,11 +1,9 @@
 TESTS_ML = $(wildcard *.ml)
 TESTS = $(TESTS_ML:.ml=)
 
-all: $(TESTS)
+all: test
 
-SUBDIRS=""
-top_srcdir=../..
-include $(top_srcdir)/src/Makefile
+test: $(TESTS)
 
 test.mp3:
 	if [ ! -e test.wav ] ; then ffmpeg -f lavfi -i "sine=frequency=440:duration=10" -ac 2 -metadata title="Liquidsong" -metadata artist="Liquidsinger" test.mp3 ; fi
@@ -30,9 +28,6 @@ json5:
 	cd json5 && find . -type f | egrep '\.json|\.js|\.txt' | xargs -I % mv % .
 	cd json5 && find . -type d | grep -v '^\.$$' | xargs rm -rf
 
-all-subdirs: ;
-all-auto-ocaml-prog: ;
-
 ml = $(subst runner.ml,,$(subst main.ml,,$(liquidsoap_sources)))
 cmx = $(ml:.ml=.$(o))
 
@@ -40,5 +35,7 @@ cmx = $(ml:.ml=.$(o))
 	@echo "Generating $@..."
 	@cd .. && $(OCAMLC) $(liquidsoap_ocamlcflags) $(OCAML_CFLAGS) $(liquidsoap_ocamllflags) $(OCAML_LFLAGS) -c test/$^
 	@cd .. && $(OCAMLC) $(liquidsoap_ocamlcflags) $(OCAML_CFLAGS) $(liquidsoap_ocamllflags) $(OCAML_LFLAGS) $(cmx) $(liquidsoap_c_files:.c=.o) test/$(patsubst %.ml,%.$(o),$^) -o test/$@
+
+include ../../Makefile.defs
 
 export OCAMLPATH := $(OCAMLPATH)
