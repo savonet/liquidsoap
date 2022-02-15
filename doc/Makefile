@@ -1,7 +1,9 @@
 .PHONY: md doc upload all-subdirs
 
 SUBDIRS = content
-DISTFILES = liquidsoap.1.md.in liquidsoap.1.md Makefile template.html snippet.html conf.py index.rst language.dtd liquidsoap.xml
+DISTFILES = \
+	liquidsoap.1.md.in liquidsoap.1.md Makefile template.html snippet.html conf.py index.rst language.dtd liquidsoap.xml \
+	$(wildcard content/*.md) $(wildcard content/*.md.in)
 DISTDIRS = orig
 LIQUIDSOAP = ../src/liquidsoap
 PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
@@ -69,8 +71,11 @@ $(LIQUIDSOAP):
 language.dtd:
 	curl https://raw.githubusercontent.com/jgm/highlighting-kate/master/xml/language.dtd -o $@
 
-top_srcdir=..
-include $(top_srcdir)/Makefile.rules
+dist:
+	mkdir ../$(DISTDIR)/doc
+	rsync -amR $(DISTFILES) ../$(DISTDIR)/doc/
+
+-include ../Makefile.defs
 
 ############ SPHINX DOC #########################
 

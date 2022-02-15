@@ -1,12 +1,15 @@
 DISTFILES = \
 	CHANGES CHANGES.md COPYING README README.md \
-	bootstrap configure.ac configure config.h.in config.sub config.guess \
+	bootstrap configure.ac configure config.h.in config.sub config.guess m4 \
 	Makefile Makefile.defs.in Makefile.rules install-sh \
 	liquidsoap.opam
-DISTDIRS = m4
 
 all clean doc:
 	$(MAKE) -C src $@
+
+configure: configure.ac install-sh
+	./bootstrap
+	./configure-with-options || ./configure
 
 distclean:
 	rm -f Makefile.defs
@@ -86,8 +89,12 @@ endif
 dist:
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(DISTFILES) $(DISTDIR)
+	cp -r $(DISTFILES) $(DISTDIR)
 	$(MAKE) -C src $@
+	$(MAKE) -C doc $@
+
+print-tarball-filename:
+	@printf $(DISTDIR).tar.bz2
 
 tarball: dist
 	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)

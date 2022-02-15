@@ -306,11 +306,11 @@ clean:
 	@echo "Cleaning..."
 	@rm -f $(liquidsoap_sources:.ml=.$(o)) $(liquidsoap_sources:.ml=.$(i)) $(liquidsoap_c_files:.c=.o) depend
 
-# DISTFILES = Makefile $(shell find . -name \*.mli) $(shell find . -name \*.ml) $(shell find . -name \*.c)
-# cp $(DISTFILES) ../$(DISTDIR)
+DISTFILES = Makefile META.in $(shell find . -name \*.mli) $(shell find . -name \*.ml) $(shell find . -name \*.c)
+
 dist:
 	mkdir ../$(DISTDIR)/src
-	rsync -amr --include='*.ml' --exclude='*' . ../$(DISTDIR)/src
+	rsync -amR $(DISTFILES) ../$(DISTDIR)/src
 
 install:
 	$(INSTALL) -d $(bindir)
