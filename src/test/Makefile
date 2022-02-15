@@ -29,14 +29,15 @@ json5:
 lib:
 	@$(MAKE) -C .. $@
 
-INCDIRS=. converters decoder encoder_formats lang lang_encoders stream tools
-
-%: %.ml lib
-	@echo "Generating $@..."
-	@cd .. && $(OCAMLC) -thread -o $@ $(liquidsoap_ocamlcflags) $(liquidsoap_ocamllflags) $(patsubst %,-I %,$(INCDIRS)) liquidsoap.$(a) test/$<
-
 include ../../Makefile.defs
 
-export OCAMLPATH := $(OCAMLPATH)
+INCDIRS=. converters decoder encoder_formats lang lang_encoders stream tools
 
-.PHONY: lib
+%: %.ml ../liquidsoap.$(a)
+	@echo "Generating $@..."
+	@cd .. && $(OCAMLC) -thread -o test/$@ $(liquidsoap_ocamlcflags) $(liquidsoap_ocamllflags) $(patsubst %,-I %,$(INCDIRS)) liquidsoap.$(a) test/$<
+
+../liquidsoap.$(a):
+	@$(MAKE) -C .. lib
+
+export OCAMLPATH := $(OCAMLPATH)
