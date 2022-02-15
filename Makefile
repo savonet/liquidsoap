@@ -2,7 +2,7 @@ DISTFILES = \
 	CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.h.in config.sub config.guess m4 \
 	Makefile Makefile.defs.in Makefile.rules install-sh \
-	liquidsoap.opam $(wildcard libs/*liq)
+	liquidsoap.opam $(wildcard libs/*liq) scripts examples
 
 all clean doc:
 	$(MAKE) -C src $@
@@ -91,7 +91,8 @@ dist:
 	mkdir $(DISTDIR)
 	rsync -amRr $(DISTFILES) $(DISTDIR)
 	$(MAKE) -C src $@
-	$(MAKE) -C doc $@
+	$(MAKE) -C doc DISTDIR=../$(DISTDIR) dist
+	$(MAKE) -C tests DISTDIR=../$(DISTDIR) dist
 
 print-tarball-filename:
 	@printf $(DISTDIR).tar.bz2

@@ -2,9 +2,6 @@
 
 .NOTPARALLEL: test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_video_size
 
-DISTFILES = Makefile $(wildcard *.sh) $(wildcard *.liq *.liq.in *.json)
-top_srcdir = $(shell realpath ../..)
-
 test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_filter test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_ffmpeg_raw_hls test_ffmpeg_inline_encode_decode_audio test_ffmpeg_inline_encode_decode_video test_ffmpeg_inline_encode_decode test_ffmpeg_distributed_hls test_ffmpeg_copy_concat test_video_size # test_stream_audio test_stream_video
 
 AUDIO_TEST_FORMATS = \
@@ -167,8 +164,6 @@ files/ffmpeg_copy_concat/third-concat.mp4:
 
 test_ffmpeg_copy_concat: files/ffmpeg_copy_concat/first-concat.mp4 files/ffmpeg_copy_concat/second-concat.mp4 files/ffmpeg_copy_concat/third-concat.mp4
 	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_copy_concat.liq
-
-include $(top_srcdir)/Makefile.rules
 
 clean:
 	rm -rf files/

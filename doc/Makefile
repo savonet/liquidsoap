@@ -72,10 +72,8 @@ language.dtd:
 	curl https://raw.githubusercontent.com/jgm/highlighting-kate/master/xml/language.dtd -o $@
 
 dist:
-	mkdir ../$(DISTDIR)/doc
-	rsync -amR $(DISTFILES) ../$(DISTDIR)/doc/
-
--include ../Makefile.defs
+	mkdir $(DISTDIR)/doc
+	rsync -amR $(DISTFILES) $(DISTDIR)/doc/
 
 ############ SPHINX DOC #########################
 
