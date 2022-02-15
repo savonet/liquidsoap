@@ -1,5 +1,3 @@
-.PHONY: md doc upload all-subdirs
-
 SUBDIRS = content
 DISTFILES = \
 	liquidsoap.1.md.in liquidsoap.1.md Makefile template.html snippet.html conf.py index.rst language.dtd liquidsoap.xml \
@@ -8,9 +6,9 @@ DISTDIRS = orig
 LIQUIDSOAP = ../src/liquidsoap
 PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
 
-MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/reference-extras.md content/settings.md
-HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
-PDF=$(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
+MD = $(wildcard content/*.md) content/protocols.md content/reference.md content/reference-extras.md content/settings.md
+HTML = $(addprefix html/,$(notdir $(MD:.md=.html)))
+PDF = $(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
 doc: md man html
 
@@ -51,7 +49,7 @@ content/settings.md: $(LIQUIDSOAP)
 VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
 doc-install:
-	$(INSTALL)  -d $(datadir)/doc/liquidsoap/html
+	$(INSTALL) -d $(datadir)/doc/liquidsoap/html
 	if [ -f html/index.html ] ; then \
 	  cp -RfL html/* $(datadir)/doc/liquidsoap/html ; \
         fi
@@ -90,3 +88,7 @@ sphinx-html:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 # %: Makefile md
 #	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+.PHONY: md doc upload all-subdirs
+
+include ../Makefile.defs
