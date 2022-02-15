@@ -5,6 +5,7 @@ DISTFILES = \
 	liquidsoap.opam $(wildcard libs/*liq) scripts examples
 
 all clean doc:
+	rm -f src/operators/video_text*
 	$(MAKE) -C src $@
 
 configure: configure.ac install-sh
