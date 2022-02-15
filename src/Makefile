@@ -1,4 +1,3 @@
-DISTFILES = Makefile $(shell find . -name \*.mli) $(shell find . -name \*.ml) $(shell find . -name \*.c)
 INCDIRS = builtins conversions converters decoder encoder encoder_formats harbor io lang lang_encoders ogg_formats operators outputs protocols sources stream tools
 
 liquidsoap_c_files = \
@@ -306,6 +305,12 @@ doc: $(liquidsoap_doc_sources)
 clean:
 	@echo "Cleaning..."
 	@rm -f $(liquidsoap_sources:.ml=.$(o)) $(liquidsoap_sources:.ml=.$(i)) $(liquidsoap_c_files:.c=.o) depend
+
+# DISTFILES = Makefile $(shell find . -name \*.mli) $(shell find . -name \*.ml) $(shell find . -name \*.c)
+# cp $(DISTFILES) ../$(DISTDIR)
+dist:
+	mkdir ../$(DISTDIR)/src
+	rsync -amr --include='*.ml' --exclude='*' . ../$(DISTDIR)/src
 
 install:
 	$(INSTALL) -d $(bindir)

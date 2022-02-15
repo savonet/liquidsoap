@@ -83,4 +83,14 @@ endif
 	$(INSTALL_DIRECTORY) ${emacsdir}
 	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/
 
+dist:
+	rm -rf $(DISTDIR)
+	mkdir $(DISTDIR)
+	cp $(DISTFILES) $(DISTDIR)
+	$(MAKE) -C src $@
+
+tarball: dist
+	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)
+	rm -rf $(DISTDIR)
+
 -include Makefile.defs
