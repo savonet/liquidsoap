@@ -2,7 +2,7 @@ DISTFILES = \
 	CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.h.in config.sub config.guess m4 \
 	Makefile Makefile.defs.in Makefile.rules install-sh \
-	liquidsoap.opam
+	liquidsoap.opam $(wildcard libs/*liq)
 
 all clean doc:
 	$(MAKE) -C src $@
@@ -89,7 +89,7 @@ endif
 dist:
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp -r $(DISTFILES) $(DISTDIR)
+	rsync -amRr $(DISTFILES) $(DISTDIR)
 	$(MAKE) -C src $@
 	$(MAKE) -C doc $@
 
