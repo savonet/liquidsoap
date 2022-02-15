@@ -21,6 +21,6 @@ clean:
 	rm -rf files
 
 %: %.liq
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" streams/$<
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" streams/$<
 
 .PHONY: test
