@@ -45,13 +45,13 @@ $(ENCODED_FILES): ENCODER = $(subst @,%,$(word 1,$(subst ., ,$*)))
 define generate_audio
 	@$(eval PREFIX := $(shell /bin/bash -c "echo $$RANDOM"))
         @./mk_encoder_test.sh "$1" sine $(PREFIX)
-        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $2" media/files/$(PREFIX)/test_encoder.liq "$1 encoder" || exit
+        @../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $2" media/files/$(PREFIX)/test_encoder.liq "$1 encoder" || exit
 endef
 
 define generate_video
 	@$(eval PREFIX := $(shell /bin/bash -c "echo $$RANDOM"))
         @./mk_encoder_test.sh "$1" noise $(PREFIX)
-        @../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $2" media/files/$(PREFIX)/test_encoder.liq "$1 encoder" || exit
+        @../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $2" media/files/$(PREFIX)/test_encoder.liq "$1 encoder" || exit
 endef
 
 test_encoder: files/audio files/video $(ENCODED_FILES)
@@ -62,93 +62,93 @@ files/audio:
 files/video:
 	@mkdir -p $@
 
-files/audio/%: $(top_srcdir)/src/liquidsoap
+files/audio/%: ../../src/liquidsoap
 	$(call generate_audio,$(ENCODER),$@)
 
-files/video/%: $(top_srcdir)/src/liquidsoap
+files/video/%: ../../src/liquidsoap
 	$(call generate_video,$(ENCODER),$@)
 
-test_mono: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
+test_mono: $(ENCODED_AUDIO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_FILES:%="%"); do \
 	  if echo $$i | grep -v 'ffmpeg' > /dev/null 2>&1; then \
-	    ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_mono.liq "Mono decoding test for $$i" || exit; \
+	    ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_mono.liq "Mono decoding test for $$i" || exit; \
 	  fi \
 	done
 
-test_stereo: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
+test_stereo: $(ENCODED_AUDIO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_FILES:%="%"); do \
 	  if echo $$i | grep -v 'ffmpeg' > /dev/null 2>&1; then \
-	    ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_stereo.liq "Stereo decoding test for $$i" || exit; \
+	    ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_stereo.liq "Stereo decoding test for $$i" || exit; \
 	  fi \
 	done
 
-test_ffmpeg_filter: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+test_ffmpeg_filter: $(ENCODED_AUDIO_VIDEO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $<" media/test_ffmpeg_filter.liq "FFmpeg filter test for $$i" || exit; \
+	../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $<" media/test_ffmpeg_filter.liq "FFmpeg filter test for $$i" || exit; \
 	done
 
-test_ffmpeg_add_text: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+test_ffmpeg_add_text: $(ENCODED_AUDIO_VIDEO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $<" media/test_ffmpeg_add_text.liq "FFmpeg add text filter test for $$i" || exit; \
+	../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $<" media/test_ffmpeg_add_text.liq "FFmpeg add text filter test for $$i" || exit; \
 	done
 
-test_ffmpeg_audio_decoder: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
+test_ffmpeg_audio_decoder: $(ENCODED_AUDIO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_audio_decoder.liq "FFmpeg audio decoder test for $$i" || exit; \
+	  ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_ffmpeg_audio_decoder.liq "FFmpeg audio decoder test for $$i" || exit; \
 	done
 
-test_ffmpeg_video_decoder: $(ENCODED_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+test_ffmpeg_video_decoder: $(ENCODED_VIDEO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_video_decoder.liq "FFmpeg video decoder test for $$i" || exit; \
+	  ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_ffmpeg_video_decoder.liq "FFmpeg video decoder test for $$i" || exit; \
 	done
 
-test_video_size: $(ENCODED_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+test_video_size: $(ENCODED_VIDEO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_video_size.liq "FFmpeg video decoder test for $$i" || exit; \
+	  ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_video_size.liq "FFmpeg video decoder test for $$i" || exit; \
 	done
 
-test_ffmpeg_copy_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+test_ffmpeg_copy_decoder: $(ENCODED_AUDIO_VIDEO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_copy_decoder.liq "FFmpeg copy decoder test for $$i" || exit; \
+	  ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_ffmpeg_copy_decoder.liq "FFmpeg copy decoder test for $$i" || exit; \
 	done
 
-test_ffmpeg_copy_and_encode_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+test_ffmpeg_copy_and_encode_decoder: $(ENCODED_AUDIO_VIDEO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_copy_and_encode_decoder.liq "FFmpeg copy+encode decoder test for $$i" || exit; \
+	  ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_ffmpeg_copy_and_encode_decoder.liq "FFmpeg copy+encode decoder test for $$i" || exit; \
 	done
 
-test_ffmpeg_raw_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+test_ffmpeg_raw_decoder: $(ENCODED_AUDIO_VIDEO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_raw_decoder.liq "FFmpeg raw decoder test for $$i" || exit; \
+	  ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_ffmpeg_raw_decoder.liq "FFmpeg raw decoder test for $$i" || exit; \
 	done
 
-test_ffmpeg_raw_and_encode_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+test_ffmpeg_raw_and_encode_decoder: $(ENCODED_AUDIO_VIDEO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_raw_and_encode_decoder.liq "FFmpeg raw+encode decoder test for $$i" || exit; \
+	  ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_ffmpeg_raw_and_encode_decoder.liq "FFmpeg raw+encode decoder test for $$i" || exit; \
 	done
 
-test_ffmpeg_raw_and_copy_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+test_ffmpeg_raw_and_copy_decoder: $(ENCODED_AUDIO_VIDEO_FILES) ../../src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq - -- $$i" media/test_ffmpeg_raw_and_copy_decoder.liq "FFmpeg raw+copy decoder test for $$i" || exit; \
+	  ../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq - -- $$i" media/test_ffmpeg_raw_and_copy_decoder.liq "FFmpeg raw+copy decoder test for $$i" || exit; \
 	done
 
 test_ffmpeg_inline_encode_decode:
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode.liq
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode.liq
 
 test_ffmpeg_inline_encode_decode_audio:
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode_audio.liq
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode_audio.liq
 
 test_ffmpeg_inline_encode_decode_video:
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode_video.liq
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode_video.liq
 
 test_ffmpeg_distributed_hls: 
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_distributed_hls.liq
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_distributed_hls.liq
 
 test_ffmpeg_raw_hls:
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_raw_hls.liq
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_raw_hls.liq
 
 test_taglib: files/audio/@mp3(mono).mp3
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -"  media/test_taglib.liq
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -"  media/test_taglib.liq
 
 files/ffmpeg_copy_concat/first-concat.mp4:
 	mkdir -p files/ffmpeg_copy_concat
@@ -163,7 +163,7 @@ files/ffmpeg_copy_concat/third-concat.mp4:
 	ffmpeg -f lavfi -i testsrc=duration=10:size=1280x720:rate=30 -vf 'setpts=N+245' $@
 
 test_ffmpeg_copy_concat: files/ffmpeg_copy_concat/first-concat.mp4 files/ffmpeg_copy_concat/second-concat.mp4 files/ffmpeg_copy_concat/third-concat.mp4
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" media/test_ffmpeg_copy_concat.liq
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_copy_concat.liq
 
 clean:
 	rm -rf files/

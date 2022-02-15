@@ -4,7 +4,7 @@ TESTS = $(filter-out performance, $(basename $(LIQ))) big-record
 test: $(TESTS)
 
 %: %.liq
-	@$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq $<
+	@../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq $<
 
 big-record.liq:
 	@echo "Generating big-record.liq..."
