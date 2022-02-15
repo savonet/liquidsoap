@@ -1,9 +1,5 @@
-.PHONY: test
-
 LIQ = $(sort $(wildcard *.liq))
 TESTS = $(filter-out performance, $(basename $(LIQ))) big-record
-DISTFILES = Makefile $(LIQ)
-top_srcdir = $(shell realpath ../..)
 
 test: $(TESTS)
 
@@ -27,4 +23,4 @@ perf:
 	perf record --call-graph=dwarf -- ../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq erathostenes.liq
 	perf report
 
-include $(top_srcdir)/Makefile.rules
+.PHONY: test

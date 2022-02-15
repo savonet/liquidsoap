@@ -1,7 +1,7 @@
 DISTFILES = \
 	CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.h.in config.sub config.guess m4 \
-	Makefile Makefile.defs.in Makefile.rules install-sh \
+	Makefile Makefile.defs.in install-sh \
 	liquidsoap.opam $(wildcard libs/*liq) scripts examples
 
 all clean doc:
