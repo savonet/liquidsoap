@@ -310,7 +310,7 @@ doc: $(liquidsoap_doc_sources)
 
 clean:
 	@echo "Cleaning..."
-	@rm -f $(liquidsoap_sources:.ml=.$(o)) $(liquidsoap_sources:.ml=.$(i)) $(liquidsoap_c_files:.c=.o) depend
+	@rm -f $(liquidsoap_sources:.ml=.$(o)) $(liquidsoap_sources:.ml=.$(i)) $(liquidsoap_c_files:.c=.o) depend liquidsoap.$(a)
 	@$(MAKE) -C test $@
 
 DISTFILES = Makefile META.in $(shell find . -name \*.mli) $(shell find . -name \*.ml) $(shell find . -name \*.c)
@@ -366,6 +366,13 @@ endif
 liquidsoap$(EXEEXT): $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
 	$(V)echo $(OCAMLCOMP) -o liquidsoap$(EXEEXT)
 	$(V)$(OCAMLC) -o liquidsoap$(EXEEXT) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) $(_OCAML_LFLAGS) $(OCAML_LFLAGS) $(liquidsoap_sources:.ml=.$(o)) $(c_link)
+
+lib: liquidsoap.cmxa
+
+liquidsoap_lib_sources = $(filter-out main.ml runner.ml, $(liquidsoap_sources))
+
+liquidsoap.$(a): $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
+	$(OCAMLC) -a -o $@ $(_OCAML_CFLAGS) $(OCAML_CFLAGS) $(OCAML_LFLAGS) $(liquidsoap_lib_sources:.ml=.$(o)) $(c_link)
 
 # Generic rules
 

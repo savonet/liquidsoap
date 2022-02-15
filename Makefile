@@ -27,8 +27,8 @@ distclean:
 	rm -rf config.log config.status config.h autom4te.cache src/configure.ml scripts/liquidsoap.logrotate liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
-	@$(MAKE) -C src/test test
-	@$(MAKE) -C tests test
+	@$(MAKE) -C src/test
+	@$(MAKE) -C tests $@
 
 .PHONY: doc finish-configure
 
@@ -100,9 +100,9 @@ dist:
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
 	rsync -amRr $(DISTFILES) $(DISTDIR)
-	$(MAKE) -C src $@
-	$(MAKE) -C doc DISTDIR=../$(DISTDIR) dist
-	$(MAKE) -C tests DISTDIR=../$(DISTDIR) dist
+	$(MAKE) -C src DISTDIR=../$(DISTDIR) $@
+	$(MAKE) -C doc DISTDIR=../$(DISTDIR) $@
+	$(MAKE) -C tests DISTDIR=../$(DISTDIR) $@
 
 print-tarball-filename:
 	@printf $(DISTDIR).tar.bz2

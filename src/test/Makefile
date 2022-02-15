@@ -1,9 +1,7 @@
 TESTS_ML = $(wildcard *.ml)
 TESTS = $(TESTS_ML:.ml=)
 
-all: test
-
-test: $(TESTS)
+all: $(TESTS)
 
 test.mp3:
 	if [ ! -e test.wav ] ; then ffmpeg -f lavfi -i "sine=frequency=440:duration=10" -ac 2 -metadata title="Liquidsong" -metadata artist="Liquidsinger" test.mp3 ; fi
@@ -28,14 +26,17 @@ json5:
 	cd json5 && find . -type f | egrep '\.json|\.js|\.txt' | xargs -I % mv % .
 	cd json5 && find . -type d | grep -v '^\.$$' | xargs rm -rf
 
-ml = $(subst runner.ml,,$(subst main.ml,,$(liquidsoap_sources)))
-cmx = $(ml:.ml=.$(o))
+lib:
+	@$(MAKE) -C .. $@
 
-%: %.ml
+INCDIRS=. converters decoder encoder_formats lang lang_encoders stream tools
+
+%: %.ml lib
 	@echo "Generating $@..."
-	@cd .. && $(OCAMLC) $(liquidsoap_ocamlcflags) $(OCAML_CFLAGS) $(liquidsoap_ocamllflags) $(OCAML_LFLAGS) -c test/$^
-	@cd .. && $(OCAMLC) $(liquidsoap_ocamlcflags) $(OCAML_CFLAGS) $(liquidsoap_ocamllflags) $(OCAML_LFLAGS) $(cmx) $(liquidsoap_c_files:.c=.o) test/$(patsubst %.ml,%.$(o),$^) -o test/$@
+	@cd .. && $(OCAMLC) -thread -o $@ $(liquidsoap_ocamlcflags) $(liquidsoap_ocamllflags) $(patsubst %,-I %,$(INCDIRS)) liquidsoap.$(a) test/$<
 
 include ../../Makefile.defs
 
 export OCAMLPATH := $(OCAMLPATH)
+
+.PHONY: lib
