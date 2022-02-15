@@ -54,8 +54,7 @@ endif
 
 .PHONY: doc-install api-doc-install
 doc-install: doc
-	$(MAKE) -C doc doc-install
-	$(MAKE) -C examples doc-install
+	$(MAKE) -C doc $@
 api-doc-install:
 	$(V)echo "Installing developer documentation..."
 	$(V)$(INSTALL) -d $(datadir)/doc/$(DISTDIR)/api
