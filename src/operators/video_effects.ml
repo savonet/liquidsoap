@@ -92,6 +92,16 @@ let () =
       new effect ~name ~kind src Image.YUV420.Effect.invert)
 
 let () =
+  let name = "video.hmirror" in
+  Lang.add_operator name
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:`Video ~descr:"Flip image horizontally."
+    (fun p ->
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      new effect ~name ~kind src Image.YUV420.hmirror)
+
+let () =
   let name = "video.opacity" in
   Lang.add_operator name
     [
@@ -230,6 +240,32 @@ let () =
       let color = Image.RGB8.Color.of_int color |> Image.Pixel.yuv_of_rgb in
       new effect ~name ~kind src (fun buf ->
           Image.YUV420.alpha_of_color buf color prec))
+
+let () =
+  let name = "video.alpha.movement" in
+  Lang.add_operator name
+    [
+      ( "precision",
+        Lang.float_t,
+        Some (Lang.float 0.2),
+        Some
+          "Precision when comparing pixels to those of previous image (between \
+           0 and 1)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video
+    ~descr:
+      "Make moving parts visible and non-moving parts transparent. A cheap way \
+       to have a bluescreen."
+    (fun p ->
+      (* let precision = List.assoc "precision" p |> Lang.to_float in *)
+      let src = List.assoc "" p |> Lang.to_source in
+      let prev = ref None in
+      new effect ~name ~kind src (fun img ->
+          (match !prev with
+            | None -> ()
+            | Some prev -> Image.YUV420.alpha_of_diff prev img (0xff * 2 / 10) 2);
+          prev := Some img))
 
 (*
 let () =
