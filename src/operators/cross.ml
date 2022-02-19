@@ -217,21 +217,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
               Frame.add_break frame (Frame.position frame)
         | `After when (Option.get transition_source)#is_ready ->
             (Option.get transition_source)#get frame;
-            needs_tick <- true;
-            if Frame.is_partial frame then (
-              status <- `Idle;
-              self#cleanup_transition_source;
-
-              (* If underlying source if ready, try to continue filling up the frame
-               * using it. Each call to [get_frame] must add exactly one break so
-               * call it again and then remove the intermediate break that was just
-               * just added. *)
-              if source#is_ready then (
-                self#get_frame frame;
-                Frame.set_breaks frame
-                  (match Frame.breaks frame with
-                    | b :: _ :: l -> b :: l
-                    | _ -> assert false)))
+            needs_tick <- true
         | `After ->
             (* Here, transition source went down so we switch back to main source.
                Our [is_ready] check ensures that we only get here when the main source
