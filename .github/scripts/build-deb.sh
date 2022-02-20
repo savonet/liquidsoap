@@ -7,7 +7,7 @@ BRANCH=$2
 DOCKER_TAG=$3
 PLATFORM=$4
 IS_RELEASE=$5
-DEB_RELEASE=1
+DEB_RELEASE=2
 
 ARCH=`dpkg --print-architecture`
 
@@ -20,7 +20,7 @@ eval $(opam config env)
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-LIQ_VERSION=`opam show -f version .`
+LIQ_VERSION=`opam show -f version . | cut -d'-' -f 1`
 LIQ_TAG=`echo ${DOCKER_TAG} | sed -e 's#_#-#g'`
 
 if [ -z "${IS_RELEASE}" ]; then

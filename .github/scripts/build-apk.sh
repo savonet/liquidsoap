@@ -7,11 +7,11 @@ DOCKER_TAG=$2
 ARCH=$3
 ALPINE_ARCH=$4
 IS_RELEASE=$5
-APK_RELEASE=0
+APK_RELEASE=1
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-APK_VERSION=`opam show -f version . | cut -d'~' -f 1`
+APK_VERSION=`opam show -f version . | cut -d'-' -f 1`
 
 TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
 
