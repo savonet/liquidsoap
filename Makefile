@@ -2,7 +2,7 @@ DISTFILES = \
 	CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.h.in config.sub config.guess m4 \
 	Makefile Makefile.defs.in install-sh \
-	liquidsoap.opam $(wildcard libs/*liq) scripts examples
+	liquidsoap.opam $(wildcard libs/*liq) scripts
 
 all:
 	$(MAKE) -C src $@
@@ -86,7 +86,6 @@ endif
 	  $(INSTALL_DATA) $$l $(liq_libs_dir)/libs ; \
 	done
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
-	$(INSTALL_DATA) examples/radio.liq ${sysconfdir}/liquidsoap/radio.liq.example
 	$(INSTALL_DIRECTORY) ${sysconfdir}/logrotate.d
 	$(INSTALL_DATA) scripts/liquidsoap.logrotate ${sysconfdir}/logrotate.d/liquidsoap
 	-$(INSTALL_DIRECTORY) ${bashcompdir}
