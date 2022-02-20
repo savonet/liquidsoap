@@ -92,6 +92,9 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
     (* Give a default value for the transition source. *)
     val mutable transition_source = None
 
+    (* This is used to track the state of the transition source and switch back to the current source w/o introducing artificial track marks. *)
+    val mutable pending_after = Generator.create ()
+
     method private prepare_transition_source s =
       let s = (s :> source) in
       s#get_ready ~dynamic:true [(self :> source)];
@@ -217,7 +220,21 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
               Frame.add_break frame (Frame.position frame)
         | `After when (Option.get transition_source)#is_ready ->
             (Option.get transition_source)#get frame;
-            needs_tick <- true
+            needs_tick <- true;
+            if Generator.length pending_after = 0 && Frame.is_partial frame then (
+              status <- `Idle;
+              self#cleanup_transition_source;
+
+              (* If underlying source if ready, try to continue filling up the frame
+               * using it. Each call to [get_frame] must add exactly one break so
+               * call it again and then remove the intermediate break that was just
+               * just added. *)
+              if source#is_ready then (
+                self#get_frame frame;
+                Frame.set_breaks frame
+                  (match Frame.breaks frame with
+                    | b :: _ :: l -> b :: l
+                    | _ -> assert false)))
         | `After ->
             (* Here, transition source went down so we switch back to main source.
                Our [is_ready] check ensures that we only get here when the main source
@@ -359,6 +376,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
       in
       self#cleanup_transition_source;
       self#prepare_transition_source compound;
+      pending_after <- gen_after;
       status <- `After;
       self#reset_analysis
 
