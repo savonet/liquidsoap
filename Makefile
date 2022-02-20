@@ -1,4 +1,4 @@
-SUBDIRS= src examples doc scripts tests libs
+SUBDIRS= src doc scripts tests libs
 DISTFILES = CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.h.in config.sub config.guess \
 	Makefile Makefile.defs.in Makefile.rules install-sh \
@@ -57,7 +57,6 @@ endif
 .PHONY: doc-install api-doc-install
 doc-install:
 	$(MAKE) -C doc doc-install
-	$(MAKE) -C examples doc-install
 api-doc-install:
 	$(V)echo Installing developer documentation...
 	$(V)$(INSTALL) -d $(datadir)/doc/$(DISTDIR)/api
@@ -80,7 +79,6 @@ endif
 	  $(INSTALL_DATA) $$l $(liq_libs_dir)/libs ; \
 	done
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
-	$(INSTALL_DATA) examples/radio.liq ${sysconfdir}/liquidsoap/radio.liq.example
 	$(INSTALL_DIRECTORY) ${sysconfdir}/logrotate.d
 	$(INSTALL_DATA) scripts/liquidsoap.logrotate ${sysconfdir}/logrotate.d/liquidsoap
 	-$(INSTALL_DIRECTORY) ${bashcompdir}
