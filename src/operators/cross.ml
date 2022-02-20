@@ -92,6 +92,10 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
     (* Give a default value for the transition source. *)
     val mutable transition_source = None
 
+    (* This is used to track the state of the transition source and switch back
+       to the current source w/o introducing artificial track marks. *)
+    val mutable pending_after = Generator.create ()
+
     method private prepare_transition_source s =
       let s = (s :> source) in
       s#get_ready ~dynamic:true [(self :> source)];
@@ -218,7 +222,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
         | `After when (Option.get transition_source)#is_ready ->
             (Option.get transition_source)#get frame;
             needs_tick <- true;
-            if Frame.is_partial frame then (
+            if Generator.length pending_after = 0 && Frame.is_partial frame then (
               status <- `Idle;
               self#cleanup_transition_source;
 
@@ -373,6 +377,7 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
       in
       self#cleanup_transition_source;
       self#prepare_transition_source compound;
+      pending_after <- gen_after;
       status <- `After;
       self#reset_analysis
 
