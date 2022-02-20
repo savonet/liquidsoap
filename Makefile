@@ -5,8 +5,6 @@ DISTFILES = \
 	liquidsoap.opam $(wildcard libs/*liq) scripts examples
 
 all:
-	# Work around leftover files on CI builders...
-	rm -f src/operators/video_text*
 	$(MAKE) -C src $@
 
 clean:
