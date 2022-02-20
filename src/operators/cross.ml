@@ -92,7 +92,8 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
     (* Give a default value for the transition source. *)
     val mutable transition_source = None
 
-    (* This is used to track the state of the transition source and switch back to the current source w/o introducing artificial track marks. *)
+    (* This is used to track the state of the transition source and switch back
+       to the current source w/o introducing artificial track marks. *)
     val mutable pending_after = Generator.create ()
 
     method private prepare_transition_source s =
