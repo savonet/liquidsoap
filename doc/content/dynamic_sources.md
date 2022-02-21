@@ -31,20 +31,17 @@ out = output.icecast(%mp3,
                      password="hackme",
                      fallible=true)
 
-# Now we write a function to create 
+# Now we write a function to create
 # a playlist source and output it.
 def create_playlist(uri) =
-  # The playlist source 
+  # The playlist source
   s = playlist(uri)
 
   # The output
-  output = out(s)
+  out(s)
 
-  # We register both source and output 
-  # in the list of sources
-  dyn_sources := 
-      list.append( [(uri,s),(uri,output)],
-                    !dyn_sources )
+  # We register the source in the list of sources
+  dyn_sources := list.append( [(uri,s)], !dyn_sources)
   "Done!"
 end
 
