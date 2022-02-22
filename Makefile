@@ -71,7 +71,7 @@ api-doc-install:
 	done
 
 # user and group are defined in Makefile.defs, written by configure.
-
+.PHONY: install dist print-tarball-filename tarball
 install: doc-install
 	$(MAKE) -C src $@
 ifeq ($(INSTALL_DAEMON),yes)
