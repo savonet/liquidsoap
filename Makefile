@@ -28,7 +28,7 @@ test:
 	@$(MAKE) -C src/test
 	@$(MAKE) -C tests $@
 
-.PHONY: doc finish-configure
+.PHONY: clean test distclean doc finish-configure
 
 finish-configure:
 ifneq ($(CUSTOM_PATH),yes)
