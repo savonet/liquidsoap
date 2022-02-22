@@ -59,11 +59,6 @@ if test $make_command != ""
   AC_MSG_ERROR(not found)
 fi
 
-# Include a config.h
-AC_CONFIG_HEADERS([config.h:config.h.in])
-# Include it
-CFLAGS="$CFLAGS -I\$(top_srcdir)"
-
 AC_CANONICAL_HOST
 
 build_os=""

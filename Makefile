@@ -1,6 +1,6 @@
 DISTFILES = \
 	CHANGES CHANGES.md COPYING README README.md \
-	bootstrap configure.ac configure config.h.in config.sub config.guess m4 \
+	bootstrap configure.ac configure config.sub config.guess m4 \
 	Makefile Makefile.defs.in install-sh \
 	liquidsoap.opam $(wildcard libs/*liq) scripts
 
@@ -22,7 +22,7 @@ configure: configure.ac install-sh
 
 distclean:
 	rm -f Makefile.defs
-	rm -rf config.log config.status config.h autom4te.cache src/configure.ml scripts/liquidsoap.logrotate liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
+	rm -rf config.log config.status autom4te.cache src/configure.ml scripts/liquidsoap.logrotate liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
 	@$(MAKE) -C src/test
