@@ -306,7 +306,9 @@ _OCAML_DFILES_H = $(wildcard $(_OCAML_DFILES:.ml=.mli))
 
 doc: $(liquidsoap_doc_sources)
 	mkdir -p ../autodoc/liquidsoap
-	$(OCAMLFIND) ocamldoc -stars -sort -html -d ../autodoc/liquidsoap -t Liquidsoap -I +threads $(OCAML_DFLAGS) $(_OCAML_DFLAGS) $(_OCAML_DFILES) $(_OCAML_DFILES_H)
+	if [ "$(OS_TYPE)" != "Win32" ]; then \
+	  $(OCAMLFIND) ocamldoc -stars -sort -html -d ../autodoc/liquidsoap -t Liquidsoap -I +threads $(OCAML_DFLAGS) $(_OCAML_DFLAGS) $(_OCAML_DFILES) $(_OCAML_DFILES_H); \
+	fi
 
 clean:
 	@echo "Cleaning..."
@@ -335,8 +337,8 @@ configure.ml:
 	@echo " ERROR Missing src/configure.ml, Please run ./configure first!"
 	@if [ -f ../configure-with-options ] ; then \
 	  echo "       Note that you can source configure-with-options" ; \
-	  echo "       for running configure with the same options as last time." \
-	; fi
+	  echo "       for running configure with the same options as last time." ; \
+	fi
 	@echo
 	@exit 1
 
