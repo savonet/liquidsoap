@@ -306,9 +306,7 @@ _OCAML_DFILES_H = $(wildcard $(_OCAML_DFILES:.ml=.mli))
 
 doc: $(liquidsoap_doc_sources)
 	mkdir -p ../autodoc/liquidsoap
-	if [ "$(OS_TYPE)" != "Win32" ]; then \
-	  $(OCAMLFIND) ocamldoc -stars -sort -html -d ../autodoc/liquidsoap -t Liquidsoap -I +threads $(OCAML_DFLAGS) $(_OCAML_DFLAGS) $(_OCAML_DFILES) $(_OCAML_DFILES_H); \
-	fi
+	$(OCAMLFIND) ocamldoc -stars -sort -html -d ../autodoc/liquidsoap -t Liquidsoap -I +threads $(OCAML_DFLAGS) $(_OCAML_DFLAGS) $(_OCAML_DFILES) $(_OCAML_DFILES_H)
 
 clean:
 	@echo "Cleaning..."

@@ -13,8 +13,12 @@ clean:
 	$(MAKE) -C tests $@
 
 doc:
-	$(MAKE) -C src $@
-	$(MAKE) -C doc $@
+	if [ "$(OS_TYPE)" = "Win32" ]; then \
+	  echo "Building documentation is currently not working on windows, skipping..."; \
+        else \
+	  $(MAKE) -C src $@; \
+	  $(MAKE) -C doc $@; \
+	fi
 
 configure: configure.ac install-sh
 	./bootstrap
