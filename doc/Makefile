@@ -3,7 +3,7 @@ DISTFILES = \
 	liquidsoap.1.md.in liquidsoap.1.md Makefile template.html snippet.html conf.py index.rst language.dtd liquidsoap.xml \
 	$(wildcard content/*.md) $(wildcard content/*.md.in)
 DISTDIRS = orig
-LIQUIDSOAP = ../src/liquidsoap
+LIQUIDSOAP = ../src/liquidsoap$(EXEEXT)
 PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
 
 MD = $(wildcard content/*.md) content/protocols.md content/reference.md content/reference-extras.md content/settings.md
