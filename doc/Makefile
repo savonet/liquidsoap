@@ -10,6 +10,8 @@ MD = $(wildcard content/*.md) content/protocols.md content/reference.md content/
 HTML = $(addprefix html/,$(notdir $(MD:.md=.html)))
 PDF = $(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
+include ../Makefile.defs
+
 doc: md man html
 
 md: $(MD)
@@ -92,4 +94,3 @@ sphinx-html:
 
 .PHONY: md doc upload all-subdirs
 
-include ../Makefile.defs
