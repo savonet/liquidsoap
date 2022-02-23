@@ -66,7 +66,9 @@ endif
 
 .PHONY: doc-install api-doc-install
 doc-install: doc
-	$(MAKE) -C doc $@
+	if [ "$(OS_TYPE)" != "Win32" ]; then \
+	  $(MAKE) -C doc $@; \
+	fi
 api-doc-install:
 	$(V)echo "Installing developer documentation..."
 	$(V)$(INSTALL) -d $(datadir)/doc/$(DISTDIR)/api
