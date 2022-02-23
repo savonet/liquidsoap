@@ -30,6 +30,7 @@ liquidsoap.1: liquidsoap.1.md
 html/%.html: content/%.md template.html language.dtd
 	@echo Converting $(<) to $(@)...
 	@test -d html || (mkdir -p html/scripts ; cp -RfL orig/* html)
+	@rm -rf html/css
 	@$(PANDOC) $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
 
 pdf/%.pdf: content/%.md language.dtd
