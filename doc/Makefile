@@ -1,14 +1,16 @@
-.PHONY: md doc upload all-subdirs
-
 SUBDIRS = content
-DISTFILES = liquidsoap.1.md.in liquidsoap.1.md Makefile template.html snippet.html conf.py index.rst language.dtd liquidsoap.xml
+DISTFILES = \
+	liquidsoap.1.md.in liquidsoap.1.md Makefile template.html snippet.html conf.py index.rst language.dtd liquidsoap.xml \
+	$(wildcard content/*.md) $(wildcard content/*.md.in)
 DISTDIRS = orig
-LIQUIDSOAP = ../src/liquidsoap
+LIQUIDSOAP = ../src/liquidsoap$(EXEEXT)
 PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
 
-MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/reference-extras.md content/settings.md
-HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
-PDF=$(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
+MD = $(wildcard content/*.md) content/protocols.md content/reference.md content/reference-extras.md content/settings.md
+HTML = $(addprefix html/,$(notdir $(MD:.md=.html)))
+PDF = $(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
+
+include ../Makefile.defs
 
 doc: md man html
 
@@ -20,6 +22,9 @@ pdf: $(PDF)
 
 man: liquidsoap.1
 
+clean:
+	rm -rf html pdf liquidsoap.1 content/reference.md content/reference-extras.md content/protocols.md content/settings.md
+
 liquidsoap.1: liquidsoap.1.md
 	@echo "Generating $(@)..."
 	@pandoc -s -t man $< -o $@
@@ -27,6 +32,7 @@ liquidsoap.1: liquidsoap.1.md
 html/%.html: content/%.md template.html language.dtd
 	@echo Converting $(<) to $(@)...
 	@test -d html || (mkdir -p html/scripts ; cp -RfL orig/* html)
+	@rm -rf html/css
 	@$(PANDOC) $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
 
 pdf/%.pdf: content/%.md language.dtd
@@ -48,8 +54,8 @@ content/settings.md: $(LIQUIDSOAP)
 
 VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
-doc-install:
-	$(INSTALL)  -d $(datadir)/doc/liquidsoap/html
+doc-install: doc
+	$(INSTALL) -d $(datadir)/doc/liquidsoap/html
 	if [ -f html/index.html ] ; then \
 	  cp -RfL html/* $(datadir)/doc/liquidsoap/html ; \
         fi
@@ -57,9 +63,6 @@ doc-install:
 	  $(INSTALL) -d $(mandir)/man1 ; \
 	  $(INSTALL_DATA) liquidsoap.1 $(mandir)/man1 ; \
 	fi
-
-clean-local:
-	rm -rf html pdf content/reference.md content/reference-extras.md content/protocols.md content/settings.md
 
 $(LIQUIDSOAP):
 	@echo "Liquidsoap does not seem to be built. You have to build it before."
@@ -69,8 +72,9 @@ $(LIQUIDSOAP):
 language.dtd:
 	curl https://raw.githubusercontent.com/jgm/highlighting-kate/master/xml/language.dtd -o $@
 
-top_srcdir=..
-include $(top_srcdir)/Makefile.rules
+dist:
+	mkdir $(DISTDIR)/doc
+	rsync -amR $(DISTFILES) $(DISTDIR)/doc/
 
 ############ SPHINX DOC #########################
 
@@ -87,3 +91,6 @@ sphinx-html:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 # %: Makefile md
 #	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+.PHONY: md doc upload all-subdirs
+

@@ -1,14 +1,10 @@
-.PHONY: test
-
 LIQ = $(sort $(wildcard *.liq))
 TESTS = $(filter-out performance, $(basename $(LIQ))) big-record
-DISTFILES = Makefile $(LIQ)
-top_srcdir = $(shell realpath ../..)
 
 test: $(TESTS)
 
 %: %.liq
-	@$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq $<
+	@../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq $<
 
 big-record.liq:
 	@echo "Generating big-record.liq..."
@@ -27,4 +23,4 @@ perf:
 	perf record --call-graph=dwarf -- ../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq erathostenes.liq
 	perf report
 
-include $(top_srcdir)/Makefile.rules
+.PHONY: test

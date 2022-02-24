@@ -1,28 +1,38 @@
-SUBDIRS= src doc scripts tests libs
-DISTFILES = CHANGES CHANGES.md COPYING README README.md \
-	bootstrap configure.ac configure config.h.in config.sub config.guess \
-	Makefile Makefile.defs.in Makefile.rules install-sh \
-        liquidsoap.opam
-DISTDIRS = m4
+DISTFILES = \
+	CHANGES CHANGES.md COPYING README README.md \
+	bootstrap configure.ac configure config.sub config.guess m4 \
+	Makefile Makefile.defs.in install-sh \
+	liquidsoap.opam $(wildcard libs/*liq) scripts
 
-top_srcdir=.
-include $(top_srcdir)/Makefile.rules
+all:
+	$(MAKE) -C src $@
 
-distclean: pre-distclean
+clean:
+	$(MAKE) -C src $@
+	$(MAKE) -C doc $@
+	$(MAKE) -C tests $@
+
+doc:
+	if [ "$(OS_TYPE)" = "Win32" ]; then \
+	  echo "Building documentation is currently not working on windows, skipping..."; \
+        else \
+	  $(MAKE) -C src $@; \
+	  $(MAKE) -C doc $@; \
+	fi
+
+configure: configure.ac install-sh
+	./bootstrap
+	./configure-with-options || ./configure
+
+distclean:
 	rm -f Makefile.defs
-pre-distclean: clean
-	rm -rf config.log config.status config.h autom4te.cache \
-	       src/configure.ml scripts/liquidsoap.logrotate \
-	       liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
+	rm -rf config.log config.status autom4te.cache src/configure.ml scripts/liquidsoap.logrotate liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
-	@$(MAKE) -C src/test test
-	@$(MAKE) -C tests test
+	@$(MAKE) -C src/test
+	@$(MAKE) -C tests $@
 
-# Build liquidsoap as it will be used for building the doc
-doc-local: all
-
-.PHONY: finish-configure
+.PHONY: clean test distclean doc finish-configure
 
 finish-configure:
 ifneq ($(CUSTOM_PATH),yes)
@@ -55,18 +65,21 @@ endif
 	  sed -e s:@localstatedir@:$(localstatedir): > scripts/liquidsoap.logrotate
 
 .PHONY: doc-install api-doc-install
-doc-install:
-	$(MAKE) -C doc doc-install
+doc-install: doc
+	if [ "$(OS_TYPE)" != "Win32" ]; then \
+	  $(MAKE) -C doc $@; \
+	fi
 api-doc-install:
-	$(V)echo Installing developer documentation...
+	$(V)echo "Installing developer documentation..."
 	$(V)$(INSTALL) -d $(datadir)/doc/$(DISTDIR)/api
 	$(V)for doc in $(wildcard autodoc/liquidsoap/*.html autodoc/liquidsoap/*.css) ;\
 	do $(INSTALL_DATA) $$doc $(datadir)/doc/$(DISTDIR)/api ; \
 	done
 
 # user and group are defined in Makefile.defs, written by configure.
-
-install-local: doc-install
+.PHONY: install dist print-tarball-filename tarball
+install: doc-install
+	$(MAKE) -C src $@
 ifeq ($(INSTALL_DAEMON),yes)
 	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/log/liquidsoap
 	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/run/liquidsoap
@@ -85,3 +98,20 @@ endif
 	-$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
 	$(INSTALL_DIRECTORY) ${emacsdir}
 	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/
+
+dist:
+	rm -rf $(DISTDIR)
+	mkdir $(DISTDIR)
+	rsync -amRr $(DISTFILES) $(DISTDIR)
+	$(MAKE) -C src DISTDIR=../$(DISTDIR) $@
+	$(MAKE) -C doc DISTDIR=../$(DISTDIR) $@
+	$(MAKE) -C tests DISTDIR=../$(DISTDIR) $@
+
+print-tarball-filename:
+	@printf $(DISTDIR).tar.bz2
+
+tarball: dist
+	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)
+	rm -rf $(DISTDIR)
+
+-include Makefile.defs

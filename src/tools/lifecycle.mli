@@ -63,7 +63,7 @@ val before_core_shutdown : (unit -> unit) -> unit
 val on_core_shutdown : (unit -> unit) -> unit
 val after_core_shutdown : (unit -> unit) -> unit
 
-(** {2 Scheduler shutdown *)
+(** {2 Scheduler shutdown} *)
 
 val before_scheduler_shutdown : (unit -> unit) -> unit
 val on_scheduler_shutdown : (unit -> unit) -> unit
