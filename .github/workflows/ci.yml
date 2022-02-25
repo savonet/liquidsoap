@@ -49,6 +49,8 @@ jobs:
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
+      - name: Install required tools
+        run: sudo apt-get -y install rsync
       - name: Build tarball
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
@@ -252,7 +254,7 @@ jobs:
         id: build_apk
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          apk add alpine-sdk
+          apk add -X http://dl-cdn.alpinelinux.org/alpine/edge/testing alpine-sdk pandoc
           adduser opam abuild
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine

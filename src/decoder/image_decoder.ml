@@ -96,6 +96,8 @@ let create_decoder ~audio ~width ~height ~metadata img =
   let off_y = try Hashtbl.find metadata "y" with Not_found -> "" in
   let off_x, off_y = off_string width height off_x off_y in
   log#debug "Decoding to %dx%d at %dx%d" width height off_x off_y;
+  (* We are likely to have no α channel, optimize it. *)
+  Image.YUV420.optimize_alpha img;
   let img =
     Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
   in

@@ -1,4 +1,4 @@
-#!../..//src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq
 
 %include "test.liq"
 
@@ -7,9 +7,12 @@ a = ()
 # My function
 # @param ~x The parameter.
 def a.b(~x)
-  0
+  x
 end
 
-ignore(a)
+def f()
+  ignore(a)
+  test.pass()
+end
 
-test.pass()
+test.check(f)

@@ -6,6 +6,8 @@ First some outlines:
 
 * This example is meant to create a new source and outputs. It is not easy currently to change a source being streamed
 * The idea is to create a new output using a telnet/server command.
+* In order for a Liquidsoap script to run without an active source at startup, it is necessary to include `settings.init.force_start.set(true)` at the start of the script. 
+
 
 In this example, we will register a command that creates a playlist source using an uri passed
 as argument and outputs it to a fixed icecast output.
@@ -31,20 +33,17 @@ out = output.icecast(%mp3,
                      password="hackme",
                      fallible=true)
 
-# Now we write a function to create 
+# Now we write a function to create
 # a playlist source and output it.
 def create_playlist(uri) =
-  # The playlist source 
+  # The playlist source
   s = playlist(uri)
 
   # The output
-  output = out(s)
+  out(s)
 
-  # We register both source and output 
-  # in the list of sources
-  dyn_sources := 
-      list.append( [(uri,s),(uri,output)],
-                    !dyn_sources )
+  # We register the source in the list of sources
+  dyn_sources := list.append( [(uri,s)], !dyn_sources)
   "Done!"
 end
 

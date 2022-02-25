@@ -22,6 +22,10 @@ make update
 cd liquidsoap
 git fetch origin $GITHUB_SHA
 git checkout $GITHUB_SHA
+mv .github /tmp
+rm -rf *
+mv /tmp/.github .
+git reset --hard
 
 ./.github/scripts/checkout-deps.sh
 

@@ -1,11 +1,5 @@
-.PHONY: test
-
 LIQ = $(sort $(wildcard *.liq))
 TESTS = $(filter-out test, $(basename $(LIQ)))
-DISTFILES = Makefile $(LIQ)
-top_srcdir = $(shell realpath ../..)
-
-include $(top_srcdir)/Makefile.rules
 
 test: files $(TESTS)
 
@@ -27,4 +21,6 @@ clean:
 	rm -rf files
 
 %: %.liq
-	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-stdlib $(top_srcdir)/libs/stdlib.liq -" streams/$<
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" streams/$<
+
+.PHONY: test

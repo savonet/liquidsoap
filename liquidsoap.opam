@@ -52,7 +52,6 @@ depopts: [
   "lo"
   "mad"
   "magic"
-  "mem_usage"
   "memtrace"
   "mem_usage"
   "ocurl"

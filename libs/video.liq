@@ -467,3 +467,9 @@ def video.slideshow(~id=null(), ~cyclic=getter(true), ~advance=getter(-1.), l=[]
   if getter.get(advance) >= 0. then thread.run(delay=getter.get(advance), every=advance, next) end
   s.{append=append, clear=clear, next=next, prev=prev}
 end
+
+# Generate a video filled with given color.
+# @param color Color (in 0xRRGGBB format).
+def video.color(color)
+  video.fill(color=color, blank())
+end
