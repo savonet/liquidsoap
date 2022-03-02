@@ -596,7 +596,7 @@ module From_audio_video = struct
           (List.filter (fun x -> x < size) (Frame.breaks frame));
 
     (* Feed all content layers into the generator. *)
-    let pts = Frame.pts frame in
+    let pts = Int64.of_nativeint (Frame.pts frame) in
     let mode = match mode with Some mode -> mode | None -> t.mode in
     let pos = Frame.position frame in
     let content = frame.Frame.content in

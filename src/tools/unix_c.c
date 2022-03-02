@@ -79,3 +79,9 @@ CAMLprim value liquidsoap_get_pagesize() {
   return Val_int(getpagesize());
 #endif
 }
+
+CAMLprim value liquidsoap_incr_intnat(value v) {
+  CAMLparam1(v);
+  Nativeint_val(v) = Nativeint_val(v)+1;
+  CAMLreturn(Val_unit);
+}
