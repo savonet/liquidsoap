@@ -58,7 +58,8 @@ class audio_output ~pass_metadata ~name ~kind source_val =
           init frame;
           let pts =
             Int64.add
-              ((Lazy.force convert_frame_pts) (Frame.pts memo))
+              ((Lazy.force convert_frame_pts)
+                 (Int64.of_nativeint (Frame.pts memo)))
               (Int64.of_int pos)
           in
           Avutil.Frame.set_pts frame (Some pts);
@@ -105,7 +106,8 @@ class video_output ~pass_metadata ~kind ~name source_val =
           init frame;
           let pts =
             Int64.add
-              ((Lazy.force convert_frame_pts) (Frame.pts memo))
+              ((Lazy.force convert_frame_pts)
+                 (Int64.of_nativeint (Frame.pts memo)))
               (Int64.of_int pos)
           in
           Avutil.Frame.set_pts frame (Some pts);

@@ -107,10 +107,10 @@ val advance : t -> unit
 (** {3 Presentation time} *)
 
 (** Frame presentation time, in multiple of a frame's size. *)
-val pts : t -> int64
+val pts : t -> nativeint
 
 (** Set presentation time. *)
-val set_pts : t -> int64 -> unit
+val set_pts : t -> nativeint -> unit
 
 (** {3 Breaks} *)
 
