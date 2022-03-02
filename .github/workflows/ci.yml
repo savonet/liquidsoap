@@ -177,6 +177,9 @@ jobs:
     steps:
       - name: Checkout latest code
         uses: actions/checkout@v1
+      - name: Update packages
+        run: |
+          sudo apt-get update
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v2
         with:
