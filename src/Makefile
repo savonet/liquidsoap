@@ -290,7 +290,7 @@ export OCAMLPATH := $(OCAMLPATH)
 
 OCAMLDEP_FLAGS = $(patsubst %,-I %,$(INCDIRS))
 OCAML_CFLAGS = -thread $(OCAMLDEP_FLAGS)
-_OCAML_CFLAGS = $(liquidsoap_ocamlcflags)
+_OCAML_CFLAGS = $(liquidsoap_ocamlcflags) -w -40-42
 _OCAML_LFLAGS = $(liquidsoap_ocamllflags)
 
 liquidsoap_mly = $(wildcard $(liquidsoap_sources:.ml=.mly))

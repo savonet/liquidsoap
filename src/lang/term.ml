@@ -311,6 +311,7 @@ and in_term =
    * variables occurring in the function. It is used to
    * restrict the environment captured when a closure is
    * formed. *)
+  (* TODO: remove Vars.t and update above comment. *)
   | Fun of Vars.t * (string * string * Type.t * t option) list * t
   | RFun of string * Vars.t * (string * string * Type.t * t option) list * t
 

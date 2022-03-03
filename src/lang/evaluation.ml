@@ -106,7 +106,7 @@ let rec eval_pat pat v =
   in
   aux [] pat v
 
-let rec eval ~env tm =
+let rec eval ~env (tm : TermDB.t) : Value.t =
   let env = (env : Value.lazy_env) in
   let prepare_fun fv p env =
     (* Unlike OCaml we always evaluate default values, and we do that early. I
@@ -132,6 +132,8 @@ let rec eval ~env tm =
     in
     (p, env)
   in
+  let mk v = { Value.pos = tm.t.Type.pos; Value.value = v } in
+  (*
   let mk v =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)
@@ -176,7 +178,8 @@ let rec eval ~env tm =
       | _ -> ());
     { Value.pos = tm.t.Type.pos; Value.value = v }
   in
-  match tm.term with
+  *)
+  match tm with
     | Ground g -> mk (Value.Ground g)
     | Encoder (e, p) ->
         let pos = tm.t.Type.pos in
@@ -465,8 +468,8 @@ let toplevel_add (doc, params, methods) pat ~t v =
         ((generalized, t), v))
     (eval_pat pat v)
 
-let rec eval_toplevel ?(interactive = false) t =
-  match t.term with
+let rec eval_toplevel ?(interactive = false) (t : TermDB.t) =
+  match t with
     | Let { doc = comment; gen = generalized; replace; pat; def; body } ->
         let def_t, def =
           if not replace then (def.t, eval def)

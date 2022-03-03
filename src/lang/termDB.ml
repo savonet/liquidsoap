@@ -21,3 +21,42 @@
  *****************************************************************************)
 
 (** Optimized representation of terms with de Bruijn indices. *)
+
+module Ground = Term.Ground
+
+type pos = Pos.t
+
+(* No need to duplicate, we simply ignore variable names. *)
+type pattern = Term.pattern
+
+type t =
+  | Ground of Ground.t
+  | Encoder of encoder
+  | List of t list
+  | Tuple of t list
+  | Null
+  | Meth of string * t * t (* TODO: have an hashtbl of methods *)
+  | Invoke of t * string
+  | Open of t * t
+  | Let of let_t
+  | Var of int
+  | Seq of t * t
+  (* TODO: we should pre-compute applications when the type is fully known (be
+     careful of subtyping!) *)
+  | App of t * (string * t) list
+  | Fun of (string * t option) list * t
+  | RFun of (string * t option) list * t
+
+and let_t = {
+  replace : bool;
+  (* whether the definition replaces a previously existing one (keeping methods) *)
+  pat : pattern;
+  def : t;
+  body : t;
+}
+
+(** Parameters for encoders. *)
+and encoder_params = (string * [ `Term of t | `Encoder of encoder ]) list
+
+(** A formal encoder. *)
+and encoder = string * encoder_params
