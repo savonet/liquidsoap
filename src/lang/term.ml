@@ -321,7 +321,7 @@ and pattern =
   | PTuple of pattern list  (** a tuple *)
   | PList of (pattern list * string option * pattern list) (* a list *)
   | PMeth of (pattern option * (string * pattern option) list)
-(* a value with methods *)
+      (** a value with methods *)
 
 type term = t
 

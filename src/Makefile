@@ -261,7 +261,7 @@ liquidsoap_sources = \
 
 liquidsoap_sources += \
 	lang/type.ml lang/repr.ml lang/typing.ml \
-	lang/profiler.ml lang/term.ml lang/value.ml \
+	lang/profiler.ml lang/term.ml lang/termDB.ml lang/value.ml \
 	lang/lang_encoder.ml $(lang_encoders) \
 	lang/environment.ml lang/typechecking.ml \
 	lang/evaluation.ml lang/error.ml \
