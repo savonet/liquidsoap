@@ -25,9 +25,7 @@
 module Ground = Term.Ground
 
 type pos = Pos.t
-
-(* No need to duplicate, we simply ignore variable names. *)
-type pattern = Term.pattern
+type var = int
 
 type t =
   | Ground of Ground.t
@@ -40,13 +38,15 @@ type t =
   | Invoke of t * string
   | Open of t * t
   | Let of let_t
-  | Var of int
+  | Var of var * string (* The string is only used for debugging. *)
   | Seq of t * t
   (* TODO: we should pre-compute applications when the type is fully known (be
      careful of subtyping!) *)
   | App of t * (string * t) list
   | Fun of (string * t option) list * t
   | RFun of (string * t option) list * t
+
+and closure = t Lazy.t list
 
 and let_t = {
   replace : bool;
@@ -56,9 +56,26 @@ and let_t = {
   body : t;
 }
 
+and pattern =
+  | PVar  (** a variable *)
+  | PField of var * string list  (** a field *)
+  | PTuple of pattern list  (** a tuple *)
+  | PList of (pattern list * bool * pattern list)  (** a list *)
+  (* TODO: it would be cleaner to have a _ pattern instead of options below *)
+  | PMeth of (pattern option * (string * pattern option) list)
+      (** a value with methods *)
+
 (** Parameters for encoders. *)
 and encoder_params =
   (string * [ `Term of pos option * t | `Encoder of encoder ]) list
 
 (** A formal encoder. *)
 and encoder = pos option * string * encoder_params
+
+(** Used for printing very simple functions. *)
+let is_ground = function Ground _ -> true | _ -> false
+
+(** String representation of ground terms. *)
+let string_of_ground t =
+  assert (is_ground t);
+  match t with Ground g -> Ground.to_string g | _ -> assert false

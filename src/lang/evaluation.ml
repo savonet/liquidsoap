@@ -97,30 +97,14 @@ let rec eval_pat pat v =
   in
   aux [] pat v
 
-let rec eval (env : Value.Env.t) (tm : TermDB.t) : Value.t =
-  let prepare_fun fv p env =
+module Env = Value.Env
+
+let rec eval (env : Env.t) (tm : TermDB.t) : Value.t =
+  let eval_fun_params p =
     (* Unlike OCaml we always evaluate default values, and we do that early. I
        think the only reason is homogeneity with FFI, which are declared with
        values as defaults. *)
-    let p =
-      List.map
-        (function
-          | lbl, var, _, Some v -> (lbl, var, Some (eval env v))
-          | lbl, var, _, None -> (lbl, var, None))
-        p
-    in
-    (* Keep only once the variables we might use in the environment. *)
-    let env =
-      let fv = ref fv in
-      let mem x =
-        if Vars.mem x !fv then (
-          fv := Vars.remove x !fv;
-          true)
-        else false
-      in
-      List.filter (fun (x, _) -> mem x) env
-    in
-    (p, env)
+    List.map (fun (lbl, var, _, v) -> (lbl, var, Option.map (eval env) v)) p
   in
   (* Ensure that the kind computed at runtime for sources will agree with the
      typing. *)
@@ -194,7 +178,7 @@ let rec eval (env : Value.Env.t) (tm : TermDB.t) : Value.t =
     | Meth (l, u, v) -> Meth (l, eval env u, eval env v)
     | Invoke (t, l) ->
         let rec aux t =
-          match t.Value.value with
+          match t with
             | Value.Meth (l', t, _) when l = l' -> t
             | Value.Meth (_, _, t) -> aux t
             | _ ->
@@ -206,9 +190,9 @@ let rec eval (env : Value.Env.t) (tm : TermDB.t) : Value.t =
         aux (eval env t)
     | Open (t, u) ->
         let t = eval env t in
-        let rec aux env (t : Value.t) =
+        let rec aux (env : Env.t) (t : Value.t) =
           match t with
-            | Meth (l, v, t) -> aux ((l, Lazy.from_val v) :: env) t
+            | Meth (l, v, t) -> aux (Env.add env v) t
             | Tuple [] -> env
             | _ -> assert false
         in
@@ -223,9 +207,7 @@ let rec eval (env : Value.Env.t) (tm : TermDB.t) : Value.t =
                 | [] -> assert false
                 | [x] ->
                     let v () =
-                      if replace then
-                        Value.remeth (Lazy.force (List.assoc x env)) v
-                      else v
+                      if replace then Value.remeth (Env.lookup env x) v else v
                     in
                     (x, Lazy.from_fun v)
                 | l :: ll ->
@@ -250,30 +232,28 @@ let rec eval (env : Value.Env.t) (tm : TermDB.t) : Value.t =
         in
         let env = penv @ env in
         eval env b
-    | Fun (fv, p, body) ->
-        let p, env = prepare_fun fv p env in
+    | Fun (p, body) ->
+        let p = eval_fun_params p in
         Fun (p, env, body)
-    | RFun (x, fv, p, body) ->
-        let p, env = prepare_fun fv p env in
+    | RFun (p, body) ->
+        let p = eval_fun_params p in
         let rec v () =
-          let env = (x, Lazy.from_fun v) :: env in
-          Fun (p, env, body)
+          let env = Env.add_lazy env (Lazy.from_fun v) in
+          Value.Fun (p, env, body)
         in
         v ()
-    | Var var -> lookup env var
+    | Var var -> Env.lookup env var
     | Seq (a, b) ->
-        ignore (eval ~env a);
-        eval ~env b
+        ignore (eval env a);
+        eval env b
     | App (f, l) ->
         let ans () =
-          let f = eval ~env f in
-          let l = List.map (fun (l, t) -> (l, eval ~env t)) l in
+          let f = eval env f in
+          let l = List.map (fun (l, t) -> (l, eval env t)) l in
           apply f l
         in
         if !profile then (
-          match f.term with
-            | Var fname -> Profiler.time fname ans ()
-            | _ -> ans ())
+          match f with Var fname -> Profiler.time fname ans () | _ -> ans ())
         else ans ()
 
 and apply f l =

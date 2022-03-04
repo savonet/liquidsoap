@@ -315,7 +315,7 @@ and in_term =
 and pattern =
   | PVar of string list  (** a field *)
   | PTuple of pattern list  (** a tuple *)
-  | PList of (pattern list * string option * pattern list) (* a list *)
+  | PList of (pattern list * string option * pattern list)  (** a list *)
   | PMeth of (pattern option * (string * pattern option) list)
       (** a value with methods *)
 
@@ -323,9 +323,8 @@ type term = t
 
 let unit = Tuple []
 
-(* Only used for printing very simple functions. *)
-let is_ground x =
-  match x.term with Ground _ -> true (* | Ref x -> is_ground x *) | _ -> false
+(** Used for printing very simple functions. *)
+let is_ground x = match x.term with Ground _ -> true | _ -> false
 
 let rec string_of_pat = function
   | PVar l -> String.concat "." l
@@ -531,7 +530,7 @@ let check_unused ~throw ~lib tm =
       | App (hd, l) ->
           let v = check v hd in
           List.fold_left (fun v (_, t) -> check v t) v l
-      | RFun (arg, p, body) -> check v { tm with term = Fun (p, body) }
+      | RFun (_, p, body) -> check v { tm with term = Fun (p, body) }
       | Fun (p, body) ->
           let v =
             List.fold_left

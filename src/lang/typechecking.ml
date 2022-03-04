@@ -25,6 +25,18 @@ open Typing
 
 let debug = ref false
 
+module List = struct
+  include List
+
+  (** Index where a predicate is satisfied. *)
+  let index p l =
+    let rec aux n = function
+      | x :: l -> if p x then n else aux (n + 1) l
+      | [] -> raise Not_found
+    in
+    aux 0 l
+end
+
 (** {1 Type checking / inference} *)
 
 (** Terms for which generalization is safe. *)
@@ -315,10 +327,10 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e :
               let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
               a.t <: Type.make (Type.Arrow (p, e.t)));
         App (a', l')
-    | Fun (_, proto, body) ->
+    | Fun (proto, body) ->
         let proto, body = check_fun ~proto ~env e body in
         Fun (proto, body)
-    | RFun (x, _, proto, body) ->
+    | RFun (x, proto, body) ->
         let env = (x, ([], e.t)) :: env in
         let proto, body = check_fun ~proto ~env e body in
         RFun (proto, body)
@@ -339,7 +351,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e :
         if Lazy.force Term.debug then
           Printf.eprintf "Instantiate %s : %s becomes %s\n" var
             (Type.to_string orig) (Type.to_string e.t);
-        Var i
+        Var (i, var)
     | Let ({ pat; replace; def; body; _ } as l) ->
         let def' = check ~level:(level + 1) ~env def in
         let generalized =
@@ -374,6 +386,21 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e :
                     with Not_found -> raise (Unbound (pos, l))))
             penv
         in
+        (* Pre-compile the pattern. This could be done in type_of_pat, but this
+           is safer this way and should not have a big effect on performance. *)
+        let rec pat_of_pat : Term.pattern -> TermDB.pattern = function
+          | PVar [_] -> PVar
+          | PVar (x :: l) -> PField (List.index (fun (y, _) -> y = x) env, l)
+          | PVar [] -> assert false
+          | PTuple l -> PTuple (List.map pat_of_pat l)
+          | PList (l, p, l') ->
+              PList (List.map pat_of_pat l, p <> None, List.map pat_of_pat l')
+          | PMeth (p, l) ->
+              PMeth
+                ( Option.map pat_of_pat p,
+                  List.map (fun (l, p) -> (l, Option.map pat_of_pat p)) l )
+        in
+        let pat' = pat_of_pat l.pat in
         let env = penv @ env in
         l.gen <- generalized;
         if print_toplevel then
@@ -386,7 +413,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e :
                 def.t);
         let body' = check ~print_toplevel ~level ~env body in
         e.t >: body.t;
-        Let { replace = l.replace; pat = l.pat; def = def'; body = body' }
+        Let { replace = l.replace; pat = pat'; def = def'; body = body' }
 
 (* The simple definition for external use. *)
 let check ?(ignored = false) ~throw e =

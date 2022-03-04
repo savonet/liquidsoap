@@ -39,7 +39,7 @@ type t =
   | Ref of t ref
   (* Function with given list of argument name, argument variable and default
      value, the (relevant part of the) closure, and the body. *)
-  | Fun of (string * string * t option) list * lazy_env * Term.t
+  | Fun of (string * string * t option) list * lazy_env * TermDB.t
   (* For a foreign function only the arguments are visible, the closure
      doesn't capture anything in the environment. *)
   | FFI of (string * string * t option) list * (env -> t)
@@ -47,7 +47,7 @@ type t =
 and env = (string * t) list
 
 (* Some values have to be lazy in the environment because of recursive functions. *)
-and lazy_env = (string * t Lazy.t) list
+and lazy_env = t Lazy.t list
 
 type encoder_params = (string * [ `Value of t | `Encoder of encoder ]) list
 
@@ -85,8 +85,9 @@ let rec print_value = function
       in
       let e = match e with Tuple [] -> "" | _ -> print_value e ^ "." in
       e ^ "{" ^ m ^ "}"
-  | Fun ([], _, x) when Term.is_ground x -> "{" ^ Term.to_string x ^ "}"
-  | Fun (l, _, x) when Term.is_ground x ->
+  | Fun ([], _, x) when TermDB.is_ground x ->
+      "{" ^ TermDB.string_of_ground x ^ "}"
+  | Fun (l, _, x) when TermDB.is_ground x ->
       let f (label, _, value) =
         match (label, value) with
           | "", None -> "_"
@@ -96,7 +97,7 @@ let rec print_value = function
       in
       let args = List.map f l in
       Printf.sprintf "fun (%s) -> %s" (String.concat "," args)
-        (Term.to_string x)
+        (TermDB.string_of_ground x)
   | Fun _ | FFI _ -> "<fun>"
 
 (** Find a method in a value. *)
@@ -181,7 +182,10 @@ let compare a b =
 
 (** Operations on evaluation environments. *)
 module Env = struct
-  type nonrec t = t Lazy.t list
+  type nonrec t = lazy_env
+
+  let add (env : t) v : t = Lazy.from_val v :: env
+  let add_lazy (env : t) v : t = v :: env
 
   let lookup (env : t) var =
     match List.nth_opt env var with
