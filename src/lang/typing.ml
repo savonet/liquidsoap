@@ -30,6 +30,10 @@ let () = Type.debug_variance := false
 let () = Repr.global_evar_names := false
 let debug_subtyping = ref false
 
+(** Allow functions to forget arguments during subtyping. This would not be a
+    good idea if we had de Bruijn indices for instance. *)
+let forget_arguments = true
+
 type env = (string * scheme) list
 
 (** Do we have a method. *)
@@ -497,7 +501,9 @@ let rec ( <: ) a b =
           in
           let l1 = List.rev l1 in
           ignore l1;
-          if List.for_all (fun (o, _, _) -> o) l2 then (
+          if
+            l2 = [] || (forget_arguments && List.for_all (fun (o, _, _) -> o) l2)
+          then (
             try t <: t'
             with Error (t, t') ->
               let bt = Printexc.get_raw_backtrace () in
