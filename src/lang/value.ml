@@ -179,6 +179,19 @@ let compare a b =
   in
   compare a b
 
+(** Operations on evaluation environments. *)
+module Env = struct
+  type nonrec t = t Lazy.t list
+
+  let lookup (env : t) var =
+    match List.nth_opt env var with
+      | Some v -> Lazy.force v
+      | None ->
+          failwith
+            (Printf.sprintf "Internal error: variable %d not in environment."
+               var)
+end
+
 (* Abstract values. *)
 
 module type Abstract = sig

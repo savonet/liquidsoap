@@ -35,6 +35,7 @@ type t =
   | List of t list
   | Tuple of t list
   | Null
+  | Cast of t * Type.t
   | Meth of string * t * t (* TODO: have an hashtbl of methods *)
   | Invoke of t * string
   | Open of t * t
@@ -56,7 +57,8 @@ and let_t = {
 }
 
 (** Parameters for encoders. *)
-and encoder_params = (string * [ `Term of t | `Encoder of encoder ]) list
+and encoder_params =
+  (string * [ `Term of pos option * t | `Encoder of encoder ]) list
 
 (** A formal encoder. *)
-and encoder = string * encoder_params
+and encoder = pos option * string * encoder_params

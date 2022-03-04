@@ -170,10 +170,11 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e :
     | Encoder f ->
         (* Ensure that we only use well-formed terms. *)
         let rec check_enc (enc, p) : TermDB.encoder =
-          ( enc,
+          ( e.t.pos,
+            enc,
             List.map
               (function
-                | p, `Term t -> (p, `Term (check ~level ~env t))
+                | p, `Term t -> (p, `Term (t.t.pos, check ~level ~env t))
                 | p, `Encoder e -> (p, `Encoder (check_enc e)))
               p )
         in
@@ -205,7 +206,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e :
         let a' = check ~level ~env a in
         a.t <: t;
         e.t >: t;
-        a'
+        Cast (a', t)
     | Meth (l, a, b) ->
         let a' = check ~level ~env a in
         let b' = check ~level ~env b in

@@ -40,10 +40,10 @@ let error ~pos msg =
               pos = (match pos with None -> [] | Some pos -> [pos]);
             })
 
-let generic_error (l, t) : exn =
+let generic_error (l, pos, t) : exn =
   match t with
     | `Value v ->
-        error ~pos:v.Value.pos
+        error ~pos
           (Printf.sprintf
              "unknown parameter name (%s) or invalid parameter value (%s)" l
              (Value.print_value v))

@@ -306,14 +306,9 @@ and in_term =
   | Seq of t * t
   | App of t * (string * t) list
   (* [fun ~l1:x1 .. ?li:(xi=defi) .. -> body] =
-   * [Fun (V, [(l1,x1,None)..(li,xi,Some defi)..], body)]
-   * The first component [V] is the list containing all
-   * variables occurring in the function. It is used to
-   * restrict the environment captured when a closure is
-   * formed. *)
-  (* TODO: remove Vars.t and update above comment. *)
-  | Fun of Vars.t * (string * string * Type.t * t option) list * t
-  | RFun of string * Vars.t * (string * string * Type.t * t option) list * t
+     [Fun (V, [(l1,x1,None)..(li,xi,Some defi)..], body)]. *)
+  | Fun of (string * string * Type.t * t option) list * t
+  | RFun of string * (string * string * Type.t * t option) list * t
 
 (* A recursive function, the first string is the name of the recursive
    variable. *)
@@ -379,7 +374,7 @@ let rec to_string v =
     | Meth (l, v, e) -> to_string e ^ ".{" ^ l ^ " = " ^ to_string v ^ "}"
     | Invoke (e, l) -> to_string e ^ "." ^ l
     | Open (m, e) -> "open " ^ to_string m ^ " " ^ to_string e
-    | Fun (_, [], v) when is_ground v -> "{" ^ to_string v ^ "}"
+    | Fun ([], v) when is_ground v -> "{" ^ to_string v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
     | Var s -> s
     | App (hd, tl) ->
@@ -474,7 +469,7 @@ let rec free_vars tm =
         List.fold_left
           (fun v (_, t) -> Vars.union v (free_vars t))
           (free_vars hd) l
-    | RFun (_, fv, _, _) | Fun (fv, _, _) -> fv
+    | RFun (_, _, _) | Fun (_, _) -> failwith "TODO"
     | Let l ->
         Vars.union (free_vars l.def)
           (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
@@ -536,8 +531,8 @@ let check_unused ~throw ~lib tm =
       | App (hd, l) ->
           let v = check v hd in
           List.fold_left (fun v (_, t) -> check v t) v l
-      | RFun (_, arg, p, body) -> check v { tm with term = Fun (arg, p, body) }
-      | Fun (_, p, body) ->
+      | RFun (arg, p, body) -> check v { tm with term = Fun (p, body) }
+      | Fun (p, body) ->
           let v =
             List.fold_left
               (fun v -> function
