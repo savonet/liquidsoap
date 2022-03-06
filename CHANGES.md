@@ -1,3 +1,10 @@
+2.0.4 (unreleased)
+=====
+
+Changed:
+* Switch to bigarray APIs for ogg/vorbis and ogg/opus
+  encoder and decoder to save memory allocations and data copy.
+
 2.0.3 (11-02-2022)
 =====
 
