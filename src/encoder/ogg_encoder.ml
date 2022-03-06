@@ -52,7 +52,7 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
     in
     let data =
       Ogg_muxer.Audio_data
-        { Ogg_muxer.data = Audio.to_array buf; offset = start; length = len }
+        { Ogg_muxer.data = buf; offset = start; length = len }
     in
     Ogg_muxer.encode encoder id data
   in

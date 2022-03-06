@@ -43,7 +43,7 @@ let create_gen enc freq m =
     let b, ofs, len =
       (data.Ogg_muxer.data, data.Ogg_muxer.offset, data.Ogg_muxer.length)
     in
-    Vorbis.Encoder.encode_buffer_float enc os b ofs len
+    Vorbis.Encoder.encode_buffer_float_ba enc os b ofs len
   in
   let empty_data () =
     Array.make (Lazy.force Frame.audio_channels) (Array.make 1 0.)

@@ -32,7 +32,7 @@ exception Invalid_data
 exception Invalid_usage
 
 (** Audio data type *)
-type audio = float array array
+type audio = Audio.t
 
 (** Video data type *)
 type video = Video.buffer
