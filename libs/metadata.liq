@@ -119,7 +119,7 @@ end
 # with coverart when logging metadata.
 # @category Source / Track Processing
 def metadata.cover.remove(m)
-  list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic", m)
+  list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic" and k != "cover", m)
 end
 
 # Cleanup metadata for export. This is used to remove Liquidsoap's internal
