@@ -214,12 +214,8 @@ module Register (Lame : Lame_t) = struct
 
           (* Yes, lame requires this absurd scaling... *)
           let scale buf =
-            let len = Audio.Mono.length buf in
-            let sbuf = Audio.Mono.create len in
-            for i = 0 to len - 1 do
-              Bigarray.Array1.unsafe_set sbuf i
-                (Bigarray.Array1.unsafe_get buf i *. 32768.)
-            done;
+            let sbuf = Audio.Mono.copy buf in
+            Audio.Mono.amplify 32768. sbuf;
             sbuf
           in
           if channels = 1 then (
