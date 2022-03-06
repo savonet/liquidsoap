@@ -25,7 +25,9 @@ open Mm
 module Contents = struct
   type format = ..
   type kind = ..
-  type data = ..
+  type _type = ..
+  type content = ..
+  type data = _type * content
 
   type audio_params = {
     channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
@@ -162,36 +164,29 @@ let parse_param kind label value =
   with Parsed_format p -> p
 
 type data_handler = {
-  blit : int -> data -> int -> int -> unit;
-  fill : int -> data -> int -> int -> unit;
-  sub : int -> int -> data;
-  is_empty : unit -> bool;
-  copy : unit -> data;
-  format : unit -> format;
-  clear : unit -> unit;
+  blit : data -> int -> data -> int -> int -> unit;
+  fill : data -> int -> data -> int -> int -> unit;
+  sub : data -> int -> int -> data;
+  is_empty : data -> bool;
+  copy : data -> data;
+  format : data -> format;
+  clear : data -> unit;
 }
 
-let data_handlers = Queue.create ()
-let register_data_handler fn = Queue.add fn data_handlers
+let data_handlers = Hashtbl.create 10
+let register_data_handler t h = Hashtbl.replace data_handlers t h
 
-exception Found_data of data_handler
-
-let get_data_handler v =
-  try
-    Queue.iter
-      (fun fn -> match fn v with Some h -> raise (Found_data h) | None -> ())
-      data_handlers;
-    raise Invalid
-  with Found_data h -> h
+let get_data_handler (t, _) =
+  try Hashtbl.find data_handlers t with Not_found -> raise Invalid
 
 let make ~size k = (get_params_handler k).make size
-let blit src = (get_data_handler src).blit
-let fill src = (get_data_handler src).fill
-let sub d = (get_data_handler d).sub
-let is_empty c = (get_data_handler c).is_empty ()
-let copy c = (get_data_handler c).copy ()
-let format c = (get_data_handler c).format ()
-let clear c = (get_data_handler c).clear ()
+let blit src = (get_data_handler src).blit src
+let fill src = (get_data_handler src).fill src
+let sub d = (get_data_handler d).sub d
+let is_empty c = (get_data_handler c).is_empty c
+let copy c = (get_data_handler c).copy c
+let format c = (get_data_handler c).format c
+let clear c = (get_data_handler c).clear c
 let kind p = (get_params_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
 let string_of_format k = (get_params_handler k).string_of_format ()
@@ -221,14 +216,19 @@ module MkContent (C : ContentSpecs) :
      and type data = C.data = struct
   type Contents.kind += Kind of C.kind
   type Contents.format += Format of C.params Unifier.t
-  type Contents.data += Data of C.data
+  type Contents._type += Type
+  type Contents.content += Content of C.data
+
+  let data = function Type, Content d -> d | _ -> assert false
 
   let blit src src_ofs dst dst_ofs len =
-    let dst = match dst with Data dst -> dst | _ -> raise Invalid in
+    let src = data src in
+    let dst = data dst in
     C.blit src src_ofs dst dst_ofs len
 
   let fill src src_ofs dst dst_ofs len =
-    let dst = match dst with Data dst -> dst | _ -> raise Invalid in
+    let src = data src in
+    let dst = data dst in
     C.fill src src_ofs dst dst_ofs len
 
   let merge p p' =
@@ -267,7 +267,8 @@ module MkContent (C : ContentSpecs) :
           Some
             {
               kind = (fun () -> Kind C.kind);
-              make = (fun size -> Data (C.make ~size (Unifier.deref p)));
+              make =
+                (fun size -> (Type, Content (C.make ~size (Unifier.deref p))));
               merge = (fun p' -> merge p p');
               duplicate = (fun () -> Format Unifier.(make (deref p)));
               compatible = (fun p' -> compatible p p');
@@ -282,19 +283,18 @@ module MkContent (C : ContentSpecs) :
       | _ -> None);
     Queue.push kind_of_string kind_parsers;
     Queue.push format_of_string format_parsers;
-    register_data_handler (function
-      | Data d ->
-          Some
-            {
-              blit = blit d;
-              fill = fill d;
-              sub = (fun ofs len -> Data (C.sub d ofs len));
-              is_empty = (fun () -> C.is_empty d);
-              copy = (fun () -> Data (C.copy d));
-              format = (fun () -> Format (Unifier.make (C.params d)));
-              clear = (fun () -> C.clear d);
-            }
-      | _ -> None)
+    let data_handler =
+      {
+        blit;
+        fill;
+        sub = (fun d ofs len -> (Type, Content (C.sub (data d) ofs len)));
+        is_empty = (fun d -> C.is_empty (data d));
+        copy = (fun d -> (Type, Content (C.copy (data d))));
+        format = (fun d -> Format (Unifier.make (C.params (data d))));
+        clear = (fun d -> C.clear (data d));
+      }
+    in
+    register_data_handler Type data_handler
 
   let is_kind = function Kind _ -> true | _ -> false
   let lift_kind f = Kind f
@@ -302,9 +302,9 @@ module MkContent (C : ContentSpecs) :
   let is_format = function Format _ -> true | _ -> false
   let lift_params p = Format (Unifier.make p)
   let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
-  let is_data = function Data _ -> true | _ -> false
-  let lift_data d = Data d
-  let get_data = function Data d -> d | _ -> raise Invalid
+  let is_data = function Type, Content _ -> true | _ -> false
+  let lift_data d = (Type, Content d)
+  let get_data = function Type, Content d -> d | _ -> raise Invalid
 
   include C
 end

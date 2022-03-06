@@ -71,7 +71,7 @@ val metadata_of_list : (string * string) list -> metadata
 (** A frame. *)
 type t = {
   (* Presentation time, in multiple of frame size. *)
-  mutable pts : int64;
+  mutable pts : nativeint;
   (* End of track markers. A break at the end of the
      buffer is not an end of track (if needed, the
      end-of-track needs to be put at the beginning
@@ -134,10 +134,10 @@ val advance : t -> unit
 (** {3 Presentation time} *)
 
 (** Frame presentation time, in multiple of a frame's size. *)
-val pts : t -> int64
+val pts : t -> nativeint
 
 (** Set presentation time. *)
-val set_pts : t -> int64 -> unit
+val set_pts : t -> nativeint -> unit
 
 (** {3 Breaks} *)
 

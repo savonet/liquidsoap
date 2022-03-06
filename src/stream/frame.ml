@@ -105,7 +105,7 @@ let metadata_of_list l =
 
 type t = {
   (* Presentation time, in multiple of frame size. *)
-  mutable pts : int64;
+  mutable pts : nativeint;
   (* End of track markers.
    * A break at the end of the buffer is not an end of track.
    * So maybe we should rather call that an end-of-fill marker,
@@ -123,12 +123,12 @@ type t = {
 let create_content ctype = map_fields (make ~size:!!size) ctype
 
 let create ctype =
-  { pts = 0L; breaks = []; metadata = []; content = create_content ctype }
+  { pts = 0n; breaks = []; metadata = []; content = create_content ctype }
 
 let dummy =
   let data = Frame_content.None.data in
   {
-    pts = 0L;
+    pts = 0n;
     breaks = [];
     metadata = [];
     content = { audio = data; video = data; midi = data };
@@ -166,7 +166,7 @@ let advance b =
   Frame_content.clear b.content.audio;
   Frame_content.clear b.content.video;
   Frame_content.clear b.content.midi;
-  b.pts <- Int64.succ b.pts;
+  Utils.incr_nativeint b.pts;
   b.breaks <- [];
   b.metadata <- []
 
