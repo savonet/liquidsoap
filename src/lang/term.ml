@@ -298,16 +298,16 @@ and in_term =
    * restrict the environment captured when a closure is
    * formed. *)
   | Fun of Vars.t * (string * string * Type.t * t option) list * t
+  (* A recursive function, the first string is the name of the recursive
+     variable. *)
   | RFun of string * Vars.t * (string * string * Type.t * t option) list * t
 
-(* A recursive function, the first string is the name of the recursive
-   variable. *)
 and pattern =
   | PVar of string list  (** a field *)
   | PTuple of pattern list  (** a tuple *)
-  | PList of (pattern list * string option * pattern list) (* a list *)
+  | PList of (pattern list * string option * pattern list)  (** a list *)
   | PMeth of (pattern option * (string * pattern option) list)
-(* a value with methods *)
+      (** a value with methods *)
 
 type term = t
 
