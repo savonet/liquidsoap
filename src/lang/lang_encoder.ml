@@ -40,10 +40,10 @@ let error ~pos msg =
               pos = (match pos with None -> [] | Some pos -> [pos]);
             })
 
-let generic_error (l, t) : exn =
+let generic_error (l, t, pos) : exn =
   match t with
     | `Value v ->
-        error ~pos:v.Value.pos
+        error ~pos
           (Printf.sprintf
              "unknown parameter name (%s) or invalid parameter value (%s)" l
              (Value.to_string v))
@@ -90,7 +90,7 @@ let type_of_encoder ~pos e =
   let midi = kind_t ?pos kind.Frame.midi in
   format_t ?pos (frame_kind_t ?pos audio video midi)
 
-let make_encoder ~pos t ((e, p) : Value.encoder) =
+let make_encoder t ((e, p, pos) : Value.encoder) =
   try
     let e = (find_encoder e).make p in
     let (_ : Encoder.factory) = Encoder.get_factory e in

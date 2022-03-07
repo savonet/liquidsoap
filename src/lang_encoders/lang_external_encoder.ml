@@ -42,11 +42,11 @@ let make params =
   let ext =
     List.fold_left
       (fun f -> function
-        | "channels", `Value { value = Ground (Int c); _ } ->
+        | "channels", `Value (Ground (Int c)), _ ->
             { f with External_encoder_format.channels = c }
-        | "samplerate", `Value { value = Ground (Int i); _ } ->
+        | "samplerate", `Value (Ground (Int i)), _ ->
             { f with External_encoder_format.samplerate = Lazy.from_val i }
-        | "video", `Value { value = Ground (Bool b); _ } ->
+        | "video", `Value (Ground (Bool b)), _ ->
             let w, h =
               match f.External_encoder_format.video with
                 | None -> (Frame.video_width, Frame.video_height)
@@ -56,7 +56,7 @@ let make params =
               f with
               External_encoder_format.video = (if b then Some (w, h) else None);
             }
-        | "width", `Value { value = Ground (Int w); _ } ->
+        | "width", `Value (Ground (Int w)), _ ->
             let _, h =
               match f.External_encoder_format.video with
                 | None -> (Frame.video_width, Frame.video_height)
@@ -64,7 +64,7 @@ let make params =
             in
             let w = Lazy.from_val w in
             { f with External_encoder_format.video = Some (w, h) }
-        | "height", `Value { value = Ground (Int h); _ } ->
+        | "height", `Value (Ground (Int h)), _ ->
             let w, _ =
               match f.External_encoder_format.video with
                 | None -> (Frame.video_width, Frame.video_height)
@@ -72,24 +72,24 @@ let make params =
             in
             let h = Lazy.from_val h in
             { f with External_encoder_format.video = Some (w, h) }
-        | "header", `Value { value = Ground (Bool h); _ } ->
+        | "header", `Value (Ground (Bool h)), _ ->
             { f with External_encoder_format.header = h }
-        | "restart_on_crash", `Value { value = Ground (Bool h); _ } ->
+        | "restart_on_crash", `Value (Ground (Bool h)), _ ->
             { f with External_encoder_format.restart_on_crash = h }
-        | "", `Value { value = Ground (String s); _ }
+        | "", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "restart_on_metadata" ->
             {
               f with
               External_encoder_format.restart = External_encoder_format.Metadata;
             }
-        | "restart_after_delay", `Value { value = Ground (Int i); _ } ->
+        | "restart_after_delay", `Value (Ground (Int i)), _ ->
             {
               f with
               External_encoder_format.restart = External_encoder_format.Delay i;
             }
-        | "process", `Value { value = Ground (String s); _ } ->
+        | "process", `Value (Ground (String s)), _ ->
             { f with External_encoder_format.process = s }
-        | "", `Value { value = Ground (String s); _ } ->
+        | "", `Value (Ground (String s)), _ ->
             { f with External_encoder_format.process = s }
         | t -> raise (Lang_encoder.generic_error t))
       defaults params

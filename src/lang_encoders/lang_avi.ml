@@ -37,13 +37,13 @@ let make params =
   let avi =
     List.fold_left
       (fun f -> function
-        | "channels", `Value { value = Ground (Int c); _ } ->
+        | "channels", `Value (Ground (Int c)), _ ->
             { f with Avi_format.channels = c }
-        | "samplerate", `Value { value = Ground (Int i); _ } ->
+        | "samplerate", `Value (Ground (Int i)), _ ->
             { f with Avi_format.samplerate = Lazy.from_val i }
-        | "width", `Value { value = Ground (Int i); _ } ->
+        | "width", `Value (Ground (Int i)), _ ->
             { f with Avi_format.width = Lazy.from_val i }
-        | "height", `Value { value = Ground (Int i); _ } ->
+        | "height", `Value (Ground (Int i)), _ ->
             { f with Avi_format.height = Lazy.from_val i }
         | t -> raise (Lang_encoder.generic_error t))
       defaults params

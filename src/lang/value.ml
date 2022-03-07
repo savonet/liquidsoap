@@ -25,6 +25,8 @@
 (** Ground values. *)
 module Ground = Term.Ground
 
+type pos = Pos.Option.t
+
 (** A value. *)
 type t =
   | Ground of Ground.t
@@ -50,10 +52,11 @@ and env = (string * t) list
 (* Some values have to be lazy in the environment because of recursive functions. *)
 and lazy_env = (string * t Lazy.t) list
 
-type encoder_params = (string * [ `Value of t | `Encoder of encoder ]) list
+type encoder_params =
+  (string * [ `Value of t | `Encoder of encoder ] * pos) list
 
 (** The type of evaluated encoder terms. *)
-and encoder = string * encoder_params
+and encoder = string * encoder_params * pos
 
 let unit : t = Tuple []
 

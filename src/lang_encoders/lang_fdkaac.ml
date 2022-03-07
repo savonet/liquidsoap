@@ -72,16 +72,16 @@ let make params =
   let fdkaac =
     List.fold_left
       (fun f -> function
-        | "afterburner", `Value { value = Ground (Bool b); _ } ->
+        | "afterburner", `Value (Ground (Bool b)), _ ->
             { f with Fdkaac_format.afterburner = b }
-        | "aot", `Value { value = Ground (String s); pos } ->
+        | "aot", `Value (Ground (String s)), pos ->
             let aot =
               try Fdkaac_format.aot_of_string s
               with Not_found ->
                 raise (Lang_encoder.error ~pos "invalid aot value")
             in
             { f with Fdkaac_format.aot }
-        | "vbr", `Value { value = Ground (Int i); pos } ->
+        | "vbr", `Value (Ground (Int i)), pos ->
             if not (List.mem i valid_vbr) then (
               let err =
                 Printf.sprintf "invalid vbr mode. Possible values: %s"
@@ -89,33 +89,33 @@ let make params =
               in
               raise (Lang_encoder.error ~pos err));
             { f with Fdkaac_format.bitrate_mode = `Variable i }
-        | "bandwidth", `Value { value = Ground (Int i); _ } ->
+        | "bandwidth", `Value (Ground (Int i)), _ ->
             { f with Fdkaac_format.bandwidth = `Fixed i }
-        | "bandwidth", `Value { value = Ground (String s); _ }
+        | "bandwidth", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "auto" ->
             { f with Fdkaac_format.bandwidth = `Auto }
-        | "bitrate", `Value { value = Ground (Int i); _ } ->
+        | "bitrate", `Value (Ground (Int i)), _ ->
             { f with Fdkaac_format.bitrate = i }
-        | "channels", `Value { value = Ground (Int i); _ } ->
+        | "channels", `Value (Ground (Int i)), _ ->
             { f with Fdkaac_format.channels = i }
-        | "samplerate", `Value { value = Ground (Int i); pos } ->
+        | "samplerate", `Value (Ground (Int i)), pos ->
             {
               f with
               Fdkaac_format.samplerate = check_samplerate ~pos (Lazy.from_val i);
             }
-        | "sbr_mode", `Value { value = Ground (Bool b); _ } ->
+        | "sbr_mode", `Value (Ground (Bool b)), _ ->
             { f with Fdkaac_format.sbr_mode = b }
-        | "transmux", `Value { value = Ground (String s); pos } ->
+        | "transmux", `Value (Ground (String s)), pos ->
             let transmux =
               try Fdkaac_format.transmux_of_string s
               with Not_found ->
                 raise (Lang_encoder.error ~pos "invalid transmux value")
             in
             { f with Fdkaac_format.transmux }
-        | "", `Value { value = Ground (String s); _ }
+        | "", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "mono" ->
             { f with Fdkaac_format.channels = 1 }
-        | "", `Value { value = Ground (String s); _ }
+        | "", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "stereo" ->
             { f with Fdkaac_format.channels = 2 }
         | t -> raise (Lang_encoder.generic_error t))
