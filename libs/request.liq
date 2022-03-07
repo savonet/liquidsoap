@@ -12,7 +12,7 @@ def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
   end
 end
 
-# Play a queue of uris. Returns a function to push new uris in the queue as well as the resulting source.
+# Play a queue of requests (the first added request gets played first).
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 # @param ~interactive Should the queue be controllable via telnet?
