@@ -386,6 +386,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e :
                     with Not_found -> raise (Unbound (pos, l))))
             penv
         in
+        (*
         (* Pre-compile the pattern. This could be done in type_of_pat, but this
            is safer this way and should not have a big effect on performance. *)
         let rec pat_of_pat : Term.pattern -> TermDB.pattern = function
@@ -401,6 +402,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e :
                   List.map (fun (l, p) -> (l, Option.map pat_of_pat p)) l )
         in
         let pat' = pat_of_pat l.pat in
+        *)
+        let pat' = l.pat in
         let env = penv @ env in
         l.gen <- generalized;
         if print_toplevel then

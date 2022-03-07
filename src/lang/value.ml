@@ -186,6 +186,7 @@ module Env = struct
 
   let add (env : t) v : t = Lazy.from_val v :: env
   let add_lazy (env : t) v : t = v :: env
+  let add_list env l = List.fold_right (fun v env -> add env v) l env
 
   let lookup (env : t) var =
     match List.nth_opt env var with

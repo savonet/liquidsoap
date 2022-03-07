@@ -56,6 +56,7 @@ and let_t = {
   body : t;
 }
 
+(*
 and pattern =
   | PVar  (** a variable *)
   | PField of var * string list  (** a field *)
@@ -64,6 +65,8 @@ and pattern =
   (* TODO: it would be cleaner to have a _ pattern instead of options below *)
   | PMeth of (pattern option * (string * pattern option) list)
       (** a value with methods *)
+*)
+and pattern = Term.pattern
 
 (** Parameters for encoders. *)
 and encoder_params =

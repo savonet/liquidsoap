@@ -42,11 +42,11 @@ let rec rev_map_append f l1 l2 =
   match l1 with [] -> l2 | a :: l -> rev_map_append f l (f a :: l2)
 
 let rec eval_pat pat v =
-  let rec aux env pat (v : Value.t) =
+  let rec aux env (pat : TermDB.pattern) (v : Value.t) =
     match (pat, v) with
       | PVar x, v -> (x, v) :: env
       | PTuple pl, Tuple l -> List.fold_left2 aux env pl l
-      (* The parser parses [x,y,z] as PList ([], None, l) *)
+      (* The parser parses [x,y,z] as PList ([], false, l) *)
       | PList (([] as l'), (None as spread), l), List lv
       | PList (l, spread, l'), List lv ->
           let ln = List.length l in
@@ -242,7 +242,7 @@ let rec eval (env : Env.t) (tm : TermDB.t) : Value.t =
           Value.Fun (p, env, body)
         in
         v ()
-    | Var var -> Env.lookup env var
+    | Var (var, _) -> Env.lookup env var
     | Seq (a, b) ->
         ignore (eval env a);
         eval env b
