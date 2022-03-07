@@ -41,21 +41,14 @@ let remove_first filter =
 let rec rev_map_append f l1 l2 =
   match l1 with [] -> l2 | a :: l -> rev_map_append f l (f a :: l2)
 
-let lookup (env : Value.lazy_env) var =
-  try Lazy.force (List.assoc var env)
-  with Not_found ->
-    failwith
-      (Printf.sprintf "Internal error: variable %s not in environment." var)
-
 let rec eval_pat pat v =
-  let rec aux env pat v =
+  let rec aux env (pat : TermDB.pattern) (v : Value.t) =
     match (pat, v) with
       | PVar x, v -> (x, v) :: env
-      | PTuple pl, { Value.value = Value.Tuple l } ->
-          List.fold_left2 aux env pl l
-      (* The parser parses [x,y,z] as PList ([], None, l) *)
-      | PList (([] as l'), (None as spread), l), { Value.value = Value.List lv }
-      | PList (l, spread, l'), { Value.value = Value.List lv } ->
+      | PTuple pl, Tuple l -> List.fold_left2 aux env pl l
+      (* The parser parses [x,y,z] as PList ([], false, l) *)
+      | PList (([] as l'), (None as spread), l), List lv
+      | PList (l, spread, l'), List lv ->
           let ln = List.length l in
           let ln' = List.length l' in
           let lvn = List.length lv in
@@ -84,9 +77,7 @@ let rec eval_pat pat v =
             List.map snd (List.filter (fun (lbl, _) -> lbl = `Second) lv)
           in
           let spread_env =
-            match spread with
-              | None -> []
-              | Some s -> [([s], Value.{ v with value = List ls })]
+            match spread with None -> [] | Some s -> [([s], Value.List ls)]
           in
           List.fold_left2 aux [] l' ll'
           @ spread_env @ env
@@ -106,50 +97,32 @@ let rec eval_pat pat v =
   in
   aux [] pat v
 
-let rec eval ~env tm =
-  let env = (env : Value.lazy_env) in
-  let prepare_fun fv p env =
+module Env = Value.Env
+
+let rec eval (env : Env.t) (tm : TermDB.t) : Value.t =
+  let eval_fun_params p =
     (* Unlike OCaml we always evaluate default values, and we do that early. I
        think the only reason is homogeneity with FFI, which are declared with
        values as defaults. *)
-    let p =
-      List.map
-        (function
-          | lbl, var, _, Some v -> (lbl, var, Some (eval ~env v))
-          | lbl, var, _, None -> (lbl, var, None))
-        p
-    in
-    (* Keep only once the variables we might use in the environment. *)
-    let env =
-      let fv = ref fv in
-      let mem x =
-        if Vars.mem x !fv then (
-          fv := Vars.remove x !fv;
-          true)
-        else false
-      in
-      List.filter (fun (x, _) -> mem x) env
-    in
-    (p, env)
+    List.map (fun (lbl, var, _, v) -> (lbl, var, Option.map (eval env) v)) p
   in
-  let mk v =
-    (* Ensure that the kind computed at runtime for sources will agree with
-       the typing. *)
-    (match (Type.deref tm.t).Type.descr with
-      | Type.Constr
-          { Type.constructor = "source"; params = [(Type.Invariant, k)] } -> (
+  (* Ensure that the kind computed at runtime for sources will agree with the
+     typing. *)
+  let cast v t =
+    match (Type.deref t).descr with
+      | Constr { Type.constructor = "source"; params = [(Type.Invariant, k)] }
+        -> (
           let frame_content_of_t t =
             match (Type.deref t).Type.descr with
-              | Type.Var _ -> `Any
-              | Type.Constr { Type.constructor; params = [(_, t)] } -> (
+              | Var _ -> `Any
+              | Constr { Type.constructor; params = [(_, t)] } -> (
                   match (Type.deref t).Type.descr with
                     | Type.Ground (Type.Format fmt) -> `Format fmt
                     | Type.Var _ -> `Kind (Content.kind_of_string constructor)
-                    | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
-                  )
-              | Type.Constr { Type.constructor = "none" } ->
+                    | _ -> failwith ("Unhandled content: " ^ Type.to_string t))
+              | Constr { Type.constructor = "none" } ->
                   `Kind (Content.kind_of_string "none")
-              | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
+              | _ -> failwith ("Unhandled content: " ^ Type.to_string t)
           in
           let k = of_frame_kind_t k in
           let k =
@@ -161,7 +134,7 @@ let rec eval ~env tm =
               }
           in
           let rec demeth = function
-            | Value.Meth (_, _, v) -> demeth v.Value.value
+            | Value.Meth (_, _, v) -> demeth v
             | v -> v
           in
           match demeth v with
@@ -169,16 +142,16 @@ let rec eval ~env tm =
             | _ ->
                 raise
                   (Internal_error
-                     ( Option.to_list tm.t.Type.pos,
+                     ( Option.to_list t.Type.pos,
                        "term has type source but is not a source: "
-                       ^ Value.print_value
-                           { Value.pos = tm.t.Type.pos; Value.value = v } )))
-      | _ -> ());
-    { Value.pos = tm.t.Type.pos; Value.value = v }
+                       ^ Value.print_value v )))
+      | _ -> ()
   in
-  match tm.term with
-    | Ground g -> mk (Value.Ground g)
-    | Encoder (e, p) ->
+  match tm with
+    | Ground g -> Ground g
+    | Encoder _ ->
+        (* | Encoder (e, p) -> *)
+        (*
         let pos = tm.t.Type.pos in
         let rec eval_param p =
           List.map
@@ -193,37 +166,40 @@ let rec eval ~env tm =
         let enc : Value.encoder = (e, p) in
         let e = Lang_encoder.make_encoder ~pos tm enc in
         mk (Value.Encoder e)
-    | List l -> mk (Value.List (List.map (eval ~env) l))
-    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval ~env a) l))
-    | Null -> mk Value.Null
-    | Cast (e, _) ->
-        let e = eval ~env e in
-        mk e.Value.value
-    | Meth (l, u, v) -> mk (Value.Meth (l, eval ~env u, eval ~env v))
+*)
+        failwith "TODO"
+    | List l -> List (List.map (eval env) l)
+    | Tuple l -> Tuple (List.map (fun a -> eval env a) l)
+    | Null -> Null
+    | Cast (e, t) ->
+        let e = eval env e in
+        cast e t;
+        e
+    | Meth (l, u, v) -> Meth (l, eval env u, eval env v)
     | Invoke (t, l) ->
         let rec aux t =
-          match t.Value.value with
+          match t with
             | Value.Meth (l', t, _) when l = l' -> t
             | Value.Meth (_, _, t) -> aux t
             | _ ->
                 raise
                   (Internal_error
-                     ( Option.to_list tm.t.Type.pos,
+                     ( [] (* TODO: can we find a relevant position ? *),
                        "invoked method `" ^ l ^ "` not found" ))
         in
-        aux (eval ~env t)
+        aux (eval env t)
     | Open (t, u) ->
-        let t = eval ~env t in
-        let rec aux env t =
-          match t.Value.value with
-            | Value.Meth (l, v, t) -> aux ((l, Lazy.from_val v) :: env) t
-            | Value.Tuple [] -> env
+        let t = eval env t in
+        let rec aux (env : Env.t) (t : Value.t) =
+          match t with
+            | Meth (l, v, t) -> aux (Env.add env v) t
+            | Tuple [] -> env
             | _ -> assert false
         in
         let env = aux env t in
-        eval ~env u
+        eval env u
     | Let { pat; replace; def = v; body = b; _ } ->
-        let v = eval ~env v in
+        let v = eval env v in
         let penv =
           List.map
             (fun (ll, v) ->
@@ -231,21 +207,16 @@ let rec eval ~env tm =
                 | [] -> assert false
                 | [x] ->
                     let v () =
-                      if replace then
-                        Value.remeth (Lazy.force (List.assoc x env)) v
-                      else v
+                      if replace then Value.remeth (Env.lookup env x) v else v
                     in
                     (x, Lazy.from_fun v)
                 | l :: ll ->
                     (* Add method ll with value v to t *)
-                    let rec meths ll v t =
-                      let mk ~pos value = { Value.pos; value } in
+                    let rec meths ll v t : Value.t =
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk ~pos:tm.t.Type.pos (Value.Meth (l, v, t))
-                        | l :: ll ->
-                            mk ~pos:t.Value.pos
-                              (Value.Meth (l, meths ll v (Value.invoke t l), t))
+                        | [l] -> Meth (l, v, t)
+                        | l :: ll -> Meth (l, meths ll v (Value.invoke t l), t)
                     in
                     let v () =
                       let t = Lazy.force (List.assoc l env) in
@@ -260,31 +231,29 @@ let rec eval ~env tm =
             (eval_pat pat v)
         in
         let env = penv @ env in
-        eval ~env b
-    | Fun (fv, p, body) ->
-        let p, env = prepare_fun fv p env in
-        mk (Value.Fun (p, env, body))
-    | RFun (x, fv, p, body) ->
-        let p, env = prepare_fun fv p env in
+        eval env b
+    | Fun (p, body) ->
+        let p = eval_fun_params p in
+        Fun (p, env, body)
+    | RFun (p, body) ->
+        let p = eval_fun_params p in
         let rec v () =
-          let env = (x, Lazy.from_fun v) :: env in
-          { Value.pos = tm.t.Type.pos; value = Value.Fun (p, env, body) }
+          let env = Env.add_lazy env (Lazy.from_fun v) in
+          Value.Fun (p, env, body)
         in
         v ()
-    | Var var -> lookup env var
+    | Var (var, _) -> Env.lookup env var
     | Seq (a, b) ->
-        ignore (eval ~env a);
-        eval ~env b
+        ignore (eval env a);
+        eval env b
     | App (f, l) ->
         let ans () =
-          let f = eval ~env f in
-          let l = List.map (fun (l, t) -> (l, eval ~env t)) l in
+          let f = eval env f in
+          let l = List.map (fun (l, t) -> (l, eval env t)) l in
           apply f l
         in
         if !profile then (
-          match f.term with
-            | Var fname -> Profiler.time fname ans ()
-            | _ -> ans ())
+          match f with Var fname -> Profiler.time fname ans () | _ -> ans ())
         else ans ()
 
 and apply f l =
@@ -465,8 +434,8 @@ let toplevel_add (doc, params, methods) pat ~t v =
         ((generalized, t), v))
     (eval_pat pat v)
 
-let rec eval_toplevel ?(interactive = false) t =
-  match t.term with
+let rec eval_toplevel ?(interactive = false) (t : TermDB.t) =
+  match t with
     | Let { doc = comment; gen = generalized; replace; pat; def; body } ->
         let def_t, def =
           if not replace then (def.t, eval def)

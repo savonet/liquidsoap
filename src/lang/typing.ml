@@ -32,7 +32,7 @@ let debug_subtyping = ref false
 
 (** Allow functions to forget arguments during subtyping. This would not be a
     good idea if we had de Bruijn indices for instance. *)
-let forget_arguments = true
+let forget_arguments = false
 
 type env = (string * scheme) list
 

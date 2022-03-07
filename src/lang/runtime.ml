@@ -28,14 +28,14 @@ let type_and_run ~throw ~lib ast =
   Clock.collect_after (fun () ->
       if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
       (* Type checking *)
-      Typechecking.check ~throw ~ignored:true ast;
+      let ast' = Typechecking.check ~throw ~ignored:true ast in
 
       if Lazy.force Term.debug then
         Printf.eprintf "Checking for unused variables...\n%!";
       (* Check for unused variables, relies on types *)
       Term.check_unused ~throw ~lib ast;
       if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
-      ignore (Evaluation.eval_toplevel ast))
+      ignore (Evaluation.eval_toplevel ast'))
 
 (** {1 Error reporting} *)
 

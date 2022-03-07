@@ -127,13 +127,13 @@ encoders = \
 	$(if $(W_TAGLIB),encoder/taglib_id3v2.ml) \
 	$(if $(W_GSTREAMER),encoder/gstreamer_encoder.ml)
 
-lang_encoders = \
-	lang_encoders/lang_avi.ml lang_encoders/lang_external_encoder.ml lang_encoders/lang_fdkaac.ml \
-	lang_encoders/lang_ffmpeg.ml $(if $(W_FFMPEG),lang_encoders/lang_ffmpeg_opt.ml) \
-	lang_encoders/lang_flac.ml lang_encoders/lang_gstreamer.ml \
-	lang_encoders/lang_mp3.ml lang_encoders/lang_opus.ml lang_encoders/lang_shine.ml \
-	lang_encoders/lang_speex.ml lang_encoders/lang_theora.ml lang_encoders/lang_vorbis.ml \
-	lang_encoders/lang_wav.ml lang_encoders/lang_ogg.ml
+# lang_encoders = \
+	# lang_encoders/lang_avi.ml lang_encoders/lang_external_encoder.ml lang_encoders/lang_fdkaac.ml \
+	# lang_encoders/lang_ffmpeg.ml $(if $(W_FFMPEG),lang_encoders/lang_ffmpeg_opt.ml) \
+	# lang_encoders/lang_flac.ml lang_encoders/lang_gstreamer.ml \
+	# lang_encoders/lang_mp3.ml lang_encoders/lang_opus.ml lang_encoders/lang_shine.ml \
+	# lang_encoders/lang_speex.ml lang_encoders/lang_theora.ml lang_encoders/lang_vorbis.ml \
+	# lang_encoders/lang_wav.ml lang_encoders/lang_ogg.ml
 
 encoder_formats = \
 	encoder_formats.ml \
@@ -261,7 +261,7 @@ liquidsoap_sources = \
 
 liquidsoap_sources += \
 	lang/type.ml lang/repr.ml lang/typing.ml \
-	lang/profiler.ml lang/term.ml lang/value.ml \
+	lang/profiler.ml lang/term.ml lang/termDB.ml lang/value.ml \
 	lang/lang_encoder.ml $(lang_encoders) \
 	lang/environment.ml lang/typechecking.ml \
 	lang/evaluation.ml lang/error.ml \
@@ -290,7 +290,7 @@ export OCAMLPATH := $(OCAMLPATH)
 
 OCAMLDEP_FLAGS = $(patsubst %,-I %,$(INCDIRS))
 OCAML_CFLAGS = -thread $(OCAMLDEP_FLAGS)
-_OCAML_CFLAGS = $(liquidsoap_ocamlcflags)
+_OCAML_CFLAGS = $(liquidsoap_ocamlcflags) -w -40-42
 _OCAML_LFLAGS = $(liquidsoap_ocamllflags)
 
 liquidsoap_mly = $(wildcard $(liquidsoap_sources:.ml=.mly))
