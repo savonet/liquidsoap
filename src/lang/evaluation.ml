@@ -171,7 +171,7 @@ let rec eval ~env tm =
                   (Internal_error
                      ( Option.to_list tm.t.Type.pos,
                        "term has type source but is not a source: "
-                       ^ Value.print_value
+                       ^ Value.to_string
                            { Value.pos = tm.t.Type.pos; Value.value = v } )))
       | _ -> ());
     { Value.pos = tm.t.Type.pos; Value.value = v }
@@ -414,7 +414,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
                  Doc.trivial
                    (match default with
                      | `Unknown -> "???"
-                     | `Known (Some v) -> Value.print_value v
+                     | `Known (Some v) -> Value.to_string v
                      | `Known None -> "None")));
           item
         in
@@ -492,7 +492,7 @@ let rec eval_toplevel ?(interactive = false) t =
         if interactive && var <> "_" then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." var
             (fun f t -> Repr.print_scheme f (generalized, t))
-            def_t (Value.print_value def);
+            def_t (Value.to_string def);
         eval_toplevel ~interactive body
     | Seq (a, b) ->
         ignore
@@ -502,6 +502,5 @@ let rec eval_toplevel ?(interactive = false) t =
     | _ ->
         let v = eval t in
         if interactive && t.term <> unit then
-          Format.printf "- : %a = %s@." Repr.print_type t.t
-            (Value.print_value v);
+          Format.printf "- : %a = %s@." Repr.print_type t.t (Value.to_string v);
         v

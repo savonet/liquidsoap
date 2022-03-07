@@ -46,7 +46,7 @@ let generic_error (l, t) : exn =
         error ~pos:v.Value.pos
           (Printf.sprintf
              "unknown parameter name (%s) or invalid parameter value (%s)" l
-             (Value.print_value v))
+             (Value.to_string v))
     | `Encoder _ -> error ~pos:None "unexpected subencoder"
 
 (** An encoder. *)

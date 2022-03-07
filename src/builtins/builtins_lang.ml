@@ -634,7 +634,7 @@ let () =
       let v =
         match v.Lang.value with
           | Lang.(Ground (Ground.String s)) -> s
-          | _ -> Lang.print_value v
+          | _ -> Value.to_string v
       in
       let v = if nl then v ^ "\n" else v in
       print_string v;

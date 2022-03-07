@@ -499,7 +499,7 @@ let () =
       let v = if show_fields then v else dv in
       match v with
         | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
-        | v -> Lang.string (Lang.print_value v))
+        | v -> Lang.string (Value.to_string v))
 
 let () =
   Lang.add_builtin "string_of_float" ~category:`String

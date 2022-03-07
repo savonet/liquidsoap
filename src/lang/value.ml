@@ -62,17 +62,17 @@ let string_of_float f =
   let s = string_of_float f in
   if s.[String.length s - 1] = '.' then s ^ "0" else s
 
-let rec print_value v =
+let rec to_string v =
   match v.value with
     | Ground g -> Ground.to_string g
     | Source _ -> "<source>"
     | Encoder e -> Encoder.string_of_format e
-    | List l -> "[" ^ String.concat ", " (List.map print_value l) ^ "]"
-    | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
-    | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
+    | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
+    | Ref a -> Printf.sprintf "ref(%s)" (to_string !a)
+    | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
     | Null -> "null"
     | Meth (l, v, e) when Lazy.force Term.debug ->
-        print_value e ^ ".{" ^ l ^ "=" ^ print_value v ^ "}"
+        to_string e ^ ".{" ^ l ^ "=" ^ to_string v ^ "}"
     | Meth _ ->
         let rec split e =
           match e.value with
@@ -84,20 +84,18 @@ let rec print_value v =
         let m, e = split v in
         let m =
           List.rev m
-          |> List.map (fun (l, v) -> l ^ " = " ^ print_value v)
+          |> List.map (fun (l, v) -> l ^ " = " ^ to_string v)
           |> String.concat ", "
         in
-        let e =
-          match e.value with Tuple [] -> "" | _ -> print_value e ^ "."
-        in
+        let e = match e.value with Tuple [] -> "" | _ -> to_string e ^ "." in
         e ^ "{" ^ m ^ "}"
     | Fun ([], _, x) when Term.is_ground x -> "{" ^ Term.to_string x ^ "}"
     | Fun (l, _, x) when Term.is_ground x ->
         let f (label, _, value) =
           match (label, value) with
             | "", None -> "_"
-            | "", Some v -> Printf.sprintf "_=%s" (print_value v)
-            | label, Some v -> Printf.sprintf "~%s=%s" label (print_value v)
+            | "", Some v -> Printf.sprintf "_=%s" (to_string v)
+            | label, Some v -> Printf.sprintf "~%s=%s" label (to_string v)
             | label, None -> Printf.sprintf "~%s=_" label
         in
         let args = List.map f l in
@@ -110,7 +108,7 @@ let rec invoke x l =
   match x.value with
     | Meth (l', y, _) when l' = l -> y
     | Meth (_, _, x) -> invoke x l
-    | _ -> failwith ("Could not find method " ^ l ^ " of " ^ print_value x)
+    | _ -> failwith ("Could not find method " ^ l ^ " of " ^ to_string x)
 
 (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
 let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
