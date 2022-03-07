@@ -37,13 +37,13 @@ module Ground : sig
   type t += Bool of bool | Int of int | String of string | Float of float
 
   type content = Term.Ground.content = {
-    descr : unit -> string;
-    to_json : unit -> Json.t;
-    compare : t -> int;
+    descr : t -> string;
+    to_json : t -> Json.t;
+    compare : t -> t -> int;
     typ : Type.ground;
   }
 
-  val register : (t -> content option) -> unit
+  val register : (t -> bool) -> content -> unit
   val to_string : t -> string
 end
 
