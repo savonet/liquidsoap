@@ -187,29 +187,37 @@ module Ground = struct
   type t = ..
 
   type content = {
-    descr : unit -> string;
-    to_json : compact:bool -> json5:bool -> unit -> string;
-    compare : t -> int;
+    descr : t -> string;
+    to_json : compact:bool -> json5:bool -> t -> string;
+    compare : t -> t -> int;
     typ : Type.ground;
   }
 
-  let handlers = Queue.create ()
-  let register fn = Queue.add fn handlers
+  let handlers = Hashtbl.create 10
+
+  let register matcher c =
+    match Hashtbl.find_opt handlers c.typ with
+      | None -> Hashtbl.replace handlers c.typ (c, [])
+      | Some (c, matchers) ->
+          Hashtbl.replace handlers c.typ (c, matcher :: matchers)
 
   exception Found of content
 
-  let find v =
-    try
-      Queue.iter
-        (fun h -> match h v with Some c -> raise (Found c) | None -> ())
-        handlers;
-      assert false
-    with Found c -> c
+  let find =
+    let find_match v fn = fn v in
+    fun v ->
+      try
+        Hashtbl.iter
+          (fun _ (c, matchers) ->
+            if List.exists (find_match v) matchers then raise (Found c))
+          handlers;
+        raise Not_found
+      with Found c -> c
 
-  let to_string (v : t) = (find v).descr ()
-  let to_json ~compact ~json5 (v : t) = (find v).to_json ~compact ~json5 ()
+  let to_string (v : t) = (find v).descr v
+  let to_json ~compact ~json5 (v : t) = (find v).to_json ~compact ~json5 v
   let to_type (v : t) = (find v).typ
-  let compare (v : t) = (find v).compare
+  let compare (v : t) = (find v).compare v
 
   type t +=
     | Bool of bool
@@ -219,70 +227,65 @@ module Ground = struct
     | Request of Request.t
 
   let () =
-    register (function
-      | Bool b ->
-          let compare = function
-            | Bool b' -> Stdlib.compare b b'
-            | _ -> assert false
-          in
-          let to_string () = string_of_bool b in
-          let to_json ~compact:_ ~json5:_ = to_string in
-          Some { descr = to_string; to_json; compare; typ = Type.Bool }
-      | Int i ->
-          let compare = function
-            | Int i' -> Stdlib.compare i i'
-            | _ -> assert false
-          in
-          let to_string () = string_of_int i in
-          let to_json ~compact:_ ~json5:_ = to_string in
-          Some { descr = to_string; to_json; compare; typ = Type.Int }
-      | String s ->
-          let compare = function
-            | String s' -> Stdlib.compare s s'
-            | _ -> assert false
-          in
-          let to_json ~compact:_ ~json5:_ () = Utils.quote_string s in
-          Some
-            {
-              descr = (fun () -> Utils.quote_string s);
-              to_json;
-              compare;
-              typ = Type.String;
-            }
-      | Float f ->
-          let compare = function
-            | Float f' -> Stdlib.compare f f'
-            | _ -> assert false
-          in
-          let to_json ~compact:_ ~json5 () =
-            match classify_float f with
-              | FP_infinite when json5 ->
-                  if f < 0. then "-Infinity" else "Infinity"
-              | FP_nan when json5 -> if f < 0. then "-NaN" else "NaN"
-              | FP_infinite | FP_nan -> "null"
-              | _ ->
-                  let s = string_of_float f in
-                  let s = Printf.sprintf "%s" s in
-                  if s.[String.length s - 1] = '.' then Printf.sprintf "%s0" s
-                  else s
-          in
-          Some
-            {
-              descr = (fun () -> string_of_float f);
-              to_json;
-              compare;
-              typ = Type.Float;
-            }
-      | Request r ->
-          let descr () = Printf.sprintf "<request(id=%d)>" (Request.get_id r) in
-          let to_json ~compact:_ ~json5:_ () = Printf.sprintf "%S" (descr ()) in
-          let compare = function
-            | Request r' ->
-                Stdlib.compare (Request.get_id r) (Request.get_id r')
-            | _ -> assert false
-          in
-          Some { descr; compare; to_json; typ = Type.Request }
-      | _ -> None)
+    let compare conv v v' = Stdlib.compare (conv v) (conv v') in
+    let to_bool = function Bool b -> b | _ -> assert false in
+    let to_string b = string_of_bool (to_bool b) in
+    let to_json ~compact:_ ~json5:_ = to_string in
+    register
+      (function Bool _ -> true | _ -> false)
+      { descr = to_string; to_json; compare = compare to_bool; typ = Type.Bool };
+    let to_int = function Int i -> i | _ -> assert false in
+    let to_string i = string_of_int (to_int i) in
+    let to_json ~compact:_ ~json5:_ = to_string in
+    register
+      (function Int _ -> true | _ -> false)
+      { descr = to_string; to_json; compare = compare to_int; typ = Type.Int };
+    let to_string = function
+      | String s -> Utils.quote_string s
+      | _ -> assert false
+    in
+    let to_json ~compact:_ ~json5:_ = to_string in
+    register
+      (function String _ -> true | _ -> false)
+      {
+        descr = to_string;
+        to_json;
+        compare = compare to_string;
+        typ = Type.String;
+      };
+    let to_float = function Float f -> f | _ -> assert false in
+    let to_json ~compact:_ ~json5 f =
+      let f = to_float f in
+      match classify_float f with
+        | FP_infinite when json5 -> if f < 0. then "-Infinity" else "Infinity"
+        | FP_nan when json5 -> if f < 0. then "-NaN" else "NaN"
+        | FP_infinite | FP_nan -> "null"
+        | _ ->
+            let s = string_of_float f in
+            let s = Printf.sprintf "%s" s in
+            if s.[String.length s - 1] = '.' then Printf.sprintf "%s0" s else s
+    in
+    register
+      (function Float _ -> true | _ -> false)
+      {
+        descr = (fun f -> string_of_float (to_float f));
+        to_json;
+        compare = compare to_float;
+        typ = Type.Float;
+      };
+    let to_request = function Request r -> r | _ -> assert false in
+    let descr r =
+      Printf.sprintf "<request(id=%d)>" (Request.get_id (to_request r))
+    in
+    let to_json ~compact:_ ~json5:_ r = Printf.sprintf "%S" (descr r) in
+    let compare r r' =
+      Stdlib.compare
+        (Request.get_id (to_request r))
+        (Request.get_id (to_request r'))
+    in
+    register
+      (function Request _ -> true | _ -> false)
+      { descr; compare; to_json; typ = Type.Request }
 end
 
 module type GroundDef = sig
@@ -298,16 +301,13 @@ module MkGround (D : GroundDef) = struct
   type Ground.t += Ground of D.content
 
   let () =
-    Ground.register (function
-      | Ground v ->
-          let descr () = D.descr v in
-          let to_json ~compact ~json5 () = D.to_json ~compact ~json5 v in
-          let compare = function
-            | Ground v' -> D.compare v v'
-            | _ -> assert false
-          in
-          Some { Ground.typ = D.typ; to_json; compare; descr }
-      | _ -> None)
+    let to_ground = function Ground g -> g | _ -> assert false in
+    let to_json ~compact ~json5 v = D.to_json ~compact ~json5 (to_ground v) in
+    let compare v v' = D.compare (to_ground v) (to_ground v') in
+    let descr v = D.descr (to_ground v) in
+    Ground.register
+      (function Ground _ -> true | _ -> false)
+      { Ground.typ = D.typ; to_json; compare; descr }
 end
 
 type t = { mutable t : Type.t; term : in_term }

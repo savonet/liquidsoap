@@ -565,22 +565,13 @@ module MkAbstract (Def : AbstractDef) = struct
   type G.t += Value of Def.content
 
   let () =
-    G.register (function
-      | Value v ->
-          let compare = function
-            | Value v' -> Def.compare v v'
-            | _ -> assert false
-          in
-          Some
-            {
-              G.descr = (fun () -> Def.descr v);
-              to_json =
-                (fun ~compact ~json5 () -> Def.to_json ~compact ~json5 v);
-              compare;
-              typ = Type;
-            }
-      | _ -> None);
-
+    let to_ground = function Value v -> v | _ -> assert false in
+    let compare v v' = Def.compare (to_ground v) (to_ground v') in
+    let to_json ~compact ~json5 v = Def.to_json ~compact ~json5 (to_ground v) in
+    let descr v = Def.descr (to_ground v) in
+    G.register
+      (function Value _ -> true | _ -> false)
+      { G.descr; to_json; compare; typ = Type };
     Type.register_ground_printer (function Type -> Some Def.name | _ -> None)
 
   let t = ground_t Type

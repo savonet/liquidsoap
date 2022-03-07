@@ -40,13 +40,13 @@ module Ground : sig
   type t += Bool of bool | Int of int | String of string | Float of float
 
   type content = Term.Ground.content = {
-    descr : unit -> string;
-    to_json : compact:bool -> json5:bool -> unit -> string;
-    compare : t -> int;
+    descr : t -> string;
+    to_json : compact:bool -> json5:bool -> t -> string;
+    compare : t -> t -> int;
     typ : Type.ground;
   }
 
-  val register : (t -> content option) -> unit
+  val register : (t -> bool) -> content -> unit
   val to_string : t -> string
 end
 

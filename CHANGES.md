@@ -5,6 +5,7 @@ Changed:
 * Switch to bigarray APIs for ogg/vorbis and ogg/opus
   encoder and decoder to save memory allocations and data copy.
 * Optimized memory usage when accessing frame content (#2266)
+* Optimized memory usage when accessing ground terms.
 
 2.0.3 (11-02-2022)
 =====
