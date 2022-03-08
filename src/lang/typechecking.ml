@@ -162,7 +162,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         let rec check_enc (_, p) =
           List.iter
             (function
-              | _, `Term t -> check ~level ~env t | _, `Encoder e -> check_enc e)
+              | _, `Term t -> check ~level ~env t
+              | _, `Encoder (e, _) -> check_enc e)
             p
         in
         check_enc f;

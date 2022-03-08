@@ -80,8 +80,8 @@ let eval_ifdefs tokenizer =
                 let token = fst (tokenizer ()) in
                 match token with
                   | Parser.ENCODER e ->
-                      Lang_encoder.make_encoder ~pos:None (Term.make Term.unit)
-                        (e, [])
+                      Lang_encoder.make_encoder (Term.make Term.unit)
+                        (e, [], None)
                   | _ -> failwith "expected an encoding format after %ifencoder"
               in
               let (_ : Encoder.factory) = Encoder.get_factory fmt in

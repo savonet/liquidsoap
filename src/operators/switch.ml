@@ -279,12 +279,7 @@ let default_transition =
 let satisfied f = Lang.to_bool (Lang.apply f [])
 
 let trivially_true = function
-  | {
-      Lang.value =
-        Lang.Fun (_, _, { Term.term = Term.(Ground (Ground.Bool true)); _ });
-      _;
-    } ->
-      true
+  | Lang.Fun (_, _, { Term.term = Term.(Ground (Ground.Bool true)); _ }) -> true
   | _ -> false
 
 let third (_, _, s) = s

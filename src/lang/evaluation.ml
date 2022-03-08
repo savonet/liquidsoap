@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-(** Make positions more precise in applications (but should be a bit slower). *)
-let precise_application_pos = false
-
 (** {1 Evaluation} *)
 
 open Term
@@ -51,11 +48,10 @@ let rec eval_pat pat v =
   let rec aux env pat v =
     match (pat, v) with
       | PVar x, v -> (x, v) :: env
-      | PTuple pl, { Value.value = Value.Tuple l } ->
-          List.fold_left2 aux env pl l
+      | PTuple pl, Value.Tuple l -> List.fold_left2 aux env pl l
       (* The parser parses [x,y,z] as PList ([], None, l) *)
-      | PList (([] as l'), (None as spread), l), { Value.value = Value.List lv }
-      | PList (l, spread, l'), { Value.value = Value.List lv } ->
+      | PList (([] as l'), (None as spread), l), Value.List lv
+      | PList (l, spread, l'), Value.List lv ->
           let ln = List.length l in
           let ln' = List.length l' in
           let lvn = List.length lv in
@@ -84,9 +80,7 @@ let rec eval_pat pat v =
             List.map snd (List.filter (fun (lbl, _) -> lbl = `Second) lv)
           in
           let spread_env =
-            match spread with
-              | None -> []
-              | Some s -> [([s], Value.{ v with value = List ls })]
+            match spread with None -> [] | Some s -> [([s], Value.List ls)]
           in
           List.fold_left2 aux [] l' ll'
           @ spread_env @ env
@@ -161,48 +155,45 @@ let rec eval ~env tm =
               }
           in
           let rec demeth = function
-            | Value.Meth (_, _, v) -> demeth v.Value.value
+            | Value.Meth (_, _, v) -> demeth v
             | v -> v
           in
           match demeth v with
-            | Value.Source s -> Kind.unify s#kind k
+            | Value.Source (s, _) -> Kind.unify s#kind k
             | _ ->
                 raise
                   (Internal_error
                      ( Option.to_list tm.t.Type.pos,
                        "term has type source but is not a source: "
-                       ^ Value.to_string
-                           { Value.pos = tm.t.Type.pos; Value.value = v } )))
+                       ^ Value.to_string v )))
       | _ -> ());
-    { Value.pos = tm.t.Type.pos; Value.value = v }
+    v
   in
   match tm.term with
     | Ground g -> mk (Value.Ground g)
     | Encoder (e, p) ->
         let pos = tm.t.Type.pos in
-        let rec eval_param p =
+        let rec eval_param (p : encoder_params) : Value.encoder_params =
           List.map
             (fun (l, t) ->
-              ( l,
-                match t with
-                  | `Term t -> `Value (eval ~env t)
-                  | `Encoder (l, p) -> `Encoder (l, eval_param p) ))
+              match t with
+                | `Term t -> (l, `Value (eval ~env t), t.t.Type.pos)
+                | `Encoder ((k, p), pos) ->
+                    (l, `Encoder (k, eval_param p, pos), pos))
             p
         in
         let p = eval_param p in
-        let enc : Value.encoder = (e, p) in
-        let e = Lang_encoder.make_encoder ~pos tm enc in
+        let enc : Value.encoder = (e, p, pos) in
+        let e = Lang_encoder.make_encoder tm enc in
         mk (Value.Encoder e)
     | List l -> mk (Value.List (List.map (eval ~env) l))
     | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval ~env a) l))
     | Null -> mk Value.Null
-    | Cast (e, _) ->
-        let e = eval ~env e in
-        mk e.Value.value
+    | Cast (e, _) -> mk (eval ~env e)
     | Meth (l, u, v) -> mk (Value.Meth (l, eval ~env u, eval ~env v))
     | Invoke (t, l) ->
         let rec aux t =
-          match t.Value.value with
+          match t with
             | Value.Meth (l', t, _) when l = l' -> t
             | Value.Meth (_, _, t) -> aux t
             | _ ->
@@ -215,7 +206,7 @@ let rec eval ~env tm =
     | Open (t, u) ->
         let t = eval ~env t in
         let rec aux env t =
-          match t.Value.value with
+          match t with
             | Value.Meth (l, v, t) -> aux ((l, Lazy.from_val v) :: env) t
             | Value.Tuple [] -> env
             | _ -> assert false
@@ -239,13 +230,11 @@ let rec eval ~env tm =
                 | l :: ll ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
-                      let mk ~pos value = { Value.pos; value } in
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk ~pos:tm.t.Type.pos (Value.Meth (l, v, t))
+                        | [l] -> Value.Meth (l, v, t)
                         | l :: ll ->
-                            mk ~pos:t.Value.pos
-                              (Value.Meth (l, meths ll v (Value.invoke t l), t))
+                            Value.Meth (l, meths ll v (Value.invoke t l), t)
                     in
                     let v () =
                       let t = Lazy.force (List.assoc l env) in
@@ -268,7 +257,7 @@ let rec eval ~env tm =
         let p, env = prepare_fun fv p env in
         let rec v () =
           let env = (x, Lazy.from_fun v) :: env in
-          { Value.pos = tm.t.Type.pos; value = Value.Fun (p, env, body) }
+          Value.Fun (p, env, body)
         in
         v ()
     | Var var -> lookup env var
@@ -277,9 +266,10 @@ let rec eval ~env tm =
         eval ~env b
     | App (f, l) ->
         let ans () =
+          let pos = f.t.Type.pos in
           let f = eval ~env f in
           let l = List.map (fun (l, t) -> (l, eval ~env t)) l in
-          apply f l
+          apply ?pos f l
         in
         if !profile then (
           match f.term with
@@ -287,29 +277,10 @@ let rec eval ~env tm =
             | _ -> ans ())
         else ans ()
 
-and apply f l =
-  (* Position of the whole application. *)
-  let pos =
-    if precise_application_pos then (
-      let rec pos = function
-        | [(_, v)] -> (
-            match (f.Value.pos, v.Value.pos) with
-              | Some (p, _), Some (_, q) -> Some (p, q)
-              | Some pos, None -> Some pos
-              | None, Some pos -> Some pos
-              | None, None -> None)
-        | _ :: l -> pos l
-        | [] -> f.Value.pos
-      in
-      pos l)
-    else
-      (* NB: the above is more precise (we get the arguments), but I don't think
-         this is worth the price: we compute it for every application... *)
-      f.Value.pos
-  in
+and apply ?pos f l =
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
-    match (Value.demeth f).Value.value with
+    match Value.demeth f with
       | Value.Fun (p, e, body) ->
           ( p,
             fun pe ->
@@ -348,22 +319,13 @@ and apply f l =
       (fun pe (_, var, v) ->
         (* Typing should ensure that there are no mandatory arguments remaining. *)
         assert (v <> None);
-        ( var,
-          (* Set the position information on FFI's default values. Cf. r5008:
-             if an Invalid_value is raised on a default value, which happens
-             with the mount/name params of output.icecast.*, the printing of
-             the error should succeed at getting a position information. *)
-          let v = Option.get v in
-          { v with Value.pos } )
-        :: pe)
+        (var, Option.get v) :: pe)
       pe p
   in
-  let v = f pe in
-  (* Similarly here, the result of an FFI call should have some position
-     information. For example, if we build a fallible source and pass it to an
-     operator that expects an infallible one, an error is issued about that
-     FFI-made value and a position is needed. *)
-  { v with Value.pos }
+  match f pe with
+    | Value.Source (s, poss) when pos <> None ->
+        Value.Source (s, Option.get pos :: poss)
+    | v -> v
 
 let eval ?env tm =
   let env =
@@ -386,11 +348,10 @@ let toplevel_add (doc, params, methods) pat ~t v =
       | _ -> []
   in
   let ptypes = ptypes t in
-  let rec pvalues v =
-    match v.Value.value with
-      | Value.Fun (p, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
-      | Value.Meth (_, _, v) -> pvalues v
-      | _ -> []
+  let rec pvalues = function
+    | Value.Fun (p, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+    | Value.Meth (_, _, v) -> pvalues v
+    | _ -> []
   in
   let pvalues = pvalues v in
   let params, _ =
@@ -428,7 +389,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
     (fun (s, _) ->
       Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
         (string_of_pat pat)
-        (Pos.Option.to_string v.Value.pos))
+        (Pos.Option.to_string t.Type.pos))
     params;
   (let meths, t =
      let meths, t = Type.split_meths t in
@@ -495,9 +456,7 @@ let rec eval_toplevel ?(interactive = false) t =
             def_t (Value.to_string def);
         eval_toplevel ~interactive body
     | Seq (a, b) ->
-        ignore
-          (let v = eval_toplevel a in
-           if v.Value.pos = None then { v with Value.pos = a.t.Type.pos } else v);
+        ignore (eval_toplevel a);
         eval_toplevel ~interactive b
     | _ ->
         let v = eval t in

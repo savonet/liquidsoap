@@ -47,15 +47,9 @@ module Ground : sig
   val to_string : t -> string
 end
 
-type value = Value.t = { pos : Pos.Option.t; value : in_value }
-
-and env = (string * value) list
-
-and lazy_env = (string * value Lazy.t) list
-
-and in_value = Value.in_value =
+type value = Value.t =
   | Ground of Ground.t
-  | Source of Source.source
+  | Source of Source.source * Pos.t list
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
@@ -66,6 +60,10 @@ and in_value = Value.in_value =
   (* A function with given arguments (argument label, argument variable, default
      value), closure and value. *)
   | FFI of (string * string * value option) list * (env -> value)
+
+and env = (string * value) list
+
+and lazy_env = (string * value Lazy.t) list
 
 val demeth : value -> value
 
@@ -78,7 +76,7 @@ val iter_sources :
 
 (** {2 Computation} *)
 
-val apply_fun : (value -> env -> value) ref
+val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
@@ -117,7 +115,7 @@ val add_builtin_base :
   descr:string ->
   ?flags:Documentation.flag list ->
   string ->
-  in_value ->
+  value ->
   t ->
   unit
 

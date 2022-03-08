@@ -286,7 +286,9 @@ and let_t = {
   body : t;
 }
 
-and encoder_params = (string * [ `Term of t | `Encoder of encoder ]) list
+and encoder_param = string * [ `Term of t | `Encoder of encoder * Pos.Option.t ]
+
+and encoder_params = encoder_param list
 
 (** A formal encoder. *)
 and encoder = string * encoder_params
@@ -365,7 +367,7 @@ let rec to_string v =
             |> List.map (function
                  | "", `Term v -> to_string v
                  | l, `Term v -> l ^ "=" ^ to_string v
-                 | _, `Encoder e -> aux e)
+                 | _, `Encoder (e, _) -> aux e)
             |> String.concat ", "
           in
           "%" ^ e ^ "(" ^ p ^ ")"
@@ -458,7 +460,7 @@ let rec free_vars tm =
             (fun v (_, t) ->
               match t with
                 | `Term t -> Vars.union v (free_vars t)
-                | `Encoder e -> Vars.union v (enc e))
+                | `Encoder (e, _) -> Vars.union v (enc e))
             Vars.empty p
         in
         enc e
@@ -528,7 +530,7 @@ let check_unused ~throw ~lib tm =
           let rec enc v (_, p) =
             List.fold_left
               (fun v (_, t) ->
-                match t with `Term t -> check v t | `Encoder e -> enc v e)
+                match t with `Term t -> check v t | `Encoder (e, _) -> enc v e)
               v p
           in
           enc v e

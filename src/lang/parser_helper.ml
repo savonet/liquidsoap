@@ -48,11 +48,6 @@ type binding =
   * Term.t
   * Type.t option
 
-type encoder_param =
-  string * [ `Term of Term.t | `Encoder of string * encoder_opt ]
-
-and encoder_opt = encoder_param list
-
 type inner_list_item = [ `Ellipsis of Term.t | `Expr of Term.t ]
 type inner_list = [ `App of Term.t | `List of Term.t list ]
 type let_opt_el = string * Term.t
@@ -102,8 +97,8 @@ let args_of_json_stringify ~pos args =
 
 let gen_args_of ~only ~except ~pos get_args name =
   match Environment.get_builtin name with
-    | Some ((_, t), Value.{ value = Fun (args, _, _) })
-    | Some ((_, t), Value.{ value = FFI (args, _) }) ->
+    | Some ((_, t), Value.Fun (args, _, _)) | Some ((_, t), Value.FFI (args, _))
+      ->
         let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in
         let filtered_args =
           if only <> [] then
@@ -168,7 +163,7 @@ let args_of, app_of =
     List.map
       (fun (n, _, _) -> (n, Term.{ t = Type.var ~pos (); term = Var n }))
       args
-  and term_of_value ~pos t ({ Value.value } as v) =
+  and term_of_value ~pos t value =
     let get_list_type () =
       match (Type.deref t).Type.descr with
         | Type.(List { t }) -> t
@@ -208,7 +203,7 @@ let args_of, app_of =
               (Parse_error
                  ( pos,
                    Printf.sprintf "Term %s cannot be represented as a term"
-                     (Value.to_string v) ))
+                     (Value.to_string value) ))
     in
     let t = Type.make ~pos t.Type.descr in
     Term.{ t; term }

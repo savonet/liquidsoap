@@ -120,9 +120,9 @@ open Parser_helper
 %type <(bool * string * Type.t) list> argsty
 %type <bool * string * Type.t> argty
 %type <Parser_helper.binding> binding
-%type <Parser_helper.encoder_opt> encoder_opt
-%type <Parser_helper.encoder_param> encoder_param
-%type <Parser_helper.encoder_param list> encoder_params
+%type <Term.encoder_params> encoder_opt
+%type <Term.encoder_param> encoder_param
+%type <Term.encoder_params> encoder_params
 %type <Term.t> expr
 %type <Term.t> exprs
 %type <Term.t> exprss
@@ -519,7 +519,7 @@ encoder_param:
   | STRING GETS expr    { $1, `Term $3 }
   | VAR                 { "", `Term (mk ~pos:$loc (Ground (String $1))) }
   | STRING              { "", `Term (mk ~pos:$loc (Ground (String $1))) }
-  | ENCODER encoder_opt { "", `Encoder ($1, $2) }
+  | ENCODER encoder_opt { "", `Encoder (($1, $2), Some $loc) }
 
 encoder_params:
   |                                    { [] }

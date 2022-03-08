@@ -26,7 +26,20 @@ open Ground
 
 type t = Type.t
 type scheme = Type.scheme
-type value = Value.t = { pos : Pos.Option.t; value : in_value }
+
+type value = Value.t =
+  | Ground of Ground.t
+  | Source of Source.source * Pos.t list
+  | Encoder of Encoder.format
+  | List of value list
+  | Tuple of value list
+  | Null
+  | Meth of string * value * value
+  | Ref of value ref
+  | Fun of (string * string * value option) list * lazy_env * Term.t
+  (* A function with given arguments (argument label, argument variable, default
+     value), closure and value. *)
+  | FFI of (string * string * value option) list * (env -> value)
 
 let log = Log.make ["lang"]
 
@@ -113,40 +126,35 @@ let kind_type_of_kind_format fields =
 
 (** Value construction *)
 
-let mk ?pos value = { pos; value }
-let unit = mk unit
-let int i = mk (Ground (Int i))
-let bool i = mk (Ground (Bool i))
-let float i = mk (Ground (Float i))
-let string i = mk (Ground (String i))
-let tuple l = mk (Tuple l)
+let unit = unit
+let int i = Ground (Int i)
+let bool i = Ground (Bool i)
+let float i = Ground (Float i)
+let string i = Ground (String i)
+let tuple l = Tuple l
 let product a b = tuple [a; b]
-let list l = mk (List l)
-let null = mk Null
-
-let rec meth v0 = function
-  | [] -> v0
-  | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
-
+let list l = List l
+let null = Null
+let rec meth v0 = function [] -> v0 | (l, v) :: r -> Meth (l, v, meth v0 r)
 let record = meth unit
-let source s = mk (Source s)
-let reference x = mk (Ref x)
-let val_fun p f = mk (FFI (p, f))
+let source s = Source (s, [])
+let reference x = Ref x
+let val_fun p f = FFI (p, f)
 
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
-  let f t tm = mk (Fun (p, [], { Term.t; Term.term = tm })) in
+  let f t tm = Fun (p, [], { Term.t; Term.term = tm }) in
   let mkg t = Type.make (Type.Ground t) in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
-  match c.value with
+  match c with
     | Tuple [] -> f (Type.make Type.unit) Term.unit
     | Ground (Int i) -> f (mkg Type.Int) (Term.Ground (Term.Ground.Int i))
     | Ground (Bool i) -> f (mkg Type.Bool) (Term.Ground (Term.Ground.Bool i))
     | Ground (Float i) -> f (mkg Type.Float) (Term.Ground (Term.Ground.Float i))
     | Ground (String i) ->
         f (mkg Type.String) (Term.Ground (Term.Ground.String i))
-    | _ -> mk (FFI (p, fun _ -> c))
+    | _ -> FFI (p, fun _ -> c)
 
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
@@ -241,10 +249,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
   in
   let t = builtin_type proto return_t in
   let value =
-    {
-      pos = None;
-      value = FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, f);
-    }
+    FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, f)
   in
   let generalized = Type.filter_vars (fun _ -> true) t in
   let doc () = to_plugin_doc category flags examples descr proto return_t in
@@ -254,7 +259,6 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     ((generalized, t), value)
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
-  let value = { pos = t.Type.pos; value } in
   let generalized = Type.filter_vars (fun _ -> true) t in
   let doc () =
     let doc = new Doc.item ~sort:false descr in
@@ -321,8 +325,8 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
       (* We need to avoid checking the same value multiple times, otherwise we
          get an exponential blowup, see #1247. *)
       itered_values := v :: !itered_values;
-      match v.value with
-        | Source s -> f s
+      match v with
+        | Source (s, _) -> f s
         | Ground _ | Encoder _ -> ()
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
@@ -340,23 +344,22 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
         | Ref r ->
             if List.memq r !static_analysis_failed then ()
             else (
-              (* Do not walk inside references, otherwise the list of "contained"
-                 sources may change from one time to the next, which makes it
-                 impossible to avoid ill-balanced activations. Not walking inside
-                 references does not break things more than they are already:
-                 detecting sharing in presence of references to sources cannot be
-                 done statically anyway. We display a fat log message to warn
-                 about this risky situation. *)
+              (* Do not walk inside references, otherwise the list of
+                 "contained" sources may change from one time to the next, which
+                 makes it impossible to avoid ill-balanced activations. Not
+                 walking inside references does not break things more than they
+                 are already: detecting sharing in presence of references to
+                 sources cannot be done statically anyway. We display a fat log
+                 message to warn about this risky situation. *)
               let may_have_source =
-                let rec aux v =
-                  match v.value with
-                    | Source _ -> true
-                    | Ground _ | Encoder _ | Null -> false
-                    | List l -> List.exists aux l
-                    | Tuple l -> List.exists aux l
-                    | Ref r -> aux !r
-                    | Fun _ | FFI _ -> true
-                    | Meth (_, v, t) -> aux v || aux t
+                let rec aux = function
+                  | Source _ -> true
+                  | Ground _ | Encoder _ | Null -> false
+                  | List l -> List.exists aux l
+                  | Tuple l -> List.exists aux l
+                  | Ref r -> aux !r
+                  | Fun _ | FFI _ -> true
+                  | Meth (_, v, t) -> aux v || aux t
                 in
                 aux v
               in
@@ -376,94 +379,80 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
 let iter_sources = iter_sources ~static_analysis_failed:(ref [])
 
 (* Delay this function in order not to have Lang depend on Evaluation. *)
-let apply_fun : (value -> env -> value) ref = ref (fun _ -> assert false)
+let apply_fun : (?pos:Pos.t -> value -> env -> value) ref =
+  ref (fun ?pos:_ _ -> assert false)
+
 let apply f p = Clock.collect_after (fun () -> !apply_fun f p)
 
 (** {1 High-level manipulation of values} *)
 
-let to_unit t = match (demeth t).value with Tuple [] -> () | _ -> assert false
-
-let to_bool t =
-  match (demeth t).value with Ground (Bool b) -> b | _ -> assert false
+let to_unit t = match demeth t with Tuple [] -> () | _ -> assert false
+let to_bool t = match demeth t with Ground (Bool b) -> b | _ -> assert false
 
 let to_bool_getter t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (Bool b) -> fun () -> b
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (Bool b) -> b
-            | _ -> assert false)
+          match apply t [] with Ground (Bool b) -> b | _ -> assert false)
     | _ -> assert false
 
 let to_fun f =
-  match (demeth f).value with
+  match demeth f with
     | Fun _ | FFI _ -> fun args -> apply f args
     | _ -> assert false
 
 let to_string t =
-  match (demeth t).value with Ground (String s) -> s | _ -> assert false
+  match demeth t with Ground (String s) -> s | _ -> assert false
 
 let to_string_getter t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (String s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (String s) -> s
-            | _ -> assert false)
+          match apply t [] with Ground (String s) -> s | _ -> assert false)
     | _ -> assert false
 
-let to_float t =
-  match (demeth t).value with Ground (Float s) -> s | _ -> assert false
+let to_float t = match demeth t with Ground (Float s) -> s | _ -> assert false
 
 let to_float_getter t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (Float s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (Float s) -> s
-            | _ -> assert false)
+          match apply t [] with Ground (Float s) -> s | _ -> assert false)
     | _ -> assert false
 
-let to_source t =
-  match (demeth t).value with Source s -> s | _ -> assert false
-
-let to_format t =
-  match (demeth t).value with Encoder f -> f | _ -> assert false
-
-let to_int t =
-  match (demeth t).value with Ground (Int s) -> s | _ -> assert false
+let to_source t = match demeth t with Source (s, _) -> s | _ -> assert false
+let to_format t = match demeth t with Encoder f -> f | _ -> assert false
+let to_int t = match demeth t with Ground (Int s) -> s | _ -> assert false
 
 let to_int_getter t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (Int n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (Int n) -> n
-            | _ -> assert false)
+          match apply t [] with Ground (Int n) -> n | _ -> assert false)
     | _ -> assert false
 
 let to_num t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (Int n) -> `Int n
     | Ground (Float x) -> `Float x
     | _ -> assert false
 
-let to_list t = match (demeth t).value with List l -> l | _ -> assert false
-let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
-let to_option t = match (demeth t).value with Null -> None | _ -> Some t
+let to_list t = match demeth t with List l -> l | _ -> assert false
+let to_tuple t = match demeth t with Tuple l -> l | _ -> assert false
+let to_option t = match demeth t with Null -> None | _ -> Some t
 let to_valued_option convert v = Option.map convert (to_option v)
 
 let to_default_option ~default convert v =
   Option.value ~default (to_valued_option convert v)
 
 let to_product t =
-  match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
+  match demeth t with Tuple [a; b] -> (a, b) | _ -> assert false
 
-let to_ref t = match t.value with Ref r -> r | _ -> assert false
+let to_ref t = match demeth t with Ref r -> r | _ -> assert false
 
 let to_metadata_list t =
   let pop v =
@@ -483,7 +472,7 @@ let to_int_list l = List.map to_int (to_list l)
 let to_source_list l = List.map to_source (to_list l)
 
 let to_getter t =
-  match (demeth t).value with
+  match demeth t with
     | Fun ([], _, _) | FFI ([], _) -> fun () -> apply t []
     | _ -> fun () -> t
 

@@ -30,7 +30,7 @@ type pos = Pos.Option.t
 (** A value. *)
 type t =
   | Ground of Ground.t
-  | Source of Source.source
+  | Source of Source.source * Pos.t list
   | Encoder of Encoder.format
   | List of t list
   | Tuple of t list
@@ -53,10 +53,10 @@ and env = (string * t) list
 and lazy_env = (string * t Lazy.t) list
 
 type encoder_params =
-  (string * [ `Value of t | `Encoder of encoder ] * pos) list
+  (string * [ `Value of t | `Encoder of encoder ] * Pos.Option.t) list
 
 (** The type of evaluated encoder terms. *)
-and encoder = string * encoder_params * pos
+and encoder = string * encoder_params * Pos.Option.t
 
 let unit : t = Tuple []
 

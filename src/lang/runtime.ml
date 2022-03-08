@@ -116,8 +116,8 @@ let throw print_error = function
         (if lbl = "" then "unlabeled argument"
         else Format.sprintf "argument labeled %S" lbl);
       raise Error
-  | Error.Invalid_value (v, msg) ->
-      error_header 7 v.Value.pos;
+  | Error.Invalid_value (_, msg) ->
+      error_header 7 None;
       Format.printf "Invalid value:@ %s@]@." msg;
       raise Error
   | Lang_encoder.Encoder_error (pos, s) ->
