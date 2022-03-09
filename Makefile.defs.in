@@ -37,6 +37,7 @@ CUSTOM_PATH = @W_CUSTOM_PATH@
 EXEEXT = @EXEEXT@
 CAMLP4O = @CAMLP4O@
 OCAMLPATH = @OCAMLPATH@
+PANDOC = @PANDOC@
 
 liquidsoap_ocamlcflags= @liquidsoap_ocamlcflags@
 liquidsoap_ocamllflags= @liquidsoap_ocamllflags@ -cclib "$(LDFLAGS)"

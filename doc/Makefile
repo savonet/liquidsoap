@@ -4,7 +4,7 @@ DISTFILES = \
 	$(wildcard content/*.md) $(wildcard content/*.md.in)
 DISTDIRS = orig
 LIQUIDSOAP = ../src/liquidsoap$(EXEEXT)
-PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
+PANDOC_SYNTAX = $(PANDOC) --syntax-definition=liquidsoap.xml --highlight=pygments
 
 MD = $(wildcard content/*.md) content/protocols.md content/reference.md content/reference-extras.md content/settings.md
 HTML = $(addprefix html/,$(notdir $(MD:.md=.html)))
@@ -12,7 +12,12 @@ PDF = $(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
 include ../Makefile.defs
 
-doc: md man html
+doc:
+	@if [ "z$(PANDOC)" = "z" ]; then \
+	  echo "No pandoc detected, skipping documentation generation..."; \
+	else \
+	  $(MAKE) md man html; \
+	fi
 
 md: $(MD)
 
@@ -27,18 +32,18 @@ clean:
 
 liquidsoap.1: liquidsoap.1.md
 	@echo "Generating $(@)..."
-	@pandoc -s -t man $< -o $@
+	@$(PANDOC) -s -t man $< -o $@
 
 html/%.html: content/%.md template.html language.dtd
 	@echo Converting $(<) to $(@)...
 	@test -d html || (mkdir -p html/scripts ; cp -RfL orig/* html)
 	@rm -rf html/css
-	@$(PANDOC) $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
+	@$(PANDOC_SYNTAX) $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
 
 pdf/%.pdf: content/%.md language.dtd
 	@mkdir -p pdf
 	@echo Converting $(<) to $(@)...
-	@$(PANDOC) $< -o $@
+	@$(PANDOC_SYNTAX) $< -o $@
 
 content/protocols.md: $(LIQUIDSOAP)
 	PAGER=none $(LIQUIDSOAP) --no-stdlib ../libs/stdlib.liq --list-protocols-md > $@
@@ -93,4 +98,3 @@ sphinx-html:
 #	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 .PHONY: md doc upload all-subdirs
-
