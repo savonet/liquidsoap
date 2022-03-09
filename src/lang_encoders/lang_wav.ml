@@ -40,27 +40,27 @@ let make params =
   let wav =
     List.fold_left
       (fun f -> function
-        | "stereo", `Value { value = Ground (Bool b); _ } ->
+        | "stereo", `Value (Ground (Bool b)), _ ->
             { f with Wav_format.channels = (if b then 2 else 1) }
-        | "mono", `Value { value = Ground (Bool b); _ } ->
+        | "mono", `Value (Ground (Bool b)), _ ->
             { f with Wav_format.channels = (if b then 1 else 2) }
-        | "", `Value { value = Ground (String s); _ }
+        | "", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "stereo" ->
             { f with Wav_format.channels = 2 }
-        | "", `Value { value = Ground (String s); _ }
+        | "", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "mono" ->
             { f with Wav_format.channels = 1 }
-        | "channels", `Value { value = Ground (Int c); _ } ->
+        | "channels", `Value (Ground (Int c)), _ ->
             { f with Wav_format.channels = c }
-        | "duration", `Value { value = Ground (Float d); _ } ->
+        | "duration", `Value (Ground (Float d)), _ ->
             { f with Wav_format.duration = Some d }
-        | "samplerate", `Value { value = Ground (Int i); _ } ->
+        | "samplerate", `Value (Ground (Int i)), _ ->
             { f with Wav_format.samplerate = Lazy.from_val i }
-        | "samplesize", `Value { value = Ground (Int i); pos } ->
+        | "samplesize", `Value (Ground (Int i)), pos ->
             if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
               raise (Lang_encoder.error ~pos "invalid sample size");
             { f with Wav_format.samplesize = i }
-        | "header", `Value { value = Ground (Bool b); _ } ->
+        | "header", `Value (Ground (Bool b)), _ ->
             { f with Wav_format.header = b }
         | t -> raise (Lang_encoder.generic_error t))
       (defaults ()) params

@@ -23,18 +23,18 @@
 open Value
 open Ground
 
-let kind_of_encoder p =
+let kind_of_encoder (p : Term.encoder_params) =
   let audio =
     List.fold_left
       (fun audio p ->
         match p with
-          | "", `Encoder ("audio.copy", _) ->
+          | "", `Encoder (("audio.copy", _), _) ->
               `Format
                 Content.(default_format (kind_of_string "ffmpeg.audio.copy"))
-          | "", `Encoder ("audio.raw", _) ->
+          | "", `Encoder (("audio.raw", _), _) ->
               `Format
                 Content.(default_format (kind_of_string "ffmpeg.audio.raw"))
-          | "", `Encoder ("audio", p) ->
+          | "", `Encoder (("audio", p), _) ->
               let channels =
                 try
                   let channels =
@@ -64,13 +64,13 @@ let kind_of_encoder p =
     List.fold_left
       (fun audio p ->
         match p with
-          | "", `Encoder ("video.copy", _) ->
+          | "", `Encoder (("video.copy", _), _) ->
               `Format
                 Content.(default_format (kind_of_string "ffmpeg.video.copy"))
-          | "", `Encoder ("video.raw", _) ->
+          | "", `Encoder (("video.raw", _), _) ->
               `Format
                 Content.(default_format (kind_of_string "ffmpeg.video.raw"))
-          | "", `Encoder ("video", _) ->
+          | "", `Encoder (("video", _), _) ->
               `Format Content.(default_format Video.kind)
           | _ -> audio)
       Frame.none p

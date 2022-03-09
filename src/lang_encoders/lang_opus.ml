@@ -45,33 +45,29 @@ let make params =
   let opus =
     List.fold_left
       (fun f -> function
-        | "application", `Value { value = Ground (String "voip"); _ } ->
+        | "application", `Value (Ground (String "voip")), _ ->
             { f with Opus_format.application = Some `Voip }
-        | "application", `Value { value = Ground (String "audio"); _ } ->
+        | "application", `Value (Ground (String "audio")), _ ->
             { f with Opus_format.application = Some `Audio }
-        | ( "application",
-            `Value { value = Ground (String "restricted_lowdelay"); _ } ) ->
+        | "application", `Value (Ground (String "restricted_lowdelay")), _ ->
             { f with Opus_format.application = Some `Restricted_lowdelay }
-        | "complexity", `Value { value = Ground (Int c); pos } ->
+        | "complexity", `Value (Ground (Int c)), pos ->
             (* Doc say this should be from 0 to 10. *)
             if c < 0 || c > 10 then
               raise
                 (Lang_encoder.error ~pos "Opus complexity should be in 0..10");
             { f with Opus_format.complexity = Some c }
-        | "max_bandwidth", `Value { value = Ground (String "narrow_band"); _ }
-          ->
+        | "max_bandwidth", `Value (Ground (String "narrow_band")), _ ->
             { f with Opus_format.max_bandwidth = Some `Narrow_band }
-        | "max_bandwidth", `Value { value = Ground (String "medium_band"); _ }
-          ->
+        | "max_bandwidth", `Value (Ground (String "medium_band")), _ ->
             { f with Opus_format.max_bandwidth = Some `Medium_band }
-        | "max_bandwidth", `Value { value = Ground (String "wide_band"); _ } ->
+        | "max_bandwidth", `Value (Ground (String "wide_band")), _ ->
             { f with Opus_format.max_bandwidth = Some `Wide_band }
-        | ( "max_bandwidth",
-            `Value { value = Ground (String "super_wide_band"); _ } ) ->
+        | "max_bandwidth", `Value (Ground (String "super_wide_band")), _ ->
             { f with Opus_format.max_bandwidth = Some `Super_wide_band }
-        | "max_bandwidth", `Value { value = Ground (String "full_band"); _ } ->
+        | "max_bandwidth", `Value (Ground (String "full_band")), _ ->
             { f with Opus_format.max_bandwidth = Some `Full_band }
-        | "frame_size", `Value { value = Ground (Float size); pos } ->
+        | "frame_size", `Value (Ground (Float size)), pos ->
             let frame_sizes = [2.5; 5.; 10.; 20.; 40.; 60.] in
             if not (List.mem size frame_sizes) then
               raise
@@ -79,7 +75,7 @@ let make params =
                    "Opus frame size should be one of 2.5, 5., 10., 20., 40. or \
                     60.");
             { f with Opus_format.frame_size = size }
-        | "samplerate", `Value { value = Ground (Int i); pos } ->
+        | "samplerate", `Value (Ground (Int i)), pos ->
             let samplerates = [8000; 12000; 16000; 24000; 48000] in
             if not (List.mem i samplerates) then
               raise
@@ -87,42 +83,41 @@ let make params =
                    "Opus samplerate should be one of 8000, 12000, 16000, 24000 \
                     or 48000");
             { f with Opus_format.samplerate = i }
-        | "bitrate", `Value { value = Ground (Int i); pos } ->
+        | "bitrate", `Value (Ground (Int i)), pos ->
             let i = i * 1000 in
             (* Doc say this should be from 500 to 512000. *)
             if i < 500 || i > 512000 then
               raise (Lang_encoder.error ~pos "Opus bitrate should be in 5..512");
             { f with Opus_format.bitrate = `Bitrate i }
-        | "bitrate", `Value { value = Ground (String "auto"); _ } ->
+        | "bitrate", `Value (Ground (String "auto")), _ ->
             { f with Opus_format.bitrate = `Auto }
-        | "bitrate", `Value { value = Ground (String "max"); _ } ->
+        | "bitrate", `Value (Ground (String "max")), _ ->
             { f with Opus_format.bitrate = `Bitrate_max }
-        | "channels", `Value { value = Ground (Int i); pos } ->
+        | "channels", `Value (Ground (Int i)), pos ->
             if i < 1 || i > 2 then
               raise
                 (Lang_encoder.error ~pos
                    "only mono and stereo streams are supported for now");
             { f with Opus_format.channels = i }
-        | "vbr", `Value { value = Ground (String "none"); _ } ->
+        | "vbr", `Value (Ground (String "none")), _ ->
             { f with Opus_format.mode = Opus_format.CBR }
-        | "vbr", `Value { value = Ground (String "constrained"); _ } ->
+        | "vbr", `Value (Ground (String "constrained")), _ ->
             { f with Opus_format.mode = Opus_format.VBR true }
-        | "vbr", `Value { value = Ground (String "unconstrained"); _ } ->
+        | "vbr", `Value (Ground (String "unconstrained")), _ ->
             { f with Opus_format.mode = Opus_format.VBR false }
-        | "signal", `Value { value = Ground (String "voice"); _ } ->
+        | "signal", `Value (Ground (String "voice")), _ ->
             { f with Opus_format.signal = Some `Voice }
-        | "signal", `Value { value = Ground (String "music"); _ } ->
+        | "signal", `Value (Ground (String "music")), _ ->
             { f with Opus_format.signal = Some `Music }
-        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
+        | "bytes_per_page", `Value (Ground (Int i)), _ ->
             { f with Opus_format.fill = Some i }
-        | "dtx", `Value { value = Ground (Bool b); _ } ->
-            { f with Opus_format.dtx = b }
-        | "phase_inversion", `Value { value = Ground (Bool b); _ } ->
+        | "dtx", `Value (Ground (Bool b)), _ -> { f with Opus_format.dtx = b }
+        | "phase_inversion", `Value (Ground (Bool b)), _ ->
             { f with Opus_format.phase_inversion = b }
-        | "", `Value { value = Ground (String s); _ }
+        | "", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "mono" ->
             { f with Opus_format.channels = 1 }
-        | "", `Value { value = Ground (String s); _ }
+        | "", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "stereo" ->
             { f with Opus_format.channels = 2 }
         | t -> raise (Lang_encoder.generic_error t))

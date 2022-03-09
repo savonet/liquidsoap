@@ -38,16 +38,16 @@ let make params =
   let shine =
     List.fold_left
       (fun f -> function
-        | "channels", `Value { value = Ground (Int i); _ } ->
+        | "channels", `Value (Ground (Int i)), _ ->
             { f with Shine_format.channels = i }
-        | "samplerate", `Value { value = Ground (Int i); _ } ->
+        | "samplerate", `Value (Ground (Int i)), _ ->
             { f with Shine_format.samplerate = Lazy.from_val i }
-        | "bitrate", `Value { value = Ground (Int i); _ } ->
+        | "bitrate", `Value (Ground (Int i)), _ ->
             { f with Shine_format.bitrate = i }
-        | "", `Value { value = Ground (String s); _ }
+        | "", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "mono" ->
             { f with Shine_format.channels = 1 }
-        | "", `Value { value = Ground (String s); _ }
+        | "", `Value (Ground (String s)), _
           when String.lowercase_ascii s = "stereo" ->
             { f with Shine_format.channels = 2 }
         | t -> raise (Lang_encoder.generic_error t))

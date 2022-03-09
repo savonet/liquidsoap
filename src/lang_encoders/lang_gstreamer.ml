@@ -51,25 +51,25 @@ let make ?pos params =
     let perhaps = function "" -> None | s -> Some s in
     List.fold_left
       (fun f -> function
-        | "channels", `Value { value = Ground (Int i); _ } ->
+        | "channels", `Value (Ground (Int i)), _ ->
             { f with Gstreamer_format.channels = i }
-        | "audio", `Value { value = Ground (String s); _ } ->
+        | "audio", `Value (Ground (String s)), _ ->
             { f with Gstreamer_format.audio = perhaps s }
-        | "has_video", `Value { value = Ground (Bool b); _ } ->
+        | "has_video", `Value (Ground (Bool b)), _ ->
             { f with Gstreamer_format.has_video = b }
-        | "video", `Value { value = Ground (String s); _ } ->
+        | "video", `Value (Ground (String s)), _ ->
             let video = perhaps s in
             let has_video =
               if video = None then false else f.Gstreamer_format.has_video
             in
             { f with Gstreamer_format.has_video; video }
-        | "muxer", `Value { value = Ground (String s); _ } ->
+        | "muxer", `Value (Ground (String s)), _ ->
             { f with Gstreamer_format.muxer = perhaps s }
-        | "metadata", `Value { value = Ground (String s); _ } ->
+        | "metadata", `Value (Ground (String s)), _ ->
             { f with Gstreamer_format.metadata = s }
-        | "log", `Value { value = Ground (Int i); _ } ->
+        | "log", `Value (Ground (Int i)), _ ->
             { f with Gstreamer_format.log = i }
-        | "pipeline", `Value { value = Ground (String s); _ } ->
+        | "pipeline", `Value (Ground (String s)), _ ->
             { f with Gstreamer_format.pipeline = perhaps s }
         | t -> raise (Lang_encoder.generic_error t))
       defaults params

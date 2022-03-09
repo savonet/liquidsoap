@@ -40,24 +40,24 @@ let flac_gen params =
   in
   List.fold_left
     (fun f -> function
-      | "channels", `Value { value = Ground (Int i); _ } ->
+      | "channels", `Value (Ground (Int i)), _ ->
           { f with Flac_format.channels = i }
-      | "samplerate", `Value { value = Ground (Int i); _ } ->
+      | "samplerate", `Value (Ground (Int i)), _ ->
           { f with Flac_format.samplerate = Lazy.from_val i }
-      | "compression", `Value { value = Ground (Int i); pos } ->
+      | "compression", `Value (Ground (Int i)), pos ->
           if i < 0 || i > 8 then
             raise (Lang_encoder.error ~pos "invalid compression value");
           { f with Flac_format.compression = i }
-      | "bits_per_sample", `Value { value = Ground (Int i); pos } ->
+      | "bits_per_sample", `Value (Ground (Int i)), pos ->
           if not (List.mem i accepted_bits_per_sample) then
             raise (Lang_encoder.error ~pos "invalid bits_per_sample value");
           { f with Flac_format.bits_per_sample = i }
-      | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
+      | "bytes_per_page", `Value (Ground (Int i)), _ ->
           { f with Flac_format.fill = Some i }
-      | "", `Value { value = Ground (String s); _ }
-        when String.lowercase_ascii s = "mono" ->
+      | "", `Value (Ground (String s)), _ when String.lowercase_ascii s = "mono"
+        ->
           { f with Flac_format.channels = 1 }
-      | "", `Value { value = Ground (String s); _ }
+      | "", `Value (Ground (String s)), _
         when String.lowercase_ascii s = "stereo" ->
           { f with Flac_format.channels = 2 }
       | t -> raise (Lang_encoder.generic_error t))
