@@ -239,7 +239,7 @@ let ffmpeg_gen params =
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Float fl)
           | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Float fl));
         parse_args ~format ~mode f l
-    | (_, t, pos) :: _ -> raise (Lang_encoder.error ~pos "unexpected option")
+    | (_, _, pos) :: _ -> raise (Lang_encoder.error ~pos "unexpected option")
   in
   List.fold_left
     (fun f -> function
@@ -280,15 +280,16 @@ let ffmpeg_gen params =
           raise (Lang_encoder.generic_error (l, `Value v, pos)))
     defaults params
 
-let make params =
+let make (params : Value.encoder_params) =
   let params =
     List.map
       (function
-        | _, `Encoder (e, p), _ -> (
+        | _, `Encoder (e, p, _), _ -> (
             let p =
               List.filter_map
                 (function
-                  | l, `Value v, _ -> Some (l, v) | _, `Encoder _, _ -> None)
+                  | l, `Value v, pos -> Some (l, v, pos)
+                  | _, `Encoder _, _ -> None)
                 p
             in
             match e with
@@ -301,7 +302,7 @@ let make params =
               | "video.raw" -> `Video_raw p
               | "video" -> `Video p
               | _ -> failwith "unknown subencoder")
-        | l, `Value v, _ -> `Option (l, v))
+        | l, `Value v, pos -> `Option (l, v, pos))
       params
   in
   Encoder.Ffmpeg (ffmpeg_gen params)
