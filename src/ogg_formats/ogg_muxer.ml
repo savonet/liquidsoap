@@ -29,7 +29,7 @@ let log = Log.make ["ogg.muxer"]
 exception Invalid_data
 exception Invalid_usage
 
-type audio = Audio.t
+type audio = float array array
 type video = Video.buffer
 type 'a data = { data : 'a; offset : int; length : int }
 type track_data = Audio_data of audio data | Video_data of video data

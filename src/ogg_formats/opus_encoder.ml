@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 let create_encoder ~opus ~comments () =
   let samplerate = opus.Opus_format.samplerate in
   let channels = opus.Opus_format.channels in
@@ -78,23 +76,30 @@ let create_encoder ~opus ~comments () =
     started := true;
     let enc = get_enc os in
     let data =
-      Audio.sub data.Ogg_muxer.data data.Ogg_muxer.offset data.Ogg_muxer.length
+      Array.map
+        (fun buf -> Array.sub buf data.Ogg_muxer.offset data.Ogg_muxer.length)
+        data.Ogg_muxer.data
     in
     let data =
-      if Array.length !pending == 0 then data else Audio.append !pending data
+      if Array.length !pending == 0 then data
+      else Array.mapi (fun i channel -> Array.append !pending.(i) channel) data
     in
     let ret =
       try
-        Opus.Encoder.encode_float_ba ~frame_size enc data 0 (Audio.length data)
-      with Opus.Buffer_too_small -> Audio.length data
+        Opus.Encoder.encode_float ~frame_size enc data 0 (Array.length data.(0))
+      with Opus.Buffer_too_small -> Array.length data.(0)
     in
-    if ret > 0 then pending := Audio.sub data ret (Audio.length data - ret)
+    if ret > 0 then
+      pending :=
+        Array.map
+          (fun channel -> Array.sub channel ret (Array.length channel - ret))
+          data
   in
   let empty_data () =
     {
       Ogg_muxer.offset = 0;
       length = 1;
-      data = Audio.make (Lazy.force Frame.audio_channels) 1 0.;
+      data = Array.make (Lazy.force Frame.audio_channels) (Array.make 1 0.);
     }
   in
   let end_of_page p =
