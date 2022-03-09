@@ -28,7 +28,7 @@ let add_http_error kind =
   Lang.add_builtin_base ~category:`Liquidsoap
     ~descr:(Printf.sprintf "Base error for %s" kind)
     (Printf.sprintf "%s.error" kind)
-    (Lang.error { Runtime_error.kind; msg = ""; pos = [] }).Lang.value
+    (Lang.error { Runtime_error.kind; msg = ""; pos = [] })
     Lang.error_t
 
 let add_http_request ~stream_body ~descr ~request name =
@@ -126,7 +126,7 @@ let add_http_request ~stream_body ~descr ~request name =
         let data = List.assoc "data" p in
         let buf = Buffer.create 10 in
         let len, refill =
-          match (Lang.demeth data).Lang.value with
+          match Lang.demeth data with
             | Lang.Ground (Lang.Ground.String s) ->
                 Buffer.add_string buf s;
                 (Some (Int64.of_int (String.length s)), fun () -> ())
@@ -134,7 +134,7 @@ let add_http_request ~stream_body ~descr ~request name =
                 let fn = Lang.to_getter data in
                 ( None,
                   fun () ->
-                    match (Lang.demeth (fn ())).Lang.value with
+                    match Lang.demeth (fn ()) with
                       | Lang.Ground (Lang.Ground.String s) ->
                           Buffer.add_string buf s
                       | _ -> () ))

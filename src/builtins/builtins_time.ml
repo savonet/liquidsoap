@@ -163,9 +163,7 @@ let () =
                 msg =
                   Printf.sprintf "Failed to parse %s as time predicate"
                     predicate;
-                pos =
-                  Option.value ~default:[]
-                    (Option.map (fun v -> [v]) v.Value.pos);
+                pos = [];
               }))
 
 let () =

@@ -234,11 +234,7 @@ let () =
       with Annotate.Error err ->
         raise
           (Runtime_error.Runtime_error
-             {
-               Runtime_error.kind = "string";
-               msg = err;
-               pos = (match v.Value.pos with None -> [] | Some p -> [p]);
-             }))
+             { Runtime_error.kind = "string"; msg = err; pos = [] }))
 
 let () =
   Lang.add_builtin "string.recode" ~category:`String
@@ -493,12 +489,10 @@ let () =
       let v = List.assoc "" p in
       let dv = Lang.demeth v in
       (* Always show records. *)
-      let show_fields =
-        if dv.Lang.value = Value.unit then true else show_fields
-      in
+      let show_fields = if dv = Value.unit then true else show_fields in
       let v = if show_fields then v else dv in
       match v with
-        | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
+        | Lang.(Ground (Ground.String s)) -> Lang.string s
         | v -> Lang.string (Value.to_string v))
 
 let () =

@@ -24,14 +24,14 @@ let log_deprecated = Log.make ["deprecated"]
 let log = Log.make ["lang"; "json"]
 
 let rec json_of_value v : Json.t =
-  match v.Value.value with
+  match v with
     | Value.Null -> `Null
     | Value.Ground g -> Term.Ground.to_json g
     | Value.List l -> `Tuple (List.map json_of_value l)
     | Value.Tuple l -> `Tuple (List.map json_of_value l)
     | Value.Meth _ -> (
         let m, v = Value.split_meths v in
-        match v.Value.value with
+        match v with
           | Value.Tuple [] ->
               `Assoc (List.map (fun (l, v) -> (l, json_of_value v)) m)
           | _ -> json_of_value v)
@@ -44,7 +44,7 @@ let rec json_of_value v : Json.t =
                 msg =
                   Printf.sprintf "Value %s cannot be represented as json"
                     (Value.to_string v);
-                pos = (match v.Value.pos with Some p -> [p] | None -> []);
+                pos = [];
               })
 
 let rec type_of_json = function
@@ -64,7 +64,7 @@ let nullable_deref ty =
 let rec json_of_typed_value ~ty v : Json.t =
   let nullable, _ty = nullable_deref ty in
   try
-    match (v.Value.value, _ty.Type.descr) with
+    match (v, _ty.Type.descr) with
       | Value.Null, Type.Nullable _ -> `Null
       | Value.Ground g, Type.Ground g' when Term.Ground.to_type g = g' ->
           Term.Ground.to_json g
@@ -119,7 +119,7 @@ let rec json_of_typed_value ~ty v : Json.t =
                   Printf.sprintf
                     "Value %s of type %s cannot be represented as json"
                     (Value.to_string v) (Type.to_string ty);
-                pos = (match v.Value.pos with Some p -> [p] | None -> []);
+                pos = [];
               })
 
 type json_ellipsis_base =
@@ -410,7 +410,7 @@ let () =
    match. This comes with json.stringify in Builtin. *)
 let rec deprecated_of_json d j =
   Lang.(
-    match (d.value, j) with
+    match (d, j) with
       | Tuple [], `Null -> unit
       | Ground (Ground.Bool _), `Bool b -> bool b
       (* JSON specs do not differentiate between ints and floats. Therefore, we
@@ -430,8 +430,7 @@ let rec deprecated_of_json d j =
           list l
       | Tuple dd, `Tuple jj when List.length dd = List.length jj ->
           tuple (List.map2 deprecated_of_json dd jj)
-      | ( List ({ value = Tuple [{ value = Ground (Ground.String _) }; d] } :: _),
-          `Assoc l ) ->
+      | List (Tuple [Ground (Ground.String _); d] :: _), `Assoc l ->
           (* Try to convert the object to a list of pairs, dropping fields that
              cannot be parsed.  This requires the target type to be [(string*'a)],
              currently it won't work if it is [?T] which would be obtained with

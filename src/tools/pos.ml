@@ -50,6 +50,13 @@ module Option = struct
   let to_string ?prefix : t -> string = function
     | Some pos -> to_string ?prefix pos
     | None -> "unknown position"
+
+  let sup (p : t) (q : t) : t =
+    match (p, q) with
+      | Some (p, _), Some (_, q) -> Some (p, q)
+      | Some p, None -> Some p
+      | None, Some q -> Some q
+      | None, None -> None
 end
 
 module List = struct

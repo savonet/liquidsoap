@@ -1,4 +1,4 @@
 S src/**
 B src/**
 B +threads
-PKG pcre dtools duppy mm ladspa bjack gstreamer lilv sedlex menhirLib alsa samplerate ffmpeg ffmpeg-av ffmpeg-avfilter ffmpeg-swresample ffmpeg-swscale taglib mad ogg ogg.decoder vorbis flac theora frei0r tsdl tsdl-image tsdl-ttf shine flac srt faad ao cry soundtouch lo prometheus pulseaudio portaudio inotify graphics dssi gd camlimages.core camlimages.freetype irc-client irc-client-unix
+PKG pcre dtools duppy mm ladspa bjack gstreamer lilv sedlex menhirLib alsa samplerate ffmpeg ffmpeg-av ffmpeg-avfilter ffmpeg-swresample ffmpeg-swscale taglib mad ogg ogg.decoder vorbis flac theora frei0r tsdl tsdl-image tsdl-ttf shine flac srt faad ao cry soundtouch lo prometheus pulseaudio portaudio inotify graphics dssi gd camlimages.core camlimages.freetype irc-client irc-client-unix curl

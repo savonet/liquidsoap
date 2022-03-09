@@ -170,6 +170,7 @@ val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_error : value -> Runtime_error.runtime_error
 val to_source : value -> Source.source
+val to_source_pos : value -> Source.source * Pos.t list
 val to_format : value -> Encoder.format
 val to_int : value -> int
 val to_int_getter : value -> unit -> int

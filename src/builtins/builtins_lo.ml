@@ -164,12 +164,11 @@ let register name osc_t liq_t =
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.assoc "" 2 p in
       let address = Lo.Address.create host port in
-      let osc_val v =
-        match v.Lang.value with
-          | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
-          | Lang.(Ground (Ground.String s)) -> [`String s]
-          | Lang.(Ground (Ground.Float x)) -> [`Float x]
-          | _ -> failwith "Unhandled value."
+      let osc_val = function
+        | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
+        | Lang.(Ground (Ground.String s)) -> [`String s]
+        | Lang.(Ground (Ground.Float x)) -> [`Float x]
+        | _ -> failwith "Unhandled value."
       in
       (* There was a bug in early versions of lo bindings and anyway we don't
          really want errors to show up here... *)

@@ -130,14 +130,15 @@ let () =
           let clock = new Clock.clock ~sync id in
           List.iter
             (fun s ->
+              let s, pos = Lang.to_source_pos s in
+              let pos = List.nth_opt pos 0 in
               try
-                let s = Lang.to_source s in
                 Clock.unify s#clock (Clock.create_known (clock :> Clock.clock))
               with
                 | Source.Clock_conflict (a, b) ->
-                    raise (Error.Clock_conflict (s.Lang.pos, a, b))
+                    raise (Error.Clock_conflict (pos, a, b))
                 | Source.Clock_loop (a, b) ->
-                    raise (Error.Clock_loop (s.Lang.pos, a, b)))
+                    raise (Error.Clock_loop (pos, a, b)))
             sources;
           Lang.unit
   in
@@ -163,18 +164,23 @@ let () =
     [("", Lang.list_t (Lang.source_t (Lang.univ_t ())), None, None)]
     Lang.unit_t
     (fun p ->
-      let l = List.assoc "" p in
+      let l = List.assoc "" p |> Lang.to_list |> List.map Lang.to_source_pos in
+      let pos =
+        List.fold_left
+          (fun pos (_, p) -> Pos.Option.sup pos (List.nth_opt p 0))
+          None l
+      in
+      let l = List.map fst l in
       try
-        match Lang.to_source_list l with
+        match l with
           | [] -> Lang.unit
           | hd :: tl ->
               List.iter (fun s -> Clock.unify hd#clock s#clock) tl;
               Lang.unit
       with
         | Source.Clock_conflict (a, b) ->
-            raise (Error.Clock_conflict (l.Lang.pos, a, b))
-        | Source.Clock_loop (a, b) ->
-            raise (Error.Clock_loop (l.Lang.pos, a, b)))
+            raise (Error.Clock_conflict (pos, a, b))
+        | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b)))
 
 let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
@@ -632,7 +638,7 @@ let () =
       let nl = Lang.to_bool (List.assoc "newline" p) in
       let v = List.assoc "" p in
       let v =
-        match v.Lang.value with
+        match v with
           | Lang.(Ground (Ground.String s)) -> s
           | _ -> Value.to_string v
       in

@@ -154,7 +154,7 @@ let settings_module =
      let log = get_value Dtools.Log.conf in
      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
      Lang.add_builtin_base ~category:`Liquidsoap "settings"
-       ~descr:"All settings." !settings.Lang.value settings_t)
+       ~descr:"All settings." !settings settings_t)
 
 (** Hack to keep track of latest settings at runtime. *)
 let () =
@@ -170,7 +170,7 @@ type descr = {
   description : string;
   comments : string;
   children : (string * descr) list;
-  value : Lang.in_value;
+  value : Value.t;
 }
 
 let filtered_settings = ["subordinate log level"]
@@ -178,12 +178,12 @@ let filtered_settings = ["subordinate log level"]
 let print_settings () =
   let rec grab_descr cur = function
     | Value.Meth ("description", d, v) ->
-        grab_descr { cur with description = Lang.to_string d } v.Lang.value
+        grab_descr { cur with description = Lang.to_string d } v
     | Value.Meth ("comments", c, v) ->
-        grab_descr { cur with comments = Lang.to_string c } v.Lang.value
-    | Value.Meth ("set", _, v) -> grab_descr cur v.Lang.value
+        grab_descr { cur with comments = Lang.to_string c } v
+    | Value.Meth ("set", _, v) -> grab_descr cur v
     | Value.Meth (key, _, v) when List.mem_assoc key cur.children ->
-        grab_descr cur v.Lang.value
+        grab_descr cur v
     | Value.Meth (key, c, v) ->
         let descr =
           {
@@ -194,17 +194,14 @@ let print_settings () =
           }
         in
         grab_descr
-          {
-            cur with
-            children = (key, grab_descr descr c.Lang.value) :: cur.children;
-          }
-          v.Lang.value
+          { cur with children = (key, grab_descr descr c) :: cur.children }
+          v
     | value -> { cur with value }
   in
   let descr =
     { description = ""; comments = ""; children = []; value = Value.Tuple [] }
   in
-  let descr = grab_descr descr !settings.Lang.value in
+  let descr = grab_descr descr !settings in
   let filter_children =
     List.filter (fun (_, { description }) ->
         not (List.mem description filtered_settings))
@@ -212,15 +209,14 @@ let print_settings () =
   let print_set ~path = function
     | Value.Tuple [] -> []
     | (Value.Fun ([], _, _) | Value.FFI ([], _)) as value ->
-        let value = Lang.apply { Value.pos = None; value } [] in
+        let value = Lang.apply value [] in
         [
           Printf.sprintf {|
 ```liquidsoap
 %s.set(%s)
 ```
 |} path
-            (if value.Value.value = Value.Null then "<value>"
-            else Value.to_string value);
+            (if value = Value.Null then "<value>" else Value.to_string value);
         ]
     | value ->
         [
@@ -229,7 +225,7 @@ let print_settings () =
 %s.set(%s)
 ```
 |} path
-            (Value.to_string { Value.pos = None; value });
+            (Value.to_string value);
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -255,7 +251,7 @@ let () =
   let grab path value =
     let path = String.split_on_char '.' path in
     let rec grab links v =
-      match (links, v.Value.value) with
+      match (links, v) with
         | [], _ -> v
         | link :: links, Value.Meth (key, v, _) when key = link -> grab links v
         | _, Value.Meth (_, _, v) -> grab links v
@@ -303,19 +299,16 @@ let () =
       try
         let get = grab path !settings in
         let v = Lang.apply (Lang.demeth get) [] in
-        match (default.Lang.value, v.Lang.value) with
+        match (default, v) with
           | Lang.(Ground (Ground.Bool _)), Lang.(Ground (Ground.Bool _))
           | Lang.(Ground (Ground.Int _)), Lang.(Ground (Ground.Int _))
           | Lang.(Ground (Ground.Float _)), Lang.(Ground (Ground.Float _))
           | Lang.(Ground (Ground.String _)), Lang.(Ground (Ground.String _))
           | Lang.(List []), Lang.(List [])
-          | ( Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)),
-              Lang.(List []) )
-          | ( Lang.(List []),
-              Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)) )
-          | ( Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)),
-              Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)) )
-            ->
+          | Lang.(List (Ground (Ground.String _) :: _)), Lang.(List [])
+          | Lang.(List []), Lang.(List (Ground (Ground.String _) :: _))
+          | ( Lang.(List (Ground (Ground.String _) :: _)),
+              Lang.(List (Ground (Ground.String _) :: _)) ) ->
               v
           | _ ->
               log#severe

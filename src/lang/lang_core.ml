@@ -424,6 +424,10 @@ let to_float_getter t =
     | _ -> assert false
 
 let to_source t = match demeth t with Source (s, _) -> s | _ -> assert false
+
+let to_source_pos t =
+  match demeth t with Source (s, pos) -> (s, pos) | _ -> assert false
+
 let to_format t = match demeth t with Encoder f -> f | _ -> assert false
 let to_int t = match demeth t with Ground (Int s) -> s | _ -> assert false
 
