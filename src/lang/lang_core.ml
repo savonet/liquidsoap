@@ -29,7 +29,7 @@ type scheme = Type.scheme
 
 type value = Value.t =
   | Ground of Ground.t
-  | Source of Source.source * Pos.t list
+  | Source of Source.source
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
@@ -137,7 +137,7 @@ let list l = List l
 let null = Null
 let rec meth v0 = function [] -> v0 | (l, v) :: r -> Meth (l, v, meth v0 r)
 let record = meth unit
-let source s = Source (s, [])
+let source s = Source s
 let reference x = Ref x
 let val_fun p f = FFI (p, f)
 
@@ -326,7 +326,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
          get an exponential blowup, see #1247. *)
       itered_values := v :: !itered_values;
       match v with
-        | Source (s, _) -> f s
+        | Source s -> f s
         | Ground _ | Encoder _ -> ()
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
@@ -423,11 +423,7 @@ let to_float_getter t =
           match apply t [] with Ground (Float s) -> s | _ -> assert false)
     | _ -> assert false
 
-let to_source t = match demeth t with Source (s, _) -> s | _ -> assert false
-
-let to_source_pos t =
-  match demeth t with Source (s, pos) -> (s, pos) | _ -> assert false
-
+let to_source t = match demeth t with Source s -> s | _ -> assert false
 let to_format t = match demeth t with Encoder f -> f | _ -> assert false
 let to_int t = match demeth t with Ground (Int s) -> s | _ -> assert false
 

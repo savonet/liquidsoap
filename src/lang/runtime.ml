@@ -128,18 +128,21 @@ let throw print_error = function
       print_error 9 (Printf.sprintf "Failure: %s" s);
       raise Error
   | Error.Clock_conflict (pos, a, b) ->
-      (* TODO better printing of clock errors: we don't have position
-       *   information, use the source's ID *)
-      error_header 10 pos;
-      Format.printf "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
+      (* TODO: better printing of clock errors: if we don't have position
+         information, use the source's ID *)
+      error_header 10 (Some (Pos.List.to_pos pos));
+      Format.printf "A source cannot belong to two clocks (%s,@ %s) at %s.@]@."
+        a b (Pos.List.to_string pos);
       raise Error
   | Error.Clock_loop (pos, a, b) ->
-      error_header 11 pos;
-      Format.printf "Cannot unify two nested clocks (%s,@ %s).@]@." a b;
+      error_header 11 (Some (Pos.List.to_pos pos));
+      Format.printf "Cannot unify two nested clocks (%s,@ %s) at %s.@]@." a b
+        (Pos.List.to_string pos);
       raise Error
   | Error.Kind_conflict (pos, a, b) ->
-      error_header 10 pos;
-      Format.printf "Source kinds don't match@ (%s vs@ %s).@]@." a b;
+      error_header 10 (Some (Pos.List.to_pos pos));
+      Format.printf "Source kinds don't match@ (%s vs@ %s) at %s.@]@." a b
+        (Pos.List.to_string pos);
       raise Error
   | Term.Unsupported_format (pos, fmt) ->
       error_header 12 pos;

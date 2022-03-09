@@ -260,7 +260,6 @@ let add_operator =
       _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
     in
     let f env =
-      let pos = None in
       try
         let ret = f env in
         if category = `Output then (
@@ -269,9 +268,9 @@ let add_operator =
         else ret
       with
         | Source.Clock_conflict (a, b) ->
-            raise (Error.Clock_conflict (pos, a, b))
-        | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-        | Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
+            raise (Error.Clock_conflict ([], a, b))
+        | Source.Clock_loop (a, b) -> raise (Error.Clock_loop ([], a, b))
+        | Kind.Conflict (a, b) -> raise (Error.Kind_conflict ([], a, b))
     in
     let return_t = source_t ~methods:true return_t in
     let return_t =

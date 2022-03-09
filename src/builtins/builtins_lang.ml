@@ -130,15 +130,14 @@ let () =
           let clock = new Clock.clock ~sync id in
           List.iter
             (fun s ->
-              let s, pos = Lang.to_source_pos s in
-              let pos = List.nth_opt pos 0 in
+              let s = Lang.to_source s in
               try
                 Clock.unify s#clock (Clock.create_known (clock :> Clock.clock))
               with
                 | Source.Clock_conflict (a, b) ->
-                    raise (Error.Clock_conflict (pos, a, b))
+                    raise (Error.Clock_conflict ([], a, b))
                 | Source.Clock_loop (a, b) ->
-                    raise (Error.Clock_loop (pos, a, b)))
+                    raise (Error.Clock_loop ([], a, b)))
             sources;
           Lang.unit
   in
@@ -164,13 +163,7 @@ let () =
     [("", Lang.list_t (Lang.source_t (Lang.univ_t ())), None, None)]
     Lang.unit_t
     (fun p ->
-      let l = List.assoc "" p |> Lang.to_list |> List.map Lang.to_source_pos in
-      let pos =
-        List.fold_left
-          (fun pos (_, p) -> Pos.Option.sup pos (List.nth_opt p 0))
-          None l
-      in
-      let l = List.map fst l in
+      let l = List.assoc "" p |> Lang.to_list |> List.map Lang.to_source in
       try
         match l with
           | [] -> Lang.unit
@@ -179,8 +172,8 @@ let () =
               Lang.unit
       with
         | Source.Clock_conflict (a, b) ->
-            raise (Error.Clock_conflict (pos, a, b))
-        | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b)))
+            raise (Error.Clock_conflict ([], a, b))
+        | Source.Clock_loop (a, b) -> raise (Error.Clock_loop ([], a, b)))
 
 let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in

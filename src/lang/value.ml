@@ -30,7 +30,7 @@ type pos = Pos.Option.t
 (** A value. *)
 type t =
   | Ground of Ground.t
-  | Source of Source.source * Pos.t list
+  | Source of Source.source
   | Encoder of Encoder.format
   | List of t list
   | Tuple of t list

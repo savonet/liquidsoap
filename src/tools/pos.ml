@@ -64,6 +64,8 @@ module List = struct
       is the external caller and the last one is the callee. *)
   type nonrec t = t list
 
+  let of_option : Option.t -> t = function Some pos -> [pos] | None -> []
+
   (** The most relevant position in a call stack. *)
   let rec to_pos = function
     | [x] -> x

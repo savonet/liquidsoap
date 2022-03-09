@@ -159,7 +159,7 @@ let rec eval ~env tm =
             | v -> v
           in
           match demeth v with
-            | Value.Source (s, _) -> Kind.unify s#kind k
+            | Value.Source s -> Kind.unify s#kind k
             | _ ->
                 raise
                   (Internal_error
@@ -304,6 +304,21 @@ and apply ?pos f l =
           Printexc.raise_with_backtrace
             (Internal_error (Option.to_list pos @ poss, e))
             bt
+      | Error.Clock_conflict (poss, a, b) ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace
+            (Error.Clock_conflict (Option.to_list pos @ poss, a, b))
+            bt
+      | Error.Clock_loop (poss, a, b) ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace
+            (Error.Clock_loop (Option.to_list pos @ poss, a, b))
+            bt
+      | Error.Kind_conflict (poss, a, b) ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace
+            (Error.Kind_conflict (Option.to_list pos @ poss, a, b))
+            bt
   in
   (* Provide given arguments. *)
   let pe, p =
@@ -322,10 +337,7 @@ and apply ?pos f l =
         (var, Option.get v) :: pe)
       pe p
   in
-  match f pe with
-    | Value.Source (s, poss) when pos <> None ->
-        Value.Source (s, Option.get pos :: poss)
-    | v -> v
+  f pe
 
 let eval ?env tm =
   let env =

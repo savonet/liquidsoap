@@ -596,9 +596,9 @@ let () =
             new audio_output ~pass_metadata ~name ~kind source_val)
         with
           | Source.Clock_conflict (a, b) ->
-              raise (Error.Clock_conflict (pos, a, b))
-          | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-          | Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
+              raise (Error.Clock_conflict ([], a, b))
+          | Source.Clock_loop (a, b) -> raise (Error.Clock_loop ([], a, b))
+          | Kind.Conflict (a, b) -> raise (Error.Kind_conflict ([], a, b))
       in
       Queue.add s#clock graph.clocks;
 
@@ -705,16 +705,15 @@ let () =
             }
       in
       let name = uniq_name "buffer" in
-      let pos = source_val.Lang.pos in
       let s =
         try
           Ffmpeg_filter_io.(
             new video_output ~pass_metadata ~name ~kind source_val)
         with
           | Source.Clock_conflict (a, b) ->
-              raise (Error.Clock_conflict (pos, a, b))
-          | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-          | Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
+              raise (Error.Clock_conflict ([], a, b))
+          | Source.Clock_loop (a, b) -> raise (Error.Clock_loop ([], a, b))
+          | Kind.Conflict (a, b) -> raise (Error.Kind_conflict ([], a, b))
       in
       Queue.add s#clock graph.clocks;
 
