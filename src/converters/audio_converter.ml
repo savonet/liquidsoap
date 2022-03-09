@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 (** External audio samplerate conversion utilities. *)
 
 let log = Log.make ["audio"; "converter"]
@@ -44,10 +42,11 @@ module Samplerate = struct
 
   (** A converter takes a conversion ratio (output samplerate / input
       samplerate), an audio buffer, and returns a resampled buffer. *)
-  type converter = float -> Audio.Mono.buffer -> Audio.Mono.buffer
+  type converter =
+    float -> Content.Audio.data -> int -> int -> Content.Audio.data * int * int
 
-  type converter_plug = unit -> converter
-  type t = converter array
+  type converter_plug = int -> converter
+  type t = { channels : int; converter : converter }
 
   let samplerate_conf =
     Dtools.Conf.void
@@ -59,7 +58,7 @@ module Samplerate = struct
     Dtools.Conf.list
       ~p:(samplerate_conf#plug "converters")
       "Preferred samplerate converters"
-      ~d:["ffmpeg"; "libsamplerate"; "native"]
+      ~d:["libsamplerate"; "ffmpeg"; "native"]
       ~comments:
         [
           "Preferred samplerate converter. The native converter is always \
@@ -82,12 +81,11 @@ module Samplerate = struct
       in
       f converters_conf#get
     in
-    Array.init channels (fun _ -> converter ())
+    { channels; converter = converter channels }
 
-  let resample conv ratio data =
-    if Array.length conv <> Array.length data then raise Invalid_data;
-    let convert i b = if ratio = 1. then b else conv.(i) ratio b in
-    Array.mapi convert data
+  let resample { channels; converter } ratio data ofs len =
+    if channels <> Array.length data then raise Invalid_data;
+    if ratio = 1. then (data, ofs, len) else converter ratio data ofs len
 
   (** Log which converter is used at start. *)
   let () =

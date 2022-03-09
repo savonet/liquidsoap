@@ -453,7 +453,7 @@ let mk_buffer ~ctype generator =
           | Some c -> c
       in
       fun ?pts ~samplerate data ->
-        let data = resampler ~samplerate data in
+        let data, _, _ = resampler ~samplerate data 0 (Audio.length data) in
         let data = (get_channel_converter ()) data in
         let len = Audio.length data in
         let data = Content.Audio.lift_data data in

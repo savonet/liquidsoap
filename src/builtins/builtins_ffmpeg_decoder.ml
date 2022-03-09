@@ -23,7 +23,7 @@
 open Mm
 
 module InternalResampler =
-  Swresample.Make (Swresample.Frame) (Swresample.FltPlanarBigArray)
+  Swresample.Make (Swresample.Frame) (Swresample.PlanarFloatArray)
 
 module InternalScaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 

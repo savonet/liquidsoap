@@ -38,7 +38,7 @@ class map ~kind source f =
       let b = AFrame.pcm buf in
       for i = offset to AFrame.position buf - 1 do
         for c = 0 to Array.length b - 1 do
-          b.(c).{i} <- f b.(c).{i}
+          b.(c).(i) <- f b.(c).(i)
         done
       done
   end

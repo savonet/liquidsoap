@@ -75,9 +75,10 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
     method send_frame memo =
       let fd = Option.get fd in
       let buf = AFrame.pcm memo in
-      let r = Audio.S16LE.size (Audio.channels buf) (Audio.length buf) in
+      let len = Audio.length buf in
+      let r = Audio.S16LE.size (Audio.channels buf) len in
       let s = Bytes.create r in
-      Audio.S16LE.of_audio buf s 0;
+      Audio.S16LE.of_audio buf 0 s 0 len;
       let w = Unix.write fd s 0 r in
       assert (w = r)
   end
@@ -119,7 +120,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r);
-      Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf;
+      Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf 0 len;
       AFrame.add_break frame (AFrame.size ())
   end
 

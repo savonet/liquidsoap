@@ -138,7 +138,7 @@ class biquad ~kind (source : source) filter_type freq q gain =
       for c = 0 to self#audio_channels - 1 do
         let buf = buf.(c) in
         for i = offset to position - 1 do
-          let x0 = buf.{i} in
+          let x0 = buf.(i) in
           let y0 =
             (p0 *. x0)
             +. (p1 *. x1.(c))
@@ -146,7 +146,7 @@ class biquad ~kind (source : source) filter_type freq q gain =
             -. (q1 *. y1.(c))
             -. (q2 *. y2.(c))
           in
-          buf.{i} <- y0;
+          buf.(i) <- y0;
           x2.(c) <- x1.(c);
           x1.(c) <- x0;
           y2.(c) <- y1.(c);

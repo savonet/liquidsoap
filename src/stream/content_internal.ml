@@ -75,15 +75,10 @@ module AudioSpecs = struct
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = audio_of_main in
-    Array.iter2
-      (fun a a' ->
-        Audio.Mono.blit
-          (Audio.Mono.sub a !src_pos !len)
-          (Audio.Mono.sub a' !dst_pos !len))
-      src dst
+    Audio.blit src !src_pos dst !dst_pos !len
 
   let length d = Frame_base.main_of_audio (Audio.length d)
-  let copy d = Array.map Audio.Mono.copy d
+  let copy d = Audio.copy d 0 (Audio.length d)
 
   let param_of_channels = function
     | 1 -> { channel_layout = lazy `Mono }

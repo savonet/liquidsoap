@@ -48,8 +48,9 @@ class basic source =
           let audio =
             match AFrame.pcm tmp_frame with
               | [||] ->
-                  let buf = Audio.Mono.create (AFrame.size ()) in
-                  Audio.Mono.clear buf;
+                  let len = AFrame.size () in
+                  let buf = Audio.Mono.create len in
+                  Audio.Mono.clear buf 0 len;
                   [| buf; buf |]
               | [| chan |] -> [| chan; chan |]
               | audio -> Array.sub audio 0 2

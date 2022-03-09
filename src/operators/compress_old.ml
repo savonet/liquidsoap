@@ -61,7 +61,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
       effect#set_threshold (threshold ());
       effect#set_ratio (ratio ());
       effect#set_knee (knee ());
-      effect#process (Audio.sub b ofs len);
+      effect#process b ofs len;
 
       (* Reset values if it is the end of the track. *)
       if AFrame.is_partial buf then effect#reset

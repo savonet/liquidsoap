@@ -25,7 +25,7 @@ open Mm
 (** FFMPEG internal encoder *)
 
 module InternalResampler =
-  Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.Frame)
+  Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)
 
 module RawResampler = Swresample.Make (Swresample.Frame) (Swresample.Frame)
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
@@ -132,8 +132,10 @@ let mk_audio ~ffmpeg ~options output =
     fun frame start len ->
       let astart = Frame.audio_of_main start in
       let alen = Frame.audio_of_main len in
-      let pcm = Audio.sub (AFrame.pcm frame) astart alen in
-      [InternalResampler.convert resampler pcm]
+      [
+        InternalResampler.convert ~length:alen ~offset:astart resampler
+          (AFrame.pcm frame);
+      ]
   in
 
   let raw_converter =

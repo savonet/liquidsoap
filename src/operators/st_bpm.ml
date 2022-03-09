@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
 open Source
 
 class bpm ~kind (source : source) =
@@ -48,8 +47,7 @@ class bpm ~kind (source : source) =
       source#get buf;
       let len = AFrame.position buf - offset in
       let buf = AFrame.pcm buf in
-      let ibuf = Audio.interleave (Audio.sub buf offset len) in
-      Soundtouch.BPM.put_samples_ba bpm ibuf
+      Soundtouch.BPM.put_samples_ni bpm buf offset len
 
     method bpm =
       match bpm with Some bpm -> Soundtouch.BPM.get_bpm bpm | None -> 0.

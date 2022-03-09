@@ -26,9 +26,15 @@ type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
 module Contents = struct
   type format = ..
   type kind = ..
-  type _type = ..
+  type _type = int
   type content = ..
   type data = _type * content
+
+  let _type = ref 0
+
+  let register_type () =
+    incr _type;
+    !_type
 
   type audio_params = {
     channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
@@ -174,12 +180,27 @@ type data_handler = {
   append : data -> data -> data;
 }
 
-let data_handlers = Hashtbl.create 10
-let register_data_handler t h = Hashtbl.replace data_handlers t h
+let dummy_handler =
+  {
+    blit = (fun _ _ _ _ _ -> assert false);
+    fill = (fun _ _ _ _ _ -> assert false);
+    length = (fun _ -> assert false);
+    sub = (fun _ _ _ -> assert false);
+    is_empty = (fun _ -> assert false);
+    copy = (fun _ -> assert false);
+    format = (fun _ -> assert false);
+    clear = (fun _ -> assert false);
+    append = (fun _ -> assert false);
+  }
 
-let get_data_handler (t, _) =
-  try Hashtbl.find data_handlers t with Not_found -> raise Invalid
+let data_handlers = Array.make 12 dummy_handler
 
+let register_data_handler t h =
+  if Array.length data_handlers - 1 < t then
+    failwith "Please increase media content array size!";
+  Array.unsafe_set data_handlers t h
+
+let get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ~size src = (get_params_handler src).make size
 let length v = (get_data_handler v).length v
 let blit v = (get_data_handler v).blit v
@@ -216,10 +237,10 @@ let string_of_kind f = (get_kind_handler f).string_of_kind ()
 module MkContent (C : ContentSpecs) = struct
   type Contents.kind += Kind of C.kind
   type Contents.format += Format of C.params Unifier.t
-  type Contents._type += Type
   type Contents.content += Content of (C.params, C.data) chunks
 
-  let content = function Type, Content d -> d | _ -> assert false
+  let _type = Contents.register_type ()
+  let content = function _, Content d -> d | _ -> assert false
   let params { params } = params
 
   let sub data ofs len =
@@ -259,7 +280,7 @@ module MkContent (C : ContentSpecs) = struct
   let append d d' =
     let d = content d in
     let d' = content d' in
-    (Type, Content { d with chunks = d.chunks @ d'.chunks })
+    (_type, Content { d with chunks = d.chunks @ d'.chunks })
 
   let fill src src_pos dst dst_pos len =
     let src = content src in
@@ -343,7 +364,7 @@ module MkContent (C : ContentSpecs) = struct
             {
               kind = (fun () -> Kind C.kind);
               make =
-                (fun size -> (Type, Content (make ~size (Unifier.deref p))));
+                (fun size -> (_type, Content (make ~size (Unifier.deref p))));
               merge = (fun p' -> merge p p');
               duplicate = (fun () -> Format Unifier.(make (deref p)));
               compatible = (fun p' -> compatible p p');
@@ -363,15 +384,15 @@ module MkContent (C : ContentSpecs) = struct
         blit;
         fill;
         length = (fun d -> length (content d));
-        sub = (fun d ofs len -> (Type, Content (sub (content d) ofs len)));
+        sub = (fun d ofs len -> (_type, Content (sub (content d) ofs len)));
         is_empty = (fun d -> is_empty (content d));
-        copy = (fun d -> (Type, Content (copy (content d))));
+        copy = (fun d -> (_type, Content (copy (content d))));
         format = (fun d -> Format (Unifier.make (params (content d))));
         clear;
         append;
       }
     in
-    register_data_handler Type data_handler
+    register_data_handler _type data_handler
 
   let is_kind = function Kind _ -> true | _ -> false
   let lift_kind f = Kind f
@@ -379,17 +400,17 @@ module MkContent (C : ContentSpecs) = struct
   let is_format = function Format _ -> true | _ -> false
   let lift_params p = Format (Unifier.make p)
   let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
-  let is_data = function Type, Content _ -> true | _ -> false
+  let is_data = function _, Content _ -> true | _ -> false
 
   let lift_data d =
-    ( Type,
+    ( _type,
       Content
         {
           params = C.params d;
           chunks = [{ offset = 0; size = C.length d; data = d }];
         } )
 
-  let get_chunked_data = function Type, Content d -> d | _ -> raise Invalid
+  let get_chunked_data = function _, Content d -> d | _ -> raise Invalid
 
   let get_data d =
     let d = get_chunked_data d in

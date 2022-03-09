@@ -419,13 +419,13 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
         let bc = b.(c) in
         for i = offset to AFrame.position buf - 1 do
           v_offs <- (v_offs + 1) mod v_len;
-          xvc.((coeffs_len - 1 + v_offs) mod v_len) <- bc.{i} /. gain;
+          xvc.((coeffs_len - 1 + v_offs) mod v_len) <- bc.(i) /. gain;
           let insert =
             fold_left2 0. xvc xcoeffs 110 (* TODO: why 110? *)
             +. fold_left2 0. yvc ycoeffs (coeffs_len - 1)
           in
           yvc.((coeffs_len - 1 + v_offs) mod v_len) <- insert;
-          bc.{i} <- insert
+          bc.(i) <- insert
         done
       done
   end

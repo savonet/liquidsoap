@@ -129,22 +129,22 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
-let rec eval (env : Env.t) tm =
-  let prepare_fun fv p env =
-    (* Unlike OCaml we always evaluate default values, and we do that early. I
-       think the only reason is homogeneity with FFI, which are declared with
-       values as defaults. *)
-    let p =
-      List.map
-        (function
-          | lbl, var, _, Some v -> (lbl, var, Some (eval env v))
-          | lbl, var, _, None -> (lbl, var, None))
-        p
-    in
-    (* Keep only once the variables we might use in the environment. *)
-    let env = Env.restrict env fv in
-    (p, env)
+let rec prepare_fun fv p env =
+  (* Unlike OCaml we always evaluate default values, and we do that early. I
+     think the only reason is homogeneity with FFI, which are declared with
+     values as defaults. *)
+  let p =
+    List.map
+      (function
+        | lbl, var, _, Some v -> (lbl, var, Some (eval env v))
+        | lbl, var, _, None -> (lbl, var, None))
+      p
   in
+  (* Keep only once the variables we might use in the environment. *)
+  let env = Env.restrict env fv in
+  (p, env)
+
+and eval (env : Env.t) tm =
   let mk v =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)

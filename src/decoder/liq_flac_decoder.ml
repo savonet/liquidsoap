@@ -79,7 +79,6 @@ let create_decoder input =
       (fun buffer ->
         let c =
           Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun data ->
-              let data = Audio.of_array data in
               let len = try Audio.length data with _ -> 0 in
               processed := Int64.add !processed (Int64.of_int len);
               buffer.Decoder.put_pcm ~samplerate data)

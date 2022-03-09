@@ -270,7 +270,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             assert (Array.length pcm = self#audio_channels);
             let len = Frame.audio_of_main len in
             let data = Bytes.create (2 * self#audio_channels * len) in
-            Audio.S16LE.of_audio pcm data 0;
+            Audio.S16LE.of_audio pcm 0 data 0 len;
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
               (Option.get el.audio) data 0 (Bytes.length data));
           if has_video then (
@@ -581,7 +581,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         let b = audio.pull () in
         let len = String.length b / (2 * self#audio_channels) in
         let buf = Audio.create self#audio_channels len in
-        Audio.S16LE.to_audio b 0 (Audio.sub buf 0 len);
+        Audio.S16LE.to_audio b 0 buf 0 len;
         Generator.put_audio gen
           (Content.Audio.lift_data buf)
           0 (Frame.main_of_audio len)
