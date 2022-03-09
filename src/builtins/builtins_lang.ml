@@ -125,7 +125,8 @@ let () =
               | s when s = "auto" -> `Auto
               | s when s = "cpu" -> `CPU
               | s when s = "none" -> `None
-              | _ -> raise (Error.Invalid_value (sync, "Invalid sync value"))
+              | _ ->
+                  raise (Error.Invalid_value (sync, [], "Invalid sync value"))
           in
           let clock = new Clock.clock ~sync id in
           List.iter

@@ -49,7 +49,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     (* This should be done before the active_operator initializer
      * attaches us to a clock. *)
     if infallible && source#stype <> `Infallible then
-      raise (Error.Invalid_value (val_source, "That source is fallible"))
+      raise (Error.Invalid_value (val_source, [], "That source is fallible"))
 
     inherit active_operator ~name:output_kind content_kind [source] as super
     inherit Start_stop.base ~on_start ~on_stop as start_stop

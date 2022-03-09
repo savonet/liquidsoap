@@ -115,6 +115,7 @@ let () =
               raise
                 (Error.Invalid_value
                    ( encoding,
+                     [],
                      "Encoding should be one of: \"ascii\" or \"utf8\"." ))
       in
       let special_char =
@@ -177,6 +178,7 @@ let () =
               raise
                 (Error.Invalid_value
                    ( format,
+                     [],
                      "Format should be one of: `\"octal\"`, `\"hex\"` or \
                       `\"utf8\"`." ))
       in
@@ -209,7 +211,9 @@ let () =
         | _ ->
             raise
               (Error.Invalid_value
-                 (encoding, "Encoding should be one of: \"ascii\" or \"utf8\".")))
+                 ( encoding,
+                   [],
+                   "Encoding should be one of: \"ascii\" or \"utf8\"." )))
 
 let () =
   Lang.add_builtin "string.unescape"

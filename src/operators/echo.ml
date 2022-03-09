@@ -87,7 +87,8 @@ let () =
         (* Check the initial value, wrap the getter with a converter. *)
         if feedback () > 0. then
           raise
-            (Error.Invalid_value (f "feedback", "feedback should be negative"));
+            (Error.Invalid_value
+               (f "feedback", [], "feedback should be negative"));
         fun () -> Audio.lin_of_dB (feedback ())
       in
       let kind = Kind.of_kind kind in

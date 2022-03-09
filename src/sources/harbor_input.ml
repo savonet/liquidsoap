@@ -174,6 +174,7 @@ module Make (Harbor : T) = struct
             raise
               (Error.Invalid_value
                  ( List.assoc "" p,
+                   [],
                    (* TODO: raise two script values ? *)
                    let port = Lang.to_int (List.assoc "port" p) in
                    Printf.sprintf
@@ -467,6 +468,7 @@ module Make (Harbor : T) = struct
           raise
             (Error.Invalid_value
                ( List.assoc "max" p,
+                 [],
                  "Maximum buffering inferior to pre-buffered data" ));
         let on_connect l =
           let l =

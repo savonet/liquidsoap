@@ -231,7 +231,7 @@ let rec transition_of_string p transition =
     | _ ->
         raise
           (Error.Invalid_value
-             (List.assoc "transition" p, "Invalid transition kind"))
+             (List.assoc "transition" p, [], "Invalid transition kind"))
 
 let extract p =
   ( Lang.to_float (List.assoc "duration" p),
@@ -257,7 +257,7 @@ let extract p =
              let msg =
                "The 'type' parameter should be 'lin','sin','log' or 'exp'!"
              in
-             raise (Error.Invalid_value (mode, msg))
+             raise (Error.Invalid_value (mode, [], msg))
      in
      fun l ->
        let l = float l in

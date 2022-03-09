@@ -109,7 +109,8 @@ let () =
         try Audio_converter.Channel_layout.layout_of_channels channels
         with _ ->
           raise
-            (Error.Invalid_value (channels_v, "unsupported number of channels"))
+            (Error.Invalid_value
+               (channels_v, [], "unsupported number of channels"))
       in
       let kind =
         Lang.audio_params

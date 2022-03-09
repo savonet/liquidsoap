@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-(** Runtime error, should eventually disappear. *)
-exception Invalid_value of Value.t * string
+(** A runtime error. *)
+exception Invalid_value of Value.t * Pos.List.t * string
 
-exception Clock_conflict of (Pos.List.t * string * string)
-exception Clock_loop of (Pos.List.t * string * string)
-exception Kind_conflict of (Pos.List.t * string * string)
+exception Clock_conflict of Pos.List.t * string * string
+exception Clock_loop of Pos.List.t * string * string
+exception Kind_conflict of Pos.List.t * string * string

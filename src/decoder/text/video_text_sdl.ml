@@ -34,7 +34,7 @@ let get_font font size =
   with e ->
     raise
       (Error.Invalid_value
-         (Lang.string font, Printexc.to_string e ^ "(font: " ^ font ^ ")"))
+         (Lang.string font, [], Printexc.to_string e ^ "(font: " ^ font ^ ")"))
 
 let render_text ~font ~size text =
   let text = if text = "" then " " else text in

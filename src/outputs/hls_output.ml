@@ -254,7 +254,7 @@ class hls_output p =
     then
       raise
         (Error.Invalid_value
-           (Lang.assoc "" 1 p, "The target directory does not exist"))
+           (Lang.assoc "" 1 p, [], "The target directory does not exist"))
   in
   let persist_at =
     Option.map
@@ -271,6 +271,7 @@ class hls_output p =
            raise
              (Error.Invalid_value
                 ( List.assoc "persist_at" p,
+                  [],
                   Printf.sprintf
                     "Error while creating directory %s for persisting state: %s"
                     (Utils.quote_string dir) (Printexc.to_string exn) )));
@@ -323,7 +324,7 @@ class hls_output p =
     let l = Lang.to_list streams in
     if l = [] then
       raise
-        (Error.Invalid_value (streams, "The list of streams cannot be empty"));
+        (Error.Invalid_value (streams, [], "The list of streams cannot be empty"));
     l
   in
   let mk_streams, streams =
@@ -334,7 +335,7 @@ class hls_output p =
       let encoder_factory =
         try Encoder.get_factory format
         with Not_found ->
-          raise (Error.Invalid_value (fmt, "Unsupported format"))
+          raise (Error.Invalid_value (fmt, [], "Unsupported format"))
       in
       let encoder = encoder_factory name Meta_format.empty_metadata in
       let bandwidth, codecs, extname, video_size =
@@ -350,6 +351,7 @@ class hls_output p =
                       raise
                         (Error.Invalid_value
                            ( fmt,
+                             [],
                              "Bandwidth cannot be inferred from codec, please \
                               specify it in `streams_info`" ))))
           in
@@ -363,6 +365,7 @@ class hls_output p =
                       raise
                         (Error.Invalid_value
                            ( fmt,
+                             [],
                              Printf.sprintf
                                "Stream info for stream %S cannot be inferred \
                                 from codec, please specify it in \
@@ -375,6 +378,7 @@ class hls_output p =
               raise
                 (Error.Invalid_value
                    ( fmt,
+                     [],
                      "File extension cannot be inferred from codec, please \
                       specify it in `streams_info`" ))
           in

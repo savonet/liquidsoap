@@ -43,6 +43,7 @@ let quality_of_string = function
       raise
         (Error.Invalid_value
            ( Lang.string s,
+             [],
              "Native resampling quality must either be \"nearest\" or \
               \"linear\"." ))
 

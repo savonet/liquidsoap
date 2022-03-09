@@ -210,6 +210,7 @@ let () =
         raise
           (Error.Invalid_value
              ( List.assoc "weights" p,
+               [],
                "there should be as many weights as sources" ));
       let kind = Kind.of_kind kind in
       (new add
@@ -302,6 +303,7 @@ let () =
         raise
           (Error.Invalid_value
              ( List.assoc "weights" p,
+               [],
                "there should be as many weights as sources" ));
       let kind = Kind.of_kind kind in
       (new add

@@ -96,7 +96,9 @@ let () =
           | _ ->
               raise
                 (Error.Invalid_value
-                   (v, "protocol should be one of: 'icy', 'http' or 'https'."))
+                   ( v,
+                     [],
+                     "protocol should be one of: 'icy', 'http' or 'https'." ))
       in
       let mount =
         match protocol with

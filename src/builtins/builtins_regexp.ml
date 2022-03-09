@@ -190,7 +190,8 @@ let () =
         List.map
           (fun v ->
             try regexp_flag_of_string (Lang.to_string v)
-            with _ -> raise (Error.Invalid_value (v, "Invalid regexp flag")))
+            with _ ->
+              raise (Error.Invalid_value (v, [], "Invalid regexp flag")))
           (Lang.to_list (List.assoc "flags" p))
       in
       let iflags = Pcre.cflags (cflags_of_flags flags) in

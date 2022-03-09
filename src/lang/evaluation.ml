@@ -304,6 +304,11 @@ and apply ?pos f l =
           Printexc.raise_with_backtrace
             (Internal_error (Option.to_list pos @ poss, e))
             bt
+      | Error.Invalid_value (v, poss, msg) ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace
+            (Error.Invalid_value (v, Option.to_list pos @ poss, msg))
+            bt
       | Error.Clock_conflict (poss, a, b) ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace

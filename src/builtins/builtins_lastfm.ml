@@ -79,7 +79,9 @@ let () =
               | _ ->
                   raise
                     (Error.Invalid_value
-                       (List.assoc "source" p, "unknown lastfm submission mode")))
+                       ( List.assoc "source" p,
+                         [],
+                         "unknown lastfm submission mode" )))
           else Liqfm.Unknown
         in
         let length = Lang.to_bool (List.assoc "length" p) in

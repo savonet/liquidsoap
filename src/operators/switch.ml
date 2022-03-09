@@ -419,7 +419,7 @@ let () =
         if ltr > l then
           raise
             (Error.Invalid_value
-               (List.assoc "transitions" p, "Too many transitions"));
+               (List.assoc "transitions" p, [], "Too many transitions"));
         if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition)
         else tr
       in
@@ -447,6 +447,7 @@ let () =
           raise
             (Error.Invalid_value
                ( List.assoc "single" p,
+                 [],
                  "there should be exactly one flag per children" ))
       in
       let kind = Kind.of_kind kind in

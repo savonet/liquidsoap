@@ -229,7 +229,7 @@ let () =
         with Not_found ->
           raise
             (Error.Invalid_value
-               (fmt, "Cannot get a stream encoder for that format"))
+               (fmt, [], "Cannot get a stream encoder for that format"))
       in
       let source = Lang.assoc "" 2 p in
       let kind = Kind.of_kind kind in
@@ -272,6 +272,7 @@ let () =
               raise
                 (Error.Invalid_value
                    ( Lang.assoc "" 1 p,
+                     [],
                      "Cannot get a stream decoder for this MIME" ))
           | Some decoder_factory -> decoder_factory
       in

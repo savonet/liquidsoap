@@ -184,7 +184,7 @@ module Icecast_v (M : Icecast_t) = struct
     let encoder_factory =
       try Encoder.get_factory enc
       with Not_found ->
-        raise (Error.Invalid_value (v, "No encoder found for that format"))
+        raise (Error.Invalid_value (v, [], "No encoder found for that format"))
     in
     let format =
       let f = Lang.to_string (List.assoc "format" p) in
@@ -196,6 +196,7 @@ module Icecast_v (M : Icecast_t) = struct
               raise
                 (Error.Invalid_value
                    ( Lang.assoc "" 1 p,
+                     [],
                      "No format (mime) found, please specify one." )))
     in
     { factory = encoder_factory; format; info }

@@ -301,7 +301,7 @@ class output ~kind p =
         | _ ->
             raise
               (Error.Invalid_value
-                 (m, "Valid values are: 'source' 'put' or 'post'."))
+                 (m, [], "Valid values are: 'source' 'put' or 'post'."))
     in
     let v = List.assoc "protocol" p in
     match Lang.to_string v with
@@ -311,7 +311,7 @@ class output ~kind p =
       | _ ->
           raise
             (Error.Invalid_value
-               (v, "Valid values are 'http' (icecast) and 'icy' (shoutcast)"))
+               (v, [], "Valid values are 'http' (icecast) and 'icy' (shoutcast)"))
   in
   let icy_metadata =
     let v = List.assoc "icy_metadata" p in
@@ -323,7 +323,7 @@ class output ~kind p =
         | _ ->
             raise
               (Error.Invalid_value
-                 (v, "Valid values are 'guess', 'true' or 'false'"))
+                 (v, [], "Valid values are 'guess', 'true' or 'false'"))
     in
     match (data.format, icy) with
       | _, `True -> true
@@ -335,6 +335,7 @@ class output ~kind p =
           raise
             (Error.Invalid_value
                ( List.assoc "icy_metadata" p,
+                 [],
                  "Could not guess icy_metadata for this format, please specify \
                   either 'true' or 'false'." ))
   in
@@ -353,6 +354,7 @@ class output ~kind p =
           raise
             (Error.Invalid_value
                ( List.assoc "mount" p,
+                 [],
                  "Either name or mount must be defined for icecast sources." ))
       | Cry.Icy, name, _ when name = no_name ->
           (Cry.Icy_id icy_id, Printf.sprintf "sc#%i" icy_id)

@@ -185,13 +185,14 @@ let mk_options { Avfilter.options } =
           in
           let x =
             try from_value v
-            with _ -> raise (Error.Invalid_value (v, "Invalid value"))
+            with _ -> raise (Error.Invalid_value (v, [], "Invalid value"))
           in
           (match min with
             | Some m when x < m ->
                 raise
                   (Error.Invalid_value
                      ( v,
+                       [],
                        Printf.sprintf "%s must be more than %s" name
                          (to_string m) ))
             | _ -> ());
@@ -200,6 +201,7 @@ let mk_options { Avfilter.options } =
                 raise
                   (Error.Invalid_value
                      ( v,
+                       [],
                        Printf.sprintf "%s must be less than %s" name
                          (to_string m) ))
             | _ -> ());
@@ -208,6 +210,7 @@ let mk_options { Avfilter.options } =
                 raise
                   (Error.Invalid_value
                      ( v,
+                       [],
                        Printf.sprintf "%s should be one of: %s" name
                          (String.concat ", "
                             (List.map (fun (_, v) -> to_string v) values)) ))
@@ -305,6 +308,7 @@ let get_config graph =
         raise
           (Error.Invalid_value
              ( graph,
+               [],
                "Graph variables cannot be used outside of ffmpeg.filter.create!"
              ))
 
@@ -368,6 +372,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                     raise
                       (Error.Invalid_value
                          ( v,
+                           [],
                            Printf.sprintf
                              "Invalid number of input for filter %s" filter.name
                          ));

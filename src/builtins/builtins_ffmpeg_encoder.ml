@@ -474,7 +474,9 @@ let mk_encoder mode =
           | _ ->
               raise
                 (Error.Invalid_value
-                   (format_val, "Only %ffmpeg encoder is currently supported!"))
+                   ( format_val,
+                     [],
+                     "Only %ffmpeg encoder is currently supported!" ))
       in
       let content =
         match mode with
@@ -488,6 +490,7 @@ let mk_encoder mode =
         raise
           (Error.Invalid_value
              ( format_val,
+               [],
                Printf.sprintf
                  "Muxer options are not supported for inline encoders: %s"
                  (Ffmpeg_format.string_of_options
@@ -496,7 +499,7 @@ let mk_encoder mode =
       if format.Ffmpeg_format.format <> None then
         raise
           (Error.Invalid_value
-             (format_val, "Format option is not supported inline encoders"));
+             (format_val, [], "Format option is not supported inline encoders"));
 
       let mk_encode_frame () =
         let audio_opts = Hashtbl.copy format.Ffmpeg_format.audio_opts in
@@ -537,6 +540,7 @@ let mk_encoder mode =
                   raise
                     (Error.Invalid_value
                        ( format_val,
+                         [],
                          "Operator expects an encoder of the form: " ^ encoder
                        )))
           else None
@@ -560,6 +564,7 @@ let mk_encoder mode =
                   raise
                     (Error.Invalid_value
                        ( format_val,
+                         [],
                          "Operator expects an encoder of the form: " ^ encoder
                        )))
           else None
@@ -604,6 +609,7 @@ let mk_encoder mode =
           raise
             (Error.Invalid_value
                ( format_val,
+                 [],
                  Printf.sprintf "Unrecognized options: %s"
                    (Ffmpeg_format.string_of_options original_opts) ));
 
