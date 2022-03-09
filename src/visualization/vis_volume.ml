@@ -84,7 +84,7 @@ class vumeter ~kind source =
           self#add_vol
             (Array.map
                (fun c ->
-                 let x = c.{i} in
+                 let x = c.(i) in
                  x *. x)
                content)
         done;

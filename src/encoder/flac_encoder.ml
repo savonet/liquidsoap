@@ -49,16 +49,10 @@ let encoder flac meta =
     let b = AFrame.pcm frame in
     let len = Frame.audio_of_main len in
     let b, start, len =
-      if src_freq <> dst_freq then (
-        let b =
-          Audio_converter.Samplerate.resample samplerate_converter
-            (dst_freq /. src_freq) (Audio.sub b start len)
-        in
-        (b, 0, Audio.length b))
-      else (b, start, len)
+      Audio_converter.Samplerate.resample samplerate_converter
+        (dst_freq /. src_freq) b start len
     in
     let b = Audio.sub b start len in
-    let b = Audio.to_array b in
     Flac.Encoder.process !enc cb b;
     Strings.Mutable.flush buf
   in

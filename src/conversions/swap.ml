@@ -44,9 +44,9 @@ class swap ~kind (source : source) =
         buffer.(2) <- tmp)
       else
         for i = offset to AFrame.position buf - 1 do
-          let tmp = buffer.(0).{i} in
-          buffer.(0).{i} <- buffer.(1).{i};
-          buffer.(1).{i} <- tmp
+          let tmp = buffer.(0).(i) in
+          buffer.(0).(i) <- buffer.(1).(i);
+          buffer.(1).(i) <- tmp
         done
   end
 

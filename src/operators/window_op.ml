@@ -66,7 +66,7 @@ class window ~kind mode duration source =
         let buf = AFrame.pcm buf in
         for i = offset to position - 1 do
           for c = 0 to self#audio_channels - 1 do
-            let x = buf.(c).{i} in
+            let x = buf.(c).(i) in
             match mode with
               | RMS -> acc.(c) <- acc.(c) +. (x *. x)
               | Peak -> acc.(c) <- max acc.(c) (abs_float x)

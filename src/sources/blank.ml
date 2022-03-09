@@ -47,10 +47,9 @@ class blank ~kind duration =
       let video_pos = Frame.video_of_main position in
       (* Audio *)
       (try
-         Audio.clear
-           (Audio.sub (AFrame.pcm ab)
-              (Frame.audio_of_main position)
-              (Frame.audio_of_main length))
+         Audio.clear (AFrame.pcm ab)
+           (Frame.audio_of_main position)
+           (Frame.audio_of_main length)
        with Frame_content.Invalid -> ());
 
       (* Video *)

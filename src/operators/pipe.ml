@@ -97,12 +97,11 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
       else (
         let len = pull bytes 0 Utils.pagesize in
         let data = converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
-        let data = resampler ~samplerate data in
-        let len = Audio.length data in
+        let data, ofs, len = resampler ~samplerate data 0 (Audio.length data) in
         let buffered = Generator.length abg in
         Generator.put_audio abg
           (Frame_content.Audio.lift_data data)
-          0 (Frame.main_of_audio len);
+          (Frame.main_of_audio ofs) (Frame.main_of_audio len);
         let to_replay =
           Tutils.mutexify mutex
             (fun () ->
@@ -167,7 +166,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let slen_of_len len = 2 * len * Array.length buf in
         let slen = slen_of_len blen in
         let sbuf = Bytes.create slen in
-        Audio.S16LE.of_audio buf sbuf 0;
+        Audio.S16LE.of_audio buf 0 sbuf 0 blen;
         let metadata =
           List.sort
             (fun (pos, _) (pos', _) -> compare pos pos')

@@ -51,9 +51,9 @@ class comb ~kind (source : source) delay feedback =
       let feedback = feedback () in
       for i = offset to position - 1 do
         for c = 0 to Array.length b - 1 do
-          let oldin = b.(c).{i} in
-          b.(c).{i} <- b.(c).{i} +. (past.(c).{past_pos} *. feedback);
-          past.(c).{past_pos} <- oldin
+          let oldin = b.(c).(i) in
+          b.(c).(i) <- b.(c).(i) +. (past.(c).(past_pos) *. feedback);
+          past.(c).(past_pos) <- oldin
         done;
         past_pos <- (past_pos + 1) mod past_len
       done

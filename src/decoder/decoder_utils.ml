@@ -23,24 +23,25 @@
 open Mm
 
 type samplerate_converter =
-  samplerate:int -> Frame_content.Audio.data -> Frame_content.Audio.data
+  samplerate:int ->
+  Frame_content.Audio.data ->
+  int ->
+  int ->
+  Frame_content.Audio.data * int * int
 
 let samplerate_converter () =
   let state = ref None in
   let audio_dst_rate = float (Lazy.force Frame.audio_rate) in
-  fun ~samplerate audio_buf ->
+  fun ~samplerate audio_buf ofs len ->
     let _channels = Array.length audio_buf in
     let ratio = audio_dst_rate /. float samplerate in
-    match (!state, ratio) with
-      (* All data is copied away from the decoders so that we can
-       * pass it around uncopied in all future processing. *)
-      | Some (_, channels), 1. when channels = _channels -> Audio.copy audio_buf
-      | Some (converter, channels), _ when channels = _channels ->
-          Audio_converter.Samplerate.resample converter ratio audio_buf
-      | _ ->
+    match !state with
+      | Some converter ->
+          Audio_converter.Samplerate.resample converter ratio audio_buf ofs len
+      | None ->
           let converter = Audio_converter.Samplerate.create _channels in
-          state := Some (converter, _channels);
-          Audio_converter.Samplerate.resample converter ratio audio_buf
+          state := Some converter;
+          Audio_converter.Samplerate.resample converter ratio audio_buf 0 len
 
 type wav_converter = string -> Frame_content.Audio.data
 
@@ -66,7 +67,7 @@ let from_iff ~format ~channels ~samplesize =
         | 32 when format = `Wav -> Audio.S32LE.to_audio
         | _ -> failwith "unsupported sample size"
     in
-    to_audio src 0 dst;
+    to_audio src 0 dst 0 sample_len;
     dst
 
 type channels_converter = Frame_content.Audio.data -> Frame_content.Audio.data

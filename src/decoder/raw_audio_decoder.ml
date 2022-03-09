@@ -84,7 +84,7 @@ let create ~format input =
     in
     for i = 0 to len - 1 do
       for c = 0 to channels - 1 do
-        dst.(c).{i} <- sample ()
+        dst.(c).(i) <- sample ()
       done
     done;
     dst

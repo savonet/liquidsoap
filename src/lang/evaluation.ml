@@ -47,32 +47,32 @@ let eval_pat pat v =
   in
   aux [] pat v
 
-let rec eval ~env tm =
-  let env = (env : Value.lazy_env) in
-  let prepare_fun fv p env =
-    (* Unlike OCaml we always evaluate default values, and we do that early. I
-       think the only reason is homogeneity with FFI, which are declared with
-       values as defaults. *)
-    let p =
-      List.map
-        (function
-          | lbl, var, _, Some v -> (lbl, var, Some (eval ~env v))
-          | lbl, var, _, None -> (lbl, var, None))
-        p
-    in
-    (* Keep only once the variables we might use in the environment. *)
-    let env =
-      let fv = ref fv in
-      let mem x =
-        if Vars.mem x !fv then (
-          fv := Vars.remove x !fv;
-          true)
-        else false
-      in
-      List.filter (fun (x, _) -> mem x) env
-    in
-    (p, env)
+let rec prepare_fun fv p env =
+  (* Unlike OCaml we always evaluate default values, and we do that early. I
+     think the only reason is homogeneity with FFI, which are declared with
+     values as defaults. *)
+  let p =
+    List.map
+      (function
+        | lbl, var, _, Some v -> (lbl, var, Some (eval ~env v))
+        | lbl, var, _, None -> (lbl, var, None))
+      p
   in
+  (* Keep only once the variables we might use in the environment. *)
+  let env =
+    let fv = ref fv in
+    let mem x =
+      if Vars.mem x !fv then (
+        fv := Vars.remove x !fv;
+        true)
+      else false
+    in
+    List.filter (fun (x, _) -> mem x) env
+  in
+  (p, env)
+
+and eval ~env tm =
+  let env = (env : Value.lazy_env) in
   let mk v =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)

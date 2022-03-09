@@ -243,8 +243,7 @@ module AdaptativeBuffer = struct
               if slen > 0 then (
                 let src = Audio.create self#audio_channels slen in
                 RB.read c.rb src;
-                if slen = dlen then
-                  Audio.blit (Audio.sub src 0 slen) (Audio.sub dst dofs slen)
+                if slen = dlen then Audio.blit src 0 dst dofs slen
                 else
                   (* TODO: we could do better than nearest interpolation. However,
                      for slight adaptations the difference should not really be
@@ -253,8 +252,8 @@ module AdaptativeBuffer = struct
                     let srcc = src.(c) in
                     let dstc = dst.(c) in
                     for i = 0 to dlen - 1 do
-                      let x = srcc.{i * slen / dlen} in
-                      dstc.{i + dofs} <- x
+                      let x = srcc.(i * slen / dlen) in
+                      dstc.(i + dofs) <- x
                     done
                   done)
             in

@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
 open Source
 module Generator = Generator.From_frames
 
@@ -71,10 +70,12 @@ class resample ~kind ~ratio source_val =
       let ratio = ratio () in
       let content, len =
         let content = AFrame.pcm frame in
-        let content = Audio.sub content 0 (AFrame.position frame) in
         let converter = Option.get converter in
-        let pcm = Audio_converter.Samplerate.resample converter ratio content in
-        let len = Audio.length pcm in
+        let pcm, ofs, len =
+          Audio_converter.Samplerate.resample converter ratio content 0
+            (AFrame.position frame)
+        in
+        assert (ofs = 0);
         ( {
             Frame.audio = Frame_content.Audio.lift_data pcm;
             video = Frame_content.None.data;

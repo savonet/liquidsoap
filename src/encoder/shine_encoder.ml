@@ -46,23 +46,15 @@ let encoder shine =
     let b = AFrame.pcm frame in
     let len = Frame.audio_of_main len in
     let b, start, len =
-      if src_freq <> dst_freq then (
-        let b =
-          Audio_converter.Samplerate.resample samplerate_converter
-            (dst_freq /. src_freq) (Audio.sub b start len)
-        in
-        (b, 0, Audio.length b))
-      else (Audio.copy b, start, len)
+      Audio_converter.Samplerate.resample samplerate_converter
+        (dst_freq /. src_freq) b start len
     in
     G.put buf b start len;
     while G.length buf > samples do
       let l = G.get buf samples in
-      let f (b, o, o', l) =
-        Audio.blit (Audio.sub b o l) (Audio.sub data o' l)
-      in
+      let f (b, o, o', l) = Audio.blit b o data o' l in
       List.iter f l;
-      Strings.Mutable.add encoded
-        (Shine.encode_buffer enc (Audio.to_array data))
+      Strings.Mutable.add encoded (Shine.encode_buffer enc data)
     done;
     Strings.Mutable.flush encoded
   in

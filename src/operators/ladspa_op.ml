@@ -116,13 +116,14 @@ class ladspa_mono ~kind (source : source) plugin descr input output params =
       let len = position - offset in
       let inst = Option.get inst in
       for c = 0 to Array.length b - 1 do
-        let buf = Audio.Mono.sub b.(c) offset len in
+        let buf = Audio.Mono.to_ba b.(c) offset len in
         Descriptor.connect_port inst.(c) input buf;
         Descriptor.connect_port inst.(c) output buf;
         List.iter
           (fun (p, v) -> Descriptor.set_control_port inst.(c) p (v ()))
           params;
-        Descriptor.run inst.(c) len
+        Descriptor.run inst.(c) len;
+        Audio.Mono.copy_from_ba buf b.(c) offset len
       done
   end
 
@@ -143,27 +144,28 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
       let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let len = position - offset in
+      let ba = Audio.to_ba b offset len in
       List.iter (fun (p, v) -> Descriptor.set_control_port inst p (v ())) params;
       if Array.length inputs = Array.length outputs then (
         (* The simple case: number of channels does not get changed. *)
         for c = 0 to Array.length b - 1 do
-          let buf = Audio.Mono.sub b.(c) offset len in
-          Descriptor.connect_port inst inputs.(c) buf;
-          Descriptor.connect_port inst outputs.(c) buf
+          Descriptor.connect_port inst inputs.(c) ba.(c);
+          Descriptor.connect_port inst outputs.(c) ba.(c)
         done;
-        Descriptor.run inst len)
+        Descriptor.run inst len;
+        Audio.copy_from_ba ba b offset len)
       else (
         (* We have to change channels. *)
-        let d = AFrame.pcm buf in
         for c = 0 to Array.length b - 1 do
-          Descriptor.connect_port inst inputs.(c)
-            (Audio.Mono.sub b.(c) offset len)
+          Descriptor.connect_port inst inputs.(c) ba.(c)
         done;
+        let d = AFrame.pcm buf in
+        let dba = Audio.to_ba d offset len in
         for c = 0 to Array.length d - 1 do
-          Descriptor.connect_port inst outputs.(c)
-            (Audio.Mono.sub d.(c) offset len)
+          Descriptor.connect_port inst outputs.(c) dba.(c)
         done;
-        Descriptor.run inst len)
+        Descriptor.run inst len;
+        Audio.copy_from_ba dba d offset len)
   end
 
 class ladspa_nosource ~kind plugin descr outputs params =
@@ -189,11 +191,12 @@ class ladspa_nosource ~kind plugin descr outputs params =
         List.iter
           (fun (p, v) -> Descriptor.set_control_port inst p (v ()))
           params;
+        let ba = Audio.to_ba b offset len in
         for c = 0 to Array.length b - 1 do
-          Descriptor.connect_port inst outputs.(c)
-            (Audio.Mono.sub b.(c) offset len)
+          Descriptor.connect_port inst outputs.(c) ba.(c)
         done;
         Descriptor.run inst len;
+        Audio.copy_from_ba ba b offset len;
         AFrame.add_break buf position)
   end
 

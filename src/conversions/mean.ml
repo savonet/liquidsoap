@@ -44,8 +44,8 @@ class mean ~normalize source =
           in
           let ( ! ) = Frame.audio_of_main in
           for i = !start to !(start + len) - 1 do
-            content.(0).{i} <-
-              Array.fold_left (fun m b -> m +. b.{i}) 0. tmp_content *. amp
+            content.(0).(i) <-
+              Array.fold_left (fun m b -> m +. b.(i)) 0. tmp_content *. amp
           done;
           Frame.set_audio frame (Frame_content.Audio.lift_data content))
   end

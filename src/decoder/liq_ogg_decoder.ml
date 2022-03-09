@@ -182,8 +182,7 @@ let create_decoder ?(merge_tracks = false) source input =
       in
       if decode_audio then (
         let track = Option.get tracks.Ogg_decoder.audio_track in
-        Ogg_decoder.decode_audio decoder track (fun buf ->
-            audio_feed track (Audio.of_array buf)));
+        Ogg_decoder.decode_audio decoder track (audio_feed track));
       if decode_video then (
         let track = Option.get tracks.Ogg_decoder.video_track in
         Ogg_decoder.decode_video decoder track (video_feed track))

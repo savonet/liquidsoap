@@ -86,17 +86,17 @@ class lilv_mono ~kind (source : source) plugin input output params =
       let position = AFrame.position buf in
       let len = position - offset in
       let inst = Option.get inst in
+      let ba = Audio.to_ba b offset len in
       for c = 0 to chans - 1 do
-        Plugin.Instance.connect_port_float inst.(c) input
-          (Audio.Mono.sub b.(c) offset len);
-        Plugin.Instance.connect_port_float inst.(c) output
-          (Audio.Mono.sub b.(c) offset len);
+        Plugin.Instance.connect_port_float inst.(c) input ba.(c);
+        Plugin.Instance.connect_port_float inst.(c) output ba.(c);
         List.iter
           (fun (p, v) ->
             Plugin.Instance.connect_port_float inst.(c) p
               (constant_data len (v ())))
           params;
-        Plugin.Instance.run inst.(c) len
+        Plugin.Instance.run inst.(c) len;
+        Audio.copy_from_ba ba b offset len
       done
   end
 
@@ -124,29 +124,29 @@ class lilv ~kind (source : source) plugin inputs outputs params =
           Bigarray.Array1.fill data (v ());
           Plugin.Instance.connect_port_float inst p data)
         params;
+      let ba = Audio.to_ba b offset len in
       if Array.length inputs = Array.length outputs then (
         let chans = Array.length b in
         (* The simple case: number of channels does not get changed. *)
         for c = 0 to chans - 1 do
-          Plugin.Instance.connect_port_float inst inputs.(c)
-            (Audio.Mono.sub b.(c) offset len);
-          Plugin.Instance.connect_port_float inst outputs.(c)
-            (Audio.Mono.sub b.(c) offset len)
+          Plugin.Instance.connect_port_float inst inputs.(c) ba.(c);
+          Plugin.Instance.connect_port_float inst outputs.(c) ba.(c)
         done;
-        Plugin.Instance.run inst len)
+        Plugin.Instance.run inst len;
+        Audio.copy_from_ba ba b offset len)
       else (
         (* We have to change channels. *)
         let d = AFrame.pcm buf in
+        let dba = Audio.to_ba d offset len in
         for c = 0 to Array.length b - 1 do
-          Plugin.Instance.connect_port_float inst inputs.(c)
-            (Audio.Mono.sub b.(c) offset len)
+          Plugin.Instance.connect_port_float inst inputs.(c) ba.(c)
         done;
         let output_chans = Array.length d in
         for c = 0 to output_chans - 1 do
-          Plugin.Instance.connect_port_float inst outputs.(c)
-            (Audio.Mono.sub b.(c) offset len)
+          Plugin.Instance.connect_port_float inst outputs.(c) dba.(c)
         done;
-        Plugin.Instance.run inst len)
+        Plugin.Instance.run inst len;
+        Audio.copy_from_ba dba d offset len)
   end
 
 (** An LV2 plugin without audio input. *)
@@ -170,15 +170,16 @@ class lilv_nosource ~kind plugin outputs params =
         let chans = Array.length b in
         let position = AFrame.size () in
         let len = position - offset in
+        let ba = Audio.to_ba b offset len in
         List.iter
           (fun (p, v) ->
             Plugin.Instance.connect_port_float inst p (constant_data len (v ())))
           params;
         for c = 0 to chans - 1 do
-          Plugin.Instance.connect_port_float inst outputs.(c)
-            (Audio.Mono.sub b.(c) offset len)
+          Plugin.Instance.connect_port_float inst outputs.(c) ba.(c)
         done;
         Plugin.Instance.run inst len;
+        Audio.copy_from_ba ba b offset len;
         AFrame.add_break buf position)
   end
 
@@ -199,13 +200,13 @@ class lilv_noout ~kind source plugin inputs params =
       let chans = Array.length b in
       let position = AFrame.size () in
       let len = position - offset in
+      let ba = Audio.to_ba b offset len in
       List.iter
         (fun (p, v) ->
           Plugin.Instance.connect_port_float inst p (constant_data len (v ())))
         params;
       for c = 0 to chans - 1 do
-        Plugin.Instance.connect_port_float inst inputs.(c)
-          (Audio.Mono.sub b.(c) offset len)
+        Plugin.Instance.connect_port_float inst inputs.(c) ba.(c)
       done;
       Plugin.Instance.run inst len
   end

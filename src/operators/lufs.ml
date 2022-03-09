@@ -164,7 +164,7 @@ class lufs ~kind window source =
       let position = AFrame.position buf in
       let buf = AFrame.pcm buf in
       for i = offset to position - 1 do
-        let x = Array.init channels (fun c -> buf.(c).{i}) in
+        let x = Array.init channels (fun c -> buf.(c).(i)) in
         (* Prefilter. *)
         let x = stage1 x in
         let x = stage2 x in

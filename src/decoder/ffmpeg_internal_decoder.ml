@@ -29,7 +29,7 @@ module Generator = Decoder.G
 let log = Log.make ["decoder"; "ffmpeg"; "internal"]
 
 module ConverterInput = Swresample.Make (Swresample.Frame)
-module Converter = ConverterInput (Swresample.FltPlanarBigArray)
+module Converter = ConverterInput (Swresample.PlanarFloatArray)
 module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 
 let mk_audio_decoder ~channels container =

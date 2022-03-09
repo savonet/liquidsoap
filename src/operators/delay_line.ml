@@ -64,9 +64,9 @@ class delay ~kind (source : source) duration =
       if length > 0 then
         for i = offset to position - 1 do
           for c = 0 to self#audio_channels - 1 do
-            let x = buf.(c).{i} in
-            buf.(c).{i} <- buffer.(c).{pos};
-            buffer.(c).{pos} <- x
+            let x = buf.(c).(i) in
+            buf.(c).(i) <- buffer.(c).(pos);
+            buffer.(c).(pos) <- x
           done;
           pos <- (pos + 1) mod length
         done
