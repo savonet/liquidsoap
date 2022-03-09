@@ -194,25 +194,17 @@ module Ground = struct
   }
 
   let handlers = Hashtbl.create 10
-
-  let register matcher c =
-    match Hashtbl.find_opt handlers c.typ with
-      | None -> Hashtbl.replace handlers c.typ (c, [])
-      | Some (c, matchers) ->
-          Hashtbl.replace handlers c.typ (c, matcher :: matchers)
+  let register matcher c = Hashtbl.replace handlers c.typ (c, matcher)
 
   exception Found of content
 
-  let find =
-    let find_match v fn = fn v in
-    fun v ->
-      try
-        Hashtbl.iter
-          (fun _ (c, matchers) ->
-            if List.exists (find_match v) matchers then raise (Found c))
-          handlers;
-        raise Not_found
-      with Found c -> c
+  let find v =
+    try
+      Hashtbl.iter
+        (fun _ (c, matcher) -> if matcher v then raise (Found c))
+        handlers;
+      raise Not_found
+    with Found c -> c
 
   let to_string (v : t) = (find v).descr v
   let to_json ~compact ~json5 (v : t) = (find v).to_json ~compact ~json5 v
