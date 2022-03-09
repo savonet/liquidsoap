@@ -27,4 +27,4 @@ val eval : ?env:(string * (Type.scheme * Value.t)) list -> Term.t -> Value.t
 val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
 
 (** Apply a function to arguments. *)
-val apply : Value.t -> (string * Value.t) list -> Value.t
+val apply : ?pos:Pos.t -> Value.t -> (string * Value.t) list -> Value.t

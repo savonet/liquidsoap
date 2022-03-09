@@ -78,7 +78,7 @@ val iter_sources :
 
 (** {2 Computation} *)
 
-val apply_fun : (value -> env -> value) ref
+val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)

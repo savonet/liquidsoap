@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-(** Make positions more precise in applications (but should be a bit slower). *)
-let precise_application_pos = false
-
 (** {1 Evaluation} *)
 
 open Term
@@ -279,7 +276,7 @@ let rec eval ~env tm =
         let ans () =
           let f = eval ~env f in
           let l = List.map (fun (l, t) -> (l, eval ~env t)) l in
-          apply f l
+          apply ?pos:tm.t.Type.pos f l
         in
         if !profile then (
           match f.term with
@@ -287,26 +284,7 @@ let rec eval ~env tm =
             | _ -> ans ())
         else ans ()
 
-and apply f l =
-  (* Position of the whole application. *)
-  let pos =
-    if precise_application_pos then (
-      let rec pos = function
-        | [(_, v)] -> (
-            match (f.Value.pos, v.Value.pos) with
-              | Some (p, _), Some (_, q) -> Some (p, q)
-              | Some pos, None -> Some pos
-              | None, Some pos -> Some pos
-              | None, None -> None)
-        | _ :: l -> pos l
-        | [] -> f.Value.pos
-      in
-      pos l)
-    else
-      (* NB: the above is more precise (we get the arguments), but I don't think
-         this is worth the price: we compute it for every application... *)
-      f.Value.pos
-  in
+and apply ?pos f l =
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
     match (Value.demeth f).Value.value with
