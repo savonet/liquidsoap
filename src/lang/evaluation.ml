@@ -24,9 +24,9 @@
 
 open Term
 
-(** [remove_first f l] removes the first element [e] of [l] such that [f e],
-  * and returns [e,l'] where [l'] is the list without [e].
-  * Asserts that there is such an element. *)
+(** [remove_first f l] removes the first element [e] of [l] such that [f e], and
+    returns [e,l'] where [l'] is the list without [e]. Asserts that there is
+    such an element. *)
 let remove_first filter =
   let rec aux acc = function
     | [] -> assert false
@@ -34,15 +34,6 @@ let remove_first filter =
         if filter hd then (hd, List.rev_append acc tl) else aux (hd :: acc) tl
   in
   aux []
-
-let rec rev_map_append f l1 l2 =
-  match l1 with [] -> l2 | a :: l -> rev_map_append f l (f a :: l2)
-
-let lookup (env : Value.lazy_env) var =
-  try Lazy.force (List.assoc var env)
-  with Not_found ->
-    failwith
-      (Printf.sprintf "Internal error: variable %s not in environment." var)
 
 let rec eval_pat pat v =
   let rec aux env pat v =
@@ -103,8 +94,42 @@ let rec eval_pat pat v =
   in
   aux [] pat v
 
-let rec eval ~env tm =
-  let env = (env : Value.lazy_env) in
+module Env = struct
+  type t = Value.lazy_env
+
+  (** Find the value of a variable in the environment. *)
+  let lookup (env : t) var =
+    try Lazy.force (List.assoc var env)
+    with Not_found ->
+      failwith
+        (Printf.sprintf "Internal error: variable %s not in environment." var)
+
+  (** Restrict an environment to a given set of variables. *)
+  let restrict (env : t) vars =
+    let vars = ref vars in
+    let mem x =
+      if Vars.mem x !vars then (
+        vars := Vars.remove x !vars;
+        true)
+      else false
+    in
+    List.filter (fun (x, _) -> mem x) env
+
+  (** Bind a variable to a lazy value in an environment. *)
+  let add_lazy (env : t) x v : t = (x, v) :: env
+
+  (** Bind a variable to a value in an environment. *)
+  let add env x v = add_lazy env x (Lazy.from_val v)
+
+  (** Bind multiple variables in an environment. *)
+  let adds env binds = List.fold_right (fun (x, v) env -> add env x v) binds env
+
+  (** Bind multiple variables to lazy values in an environment. *)
+  let adds_lazy env bind =
+    List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
+end
+
+let rec eval (env : Env.t) tm =
   let prepare_fun fv p env =
     (* Unlike OCaml we always evaluate default values, and we do that early. I
        think the only reason is homogeneity with FFI, which are declared with
@@ -112,21 +137,12 @@ let rec eval ~env tm =
     let p =
       List.map
         (function
-          | lbl, var, _, Some v -> (lbl, var, Some (eval ~env v))
+          | lbl, var, _, Some v -> (lbl, var, Some (eval env v))
           | lbl, var, _, None -> (lbl, var, None))
         p
     in
     (* Keep only once the variables we might use in the environment. *)
-    let env =
-      let fv = ref fv in
-      let mem x =
-        if Vars.mem x !fv then (
-          fv := Vars.remove x !fv;
-          true)
-        else false
-      in
-      List.filter (fun (x, _) -> mem x) env
-    in
+    let env = Env.restrict env fv in
     (p, env)
   in
   let mk v =
@@ -182,7 +198,7 @@ let rec eval ~env tm =
             (fun (l, t) ->
               ( l,
                 match t with
-                  | `Term t -> `Value (eval ~env t)
+                  | `Term t -> `Value (eval env t)
                   | `Encoder (l, p) -> `Encoder (l, eval_param p) ))
             p
         in
@@ -190,13 +206,13 @@ let rec eval ~env tm =
         let enc : Value.encoder = (e, p) in
         let e = Lang_encoder.make_encoder ~pos tm enc in
         mk (Value.Encoder e)
-    | List l -> mk (Value.List (List.map (eval ~env) l))
-    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval ~env a) l))
+    | List l -> mk (Value.List (List.map (eval env) l))
+    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval env a) l))
     | Null -> mk Value.Null
     | Cast (e, _) ->
-        let e = eval ~env e in
+        let e = eval env e in
         mk e.Value.value
-    | Meth (l, u, v) -> mk (Value.Meth (l, eval ~env u, eval ~env v))
+    | Meth (l, u, v) -> mk (Value.Meth (l, eval env u, eval env v))
     | Invoke (t, l) ->
         let rec aux t =
           match t.Value.value with
@@ -208,19 +224,19 @@ let rec eval ~env tm =
                      ( Option.to_list tm.t.Type.pos,
                        "invoked method `" ^ l ^ "` not found" ))
         in
-        aux (eval ~env t)
+        aux (eval env t)
     | Open (t, u) ->
-        let t = eval ~env t in
+        let t = eval env t in
         let rec aux env t =
           match t.Value.value with
-            | Value.Meth (l, v, t) -> aux ((l, Lazy.from_val v) :: env) t
+            | Value.Meth (l, v, t) -> aux (Env.add env l v) t
             | Value.Tuple [] -> env
             | _ -> assert false
         in
         let env = aux env t in
-        eval ~env u
+        eval env u
     | Let { pat; replace; def = v; body = b; _ } ->
-        let v = eval ~env v in
+        let v = eval env v in
         let penv =
           List.map
             (fun (ll, v) ->
@@ -228,9 +244,7 @@ let rec eval ~env tm =
                 | [] -> assert false
                 | [x] ->
                     let v () =
-                      if replace then
-                        Value.remeth (Lazy.force (List.assoc x env)) v
-                      else v
+                      if replace then Value.remeth (Env.lookup env x) v else v
                     in
                     (x, Lazy.from_fun v)
                 | l :: ll ->
@@ -245,7 +259,7 @@ let rec eval ~env tm =
                               (Value.Meth (l, meths ll v (Value.invoke t l), t))
                     in
                     let v () =
-                      let t = Lazy.force (List.assoc l env) in
+                      let t = Env.lookup env l in
                       let v =
                         (* When replacing, keep previous methods. *)
                         if replace then Value.remeth (Value.invokes t ll) v
@@ -256,26 +270,26 @@ let rec eval ~env tm =
                     (l, Lazy.from_fun v))
             (eval_pat pat v)
         in
-        let env = penv @ env in
-        eval ~env b
+        let env = Env.adds_lazy env penv in
+        eval env b
     | Fun (fv, p, body) ->
         let p, env = prepare_fun fv p env in
         mk (Value.Fun (p, env, body))
     | RFun (x, fv, p, body) ->
         let p, env = prepare_fun fv p env in
         let rec v () =
-          let env = (x, Lazy.from_fun v) :: env in
+          let env = Env.add_lazy env x (Lazy.from_fun v) in
           { Value.pos = tm.t.Type.pos; value = Value.Fun (p, env, body) }
         in
         v ()
-    | Var var -> lookup env var
+    | Var var -> Env.lookup env var
     | Seq (a, b) ->
-        ignore (eval ~env a);
-        eval ~env b
+        ignore (eval env a);
+        eval env b
     | App (f, l) ->
         let ans () =
-          let f = eval ~env f in
-          let l = List.map (fun (l, t) -> (l, eval ~env t)) l in
+          let f = eval env f in
+          let l = List.map (fun (l, t) -> (l, eval env t)) l in
           apply ?pos:tm.t.Type.pos f l
         in
         if !profile then (
@@ -291,10 +305,8 @@ and apply ?pos f l =
       | Value.Fun (p, e, body) ->
           ( p,
             fun pe ->
-              let env =
-                rev_map_append (fun (x, gv) -> (x, Lazy.from_val gv)) pe e
-              in
-              eval ~env body )
+              let env = Env.adds e pe in
+              eval env body )
       | Value.FFI (p, f) -> (p, fun pe -> f (List.rev pe))
       | _ -> assert false
   in
@@ -350,7 +362,7 @@ let eval ?env tm =
       | None -> Environment.default_environment ()
   in
   let env = List.map (fun (x, (_, v)) -> (x, Lazy.from_val v)) env in
-  eval ~env tm
+  eval env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
     evaluation of the next scripts. Also try to generate a structured
