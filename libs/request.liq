@@ -61,7 +61,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
     end
     s.on_get_ready(memoize({
       begin
-        server.register(namespace=s.id(), description="Flush the queue and skip the current track",
+        server.register(namespace=source.id(s), description="Flush the queue and skip the current track",
                         "flush_and_skip", fun (_) -> try
                           s.set_queue([])
                           s.skip()
@@ -69,14 +69,14 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
                         catch err do
                           "Error while flushing and skipping source: #{err}"
                         end)
-        server.register(namespace=s.id(), description="Push a new request in the queue.", usage="push <uri>", "push", push)
+        server.register(namespace=source.id(s), description="Push a new request in the queue.", usage="push <uri>", "push", push)
         def show_queue(_) =
           queue = [...s.queue(), ...(!queue)]
           string.concat(separator=" ", list.map(fun (r) -> string_of(request.id(r)), queue))
         end
-        server.register(namespace=s.id(), description="Display current queue content.", usage="queue", "queue", show_queue)
+        server.register(namespace=source.id(s), description="Display current queue content.", usage="queue", "queue", show_queue)
         def skip(_) = s.skip(); "Done." end
-        server.register(namespace=s.id(), description="Skip current song.", usage="skip", "skip", skip)
+        server.register(namespace=source.id(s), description="Skip current song.", usage="skip", "skip", skip)
       end
     }))
   end

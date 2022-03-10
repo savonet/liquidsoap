@@ -11,7 +11,7 @@ end
 # @param ~id Force the value of the source ID.
 def server.rms(~id=null(),s) =
   let s = rms(id=id,s)
-  id = s.id()
+  id = source.id(s)
   def rms(_) =
     rms = s.rms()
     "#{rms}"
@@ -56,7 +56,7 @@ def server.insert_metadata(~id=null(),s) =
       "Syntax error or no metadata given. Use key1=\"val1\",key2=\"val2\",.."
     end
   end
-  id = s.id()
+  id = source.id(s)
   server.register(namespace="#{id}",
                   description="Insert a metadata chunk.",
                   usage="insert key1=\"val1\",key2=\"val2\",..",

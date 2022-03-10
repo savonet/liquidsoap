@@ -3,7 +3,7 @@ def replaces request.dynamic(%argsof(request.dynamic), fn) =
   s = request.dynamic(%argsof(request.dynamic), fn)
 
   s.on_get_ready(memoize({
-    server.register(namespace=s.id(), description="Flush the queue and skip the current track",
+    server.register(namespace=source.id(s), description="Flush the queue and skip the current track",
                     "flush_and_skip", fun (_) -> try
                       s.set_queue([])
                       s.skip()
@@ -23,7 +23,7 @@ def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
 
   s.on_get_ready(memoize({
     begin
-      server.register(namespace=s.id(), description="Set gstreamer pipeline state to play",
+      server.register(namespace=source.id(s), description="Set gstreamer pipeline state to play",
                       "play", fun (_) -> try
                         s.play()
                         "Done."
@@ -31,7 +31,7 @@ def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
                         "Error while setting state to play: #{err}"
                       end)
 
-      server.register(namespace=s.id(), description="Set gstreamer pipeline state to paused",
+      server.register(namespace=source.id(s), description="Set gstreamer pipeline state to paused",
                       "pause", fun (_) -> try
                       s.pause()
                       "Done."
@@ -39,7 +39,7 @@ def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
                       "Error while setting state to paused: #{err}"
                     end)
 
-      server.register(namespace=s.id(), description="Restart gstreamer pipeline",
+      server.register(namespace=source.id(s), description="Restart gstreamer pipeline",
                       "restart", fun (_) -> try
                         s.restart()
                         "Done."
@@ -58,7 +58,7 @@ def replaces blank.strip(%argsof(blank.strip), s) =
   s = blank.strip(%argsof(blank.strip), s)
 
   s.on_get_ready(memoize({
-    server.register(namespace=s.id(), description="Check if the source is stripping.",
+    server.register(namespace=source.id(s), description="Check if the source is stripping.",
                     "is_stripping", fun (_) -> begin
                       "#{s.is_blank()}"
                     end)
@@ -72,7 +72,7 @@ def replaces output.external(%argsof(output.external), f, p, s) =
   s = output.external(%argsof(output.external), f, p, s)
 
   s.on_get_ready(memoize({
-    server.register(namespace=s.id(), description="Re-open the output.",
+    server.register(namespace=source.id(s), description="Re-open the output.",
                     "reopen", fun (_) -> begin
                       s.reopen()
                       "Done."
@@ -87,7 +87,7 @@ def replaces input.external.avi(%argsof(input.external.avi), s) =
   s = input.external.avi(%argsof(input.external.avi), s)
 
   s.on_get_ready(memoize({
-    server.register(namespace=s.id(), description="Show internal buffer length (in seconds).",
+    server.register(namespace=source.id(s), description="Show internal buffer length (in seconds).",
                     "buffer_length", fun (_) -> begin
                       let (audio, video, total) = s.buffer_length()
                       "audio buffer length: #{audio}\nvideo buffer length: #{video}\ntotal buffer length: #{total}"
@@ -103,18 +103,18 @@ def replaces input.harbor(%argsof(input.harbor), s) =
 
   s.on_get_ready(memoize({
     begin
-      server.register(namespace=s.id(), description="Stop current source client, if connected.",
+      server.register(namespace=source.id(s), description="Stop current source client, if connected.",
                      "stop", fun (_) -> begin
                         s.stop()
                         "Done"
                       end)
 
-      server.register(namespace=s.id(), description="Display current status.",
+      server.register(namespace=source.id(s), description="Display current status.",
                       "status", fun (_) -> begin
                         s.status()
                       end)
 
-      server.register(namespace=s.id(), description="Get the buffer's length, in seconds.",
+      server.register(namespace=source.id(s), description="Get the buffer's length, in seconds.",
                       "buffer_length", fun (_) -> begin
                         "#{s.buffer_length()}"
                       end)
@@ -131,19 +131,19 @@ def replaces input.http(%argsof(input.http), s) =
 
   s.on_get_ready(memoize({
     begin
-      server.register(namespace=s.id(), description="Start the source, if needed.",
+      server.register(namespace=source.id(s), description="Start the source, if needed.",
                       "start", fun (_) -> begin
                         s.start()
                         "Done!"
                       end)
 
-      server.register(namespace=s.id(), description="Stop the source if connected.",
+      server.register(namespace=source.id(s), description="Stop the source if connected.",
                       "stop", fun (_) -> begin
                         s.stop()
                         "Done!"
                       end)
 
-      server.register(namespace=s.id(), description="Get or set the stream's HTTP URL. Setting a new URL will not affect an ongoing connection.",
+      server.register(namespace=source.id(s), description="Get or set the stream's HTTP URL. Setting a new URL will not affect an ongoing connection.",
                       usage="url [url]", "url", fun (url) -> begin
                         if url == "" then
                           s.url()
@@ -153,7 +153,7 @@ def replaces input.http(%argsof(input.http), s) =
                         end end
                       end)
 
-      server.register(namespace=s.id(), description="Return the current status of the source, either \"stopped\" \
+      server.register(namespace=source.id(s), description="Return the current status of the source, either \"stopped\" \
                                                      (the source isn't trying to relay the HTTP stream), \"polling\" \
                                                      (attempting to connect to the HTTP stream) or \"connected <url>\" \
                                                      (connected to <url>, buffering or playing back the stream).",
@@ -161,7 +161,7 @@ def replaces input.http(%argsof(input.http), s) =
                         s.status()
                       end)
 
-      server.register(namespace=s.id(), description="Get the buffer's length, in seconds.",
+      server.register(namespace=source.id(s), description="Get the buffer's length, in seconds.",
                       "buffer_length", fun (_) -> begin
                         "#{s.buffer_length()}"
                       end)
