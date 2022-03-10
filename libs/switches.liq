@@ -55,7 +55,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
   picked_index = ref(-1)
   default_weight = {1}
   failed = (source.fail():source)
-  tracks_played = list.map(fun (s) -> (s.id(), ref(0)), sources)
+  tracks_played = list.map(fun (s) -> (source.id(s), ref(0)), sources)
 
   def pick() =
     list.iter((fun (el) -> snd(el) := 0), tracks_played)
@@ -82,7 +82,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
       if !picked_index == -1 then pick() end
 
       if !picked_index == index then
-        if !list.assoc(s.id(), tracks_played) < weight () then
+        if !list.assoc(source.id(s), tracks_played) < weight () then
           true
         else
            pick()

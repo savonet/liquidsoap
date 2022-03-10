@@ -17,7 +17,7 @@ def add_skip_command(s) =
     "Done!"
   end
   # Register the command:
-  server.register(namespace="#{s.id()}",
+  server.register(namespace="#{source.id(s)}",
                   usage="skip",
                   description="Skip the current song.",
                   "skip",skip)
