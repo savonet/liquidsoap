@@ -58,14 +58,16 @@ type metadata = (string, string) Hashtbl.t
 let string_of_metadata metadata =
   let b = Buffer.create 20 in
   let f = Format.formatter_of_buffer b in
-  let escape f s = Utils.escape_utf8_formatter f s in
   let first = ref true in
   Hashtbl.iter
     (fun k v ->
       if !first then (
         first := false;
-        try Format.fprintf f "%s=\"%a\"" k escape v with _ -> ())
-      else (try Format.fprintf f "\n%s=\"%a\"" k escape v with _ -> ()))
+        try Format.fprintf f "%s=\"%s\"" k (Utils.escape_utf8_string v)
+        with _ -> ())
+      else (
+        try Format.fprintf f "\n%s=\"%s\"" k (Utils.escape_utf8_string v)
+        with _ -> ()))
     metadata;
   Format.pp_print_flush f ();
   Buffer.contents b
