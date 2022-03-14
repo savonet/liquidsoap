@@ -4,6 +4,11 @@
 Changed:
 * Optimized memory usage when accessing frame content (#2266)
 * Optimized memory usage when accessing ground terms.
+* Allow crossfade duration getter to override duration at the
+  end of each track if duration isn't set via metadata.
+
+Fixed:
+* Prevent infinite loops when crossfade duration is negative (#2287)
 
 2.0.3 (11-02-2022)
 =====
