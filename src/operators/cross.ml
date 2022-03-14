@@ -29,7 +29,7 @@ let finalise_child_clock child_clock source =
 (** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
-class cross ~kind val_source ~cross_length ~override_duration ~rms_width
+class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
   ~minimum_length ~conservative ~active transition =
   let s = Lang.to_source val_source in
   object (self)
@@ -45,7 +45,15 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
      * sources but we do not have a static way of knowing it at the moment.
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
-    val mutable cross_length = cross_length ()
+    val mutable cross_length = 0
+
+    method set_cross_length d =
+      if d >= 0. then cross_length <- Frame.main_of_seconds d
+      else
+        self#log#important "Cannot set crossfade duration to negative value %f!"
+          d
+
+    initializer self#set_cross_length (duration_getter ())
 
     (* We need to store the end of a track, and compute the power of the signal
      * before the end of track. For doing so we need to remember a sliding window
@@ -166,18 +174,24 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
         | _ -> ()
 
     method private update_cross_length frame pos =
-      List.iter
-        (fun (p, m) ->
-          if p >= pos then (
-            match Utils.hashtbl_get m override_duration with
-              | None -> ()
-              | Some v -> (
-                  try
-                    let l = float_of_string v in
-                    self#log#info "Setting crossfade duration to %.2fs" l;
-                    cross_length <- Frame.main_of_seconds l
-                  with _ -> ())))
-        (Frame.get_all_metadata frame)
+      let updated =
+        List.fold_left
+          (fun updated (p, m) ->
+            if p >= pos then (
+              match Utils.hashtbl_get m override_duration with
+                | None -> updated
+                | Some v ->
+                    (try
+                       let l = float_of_string v in
+                       self#log#info "Setting crossfade duration to %.2fs" l;
+                       self#set_cross_length l
+                     with _ -> ());
+                    true)
+            else updated)
+          false
+          (Frame.get_all_metadata frame)
+      in
+      if not updated then self#set_cross_length (duration_getter ())
 
     method private get_frame frame =
       match status with
@@ -466,11 +480,10 @@ let () =
        depending on the relative power of the signal before and after the end \
        of track."
     (fun p ->
-      let duration = Lang.to_float_getter (List.assoc "duration" p) in
+      let duration_getter = Lang.to_float_getter (List.assoc "duration" p) in
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)
       in
-      let cross_length () = Frame.main_of_seconds (duration ()) in
       let minimum = Lang.to_float (List.assoc "minimum" p) in
       let minimum_length = Frame.audio_of_seconds minimum in
       let rms_width = Lang.to_float (List.assoc "width" p) in
@@ -482,7 +495,7 @@ let () =
       let kind = Kind.of_kind kind in
       let c =
         new cross
-          ~kind source transition ~conservative ~active ~cross_length ~rms_width
-          ~minimum_length ~override_duration
+          ~kind source transition ~conservative ~active ~duration_getter
+          ~rms_width ~minimum_length ~override_duration
       in
       (c :> source))
