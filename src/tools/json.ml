@@ -25,18 +25,20 @@ let from_string ?(pos = []) ?(json5 = false) s =
    when a character cannot be escaped. *)
 let quote_utf8_string =
   let escape_char =
-    let utf8_char_code s =
-      try Utils.utf8_char_code s with _ -> Uchar.to_int Uchar.rep
+    let utf8_char_code s pos len =
+      try Utils.utf8_char_code s pos len with _ -> Uchar.to_int Uchar.rep
     in
-    Utils.escape_char ~escape_fun:(fun s ->
-        Printf.sprintf "\\u%04X" (utf8_char_code s))
+    Utils.escape_char ~escape_fun:(fun s pos len ->
+        Printf.sprintf "\\u%04X" (utf8_char_code s pos len))
   in
   let next s i =
     try Utils.utf8_next s i with _ -> max (String.length s) (i + 1)
   in
   let escape_utf8_formatter =
     Utils.escape
-      ~special_char:(function "'" -> false | x -> Utils.utf8_special_char x)
+      ~special_char:(fun s pos len ->
+        if s.[pos] = '\'' && len = 1 then false
+        else Utils.utf8_special_char s pos len)
       ~escape_char ~next
   in
   fun s -> Printf.sprintf "\"%s\"" (Utils.escape_string escape_utf8_formatter s)

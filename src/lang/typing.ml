@@ -149,12 +149,22 @@ exception Unsatisfied_constraint of constr * t
 
 (** Check that [a] (a dereferenced type variable) does not occur in [b] and
     prepare the instantiation [a<-b] by adjusting the levels. *)
-let rec occur_check (a : var) b =
-  let constr_check (_, x) = occur_check a x in
-  let arrow_check (_, _, t) = occur_check a t in
+let rec constr_check a (_, x) =
+  occur_check a x;
+  a
+
+and tuple_check a x =
+  occur_check a x;
+  a
+
+and arrow_check a (_, _, t) =
+  occur_check a t;
+  a
+
+and occur_check (a : var) b =
   match b.descr with
-    | Constr c -> List.iter constr_check c.params
-    | Tuple l -> List.iter (occur_check a) l
+    | Constr c -> ignore (List.fold_left constr_check a c.params)
+    | Tuple l -> ignore (List.fold_left tuple_check a l)
     | Getter t -> occur_check a t
     | List { t } -> occur_check a t
     | Nullable t -> occur_check a t
@@ -166,7 +176,7 @@ let rec occur_check (a : var) b =
         occur_check a t;
         occur_check a u
     | Arrow (p, t) ->
-        List.iter arrow_check p;
+        ignore (List.fold_left arrow_check a p);
         occur_check a t
     | Ground _ -> ()
     | Var { contents = Free x } ->

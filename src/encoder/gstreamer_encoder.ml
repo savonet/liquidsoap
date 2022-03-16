@@ -152,7 +152,7 @@ let encoder ext =
       let alen = Frame.audio_of_main len in
       let pcm = AFrame.pcm frame in
       let data = Bytes.create (2 * channels * alen) in
-      Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
+      Audio.S16LE.of_audio pcm astart data 0 alen;
       Gstreamer.App_src.push_buffer_bytes ~presentation_time:!presentation_time
         ~duration (Option.get gst.audio_src) data 0 (Bytes.length data));
     if videochans > 0 then (

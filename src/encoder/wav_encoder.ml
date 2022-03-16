@@ -50,13 +50,7 @@ let encoder wav =
     let len = Frame.audio_of_main len in
     (* Resample if needed. *)
     let b, start, len =
-      if ratio = 1. then (b, start, len)
-      else (
-        let b =
-          Audio_converter.Samplerate.resample converter ratio
-            (Audio.sub b start len)
-        in
-        (b, 0, Audio.length b))
+      Audio_converter.Samplerate.resample converter ratio b start len
     in
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =
@@ -67,7 +61,7 @@ let encoder wav =
         | 8 -> fun buf s off -> Audio.U8.of_audio buf s off
         | _ -> failwith "unsupported sample size"
     in
-    of_audio (Audio.sub b start len) s 0;
+    of_audio b start s 0 len;
     let s = Bytes.unsafe_to_string s in
     if !need_header then (
       need_header := false;

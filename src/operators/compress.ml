@@ -92,7 +92,7 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
         (* Apply pre_gain. *)
         if pre_gain <> 0. then
           for c = 0 to chans - 1 do
-            buf.(c).{i} <- buf.(c).{i} *. pre_gain_lin
+            buf.(c).(i) <- buf.(c).(i) *. pre_gain_lin
           done;
         (* Compute input. *)
         let x =
@@ -101,10 +101,10 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
             let x = ref 0. in
             for c = 0 to chans - 1 do
               let old =
-                if lookahead = 0 then buf.(c).{i}
+                if lookahead = 0 then buf.(c).(i)
                 else (
-                  let old = ringbuffer.(c).{ringbuffer_pos} in
-                  ringbuffer.(c).{ringbuffer_pos} <- buf.(c).{i};
+                  let old = ringbuffer.(c).(ringbuffer_pos) in
+                  ringbuffer.(c).(ringbuffer_pos) <- buf.(c).(i);
                   old)
               in
               x := max !x (abs_float old)
@@ -119,10 +119,10 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
             let x = ref 0. in
             for c = 0 to chans - 1 do
               let old =
-                if lookahead = 0 then buf.(c).{i}
+                if lookahead = 0 then buf.(c).(i)
                 else (
-                  let old = ringbuffer.(c).{ringbuffer_pos} in
-                  ringbuffer.(c).{ringbuffer_pos} <- buf.(c).{i};
+                  let old = ringbuffer.(c).(ringbuffer_pos) in
+                  ringbuffer.(c).(ringbuffer_pos) <- buf.(c).(i);
                   old)
               in
               x := !x +. (old *. old)
@@ -160,7 +160,7 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
         (* Finally apply gain. *)
         let gain = Audio.lin_of_dB (gain +. make_up_gain) in
         for c = 0 to chans - 1 do
-          buf.(c).{i} <- buf.(c).{i} *. (1. -. wet +. (wet *. gain))
+          buf.(c).(i) <- buf.(c).(i) *. (1. -. wet +. (wet *. gain))
         done
       done;
       if partial && track_sensitive then self#reset

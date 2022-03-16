@@ -25,7 +25,11 @@ open Mm
 (** Resampling module for any Frame.content *)
 
 type samplerate_converter =
-  samplerate:int -> Content.Audio.data -> Content.Audio.data
+  samplerate:int ->
+  Content.Audio.data ->
+  int ->
+  int ->
+  Content.Audio.data * int * int
 
 val samplerate_converter : unit -> samplerate_converter
 

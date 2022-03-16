@@ -46,9 +46,13 @@ let quality_of_string = function
              "Native resampling quality must either be \"nearest\" or \
               \"linear\"." ))
 
-let samplerate_converter () =
+let samplerate_converter _ =
   let mode = quality_of_string quality_conf#get in
-  Audio.Mono.resample ~mode
+  fun r data ofs len ->
+    if r = 1. then (data, ofs, len)
+    else (
+      let data = Audio.resample ~mode r data ofs len in
+      (data, 0, Audio.length data))
 
 let () =
   Audio_converter.Samplerate.converters#register "native" samplerate_converter
@@ -56,7 +60,7 @@ let () =
 let channel_layout_converter src dst =
   assert (src <> dst);
   match dst with
-    | `Mono -> fun data -> [| Audio.to_mono data |]
+    | `Mono -> fun data -> [| Audio.to_mono data 0 (Audio.length data) |]
     | `Stereo -> fun data -> [| data.(0); data.(0) |]
     | _ -> raise Audio_converter.Channel_layout.Unsupported
 

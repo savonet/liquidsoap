@@ -102,22 +102,23 @@ class dssi ~kind ?chan plugin descr outputs params source =
                   Array.of_list
                     (List.filter_map dssi_of_midi (MIDI.data evs.(chan))))
       in
+      assert (Array.length outputs = Array.length b);
+      let ba = Audio.to_ba b offset len in
       Array.iter
         (fun inst ->
           List.iter
             (fun (p, v) -> Ladspa.Descriptor.set_control_port inst p (v ()))
             params;
           for c = 0 to Array.length outputs - 1 do
-            Ladspa.Descriptor.connect_port inst outputs.(c)
-              (Audio.Mono.sub b.(c) offset len)
+            Ladspa.Descriptor.connect_port inst outputs.(c) ba.(c)
           done)
         inst;
-      assert (Array.length outputs = Array.length b);
       try Descriptor.run_multiple_synths descr ~adding:true inst len evs
       with Descriptor.Not_implemented ->
         for i = 0 to (if chan = None then all_chans else 1) - 1 do
           Descriptor.run_synth ~adding:true descr inst.(i) len evs.(i)
-        done
+        done;
+        Audio.copy_from_ba ba b offset len
   end
 
 let () =

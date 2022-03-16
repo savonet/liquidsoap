@@ -65,7 +65,7 @@ let create_encoder ~flac ~comments () =
     let b, ofs, len =
       (data.Ogg_muxer.data, data.Ogg_muxer.offset, data.Ogg_muxer.length)
     in
-    let b = Mm.Audio.(to_array (sub b ofs len)) in
+    let b = Array.map (fun x -> Array.sub x ofs len) b in
     let enc, _, _ = get_enc os in
     Flac.Encoder.process enc cb b
   in

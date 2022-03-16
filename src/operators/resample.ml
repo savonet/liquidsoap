@@ -70,10 +70,13 @@ class resample ~kind ~ratio source_val =
       let ratio = ratio () in
       let content, len =
         let content = AFrame.pcm frame in
-        let content = Audio.sub content 0 (AFrame.position frame) in
         let converter = Option.get converter in
-        let pcm = Audio_converter.Samplerate.resample converter ratio content in
-        (Content.Audio.lift_data pcm, Audio.length pcm)
+        let pcm, ofs, len =
+          Audio_converter.Samplerate.resample converter ratio content 0
+            (Audio.length content)
+        in
+        assert (ofs = 0);
+        (Content.Audio.lift_data pcm, len)
       in
       let convert x = int_of_float (float x *. ratio) in
       Generator.put_audio generator content 0 len;

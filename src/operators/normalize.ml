@@ -81,9 +81,9 @@ class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
       for i = offset to AFrame.position buf - 1 do
         for c = 0 to self#audio_channels - 1 do
           let bc = b.(c) in
-          let x = bc.{i} in
+          let x = bc.(i) in
           rms <- rms +. (x *. x);
-          bc.{i} <-
+          bc.(i) <-
             x
             *. ((float rmsc *. vold) +. (float (rmsi - rmsc) *. v))
             /. float rmsi

@@ -97,9 +97,8 @@ let () =
   op "rms" "Compute the rms of the last frame." Lang.float_t
     (fun buf off len ->
       let rms =
-        Mm.Audio.Analyze.rms
-          (Mm.Audio.sub (AFrame.pcm buf) (Frame.audio_of_main off)
-             (Frame.audio_of_main len))
+        Mm.Audio.Analyze.rms (AFrame.pcm buf) (Frame.audio_of_main off)
+          (Frame.audio_of_main len)
       in
       let rms = Array.fold_left max 0. rms in
       Lang.float rms)

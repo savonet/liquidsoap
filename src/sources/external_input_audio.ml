@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
 open Extralib
 
 (* {1 External Input handling} *)
@@ -38,12 +37,11 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
   let buf = Bytes.create buflen in
   let on_data reader =
     let ret = reader buf 0 buflen in
-    let data = converter (Bytes.sub_string buf 0 ret) in
-    let len = Audio.length data in
+    let data, ofs, len = converter (Bytes.unsafe_to_string buf) 0 ret in
     let buffered = Generator.length abg in
     Generator.put_audio abg
       (Content.Audio.lift_data data)
-      0 (Frame.main_of_audio len);
+      (Frame.main_of_audio ofs) (Frame.main_of_audio len);
     if abg_max_len < buffered + len then
       `Delay (Frame.seconds_of_audio (buffered + len - (3 * abg_max_len / 4)))
     else `Continue
