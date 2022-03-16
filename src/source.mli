@@ -94,7 +94,7 @@ class virtual source :
   -> ?midi_in:Frame.kind
   -> Kind.t
   -> object
-       method mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
+       method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
        (** {1 Naming} *)
 
