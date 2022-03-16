@@ -10,6 +10,7 @@ Changed:
 Fixed:
 * Prevent infinite loops when crossfade duration is negative (#2287)
 * Prevent mutex deadlock when recursively locking mutexes (#2274)
+* Mark method `add()` as internal in `request.queue`, fix method `length()` (#2274)
 
 2.0.3 (11-02-2022)
 =====
