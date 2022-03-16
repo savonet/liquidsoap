@@ -20,6 +20,7 @@ end
 # @param ~native Use native implementation.
 # @param ~queue Initial queue of requests.
 # @param ~timeout Timeout (in sec.) for a single download.
+# @method add This method is internal and should not be used. Consider using `push` instead.
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
 def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~queue=[], ~timeout=20.)
@@ -80,7 +81,13 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
       end
     }))
   end
-  s.{push=push.{uri=push_uri}, length={list.length(!queue)}}
+
+  def add(r) =
+    log.severe(label=s.id(), "Please use #{s.id()}.push instead of #{s.id()}.add()")
+    s.add(r)
+  end
+
+  s.{add=add, push=push.{uri=push_uri}, length={list.length(!queue)+list.length(s.queue())}}
 end
 
 # Create a source on which plays immediately requests given with the `play`
