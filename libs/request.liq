@@ -87,7 +87,17 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
     s.add(r)
   end
 
-  s.{add=add, push=push.{uri=push_uri}, length={list.length(!queue)+list.length(s.queue())}}
+  def set_queue(q)
+    queue := q
+    s.set_queue([])
+  end
+
+  s.{
+    add=add,
+    push=push.{uri=push_uri},
+    length={list.length(!queue)+list.length(s.queue())},
+    set_queue=set_queue
+  }
 end
 
 # Create a source on which plays immediately requests given with the `play`
