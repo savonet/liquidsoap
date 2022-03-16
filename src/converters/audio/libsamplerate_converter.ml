@@ -57,17 +57,16 @@ let quality_of_string v =
                "libsamplerate quality must be one of: \"best\", \"medium\", \
                 \"fast\", \"zero_order\", \"linear\"." ))
 
-let samplerate_converter () =
+let samplerate_converter channels =
   let quality = quality_of_string quality_conf#get in
-  let converter = Samplerate.create quality 1 in
-  let convert ratio b =
-    let inlen = Audio.Mono.length b in
-    let outlen = int_of_float (float inlen *. ratio) in
+  let converters = Array.init channels (fun _ -> Samplerate.create quality 1) in
+  let convert converter ratio b ofs len =
+    let outlen = int_of_float (float len *. ratio) in
     let buf = Audio.Mono.create outlen in
-    let i, o = Samplerate.process_ba converter ratio b buf in
-    if i < inlen then
+    let i, o = Samplerate.process converter ratio b ofs len buf 0 outlen in
+    if i < len then
       log#debug "Could not convert all the input buffer (%d instead of %d)." i
-        inlen;
+        len;
     if o < outlen then
       log#debug "Unexpected output length (%d instead of %d)." o outlen;
 
@@ -75,7 +74,11 @@ let samplerate_converter () =
     (* Audio.Mono.sub buf 0 o *)
     buf
   in
-  convert
+  fun ratio b ofs len ->
+    let data =
+      Array.mapi (fun i b -> convert converters.(i) ratio b ofs len) b
+    in
+    (data, 0, Audio.length data)
 
 let () =
   Audio_converter.Samplerate.converters#register "libsamplerate"

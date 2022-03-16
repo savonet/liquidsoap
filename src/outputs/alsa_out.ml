@@ -69,7 +69,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
             sc
 
     val mutable alsa_write =
-      fun pcm buf ofs len -> Pcm.writen_float_ba pcm (Audio.sub buf ofs len)
+      fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len
 
     method get_device =
       match device with
@@ -93,7 +93,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
                      let sbuf =
                        Bytes.create (Audio.S16LE.size (Array.length buf) len)
                      in
-                     Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
+                     Audio.S16LE.of_audio buf ofs sbuf 0 len;
                      Pcm.writei pcm sbuf 0 len));
               Pcm.set_channels dev params channels;
               alsa_rate <-
@@ -153,10 +153,11 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
     method send_frame buf =
       let buf = AFrame.pcm buf in
       let ratio = float alsa_rate /. float samples_per_second in
-      let buf =
+      let buf, ofs, len =
         Audio_converter.Samplerate.resample self#samplerate_converter ratio buf
+          0 (Audio.length buf)
       in
-      let f data = Audio.blit buf data in
+      let f data = Audio.blit buf ofs data 0 len in
       ioring#put_block f
 
     method reset =

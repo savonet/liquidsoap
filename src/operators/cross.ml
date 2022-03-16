@@ -280,8 +280,7 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
       (* Analyze them *)
       let pcm = AFrame.pcm buf_frame in
       let len = stop - start in
-      let pcm = Audio.sub pcm start len in
-      let squares = Audio.squares pcm in
+      let squares = Audio.squares pcm start len in
       rms_before <- rms_before -. mem_before.(mem_i) +. squares;
       mem_before.(mem_i) <- squares;
       mem_i <- (mem_i + len) mod rms_width;
@@ -311,8 +310,7 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
         if after_len <= rms_width then (
           let pcm = AFrame.pcm buf_frame in
           let len = stop - start in
-          let pcm = Audio.sub pcm start len in
-          let squares = Audio.squares pcm in
+          let squares = Audio.squares pcm start len in
           rms_after <- rms_after +. squares;
           rmsi_after <- rmsi_after + len);
         self#save_last_metadata `After buf_frame;

@@ -131,16 +131,11 @@ module Register (Fdkaac : Fdkaac_t) = struct
       let b = AFrame.pcm frame in
       let len = Frame.audio_of_main len in
       let b, start, len =
-        if src_freq <> dst_freq then (
-          let b =
-            Audio_converter.Samplerate.resample samplerate_converter
-              (dst_freq /. src_freq) (Audio.sub b start len)
-          in
-          (b, 0, Audio.length b))
-        else (b, start, len)
+        Audio_converter.Samplerate.resample samplerate_converter
+          (dst_freq /. src_freq) b start len
       in
       let encoded = Strings.Mutable.empty () in
-      Strings.Mutable.add buf (Audio.S16LE.make (Audio.sub b start len));
+      Strings.Mutable.add buf (Audio.S16LE.make b start len);
       while Strings.Mutable.length buf >= n do
         let data = Bytes.create n in
         Strings.blit (Strings.sub (Strings.Mutable.to_strings buf) 0 n) data 0;

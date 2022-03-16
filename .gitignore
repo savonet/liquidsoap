@@ -53,3 +53,4 @@ liquidsoap.config
 doc/liquidsoap.1.md
 _opam/
 _build/
+src/depend

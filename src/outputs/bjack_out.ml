@@ -100,7 +100,9 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
         | None -> ()
 
     method send_frame wav =
-      let push data = Audio.S16LE.of_audio (AFrame.pcm wav) data 0 in
+      let push data =
+        Audio.S16LE.of_audio (AFrame.pcm wav) 0 data 0 (AFrame.size ())
+      in
       ioring#put_block push
 
     method reset = ()

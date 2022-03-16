@@ -46,7 +46,7 @@ class rms ~kind ~tau source =
       for i = offset to position - 1 do
         let r = ref 0. in
         for c = 0 to chans - 1 do
-          let x = buf.(c).{i} in
+          let x = buf.(c).(i) in
           r := !r +. (x *. x)
         done;
         let r = !r /. float chans in

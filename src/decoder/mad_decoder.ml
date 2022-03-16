@@ -46,7 +46,7 @@ let init input =
   (* Add an initial index. *)
   update_index ();
   let get_data () =
-    let data = Mad.decode_frame_float_ba !dec in
+    let data = Mad.decode_frame_float !dec in
     update_index ();
     data
   in
@@ -70,7 +70,7 @@ let init input =
 
           (* Decode one frame to set the decoder to a good reading position
            * on next read. *)
-          ignore (Mad.decode_frame_float_ba !dec);
+          ignore (Mad.decode_frame_float !dec);
 
           (* We have to assume here that new_pos = seek_pos.. *)
           time_offset := seek_time
@@ -145,7 +145,7 @@ let file_type filename =
   Tutils.finalize
     ~k:(fun () -> Mad.close fd)
     (fun () ->
-      ignore (Mad.decode_frame_float_ba fd);
+      ignore (Mad.decode_frame_float fd);
       let f = Mad.get_frame_format fd in
       let layer =
         match f.Mad.layer with

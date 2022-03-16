@@ -52,7 +52,7 @@ class echo ~kind (source : source) delay feedback ping_pong =
       let effect = Option.get effect in
       effect#set_delay (delay ());
       effect#set_feedback (feedback ());
-      effect#process (Audio.sub b offset (position - offset))
+      effect#process b offset (position - offset)
   end
 
 let () =

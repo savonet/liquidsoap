@@ -23,7 +23,7 @@
 open Mm
 
 module InternalResampler =
-  Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.Frame)
+  Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)
 
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
@@ -160,8 +160,10 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
 
   function
   | `Frame frame ->
-      let pcm = Audio.sub (AFrame.pcm frame) 0 (AFrame.position frame) in
-      let frame = InternalResampler.convert resampler pcm in
+      let frame =
+        InternalResampler.convert ~length:(AFrame.position frame) resampler
+          (AFrame.pcm frame)
+      in
       encode_ffmpeg_frame frame
   | `Flush -> encode_frame `Flush
 

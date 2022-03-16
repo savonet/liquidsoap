@@ -68,7 +68,7 @@ class gate ~kind ~threshold ~attack ~release ~hold ~range ~window
         let x =
           let x = ref 0. in
           for c = 0 to chans - 1 do
-            x := max !x (abs_float buf.(c).{i})
+            x := max !x (abs_float buf.(c).(i))
           done;
           peak <- peak +. (window_coef *. (!x -. peak));
           peak
@@ -94,7 +94,7 @@ class gate ~kind ~threshold ~attack ~release ~hold ~range ~window
                 state <- `Closed));
         let gain = Audio.lin_of_dB (range *. (1. -. gate)) in
         for c = 0 to chans - 1 do
-          buf.(c).{i} <- buf.(c).{i} *. gain
+          buf.(c).(i) <- buf.(c).(i) *. gain
         done
       done
   end

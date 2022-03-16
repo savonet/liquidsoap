@@ -122,7 +122,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       in
       let len = String.length b / (2 * channels) in
       let buf = Audio.create channels len in
-      Audio.S16LE.to_audio b 0 buf;
+      Audio.S16LE.to_audio b 0 buf 0 len;
       let samplerate = Lazy.force Frame.audio_rate in
       buffer.Decoder.put_pcm ~samplerate buf);
     if decode_video then (

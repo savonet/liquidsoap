@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 (** External audio conversion utilities *)
 
 (* TODO: is it the right place for this ? *)
@@ -31,8 +29,14 @@ val converter_conf : Dtools.Conf.ut
 module Samplerate : sig
   exception Invalid_data
 
-  type converter = float -> Audio.Mono.buffer -> Audio.Mono.buffer
-  type converter_plug = unit -> converter
+  type converter =
+    float ->
+    Frame_content.Audio.data ->
+    int ->
+    int ->
+    Frame_content.Audio.data * int * int
+
+  type converter_plug = int -> converter
   type t
 
   val samplerate_conf : Dtools.Conf.ut
@@ -45,7 +49,12 @@ module Samplerate : sig
       ratio. Raises [Invalid_data] if number of channels do not match the number
       passed at [create]. *)
   val resample :
-    t -> float -> Frame_content.Audio.data -> Frame_content.Audio.data
+    t ->
+    float ->
+    Frame_content.Audio.data ->
+    int ->
+    int ->
+    Frame_content.Audio.data * int * int
 end
 
 module Channel_layout : sig

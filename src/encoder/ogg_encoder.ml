@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 (** OGG encoder *)
 
 type track = {
@@ -42,17 +40,12 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
     let start = Frame.audio_of_main start in
     let len = Frame.audio_of_main len in
     let buf, start, len =
-      if src_freq <> dst_freq then (
-        let b =
-          Audio_converter.Samplerate.resample samplerate_converter
-            (dst_freq /. src_freq) (Audio.sub b start len)
-        in
-        (b, 0, Audio.length b))
-      else (b, start, len)
+      Audio_converter.Samplerate.resample samplerate_converter
+        (dst_freq /. src_freq) b start len
     in
     let data =
       Ogg_muxer.Audio_data
-        { Ogg_muxer.data = Audio.to_array buf; offset = start; length = len }
+        { Ogg_muxer.data = buf; offset = start; length = len }
     in
     Ogg_muxer.encode encoder id data
   in

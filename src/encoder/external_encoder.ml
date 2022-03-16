@@ -118,17 +118,11 @@ let encoder id ext =
         let len = Frame.audio_of_main len in
         (* Resample if needed. *)
         let b, start, len =
-          if ratio = 1. then (b, start, len)
-          else (
-            let b =
-              Audio_converter.Samplerate.resample converter ratio
-                (Audio.sub b start len)
-            in
-            (b, 0, Audio.length b))
+          Audio_converter.Samplerate.resample converter ratio b start len
         in
         let slen = 2 * len * Array.length b in
         let sbuf = Bytes.create slen in
-        Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0;
+        Audio.S16LE.of_audio b start sbuf 0 len;
         Strings.unsafe_of_bytes sbuf)
     in
     Tutils.mutexify mutex

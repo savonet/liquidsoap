@@ -184,7 +184,7 @@ class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
         let x =
           let x = ref 0. in
           for c = 0 to channels - 1 do
-            x := !x +. b.(c).{i}
+            x := !x +. b.(c).(i)
           done;
           !x /. float channels
         in
@@ -322,7 +322,7 @@ class detect ~kind ~duration ~bands ~threshold ~smoothing ~debug ~frequencies
         let x =
           let x = ref 0. in
           for c = 0 to channels - 1 do
-            x := !x +. b.(c).{i}
+            x := !x +. b.(c).(i)
           done;
           !x /. float channels
         in

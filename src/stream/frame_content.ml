@@ -25,9 +25,15 @@ open Mm
 module Contents = struct
   type format = ..
   type kind = ..
-  type _type = ..
+  type _type = int
   type content = ..
   type data = _type * content
+
+  let _type = ref 0
+
+  let register_type () =
+    incr _type;
+    !_type
 
   type audio_params = {
     channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
@@ -173,12 +179,25 @@ type data_handler = {
   clear : data -> unit;
 }
 
-let data_handlers = Hashtbl.create 10
-let register_data_handler t h = Hashtbl.replace data_handlers t h
+let dummy_handler =
+  {
+    blit = (fun _ _ _ _ _ -> assert false);
+    fill = (fun _ _ _ _ _ -> assert false);
+    sub = (fun _ _ _ -> assert false);
+    is_empty = (fun _ -> assert false);
+    copy = (fun _ -> assert false);
+    format = (fun _ -> assert false);
+    clear = (fun _ -> assert false);
+  }
 
-let get_data_handler (t, _) =
-  try Hashtbl.find data_handlers t with Not_found -> raise Invalid
+let data_handlers = Array.make 12 dummy_handler
 
+let register_data_handler t h =
+  if Array.length data_handlers - 1 < t then
+    failwith "Please increase media content array size!";
+  Array.unsafe_set data_handlers t h
+
+let get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ~size k = (get_params_handler k).make size
 let blit src = (get_data_handler src).blit src
 let fill src = (get_data_handler src).fill src
@@ -216,10 +235,10 @@ module MkContent (C : ContentSpecs) :
      and type data = C.data = struct
   type Contents.kind += Kind of C.kind
   type Contents.format += Format of C.params Unifier.t
-  type Contents._type += Type
   type Contents.content += Content of C.data
 
-  let data = function Type, Content d -> d | _ -> assert false
+  let _type = Contents.register_type ()
+  let data = function _, Content d -> d | _ -> assert false
 
   let blit src src_ofs dst dst_ofs len =
     let src = data src in
@@ -268,7 +287,7 @@ module MkContent (C : ContentSpecs) :
             {
               kind = (fun () -> Kind C.kind);
               make =
-                (fun size -> (Type, Content (C.make ~size (Unifier.deref p))));
+                (fun size -> (_type, Content (C.make ~size (Unifier.deref p))));
               merge = (fun p' -> merge p p');
               duplicate = (fun () -> Format Unifier.(make (deref p)));
               compatible = (fun p' -> compatible p p');
@@ -287,14 +306,14 @@ module MkContent (C : ContentSpecs) :
       {
         blit;
         fill;
-        sub = (fun d ofs len -> (Type, Content (C.sub (data d) ofs len)));
+        sub = (fun d ofs len -> (_type, Content (C.sub (data d) ofs len)));
         is_empty = (fun d -> C.is_empty (data d));
-        copy = (fun d -> (Type, Content (C.copy (data d))));
+        copy = (fun d -> (_type, Content (C.copy (data d))));
         format = (fun d -> Format (Unifier.make (C.params (data d))));
         clear = (fun d -> C.clear (data d));
       }
     in
-    register_data_handler Type data_handler
+    register_data_handler _type data_handler
 
   let is_kind = function Kind _ -> true | _ -> false
   let lift_kind f = Kind f
@@ -302,9 +321,9 @@ module MkContent (C : ContentSpecs) :
   let is_format = function Format _ -> true | _ -> false
   let lift_params p = Format (Unifier.make p)
   let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
-  let is_data = function Type, Content _ -> true | _ -> false
-  let lift_data d = (Type, Content d)
-  let get_data = function Type, Content d -> d | _ -> raise Invalid
+  let is_data = function _, Content _ -> true | _ -> false
+  let lift_data d = (_type, Content d)
+  let get_data = function _type, Content d -> d | _ -> raise Invalid
 
   include C
 end
@@ -365,12 +384,7 @@ module AudioSpecs = struct
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = audio_of_main in
-    Array.iter2
-      (fun a a' ->
-        Audio.Mono.blit
-          (Audio.Mono.sub a !src_pos !len)
-          (Audio.Mono.sub a' !dst_pos !len))
-      src dst
+    Audio.blit src !src_pos dst !dst_pos !len
 
   let fill = blit
 
@@ -378,7 +392,7 @@ module AudioSpecs = struct
     let ( ! ) = audio_of_main in
     Audio.sub data !ofs !len
 
-  let copy d = Array.map Audio.Mono.copy d
+  let copy d = Audio.copy d 0 (Audio.length d)
 
   let param_of_channels = function
     | 1 -> { channel_layout = lazy `Mono }

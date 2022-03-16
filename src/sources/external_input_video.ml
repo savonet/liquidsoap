@@ -198,7 +198,10 @@ let () =
                 Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize:16
               in
               audio_converter :=
-                Some (fun data -> resampler ~samplerate (converter data))
+                Some
+                  (fun data ->
+                    let data = converter data in
+                    resampler ~samplerate data 0 (Audio.length data))
         in
         List.iter check h;
         `Continue
@@ -226,11 +229,10 @@ let () =
                 0 (Frame.main_of_video 1)
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
-              let data = converter data in
+              let data, ofs, len = converter data in
               Generator.put_audio abg
                 (Frame_content.Audio.lift_data data)
-                0
-                (Frame.main_of_audio (Audio.length data))
+                (Frame.main_of_audio ofs) (Frame.main_of_audio len)
           | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in

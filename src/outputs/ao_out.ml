@@ -96,7 +96,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
         let push data =
           let pcm = AFrame.pcm wav in
           assert (Array.length pcm = self#audio_channels);
-          Audio.S16LE.of_audio pcm data 0
+          Audio.S16LE.of_audio pcm 0 data 0 (Audio.length pcm)
         in
         ioring#put_block push)
 
