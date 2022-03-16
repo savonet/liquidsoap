@@ -85,14 +85,19 @@ let scheduler_log =
     ~d:false "Log scheduler messages"
 
 let mutexify lock f x =
-  Mutex.lock lock;
+  let after =
+    try
+      Mutex.lock lock;
+      fun () -> Mutex.unlock lock
+    with Sys_error _ -> fun () -> ()
+  in
   try
     let ans = f x in
-    Mutex.unlock lock;
+    after ();
     ans
   with e ->
     let bt = Printexc.get_raw_backtrace () in
-    Mutex.unlock lock;
+    after ();
     Printexc.raise_with_backtrace e bt
 
 let finalize ~k f =
