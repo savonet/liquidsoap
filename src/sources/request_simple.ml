@@ -77,7 +77,7 @@ class unqueued ~kind ~timeout request =
       super#wake_up x
 
     method stype = Infallible
-    method get_next_file = Some request
+    method get_next_file = `Request request
   end
 
 class queued ~kind uri prefetch timeout =
@@ -89,7 +89,7 @@ class queued ~kind uri prefetch timeout =
       if String.length uri < 15 then self#set_id uri;
       super#wake_up x
 
-    method get_next_request = Some (self#create_request uri)
+    method get_next_request = `Request (self#create_request uri)
   end
 
 let log = Log.make ["single"]
@@ -137,28 +137,24 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
     inherit
       Request_source.queued ~kind ~name:"request.dynamic" ~prefetch ~timeout () as super
 
-    val mutable retry_status = None
-
     method is_ready =
-      match (super#is_ready, retry_status) with
-        | true, _ -> true
-        | false, Some d when Unix.gettimeofday () < d -> false
-        | false, _ ->
-            if available () then super#notify_new_request;
-            false
+      super#is_ready
+      ||
+      if available () then (
+        super#notify_new_request;
+        true)
+      else false
 
     method private get_next_request =
       try
         match
           (available (), Lang.to_valued_option Lang.to_request (Lang.apply f []))
         with
-          | false, _ -> None
+          | false, _ -> `Empty
           | true, Some r ->
               Request.set_root_metadata r "source" self#id;
-              Some r
-          | true, None ->
-              retry_status <- Some (Unix.gettimeofday () +. retry_delay ());
-              None
+              `Request r
+          | true, None -> `Retry retry_delay
       with e ->
         log#severe "Failed to obtain a media request!";
         raise e
@@ -195,7 +191,7 @@ let () =
             Lang.val_fun [] (fun _ ->
                 match s#fetch with
                   | `Finished -> Lang.bool true
-                  | `Retry ->
+                  | `Retry _ ->
                       log#important "Fetch failed: retry.";
                       Lang.bool false
                   | `Empty ->

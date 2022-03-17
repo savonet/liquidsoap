@@ -134,7 +134,8 @@ class virtual unqueued ~kind ~name =
 
     (** [get_next_file] returns a ready audio request. It is supposed to return
       "quickly", which means that no resolving can be done here. *)
-    method virtual get_next_file : Request.t option
+    method virtual get_next_file
+        : [ `Empty | `Request of Request.t | `Retry of unit -> float ]
 
     val mutable remaining = 0
     val mutable must_fail = false
@@ -176,10 +177,10 @@ class virtual unqueued ~kind ~name =
       assert (Tutils.seems_locked plock);
       assert (current = None);
       match self#get_next_file with
-        | None ->
+        | `Retry _ | `Empty ->
             self#log#debug "Failed to prepare track: no file.";
             false
-        | Some req when Request.is_ready req ->
+        | `Request req when Request.is_ready req ->
             assert (Frame.compatible (Option.get (Request.ctype req)) self#ctype);
 
             (* [Request.is_ready] ensures that we can get a filename from the request,
@@ -205,7 +206,7 @@ class virtual unqueued ~kind ~name =
             remaining <- -1;
             send_metadata <- true;
             true
-        | Some req ->
+        | `Request req ->
             (* We got an unresolved request.. this shouldn't actually happen *)
             self#log#critical "Failed to prepare track: request not ready.";
             Request.destroy req;
@@ -269,7 +270,10 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
   object (self)
     inherit unqueued ~kind ~name as super
     method stype = Fallible
-    method virtual get_next_request : Request.t option
+
+    method virtual get_next_request
+        : [ `Empty | `Request of Request.t | `Retry of unit -> float ]
+
     val qlock = Mutex.create ()
     val retrieved : queue_item Queue.t = Queue.create ()
 
@@ -425,7 +429,7 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
           | `Finished ->
               (* Retry again in order to make sure that we have enough data *)
               0.5
-          | `Retry -> adaptative_delay ()
+          | `Retry d -> d ()
           | `Empty -> -1.)
       else -1.
 
@@ -435,8 +439,9 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
       Finished if all went OK. *)
     method fetch =
       match self#get_next_request with
-        | None -> `Empty
-        | Some req -> (
+        | `Empty -> `Empty
+        | `Retry fn -> `Retry fn
+        | `Request req -> (
             resolving <- Some req;
             match Request.resolve ~ctype:(Some self#ctype) req timeout with
               | Request.Resolved ->
@@ -461,7 +466,7 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
               | Request.Timeout ->
                   resolving <- None;
                   Request.destroy req;
-                  `Retry)
+                  `Retry adaptative_delay)
 
     (** Provide the unqueued [super] with resolved requests. *)
     method private get_next_file =
@@ -470,10 +475,10 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
         try
           let r = Queue.take retrieved in
           self#log#info "Remaining %d requests" self#queue_size;
-          Some r.request
+          `Request r.request
         with Queue.Empty ->
           self#log#debug "Queue is empty!";
-          None
+          `Empty
       in
       Mutex.unlock qlock;
 
