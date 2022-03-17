@@ -52,7 +52,8 @@ class virtual unqueued :
   -> object
        (** [get_next_file] is the only thing you've got to define,
     * it's supposed to return "quickly" as it is run in the Root thread. *)
-       method virtual get_next_file : Request.t option
+       method virtual get_next_file :
+         [ `Empty | `Request of Request.t | `Retry of unit -> float ]
 
        inherit Source.source
        method is_ready : bool
@@ -79,7 +80,8 @@ class virtual queued :
        method stype : [ `Fallible | `Infallible ]
 
        (** You should only define this. *)
-       method virtual get_next_request : Request.t option
+       method virtual get_next_request :
+         [ `Empty | `Request of Request.t | `Retry of unit -> float ]
 
        (** This method should be called whenever the feeding task gets a new
            opportunity to add more data into the queue. *)
@@ -88,7 +90,8 @@ class virtual queued :
        inherit unqueued
 
        (** Everything you need is defined. Dont touch. *)
-       method private get_next_file : Request.t option
+       method private get_next_file :
+         [ `Empty | `Request of Request.t | `Retry of unit -> float ]
 
        (** [#expire f] marks queued requests [r] such that [f r] as expired,
            which will trigger their removal from the queue as soon as
@@ -97,7 +100,7 @@ class virtual queued :
 
        (** Try to add a new request in the queue. This should be used in usual
            situations. *)
-       method fetch : [ `Finished | `Retry | `Empty ]
+       method fetch : [ `Finished | `Retry of unit -> float | `Empty ]
 
        method queue : queue_item Queue.t
        method set_queue : queue_item Queue.t -> unit
