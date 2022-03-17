@@ -137,13 +137,15 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
     inherit
       Request_source.queued ~kind ~name:"request.dynamic" ~prefetch ~timeout () as super
 
+    val mutable retry_status = None
+
     method is_ready =
-      super#is_ready
-      ||
-      if available () then (
-        super#notify_new_request;
-        true)
-      else false
+      match (super#is_ready, retry_status) with
+        | true, _ -> true
+        | false, Some d when Unix.gettimeofday () < d -> false
+        | false, _ ->
+            if available () then super#notify_new_request;
+            false
 
     method private get_next_request =
       try
@@ -156,7 +158,10 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
           | true, Some r ->
               Request.set_root_metadata r "source" self#id;
               `Request r
-          | true, None -> `Retry retry_delay
+          | true, None ->
+              let delay = retry_delay () in
+              retry_status <- Some (Unix.gettimeofday () +. delay);
+              `Retry (fun () -> delay)
       with e ->
         log#severe "Failed to obtain a media request!";
         raise e
