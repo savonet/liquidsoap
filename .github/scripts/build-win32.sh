@@ -26,9 +26,7 @@ export CC=""
 eval `opam config env`
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 cd /home/opam/opam-cross-windows/
-git pull
-opam update
-opam upgrade -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` liquidsoap-windows
+opam upgrade -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows.1.1.2 ffmpeg-avutil-windows.1.1.2 liquidsoap-windows
 
 cd ~
 cp -rf ${BASE_DIR}/.github/win32 liquidsoap-$BUILD
