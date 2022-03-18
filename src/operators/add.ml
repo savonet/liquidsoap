@@ -53,7 +53,13 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
         List.exists (fun (_, s) -> snd s#self_sync) sources )
 
     method remaining =
-      List.fold_left max 0
+      let f cur pos =
+        match (cur, pos) with
+          | -1, -1 -> -1
+          | x, -1 | -1, x -> x
+          | x, y -> max x y
+      in
+      List.fold_left f (-1)
         (List.map
            (fun (_, s) -> s#remaining)
            (List.filter (fun (_, s) -> s#is_ready) sources))
