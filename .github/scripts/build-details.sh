@@ -20,7 +20,7 @@ fi
 
 if [[ "${BRANCH}" =~ ^v[0-9] ]]; then
   echo "Branch is versioned: building on all architectures"
-  BUILD_OS='["debian_testing", "debian_buster", "debian_bullseye", "ubuntu_groovy", "ubuntu_focal", "alpine"]'
+  BUILD_OS='["debian_testing", "debian_buster", "debian_bullseye", "ubuntu_impish", "ubuntu_focal", "alpine"]'
   BUILD_PLATFORM='["amd64", "arm64", "armhf"]'
   BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64"}, {"platform": "arm64", "runs-on": "self-hosted", "alpine-arch": "aarch64", "docker-platform": "linux/arm64"}, {"platform": "armhf", "runs-on": "self-hosted", "alpine-arch": "armv7", "docker-platform": "linux/arm/v7"}]'
 
@@ -28,7 +28,7 @@ if [[ "${BRANCH}" =~ ^v[0-9] ]]; then
   echo "##[set-output name=build_opam;]true"
 else
   echo "Branch is not versioned: building on amd64 only"
-  BUILD_OS='["debian_testing", "debian_buster", "debian_bullseye", "ubuntu_groovy", "ubuntu_focal", "alpine"]'
+  BUILD_OS='["debian_testing", "debian_buster", "debian_bullseye", "ubuntu_impish", "ubuntu_focal", "alpine"]'
   BUILD_PLATFORM='["amd64"]'
   BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64"}]'
 
