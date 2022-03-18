@@ -196,7 +196,7 @@ jobs:
             platform: armhf
           - os: debian_buster
             platform: armhf
-          - os: ubuntu_groovy
+          - os: ubuntu_impish
             platform: armhf
           - os: ubuntu_focal
             platform: armhf
