@@ -81,7 +81,8 @@ let stop t =
     (fun () ->
       match t.process with
         | None -> raise Finished
-        | Some { in_pipe } -> ignore (Unix.write in_pipe stop_c 0 1))
+        | Some { in_pipe } -> (
+            try ignore (Unix.write in_pipe stop_c 0 1) with _ -> ()))
     ()
 
 let kill t =
@@ -89,7 +90,8 @@ let kill t =
     (fun () ->
       match t.process with
         | None -> raise Finished
-        | Some { in_pipe } -> ignore (Unix.write in_pipe kill_c 0 1))
+        | Some { in_pipe } -> (
+            try ignore (Unix.write in_pipe kill_c 0 1) with _ -> ()))
     ()
 
 let send_stop ~log t =
