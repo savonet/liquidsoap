@@ -6,6 +6,7 @@ Changed:
 * Optimized memory usage when accessing ground terms.
 * Allow crossfade duration getter to override duration at the
   end of each track if duration isn't set via metadata.
+* Enhanced remaining time when using `add` (#2255)
 
 Fixed:
 * Prevent infinite loops when crossfade duration is negative (#2287)
