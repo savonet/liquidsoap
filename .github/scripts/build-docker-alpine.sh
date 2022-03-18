@@ -14,7 +14,7 @@ cp $APK_FILE $APK_DBG_FILE .
 
 docker login -u "$USER" -p "$PASSWORD"
 
-docker buildx build --platform "${DOCKER_PLATFORM}" --no-cache  --build-arg "APK_FILE=$APK_FILE" --build-arg "APK_DBG_FILE=$APK_DBG_FILE" -f .github/docker/Dockerfile.production-alpine -t savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE} --push .
+docker buildx build --pull --platform "${DOCKER_PLATFORM}" --no-cache  --build-arg "APK_FILE=$APK_FILE" --build-arg "APK_DBG_FILE=$APK_DBG_FILE" -f .github/docker/Dockerfile.production-alpine -t savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE} --push .
 
 docker pull savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}
 
