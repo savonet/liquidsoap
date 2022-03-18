@@ -192,7 +192,7 @@ jobs:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
         exclude:
-          - os: debian_testing
+          - os: debian_bullseye
             platform: armhf
           - os: debian_buster
             platform: armhf
