@@ -30,11 +30,10 @@ let log = Log.make ["ffmpeg"; "decoder"; "copy"]
 exception Corrupt
 exception Empty
 
-let mk_decoder ~stream_time_base ~lift_data ~put_data params =
+let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~put_data params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~src:stream_time_base ~get_ts:Packet.get_dts
   in
-  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   fun ~buffer packet ->
     try
       let flags = Packet.get_flags packet in
@@ -60,7 +59,7 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
       put_data ?pts:None buffer.Decoder.generator data 0 duration
     with Empty | Corrupt (* Might want to change that later. *) -> ()
 
-let mk_audio_decoder ~format container =
+let mk_audio_decoder ~stream_idx ~format container =
   let idx, stream, params = Av.find_best_audio_stream container in
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;
   ignore
@@ -70,9 +69,10 @@ let mk_audio_decoder ~format container =
   let lift_data = Ffmpeg_copy_content.Audio.lift_data in
   ( idx,
     stream,
-    mk_decoder ~lift_data ~stream_time_base ~put_data:G.put_audio params )
+    mk_decoder ~stream_idx ~lift_data ~stream_time_base ~put_data:G.put_audio
+      params )
 
-let mk_video_decoder ~format container =
+let mk_video_decoder ~stream_idx ~format container =
   let idx, stream, params = Av.find_best_video_stream container in
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
   ignore
@@ -82,4 +82,5 @@ let mk_video_decoder ~format container =
   let lift_data = Ffmpeg_copy_content.Video.lift_data in
   ( idx,
     stream,
-    mk_decoder ~lift_data ~stream_time_base ~put_data:G.put_video params )
+    mk_decoder ~stream_idx ~lift_data ~stream_time_base ~put_data:G.put_video
+      params )

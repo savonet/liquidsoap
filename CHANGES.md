@@ -14,6 +14,7 @@ Fixed:
 * Mark method `add()` as internal in `request.queue`, fix method `length()` (#2274)
 * Fixed `retry_delay` being ignored in some cases in `request.dynamic`.
 * Prevent race condition in external process handler.
+* Fixed A/V sync when streaming encoded data via ffmpeg encoder (#2159)
 
 2.0.3 (11-02-2022)
 =====
