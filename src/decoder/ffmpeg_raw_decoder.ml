@@ -22,12 +22,12 @@
 
 (** Decode raw ffmpeg frames. *)
 
-let mk_decoder ~stream_time_base ~mk_params ~lift_data ~put_data params =
+let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~lift_data ~put_data
+    params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~src:stream_time_base
       ~get_ts:Ffmpeg_utils.best_pts
   in
-  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   fun ~buffer frame ->
     match Ffmpeg_utils.Duration.push duration_converter frame with
       | Some (duration, frames) ->
@@ -53,7 +53,7 @@ let mk_decoder ~stream_time_base ~mk_params ~lift_data ~put_data params =
           put_data ?pts:None buffer.Decoder.generator data 0 duration
       | None -> ()
 
-let mk_audio_decoder ~format container =
+let mk_audio_decoder ~stream_idx ~format container =
   let idx, stream, params = Av.find_best_audio_stream container in
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;
   ignore
@@ -64,10 +64,10 @@ let mk_audio_decoder ~format container =
   let mk_params = Ffmpeg_raw_content.AudioSpecs.mk_params in
   ( idx,
     stream,
-    mk_decoder ~lift_data ~mk_params ~stream_time_base
+    mk_decoder ~stream_idx ~lift_data ~mk_params ~stream_time_base
       ~put_data:Generator.put_audio params )
 
-let mk_video_decoder ~format container =
+let mk_video_decoder ~stream_idx ~format container =
   let idx, stream, params = Av.find_best_video_stream container in
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
   ignore
@@ -78,5 +78,5 @@ let mk_video_decoder ~format container =
   let mk_params = Ffmpeg_raw_content.VideoSpecs.mk_params in
   ( idx,
     stream,
-    mk_decoder ~mk_params ~lift_data ~stream_time_base
+    mk_decoder ~stream_idx ~mk_params ~lift_data ~stream_time_base
       ~put_data:Generator.put_video params )

@@ -695,6 +695,7 @@ let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
     f ()
 
 let mk_streams ~ctype container =
+  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   let audio =
     try
       match ctype.Frame.audio with
@@ -702,10 +703,13 @@ let mk_streams ~ctype container =
         | f when Ffmpeg_copy_content.Audio.is_format f ->
             Some
               (`Packet
-                (Ffmpeg_copy_decoder.mk_audio_decoder ~format:f container))
+                (Ffmpeg_copy_decoder.mk_audio_decoder ~stream_idx ~format:f
+                   container))
         | f when Ffmpeg_raw_content.Audio.is_format f ->
             Some
-              (`Frame (Ffmpeg_raw_decoder.mk_audio_decoder ~format:f container))
+              (`Frame
+                (Ffmpeg_raw_decoder.mk_audio_decoder ~stream_idx ~format:f
+                   container))
         | f ->
             let channels = Content.Audio.channels_of_format f in
             Some
@@ -720,10 +724,13 @@ let mk_streams ~ctype container =
         | f when Ffmpeg_copy_content.Video.is_format f ->
             Some
               (`Packet
-                (Ffmpeg_copy_decoder.mk_video_decoder ~format:f container))
+                (Ffmpeg_copy_decoder.mk_video_decoder ~stream_idx ~format:f
+                   container))
         | f when Ffmpeg_raw_content.Video.is_format f ->
             Some
-              (`Frame (Ffmpeg_raw_decoder.mk_video_decoder ~format:f container))
+              (`Frame
+                (Ffmpeg_raw_decoder.mk_video_decoder ~stream_idx ~format:f
+                   container))
         | f ->
             let width, height = Content.Video.dimensions_of_format f in
             Some
