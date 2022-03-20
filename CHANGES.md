@@ -20,6 +20,8 @@ Fixed:
 * Fixed `retry_delay` being ignored in some cases in `request.dynamic`.
 * Prevent race condition in external process handler.
 * Fixed A/V sync when streaming encoded data via ffmpeg encoder (#2159)
+* Prevent stopped/iddle sources from being restarted when reseting
+  clock(s) after too much latency (#2278)
 
 2.0.3 (11-02-2022)
 =====
