@@ -120,17 +120,6 @@ let () =
       Lang.float f)
 
 let () =
-  Lang.add_builtin "source.shutdown" ~category:`Liquidsoap
-    ~descr:"Deactivate a source."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.unit_t
-    (fun p ->
-      let s = Lang.to_source (List.assoc "" p) in
-      (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
-          (s' :> Source.source) = s);
-      Lang.unit)
-
-let () =
   Lang.add_builtin ~category:`Liquidsoap "source.time"
     ~descr:"Get a source's time, based on its assigned clock"
     [("", Lang.source_t (Lang.univ_t ()), None, None)]

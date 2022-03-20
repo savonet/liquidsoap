@@ -2,6 +2,11 @@
 =====
 
 Changed:
+* Make sure source shutdown can only be called on sources that
+  can actually be shutdown:
+  - Remove generic `source.shutdown`
+  - Keep `s.shutdown()` method only on sources that are active.
+  Refs: #2259
 * Optimized memory usage when accessing frame content (#2266)
 * Optimized memory usage when accessing ground terms.
 * Allow crossfade duration getter to override duration at the
