@@ -170,4 +170,12 @@ let meth :
                       });
               s#transition_to `Stopped;
               unit) );
+      ( "shutdown",
+        ([], fun_t [] unit_t),
+        "Deactivate a source.",
+        fun s ->
+          val_fun [] (fun _ ->
+              (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
+                  (s' :> Source.source) = (s :> Source.source));
+              unit) );
     ]

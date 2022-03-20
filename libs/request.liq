@@ -113,7 +113,7 @@ def request.player(~simultaneous=true)
     # Perform some garbage collection in order to avoid that the list grows too
     # much.
     def collect()
-      l := list.filter(remove=source.shutdown, source.is_ready, !l)
+      l := list.filter(source.is_ready, !l)
     end
 
     def play(r)
