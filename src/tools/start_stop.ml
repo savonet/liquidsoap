@@ -172,7 +172,7 @@ let meth :
               unit) );
       ( "shutdown",
         ([], fun_t [] unit_t),
-        "Deactivate a source.",
+        "Shutdown the output or source.",
         fun s ->
           val_fun [] (fun _ ->
               (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
