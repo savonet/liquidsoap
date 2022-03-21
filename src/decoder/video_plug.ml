@@ -29,7 +29,7 @@ let mime_types =
     "Mime-types used for decoding metadata using native parser."
     ~d:["video/x-msvideo"]
 
-let conf_id3v2 =
+let conf_video =
   Dtools.Conf.void
     ~p:(Decoder.conf_decoder#plug "video_metadata")
     "Native video metadata parser settings."

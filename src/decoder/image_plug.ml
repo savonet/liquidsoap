@@ -29,7 +29,7 @@ let mime_types =
     "Mime-types used for decoding metadata using native parser."
     ~d:["image/png"; "image/jpeg"]
 
-let conf_id3v2 =
+let conf_image =
   Dtools.Conf.void
     ~p:(Decoder.conf_decoder#plug "image_metadata")
     "Native image metadata parser settings."
