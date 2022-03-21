@@ -55,3 +55,41 @@ let () =
       let src = Lang.to_source (f "") in
       let kind = Kind.of_kind kind in
       new clip ~kind src)
+
+class unnan ~kind (source : source) =
+  object
+    inherit operator ~name:"unnan" kind [source]
+    method stype = source#stype
+    method remaining = source#remaining
+    method seek = source#seek
+    method is_ready = source#is_ready
+    method abort_track = source#abort_track
+    method self_sync = source#self_sync
+
+    method private get_frame buf =
+      let offset = AFrame.position buf in
+      source#get buf;
+      let b = AFrame.pcm buf in
+      let position = AFrame.position buf in
+      for c = 0 to Array.length b - 1 do
+        let bc = b.(c) in
+        for i = offset to position - 1 do
+          if Float.is_nan bc.(i) then bc.(i) <- 0.
+        done
+      done
+  end
+
+let () =
+  let kind = Lang.audio_pcm in
+  let k = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator "unnan"
+    [("", Lang.source_t k, None, None)]
+    ~return_t:k ~category:`Audio
+    ~descr:
+      "Convert nan values (which correspond to undefined float values) to 0. \
+       Those can come up rare situations with badly designed audio effects."
+    (fun p ->
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      let kind = Kind.of_kind kind in
+      new unnan ~kind src)
