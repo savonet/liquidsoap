@@ -14,7 +14,7 @@ cp $DEB_FILE $DEB_DEBUG_FILE .
 
 docker login -u "$USER" -p "$PASSWORD"
 
-docker buildx build --platform "${DOCKER_PLATFORM}" --no-cache  --build-arg "DEB_FILE=$DEB_FILE"  --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" -f .github/docker/Dockerfile.production -t savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} --push .
+docker buildx build --pull --platform "${DOCKER_PLATFORM}" --no-cache  --build-arg "DEB_FILE=$DEB_FILE"  --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" -f .github/docker/Dockerfile.production -t savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} --push .
 
 docker pull savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}
 

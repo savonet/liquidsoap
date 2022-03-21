@@ -77,7 +77,7 @@ class unqueued ~kind ~timeout request =
       super#wake_up x
 
     method stype = `Infallible
-    method get_next_file = Some request
+    method get_next_file = `Request request
   end
 
 class queued ~kind uri prefetch timeout =
@@ -89,7 +89,7 @@ class queued ~kind uri prefetch timeout =
       if String.length uri < 15 then self#set_id uri;
       super#wake_up x
 
-    method get_next_request = Some (self#create_request uri)
+    method get_next_request = `Request (self#create_request uri)
   end
 
 let log = Log.make ["single"]
@@ -154,13 +154,14 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
             Lang.to_valued_option Builtins_request.Value.of_value
               (Lang.apply f []) )
         with
-          | false, _ -> None
+          | false, _ -> `Empty
           | true, Some r ->
               Request.set_root_metadata r "source" self#id;
-              Some r
+              `Request r
           | true, None ->
-              retry_status <- Some (Unix.gettimeofday () +. retry_delay ());
-              None
+              let delay = retry_delay () in
+              retry_status <- Some (Unix.gettimeofday () +. delay);
+              `Retry (fun () -> delay)
       with e ->
         log#severe "Failed to obtain a media request!";
         raise e
@@ -197,7 +198,7 @@ let () =
             Lang.val_fun [] (fun _ ->
                 match s#fetch with
                   | `Finished -> Lang.bool true
-                  | `Retry ->
+                  | `Retry _ ->
                       log#important "Fetch failed: retry.";
                       Lang.bool false
                   | `Empty ->

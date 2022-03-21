@@ -167,10 +167,6 @@ jobs:
         ocaml-compiler:
           - 4.13.x
           - 4.12.x
-          - 4.11.x
-          - 4.10.x
-          - 4.09.x
-          - 4.08.x
     steps:
       - name: Checkout latest code
         uses: actions/checkout@v1
@@ -192,11 +188,11 @@ jobs:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
         exclude:
-          - os: debian_testing
+          - os: debian_bullseye
             platform: armhf
           - os: debian_buster
             platform: armhf
-          - os: ubuntu_groovy
+          - os: ubuntu_impish
             platform: armhf
           - os: ubuntu_focal
             platform: armhf
@@ -492,11 +488,11 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
-      - name: Get debian bullseye package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bullseye | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)"
+      - name: Get debian bookworm package
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)"
         id: debian_package
-      - name: Get debian bullseye debug package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bullseye | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)"
+      - name: Get debian bookworm debug package
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)"
         id: debian_debug_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin

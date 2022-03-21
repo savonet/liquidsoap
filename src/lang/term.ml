@@ -172,77 +172,66 @@ module Ground = struct
   type t = ..
 
   type content = {
-    descr : unit -> string;
-    to_json : unit -> Json.t;
-    compare : t -> int;
+    descr : t -> string;
+    to_json : t -> Json.t;
+    compare : t -> t -> int;
     typ : Type.ground;
   }
 
-  let handlers = Queue.create ()
-  let register fn = Queue.add fn handlers
+  let handlers = Hashtbl.create 10
+  let register matcher c = Hashtbl.replace handlers c.typ (c, matcher)
 
   exception Found of content
 
   let find v =
     try
-      Queue.iter
-        (fun h -> match h v with Some c -> raise (Found c) | None -> ())
+      Hashtbl.iter
+        (fun _ (c, matcher) -> if matcher v then raise (Found c))
         handlers;
-      assert false
+      raise Not_found
     with Found c -> c
 
-  let to_string (v : t) = (find v).descr ()
-  let to_json (v : t) = (find v).to_json ()
+  let to_string (v : t) = (find v).descr v
+  let to_json (v : t) = (find v).to_json v
   let to_type (v : t) = (find v).typ
-  let compare (v : t) = (find v).compare
+  let compare (v : t) = (find v).compare v
 
   type t += Bool of bool | Int of int | String of string | Float of float
 
   let () =
-    register (function
-      | Bool b ->
-          let compare = function
-            | Bool b' -> Stdlib.compare b b'
-            | _ -> assert false
-          in
-          let to_string () = string_of_bool b in
-          let to_json () = `Bool b in
-          Some { descr = to_string; to_json; compare; typ = Type.Bool }
-      | Int i ->
-          let compare = function
-            | Int i' -> Stdlib.compare i i'
-            | _ -> assert false
-          in
-          let to_string () = string_of_int i in
-          let to_json () = `Int i in
-          Some { descr = to_string; to_json; compare; typ = Type.Int }
-      | String s ->
-          let compare = function
-            | String s' -> Stdlib.compare s s'
-            | _ -> assert false
-          in
-          let to_json () = `String s in
-          Some
-            {
-              descr = (fun () -> Utils.quote_string s);
-              to_json;
-              compare;
-              typ = Type.String;
-            }
-      | Float f ->
-          let compare = function
-            | Float f' -> Stdlib.compare f f'
-            | _ -> assert false
-          in
-          let to_json () = `Float f in
-          Some
-            {
-              descr = (fun () -> string_of_float f);
-              to_json;
-              compare;
-              typ = Type.Float;
-            }
-      | _ -> None)
+    let compare conv v v' = Stdlib.compare (conv v) (conv v') in
+    let to_bool = function Bool b -> b | _ -> assert false in
+    let to_string b = string_of_bool (to_bool b) in
+    let to_json b = `Bool (to_bool b) in
+    register
+      (function Bool _ -> true | _ -> false)
+      { descr = to_string; to_json; compare = compare to_bool; typ = Type.Bool };
+    let to_int = function Int i -> i | _ -> assert false in
+    let to_string i = string_of_int (to_int i) in
+    let to_json i = `Int (to_int i) in
+    register
+      (function Int _ -> true | _ -> false)
+      { descr = to_string; to_json; compare = compare to_int; typ = Type.Int };
+    let to_string = function String s -> s | _ -> assert false in
+    let to_json s = `String (to_string s) in
+    register
+      (function String _ -> true | _ -> false)
+      {
+        descr = to_string;
+        to_json;
+        compare = compare to_string;
+        typ = Type.String;
+      };
+    let to_float = function Float f -> f | _ -> assert false in
+    let to_json f = `Float (to_float f) in
+    register
+      (function Float _ -> true | _ -> false)
+      {
+        descr = (fun f -> string_of_float (to_float f));
+        to_json;
+        compare = compare to_float;
+        typ = Type.Float;
+      }
 end
 
 module type GroundDef = sig
@@ -258,16 +247,13 @@ module MkGround (D : GroundDef) = struct
   type Ground.t += Ground of D.content
 
   let () =
-    Ground.register (function
-      | Ground v ->
-          let descr () = D.descr v in
-          let to_json () = D.to_json v in
-          let compare = function
-            | Ground v' -> D.compare v v'
-            | _ -> assert false
-          in
-          Some { Ground.typ = D.typ; to_json; compare; descr }
-      | _ -> None)
+    let to_ground = function Ground g -> g | _ -> assert false in
+    let to_json v = D.to_json (to_ground v) in
+    let compare v v' = D.compare (to_ground v) (to_ground v') in
+    let descr v = D.descr (to_ground v) in
+    Ground.register
+      (function Ground _ -> true | _ -> false)
+      { Ground.typ = D.typ; to_json; compare; descr }
 end
 
 type t = { mutable t : Type.t; term : in_term }
@@ -312,16 +298,16 @@ and in_term =
    * restrict the environment captured when a closure is
    * formed. *)
   | Fun of Vars.t * (string * string * Type.t * t option) list * t
+  (* A recursive function, the first string is the name of the recursive
+     variable. *)
   | RFun of string * Vars.t * (string * string * Type.t * t option) list * t
 
-(* A recursive function, the first string is the name of the recursive
-   variable. *)
 and pattern =
   | PVar of string list  (** a field *)
   | PTuple of pattern list  (** a tuple *)
-  | PList of (pattern list * string option * pattern list) (* a list *)
+  | PList of (pattern list * string option * pattern list)  (** a list *)
   | PMeth of (pattern option * (string * pattern option) list)
-(* a value with methods *)
+      (** a value with methods *)
 
 type term = t
 
@@ -613,21 +599,13 @@ module MkAbstract (Def : AbstractDef) = struct
   type Ground.t += Value of Def.content
 
   let () =
-    Ground.register (function
-      | Value v ->
-          let compare = function
-            | Value v' -> Def.compare v v'
-            | _ -> assert false
-          in
-          Some
-            {
-              Ground.descr = (fun () -> Def.descr v);
-              to_json = (fun () -> Def.to_json v);
-              compare;
-              typ = Type;
-            }
-      | _ -> None);
-
+    let to_value = function Value v -> v | _ -> assert false in
+    let compare v v' = Def.compare (to_value v) (to_value v') in
+    let descr v = Def.descr (to_value v) in
+    let to_json v = Def.to_json (to_value v) in
+    Ground.register
+      (function Value _ -> true | _ -> false)
+      { Ground.descr; to_json; compare; typ = Type };
     Type.register_ground_printer (function Type -> Some Def.name | _ -> None);
     Type.register_ground_resolver (fun s ->
         if s = Def.name then Some Type else None)

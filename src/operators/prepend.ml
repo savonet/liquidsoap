@@ -68,7 +68,7 @@ class prepend ~kind ~merge source f =
             let peek_pcm = AFrame.pcm peek in
             let peekpos = AFrame.size () - 1 in
             for i = 0 to Array.length pcm - 1 do
-              pcm.(i).{p} <- peek_pcm.(i).{peekpos}
+              pcm.(i).(p) <- peek_pcm.(i).(peekpos)
             done;
             begin
               match AFrame.get_metadata peek peekpos with

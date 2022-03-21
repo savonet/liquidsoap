@@ -75,11 +75,8 @@ module type Lame_t = sig
   exception Psychoacoustic_problem
   exception Unknown_error of int
 
-  val encode_buffer_float_ba :
-    encoder ->
-    (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t ->
-    (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t ->
-    string
+  val encode_buffer_float_part :
+    encoder -> Audio.Mono.t -> Audio.Mono.t -> int -> int -> string
 
   val encode_flush : encoder -> string
 end
@@ -197,6 +194,7 @@ module Register (Lame : Lame_t) = struct
       let encode frame start len =
         let b = AFrame.pcm frame in
         let len = Frame.audio_of_main len in
+        let start = Frame.audio_of_main start in
         position := !position + len;
         if mp3.Mp3_format.msg <> "" && !position > msg_interval then (
           match !is_sync with
@@ -212,23 +210,9 @@ module Register (Lame : Lame_t) = struct
         let encoded () =
           has_started := true;
 
-          (* Yes, lame requires this absurd scaling... *)
-          let scale buf =
-            let len = Audio.Mono.length buf in
-            let sbuf = Audio.Mono.create len in
-            for i = 0 to len - 1 do
-              Bigarray.Array1.unsafe_set sbuf i
-                (Bigarray.Array1.unsafe_get buf i *. 32768.)
-            done;
-            sbuf
-          in
-          if channels = 1 then (
-            let buf = scale (Audio.Mono.sub b.(0) start len) in
-            Lame.encode_buffer_float_ba enc buf buf)
-          else (
-            let bufl = scale (Audio.Mono.sub b.(0) start len) in
-            let bufr = scale (Audio.Mono.sub b.(1) start len) in
-            Lame.encode_buffer_float_ba enc bufl bufr)
+          if channels = 1 then
+            Lame.encode_buffer_float_part enc b.(0) b.(0) start len
+          else Lame.encode_buffer_float_part enc b.(0) b.(1) start len
         in
         match !id3v2 with
           | Rendered s when not !has_started ->

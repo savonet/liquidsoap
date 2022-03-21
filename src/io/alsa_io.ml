@@ -40,17 +40,8 @@ class virtual base dev mode =
     method virtual audio_channels : int
     val mutable alsa_rate = -1
     val mutable pcm = None
-
-    val mutable write =
-      fun pcm buf ofs len ->
-        let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
-        Pcm.writen_float_ba pcm buf
-
-    val mutable read =
-      fun pcm buf ofs len ->
-        let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
-        Pcm.readn_float_ba pcm buf
-
+    val mutable write = Pcm.writen_float
+    val mutable read = Pcm.readn_float
     method self_sync : Source.self_sync = (`Dynamic, pcm <> None)
 
     method open_device =
@@ -76,15 +67,13 @@ class virtual base dev mode =
              write <-
                (fun pcm buf ofs len ->
                  let sbuf = Bytes.create (2 * len * Array.length buf) in
-                 Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
+                 Audio.S16LE.of_audio buf ofs sbuf 0 len;
                  Pcm.writei pcm sbuf 0 len);
              read <-
                (fun pcm buf ofs len ->
                  let sbuf = Bytes.make (2 * 2 * len) (Char.chr 0) in
                  let r = Pcm.readi pcm sbuf 0 len in
-                 Audio.S16LE.to_audio
-                   (Bytes.unsafe_to_string sbuf)
-                   0 (Audio.sub buf ofs r);
+                 Audio.S16LE.to_audio (Bytes.unsafe_to_string sbuf) 0 buf ofs r;
                  r)
            with Alsa.Invalid_argument ->
              self#log#important "Falling back on non-interleaved S16LE";
@@ -98,9 +87,7 @@ class virtual base dev mode =
                        Bytes.make (2 * len) (Char.chr 0))
                  in
                  for c = 0 to Audio.channels buf - 1 do
-                   Audio.S16LE.of_audio
-                     (Audio.sub [| buf.(c) |] ofs len)
-                     sbuf.(c) 0
+                   Audio.S16LE.of_audio [| buf.(c) |] ofs sbuf.(c) 0 len
                  done;
                  Pcm.writen pcm sbuf 0 len);
              read <-
@@ -114,7 +101,8 @@ class virtual base dev mode =
                    Audio.S16LE.to_audio
                      (Bytes.unsafe_to_string sbuf.(c))
                      0
-                     (Audio.sub [| buf.(c) |] ofs len)
+                     [| buf.(c) |]
+                     ofs len
                  done;
                  r)));
         handle "channels" (Pcm.set_channels dev params) self#audio_channels;
@@ -200,23 +188,23 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
     method send_frame memo =
       let pcm = Option.get pcm in
       let buf = AFrame.pcm memo in
-      let buf =
-        if alsa_rate = samples_per_second then buf
+      let len = Audio.length buf in
+      let buf, ofs, len =
+        if alsa_rate = samples_per_second then (buf, 0, len)
         else
           Audio_converter.Samplerate.resample self#samplerate_converter
             (float alsa_rate /. float samples_per_second)
-            buf
+            buf 0 len
       in
       try
-        let r = ref 0 in
-        while !r < Audio.Mono.length buf.(0) do
+        let r = ref ofs in
+        while !r < len do
           if !r <> 0 then
             self#log#info
               "Partial write (%d instead of %d)! Selecting another buffer size \
                or device can help."
-              !r
-              (Audio.Mono.length buf.(0));
-          r := !r + write pcm buf !r (Audio.Mono.length buf.(0) - !r)
+              !r len;
+          r := !r + write pcm buf !r (len - !r)
         done
       with e ->
         begin

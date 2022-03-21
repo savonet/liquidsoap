@@ -324,7 +324,9 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
 
     val mutex = Mutex.create ()
-    method mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b = Tutils.mutexify mutex
+
+    method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b =
+      Tutils.mutexify mutex
 
     (** Is the source infallible, i.e. is it always guaranteed that there
     * will be always be a next track immediately available. *)

@@ -208,7 +208,7 @@ let args_of, app_of =
               (Parse_error
                  ( pos,
                    Printf.sprintf "Term %s cannot be represented as a term"
-                     (Value.print_value v) ))
+                     (Value.to_string v) ))
     in
     let t = Type.make ~pos t.Type.descr in
     Term.{ t; term }

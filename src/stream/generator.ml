@@ -297,9 +297,9 @@ let feed_from_frame ?copy ?mode g frame =
 let get g len =
   Tutils.mutexify g.m
     (fun () ->
-      assert (len <= length g);
+      assert (len <= _length g);
       let c = Content.sub (Option.get g.synced) 0 len in
-      remove g len;
+      _remove g len;
       c)
     ()
 

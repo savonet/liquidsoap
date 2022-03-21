@@ -37,18 +37,11 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
     let astart = Frame.audio_of_main start in
     let alen = Frame.audio_of_main len in
     let pcm = AFrame.pcm frame in
-    (* Resample if needed. *)
     let pcm, astart, alen =
-      if ratio = 1. then (pcm, astart, alen)
-      else (
-        let pcm =
-          Audio_converter.Samplerate.resample converter ratio
-            (Audio.sub pcm astart alen)
-        in
-        (pcm, 0, Audio.length pcm))
+      Audio_converter.Samplerate.resample converter ratio pcm astart alen
     in
     let data = Bytes.create (2 * channels * alen) in
-    Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
+    Audio.S16LE.of_audio pcm astart data 0 alen;
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =

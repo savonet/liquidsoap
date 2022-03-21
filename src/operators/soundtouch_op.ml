@@ -58,19 +58,13 @@ class soundtouch ~kind source_val rate tempo pitch =
       Soundtouch.set_tempo st (tempo ());
       Soundtouch.set_pitch st (pitch ());
       let db = AFrame.pcm databuf in
-      let db = Audio.sub db 0 (AFrame.position databuf) in
-      let db = Audio.interleave db in
-      Soundtouch.put_samples_ba st db;
+      Soundtouch.put_samples_ni st db 0 (AFrame.position databuf);
       let available = Soundtouch.get_available_samples st in
       if available > 0 then (
-        let tmp =
-          Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
-            (self#audio_channels * available)
-        in
-        ignore (Soundtouch.get_samples_ba st tmp);
-        let tmp = Audio.deinterleave self#audio_channels tmp in
+        let buf = Audio.create self#audio_channels available in
+        ignore (Soundtouch.get_samples_ni st buf 0 available);
         Generator.put_audio abg
-          (Content.Audio.lift_data tmp)
+          (Content.Audio.lift_data buf)
           0
           (Frame.main_of_audio available));
       if AFrame.is_partial databuf then Generator.add_break abg;

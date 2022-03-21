@@ -37,7 +37,7 @@ class gen ~kind ~seek name g freq duration ampl =
       let buf = AFrame.pcm frame in
       g#set_frequency (freq ());
       g#set_volume (ampl ());
-      g#fill (Audio.sub buf off len)
+      g#fill buf off len
   end
 
 let add name g =

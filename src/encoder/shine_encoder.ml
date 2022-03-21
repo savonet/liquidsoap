@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 (** Fixed-point MP3 encoder *)
 
 open Shine_format
@@ -44,21 +42,15 @@ let encoder shine =
     let b = AFrame.pcm frame in
     let len = Frame.audio_of_main len in
     let b, start, len =
-      if src_freq <> dst_freq then (
-        let b =
-          Audio_converter.Samplerate.resample samplerate_converter
-            (dst_freq /. src_freq) (Audio.sub b start len)
-        in
-        (b, 0, Audio.length b))
-      else (Audio.copy b, start, len)
+      Audio_converter.Samplerate.resample samplerate_converter
+        (dst_freq /. src_freq) b start len
     in
     Generator.put_audio buf (Content.Audio.lift_data b) start len;
     while Generator.length buf > samples do
       let data =
         Content.(Audio.get_data (Frame.get_audio (Generator.get buf samples)))
       in
-      Strings.Mutable.add encoded
-        (Shine.encode_buffer enc (Audio.to_array data))
+      Strings.Mutable.add encoded (Shine.encode_buffer enc data)
     done;
     Strings.Mutable.flush encoded
   in

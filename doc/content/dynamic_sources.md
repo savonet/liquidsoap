@@ -16,22 +16,28 @@ With more work on parsing the argument passed to the telnet command,
 you may write more evolved options, such as the possibility to change
 the output parameters etc..
 
-Due to some limitations of the language, we have used some
-intricate (but classic) functional programming tricks. They are
-commented in order to help reading the code..
+Please note that not all sources can be shutdown. Only outputs and sources that active can be shutdown.
+You will be able to know that by the fact that only those two types of variables have a `shutdown()`
+method.
 
 New here's the code:
 
 ```liquidsoap
-# First, we create a list referencing the dynamic sources:
-dyn_sources = ref([])
+# Allow the script to start even without any output
+settings.init.force_start.set(true)
+
+# First, we create a list referencing the dynamic outputs shutdown methods:
+dyn_outputs = ref([])
 
 # This is our icecast output.
-# It is a partial application: the source needs to be given!
-out = output.icecast(%mp3,
-                     host="test",
-                     password="hackme",
-                     fallible=true)
+out = fun (mount, s) -> output.icecast(%mp3,
+                              host="test",
+                              password="hackme",
+                              fallible=true,
+                              mount=mount,
+                              s)
+
+count = ref(0)
 
 # Now we write a function to create
 # a playlist source and output it.
@@ -40,14 +46,19 @@ def create_playlist(uri) =
   s = playlist(uri)
 
   # The output
-  out(s)
+  mount = "dynamic-playlist-#{!count}"
+  count := !count + 1
+  o = out(mount, s)
 
-  # We register the source in the list of sources
-  dyn_sources := list.append( [(uri,s)], !dyn_sources)
+  # We register the output shutdown method in the list of outputs
+  # Storing the shutdown method instead of the whole output makes
+  # it easier for the typer when using outputs with potentially
+  # different methods.
+  dyn_outputs := list.append( [(uri,o.shutdown)], !dyn_outputs)
   "Done!"
 end
 
-# And a function to destroy a dynamic source
+# And a function to destroy a dynamic output
 def destroy_playlist(uri) = 
   # We need to find the source in the list,
   # remove it and destroy it. Currently, the language
@@ -55,12 +66,12 @@ def destroy_playlist(uri) =
   # the functional way
 
   # This function is executed on every item in the list
-  # of dynamic sources
+  # of dynamic outputs
   def parse_list(ret, current_element) = 
-    # ret is of the form: (matching_sources, remaining_sources)
+    # ret is of the form: (matching_outputs, remaining_outputs)
     # We extract those two:
-    matching_sources = fst(ret)
-    remaining_sources = snd(ret)
+    matching_outputs = fst(ret)
+    remaining_outputs = snd(ret)
 
     # current_element is of the form: ("uri", source) so 
     # we check the first element
@@ -69,31 +80,31 @@ def destroy_playlist(uri) =
       # In this case, we add the source to the list of
       # matched sources
       (list.append( [snd(current_element)], 
-                     matching_sources),
-       remaining_sources)
+                     matching_outputs),
+       remaining_outputs)
     else
       # In this case, we put the element in the list of remaining
       # sources
-      (matching_sources,
+      (matching_outputs,
        list.append([current_element], 
-                    remaining_sources))
+                    remaining_outputs))
     end
   end
     
   # Now we execute the function:
-  result = list.fold(parse_list, ([], []), !dyn_sources)
-  matching_sources = fst(result)
-  remaining_sources = snd(result)
+  result = list.fold(parse_list, ([], []), !dyn_outputs)
+  matching_outputs = fst(result)
+  remaining_outputs = snd(result)
 
-  # We store the remaining sources in dyn_sources
-  dyn_sources := remaining_sources
+  # We store the remaining sources in dyn_outputs
+  dyn_outputs := remaining_outputs
 
   # If no source matched, we return an error
-  if list.length(matching_sources) == 0 then
+  if list.length(matching_outputs) == 0 then
     "Error: no matching sources!"
   else
-    # We stop all sources
-    list.iter(source.shutdown, matching_sources)
+    # We stop all matched outputs
+    list.iter((fun (shutdown) -> shutdown()), matching_outputs)
     # And return
     "Done!"
   end

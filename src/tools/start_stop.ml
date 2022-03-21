@@ -41,11 +41,14 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
 
     (* Default [reset] method. Can be overriden if necessary. *)
     method reset =
-      self#stop;
-      self#start
+      match self#state with
+        | `Started ->
+            self#stop;
+            self#start
+        | _ -> ()
 
     method transition_to (s : state) =
-      match (s, state) with
+      match (s, self#state) with
         | `Started, `Stopped | `Started, `Idle ->
             self#start;
             on_start ();
@@ -169,5 +172,13 @@ let meth :
                         pos = [];
                       });
               s#transition_to `Stopped;
+              unit) );
+      ( "shutdown",
+        ([], fun_t [] unit_t),
+        "Shutdown the output or source.",
+        fun s ->
+          val_fun [] (fun _ ->
+              (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
+                  (s' :> Source.source) = (s :> Source.source));
               unit) );
     ]

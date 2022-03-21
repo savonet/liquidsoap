@@ -20,21 +20,24 @@
 
  *****************************************************************************)
 
-module Resampler =
-  Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.FltPlanarBigArray)
+open Mm
 
-let samplerate_converter () =
-  let chans = `Mono in
+module Resampler =
+  Swresample.Make (Swresample.PlanarFloatArray) (Swresample.PlanarFloatArray)
+
+let samplerate_converter channels =
+  let chans = Avutil.Channel_layout.get_default channels in
   let in_freq = Lazy.force Frame.audio_rate in
   let rs = ref None in
   let rs_out_freq = ref 0 in
-  fun x buf ->
+  fun x buf offset length ->
     let out_freq = int_of_float (float in_freq *. x) in
     if !rs = None || !rs_out_freq <> out_freq then (
       rs := Some (Resampler.create chans in_freq chans out_freq);
       rs_out_freq := out_freq);
     let rs = Option.get !rs in
-    (Resampler.convert rs [| buf |]).(0)
+    let data = Resampler.convert ~offset ~length rs buf in
+    (data, 0, Audio.length data)
 
 let () =
   Audio_converter.Samplerate.converters#register "ffmpeg" samplerate_converter

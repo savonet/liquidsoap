@@ -37,13 +37,13 @@ module Ground : sig
   type t += Bool of bool | Int of int | String of string | Float of float
 
   type content = Term.Ground.content = {
-    descr : unit -> string;
-    to_json : unit -> Json.t;
-    compare : t -> int;
+    descr : t -> string;
+    to_json : t -> Json.t;
+    compare : t -> t -> int;
     typ : Type.ground;
   }
 
-  val register : (t -> content option) -> unit
+  val register : (t -> bool) -> content -> unit
   val to_string : t -> string
 end
 
@@ -69,9 +69,6 @@ and in_value = Value.in_value =
 
 val demeth : value -> value
 
-(** Get a string representation of a value. *)
-val print_value : value -> string
-
 (** Iter a function over all sources contained in a value. This only applies to
     statically referenced objects, i.e. it does not explore inside reference
     cells. [on_reference] is used when we encounter a reference cell that may
@@ -81,7 +78,7 @@ val iter_sources :
 
 (** {2 Computation} *)
 
-val apply_fun : (value -> env -> value) ref
+val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)

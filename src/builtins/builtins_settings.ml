@@ -220,7 +220,7 @@ let print_settings () =
 ```
 |} path
             (if value.Value.value = Value.Null then "<value>"
-            else Value.print_value value);
+            else Value.to_string value);
         ]
     | value ->
         [
@@ -229,7 +229,7 @@ let print_settings () =
 %s.set(%s)
 ```
 |} path
-            (Value.print_value { Value.pos = None; value });
+            (Value.to_string { Value.pos = None; value });
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -286,7 +286,7 @@ let () =
            log#severe
              "WARNING: Error while setting value %s for setting %S. Is that \
               the right type for it?"
-             (Lang.print_value value) path
+             (Value.to_string value) path
        with Not_found -> log#severe "WARNING: setting %S does not exist!" path);
       Lang.unit);
 
@@ -321,7 +321,7 @@ let () =
               log#severe
                 "WARNING: Invalid value/default pair (%s vs. %s) for setting \
                  %S!"
-                (Lang.print_value v) (Lang.print_value default) path;
+                (Value.to_string v) (Value.to_string default) path;
               default
       with
         | Not_found ->

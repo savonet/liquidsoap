@@ -107,8 +107,7 @@ class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
       let fbuf = AFrame.pcm buf in
       Audio.S16LE.to_audio
         (Bytes.unsafe_to_string buffer)
-        0
-        (Audio.sub fbuf 0 samples_per_frame);
+        0 fbuf 0 samples_per_frame;
       AFrame.add_break buf samples_per_frame
 
     method reset = ()

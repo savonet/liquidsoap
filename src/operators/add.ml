@@ -53,7 +53,13 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
         List.exists (fun (_, s) -> snd s#self_sync) sources )
 
     method remaining =
-      List.fold_left max 0
+      let f cur pos =
+        match (cur, pos) with
+          | -1, -1 -> -1
+          | x, -1 | -1, x -> x
+          | x, y -> max x y
+      in
+      List.fold_left f (-1)
         (List.map
            (fun (_, s) -> s#remaining)
            (List.filter (fun (_, s) -> s#is_ready) sources))
@@ -115,25 +121,22 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
             let c = if renorm then w /. weight else w in
             if c <> 1. then (
               try
-                Audio.amplify c
-                  (Audio.sub (AFrame.pcm buffer)
-                     (Frame.audio_of_main offset)
-                     (Frame.audio_of_main (already - offset)))
+                Audio.amplify c (AFrame.pcm buffer)
+                  (Frame.audio_of_main offset)
+                  (Frame.audio_of_main (already - offset))
               with Content.Invalid -> ());
             if rank > 0 then (
               (* The region grows, make sure it is clean before adding.
                * TODO the same should be done for video. *)
               (try
                  if already > end_offset then
-                   Audio.clear
-                     (Audio.sub (AFrame.pcm buf)
-                        (Frame.audio_of_main end_offset)
-                        (Frame.audio_of_main (already - end_offset)));
+                   Audio.clear (AFrame.pcm buf)
+                     (Frame.audio_of_main end_offset)
+                     (Frame.audio_of_main (already - end_offset));
 
                  (* Add to the main buffer. *)
-                 Audio.add
-                   (Audio.sub (AFrame.pcm buf) offset (already - offset))
-                   (Audio.sub (AFrame.pcm tmp) offset (already - offset))
+                 Audio.add (AFrame.pcm buf) offset (AFrame.pcm tmp) offset
+                   (already - offset)
                with Content.Invalid -> ());
 
               try

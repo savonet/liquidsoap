@@ -335,6 +335,8 @@ else
 fi
 AC_SUBST(W_CUSTOM_PATH)
 
+AC_PATH_PROG(PANDOC,pandoc)
+
 #
 # Libs
 #
@@ -965,6 +967,7 @@ cat <<EOMSG
  OCAML_LFLAGS   : $liquidsoap_ocamllflags
  CFLAGS         : $CFLAGS
  LDFLAGS        : $LDFLAGS
+ Pandoc         : $PANDOC
  ${BYTE_COMP}${CAMLP4O_COMP}
  ---------------------------------------------------------------- Installation
 

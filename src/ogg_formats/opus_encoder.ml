@@ -20,14 +20,18 @@
 
  *****************************************************************************)
 
+module G = Generator
+
 let create_encoder ~opus ~comments () =
   let samplerate = opus.Opus_format.samplerate in
   let channels = opus.Opus_format.channels in
-  let frame_size = opus.Opus_format.frame_size in
+  let frame_size =
+    int_of_float (opus.Opus_format.frame_size *. float samplerate /. 1000.)
+  in
+  let gen = G.create `Audio in
   let application =
     match opus.Opus_format.application with None -> `Audio | Some a -> a
   in
-  let pending = ref [||] in
   let enc = ref None in
   let started = ref false in
   let get_enc os =
@@ -72,28 +76,19 @@ let create_encoder ~opus ~comments () =
     Ogg.Stream.put_packet os (Opus.Encoder.comments enc);
     Ogg_muxer.flush_pages os
   in
-  let data_encoder data os _ =
+  let data_encoder { Ogg_muxer.data; offset; length } os _ =
     started := true;
     let enc = get_enc os in
-    let data =
-      Array.map
-        (fun buf -> Array.sub buf data.Ogg_muxer.offset data.Ogg_muxer.length)
-        data.Ogg_muxer.data
-    in
-    let data =
-      if Array.length !pending == 0 then data
-      else Array.mapi (fun i channel -> Array.append !pending.(i) channel) data
-    in
-    let ret =
-      try
-        Opus.Encoder.encode_float ~frame_size enc data 0 (Array.length data.(0))
-      with Opus.Buffer_too_small -> Array.length data.(0)
-    in
-    if ret > 0 then
-      pending :=
-        Array.map
-          (fun channel -> Array.sub channel ret (Array.length channel - ret))
-          data
+    G.put_audio gen (Content.Audio.lift_data data) offset length;
+    while G.length gen >= frame_size do
+      let data = G.get gen frame_size in
+      let ret =
+        Opus.Encoder.encode_float ~frame_size:opus.Opus_format.frame_size enc
+          Content.(Audio.get_data (Frame.get_audio data))
+          0 frame_size
+      in
+      assert (ret = frame_size)
+    done
   in
   let empty_data () =
     {

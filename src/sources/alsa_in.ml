@@ -62,7 +62,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
 
     val mutable read_fun =
       fun pcm (buf : Content.Audio.data) ofs len ->
-        Pcm.readn_float_ba pcm (Audio.sub buf ofs len)
+        Pcm.readn_float pcm buf ofs len
 
     val mutable device = None
 
@@ -95,7 +95,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
                     let r = Pcm.readi pcm sbuf 0 len in
                     Audio.S16LE.to_audio
                       (Bytes.unsafe_to_string sbuf)
-                      0 (Audio.sub buf ofs r);
+                      0 buf ofs r;
                     r)
             end;
             sample_freq <- Pcm.set_rate_near dev params sample_freq Dir_eq;
@@ -138,11 +138,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
       assert (0 = AFrame.position buf);
       let buffer = ioring#get_block in
       let fbuf = AFrame.pcm buf in
-      for c = 0 to Array.length fbuf - 1 do
-        Audio.Mono.blit
-          (Audio.Mono.sub buffer.(c) 0 buffer_length)
-          (Audio.Mono.sub fbuf.(c) 0 buffer_length)
-      done;
+      Audio.blit buffer 0 fbuf 0 buffer_length;
       AFrame.add_break buf buffer_length
 
     method reset = ()

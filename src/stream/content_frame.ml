@@ -26,7 +26,7 @@ open Frame_base
    hence the [assert false] below. *)
 module Specs = struct
   type 'a frame_content = { breaks : 'a; metadata : 'a; media : 'a fields }
-  type kind = [ `Frame_content ]
+  type kind = [ `Content ]
   type params = Content_base.format frame_content
   type data = Content_base.data frame_content
 
@@ -79,7 +79,7 @@ module Specs = struct
       (Content_base.string_of_format midi)
 
   let parse_param _ _ = None
-  let kind = `Frame_content
+  let kind = `Content
   let default_params _ = assert false
   let string_of_kind _ = "frame_content"
   let kind_of_string _ = None

@@ -178,7 +178,7 @@ let doc_of_prototype_item ~generalized t d doc =
   item#add_subsection "default"
     (match d with
       | None -> Lazy.from_val (Doc.trivial "None")
-      | Some d -> Lazy.from_fun (fun () -> Doc.trivial (print_value d)));
+      | Some d -> Lazy.from_fun (fun () -> Doc.trivial (Value.to_string d)));
   item
 
 let builtin_type p t =
@@ -376,7 +376,9 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
 let iter_sources = iter_sources ~static_analysis_failed:(ref [])
 
 (* Delay this function in order not to have Lang depend on Evaluation. *)
-let apply_fun : (value -> env -> value) ref = ref (fun _ -> assert false)
+let apply_fun : (?pos:Pos.t -> value -> env -> value) ref =
+  ref (fun ?pos:_ _ -> assert false)
+
 let apply f p = Clock.collect_after (fun () -> !apply_fun f p)
 
 (** {1 High-level manipulation of values} *)

@@ -98,20 +98,8 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
     method send_frame memo =
       let stream = Option.get stream in
       let buf = AFrame.pcm memo in
-      let chans = Array.length buf in
       let len = Audio.length buf in
-      let buf' =
-        Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (chans * len)
-      in
-      for c = 0 to chans - 1 do
-        let bufc = buf.(c) in
-        for i = 0 to len - 1 do
-          Bigarray.Array1.unsafe_set buf'
-            ((i * chans) + c)
-            (Bigarray.Array1.unsafe_get bufc i)
-        done
-      done;
-      Simple.write_ba stream buf'
+      Simple.write stream buf 0 len
   end
 
 class input ~kind p =
@@ -163,19 +151,8 @@ class input ~kind p =
       assert (0 = AFrame.position frame);
       let stream = Option.get stream in
       let len = AFrame.size () in
-      let ibuf =
-        Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
-          (self#audio_channels * len)
-      in
       let buf = AFrame.pcm frame in
-      Simple.read_ba stream ibuf;
-      for c = 0 to self#audio_channels - 1 do
-        let bufc = buf.(c) in
-        for i = 0 to len - 1 do
-          bufc.{i} <-
-            Bigarray.Array1.unsafe_get ibuf ((i * self#audio_channels) + c)
-        done
-      done;
+      Simple.read stream buf 0 len;
       AFrame.add_break frame (AFrame.size ())
   end
 

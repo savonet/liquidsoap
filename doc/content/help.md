@@ -89,9 +89,6 @@ Methods:
  * self_sync : () -> bool
      Is the source currently controling its own real-time loop.
 
- * shutdown : () -> unit
-     Deactivate a source.
-
  * skip : () -> unit
      Skip to the next track.
 

@@ -174,14 +174,6 @@ let source_methods =
       ([], bool_t),
       "Indicate if a source may fail, i.e. may not be ready to stream.",
       fun s -> bool (s#stype = `Fallible) );
-    ( "shutdown",
-      ([], fun_t [] unit_t),
-      "Deactivate a source.",
-      fun s ->
-        val_fun [] (fun _ ->
-            (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
-                (s' :> Source.source) = (s :> Source.source));
-            unit) );
     ( "time",
       ([], fun_t [] float_t),
       "Get a source's time, based on its assigned clock.",

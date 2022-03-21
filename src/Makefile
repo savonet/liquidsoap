@@ -316,7 +316,7 @@ doc: $(liquidsoap_doc_sources)
 
 clean:
 	@echo "Cleaning..."
-	@rm -f $(liquidsoap_sources:.ml=.$(o)) $(liquidsoap_sources:.ml=.$(i)) $(liquidsoap_c_files:.c=.o) depend liquidsoap.$(a)
+	@rm -f **/.cm* $(liquidsoap_sources:.ml=.$(o)) $(liquidsoap_sources:.ml=.$(i)) $(liquidsoap_c_files:.c=.o) depend liquidsoap.$(a)
 	@$(MAKE) -C test $@
 
 DISTFILES = Makefile META.in $(shell find . -name \*.mli) $(shell find . -name \*.ml) $(shell find . -name \*.c)

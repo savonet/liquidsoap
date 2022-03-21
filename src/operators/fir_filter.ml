@@ -145,8 +145,8 @@ class fir ~kind (source : source) freq beta numcoeffs =
       for c = 0 to 1 do
         for i = offset to AFrame.position buf - 1 do
           shift xv.(c);
-          xv.(c).(nzeros) <- b.(c).{i} /. gain;
-          b.(c).{i} <- fold_left2 addtimes 0. xcoeffs xv.(c)
+          xv.(c).(nzeros) <- b.(c).(i) /. gain;
+          b.(c).(i) <- fold_left2 addtimes 0. xcoeffs xv.(c)
         done
       done
   end

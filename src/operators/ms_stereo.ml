@@ -41,18 +41,18 @@ class msstereo ~kind (source : source) mode width =
       for i = offset to AFrame.position buf - 1 do
         match mode with
           | Encode ->
-              let left = buffer.(0).{i} and right = buffer.(1).{i} in
-              buffer.(0).{i} <- 0.5 *. (left +. right);
+              let left = buffer.(0).(i) and right = buffer.(1).(i) in
+              buffer.(0).(i) <- 0.5 *. (left +. right);
 
               (* mid *)
-              buffer.(1).{i} <- 0.5 *. (left -. right)
+              buffer.(1).(i) <- 0.5 *. (left -. right)
               (* side *)
           | Decode ->
-              let mid = buffer.(0).{i} and side = buffer.(1).{i} in
-              buffer.(0).{i} <- mid +. (side *. width);
+              let mid = buffer.(0).(i) and side = buffer.(1).(i) in
+              buffer.(0).(i) <- mid +. (side *. width);
 
               (* left *)
-              buffer.(1).{i} <- mid -. (side *. width)
+              buffer.(1).(i) <- mid -. (side *. width)
         (* right *)
       done
   end
@@ -108,12 +108,12 @@ class spatializer ~kind ~width (source : source) =
         w /. sqrt ((w *. w) +. (w' *. w'))
       in
       for i = offset to position - 1 do
-        let left = buf.(0).{i} in
-        let right = buf.(1).{i} in
+        let left = buf.(0).(i) in
+        let right = buf.(1).(i) in
         let mid = (left +. right) /. 2. in
         let side = (left -. right) /. 2. in
-        buf.(0).{i} <- ((1. -. a) *. mid) -. (a *. side);
-        buf.(1).{i} <- ((1. -. a) *. mid) +. (a *. side)
+        buf.(0).(i) <- ((1. -. a) *. mid) -. (a *. side);
+        buf.(1).(i) <- ((1. -. a) *. mid) +. (a *. side)
       done
   end
 

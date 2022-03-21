@@ -120,14 +120,18 @@ let () =
       let special_char =
         match (Lang.to_option (List.assoc "special_char" p), encoding) with
           | Some f, _ ->
-              fun s -> Lang.to_bool (Lang.apply f [("", Lang.string s)])
+              fun s ofs len ->
+                Lang.to_bool
+                  (Lang.apply f [("", Lang.string (String.sub s ofs len))])
           | None, `Ascii -> Utils.ascii_special_char
           | None, `Utf8 -> Utils.utf8_special_char
       in
       let escape_char =
         match (Lang.to_option (List.assoc "escape_char" p), encoding) with
           | Some f, _ ->
-              fun s -> Lang.to_string (Lang.apply f [("", Lang.string s)])
+              fun s ofs len ->
+                Lang.to_string
+                  (Lang.apply f [("", Lang.string (String.sub s ofs len))])
           | None, `Ascii -> Utils.escape_hex_char
           | None, `Utf8 -> Utils.escape_utf8_char
       in
@@ -183,7 +187,7 @@ let () =
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string
         (Utils.escape_string
-           (Utils.escape ~special_char:(fun _ -> true) ~escape_char ~next)
+           (Utils.escape ~special_char:(fun _ _ _ -> true) ~escape_char ~next)
            s))
 
 let () =
@@ -202,10 +206,11 @@ let () =
     Lang.bool_t
     (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
+      let len = String.length s in
       let encoding = List.assoc "encoding" p in
       match Lang.to_string encoding with
-        | "ascii" -> Lang.bool (Utils.ascii_special_char s)
-        | "utf8" -> Lang.bool (Utils.utf8_special_char s)
+        | "ascii" -> Lang.bool (Utils.ascii_special_char s 0 len)
+        | "utf8" -> Lang.bool (Utils.utf8_special_char s 0 len)
         | _ ->
             raise
               (Error.Invalid_value
@@ -499,7 +504,7 @@ let () =
       let v = if show_fields then v else dv in
       match v with
         | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
-        | v -> Lang.string (Lang.print_value v))
+        | v -> Lang.string (Value.to_string v))
 
 let () =
   Lang.add_builtin "string_of_float" ~category:`String

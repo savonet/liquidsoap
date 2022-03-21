@@ -57,8 +57,7 @@ class amplify ~kind (source : source) override_field coeff =
       end;
       let k = match override with Some o -> o | None -> coeff () in
       if k <> 1. then
-        Audio.amplify k
-          (Audio.sub (AFrame.pcm buf) offset (AFrame.position buf - offset));
+        Audio.amplify k (AFrame.pcm buf) offset (AFrame.position buf - offset);
       if AFrame.is_partial buf && override <> None then (
         self#log#info "End of the current overriding.";
         override <- None)

@@ -38,7 +38,7 @@ class clip ~kind (source : source) =
       source#get buf;
       let b = AFrame.pcm buf in
       let position = AFrame.position buf in
-      Audio.clip (Audio.sub b offset (position - offset))
+      Audio.clip b offset (position - offset)
   end
 
 let () =
@@ -49,7 +49,8 @@ let () =
     ~return_t:k ~category:`Audio
     ~descr:
       "Clip samples, i.e. ensure that all values are between -1 and 1: values \
-       lower than -1 become -1 and values higher than 1 become 1."
+       lower than -1 become -1 and values higher than 1 become 1. `nan` values \
+       become `0.`"
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in

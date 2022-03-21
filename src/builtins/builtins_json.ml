@@ -43,7 +43,7 @@ let rec json_of_value v : Json.t =
                 kind = "json";
                 msg =
                   Printf.sprintf "Value %s cannot be represented as json"
-                    (Value.print_value v);
+                    (Value.to_string v);
                 pos = (match v.Value.pos with Some p -> [p] | None -> []);
               })
 
@@ -118,7 +118,7 @@ let rec json_of_typed_value ~ty v : Json.t =
                 msg =
                   Printf.sprintf
                     "Value %s of type %s cannot be represented as json"
-                    (Value.print_value v) (Type.to_string ty);
+                    (Value.to_string v) (Type.to_string ty);
                 pos = (match v.Value.pos with Some p -> [p] | None -> []);
               })
 
