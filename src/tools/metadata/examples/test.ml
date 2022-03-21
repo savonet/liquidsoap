@@ -6,3 +6,4 @@ let () =
   p "mp3" (Metadata.ID3v2.parse_file "test.mp3");
   p "png" (Metadata.PNG.parse_file "test.png");
   p "jpg" (Metadata.JPEG.parse_file "test.jpg");
+  p "avi" (Metadata.AVI.parse_file "test.avi")

@@ -26,6 +26,9 @@ module Reader = struct
     if k <> n then raise Invalid;
     Bytes.unsafe_to_string s
 
+  let drop f n =
+    ignore (read f n)
+
   let byte f = int_of_char (read f 1).[0]
 
   let int16_be f =
@@ -41,6 +44,13 @@ module Reader = struct
   let int16 = function
     | Big_endian -> int16_be
     | Little_endian -> int16_le
+
+  let int32_le f =
+    let b0 = byte f in
+    let b1 = byte f in
+    let b2 = byte f in
+    let b3 = byte f in
+    b3 lsl 24 + b2 lsl 16 + b1 lsl 8 + b0
 
   let int32_be f =
     let b0 = byte f in
