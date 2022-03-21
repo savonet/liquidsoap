@@ -20,25 +20,24 @@
 
  *****************************************************************************)
 
-let log = Log.make ["decoder"; "image"; "metadata"]
+let log = Log.make ["decoder"; "video"; "metadata"]
 
 (** Configuration keys. *)
 let mime_types =
   Dtools.Conf.list
-    ~p:(Decoder.conf_mime_types#plug "image_metadata")
+    ~p:(Decoder.conf_mime_types#plug "video_metadata")
     "Mime-types used for decoding metadata using native parser."
-    ~d:["image/png"; "image/jpeg"]
+    ~d:["video/x-msvideo"]
 
 let conf_id3v2 =
   Dtools.Conf.void
-    ~p:(Decoder.conf_decoder#plug "image_metadata")
-    "Native image metadata parser settings."
+    ~p:(Decoder.conf_decoder#plug "video_metadata")
+    "Native video metadata parser settings."
 
 let file_extensions =
   Dtools.Conf.list
-    ~p:(Decoder.conf_file_extensions#plug "image_metadata")
-    "File extensions used for decoding metadata using native parser."
-    ~d:["png"; "jpg"; "jpeg"]
+    ~p:(Decoder.conf_file_extensions#plug "video_metadata")
+    "File extensions used for decoding metadata using native parser." ~d:["avi"]
 
 let get_tags fname =
   try
@@ -50,7 +49,7 @@ let get_tags fname =
     let ic = open_in fname in
     Tutils.finalize
       ~k:(fun () -> close_in ic)
-      (fun () -> Metadata.Image.parse (input ic))
+      (fun () -> Metadata.Video.parse (input ic))
   with
     | Metadata.Invalid -> []
     | e ->
@@ -60,4 +59,4 @@ let get_tags fname =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Request.mresolvers#register "IMAGEMD" get_tags
+let () = Request.mresolvers#register "VIDEOMD" get_tags

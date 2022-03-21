@@ -54,7 +54,7 @@ decoders = \
 	$(if $(W_FLAC),decoder/flacduration.ml) \
 	$(if $(W_FLAC_OGG),decoder/ogg_flac_duration.ml) \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
-        decoder/id3v2_plug.ml decoder/image_plug.ml \
+        decoder/id3v2_plug.ml decoder/image_plug.ml decoder/video_plug.ml \
 	$(if $(W_CAMLIMAGES),decoder/image/camlimages_decoder.ml) \
 	$(if $(W_SDL_IMAGE),decoder/image/sdlimage_decoder.ml) \
 	$(if $(W_GSTREAMER),decoder/gstreamer_decoder.ml)
@@ -180,7 +180,8 @@ io = \
 tools_metadata = \
 	tools/metadata/metadataBase.ml \
 	tools/metadata/metadataID3v2.ml tools/metadata/metadataJPEG.ml \
-	tools/metadata/metadataPNG.ml tools/metadata/metadata.ml
+	tools/metadata/metadataPNG.ml tools/metadata/metadataAVI.ml \
+	tools/metadata/metadata.ml
 
 tools = \
 	tools/log.ml tools/pos.ml \

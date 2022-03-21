@@ -7,7 +7,7 @@
 
 (rule
  (alias runtest)
- (deps test.mp3 test.png test.jpg test.avi test.mp4)
+ (deps test.mp3 test.png test.jpg test.avi test.mp4 test.mkv)
  (action (run ./test.exe))
 )
 
@@ -34,4 +34,9 @@
 (rule
  (target test.mp4)
  (action (run ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=25 -metadata "title=The title" -metadata "year=2022" test.mp4))
+)
+
+(rule
+ (target test.mkv)
+ (action (run ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=25 -metadata "title=The title" -metadata "year=2022" test.mkv))
 )
