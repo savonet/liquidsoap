@@ -218,8 +218,8 @@ let () =
               false
             in
             let on_start _ = `Stop in
-            let log s = log#info "%s" s in
             let p =
+              let log s = log#info "%s" s in
               Process_handler.run ~env ~on_start ~on_stop ~on_stdout ~on_stderr
                 ~log cmd
             in
@@ -228,7 +228,10 @@ let () =
                 Tutils.wait_for (`Read out_pipe) timeout;
                 -1.
               with Tutils.Timeout f ->
-                Process_handler.kill p;
+                (try Process_handler.kill p
+                 with exn ->
+                   log#important "Error while killing process: %s"
+                     (Printexc.to_string exn));
                 f
             in
             (timed_out, !status))
