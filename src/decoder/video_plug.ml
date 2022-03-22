@@ -47,10 +47,7 @@ let get_tags fname =
         (Decoder.test_file ~log ~mimes:mime_types#get
            ~extensions:file_extensions#get fname)
     then raise Metadata.Invalid;
-    let ic = open_in fname in
-    Tutils.finalize
-      ~k:(fun () -> close_in ic)
-      (fun () -> Metadata.Video.parse (input ic))
+    Metadata.Video.parse_file fname
   with
     | Metadata.Invalid -> []
     | e ->

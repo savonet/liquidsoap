@@ -13,7 +13,7 @@
 
 (rule
  (target test.mp3)
- (action (run ffmpeg -f lavfi -i "sine=frequency=440:sample_rate=44100:duration=10" -f mp3 -metadata "title=The title" -metadata "artist=The artist" -metadata "album=The album" test.mp3))
+ (action (run ffmpeg -f lavfi -i "sine=frequency=440:sample_rate=44100:duration=10" -f mp3 -write_id3v1 true -metadata "title=The title" -metadata "artist=The artist" -metadata "album=The album" test.mp3))
 )
 
 (rule

@@ -20,24 +20,25 @@
 
  *****************************************************************************)
 
-let log = Log.make ["decoder"; "id3v2"]
+let log = Log.make ["decoder"; "id3"]
 
-(** Configuration keys for id3v2. *)
+(** Configuration keys for id3. *)
 let mime_types =
   Dtools.Conf.list
-    ~p:(Decoder.conf_mime_types#plug "id3v2")
-    "Mime-types used for decoding metadata using native ID3v2 parser"
+    ~p:(Decoder.conf_mime_types#plug "id3")
+    "Mime-types used for decoding metadata using native ID3v1 and ID3v2 parser"
     ~d:["audio/mpeg"]
 
-let conf_id3v2 =
+let conf_id3 =
   Dtools.Conf.void
-    ~p:(Decoder.conf_decoder#plug "id3v2")
-    "Native ID3v2 parser settings"
+    ~p:(Decoder.conf_decoder#plug "id3")
+    "Native ID3 parser settings"
 
 let file_extensions =
   Dtools.Conf.list
-    ~p:(Decoder.conf_file_extensions#plug "id3v2")
-    "File extensions used for decoding metadata using native ID3v2 parser"
+    ~p:(Decoder.conf_file_extensions#plug "id3")
+    "File extensions used for decoding metadata using native ID3v1 and ID3v2 \
+     parser"
     ~d:["mp3"]
 
 let get_tags fname =
@@ -47,10 +48,7 @@ let get_tags fname =
         (Decoder.test_file ~log ~mimes:mime_types#get
            ~extensions:file_extensions#get fname)
     then raise Metadata.Invalid;
-    let ic = open_in fname in
-    Tutils.finalize
-      ~k:(fun () -> close_in ic)
-      (fun () -> Metadata.ID3v2.parse (input ic))
+    Metadata.ID3.parse_file fname
   with
     | Metadata.Invalid -> []
     | e ->
@@ -60,4 +58,4 @@ let get_tags fname =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Request.mresolvers#register "ID3V2" get_tags
+let () = Request.mresolvers#register "ID3" get_tags
