@@ -717,7 +717,11 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port
     method private disconnect =
       self#mutexify
         (fun () ->
-          ignore (Option.map close_socket socket);
+          (match socket with
+            | None -> ()
+            | Some socket ->
+                close_socket socket;
+                !on_disconnect ());
           socket <- None;
           task_should_stop <- true;
           match connect_task with
