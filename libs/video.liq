@@ -276,7 +276,7 @@ end
 
 # @flags hidden
 def add_text_builder(f) =
-  def at(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata="",~size=18,~speed=0,~x=getter(10),~y=getter(10),text,s)
+  def at(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata=null(),~size=18,~speed=0,~x=getter(10),~y=getter(10),text,s)
     x = if speed == 0 then x else
       fps = video.frame.rate()
       x = ref(getter.get(x))
@@ -288,14 +288,14 @@ def add_text_builder(f) =
       x
     end
     tref = ref(getter.get(text))
-    text = if metadata == "" then text else {!tref} end
+    text = null.defined(metadata) ? {!tref} : text
     def on_metadata(m)
-      m = m[metadata]
-      if m != "" then tref := m end
+      if null.defined(metadata) then
+        m = m[null.get(metadata)]
+        if m != "" then tref := m end
+      end
     end
-    s = if metadata == "" then s else
-      source.on_metadata(s, on_metadata)
-    end
+    s = null.defined(metadata) ? source.on_metadata(s, on_metadata) : s
     t = f(id=id, duration=duration, color=color, font=font, size=size, text)
     t = video.translate(x=x, y=y, t)
     add(normalize=false, [(s:source),t])
@@ -304,6 +304,8 @@ def add_text_builder(f) =
 end
 
 let video.add_text = ()
+
+let video.add_text.available = ref([])
 
 # Add a text to a stream (native implementation).
 # @category Source / Video Processing
@@ -321,7 +323,7 @@ let video.add_text = ()
 # def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.native = add_text_builder(video.text.native) end
 
-let video.add_text.best = video.add_text.native
+video.add_text.available := [("native", video.add_text.native), ...!video.add_text.available]
 
 %ifdef video.text.gd
 # Add a text to a stream (GD implementation).
@@ -339,7 +341,7 @@ let video.add_text.best = video.add_text.native
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.gd = add_text_builder(video.text.gd) end
-let replaces video.add_text.best = video.add_text.gd
+video.add_text.available := [("gd", video.add_text.gd), ...!video.add_text.available]
 %endif
 
 %ifdef video.text.gstreamer
@@ -358,14 +360,7 @@ let replaces video.add_text.best = video.add_text.gd
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.gstreamer = add_text_builder(video.text.gstreamer) end
-let replaces video.add_text.best = video.add_text.gstreamer
-%endif
-
-
-%ifdef video.add_text.ffmpeg
-# Note, this does not have higher priority because it is much slower than other
-# implementations.
-let video.add_text.best = video.add_text.ffmpeg
+video.add_text.available := [("gstreamer", video.add_text.gstreamer), ...!video.add_text.available]
 %endif
 
 %ifdef video.text.sdl
@@ -384,7 +379,7 @@ let video.add_text.best = video.add_text.ffmpeg
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.sdl = add_text_builder(video.text.sdl) end
-let video.add_text.best = video.add_text.sdl
+video.add_text.available := [("sdl", video.add_text.sdl), ...!video.add_text.available]
 %endif
 
 %ifdef video.text.camlimages
@@ -403,11 +398,28 @@ let video.add_text.best = video.add_text.sdl
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.camlimages = add_text_builder(video.text.camlimages) end
-let video.add_text.best = video.add_text.camlimages
+video.add_text.available := [("camlimages", video.add_text.camlimages), ...!video.add_text.available]
 %endif
+
+let settings.video.add_text = settings.make(
+  description="`video.add_text` implementation.",
+  fst(list.hd(!video.add_text.available))
+)
+
+thread.run.recurrent((fun () ->
+  begin
+    add_text = settings.video.add_text()
+    if list.assoc.mem(add_text, !video.add_text.available) then
+      log.important(label="video.add_text", "Using #{add_text} implementation")
+    else
+      log.severe(label="video.add_text", "Cannot find #{add_text} implementation for `video.add_text`, using default #{fst(list.hd(!video.add_text.available))}")
+    end
+    (-1.)
+  end))
 
 # Add a text to a stream. Uses the first available operator in: camlimages, SDL,
 # FFmpeg, GStreamer, gd or native.
+# Display a text using the first available operator in: SDL, GStreamer, gd or native.
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
@@ -422,7 +434,8 @@ let video.add_text.best = video.add_text.camlimages
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata="",~size=18,~speed=0,~x=getter(10),~y=getter(10),d,s) =
-  video.add_text.best(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
+  add_text = list.assoc(default=snd(list.hd(!video.add_text.available)), settings.video.add_text(), !video.add_text.available)
+  add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
 end
 
 # Display a slideshow (typically of pictures).
