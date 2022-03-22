@@ -1,5 +1,5 @@
 let p name m =
-  let m = List.rev_map (fun (l,v) -> "- " ^ l ^ " : " ^ v) m |> String.concat "\n" in
+  let m = List.map (fun (l,v) -> "- " ^ l ^ " : " ^ v) m |> String.concat "\n" in
   Printf.printf "# Testing %s\n\n%s\n\n%!" name m
 
 let () =

@@ -49,6 +49,6 @@ let parse f : metadata =
       chunk ()
     done;
     assert false
-  with _ -> !ans
+  with _ -> List.rev !ans
   
 let parse_file = R.with_file parse
