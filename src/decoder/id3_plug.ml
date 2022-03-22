@@ -41,14 +41,14 @@ let file_extensions =
      parser"
     ~d:["mp3"]
 
-let get_tags fname =
+let get_tags parse fname =
   try
     if
       not
         (Decoder.test_file ~log ~mimes:mime_types#get
            ~extensions:file_extensions#get fname)
     then raise Metadata.Invalid;
-    Metadata.ID3.parse_file fname
+    parse fname
   with
     | Metadata.Invalid -> []
     | e ->
@@ -58,4 +58,10 @@ let get_tags fname =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Request.mresolvers#register "ID3" get_tags
+let () = Request.mresolvers#register "ID3" (get_tags Metadata.ID3.parse_file)
+
+let () =
+  Request.mresolvers#register "ID3v1" (get_tags Metadata.ID3v1.parse_file)
+
+let () =
+  Request.mresolvers#register "ID3v2" (get_tags Metadata.ID3v2.parse_file)
