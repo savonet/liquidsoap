@@ -247,7 +247,7 @@ end
 Finally, we apply `map_metadata` to the source, just after the `request.dynamic.list`
 definition in `radio.liq`:
 ```liquidsoap
-s = map_metadata(update_title,s)
+s = metadata.map(update_title,s)
 ```
 
 Solutions:
@@ -436,7 +436,7 @@ end
 ```
 And, we add the following line in `radio.liq` after the `request.dynamic.list` line:
 ```liquidsoap
-s = map_metadata(add_replaygain,s)
+s = metadata.map(add_replaygain,s)
 ```
 Finally, we add the `amplify` operator. We set the default amplification
 to `1.`, i.e. no amplification, and tell the operator to update this value with

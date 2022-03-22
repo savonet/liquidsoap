@@ -298,6 +298,7 @@ deprecated operatords. Here's a list of the most important ones:
 * `empty` is replaced by: `source.fail`
 * `file.unlink` is replaced by: `file.remove`
 * `string.utf8.escape` is replaced by: `string.escape`   
+* `map_metadata` is replaced by: `metadata.map`
 
 ### Windows build
 

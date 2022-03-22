@@ -95,10 +95,17 @@ def playlist.once(~id=null(),~random=false,~reload_mode="",
   playlist(reload_mode=reload_mode, loop=false, id=id, mode=mode, prefetch=prefetch, check_next=filter, uri)
 end
 
-# Deprecated: this function has been replaced by `map_metadata`.
+# Deprecated: use metadata.map
+# @flag deprecated
+def map_metadata(%argsof(metadata.map), fn, (s:source))
+  deprecated("map_metadata", "metadata.map")
+  metadata.map(%argsof(metadata.map), fn, s)
+end
+
+# Deprecated: this function has been replaced by `metadata.map`.
 # @flag deprecated
 def rewrite_metadata(l,~insert_missing=true,~update=true,~strip=false,s)
-  deprecated("rewrite_metadata", "map_metadata")
+  deprecated("rewrite_metadata", "metadata.map")
   def map(m)
     def apply(x)
       label = fst(x)
@@ -107,7 +114,7 @@ def rewrite_metadata(l,~insert_missing=true,~update=true,~strip=false,s)
     end
     list.map(apply,l)
   end
-  map_metadata(map,insert_missing=insert_missing,update=update,strip=strip,s)
+  metadata.map(map,insert_missing=insert_missing,update=update,strip=strip,s)
 end
 
 # Deprecated: this function will be removed in a future release

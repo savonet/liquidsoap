@@ -27,7 +27,7 @@ def output.shoutcast(
       m
     end
   end
-  s = map_metadata(map,s)
+  s = metadata.map(map,s)
 
   output.icecast(
     %argsof(

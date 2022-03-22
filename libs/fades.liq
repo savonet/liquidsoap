@@ -359,11 +359,13 @@ end
 # @param ~medium       Smart crossfade: value, in dB, for medium sound level.
 # @param ~margin       Smart crossfade: margin to detect sources that have too different \
 #                      sound level for crossing.
+# @param ~deduplicate  Crossfade transitions can generate duplicate metadata. When `true`, the operator \
+#                      removes duplicate metadata from the returned source.
 # @param s             The input source.
 def crossfade(~id=null(), ~duration=5.,~override_duration="liq_cross_duration",
               ~fade_in=3.,~fade_out=3.,~smart=false,
               ~default=(fun (a,b) -> (sequence([a, b]):source)),
-              ~high=-15., ~medium=-32., ~margin=4.,
+              ~high=-15., ~medium=-32., ~margin=4., ~deduplicate=true,
               ~minimum=(-1.),~width=2.,~conservative=true,s)
   id = string.id.default(default="crossfade", id)
   def log(~level=3,x) = log(label=id,level=level,x) end
@@ -391,8 +393,16 @@ def crossfade(~id=null(), ~duration=5.,~override_duration="liq_cross_duration",
       simple_transition
     end
 
-  cross(id=id, width=width, duration=duration, override_duration=override_duration,
-        conservative=conservative, minimum=minimum, transition, s)
+  let (cross_id, deduplicate_id) = deduplicate ? (null(), null(id)) : (null(id), null())
+
+  s = cross(id=cross_id, width=width, duration=duration, override_duration=override_duration,
+            conservative=conservative, minimum=minimum, transition, s)
+
+  if deduplicate then
+    metadata.deduplicate(id=deduplicate_id, s)
+  else
+    s
+  end
 end
 
 # Mixes two streams, with faded transitions between the state when only the

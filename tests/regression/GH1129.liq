@@ -15,7 +15,7 @@ def m1(_) =
   [("id","s1")]
 end
 
-s1 = map_metadata(id="s1",m1,s1)
+s1 = metadata.map(id="s1",m1,s1)
 
 s2_ready = ref(false)
 
@@ -25,7 +25,7 @@ def m2(_) =
   [("id","s2")]
 end
 
-s2 = map_metadata(id="s2",m2,s2)
+s2 = metadata.map(id="s2",m2,s2)
 
 s3 = blank(id="s3",duration=0.04)
 
@@ -33,7 +33,7 @@ def m3(_) =
   [("id","s3")]
 end
 
-s3 = map_metadata(id="s3",m3,s3)
+s3 = metadata.map(id="s3",m3,s3)
 
 def f(m) =
   s2_ready := !s2_ready or m["id"] == "s3"
