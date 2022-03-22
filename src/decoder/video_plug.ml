@@ -20,25 +20,24 @@
 
  *****************************************************************************)
 
-let log = Log.make ["decoder"; "id3v2"]
+let log = Log.make ["decoder"; "video"; "metadata"]
 
-(** Configuration keys for id3v2. *)
+(** Configuration keys. *)
 let mime_types =
   Dtools.Conf.list
-    ~p:(Decoder.conf_mime_types#plug "id3v2")
-    "Mime-types used for decoding metadata using native ID3v2 parser"
-    ~d:["audio/mpeg"]
+    ~p:(Decoder.conf_mime_types#plug "video_metadata")
+    "Mime-types used for decoding metadata using native parser."
+    ~d:["video/x-msvideo"]
 
-let conf_id3v2 =
+let conf_video =
   Dtools.Conf.void
-    ~p:(Decoder.conf_decoder#plug "id3v2")
-    "Native ID3v2 parser settings"
+    ~p:(Decoder.conf_decoder#plug "video_metadata")
+    "Native video metadata parser settings."
 
 let file_extensions =
   Dtools.Conf.list
-    ~p:(Decoder.conf_file_extensions#plug "id3v2")
-    "File extensions used for decoding metadata using native ID3v2 parser"
-    ~d:["mp3"]
+    ~p:(Decoder.conf_file_extensions#plug "video_metadata")
+    "File extensions used for decoding metadata using native parser." ~d:["avi"]
 
 let get_tags fname =
   try
@@ -50,7 +49,7 @@ let get_tags fname =
     let ic = open_in fname in
     Tutils.finalize
       ~k:(fun () -> close_in ic)
-      (fun () -> Metadata.ID3v2.parse (input ic))
+      (fun () -> Metadata.Video.parse (input ic))
   with
     | Metadata.Invalid -> []
     | e ->
@@ -60,4 +59,4 @@ let get_tags fname =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Request.mresolvers#register "ID3V2" get_tags
+let () = Request.mresolvers#register "VIDEOMD" get_tags

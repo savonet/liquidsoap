@@ -1,4 +1,4 @@
-INCDIRS = builtins conversions converters decoder encoder encoder_formats harbor io lang lang_encoders ogg_formats operators outputs protocols sources stream tools
+INCDIRS = builtins conversions converters decoder encoder encoder_formats harbor io lang lang_encoders ogg_formats operators outputs protocols sources stream tools tools/metadata
 
 liquidsoap_c_files = \
 	tools/unix_c.c \
@@ -54,7 +54,7 @@ decoders = \
 	$(if $(W_FLAC),decoder/flacduration.ml) \
 	$(if $(W_FLAC_OGG),decoder/ogg_flac_duration.ml) \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
-        decoder/id3v2_plug.ml \
+        decoder/id3v2_plug.ml decoder/image_plug.ml decoder/video_plug.ml \
 	$(if $(W_CAMLIMAGES),decoder/image/camlimages_decoder.ml) \
 	$(if $(W_SDL_IMAGE),decoder/image/sdlimage_decoder.ml) \
 	$(if $(W_GSTREAMER),decoder/gstreamer_decoder.ml)
@@ -177,6 +177,12 @@ io = \
 	$(if $(W_FFMPEG),io/ffmpeg_filter_io.ml) \
 	$(if $(W_FFMPEG),io/ffmpeg_io.ml)
 
+tools_metadata = \
+	tools/metadata/metadataBase.ml \
+	tools/metadata/metadataID3v2.ml tools/metadata/metadataJPEG.ml \
+	tools/metadata/metadataPNG.ml tools/metadata/metadataAVI.ml \
+	tools/metadata/metadata.ml
+
 tools = \
 	tools/log.ml tools/pos.ml \
 	tools/extralib.ml tools/lifecycle.ml \
@@ -193,11 +199,12 @@ tools = \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	configure.ml tools/console.ml tools/process_handler.ml \
 	tools/http.ml \
+	$(tools_metadata) \
         $(if $(W_MEMTRACE),tools/liqmemtrace.ml) \
 	$(if $(W_CURL),tools/liqcurl.ml) \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
-	tools/pool.ml tools/sha1.ml tools/websocket.ml tools/id3v2.ml \
+	tools/pool.ml tools/sha1.ml tools/websocket.ml \
 	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml) \
 	$(if $(W_PROMETHEUS),tools/liq_prometheus.ml)
 

@@ -1,0 +1,2 @@
+test:
+	@dune test

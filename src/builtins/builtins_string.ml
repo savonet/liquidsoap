@@ -580,11 +580,11 @@ let () =
        `file.metadata.id3v2`). The returned values are: mime, picture type, \
        description, and picture data." (fun p ->
       let apic = Lang.to_string (List.assoc "" p) in
-      let apic = Id3v2.parse_apic apic in
+      let apic = Metadata.ID3v2.parse_apic apic in
       Lang.meth
-        (Lang.string apic.Id3v2.data)
+        (Lang.string apic.Metadata.ID3v2.data)
         [
-          ("mime", Lang.string apic.Id3v2.mime);
-          ("picture_type", Lang.int apic.Id3v2.picture_type);
-          ("description", Lang.string apic.Id3v2.description);
+          ("mime", Lang.string apic.Metadata.ID3v2.mime);
+          ("picture_type", Lang.int apic.Metadata.ID3v2.picture_type);
+          ("description", Lang.string apic.Metadata.ID3v2.description);
         ])
