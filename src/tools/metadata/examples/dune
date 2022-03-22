@@ -28,15 +28,15 @@
 
 (rule
  (target test.avi)
- (action (run ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=25 -metadata "title=The title" -metadata "year=2022" test.avi))
+ (action (run ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=25 -metadata "title=The title" -metadata "artist=The artist"  -metadata "year=2022" test.avi))
 )
 
 (rule
  (target test.mp4)
- (action (run ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=25 -metadata "title=The title" -metadata "year=2022" test.mp4))
+ (action (run ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=25 -metadata "title=The title" -metadata "artist=The artist"  -metadata "year=2022" test.mp4))
 )
 
 (rule
  (target test.mkv)
- (action (run ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=25 -metadata "title=The title" -metadata "year=2022" test.mkv))
+ (action (run ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=25 -metadata "title=The title" -metadata "artist=The artist"  -metadata "year=2022" test.mkv))
 )

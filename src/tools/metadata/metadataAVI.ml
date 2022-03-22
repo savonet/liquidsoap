@@ -35,7 +35,9 @@ let parse f : metadata =
           let size = R.int32_le f in
           let s = R.read f (size - 1) in
           R.drop f 1; (* null-terminated *)
-          remaining := !remaining - (8 + size);
+          let padding = size mod 2 in
+          R.drop f padding;
+          remaining := !remaining - (8 + size + padding);
           let tag = match List.assoc_opt tag tagn with Some tag -> tag | None -> tag in
           ans := (tag, s) :: !ans
         done
