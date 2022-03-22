@@ -66,8 +66,9 @@ module Reader = struct
       Unix.close fd;
       ans
     with e ->
+      let bt = Printexc.get_raw_backtrace () in
       Unix.close fd;
-      raise e
+      Printexc.raise_with_backtrace e bt
 end
 
 module CharEncoding = struct

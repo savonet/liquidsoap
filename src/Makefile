@@ -181,7 +181,7 @@ tools_metadata = \
 	tools/metadata/metadataBase.ml \
 	tools/metadata/metadataID3v2.ml tools/metadata/metadataJPEG.ml \
 	tools/metadata/metadataPNG.ml tools/metadata/metadataAVI.ml \
-	tools/metadata/metadata.ml
+	tools/metadata/metadataMP4.ml tools/metadata/metadata.ml
 
 tools = \
 	tools/log.ml tools/pos.ml \
