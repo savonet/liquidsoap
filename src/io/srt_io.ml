@@ -645,7 +645,8 @@ class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
   end
 
 class virtual caller ~payload_size ~messageapi ~hostname ~port
-  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
+  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect:_
+  =
   object (self)
     method virtual should_stop : bool
     val mutable connect_task = None
