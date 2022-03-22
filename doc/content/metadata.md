@@ -43,7 +43,7 @@ def append_title(m) =
 end
 
 # Apply map_metadata to s using append_title
-s = map_metadata(append_title, s)
+s = metadata.map(append_title, s)
 ```
 
 The effect of `map_metadata` by default is to update the metadata with the

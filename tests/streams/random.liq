@@ -15,7 +15,7 @@ def m1(_) =
   [("id","s1")]
 end
 
-s1 = map_metadata(m1,s1)
+s1 = metadata.map(m1,s1)
 
 s1_ready = ref(true)
 
@@ -29,7 +29,7 @@ def m2(_) =
   [("id","s2")]
 end
 
-s2 = map_metadata(id="s2",m2,s2)
+s2 = metadata.map(id="s2",m2,s2)
 
 s2_ready = ref(false)
 

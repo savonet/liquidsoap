@@ -26,7 +26,7 @@ end
 # Removes all metadata coming from a source.
 # @category Source / Track Processing
 def drop_metadata(s)
-  map_metadata(fun(_)->[],update=false,strip=true,insert_missing=false,s)
+  metadata.map(fun(_)->[],update=false,strip=true,insert_missing=false,s)
 end
 
 # Creates a source that plays only one track of the input source.

@@ -413,7 +413,7 @@ def source_tag(s,tag) =
   def f(_)
     [("source_tag",(tag:string))]
   end
-  map_metadata(id=tag,insert_missing=true,f,s)
+  metadata.map(id=tag,insert_missing=true,f,s)
 end
 
 # Tag our sources
