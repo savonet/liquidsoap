@@ -15,8 +15,8 @@ end
 # @param ~duration Duration of the source.
 def video.testsrc(~id=null(), ~pattern="testsrc", ~max_buffer=0.5, ~duration=null())
   if not list.mem(pattern, ["testsrc", "testsrc2", "smptebars", "rgbtestsrc"]) then failwith("invalid pattern for video.testsrc.ffmpeg") end
-  size = "size=#{video.frame.width()}x#{video.frame.height()}"
-  rate = "rate=#{video.frame.rate()}"
+  size = "size=#{settings.frame.video.width()}x#{settings.frame.video.height()}"
+  rate = "rate=#{settings.frame.video.framerate()}"
   duration = if null.defined(duration) then ":duration=#{duration}" else "" end
   src = "#{pattern}=#{size}:#{rate}#{duration}"
   (input.ffmpeg(id=id, max_buffer=max_buffer, format="lavfi", src):source(audio=none,video=yuva420p,midi=none))
@@ -51,7 +51,7 @@ let video.add_text.ffmpeg = ()
 # @params d Text to display.
 def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font="",
                               ~metadata=null(),~size=18,~speed=70,~x=getter(10),~y=getter(10),
-                              ~graph, d, s) =
+                              ~graph, d=getter(""), s) =
   color = "0x" ^ string.hex_of_int(pad=6, color)
 
   fontfile = 
@@ -77,7 +77,7 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font="",
             effective_x := !effective_x - traveled_to
           end
           if !effective_x < 0 then
-            effective_x := video.frame.width() - !effective_x
+            effective_x := settings.frame.video.width() - !effective_x
           end
           !effective_x
         end})
@@ -151,7 +151,7 @@ end
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def replaces video.add_text.ffmpeg(~id=null(),~color=0xffffff,~cycle=true,~font="",
+def video.add_text.ffmpeg.internal(~id=null(),~color=0xffffff,~cycle=true,~font="",
                           ~metadata=null(),~size=18,~speed=70,~x=getter(10),~y=getter(10),
                           d, s) =
   id =  string.id.default(default="video.add_text.ffmpeg", id)
@@ -165,6 +165,13 @@ def replaces video.add_text.ffmpeg(~id=null(),~color=0xffffff,~cycle=true,~font=
   v = ffmpeg.filter.create(mkfilter)
   s = mux_audio(id=id,audio=drop_video(s),v)
   ffmpeg.raw.decode.audio_video(s)
+end
+
+let replaces video.add_text.ffmpeg = video.add_text.ffmpeg.internal
+video.add_text.available := [("ffmpeg", video.add_text.ffmpeg.internal), ...!video.add_text.available]
+
+if settings.video.add_text() != "sdl" then
+  settings.video.add_text.set("ffmpeg")
 end
 %endif
 

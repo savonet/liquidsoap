@@ -1,6 +1,10 @@
 2.0.4 (unreleased)
 =====
 
+New:
+* Added `settings.video.add_text` to enforce consistent choice of
+  `video.add_text` implementation (#2302)
+
 Changed:
 * Make sure source shutdown can only be called on sources that
   can actually be shutdown:
@@ -22,6 +26,8 @@ Fixed:
 * Fixed A/V sync when streaming encoded data via ffmpeg encoder (#2159)
 * Prevent stopped/iddle sources from being restarted when reseting
   clock(s) after too much latency (#2278)
+* Fixed registration of `video.add_text.ffmpeg` as possible implementation
+  for `video.add_text` (#2302)
 
 2.0.3 (11-02-2022)
 =====

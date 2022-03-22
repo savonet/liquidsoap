@@ -268,23 +268,41 @@ def output.youtube.live.rtmp(~id=null(), ~fallible=false, ~on_start={()}, ~on_st
   output.url(id=id, fallible=fallible, on_start=on_start, on_stop=on_stop, start=start, url="#{url}/#{key}", encoder, s)
 end
 
-let video.add_text.best = video.add_text.native
+let video.add_text.available = ref([("native", video.add_text.native)])
 
 %ifdef video.add_text.gstreamer
-let replaces video.add_text.best = video.add_text.gstreamer
+video.add_text.available := [("gstreamer", video.add_text.gstreamer), ...!video.add_text.available]
 %endif
 
 %ifdef video.add_text.gd
-let replaces video.add_text.best = video.add_text.gd
+video.add_text.available := [("gd", video.add_text.gd), ...!video.add_text.available]
 %endif
 
-%ifdef video.add_text.ffmpeg
-let video.add_text.best = video.add_text.ffmpeg
-%endif
+# TODO: %ifdef cannot account for values defined in the scripting library.
+# This is done in ffmpeg.liq for now.
+#%ifdef video.add_text.ffmpeg
+#video.add_text.available := [("FFmpeg", video.add_text.ffmpeg), ...!video.add_text.available]
+#%endif
 
 %ifdef video.add_text.sdl
-let video.add_text.best = video.add_text.sdl
+video.add_text.available := [("sdl", video.add_text.dst), ...!video.add_text.available]
 %endif
+
+let settings.video.add_text = settings.make(
+  description="`video.add_text` implementation.",
+  fst(list.hd(!video.add_text.available))
+)
+
+thread.run.recurrent((fun () ->
+  begin
+    add_text = settings.video.add_text()
+    if list.assoc.mem(add_text, !video.add_text.available) then
+      log.important(label="video.add_text", "Using #{add_text} implementation")
+    else
+      log.severe(label="video.add_text", "Cannot find #{add_text} implementation for `video.add_text`, using default #{fst(list.hd(!video.add_text.available))}")
+    end
+    (-1.)
+  end))
 
 # Display a text using the first available operator in: SDL, GStreamer, gd or native.
 # @category Source / Video Processing
@@ -302,7 +320,8 @@ let video.add_text.best = video.add_text.sdl
 def replaces video.add_text(~id=null(),~color=0xffffff,~cycle=true,~font="",
                    ~metadata="",~size=18,~speed=70,~x=getter(10),~y=getter(10),
                    d,s) =
-  video.add_text.best(id=id,cycle=cycle,font=font,
+  add_text = list.assoc(default=snd(list.hd(!video.add_text.available)), settings.video.add_text(), !video.add_text.available)
+  add_text(id=id,cycle=cycle,font=font,
      metadata=metadata,size=size,color=color,
      speed=speed,x=x,y=y,d,s)
 end
