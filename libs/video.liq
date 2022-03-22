@@ -285,7 +285,7 @@ video.add_text.available := [("gd", video.add_text.gd), ...!video.add_text.avail
 #%endif
 
 %ifdef video.add_text.sdl
-video.add_text.available := [("sdl", video.add_text.dst), ...!video.add_text.available]
+video.add_text.available := [("sdl", video.add_text.sdl), ...!video.add_text.available]
 %endif
 
 let settings.video.add_text = settings.make(
