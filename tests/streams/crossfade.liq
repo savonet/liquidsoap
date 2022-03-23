@@ -22,7 +22,7 @@ b = metadata.map(update=false, (fun (_) -> [("title","b2")]), b)
 
 s = sequence([a,b])
 
-fb = crossfade(smart=true, deduplicate=false, s)
+fb = crossfade(smart=true, deduplicate=false, conservative=false, s)
 
 s = sequence([merge_tracks(fa), fb])
 
