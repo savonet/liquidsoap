@@ -26,7 +26,7 @@ the title metadata for file music1.mp3 will be overridden and changed to ``Title
 
 Map metadata
 ------------
-The `map_metadata` operator applies a specified function to transform
+The `metadata.map` operator applies a specified function to transform
 each metadata chunk of a stream. It can be used to add or decorate metadata, but
 is also useful in more complex cases.
 
@@ -42,17 +42,17 @@ def append_title(m) =
   [("title","#{title} - www.station.com")]
 end
 
-# Apply map_metadata to s using append_title
+# Apply metadata.map to s using append_title
 s = metadata.map(append_title, s)
 ```
 
-The effect of `map_metadata` by default is to update the metadata with the
+The effect of `metadata.map` by default is to update the metadata with the
 returned values. Hence in the function `append_title` defined in the code above
 returns a new metadata for the label `title` and the other metadata remain
 untouched. You can change this by using the `update` option, and you can also
 remove any metadata (even empty one) using the `strip` option.
 
-See the documentation on `map_metadata` for more details.
+See the documentation on `metadata.map` for more details.
 
 Insert metadata
 ---------------

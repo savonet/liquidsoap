@@ -80,7 +80,7 @@ in combination with `request.dymanic` as an external script can build-up
 the appropriate URI, including cue-points, based on information from your
 own scheduling back-end.
 
-Alternatively, you may use `map_metadata` to add those metadata. The operator
-`map_metadata` supports seeking and passes it to its underlying source.
+Alternatively, you may use `metadata.map` to add those metadata. The operator
+`metadata.map` supports seeking and passes it to its underlying source.
 
 
