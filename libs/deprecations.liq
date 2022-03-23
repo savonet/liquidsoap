@@ -99,7 +99,7 @@ end
 # @flag deprecated
 def map_metadata(%argsof(metadata.map), fn, (s:source))
   deprecated("map_metadata", "metadata.map")
-  map_metadata(%argsof(metadata.map), fn, s)
+  metadata.map(%argsof(metadata.map), fn, s)
 end
 
 # Deprecated: this function has been replaced by `metadata.map`.
