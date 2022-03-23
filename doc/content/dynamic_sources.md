@@ -9,136 +9,66 @@ First some outlines:
 * In order for a Liquidsoap script to run without an active source at startup, it is necessary to include `settings.init.force_start.set(true)` at the start of the script. 
 
 
-In this example, we will register a command that creates a playlist source using an uri passed
-as argument and outputs it to a fixed icecast output.
+In this example, we will register a command that dynamically create a new output based on an encoded stream
+and output it to an arbitrary url, as supported by the ffmpeg copy encoder. This script can be used to create 
+a dynamic restreaming platform.
 
-With more work on parsing the argument passed to the telnet command,
-you may write more evolved options, such as the possibility to change
-the output parameters etc..
-
-Please note that not all sources can be shutdown. Only outputs and sources that active can be shutdown.
-You will be able to know that by the fact that only those two types of variables have a `shutdown()`
-method.
-
-New here's the code:
+Here's the code:
 
 ```liquidsoap
-# Allow the script to start even without any output
 settings.init.force_start.set(true)
+settings.server.telnet.set(true)
 
-# First, we create a list referencing the dynamic outputs shutdown methods:
-dyn_outputs = ref([])
+# Replace the path here with a path to some video files:
+s = playlist("/path/to/files")
 
-# This is our icecast output.
-out = fun (mount, s) -> output.icecast(%mp3,
-                              host="test",
-                              password="hackme",
-                              fallible=true,
-                              mount=mount,
-                              s)
-
+streams = ref([])
 count = ref(0)
 
-# Now we write a function to create
-# a playlist source and output it.
-def create_playlist(uri) =
-  # The playlist source
-  s = playlist(uri)
+enc = %ffmpeg(
+  format="flv",
+  %audio.copy,
+  %video.copy
+)
 
-  # The output
-  mount = "dynamic-playlist-#{!count}"
-  count := !count + 1
-  o = out(mount, s)
-
-  # We register the output shutdown method in the list of outputs
-  # Storing the shutdown method instead of the whole output makes
-  # it easier for the typer when using outputs with potentially
-  # different methods.
-  dyn_outputs := list.append( [(uri,o.shutdown)], !dyn_outputs)
-  "Done!"
-end
-
-# And a function to destroy a dynamic output
-def destroy_playlist(uri) = 
-  # We need to find the source in the list,
-  # remove it and destroy it. Currently, the language
-  # lacks some nice operators for that so we do it
-  # the functional way
-
-  # This function is executed on every item in the list
-  # of dynamic outputs
-  def parse_list(ret, current_element) = 
-    # ret is of the form: (matching_outputs, remaining_outputs)
-    # We extract those two:
-    matching_outputs = fst(ret)
-    remaining_outputs = snd(ret)
-
-    # current_element is of the form: ("uri", source) so 
-    # we check the first element
-    current_uri = fst(current_element)
-    if current_uri == uri then
-      # In this case, we add the source to the list of
-      # matched sources
-      (list.append( [snd(current_element)], 
-                     matching_outputs),
-       remaining_outputs)
-    else
-      # In this case, we put the element in the list of remaining
-      # sources
-      (matching_outputs,
-       list.append([current_element], 
-                    remaining_outputs))
-    end
-  end
-    
-  # Now we execute the function:
-  result = list.fold(parse_list, ([], []), !dyn_outputs)
-  matching_outputs = fst(result)
-  remaining_outputs = snd(result)
-
-  # We store the remaining sources in dyn_outputs
-  dyn_outputs := remaining_outputs
-
-  # If no source matched, we return an error
-  if list.length(matching_outputs) == 0 then
-    "Error: no matching sources!"
+def create_stream(url) =
+  if list.assoc.mem(url, !streams) then
+    "Stream for url #{url} already exists!"
   else
-    # We stop all matched outputs
-    list.iter((fun (shutdown) -> shutdown()), matching_outputs)
-    # And return
-    "Done!"
+    out = output.url(id="restream-#{!count}", fallible=true, url=url, enc, s)
+    count := !count + 1
+    streams := [...!streams, (url, out.shutdown)]
+    "OK!"
   end
 end
 
+def delete_stream(url) =
+  if not list.assoc.mem(url, !streams) then
+    "Stream for url #{url} does not exists!"
+  else
+    shutdown = list.assoc(url, !streams)
+    shutdown()
+    streams := list.filter((fun (el) -> fst(el) != url), !streams)
+    "OK!"
+  end
+end
 
-# Now we register the telnet commands:
-server.register(namespace="dynamic_playlist",
-                description="Start a new dynamic playlist.",
-                usage="start <uri>",
+server.register(namespace="restream",
+                description="Redirect a stream.",
+                usage="start <url>",
                 "start",
-                create_playlist)
-server.register(namespace="dynamic_playlist",
+                create_stream)
+server.register(namespace="restream",
                 description="Stop a dynamic playlist.",
-                usage="stop <uri>",
+                usage="stop <url>",
                 "stop",
-                destroy_playlist)
+                delete_stream)
 ```
 
-If you execute this code (add a `output.dummy(blank())` if you have
-no other output..), you have two new telnet commands:
+After executing this script, you should see two telnet commands:
 
-* `dynamic_playlist.start <uri>`
-* `dynamic_playlist.stop <uri>`
+* `restream.start <uri>`
+* `restream.stop <uri>`
 
 which you can use to create/destroy dynamically your sources.
-
-With more tweaking, you should be able to adapt these ideas to your
-precise needs.
-
-If you want to plug those sources into an existing output, you may
-want to use an `input.harbor` in the main output and change the
-`output.icecast` in the dynamic source creation to send everything to
-this `input.harbor`. You can use the `%wav` format in this case to avoid
-compressing/decompressing the data..
-
 
