@@ -282,7 +282,7 @@ deprecated operatords. Here's a list of the most important ones:
 
 * `playlist.safe` is replaced by: `playlist(mksafe(..))`
 * `playlist.once` is replaced by: `playlist`, setting `reload_mode` argument to `"never"` and `loop` to `false`
-* `rewrite_metadata` should be rewritten using `map_metadata`
+* `rewrite_metadata` should be rewritten using `metadata.map`
 * `fade.inital` and `fade.final` are not needed anymore
 * `get_process_output` is replaced by: `process.read`
 * `get_process_lines` is replaced by: `process.read.lines`
@@ -298,7 +298,7 @@ deprecated operatords. Here's a list of the most important ones:
 * `empty` is replaced by: `source.fail`
 * `file.unlink` is replaced by: `file.remove`
 * `string.utf8.escape` is replaced by: `string.escape`   
-* `map_metadata` is replaced by: `metadata.map`
+* `metadata.map` is replaced by: `metadata.map`
 
 ### Windows build
 

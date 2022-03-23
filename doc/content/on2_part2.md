@@ -216,7 +216,7 @@ pass custom metadata to any request. Additionally, it is also possible to rewrit
 your stream's metadata on the fly, using the `on_metadata` operator.
 
 This operator takes a function of the type `metadata->metadata`, i.e. a function
-that takes the current metadata and returns some metadata. Thus, when `map_metadata`
+that takes the current metadata and returns some metadata. Thus, when `metadata.map`
 sees a new metadata in the stream, it calls this function and, by default, updates
 the metadata with the values returned by the function.
 
@@ -244,7 +244,7 @@ def update_title(m) =
   end
 end
 ```
-Finally, we apply `map_metadata` to the source, just after the `request.dynamic.list`
+Finally, we apply `metadata.map` to the source, just after the `request.dynamic.list`
 definition in `radio.liq`:
 ```liquidsoap
 s = metadata.map(update_title,s)
@@ -408,7 +408,7 @@ annotate:type="song":replay_gain:URI
 ```
 However, in order to illustrate a bit more the functionalities of liquidsoap we present
 another solution.
-The method we propose here consists in using `map_metadata`, which we have already seen
+The method we propose here consists in using `metadata.map`, which we have already seen
 to update the metadata with a `"replay_gain"` metadata when we see the `"type"` metadata
 with the value `"song"`. Thus, we add the following function in `library.liq`:
 ```liquidsoap
