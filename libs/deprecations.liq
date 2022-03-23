@@ -97,9 +97,9 @@ end
 
 # Deprecated: use metadata.map
 # @flag deprecated
-def metadata.map(%argsof(metadata.map), fn, (s:source))
-  deprecated("metadata.map", "metadata.map")
-  metadata.map(%argsof(metadata.map), fn, s)
+def map_metadata(%argsof(metadata.map), fn, (s:source))
+  deprecated("map_metadata", "metadata.map")
+  map_metadata(%argsof(metadata.map), fn, s)
 end
 
 # Deprecated: this function has been replaced by `metadata.map`.
