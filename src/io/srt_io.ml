@@ -645,8 +645,7 @@ class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
   end
 
 class virtual caller ~payload_size ~messageapi ~hostname ~port
-  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect:_
-  =
+  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
   object (self)
     method virtual should_stop : bool
     val mutable connect_task = None
@@ -714,7 +713,11 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port
     method private disconnect =
       self#mutexify
         (fun () ->
-          ignore (Option.map close_socket socket);
+          (match socket with
+            | None -> ()
+            | Some socket ->
+                close_socket socket;
+                !on_disconnect ());
           socket <- None;
           task_should_stop <- true;
           match connect_task with
