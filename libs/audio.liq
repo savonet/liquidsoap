@@ -198,7 +198,7 @@ def replaygain(~ebu_r128=true, s)
     end
     if ebu_r128 then list.map(f, m) else m end
   end
-  s = map_metadata(f, s)
+  s = metadata.map(f, s)
   amplify(override="replaygain_track_gain", 1., s)
 end
 
