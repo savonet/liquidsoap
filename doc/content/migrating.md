@@ -225,6 +225,7 @@ deprecated operatords. Here's a list of the most important ones:
 * `file.unlink` is replaced by: `file.remove`
 * `string.utf8.escape` is replaced by: `string.escape`   
 * `metadata.map` is replaced by: `metadata.map`
+* `list.mem_assoc` is replaced by: `list.assoc.mem`
 
 ### Windows build
 

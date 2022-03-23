@@ -554,3 +554,10 @@ def replaces output.youtube.live(%argsof(output.youtube.live.gstreamer), s) =
    output.youtube.live.gstreamer(%argsof(output.youtube.live.gstreamer), s)
 end
 %endif
+
+# Deprecated: use `list.assoc.mem`
+# @flag deprecated
+def list.mem_assoc(k, l) =
+  deprecated("list.mem_assoc", "list.assoc.mem")
+  list.assoc.mem(k, l)
+end

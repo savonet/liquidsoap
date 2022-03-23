@@ -17,6 +17,7 @@ Changed:
   end of each track if duration isn't set via metadata.
 * Make sure crossfade metadata are not duplicated (#2153)
 * Renamed `map_metadata` into `metadata.map`, deprecated `map_metadata`.
+* Deprecatdd `list.mem_assoc`
 * Enhanced remaining time when using `add` (#2255)
 
 Fixed:

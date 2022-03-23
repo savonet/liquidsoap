@@ -103,7 +103,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
   def f(_) =
     if null.defined(s.selected()) then
       selected_id = source.id(null.get(s.selected()))
-      if list.mem_assoc(selected_id, tracks_played) then
+      if list.assoc.mem(selected_id, tracks_played) then
         played = list.assoc(selected_id, tracks_played)
         played := !played + 1
       end
