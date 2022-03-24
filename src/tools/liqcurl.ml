@@ -119,26 +119,21 @@ let fail msg =
   raise
     Runtime_error.(Runtime_error { kind = "http"; msg = Some msg; pos = [] })
 
-let ftp_request ~timeout ~url () =
-  let connection = new Curl.handle in
-  try
-    connection#set_url url;
-    let body = Buffer.create 1024 in
-    connection#set_writefunction (fun s ->
-        Buffer.add_string body s;
-        String.length s);
-    connection#set_timeout timeout;
-    connection#perform;
-    connection#cleanup
-  with exn ->
-    connection#cleanup;
-    raise exn
-
 let parse_http_answer s =
   let f v c s = (v, c, s) in
   try Scanf.sscanf s "HTTP/%s %i %[^\r^\n]" f with
     | Scanf.Scan_failure s -> fail s
     | _ -> fail "Unknown error"
+
+let should_stop =
+  let should_stop = ref false in
+  let m = Mutex.create () in
+  let () =
+    Lifecycle.before_core_shutdown
+      (Tutils.mutexify m (fun () -> should_stop := true))
+  in
+  let should_stop = Tutils.mutexify m (fun () -> !should_stop) in
+  fun _ _ _ _ -> should_stop ()
 
 let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     ~request ~on_body_data () =
@@ -161,7 +156,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
         | Some "1.1" -> Curl.HTTP_VERSION_1_1
         | Some "2.0" -> Curl.HTTP_VERSION_2
         | Some v -> fail (Printf.sprintf "Unsupported http version %s" v));
-    connection#set_timeout timeout;
+    connection#set_timeoutms (int_of_float (timeout *. 1000.));
     (match request with
       | `Get -> connection#set_httpget true
       | `Post data ->
@@ -178,6 +173,8 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     connection#set_headerfunction (fun s ->
         Buffer.add_string response_headers s;
         String.length s);
+    connection#set_xferinfofunction should_stop;
+    connection#set_noprogress false;
     connection#perform;
     match connection#get_redirecturl with
       | url when url <> "" && follow_redirect ->

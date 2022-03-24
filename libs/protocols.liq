@@ -161,7 +161,7 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
 
   timeout = maxtime - time()
 
-  ret = http.head(timeout=int_of_float(timeout),uri)
+  ret = http.head(timeout=timeout,uri)
   code = ret.status_code ?? 999
   headers = ret.headers
 
@@ -198,13 +198,18 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
 
   timeout = maxtime - time()
   
-  http.get.stream(
+  response = http.get.stream(
     on_body_data=file_writer,
-    timeout=int_of_float(timeout),
+    timeout=timeout,
     uri
   )
 
-  [output]
+  if response.status_code < 400 then
+    [output]
+  else
+    log(level=3, "Error while fetching http data: #{response.status_code} - #{response.status_message}")
+    []
+  end
 end
 
 # Register download protocol

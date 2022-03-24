@@ -19,6 +19,8 @@ Changed:
 * Renamed `map_metadata` into `metadata.map`, deprecated `map_metadata`.
 * Deprecatdd `list.mem_assoc`
 * Enhanced remaining time when using `add` (#2255)
+* Switch `http.*` timeout argument to float to provide timeout in
+  milliseconds instead of seconds.
 
 Fixed:
 * Prevent infinite loops when crossfade duration is negative (#2287)
@@ -31,6 +33,8 @@ Fixed:
   clock(s) after too much latency (#2278)
 * Fixed registration of `video.add_text.ffmpeg` as possible implementation
   for `video.add_text` (#2302)
+* Fixed `http.*` calls preventing liquidsoap from shutting down.
+* Fixed `http` protocol not returning an error when timing out (#2242)
 
 2.0.3 (11-02-2022)
 =====
