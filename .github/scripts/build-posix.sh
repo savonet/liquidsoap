@@ -10,7 +10,7 @@ cd /tmp/liquidsoap-full
 
 opam update
 opam remove -y ocamlsdl sdl-liquidsoap ocurl
-find ~/.opam -d -name curl | xargs rf -rf
+find ~/.opam -d -name curl | xargs rm -rf
 opam upgrade -y ocurl
 opam install -y tsdl-image.0.3.2 menhir.20211128
 
