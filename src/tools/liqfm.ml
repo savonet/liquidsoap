@@ -37,8 +37,7 @@ module Liq_http = struct
   let request ?timeout ?headers ?(port = 80) ~host ~url ~request () =
     try
       let timeout =
-        int_of_float
-          (match timeout with None -> !default_timeout | Some t -> t)
+        match timeout with None -> !default_timeout | Some t -> t
       in
       let mk_read s =
         let buf = Buffer.create 10 in
