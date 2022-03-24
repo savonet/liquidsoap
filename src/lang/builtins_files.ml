@@ -357,7 +357,12 @@ let () =
                   let acc =
                     if f <> Filename.current_dir_name then f :: acc else acc
                   in
-                  aux subdir (aux f acc (readdir df)) l)
+                  let in_dir =
+                    (* Cope with permission problems. *)
+                    try readdir df with Sys_error _ -> []
+                  in
+                  let acc = aux f acc in_dir in
+                  aux subdir acc l)
                 else aux subdir (concat subdir f :: acc) l
             | [] -> acc
           in
