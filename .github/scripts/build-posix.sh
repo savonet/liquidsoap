@@ -10,6 +10,8 @@ cd /tmp/liquidsoap-full
 
 opam update
 opam remove -y ocamlsdl sdl-liquidsoap
+find ~/.opam -name dllcurl-helper.so | xargs rm -f
+find ~/.opam -name dllcurl-helper.so.owner | xargs rm -f
 opam upgrade -y ocurl
 opam install -y tsdl-image.0.3.2
 
