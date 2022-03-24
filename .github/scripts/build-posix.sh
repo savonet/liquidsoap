@@ -10,6 +10,7 @@ cd /tmp/liquidsoap-full
 
 opam update
 opam remove -y ocamlsdl sdl-liquidsoap
+opam upgrade -y ocurl
 opam install -y tsdl-image.0.3.2
 
 echo "\n### Preparing bindings\n"
