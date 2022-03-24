@@ -274,7 +274,7 @@ let value_of_typed_json ~ty json =
                 pos = (match ty.Type.pos with Some p -> [p] | None -> []);
               })
 
-module JsonValue = Value.MkAbstract (struct
+module JsonSpecs = struct
   type content = (string, Lang.value) Hashtbl.t
 
   let name = "json"
@@ -284,7 +284,9 @@ module JsonValue = Value.MkAbstract (struct
     `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value v) :: l) v [])
 
   let compare = Stdlib.compare
-end)
+end
+
+module JsonValue = Value.MkAbstract (JsonSpecs)
 
 let () =
   let val_t = Lang.univ_t () in
@@ -316,6 +318,23 @@ let () =
               let key = Lang.to_string (List.assoc "" p) in
               Hashtbl.remove v key;
               Lang.unit) );
+      ( "stringify",
+        ( [],
+          Lang.fun_t
+            [(true, "compact", Lang.bool_t); (true, "json5", Lang.bool_t)]
+            Lang.string_t ),
+        "Render object as json string.",
+        fun v ->
+          Lang.val_fun
+            [
+              ("compact", "compact", Some (Lang.bool false));
+              ("json5", "json5", Some (Lang.bool false));
+            ]
+            (fun p ->
+              let compact = Lang.to_bool (List.assoc "compact" p) in
+              let json5 = Lang.to_bool (List.assoc "json5" p) in
+              Lang.string (Json.to_string ~compact ~json5 (JsonSpecs.to_json v)))
+      );
     ]
   in
   let t =
