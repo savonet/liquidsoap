@@ -9,9 +9,7 @@ eval $(opam config env)
 cd /tmp/liquidsoap-full
 
 opam update
-opam remove -y ocamlsdl sdl-liquidsoap ocurl
-find ~/.opam -d -name curl | xargs rm -rf
-opam upgrade -y ocurl
+opam remove -y ocamlsdl sdl-liquidsoap
 opam install -y tsdl-image.0.3.2 menhir.20211128
 
 echo "\n### Preparing bindings\n"

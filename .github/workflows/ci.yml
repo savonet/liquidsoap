@@ -223,6 +223,8 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
+          eval $(opam config env) && ocamlfind query curl | xargs rm -rf
+          opam update && opam remove -y ocurl && opam install -y ocurl
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
