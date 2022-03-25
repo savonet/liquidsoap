@@ -45,7 +45,7 @@ let () =
         done;
         G.fill generator frame;
         write (encoder.Encoder.encode frame 0 (Frame.position frame));
-        Frame.advance frame
+        Frame.clear frame
       with Avutil.Error `Invalid_data -> ()
     done
   with Ffmpeg_decoder.End_of_file ->

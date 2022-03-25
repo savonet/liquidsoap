@@ -899,5 +899,3 @@ let self_sync_type sources =
               | _ -> (`Dynamic, None))
           (`Static, None)
           sources))
-
-external incr_nativeint : nativeint -> unit = "liquidsoap_incr_intnat"

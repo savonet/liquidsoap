@@ -35,6 +35,7 @@ Fixed:
   for `video.add_text` (#2302)
 * Fixed `http.*` calls preventing liquidsoap from shutting down.
 * Fixed `http` protocol not returning an error when timing out (#2242)
+* Reworked ffmpeg filters feeding mechanism.
 
 2.0.3 (11-02-2022)
 =====

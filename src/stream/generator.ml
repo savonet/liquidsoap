@@ -355,6 +355,7 @@ module From_audio_video = struct
 
   type t = {
     mutable mode : mode;
+    mutable current_pts : int64;
     mutable current_audio_pts : int64;
     current_audio : Frame_content.data content Generator.t;
     audio : Frame_content.data content Generator.t;
@@ -368,6 +369,7 @@ module From_audio_video = struct
   let create m =
     {
       mode = m;
+      current_pts = 0L;
       current_audio_pts = 0L;
       current_audio = Generator.create ();
       audio = Generator.create ();
@@ -493,6 +495,7 @@ module From_audio_video = struct
             (match (audio_len, video_len) with
               (* Full frame sync. Take it! *)
               | _ when audio_len = video_len && video_len = s ->
+                  t.current_pts <- pts;
                   add_audio ~picked:picked_audio ~pos:audio_len ();
                   add_video ~picked:picked_video ~pos:video_len ()
               (* Partial audio or video frame. Can it! *)
@@ -596,7 +599,7 @@ module From_audio_video = struct
           (List.filter (fun x -> x < size) (Frame.breaks frame));
 
     (* Feed all content layers into the generator. *)
-    let pts = Int64.of_nativeint (Frame.pts frame) in
+    let pts = Frame.pts frame in
     let mode = match mode with Some mode -> mode | None -> t.mode in
     let pos = Frame.position frame in
     let content = frame.Frame.content in
@@ -608,14 +611,14 @@ module From_audio_video = struct
               | `Audio | `Both -> Frame.copy_audio content
               | _ -> content
           in
-          put_audio ~pts t content.Frame.audio 0 pos
+          put_audio ?pts t content.Frame.audio 0 pos
       | `Video ->
           let content =
             match copy with
               | `Video | `Both -> Frame.copy_video content
               | _ -> content
           in
-          put_video ~pts t content.Frame.video 0 pos
+          put_video ?pts t content.Frame.video 0 pos
       | `Both ->
           let content =
             match copy with
@@ -624,8 +627,8 @@ module From_audio_video = struct
               | `Video -> Frame.copy_video content
               | `Both -> Frame.copy content
           in
-          put_audio ~pts t content.Frame.audio 0 pos;
-          put_video ~pts t content.Frame.video 0 pos
+          put_audio ?pts t content.Frame.audio 0 pos;
+          put_video ?pts t content.Frame.video 0 pos
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)
@@ -702,6 +705,7 @@ module From_audio_video = struct
           Frame_content.blit data vpos (VFrame.content frame) (fpos + vpos') vl)
         video;
 
+    Frame.set_pts frame (Some t.current_pts);
     Frame.add_break frame (fpos + l);
 
     List.iter
