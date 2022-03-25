@@ -352,7 +352,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
       fun () ->
         let to_start =
           if to_start <> [] then
-            log#info "Starting %d sources..." (List.length to_start);
+            log#info "Starting %d source(s)..." (List.length to_start);
           List.map
             (fun (s : active_source) ->
               try

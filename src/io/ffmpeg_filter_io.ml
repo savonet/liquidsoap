@@ -122,6 +122,39 @@ class video_output ~pass_metadata ~kind ~name source_val =
         frames
   end
 
+class virtual input_base ~generator ~is_ready ~pull =
+  object (self)
+    method virtual flush_buffer : unit -> unit
+    val mutable output = None
+
+    method pull =
+      pull ();
+      assert (output <> None);
+      let flush = self#flush_buffer in
+      let rec f () =
+        try
+          while Generator.length generator < Lazy.force Frame.size do
+            flush ()
+          done
+        with Avutil.Error `Eagain ->
+          if is_ready () then (
+            pull ();
+            f ())
+      in
+      f ()
+
+    method is_ready =
+      Generator.length generator >= Lazy.force Frame.size || is_ready ()
+
+    method private get_frame frame =
+      let b = Frame.breaks frame in
+      if Generator.length generator < Lazy.force Frame.size then self#pull;
+      Generator.fill generator frame;
+      if List.length b + 1 <> List.length (Frame.breaks frame) then (
+        let cur_pos = Frame.position frame in
+        Frame.set_breaks frame (b @ [cur_pos]))
+  end
+
 type audio_config = {
   format : Avutil.Sample_format.t;
   rate : int;
@@ -129,14 +162,13 @@ type audio_config = {
 }
 
 (* Same thing here. *)
-class audio_input ~pass_metadata ~bufferize kind =
+class audio_input ~is_ready ~pull ~pass_metadata kind =
   let generator = Generator.create `Audio in
-  let min_buf = lazy (Frame.main_of_seconds bufferize) in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
+    inherit input_base ~generator ~is_ready ~pull
     val mutable config = None
-    val mutable output = None
 
     method set_output v =
       let output_format =
@@ -164,66 +196,40 @@ class audio_input ~pass_metadata ~bufferize kind =
         let nb_samples = float (Avutil.Audio.frame_nb_samples frame) in
         Frame.main_of_seconds (nb_samples /. samplerate)
       in
-      let rec f () =
-        try
-          let ffmpeg_frame = output.Avfilter.handler () in
-          if pass_metadata then (
-            let metadata = Avutil.Frame.metadata ffmpeg_frame in
-            if metadata <> [] then (
-              let m = Hashtbl.create (List.length metadata) in
-              List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
-              Generator.add_metadata generator m));
-          let frame =
-            {
-              Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
-              frame = ffmpeg_frame;
-              stream_idx;
-            }
-          in
-          let duration = get_duration ffmpeg_frame in
-          let content =
-            {
-              Ffmpeg_content_base.params =
-                Ffmpeg_raw_content.AudioSpecs.frame_params frame;
-              size = duration;
-              data = [(0, frame)];
-            }
-          in
-          let pts =
-            Option.map
-              (Ffmpeg_utils.convert_time_base ~src:ffmpeg_frame_time_base
-                 ~dst:liq_frame_time_base)
-              (Ffmpeg_utils.best_pts ffmpeg_frame)
-          in
-          Generator.put_audio ?pts generator
-            (Ffmpeg_raw_content.Audio.lift_data content)
-            0 duration;
-          f ()
-        with Avutil.Error `Eagain -> ()
-      in
-      f ()
-
-    val mutable state : [ `Ready | `Not_ready ] = `Not_ready
-
-    method is_ready =
-      if output <> None then self#flush_buffer;
-      match state with
-        | `Not_ready ->
-            if Generator.length generator >= Lazy.force min_buf then (
-              state <- `Ready;
-              true)
-            else false
-        | `Ready ->
-            if Generator.length generator > 0 then true
-            else (
-              state <- `Not_ready;
-              false)
-
-    method private get_frame frame =
-      self#flush_buffer;
-      Generator.fill generator frame;
-      if Frame.is_partial frame && Generator.length generator = 0 then
-        self#log#important "Buffer emptied..."
+      fun () ->
+        let ffmpeg_frame = output.Avfilter.handler () in
+        if pass_metadata then (
+          let metadata = Avutil.Frame.metadata ffmpeg_frame in
+          if metadata <> [] then (
+            let m = Hashtbl.create (List.length metadata) in
+            List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
+            Generator.add_metadata generator m));
+        let frame =
+          {
+            Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
+            frame = ffmpeg_frame;
+            stream_idx;
+          }
+        in
+        let duration = get_duration ffmpeg_frame in
+        let content =
+          {
+            Ffmpeg_content_base.params =
+              Ffmpeg_raw_content.AudioSpecs.frame_params frame;
+            size = duration;
+            data = [(0, frame)];
+          }
+        in
+        let pts =
+          Option.map
+            (Ffmpeg_utils.convert_time_base ~src:ffmpeg_frame_time_base
+               ~dst:liq_frame_time_base)
+            (Ffmpeg_utils.best_pts ffmpeg_frame)
+        in
+        Generator.put_audio ?pts generator
+          (Ffmpeg_raw_content.Audio.lift_data content)
+          0
+          (get_duration ffmpeg_frame)
 
     method abort_track = ()
   end
@@ -234,14 +240,13 @@ type video_config = {
   pixel_format : Avutil.Pixel_format.t;
 }
 
-class video_input ~pass_metadata ~bufferize ~fps kind =
+class video_input ~is_ready ~pull ~pass_metadata ~fps kind =
   let generator = Generator.create `Video in
-  let min_buf = lazy (Frame.main_of_seconds bufferize) in
   let duration = lazy (Frame.main_of_seconds (1. /. float (Lazy.force fps))) in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
-    val mutable output = None
+    inherit input_base ~generator ~is_ready ~pull
 
     method set_output v =
       let output_format =
@@ -264,66 +269,39 @@ class video_input ~pass_metadata ~bufferize ~fps kind =
       let output = Option.get output in
       let ffmpeg_frame_time_base = Avfilter.(time_base output.context) in
       let liq_frame_time_base = Ffmpeg_utils.liq_frame_time_base () in
-      let rec f () =
-        try
-          let ffmpeg_frame = output.Avfilter.handler () in
-          if pass_metadata then (
-            let metadata = Avutil.Frame.metadata ffmpeg_frame in
-            if metadata <> [] then (
-              let m = Hashtbl.create (List.length metadata) in
-              List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
-              Generator.add_metadata generator m));
-          let frame =
-            {
-              Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
-              frame = ffmpeg_frame;
-              stream_idx;
-            }
-          in
-          let pts =
-            Option.map
-              (Ffmpeg_utils.convert_time_base ~src:ffmpeg_frame_time_base
-                 ~dst:liq_frame_time_base)
-              (Ffmpeg_utils.best_pts ffmpeg_frame)
-          in
-          let params = Ffmpeg_raw_content.VideoSpecs.frame_params frame in
-          let duration = Lazy.force duration in
-          let content =
-            {
-              Ffmpeg_raw_content.VideoSpecs.params;
-              size = duration;
-              data = [(0, frame)];
-            }
-          in
-          Generator.put_video ?pts generator
-            (Ffmpeg_raw_content.Video.lift_data content)
-            0 duration;
-          f ()
-        with Avutil.Error `Eagain -> ()
-      in
-      f ()
-
-    val mutable state : [ `Ready | `Not_ready ] = `Not_ready
-
-    method is_ready =
-      if output <> None then self#flush_buffer;
-      match state with
-        | `Not_ready ->
-            if Generator.length generator >= Lazy.force min_buf then (
-              state <- `Ready;
-              true)
-            else false
-        | `Ready ->
-            if Generator.length generator > 0 then true
-            else (
-              state <- `Not_ready;
-              false)
-
-    method private get_frame frame =
-      self#flush_buffer;
-      Generator.fill generator frame;
-      if Frame.is_partial frame && Generator.length generator = 0 then
-        self#log#important "Buffer emptied..."
+      fun () ->
+        let ffmpeg_frame = output.Avfilter.handler () in
+        if pass_metadata then (
+          let metadata = Avutil.Frame.metadata ffmpeg_frame in
+          if metadata <> [] then (
+            let m = Hashtbl.create (List.length metadata) in
+            List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
+            Generator.add_metadata generator m));
+        let frame =
+          {
+            Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
+            frame = ffmpeg_frame;
+            stream_idx;
+          }
+        in
+        let duration = Lazy.force duration in
+        let pts =
+          Option.map
+            (Ffmpeg_utils.convert_time_base ~src:ffmpeg_frame_time_base
+               ~dst:liq_frame_time_base)
+            (Ffmpeg_utils.best_pts ffmpeg_frame)
+        in
+        let params = Ffmpeg_raw_content.VideoSpecs.frame_params frame in
+        let content =
+          {
+            Ffmpeg_raw_content.VideoSpecs.params;
+            size = duration;
+            data = [(0, frame)];
+          }
+        in
+        Generator.put_video ?pts generator
+          (Ffmpeg_raw_content.Video.lift_data content)
+          0 duration
 
     method abort_track = ()
   end
