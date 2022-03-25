@@ -43,7 +43,6 @@ let breaks t = List.map sot (breaks t)
 let add_break t i = add_break t (tos i)
 let set_breaks t l = set_breaks t (List.map tos l)
 let is_partial = is_partial
-let advance = advance
 let clear = clear
 
 exception No_metadata

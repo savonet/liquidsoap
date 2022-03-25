@@ -65,6 +65,7 @@ val put_video : ?pts:int64 -> t -> Content.data -> int -> int -> unit
 val feed :
   ?copy:[ `None | `Audio | `Video | `Both ] ->
   ?mode:mode ->
+  ?pts:int64 ->
   t ->
   Content.data ->
   int ->

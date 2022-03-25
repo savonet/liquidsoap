@@ -56,10 +56,12 @@ class audio_output ~pass_metadata ~name ~kind source_val =
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->
           init frame;
+          let frame_pts =
+            Option.value ~default:self#nb_frames (Frame.pts memo)
+          in
           let pts =
             Int64.add
-              ((Lazy.force convert_frame_pts)
-                 (Int64.of_nativeint (Frame.pts memo)))
+              ((Lazy.force convert_frame_pts) frame_pts)
               (Int64.of_int pos)
           in
           Avutil.Frame.set_pts frame (Some pts);
@@ -104,10 +106,12 @@ class video_output ~pass_metadata ~kind ~name source_val =
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->
           init frame;
+          let frame_pts =
+            Option.value ~default:self#nb_frames (Frame.pts memo)
+          in
           let pts =
             Int64.add
-              ((Lazy.force convert_frame_pts)
-                 (Int64.of_nativeint (Frame.pts memo)))
+              ((Lazy.force convert_frame_pts) frame_pts)
               (Int64.of_int pos)
           in
           Avutil.Frame.set_pts frame (Some pts);

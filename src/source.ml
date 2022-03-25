@@ -702,7 +702,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       self#iter_watchers (fun w -> w.after_output ())
 
     (* Reset the cache frame *)
-    method advance = Frame.advance self#memo
+    method advance = Frame.clear self#memo
 
     (** Utils. *)
 

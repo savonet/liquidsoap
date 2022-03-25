@@ -146,7 +146,7 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
 
     method private child_tick =
       child_support#child_tick;
-      Frame.advance buf_frame;
+      Frame.clear buf_frame;
       last_child_tick <- (Clock.get self#clock)#get_tick
 
     method before_output =

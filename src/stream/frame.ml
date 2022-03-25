@@ -93,7 +93,7 @@ let metadata_of_list l =
 
 type t = {
   (* Presentation time, in multiple of frame size. *)
-  mutable pts : nativeint;
+  mutable pts : int64 option;
   content : Content.data;
 }
 
@@ -101,12 +101,12 @@ type t = {
 let create_content ctype =
   Content.make ~size:!!size (Content.Frame.lift_params ctype)
 
-let create ctype = { pts = 0n; content = create_content ctype }
+let create ctype = { pts = None; content = create_content ctype }
 
 let dummy () =
   let data = Content.None.format in
   {
-    pts = 0n;
+    pts = None;
     content = create_content { audio = data; video = data; midi = data };
   }
 
@@ -131,11 +131,6 @@ let is_partial b = position b < !!size
 let set_breaks { content } = Content.Frame.set_breaks content
 let add_break { content } = Content.Frame.add_break content
 let clear (b : t) = Content.clear b.content
-
-(* Same as clear but leaves the last metadata at position -1. *)
-let advance b =
-  Content.clear b.content;
-  Utils.incr_nativeint b.pts
 
 (** Presentation time stuff. *)
 

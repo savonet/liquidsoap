@@ -55,6 +55,7 @@ type overfull = [ `Drop_old of int ]
 
 type t = {
   m : Mutex.t;
+  mutable current_pts : int64;
   overfull : overfull option;
   log : string -> unit;
   mutable mode : mode;
@@ -72,6 +73,7 @@ let create ?overfull ?log ?(log_overfull = true) mode =
   let log = if log_overfull then log else fun _ -> () in
   {
     m = Mutex.create ();
+    current_pts = 0L;
     overfull;
     log;
     mode;
@@ -199,6 +201,8 @@ let rec sync_content g =
         Content.blit g.breaks 0 breaks 0 len;
         g.breaks <- Content.sub g.breaks len (Content.length g.breaks - len);
 
+        g.current_pts <- p;
+
         let c =
           Content.Frame.(
             lift_data
@@ -273,8 +277,8 @@ let put_video ?pts g data ofs len =
       sync_content g)
     ()
 
-let feed ?(copy : [ `None | `Audio | `Video | `Both ] = `Both) ?mode g content
-    ofs len =
+let feed ?(copy : [ `None | `Audio | `Video | `Both ] = `Both) ?mode ?pts g
+    content ofs len =
   let mode = Option.value ~default:g.mode mode in
 
   if mode = `Audio || mode = `Both then (
@@ -282,17 +286,18 @@ let feed ?(copy : [ `None | `Audio | `Video | `Both ] = `Both) ?mode g content
     let audio =
       if copy = `Audio || copy = `Both then Content.copy audio else audio
     in
-    put_audio g audio ofs len);
+    put_audio ?pts g audio ofs len);
 
   if mode = `Video || mode = `Both then (
     let video = Content.Frame.get_video content in
     let video =
       if copy = `Video || copy = `Both then Content.copy video else video
     in
-    put_video g video ofs len)
+    put_video ?pts g video ofs len)
 
 let feed_from_frame ?copy ?mode g frame =
-  feed ?copy ?mode g (Frame.content frame) 0 (Frame.position frame)
+  feed ?copy ?mode ?pts:(Frame.pts frame) g (Frame.content frame) 0
+    (Frame.position frame)
 
 let get g len =
   Tutils.mutexify g.m
@@ -319,6 +324,7 @@ let fill g frame =
         _remove g len);
       (* TODO: Frame content erases all breaks and metadata. We add this to be backward compatible
          with existing call sites. This will be better once we cleanup the streaming API. *)
+      Frame.set_pts frame (Some g.current_pts);
       Frame.set_breaks frame ((pos + len) :: b);
       Frame.set_all_metadata frame (m @ Frame.get_all_metadata frame))
     ()

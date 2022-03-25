@@ -36,9 +36,6 @@ val is_partial : t -> bool
 (** Reset breaks. *)
 val clear : t -> unit
 
-(** Reset breaks and metadata, but leaves the last metadata at position -1. *)
-val advance : t -> unit
-
 (** {2 Metadatas handling} *)
 
 exception No_metadata
