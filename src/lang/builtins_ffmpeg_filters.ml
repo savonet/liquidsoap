@@ -39,17 +39,25 @@ type outputs =
 type graph = {
   mutable config : Avfilter.config option;
   input_inits : (unit -> bool) Queue.t;
+  graph_inputs : Source.source Queue.t;
+  graph_outputs : Source.source Queue.t;
   init : unit Lazy.t Queue.t;
   entries : (inputs, outputs) Avfilter.io;
-  clocks : Source.clock_variable Queue.t;
 }
 
 let init_graph graph =
   if Queue.fold (fun b v -> b && v ()) true graph.input_inits then
     Queue.iter Lazy.force graph.init
 
-let initiated graph =
+let initialized graph =
   Queue.fold (fun cur q -> cur && Lazy.is_val q) true graph.init
+
+let is_ready graph =
+  Queue.fold (fun cur s -> cur && s#is_ready) true graph.graph_inputs
+
+let pull graph =
+  (Clock.get (Queue.peek graph.graph_inputs)#clock)#end_tick;
+  Queue.iter (fun s -> s#after_output) graph.graph_inputs
 
 module Graph = Lang.MkAbstract (struct
   type content = graph
@@ -300,7 +308,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
               let flags = if fast then [`Fast] else [] in
               let cmd = Lang.to_string (Lang.assoc "" 1 p) in
               let arg = Lang.to_string (Lang.assoc "" 2 p) in
-              if initiated graph then (
+              if initialized graph then (
                 try
                   Lang.string (Avfilter.process_command ~flags ~cmd ~arg filter)
                 with exn ->
@@ -521,15 +529,6 @@ let () =
     Lang.(source_t ~methods:true (kind_type_of_kind_format video_frame))
   in
 
-  let output_base_proto =
-    [
-      ( "buffer",
-        Lang.float_t,
-        Some (Lang.float 0.1),
-        Some "Duration of the pre-buffered data." );
-    ]
-  in
-
   Lang.add_builtin ~category:`Filter "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
     [
@@ -574,7 +573,7 @@ let () =
           | Source.Kind.Conflict (a, b) ->
               raise (Error.Kind_conflict (pos, a, b))
       in
-      Queue.add s#clock graph.clocks;
+      Queue.add (s :> Source.source) graph.graph_inputs;
 
       let args = ref None in
 
@@ -603,15 +602,14 @@ let () =
   let return_t = Lang.kind_type_of_kind_format return_kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:`Audio
     ~descr:"Return an audio source from a filter's output" ~return_t
-    (output_base_proto
-    @ [
-        ( "pass_metadata",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Pass ffmpeg stream metadata to liquidsoap" );
-        ("", Graph.t, None, None);
-        ("", Audio.t, None, None);
-      ])
+    [
+      ( "pass_metadata",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Pass ffmpeg stream metadata to liquidsoap" );
+      ("", Graph.t, None, None);
+      ("", Audio.t, None, None);
+    ]
     (fun p ->
       let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
@@ -627,9 +625,13 @@ let () =
               midi = none;
             }
       in
-      let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let s = new Ffmpeg_filter_io.audio_input ~pass_metadata ~bufferize kind in
-      Queue.add s#clock graph.clocks;
+      let s =
+        new Ffmpeg_filter_io.audio_input
+          ~pull:(fun () -> pull graph)
+          ~is_ready:(fun () -> is_ready graph)
+          ~pass_metadata kind
+      in
+      Queue.add (s :> Source.source) graph.graph_outputs;
 
       let pad = Audio.of_value (Lang.assoc "" 2 p) in
       Queue.add
@@ -691,7 +693,7 @@ let () =
           | Source.Kind.Conflict (a, b) ->
               raise (Error.Kind_conflict (pos, a, b))
       in
-      Queue.add s#clock graph.clocks;
+      Queue.add (s :> Source.source) graph.graph_inputs;
 
       let args = ref None in
 
@@ -719,19 +721,18 @@ let () =
   let return_t = Lang.kind_type_of_kind_format return_kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:`Video
     ~descr:"Return a video source from a filter's output" ~return_t
-    (output_base_proto
-    @ [
-        ( "pass_metadata",
-          Lang.bool_t,
-          Some (Lang.bool false),
-          Some "Pass ffmpeg stream metadata to liquidsoap" );
-        ( "fps",
-          Lang.nullable_t Lang.int_t,
-          Some Lang.null,
-          Some "Output frame per seconds. Defaults to global value" );
-        ("", Graph.t, None, None);
-        ("", Video.t, None, None);
-      ])
+    [
+      ( "pass_metadata",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Pass ffmpeg stream metadata to liquidsoap" );
+      ( "fps",
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
+        Some "Output frame per seconds. Defaults to global value" );
+      ("", Graph.t, None, None);
+      ("", Video.t, None, None);
+    ]
     (fun p ->
       let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
@@ -751,11 +752,13 @@ let () =
               midi = none;
             }
       in
-      let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let s =
-        new Ffmpeg_filter_io.video_input ~pass_metadata ~bufferize ~fps kind
+        new Ffmpeg_filter_io.video_input
+          ~pull:(fun () -> pull graph)
+          ~is_ready:(fun () -> is_ready graph)
+          ~pass_metadata ~fps kind
       in
-      Queue.add s#clock graph.clocks;
+      Queue.add (s :> Source.source) graph.graph_outputs;
 
       Queue.add
         (lazy
@@ -786,6 +789,9 @@ let () =
 
       (s :> Source.source))
 
+let unify_clocks ~clock sources =
+  Queue.iter (fun s -> Clock.unify clock s#clock) sources
+
 let () =
   let univ_t = Lang.univ_t () in
   Lang.add_builtin "ffmpeg.filter.create" ~category:`Filter
@@ -800,8 +806,9 @@ let () =
           {
             config = Some config;
             input_inits = Queue.create ();
+            graph_inputs = Queue.create ();
+            graph_outputs = Queue.create ();
             init = Queue.create ();
-            clocks = Queue.create ();
             entries =
               {
                 inputs =
@@ -812,8 +819,14 @@ let () =
           }
       in
       let ret = Lang.apply fn [("", Graph.to_value graph)] in
-      let first = Queue.take graph.clocks in
-      Queue.iter (Clock.unify first) graph.clocks;
+      let input_clock =
+        Clock.create_known (new Clock.clock ~start:false "ffmpeg.filter")
+      in
+      unify_clocks ~clock:input_clock graph.graph_inputs;
+      let output_clock =
+        Clock.create_unknown ~sources:[] ~sub_clocks:[input_clock]
+      in
+      unify_clocks ~clock:output_clock graph.graph_outputs;
       Queue.add
         (lazy
           (log#info "Initializing graph";
