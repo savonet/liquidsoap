@@ -225,6 +225,8 @@ jobs:
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           eval $(opam config env) && ocamlfind query curl | xargs rm -rf
           opam update && opam remove -y ocurl && opam install -y ocurl
+          find ~/.opam -name dllcurl-helper.so.owner | xargs rm -f
+          find ~/.opam -name dllcurl-helper.so | xargs rm -f
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
