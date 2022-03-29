@@ -132,6 +132,20 @@ let rec remeth t u =
     | Meth (l, v, t) -> { t with value = Meth (l, v, remeth t u) }
     | _ -> u
 
+let uniq_meth t =
+  let rec f (meths, t) =
+    match meths with
+      | [] -> t
+      | (m, v) :: meths -> f (meths, { t with value = Meth (m, v, t) })
+  in
+  f (split_meths t)
+
+let rec unmeth t m =
+  match t.value with
+    | Meth (m', _, t) when m = m' -> unmeth t m
+    | Meth (m', v, t) -> { t with value = Meth (m', v, unmeth t m) }
+    | _ -> t
+
 let compare a b =
   let rec aux = function
     | Ground a, Ground b -> Ground.compare a b

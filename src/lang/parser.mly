@@ -460,12 +460,13 @@ binding:
   | _let LPAR pattern COLON ty RPAR GETS expr
                              { (Doc.none (),[],[]), $1,     $3,        None,    $8, Some $5 }
   | _let subfield GETS expr  { (Doc.none (),[],[]), $1,     PVar $2,   None,    $4, None }
+  | _let VAR DOT VAR         { (Doc.none (),[],[]), $1,     PVar [$2;$4],        None,  mk ~pos:$loc (Tuple []), None } 
   | DEF pattern g exprs END  { fst $1,              snd $1, $2,        None,    $4, None }
   | DEF LPAR pattern COLON ty RPAR g exprs END 
                              { fst $1,              snd $1, $3,        None,    $8, Some $5 }
   | DEF subfield g exprs END { fst $1,              snd $1, PVar $2,   None,    $4, None }
   | DEF varlpar arglist RPAR g exprs END
-                             { fst $1,              snd $1, PVar $2, Some $3,   $6, None }
+                             { fst $1,              snd $1, PVar $2,   Some $3,   $6, None }
 
 varlpar:
   | VARLPAR         { [$1] }

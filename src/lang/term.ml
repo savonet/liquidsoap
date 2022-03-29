@@ -264,10 +264,12 @@ type t = { mutable t : Type.t; term : in_term }
 (** Documentation for declarations: general documentation, parameters, methods. *)
 and doc = Doc.item * (string * string) list * (string * string) list
 
+and mutate = [ `None | `Replaces | `Deletes of string ]
+
 and let_t = {
   doc : doc;
   (* name, arguments, methods *)
-  replace : bool;
+  mutate : mutate;
   (* whether the definition replaces a previously existing one (keeping methods) *)
   pat : pattern;
   mutable gen : Type.var list;

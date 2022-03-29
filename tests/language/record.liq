@@ -91,6 +91,19 @@ def f() =
   t([{a = 5}] == [{a = 5}], true)
   t(({a = 5}) == ({a = 5}), true)
 
+  # Test delete field
+  x = {foo = 123, bla = "baz", gni = "gno"}
+  let deletes x.foo
+  t(x, {bla = "baz", gni = "gno"})
+  
+  x = { x = x, gni = "gno"}
+  let deletes x.x
+  t(x, {gni = "gno"})
+
+  let x = { x = x, blu = 2.34}
+  let deletes x.blu
+  t(x, { x = {gni = "gno"}})
+
   if !success then test.pass() else test.fail() end
 end
 

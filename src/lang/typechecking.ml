@@ -305,7 +305,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         if Lazy.force Term.debug then
           Printf.eprintf "Instantiate %s : %s becomes %s\n" var
             (Type.to_string orig) (Type.to_string e.t)
-    | Let ({ pat; replace; def; body; _ } as l) ->
+    | Let ({ pat; mutate; def; body; _ } as l) ->
         check ~level:(level + 1) ~env def;
         let generalized =
           (* Printf.printf "generalize at %d: %B\n\n!" level (value_restriction def); *)
@@ -316,27 +316,35 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         let penv =
           List.map
             (fun (ll, a) ->
-              match ll with
-                | [] -> assert false
-                | [x] ->
+              match (ll, mutate) with
+                | [x], (`Replaces as mutate) | [x], (`None as mutate) ->
                     let a =
-                      if replace then Type.remeth (snd (List.assoc x env)) a
-                      else a
+                      match mutate with
+                        | `Replaces -> Type.remeth (snd (List.assoc x env)) a
+                        | `None -> a
                     in
                     if !debug then
                       Printf.printf "\nLET %s : %s\n%!" x
                         (Repr.string_of_scheme (generalized, a));
                     (x, (generalized, a))
-                | l :: ll -> (
+                | [x], `Deletes m ->
+                    let a = Type.unmeth a m in
+                    if !debug then
+                      Printf.printf "\nLET %s : %s\n%!" x
+                        (Repr.string_of_scheme (generalized, a));
+                    (x, (generalized, a))
+                | l :: ll, _ -> (
                     try
                       let g, t = List.assoc l env in
                       let a =
                         (* If we are replacing the value, we keep the previous methods. *)
-                        if replace then Type.remeth (snd (Type.invokes t ll)) a
+                        if mutate = `Replaces then
+                          Type.remeth (snd (Type.invokes t ll)) a
                         else a
                       in
                       (l, (g, Type.meths ?pos ll (generalized, a) t))
-                    with Not_found -> raise (Unbound (pos, l))))
+                    with Not_found -> raise (Unbound (pos, l)))
+                | _ -> assert false)
             penv
         in
         let env = penv @ env in

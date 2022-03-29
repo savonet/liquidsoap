@@ -190,6 +190,7 @@ let rec token lexbuf =
     | "catch" -> CATCH
     | "do" -> DO
     | "let", Plus skipped, "replaces" -> LET `Replaces
+    | "let", Plus skipped, "deletes" -> LET `Deletes
     | "let", Plus skipped, "eval" -> LET `Eval
     | "let", Plus skipped, "json.parse", Star skipped, '[' ->
         LETLBRA `Json_parse

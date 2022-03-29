@@ -24,6 +24,13 @@
 
 open Term
 
+module LazyVal = struct
+  include Lazy
+
+  let from_val v = Lazy.from_fun (fun () -> Value.uniq_meth v)
+  let from_fun v = Lazy.from_fun (fun () -> Value.uniq_meth (v ()))
+end
+
 (** [remove_first f l] removes the first element [e] of [l] such that [f e], and
     returns [e,l'] where [l'] is the list without [e]. Asserts that there is
     such an element. *)
@@ -99,7 +106,7 @@ module Env = struct
 
   (** Find the value of a variable in the environment. *)
   let lookup (env : t) var =
-    try Lazy.force (List.assoc var env)
+    try LazyVal.force (List.assoc var env)
     with Not_found ->
       failwith
         (Printf.sprintf "Internal error: variable %s not in environment." var)
@@ -119,7 +126,7 @@ module Env = struct
   let add_lazy (env : t) x v : t = (x, v) :: env
 
   (** Bind a variable to a value in an environment. *)
-  let add env x v = add_lazy env x (Lazy.from_val v)
+  let add env x v = add_lazy env x (LazyVal.from_val v)
 
   (** Bind multiple variables in an environment. *)
   let adds env binds = List.fold_right (fun (x, v) env -> add env x v) binds env
@@ -235,19 +242,23 @@ and eval (env : Env.t) tm =
         in
         let env = aux env t in
         eval env u
-    | Let { pat; replace; def = v; body = b; _ } ->
+    | Let { pat; mutate; def = v; body = b; _ } ->
         let v = eval env v in
         let penv =
           List.map
             (fun (ll, v) ->
-              match ll with
-                | [] -> assert false
-                | [x] ->
+              match (ll, mutate) with
+                | [x], (`Replaces as mutate) | [x], (`None as mutate) ->
                     let v () =
-                      if replace then Value.remeth (Env.lookup env x) v else v
+                      match mutate with
+                        | `Replaces -> Value.remeth (Env.lookup env x) v
+                        | `None -> v
                     in
-                    (x, Lazy.from_fun v)
-                | l :: ll ->
+                    (x, LazyVal.from_fun v)
+                | [x], `Deletes m ->
+                    let v () = Value.unmeth v m in
+                    (x, LazyVal.from_fun v)
+                | l :: ll, _ ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
                       let mk ~pos value = { Value.pos; value } in
@@ -262,12 +273,14 @@ and eval (env : Env.t) tm =
                       let t = Env.lookup env l in
                       let v =
                         (* When replacing, keep previous methods. *)
-                        if replace then Value.remeth (Value.invokes t ll) v
+                        if mutate = `Replaces then
+                          Value.remeth (Value.invokes t ll) v
                         else v
                       in
                       meths ll v t
                     in
-                    (l, Lazy.from_fun v))
+                    (l, LazyVal.from_fun v)
+                | _ -> assert false)
             (eval_pat pat v)
         in
         let env = Env.adds_lazy env penv in
@@ -278,7 +291,7 @@ and eval (env : Env.t) tm =
     | RFun (x, fv, p, body) ->
         let p, env = prepare_fun fv p env in
         let rec v () =
-          let env = Env.add_lazy env x (Lazy.from_fun v) in
+          let env = Env.add_lazy env x (LazyVal.from_fun v) in
           { Value.pos = tm.t.Type.pos; value = Value.Fun (p, env, body) }
         in
         v ()
@@ -361,7 +374,7 @@ let eval ?env tm =
       | Some env -> env
       | None -> Environment.default_environment ()
   in
-  let env = List.map (fun (x, (_, v)) -> (x, Lazy.from_val v)) env in
+  let env = List.map (fun (x, (_, v)) -> (x, LazyVal.from_val v)) env in
   eval env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
@@ -457,25 +470,28 @@ let toplevel_add (doc, params, methods) pat ~t v =
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with
-    | Let { doc = comment; gen = generalized; replace; pat; def; body } ->
+    | Let { doc = comment; gen = generalized; mutate; pat; def; body } ->
         let def_t, def =
-          if not replace then (def.t, eval def)
-          else (
-            match pat with
-              | PVar [] -> assert false
-              | PVar (x :: l) ->
-                  let old_t, old =
-                    List.assoc x (Environment.default_environment ())
-                  in
-                  let old_t = snd old_t in
-                  let old_t = snd (Type.invokes old_t l) in
-                  let old = Value.invokes old l in
-                  (Type.remeth old_t def.t, Value.remeth old (eval def))
-              | PMeth _ | PList _ | PTuple _ ->
-                  failwith "TODO: cannot replace toplevel patterns for now")
+          match (mutate, pat) with
+            | `None, _ -> (def.t, eval def)
+            | `Replaces, PVar (x :: l) ->
+                let old_t, old =
+                  List.assoc x (Environment.default_environment ())
+                in
+                let old_t = snd old_t in
+                let old_t = snd (Type.invokes old_t l) in
+                let old = Value.invokes old l in
+                (Type.remeth old_t def.t, Value.remeth old (eval def))
+            | `Deletes m, PVar [x] ->
+                let old_t, old =
+                  List.assoc x (Environment.default_environment ())
+                in
+                let old_t = snd old_t in
+                (Type.unmeth old_t m, Value.unmeth old m)
+            | _ -> failwith "Not implemented at top level for now"
         in
         toplevel_add comment pat ~t:(generalized, def_t) def;
-        if Lazy.force debug then
+        if LazyVal.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (Type.to_string ~generalized def_t);
         let var = string_of_pat pat in

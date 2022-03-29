@@ -28,12 +28,19 @@ open Ground
 type arglist = (string * string * Type.t * Term.t option) list
 
 type lexer_let_decoration =
-  [ `None | `Recursive | `Replaces | `Eval | `Json_parse | `Json_stringify ]
+  [ `None
+  | `Recursive
+  | `Replaces
+  | `Deletes
+  | `Eval
+  | `Json_parse
+  | `Json_stringify ]
 
 type let_decoration =
   [ `None
   | `Recursive
   | `Replaces
+  | `Deletes
   | `Eval
   | `Json_parse of (string * Term.t) list
   | `Json_stringify of (string * Term.t) list ]
@@ -70,11 +77,13 @@ let let_decoration_of_lexer_let_decoration = function
   | `Recursive -> `Recursive
   | `None -> `None
   | `Replaces -> `Replaces
+  | `Deletes -> `Deletes
 
 let string_of_let_decoration = function
   | `None -> ""
   | `Recursive -> "rec"
   | `Replaces -> "replaces"
+  | `Deletes -> "deletes"
   | `Eval -> "eval"
   | `Json_parse _ -> "json.parse"
   | `Json_stringify _ -> "json.stringify"
@@ -277,14 +286,7 @@ let mk_let_json_stringify ~pos (args, pat, def, cast) body =
   in
   mk ~pos
     (Let
-       {
-         doc = (Doc.none (), [], []);
-         replace = false;
-         pat;
-         gen = [];
-         def;
-         body;
-       })
+       { doc = (Doc.none (), [], []); mutate = `None; pat; gen = []; def; body })
 
 let mk_let_json_parse ~pos (args, pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
@@ -301,14 +303,7 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
   let def = mk ~pos (Cast (def, ty)) in
   mk ~pos
     (Let
-       {
-         doc = (Doc.none (), [], []);
-         replace = false;
-         pat;
-         gen = [];
-         def;
-         body;
-       })
+       { doc = (Doc.none (), [], []); mutate = `None; pat; gen = []; def; body })
 
 let mk_rec_fun ~pos pat args body =
   let name =
@@ -327,29 +322,41 @@ let mk_eval ~pos (doc, pat, def, body, cast) =
   let eval = mk ~pos (Var "_eval_") in
   let def = mk ~pos (App (eval, [("type", tty); ("", def)])) in
   let def = mk ~pos (Cast (def, ty)) in
-  mk ~pos (Let { doc; replace = false; pat; gen = []; def; body })
+  mk ~pos (Let { doc; mutate = `None; pat; gen = []; def; body })
 
 let mk_let ~pos (doc, decoration, pat, arglist, def, cast) body =
   match (arglist, decoration) with
-    | Some arglist, `None | Some arglist, `Replaces ->
-        let replace = decoration = `Replaces in
+    | Some arglist, (`None as mutate) | Some arglist, (`Replaces as mutate) ->
         let def = mk_fun ~pos arglist def in
         let def =
           match cast with Some ty -> mk ~pos (Cast (def, ty)) | None -> def
         in
-        mk ~pos (Let { doc; replace; pat; gen = []; def; body })
+        mk ~pos (Let { doc; mutate; pat; gen = []; def; body })
     | Some arglist, `Recursive ->
         let def = mk_rec_fun ~pos pat arglist def in
         let def =
           match cast with Some ty -> mk ~pos (Cast (def, ty)) | None -> def
         in
-        mk ~pos (Let { doc; replace = false; pat; gen = []; def; body })
-    | None, `None | None, `Replaces ->
-        let replace = decoration = `Replaces in
+        mk ~pos (Let { doc; mutate = `None; pat; gen = []; def; body })
+    | None, (`None as mutate) | None, (`Replaces as mutate) ->
         let def =
           match cast with Some ty -> mk ~pos (Cast (def, ty)) | None -> def
         in
-        mk ~pos (Let { doc; replace; pat; gen = []; def; body })
+        mk ~pos (Let { doc; mutate; pat; gen = []; def; body })
+    | None, `Deletes -> (
+        match pat with
+          | PVar [x; m] ->
+              mk ~pos
+                (Let
+                   {
+                     doc;
+                     mutate = `Deletes m;
+                     pat = PVar [x];
+                     gen = [];
+                     def;
+                     body;
+                   })
+          | _ -> assert false)
     | None, `Eval -> mk_eval ~pos (doc, pat, def, body, cast)
     | None, `Json_parse args ->
         mk_let_json_parse ~pos (args, pat, def, cast) body

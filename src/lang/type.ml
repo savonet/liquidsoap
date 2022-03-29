@@ -197,6 +197,14 @@ let rec remeth t u =
     | Meth (m, t) -> { t with descr = Meth (m, remeth t u) }
     | _ -> u
 
+(* Remove a method from the given type. *)
+let rec unmeth t m =
+  let t = deref t in
+  match t.descr with
+    | Meth ({ meth = m' }, t) when m = m' -> unmeth t m
+    | Meth (m', t) -> { t with descr = Meth (m', unmeth t m) }
+    | _ -> t
+
 (** Type of a method in a type. *)
 let rec invoke t l =
   match (deref t).descr with
