@@ -631,10 +631,12 @@ module Value = struct
       | _ -> u
 
   let uniq_meth t =
-    let rec f (meths, t) =
-      match meths with
-        | [] -> t
-        | (m, v) :: meths -> f (meths, { t with value = Meth (m, v, t) })
+    let rec f meths t =
+      match t.value with
+        | Meth (m, _, t') when List.mem m meths ->
+            { t with value = (f meths t').value }
+        | Meth (m, v, t') -> { t with value = Meth (m, v, f (m :: meths) t') }
+        | _ -> t
     in
-    f (split_meths t)
+    f [] t
 end
