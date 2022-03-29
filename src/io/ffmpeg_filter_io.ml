@@ -300,7 +300,6 @@ class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
             stream_idx;
           }
         in
-        let duration = Lazy.force duration in
         let pts =
           Option.map
             (Ffmpeg_utils.convert_time_base ~src:ffmpeg_frame_time_base
@@ -313,7 +312,7 @@ class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
         in
         Generator.put_video ?pts generator
           (Ffmpeg_raw_content.Video.lift_data content)
-          0 duration
+          0 (Lazy.force duration)
 
     method abort_track = ()
   end

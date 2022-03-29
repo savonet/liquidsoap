@@ -351,14 +351,15 @@ end
       and, finally, a chunk of 4-. *)
 module From_audio_video = struct
   type mode = [ `Audio | `Video | `Both | `Undefined ]
-  type 'a content = { pts : int64; data : 'a }
+  type 'a content = { pts : int64 option; data : 'a }
 
   type t = {
     mutable mode : mode;
-    mutable current_audio_pts : int64;
+    mutable current_pts : int64 option;
+    mutable current_audio_pts : int64 option;
     current_audio : Content.data content Generator.t;
     audio : Content.data content Generator.t;
-    mutable current_video_pts : int64;
+    mutable current_video_pts : int64 option;
     current_video : Content.data content Generator.t;
     video : Content.data content Generator.t;
     mutable metadata : (int * Frame.metadata) list;
@@ -368,10 +369,11 @@ module From_audio_video = struct
   let create m =
     {
       mode = m;
-      current_audio_pts = 0L;
+      current_pts = None;
+      current_audio_pts = None;
       current_audio = Generator.create ();
       audio = Generator.create ();
-      current_video_pts = 0L;
+      current_video_pts = None;
       current_video = Generator.create ();
       video = Generator.create ();
       metadata = [];
@@ -437,15 +439,22 @@ module From_audio_video = struct
 
     (* First buffer offset comes from the generator! *)
     let rec pick ~offset ~picked ~pos ~chunks pts =
-      match Queue.peek_opt chunks with
-        | Some (chunk, _, l) when chunk.pts = pts ->
+      match (pts, Queue.peek_opt chunks) with
+        | Some p, Some ({ pts = Some p' }, _, l) when p = p' ->
             Queue.add (Queue.take chunks) picked;
             pick ~offset:0 ~picked ~pos:(pos + l - offset) ~chunks pts
-        | Some (chunk, _, _) when pts < chunk.pts -> (pos, true)
+        | Some p, Some ({ pts = Some p' }, _, _) when p < p' -> (pos, true)
         (* Prevent user from submitting non-monotonic PTS. *)
-        | Some (chunk, _, _) when chunk.pts < pts ->
+        | Some p, Some ({ pts = Some p' }, _, _) when p' < p ->
             pick ~offset:0 ~picked ~pos ~chunks pts
-        | None -> (pos, false)
+        | Some _, Some ({ pts = Some _ }, _, l) ->
+            Queue.add (Queue.take chunks) picked;
+            pick ~offset:0 ~picked ~pos:(pos + l - offset) ~chunks pts
+        | None, Some ({ pts = None }, _, l) when pos + l - offset <= s ->
+            Queue.add (Queue.take chunks) picked;
+            pick ~offset:0 ~picked ~pos:(pos + l - offset) ~chunks pts
+        | None, Some ({ pts = None }, _, _) -> (pos, true)
+        | _, None -> (pos, false)
         | _ -> assert false
     in
 
@@ -461,38 +470,46 @@ module From_audio_video = struct
 
     let rec f () =
       match (Queue.peek_opt audio, Queue.peek_opt video) with
-        | Some ({ pts = audio_pts }, _, _), Some ({ pts = video_pts }, _, _)
+        | ( Some ({ pts = Some audio_pts }, _, _),
+            Some ({ pts = Some video_pts }, _, _) )
           when audio_pts < video_pts ->
             let picked_audio = Queue.create () in
             let audio_len, _ =
               pick ~offset:initial_audio_offset ~picked:picked_audio ~pos:0
-                ~chunks:audio audio_pts
+                ~chunks:audio (Some audio_pts)
             in
             Generator.remove t.current_audio audio_len;
             f ()
-        | Some ({ pts = audio_pts }, _, _), Some ({ pts = video_pts }, _, _)
+        | ( Some ({ pts = Some audio_pts }, _, _),
+            Some ({ pts = Some video_pts }, _, _) )
           when video_pts < audio_pts ->
             let picked_video = Queue.create () in
             let video_len, _ =
               pick ~offset:initial_video_offset ~picked:picked_video ~pos:0
-                ~chunks:video video_pts
+                ~chunks:video (Some video_pts)
             in
             Generator.remove t.current_video video_len;
             f ()
-        | Some ({ pts }, _, _), Some _ ->
+        | Some ({ pts = audio_pts }, _, _), Some ({ pts = video_pts }, _, _) ->
             let picked_audio = Queue.create () in
             let picked_video = Queue.create () in
             let audio_len, more_audio =
               pick ~offset:initial_audio_offset ~picked:picked_audio ~pos:0
-                ~chunks:audio pts
+                ~chunks:audio audio_pts
             in
             let video_len, more_video =
               pick ~offset:initial_audio_offset ~picked:picked_video ~pos:0
-                ~chunks:video pts
+                ~chunks:video video_pts
+            in
+            let pts =
+              match (audio_pts, video_pts) with
+                | Some pts, Some _ -> Some pts
+                | _ -> None
             in
             (match (audio_len, video_len) with
               (* Full frame sync. Take it! *)
               | _ when audio_len = video_len && video_len = s ->
+                  t.current_pts <- pts;
                   add_audio ~picked:picked_audio ~pos:audio_len ();
                   add_video ~picked:picked_video ~pos:video_len ()
               (* Partial audio or video frame. Can it! *)
@@ -514,14 +531,24 @@ module From_audio_video = struct
     let current_chunk = Generator.length gen mod s in
 
     let put ~pts o l =
-      if current_pts <= pts && 0 < l then Generator.put gen { pts; data } o l
+      if 0 < l then (
+        match (pts, current_pts) with
+          | Some p, Some p' when p < p' -> ()
+          | _ -> Generator.put gen { pts; data } o l)
     in
 
-    (* First complete the previous chunk. *)
-    let r = min l (s - current_chunk) in
-    put ~pts o r;
+    (* First complete the previous chunk if we're on the same PTS. *)
+    let r, pts =
+      if pts = current_pts then (
+        let r = min l (s - current_chunk) in
+        put ~pts o r;
+        ( r,
+          Option.map
+            (fun pts -> if r + current_chunk = s then Int64.succ pts else pts)
+            pts ))
+      else (0, pts)
+    in
 
-    let pts = if r + current_chunk = s then Int64.succ pts else pts in
     let l = l - r in
     let o = o + r in
 
@@ -531,11 +558,11 @@ module From_audio_video = struct
 
     (* Add data by increment one one pts/frame.size *)
     for i = 0 to frames - 1 do
-      let pts = Int64.add pts (Int64.of_int i) in
+      let pts = Option.map (fun pts -> Int64.add pts (Int64.of_int i)) pts in
       put ~pts (o + (i * s)) s
     done;
 
-    let pts = Int64.add pts (Int64.of_int frames) in
+    let pts = Option.map (fun pts -> Int64.add pts (Int64.of_int frames)) pts in
 
     put ~pts (o + (frames * s)) rem;
 
@@ -543,7 +570,9 @@ module From_audio_video = struct
 
   (** Add some audio content. Offset and length are given in main ticks. *)
   let put_audio ?pts t data o l =
-    let pts = match pts with Some pts -> pts | None -> t.current_audio_pts in
+    let pts =
+      match pts with Some pts -> Some pts | None -> t.current_audio_pts
+    in
     t.current_audio_pts <-
       put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio data o l;
     begin
@@ -562,7 +591,9 @@ module From_audio_video = struct
 
   (** Add some video content. Offset and length are given in main ticks. *)
   let put_video ?pts t data o l =
-    let pts = match pts with Some pts -> pts | None -> t.current_video_pts in
+    let pts =
+      match pts with Some pts -> Some pts | None -> t.current_video_pts
+    in
     t.current_video_pts <-
       put_frames ~pts ~current_pts:t.current_video_pts t.current_video data o l;
     begin
@@ -702,6 +733,7 @@ module From_audio_video = struct
           Content.blit data vpos (VFrame.content frame) (fpos + vpos') vl)
         video;
 
+    Frame.set_pts frame t.current_pts;
     Frame.add_break frame (fpos + l);
 
     List.iter
