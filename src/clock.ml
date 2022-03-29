@@ -468,7 +468,7 @@ let gc_alarm =
   fun () ->
     let nb_clocks = Clocks.count clocks in
     if nb_clocks <> !last_displayed then (
-      log#info "Currently %d clocks allocated." nb_clocks;
+      log#info "Currently %d clock(s) allocated." nb_clocks;
       last_displayed := nb_clocks)
 
 let () = ignore (Gc.create_alarm gc_alarm)
