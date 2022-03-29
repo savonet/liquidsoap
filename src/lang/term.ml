@@ -242,7 +242,7 @@ module Ground = struct
       {
         descr = to_string;
         to_json;
-        compare = compare to_string;
+        compare = compare (function String s -> s | _ -> assert false);
         typ = Type.String;
       };
     let to_float = function Float f -> f | _ -> assert false in
