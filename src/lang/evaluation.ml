@@ -24,6 +24,13 @@
 
 open Term
 
+module Lazy = struct
+  include Lazy
+
+  let from_val v = Lazy.from_fun (fun () -> Value.uniq_meth v)
+  let from_fun v = Lazy.from_fun (fun () -> Value.uniq_meth (v ()))
+end
+
 (** [remove_first f l] removes the first element [e] of [l] such that [f e],
   * and returns [e,l'] where [l'] is the list without [e].
   * Asserts that there is such an element. *)
