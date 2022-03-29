@@ -8,12 +8,6 @@ eval $(opam config env)
 
 cd /tmp/liquidsoap-full
 
-opam update
-opam remove -y ocamlsdl sdl-liquidsoap ocurl
-find ~/.opam -d -name curl | xargs rm -rf
-opam upgrade -y ocurl
-opam install -y tsdl-image.0.3.2
-
 echo "\n### Preparing bindings\n"
 
 git remote set-url origin https://github.com/savonet/liquidsoap-full.git
