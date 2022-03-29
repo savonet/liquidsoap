@@ -212,14 +212,17 @@ module Ground = struct
     register
       (function Int _ -> true | _ -> false)
       { descr = to_string; to_json; compare = compare to_int; typ = Type.Int };
-    let to_string = function String s -> s | _ -> assert false in
-    let to_json s = `String (to_string s) in
+    let to_string = function
+      | String s -> Utils.quote_string s
+      | _ -> assert false
+    in
+    let to_json = function String s -> `String s | _ -> assert false in
     register
       (function String _ -> true | _ -> false)
       {
         descr = to_string;
         to_json;
-        compare = compare to_string;
+        compare = compare (function String s -> s | _ -> assert false);
         typ = Type.String;
       };
     let to_float = function Float f -> f | _ -> assert false in

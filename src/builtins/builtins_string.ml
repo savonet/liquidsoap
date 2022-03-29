@@ -146,7 +146,8 @@ let () =
              (Utils.escape ~special_char ~escape_char ~next)
              s)
       with _ ->
-        Runtime_error.error
+        let bt = Printexc.get_raw_backtrace () in
+        Runtime_error.error ~bt
           ~message:
             (Printf.sprintf "Error while escaping %s string.%s"
                (match encoding with `Utf8 -> "utf8" | `Ascii -> "ascii")
