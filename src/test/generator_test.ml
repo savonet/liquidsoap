@@ -152,3 +152,32 @@ let () =
      0----1----2----3----4----> video *)
   assert (G.video_length gen = 5 * frame_size);
   assert (G.audio_length gen = 5 * frame_size)
+
+let () =
+  let frame_size = Lazy.force Frame.size in
+  let gen = G.create `Both in
+  let data = Frame_content.None.data in
+  (* Put this:
+     2----3----4--> audio
+     ?----?----?----?----?----> video *)
+  G.put_audio ~pts:2L gen data 0 frame_size;
+  G.put_audio ~pts:3L gen data 0 frame_size;
+  G.put_audio ~pts:4L gen data 0 (frame_size / 2);
+  G.put_video gen data 0 (5 * frame_size);
+
+  (* Get this:
+     2----3----4--> audio
+     ?----?----?----?----?----> video *)
+  assert (G.audio_length gen = (2 * frame_size) + (frame_size / 2));
+  assert (G.video_length gen = 5 * frame_size);
+  assert (G.length gen = 2 * frame_size);
+
+  (* Add 5---->6--> audio *)
+  G.put_audio ~pts:5L gen data 0 (frame_size + (frame_size / 2));
+
+  (* Get this:
+     2----3----5----6--> audio
+     ?----?----?----?----> video *)
+  assert (G.audio_length gen = (3 * frame_size) + (frame_size / 2));
+  assert (G.video_length gen = 4 * frame_size);
+  assert (G.length gen = 3 * frame_size)

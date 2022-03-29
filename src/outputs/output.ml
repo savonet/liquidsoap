@@ -58,6 +58,8 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     method virtual private send_frame : Frame.t -> unit
     method self_sync = source#self_sync
     method stype = if infallible then Source.Infallible else Source.Fallible
+    val mutable nb_frames = 0L
+    method private nb_frames = nb_frames
 
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)
@@ -167,7 +169,9 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
           (Frame.get_all_metadata self#memo);
 
         (* Output that frame if it has some data *)
-        if Frame.position self#memo > 0 then self#send_frame self#memo;
+        if Frame.position self#memo > 0 then (
+          self#send_frame self#memo;
+          nb_frames <- Int64.succ nb_frames);
         if Frame.is_partial self#memo then (
           self#log#important "Source failed (no more tracks) stopping output...";
           self#transition_to `Idle))

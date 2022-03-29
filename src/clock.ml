@@ -352,7 +352,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
       fun () ->
         let to_start =
           if to_start <> [] then
-            log#info "Starting %d sources..." (List.length to_start);
+            log#info "Starting %d source(s)..." (List.length to_start);
           List.map
             (fun (s : active_source) ->
               try
@@ -468,7 +468,7 @@ let gc_alarm =
   fun () ->
     let nb_clocks = Clocks.count clocks in
     if nb_clocks <> !last_displayed then (
-      log#info "Currently %d clocks allocated." nb_clocks;
+      log#info "Currently %d clock(s) allocated." nb_clocks;
       last_displayed := nb_clocks)
 
 let () = ignore (Gc.create_alarm gc_alarm)
