@@ -96,21 +96,22 @@ let args_of, app_of =
           Term.{ t = Type.fresh_evar ~level:(-1) ~pos:(Some pos); term = Var n }
         ))
       args
-  and term_of_value ~pos t ({ Term.Value.value } as v) =
+  and term_of_value ~pos t v =
+    let meths_t, value_t = Type.split_meths t in
     let get_list_type () =
-      match (Type.deref t).Type.descr with
+      match (Type.deref value_t).Type.descr with
         | Type.List t -> t
         | _ -> assert false
     in
     let get_tuple_type pos =
-      match (Type.deref t).Type.descr with
+      match (Type.deref value_t).Type.descr with
         | Type.Tuple t -> List.nth t pos
         | _ -> assert false
     in
-    let get_meth_type () =
-      match (Type.deref t).Type.descr with
-        | Type.Meth (_, _, _, t) -> t
-        | _ -> assert false
+    let get_meth_type m = snd (fst (List.assoc m meths_t)) in
+    let meths, value = Term.Value.split_meths v in
+    let meths =
+      List.map (fun (m, v) -> (m, term_of_value ~pos (get_meth_type m) v)) meths
     in
     let term =
       match value with
@@ -124,9 +125,6 @@ let args_of, app_of =
                  (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
                  l)
         | Term.Value.Null -> Term.Null
-        | Term.Value.Meth (name, v, v') ->
-            let t = get_meth_type () in
-            Term.Meth (name, term_of_value ~pos t v, term_of_value ~pos t v')
         | Term.Value.Fun (args, [], [], body) ->
             let body =
               Term.{ body with t = Type.make ~pos:(Some pos) body.t.Type.descr }
@@ -139,8 +137,16 @@ let args_of, app_of =
                    Printf.sprintf "Term %s cannot be represented as a term"
                      (Term.Value.print_value v) ))
     in
-    let t = Type.make ~pos:(Some pos) t.Type.descr in
-    Term.{ t; term }
+    let t = Type.make ~pos:(Some pos) value_t.Type.descr in
+    List.fold_left
+      (fun term (m, m_t) ->
+        let scheme, doc = List.assoc m meths_t in
+        let t =
+          Type.make ~pos:(Some pos) (Type.Meth (m, scheme, doc, term.Term.t))
+        in
+        Term.{ t; term = Term.Meth (m, m_t, term) })
+      Term.{ t; term }
+      meths
   in
   let args_of = gen_args_of get_args in
   let app_of = gen_args_of get_app in

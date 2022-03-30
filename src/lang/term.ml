@@ -525,7 +525,13 @@ let check_unused ~throw ~lib tm =
 
 (** Values are untyped normal forms of terms. *)
 module Value = struct
-  type t = { pos : Type.pos option; value : in_value }
+  module Methods = Map.Make (struct
+    type t = string
+
+    let compare = Stdlib.compare
+  end)
+
+  type t = { pos : Type.pos option; value : in_value; methods : t Methods.t }
 
   and env = (string * t) list
 
@@ -539,10 +545,6 @@ module Value = struct
     | List of t list
     | Tuple of t list
     | Null
-    (* TODO: It would be better to have a list of methods associated to each
-       value than a constructor here. However, I am keeping as is for now because
-       implementation is safer this way. *)
-    | Meth of string * t * t
     | Ref of t ref
     (* The first environment contains the parameters already passed to the
        function. Next parameters will be inserted between that and the second
@@ -558,85 +560,57 @@ module Value = struct
     let s = string_of_float f in
     if s.[String.length s - 1] = '.' then s ^ "0" else s
 
+  let split_meths e =
+    (Methods.fold (fun m v l -> (m, v) :: l) e.methods [], e.value)
+
   let rec print_value v =
-    match v.value with
-      | Ground g -> Ground.to_string g
-      | Source _ -> "<source>"
-      | Encoder e -> Encoder.string_of_format e
-      | List l -> "[" ^ String.concat ", " (List.map print_value l) ^ "]"
-      | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
-      | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
-      | Null -> "null"
-      | Meth (l, v, e) when Lazy.force debug ->
-          print_value e ^ ".{" ^ l ^ "=" ^ print_value v ^ "}"
-      | Meth _ ->
-          let rec split e =
-            match e.value with
-              | Meth (l, v, e) ->
-                  let m, e = split e in
-                  ((l, v) :: m, e)
-              | _ -> ([], e)
-          in
-          let m, e = split v in
-          let m =
-            List.rev m
-            |> List.map (fun (l, v) -> l ^ " = " ^ print_value v)
-            |> String.concat ", "
-          in
-          let e =
-            match e.value with Tuple [] -> "" | _ -> print_value e ^ "."
-          in
-          e ^ "{" ^ m ^ "}"
-      | Fun ([], _, _, x) when is_ground x -> "{" ^ print_term x ^ "}"
-      | Fun (l, _, _, x) when is_ground x ->
-          let f (label, _, value) =
-            match (label, value) with
-              | "", None -> "_"
-              | "", Some v -> Printf.sprintf "_=%s" (print_value v)
-              | label, Some v -> Printf.sprintf "~%s=%s" label (print_value v)
-              | label, None -> Printf.sprintf "~%s=_" label
-          in
-          let args = List.map f l in
-          Printf.sprintf "fun (%s) -> %s" (String.concat "," args)
-            (print_term x)
-      | Fun _ | FFI _ -> "<fun>"
+    let methods, value = split_meths v in
+    let value_string () =
+      match value with
+        | Ground g -> Ground.to_string g
+        | Source _ -> "<source>"
+        | Encoder e -> Encoder.string_of_format e
+        | List l -> "[" ^ String.concat ", " (List.map print_value l) ^ "]"
+        | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
+        | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
+        | Null -> "null"
+        | Fun ([], _, _, x) when is_ground x -> "{" ^ print_term x ^ "}"
+        | Fun (l, _, _, x) when is_ground x ->
+            let f (label, _, value) =
+              match (label, value) with
+                | "", None -> "_"
+                | "", Some v -> Printf.sprintf "_=%s" (print_value v)
+                | label, Some v -> Printf.sprintf "~%s=%s" label (print_value v)
+                | label, None -> Printf.sprintf "~%s=_" label
+            in
+            let args = List.map f l in
+            Printf.sprintf "fun (%s) -> %s" (String.concat "," args)
+              (print_term x)
+        | Fun _ | FFI _ -> "<fun>"
+    in
+    let methods_string () =
+      Printf.sprintf "{%s}"
+        (String.concat ", "
+           (List.map
+              (fun (m, v) -> Printf.sprintf "%s = %s" m (print_value v))
+              methods))
+    in
+    match (methods, value) with
+      | [], _ -> value_string ()
+      | _, Tuple [] -> methods_string ()
+      | _, _ -> Printf.sprintf "%s.%s" (value_string ()) (methods_string ())
 
   (** Find a method in a value. *)
-  let rec invoke x l =
-    match x.value with
-      | Meth (l', y, _) when l' = l -> y
-      | Meth (_, _, x) -> invoke x l
-      | _ -> failwith ("Could not find method " ^ l ^ " of " ^ print_value x)
+  let invoke x l =
+    try Methods.find l x.methods
+    with Not_found ->
+      failwith ("Could not find method " ^ l ^ " of " ^ print_value x)
 
   (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
   let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 
-  let split_meths e =
-    let rec aux hide e =
-      match e.value with
-        | Meth (l, v, e) ->
-            if List.mem l hide then aux hide e
-            else (
-              let m, e = aux (l :: hide) e in
-              ((l, v) :: m, e))
-        | _ -> ([], e)
-    in
-    aux [] e
+  let demeth v = { v with methods = Methods.empty }
 
-  let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
-
-  let rec remeth t u =
-    match t.value with
-      | Meth (l, v, t) -> { t with value = Meth (l, v, remeth t u) }
-      | _ -> u
-
-  let uniq_meth t =
-    let rec f meths t =
-      match t.value with
-        | Meth (m, _, t') when List.mem m meths ->
-            { t with value = (f meths t').value }
-        | Meth (m, v, t') -> { t with value = Meth (m, v, f (m :: meths) t') }
-        | _ -> t
-    in
-    f [] t
+  let remeth t u =
+    { u with methods = Methods.union (fun _ v _ -> Some v) t.methods u.methods }
 end

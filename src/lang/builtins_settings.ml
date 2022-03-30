@@ -154,7 +154,7 @@ let settings_module =
      let log = get_value Dtools.Log.conf in
      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
      Lang.add_builtin_base ~category:`Liquidsoap "settings"
-       ~descr:"All settings." !settings.Lang.value settings_t)
+       ~descr:"All settings." !settings settings_t)
 (* Hack to keep track of latest settings at runtime. *)
 
 let () =
@@ -176,40 +176,26 @@ type descr = {
 let filtered_settings = ["subordinate log level"]
 
 let print_settings () =
-  let rec grab_descr cur = function
-    | Term.Value.Meth ("description", d, v) ->
-        grab_descr { cur with description = Lang.to_string d } v.Lang.value
-    | Term.Value.Meth ("comments", c, v) ->
-        grab_descr { cur with comments = Lang.to_string c } v.Lang.value
-    | Term.Value.Meth ("set", _, v) -> grab_descr cur v.Lang.value
-    | Term.Value.Meth (key, _, v) when List.mem_assoc key cur.children ->
-        grab_descr cur v.Lang.value
-    | Term.Value.Meth (key, c, v) ->
-        let descr =
-          {
-            description = "";
-            comments = "";
-            children = [];
-            value = Term.Value.Tuple [];
-          }
-        in
-        grab_descr
-          {
-            cur with
-            children = (key, grab_descr descr c.Lang.value) :: cur.children;
-          }
-          v.Lang.value
-    | value -> { cur with value }
+  let rec grab_descr value =
+    let cur =
+      {
+        description = "";
+        comments = "";
+        children = [];
+        value = value.Term.Value.value;
+      }
+    in
+    Term.Value.Methods.fold
+      (fun k v cur ->
+        match k with
+          | "description" -> { cur with description = Lang.to_string v }
+          | "comments" -> { cur with comments = Lang.to_string v }
+          | "set" -> cur
+          | key when List.mem_assoc key cur.children -> cur
+          | key -> { cur with children = (key, grab_descr v) :: cur.children })
+      value.Term.Value.methods cur
   in
-  let descr =
-    {
-      description = "";
-      comments = "";
-      children = [];
-      value = Term.Value.Tuple [];
-    }
-  in
-  let descr = grab_descr descr !settings.Lang.value in
+  let descr = grab_descr !settings in
   let filter_children =
     List.filter (fun (_, { description }) ->
         not (List.mem description filtered_settings))
@@ -218,7 +204,15 @@ let print_settings () =
     | Term.Value.Tuple [] -> []
     | value ->
         [
-          (match Lang.apply { Term.Value.pos = None; value } [] with
+          (match
+             Lang.apply
+               {
+                 Term.Value.pos = None;
+                 value;
+                 methods = Term.Value.Methods.empty;
+               }
+               []
+           with
             | v when v.Term.Value.value = Term.Value.Null ->
                 Printf.sprintf {|
 ```liquidsoap
@@ -257,12 +251,10 @@ let () =
   let grab path value =
     let path = String.split_on_char '.' path in
     let rec grab links v =
-      match (links, v.Term.Value.value) with
-        | [], _ -> v
-        | link :: links, Term.Value.Meth (key, v, _) when key = link ->
-            grab links v
-        | _, Term.Value.Meth (_, _, v) -> grab links v
-        | _ -> raise Not_found
+      match links with
+        | [] -> v
+        | link :: links ->
+            grab links (Term.Value.Methods.find link v.Term.Value.methods)
     in
     grab path value
   in

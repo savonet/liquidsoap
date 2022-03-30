@@ -137,25 +137,25 @@ let () =
       Lang.bool (Random.bool ()))
 
 let () =
-  Lang.add_builtin_base ~category:`Math ~descr:"Maximal representable integer."
+  Lang.add_builtin_value ~category:`Math ~descr:"Maximal representable integer."
     "max_int"
     Lang.(Ground (Ground.Int max_int))
     Lang.int_t
 
 let () =
-  Lang.add_builtin_base ~category:`Math ~descr:"Minimal representable integer."
+  Lang.add_builtin_value ~category:`Math ~descr:"Minimal representable integer."
     "min_int"
     Lang.(Ground (Ground.Int min_int))
     Lang.int_t
 
 let () =
-  Lang.add_builtin_base ~category:`Math
+  Lang.add_builtin_value ~category:`Math
     ~descr:"Float representation of infinity." "infinity"
     Lang.(Ground (Ground.Float infinity))
     Lang.float_t
 
 let () =
-  Lang.add_builtin_base ~category:`Math
+  Lang.add_builtin_value ~category:`Math
     ~descr:
       "A special floating-point value denoting the result of an undefined \
        operation such as 0.0 /. 0.0. Stands for 'not a number'. Any \

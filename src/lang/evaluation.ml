@@ -24,13 +24,6 @@
 
 open Term
 
-module Lazy = struct
-  include Lazy
-
-  let from_val v = Lazy.from_fun (fun () -> Value.uniq_meth v)
-  let from_fun v = Lazy.from_fun (fun () -> Value.uniq_meth (v ()))
-end
-
 (** [remove_first f l] removes the first element [e] of [l] such that [f e],
   * and returns [e,l'] where [l'] is the list without [e].
   * Asserts that there is such an element. *)
@@ -80,7 +73,7 @@ let rec prepare_fun fv p env =
 
 and eval ~env tm =
   let env = (env : Value.lazy_env) in
-  let mk v =
+  let mk ?(methods = Value.Methods.empty) v =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)
     (match (Type.deref tm.t).Type.descr with
@@ -107,11 +100,7 @@ and eval ~env tm =
                 midi = frame_content_of_t k.Frame.midi;
               }
           in
-          let rec demeth = function
-            | Value.Meth (_, _, v) -> demeth v.Value.value
-            | v -> v
-          in
-          match demeth v with
+          match v with
             | Value.Source s -> Source.Kind.unify s#kind k
             | _ ->
                 raise
@@ -119,9 +108,9 @@ and eval ~env tm =
                      ( Option.to_list tm.t.Type.pos,
                        "term has type source but is not a source: "
                        ^ Value.print_value
-                           { Value.pos = tm.t.Type.pos; Value.value = v } )))
+                           { Value.pos = tm.t.Type.pos; value = v; methods } )))
       | _ -> ());
-    { Value.pos = tm.t.Type.pos; Value.value = v }
+    { Value.pos = tm.t.Type.pos; value = v; methods }
   in
   match tm.term with
     | Ground g -> mk (Value.Ground g)
@@ -132,28 +121,28 @@ and eval ~env tm =
     | Cast (e, _) ->
         let e = eval ~env e in
         mk e.Value.value
-    | Meth (l, u, v) -> mk (Value.Meth (l, eval ~env u, eval ~env v))
-    | Invoke (t, l) ->
-        let rec aux t =
-          match t.Value.value with
-            | Value.Meth (l', t, _) when l = l' -> t
-            | Value.Meth (_, _, t) -> aux t
-            | _ ->
-                raise
-                  (Internal_error
-                     ( Option.to_list tm.t.Type.pos,
-                       "invoked method " ^ l ^ " not found" ))
+    | Meth _ ->
+        let rec f methods tm =
+          match tm.term with
+            | Meth (l, u, v) -> f (Value.Methods.add l (eval ~env u) methods) v
+            | _ -> (methods, tm)
         in
-        aux (eval ~env t)
+        let methods, tm = f Value.Methods.empty tm in
+        mk ~methods (eval ~env tm).Value.value
+    | Invoke (t, l) -> (
+        try Value.Methods.find l (eval ~env t).Value.methods
+        with Not_found ->
+          raise
+            (Internal_error
+               ( Option.to_list tm.t.Type.pos,
+                 "invoked method " ^ l ^ " not found" )))
     | Open (t, u) ->
         let t = eval ~env t in
-        let rec aux env t =
-          match t.Value.value with
-            | Value.Meth (l, v, t) -> aux ((l, Lazy.from_val v) :: env) t
-            | Value.Tuple [] -> env
-            | _ -> assert false
+        let env =
+          Value.Methods.fold
+            (fun l v env -> (l, Lazy.from_val v) :: env)
+            t.Value.methods env
         in
-        let env = aux env t in
         eval ~env u
     | Let { pat; replace; def = v; body = b; _ } ->
         let v = eval ~env v in
@@ -172,13 +161,21 @@ and eval ~env tm =
                 | l :: ll ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
-                      let mk ~pos value = { Value.pos; value } in
+                      let mk ~pos meth v value =
+                        Value.
+                          {
+                            value with
+                            pos;
+                            methods = Methods.add meth v value.methods;
+                          }
+                      in
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk ~pos:tm.t.Type.pos (Value.Meth (l, v, t))
+                        | [l] -> mk ~pos:tm.t.Type.pos l v t
                         | l :: ll ->
-                            mk ~pos:t.Value.pos
-                              (Value.Meth (l, meths ll v (Value.invoke t l), t))
+                            mk ~pos:t.Value.pos l
+                              (meths ll v (Value.invoke t l))
+                              t
                     in
                     let v () =
                       let t = Lazy.force (List.assoc l env) in
@@ -201,7 +198,11 @@ and eval ~env tm =
         let p, env = prepare_fun fv p env in
         let rec v () =
           let env = (x, Lazy.from_fun v) :: env in
-          { Value.pos = tm.t.Type.pos; value = Value.Fun (p, [], env, body) }
+          {
+            Value.pos = tm.t.Type.pos;
+            value = Value.Fun (p, [], env, body);
+            methods = Value.Methods.empty;
+          }
         in
         v ()
     | Var var -> lookup env var
@@ -232,7 +233,7 @@ and apply f l =
   (* Position of the whole application. *)
   let pos = pos l in
   let pos_f = f.Value.pos in
-  let mk ~pos v = { pos; Value.value = v } in
+  let mk ~pos v = { pos; Value.value = v; methods = Value.Methods.empty } in
   (* Extract the components of the function, whether it's explicit or foreign,
      together with a rewrapping function for creating a closure in case of
      partial application. *)
@@ -318,10 +319,9 @@ let toplevel_add (doc, params, methods) pat ~t v =
       | _ -> []
   in
   let ptypes = ptypes t in
-  let rec pvalues v =
+  let pvalues v =
     match v.Value.value with
       | Value.Fun (p, _, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
-      | Value.Meth (_, _, v) -> pvalues v
       | _ -> []
   in
   let pvalues = pvalues v in

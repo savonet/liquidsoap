@@ -50,7 +50,11 @@ module Ground : sig
   val to_string : t -> string
 end
 
-type value = Term.Value.t = { pos : pos option; value : in_value }
+type value = Term.Value.t = {
+  pos : pos option;
+  value : in_value;
+  methods : Term.Value.t Term.Value.Methods.t;
+}
 
 and env = (string * value) list
 
@@ -63,7 +67,6 @@ and in_value = Term.Value.in_value =
   | List of value list
   | Tuple of value list
   | Null
-  | Meth of string * value * value
   | Ref of value ref
   | Fun of (string * string * value option) list * env * lazy_env * Term.t
   (* A function with given arguments (argument label, argument variable,
@@ -122,6 +125,16 @@ val add_builtin :
 
 (** Add an builtin to the language, more rudimentary version. *)
 val add_builtin_base :
+  category:Documentation.category ->
+  descr:string ->
+  ?flags:Documentation.flag list ->
+  string ->
+  value ->
+  t ->
+  unit
+
+(** Add an builtin to the language, more rudimentary version. *)
+val add_builtin_value :
   category:Documentation.category ->
   descr:string ->
   ?flags:Documentation.flag list ->

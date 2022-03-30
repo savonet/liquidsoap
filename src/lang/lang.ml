@@ -27,7 +27,12 @@ open Ground
 type t = Type.t
 type scheme = Type.scheme
 type pos = Type.pos
-type value = Term.Value.t = { pos : pos option; value : in_value }
+
+type value = Term.Value.t = {
+  pos : pos option;
+  value : in_value;
+  methods : Term.Value.t Term.Value.Methods.t;
+}
 
 let log = Log.make ["lang"]
 
@@ -117,7 +122,7 @@ let kind_type_of_kind_format fields =
 
 (** Value construction *)
 
-let mk ?pos value = { pos; value }
+let mk ?pos ?(methods = Methods.empty) value = { pos; value; methods }
 let unit = mk unit
 let int i = mk (Ground (Int i))
 let bool i = mk (Ground (Bool i))
@@ -128,9 +133,11 @@ let product a b = tuple [a; b]
 let list l = mk (List l)
 let null = mk Null
 
-let rec meth v0 = function
-  | [] -> v0
-  | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
+let meth v0 l =
+  let methods =
+    List.fold_left (fun methods (k, v) -> Methods.add k v methods) v0.methods l
+  in
+  { v0 with methods }
 
 let record = meth unit
 let source s = mk (Source s)
@@ -278,6 +285,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
       pos = None;
       value =
         FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f);
+      methods = Methods.empty;
     }
   in
   let generalized = Type.filter_vars (fun _ -> true) t in
@@ -288,7 +296,6 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) name proto return_t
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let doc = new Doc.item ~sort:false descr in
-  let value = { pos = t.Type.pos; value } in
   let generalized = Type.filter_vars (fun _ -> true) t in
   doc#add_subsection "_category"
     (Doc.trivial (Documentation.string_of_category category));
@@ -300,6 +307,10 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   Environment.add_builtin ~doc
     (String.split_on_char '.' name)
     ((generalized, t), value)
+
+let add_builtin_value ~category ~descr ?flags name value t =
+  let value = { pos = t.Type.pos; value; methods = Methods.empty } in
+  add_builtin_base ~category ~descr ?flags name value t
 
 let add_module name = Environment.add_module (String.split_on_char '.' name)
 
@@ -347,15 +358,13 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
       (* We need to avoid checking the same value multiple times, otherwise we
          get an exponential blowup, see #1247. *)
       itered_values := v :: !itered_values;
+      Methods.iter (fun _ v -> iter_value v) v.methods;
       match v.value with
         | Source s -> f s
         | Ground _ | Encoder _ -> ()
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
         | Null -> ()
-        | Meth (_, a, b) ->
-            iter_value a;
-            iter_value b
         | Fun (proto, pe, env, body) ->
             (* The following is necessarily imprecise: we might see sources that
                will be unused in the execution of the function. *)
@@ -384,9 +393,8 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
                     | Tuple l -> List.exists aux l
                     | Ref r -> aux !r
                     | Fun _ | FFI _ -> true
-                    | Meth (_, v, t) -> aux v || aux t
                 in
-                aux v
+                aux v || Methods.exists (fun _ v -> aux v) v.methods
               in
               static_analysis_failed := r :: !static_analysis_failed;
               if may_have_source then (

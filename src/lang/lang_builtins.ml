@@ -23,13 +23,13 @@
 open Extralib
 
 let () =
-  Lang.add_builtin_base ~category:`Liquidsoap
+  Lang.add_builtin_value ~category:`Liquidsoap
     ~descr:"Liquidsoap version string." "liquidsoap.version"
     Lang.(Ground (Ground.String Configure.version))
     Lang.string_t;
   List.iter
     (fun (name, kind, str) ->
-      Lang.add_builtin_base ~category:`Liquidsoap
+      Lang.add_builtin_value ~category:`Liquidsoap
         ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
         ("configure." ^ name)
         Lang.(Ground (Ground.String str))
@@ -44,19 +44,19 @@ let () =
     ]
 
 let () =
-  Lang.add_builtin_base "liquidsoap.executable" ~category:`Liquidsoap
+  Lang.add_builtin_value "liquidsoap.executable" ~category:`Liquidsoap
     ~descr:"Path to the Liquidsoap executable."
     Lang.(Ground (Ground.String Sys.executable_name))
     Lang.string_t
 
 let () =
-  Lang.add_builtin_base ~category:`System
+  Lang.add_builtin_value ~category:`System
     ~descr:"Type of OS running liquidsoap." "os.type"
     Lang.(Ground (Ground.String Sys.os_type))
     Lang.string_t
 
 let () =
-  Lang.add_builtin_base ~category:`System ~descr:"Executable file extension."
+  Lang.add_builtin_value ~category:`System ~descr:"Executable file extension."
     "exe_ext"
     Lang.(Ground (Ground.String Configure.exe_ext))
     Lang.string_t

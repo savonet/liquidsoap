@@ -186,7 +186,7 @@ let () =
       Lang.unit)
 
 let () =
-  Lang.add_builtin_base ~category:`Liquidsoap
+  Lang.add_builtin_value ~category:`Liquidsoap
     ~descr:
       "Size of one word on the machine currently executing the program, in \
        bits. Either `32` or `64`."

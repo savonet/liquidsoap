@@ -39,57 +39,48 @@ module JSON = Lang.MkAbstract (struct
 end)
 
 let rec to_json_compact ~json5 v =
-  match v.Lang.value with
-    | Lang.Ground g -> Term.Ground.to_json ~compact:true ~json5 g
-    | Lang.List l ->
+  match Term.Value.split_meths v with
+    | _, Lang.Ground g -> Term.Ground.to_json ~compact:true ~json5 g
+    | _, Lang.List l ->
         Printf.sprintf "[%s]"
           (String.concat "," (List.map (to_json_compact ~json5) l))
-    | Lang.Null -> "null"
-    | Lang.Tuple l ->
+    | _, Lang.Null -> "null"
+    | (_ :: _ as meths), Lang.Tuple [] ->
+        let l =
+          List.map
+            (fun (l, v) ->
+              Printf.sprintf "\"%s\":%s" l (to_json_compact ~json5 v))
+            meths
+        in
+        Printf.sprintf "{%s}" (String.concat "," l)
+    | _, Lang.Tuple l ->
         "[" ^ String.concat "," (List.map (to_json_compact ~json5) l) ^ "]"
-    | Lang.Meth _ -> (
-        let m, v = Term.Value.split_meths v in
-        match v.Lang.value with
-          | Lang.Tuple [] ->
-              let l =
-                List.map
-                  (fun (l, v) ->
-                    Printf.sprintf "\"%s\":%s" l (to_json_compact ~json5 v))
-                  m
-              in
-              Printf.sprintf "{%s}" (String.concat "," l)
-          | _ -> to_json_compact ~json5 v)
-    | Lang.Source _ -> "\"<source>\""
-    | Lang.Ref v ->
+    | _, Lang.Source _ -> "\"<source>\""
+    | _, Lang.Ref v ->
         Printf.sprintf "{\"reference\": %s}" (to_json_compact ~json5 !v)
-    | Lang.Encoder e -> Utils.quote_string (Encoder.string_of_format e)
-    | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
+    | _, Lang.Encoder e -> Utils.quote_string (Encoder.string_of_format e)
+    | _, Lang.FFI _ | _, Lang.Fun _ -> "\"<fun>\""
 
 let pp_list sep ppx f l =
   let pp_sep f () = Format.fprintf f "%s@ " sep in
   Format.pp_print_list ~pp_sep ppx f l
 
 let rec to_json_pp ~json5 f v =
-  match v.Lang.value with
-    | Lang.Ground g ->
+  match Term.Value.split_meths v with
+    | _, Lang.Ground g ->
         Format.fprintf f "%s" (Term.Ground.to_json ~compact:false ~json5 g)
-    | Lang.Tuple [] | Lang.List [] -> Format.fprintf f "[]"
-    | Lang.Tuple l | Lang.List l ->
+    | (_ :: _ as meths), Lang.Tuple [] ->
+        let format_field f (k, v) =
+          Format.fprintf f "@[<hv2>%s: %a@]" (Utils.quote_string k)
+            (to_json_pp ~json5) v
+        in
+        Format.fprintf f "{@;<1 0>%a@;<1 -2>}" (pp_list "," format_field) meths
+    | _, Lang.Tuple [] | _, Lang.List [] -> Format.fprintf f "[]"
+    | _, Lang.Tuple l | _, Lang.List l ->
         Format.fprintf f "[@;<1 0>%a@;<1 -2>]"
           (pp_list "," (to_json_pp ~json5))
           l
-    | Lang.Meth _ -> (
-        let l, v = Term.Value.split_meths v in
-        match v.Lang.value with
-          | Lang.Tuple [] ->
-              let format_field f (k, v) =
-                Format.fprintf f "@[<hv2>%s: %a@]" (Utils.quote_string k)
-                  (to_json_pp ~json5) v
-              in
-              Format.fprintf f "{@;<1 0>%a@;<1 -2>}" (pp_list "," format_field)
-                l
-          | _ -> Format.fprintf f "%a" (to_json_pp ~json5) v)
-    | Lang.Ref v ->
+    | _, Lang.Ref v ->
         Format.fprintf f "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
           (to_json_pp ~json5) !v
     | _ -> Format.fprintf f "%s" (to_json_compact ~json5 v)
@@ -216,14 +207,16 @@ let rec of_json d j =
         in
         Lang.list l
     (* Parse records. *)
-    | Lang.Meth (l, x, d), `Assoc a -> (
+    | Lang.Tuple [], `Assoc a -> (
+        let methods = d.Term.Value.methods in
         try
-          let y = List.assoc l a in
-          let v = of_json x y in
-          let a' = List.remove_assoc l a in
-          Lang.meth (of_json d (`Assoc a')) [(l, v)]
+          let methods =
+            List.map
+              (fun (k, j) -> (k, of_json (Term.Value.Methods.find k methods) j))
+              a
+          in
+          Lang.record methods
         with Not_found -> raise Failed)
-    | Lang.Tuple [], `Assoc _ -> Lang.unit
     | _ -> raise Failed
 
 let () =

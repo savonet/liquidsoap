@@ -65,8 +65,8 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                 Type.make ~pos:t.Type.pos (Type.Meth (l, (lvg, lvt), "", vt))
               in
               (* Update value for x.l1...li. *)
-              let value = Term.Value.Meth (l, lv, v) in
-              ((vg, t), { Term.Value.pos = v.Term.Value.pos; value })
+              ( (vg, t),
+                Term.Value.{ v with methods = Methods.add l lv v.methods } )
           | [] -> ((g, t), v)
         in
         let (g, t), v = aux [] ll in
@@ -101,7 +101,11 @@ let add_module name =
         with _ -> ()));
   add_builtin ~register:false name
     ( ([], Type.make Type.unit),
-      { Term.Value.pos = None; value = Term.Value.unit } )
+      {
+        Term.Value.pos = None;
+        value = Term.Value.unit;
+        methods = Term.Value.Methods.empty;
+      } )
 
 (* Builtins are only used for documentation now. *)
 let builtins = (builtins :> Doc.item)
