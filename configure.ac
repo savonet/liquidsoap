@@ -662,14 +662,12 @@ AC_CHECK_OCAML_BINDING([magic])
 if test -z "$W_MAGIC" ; then
     cat >> src/configure.ml <<EOCONF
 let file_mime = None
-let data_mime = None
 EOCONF
 else
   if test -z "$w_CUSTOM_PATH"; then
     cat >> src/configure.ml <<EOCONF
 let magic_cookie = Magic.create ~flags:[[Magic.Mime; Magic.Symlink]] [[]]
 let file_mime = Some (Magic.file magic_cookie)
-let data_mime = Some (Magic.buffer magic_cookie)
 EOCONF
   else
     cat >> src/configure.ml <<EOCONF
@@ -681,7 +679,6 @@ let magic_file  =
   Utils.resolve_path ~cwd magic
 let magic_cookie = Magic.create ~flags:[[Magic.Mime; Magic.Symlink]] [[magic_file]]
 let file_mime = Some (Magic.file magic_cookie)
-let data_mime = Some (Magic.buffer magic_cookie)
 EOCONF
   fi
 fi

@@ -23,17 +23,6 @@
 let log = Log.make ["playlist"; "basic"]
 let split_lines buf = Pcre.split ~pat:"[\r\n]+" buf
 
-let test_text s =
-  match Configure.data_mime with
-    | None -> ()
-    | Some get_mime ->
-        let mime = get_mime s in
-        if not (Pcre.pmatch ~pat:"text/.*" mime) then (
-          log#important "Wrong mime type %s for playlist!" mime;
-
-          (* TODO this shouldn't be an assert false, it can happen *)
-          assert false)
-
 let parse_extinf s =
   try
     let rex = Pcre.regexp "#EXTINF:(\\d+),(.*)" in
@@ -53,7 +42,6 @@ let parse_extinf s =
 
 (* This parser cannot detect the format !! *)
 let parse_mpegurl ?pwd string =
-  test_text string;
   let lines = List.filter (fun x -> x <> "") (split_lines string) in
   let is_info line = Pcre.pmatch ~pat:"^#EXTINF" line in
   let skip_line line = line.[0] == '#' in
@@ -70,7 +58,6 @@ let parse_mpegurl ?pwd string =
   get_urls [] lines
 
 let parse_scpls ?pwd string =
-  test_text string;
   let string = Pcre.replace ~pat:"#[^\\r\\n]*[\\n\\r]+" string in
   (* Format check, raise Not_found if invalid *)
   ignore
@@ -204,7 +191,6 @@ let parse_tracks index lines =
   parse [] track lines
 
 let parse_cue ?pwd string =
-  test_text string;
   let strings = split_lines string in
   let strings =
     List.map

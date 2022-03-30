@@ -54,7 +54,6 @@ val requests_max_id : int
 (** Magic mime detection *)
 val file_mime : (string -> string) option
 
-val data_mime : (?len:int -> string -> string) option
 val requests_table_size : int
 
 (** Configured directories. Typically /var/(run|log)/liquidsoap. *)
