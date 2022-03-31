@@ -7,7 +7,7 @@ def r10()
 
   x = ref(0)
 
-  for i = 1 to 200000 do
+  for _ = 1 to 200000 do
     x := !x + r.a0 + r.a1 + r.a2 + r.a3 + r.a4 + r.a5 + r.a6 + r.a7 + r.a8 + r.a9
   end
 end
