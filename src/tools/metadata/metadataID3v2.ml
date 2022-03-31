@@ -19,6 +19,25 @@ let recode enc =
   else if enc = 3 then fun s -> s
   else fun s -> s
 
+let normalize_id = function
+  | "COMM" -> "comment"
+  | "TALB" -> "album"
+  | "TBPM" -> "tempo"
+  | "TCON" -> "content"
+  | "TENC" -> "encoder"
+  | "TDAT" -> "date"
+  | "TIT2" -> "title"
+  | "TLAN" -> "language"
+  | "TLEN" -> "length"
+  | "TPE1" -> "artist"
+  | "TPE2" -> "band"
+  | "TPUB" -> "publisher"
+  | "TRCK" -> "tracknumber"
+  | "TSSE" -> "encoder"
+  | "TYER" -> "year"
+  | "WXXX" -> "url"
+  | id -> id
+
 (** Parse ID3v2 tags. *)
 let parse f : metadata =
   let id = R.read f 3 in
@@ -53,33 +72,21 @@ let parse f : metadata =
         let encrypted = int_of_char flags.[1] land 0b01000000 <> 0 in
         if compressed || encrypted then raise Exit;
         if id.[0] = 'T' then (
-          let id =
-            match id with
-              | "COMM" -> "comment"
-              | "TPE1" -> "artist"
-              | "TIT2" -> "title"
-              | "TALB" -> "album"
-              | "TYER" -> "year"
-              | "TRCK" -> "tracknumber"
-              | "TBPM" -> "tempo"
-              | "TSSE" -> "encoder"
-              | _ -> id
-          in
           let encoding = int_of_char data.[0] in
           let recode = recode encoding in
           let start, len =
             match encoding with
-              | 0x00 (* ISO-8859-1 *) | 0x03 (* UTF8 *) ->
-                  if data.[size - 1] = '\000' then (1, size - 2)
-                  else (1, size - 1)
-              | 0x01 (* 16-bit unicode 2.0 *) | 0x02 (* UTF-16BE *) ->
-                  if
-                    size >= 2
-                    && data.[size - 2] = '\000'
-                    && data.[size - 1] = '\000'
-                  then (1, size - 3)
-                  else (1, size - 1)
-              | _ -> (0, size)
+            | 0x00 (* ISO-8859-1 *) | 0x03 (* UTF8 *) ->
+              if data.[size - 1] = '\000' then (1, size - 2)
+              else (1, size - 1)
+            | 0x01 (* 16-bit unicode 2.0 *) | 0x02 (* UTF-16BE *) ->
+              if
+                size >= 2
+                && data.[size - 2] = '\000'
+                && data.[size - 1] = '\000'
+              then (1, size - 3)
+              else (1, size - 1)
+            | _ -> (0, size)
           in
           let text = String.sub data start len in
           let text = recode text in
@@ -90,8 +97,8 @@ let parse f : metadata =
                 String.sub text (n + 1) (String.length text - (n + 1)) ))
             else (id, text)
           in
-          tags := (id, text) :: !tags)
-        else tags := (id, data) :: !tags)
+          tags := (normalize_id id, text) :: !tags)
+        else tags := (normalize_id id, data) :: !tags)
     with Exit -> ()
   done;
   !tags

@@ -17,4 +17,7 @@ let () =
     | _ -> failwith "Unknown format."
   in
   let m = parser !fname in
-  List.iter (fun (k,v) -> Printf.printf "- %s: %s\n%!" k v) m
+  List.iter
+    (fun (k,v) ->
+       let v = if k = "APIC" then "<redacted>" else v in
+       Printf.printf "- %s: %s\n%!" k v) m
