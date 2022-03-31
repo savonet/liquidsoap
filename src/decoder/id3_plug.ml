@@ -61,7 +61,7 @@ let get_tags parse fname =
 let () = Request.mresolvers#register "ID3" (get_tags Metadata.ID3.parse_file)
 
 let () =
-  Request.mresolvers#register "ID3v1" (get_tags Metadata.ID3v1.parse_file)
+  Request.mresolvers#register "ID3V1" (get_tags Metadata.ID3v1.parse_file)
 
 let () =
-  Request.mresolvers#register "ID3v2" (get_tags Metadata.ID3v2.parse_file)
+  Request.mresolvers#register "ID3V2" (get_tags Metadata.ID3v2.parse_file)
