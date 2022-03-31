@@ -1,4 +1,4 @@
-include MetadataBase (* for the exception Invalid *)
+include MetadataBase
 module ID3v1 = MetadataID3v1
 module ID3v2 = MetadataID3v2
 module JPEG = MetadataJPEG
@@ -8,8 +8,8 @@ module MP4 = MetadataMP4
 
 module ID3 = struct
   let parse f =
-    let v2 = try ID3v2.parse f with _ -> [] in
-    let v1 = try Reader.reset f; ID3v1.parse f with _ -> [] in
+    let failure, v2 = try false, ID3v2.parse f with _ -> true, [] in
+    let v1 = try Reader.reset f; ID3v1.parse f with _ -> if failure then raise Invalid else [] in
     v2@v1
 
   let parse_file = Reader.with_file parse
