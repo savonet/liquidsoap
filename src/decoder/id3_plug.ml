@@ -27,7 +27,7 @@ let mime_types =
   Dtools.Conf.list
     ~p:(Decoder.conf_mime_types#plug "id3")
     "Mime-types used for decoding metadata using native ID3v1 and ID3v2 parser"
-    ~d:["audio/mpeg"]
+    ~d:["audio/mpeg"; "audio/x-wav"]
 
 let conf_id3 =
   Dtools.Conf.void
@@ -39,7 +39,7 @@ let file_extensions =
     ~p:(Decoder.conf_file_extensions#plug "id3")
     "File extensions used for decoding metadata using native ID3v1 and ID3v2 \
      parser"
-    ~d:["mp3"]
+    ~d:["mp3"; "wav"]
 
 let get_tags parse fname =
   try
