@@ -8,7 +8,7 @@ test: $(TESTS)
 
 big-record.liq:
 	@echo "Generating big-record.liq..."
-	@echo "#!../src/liquidsoap ../libs/stdlib.liq ../libs/deprecations.liq --force-start" > $@
+	@echo "#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq --force-start" > $@
 	@echo '%include "performance.liq"' >> $@
 	@echo "def sum () =" >> $@
 	@echo "r = ()" >> $@
@@ -18,6 +18,7 @@ big-record.liq:
 	@echo "end" >> $@
 	@echo 'time("sum of fields (big record)", sum)' >> $@
 	@echo "exit(0)" >> $@
+	@chmod +x $@
 
 perf:
 	perf record --call-graph=dwarf -- ../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq erathostenes.liq
