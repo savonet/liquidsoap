@@ -16,7 +16,7 @@ big-record.liq:
 	@echo "n = ref(0)" >> $@
 	@for i in `seq 5000`; do echo "n := !n + r.a$$i"; done >> $@
 	@echo "end" >> $@
-	@echo 'time("sum of fields", sum)' >> $@
+	@echo 'time("sum of fields (big record)", sum)' >> $@
 	@echo "exit(0)" >> $@
 
 perf:
