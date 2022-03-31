@@ -62,6 +62,7 @@ let parse f : metadata =
               | "TYER" -> "year"
               | "TRCK" -> "tracknumber"
               | "TBPM" -> "tempo"
+              | "TSSE" -> "encoder"
               | _ -> id
           in
           let encoding = int_of_char data.[0] in
