@@ -15,17 +15,37 @@ module ID3 = struct
   let parse_file = Reader.with_file parse
 end
 
+
+(** Return the first application which does not raise invalid. *)
+let rec first_valid l file =
+  match l with
+  | f::l ->
+    (
+      try f file
+      with Invalid -> Reader.reset file; first_valid l file
+    )
+  | [] -> raise Invalid
+
 module Audio = struct
-  let parse = first_valid [ID3v2.parse; ID3v1.parse]
+  let parsers = [ID3.parse]
+  let parse = first_valid parsers
   let parse_file = Reader.with_file parse
 end
 
 module Image = struct
-  let parse = first_valid [JPEG.parse; PNG.parse]
+  let parsers = [JPEG.parse; PNG.parse]
+  let parse = first_valid parsers
   let parse_file = Reader.with_file parse
 end
 
 module Video = struct
-  let parse = first_valid [AVI.parse; MP4.parse]
+  let parsers = [AVI.parse; MP4.parse]
+  let parse = first_valid parsers
+  let parse_file = Reader.with_file parse
+end
+
+module Any = struct
+  let parsers = Audio.parsers@Image.parsers@Video.parsers
+  let parse = first_valid parsers
   let parse_file = Reader.with_file parse
 end

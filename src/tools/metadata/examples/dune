@@ -1,4 +1,11 @@
 (executable
+ (name meta)
+ (public_name meta)
+ (modules meta)
+ (libraries metadata)
+)
+
+(executable
  (name test)
  (modules test)
  (optional)
