@@ -99,6 +99,15 @@ let pull graph =
   (Clock.get (Queue.peek graph.graph_inputs)#clock)#end_tick;
   Queue.iter (fun s -> s#after_output) graph.graph_inputs
 
+let self_sync_type graph =
+  Lazy.from_fun (fun () ->
+      Lazy.force
+        (Utils.self_sync_type
+           (Queue.fold (fun cur s -> s :: cur) [] graph.graph_inputs)))
+
+let self_sync graph =
+  Queue.fold (fun cur s -> cur || snd s#self_sync) false graph.graph_inputs
+
 module Graph = Lang.MkAbstract (struct
   type content = graph
 
@@ -669,7 +678,8 @@ let () =
         new Ffmpeg_filter_io.audio_input
           ~pull:(fun () -> pull graph)
           ~is_ready:(fun () -> is_ready graph)
-          ~pass_metadata kind
+          ~self_sync:(fun () -> self_sync graph)
+          ~self_sync_type:(self_sync_type graph) ~pass_metadata kind
       in
       Queue.add (s :> Source.source) graph.graph_outputs;
 
@@ -796,7 +806,8 @@ let () =
         new Ffmpeg_filter_io.video_input
           ~pull:(fun () -> pull graph)
           ~is_ready:(fun () -> is_ready graph)
-          ~pass_metadata ~fps kind
+          ~self_sync:(fun () -> self_sync graph)
+          ~self_sync_type:(self_sync_type graph) ~pass_metadata ~fps kind
       in
       Queue.add (s :> Source.source) graph.graph_outputs;
 

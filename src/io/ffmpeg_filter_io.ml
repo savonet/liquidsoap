@@ -128,10 +128,14 @@ class video_output ~pass_metadata ~kind ~name source_val =
         frames
   end
 
-class virtual ['a] input_base ~generator ~is_ready ~pull =
+class virtual ['a] input_base ~generator ~self_sync_type ~self_sync ~is_ready
+  ~pull =
   object (self)
     method virtual flush_buffer : 'a Avfilter.output -> unit -> unit
     val mutable output = None
+
+    method self_sync : Source.self_sync =
+      (Lazy.force self_sync_type, self_sync ())
 
     method pull =
       pull ();
@@ -171,12 +175,17 @@ type audio_config = {
 }
 
 (* Same thing here. *)
-class audio_input ~is_ready ~pull ~pass_metadata kind =
+class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata kind
+  =
   let generator = Generator.create `Audio in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
-    inherit [[ `Audio ]] input_base ~generator ~is_ready ~pull
+
+    inherit
+      [[ `Audio ]] input_base
+        ~generator ~self_sync_type ~self_sync ~is_ready ~pull
+
     val mutable config = None
 
     method set_output v =
@@ -192,7 +201,6 @@ class audio_input ~is_ready ~pull ~pass_metadata kind =
         (Ffmpeg_raw_content.Audio.lift_params output_format);
       output <- Some v
 
-    method self_sync = (`Static, false)
     method stype = Source.Fallible
     method remaining = Generator.remaining generator
 
@@ -246,13 +254,17 @@ type video_config = {
   pixel_format : Avutil.Pixel_format.t;
 }
 
-class video_input ~is_ready ~pull ~pass_metadata ~fps kind =
+class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
+  kind =
   let generator = Generator.create `Video in
   let duration = lazy (Frame.main_of_seconds (1. /. float (Lazy.force fps))) in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
-    inherit [[ `Video ]] input_base ~generator ~is_ready ~pull
+
+    inherit
+      [[ `Video ]] input_base
+        ~generator ~self_sync_type ~self_sync ~is_ready ~pull
 
     method set_output v =
       let output_format =
@@ -267,7 +279,6 @@ class video_input ~is_ready ~pull ~pass_metadata ~fps kind =
         (Ffmpeg_raw_content.Video.lift_params output_format);
       output <- Some v
 
-    method self_sync = (`Static, false)
     method stype = Source.Fallible
     method remaining = Generator.remaining generator
 
