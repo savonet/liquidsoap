@@ -30,8 +30,8 @@
   *
   * Therefore, the intended implementation is to:
   * -> Consider ffmpeg filter graphs as a single operator with N inputs
-  *    and M outputs (audio/video) with inputs being any source converter to
-  *    a ffmpeg graph input, even it not used, for simplification.
+  *    and M outputs (audio/video) with inputs being any source converted to
+  *    a ffmpeg graph input, even if not used, for simplification.
   * -> The outputs are placed in their clock which controls a child clock
   *    containing the inputs.
   * -> The graph initialization is suspended until its initialization conditions
@@ -44,7 +44,7 @@
   *    perhaps an accordion pattern between input and output so we do not
   *    look at latency control like we do for crossfades.
   * -> When receiving its first frame, the liquidsoap input will then initialize the
-  *    corresponding ffmpeg fraph input with full format info.
+  *    corresponding ffmpeg graph input with full format info.
   * -> When all inputs have been initialized, which is know by checking if all of 
   *    the graph's lazy values for input pads have been forced (executed), 
   *    the whole graph is initialized, outputs connected and data can start to flow!
