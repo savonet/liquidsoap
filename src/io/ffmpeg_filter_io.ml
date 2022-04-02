@@ -128,26 +128,29 @@ class video_output ~pass_metadata ~kind ~name source_val =
         frames
   end
 
-class virtual input_base ~generator ~is_ready ~pull =
+class virtual ['a] input_base ~generator ~is_ready ~pull =
   object (self)
-    method virtual flush_buffer : unit -> unit
+    method virtual flush_buffer : 'a Avfilter.output -> unit -> unit
     val mutable output = None
 
     method pull =
       pull ();
-      assert (output <> None);
-      let flush = self#flush_buffer in
-      let rec f () =
-        try
-          while Generator.length generator < Lazy.force Frame.size do
-            flush ()
-          done
-        with Avutil.Error `Eagain ->
-          if is_ready () then (
-            pull ();
-            f ())
-      in
-      f ()
+      ignore
+        (Option.map
+           (fun output ->
+             let flush = self#flush_buffer output in
+             let rec f () =
+               try
+                 while Generator.length generator < Lazy.force Frame.size do
+                   flush ()
+                 done
+               with Avutil.Error `Eagain ->
+                 if is_ready () then (
+                   pull ();
+                   f ())
+             in
+             f ())
+           output)
 
     method is_ready =
       Generator.length generator >= Lazy.force Frame.size || is_ready ()
@@ -173,7 +176,7 @@ class audio_input ~is_ready ~pull ~pass_metadata kind =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
-    inherit input_base ~generator ~is_ready ~pull
+    inherit [[ `Audio ]] input_base ~generator ~is_ready ~pull
     val mutable config = None
 
     method set_output v =
@@ -193,8 +196,7 @@ class audio_input ~is_ready ~pull ~pass_metadata kind =
     method stype = Source.Fallible
     method remaining = Generator.remaining generator
 
-    method private flush_buffer =
-      let output = Option.get output in
+    method private flush_buffer output =
       let ffmpeg_frame_time_base = Avfilter.(time_base output.context) in
       let liq_frame_time_base = Ffmpeg_utils.liq_frame_time_base () in
       let get_duration frame =
@@ -250,7 +252,7 @@ class video_input ~is_ready ~pull ~pass_metadata ~fps kind =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
-    inherit input_base ~generator ~is_ready ~pull
+    inherit [[ `Video ]] input_base ~generator ~is_ready ~pull
 
     method set_output v =
       let output_format =
@@ -269,8 +271,7 @@ class video_input ~is_ready ~pull ~pass_metadata ~fps kind =
     method stype = Source.Fallible
     method remaining = Generator.remaining generator
 
-    method private flush_buffer =
-      let output = Option.get output in
+    method private flush_buffer output =
       let ffmpeg_frame_time_base = Avfilter.(time_base output.context) in
       let liq_frame_time_base = Ffmpeg_utils.liq_frame_time_base () in
       fun () ->
