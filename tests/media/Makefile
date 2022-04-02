@@ -165,7 +165,7 @@ files/ffmpeg_copy_concat/third-concat.mp4:
 test_ffmpeg_copy_concat: files/ffmpeg_copy_concat/first-concat.mp4 files/ffmpeg_copy_concat/second-concat.mp4 files/ffmpeg_copy_concat/third-concat.mp4
 	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_copy_concat.liq
 
-test_ffmpeg_complex_filter: files/audio/@mp3(stereo).mp3
+test_ffmpeg_complex_filter: files/audio/@mp3(stereo).mp3 files/audio/@mp3(mono).mp3
 	 @../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -"  media/test_ffmpeg_complex_filter.liq
 
 clean:

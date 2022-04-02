@@ -20,6 +20,40 @@
 
  *****************************************************************************)
 
+(** FFmpeg filter graphs initialization is pretty tricky. Things to consider:
+  * - FFmpeg filters are using a push paradigm, pushing from the sources down
+  *   to the outputs
+  * - Liquidsoap uses a pull paradigm, pulling data from the outputs.
+  * - FFmpeg filters inputs need to know the exact content of the data sent to
+  *   them before being initialized, which is only known in the worst case
+  *   when receiving the first frame.
+  *
+  * Therefore, the intended implementation is to:
+  * -> Consider ffmpeg filter graphs as a single operator with N inputs
+  *    and M outputs (audio/video) with inputs being any source converter to
+  *    a ffmpeg graph input, even it not used, for simplification.
+  * -> The outputs are placed in their clock which controls a child clock
+  *    containing the inputs.
+  * -> The graph initialization is suspended until its initialization conditions
+  *    are met.
+  * -> When all the inputs have been initialized and are ready (call to `#is_ready`),
+  *    the graph is considered ready and its output can start requesting
+  *    content. This is captured by the call to `is_ready` below.
+  * -> When requesting content, the outputs can tick the input clock as many time
+  *    as needed to generate output data. We expect more or less real time with
+  *    perhaps an accordion pattern between input and output so we do not
+  *    look at latency control like we do for crossfades.
+  * -> When receiving its first frame, the liquidsoap input will then initialize the
+  *    corresponding ffmpeg fraph input with full format info.
+  * -> When all inputs have been initialized, which is know by checking if all of 
+  *    the graph's lazy values for input pads have been forced (executed), 
+  *    the whole graph is initialized, outputs connected and data can start to flow!
+  *    This is captured by the call to `initialized` below.
+  *
+  * This is contingent to the inputs being checked for `#is_ready` and the
+  * outputs only pulling when _all_ inputs are available, to avoid running
+  * into endless pulling loops. *)
+
 let () =
   Lang.add_module "ffmpeg.filter";
   Lang.add_module "ffmpeg.filter.audio";
@@ -38,6 +72,7 @@ type outputs =
 
 type graph = {
   mutable config : Avfilter.config option;
+  mutable failed : bool;
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
   graph_outputs : Source.source Queue.t;
@@ -46,14 +81,19 @@ type graph = {
 }
 
 let init_graph graph =
-  if Queue.fold (fun b v -> b && v ()) true graph.input_inits then
-    Queue.iter Lazy.force graph.init
+  if Queue.fold (fun b v -> b && v ()) true graph.input_inits then (
+    try Queue.iter Lazy.force graph.init
+    with exn ->
+      let bt = Printexc.get_raw_backtrace () in
+      graph.failed <- true;
+      Printexc.raise_with_backtrace exn bt)
 
 let initialized graph =
   Queue.fold (fun cur q -> cur && Lazy.is_val q) true graph.init
 
 let is_ready graph =
-  Queue.fold (fun cur s -> cur && s#is_ready) true graph.graph_inputs
+  (not graph.failed)
+  && Queue.fold (fun cur s -> cur && s#is_ready) true graph.graph_inputs
 
 let pull graph =
   (Clock.get (Queue.peek graph.graph_inputs)#clock)#end_tick;
@@ -833,6 +873,7 @@ let () =
         Avfilter.
           {
             config = Some config;
+            failed = false;
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
             graph_outputs = Queue.create ();
