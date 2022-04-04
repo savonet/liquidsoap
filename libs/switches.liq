@@ -76,21 +76,18 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
   end
 
   def add_condition(index, s) =
-    weight = list.nth(default=default_weight, weights, index)
-
     def cond() =
       if !picked_index == -1 then pick() end
 
-      if !picked_index == index then
-        if !list.assoc(source.id(s), tracks_played) < weight () then
-          true
-        else
-           pick()
-           !picked_index == index
+      if !picked_index != -1 then
+        picked_weight = list.nth(default=default_weight, weights, !picked_index)
+        picked_source = list.nth(sources, !picked_index)
+        if picked_weight () <= !list.assoc(source.id(picked_source), tracks_played) then
+          pick()
         end
-      else
-        false
       end
+
+      !picked_index == index
     end
 
     (cond, s)
