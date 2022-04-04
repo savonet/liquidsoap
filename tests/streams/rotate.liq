@@ -34,4 +34,5 @@ jingles.on_track(fun(m)->ot(false,m))
 music.on_track(fun(m)->ot(true,m))
 
 radio = rotate(weights=[2,1], [music,jingles])
+clock.assign_new(sync="none",[radio])
 output.dummy(fallible=true, radio)
