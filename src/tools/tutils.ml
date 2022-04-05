@@ -184,6 +184,7 @@ let create ~queue f x s =
                     log#critical
                       "PANIC: Liquidsoap has crashed, exiting.,\n\
                        Please report at: savonet-users@lists.sf.net";
+                    flush_all ();
                     exit 1
                 | e ->
                     log#important "Thread %S aborts with exception %s!" s

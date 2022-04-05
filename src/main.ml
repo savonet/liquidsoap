@@ -150,10 +150,12 @@ let process_request s =
     | Request.Failed ->
         Printf.printf "Request resolution failed.\n";
         Request.destroy req;
+        flush_all ();
         exit 2
     | Request.Timeout ->
         Printf.printf "Request resolution timeout.\n";
         Request.destroy req;
+        flush_all ();
         exit 1
     | Request.Resolved ->
         let metadata = Request.get_all_metadata req in
@@ -502,6 +504,7 @@ let check_directories () =
         \  set(%S, \"<path>\")\n"
         kind dir
         (Dtools.Conf.string_of_path (List.hd routes));
+      flush_all ();
       exit 1)
   in
   if Dtools.Log.conf_file#get then (
@@ -561,6 +564,7 @@ let () =
         else (
           final_cleanup ();
           Printf.printf "No output defined, nothing to do.\n";
+          flush_all ();
           exit 1))
 
 (* Here we go! *)

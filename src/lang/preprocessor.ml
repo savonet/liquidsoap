@@ -133,6 +133,7 @@ let includer dir tokenizer =
                 (curp.Lexing.pos_cnum - curp.Lexing.pos_bol);
               Printf.printf "file %s doesn't exist.\n"
                 (Utils.quote_string fname);
+              flush_all ();
               exit 1
           in
           let lexbuf = Sedlexing.Utf8.from_channel channel in
