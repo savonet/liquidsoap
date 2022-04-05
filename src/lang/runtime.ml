@@ -244,7 +244,9 @@ let from_lexbuf ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
     report lexbuf (fun ~throw () ->
         let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
         if not parse_only then type_and_run ~throw ~lib expr)
-  with Error -> exit 1
+  with Error ->
+    flush_all ();
+    exit 1
 
 let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
