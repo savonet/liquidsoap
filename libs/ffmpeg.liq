@@ -89,8 +89,23 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font="",
                                   fontfile=fontfile, fontsize="#{size}", x="#{getter.get(x)}", y="#{getter.get(y)}",
                                   fontcolor=color, text=getter.get(d), graph)
 
+  def escape =
+    def special_char(s) =
+      string.contains(substring=s, "(',%,\,:,{,})")
+    end
+    def escape_char(s) =
+      "\\#{s}"
+    end
+    fun (s) -> string.escape(special_char=special_char,
+                             escape_char=escape_char, s)
+  end
+
+  def escaped_text() =
+    escape(getter.get(d))
+  end
+
   filters = [{
-    args = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{getter.get(d)}"}),
+    args = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{escaped_text()}"}),
     filter = filter
   }]
 
@@ -98,7 +113,7 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font="",
     if cycle then
       x = getter({"min(#{getter.get(x)}-w,#{getter.get(x)}-text_w)"})
       [...filters,{
-        args   = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{getter.get(d)}"}),
+        args   = getter({"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{escaped_text()}"}),
         filter = ffmpeg.filter.drawtext.create(
                                       fontfile=fontfile, fontsize="#{size}", x="#{getter.get(x)}", y="#{getter.get(y)}",
                                       fontcolor=color, text=getter.get(d), graph)}]
@@ -118,7 +133,7 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font="",
   def on_metadata(m) =
     if null.defined(metadata) then
       meta = null.get(metadata)
-      d = string.quote(m[meta])
+      d = escape(m[meta])
       if d != "" then
         log(level=3,  label="ffmpeg.filter.drawtext", "Setting new text #{d} from metadata #{meta}") 
         list.iter((fun (el) ->
