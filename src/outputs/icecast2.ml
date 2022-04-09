@@ -492,37 +492,35 @@ class output ~kind p =
           | Some encoder -> encoder.Encoder.insert_metadata m
           | None -> ())
 
+    method icecast_send b =
+      try
+        Strings.iter
+          (fun s offset length -> Cry.send connection ~offset ~length s)
+          b;
+        match dump with
+          | Some s -> Strings.iter (output_substring s) b
+          | None -> ()
+      with e ->
+        let bt = Printexc.get_raw_backtrace () in
+        self#log#severe "Error while sending data: %s!" (Printexc.to_string e);
+        let delay = on_error e in
+        if delay >= 0. then (
+          (* Ask for a restart after [restart_time]. *)
+          self#icecast_stop;
+          restart_time <- Unix.time () +. delay;
+          self#log#important "Will try to reconnect in %.02f seconds." delay)
+        else Printexc.raise_with_backtrace e bt
+
     method send b =
       match Cry.get_status connection with
-        | Cry.Disconnected ->
-            if Unix.time () > restart_time then self#icecast_start
-        | Cry.Connected _ -> (
-            try
-              Strings.iter
-                (fun s offset length -> Cry.send connection ~offset ~length s)
-                b;
-              match dump with
-                | Some s -> Strings.iter (output_substring s) b
-                | None -> ()
-            with e ->
-              self#log#severe "Error while sending data: %s!"
-                (Printexc.to_string e);
-              let delay = on_error e in
-              if delay >= 0. then (
-                (* Ask for a restart after [restart_time]. *)
-                self#icecast_stop;
-                restart_time <- Unix.time () +. delay;
-                self#log#important "Will try to reconnect in %.02f seconds."
-                  delay)
-              else raise e)
+        | Cry.Disconnected when Unix.time () > restart_time ->
+            self#icecast_start;
+            self#send b
+        | Cry.Connected _ -> self#icecast_send b
+        | _ -> ()
 
-    (** It there's too much latency, we'll stop trying to catchup.
-    * Reconnect to cancel the latency on the server's side too. *)
-    method reset =
-      self#stop;
-      self#start
-
-    method start = self#icecast_start
+    (* We lazily start connection when data is available to send. *)
+    method start = ()
     method stop = self#icecast_stop
 
     method icecast_start =
@@ -574,13 +572,14 @@ class output ~kind p =
       (* In restart mode, no_connect and no_login are not fatal.
        * The output will just try to reconnect later. *)
       | e ->
+        let bt = Printexc.get_raw_backtrace () in
         self#log#severe "Connection failed: %s" (Printexc.to_string e);
         let delay = on_error e in
         if delay >= 0. then (
           self#log#important "Will try again in %.02f sec." delay;
           self#icecast_stop;
           restart_time <- Unix.time () +. delay)
-        else raise e
+        else Printexc.raise_with_backtrace e bt
 
     method icecast_stop =
       (* In some cases it might be possible to output the remaining data,

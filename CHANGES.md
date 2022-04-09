@@ -21,6 +21,9 @@ Changed:
 * Enhanced remaining time when using `add` (#2255)
 * Switch `http.*` timeout argument to float to provide timeout in
   milliseconds instead of seconds.
+* Connect `output.icecast` when data is available instead of when
+  operator starts to avoid useless connections when underlying source
+  fails immediately.
 
 Fixed:
 * Prevent infinite loops when crossfade duration is negative (#2287)
