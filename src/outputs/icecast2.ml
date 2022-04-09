@@ -574,10 +574,10 @@ class output ~kind p =
       | e ->
         let bt = Printexc.get_raw_backtrace () in
         self#log#severe "Connection failed: %s" (Printexc.to_string e);
+        self#icecast_stop;
         let delay = on_error e in
         if delay >= 0. then (
           self#log#important "Will try again in %.02f sec." delay;
-          self#icecast_stop;
           restart_time <- Unix.time () +. delay)
         else Printexc.raise_with_backtrace e bt
 
