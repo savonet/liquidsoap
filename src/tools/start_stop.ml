@@ -102,24 +102,26 @@ class virtual active_source ?get_clock ~name ~content_kind ~clock_safe
       if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
   end
 
-let output_proto =
+let base_proto ~label =
   [
     ( "on_start",
       Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
-      Some "Callback executed when input starts." );
+      Some ("Callback executed when " ^ label ^ " starts.") );
     ( "on_stop",
       Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
-      Some "Callback executed when input stops." );
+      Some ("Callback executed when " ^ label ^ " stops.") );
     ( "start",
       Lang.bool_t,
       Some (Lang.bool true),
-      Some "Start input as soon as it is available." );
+      Some ("Start " ^ label ^ " as soon as it is available.") );
   ]
 
+let output_proto = base_proto ~label:"output"
+
 let active_source_proto ~fallible_opt ~clock_safe =
-  output_proto
+  base_proto ~label:"input"
   @ [
       ( "clock_safe",
         Lang.bool_t,
