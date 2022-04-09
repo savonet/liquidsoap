@@ -84,7 +84,7 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font=null(),
 
   def escape =
     def special_char(s) =
-      string.contains(substring=s, "(',%,\,:,{,})")
+      string.contains(substring=s, "(',%,\\,:,{,})")
     end
     def escape_char(s) =
       "\\#{s}"
