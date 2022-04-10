@@ -32,7 +32,7 @@ module Liq_http = struct
     | e -> Http (Printexc.to_string e)
 
   (* This in unused for now.. *)
-  let default_timeout = ref 5.
+  let default_timeout = ref 5000
 
   let request ?timeout ?headers ?(port = 80) ~host ~url ~request () =
     try
