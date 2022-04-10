@@ -222,68 +222,75 @@ end
 %endif
 
 %ifndef http.get
-def http.get(~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10., _) =
+def http.get(~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout_ms=10000., ~timeout=null(), _) =
   ignore(headers)
   ignore(http_version)
   ignore(redirect)
+  ignore(timeout_ms)
   ignore(timeout)
   error.raise(error.not_found, "Please install ocurl to enable http.get")
   "you should never see this".{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.post(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10., _) =
+def http.post(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout_ms=10000., ~timeout=null(), _) =
   ignore(data)
   ignore(headers)
   ignore(http_version)
   ignore(redirect)
+  ignore(timeout_ms)
   ignore(timeout)
   error.raise(error.not_found, "Please install ocurl to enable http.post")
   "you should never see this".{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.post.stream(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10., _, ~on_body_data=_) =
+def http.post.stream(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout_ms=10000., ~timeout=null(), _, ~on_body_data=_) =
   ignore(data)
   ignore(headers)
   ignore(http_version)
   ignore(redirect)
+  ignore(timeout_ms)
   ignore(timeout)
   error.raise(error.not_found, "Please install ocurl to enable http.post.stream")
   ().{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.put(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10., _) =
+def http.put(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout_ms=10000., ~timeout=null(), _) =
   ignore(data)
   ignore(headers)
   ignore(http_version)
   ignore(redirect)
+  ignore(timeout_ms)
   ignore(timeout)
   error.raise(error.not_found, "Please install ocurl to enable http.put")
   "you should never see this".{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.put.stream(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10., _, ~on_body_data=_) =
+def http.put.stream(~data="", ~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout_ms=10000., ~timeout=null(), _, ~on_body_data=_) =
   ignore(data)
   ignore(headers)
   ignore(http_version)
   ignore(redirect)
+  ignore(timeout_ms)
   ignore(timeout)
   error.raise(error.not_found, "Please install ocurl to enable http.put.stream")
   ().{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.head(~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10., _) =
+def http.head(~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout_ms=10000., ~timeout=null(), _) =
   ignore(headers)
   ignore(http_version)
   ignore(redirect)
+  ignore(timeout_ms)
   ignore(timeout)
   error.raise(error.not_found, "Please install ocurl to enable http.head")
   ().{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
 
-def http.delete(~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout=10., _) =
+def http.delete(~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout_ms=10000., ~timeout=null(), _) =
   ignore(headers)
   ignore(http_version)
   ignore(redirect)
+  ignore(timeout_ms)
   ignore(timeout)
   error.raise(error.not_found, "Please install ocurl to enable http.delete")
   ().{headers = [], protocol_version = "", status_code = 999, status_message=""}
