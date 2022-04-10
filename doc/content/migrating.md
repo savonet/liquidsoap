@@ -54,6 +54,7 @@ def suc(x) = add(1, x) end
 ### Deprecations
 
 * `list.mem_assoc` is replaced by `list.assoc.mem`
+* `timeout` argument in `http.*` operators is replaced by `timeout_ms`.
 
 From 1.4.x to 2.0.0
 -------------------

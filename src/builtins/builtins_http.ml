@@ -77,10 +77,6 @@ let add_http_request ~stream_body ~descr ~request name =
           Lang.nullable_t Lang.int_t,
           Some (Lang.int 10000),
           Some "Timeout for network operations in milliseconds." );
-        ( "timeout",
-          Lang.nullable_t Lang.int_t,
-          Some Lang.null,
-          Some "[DEPRECATED] Timeout for network operations (in seconds)." );
         ( "",
           Lang.string_t,
           None,
@@ -106,19 +102,7 @@ let add_http_request ~stream_body ~descr ~request name =
       let headers =
         List.map (fun (x, y) -> (Lang.to_string x, Lang.to_string y)) headers
       in
-      let timeout_ms = Lang.to_int (List.assoc "timeout_ms" p) in
-      let timeout =
-        Lang.to_valued_option Lang.to_int (List.assoc "timeout" p)
-      in
-      let timeout =
-        match (timeout, timeout_ms) with
-          | None, v -> v
-          | Some v, _ ->
-              Lang.log#important
-                "`timeout` is deprecated in `http.*` operators, please use \
-                 `timeout_ms`";
-              v * 1000
-      in
+      let timeout = Lang.to_int (List.assoc "timeout_ms" p) in
       let http_version =
         Option.map Lang.to_string (Lang.to_option (List.assoc "http_version" p))
       in
