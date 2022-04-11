@@ -32,7 +32,7 @@ module Liq_http = struct
     | e -> Http (Printexc.to_string e)
 
   (* This in unused for now.. *)
-  let default_timeout = ref 5000
+  let default_timeout = ref 50.
 
   let request ?timeout ?headers ?(port = 80) ~host ~url ~request () =
     try
@@ -57,7 +57,7 @@ module Liq_http = struct
       let data = Buffer.create 1024 in
       let x, code, y, _ =
         Liqcurl.http_request ?headers ~follow_redirect:true
-          ~on_body_data:(Buffer.add_string data) ~timeout ~url ~request ()
+          ~on_body_data:(Buffer.add_string data) ~timeout:(int_of_float (timeout *. 1000.)) ~url ~request ()
       in
       if code <> 200 then
         raise (Http (Printf.sprintf "Http request failed: %s %i %s" x code y));
