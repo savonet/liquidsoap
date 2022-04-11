@@ -118,13 +118,13 @@ module Generator = struct
       let copied = min needed block_len in
       let chunks = (block, block_ofs + g.offset, offset, copied) :: chunks in
       (* Update buffer data -- did we consume a full block? *)
-      if block_len <= needed then (
+      if copied = block_len then (
         ignore (Queue.take g.buffers);
         g.length <- g.length - block_len;
         g.offset <- 0)
       else (
-        g.length <- g.length - needed;
-        g.offset <- g.offset + needed);
+        g.length <- g.length - copied;
+        g.offset <- g.offset + copied);
 
       (* Add more data by recursing on the next block, or finish. *)
       if block_len < needed then aux chunks (offset + block_len)
