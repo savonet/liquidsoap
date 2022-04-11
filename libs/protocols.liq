@@ -161,7 +161,7 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
 
   timeout = maxtime - time()
 
-  ret = http.head(timeout=timeout,uri)
+  ret = http.head(timeout_ms=int_of_float(timeout*1000.), uri)
   code = ret.status_code ?? 999
   headers = ret.headers
 
@@ -200,7 +200,7 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
   
   response = http.get.stream(
     on_body_data=file_writer,
-    timeout=timeout,
+    timeout_ms=int_of_float(timeout * 1000.),
     uri
   )
 
