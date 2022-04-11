@@ -288,7 +288,6 @@ def http.delete(~headers=[], ~http_version="http/1.0", ~redirect=true, ~timeout_
   ignore(http_version)
   ignore(redirect)
   ignore(timeout_ms)
-  ignore(timeout)
   error.raise(error.not_found, "Please install ocurl to enable http.delete")
   ().{headers = [], protocol_version = "", status_code = 999, status_message=""}
 end
