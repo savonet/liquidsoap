@@ -180,7 +180,7 @@ class virtual unqueued ~kind ~name =
         | `Retry _ | `Empty ->
             self#log#debug "Failed to prepare track: no file.";
             false
-        | `Request req when Request.is_ready req ->
+        | `Request req when Request.is_ready req && Request.ctype req <> None ->
             assert (Frame.compatible (Option.get (Request.ctype req)) self#ctype);
 
             (* [Request.is_ready] ensures that we can get a filename from the request,
