@@ -43,13 +43,13 @@ let samplerate_converter () =
           state := Some converter;
           Audio_converter.Samplerate.resample converter ratio audio_buf 0 len
 
-type wav_converter = string -> Frame_content.Audio.data
+type wav_converter = bytes -> int -> int -> Frame_content.Audio.data
 
 let from_iff ~format ~channels ~samplesize =
   let sample_bytes = samplesize / 8 in
   let buf = Buffer.create Utils.pagesize in
-  fun src ->
-    Buffer.add_string buf src;
+  fun src ofs len ->
+    Buffer.add_subbytes buf src ofs len;
     let src = Buffer.contents buf in
     let src_len = String.length src in
     let elem_len = sample_bytes * channels in

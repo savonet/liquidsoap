@@ -33,7 +33,7 @@ type samplerate_converter =
 
 val samplerate_converter : unit -> samplerate_converter
 
-type wav_converter = string -> Frame_content.Audio.data
+type wav_converter = bytes -> int -> int -> Frame_content.Audio.data
 
 (** samplesize is in bits.
     Formats: unsigned 8 bit (u8) or

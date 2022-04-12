@@ -42,6 +42,8 @@ Fixed:
 * Fixed inconsistencies in `playlist.parser` (#2257)
 * Fixed inconsistent reselect in `rotate` (#2300)
 * Fixed special characters escaping in `video.add_text.ffmpeg` (#2324)
+* Fixed `input.rawaudio` and `input.rawvideo` when handling non-stereo
+  content.
 
 2.0.3 (11-02-2022)
 =====
