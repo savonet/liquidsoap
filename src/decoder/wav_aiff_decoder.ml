@@ -69,7 +69,7 @@ let create ?header input =
       let bytes = input.Decoder.read buf 0 bytes_to_get in
       if !remaining <> -1 then remaining := !remaining - bytes;
       if bytes = 0 then raise End_of_stream;
-      let content = converter (Bytes.sub_string buf 0 bytes) in
+      let content = converter buf 0 bytes in
       buffer.Decoder.put_pcm ~samplerate content
   in
   let read_header () =

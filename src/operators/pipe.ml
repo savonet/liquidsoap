@@ -66,7 +66,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
     val mutable samplerate = Frame.audio_of_seconds 1.
 
     (* Filled in by wake_up. *)
-    val mutable converter = fun _ -> assert false
+    val mutable converter = fun _ _ _ -> assert false
     method self_sync = source#self_sync
 
     method private header =
@@ -95,7 +95,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         `Reschedule `Non_blocking)
       else (
         let len = pull bytes 0 Utils.pagesize in
-        let data = converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
+        let data = converter bytes 0 len in
         let data, ofs, len = resampler ~samplerate data 0 (Audio.length data) in
         let buffered = Generator.length abg in
         Generator.put_audio abg

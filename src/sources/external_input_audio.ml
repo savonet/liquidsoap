@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Extralib
+open Mm
 
 (* {1 External Input handling} *)
 
@@ -37,7 +38,7 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
   let buf = Bytes.create buflen in
   let on_data reader =
     let ret = reader buf 0 buflen in
-    let data, ofs, len = converter (Bytes.unsafe_to_string buf) 0 ret in
+    let data, ofs, len = converter buf 0 ret in
     let buffered = Generator.length abg in
     Generator.put_audio abg
       (Content.Audio.lift_data data)
@@ -119,7 +120,10 @@ let () =
       let convert =
         Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize:16
       in
-      let converter data = resampler ~samplerate (convert data) in
+      let converter data offset length =
+        let data = convert data offset length in
+        resampler ~samplerate data 0 (Audio.length data)
+      in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
@@ -137,8 +141,8 @@ let () =
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
-      let converter_ref = ref (fun _ -> assert false) in
-      let converter data = !converter_ref data in
+      let converter_ref = ref (fun _ _ _ -> assert false) in
+      let converter data ofs len = !converter_ref data ofs len in
       let read_header read =
         let header = Wav_aiff.read_header Wav_aiff.callback_ops read in
         let channels = Wav_aiff.channels header in
@@ -149,7 +153,10 @@ let () =
         let convert =
           Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize
         in
-        (converter_ref := fun data -> resampler ~samplerate (convert data));
+        (converter_ref :=
+           fun data ofs len ->
+             let data = convert data ofs len in
+             resampler ~samplerate data 0 (Audio.length data));
         `Reschedule `Non_blocking
       in
       let restart = Lang.to_bool (List.assoc "restart" p) in

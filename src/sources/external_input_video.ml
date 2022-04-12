@@ -195,8 +195,8 @@ let () =
               in
               audio_converter :=
                 Some
-                  (fun data ->
-                    let data = converter data in
+                  (fun data ofs len ->
+                    let data = converter data ofs len in
                     resampler ~samplerate data 0 (Audio.length data))
         in
         List.iter check h;
@@ -225,7 +225,9 @@ let () =
                 0 (Frame.main_of_video 1)
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
-              let data, ofs, len = converter data in
+              let data, ofs, len =
+                converter (Bytes.unsafe_of_string data) 0 (String.length data)
+              in
               Generator.put_audio abg
                 (Content.Audio.lift_data data)
                 (Frame.main_of_audio ofs) (Frame.main_of_audio len)
