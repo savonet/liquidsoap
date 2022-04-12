@@ -590,3 +590,10 @@ def video.transparent(%argsof(video.alpha.of_color), s)
   deprecated("video.transparent", "video.alpha.of_color")
   video.alpha.of_color(%argsof(video.alpha.of_color), s)
 end
+
+# Deprecated: use `request.resolved`
+# @flag deprecated
+def request.ready(r) =
+  deprecated("request.ready", "request.resolved")
+  request.resolved(r)
+end

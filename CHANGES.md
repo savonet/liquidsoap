@@ -56,6 +56,7 @@ Changes:
 - Images can now generate blank audio if needed, no need to add
   `mux_audio(audio=blank(),image)` anymore (#2230).
 - Removed deprecated `timeout` argument in `http.*` operators.
+- Deprecated `request.ready` in favor of `request.resolved`.
 
 2.0.2 (28-12-2021)
 =====

@@ -387,7 +387,7 @@ let push_indicators t l =
      * to be able to disable this check in some cases, like playlist.safe. *)
     local_check t)
 
-let is_ready t =
+let resolved t =
   t.indicators <> []
   && Sys.file_exists (peek_indicator t).string
   && (t.decoder <> None || t.ctype = None)
@@ -396,7 +396,7 @@ let is_ready t =
   * [Some f] if the request successfully lead to a local file [f],
   * [None] otherwise. *)
 let get_filename t =
-  if is_ready t then Some (List.hd (List.hd t.indicators)).string else None
+  if resolved t then Some (List.hd (List.hd t.indicators)).string else None
 
 let update_metadata t =
   let replace = Hashtbl.replace t.root_metadata in
@@ -623,7 +623,7 @@ let resolve ~ctype t timeout =
   in
   let result =
     try
-      while not (is_ready t) do
+      while not (resolved t) do
         let timeleft = maxtime -. Unix.time () in
         if timeleft > 0. then resolve_step ()
         else (

@@ -123,10 +123,10 @@ val read_metadata : t -> unit
     request] is true and you can get a filename. *)
 val resolve : ctype:Frame.content_type option -> t -> float -> resolve_flag
 
-(** [is_ready r] if there's an available local filename. It can be true even if
+(** [resolved r] if there's an available local filename. It can be true even if
     the resolving hasn't been run, if the initial URI was already a local
     filename. *)
-val is_ready : t -> bool
+val resolved : t -> bool
 
 (** Return a valid local filename if there is one, which means that the request
     is ready. *)

@@ -69,7 +69,7 @@ class once ~kind ~name ~timeout request =
         (match Request.resolve ~ctype:(Some self#ctype) request timeout with
           | Request.Resolved -> ()
           | ans -> log_failed_request self#log request ans);
-        if not (Request.is_ready request) then (
+        if not (Request.resolved request) then (
           over <- true;
           self#log#critical "Failed to prepare track: request not ready.";
           Request.destroy request)
@@ -180,10 +180,10 @@ class virtual unqueued ~kind ~name =
         | `Retry _ | `Empty ->
             self#log#debug "Failed to prepare track: no file.";
             false
-        | `Request req when Request.is_ready req && Request.ctype req <> None ->
+        | `Request req when Request.resolved req && Request.ctype req <> None ->
             assert (Frame.compatible (Option.get (Request.ctype req)) self#ctype);
 
-            (* [Request.is_ready] ensures that we can get a filename from the request,
+            (* [Request.resolved] ensures that we can get a filename from the request,
                and it can be decoded. *)
             let file = Option.get (Request.get_filename req) in
             let decoder = Option.get (Request.get_decoder req) in

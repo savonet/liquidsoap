@@ -55,6 +55,7 @@ def suc(x) = add(1, x) end
 
 * `list.mem_assoc` is replaced by `list.assoc.mem`
 * `timeout` argument in `http.*` operators is replaced by `timeout_ms`.
+* `request.ready` is replaced by `request.resolved`
 
 From 1.4.x to 2.0.0
 -------------------
