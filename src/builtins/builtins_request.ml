@@ -132,8 +132,7 @@ let () =
   Lang.add_builtin "request.resolved" ~category:`Liquidsoap
     ~descr:
       "Check if a request is resolved, i.e. is associated to a valid local \
-       file. Unless the initial URI was such a file."
-    [("", Value.t, None, None)] Lang.bool_t (fun p ->
+       file." [("", Value.t, None, None)] Lang.bool_t (fun p ->
       let e = Value.of_value (List.assoc "" p) in
       Lang.bool (Request.resolved e))
 
