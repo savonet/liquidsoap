@@ -47,6 +47,7 @@ let encoder flac meta =
   let enc = ref enc in
   let encode frame start len =
     let b = AFrame.pcm frame in
+    let start = Frame.audio_of_main start in
     let len = Frame.audio_of_main len in
     let b, start, len =
       Audio_converter.Samplerate.resample samplerate_converter
