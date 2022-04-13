@@ -47,6 +47,7 @@ let encoder wav =
   let need_header = ref wav.header in
   let encode frame start len =
     let b = AFrame.pcm frame in
+    let start = Frame.audio_of_main start in
     let len = Frame.audio_of_main len in
     (* Resample if needed. *)
     let b, start, len =

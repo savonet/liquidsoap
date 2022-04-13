@@ -22,6 +22,8 @@
 
 (** External audio samplerate conversion utilities. *)
 
+open Mm
+
 let log = Log.make ["audio"; "converter"]
 
 (* TODO: is it the right place for this ? *)
@@ -89,7 +91,8 @@ module Samplerate = struct
 
   let resample { channels; converter } ratio data ofs len =
     if channels <> Array.length data then raise Invalid_data;
-    if ratio = 1. then (data, ofs, len) else converter ratio data ofs len
+    if ratio = 1. then (Audio.copy data ofs len, 0, len)
+    else converter ratio data ofs len
 
   (** Log which converter is used at start. *)
   let () =

@@ -115,6 +115,7 @@ let encoder id ext =
           ~converter frame start len
       else (
         let b = AFrame.pcm frame in
+        let start = Frame.audio_of_main start in
         let len = Frame.audio_of_main len in
         (* Resample if needed. *)
         let b, start, len =
