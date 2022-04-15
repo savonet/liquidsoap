@@ -76,8 +76,7 @@ ID.insert key1="val1",key2="val2",...
 Sometimes it is desirable to change the metadata dynamically when an event
 occurs. In this case, the function `insert_metadata` (not to be confused with
 `server.insert_metadata` above) can be used: when applied to a source it returns
-a pair constituted of a function to update metadata and the source with inserted
-metadata.
+a source with an added `insert_metadata` method.
 
 For instance, suppose that you want to insert metadata on the stream using the
 OSC protocol. When a pair of strings ``title'' ``The new title'' is received on
@@ -89,12 +88,8 @@ achieved as follows.
 s = playlist("...")
 s = mksafe(s)
 
-# Create a function to insert metadata
-ms = insert_metadata(s)
-# The function to insert metadata
-imeta = fst(ms)
-# The source with inserted metadata
-s = snd(ms)
+# Create a source with a `insert_metadata` method
+s = insert_metadata(s)
 
 # Handler for OSC events (gets pairs of strings)
 def on_meta(m) =
@@ -105,7 +100,7 @@ def on_meta(m) =
   # A debug message
   print("Insert metadata #{label} = #{value}")
   # Insert the metadata
-  imeta([(label,value)])
+  s.insert_metadata([(label,value)])
 end
 
 # Call the above handler when we have a pair of strings on /metadata

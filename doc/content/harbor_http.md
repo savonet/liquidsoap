@@ -214,17 +214,8 @@ updates the metadata of a given source. For instance:
 ```liquidsoap
 # s = some source
 
-# x is of type ((metadata)->unit)*source
-# first part is a function used to update
-# metadata and second part is the source 
-# whose metadata are updated
-x = insert_metadata(s)
-
-# Get the function
-insert = fst(x)
-
-# Redefine s as the new source
-s = snd(x)
+# Create a source equiped with a `insert_metadata` method:
+s = insert_metadata(s)
 
 # The handler
 def set_meta(~protocol,~data,~headers,uri) =
@@ -238,7 +229,7 @@ def set_meta(~protocol,~data,~headers,uri) =
   # Grab the returned message
   ret =
     if meta != [] then
-      insert(meta)
+      s.insert_metadata(meta)
       "OK!"
     else
       "No metadata to add!"
