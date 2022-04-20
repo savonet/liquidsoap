@@ -24,6 +24,8 @@ New:
 - Added new in-house parsing of metadata for some image and video formats
   (#2236).
 - Added `file.download`
+- Added new options for `%ffmpeg` copy encoder: `ignore_keyframes`
+  and `wait_for_keyframe` (#2382)
 
 Changes:
 
