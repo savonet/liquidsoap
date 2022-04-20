@@ -23,9 +23,13 @@
 type opt_val =
   [ `String of string | `Int of int | `Int64 of int64 | `Float of float ]
 
+type copy_opt = [ `Wait_for_keyframe | `Replay_keyframe | `Ignore_keyframe ]
 type output = [ `Stream | `Url of string ]
 type opts = (string, opt_val) Hashtbl.t
-type codec = [ `Copy | `Raw of string option | `Internal of string option ]
+
+type codec =
+  [ `Copy of copy_opt | `Raw of string option | `Internal of string option ]
+
 type hwaccel = [ `None | `Auto ]
 
 type t = {
@@ -63,6 +67,11 @@ let string_of_options
          v :: c)
        options [])
 
+let string_of_copy_opt = function
+  | `Wait_for_keyframe -> "wait_for_keyframe"
+  | `Replay_keyframe -> "replay_keyframe"
+  | `Ignore_keyframe -> "ignore_keyframe"
+
 let to_string m =
   let opts = [] in
   let opts =
@@ -73,7 +82,8 @@ let to_string m =
   let opts =
     match m.video_codec with
       | None -> opts
-      | Some `Copy -> "%video.copy" :: opts
+      | Some (`Copy opt) ->
+          Printf.sprintf "%%video.copy(%s)" (string_of_copy_opt opt) :: opts
       | Some (`Raw (Some c)) | Some (`Internal (Some c)) ->
           let video_opts =
             Hashtbl.fold
@@ -104,7 +114,8 @@ let to_string m =
   let opts =
     match m.audio_codec with
       | None -> opts
-      | Some `Copy -> "%audio.copy" :: opts
+      | Some (`Copy opt) ->
+          Printf.sprintf "%%audio.copy(%s)" (string_of_copy_opt opt) :: opts
       | Some (`Raw (Some c)) | Some (`Internal (Some c)) ->
           let audio_opts = Hashtbl.copy m.audio_opts in
           Hashtbl.add audio_opts "codec" (`String c);

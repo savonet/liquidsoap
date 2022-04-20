@@ -40,7 +40,11 @@ type handler = {
   mutable started : bool;
 }
 
-type stream_data = { idx : Int64.t; mutable last_start : Int64.t }
+type stream_data = {
+  idx : Int64.t;
+  mutable last_start : Int64.t;
+  mutable waiting_for_keyframe : bool;
+}
 
 module Stream = Weak.Make (struct
   type t = stream_data
@@ -56,11 +60,17 @@ end)
      v: ----------->vls
    the last start should be vls so we end up with:
      a: ------>     -------->
-     v: ----------->--------> *)
+     v: ----------->-------->
+
+   Also, if one or more stream is waiting for a key frame,
+   we make the whole set of streams wait for the first key
+   frame. This makes sure that we avoid e.g. starting an
+   audio track with no keyframe before the video has started *)
 let mk_stream_store () =
   let store = Stream.create 1 in
-  fun ~last_start idx ->
-    let data = Stream.merge store { idx; last_start } in
+  fun ~last_start ~waiting_for_keyframe idx ->
+    let data = Stream.merge store { idx; last_start; waiting_for_keyframe } in
+    data.waiting_for_keyframe <- waiting_for_keyframe;
     if data.last_start < last_start then data.last_start <- last_start;
     data
 

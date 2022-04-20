@@ -25,7 +25,7 @@
 open Avcodec
 open Ffmpeg_encoder_common
 
-let mk_stream_copy ~video_size ~get_stream ~get_data output =
+let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
   let stream = ref None in
   let video_size_ref = ref None in
   let codec_attr = ref None in
@@ -52,8 +52,13 @@ let mk_stream_copy ~video_size ~get_stream ~get_data output =
   in
 
   let current_position = ref 0L in
-  let current_stream = ref { idx = 0L; last_start = 0L } in
+  let current_stream =
+    ref { idx = 0L; last_start = 0L; waiting_for_keyframe = false }
+  in
   let offset = ref 0L in
+
+  let was_keyframe = ref false in
+  let keyframe_action = ref `Ignore in
 
   let check_stream ~packet ~time_base stream_idx =
     let to_main = Option.map (to_main_time_base ~time_base) in
@@ -62,7 +67,14 @@ let mk_stream_copy ~video_size ~get_stream ~get_data output =
     if !current_stream.idx <> stream_idx then (
       offset := Option.value ~default:0L dts;
       let last_start = Int64.sub !current_position !offset in
-      current_stream := get_stream ~last_start stream_idx);
+      (match keyframe_opt with
+        | `Wait_for_keyframe -> keyframe_action := `Wait
+        | `Replay_keyframe -> keyframe_action := `Replay
+        | `Ignore_keyframe -> keyframe_action := `Ignore);
+      current_stream :=
+        get_stream ~last_start
+          ~waiting_for_keyframe:(!keyframe_action = `Wait)
+          stream_idx);
     ignore
       (Option.map
          (fun dts ->
@@ -79,7 +91,19 @@ let mk_stream_copy ~video_size ~get_stream ~get_data output =
         Int64.add (to_main_time_base ~time_base ts) !current_stream.last_start)
   in
 
-  let was_keyframe = ref false in
+  let push ~time_base ~stream packet =
+    let packet_pts = adjust_ts ~time_base (Avcodec.Packet.get_pts packet) in
+    let packet_dts = adjust_ts ~time_base (Avcodec.Packet.get_dts packet) in
+
+    let packet = Avcodec.Packet.dup packet in
+
+    Packet.set_pts packet packet_pts;
+    Packet.set_dts packet packet_dts;
+    Packet.set_duration packet
+      (Option.map (to_main_time_base ~time_base) (Packet.get_duration packet));
+
+    Av.write_packet stream main_time_base packet
+  in
 
   let encode frame start len =
     let stop = start + len in
@@ -88,31 +112,36 @@ let mk_stream_copy ~video_size ~get_stream ~get_data output =
     was_keyframe := false;
 
     List.iter
-      (fun (pos, { Ffmpeg_copy_content.packet; time_base; stream_idx }) ->
+      (fun ( pos,
+             {
+               Ffmpeg_copy_content.packet;
+               time_base;
+               latest_keyframe;
+               stream_idx;
+             } ) ->
         let stream = Option.get !stream in
         if start <= pos && pos < stop then (
           check_stream ~packet ~time_base stream_idx;
-
-          let packet_pts =
-            adjust_ts ~time_base (Avcodec.Packet.get_pts packet)
-          in
-          let packet_dts =
-            adjust_ts ~time_base (Avcodec.Packet.get_dts packet)
-          in
-
-          let packet = Avcodec.Packet.dup packet in
-
-          Packet.set_pts packet packet_pts;
-          Packet.set_dts packet packet_dts;
-          Packet.set_duration packet
-            (Option.map
-               (to_main_time_base ~time_base)
-               (Packet.get_duration packet));
-
           if List.mem `Keyframe Avcodec.Packet.(get_flags packet) then
             was_keyframe := true;
-
-          Av.write_packet stream main_time_base packet))
+          (match !keyframe_action with
+            | `Ignore -> ()
+            | `Wait ->
+                if !was_keyframe || latest_keyframe = `No_keyframe then (
+                  push ~time_base ~stream packet;
+                  !current_stream.waiting_for_keyframe <- false;
+                  keyframe_action := `Ignore)
+            | `Replay ->
+                (match latest_keyframe with
+                  | `No_keyframe | `Not_seen -> ()
+                  | `Seen keyframe ->
+                      Packet.set_pts keyframe (Packet.get_pts packet);
+                      Packet.set_dts keyframe (Packet.get_dts packet);
+                      push ~time_base ~stream keyframe);
+                push ~time_base ~stream packet;
+                keyframe_action := `Ignore);
+          if not !current_stream.waiting_for_keyframe then
+            push ~time_base ~stream packet))
       data
   in
 

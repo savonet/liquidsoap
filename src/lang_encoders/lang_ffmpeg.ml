@@ -83,6 +83,16 @@ let ffmpeg_gen params =
       | Ground (Float f) -> f
       | _ -> raise (generic_error t)
   in
+  let copy_opt_of_opt = function
+    | None -> `Wait_for_keyframe
+    | Some ("wait_for_keyframe", _) -> `Wait_for_keyframe
+    | Some ("replay_keyframe", _) -> `Replay_keyframe
+    | Some ("ignore_keyframe", _) -> `Ignore_keyframe
+    | Some (v, t) ->
+        raise
+          (Lang_encoders.Error
+             (t, "Invalid value for copy encoder parameter: " ^ v))
+  in
   let rec parse_args ~format ~mode f = function
     | [] -> f
     (* Audio options *)
@@ -188,7 +198,11 @@ let ffmpeg_gen params =
   List.fold_left
     (fun f -> function
       | `Audio_none -> { f with Ffmpeg_format.audio_codec = None; channels = 0 }
-      | `Audio_copy -> { f with Ffmpeg_format.audio_codec = Some `Copy }
+      | `Audio_copy opt ->
+          {
+            f with
+            Ffmpeg_format.audio_codec = Some (`Copy (copy_opt_of_opt opt));
+          }
       | `Audio_raw l ->
           let f = { f with Ffmpeg_format.audio_codec = Some (`Raw None) } in
           parse_args ~format:`Raw ~mode:`Audio f l
@@ -198,7 +212,11 @@ let ffmpeg_gen params =
           in
           parse_args ~format:`Internal ~mode:`Audio f l
       | `Video_none -> { f with Ffmpeg_format.video_codec = None }
-      | `Video_copy -> { f with Ffmpeg_format.video_codec = Some `Copy }
+      | `Video_copy opt ->
+          {
+            f with
+            Ffmpeg_format.video_codec = Some (`Copy (copy_opt_of_opt opt));
+          }
       | `Video_raw l ->
           let f = { f with Ffmpeg_format.video_codec = Some (`Raw None) } in
           parse_args ~format:`Raw ~mode:`Video f l

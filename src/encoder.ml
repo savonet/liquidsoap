@@ -64,7 +64,7 @@ let kind_of_format = function
       let audio =
         match m.Ffmpeg_format.audio_codec with
           | None -> Frame.none
-          | Some `Copy ->
+          | Some (`Copy _) ->
               `Format
                 Frame_content.(
                   default_format (kind_of_string "ffmpeg.audio.copy"))
@@ -88,7 +88,7 @@ let kind_of_format = function
       let video =
         match m.Ffmpeg_format.video_codec with
           | None -> Frame.none
-          | Some `Copy ->
+          | Some (`Copy _) ->
               `Format
                 Frame_content.(
                   default_format (kind_of_string "ffmpeg.video.copy"))

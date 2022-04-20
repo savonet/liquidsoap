@@ -69,7 +69,13 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
               ~get_ts:Avcodec.Packet.get_dts
           in
 
-          let params = Some (Avcodec.params encoder) in
+          let params = Avcodec.params encoder in
+          let latest_keyframe =
+            Ffmpeg_copy_content.latest_keyframe
+              Avcodec.Audio.(descriptor (get_params_id params))
+          in
+
+          let params = Some params in
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_copy_content.Audio.lift_params params))
           in
@@ -85,6 +91,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           {
                             Ffmpeg_copy_content.packet;
                             time_base = encoder_time_base;
+                            latest_keyframe = latest_keyframe ~pos packet;
                             stream_idx;
                           } ))
                       packets
@@ -238,7 +245,13 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
               ~width:target_width ~height:target_height ~time_base codec
           in
 
-          let params = Some (Avcodec.params encoder) in
+          let params = Avcodec.params encoder in
+          let latest_keyframe =
+            Ffmpeg_copy_content.latest_keyframe
+              Avcodec.Video.(descriptor (get_params_id params))
+          in
+
+          let params = Some params in
           let effective_t =
             Lang.kind_t (`Format (Ffmpeg_copy_content.Video.lift_params params))
           in
@@ -261,6 +274,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           {
                             Ffmpeg_copy_content.packet;
                             time_base = encoder_time_base;
+                            latest_keyframe = latest_keyframe ~pos packet;
                             stream_idx;
                           } ))
                       packets

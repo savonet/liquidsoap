@@ -23,11 +23,30 @@
 open Avutil
 open Avcodec
 
+type 'a latest_keyframe = [ `No_keyframe | `Not_seen | `Seen of 'a Packet.t ]
+
 type 'a packet = {
   stream_idx : Int64.t;
   time_base : Avutil.rational;
   packet : 'a Packet.t;
+  latest_keyframe : 'a latest_keyframe;
 }
+
+(* Save latest keyframe when codec is not intra only. *)
+let latest_keyframe = function
+  | Some { Avcodec.properties } when not (List.mem `Intra_only properties) -> (
+      let latest_keyframe = ref None in
+      fun ~pos packet ->
+        match (!latest_keyframe, Avcodec.Packet.get_flags packet) with
+          | None, l when List.mem `Keyframe l ->
+              latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+              `Seen packet
+          | Some (pos', _), l when List.mem `Keyframe l && pos' <= pos ->
+              latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+              `Seen packet
+          | Some (_, p), _ -> `Seen p
+          | None, _ -> `Not_seen)
+  | _ -> fun ~pos:_ _ -> `No_keyframe
 
 module BaseSpecs = struct
   include Ffmpeg_content_base

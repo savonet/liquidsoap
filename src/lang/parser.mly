@@ -429,13 +429,15 @@ ffmpeg_params:
 
 ffmpeg_list_elem:
   | AUDIO_NONE                        { `Audio_none }
-  | AUDIO_COPY                        { `Audio_copy }
+  | AUDIO_COPY                        { `Audio_copy None }
+  | AUDIO_COPY LPAR VAR RPAR          { `Audio_copy (Some ($3, mk ~pos:$loc (Var $3))) }
   | AUDIO_RAW LPAR ffmpeg_params RPAR { `Audio_raw $3 }
   /* This is for inline encoders. */
   | AUDIO_RAW                         { `Audio_raw [] }
   | AUDIO LPAR ffmpeg_params RPAR     { `Audio  $3 }
   | VIDEO_NONE                        { `Video_none }
-  | VIDEO_COPY                        { `Video_copy }
+  | VIDEO_COPY                        { `Video_copy None }
+  | VIDEO_COPY LPAR VAR RPAR          { `Video_copy (Some ($3, mk ~pos:$loc (Var $3))) }
   /* This is for inline encoders. */
   | VIDEO_RAW                         { `Video_raw [] }
   | VIDEO_RAW LPAR ffmpeg_params RPAR { `Video_raw  $3 }
