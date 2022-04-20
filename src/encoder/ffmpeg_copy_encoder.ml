@@ -59,7 +59,8 @@ let mk_stream_copy ~video_size ~get_stream ~get_data output =
     let to_main = Option.map (to_main_time_base ~time_base) in
     let dts = to_main (Avcodec.Packet.get_dts packet) in
     let duration = to_main (Avcodec.Packet.get_duration packet) in
-    if !current_stream.idx <> stream_idx then (
+    let is_new_stream = !current_stream.idx <> stream_idx in
+    if is_new_stream then (
       offset := Option.value ~default:0L dts;
       let last_start = Int64.sub !current_position !offset in
       current_stream := get_stream ~last_start stream_idx);
@@ -72,7 +73,8 @@ let mk_stream_copy ~video_size ~get_stream ~get_data output =
       (Option.map
          (fun duration ->
            current_position := Int64.add !current_position duration)
-         duration)
+         duration);
+    is_new_stream
   in
   let adjust_ts ~time_base =
     Option.map (fun ts ->
@@ -81,6 +83,20 @@ let mk_stream_copy ~video_size ~get_stream ~get_data output =
 
   let was_keyframe = ref false in
 
+  let push ~time_base ~stream packet =
+    let packet_pts = adjust_ts ~time_base (Avcodec.Packet.get_pts packet) in
+    let packet_dts = adjust_ts ~time_base (Avcodec.Packet.get_dts packet) in
+
+    let packet = Avcodec.Packet.dup packet in
+
+    Packet.set_pts packet packet_pts;
+    Packet.set_dts packet packet_dts;
+    Packet.set_duration packet
+      (Option.map (to_main_time_base ~time_base) (Packet.get_duration packet));
+
+    Av.write_packet stream main_time_base packet
+  in
+
   let encode frame start len =
     let stop = start + len in
     let data = (get_data frame).Ffmpeg_content_base.data in
@@ -88,31 +104,24 @@ let mk_stream_copy ~video_size ~get_stream ~get_data output =
     was_keyframe := false;
 
     List.iter
-      (fun (pos, { Ffmpeg_copy_content.packet; time_base; stream_idx }) ->
+      (fun ( pos,
+             {
+               Ffmpeg_copy_content.packet;
+               time_base;
+               latest_keyframe;
+               stream_idx;
+             } ) ->
         let stream = Option.get !stream in
         if start <= pos && pos < stop then (
-          check_stream ~packet ~time_base stream_idx;
-
-          let packet_pts =
-            adjust_ts ~time_base (Avcodec.Packet.get_pts packet)
-          in
-          let packet_dts =
-            adjust_ts ~time_base (Avcodec.Packet.get_dts packet)
-          in
-
-          let packet = Avcodec.Packet.dup packet in
-
-          Packet.set_pts packet packet_pts;
-          Packet.set_dts packet packet_dts;
-          Packet.set_duration packet
-            (Option.map
-               (to_main_time_base ~time_base)
-               (Packet.get_duration packet));
-
           if List.mem `Keyframe Avcodec.Packet.(get_flags packet) then
             was_keyframe := true;
-
-          Av.write_packet stream main_time_base packet))
+          (match
+             (check_stream ~packet ~time_base stream_idx, latest_keyframe)
+           with
+            | true, Some packet when not !was_keyframe ->
+                push ~time_base ~stream packet
+            | _ -> ());
+          push ~time_base ~stream packet))
       data
   in
 
