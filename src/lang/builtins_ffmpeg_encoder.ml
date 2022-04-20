@@ -75,6 +75,19 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
           in
           Typing.(effective_t <: kind_t);
 
+          let latest_keyframe = ref None in
+          let latest_keyframe pos packet =
+            match (!latest_keyframe, Avcodec.Packet.get_flags packet) with
+              | None, l when List.mem `Keyframe l ->
+                  latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+                  Some packet
+              | Some (pos', _), l when List.mem `Keyframe l && pos' <= pos ->
+                  latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+                  Some packet
+              | Some (_, p), _ -> Some p
+              | None, _ -> None
+          in
+
           let write_packet packet =
             match Ffmpeg_utils.Duration.push duration_converter packet with
               | Some (duration, packets) ->
@@ -85,6 +98,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           {
                             Ffmpeg_copy_content.packet;
                             time_base = encoder_time_base;
+                            latest_keyframe = latest_keyframe pos packet;
                             stream_idx;
                           } ))
                       packets
@@ -251,6 +265,19 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
               ~get_ts:Avcodec.Packet.get_dts
           in
 
+          let latest_keyframe = ref None in
+          let latest_keyframe pos packet =
+            match (!latest_keyframe, Avcodec.Packet.get_flags packet) with
+              | None, l when List.mem `Keyframe l ->
+                  latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+                  Some packet
+              | Some (pos', _), l when List.mem `Keyframe l && pos' <= pos ->
+                  latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+                  Some packet
+              | Some (_, p), _ -> Some p
+              | None, _ -> None
+          in
+
           let write_packet packet =
             match Ffmpeg_utils.Duration.push duration_converter packet with
               | Some (duration, packets) ->
@@ -261,6 +288,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           {
                             Ffmpeg_copy_content.packet;
                             time_base = encoder_time_base;
+                            latest_keyframe = latest_keyframe pos packet;
                             stream_idx;
                           } ))
                       packets

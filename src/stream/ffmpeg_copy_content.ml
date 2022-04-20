@@ -27,6 +27,7 @@ type 'a packet = {
   stream_idx : Int64.t;
   time_base : Avutil.rational;
   packet : 'a Packet.t;
+  latest_keyframe : 'a Packet.t option;
 }
 
 module BaseSpecs = struct

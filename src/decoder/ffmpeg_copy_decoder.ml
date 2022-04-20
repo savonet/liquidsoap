@@ -34,6 +34,18 @@ let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~put_data params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~src:stream_time_base ~get_ts:Packet.get_dts
   in
+  let latest_keyframe = ref None in
+  let latest_keyframe pos packet =
+    match (!latest_keyframe, Avcodec.Packet.get_flags packet) with
+      | None, l when List.mem `Keyframe l ->
+          latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+          Some packet
+      | Some (pos', _), l when List.mem `Keyframe l && pos' <= pos ->
+          latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+          Some packet
+      | Some (_, p), _ -> Some p
+      | None, _ -> None
+  in
   fun ~buffer packet ->
     try
       let flags = Packet.get_flags packet in
@@ -50,6 +62,7 @@ let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~put_data params =
               {
                 Ffmpeg_copy_content.packet;
                 time_base = stream_time_base;
+                latest_keyframe = latest_keyframe pos packet;
                 stream_idx;
               } ))
           packets
