@@ -30,6 +30,22 @@ type 'a packet = {
   latest_keyframe : 'a Packet.t option;
 }
 
+(* Save latest keyframe when codec is not intra only. *)
+let latest_keyframe = function
+  | Some { Avcodec.properties } when not (List.mem `Intra_only properties) -> (
+      let latest_keyframe = ref None in
+      fun ~pos packet ->
+        match (!latest_keyframe, Avcodec.Packet.get_flags packet) with
+          | None, l when List.mem `Keyframe l ->
+              latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+              Some packet
+          | Some (pos', _), l when List.mem `Keyframe l && pos' <= pos ->
+              latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
+              Some packet
+          | Some (_, p), _ -> Some p
+          | None, _ -> None)
+  | _ -> fun ~pos:_ _ -> None
+
 module BaseSpecs = struct
   include Ffmpeg_content_base
 

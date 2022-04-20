@@ -30,21 +30,10 @@ let log = Log.make ["ffmpeg"; "decoder"; "copy"]
 exception Corrupt
 exception Empty
 
-let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~put_data params =
+let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~latest_keyframe
+    ~put_data params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~src:stream_time_base ~get_ts:Packet.get_dts
-  in
-  let latest_keyframe = ref None in
-  let latest_keyframe pos packet =
-    match (!latest_keyframe, Avcodec.Packet.get_flags packet) with
-      | None, l when List.mem `Keyframe l ->
-          latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
-          Some packet
-      | Some (pos', _), l when List.mem `Keyframe l && pos' <= pos ->
-          latest_keyframe := Some (pos, Avcodec.Packet.dup packet);
-          Some packet
-      | Some (_, p), _ -> Some p
-      | None, _ -> None
   in
   fun ~buffer packet ->
     try
@@ -62,7 +51,7 @@ let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~put_data params =
               {
                 Ffmpeg_copy_content.packet;
                 time_base = stream_time_base;
-                latest_keyframe = latest_keyframe pos packet;
+                latest_keyframe = latest_keyframe ~pos packet;
                 stream_idx;
               } ))
           packets
@@ -80,10 +69,14 @@ let mk_audio_decoder ~stream_idx ~format container =
        Ffmpeg_copy_content.(Audio.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
   let lift_data = Ffmpeg_copy_content.Audio.lift_data in
+  let latest_keyframe =
+    Ffmpeg_copy_content.latest_keyframe
+      Avcodec.Audio.(descriptor (get_params_id params))
+  in
   ( idx,
     stream,
     mk_decoder ~stream_idx ~lift_data ~stream_time_base ~put_data:G.put_audio
-      params )
+      ~latest_keyframe params )
 
 let mk_video_decoder ~stream_idx ~format container =
   let idx, stream, params = Av.find_best_video_stream container in
@@ -93,7 +86,11 @@ let mk_video_decoder ~stream_idx ~format container =
        Ffmpeg_copy_content.(Video.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
   let lift_data = Ffmpeg_copy_content.Video.lift_data in
+  let latest_keyframe =
+    Ffmpeg_copy_content.latest_keyframe
+      Avcodec.Video.(descriptor (get_params_id params))
+  in
   ( idx,
     stream,
     mk_decoder ~stream_idx ~lift_data ~stream_time_base ~put_data:G.put_video
-      params )
+      ~latest_keyframe params )

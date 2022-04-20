@@ -118,8 +118,10 @@ let mk_stream_copy ~video_size ~get_stream ~get_data output =
           (match
              (check_stream ~packet ~time_base stream_idx, latest_keyframe)
            with
-            | true, Some packet when not !was_keyframe ->
-                push ~time_base ~stream packet
+            | true, Some keyframe when not !was_keyframe ->
+                Packet.set_pts keyframe (Packet.get_pts packet);
+                Packet.set_dts keyframe (Packet.get_dts packet);
+                push ~time_base ~stream keyframe
             | _ -> ());
           push ~time_base ~stream packet))
       data
