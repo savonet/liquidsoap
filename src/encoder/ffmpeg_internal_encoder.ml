@@ -46,6 +46,14 @@ let get_channel_layout channels =
           %d channels.."
          channels)
 
+let can_split stream =
+  let params = Av.get_codec_params stream in
+  match Avcodec.descriptor params with
+    | None -> fun () -> true
+    | Some { Avcodec.properties } when List.mem `Intra_only properties ->
+        fun () -> true
+    | _ -> fun () -> Av.was_keyframe stream
+
 (* This function optionally splits frames into [frame_size]
    and also adds PTS based on targeted [time_base], [sample_rate]
    and number of channel. *)
@@ -250,18 +258,9 @@ let mk_audio ~ffmpeg ~options output =
     List.iter write_frame (converter frame start len)
   in
 
-  let can_split =
-    let params = Av.get_codec_params stream in
-    match Avcodec.descriptor params with
-      | None -> fun () -> true
-      | Some { Avcodec.properties } when List.mem `Intra_only properties ->
-          fun () -> true
-      | _ -> fun () -> Av.was_keyframe stream
-  in
-
   {
     Ffmpeg_encoder_common.mk_stream;
-    can_split;
+    can_split = can_split stream;
     encode;
     codec_attr;
     bitrate;
@@ -457,18 +456,9 @@ let mk_video ~ffmpeg ~options output =
 
   let encode = converter fps_converter in
 
-  let can_split =
-    let params = Av.get_codec_params stream in
-    match Avcodec.descriptor params with
-      | None -> fun () -> true
-      | Some { Avcodec.properties } when List.mem `Intra_only properties ->
-          fun () -> true
-      | _ -> fun () -> Av.was_keyframe stream
-  in
-
   {
     Ffmpeg_encoder_common.mk_stream;
-    can_split;
+    can_split = can_split stream;
     encode;
     codec_attr;
     bitrate;
