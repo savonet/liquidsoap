@@ -243,12 +243,11 @@ let mk_audio ~ffmpeg ~options output =
     else Some (Av.get_frame_size stream)
   in
 
-  let write_frame frame =
+  let write_frame =
     try
       write_audio_frame ~time_base:(Av.get_time_base stream)
         ~sample_rate:target_samplerate ~channel_layout:target_channel_layout
         ~sample_format:target_sample_format ~frame_size (Av.write_frame stream)
-        frame
     with e ->
       log#severe "Error writing audio frame: %s." (Printexc.to_string e);
       raise e
