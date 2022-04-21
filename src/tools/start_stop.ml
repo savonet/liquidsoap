@@ -180,7 +180,8 @@ let meth :
         "Shutdown the output or source.",
         fun s ->
           val_fun [] (fun _ ->
-              (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
-                  (s' :> Source.source) = (s :> Source.source));
+              if Source.Clock_variables.is_known s#clock then
+                (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
+                    (s' :> Source.source) = (s :> Source.source));
               unit) );
     ]
