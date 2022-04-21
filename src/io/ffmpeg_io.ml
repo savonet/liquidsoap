@@ -148,7 +148,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           match container with
             | None -> ()
             | Some (input, _, _) ->
-                Printf.printf "Setting interrupt to true\n%!";
                 Tutils.mutexify interrupt_m (fun () -> interrupt <- true) ();
                 (try Av.close input
                  with exn ->
