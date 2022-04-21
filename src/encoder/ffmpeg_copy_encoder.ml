@@ -169,8 +169,10 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
                 (match latest_keyframe with
                   | `No_keyframe | `Not_seen -> ()
                   | `Seen keyframe ->
-                      Packet.set_pts keyframe (Packet.get_pts packet);
-                      Packet.set_dts keyframe (Packet.get_dts packet);
+                      Packet.set_pts keyframe
+                        (Option.map Int64.pred (Packet.get_pts packet));
+                      Packet.set_dts keyframe
+                        (Option.map Int64.pred (Packet.get_dts packet));
                       push ~time_base ~stream keyframe);
                 keyframe_action := `Ignore);
           if not !current_stream.waiting_for_keyframe then
