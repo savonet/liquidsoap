@@ -27,7 +27,7 @@ let log = Ffmpeg_utils.log
 type encoder = {
   mk_stream : Frame.t -> unit;
   encode : Frame.t -> int -> int -> unit;
-  was_keyframe : unit -> bool;
+  can_split : unit -> bool;
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
   video_size : unit -> (int * int) option;
@@ -207,7 +207,7 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
     encode ~encoder frame start len;
     let encoded = Strings.Mutable.flush buf in
     match encoder.video_stream with
-      | Some s when s.was_keyframe () -> `Ok (flushed, encoded)
+      | Some s when s.can_split () -> `Ok (flushed, encoded)
       | None -> `Ok (flushed, encoded)
       | _ -> `Nope (Strings.append flushed encoded)
   in

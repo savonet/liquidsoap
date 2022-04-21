@@ -32,8 +32,16 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
   let bitrate = ref None in
   let main_time_base = Ffmpeg_utils.liq_main_ticks_time_base () in
 
+  let intra_only = ref true in
+
   let mk_stream frame =
     let { Ffmpeg_content_base.params } = get_data frame in
+    (intra_only :=
+       Option.(
+         value ~default:true
+           (map
+              (fun { Avcodec.properties } -> List.mem `Intra_only properties)
+              (Avcodec.descriptor (Option.get params)))));
     video_size_ref := video_size frame;
     let s = Av.new_stream_copy ~params:(Option.get params) output in
     codec_attr := Av.codec_attr s;
@@ -145,11 +153,11 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
       data
   in
 
-  let was_keyframe () = !was_keyframe in
+  let can_split () = !intra_only || !was_keyframe in
 
   {
     Ffmpeg_encoder_common.mk_stream;
-    was_keyframe;
+    can_split;
     encode;
     codec_attr;
     bitrate;

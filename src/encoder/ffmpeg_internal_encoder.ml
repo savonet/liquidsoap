@@ -230,30 +230,42 @@ let mk_audio ~ffmpeg ~options output =
     (fun l v -> if Hashtbl.mem opts l then Some v else None)
     options;
 
-  let was_keyframe () = false in
+  let was_keyframe = ref false in
 
   let frame_size =
     if List.mem `Variable_frame_size (Avcodec.capabilities codec) then None
     else Some (Av.get_frame_size stream)
   in
 
-  let write_frame =
+  let write_frame frame =
     try
       write_audio_frame ~time_base:(Av.get_time_base stream)
         ~sample_rate:target_samplerate ~channel_layout:target_channel_layout
         ~sample_format:target_sample_format ~frame_size (Av.write_frame stream)
+        frame;
+      if Av.was_keyframe stream then was_keyframe := true
     with e ->
       log#severe "Error writing audio frame: %s." (Printexc.to_string e);
       raise e
   in
 
   let encode frame start len =
+    was_keyframe := false;
     List.iter write_frame (converter frame start len)
+  in
+
+  let can_split =
+    let params = Av.get_codec_params stream in
+    match Avcodec.Audio.(descriptor (get_params_id params)) with
+      | None -> fun () -> true
+      | Some { Avcodec.properties } when List.mem `Intra_only properties ->
+          fun () -> true
+      | _ -> fun () -> !was_keyframe
   in
 
   {
     Ffmpeg_encoder_common.mk_stream;
-    was_keyframe;
+    can_split;
     encode;
     codec_attr;
     bitrate;
@@ -455,11 +467,18 @@ let mk_video ~ffmpeg ~options output =
     converter fps_converter
   in
 
-  let was_keyframe () = !was_keyframe in
+  let can_split =
+    let params = Av.get_codec_params stream in
+    match Avcodec.Video.(descriptor (get_params_id params)) with
+      | None -> fun () -> true
+      | Some { Avcodec.properties } when List.mem `Intra_only properties ->
+          fun () -> true
+      | _ -> fun () -> !was_keyframe
+  in
 
   {
     Ffmpeg_encoder_common.mk_stream;
-    was_keyframe;
+    can_split;
     encode;
     codec_attr;
     bitrate;
