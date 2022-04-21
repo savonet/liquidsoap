@@ -43,6 +43,8 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
     let params = Option.get params in
     video_size_ref := video_size frame;
     let s = Av.new_stream_copy ~params output in
+    codec_attr := Av.codec_attr s;
+    bitrate := Av.bitrate s;
     (match Avcodec.descriptor params with
       | None -> ()
       | Some { Avcodec.name; properties } ->
