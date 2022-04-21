@@ -230,8 +230,6 @@ let mk_audio ~ffmpeg ~options output =
     (fun l v -> if Hashtbl.mem opts l then Some v else None)
     options;
 
-  let was_keyframe = ref false in
-
   let frame_size =
     if List.mem `Variable_frame_size (Avcodec.capabilities codec) then None
     else Some (Av.get_frame_size stream)
@@ -242,15 +240,13 @@ let mk_audio ~ffmpeg ~options output =
       write_audio_frame ~time_base:(Av.get_time_base stream)
         ~sample_rate:target_samplerate ~channel_layout:target_channel_layout
         ~sample_format:target_sample_format ~frame_size (Av.write_frame stream)
-        frame;
-      if Av.was_keyframe stream then was_keyframe := true
+        frame
     with e ->
       log#severe "Error writing audio frame: %s." (Printexc.to_string e);
       raise e
   in
 
   let encode frame start len =
-    was_keyframe := false;
     List.iter write_frame (converter frame start len)
   in
 
@@ -260,7 +256,7 @@ let mk_audio ~ffmpeg ~options output =
       | None -> fun () -> true
       | Some { Avcodec.properties } when List.mem `Intra_only properties ->
           fun () -> true
-      | _ -> fun () -> !was_keyframe
+      | _ -> fun () -> Av.was_keyframe stream
   in
 
   {
@@ -366,8 +362,6 @@ let mk_video ~ffmpeg ~options output =
 
   let stream_time_base = Av.get_time_base stream in
 
-  let was_keyframe = ref false in
-
   let fps_converter ~stream_idx ~time_base frame =
     let converter =
       get_converter ~time_base ~stream_idx
@@ -384,8 +378,7 @@ let mk_video ~ffmpeg ~options output =
             (Ffmpeg_utils.best_pts frame)
         in
         Avutil.Frame.set_pts frame frame_pts;
-        Av.write_frame stream frame;
-        if Av.was_keyframe stream then was_keyframe := true)
+        Av.write_frame stream frame)
   in
 
   let internal_converter cb =
@@ -462,10 +455,7 @@ let mk_video ~ffmpeg ~options output =
       | _ -> assert false
   in
 
-  let encode =
-    was_keyframe := false;
-    converter fps_converter
-  in
+  let encode = converter fps_converter in
 
   let can_split =
     let params = Av.get_codec_params stream in
@@ -473,7 +463,7 @@ let mk_video ~ffmpeg ~options output =
       | None -> fun () -> true
       | Some { Avcodec.properties } when List.mem `Intra_only properties ->
           fun () -> true
-      | _ -> fun () -> !was_keyframe
+      | _ -> fun () -> Av.was_keyframe stream
   in
 
   {
