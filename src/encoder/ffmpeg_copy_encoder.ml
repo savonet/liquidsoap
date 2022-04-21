@@ -32,6 +32,8 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
   let bitrate = ref None in
   let main_time_base = Ffmpeg_utils.liq_main_ticks_time_base () in
 
+  (* This should be the same for all streams but it is lazily set
+     when the first stream is created. *)
   let intra_only = ref true in
 
   let mk_stream frame =
@@ -75,10 +77,11 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
     if !current_stream.idx <> stream_idx then (
       offset := Option.value ~default:0L dts;
       let last_start = Int64.sub !current_position !offset in
-      (match keyframe_opt with
-        | `Wait_for_keyframe -> keyframe_action := `Wait
-        | `Replay_keyframe -> keyframe_action := `Replay
-        | `Ignore_keyframe -> keyframe_action := `Ignore);
+      (match (keyframe_opt, !intra_only) with
+        | _, true -> keyframe_action := `Ignore
+        | `Wait_for_keyframe, _ -> keyframe_action := `Wait
+        | `Replay_keyframe, _ -> keyframe_action := `Replay
+        | `Ignore_keyframe, _ -> keyframe_action := `Ignore);
       current_stream :=
         get_stream ~last_start
           ~waiting_for_keyframe:(!keyframe_action = `Wait)
