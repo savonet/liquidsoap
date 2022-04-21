@@ -69,10 +69,7 @@ let mk_audio_decoder ~stream_idx ~format container =
        Ffmpeg_copy_content.(Audio.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
   let lift_data = Ffmpeg_copy_content.Audio.lift_data in
-  let latest_keyframe =
-    Ffmpeg_copy_content.latest_keyframe
-      Avcodec.Audio.(descriptor (get_params_id params))
-  in
+  let latest_keyframe = Ffmpeg_copy_content.latest_keyframe params in
   ( idx,
     stream,
     mk_decoder ~stream_idx ~lift_data ~stream_time_base ~put_data:G.put_audio
@@ -86,10 +83,7 @@ let mk_video_decoder ~stream_idx ~format container =
        Ffmpeg_copy_content.(Video.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
   let lift_data = Ffmpeg_copy_content.Video.lift_data in
-  let latest_keyframe =
-    Ffmpeg_copy_content.latest_keyframe
-      Avcodec.Video.(descriptor (get_params_id params))
-  in
+  let latest_keyframe = Ffmpeg_copy_content.latest_keyframe params in
   ( idx,
     stream,
     mk_decoder ~stream_idx ~lift_data ~stream_time_base ~put_data:G.put_video

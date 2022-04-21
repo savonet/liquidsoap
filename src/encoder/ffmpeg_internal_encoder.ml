@@ -256,7 +256,7 @@ let mk_audio ~ffmpeg ~options output =
 
   let can_split =
     let params = Av.get_codec_params stream in
-    match Avcodec.Audio.(descriptor (get_params_id params)) with
+    match Avcodec.descriptor params with
       | None -> fun () -> true
       | Some { Avcodec.properties } when List.mem `Intra_only properties ->
           fun () -> true
@@ -469,7 +469,7 @@ let mk_video ~ffmpeg ~options output =
 
   let can_split =
     let params = Av.get_codec_params stream in
-    match Avcodec.Video.(descriptor (get_params_id params)) with
+    match Avcodec.descriptor params with
       | None -> fun () -> true
       | Some { Avcodec.properties } when List.mem `Intra_only properties ->
           fun () -> true

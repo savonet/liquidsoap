@@ -70,10 +70,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
           in
 
           let params = Avcodec.params encoder in
-          let latest_keyframe =
-            Ffmpeg_copy_content.latest_keyframe
-              Avcodec.Audio.(descriptor (get_params_id params))
-          in
+          let latest_keyframe = Ffmpeg_copy_content.latest_keyframe params in
 
           let params = Some params in
           let effective_t =
@@ -246,10 +243,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
           in
 
           let params = Avcodec.params encoder in
-          let latest_keyframe =
-            Ffmpeg_copy_content.latest_keyframe
-              Avcodec.Video.(descriptor (get_params_id params))
-          in
+          let latest_keyframe = Ffmpeg_copy_content.latest_keyframe params in
 
           let params = Some params in
           let effective_t =
