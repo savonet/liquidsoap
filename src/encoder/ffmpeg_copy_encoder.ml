@@ -36,18 +36,24 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
      when the first stream is created. *)
   let intra_only = ref true in
 
+  let bitstream_filter = ref None in
+
   let mk_stream frame =
     let { Ffmpeg_content_base.params } = get_data frame in
-    (intra_only :=
-       Option.(
-         value ~default:true
-           (map
-              (fun { Avcodec.properties } -> List.mem `Intra_only properties)
-              (Avcodec.descriptor (Option.get params)))));
+    let params = Option.get params in
     video_size_ref := video_size frame;
-    let s = Av.new_stream_copy ~params:(Option.get params) output in
-    codec_attr := Av.codec_attr s;
-    bitrate := Av.bitrate s;
+    let s = Av.new_stream_copy ~params output in
+    (match Avcodec.descriptor params with
+      | None -> ()
+      | Some { Avcodec.name; properties } ->
+          intra_only := List.mem `Intra_only properties;
+          if name = "h264" then (
+            let params = Obj.magic params in
+            let filter, params =
+              Avcodec.BitstreamFilter.h264_mp4toannexb params
+            in
+            bitstream_filter := Some filter;
+            Av.set_codec_params s (Obj.magic params)));
     stream := Some s
   in
 
@@ -102,6 +108,19 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
         Int64.add (to_main_time_base ~time_base ts) !current_stream.last_start)
   in
 
+  let push_to_filter ~filter ~write packet =
+    let packet = Obj.magic packet in
+    Avcodec.BitstreamFilter.send_packet filter packet;
+    let rec f () =
+      try
+        let packet = Avcodec.BitstreamFilter.receive_packet filter in
+        write (Obj.magic packet);
+        f ()
+      with Avutil.Error `Eagain -> ()
+    in
+    f ()
+  in
+
   let push ~time_base ~stream packet =
     let packet_pts = adjust_ts ~time_base (Avcodec.Packet.get_pts packet) in
     let packet_dts = adjust_ts ~time_base (Avcodec.Packet.get_dts packet) in
@@ -113,7 +132,12 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
     Packet.set_duration packet
       (Option.map (to_main_time_base ~time_base) (Packet.get_duration packet));
 
-    Av.write_packet stream main_time_base packet
+    match !bitstream_filter with
+      | None -> Av.write_packet stream main_time_base packet
+      | Some filter ->
+          push_to_filter ~filter
+            ~write:(Av.write_packet stream main_time_base)
+            packet
   in
 
   let encode frame start len =
@@ -139,7 +163,6 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
             | `Ignore -> ()
             | `Wait ->
                 if !was_keyframe || latest_keyframe = `No_keyframe then (
-                  push ~time_base ~stream packet;
                   !current_stream.waiting_for_keyframe <- false;
                   keyframe_action := `Ignore)
             | `Replay ->
@@ -149,7 +172,6 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
                       Packet.set_pts keyframe (Packet.get_pts packet);
                       Packet.set_dts keyframe (Packet.get_dts packet);
                       push ~time_base ~stream keyframe);
-                push ~time_base ~stream packet;
                 keyframe_action := `Ignore);
           if not !current_stream.waiting_for_keyframe then
             push ~time_base ~stream packet))
