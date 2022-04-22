@@ -36,7 +36,7 @@ let () =
                     fun ~ffmpeg:_ ~options:_ ->
                       Ffmpeg_copy_encoder.mk_stream_copy
                         ~video_size:(fun _ -> None)
-                        ~format:m.Ffmpeg_format.format ~get_stream ~keyframe_opt
+                        ~get_stream ~keyframe_opt
                         ~get_data:(fun frame ->
                           Ffmpeg_copy_content.Audio.get_data
                             Frame.(frame.content.audio))
@@ -64,7 +64,7 @@ let () =
                           params
                       in
                       Ffmpeg_copy_encoder.mk_stream_copy ~video_size ~get_stream
-                        ~get_data ~keyframe_opt ~format:m.Ffmpeg_format.format
+                        ~get_data ~keyframe_opt
                 | None | Some (`Internal (Some _)) | Some (`Raw (Some _)) ->
                     Ffmpeg_internal_encoder.mk_video
                 | Some (`Internal None) ->

@@ -25,8 +25,7 @@
 open Avcodec
 open Ffmpeg_encoder_common
 
-let mk_stream_copy ~format ~video_size ~get_stream ~keyframe_opt ~get_data
-    output =
+let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
   let stream = ref None in
   let video_size_ref = ref None in
   let codec_attr = ref None in
@@ -46,8 +45,7 @@ let mk_stream_copy ~format ~video_size ~get_stream ~keyframe_opt ~get_data
     bitrate := Av.bitrate s;
     (match Avcodec.descriptor params with
       | None -> ()
-      | Some { Avcodec.name; properties } ->
-          intra_only := List.mem `Intra_only properties);
+      | Some { properties } -> intra_only := List.mem `Intra_only properties);
     stream := Some s
   in
 
@@ -91,11 +89,8 @@ let mk_stream_copy ~format ~video_size ~get_stream ~keyframe_opt ~get_data
          (fun dts ->
            current_position := Int64.add dts !current_stream.last_start)
          dts);
-    ignore
-      (Option.map
-         (fun duration ->
-           current_position := Int64.add !current_position duration)
-         duration)
+    current_position :=
+      Int64.add !current_position (Option.value ~default:1L duration)
   in
   let adjust_ts ~time_base =
     Option.map (fun ts ->
