@@ -37,8 +37,6 @@ let mk_stream_copy ~format ~video_size ~get_stream ~keyframe_opt ~get_data
      when the first stream is created. *)
   let intra_only = ref true in
 
-  let bitstream_filter = ref None in
-
   let mk_stream frame =
     let { Ffmpeg_content_base.params } = get_data frame in
     let params = Option.get params in
@@ -48,17 +46,8 @@ let mk_stream_copy ~format ~video_size ~get_stream ~keyframe_opt ~get_data
     bitrate := Av.bitrate s;
     (match Avcodec.descriptor params with
       | None -> ()
-      | Some { Avcodec.name; properties } -> (
-          intra_only := List.mem `Intra_only properties;
-          match (name, format) with
-            | "h264", Some "mpegts" | "h264", Some "h264" ->
-                let params = Obj.magic params in
-                let filter, params =
-                  Avcodec.BitstreamFilter.h264_mp4toannexb params
-                in
-                bitstream_filter := Some filter;
-                Av.set_codec_params s (Obj.magic params)
-            | _ -> ()));
+      | Some { Avcodec.name; properties } ->
+          intra_only := List.mem `Intra_only properties);
     stream := Some s
   in
 
@@ -113,19 +102,6 @@ let mk_stream_copy ~format ~video_size ~get_stream ~keyframe_opt ~get_data
         Int64.add (to_main_time_base ~time_base ts) !current_stream.last_start)
   in
 
-  let push_to_filter ~filter ~write packet =
-    let packet = Obj.magic packet in
-    Avcodec.BitstreamFilter.send_packet filter packet;
-    let rec f () =
-      try
-        let packet = Avcodec.BitstreamFilter.receive_packet filter in
-        write (Obj.magic packet);
-        f ()
-      with Avutil.Error `Eagain -> ()
-    in
-    f ()
-  in
-
   let push ~time_base ~stream packet =
     let packet_pts = adjust_ts ~time_base (Avcodec.Packet.get_pts packet) in
     let packet_dts = adjust_ts ~time_base (Avcodec.Packet.get_dts packet) in
@@ -137,11 +113,7 @@ let mk_stream_copy ~format ~video_size ~get_stream ~keyframe_opt ~get_data
     Packet.set_duration packet
       (Option.map (to_main_time_base ~time_base) (Packet.get_duration packet));
 
-    let write packet = Av.write_packet stream main_time_base packet in
-
-    match !bitstream_filter with
-      | None -> write packet
-      | Some filter -> push_to_filter ~filter ~write packet
+    Av.write_packet stream main_time_base packet
   in
 
   let encode frame start len =

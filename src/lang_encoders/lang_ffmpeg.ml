@@ -24,6 +24,7 @@ open Term
 open Term.Ground
 open Lang_encoders
 
+let log = Log.make ["ffmpeg"]
 let flag_qscale = ref 0
 let qp2lambda = ref 0
 
@@ -62,6 +63,7 @@ let ffmpeg_gen params =
       other_opts = Hashtbl.create 0;
     }
   in
+  Hashtbl.add defaults.Ffmpeg_format.other_opts "fflags" (`String "+autobsf");
   let to_int t =
     match t.term with
       | Ground (Int i) -> i
@@ -230,6 +232,11 @@ let ffmpeg_gen params =
       | `Option ("format", { term = Ground (String fmt); _ }) ->
           { f with Ffmpeg_format.format = Some fmt }
       | `Option (k, { term = Ground (String s); _ }) ->
+          if k = "fflags" && not (Pcre.pmatch ~pat:"\\+autobsf" s) then
+            log#important
+              "Setting fflags to %s removes the +autobsf flag which is usually \
+               required for most users!"
+              s;
           Hashtbl.add f.Ffmpeg_format.other_opts k (`String s);
           f
       | `Option (k, { term = Ground (Int i); _ }) ->
