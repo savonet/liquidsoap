@@ -25,7 +25,8 @@
 open Avcodec
 open Ffmpeg_encoder_common
 
-let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
+let mk_stream_copy ~format ~video_size ~get_stream ~keyframe_opt ~get_data
+    output =
   let stream = ref None in
   let video_size_ref = ref None in
   let codec_attr = ref None in
@@ -47,15 +48,17 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
     bitrate := Av.bitrate s;
     (match Avcodec.descriptor params with
       | None -> ()
-      | Some { Avcodec.name; properties } ->
+      | Some { Avcodec.name; properties } -> (
           intra_only := List.mem `Intra_only properties;
-          if name = "h264" then (
-            let params = Obj.magic params in
-            let filter, params =
-              Avcodec.BitstreamFilter.h264_mp4toannexb params
-            in
-            bitstream_filter := Some filter;
-            Av.set_codec_params s (Obj.magic params)));
+          match (name, format) with
+            | "h264", Some "mpegts" | "h264", Some "h264" ->
+                let params = Obj.magic params in
+                let filter, params =
+                  Avcodec.BitstreamFilter.h264_mp4toannexb params
+                in
+                bitstream_filter := Some filter;
+                Av.set_codec_params s (Obj.magic params)
+            | _ -> ()));
     stream := Some s
   in
 
@@ -134,12 +137,11 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
     Packet.set_duration packet
       (Option.map (to_main_time_base ~time_base) (Packet.get_duration packet));
 
+    let write packet = Av.write_packet stream main_time_base packet in
+
     match !bitstream_filter with
-      | None -> Av.write_packet stream main_time_base packet
-      | Some filter ->
-          push_to_filter ~filter
-            ~write:(Av.write_packet stream main_time_base)
-            packet
+      | None -> write packet
+      | Some filter -> push_to_filter ~filter ~write packet
   in
 
   let encode frame start len =
