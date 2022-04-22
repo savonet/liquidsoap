@@ -89,8 +89,11 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
          (fun dts ->
            current_position := Int64.add dts !current_stream.last_start)
          dts);
-    current_position :=
-      Int64.add !current_position (Option.value ~default:1L duration)
+    ignore
+      (Option.map
+         (fun duration ->
+           current_position := Int64.add !current_position duration)
+         duration)
   in
   let adjust_ts ~time_base =
     Option.map (fun ts ->
