@@ -100,9 +100,30 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
         Int64.add (to_main_time_base ~time_base ts) !current_stream.last_start)
   in
 
+  let last_dts = ref 0L in
+
   let push ~time_base ~stream packet =
     let packet_pts = adjust_ts ~time_base (Avcodec.Packet.get_pts packet) in
     let packet_dts = adjust_ts ~time_base (Avcodec.Packet.get_dts packet) in
+
+    (* Some formats will insert packets with no DTS. *)
+    let packet_pts, packet_dts =
+      match packet_dts with
+        | Some dts ->
+            last_dts := dts;
+            (packet_pts, Some dts)
+        | None ->
+            last_dts := Int64.succ !last_dts;
+            let packet_dts = Some !last_dts in
+            (* Make sure packet pts >= packet dts *)
+            let packet_pts =
+              match packet_pts with
+                | None -> packet_dts
+                | Some pts when pts < !last_dts -> packet_dts
+                | Some pts -> Some pts
+            in
+            (packet_pts, packet_dts)
+    in
 
     let packet = Avcodec.Packet.dup packet in
 
