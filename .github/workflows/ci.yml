@@ -210,6 +210,18 @@ jobs:
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin $GITHUB_SHA
           sudo -u opam -E git checkout $GITHUB_SHA
+      - name: Update debian packages
+        if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
+        run: |
+          echo "opam hold" | sudo dpkg --set-selections
+          sudo apt-get update
+          sudo apt-get -y upgrade
+      - name: Update alpine packages
+        if: matrix.os == 'alpine'
+        run: |
+          apk add opam=`apk version opam | grep opam | cut -d' ' -f 1 | sed 's#opam-##'g`
+          [ "${{ matrix.platform }}" = "armhf" ] && apk add ocaml=`apk version ocaml | grep ocaml | cut -d' ' -f 1 | sed 's#ocaml-##'g`
+          apk -U upgrade
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
