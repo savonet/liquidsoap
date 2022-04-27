@@ -234,3 +234,21 @@ def file.metadata.flac.cover.encode(
   let (data_len, data) = encode_string(data)
   "#{pic_type}#{mime_len}#{mime}#{desc_len}#{description}#{width}#{height}#{color_depth}#{number_of_colors}#{data_len}#{data}"
 end
+
+%ifdef http.get.stream
+# Download file using a regular http.get request. Returns `true` on success.
+# @category File
+# @param ~filename Downloaded filename.
+# @param ~timeout Timeout in seconds
+def file.download(~filename, ~timeout=5., url) =
+  file_writer = file.write.stream(filename)
+
+  response = http.get.stream(
+    on_body_data=file_writer,
+    timeout_ms=int_of_float(timeout * 1000.),
+    url
+  )
+
+  response.status_code < 400
+end
+%endif
