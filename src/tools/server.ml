@@ -154,14 +154,6 @@ let add ~ns ?usage ~descr cmd handler =
 let remove ~ns cmd =
   Tutils.mutexify lock (fun () -> Hashtbl.remove commands (prefix_ns cmd ns)) ()
 
-(* Maintain a list of known operators. *)
-let operators = ref []
-
-let register_op id kind =
-  Tutils.mutexify lock
-    (fun () -> operators := (id, kind) :: List.remove_assoc id !operators)
-    ()
-
 (* That's if you want to have your command wait. *)
 type condition = {
   wait : (unit -> string) -> unit;
@@ -245,16 +237,7 @@ let () =
       with Not_found ->
         (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
         ^ "Available commands:" ^ usage () ^ "\r\n\r\n"
-        ^ "Type \"help <command>\" for more information.");
-  add "list" ~descr:"Get the list of available operators with their kind."
-    (fun _ ->
-      Tutils.mutexify lock
-        (fun () ->
-          String.concat "\r\n"
-            (List.fold_left
-               (fun s (id, kind) -> Printf.sprintf "%s : %s" id kind :: s)
-               [] !operators))
-        ())
+        ^ "Type \"help <command>\" for more information.")
 
 (** Execute a command. *)
 let exec s =

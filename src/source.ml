@@ -467,7 +467,6 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
         source_log#info "Source %s gets up with content kind: %s." id
           (Kind.to_string self#kind);
         self#wake_up activation);
-      Server.register_op self#id name;
       if dynamic then dynamic_activations <- activation :: dynamic_activations
       else static_activations <- activation :: static_activations;
       self#update_caching_mode;
