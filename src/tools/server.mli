@@ -56,10 +56,6 @@ type namespace = string list
 (** Get a string representation of a namespace. *)
 val to_string : namespace -> string
 
-(** Register an operator with given identifier and kind. This is only used in
-   the "list" telnet command.  *)
-val register_op : string -> string -> unit
-
 (** Specialized implementation of conditions to use in server commands. *)
 type condition = {
   wait : (unit -> string) -> unit;
