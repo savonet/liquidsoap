@@ -23,6 +23,7 @@ New:
   (#2210).
 - Added new in-house parsing of metadata for some image and video formats
   (#2236).
+- Added `file.download`
 
 Changes:
 
@@ -57,6 +58,51 @@ Changes:
   `mux_audio(audio=blank(),image)` anymore (#2230).
 - Removed deprecated `timeout` argument in `http.*` operators.
 - Deprecated `request.ready` in favor of `request.resolved`.
+
+2.0.3 (11-02-2022)
+=====
+
+New:
+* Added support for memory debugging using `memtrace`
+* Added `time.{zone,zone.set,make}` (#2178)
+* Added `runtime.gc` module, rename `garbage_collect` as `runtime.gc.full_major`
+  with deprecated compatiblity wrapper, added `runtime.gc.stat`,
+  `runtime.gc.quick_stat`, `runtine.gc.print_stat` and `runtime.gc.{get,set}`.
+* Added `runtime.sys.word_size`
+* Added optional support for `runtime.mem_usage`
+* Added `runtime.memory` wrapper to get info about the system and process'
+  memory usage.
+* Added `configure.camomile_dir` to export expected location of camomile
+  directory when packaging liquidsoap.
+* Added `liquidsoap.chroot.make` to copy all files required for a liquidsoap
+  install.
+
+Changed:
+* Bumped `input.harbor` default buffer to `12.` to make it possible
+  to use it with `crossfade` transitions without changing default
+  values (#2156)
+* `year` method as returned in `time.local` and `time.utc` now
+  returns the actual year instead of years since 1900 (#2178)
+* `mday`, `mon`, `wday` and `yday` methods as returned in `time.local`
+   and `time.utc` have been renamed to, resp., `day`, `month`, `week_day`
+   and `year_day` (#2178)
+* `month` method as returned in `time.local` and `time.utc` now
+  returns the month as a number between `1` and `12` (#2178)
+* `week_day` method as returned in `time.local` and `time.utc` now
+  returns the week day as a number between `1` and `7` (#2178)
+* `year_day` method as returned in `time.local` and `time.utc` now
+  returns the week day as a number between `1` and `366` (#2178)
+* Added option to choose if `input.rtmp` should behave as
+  a server or a client (#2197)
+* Allow dynamic text change in `video.add_text.ffmpeg` (#2189)
+* Removed `thread_name` argument from `thread.on_error` callbacks.
+
+Fixed:
+* Make sure metadata are replayed when switching to a source for the
+  first time in switches/fallback (#2138)
+* Bring back `video.add_text.sdl` (#2187)
+* Fixed `thread.on_error` implementation (#2171)
+* Fixed `ffmpeg` video scaling to make sure it always is proportional (#2211)
 
 2.0.2 (28-12-2021)
 =====
