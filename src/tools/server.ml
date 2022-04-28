@@ -461,7 +461,5 @@ let start () =
     if socket then start_socket () else ())
   else ()
 
-let () = Lifecycle.on_start start
-
 (* Re-wrap exec for external use *)
 let exec s = try exec s with Exit -> "ERROR: Attempt to exit!"

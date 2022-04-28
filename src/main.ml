@@ -536,7 +536,8 @@ let () =
          *   a backtrace (by default at least). *)
         Clock.start ();
         Tutils.start ();
-        Tutils.main ()
+        Tutils.main ();
+        Server.start ()
       in
       if !run_streams then
         if !interactive then (
