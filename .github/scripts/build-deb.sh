@@ -7,7 +7,7 @@ BRANCH=$2
 DOCKER_TAG=$3
 PLATFORM=$4
 IS_RELEASE=$5
-DEB_RELEASE=2
+DEB_RELEASE=3
 
 ARCH=`dpkg --print-architecture`
 

@@ -7,7 +7,7 @@ DOCKER_TAG=$2
 ARCH=$3
 ALPINE_ARCH=$4
 IS_RELEASE=$5
-APK_RELEASE=1
+APK_RELEASE=2
 
 cd /tmp/liquidsoap-full/liquidsoap
 
