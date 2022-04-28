@@ -48,14 +48,22 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
     val mutable cross_length = 0
+    val mutable duration_getter = duration_getter
 
-    method set_cross_length d =
-      if d >= 0. then cross_length <- Frame.main_of_seconds d
-      else
-        self#log#important "Cannot set crossfade duration to negative value %f!"
-          d
+    method set_cross_length =
+      let new_cross_length = duration_getter () in
+      let main_new_cross_length = Frame.main_of_seconds new_cross_length in
 
-    initializer self#set_cross_length (duration_getter ())
+      if main_new_cross_length <> cross_length then
+        if new_cross_length <= 0. then
+          self#log#important
+            "Cannot set crossfade duration to negative value %f!"
+            new_cross_length
+        else (
+          self#log#info "Setting crossfade duration to %.2fs" new_cross_length;
+          cross_length <- main_new_cross_length)
+
+    initializer self#set_cross_length
 
     (* We need to store the end of a track, and compute the power of the signal
      * before the end of track. For doing so we need to remember a sliding window
@@ -173,24 +181,21 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
         | _ -> ()
 
     method private update_cross_length frame pos =
-      let updated =
-        List.fold_left
-          (fun updated (p, m) ->
-            if p >= pos then (
-              match Utils.hashtbl_get m override_duration with
-                | None -> updated
-                | Some v ->
-                    (try
-                       let l = float_of_string v in
-                       self#log#info "Setting crossfade duration to %.2fs" l;
-                       self#set_cross_length l
-                     with _ -> ());
-                    true)
-            else updated)
-          false
-          (Frame.get_all_metadata frame)
-      in
-      if not updated then self#set_cross_length (duration_getter ())
+      List.iter
+        (fun (p, m) ->
+          if p >= pos then (
+            match Utils.hashtbl_get m override_duration with
+              | None -> ()
+              | Some v -> (
+                  try
+                    self#log#info
+                      "Overriding crossfade duration from metadata %s"
+                      override_duration;
+                    let l = float_of_string v in
+                    duration_getter <- (fun () -> l)
+                  with _ -> ())))
+        (Frame.get_all_metadata frame);
+      self#set_cross_length
 
     method private get_frame frame =
       match status with
