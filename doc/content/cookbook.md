@@ -133,6 +133,52 @@ We cannot use `mksafe` here because the content is not plain `pcm` samples, whic
 are several ways to make the source infallible, however, either by providing a `single(...)` source with the same encoded content
 as we expect from `encoded_source` or by creating an infallible source using `ffmpeg.encode.audio`.   
 
+On-demand relaying without re-encoding
+--------------------------------------
+
+Anothe refinement on the previous example is the capacity to relay a stream only when listeners are connected to it,
+all without re-encoding the content.
+
+To make it work, you will need a format that can be handled by `ffmpeg` for that purpose. `mp3` is a good example.
+
+In the script below, you need to match the encoded format of the stream with a blank file (or any other file).
+The `output.harbor` will then relay the data from the file if no one is connected and start/stop the underlying
+input when there are listeners:
+
+```liquidsoap
+stream = input.http(start = false, "https://wwoz-sc.streamguys1.com/wwoz-hi.mp3")
+
+listeners_count = ref(0)
+
+def on_connect(~headers, ~uri, ~protocol, _) =
+  listeners_count := !listeners_count + 1
+  if !listeners_count > 0 and not stream.is_started() then
+    log("Starting input")
+    stream.start()
+  end
+end
+
+def on_disconnect(_) =
+  listeners_count := !listeners_count - 1
+  if !listeners_count == 0 and stream.is_started() then
+    log("Stopping input")
+    stream.stop()
+  end
+end
+
+blank = single("/tmp/blank.mp3")
+
+stream = fallback(track_sensitive=false, [stream, blank])
+
+output.harbor(
+  %ffmpeg(format="mp3", %audio.copy),
+  format="audio/mpeg",
+  mount="relay",
+  on_connect=on_connect,
+  on_disconnect=on_disconnect,
+  stream)
+```
+
 Shared encoding
 ---------------
 
