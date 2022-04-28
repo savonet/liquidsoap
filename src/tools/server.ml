@@ -454,12 +454,8 @@ let start_telnet () =
     }
 
 let start () =
-  let telnet = conf_telnet#get in
-  let socket = conf_socket#get in
-  if telnet || socket then (
-    if telnet then start_telnet () else ();
-    if socket then start_socket () else ())
-  else ()
+  if conf_telnet#get then start_telnet ();
+  if conf_socket#get then start_socket ()
 
 let () = Lifecycle.on_start start
 
