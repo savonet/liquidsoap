@@ -90,3 +90,6 @@ val remove : ns:namespace -> string -> unit
 (** [exec command] executes the [command], returns its result.
   * @raise Not_found if the command does not exist.  *)
 val exec : string -> string
+
+(** Start server and telnet if enabled. *)
+val start : unit -> unit

@@ -457,7 +457,5 @@ let start () =
   if conf_telnet#get then start_telnet ();
   if conf_socket#get then start_socket ()
 
-let () = Lifecycle.on_start start
-
 (* Re-wrap exec for external use *)
 let exec s = try exec s with Exit -> "ERROR: Attempt to exit!"
