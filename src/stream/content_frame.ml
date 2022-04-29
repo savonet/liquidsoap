@@ -39,13 +39,6 @@ module Specs = struct
 
   let make ~size = map (Content_base.make ~size)
 
-  let blit src src_pos dst dst_pos len =
-    Content_base.blit src.breaks src_pos dst.breaks dst_pos len;
-    Content_base.blit src.metadata src_pos dst.metadata dst_pos len;
-    Content_base.blit src.media.audio src_pos dst.media.audio dst_pos len;
-    Content_base.blit src.media.video src_pos dst.media.video dst_pos len;
-    Content_base.blit src.media.midi src_pos dst.media.midi dst_pos len
-
   let length d =
     assert (Content_base.(length d.breaks = length d.metadata));
     assert (Content_base.(length d.metadata = length d.media.audio));
@@ -54,7 +47,6 @@ module Specs = struct
     Content_base.length d.breaks
 
   let copy = map Content_base.copy
-  let clear d = ignore (map Content_base.clear d)
   let params = map Content_base.format
 
   let merge p p' =
@@ -100,13 +92,6 @@ module Frame = struct
   let lift_data data =
     ignore (Specs.length data);
     lift_data data
-
-  let blit_media src src_pos dst dst_pos len =
-    let src = get_data src in
-    let dst = get_data dst in
-    Content_base.blit src.media.audio src_pos dst.media.audio dst_pos len;
-    Content_base.blit src.media.video src_pos dst.media.video dst_pos len;
-    Content_base.blit src.media.midi src_pos dst.media.midi dst_pos len
 
   let consolidate_chunks d =
     let params = get_params (Content_base.format d) in

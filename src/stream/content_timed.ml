@@ -29,7 +29,6 @@ module Specs = struct
   }
 
   let make ~size params = { params; size; data = [] }
-  let clear d = d.data <- []
   let is_empty { data } = data = []
 
   let sort : 'a. (int * 'a) list -> (int * 'a) list =
@@ -45,34 +44,6 @@ module Specs = struct
             if ofs <= pos && pos < ofs + len then Some (pos - ofs, x) else None)
           c.data;
     }
-
-  let blit :
-        'a 'b.
-        copy:('b -> 'b) ->
-        ('a, 'b) content ->
-        int ->
-        ('a, 'b) content ->
-        int ->
-        int ->
-        unit =
-   fun ~copy src src_pos dst dst_pos len ->
-    (* No compatibility check here, it's
-       assumed to have been done beforehand. *)
-    dst.params <- src.params;
-    let head = (sub dst 0 dst_pos).data in
-    let middle =
-      List.map
-        (fun (pos, x) -> (dst_pos + pos, copy x))
-        (sub src src_pos len).data
-    in
-    let tail = (sub dst (dst_pos + len) (dst.size - len - dst_pos)).data in
-    dst.data <- sort (head @ middle @ tail)
-
-  let fill :
-        'a 'b. ('a, 'b) content -> int -> ('a, 'b) content -> int -> int -> unit
-      =
-   fun src src_pos dst dst_pos len ->
-    blit ~copy:(fun x -> x) src src_pos dst dst_pos len
 
   let copy ~copy d =
     { d with data = List.map (fun (pos, x) -> (pos, copy x)) d.data }
@@ -96,7 +67,6 @@ module MetadataSpecs = struct
   let default_params _ = ()
   let parse_param _ _ = Some ()
   let merge _ _ = ()
-  let blit = blit ~copy:Hashtbl.copy
   let copy = copy ~copy:Hashtbl.copy
 end
 
@@ -131,7 +101,6 @@ module BreaksSpecs = struct
   let default_params _ = ()
   let parse_param _ _ = Some ()
   let merge _ _ = ()
-  let blit = blit ~copy:(fun () -> ())
   let copy = copy ~copy:(fun () -> ())
 end
 

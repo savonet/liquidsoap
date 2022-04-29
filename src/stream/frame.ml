@@ -146,10 +146,6 @@ let get_metadata { content } = Content.Frame.get_metadata content
 let free_metadata { content } = Content.Frame.free_metadata content
 let free_all_metadata { content } = Content.Frame.free_all_metadata content
 
-(** Copy data from [src] to [dst]. *)
-let blit src src_pos dst dst_pos len =
-  Content.Frame.blit_media src.content src_pos dst.content dst_pos len
-
 (** Raised by [get_chunk] when no chunk is available. *)
 exception No_chunk
 

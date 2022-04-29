@@ -65,10 +65,8 @@ module type ContentSpecs = sig
   type data
 
   val make : size:int -> params -> data
-  val blit : data -> int -> data -> int -> int -> unit
   val length : data -> int
   val copy : data -> data
-  val clear : data -> unit
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -85,8 +83,7 @@ module type Content = sig
 
   val is_data : Contents.data -> bool
   val lift_data : data -> Contents.data
-  val get_data : Contents.data -> data
-  val get_chunked_data : Contents.data -> (params, data) chunks
+  val get_data : Contents.data -> (params, data) chunks
   val is_format : Contents.format -> bool
   val lift_params : params -> Contents.format
   val get_params : Contents.format -> params
@@ -169,27 +166,23 @@ let parse_param kind label value =
   with Parsed_format p -> p
 
 type data_handler = {
-  blit : data -> int -> data -> int -> int -> unit;
   fill : data -> int -> data -> int -> int -> unit;
   length : data -> int;
   sub : data -> int -> int -> data;
   is_empty : data -> bool;
   copy : data -> data;
   format : data -> format;
-  clear : data -> unit;
   append : data -> data -> data;
 }
 
 let dummy_handler =
   {
-    blit = (fun _ _ _ _ _ -> assert false);
     fill = (fun _ _ _ _ _ -> assert false);
     length = (fun _ -> assert false);
     sub = (fun _ _ _ -> assert false);
     is_empty = (fun _ -> assert false);
     copy = (fun _ -> assert false);
     format = (fun _ -> assert false);
-    clear = (fun _ -> assert false);
     append = (fun _ -> assert false);
   }
 
@@ -203,13 +196,11 @@ let register_data_handler t h =
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ~size src = (get_params_handler src).make size
 let length v = (get_data_handler v).length v
-let blit v = (get_data_handler v).blit v
 let fill v = (get_data_handler v).fill v
 let sub v = (get_data_handler v).sub v
 let is_empty v = (get_data_handler v).is_empty v
 let copy v = (get_data_handler v).copy v
 let format v = (get_data_handler v).format v
-let clear v = (get_data_handler v).clear v
 let append v = (get_data_handler v).append v
 let kind p = (get_params_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
@@ -292,38 +283,6 @@ module MkContent (C : ContentSpecs) = struct
       @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
     assert (dst_len = length dst)
 
-  let consolidate_chunks d =
-    match (length d, d.chunks) with
-      | 0, _ ->
-          d.chunks <- [];
-          d
-      | _, [{ offset = 0; size; data }] when size = C.length data -> d
-      | size, _ ->
-          let buf = C.make ~size d.params in
-          ignore
-            (List.fold_left
-               (fun pos { data; offset; size } ->
-                 C.blit data offset buf pos size;
-                 pos + size)
-               0 d.chunks);
-          d.chunks <- [{ offset = 0; size; data = buf }];
-          d
-
-  let blit src src_pos dst dst_pos len =
-    let src = content src in
-    let dst = content dst in
-    dst.params <- src.params;
-    let dst_len = length dst in
-    dst.chunks <-
-      (sub dst 0 dst_pos).chunks
-      @ (consolidate_chunks (sub src src_pos len)).chunks
-      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
-    assert (dst_len = length dst)
-
-  let clear d =
-    let d = content d in
-    List.iter (fun { data } -> C.clear data) d.chunks
-
   let make ~size params =
     { params; chunks = [{ data = C.make ~size params; offset = 0; size }] }
 
@@ -381,14 +340,12 @@ module MkContent (C : ContentSpecs) = struct
     Queue.push format_of_string format_parsers;
     let data_handler =
       {
-        blit;
         fill;
         length = (fun d -> length (content d));
         sub = (fun d ofs len -> (_type, Content (sub (content d) ofs len)));
         is_empty = (fun d -> is_empty (content d));
         copy = (fun d -> (_type, Content (copy (content d))));
         format = (fun d -> Format (Unifier.make (params (content d))));
-        clear;
         append;
       }
     in
@@ -410,16 +367,7 @@ module MkContent (C : ContentSpecs) = struct
           chunks = [{ offset = 0; size = C.length d; data = d }];
         } )
 
-  let get_chunked_data = function _, Content d -> d | _ -> raise Invalid
-
-  let get_data d =
-    let d = get_chunked_data d in
-    match (consolidate_chunks d).chunks with
-      | [] -> C.make ~size:0 d.params
-      | [{ offset = 0; size; data }] ->
-          assert (size = C.length data);
-          data
-      | _ -> assert false
+  let get_data = function _, Content d -> d | _ -> raise Invalid
 
   include C
 end

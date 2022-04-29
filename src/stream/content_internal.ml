@@ -30,7 +30,6 @@ module NoneSpecs = struct
 
   let make ~size _ = size
   let clear _ = ()
-  let blit _ _ _ _ _ = ()
   let length c = c
   let copy c = c
   let params _ = ()
@@ -72,11 +71,6 @@ module AudioSpecs = struct
     p
 
   let compatible p p' = !!(p.channel_layout) = !!(p'.channel_layout)
-
-  let blit src src_pos dst dst_pos len =
-    let ( ! ) = audio_of_main in
-    Audio.blit src !src_pos dst !dst_pos !len
-
   let length d = Frame_base.main_of_audio (Audio.length d)
   let copy d = Audio.copy d 0 (Audio.length d)
 
@@ -182,10 +176,6 @@ module VideoSpecs = struct
     in
     compare (p.width, p'.width) && compare (p.height, p'.height)
 
-  let blit src src_pos dst dst_pos len =
-    let ( ! ) = Frame_base.video_of_main in
-    Video.Canvas.blit src !src_pos dst !dst_pos !len
-
   let length d = Frame_base.main_of_video (Video.Canvas.length d)
   let copy = Video.Canvas.copy
 
@@ -241,11 +231,6 @@ module MidiSpecs = struct
     p
 
   let compatible p p' = p.channels = p'.channels
-
-  let blit src src_pos dst dst_pos len =
-    let ( ! ) = midi_of_main in
-    Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
-
   let length d = Frame_base.main_of_midi (MIDI.Multitrack.duration d)
   let copy m = Array.map MIDI.copy m
   let params m = { channels = MIDI.Multitrack.channels m }
