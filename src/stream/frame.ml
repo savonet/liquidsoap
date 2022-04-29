@@ -94,7 +94,7 @@ let metadata_of_list l =
 type t = {
   (* Presentation time, in multiple of frame size. *)
   mutable pts : int64 option;
-  content : Content.data;
+  mutable content : Content.data;
 }
 
 (** Create a content chunk. All chunks have the same size. *)
@@ -126,7 +126,7 @@ let content_type frame =
 
 (* TODO: historically, breaks are ordered with most recent first. *)
 let breaks { content } = List.rev (Content.Frame.get_breaks content)
-let position b = match breaks b with [] -> 0 | a :: _ -> a
+let position { content } = Content.length content
 let is_partial b = position b < !!size
 let set_breaks { content } = Content.Frame.set_breaks content
 let add_break { content } = Content.Frame.add_break content
