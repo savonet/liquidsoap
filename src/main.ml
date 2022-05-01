@@ -534,10 +534,10 @@ let () =
         (* TODO if start fails (e.g. invalid password or mountpoint) it
          *   raises an exception and dtools catches it so we don't get
          *   a backtrace (by default at least). *)
+        Server.start ();
         Clock.start ();
         Tutils.start ();
-        Tutils.main ();
-        Server.start ()
+        Tutils.main ()
       in
       if !run_streams then
         if !interactive then (
