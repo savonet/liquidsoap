@@ -24,7 +24,7 @@
 
 (** {2 Frame definitions} *)
 
-type 'a fields = 'a Frame_base.fields = { audio : 'a; video : 'a; midi : 'a }
+type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
 val map_fields : ('a -> 'b) -> 'a fields -> 'b fields
 
@@ -47,6 +47,19 @@ type content_kind = kind fields
 (** Precise description of the channel types for the current track. *)
 type content_type = Content.format fields
 
+type content = Content.data fields
+
+(** [blit_content c1 o1 c2 o2 l] fills [l] data from [c1] starting at offset
+    [o1] into [c2] starting at offset [o2], avoiding copy when possible. All numerical values are in
+    ticks. *)
+val fill_content : content -> int -> content -> int -> int -> unit
+
+(** Make a copy of the content of a frame. *)
+val copy : content -> content
+
+val copy_audio : content -> content
+val copy_video : content -> content
+
 (** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
 
@@ -64,13 +77,16 @@ val create : content_type -> t
 
 (** A dummy frame which should never written to or read from. This is however
     useful as a placeholder before initialization of references. *)
-val dummy : unit -> t
+val dummy : t
 
 (** Get a frame's content type. *)
 val content_type : t -> content_type
 
 (** Get a frame's content. *)
-val content : t -> Content.data
+val content : t -> content
+
+(** Set a frame's content. *)
+val set_content : t -> content -> unit
 
 (** Get a frame's audio content. *)
 val audio : t -> Content.data
@@ -101,6 +117,9 @@ val is_partial : t -> bool
 (** Make the frame empty. *)
 val clear : t -> unit
 
+(** Same as [clear] from a given position. *)
+val clear_from : t -> int -> unit
+
 (** {3 Presentation time} *)
 
 (** Frame presentation time, in multiple of a frame's size. *)
@@ -121,6 +140,8 @@ val set_breaks : t -> int list -> unit
 val add_break : t -> int -> unit
 
 (** {3 Metadata} *)
+
+exception No_metadata
 
 (** Attach metadata at a given position in the frame. *)
 val set_metadata : t -> int -> metadata -> unit
@@ -151,6 +172,7 @@ val get_chunk : t -> t -> unit
 (** Compatibilities between content kinds, types and values: [sub a b] is [true]
     when [b] is more permissive than [a]. *)
 
+val type_of_content : content -> content_type
 val string_of_kind : kind -> string
 val string_of_content_kind : content_kind -> string
 val string_of_content_type : content_type -> string

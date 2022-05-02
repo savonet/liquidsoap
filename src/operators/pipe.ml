@@ -22,6 +22,8 @@
 
 open Mm
 open Source
+module Generator = Generator.From_audio_video_plus
+module Generated = Generated.From_audio_video_plus
 
 type next_stop =
   [ `Metadata of Frame.metadata

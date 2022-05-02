@@ -22,6 +22,8 @@
 
 (** Decode raw ffmpeg frames. *)
 
+module G = Decoder.G
+
 let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~lift_data ~put_data
     params =
   let duration_converter =
@@ -42,13 +44,7 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~lift_data ~put_data
                   } ))
               frames
           in
-          let data =
-            {
-              Ffmpeg_content_base.params = mk_params params;
-              data;
-              size = duration;
-            }
-          in
+          let data = { Ffmpeg_content_base.params = mk_params params; data } in
           let data = lift_data data in
           put_data ?pts:None buffer.Decoder.generator data 0 duration
       | None -> ()
@@ -65,7 +61,7 @@ let mk_audio_decoder ~stream_idx ~format container =
   ( idx,
     stream,
     mk_decoder ~stream_idx ~lift_data ~mk_params ~stream_time_base
-      ~put_data:Generator.put_audio params )
+      ~put_data:G.put_audio params )
 
 let mk_video_decoder ~stream_idx ~format container =
   let idx, stream, params = Av.find_best_video_stream container in
@@ -79,4 +75,4 @@ let mk_video_decoder ~stream_idx ~format container =
   ( idx,
     stream,
     mk_decoder ~stream_idx ~mk_params ~lift_data ~stream_time_base
-      ~put_data:Generator.put_video params )
+      ~put_data:G.put_video params )

@@ -2,7 +2,7 @@
 
 %include "test.liq"
 
-s = (single("files/file1.png"):source(audio=none,video=yuva420p))
+s = (single("files/file1.png"):source(audio=none,video=canvas))
 
 output.dummy(fallible=true, s)
 

@@ -1,10 +1,12 @@
 (* Test a stream decoder. ffmpeg/audio only for now. *)
 
+module G = Generator.From_audio_video_plus
+
 let () =
   if Array.length Sys.argv < 3 then (
     Printf.printf "Usage: stream_decoder_test <in file> <out file>\n%!";
     exit 1);
-  Frame_base.lazy_config_eval := true;
+  Frame_settings.lazy_config_eval := true;
   Dtools.Log.conf_stdout#set true;
   Dtools.Log.conf_file#set false;
   Dtools.Log.conf_level#set 5;
@@ -29,19 +31,19 @@ let () =
     create_decoder { Decoder.read; tell = None; length = None; lseek = None }
   in
   let log = Printf.printf "Generator log: %s" in
-  let generator = Generator.create ~log ~log_overfull:false `Audio in
+  let generator = G.create ~log ~log_overfull:false `Audio in
   let buffer = Decoder.mk_buffer ~ctype generator in
-  let wav_format = Lang_wav.defaults () in
-  let create_encoder = Encoder.get_factory (Encoder.WAV wav_format) in
+  let mp3_format = Lang_mp3.mp3_base_defaults () in
+  let create_encoder = Encoder.get_factory (Encoder.MP3 mp3_format) in
   let encoder = create_encoder "test stream" Meta_format.empty_metadata in
   write encoder.Encoder.header;
   try
     while true do
       try
-        while Generator.length generator < Lazy.force Frame.size do
+        while G.length generator < Lazy.force Frame.size do
           decoder.Decoder.decode buffer
         done;
-        Generator.fill generator frame;
+        G.fill generator frame;
         write (encoder.Encoder.encode frame 0 (Frame.position frame));
         Frame.clear frame
       with Avutil.Error `Invalid_data -> ()

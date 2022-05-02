@@ -89,11 +89,10 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           } ))
                       packets
                   in
-                  let data =
-                    { Ffmpeg_content_base.params; data; size = duration }
-                  in
+                  let data = { Ffmpeg_content_base.params; data } in
                   let data = Ffmpeg_copy_content.Audio.lift_data data in
-                  Generator.put_audio generator data 0 duration
+                  Producer_consumer.(
+                    Generator.put_audio generator data 0 duration)
               | None -> ()
           in
 
@@ -138,11 +137,10 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
                               } ))
                           frames
                       in
-                      let data =
-                        { Ffmpeg_content_base.params; data; size = duration }
-                      in
+                      let data = { Ffmpeg_content_base.params; data } in
                       let data = Ffmpeg_raw_content.Audio.lift_data data in
-                      Generator.put_audio generator data 0 duration
+                      Producer_consumer.(
+                        Generator.put_audio generator data 0 duration)
                   | None -> ())
             | `Flush -> () ))
   in
@@ -267,11 +265,10 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           } ))
                       packets
                   in
-                  let data =
-                    { Ffmpeg_content_base.params; data; size = duration }
-                  in
+                  let data = { Ffmpeg_content_base.params; data } in
                   let data = Ffmpeg_copy_content.Video.lift_data data in
-                  Generator.put_video generator data 0 duration
+                  Producer_consumer.(
+                    Generator.put_video generator data 0 duration)
               | None -> ()
           in
 
@@ -319,11 +316,10 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
                           ))
                         frames
                     in
-                    let data =
-                      { Ffmpeg_content_base.params; data; size = duration }
-                    in
+                    let data = { Ffmpeg_content_base.params; data } in
                     let data = Ffmpeg_raw_content.Video.lift_data data in
-                    Generator.put_video generator data 0 duration
+                    Producer_consumer.(
+                      Generator.put_video generator data 0 duration)
                 | None -> ())
           | `Flush -> ())
   in
@@ -484,7 +480,7 @@ let mk_encoder mode =
           | `Video_raw | `Video_encoded -> `Video
           | `Both_raw | `Both_encoded -> `Both
       in
-      let generator = Generator.create content in
+      let generator = Producer_consumer.Generator.create content in
 
       if Hashtbl.length format.Ffmpeg_format.other_opts > 0 then
         raise
@@ -571,10 +567,12 @@ let mk_encoder mode =
         let encode_frame = function
           | `Frame frame ->
               List.iter
-                (fun (pos, m) -> Generator.add_metadata ~pos generator m)
+                (fun (pos, m) ->
+                  Producer_consumer.Generator.add_metadata ~pos generator m)
                 (Frame.get_all_metadata frame);
               List.iter
-                (fun pos -> Generator.add_break ~pos generator)
+                (fun pos ->
+                  Producer_consumer.Generator.add_break ~pos generator)
                 (List.filter (fun x -> x < size) (Frame.breaks frame));
               ignore
                 (Option.map (fun fn -> fn (`Frame frame)) encode_video_frame);

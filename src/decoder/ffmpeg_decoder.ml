@@ -25,6 +25,8 @@
 exception End_of_file
 exception No_stream
 
+module Generator = Decoder.G
+
 let log = Log.make ["decoder"; "ffmpeg"]
 
 (** Configuration keys for ffmpeg. *)

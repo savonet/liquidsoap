@@ -35,6 +35,8 @@ open Mm
   * in which the buffer-consumer will still behave OK (except obviously
   * that the buffer will empty). *)
 module Buffer = struct
+  module Generator = Generator.From_frames
+
   (* The kind of value shared by a producer and a consumer. *)
   type control = {
     lock : Mutex.t;
@@ -97,7 +99,7 @@ module Buffer = struct
       ~max_buffer ~kind source_val =
     let control =
       {
-        generator = Generator.create `Both;
+        generator = Generator.create ();
         lock = Mutex.create ();
         buffering = true;
         abort = false;
@@ -178,7 +180,7 @@ module AdaptativeBuffer = struct
             write r buf
   end
 
-  module MG = Metadata_generator
+  module MG = Generator.Metadata
 
   (* The kind of value shared by a producer and a consumer. *)
   (* TODO: also have breaks and metadata as in generators. *)

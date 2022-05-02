@@ -56,7 +56,7 @@ section("SUBTYPING");
 incorrect('(1:unit)');
 # Next one requires the inference of a subtype (fixed vs. variable arity)
 correct('ignore(audio_to_stereo(add([])))');
-correct('ignore((blank():source(audio=pcm,video=yuva420p,midi=none)))');
+correct('ignore((blank():source(audio=pcm,video=canvas,midi=none)))');
 
 section("CONSTRAINTS");
 incorrect('"bl"+"a"');

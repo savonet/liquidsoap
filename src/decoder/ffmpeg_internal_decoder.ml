@@ -24,6 +24,8 @@ open Mm
 
 (** Decode media using ffmpeg. *)
 
+module Generator = Decoder.G
+
 let log = Log.make ["decoder"; "ffmpeg"; "internal"]
 
 module ConverterInput = Swresample.Make (Swresample.Frame)
