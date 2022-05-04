@@ -59,6 +59,54 @@ Changes:
 - Removed deprecated `timeout` argument in `http.*` operators.
 - Deprecated `request.ready` in favor of `request.resolved`.
 
+---
+2.0.4 (23-04-2022)
+=====
+
+New:
+* Added `settings.video.add_text` to enforce consistent choice of
+  `video.add_text` implementation (#2302)
+
+Changed:
+* Make sure source shutdown can only be called on sources that
+  can actually be shutdown:
+  - Remove generic `source.shutdown`
+  - Keep `s.shutdown()` method only on sources that are active.
+  Refs: #2259
+* Optimized memory usage when accessing frame content (#2266)
+* Optimized memory usage when accessing ground terms.
+* Allow crossfade duration getter to override duration at the
+  end of each track if duration isn't set via metadata.
+* Make sure crossfade metadata are not duplicated (#2153)
+* Renamed `map_metadata` into `metadata.map`, deprecated `map_metadata`.
+* Deprecatdd `list.mem_assoc`
+* Enhanced remaining time when using `add` (#2255)
+* Added `timeout_ms` to `http.*` to provide time in milliseconds, deprecated
+  `timeout` argument.
+* Connect `output.icecast` when data is available instead of when
+  operator starts to avoid useless connections when underlying source
+  fails immediately.
+
+Fixed:
+* Prevent infinite loops when crossfade duration is negative (#2287)
+* Prevent mutex deadlock when recursively locking mutexes (#2274)
+* Mark method `add()` as internal in `request.queue`, fix method `length()` (#2274)
+* Fixed `retry_delay` being ignored in some cases in `request.dynamic`.
+* Prevent race condition in external process handler.
+* Fixed A/V sync when streaming encoded data via ffmpeg encoder (#2159)
+* Prevent stopped/iddle sources from being restarted when reseting
+  clock(s) after too much latency (#2278)
+* Fixed registration of `video.add_text.ffmpeg` as possible implementation
+  for `video.add_text` (#2302)
+* Fixed `http.*` calls preventing liquidsoap from shutting down.
+* Fixed `http` protocol not returning an error when timing out (#2242)
+* Reworked ffmpeg filters feeding mechanism.
+* Fixed inconsistencies in `playlist.parser` (#2257)
+* Fixed inconsistent reselect in `rotate` (#2300)
+* Fixed special characters escaping in `video.add_text.ffmpeg` (#2324)
+* Fixed `input.rawaudio` and `input.rawvideo` when handling non-stereo
+  content.
+
 2.0.3 (11-02-2022)
 =====
 
