@@ -4,6 +4,8 @@ set -e
 
 export CPU_CORES=$1
 
+PLATFORM=$2
+
 eval $(opam config env)
 
 cd /tmp/liquidsoap-full
@@ -50,6 +52,10 @@ echo "\n### Compiling\n"
 
 cd liquidsoap
 make -j $CPU_CORES
+
+if [ "${PLATFORM}" = "armhf" ]; then
+  exit 0;
+fi
 
 echo "\n### Basic tests\n"
 
