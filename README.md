@@ -1,6 +1,6 @@
 # Liquidsoap
 
-Our flagship is Liquidsoap, a swiss-army knife for multimedia streaming, notably
+Liquidsoap is a swiss-army knife for multimedia streaming, notably
 used for netradios and webtvs. It has tons of features, it's free and it's
 open-source!
 
