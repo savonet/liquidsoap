@@ -1,5 +1,4 @@
-Liquidsoap
-==========
+# Liquidsoap
 
 Our flagship is Liquidsoap, a swiss-army knife for multimedia streaming, notably
 used for netradios and webtvs. It has tons of features, it's free and it's
@@ -27,24 +26,44 @@ Copyright 2003-2022 Savonet team
 | Bug reports    | https://github.com/savonet/liquidsoap/issues |
 | User questions | https://github.com/savonet/liquidsoap/discussions |
 
-Installation
-------------
+## Installation
 
 See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.html).
 
-Documentation
--------------
+## Release Details
 
-HTML documentation is in doc/html/index.html
-([mirrored](https://www.liquidsoap.info/doc.html) on the [Savonet
-website](http://liquidsoap.info))
+### Versions
+
+Liquidsoap releases follow a semantic versioning as follows:
+```
+<major_version>.<minor_version>.<bugfix_version>
+```
+Where:
+* `major_version` is bumped when there are major changes, i.e. changes in the paradigm, major implementation change etc. Versions with different major versions **are** incompatible
+* `minor_version` is bumped when there are minor changes, i.e. new operators, renaming, new modules etc. Version with different minor versions **may be** incompatible
+* `bugfix_version` is bumped when a new bugfix version is published. Versions with only bugfix version changes **should be** compatible
+
+Please note that liquidsoap is a complex framework with a lot of operators and advanced implementations. For this reason, it is possible that a bugfix actually fixes the behavior of an operator the way it was intended to do and may break scripts that previously relied on incorrect implementation.
+
+Therefore, we **strongly** recommend to maintain a `staging` environement that makes it possible to test new versions before using them in production. In this context, the semantic versioning above should guide you in knowing how much scrutiny you should put into a new release before validating it in your staging environment.
+
+### Assets
+
+Release assets are provided at: https://github.com/savonet/liquidsoap/releases. Published, versioned releases are available using their published that, i.e. `vx.y.z`.
+
+We also provide **rolling releases**. A rolling release is a snapshot of a current, unpublished release. It can be a future stable release or a future bugfix release for a given major/minor version.
+
+For both types of releases, we reserve the right to update, delete and add assets to the release at any time. If you are looking for permanent links to release assets, you should grab them from https://github.com/savonet/liquidsoap-release-assets/releases, which reflects all our releases but whose artifacts are never modified/deleted.
+
+## Documentation
+
+HTML documentation is available on our [website](http://liquidsoap.info)
 
 We also have written _the Liquidsoap book_ which is [available
 online](http://www.liquidsoap.info/book/book.pdf) and in [physical
 version](https://www.amazon.com/dp/B095PVTYR3).
 
-License
--------
+## License
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -60,13 +79,13 @@ You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place, Suite 330, Boston, MA 02111-1307 USA
 
-Authors
--------
+## Authors
 
 * Developers:
-  * [David Baelde](http://www.lsv.fr/~baelde/)
   * [Romain Beauxis](https://github.com/toots)
   * [Samuel Mimram](http://www.mimram.fr)
+* Former project leader and emeritus developer:
+  * [David Baelde](http://www.lsv.fr/~baelde/)
 * Contributors:
   * Florent   Bouchez
   * Julien    Cristau
