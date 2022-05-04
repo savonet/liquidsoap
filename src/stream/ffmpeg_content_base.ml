@@ -20,10 +20,64 @@
 
  *****************************************************************************)
 
-include Content_timed.Specs
+type ('a, 'b) content = { mutable params : 'a; mutable data : (int * 'b) list }
 
+let make ~size:_ params = { params; data = [] }
+let clear d = d.data <- []
+let is_empty { data } = data = []
 let stream_idx = ref 0L
 
 let new_stream_idx () =
   stream_idx := Int64.succ !stream_idx;
   !stream_idx
+
+let sub c ofs len =
+  {
+    c with
+    data = List.filter (fun (pos, _) -> ofs <= pos && pos < ofs + len) c.data;
+  }
+
+let blit :
+      'a 'b.
+      copy:('b -> 'b) ->
+      ('a, 'b) content ->
+      int ->
+      ('a, 'b) content ->
+      int ->
+      int ->
+      unit =
+ fun ~copy src src_pos dst dst_pos len ->
+  (* No compatibility check here, it's
+     assumed to have been done beforehand. *)
+  dst.params <- src.params;
+  let data =
+    List.filter (fun (pos, _) -> pos <= dst_pos || dst_pos + len < pos) dst.data
+  in
+  let src_end = src_pos + len in
+  let data =
+    List.fold_left
+      (fun data (pos, p) ->
+        if src_pos <= pos && pos < src_end then (
+          let pos = dst_pos + (pos - src_pos) in
+          (pos, copy p) :: data)
+        else data)
+      data src.data
+  in
+  dst.data <- List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') data
+
+let fill :
+      'a 'b. ('a, 'b) content -> int -> ('a, 'b) content -> int -> int -> unit =
+ fun src src_pos dst dst_pos len ->
+  blit ~copy:(fun x -> x) src src_pos dst dst_pos len
+
+let copy ~copy { data; params } =
+  { data = List.map (fun (pos, x) -> (pos, copy x)) data; params }
+
+let params { params } = params
+
+(* We don't account for content block length yet to total length is
+   the largest pts. *)
+let length { data } =
+  match List.sort (fun (p, _) (p', _) -> Stdlib.compare p' p) data with
+    | (pos, _) :: _ -> pos
+    | [] -> 0

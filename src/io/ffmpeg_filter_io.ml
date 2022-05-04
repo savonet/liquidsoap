@@ -22,6 +22,8 @@
 
 (** Connect sources to FFmpeg filters. *)
 
+module Generator = Generator.From_audio_video
+
 let noop () = ()
 
 (** From the script perspective, the operator sending data to a filter graph
@@ -225,12 +227,10 @@ class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata kind
             stream_idx;
           }
         in
-        let duration = get_duration ffmpeg_frame in
         let content =
           {
             Ffmpeg_content_base.params =
               Ffmpeg_raw_content.AudioSpecs.frame_params frame;
-            size = duration;
             data = [(0, frame)];
           }
         in
@@ -309,11 +309,7 @@ class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
         in
         let params = Ffmpeg_raw_content.VideoSpecs.frame_params frame in
         let content =
-          {
-            Ffmpeg_raw_content.VideoSpecs.params;
-            size = duration;
-            data = [(0, frame)];
-          }
+          { Ffmpeg_raw_content.VideoSpecs.params; data = [(0, frame)] }
         in
         Generator.put_video ?pts generator
           (Ffmpeg_raw_content.Video.lift_data content)

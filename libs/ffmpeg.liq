@@ -19,7 +19,7 @@ def video.testsrc.ffmpeg(~id=null(), ~pattern="testsrc", ~max_buffer=0.5, ~durat
   rate = "rate=#{settings.frame.video.framerate()}"
   duration = if null.defined(duration) then ":duration=#{duration}" else "" end
   src = "#{pattern}=#{size}:#{rate}#{duration}"
-  (input.ffmpeg(id=id, max_buffer=max_buffer, format="lavfi", src):source(audio=none,video=yuva420p,midi=none))
+  (input.ffmpeg(id=id, max_buffer=max_buffer, format="lavfi", src):source(audio=none,video=canvas,midi=none))
 end
 
 # Read an RTMP stream.

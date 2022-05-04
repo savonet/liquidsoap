@@ -97,7 +97,7 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
       (* We enforce that all contents end together, otherwise there will
        * be a lag between different content types in the next track. *)
       if not merge_tracks then
-        Generator.add_break ~sync:true buffer.Decoder.generator;
+        Decoder.G.add_break ~sync:true buffer.Decoder.generator;
     ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_playing)
   in
   let decode buffer =
@@ -107,7 +107,7 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
     let decode_audio, decode_video =
       if decode_audio && decode_video then (
         let gen = buffer.Decoder.generator in
-        if Generator.audio_length gen < Generator.video_length gen then
+        if Decoder.G.audio_length gen < Decoder.G.video_length gen then
           (true, false)
         else (false, true))
       else (decode_audio, decode_video)

@@ -22,6 +22,8 @@
 
 open Extralib
 open Mm
+module Generator = Generator.From_audio_video_plus
+module Generated = Generated.From_audio_video_plus
 
 (* {1 External Input handling} *)
 

@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Source
+module Generator = Generator.From_frames
 
 class accelerate ~kind ~ratio ~randomize source_val =
   let source = Lang.to_source source_val in
@@ -40,7 +41,7 @@ class accelerate ~kind ~ratio ~randomize source_val =
     method abort_track = source#abort_track
 
     (** Frame used for dropping samples. *)
-    val mutable null = Frame.dummy ()
+    val mutable null = Frame.dummy
 
     method private wake_up x =
       super#wake_up x;

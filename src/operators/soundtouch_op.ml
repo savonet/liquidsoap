@@ -22,6 +22,7 @@
 
 open Mm
 open Source
+module Generator = Generator.From_audio_video
 
 class soundtouch ~kind source_val rate tempo pitch =
   let abg = Generator.create `Audio in

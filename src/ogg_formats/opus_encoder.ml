@@ -20,7 +20,8 @@
 
  *****************************************************************************)
 
-module G = Generator
+open Mm
+module G = Generator.Generator
 
 let create_encoder ~opus ~comments () =
   let samplerate = opus.Opus_format.samplerate in
@@ -28,7 +29,7 @@ let create_encoder ~opus ~comments () =
   let frame_size =
     int_of_float (opus.Opus_format.frame_size *. float samplerate /. 1000.)
   in
-  let gen = G.create `Audio in
+  let gen = G.create () in
   let application =
     match opus.Opus_format.application with None -> `Audio | Some a -> a
   in
@@ -79,13 +80,21 @@ let create_encoder ~opus ~comments () =
   let data_encoder { Ogg_muxer.data; offset; length } os _ =
     started := true;
     let enc = get_enc os in
-    G.put_audio gen (Content.Audio.lift_data data) offset length;
+    G.put gen data offset length;
     while G.length gen >= frame_size do
-      let data = G.get gen frame_size in
+      let d, ofs, len =
+        match G.get gen frame_size with
+          | [(d, ofs, _, len)] -> (d, ofs, len)
+          | (d, ofs, _, len) :: l ->
+              List.fold_left
+                (fun (chunk, ofs1, len1) (d, ofs2, _, len2) ->
+                  (Audio.append chunk ofs1 len1 d ofs2 len1, 0, len1 + len2))
+                (d, ofs, len) l
+          | [] -> assert false
+      in
       let ret =
-        Opus.Encoder.encode_float ~frame_size:opus.Opus_format.frame_size enc
-          Content.(Audio.get_data (Frame.get_audio data))
-          0 frame_size
+        Opus.Encoder.encode_float ~frame_size:opus.Opus_format.frame_size enc d
+          ofs len
       in
       assert (ret = frame_size)
     done
