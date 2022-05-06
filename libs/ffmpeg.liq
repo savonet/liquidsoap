@@ -148,9 +148,7 @@ def video.add_text.ffmpeg.raw.filter(
    v.{on_change = on_change, on_metadata = on_metadata}
 end
 
-# Display a text. Use this operator inside ffmpeg filters with a ffmpeg video input
-# Returns a ffmpeg video output with `on_change` and `on_metadata` methods to be used
-# to update the output text.
+# Display a text. Use this operator inside ffmpeg filters with a input source
 # @category Source / Video Processing
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
