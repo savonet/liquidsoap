@@ -35,8 +35,11 @@ end
 
 %ifdef ffmpeg.filter.drawtext
 let video.add_text.ffmpeg = ()
+let video.add_text.ffmpeg.raw = ()
 
-# Display a text. Use this operator inside ffmpeg filters.
+# Display a text. Use this operator inside ffmpeg filters with a ffmpeg video input
+# Returns a ffmpeg video output with `on_change` and `on_metadata` methods to be used
+# to update the output text.
 # @category Source / Video Processing
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
@@ -49,7 +52,8 @@ let video.add_text.ffmpeg = ()
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font=null(),
+def video.add_text.ffmpeg.raw.filter(
+                              ~color=0xffffff,~cycle=true,~font=null(),
                               ~metadata=null(),~size=18,~speed=70,~x=getter(10),~y=getter(10),
                               ~graph, d=getter(""), s) =
   color = "0x" ^ string.hex_of_int(pad=6, color)
@@ -125,7 +129,7 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font=null(),
 
   def on_metadata(m) =
     if null.defined(metadata) then
-      meta = null.get(metadata)
+      meta = (null.get(metadata):string)
       d = escape(m[meta])
       if d != "" then
         log(level=3,  label="ffmpeg.filter.drawtext", "Setting new text #{d} from metadata #{meta}") 
@@ -135,15 +139,54 @@ def video.add_text.ffmpeg.raw(~color=0xffffff,~cycle=true,~font=null(),
     end
   end
 
-  s.on_metadata(on_metadata)
-  s = source.on_frame(s, on_change)
-  s = ffmpeg.filter.video.input(graph, s)
-
-  list.fold((fun (cur, el) ->
+  v = list.fold((fun (cur, el) ->
     begin
       el.filter.set_input(cur)
       el.filter.output
     end), s, filters)
+
+   v.{on_change = on_change, on_metadata = on_metadata}
+end
+
+# Display a text. Use this operator inside ffmpeg filters with a ffmpeg video input
+# Returns a ffmpeg video output with `on_change` and `on_metadata` methods to be used
+# to update the output text.
+# @category Source / Video Processing
+# @param ~color Text color (in 0xRRGGBB format).
+# @param ~cycle Cycle text when it reaches left boundary.
+# @param ~font Path to ttf font file.
+# @param ~metadata Change text on a particular metadata (empty string means disabled).
+# @param ~size Font size.
+# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
+#               according to x and y in case they are variable).
+# @param ~graph a ffmpeg filter graph to attach this filter to.
+# @param ~x x offset.
+# @param ~y y offset.
+# @params d Text to display.
+def replaces video.add_text.ffmpeg.raw(
+                              ~color=0xffffff,~cycle=true,~font=null(),
+                              ~metadata=null(),~size=18,~speed=70,~x=getter(10),~y=getter(10),
+                              ~graph, d=getter(""), s) =
+  on_frame = ref (fun () -> ())
+  on_metadata = ref (fun (_) -> ())
+  s = source.on_metadata(s, fun (m) -> begin
+    fn = !on_metadata
+    fn(m)
+  end)
+  s = source.on_frame(s, fun () -> begin
+    fn = !on_frame
+    fn()
+  end)
+
+  s = ffmpeg.filter.video.input(graph, s)
+  v = video.add_text.ffmpeg.raw.filter(color=color, cycle=cycle,font=font,
+                                       metadata=metadata,size=size,speed=speed,
+                                       x=x,y=y,graph=graph,d,s)
+
+  on_frame := v.on_change
+  on_metadata := v.on_metadata
+
+  ffmpeg.filter.null(graph, v)
 end
 
 # Display a text.
