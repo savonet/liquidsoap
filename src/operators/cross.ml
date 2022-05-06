@@ -55,7 +55,7 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
       let main_new_cross_length = Frame.main_of_seconds new_cross_length in
 
       if main_new_cross_length <> cross_length then
-        if new_cross_length <= 0. then
+        if new_cross_length < 0. then
           self#log#important
             "Cannot set crossfade duration to negative value %f!"
             new_cross_length
