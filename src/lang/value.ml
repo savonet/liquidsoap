@@ -218,7 +218,7 @@ module MkAbstractFromTerm (Term : Term.Abstract) = struct
   let to_value c = { pos = None; value = Ground (to_ground c) }
 
   let of_value t =
-    match t.value with
+    match (demeth t).value with
       | Ground g when is_ground g -> of_ground g
       | _ -> assert false
 
