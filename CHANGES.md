@@ -1,3 +1,10 @@
+2.0.5 (unreleased)
+=====
+
+Fixed:
+* Allow crossfade duration override of `0.`
+
+---
 2.0.4 (23-04-2022)
 =====
 
