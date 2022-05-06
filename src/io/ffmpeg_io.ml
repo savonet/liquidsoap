@@ -129,7 +129,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         -1.
       with e ->
         self#log#info "Connection failed: %s" (Printexc.to_string e);
-        self#disconnect;
+        self#disconnect_fn;
         if debug then raise e;
         poll_delay
 
@@ -148,24 +148,23 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                   Duppy.Async.wake_up t))
         ()
 
-    method private disconnect =
-      self#mutexify
-        (fun () ->
-          match container with
-            | None -> ()
-            | Some (input, _, _) ->
-                Tutils.mutexify interrupt_m (fun () -> interrupt <- true) ();
-                (try Av.close input
-                 with exn ->
-                   let bt = Printexc.get_backtrace () in
-                   Utils.log_exception ~log:self#log ~bt
-                     (Printf.sprintf "Error while disconnecting: %s"
-                        (Printexc.to_string exn)));
-                container <- None;
-                source_status <- `Stopped;
-                Tutils.mutexify interrupt_m (fun () -> interrupt <- false) ();
-                on_disconnect ())
-        ()
+    method private disconnect_fn =
+      match container with
+        | None -> ()
+        | Some (input, _, _) ->
+            Tutils.mutexify interrupt_m (fun () -> interrupt <- true) ();
+            (try Av.close input
+             with exn ->
+               let bt = Printexc.get_backtrace () in
+               Utils.log_exception ~log:self#log ~bt
+                 (Printf.sprintf "Error while disconnecting: %s"
+                    (Printexc.to_string exn)));
+            container <- None;
+            source_status <- `Stopped;
+            Tutils.mutexify interrupt_m (fun () -> interrupt <- false) ();
+            on_disconnect ()
+
+    method private disconnect = self#mutexify (fun () -> self#disconnect_fn) ()
 
     method private reconnect =
       self#disconnect;
