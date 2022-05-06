@@ -335,6 +335,15 @@ else
 fi
 AC_SUBST(W_CUSTOM_PATH)
 
+AC_PATH_PROG(JS_OF_OCAML,js_of_ocaml,no)
+
+if test "$JS_OF_OCAML" != "no"; then
+  W_JS_OF_OCAML="yes"
+else
+  W_JS_OF_OCAML="no"
+fi
+AC_SUBST(W_JS_OF_OCAML)
+
 AC_PATH_PROG(PANDOC,pandoc)
 
 #
@@ -964,6 +973,7 @@ cat <<EOMSG
  OCAML_LFLAGS   : $liquidsoap_ocamllflags
  CFLAGS         : $CFLAGS
  LDFLAGS        : $LDFLAGS
+ JS             : $W_JS_OF_OCAML
  Pandoc         : $PANDOC
  ${BYTE_COMP}${CAMLP4O_COMP}
  ---------------------------------------------------------------- Installation
