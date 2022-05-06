@@ -173,13 +173,13 @@ The full syntax is as follows:
   # Or:
   %audio.raw(codec=<codec>,<option_name>=<option_value>,..),
   # Or:
-  %audio.copy,
+  %audio.copy(<option>),
   # Video section
   %video(codec=<codec>,<option_name>=<option_value>,..),
   # Or:
   %video.raw(codec=<codec>,<option_name>=<option_value>,..),
   # Or:
-  %video.copy,
+  %video.copy(<option>),
   # Generic options
   <option_name>=<option_value>,..
 )
@@ -202,6 +202,18 @@ The `%ffmpeg` encoder is the prime encoder for HLS output as it is the only one 
 Some encoding formats, for instance `mp4` require to rewing their stream and write a header after the fact, when encoding of the current track has finished. For historical reasons, such formats
 cannot be used with `output.file`. To remedy that, we have introduced the `output.url` operator. When using this operator, the encoder is fully in charge of the output file and can thus write headers
 after the fact. The `%ffmpeg` encoder is one such encoder that can be used with this operator.
+
+The `%audio.copy` and `%video.copy` encoders have two mutually exclusive options to handle keyframes:
+* `%audio.copy(wait_for_keyframe)` and `%video.copy(wait_for_keyframe)`: Wait until at least one keyframe has been passed to start passing encoded packets from a new stream.
+* `%audio.copy(ignore_keyframe)` and `%video.copy(ignore_keyframe)`: Ignore all keyframes.
+
+These options are useful when switching from one encoded stream to the next.
+
+With option `wait_for_keyframe`, the encoder discards any new packet at the beginning of a stream until a keyframe is passed. This means that playback will be paused until it can be resumed properly with no decoding glitches. This option is implemented globally when possible, i.e. in case of a video track with keyframes and an audio track with no keyframes, the audio track will discard packets until a video keyframe has been passed. This is the default option.
+
+With option `ignore_keyframe`, the encoder starts passing encoded data right away. Content is immediately added but playback might get stuck until a new keyframe is passed.
+
+It is worth noting that some audio encoders may also have keyframes.
 
 Ogg
 ---

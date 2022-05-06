@@ -46,6 +46,14 @@ let get_channel_layout channels =
           %d channels.."
          channels)
 
+let can_split stream =
+  let params = Av.get_codec_params stream in
+  match Avcodec.descriptor params with
+    | None -> fun () -> true
+    | Some { Avcodec.properties } when List.mem `Intra_only properties ->
+        fun () -> true
+    | _ -> fun () -> Av.was_keyframe stream
+
 (* This function optionally splits frames into [frame_size]
    and also adds PTS based on targeted [time_base], [sample_rate]
    and number of channel. *)
@@ -230,8 +238,6 @@ let mk_audio ~ffmpeg ~options output =
     (fun l v -> if Hashtbl.mem opts l then Some v else None)
     options;
 
-  let was_keyframe () = false in
-
   let frame_size =
     if List.mem `Variable_frame_size (Avcodec.capabilities codec) then None
     else Some (Av.get_frame_size stream)
@@ -253,7 +259,7 @@ let mk_audio ~ffmpeg ~options output =
 
   {
     Ffmpeg_encoder_common.mk_stream;
-    was_keyframe;
+    can_split = can_split stream;
     encode;
     codec_attr;
     bitrate;
@@ -354,8 +360,6 @@ let mk_video ~ffmpeg ~options output =
 
   let stream_time_base = Av.get_time_base stream in
 
-  let was_keyframe = ref false in
-
   let fps_converter ~stream_idx ~time_base frame =
     let converter =
       get_converter ~time_base ~stream_idx
@@ -372,8 +376,7 @@ let mk_video ~ffmpeg ~options output =
             (Ffmpeg_utils.best_pts frame)
         in
         Avutil.Frame.set_pts frame frame_pts;
-        Av.write_frame stream frame;
-        if Av.was_keyframe stream then was_keyframe := true)
+        Av.write_frame stream frame)
   in
 
   let internal_converter cb =
@@ -450,16 +453,11 @@ let mk_video ~ffmpeg ~options output =
       | _ -> assert false
   in
 
-  let encode =
-    was_keyframe := false;
-    converter fps_converter
-  in
-
-  let was_keyframe () = !was_keyframe in
+  let encode = converter fps_converter in
 
   {
     Ffmpeg_encoder_common.mk_stream;
-    was_keyframe;
+    can_split = can_split stream;
     encode;
     codec_attr;
     bitrate;

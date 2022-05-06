@@ -187,6 +187,8 @@ correct('%ffmpeg(
         frag_duration=10,
         %audio.copy,
         %video.copy)');
+correct('%ffmpeg(%audio.copy(ignore_keyframe), %video.copy(ignore_keyframe))');
+correct('%ffmpeg(%audio.copy(wait_for_keyframe), %video.copy(wait_for_keyframe))');
 
 # The following is not technically checking on type errors but runtime invalid values.
 section("INVALID VALUES");

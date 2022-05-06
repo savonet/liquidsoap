@@ -136,6 +136,15 @@ let ffmpeg_gen params =
       | Ground (Float f) -> f
       | _ -> raise (Lang_encoder.error ~pos:t.pos "float expected")
   in
+  let to_copy_opt t =
+    match t.value with
+      | Ground (String "wait_for_keyframe") -> `Wait_for_keyframe
+      | Ground (String "ignore_keyframe") -> `Ignore_keyframe
+      | _ ->
+          raise
+            (Lang_encoder.error ~pos:t.pos
+               ("Invalid value for copy encoder parameter: " ^ Value.to_string t))
+  in
   let rec parse_args ~format ~mode f = function
     | [] -> f
     (* Audio options *)
@@ -245,7 +254,10 @@ let ffmpeg_gen params =
   List.fold_left
     (fun f -> function
       | `Audio_none -> { f with Ffmpeg_format.audio_codec = None; channels = 0 }
-      | `Audio_copy -> { f with Ffmpeg_format.audio_codec = Some `Copy }
+      | `Audio_copy None ->
+          { f with Ffmpeg_format.audio_codec = Some (`Copy `Wait_for_keyframe) }
+      | `Audio_copy (Some t) ->
+          { f with Ffmpeg_format.audio_codec = Some (`Copy (to_copy_opt t)) }
       | `Audio_raw l ->
           let f = { f with Ffmpeg_format.audio_codec = Some (`Raw None) } in
           parse_args ~format:`Raw ~mode:`Audio f l
@@ -255,7 +267,10 @@ let ffmpeg_gen params =
           in
           parse_args ~format:`Internal ~mode:`Audio f l
       | `Video_none -> { f with Ffmpeg_format.video_codec = None }
-      | `Video_copy -> { f with Ffmpeg_format.video_codec = Some `Copy }
+      | `Video_copy None ->
+          { f with Ffmpeg_format.video_codec = Some (`Copy `Wait_for_keyframe) }
+      | `Video_copy (Some t) ->
+          { f with Ffmpeg_format.video_codec = Some (`Copy (to_copy_opt t)) }
       | `Video_raw l ->
           let f = { f with Ffmpeg_format.video_codec = Some (`Raw None) } in
           parse_args ~format:`Raw ~mode:`Video f l
@@ -280,6 +295,12 @@ let ffmpeg_gen params =
       | `Option (l, v) -> raise (Lang_encoder.generic_error (l, `Value v)))
     defaults params
 
+let copy_param = function
+  | [] -> None
+  | [("", t)] -> Some t
+  | [(l, v)] | _ :: (l, v) :: _ ->
+      raise (Lang_encoder.generic_error (l, `Value v))
+
 let make params =
   let params =
     List.map
@@ -292,11 +313,11 @@ let make params =
             in
             match e with
               | "audio.none" -> `Audio_none
-              | "audio.copy" -> `Audio_copy
+              | "audio.copy" -> `Audio_copy (copy_param p)
               | "audio.raw" -> `Audio_raw p
               | "audio" -> `Audio p
               | "video.none" -> `Video_none
-              | "video.copy" -> `Video_copy
+              | "video.copy" -> `Video_copy (copy_param p)
               | "video.raw" -> `Video_raw p
               | "video" -> `Video p
               | _ -> failwith "unknown subencoder")
