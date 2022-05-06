@@ -2,7 +2,7 @@
 
 .NOTPARALLEL: test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_video_size
 
-test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_filter test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_ffmpeg_raw_hls test_ffmpeg_inline_encode_decode_audio test_ffmpeg_inline_encode_decode_video test_ffmpeg_inline_encode_decode test_ffmpeg_distributed_hls test_ffmpeg_copy_concat test_video_size # test_stream_audio test_stream_video
+test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_filter test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_ffmpeg_raw_hls test_ffmpeg_inline_encode_decode_audio test_ffmpeg_inline_encode_decode_video test_ffmpeg_inline_encode_decode test_ffmpeg_distributed_hls test_ffmpeg_copy_concat test_video_size test_ffmpeg_transparency_filter # test_stream_audio test_stream_video
 
 AUDIO_TEST_FORMATS = \
   @flac(stereo).flac \
@@ -170,3 +170,14 @@ test_ffmpeg_complex_filter: files/audio/@mp3(stereo).mp3 files/audio/@mp3(mono).
 
 clean:
 	rm -rf files/
+
+files/background.jpg:
+	@mkdir -p files
+	ffmpeg -f lavfi -i testsrc=size=1280x720 -t 1 -f mjpeg $@
+
+files/logo.png:
+	@mkdir -p files
+	ffmpeg -f lavfi -i testsrc=size=50x50 -t 1 -f mjpeg $@
+
+test_ffmpeg_transparency_filter: files/background.jpg files/logo.png
+	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_transparency_filter.liq
