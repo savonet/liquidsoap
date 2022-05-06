@@ -6,8 +6,8 @@ GITHUB_SHA=$1
 BRANCH=$2
 DOCKER_TAG=$3
 PLATFORM=$4
-IS_RELEASE=$5
-DEB_RELEASE=3
+IS_ROLLING_RELEASE=$5
+DEB_RELEASE=1
 
 ARCH=`dpkg --print-architecture`
 
@@ -23,11 +23,13 @@ cd /tmp/liquidsoap-full/liquidsoap
 LIQ_VERSION=`opam show -f version . | cut -d'-' -f 1`
 LIQ_TAG=`echo ${DOCKER_TAG} | sed -e 's#_#-#g'`
 
-if [ -z "${IS_RELEASE}" ]; then
+if [ -n "${IS_ROLLING_RELEASE}" ]; then
+  LIQ_PACKAGE="liquidsoap-${COMMIT_SHORT}"
+elif [ -n "${IS_RELEASE}" ]; then
+  LIQ_PACKAGE="liquidsoap"
+else
   TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
   LIQ_PACKAGE="liquidsoap-${TAG}"
-else
-  LIQ_PACKAGE="liquidsoap"
 fi
 
 echo "Building ${LIQ_PACKAGE}.."

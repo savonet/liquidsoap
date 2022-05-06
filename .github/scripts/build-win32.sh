@@ -5,17 +5,28 @@ set -e
 SYSTEM=$1
 BRANCH=$2
 CPU_CORES=$3
+IS_ROLLING_RELEASE=$4
+GITHUB_SHA=$5
+
 OPAM_PREFIX=`opam var prefix`
+VERSION=`opam show -f version . | cut -d'-' -f 1`
 PWD=`dirname $0`
 BASE_DIR=`cd "${PWD}/../.." && pwd`
+COMMIT_SHORT=`echo "${GITHUB_SHA}" | cut -c-7`
+
+if [ -n "${IS_ROLLING_RELEASE}" ]; then
+  TAG=${COMMIT_SHORT}
+else
+  TAG=${BRANCH}
+fi
 
 if [ "${SYSTEM}" = "x64" ]; then
   HOST="x86_64-w64-mingw32.static"
-  BUILD="${BRANCH}-win64"
+  BUILD="${TAG}-${VERSION}-win64"
   PKG_CONFIG_PATH="/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/"
 else
   HOST="i686-w64-mingw32.static"
-  BUILD="${BRANCH}-win32"
+  BUILD="${TAG}-${VERSION}-win32"
   PKG_CONFIG_PATH="/usr/src/mxe/usr/i686-w64-mingw32.static/lib/pkgconfig/"
 fi
 

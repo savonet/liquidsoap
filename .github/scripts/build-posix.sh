@@ -4,13 +4,14 @@ set -e
 
 export CPU_CORES=$1
 
+PLATFORM=$2
+
 eval $(opam config env)
 
 cd /tmp/liquidsoap-full
 
 opam update
-opam remove -y ocamlsdl sdl-liquidsoap
-opam install -y tsdl-image.0.3.2 menhir.20211128
+opam install -y menhir.20211128
 
 echo "\n### Preparing bindings\n"
 
@@ -29,6 +30,10 @@ echo "\n### Checking out CI commit\n"
 cd liquidsoap
 git fetch origin $GITHUB_SHA
 git checkout $GITHUB_SHA
+mv .github /tmp
+rm -rf *
+mv /tmp/.github .
+git reset --hard
 
 echo "\n### Setting up specific dependencies\n"
 
@@ -50,3 +55,12 @@ echo "\n### Compiling\n"
 
 cd liquidsoap
 make -j $CPU_CORES
+
+if [ "${PLATFORM}" = "armhf" ]; then
+  exit 0;
+fi
+
+echo "\n### Basic tests\n"
+
+./src/liquidsoap --no-stdlib --version
+./src/liquidsoap --no-stdlib ./libs/stdlib.liq --check 'print("hello world")'

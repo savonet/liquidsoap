@@ -4,9 +4,10 @@ set -e
 
 eval $(opam config env)
 
-opam depext -yi menhir.20211128
-
 cd /tmp/liquidsoap-full
+
+opam update
+opam install -y menhir.20211128
 
 git remote set-url origin https://github.com/savonet/liquidsoap-full.git
 git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
@@ -21,6 +22,10 @@ make update
 cd liquidsoap
 git fetch origin $GITHUB_SHA
 git checkout $GITHUB_SHA
+mv .github /tmp
+rm -rf *
+mv /tmp/.github .
+git reset --hard
 
 ./.github/scripts/checkout-deps.sh
 
