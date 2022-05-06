@@ -602,10 +602,10 @@ let () =
     { Frame.audio = `Any; video = raw_video_format; midi = `Any }
   in
   let audio_t =
-    Lang.(source_t ~methods:true (kind_type_of_kind_format audio_frame))
+    Lang.(source_t ~methods:false (kind_type_of_kind_format audio_frame))
   in
   let video_t =
-    Lang.(source_t ~methods:true (kind_type_of_kind_format video_frame))
+    Lang.(source_t ~methods:false (kind_type_of_kind_format video_frame))
   in
 
   Lang.add_builtin ~category:`Filter "ffmpeg.filter.audio.input"
