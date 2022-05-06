@@ -204,6 +204,7 @@ cannot be used with `output.file`. To remedy that, we have introduced the `outpu
 after the fact. The `%ffmpeg` encoder is one such encoder that can be used with this operator.
 
 The `%audio.copy` and `%video.copy` encoders have two mutually exclusive options to handle keyframes:
+
 * `%audio.copy(wait_for_keyframe)` and `%video.copy(wait_for_keyframe)`: Wait until at least one keyframe has been passed to start passing encoded packets from a new stream.
 * `%audio.copy(ignore_keyframe)` and `%video.copy(ignore_keyframe)`: Ignore all keyframes.
 
