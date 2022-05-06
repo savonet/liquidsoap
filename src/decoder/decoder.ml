@@ -316,6 +316,7 @@ let get_file_decoder ~metadata ~ctype filename =
     try
       List.iter
         (fun (name, specs) ->
+          log#info "Trying decoder %S" name;
           try
             match specs.file_type ~ctype filename with
               | Some decoded_type ->
@@ -376,7 +377,8 @@ let get_image_file_decoder filename =
               raise Stdlib.Exit
           | None -> ())
       (get_image_file_decoders ());
-    log#important "Unable to decode %s!" (Utils.quote_string filename);
+    log#important "Unable to decode %s using image decoder(s)!"
+      (Utils.quote_string filename);
     !ans
   with Exit -> !ans
 
