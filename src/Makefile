@@ -353,6 +353,8 @@ depend: $(liquidsoap_sources) $(liquidsoap_headers)
 
 include depend
 
+# Main binary
+
 dllliquidsoap.so: $(liquidsoap_c_files:.c=.o)
 	$(V)echo OCAMLMKLIB -o dllliquidsoap.so
 	$(V)$(OCAMLMKLIB) -o liquidsoap $(liquidsoap_c_files:.c=.o)
@@ -374,12 +376,19 @@ liquidsoap$(EXEEXT): $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
 	$(V)echo $(OCAMLCOMP) -o liquidsoap$(EXEEXT)
 	$(V)$(OCAMLC) -o liquidsoap$(EXEEXT) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) $(_OCAML_LFLAGS) $(OCAML_LFLAGS) $(liquidsoap_sources:.ml=.$(o)) $(c_link)
 
+# Library
+
 lib: liquidsoap.cmxa
 
 liquidsoap_lib_sources = $(filter-out main.ml runner.ml, $(liquidsoap_sources))
 
 liquidsoap.$(a): $(liquidsoap_sources:.ml=.$(o)) $(c_objs)
 	$(OCAMLC) -a -o $@ $(_OCAML_CFLAGS) $(OCAML_CFLAGS) $(OCAML_LFLAGS) $(liquidsoap_lib_sources:.ml=.$(o)) $(c_link)
+
+# Javascript
+
+js:
+	$(MAKE) -f Makefile.js
 
 # Generic rules
 
