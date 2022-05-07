@@ -3,9 +3,9 @@
 
 log.level.set(4)
 
-background = single("/tmp/transparent/background.jpg")
-playlist = playlist("/tmp/transparent/playlist")
-logo = single("/tmp/transparent/logo.png")
+background = single("files/background.jpg")
+playlist = single("files/audio/@mp3(stereo).mp3")
+logo = single("files/logo.png")
 out = "files/transparency.mp4"
 
 def logo_overlay(background, logo) =

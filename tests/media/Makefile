@@ -179,5 +179,5 @@ files/logo.png:
 	@mkdir -p files
 	ffmpeg -f lavfi -i testsrc=size=50x50 -t 1 -f mjpeg $@
 
-test_ffmpeg_transparency_filter: files/background.jpg files/logo.png
+test_ffmpeg_transparency_filter: files/audio/@mp3(stereo).mp3 files/background.jpg files/logo.png
 	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_transparency_filter.liq
