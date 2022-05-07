@@ -510,7 +510,7 @@ jobs:
           files:  ${{ env.RELEASE_ASSETS }}
           repository: savonet/liquidsoap-release-assets
           prerelease:  ${{ needs.build_details.outputs.is_rolling_release }}
-          body: ${{ env.RELEASE_NOTES }}
+          body_path: doc/content/release-assets.md
           draft: ${{ !needs.build_details.outputs.is_rolling_release }}
 
   build_docker:
