@@ -248,7 +248,7 @@ builtins = \
         $(if $(W_LASTFM),builtins/builtins_lastfm.ml) \
         $(if $(W_PROMETHEUS),builtins/builtins_prometheus.ml) \
         builtins/builtins_ffmpeg_base.ml \
-        $(if $(W_FFMPEG),builtins/builtins_ffmpeg_encoder.ml builtins/builtins_ffmpeg_decoder.ml builtins/builtins_ffmpeg_filters.ml) \
+        $(if $(W_FFMPEG),builtins/builtins_ffmpeg_encoder.ml builtins/builtins_ffmpeg_decoder.ml builtins/builtins_ffmpeg_filters.ml builtins/builtins_ffmpeg_bitstream_filters.ml) \
 	$(if $(W_IRC),builtins/builtins_irc.ml)
 # $(if $(W_MEM_USAGE),builtins/builtins_mem_usage.ml) \
 

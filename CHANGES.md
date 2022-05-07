@@ -13,6 +13,7 @@ New:
   converted to `JSON`. `infinite` and `nan` floats can be exported using the
   `json5` export format.
 - Added socket API (#2014).
+- Added support for ffmpeg bitstream filters (#2387)
 - Added `liquidsoap.version.at_least`.
 - Added `video.rectangle`, `video.persistence`.
 - Added `video.vumeter`.

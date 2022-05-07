@@ -208,7 +208,6 @@ module Duration = struct
             Int64.to_int (convert_time_base ~src ~dst d)
         | _, None -> 0
     in
-    let packets = packets in
     if duration > 0 then (
       t.packets <- [(0, packet)];
       Some (duration, packets))
