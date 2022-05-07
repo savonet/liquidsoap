@@ -32,6 +32,13 @@ See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.ht
 
 ## Release Details
 
+Current release status by version:
+| Branch  | Latest release | Supported | Rolling Release |
+| --------|----------------|-----------|-----------------|
+| `2.1.x` | In development | ✅        |                 |
+| `2.0.x` | [2.0.4](https://github.com/savonet/liquidsoap/releases/tag/v2.0.4)        | ✅        | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
+| `1.4.x` | [1.4.4](https://github.com/savonet/liquidsoap/releases/tag/v1.4.4)        | ❌        | ❌              |
+
 ### Versions
 
 Liquidsoap releases follow a semantic versioning as follows:
