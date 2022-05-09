@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Liquidsoap</title>
+    <meta http-equiv="Content-type" content="text/html;charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="liquidsoap.css"/>
+    <script type="text/javascript" src="liquidsoap.js"></script>
+  </head>
+  <body>
+    <h1>Liquidsoap</h1>
+    <p style="text-align: center">
+      The interactive mode of Liquidsoap, online.
+    </p>
+
+    <div id="toplevel"></div>
+    <script type="text/javascript">
+      function ku(event) {
+        if (event.keyCode == 13)
+          document.getElementById("send").click();
+      }
+      function init() {
+        document.getElementById("input").onkeyup = ku;
+      }
+    </script>
+  </body>
+</html>
