@@ -3,7 +3,7 @@ name: Build online mode
 on: [push]
 
 jobs:
-  build_doc:
+  build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -11,7 +11,7 @@ jobs:
     - name: Setup OCaml
       uses: avsm/setup-ocaml@v2
     - name: Install packages
-      run: opam install -y js_of_ocaml js_of_ocaml-ppx
+      run: opam install -y ocamlfind js_of_ocaml js_of_ocaml-ppx
     - name: Build
       run: make -C src/online
     - name: Generate website
