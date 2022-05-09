@@ -1,0 +1,29 @@
+name: Build online mode
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_doc:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup OCaml
+      uses: avsm/setup-ocaml@v2
+    - name: Install packages
+      run: opam install -y js_of_ocaml js_of_ocaml-ppx
+    - name: Build
+      run: make -C src/online
+    - name: Generate website
+      run: |
+        mkdir /tmp/website
+        mkdir /tmp/website/online
+        cp src/online/*.html src/online/*.css src/online/*.js /tmp/website/online
+    - name: Deploy doc
+      uses: JamesIves/github-pages-deploy-action@4.1.6
+      with:
+        branch: gh-pages
+        folder: /tmp/website
