@@ -13,7 +13,7 @@ jobs:
     - name: Install packages
       run: opam install -y ocamlfind js_of_ocaml js_of_ocaml-ppx
     - name: Build
-      run: make -C src/online
+      run: eval $(opam env) && make -C src/online
     - name: Generate website
       run: |
         mkdir /tmp/website
