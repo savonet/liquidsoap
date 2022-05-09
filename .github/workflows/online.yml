@@ -1,9 +1,6 @@
 name: Build online mode
 
-on:
-  push:
-    branches:
-      - main
+on: [push]
 
 jobs:
   build_doc:
