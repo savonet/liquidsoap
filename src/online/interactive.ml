@@ -62,6 +62,8 @@ let run _ =
     cmd
   in
 
+  (* Runtime.print := print; *)
+
   (* TODO: fill me in *)
   let loop s = print ("Just read: " ^ s ^ "!\n") in
 
