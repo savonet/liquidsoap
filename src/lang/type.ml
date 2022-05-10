@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Show debugging information. *)
-let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
+let debug = ref (Sys.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
 
 (** Show variables levels. *)
 let debug_levels = ref false

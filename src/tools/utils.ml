@@ -39,12 +39,6 @@ let resolve_path ?cwd path =
   let cwd = match cwd with None -> Sys.getcwd () | Some cwd -> cwd in
   if Filename.is_relative path then Filename.concat cwd path else path
 
-(* Getenv with default value. *)
-let getenv ~default value = try Sys.getenv value with Not_found -> default
-
-(* Getenv with option result. *)
-let getenv_opt value = try Some (Sys.getenv value) with Not_found -> None
-
 (* Several list utilities *)
 
 let rec prefix p l =
@@ -509,7 +503,7 @@ let rec mkdir ~perm dir =
 
 (** Expand ~ notation in filenames. *)
 let home_unrelate =
-  let home = getenv_opt "HOME" in
+  let home = Sys.getenv_opt "HOME" in
   let unrel s =
     let len = String.length s in
     if len < 2 then (match home with Some h when s = "~" -> h | _ -> s)
@@ -531,8 +525,8 @@ let home_unrelate =
   unrel
 
 let get_tempdir () =
-  if Sys.win32 then getenv ~default:"C:\\temp" "TEMP"
-  else getenv ~default:"/tmp" "TMPDIR"
+  if Sys.win32 then Option.value (Sys.getenv_opt "TEMP") ~default:"C:\\temp"
+  else Option.value (Sys.getenv_opt "TMPDIR") ~default:"/tmp"
 
 (** Decode Base64-encoded data *)
 let decode64 s =

@@ -141,7 +141,7 @@ and 'a link_t =
       (** the clock variable is unknown but depends on other variables *)
   | Same_as of 'a var  (** the clock variable is substituted by another *)
 
-let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG" <> None
+let debug = Sys.getenv_opt "LIQUIDSOAP_DEBUG" <> None
 let create_known c = Known c
 
 let create_unknown ~sources ~sub_clocks =
