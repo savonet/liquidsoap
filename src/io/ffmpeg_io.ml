@@ -85,7 +85,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     method source_status = source_status
 
-    method private connect_fn () =
+    method private connect_task () =
       try
         source_status <- `Polling;
         let opts = Hashtbl.copy opts in
@@ -133,20 +133,19 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         if debug then raise e;
         poll_delay
 
-    method private connect =
-      self#mutexify
-        (fun () ->
-          if container = None then (
-            match connect_task with
-              | Some t -> Duppy.Async.wake_up t
-              | None ->
-                  let t =
-                    Duppy.Async.add ~priority:`Blocking Tutils.scheduler
-                      self#connect_fn
-                  in
-                  connect_task <- Some t;
-                  Duppy.Async.wake_up t))
-        ()
+    method private connect_fn =
+      if container = None then (
+        match connect_task with
+          | Some t -> Duppy.Async.wake_up t
+          | None ->
+              let t =
+                Duppy.Async.add ~priority:`Blocking Tutils.scheduler
+                  self#connect_task
+              in
+              connect_task <- Some t;
+              Duppy.Async.wake_up t)
+
+    method private connect = self#mutexify (fun () -> self#connect_fn) ()
 
     method private disconnect_fn =
       match container with
@@ -167,8 +166,11 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private disconnect = self#mutexify (fun () -> self#disconnect_fn) ()
 
     method private reconnect =
-      self#disconnect;
-      self#connect
+      self#mutexify
+        (fun () ->
+          self#disconnect_fn;
+          self#connect_fn)
+        ()
 
     val mutable last_metadata = []
 

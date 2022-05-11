@@ -43,7 +43,8 @@ type handler = {
 type stream_data = {
   idx : Int64.t;
   mutable last_start : Int64.t;
-  mutable waiting_for_keyframe : bool;
+  mutable ready_count : int;
+  mutable ready : bool;
 }
 
 module Stream = Weak.Make (struct
@@ -65,14 +66,24 @@ end)
    Also, if one or more stream is waiting for a key frame,
    we make the whole set of streams wait for the first key
    frame. This makes sure that we avoid e.g. starting an
-   audio track with no keyframe before the video has started *)
-let mk_stream_store () =
+   audio track with no keyframe before the video has started. *)
+let mk_stream_store total_count =
   let store = Stream.create 1 in
-  fun ~last_start ~waiting_for_keyframe idx ->
-    let data = Stream.merge store { idx; last_start; waiting_for_keyframe } in
-    data.waiting_for_keyframe <- waiting_for_keyframe;
+  let add ~last_start ~ready idx =
+    let data =
+      Stream.merge store { idx; ready_count = 0; last_start; ready = false }
+    in
+    if ready then data.ready_count <- data.ready_count + 1;
+    if data.ready_count = total_count then data.ready <- true;
     if data.last_start < last_start then data.last_start <- last_start;
     data
+  in
+  let remove data =
+    let data = Stream.merge store data in
+    if data.ready_count = 1 then Stream.remove store data
+    else data.ready_count <- data.ready_count - 1
+  in
+  (add, remove)
 
 let mk_format ffmpeg =
   match (ffmpeg.Ffmpeg_format.format, ffmpeg.Ffmpeg_format.output) with

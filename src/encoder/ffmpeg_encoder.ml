@@ -29,14 +29,23 @@ let () =
     | Encoder.Ffmpeg m ->
         Some
           (fun _ ->
-            let get_stream = mk_stream_store () in
+            let copy_count =
+              (match m.Ffmpeg_format.audio_codec with
+                | Some (`Copy _) -> 1
+                | _ -> 0)
+              +
+              match m.Ffmpeg_format.video_codec with
+                | Some (`Copy _) -> 1
+                | _ -> 0
+            in
+            let get_stream, remove_stream = mk_stream_store copy_count in
             let mk_audio =
               match m.Ffmpeg_format.audio_codec with
                 | Some (`Copy keyframe_opt) ->
                     fun ~ffmpeg:_ ~options:_ ->
                       Ffmpeg_copy_encoder.mk_stream_copy
                         ~video_size:(fun _ -> None)
-                        ~get_stream ~keyframe_opt
+                        ~get_stream ~remove_stream ~keyframe_opt
                         ~get_data:(fun frame ->
                           Ffmpeg_copy_content.Audio.get_data (Frame.audio frame))
                 | None | Some (`Internal (Some _)) | Some (`Raw (Some _)) ->
@@ -62,7 +71,7 @@ let () =
                           params
                       in
                       Ffmpeg_copy_encoder.mk_stream_copy ~video_size ~get_stream
-                        ~get_data ~keyframe_opt
+                        ~remove_stream ~get_data ~keyframe_opt
                 | None | Some (`Internal (Some _)) | Some (`Raw (Some _)) ->
                     Ffmpeg_internal_encoder.mk_video
                 | Some (`Internal None) ->

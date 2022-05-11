@@ -27,6 +27,7 @@ let () = Lang.add_module "ffmpeg.filter.bitstream"
 
 type 'a handler = {
   stream_idx : int64;
+  filter : 'a Avcodec.BitstreamFilter.t;
   params : 'a Avcodec.params;
   time_base : Avutil.rational;
   duration_converter : 'a Avcodec.Packet.t Ffmpeg_utils.Duration.t;
@@ -81,17 +82,31 @@ let process (type a) ~put_data ~(lift_data : a lift_data) ~generator
   let data = lift_data data in
   put_data ?pts:None generator data 0 duration
 
+let flush_filter ~generator ~put_data ~lift_data handler =
+  let rec f () =
+    match
+      Ffmpeg_utils.Duration.push handler.duration_converter
+        (Avcodec.BitstreamFilter.receive_packet handler.filter)
+    with
+      | None -> f ()
+      | Some v ->
+          process ~put_data ~lift_data ~generator handler v;
+          f ()
+      | (exception Avutil.Error `Eagain) | (exception Avutil.Error `Eof) -> ()
+  in
+  f ()
+
 let flush (type a) ~put_data ~(lift_data : a lift_data) ~generator
     (handler : a handler option) =
   match handler with
     | None -> ()
     | Some h ->
+        Avcodec.BitstreamFilter.send_eof h.filter;
+        flush_filter ~put_data ~lift_data ~generator h;
         process ~put_data ~lift_data ~generator h
           (0, Ffmpeg_utils.Duration.flush h.duration_converter)
 
 let on_data (type a)
-    ~(get_filter :
-       a Avcodec.params -> a Avcodec.BitstreamFilter.t * a Avcodec.params)
     ~(get_handler :
        stream_idx:int64 ->
        time_base:Avutil.rational ->
@@ -101,65 +116,48 @@ let on_data (type a)
       ( a Avcodec.params option,
         a Ffmpeg_copy_content.packet )
       Ffmpeg_content_base.content) =
-  let filter, params = get_filter (Option.get params) in
   List.iter
     (fun (_, { Ffmpeg_copy_content.stream_idx; time_base; packet }) ->
-      let handler = get_handler ~stream_idx ~time_base params in
-      Avcodec.BitstreamFilter.send_packet filter packet;
-      let rec f () =
-        try
-          match
-            Ffmpeg_utils.Duration.push handler.duration_converter
-              (Avcodec.BitstreamFilter.receive_packet filter)
-          with
-            | None -> f ()
-            | Some v ->
-                process ~put_data ~lift_data ~generator handler v;
-                f ()
-        with Avutil.Error `Eagain -> ()
-      in
-      f ())
+      let handler = get_handler ~stream_idx ~time_base (Option.get params) in
+      Avcodec.BitstreamFilter.send_packet handler.filter packet;
+      flush_filter ~put_data ~lift_data ~generator handler)
     data
 
 let mk_filter ~opts ~filter = Avcodec.BitstreamFilter.init ~opts filter
 
-let get_filter ~opts () =
-  let filter = ref None in
-  fun params ->
-    match !filter with
-      | None ->
-          let f = mk_filter ~opts params in
-          filter := Some f;
-          f
-      | Some f -> f
-
-let mk_handler (type a) ~stream_idx ~time_base (params : a Avcodec.params) =
+let mk_handler (type a) ~stream_idx ~time_base
+    ~(filter : a Avcodec.BitstreamFilter.t) (params : a Avcodec.params) =
   {
     stream_idx;
+    filter;
     params;
     time_base;
     duration_converter =
       Ffmpeg_utils.Duration.init ~src:time_base ~get_ts:Avcodec.Packet.get_dts;
   }
 
-let handler_getters (type a) ~put_data ~(lift_data : a lift_data) ~generator =
+let handler_getters (type a) ~put_data ~(lift_data : a lift_data) ~generator
+    ~filter ~filter_opts =
   let handler : a handler option ref = ref None in
   let current_handler () : a handler option = !handler in
+  let clear_handler () = handler := None in
   let get_handler ~stream_idx ~time_base (params : a Avcodec.params) =
     match !handler with
       | None ->
-          let h = mk_handler ~stream_idx ~time_base params in
+          let filter, params = mk_filter ~filter ~opts:filter_opts params in
+          let h = mk_handler ~stream_idx ~time_base ~filter params in
           handler := Some h;
           (h : a handler)
       | Some h ->
           if h.stream_idx <> stream_idx then (
             flush ~put_data ~lift_data ~generator (Some h);
-            let h = mk_handler ~stream_idx ~time_base params in
+            let filter, params = mk_filter ~filter ~opts:filter_opts params in
+            let h = mk_handler ~stream_idx ~time_base ~filter params in
             handler := Some h;
             (h : a handler))
           else (h : a handler)
   in
-  (current_handler, get_handler)
+  (current_handler, get_handler, clear_handler)
 
 let () =
   List.iter
@@ -218,7 +216,7 @@ let () =
 
               let generator = Generator.create `Both in
 
-              let opts = args_of_args (args_parser p []) in
+              let filter_opts = args_of_args (args_parser p []) in
 
               let encode_frame =
                 let flush, process =
@@ -226,13 +224,14 @@ let () =
                     | `Audio | `Audio_only ->
                         let put_data = Generator.put_audio in
                         let lift_data = Ffmpeg_copy_content.Audio.lift_data in
-                        let get_filter = get_filter ~opts ~filter () in
-                        let current_handler, get_handler =
+                        let current_handler, get_handler, clear_handler =
                           handler_getters ~lift_data ~put_data ~generator
+                            ~filter ~filter_opts
                         in
                         let flush () =
                           flush ~lift_data ~put_data ~generator
-                            (current_handler ())
+                            (current_handler ());
+                          clear_handler ()
                         in
                         ( flush,
                           fun frame ->
@@ -240,20 +239,20 @@ let () =
                             Generator.put_video generator
                               (Content.copy (Frame.video frame))
                               0 pos;
-                            on_data ~get_filter ~get_handler ~put_data
-                              ~lift_data ~generator
+                            on_data ~get_handler ~put_data ~lift_data ~generator
                               (Ffmpeg_copy_content.Audio.get_data
                                  (Content.sub (Frame.audio frame) 0 pos)) )
                     | `Video | `Video_only ->
                         let put_data = Generator.put_video in
                         let lift_data = Ffmpeg_copy_content.Video.lift_data in
-                        let get_filter = get_filter ~opts ~filter () in
-                        let current_handler, get_handler =
+                        let current_handler, get_handler, clear_handler =
                           handler_getters ~lift_data ~put_data ~generator
+                            ~filter ~filter_opts
                         in
                         let flush () =
                           flush ~lift_data ~put_data ~generator
-                            (current_handler ())
+                            (current_handler ());
+                          clear_handler ()
                         in
                         ( flush,
                           fun frame ->
@@ -261,8 +260,7 @@ let () =
                             Generator.put_audio generator
                               (Content.copy (Frame.audio frame))
                               0 pos;
-                            on_data ~get_filter ~get_handler ~put_data
-                              ~lift_data ~generator
+                            on_data ~get_handler ~put_data ~lift_data ~generator
                               (Ffmpeg_copy_content.Video.get_data
                                  (Content.sub (Frame.video frame) 0 pos)) )
                 in
@@ -287,8 +285,7 @@ let () =
                   ~source ()
               in
               new Producer_consumer.producer
-                ~check_self_sync:false
-                ~consumers_val:[Lang.source (consumer :> Source.source)]
-                ~kind ~name:(name ^ ".producer") generator))
+                ~check_self_sync:false ~consumers:[consumer] ~kind
+                ~name:(name ^ ".producer") generator))
         modes)
     Avcodec.BitstreamFilter.filters

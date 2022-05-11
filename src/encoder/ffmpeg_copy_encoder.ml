@@ -27,7 +27,8 @@ open Ffmpeg_encoder_common
 
 let log = Log.make ["ffmpeg"; "copy"; "encoder"]
 
-let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
+let mk_stream_copy ~video_size ~get_stream ~remove_stream ~keyframe_opt
+    ~get_data output =
   let stream = ref None in
   let video_size_ref = ref None in
   let codec_attr = ref None in
@@ -62,69 +63,89 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
   in
 
   let current_position = ref 0L in
-  let current_stream =
-    ref { idx = 0L; last_start = 0L; waiting_for_keyframe = false }
-  in
+  let current_stream = ref (get_stream ~last_start:0L ~ready:false 0L) in
+  let stream_started = ref false in
   let offset = ref 0L in
 
   let was_keyframe = ref false in
-  let keyframe_action = ref `Ignore in
+  let waiting_for_keyframe = ref false in
   let last_dts = ref None in
 
-  let check_stream ~packet ~time_base stream_idx =
-    let to_main = Option.map (to_main_time_base ~time_base) in
-    let dts = to_main (Avcodec.Packet.get_dts packet) in
-    let duration = to_main (Avcodec.Packet.get_duration packet) in
+  (* [true] if we should process new packets for this stream *)
+  let check_stream ~packet stream_idx =
     if !current_stream.idx <> stream_idx then (
-      offset := Option.value ~default:0L dts;
-      let last_start = Int64.sub !current_position !offset in
-      (match (keyframe_opt, !intra_only) with
-        | _, true -> keyframe_action := `Ignore
-        | `Wait_for_keyframe, _ -> keyframe_action := `Wait
-        | `Ignore_keyframe, _ -> keyframe_action := `Ignore);
+      waiting_for_keyframe :=
+        keyframe_opt = `Wait_for_keyframe && not !intra_only;
+      remove_stream !current_stream;
+      (* Mark the stream as ready if it is not waiting for keyframes. *)
       current_stream :=
-        get_stream ~last_start
-          ~waiting_for_keyframe:(!keyframe_action = `Wait)
-          stream_idx);
-    ignore
-      (Option.map
-         (fun dts ->
-           current_position := Int64.add dts !current_stream.last_start)
-         dts);
-    ignore
-      (Option.map
-         (fun duration ->
-           current_position := Int64.add !current_position duration)
-         duration)
+        get_stream ~last_start:0L ~ready:(not !waiting_for_keyframe) stream_idx;
+      stream_started := false);
+    let is_keyframe = List.mem `Keyframe Avcodec.Packet.(get_flags packet) in
+    if !waiting_for_keyframe then is_keyframe
+    else !stream_started || !current_stream.ready
   in
-  let adjust_ts ~time_base =
-    Option.map (fun ts ->
-        Int64.add (to_main_time_base ~time_base ts) !current_stream.last_start)
+
+  let begin_stream ~dts idx =
+    offset := Option.value ~default:0L dts;
+    let last_start = Int64.sub !current_position !offset in
+    (* Mark the stream as ready if it was waiting for keyframes. *)
+    current_stream := get_stream ~last_start ~ready:!waiting_for_keyframe idx;
+    stream_started := true;
+    waiting_for_keyframe := false
+  in
+
+  let adjust_ts =
+    Option.map (fun ts -> Int64.add ts !current_stream.last_start)
   in
 
   let check_dts dts =
+    let offset =
+      if !stream_started then !current_stream.last_start
+      else Int64.sub !current_position (Option.value ~default:0L dts)
+    in
     match (dts, !last_dts) with
       | None, _ ->
           log#important "Dropping packet with no dts!";
           false
-      | Some d, Some d' when d <= d' ->
+      | Some d, Some d' when Int64.add offset d <= d' ->
           log#important "Dropping packet with non-monotomic dts!";
           false
       | _ -> true
   in
 
-  let push ~time_base ~stream packet =
-    let packet_pts = adjust_ts ~time_base (Avcodec.Packet.get_pts packet) in
-    let packet_dts = adjust_ts ~time_base (Avcodec.Packet.get_dts packet) in
+  let push ~time_base ~stream ~idx packet =
+    let to_main = to_main_time_base ~time_base in
+    let pts = Option.map to_main (Avcodec.Packet.get_pts packet) in
+    let dts = Option.map to_main (Avcodec.Packet.get_dts packet) in
+    let duration = Option.map to_main (Avcodec.Packet.get_duration packet) in
 
-    if check_dts packet_dts then (
+    if check_dts dts then (
+      if not !stream_started then begin_stream ~dts idx;
+
+      let pts = adjust_ts pts in
+      let dts = adjust_ts dts in
+
+      ignore
+        (Option.map
+           (fun dts ->
+             current_position := Int64.add dts !current_stream.last_start)
+           dts);
+      ignore
+        (Option.map
+           (fun duration ->
+             current_position := Int64.add !current_position duration)
+           duration);
+
+      last_dts := dts;
+
+      if List.mem `Keyframe Avcodec.Packet.(get_flags packet) then
+        was_keyframe := true;
+
       let packet = Avcodec.Packet.dup packet in
-      last_dts := packet_dts;
-
-      Packet.set_pts packet packet_pts;
-      Packet.set_dts packet packet_dts;
-      Packet.set_duration packet
-        (Option.map (to_main_time_base ~time_base) (Packet.get_duration packet));
+      Packet.set_pts packet pts;
+      Packet.set_dts packet dts;
+      Packet.set_duration packet duration;
 
       Av.write_packet stream main_time_base packet)
   in
@@ -138,20 +159,9 @@ let mk_stream_copy ~video_size ~get_stream ~keyframe_opt ~get_data output =
     List.iter
       (fun (pos, { Ffmpeg_copy_content.packet; time_base; stream_idx }) ->
         let stream = Option.get !stream in
-        if start <= pos && pos < stop then (
-          check_stream ~packet ~time_base stream_idx;
-          if List.mem `Keyframe Avcodec.Packet.(get_flags packet) then
-            was_keyframe := true;
-          (match !keyframe_action with
-            | `Ignore -> ()
-            | `Wait ->
-                if !was_keyframe then (
-                  !current_stream.waiting_for_keyframe <- false;
-                  keyframe_action := `Ignore));
-          if
-            !keyframe_action = `Ignore
-            && not !current_stream.waiting_for_keyframe
-          then push ~time_base ~stream packet))
+        if start <= pos && pos < stop then
+          if check_stream ~packet stream_idx then
+            push ~time_base ~stream ~idx:stream_idx packet)
       data
   in
 
