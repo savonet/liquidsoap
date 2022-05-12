@@ -7,6 +7,9 @@ Fixed:
 * Drop methods from ffmpeg filter input source
   types to avoid unecessary conflicts.
 * Fix evaluation of abstract values with methods.
+* Prevent some sources from being consumed when not active,
+  namely ffmpeg inline encoders, `soundtouch`, `resample` and all
+  the muxing operators.
 
 ---
 2.0.4 (23-04-2022)

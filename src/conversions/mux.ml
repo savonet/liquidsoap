@@ -81,9 +81,7 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   in
   let producer =
     new producer (* We are expecting real-rate with a couple of hickups.. *)
-      ~check_self_sync:false
-      ~consumers_val:
-        (List.map (fun c -> Lang.source (c :> Source.source)) [main; aux])
+      ~check_self_sync:false ~consumers:[main; aux]
       ~kind:(Source.Kind.of_kind Lang.any)
       ~name g
   in
