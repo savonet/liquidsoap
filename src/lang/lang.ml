@@ -578,7 +578,9 @@ module MkAbstract (Def : AbstractDef) = struct
   let to_value c = mk (Term.Value.Ground (Value c))
 
   let of_value t =
-    match t.value with Term.Value.Ground (Value c) -> c | _ -> assert false
+    match (demeth t).value with
+      | Term.Value.Ground (Value c) -> c
+      | _ -> assert false
 
   let is_value t =
     match t.value with Term.Value.Ground (Value _) -> true | _ -> false

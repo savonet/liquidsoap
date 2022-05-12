@@ -4,6 +4,9 @@
 Fixed:
 * Allow crossfade duration override of `0.`
 * Buffer synchronization issues.
+* Drop methods from ffmpeg filter input source
+  types to avoid unecessary conflicts.
+* Fix evaluation of abstract values with methods.
 
 ---
 2.0.4 (23-04-2022)
