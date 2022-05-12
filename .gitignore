@@ -15,6 +15,7 @@ src/configure.ml
 *.cm*
 *.o
 *~
+*.a
 src/auto_clean
 src/lang/parser.ml
 src/lang/parser.mli
