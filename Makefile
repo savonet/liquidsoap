@@ -29,7 +29,7 @@ distclean:
 	rm -rf config.log config.status autom4te.cache src/configure.ml scripts/liquidsoap.logrotate liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
-	@$(MAKE) -C src/test
+	@$(MAKE) -C src/test $@
 	@$(MAKE) -C tests $@
 
 .PHONY: clean test distclean doc finish-configure
