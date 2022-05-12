@@ -22,16 +22,56 @@
 
 module Generator = Generator.From_audio_video
 
+type write_payload = [ `Frame of Frame.t | `Flush ]
+type write_frame = write_payload -> unit
+
+let write_to_buffer ~content g = function
+  | `Frame frame ->
+      Generator.feed_from_frame ~mode:content g frame;
+      let excess = Generator.length g - Lazy.force Frame.size in
+      if 0 < excess then Generator.remove g excess
+  | `Flush -> ()
+
+(* This here is tricky:
+ * - We want to use the output API to have a method for
+ *   generating data when calling a clock tick.
+ * - We want to opt-out of the generic child_process
+ *   clock animation framework.
+ * Thus, we manually mark this operator as ready only
+ * before we're about to pull from it. *)
+class consumer ~write_frame ~name ~kind ~source () =
+  let s = Lang.to_source source in
+  let infallible = s#stype = `Infallible in
+  let noop () = () in
+  object
+    inherit
+      Output.output
+        ~content_kind:kind ~output_kind:name ~infallible ~on_start:noop
+          ~on_stop:noop source true as super
+
+    val mutable is_ready = false
+    method set_is_ready v = is_ready <- v
+    method is_ready = is_ready && super#is_ready
+    method is_output_ready = super#is_ready
+    method reset = ()
+    method start = ()
+    method stop = write_frame `Flush
+    method private send_frame frame = write_frame (`Frame frame)
+  end
+
 (** The source which produces data by reading the buffer.
     We do NOT want to use [operator] here b/c the [consumers]
     may have different content-kind when this is used in the muxers. *)
-class producer ~check_self_sync ~consumers_val ~name ~kind g =
-  let consumers = List.map Lang.to_source consumers_val in
+class producer ~check_self_sync ~consumers ~name ~kind g =
   let infallible = List.for_all (fun s -> s#stype = `Infallible) consumers in
   let self_sync_type = Utils.self_sync_type consumers in
   object (self)
     inherit Source.source kind ~name as super
-    inherit Child_support.base ~check_self_sync consumers_val as child_support
+
+    inherit
+      Child_support.base
+        ~check_self_sync
+        (List.map (fun s -> Lang.source (s :> Source.source)) consumers) as child_support
 
     method self_sync =
       ( Lazy.force self_sync_type,
@@ -44,7 +84,7 @@ class producer ~check_self_sync ~consumers_val ~name ~kind g =
         | -1 -> -1
         | r -> Generator.remaining g + r
 
-    method is_ready = List.for_all (fun c -> c#is_ready) consumers
+    method is_ready = List.for_all (fun c -> c#is_output_ready) consumers
 
     method wake_up a =
       super#wake_up a;
@@ -61,10 +101,11 @@ class producer ~check_self_sync ~consumers_val ~name ~kind g =
 
     method private get_frame buf =
       let b = Frame.breaks buf in
+      List.iter (fun c -> c#set_is_ready true) consumers;
       while Generator.length g < Lazy.force Frame.size && self#is_ready do
         self#child_tick
       done;
-      needs_tick <- false;
+      List.iter (fun c -> c#set_is_ready false) consumers;
       Generator.fill g buf;
       if List.length b + 1 <> List.length (Frame.breaks buf) then (
         let cur_pos = Frame.position buf in
@@ -81,30 +122,4 @@ class producer ~check_self_sync ~consumers_val ~name ~kind g =
     method abort_track =
       Generator.add_break g;
       List.iter (fun c -> c#abort_track) consumers
-  end
-
-type write_payload = [ `Frame of Frame.t | `Flush ]
-type write_frame = write_payload -> unit
-
-let write_to_buffer ~content g = function
-  | `Frame frame ->
-      Generator.feed_from_frame ~mode:content g frame;
-      let excess = Generator.length g - Lazy.force Frame.size in
-      if 0 < excess then Generator.remove g excess
-  | `Flush -> ()
-
-class consumer ~write_frame ~name ~kind ~source () =
-  let s = Lang.to_source source in
-  let infallible = s#stype = `Infallible in
-  let noop () = () in
-  object
-    inherit
-      Output.output
-        ~content_kind:kind ~output_kind:name ~infallible ~on_start:noop
-          ~on_stop:noop source true
-
-    method reset = ()
-    method start = ()
-    method stop = write_frame `Flush
-    method private send_frame frame = write_frame (`Frame frame)
   end
