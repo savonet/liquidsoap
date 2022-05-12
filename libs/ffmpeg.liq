@@ -27,8 +27,8 @@ end
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~listen Act as a RTMP server and wait for incoming connection
 # @param url URL to read RTMP from, in the form `rtmp://IP:PORT/ENDPOINT`
-def input.rtmp(~max_buffer=5., ~listen=true, url)
-  input.ffmpeg(max_buffer=max_buffer, log_overfull=false, format="live_flv",
+def input.rtmp(~id=null(), ~max_buffer=5., ~listen=true, url)
+  input.ffmpeg(id=id, max_buffer=max_buffer, log_overfull=false, format="live_flv",
                int_args=[("listen", listen ? 1 : 0)], url)
 end
 %endif
