@@ -35,7 +35,7 @@ INCDIRS=. converters decoder encoder_formats lang lang_encoders stream tools
 
 %: %.ml ../liquidsoap.$(a)
 	@echo "Generating $@..."
-	@cd .. && $(OCAMLC) -thread -o test/$@ $(liquidsoap_ocamlcflags) $(liquidsoap_ocamllflags) $(patsubst %,-I %,$(INCDIRS)) liquidsoap.$(a) test/$<
+	@cd .. && $(OCAMLC) -thread -linkall -o test/$@ $(liquidsoap_ocamlcflags) $(liquidsoap_ocamllflags) $(patsubst %,-I %,$(INCDIRS)) liquidsoap.$(a) test/$<
 
 ../liquidsoap.$(a):
 	@$(MAKE) -C .. lib
