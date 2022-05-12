@@ -20,124 +20,27 @@
 
  *****************************************************************************)
 
+open Mm
+
 let log = Log.make ["video"; "text"; "native"]
-
-let prebitmap =
-  [
-    ('A', [| " * "; "* *"; "***"; "* *"; "* *" |]);
-    ('B', [| "** "; "* *"; "** "; "* *"; "** " |]);
-    ('C', [| " **"; "*  "; "*  "; "*  "; " **" |]);
-    ('D', [| "** "; "* *"; "* *"; "* *"; "** " |]);
-    ('E', [| "***"; "*  "; "** "; "*  "; "***" |]);
-    ('F', [| "***"; "*  "; "** "; "*  "; "*  " |]);
-    ('G', [| " **"; "*  "; "* *"; "* *"; " **" |]);
-    ('H', [| "* *"; "* *"; "***"; "* *"; "* *" |]);
-    ('I', [| " * "; " * "; " * "; " * "; " * " |]);
-    ('J', [| "  *"; "  *"; "  *"; "* *"; " * " |]);
-    ('K', [| "* *"; "** "; "*  "; "** "; "* *" |]);
-    ('L', [| "*  "; "*  "; "*  "; "*  "; "***" |]);
-    ('M', [| "* *"; "***"; "* *"; "* *"; "* *" |]);
-    ('N', [| "* *"; "***"; "***"; "***"; "* *" |]);
-    ('O', [| " * "; "* *"; "* *"; "* *"; " * " |]);
-    ('P', [| "** "; "* *"; "** "; "*  "; "*  " |]);
-    ('Q', [| " * "; "* *"; "* *"; "* *"; " **" |]);
-    ('R', [| "** "; "* *"; "** "; "* *"; "* *" |]);
-    ('S', [| " **"; "*  "; " * "; "  *"; "** " |]);
-    ('T', [| "***"; " * "; " * "; " * "; " * " |]);
-    ('U', [| "* *"; "* *"; "* *"; "* *"; "***" |]);
-    ('V', [| "* *"; "* *"; "* *"; "* *"; " * " |]);
-    ('W', [| "* *"; "* *"; "* *"; "***"; "* *" |]);
-    ('X', [| "* *"; "* *"; " * "; "* *"; "* *" |]);
-    ('Y', [| "* *"; "* *"; " * "; " * "; " * " |]);
-    ('Z', [| "***"; "  *"; " * "; "*  "; "***" |]);
-    ('0', [| " * "; "* *"; "* *"; "* *"; " * " |]);
-    ('1', [| " * "; "** "; " * "; " * "; " * " |]);
-    ('2', [| " * "; "* *"; "  *"; " * "; "***" |]);
-    ('3', [| "** "; "  *"; " * "; "  *"; "** " |]);
-    ('4', [| "  *"; " **"; "***"; "  *"; "  *" |]);
-    ('5', [| "***"; "*  "; "** "; "  *"; "** " |]);
-    ('6', [| " **"; "*  "; "** "; "* *"; " * " |]);
-    ('7', [| "***"; "  *"; " * "; " * "; " * " |]);
-    ('8', [| " * "; "* *"; " * "; "* *"; " * " |]);
-    ('9', [| " * "; "* *"; " **"; "  *"; " * " |]);
-    (' ', [| "   "; "   "; "   "; "   "; "   " |]);
-    ('.', [| "   "; "   "; "   "; "   "; " * " |]);
-    (',', [| "   "; "   "; "   "; " * "; " * " |]);
-    ('!', [| " * "; " * "; " * "; "   "; " * " |]);
-    ('?', [| " * "; "* *"; " **"; " * "; " * " |]);
-    ('-', [| "   "; "   "; "***"; "   "; "   " |]);
-    ('+', [| "   "; " * "; "***"; " * "; "   " |]);
-    ('=', [| "   "; "***"; "   "; "***"; "   " |]);
-    (':', [| "   "; " * "; "   "; " * "; "   " |]);
-    ('<', [| "  *"; " * "; "*  "; " * "; "  *" |]);
-    ('>', [| "*  "; " * "; "  *"; " * "; "*  " |]);
-  ]
-
-let bitmap = ref []
-
-let init () =
-  bitmap :=
-    List.map
-      (fun (c, a) ->
-        ( c,
-          Array.map
-            (fun s -> Array.init (String.length s) (fun i -> s.[i] <> ' '))
-            a ))
-      prebitmap
-
-let char_height = 5
-
-let char c =
-  let bitmap = !bitmap in
-  let c = Char.uppercase_ascii c in
-  try List.assoc c bitmap
-  with Not_found -> Array.make char_height (Array.make 3 true)
-
-(** Space between chars. *)
-let char_space = 1
-
-(** Space between lines. *)
-let line_space = 2
 
 let render_text ~font ~size text =
   log#important "video.add_text.native does not support custom fonts yet!";
   let () = ignore font in
-  (* Compute bitmap as a matrix of booleans. *)
-  let bmp =
-    let ans = ref (Array.make char_height [||]) in
-    (* Current line. *)
-    let line = ref 0 in
-    for i = 0 to String.length text - 1 do
-      (* Vertical offset. *)
-      let voff = !line * (char_height + line_space) in
-      if Array.length !ans.(voff) <> 0 then
-        (* Add a space *)
-        for j = 0 to char_height - 1 do
-          !ans.(voff + j) <-
-            Array.append !ans.(voff + j) (Array.make char_space false)
-        done;
-      if text.[i] = '\n' then (
-        ans := Array.append !ans (Array.make (line_space + char_height) [||]);
-        incr line)
-      else (
-        let c = char text.[i] in
-        for j = 0 to char_height - 1 do
-          !ans.(voff + j) <- Array.append !ans.(voff + j) c.(j)
-        done)
-    done;
-    !ans
-  in
-  let h = Array.length bmp in
+  let font = Image.Bitmap.Font.native in
+  let bmp = Image.Bitmap.Font.render text in
+  let w = Image.Bitmap.width bmp in
+  let h = Image.Bitmap.height bmp in
+  let char_height = Image.Bitmap.Font.height font in
   let get_pixel x y =
     let x = x * char_height / size in
     let y = y * char_height / size in
-    if 0 <= y && y < h && 0 <= x && x < Array.length bmp.(y) then
-      if bmp.(y).(x) then 0xff else 0x00
+    if 0 <= y && y < h && 0 <= x && x < w then
+      if Mm.Image.Bitmap.get_pixel bmp x y then 0xff else 0x00
     else 0x00
   in
-  let w = Array.fold_left (fun w l -> max w (Array.length l)) 0 bmp in
   let h = h * size / char_height in
   let w = w * size / char_height in
   (w, h, get_pixel)
 
-let () = Video_text.register "native" init render_text
+let () = Video_text.register "native" (fun () -> ()) render_text
