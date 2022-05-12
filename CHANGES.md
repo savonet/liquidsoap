@@ -3,6 +3,7 @@
 
 Fixed:
 * Allow crossfade duration override of `0.`
+* Buffer synchronization issues.
 
 ---
 2.0.4 (23-04-2022)
