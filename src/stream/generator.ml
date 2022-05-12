@@ -506,7 +506,7 @@ module From_audio_video = struct
         | _ -> ()
     in
 
-    f ()
+    if s <= audio_length t && s <= video_length t then f ()
 
   let put_frames ~pts ~current_pts gen data o l =
     let s = Lazy.force Frame.size in
