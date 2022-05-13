@@ -323,7 +323,7 @@ let get_dir d =
     Utils.resolve_path (Filename.dirname Sys.executable_name)
   in
   let cwd =
-    match Utils.getenv_opt "LIQUIDSOAP_BASE_DIR" with
+    match Sys.getenv_opt "LIQUIDSOAP_BASE_DIR" with
       | None      -> dir
       | Some path -> Utils.resolve_path ~cwd:dir path
   in 
