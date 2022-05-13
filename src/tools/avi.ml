@@ -83,9 +83,9 @@ let header ~width ~height ~channels ~samplerate () =
   let video_header =
     let stream_header =
       chunk "strh"
-        ("vids" (* stream type *)
-        ^ dword 0x30323449 (* fourcc (codec) *)
-        ^ dword 0 (* flags *) ^ word 0
+        ("vids" (* stream type *) ^ "I420"
+        (* fourcc (codec) *) ^ dword 0
+        (* flags *) ^ word 0
         (* priority *)
         ^ word 0 (* language *)
         ^ dword 0 (* initial frames *)
@@ -107,7 +107,7 @@ let header ~width ~height ~channels ~samplerate () =
         (dword 40 (* size of this structure *)
         ^ dword width (* width *) ^ dword height (* height *)
         ^ word 1 (* panes *) ^ word 12 (* depth *)
-        ^ dword 0x30323449 (* codec: I420 *)
+        ^ "I420" (* codec *)
         ^ dword (width * height * 6 / 4) (* image size *)
         ^ dword 0 (* pixels / x meter *)
         ^ dword 0 (* pixels / y meter *)
