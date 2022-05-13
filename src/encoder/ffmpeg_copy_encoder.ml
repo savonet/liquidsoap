@@ -63,7 +63,9 @@ let mk_stream_copy ~video_size ~get_stream ~remove_stream ~keyframe_opt
   in
 
   let current_position = ref 0L in
-  let current_stream = ref (get_stream ~last_start:0L ~ready:false 0L) in
+  let current_stream =
+    ref (get_stream ~last_start:Int64.min_int ~ready:false 0L)
+  in
   let stream_started = ref false in
   let offset = ref 0L in
 
@@ -79,7 +81,9 @@ let mk_stream_copy ~video_size ~get_stream ~remove_stream ~keyframe_opt
       remove_stream !current_stream;
       (* Mark the stream as ready if it is not waiting for keyframes. *)
       current_stream :=
-        get_stream ~last_start:0L ~ready:(not !waiting_for_keyframe) stream_idx;
+        get_stream ~last_start:Int64.min_int
+          ~ready:(not !waiting_for_keyframe)
+          stream_idx;
       stream_started := false);
     let is_keyframe = List.mem `Keyframe Avcodec.Packet.(get_flags packet) in
     if !waiting_for_keyframe then is_keyframe
@@ -126,11 +130,7 @@ let mk_stream_copy ~video_size ~get_stream ~remove_stream ~keyframe_opt
       let pts = adjust_ts pts in
       let dts = adjust_ts dts in
 
-      ignore
-        (Option.map
-           (fun dts ->
-             current_position := Int64.add dts !current_stream.last_start)
-           dts);
+      ignore (Option.map (fun dts -> current_position := dts) dts);
       ignore
         (Option.map
            (fun duration ->
