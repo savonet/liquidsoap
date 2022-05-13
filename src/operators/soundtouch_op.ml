@@ -77,11 +77,11 @@ class soundtouch ~kind source_val rate tempo pitch =
         (AFrame.get_all_metadata databuf)
 
     method private get_frame buf =
-      consumer#set_is_ready true;
+      consumer#set_output_enabled true;
       while Generator.length abg < Lazy.force Frame.size && source#is_ready do
         self#child_tick
       done;
-      consumer#set_is_ready false;
+      consumer#set_output_enabled false;
       Generator.fill abg buf
 
     method wake_up a =

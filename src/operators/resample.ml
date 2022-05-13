@@ -92,13 +92,13 @@ class resample ~kind ~ratio source_val =
       if Frame.is_partial frame then Generator.add_break generator
 
     method private get_frame frame =
-      consumer#set_is_ready true;
+      consumer#set_output_enabled true;
       while
         Generator.length generator < Lazy.force Frame.size && source#is_ready
       do
         self#child_tick
       done;
-      consumer#set_is_ready false;
+      consumer#set_output_enabled false;
       Generator.fill generator frame
   end
 
