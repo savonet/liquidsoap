@@ -67,8 +67,6 @@ let mk_stream_copy ~video_size ~get_stream ~remove_stream ~keyframe_opt
     ref (get_stream ~last_start:Int64.min_int ~ready:false 0L)
   in
   let stream_started = ref false in
-  let offset = ref 0L in
-
   let was_keyframe = ref false in
   let waiting_for_keyframe = ref false in
   let last_dts = ref None in
@@ -91,8 +89,8 @@ let mk_stream_copy ~video_size ~get_stream ~remove_stream ~keyframe_opt
   in
 
   let begin_stream ~dts idx =
-    offset := Option.value ~default:0L dts;
-    let last_start = Int64.sub !current_position !offset in
+    let offset = Option.value ~default:0L dts in
+    let last_start = Int64.sub !current_position offset in
     (* Mark the stream as ready if it was waiting for keyframes. *)
     current_stream := get_stream ~last_start ~ready:!waiting_for_keyframe idx;
     stream_started := true;
