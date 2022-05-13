@@ -49,13 +49,12 @@ class consumer ~write_frame ~name ~kind ~source () =
         ~content_kind:kind ~output_kind:name ~infallible ~on_start:noop
           ~on_stop:noop source true as super
 
-    val mutable is_ready = false
-    method set_is_ready v = is_ready <- v
-    method is_ready = is_ready && super#is_ready
-    method is_output_ready = super#is_ready
+    val mutable output_enabled = false
+    method set_output_enabled v = output_enabled <- v
     method reset = ()
     method start = ()
     method stop = write_frame `Flush
+    method output = if output_enabled then super#output
     method private send_frame frame = write_frame (`Frame frame)
   end
 
@@ -86,7 +85,7 @@ class producer ~check_self_sync ~consumers ~name ~kind g =
         | -1 -> -1
         | r -> Generator.remaining g + r
 
-    method is_ready = List.for_all (fun c -> c#is_output_ready) consumers
+    method is_ready = List.for_all (fun c -> c#is_ready) consumers
 
     method wake_up a =
       super#wake_up a;
@@ -103,11 +102,11 @@ class producer ~check_self_sync ~consumers ~name ~kind g =
 
     method private get_frame buf =
       let b = Frame.breaks buf in
-      List.iter (fun c -> c#set_is_ready true) consumers;
+      List.iter (fun c -> c#set_output_enabled true) consumers;
       while Generator.length g < Lazy.force Frame.size && self#is_ready do
         self#child_tick
       done;
-      List.iter (fun c -> c#set_is_ready false) consumers;
+      List.iter (fun c -> c#set_output_enabled false) consumers;
       Generator.fill g buf;
       if List.length b + 1 <> List.length (Frame.breaks buf) then (
         let cur_pos = Frame.position buf in
