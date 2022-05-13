@@ -34,8 +34,6 @@ else
   BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64"}]'
 
   echo "Not enabling opam build"
-  echo "##[set-output name=build_opam;]false"
-
   echo "Branch does not have a docker release"
   DOCKER_RELEASE=
 fi
