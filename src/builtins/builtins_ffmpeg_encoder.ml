@@ -27,7 +27,8 @@ module InternalResampler =
 
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
-let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
+let encode_audio_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
+    =
   let internal_channel_layout =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
   in
@@ -38,8 +39,6 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
   in
   let target_samplerate = Lazy.force format.Ffmpeg_format.samplerate in
   let target_time_base = { Avutil.num = 1; den = target_samplerate } in
-
-  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
 
   let target_sample_format =
     match format.Ffmpeg_format.sample_format with
@@ -167,7 +166,8 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
       encode_ffmpeg_frame frame
   | `Flush -> encode_frame `Flush
 
-let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
+let encode_video_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
+    =
   let internal_fps = Lazy.force Frame.video_rate in
   let internal_time_base = { Avutil.num = 1; den = internal_fps } in
   let internal_width = Lazy.force Frame.video_width in
@@ -205,8 +205,6 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
            ~time_base:internal_time_base ~pixel_aspect:target_pixel_aspect
            ~target_fps ())
   in
-
-  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
 
   let encode_frame =
     match mode with
@@ -503,6 +501,8 @@ let mk_encoder mode =
 
         let original_opts = Hashtbl.create 10 in
 
+        let stream_idx = Ffmpeg_content_base.new_stream_idx () in
+
         if has_audio then
           Hashtbl.iter
             (fun name value ->
@@ -520,13 +520,13 @@ let mk_encoder mode =
             match format.Ffmpeg_format.audio_codec with
               | Some (`Raw None) when has_raw_audio ->
                   Some
-                    (encode_audio_frame ~kind_t:audio_kind_t ~mode:`Raw
-                       ~opts:audio_opts ~format generator)
+                    (encode_audio_frame ~stream_idx ~kind_t:audio_kind_t
+                       ~mode:`Raw ~opts:audio_opts ~format generator)
               | Some (`Internal (Some codec)) when has_encoded_audio ->
                   let codec = Avcodec.Audio.find_encoder_by_name codec in
                   Some
-                    (encode_audio_frame ~kind_t:audio_kind_t ~mode:`Encoded
-                       ~opts:audio_opts ~codec ~format generator)
+                    (encode_audio_frame ~stream_idx ~kind_t:audio_kind_t
+                       ~mode:`Encoded ~opts:audio_opts ~codec ~format generator)
               | _ ->
                   let encoder =
                     if has_encoded_audio then "%audio(codec=..., ...)"
@@ -544,13 +544,13 @@ let mk_encoder mode =
             match format.Ffmpeg_format.video_codec with
               | Some (`Raw None) when has_raw_video ->
                   Some
-                    (encode_video_frame ~kind_t:video_kind_t ~mode:`Raw
-                       ~opts:video_opts ~format generator)
+                    (encode_video_frame ~stream_idx ~kind_t:video_kind_t
+                       ~mode:`Raw ~opts:video_opts ~format generator)
               | Some (`Internal (Some codec)) when has_encoded_video ->
                   let codec = Avcodec.Video.find_encoder_by_name codec in
                   Some
-                    (encode_video_frame ~kind_t:video_kind_t ~mode:`Encoded
-                       ~opts:video_opts ~codec ~format generator)
+                    (encode_video_frame ~stream_idx ~kind_t:video_kind_t
+                       ~mode:`Encoded ~opts:video_opts ~codec ~format generator)
               | _ ->
                   let encoder =
                     if has_encoded_video then "%video" else "%video.raw"
