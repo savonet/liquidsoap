@@ -3,6 +3,9 @@
 
 - refine video support in order to have next liquidshop running on Liquidsoap
   (dogfooding)
+- native RTMP support (and ensure that HLS output is easy to use)
+- live switch with ffmpeg encoded content
+- update the Liquidsoap book
 - switch to immutable content for frames (#2364)
   - frame should be changed to extensible arrays (a bit like `Strings`) instead
     of filling a buffer
@@ -18,7 +21,7 @@
     using cross and a tag system to know from which source we come
 - use row variables for methods, using Garrigue's _Simple Type Inference for
   Structural Polymorphism_
-- switch to dune
+- switch to dune (if it makes sense)
 - separate standard library (in pure liq), might be easier with dune
 - separate langage core (#2397)
   - we need to remove formats (add them separately with += in types)
@@ -33,6 +36,3 @@
   - support for hiding fields
 - ocaml5 support
   - we don't seem to have bigarrays anymore?
-- native RTMP support (and ensure that HLS output is easy to use)
-- live switch with ffmpeg encoded content
-- update the Liquidsoap book
