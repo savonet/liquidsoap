@@ -2,7 +2,7 @@
 ----------
 
 - refine video support in order to have next liquidshop running on Liquidsoap
-  (let's food the dog)
+  (dogfooding)
 - switch to immutable content for frames (#2364)
   - frame should be changed to extensible arrays (a bit like `Strings`) instead
     of filling a buffer
@@ -36,5 +36,3 @@
 - native RTMP support (and ensure that HLS output is easy to use)
 - live switch with ffmpeg encoded content
 - update the Liquidsoap book
-- come to NOLA
-- article
