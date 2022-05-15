@@ -5,6 +5,8 @@
   (dogfooding)
 - native RTMP support (and ensure that HLS output is easy to use)
 - live switch with ffmpeg encoded content
+- support for multi-track audio
+- support for subtitles
 - update the Liquidsoap book
 - switch to immutable content for frames (#2364)
   - frame should be changed to extensible arrays (a bit like `Strings`) instead
