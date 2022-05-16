@@ -69,6 +69,18 @@ def string.is_int(s)
   string.match(pattern="^\\d+$", s)
 end
 
+# Convert a string to a int.
+# @category String
+def string.to_int(~default=0, s)
+  int_of_string(default=default, s)
+end
+
+# Convert a string to a float.
+# @category String
+def string.float(~default=0., s)
+  float_of_string(default=default, s)
+end
+
 let string.binary = ()
 
 # Value of a positive (unsigned) integer encoded using native memory representation.
