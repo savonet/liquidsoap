@@ -288,3 +288,112 @@ def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf)
   l = list.rev(!l)
   sequence(l)
 end
+
+# Mixing table controllable via source methods and optional
+# server/telnet commands.
+# @flag extra
+# @category Source / Sound Processing
+# @param ~id Force the value of the source ID.
+# @param ~register_server_commands Register corresponding server commands
+def mix(~id=null(), ~register_server_commands=true, sources) =
+  id = string.id.default(default="mixer", id)
+
+  inputs = list.map(fun (s) ->
+    begin
+      volume      = ref(1.)
+      is_selected = ref(false)
+      is_single   = ref(false)
+
+      {
+        volume = fun () -> !volume,
+        set_volume = fun (v) -> volume := v,
+        selected = fun () -> !is_selected,
+        set_selected = fun (b) -> is_selected := b,
+        single = fun () -> !is_single,
+        set_single = fun (b) -> is_single := b,
+        source = s
+      }
+    end, sources)
+
+  insert_metadata_fn = ref(fun (_) -> ())
+
+  sources = list.map(fun (input) ->
+    begin
+      s = amplify(input.volume, input.source)
+      s = source.on_track(s, fun (_) ->
+         if input.single() then
+           input.set_selected(false)
+         end
+      )
+      s = source.on_metadata(s, fun (m) ->
+        begin
+          fn = !insert_metadata_fn
+          fn(m)
+        end
+      )
+      switch([(input.selected, s)])
+    end, inputs)
+
+  s = add(sources)
+  s = drop_metadata(s)
+  s = insert_metadata(s)
+  insert_metadata_fn := s.insert_metadata
+  s = merge_tracks(id=id, s)
+
+  if register_server_commands then
+     def status(input) =
+       "ready=#{source.is_ready(input.source)} selected=#{input.selected()} single=#{input.single()} volume=#{int_of_float(input.volume() * 100.)}% remaining=#{source.remaining(input.source)}"
+     end
+       
+     server.register(namespace=source.id(s), description="Skip current track on all enabled sources.",
+                      "skip", fun (_) -> begin
+                         list.iter(fun (input) -> if input.selected() then source.skip(input.source) end, inputs)
+                         "OK"
+                      end)
+     server.register(namespace=source.id(s), description="Set volume for a given source.",
+                     usage="volume <source nb> <vol%>", "volume", fun (v) -> begin
+                         try
+                           let [i, v] = string.split(separator=" ", v)
+                           input = list.nth(inputs, int_of_string(i))
+                           input.set_volume(float_of_string(v))
+                           status(input)
+                         catch _ do
+                           "Usage: volume <source nb> <vol%>"
+                         end
+                      end)
+     server.register(namespace=source.id(s), description="Enable/disable a source.",
+                     usage="select <source nb> <true|false>", "select", fun (arg) -> begin
+                         try
+                           let [i, b] = string.split(separator=" ", arg)
+                           input = list.nth(inputs, int_of_string(i))
+                           input.set_selected(b == "true")
+                           status(input)
+                         catch _ do
+                           "Usage: select <source nb> <true|false>"
+                         end
+                      end)
+     server.register(namespace=source.id(s), description="Enable/disable automatic stop at the end of track.",
+                     usage="single <source nb> <true|false>", "single", fun (arg) -> begin
+                         try
+                           let [i, b] = string.split(separator=" ", arg)
+                           input = list.nth(inputs, int_of_string(i))
+                           input.set_single(b == "true")
+                           status(input)
+                         catch _ do
+                           "Usage: single <source nb> <true|false>"
+                         end
+                      end)
+     server.register(namespace=source.id(s), description="Display current status.",
+                     "single", fun (i) -> begin
+                         try
+                           status(list.nth(inputs, int_of_string(i)))
+                         catch _ do
+                           "Usage: status <source nb>"
+                         end
+                      end)
+     server.register(namespace=source.id(s), description="Print the list of input sources.",
+                     "inputs", fun (_) -> string.concat(separator=" ", list.map(fun (input) -> source.id(input.source), inputs)))
+  end
+
+  s.{inputs = inputs}
+end
