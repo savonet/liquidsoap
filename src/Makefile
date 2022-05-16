@@ -199,7 +199,7 @@ tools = \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	configure.ml tools/console.ml tools/process_handler.ml \
-	tools/http.ml \
+	tools/http.ml tools/srt_parser.ml \
 	$(tools_metadata) \
         $(if $(W_MEMTRACE),tools/liqmemtrace.ml) \
 	$(if $(W_CURL),tools/liqcurl.ml) \

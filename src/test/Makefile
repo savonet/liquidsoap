@@ -40,4 +40,6 @@ INCDIRS=. converters decoder encoder_formats lang lang_encoders stream tools
 ../liquidsoap.$(a):
 	@$(MAKE) -C .. lib
 
+.PHONY: ../liquidsoap.$(a)
+
 export OCAMLPATH := $(OCAMLPATH)

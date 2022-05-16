@@ -52,6 +52,7 @@ src/test/meth
 src/test/test.mp3
 src/test/bla.mp3
 src/test/types
+src/test/parsesrt
 *.conflicts
 liquidsoap.config
 doc/liquidsoap.1.md
