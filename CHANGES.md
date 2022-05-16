@@ -1,6 +1,9 @@
 2.0.5 (unreleased)
 =====
 
+Changed:
+* Brought back `mix` operator (#2401)
+
 Fixed:
 * Allow crossfade duration override of `0.`
 * Buffer synchronization issues.
