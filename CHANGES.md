@@ -61,6 +61,7 @@ Changes:
   `mux_audio(audio=blank(),image)` anymore (#2230).
 - Removed deprecated `timeout` argument in `http.*` operators.
 - Deprecated `request.ready` in favor of `request.resolved`.
+- Add back `mix` operator (#2401).
 
 ---
 2.0.4 (23-04-2022)
