@@ -306,5 +306,5 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
     end, sources)
 
   # Stream
-  add(sources)
+  add(normalize=false, sources)
 end
