@@ -254,6 +254,7 @@ def skipper(~every=getter(5.), s) =
 end
 
 # Indicate beats.
+# @category Source / Sound Synthesis
 # @param ~frequency Frequency of the sound.
 # @param bpm Number of beats per minute.
 def metronome(~frequency=440., bpm=60.)
@@ -272,6 +273,9 @@ def metronome(~frequency=440., bpm=60.)
 end
 
 # Mixing table controllable via the telnet interface.
+# @category Source / Track Processing
+# @param ~register_server_commands Register commands on telnet interface.
+# @param sources List of sources to mix.
 def mix(~id=null(), ~register_server_commands=true, sources) =
   id = string.id.default(default="mixer", id)
 
