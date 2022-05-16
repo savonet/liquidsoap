@@ -77,7 +77,7 @@ end
 
 # Convert a string to a float.
 # @category String
-def string.float(~default=0., s)
+def string.to_float(~default=0., s)
   float_of_string(default=default, s)
 end
 

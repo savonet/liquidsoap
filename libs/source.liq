@@ -270,3 +270,41 @@ def metronome(~frequency=440., bpm=60.)
 
   amplify(f,s)
 end
+
+# Mixing table controllable via the telnet interface.
+def mix(~id=null(), ~register_server_commands=true, sources) =
+  id = string.id.default(default="mixer", id)
+
+  sources = list.map(fun(s) -> {source = s, volume = ref(1.), single=ref(false), selected = ref(false)}, sources)
+  list.nth(sources, 0).selected := true
+
+  # Register telnet commands.
+  if register_server_commands then
+    def register(~description, ~usage, name, f)
+      server.register(namespace=id, description=description, usage=usage, name, fun (args) ->
+      begin
+        args = string.split(separator=" ", args)
+        n = string.to_int(list.nth(default="0", args, 0))
+        a = list.nth(default="", args, 1)
+        f(list.nth(sources, n), a)
+      end)
+    end
+    register(description="Select given source.", usage="select <source nb> <true|false>", "select", fun (src, s) -> begin if s == "" then src.selected := not !src.selected else src.selected := (s == "true") end; "OK" end)
+    register(description="Automatic stop at the end of the track.", usage="single <source nb> <true|false>", "single", fun (src, s) -> begin if s == "" then src.single := true else src.single := (s == "true") end; "OK" end)
+    register(description="Set volume for given source (a float between 0 and 1).", usage="volume <source nb> <volume>", "volume", fun (src, v) -> begin src.volume := string.to_float(v); "OK" end)
+    register(description="Status for given source.", usage="status <source nb>", "status", fun (src, _) -> "selected=#{!src.selected} volume=#{!src.volume} single=#{!src.single}")
+  end
+
+  # Add selection and volume to sources.
+  sources = list.map(fun(src) ->
+    begin
+      s = src.source
+      s = source.available(s, {!src.selected})
+      s = amplify({!src.volume}, s)
+      s = source.on_track(s, fun(_) -> if !src.single then src.selected := false; src.single := false end)
+      s
+    end, sources)
+
+  # Stream
+  add(sources)
+end
