@@ -438,6 +438,22 @@ def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=t
   add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
 end
 
+# Add subtitle from metadata.
+# @category Source / Video Processing
+# @param override Metadata where subtitle to display are located.
+# @param s Source.
+def video.add_subtitle(~override="subtitle", s)
+  subtitle = ref("")
+  def meta(m)
+    if list.assoc.mem(override, m) then
+      print("SET SUB")
+      subtitle := list.assoc(override, m)
+    end
+  end
+  s = source.on_metadata(s, meta)
+  video.add_text({!subtitle}, s)
+end
+
 # Display a slideshow (typically of pictures).
 # @param ~cyclic Go to the first picture after the last.
 # @param ~advance Skip to the next file after this amount of time in seconds (negative means never).

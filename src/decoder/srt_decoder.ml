@@ -84,7 +84,7 @@ let () =
                 assert (r >= 0);
                 if r < frame_size then (
                   Frame.set_metadata frame r
-                    (Frame.metadata_of_list [("sub", sub)]);
+                    (Frame.metadata_of_list [("subtitle", sub)]);
                   ignore (Queue.take srt)));
               Frame.add_break frame frame_size;
               t := !t + frame_size;
