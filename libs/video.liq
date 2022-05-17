@@ -442,7 +442,7 @@ end
 # @category Source / Video Processing
 # @param override Metadata where subtitle to display are located.
 # @param s Source.
-def video.add_subtitle(~override="subtitle", s)
+def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, s)
   subtitle = ref("")
   def meta(m)
     if list.assoc.mem(override, m) then
@@ -450,7 +450,7 @@ def video.add_subtitle(~override="subtitle", s)
     end
   end
   s = source.on_metadata(s, meta)
-  video.add_text({!subtitle}, s)
+  video.add_text(size=size, color=color, {!subtitle}, s)
 end
 
 # Display a slideshow (typically of pictures).
