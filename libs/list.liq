@@ -38,6 +38,14 @@ def list.init(n, f)
   if n < 0 then [] else aux(0) end
 end
 
+# Create a list with given length, filled with given element.
+# @category List.
+# @param n Number of elements in the list.
+# @param x Element to fill the list with.
+def list.make(n, x)
+  list.init(n, fun(_)->x)
+end
+
 # Get the n-th element of a list (the first element is at position 0), or `default` if element does not exist.
 # @category List
 def list.nth(~default=null(), l, n) =
