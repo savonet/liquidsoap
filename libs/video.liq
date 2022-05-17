@@ -433,7 +433,7 @@ thread.run.recurrent((fun () ->
 # @param ~y y offset.
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
-def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata="",~size=18,~speed=0,~x=getter(10),~y=getter(10),d,s) =
+def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata=null(),~size=18,~speed=0,~x=getter(10),~y=getter(10),d,s) =
   add_text = list.assoc(default=snd(list.hd(!video.add_text.available)), settings.video.add_text(), !video.add_text.available)
   add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
 end
@@ -446,7 +446,6 @@ def video.add_subtitle(~override="subtitle", s)
   subtitle = ref("")
   def meta(m)
     if list.assoc.mem(override, m) then
-      print("SET SUB")
       subtitle := list.assoc(override, m)
     end
   end
