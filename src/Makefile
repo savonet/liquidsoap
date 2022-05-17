@@ -44,6 +44,7 @@ decoders = \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
+	decoder/srt_decoder.ml \
 	$(text_decoders) \
 	$(if $(W_FFMPEG),$(ffmpeg_decoders)) \
 	$(if $(W_FLAC),decoder/liq_flac_decoder.ml) \

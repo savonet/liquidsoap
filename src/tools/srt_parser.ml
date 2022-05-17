@@ -24,6 +24,26 @@ exception Invalid
 
 let is_digit c = '0' <= c && c <= '9'
 
+let check s =
+  let i =
+    if
+      String.length s >= 3 && s.[0] = '\xef' && s.[1] = '\xbb' && s.[2] = '\xbf'
+    then 3
+    else 0
+  in
+  s.[i] = '1' && ((s.[i + 1] = '\r' && s.[i + 2] = '\n') || s.[i + 1] = '\n')
+
+let check_file fname =
+  try
+    let ic = open_in_bin fname in
+    let s = really_input_string ic 5 in
+    close_in ic;
+    check s
+  with _ -> false
+
+let seconds_of_time (h, m, s, ms) =
+  (3600. *. float h) +. (60. *. float m) +. float s +. (float ms /. 1000.)
+
 let parse s =
   (* UTF-8 BOM marker *)
   let s =
@@ -62,11 +82,12 @@ let parse s =
       with _ -> raise Invalid
     in
     let text =
-      let ans = ref "" in
+      let ans = ref [] in
       while Queue.peek s <> "" do
-        ans := !ans ^ "\n" ^ Queue.take s
+        ans := Queue.take s :: !ans
       done;
-      assert (Queue.take s = "")
+      assert (Queue.take s = "");
+      List.rev !ans |> String.concat "\n"
     in
     ans := ((t1, t2), text) :: !ans
   done;
