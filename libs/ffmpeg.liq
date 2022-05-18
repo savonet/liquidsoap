@@ -219,10 +219,10 @@ def video.add_text.ffmpeg.internal(~id=null(),~color=0xffffff,~cycle=true,~font=
 end
 
 let replaces video.add_text.ffmpeg = video.add_text.ffmpeg.internal
-video.add_text.available := [("ffmpeg", video.add_text.ffmpeg.internal), ...!video.add_text.available]
+# video.add_text.available := [("ffmpeg", video.add_text.ffmpeg.internal), ...!video.add_text.available]
 
 # if settings.video.add_text() != "sdl" then
-  # settings.video.add_text.set("ffmpeg")
+#   settings.video.add_text.set("ffmpeg")
 # end
 %endif
 

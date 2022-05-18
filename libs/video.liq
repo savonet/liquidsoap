@@ -305,7 +305,7 @@ end
 
 let video.add_text = ()
 
-let video.add_text.available = ref([])
+let video.text.available = ref([])
 
 # Add a text to a stream (native implementation).
 # @category Source / Video Processing
@@ -323,9 +323,11 @@ let video.add_text.available = ref([])
 # def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.native = add_text_builder(video.text.native) end
 
-video.add_text.available := [("native", video.add_text.native), ...!video.add_text.available]
+video.text.available := [("native", video.text.native), ...!video.text.available]
 
 %ifdef video.text.gd
+video.text.available := [("gd", video.text.gd), ...!video.text.available]
+
 # Add a text to a stream (GD implementation).
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
@@ -340,11 +342,12 @@ video.add_text.available := [("native", video.add_text.native), ...!video.add_te
 # @param ~y y offset.
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
-def video.add_text.gd = add_text_builder(video.text.gd) end
-video.add_text.available := [("gd", video.add_text.gd), ...!video.add_text.available]
+def video.text.gd = add_text_builder(video.text.gd) end
 %endif
 
 %ifdef video.text.gstreamer
+video.text.available := [("gstreamer", video.text.gstreamer), ...!video.text.available]
+
 # Add a text to a stream (GStreamer implementation).
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
@@ -360,10 +363,11 @@ video.add_text.available := [("gd", video.add_text.gd), ...!video.add_text.avail
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.gstreamer = add_text_builder(video.text.gstreamer) end
-video.add_text.available := [("gstreamer", video.add_text.gstreamer), ...!video.add_text.available]
 %endif
 
 %ifdef video.text.sdl
+video.text.available := [("sdl", video.text.sdl), ...!video.text.available]
+
 # Add a text to a stream (SDL implementation).
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
@@ -379,10 +383,11 @@ video.add_text.available := [("gstreamer", video.add_text.gstreamer), ...!video.
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.sdl = add_text_builder(video.text.sdl) end
-video.add_text.available := [("sdl", video.add_text.sdl), ...!video.add_text.available]
 %endif
 
 %ifdef video.text.camlimages
+video.text.available := [("camlimages", video.text.camlimages), ...!video.text.available]
+
 # Add a text to a stream (camlimages implementation).
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
@@ -398,24 +403,36 @@ video.add_text.available := [("sdl", video.add_text.sdl), ...!video.add_text.ava
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.camlimages = add_text_builder(video.text.camlimages) end
-video.add_text.available := [("camlimages", video.add_text.camlimages), ...!video.add_text.available]
 %endif
 
-let settings.video.add_text = settings.make(
-  description="`video.add_text` implementation.",
-  fst(list.hd(!video.add_text.available))
+let settings.video.text = settings.make(
+  description="`video.text` implementation.",
+  fst(list.hd(!video.text.available))
 )
 
 thread.run.recurrent((fun () ->
   begin
-    add_text = settings.video.add_text()
-    if list.assoc.mem(add_text, !video.add_text.available) then
-      log.important(label="video.add_text", "Using #{add_text} implementation")
+    text = settings.video.text()
+    if list.assoc.mem(text, !video.text.available) then
+      log.important(label="video.text", "Using #{text} implementation")
     else
-      log.severe(label="video.add_text", "Cannot find #{add_text} implementation for `video.add_text`, using default #{fst(list.hd(!video.add_text.available))}")
+      log.severe(label="video.text", "Cannot find #{text} implementation for `video.text`, using default #{fst(list.hd(!video.text.available))}")
     end
     (-1.)
   end))
+
+# Display a text.
+# @category Source / Video Processing
+# @param ~id Force the value of the source ID.
+# @param ~color Text color (in 0xRRGGBB format).
+# @param ~duration Duration in seconds (`null` means infinite).
+# @param ~font Path to ttf font file.
+# @param ~size Font size.
+# @param text Text to display.
+def replaces video.text(~id=null(), ~color=0xffffff, ~duration=null(), ~font=null(), ~size=18, text)
+  f = list.assoc(default=snd(list.hd(!video.text.available)), settings.video.text(), !video.text.available)
+  f(id=id, color=color, duration=duration, font=font, size=size, text)
+end
 
 # Add a text to a stream. Uses the first available operator in: camlimages, SDL,
 # FFmpeg, GStreamer, gd or native.
@@ -434,11 +451,10 @@ thread.run.recurrent((fun () ->
 # @params d Text to display.
 # def video.add_text.native = add_text_builder(video.text.native) end
 def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata=null(),~size=18,~speed=0,~x=getter(10),~y=getter(10),d,s) =
-  add_text = list.assoc(default=snd(list.hd(!video.add_text.available)), settings.video.add_text(), !video.add_text.available)
+  add_text = add_text_builder(video.text)
   add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
 end
 
-%ifdef video.text.camlimages
 # Add subtitle from metadata.
 # @category Source / Video Processing
 # @param override Metadata where subtitle to display are located.
@@ -446,7 +462,7 @@ end
 # @param s Source.
 def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, ~offset=20, s)
   subtitle = ref("")
-  t = video.text.camlimages(size=size, color=color, {!subtitle})
+  t = video.text(size=size, color=color, {!subtitle})
   t = video.bounding_box(t)
   x = {(video.frame.width() - t.width())/2}
   y = {video.frame.height() - t.height() - offset}
@@ -459,7 +475,6 @@ def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, ~offset=
   s = source.on_metadata(s, meta)
   add([s,t])
 end
-%endif
 
 # Display a slideshow (typically of pictures).
 # @param ~cyclic Go to the first picture after the last.
