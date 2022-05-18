@@ -438,20 +438,28 @@ def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=t
   add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
 end
 
+%ifdef video.text.camlimages
 # Add subtitle from metadata.
 # @category Source / Video Processing
 # @param override Metadata where subtitle to display are located.
+# @param offset Offset in pixels.  
 # @param s Source.
-def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, s)
+def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, ~offset=20, s)
   subtitle = ref("")
+  t = video.text.camlimages(size=size, color=color, {!subtitle})
+  t = video.bounding_box(t)
+  x = {(video.frame.width() - t.width())/2}
+  y = {video.frame.height() - t.height() - offset}
+  t = video.translate(x=x, y=y, t)
   def meta(m)
     if list.assoc.mem(override, m) then
       subtitle := list.assoc(override, m)
     end
   end
   s = source.on_metadata(s, meta)
-  video.add_text(size=size, color=color, {!subtitle}, s)
+  add([s,t])
 end
+%endif
 
 # Display a slideshow (typically of pictures).
 # @param ~cyclic Go to the first picture after the last.
