@@ -31,7 +31,7 @@ lib:
 
 include ../../Makefile.defs
 
-INCDIRS=. converters decoder encoder_formats lang lang_encoders stream tools
+INCDIRS=. playlists converters decoder encoder_formats lang lang_encoders stream tools
 
 %: %.ml ../liquidsoap.$(a)
 	@echo "Generating $@..."
