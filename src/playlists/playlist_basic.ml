@@ -25,19 +25,30 @@ let split_lines buf = Pcre.split ~pat:"[\r\n]+" buf
 
 let parse_extinf s =
   try
-    let rex = Pcre.regexp "#EXTINF:(\\d+),(.*)" in
+    let rex = Pcre.regexp "#EXTINF:(\\d*)\\s*([^\\s]*),(.*)" in
     let sub = Pcre.exec ~rex s in
-    let duration = Pcre.get_substring sub 1 in
-    let song = Pcre.get_substring sub 2 in
-    let lines = Pcre.split ~pat:" - " song in
+    let meta =
+      match Pcre.get_substring sub 1 with
+        | "" -> []
+        | duration -> [("extinf_duration", duration)]
+    in
+    let meta =
+      meta
+      @
+      match Pcre.get_substring sub 2 with
+        | "" -> []
+        | key_values -> (
+            try fst (Annotate.parse (key_values ^ ":foo")) with _ -> [])
+    in
+    let song = Pcre.get_substring sub 3 in
+    let lines = Pcre.split ~pat:"\\s*-\\s*" song in
+    meta
+    @
     match lines with
+      | [""; song] -> [("song", String.trim song)]
       | [artist; title] ->
-          [
-            ("extinf_duration", duration);
-            ("artist", String.trim artist);
-            ("title", String.trim title);
-          ]
-      | _ -> [("extinf_duration", duration); ("song", String.trim song)]
+          [("artist", String.trim artist); ("title", String.trim title)]
+      | _ -> [("song", String.trim song)]
   with Not_found -> []
 
 (* This parser cannot detect the format !! *)

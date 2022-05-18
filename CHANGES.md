@@ -1,6 +1,9 @@
 2.0.5 (unreleased)
 =====
 
+New:
+* Extended m3u EXTINF parser to support empty duration and annotations.
+
 Changed:
 * Brought back `mix` operator (#2401)
 
