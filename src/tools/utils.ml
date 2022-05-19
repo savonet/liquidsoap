@@ -894,3 +894,29 @@ let self_sync_type sources =
               | _ -> (`Dynamic, None))
           (`Static, None)
           sources))
+
+let string_of_pcre_error =
+  Pcre.(
+    function
+    | Partial -> "String only matched the pattern partially"
+    | BadPartial ->
+        "Pattern contains items that cannot be used together with partial \
+         matching."
+    | BadPattern (msg, pos) ->
+        Printf.sprintf "Malformed regular expression. Error: %s, position: %i"
+          msg pos
+    | BadUTF8 -> "UTF8 string being matched is invalid"
+    | BadUTF8Offset -> "A UTF8 string being matched with offset is invalid."
+    | MatchLimit ->
+        "Maximum allowed number of match attempts with backtracking or \
+         recursion is reached during matching."
+    | RecursionLimit -> "Maximum allowed number of recursion reached"
+    | WorkspaceSize -> "Provided workspace array is too small"
+    | InternalError msg -> Printf.sprintf "Internal error: %s" msg)
+
+let () =
+  Printexc.register_printer
+    Pcre.(
+      function
+      | Error err -> Some (Printf.sprintf "Pcre(%s)" (string_of_pcre_error err))
+      | _ -> None)
