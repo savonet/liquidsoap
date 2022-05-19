@@ -234,7 +234,7 @@ if test "x$enable_optimize" = "xyes" ; then
 fi
 
 liquidsoap_ocamlcflags="$OCAMLFLAGS -ccopt \"\$(CFLAGS)\""
-liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
+liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str"
 
 if test "$OS_TYPE" \!= "Win32" ; then
   liquidsoap_ocamllflags="$liquidsoap_ocamllflags -cc \"\$(CC)\""

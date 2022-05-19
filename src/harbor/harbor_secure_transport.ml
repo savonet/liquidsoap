@@ -64,9 +64,6 @@ module Duppy_transport :
   Duppy.Transport_t with type t = secure_transport_socket = struct
   type t = secure_transport_socket
 
-  type bigarray =
-    (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
   let sock { sock } = sock
   let read { ctx } buf ofs len = SecureTransport.read ctx buf ofs len
   let write { ctx } buf ofs len = SecureTransport.write ctx buf ofs len
