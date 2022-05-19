@@ -62,15 +62,15 @@ let xml_escape s =
 let print_xml (doc : item) print_string =
   let rec print_xml indent doc =
     let prefix = Bytes.unsafe_to_string (Bytes.make indent ' ') in
-    Printf.kprintf print_string "%s<info>%s</info>\n" prefix
+    Printf.ksprintf print_string "%s<info>%s</info>\n" prefix
       (xml_escape doc#get_doc);
     List.iter
       (fun (k, v) ->
-        Printf.kprintf print_string "%s<section>\n" prefix;
-        Printf.kprintf print_string " %s<label>%s</label>\n" prefix
+        Printf.ksprintf print_string "%s<section>\n" prefix;
+        Printf.ksprintf print_string " %s<label>%s</label>\n" prefix
           (xml_escape k);
         print_xml (indent + 1) v;
-        Printf.kprintf print_string "%s</section>\n" prefix)
+        Printf.ksprintf print_string "%s</section>\n" prefix)
       doc#get_subsections
   in
   print_string "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
