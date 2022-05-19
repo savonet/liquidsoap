@@ -16,6 +16,8 @@ Fixed:
 * Prevent some sources from being consumed when not active,
   namely ffmpeg inline encoders, `soundtouch`, `resample` and all
   the muxing operators.
+* Raise runtime exceptions in `string.replace` failures with
+  useful message. (#2408)
 
 ---
 2.0.4 (23-04-2022)

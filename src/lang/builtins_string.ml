@@ -425,7 +425,11 @@ let () =
     ]
     Lang.string_t
     (fun p ->
-      let pattern = Lang.to_string (List.assoc "pattern" p) in
+      let pattern_v = List.assoc "pattern" p in
+      let pattern = Lang.to_string pattern_v in
+      let pattern_pos =
+        match pattern_v.Lang.pos with Some pos -> [pos] | None -> []
+      in
       let string = Lang.to_string (Lang.assoc "" 2 p) in
       let subst = Lang.assoc "" 1 p in
       let subst s =
@@ -433,7 +437,21 @@ let () =
         Lang.to_string ret
       in
       let rex = Pcre.regexp pattern in
-      Lang.string (Pcre.substitute ~rex ~subst string))
+      let string =
+        try Pcre.substitute ~rex ~subst string
+        with Pcre.Error err ->
+          raise
+            (Term.Runtime_error
+               {
+                 Term.kind = "string";
+                 msg =
+                   Some
+                     (Printf.sprintf "string.replace pcre error: %s"
+                        (Utils.string_of_pcre_error err));
+                 pos = pattern_pos;
+               })
+      in
+      Lang.string string)
 
 let () =
   Lang.add_builtin "string.base64.decode" ~category:`String
