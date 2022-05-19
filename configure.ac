@@ -689,6 +689,11 @@ AC_ARG_ENABLE([camomile],
 
 AC_CHECK_OCAML_BINDING([camomile])
 
+if test "x$enable_camomile" = "xno" ; then
+   W_CAMOMILE=""
+   w_CAMOMILE="no"
+fi
+
 AC_ARG_WITH([camomile-data-dir],
    AS_HELP_STRING(
       [--with-camomile-data-dir=path],
@@ -696,7 +701,10 @@ AC_ARG_WITH([camomile-data-dir],
 
 if test -z "$W_CAMOMILE" ; then
   if test "x$enable_camomile" = "xno" ; then
-    echo let recode_tag ?in_enc:_ ?out_enc:_ s = s >> src/configure.ml
+    cat >> src/configure.ml <<EOCONF
+let camomile_dir = ""
+let recode_tag ?in_enc:_ ?out_enc:_ s = s
+EOCONF
   else
     AC_MSG_ERROR([Camomile provides charset detection and conversions. It is strongly advised to enable those features. If you really don't want this, use --disable-camomile.])
   fi
