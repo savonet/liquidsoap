@@ -1,0 +1,13 @@
+(install
+ (files extract-replaygain)
+ (section
+  (site
+   (liquidsoap bin)))
+ (package liquidsoap))
+
+(install
+ (section share_root)
+ (package liquidsoap)
+ (files
+  (liquidsoap-mode.el as emacs/site-lisp/liquidsoap-mode.el)
+  (bash-completion as bash_completion/completions/liquidsoap)))

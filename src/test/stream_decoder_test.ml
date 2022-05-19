@@ -1,5 +1,6 @@
 (* Test a stream decoder. ffmpeg/audio only for now. *)
 
+open Liquidsoap_ffmpeg
 module G = Generator.From_audio_video_plus
 
 let () =

@@ -27,6 +27,7 @@ depends: [
   "conf-which" {build}
   "pcre"
   "sedlex" {>= "2.2"}
+  "ppx_string" {build}
 ]
 depopts: [
   "alsa"

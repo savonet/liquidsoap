@@ -1,0 +1,100 @@
+(include_subdirs unqualified)
+
+(executable
+ (name JSON_parse)
+ (modules JSON_parse)
+ (libraries liquidsoap_core))
+
+(executable
+ (name decoder_test)
+ (modules decoder_test)
+ (libraries liquidsoap_core))
+
+(executable
+ (name frame_test)
+ (modules frame_test)
+ (libraries liquidsoap_core))
+
+(executable
+ (name generator_test)
+ (modules generator_test)
+ (libraries liquidsoap_core))
+
+(executable
+ (name is_url)
+ (modules is_url)
+ (libraries liquidsoap_core))
+
+(executable
+ (name meth)
+ (modules meth)
+ (libraries liquidsoap_core))
+
+(executable
+ (name readavi)
+ (modules readavi)
+ (libraries liquidsoap_core))
+
+(executable
+ (name source_test)
+ (modules source_test)
+ (libraries liquidsoap_core))
+
+(executable
+ (name stream_decoder_test)
+ (modules stream_decoder_test)
+ (libraries liquidsoap_core liquidsoap_ffmpeg))
+
+(executable
+ (name strings_test)
+ (modules strings_test)
+ (libraries liquidsoap_core))
+
+(executable
+ (name timezone)
+ (modules timezone)
+ (libraries liquidsoap_core))
+
+(executable
+ (name types)
+ (modules types)
+ (libraries liquidsoap_core))
+
+(executable
+ (name unifier_test)
+ (modules unifier_test)
+ (libraries liquidsoap_core))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  (:JSON_parse ./JSON_parse.exe)
+  (:decoder_test ./decoder_test.exe)
+  (:frame_test ./frame_test.exe)
+  (:generator_test ./generator_test.exe)
+  (:is_url ./is_url.exe)
+  (:meth ./meth.exe)
+  (:readavi ./readavi.exe)
+  (:source_test ./source_test.exe)
+  (:stream_decoder_test ./stream_decoder_test.exe)
+  (:strings_test ./strings_test.exe)
+  (:timezone ./timezone.exe)
+  (:types ./types.exe)
+  (:unifier_test ./unifier_test.exe))
+ (action
+  (progn
+   (run ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 test.wav)
+   (run %{JSON_parse})
+   (run %{decoder_test})
+   (run %{frame_test})
+   (run %{generator_test})
+   (run %{is_url})
+   (run %{meth})
+   (run %{readavi})
+   (run %{source_test})
+   (run %{stream_decoder_test} test.wav bla.wav)
+   (run %{strings_test})
+   (run %{timezone})
+   (run %{types})
+   (run %{unifier_test}))))
