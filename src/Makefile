@@ -1,4 +1,4 @@
-INCDIRS = builtins conversions converters decoder encoder encoder_formats harbor io lang lang_encoders ogg_formats operators outputs protocols sources stream tools tools/metadata
+INCDIRS = builtins conversions converters decoder encoder encoder_formats harbor io lang lang_encoders ogg_formats operators outputs protocols sources stream tools $(if $(W_CAMOMILE),,tools/metadata/no-camomile) tools/metadata
 
 liquidsoap_c_files = \
 	tools/unix_c.c \
@@ -179,6 +179,7 @@ io = \
 	$(if $(W_FFMPEG),io/ffmpeg_io.ml)
 
 tools_metadata = \
+	$(if $(W_CAMOMILE),tools/metadata/metadataCharEncoding.ml,tools/metadata/no-camomile/metadataCharEncoding.ml) \
 	tools/metadata/metadataBase.ml \
 	tools/metadata/metadataID3v1.ml tools/metadata/metadataID3v2.ml \
 	tools/metadata/metadataJPEG.ml tools/metadata/metadataPNG.ml \

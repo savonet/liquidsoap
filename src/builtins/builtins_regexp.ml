@@ -136,6 +136,7 @@ let replace_t =
 let replace_fun ~flags regexp =
   Lang.val_fun [("", "", None); ("", "", None)] (fun p ->
       let subst = Lang.assoc "" 1 p in
+      let pos = match subst.Lang.pos with Some pos -> [pos] | None -> [] in
       let subst s =
         let ret = Lang.apply subst [("", Lang.string s)] in
         Lang.to_string ret
@@ -144,7 +145,20 @@ let replace_fun ~flags regexp =
       let sub =
         if List.mem `g flags then Pcre.substitute else Pcre.substitute_first
       in
-      Lang.string (sub ~rex:regexp ~subst string))
+      let string =
+        try sub ~rex:regexp ~subst string
+        with Pcre.Error err ->
+          raise
+            (Term.Runtime_error
+               {
+                 Term.kind = "string";
+                 msg =
+                   Printf.sprintf "string.replace pcre error: %s"
+                     (Utils.string_of_pcre_error err);
+                 pos;
+               })
+      in
+      Lang.string string)
 
 let () =
   let meth =

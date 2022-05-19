@@ -97,18 +97,7 @@ module Reader = struct
       Printexc.raise_with_backtrace e bt
 end
 
-module CharEncoding = struct
-  module C = CamomileLibraryDefault.Camomile.CharEncoding
-
-  let iso8859 = C.of_name "ISO-8859-1"
-
-  let utf8 = C.utf8
-
-  let utf16 = C.utf16
-
-  let convert in_enc out_enc s =
-    C.recode_string ~in_enc ~out_enc s
-end
+module CharEncoding = MetadataCharEncoding
 
 module Int = struct
   include Int
