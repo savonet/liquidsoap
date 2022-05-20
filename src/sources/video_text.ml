@@ -79,7 +79,7 @@ let register name init render_text =
       [
         ( "font",
           Lang.nullable_t Lang.string_t,
-          None,
+          Some Lang.null,
           Some "Path to ttf font file." );
         ("size", Lang.int_t, Some (Lang.int 18), Some "Font size.");
         ( "color",

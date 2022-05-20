@@ -44,6 +44,7 @@ decoders = \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
+	decoder/srt_decoder.ml \
 	$(text_decoders) \
 	$(if $(W_FFMPEG),$(ffmpeg_decoders)) \
 	$(if $(W_FLAC),decoder/liq_flac_decoder.ml) \
@@ -200,7 +201,7 @@ tools = \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	configure.ml tools/console.ml tools/process_handler.ml \
-	tools/http.ml \
+	tools/http.ml tools/srt_parser.ml \
 	$(tools_metadata) \
         $(if $(W_MEMTRACE),tools/liqmemtrace.ml) \
 	$(if $(W_CURL),tools/liqcurl.ml) \
