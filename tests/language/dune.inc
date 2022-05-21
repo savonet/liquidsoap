@@ -35,6 +35,7 @@ doc.liq
 typing.liq
 time.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
   (:stdlib ../../libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))

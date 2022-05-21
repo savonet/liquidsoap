@@ -26,6 +26,7 @@ GH1146.liq
 AC5109.liq
 LS268.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
   (:stdlib ../../libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))

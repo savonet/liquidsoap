@@ -5,3 +5,4 @@
 *~
 *.a
 _build/
+liquidsoap.config

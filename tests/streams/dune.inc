@@ -38,6 +38,7 @@ autostart.liq
   (:playlist ./playlist)
   (:huge_playlist ./huge_playlist)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
   (:stdlib ../../libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
