@@ -1,9 +1,6 @@
 #!/usr/bin/make -f
 
-DESTDIR := $(CURDIR)/debian/tmp
-DEFAULT_FONT := /usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf
-
-DEB_CONFIGURE_EXTRA_FLAGS := --with-default-font=$(DEFAULT_FONT)
+DESTDIR := $(CURDIR)/debian/tmp/usr
 
 %:
 	dh $@
@@ -21,11 +18,9 @@ override_dh_auto_test:
 	/bin/true
 
 override_dh_auto_install:
-	$(MAKE) install DESTDIR=$(DESTDIR) OCAMLFIND_DESTDIR=$(DESTDIR)/$(OCAML_STDLIB_DIR) \
-               prefix=$(DESTDIR)/usr sysconfdir=$(DESTDIR)/etc \
-               INSTALL_DAEMON=no OCAMLFIND_LDCONF=ignore
-	mkdir -p $(DESTDIR)/usr/share/liquidsoap
-	cp -rf `opam config var share`/camomile $(DESTDIR)/usr/share/liquidsoap
+	dune build @install
+	dune install --relocatable --prefix $(DESTDIR)
+	cp -rf `opam config var share`/camomile $(DESTDIR)/usr/share/liquidsoap-core
 	dh_install
 
 override_dh_auto_clean:
