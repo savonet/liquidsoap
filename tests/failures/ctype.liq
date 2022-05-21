@@ -1,5 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
 # Testing dynamic kind unification errors.
 
 s = mean(sine())

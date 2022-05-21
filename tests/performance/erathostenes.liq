@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq --force-start
-
-%include "performance.liq"
-
 def erathostenes(n)
   l = list.init(n-2, fun (i) -> i+2)
   l = ref(l)

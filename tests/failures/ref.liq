@@ -1,5 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
 # Ensure that value restriction prevents the usual problems.
 
 def id(x) = x end
