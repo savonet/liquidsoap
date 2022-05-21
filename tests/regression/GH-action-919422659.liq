@@ -8,7 +8,7 @@
 
 settings.decoder.decoders.set(["FFMPEG"])
 
-s = single("../media/files/audio/@flac(stereo).flac")
+s = single("../media/@flac[stereo].flac")
 
 def f(rem, _) =
   if rem > 0. then

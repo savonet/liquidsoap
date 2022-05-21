@@ -5,7 +5,7 @@
 
 track_count = ref(0)
 
-s = single("../media/files/audio/@flac(stereo).flac")
+s = single("../media/@flac[stereo].flac")
 
 def f(_) =
   track_count := !track_count + 1

@@ -26,17 +26,17 @@ on_track.liq
 crossfade.liq
 radio.liq
 autostart.liq
-  (:file1_mp3 ./file1.mp3)
-  (:file2_mp3 ./file2.mp3)
-  (:file3_mp3 ./file3.mp3)
-  (:jingle1_mp3 ./jingle1.mp3)
-  (:jingle2_mp3 ./jingle2.mp3)
-  (:jingle3_mp3 ./jingle3.mp3)
-  (:file1_png ./file1.png)
-  (:file2_png ./file2.png)
-  (:jingles ./jingles)
-  (:playlist ./playlist)
-  (:huge_playlist ./huge_playlist)
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (source_tree ../libs)
   (:stdlib ../../libs/stdlib.liq)

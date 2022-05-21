@@ -21,6 +21,8 @@ let video_formats =
     {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%video(codec="libx264")).mp4|};
   ]
 
+let formats = audio_formats @ video_formats
+
 let encoder_format format =
   match List.rev (String.split_on_char '.' format) with
     | _ :: l -> String.concat "." (List.rev l)
@@ -51,36 +53,47 @@ let mk_encoder source format =
     (encoder_script format) (encoder_format format) source
     (escaped_format format)
 
-let () =
-  List.iter (mk_encoder "sine") audio_formats;
-  List.iter (mk_encoder "noise") video_formats
-
-let () =
-  let formats = audio_formats @ video_formats in
-  let encoders_runtests =
-    List.map
-      (fun format ->
-        let encoder = Printf.sprintf {|%s encoder|} format in
-        Printf.sprintf
-          {|(run %%{run_test} "%%{liquidsoap} --no-stdlib %%{stdlib} %%{test_liq} -" %S %S)|}
-          (encoder_script format) encoder)
-      formats
-  in
+let mk_encoded_file format =
   Printf.printf
     {|
 (rule
- (alias runtest)
- (package liquidsoap)
+ (target %s)
  (deps
-  %s
+  (:encoder %s)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (source_tree ../libs)
   (:stdlib ../../libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
-  (progn
-    %s)))
-  |}
-    (String.concat "\n" (List.map encoder_script formats))
-    (String.concat "\n" encoders_runtests)
+   (run %%{run_test} "%%{liquidsoap} --no-stdlib %%{stdlib} %%{test_liq} -" %%{encoder} %S)))|}
+    (escaped_format format) (encoder_script format) (encoder_format format)
+
+let () =
+  List.iter (mk_encoder "sine") audio_formats;
+  List.iter (mk_encoder "noise") video_formats;
+  List.iter mk_encoded_file formats;
+  Printf.printf
+    {|
+(rule
+  (target all_media_files)
+  (deps
+    %s)
+  (action (run touch %%{target})))|}
+    (String.concat "\n" (List.map escaped_format formats))
+
+let () =
+  Printf.printf
+    {|
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+  (run echo TODO)))|}

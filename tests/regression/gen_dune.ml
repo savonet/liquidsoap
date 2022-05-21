@@ -19,6 +19,7 @@ let () =
  (package liquidsoap)
  (deps
   %s
+  ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (source_tree ../libs)
   (:stdlib ../../libs/stdlib.liq)

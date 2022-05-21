@@ -120,44 +120,198 @@
     (with-stdout-to %{target}
       (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%video(codec=\"libx264\"))" noise "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"))))
 (rule
- (alias runtest)
- (package liquidsoap)
+ (target @flac[stereo].flac)
  (deps
-  @flac[stereo]_encoder.liq
-@flac[mono]_encoder.liq
-@wav[stereo]_encoder.liq
-@wav[mono]_encoder.liq
-@mp3[mono]_encoder.liq
-@mp3[stereo]_encoder.liq
-@ogg[@vorbis[mono]]_encoder.liq
-@ogg[@vorbis[stereo]]_encoder.liq
-@ogg[@flac[mono]]_encoder.liq
-@ogg[@flac[stereo]]_encoder.liq
-@ogg[@opus[mono]]_encoder.liq
-@ogg[@opus[stereo]]_encoder.liq
-@ffmpeg[format='mp4',@audio[codec='aac'],@video.none]_encoder.liq
-@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']]_encoder.liq
-@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']]_encoder.liq
+  (:encoder @flac[stereo]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (source_tree ../libs)
   (:stdlib ../../libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
-  (progn
-    (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@flac[stereo]_encoder.liq" "%flac(stereo).flac encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@flac[mono]_encoder.liq" "%flac(mono).flac encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@wav[stereo]_encoder.liq" "%wav(stereo).wav encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@wav[mono]_encoder.liq" "%wav(mono).wav encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@mp3[mono]_encoder.liq" "%mp3(mono).mp3 encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@mp3[stereo]_encoder.liq" "%mp3(stereo).mp3 encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@ogg[@vorbis[mono]]_encoder.liq" "%ogg(%vorbis(mono)).ogg encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@ogg[@vorbis[stereo]]_encoder.liq" "%ogg(%vorbis(stereo)).ogg encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@ogg[@flac[mono]]_encoder.liq" "%ogg(%flac(mono)).ogg encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@ogg[@flac[stereo]]_encoder.liq" "%ogg(%flac(stereo)).ogg encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@ogg[@opus[mono]]_encoder.liq" "%ogg(%opus(mono)).ogg encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@ogg[@opus[stereo]]_encoder.liq" "%ogg(%opus(stereo)).ogg encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@ffmpeg[format='mp4',@audio[codec='aac'],@video.none]_encoder.liq" "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"),%video.none).mp4 encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']]_encoder.liq" "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=1),%video(codec=\"libx264\")).mp4 encoder")
-(run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']]_encoder.liq" "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%video(codec=\"libx264\")).mp4 encoder"))))
-  
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%flac(stereo)")))
+(rule
+ (target @flac[mono].flac)
+ (deps
+  (:encoder @flac[mono]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%flac(mono)")))
+(rule
+ (target @wav[stereo].wav)
+ (deps
+  (:encoder @wav[stereo]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%wav(stereo)")))
+(rule
+ (target @wav[mono].wav)
+ (deps
+  (:encoder @wav[mono]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%wav(mono)")))
+(rule
+ (target @mp3[mono].mp3)
+ (deps
+  (:encoder @mp3[mono]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%mp3(mono)")))
+(rule
+ (target @mp3[stereo].mp3)
+ (deps
+  (:encoder @mp3[stereo]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%mp3(stereo)")))
+(rule
+ (target @ogg[@vorbis[mono]].ogg)
+ (deps
+  (:encoder @ogg[@vorbis[mono]]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%ogg(%vorbis(mono))")))
+(rule
+ (target @ogg[@vorbis[stereo]].ogg)
+ (deps
+  (:encoder @ogg[@vorbis[stereo]]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%ogg(%vorbis(stereo))")))
+(rule
+ (target @ogg[@flac[mono]].ogg)
+ (deps
+  (:encoder @ogg[@flac[mono]]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%ogg(%flac(mono))")))
+(rule
+ (target @ogg[@flac[stereo]].ogg)
+ (deps
+  (:encoder @ogg[@flac[stereo]]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%ogg(%flac(stereo))")))
+(rule
+ (target @ogg[@opus[mono]].ogg)
+ (deps
+  (:encoder @ogg[@opus[mono]]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%ogg(%opus(mono))")))
+(rule
+ (target @ogg[@opus[stereo]].ogg)
+ (deps
+  (:encoder @ogg[@opus[stereo]]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%ogg(%opus(stereo))")))
+(rule
+ (target @ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4)
+ (deps
+  (:encoder @ffmpeg[format='mp4',@audio[codec='aac'],@video.none]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"),%video.none)")))
+(rule
+ (target @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4)
+ (deps
+  (:encoder @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=1),%video(codec=\"libx264\"))")))
+(rule
+ (target @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4)
+ (deps
+  (:encoder @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']]_encoder.liq)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+   (run %{run_test} "%{liquidsoap} --no-stdlib %{stdlib} %{test_liq} -" %{encoder} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%video(codec=\"libx264\"))")))
+(rule
+  (target all_media_files)
+  (deps
+    @flac[stereo].flac
+@flac[mono].flac
+@wav[stereo].wav
+@wav[mono].wav
+@mp3[mono].mp3
+@mp3[stereo].mp3
+@ogg[@vorbis[mono]].ogg
+@ogg[@vorbis[stereo]].ogg
+@ogg[@flac[mono]].ogg
+@ogg[@flac[stereo]].ogg
+@ogg[@opus[mono]].ogg
+@ogg[@opus[stereo]].ogg
+@ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4
+@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4
+@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4)
+  (action (run touch %{target})))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../libs)
+  (:stdlib ../../libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+  (run echo TODO)))
