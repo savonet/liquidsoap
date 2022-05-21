@@ -18,7 +18,7 @@ todo = ref(2)
 
 def on_done () =
   def check(out) =
-    j = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
     let json.parse ( parsed : {
       streams: [{

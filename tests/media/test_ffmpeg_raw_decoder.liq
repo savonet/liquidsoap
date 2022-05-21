@@ -15,7 +15,7 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  ojson = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
+  ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
   let json.parse ( parsed : {
     streams: [{

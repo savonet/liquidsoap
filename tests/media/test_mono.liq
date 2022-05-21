@@ -9,11 +9,6 @@ if file.exists(out) then
   file.remove(out)
 end
 
-digests = [
-  ("@wav[mono].wav", "64ffd09001bee5fc98e0dbaf0aff983f"),
-  ("@wav[stereo].wav", "64ffd09001bee5fc98e0dbaf0aff983f")
-] 
-
 s = single(fname)
 
 s = once(s)
@@ -21,15 +16,7 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  recorded_digest = list.assoc(default="", fname, digests)
-  pass_digest =
-    if recorded_digest != "" then
-      recorded_digest == file.digest(out)
-    else
-      true
-    end
-
-  j = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
+  j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
   let json.parse ( parsed: {
     streams: [{
@@ -40,7 +27,7 @@ def on_done () =
 
   let [stream] = parsed.streams
 
-  if pass_digest and stream.channels == 1 and stream.sample_rate == "48000" then
+  if stream.channels == 1 and stream.sample_rate == "48000" then
     test.pass()
   else
     test.fail()

@@ -1,6 +1,8 @@
 log.level.set(4)
 settings.decoder.decoders.set(["FFMPEG"])
 
+test.skip()
+
 fname = argv(default="",1)
 out = "#{fname}+test_ffmpeg_filter.mp4"
 
@@ -26,7 +28,7 @@ clock.assign_new(id='test_clock',sync='none',[s])
 
 def on_done () =
   if !started then
-    ojson = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
+    ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
     output_format = json.parse(default=[("streams", [[("samplerate", "0")]])], ojson)
 
@@ -55,7 +57,7 @@ def on_done () =
       end
     end
 
-    output_streams = list.map(list.sort(cmp), output_streams)
+    output_streams = list.map((fun (stream) -> list.sort(cmp, stream)), output_streams)
 
     def cmd_l(l, l') =
       cmp(list.assoc("codec_name", l), list.assoc("codec_name", l'))
