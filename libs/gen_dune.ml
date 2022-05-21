@@ -10,8 +10,8 @@ let () =
 (install
  (section
   (site
-   (liquidsoap libs)))
- (package liquidsoap)
+   (liquidsoap-stdlib libs)))
+ (package liquidsoap-stdlib)
  (files
     %s))
   |}

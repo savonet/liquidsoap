@@ -9,6 +9,10 @@
  (modules parser json_parser))
 
 (generate_sites_module
+ (module liquidsoap_stdlib_sites)
+ (sites liquidsoap-stdlib))
+
+(generate_sites_module
  (module liquidsoap_sites)
  (sites liquidsoap))
 
@@ -186,6 +190,7 @@
   liq_time
   liqmagic
   liquidsoap_sites
+  liquidsoap_stdlib_sites
   log
   lufs
   mFrame

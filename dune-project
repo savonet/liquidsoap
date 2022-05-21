@@ -4,7 +4,12 @@
 
 (package
   (name liquidsoap)
-  (sites (share libs) (share bin) (lib_root lib_root)))
+  (sites (share bin) (lib_root lib_root))
+  (depends liquidsoap-stdlib))
+
+(package
+  (name liquidsoap-stdlib)
+  (sites (share libs)))
 
 (package
  (name metadata)
