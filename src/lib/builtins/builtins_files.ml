@@ -23,7 +23,6 @@
 open Extralib
 
 let log = Log.make ["lang.file"]
-let () = Lang.add_module "file"
 
 let () =
   Lang.add_builtin "file.extension" ~category:`File

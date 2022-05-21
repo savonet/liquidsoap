@@ -30,6 +30,7 @@ let () =
       "configure";
       "debug";
       "encoder";
+      "file";
       "harbor";
       "http";
       "input";
