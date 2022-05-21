@@ -14,7 +14,6 @@
 
 (package
   (name liquidsoap)
-  (sites (share bin) (lib_root lib_root))
   (synopsis "Swiss-army knife for multimedia streaming")
   (description
 "\| Liquidsoap is a powerful and flexible language for describing your
@@ -41,12 +40,18 @@
     dune-site
     dune-build-info
     (ppx_string :build)
+    liquidsoap-core
     liquidsoap-stdlib))
+
+(package
+  (name liquidsoap-core)
+  (sites (share libs) (share bin) (lib_root lib_root))
+  (synopsis "Liquidsoap core module"))
 
 (package
   (name liquidsoap-stdlib)
   (synopsis "Liquidsoap standard library")
-  (sites (share libs)))
+  (depends liquidsoap-core))
 
 (package
  (name metadata)

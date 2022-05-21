@@ -2,7 +2,7 @@
  (files extract-replaygain)
  (section
   (site
-   (liquidsoap bin)))
+   (liquidsoap-core bin)))
  (package liquidsoap))
 
 (install

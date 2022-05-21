@@ -9,12 +9,8 @@
  (modules parser json_parser))
 
 (generate_sites_module
- (module liquidsoap_stdlib_sites)
- (sites liquidsoap-stdlib))
-
-(generate_sites_module
  (module liquidsoap_sites)
- (sites liquidsoap))
+ (sites liquidsoap-core))
 
 (rule
  (targets dune_config.ml)
@@ -23,7 +19,7 @@
 
 (library
  (name liquidsoap_core)
- (package liquidsoap)
+ (package liquidsoap-core)
  (libraries
   mm
   dtools
@@ -189,7 +185,6 @@
   liq_time
   liqmagic
   liquidsoap_sites
-  liquidsoap_stdlib_sites
   log
   lufs
   mFrame

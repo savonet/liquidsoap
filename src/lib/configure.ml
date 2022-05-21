@@ -40,7 +40,7 @@ let rundir () =
 let logdir () =
   List.fold_left Filename.concat (prefix ()) ["var"; "log"; "liquidsoap"]
 
-let liq_libs_dir () = get_site Liquidsoap_stdlib_sites.Sites.libs
+let liq_libs_dir () = get_site Liquidsoap_sites.Sites.libs
 let bin_dir () = get_site Liquidsoap_sites.Sites.bin
 
 let () =
