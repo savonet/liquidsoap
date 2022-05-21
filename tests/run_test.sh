@@ -21,9 +21,8 @@ run_test() {
   START_TIME="$(date +%s)"
 
   if [ -n "${GITHUB_ACTIONS}" ]; then
-    NOTICE_PREFIX="::notice file=${TEST}::"
-    WARNING_PREFIX="::warning file=${TEST}::"
-    ERROR_PREFIX="::error file=${TEST}::"
+    WARNING_PREFIX="::warning file=${TEST},title=Test skipped::"
+    ERROR_PREFIX="::error file=${TEST},title=Test failed::"
   fi
 
   trap cleanup 0 1 2
@@ -48,7 +47,7 @@ run_test() {
   T="$(($(date +%s)-START_TIME))"
 
   if [ "${STATUS}" == "0" ]; then
-    printf "${NOTICE_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[0;32m[ok]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+    printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[0;32m[ok]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
     exit 0
   fi
 
