@@ -460,6 +460,14 @@
   gstreamer_utils))
 
 (library
+ (name liquidsoap_irc)
+ (libraries irc-client-unix liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_irc))
+
+(library
  (name liquidsoap_ladspa)
  (libraries ladspa liquidsoap_core)
  (library_flags -linkall)
@@ -724,6 +732,7 @@
   graphics_option
   gstreamer_option
   inotify_option
+  irc_option
   ladspa_option
   lame_option
   lastfm_option
@@ -836,6 +845,11 @@
    from
    (inotify -> inotify_option.enabled.ml)
    (-> inotify_option.disabled.ml))
+  (select
+   irc_option.ml
+   from
+   (liquidsoap_irc -> irc_option.enabled.ml)
+   (-> irc_option.disabled.ml))
   (select
    ladspa_option.ml
    from

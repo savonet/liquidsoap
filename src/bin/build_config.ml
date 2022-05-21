@@ -66,9 +66,11 @@ of your build and configuration:
    - SDL               : %{Sdl_option.detected}
 
  * Additional libraries
-   - Curl              : %{Ocurl_option.detected}
+   - curl (http)       : %{Ocurl_option.detected}
    - FFmpeg filters:   : %{Ffmpeg_option.detected}
+   - FFmpeg devices    : %{Ffmpeg_option.detected}
    - inotify           : %{Inotify_option.detected}
+   - irc               : %{Irc_option.detected}
    - lastfm            : %{Lastfm_option.detected}
    - lo                : %{Lo_option.detected}
    - magic             : %{Magic_option.detected}
