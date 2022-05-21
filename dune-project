@@ -2,6 +2,8 @@
 (using menhir 2.1)
 (using dune_site 0.1)
 
+(version 2.1.0)
+
 (package
   (name liquidsoap)
   (sites (share bin) (lib_root lib_root))
