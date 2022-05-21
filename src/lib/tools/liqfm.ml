@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Liquidsoap_curl
-
 (* A custom implementation of HTTP 
  * requests. *)
 module Liq_http = struct

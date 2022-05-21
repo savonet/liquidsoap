@@ -293,6 +293,7 @@
  (name liquidsoap_alsa)
  (libraries alsa liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules alsa_in alsa_out alsa_io alsa_settings))
 
@@ -300,6 +301,7 @@
  (name liquidsoap_ao)
  (libraries ao liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules ao_out))
 
@@ -307,6 +309,7 @@
  (name liquidsoap_bjack)
  (libraries bjack liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules bjack_in bjack_out))
 
@@ -314,6 +317,7 @@
  (name liquidsoap_camlimages)
  (libraries camlimages.all_formats liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules camlimages_decoder))
 
@@ -321,6 +325,7 @@
  (name liquidsoap_cry)
  (libraries cry liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules icecast2 builtins_cry))
 
@@ -328,6 +333,7 @@
  (name liquidsoap_mem_usage)
  (libraries mem_usage liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules builtins_mem_usage))
 
@@ -335,6 +341,7 @@
  (name liquidsoap_memtrace)
  (libraries memtrace liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liqmemtrace))
 
@@ -342,6 +349,7 @@
  (name liquidsoap_dssi)
  (libraries dssi liquidsoap_ladspa liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules dssi_op))
 
@@ -349,6 +357,7 @@
  (name liquidsoap_faad)
  (libraries faad liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules aac_decoder))
 
@@ -356,6 +365,7 @@
  (name liquidsoap_fdkaac)
  (libraries fdkaac liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules fdkaac_encoder))
 
@@ -371,6 +381,7 @@
   ffmpeg-av
   liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules
   builtins_ffmpeg_decoder
@@ -399,6 +410,7 @@
  (name liquidsoap_flac)
  (libraries flac liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liq_flac_decoder flacduration flac_encoder))
 
@@ -406,6 +418,7 @@
  (name liquidsoap_ogg_flac)
  (libraries flac.ogg flac.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liq_flac_ogg_decoder ogg_flac_encoder ogg_flac_duration))
 
@@ -413,6 +426,7 @@
  (name liquidsoap_frei0r)
  (libraries frei0r liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules frei0r_op))
 
@@ -420,6 +434,7 @@
  (name liquidsoap_gd)
  (libraries gd liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules video_text_gd))
 
@@ -427,6 +442,7 @@
  (name liquidsoap_graphics)
  (libraries graphics liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules graphics_out))
 
@@ -434,6 +450,7 @@
  (name liquidsoap_gstreamer)
  (libraries gstreamer liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules
   gstreamer_decoder
@@ -446,14 +463,15 @@
  (name liquidsoap_ladspa)
  (libraries ladspa liquidsoap_core)
  (library_flags -linkall)
- (optional)
  (wrapped false)
+ (optional)
  (modules ladspa_op))
 
 (library
  (name liquidsoap_lame)
  (libraries lame liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules lame_encoder))
 
@@ -461,6 +479,7 @@
  (name liquidsoap_curl)
  (libraries curl liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liqcurl builtins_http))
 
@@ -468,6 +487,7 @@
  (name liquidsoap_lastfm)
  (libraries lastfm liquidsoap_core liquidsoap_curl)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules builtins_lastfm liqfm))
 
@@ -475,6 +495,7 @@
  (name liquidsoap_lilv)
  (libraries lilv liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules lilv_op))
 
@@ -482,6 +503,7 @@
  (name liquidsoap_lo)
  (libraries lo liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules builtins_lo))
 
@@ -489,6 +511,7 @@
  (name liquidsoap_mad)
  (libraries mad liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules mad_decoder))
 
@@ -496,6 +519,7 @@
  (name liquidsoap_magic)
  (libraries magic liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules builtins_magic))
 
@@ -511,6 +535,7 @@
  (name liquidsoap_opus)
  (libraries opus opus.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liq_opus_decoder opus_encoder))
 
@@ -520,6 +545,7 @@
  (enabled_if
   (= "linux" %{system}))
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (foreign_stubs
   (language c)
@@ -530,6 +556,7 @@
  (name liquidsoap_secure_transport)
  (libraries osx-secure-transport liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules
   harbor_secure_transport
@@ -542,6 +569,7 @@
  (name liquidsoap_portaudio)
  (libraries portaudio liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules portaudio_io))
 
@@ -549,6 +577,7 @@
  (name liquidsoap_posix_time)
  (libraries posix-time2 liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liq_posix_time))
 
@@ -556,6 +585,7 @@
  (name liquidsoap_prometheus)
  (libraries cohttp-lwt-unix prometheus-app liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liq_prometheus builtins_prometheus))
 
@@ -563,6 +593,7 @@
  (name liquidsoap_pulseaudio)
  (libraries pulseaudio liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules pulseaudio_io))
 
@@ -570,6 +601,7 @@
  (name liquidsoap_samplerate)
  (libraries samplerate liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules libsamplerate_converter))
 
@@ -577,6 +609,7 @@
  (name liquidsoap_sdl)
  (libraries tsdl-image tsdl-ttf liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules sdlimage_decoder video_text_sdl sdl_out keyboard_sdl sdl_utils))
 
@@ -584,6 +617,7 @@
  (name liquidsoap_shine)
  (libraries shine liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules shine_encoder))
 
@@ -591,6 +625,7 @@
  (name liquidsoap_soundtouch)
  (libraries soundtouch liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules soundtouch_op st_bpm))
 
@@ -598,6 +633,7 @@
  (name liquidsoap_speex)
  (libraries speex speex.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liq_speex_decoder speex_encoder))
 
@@ -605,6 +641,7 @@
  (name liquidsoap_srt)
  (libraries srt liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules srt_io))
 
@@ -612,6 +649,7 @@
  (name liquidsoap_ssl)
  (libraries ssl liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules
   ssl_base
@@ -625,6 +663,7 @@
  (name liquidsoap_taglib)
  (libraries taglib liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules taglib_plug taglib_id3v2))
 
@@ -632,6 +671,7 @@
  (name liquidsoap_theora)
  (libraries theora theora.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liq_theora_decoder theora_encoder))
 
@@ -639,6 +679,7 @@
  (name liquidsoap_vorbis)
  (libraries vorbis vorbis.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules liq_vorbis_decoder vorbis_encoder vorbisduration))
 
@@ -646,6 +687,7 @@
  (name liquidsoap_winsvc)
  (libraries winsvc liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules runner_service))
 
@@ -653,6 +695,7 @@
  (name liquidsoap_xmlplaylist)
  (libraries xmlplaylist liquidsoap_core)
  (library_flags -linkall)
+ (wrapped false)
  (optional)
  (modules playlist_xml))
 
