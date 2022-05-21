@@ -20,6 +20,12 @@ run_test() {
 
   START_TIME="$(date +%s)"
 
+  if [ -n "${GITHUB_ACTIONS}" ]; then
+    NOTICE_PREFIX="::notice file=${TEST}::"
+    WARNING_PREFIX="::warning file=${TEST}::"
+    ERROR_PREFIX="::error file=${TEST}::"
+  fi
+
   trap cleanup 0 1 2
 
   cleanup() {
@@ -28,7 +34,7 @@ run_test() {
 
   on_timeout() {
     T="$(($(date +%s)-START_TIME))"
-    printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[1;34m[timeout]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+    printf "${ERROR_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[1;34m[timeout]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
     cat "${LOG_FILE}"
     kill -9 "$PID"
     exit 1
@@ -42,16 +48,16 @@ run_test() {
   T="$(($(date +%s)-START_TIME))"
 
   if [ "${STATUS}" == "0" ]; then
-    printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[0;32m[ok]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+    printf "${NOTICE_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[0;32m[ok]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
     exit 0
   fi
 
   if [ "${STATUS}" == "2" ]; then
-      printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[1;33m[skipped]\033[0m\n"
+      printf "${WARNING_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[1;33m[skipped]\033[0m\n"
       exit 0
   fi
 
-  printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[0;31m[failed]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+  printf "${ERROR_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[0;31m[failed]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
   cat "${LOG_FILE}"
   exit 1
 }

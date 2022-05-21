@@ -36,51 +36,6 @@ jobs:
         run: .github/scripts/build-details.sh
         id: build_details
 
-  export_tarball:
-    runs-on: ubuntu-latest
-    container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
-      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
-    env:
-      HOME: /home/opam
-    steps:
-      - name: Checkout code
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          rm -rf doc/content/build.md doc/content/install.md
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
-          sudo -u opam -E git fetch origin ${{ github.sha }}
-          sudo -u opam -E git checkout ${{ github.sha }}
-      - name: Install required tools
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install rsync
-      - name: Build tarball
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-tarball.sh
-      - name: Get filename
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/tarball-filename.sh
-        id: tarball_filename
-      - name: Copy tarball
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          mkdir -p /tmp/${{ github.run_number }}/tarball
-          cp ${{ steps.tarball_filename.outputs.filename }} /tmp/${{ github.run_number }}/tarball
-      - name: Export tarball
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ steps.tarball_filename.outputs.filename }}
-          path: ${{ github.workspace }}/${{ github.run_number }}/tarball/${{ steps.tarball_filename.outputs.filename }}
-          if-no-files-found: error
-      - name: Cleanup
-        if: ${{ always() }}
-        run: |
-          rm -rf /tmp/${{ github.run_number }}/tarball
-
-
   build_minimal:
     runs-on: ubuntu-latest
     needs: build_details
@@ -90,6 +45,9 @@ jobs:
     env:
       HOME: /home/opam
     steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@v1
+        id: cpu_cores
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
@@ -99,6 +57,7 @@ jobs:
           git checkout ${{ github.sha }}
       - name: Build
         run: |
+          echo "::group::Preparing build"
           cd /tmp/liquidsoap-full
           git remote set-url origin https://github.com/savonet/liquidsoap-full.git
           git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
@@ -108,9 +67,9 @@ jobs:
           cp PACKAGES.minimal PACKAGES
           eval $(opam config env) && ocamlfind query curl | xargs rm -rf
           opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | grep -v lilv | xargs opam remove --force -y
+          echo "::endgroup::"
           cd liquidsoap
-          ./.github/scripts/build-posix.sh
-          ./src/liquidsoap --no-stdlib ./libs/stdlib.liq ./libs/deprecations.liq --check 'print("hello world")'
+          ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
       - name: Build doc
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
@@ -146,11 +105,11 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
-          cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/${{ github.run_number }}/core
+          cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam -E ./.github/scripts/test-posix.sh
       - name: Export potential core dumps
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
@@ -454,7 +413,7 @@ jobs:
 
   update_release:
     runs-on: ubuntu-latest
-    needs: [build_details, export_tarball, build_minimal, run_tests, build_opam, build_posix, build_win32, fetch_s3_artifacts]
+    needs: [build_details, build_minimal, run_tests, build_opam, build_posix, build_win32, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_release
     steps:
       - name: Checkout code

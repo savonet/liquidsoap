@@ -27,6 +27,8 @@ depends: [
   "conf-which" {build}
   "pcre"
   "sedlex" {>= "2.2"}
+  "dune-site"
+  "dune-build-info"
   "ppx_string" {build}
 ]
 depopts: [
