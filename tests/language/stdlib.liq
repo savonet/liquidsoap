@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq
-
-%include "test.liq"
-
 success = ref(true)
 
 def t(x, y)

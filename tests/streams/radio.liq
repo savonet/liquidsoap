@@ -1,11 +1,7 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
 # Basic radio test
 
-%include "test.liq"
-
 mic = sine()
-bed = mksafe(playlist("files/playlist"))
+bed = mksafe(playlist("playlist"))
 
 radio = add([mic, bed])
 

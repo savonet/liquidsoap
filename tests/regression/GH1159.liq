@@ -1,5 +1,3 @@
-%include "test.liq"
-
 # In #1159, we realized that the decoder
 # was retuning remaining = 0 too early,
 # trigering an early `on_end` call.

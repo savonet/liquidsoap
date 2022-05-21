@@ -1,9 +1,6 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq 
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 
-%include "test.liq"
-  
 def f() =
   # Check that some polymorphism is allowed.
   # id : (string,'a)->'a

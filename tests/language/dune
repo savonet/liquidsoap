@@ -19,3 +19,13 @@
  (alias gendune)
  (action
   (diff dune.inc dune.inc.gen)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  (:type_error ./type_errors.pl)
+  (:stdlib ../../libs/stdlib.liq)
+  (:run_test ../run_test.sh))
+ (action
+  (run %{run_test} /usr/bin/perl %{type_error})))

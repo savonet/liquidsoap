@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
-%include "test.liq"
-
 def t(file, expected) =
   id = playlist.id(default="foo", file)
   if id != expected then

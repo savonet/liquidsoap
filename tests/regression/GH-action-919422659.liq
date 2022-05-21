@@ -1,5 +1,3 @@
-%include "test.liq"
-
 # In https://github.com/savonet/liquidsoap/runs/919422659,
 # GH1159.liq started failing. Further investigation revealed
 # that GH1159.liq was originally intended to use with the FLAC

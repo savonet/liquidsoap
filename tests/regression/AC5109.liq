@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
-%include "test.liq"
-
 # See: https://github.com/AzuraCast/AzuraCast/issues/5109.
 # Crossfade transition sources with breaks where triggering
 # end of transition too early.

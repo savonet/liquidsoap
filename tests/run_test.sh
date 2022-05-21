@@ -2,15 +2,13 @@
 
 BASEPATH=$0
 BASEDIR=`dirname $0`
-PWD=`cd $BASEDIR && pwd`
 
 TIMEOUT=10m
 
 run_test() {
-  PWD=$1
-  CMD=$2
-  TEST=$3
-  TEST_NAME=$4
+  CMD=$1
+  TEST=$2
+  TEST_NAME=$3
 
   if [ -z "${TEST_NAME}" ]; then
     TEST_NAME=${TEST}
@@ -38,7 +36,7 @@ run_test() {
 
   trap on_timeout 15
 
-  ${CMD} < "${PWD}/${TEST}" > "${LOG_FILE}" 2>&1
+  ${CMD} < "${TEST}" > "${LOG_FILE}" 2>&1
 
   STATUS=$?
   T="$(($(date +%s)-START_TIME))"
@@ -66,4 +64,4 @@ on_term() {
 
 trap on_term INT
 
-timeout -s 15 "${TIMEOUT}" bash -c "run_test \"$PWD\" \"$1\" \"$2\" \"$3\""
+timeout -s 15 "${TIMEOUT}" bash -c "run_test \"$1\" \"$2\" \"$3\""

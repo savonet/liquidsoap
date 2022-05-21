@@ -1,10 +1,6 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
-%include "test.liq"
-
-jingles = mksafe(playlist(id="jingles", mode="normal", "files/jingles"))
-music   = mksafe(playlist(id="music", mode="normal", "files/playlist"))
-music2  = mksafe(playlist(id="music2", mode="normal", "files/playlist"))
+jingles = mksafe(playlist(id="jingles", mode="normal", "jingles"))
+music   = mksafe(playlist(id="music", mode="normal", "playlist"))
+music2  = mksafe(playlist(id="music2", mode="normal", "playlist"))
 
 rounds = 10
 round_len = 8

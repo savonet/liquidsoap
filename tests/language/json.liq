@@ -1,8 +1,4 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
 # We test some ground values for json import/export.
-
-%include "test.liq"
 
 success = ref(true)
 

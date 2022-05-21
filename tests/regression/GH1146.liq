@@ -1,5 +1,3 @@
-%include "test.liq"
-
 # In #1146, we encountered a case where native flac
 # decoding was stuck at the end of a track. This test
 # makes sure we don't have such regression in the

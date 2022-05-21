@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq
-
-%include "test.liq"
-
 a = ()
 
 # My function

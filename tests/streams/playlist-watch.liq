@@ -1,8 +1,4 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
 # Test file watcher logic in playlist.
-
-%include "test.liq"
 
 log.level.set(5)
 
