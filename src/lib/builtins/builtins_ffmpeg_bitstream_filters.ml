@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 module Generator = Generator.From_audio_video
+open Builtins_ffmpeg_base
 
 let log = Log.make ["ffmpeg"; "filter"; "bitstream"]
 let () = Lang.add_module "ffmpeg.filter.bitstream"

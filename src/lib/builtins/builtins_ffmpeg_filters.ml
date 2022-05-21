@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Builtins_ffmpeg_base
+
 (** FFmpeg filter graphs initialization is pretty tricky. Things to consider:
   * - FFmpeg filters are using a push paradigm, pushing from the sources down
   *   to the outputs

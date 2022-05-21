@@ -1,12 +1,9 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-%include "test.liq"
-
 log.level.set(4)
 
-background = single("files/background.jpg")
-playlist = single("files/audio/@mp3(stereo).mp3")
-logo = single("files/logo.png")
-out = "files/transparency.mp4"
+background = single("background.jpg")
+playlist = single("@mp3[stereo].mp3")
+logo = single("logo.png")
+out = "transparency.mp4"
 
 def logo_overlay(background, logo) =
   def mkfilter(graph) =

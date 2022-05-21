@@ -1,20 +1,17 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-%include "test.liq"
-
 log.level.set(5)
 audio.samplerate.set(48000)
 settings.decoder.priorities.ffmpeg.set(-1)
 
 fname = argv(default="",1)
-out = "files/test_mono.wav"
+out = "#{fname}+test_mono.wav"
 
 if file.exists(out) then
   file.remove(out)
 end
 
 digests = [
-  ("files/@wav(mono).wav", "64ffd09001bee5fc98e0dbaf0aff983f"),
-  ("files/@wav(stereo).wav", "64ffd09001bee5fc98e0dbaf0aff983f")
+  ("@wav[mono].wav", "64ffd09001bee5fc98e0dbaf0aff983f"),
+  ("@wav[stereo].wav", "64ffd09001bee5fc98e0dbaf0aff983f")
 ] 
 
 s = single(fname)

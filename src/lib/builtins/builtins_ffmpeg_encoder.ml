@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Mm
+open Builtins_ffmpeg_base
 
 module InternalResampler =
   Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)

@@ -1,13 +1,10 @@
-#!../../src/liquidsoap -i ../../libs/stdlib.liq ../../libs/deprecations.liq
-%include "test.liq"
-
 log.level.set(5)
 audio.samplerate.set(48000)
 video.frame.rate.set(45)
 settings.decoder.decoders.set(["FFMPEG"])
 
-fname = argv(default="files/video/@ffmpeg(format=mp4,@audio(codec=aac,channels=2),@video(codec=libx264)).mp4",1)
-out = "files/test_videos_size.avi"
+fname = argv(default="@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4",1)
+out = "#{fname}+test_videos_size.avi"
 
 if file.exists(out) then
   file.remove(out)

@@ -69,7 +69,6 @@
   builtins_bool
   builtins_callbacks
   builtins_eval
-  builtins_ffmpeg_base
   builtins_files
   builtins_getter
   builtins_harbor
@@ -389,7 +388,10 @@
  (wrapped false)
  (optional)
  (modules
+  builtins_ffmpeg_base
+  builtins_ffmpeg_bitstream_filters
   builtins_ffmpeg_decoder
+  builtins_ffmpeg_filters
   builtins_ffmpeg_encoder
   ffmpeg_avfilter_utils
   ffmpeg_audio_converter
