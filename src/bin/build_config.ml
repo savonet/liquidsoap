@@ -80,7 +80,6 @@ of your build and configuration:
    - ssl               : %{Ssl_option.detected}
    - posix-time2       : %{Posix_time_option.detected}
    - windows service   : %{Winsvc_option.detected}
-   - yojson            : %{Yojson_option.detected}
    - XML playlists     : %{Xmlplaylist_option.detected}
 
  * Monitoring

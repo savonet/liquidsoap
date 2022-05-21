@@ -771,8 +771,7 @@
   theora_option
   vorbis_option
   winsvc_option
-  xmlplaylist_option
-  yojson_option)
+  xmlplaylist_option)
  (libraries
   (select
    alsa_option.ml
@@ -1008,9 +1007,4 @@
    xmlplaylist_option.ml
    from
    (liquidsoap_xmlplaylist -> xmlplaylist_option.enabled.ml)
-   (-> xmlplaylist_option.disabled.ml))
-  (select
-   yojson_option.ml
-   from
-   (yojson -> yojson_option.enabled.ml)
-   (-> yojson_option.disabled.ml))))
+   (-> xmlplaylist_option.disabled.ml))))
