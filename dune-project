@@ -24,27 +24,23 @@
 "\| together.
   )
   (depends
-    (conf-autoconf :dev)
-    (conf-automake :dev)
+    liquidsoap-core
+    liquidsoap-stdlib))
+
+(package
+  (name liquidsoap-core)
+  (depends
     (ocaml (>= 4.12.0))
     (camomile (>= 1.0.0))
     (dtools (>= 0.4.4))
     (duppy (>= 0.9.1))
     (menhir (>= 20180703))
     (mm (>= 0.8.1))
-    (ocamlfind :build)
-    (conf-pkg-config :build)
-    (conf-which :build)
     pcre
     (sedlex (>= 2.2))
     dune-site
     dune-build-info
-    (ppx_string :build)
-    liquidsoap-core
-    liquidsoap-stdlib))
-
-(package
-  (name liquidsoap-core)
+    (ppx_string :build))
   (sites (share libs) (share bin) (lib_root lib_root))
   (synopsis "Liquidsoap core module"))
 

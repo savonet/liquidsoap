@@ -9,31 +9,29 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "2.8"}
-  "ocaml" {>= "4.12.0"}
-  "camomile" {>= "1.0.0"}
-  "dtools" {>= "0.4.4"}
-  "duppy" {>= "0.9.1"}
+  "ocaml-windows" {>= "4.12.0"}
+  "camomile-windows" {>= "1.0.0"}
+  "dtools-windows" {>= "0.4.4"}
+  "duppy-windows" {>= "0.9.1"}
   "menhir" {>= "20180703"}
-  "mm" {>= "0.8.1"}
-  "pcre"
-  "sedlex" {>= "2.2"}
-  "dune-site"
-  "dune-build-info"
-  "ppx_string" {build}
-  "odoc" {with-doc}
+  "mm-windows" {>= "0.8.1"}
+  "pcre-windows"
+  "sedlex-windows" {>= "2.2"}
+  "dune-site-windows"
+  "dune-build-info-windows"
+  "ppx_string-windows" {build}
 ]
 build: [
-  ["dune" "subst"] {dev}
   [
     "dune"
     "build"
     "-p"
-    name
+    "liquidsoap-core"
     "-j"
     jobs
+    "-x"
+    "windows"
     "@install"
-    "@runtest" {with-test}
-    "@doc" {with-doc}
   ]
 ]
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
