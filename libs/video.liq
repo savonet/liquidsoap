@@ -457,8 +457,8 @@ end
 
 # Add subtitle from metadata.
 # @category Source / Video Processing
-# @param override Metadata where subtitle to display are located.
-# @param offset Offset in pixels.  
+# @param ~override Metadata where subtitle to display are located.
+# @param ~offset Offset in pixels.  
 # @param s Source.
 def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, ~offset=20, s)
   subtitle = ref("")
