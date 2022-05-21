@@ -20,7 +20,8 @@ override_dh_auto_test:
 override_dh_auto_install:
 	dune build @install
 	dune install --relocatable --prefix $(DESTDIR)
-	cp -rf `opam config var share`/camomile $(DESTDIR)/usr/share/liquidsoap-core
+	mkdir -p $(DESTDIR)/share/liquidsoap-core
+	cp -rf `opam config var share`/camomile $(DESTDIR)/share/liquidsoap-core
 	dh_install
 
 override_dh_auto_clean:
