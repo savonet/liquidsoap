@@ -1,3 +1,3 @@
 usr/bin/liquidsoap
-usr/share/bash_completion/completions/liquidsoap etc/logrotate.d/liquidsoap
-usr/share/liquidsoap-core/*/*/*
+usr/share/bash_completion/completions/liquidsoap etc/bash_completion.d/liquidsoap
+usr/share/liquidsoap-core

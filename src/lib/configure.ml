@@ -30,9 +30,7 @@ let get_site name = match name with [] -> "" | s :: _ -> s
 
 (* This is a hack. *)
 let prefix () =
-  List.fold_left Filename.concat
-    (get_site Liquidsoap_sites.Sites.lib_root)
-    [".."; ".."]
+  Filename.(dirname (dirname (get_site Liquidsoap_sites.Sites.lib_root)))
 
 let rundir () =
   List.fold_left Filename.concat (prefix ()) ["var"; "run"; "liquidsoap"]

@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-DESTDIR := $(CURDIR)/debian/tmp/usr
+DESTDIR := debian/tmp/usr
 
 %:
 	dh $@
