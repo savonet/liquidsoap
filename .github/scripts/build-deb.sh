@@ -17,9 +17,10 @@ COMMIT_SHORT=`echo "${GITHUB_SHA}" | cut -c-7`
 export DEBFULLNAME="The Savonet Team"
 export DEBEMAIL="savonet-users@lists.sourceforge.net"
 
-eval $(opam config env)
-
 cd /tmp/liquidsoap-full/liquidsoap
+
+eval $(opam config env)
+export OCAMLPATH=`cat ../.ocamlpath`
 
 LIQ_VERSION=`opam show -f version ./liquidsoap.opam | cut -d'-' -f 1`
 LIQ_TAG=`echo ${DOCKER_TAG} | sed -e 's#_#-#g'`
