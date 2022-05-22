@@ -17,6 +17,11 @@
  (action
   (run ../bin/dune_config.exe)))
 
+(rule
+ (target liquidsoap_paths.ml)
+ (action
+  (copy liquidsoap_paths.%{env:LIQUIDSOAP_BUILD_TARGET=default}.ml %{target})))
+
 (library
  (name liquidsoap_core)
  (package liquidsoap-core)
@@ -162,6 +167,7 @@
   lifecycle
   liq_time
   liqmagic
+  liquidsoap_paths
   liquidsoap_sites
   log
   lufs

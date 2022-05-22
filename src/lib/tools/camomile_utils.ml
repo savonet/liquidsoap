@@ -1,6 +1,11 @@
-module C = CamomileLibraryDefault.Camomile.CharEncoding
+let camomile_dir = Liquidsoap_paths.camomile_dir
 
-let camomile_dir = CamomileDefaultConfig__.InstallConfig.share_dir
+module C = CamomileLibrary.CharEncoding.Configure (struct
+  let datadir = Filename.concat camomile_dir "database"
+  let localedir = Filename.concat camomile_dir "locales"
+  let charmapdir = Filename.concat camomile_dir "charmaps"
+  let unimapdir = Filename.concat camomile_dir "mappings"
+end)
 
 exception Unknown_encoding of string
 

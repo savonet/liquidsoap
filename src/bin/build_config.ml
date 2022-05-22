@@ -1,4 +1,10 @@
 let print_config () =
+  let path_mode =
+    match Liquidsoap_paths.mode with
+      | `Default -> "default"
+      | `Standalone -> "standalone"
+      | `Posix -> "posix"
+  in
   Printf.printf "%s\n%!"
     [%string
       {|
@@ -6,6 +12,14 @@ Congratulation on building liquidsoap! Here are the details
 of your build and configuration:
 
  * Liquidsoap version  : %{Configure.version ()}
+
+ * Configured paths  
+   - mode              : %{path_mode}
+   - standard library  : %{Liquidsoap_paths.liq_libs_dir_descr}
+   - scripted binaries : %{Liquidsoap_paths.bin_dir_descr}
+   - camomile          : %{Liquidsoap_paths.camomile_dir_descr}
+   - rundir            : %{Liquidsoap_paths.rundir_descr}
+   - logdir            : %{Liquidsoap_paths.logdir_descr}
 
  * Supported input formats
    - MP3               : %{Mad_option.detected}

@@ -16,9 +16,11 @@ build: [
     "dune"
     "build"
     "-p"
-    name
+    "liquidsoap-stdlib"
     "-j"
     jobs
+    "-x"
+    "windows"
     "@install"
   ]
 ]

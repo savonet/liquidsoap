@@ -21,14 +21,15 @@ depends: [
   "liquidsoap-stdlib-windows"
 ]
 build: [
-  ["dune" "subst"] {dev}
-  [
+  [ "env" "LIQUIDSOAP_BUILD_TARGET=standlone"
     "dune"
     "build"
     "-p"
-    name
+    "liquidsoap"
     "-j"
     jobs
+    "-x"
+    "windows"
     "@install"
   ]
 ]

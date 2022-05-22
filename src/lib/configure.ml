@@ -1,4 +1,5 @@
 include Dune_config
+include Liquidsoap_paths
 
 (* See: https://github.com/ocaml/dune/issues/4453 *)
 let git_snapshot = false
@@ -25,21 +26,6 @@ let libs_versions () =
              | Some v -> [Build_info.V1.Version.to_string v]
              | None -> []))
        libs)
-
-let get_site name = match name with [] -> "" | s :: _ -> s
-
-(* This is a hack. *)
-let prefix () =
-  Filename.(dirname (dirname (get_site Liquidsoap_sites.Sites.lib_root)))
-
-let rundir () =
-  List.fold_left Filename.concat (prefix ()) ["var"; "run"; "liquidsoap"]
-
-let logdir () =
-  List.fold_left Filename.concat (prefix ()) ["var"; "log"; "liquidsoap"]
-
-let liq_libs_dir () = get_site Liquidsoap_sites.Sites.libs
-let bin_dir () = get_site Liquidsoap_sites.Sites.bin
 
 let () =
   Lifecycle.before_init (fun () ->
