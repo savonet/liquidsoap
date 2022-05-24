@@ -18,6 +18,8 @@ Fixed:
   the muxing operators.
 * Raise runtime exceptions in `string.replace` failures with
   useful message. (#2408)
+* Prevent `request.dynamic` from raising exceptions when checking
+  if the source is ready (#2381)
 
 ---
 2.0.4 (23-04-2022)
