@@ -30,10 +30,10 @@ Reference
 * [Extra API](reference-extra.html): Extra functions and libraries. 
 * [Protocols](protocols.html): List of protocols supported by liquidsoap.
 * [Settings](settings.html): The list of available settings for liquidsoap.
+* [FFmpeg](ffmpeg.html): FFmpeg support documentation.
 * [Encoding formats](encoding_formats.html): The available formats for encoding outputs.
 * [Videos streams](video.html): Use `liquidsoap` for video streams
 * [JSON import/export](json.html): Importing and exporting language values in JSON.
-* [FFmpeg filters](ffmpeg_filters.html): Using FFmpeg filters.
 * [Playlist parsers](playlist_parsers.html): Supported playlist formats.
 * [LADSPA plugins](ladspa.html): Using LADSPA plugins.
 

@@ -3,7 +3,7 @@
 Since the `2.0.x` release cycle, liquidsoap integrates a tight support of ffmpeg. This includes:
 
 * [Decoders](#decoders)
-* [Encoders](#dncoders)
+* [Encoders](#encoders)
 * [Filters](#filters)
 * [Bitstream filters](#bitstream-filters)
 
@@ -83,7 +83,38 @@ See detailed [ffmpeg filters](ffmpeg_filters.html) article.
 
 ## Bitstream filters
 
-See detailed [ffmpeg filters](ffmpeg_filters.html) article.
+FFmpeg bitstream filters are filters that modify the binary content of _encoded data_. They can be used to adjust certain aspects of
+media codecs and containers to make them fit some specific use, for instance a rtmp/flv output etc. They are particularly important
+when dealing with live switches of encoded content (see [Examples](#examples) section).
+
+The list of all bitstream filters is documented on [FFmpeg][https://www.ffmpeg.org/ffmpeg-bitstream-filters.html] online doc and
+our [extra API reference](reference-extras.html). Here's one such filter:
+
+```liquidsoap
+% liquidsoap -h ffmpeg.filter.bitstream.h264_mp4toannexb
+
+FFmpeg h264_mp4toannexb bitstream filter. See ffmpeg documentation for more
+details.
+
+Type: (?id : string?, source(audio='a,
+ video=ffmpeg.video.copy('b), midi=none)) ->
+source(audio='a, video=ffmpeg.video.copy('b), midi=none)
+
+Category: Source / FFmpeg Filter
+Flag: extra
+
+Parameters:
+
+ * id : string? (default: null)
+     Force the value of the source ID.
+
+ * (unlabeled) : source(audio='a, video=ffmpeg.video.copy('b), midi=none)
+
+Methods:
+...
+```
+
+Please consult the FFmpeg documentation for more details about that each filter do and why/how to use them.
 
 ## Examples
 
