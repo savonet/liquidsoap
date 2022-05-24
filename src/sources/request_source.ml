@@ -216,7 +216,8 @@ class virtual unqueued ~kind ~name =
 
     method is_ready =
       Tutils.mutexify plock
-        (fun () -> current <> None || must_fail || self#begin_track)
+        (fun () ->
+          current <> None || must_fail || try self#begin_track with _ -> false)
         ()
 
     method remaining = remaining
