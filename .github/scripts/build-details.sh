@@ -46,7 +46,7 @@ if [[ "${BRANCH}" =~ "rolling-release-" ]]; then
   echo "Branch is rolling release"
   IS_ROLLING_RELEASE=true
 else
-  IS_ROLLING_RELEASE=false
+  IS_ROLLING_RELEASE=
 fi
 
 echo "##[set-output name=branch;]${BRANCH}"
