@@ -52,7 +52,9 @@ jobs:
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
       - name: Install required tools
-        run: sudo apt-get -y install rsync
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install rsync
       - name: Build tarball
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
