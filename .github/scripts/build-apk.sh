@@ -7,7 +7,8 @@ DOCKER_TAG=$2
 ARCH=$3
 ALPINE_ARCH=$4
 IS_ROLLING_RELEASE=$5
-COMMIT_SHA=$6
+IS_RELEASE=$6
+COMMIT_SHA=$7
 APK_RELEASE=0
 
 cd /tmp/liquidsoap-full/liquidsoap
