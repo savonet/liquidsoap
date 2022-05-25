@@ -1,6 +1,6 @@
 # FFmpeg encoder
 
-The `%ffmpeg` encoder is the latest addition to our collection. The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpeg.org/ffmpeg-formats.html#Muxers) and [encoders](https://www.ffmpeg.org/ffmpeg-codecs.html), including private configuration options. Configuration value are passed as key/values, with values being of types: `string`, `int`, or `float`. If an option is not recognized (or: unused), it will raise an error during the instantiation of the encoder. Here are some configuration examples:
+The `%ffmpeg` encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpeg.org/ffmpeg-formats.html#Muxers) and [encoders](https://www.ffmpeg.org/ffmpeg-codecs.html), including private configuration options. Configuration value are passed as key/values, with values being of types: `string`, `int`, or `float`. If an option is not recognized (or: unused), it will raise an error during the instantiation of the encoder. Here are some configuration examples:
 
 * **AAC encoding at `22050kHz` using `fdk-aac` encoder and `mpegts` muxer**
 ```liquidsoap
@@ -62,7 +62,7 @@ The full syntax is as follows:
 Where:
 
 * `<format>` is either a string value (e.g. `"mpegts"`), as returned by the `ffmpeg -formats` command or `none`. When set to `none` or simply no specified, the encoder will try to auto-detect it.
-* `<codec>` is either a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command or `none`. When set to `none`, for audio, `channels` is set to `0` and, for either audio or video, the stream is assumed to have no such content.
+* `<codec>` is a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command.
 * `<option_name>` can be any syntactically valid variable name or string. Strings are typically used when the option name is of the form: `foo-bar`.
 * `%audio(..)` is for options specific to the audio codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. Streams encoded using `%audio` are using liquidsoap internal frame format and are fully handled on the liquidsoap side.
 * `%audio.raw(..)` behaves like `%audio` except that the audio data is kept as ffmpeg's internal format. This can avoid data copy and is also the format required to use [ffmpeg filters](ffmpeg_filters.html)..
