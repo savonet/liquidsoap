@@ -25,7 +25,7 @@ depends: [
   "ocamlfind" {build}
   "conf-pkg-config" {build}
   "conf-which" {build}
-  "pcre"
+  "pcre" {>= "7.4.0"}
   "sedlex" {>= "2.2"}
 ]
 depopts: [
