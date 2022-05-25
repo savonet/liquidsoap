@@ -36,7 +36,7 @@
     (duppy (>= 0.9.1))
     (menhir (>= 20180703))
     (mm (>= 0.8.1))
-    pcre
+    (pcre (>= 7.4.0))
     (sedlex (>= 2.2))
     dune-site
     dune-build-info
