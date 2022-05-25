@@ -87,7 +87,7 @@ FFmpeg bitstream filters are filters that modify the binary content of _encoded 
 media codecs and containers to make them fit some specific use, for instance a rtmp/flv output etc. They are particularly important
 when dealing with live switches of encoded content (see [Examples](#examples) section).
 
-The list of all bitstream filters is documented on [FFmpeg][https://www.ffmpeg.org/ffmpeg-bitstream-filters.html] online doc and
+The list of all bitstream filters is documented on [FFmpeg](https://www.ffmpeg.org/ffmpeg-bitstream-filters.html) online doc and
 our [extra API reference](reference-extras.html). Here's one such filter:
 
 ```liquidsoap
