@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
-%include "test.liq"
-
 def t(x, y)
   if x != y then
     print("Failure: got #{x} instead of #{y}")

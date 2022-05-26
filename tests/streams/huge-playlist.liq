@@ -1,13 +1,15 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq
-
 # Test huge playlists, see #2162
-
-%include "test.liq"
 
 log.level.set(5)
 
+uname_s = string.trim(process.run("uname -s").stdout)
+
+if uname_s == "Darwin" then
+  test.skip()
+end
+
 def f() =
-  s = playlist(mode="normal", "files/huge_playlist")
+  s = playlist(mode="normal", "huge_playlist")
   print("\nWe have #{s.length()} songs!\n")
   output.dummy(mksafe(s))
 end

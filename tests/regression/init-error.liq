@@ -2,8 +2,6 @@
 
 # Make sure that we properly shutdown on init error
 
-%include "test.liq"
-
 log.level.set(5)
 settings.clock.allow_streaming_errors.set(true)
 

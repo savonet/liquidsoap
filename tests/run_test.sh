@@ -2,15 +2,13 @@
 
 BASEPATH=$0
 BASEDIR=`dirname $0`
-PWD=`cd $BASEDIR && pwd`
 
 TIMEOUT=10m
 
 run_test() {
-  PWD=$1
-  CMD=$2
-  TEST=$3
-  TEST_NAME=$4
+  CMD=$1
+  TEST=$2
+  TEST_NAME=$3
 
   if [ -z "${TEST_NAME}" ]; then
     TEST_NAME=${TEST}
@@ -22,6 +20,11 @@ run_test() {
 
   START_TIME="$(date +%s)"
 
+  if [ -n "${GITHUB_ACTIONS}" ]; then
+    WARNING_PREFIX="::warning file=${TEST},title=Test skipped::"
+    ERROR_PREFIX="::error file=${TEST},title=Test failed::"
+  fi
+
   trap cleanup 0 1 2
 
   cleanup() {
@@ -30,7 +33,7 @@ run_test() {
 
   on_timeout() {
     T="$(($(date +%s)-START_TIME))"
-    printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[1;34m[timeout]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+    printf "${ERROR_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[1;34m[timeout]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
     cat "${LOG_FILE}"
     kill -9 "$PID"
     exit 1
@@ -38,7 +41,7 @@ run_test() {
 
   trap on_timeout 15
 
-  ${CMD} < "${PWD}/${TEST}" > "${LOG_FILE}" 2>&1
+  ${CMD} < "${TEST}" > "${LOG_FILE}" 2>&1
 
   STATUS=$?
   T="$(($(date +%s)-START_TIME))"
@@ -49,11 +52,11 @@ run_test() {
   fi
 
   if [ "${STATUS}" == "2" ]; then
-      printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[1;33m[skipped]\033[0m\n"
+      printf "${WARNING_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[1;33m[skipped]\033[0m\n"
       exit 0
   fi
 
-  printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[0;31m[failed]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+  printf "${ERROR_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[0;31m[failed]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
   cat "${LOG_FILE}"
   exit 1
 }
@@ -66,4 +69,4 @@ on_term() {
 
 trap on_term INT
 
-timeout -s 15 "${TIMEOUT}" bash -c "run_test \"$PWD\" \"$1\" \"$2\" \"$3\""
+timeout -s 15 "${TIMEOUT}" bash -c "run_test \"$1\" \"$2\" \"$3\""

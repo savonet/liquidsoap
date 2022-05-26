@@ -1,6 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-%include "test.liq"
-
 s = add(normalize=true,[
   sine(),
   sequence([sine(amplitude=0.3,duration=1.),

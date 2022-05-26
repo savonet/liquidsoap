@@ -1,7 +1,7 @@
 class start_stop_test _state start stop =
   object
     inherit Start_stop.base ~on_start:(fun () -> ()) ~on_stop:(fun () -> ())
-    method state = _state
+    method! state = _state
     method start = start ()
     method stop = stop ()
     method stype = `Fallible

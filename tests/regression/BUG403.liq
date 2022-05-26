@@ -1,4 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 # This is the test for bug #403 from our old trac.
 #
 # Make a switch() declare itself ready and arrange to use it for the next
@@ -10,8 +9,6 @@
 # as a result, B has selected = A, attempts to stream it
 # but A finds itself not ready anymore.
 # In other words, B committed but A did not.
-
-%include "test.liq"
 
 r = ref(false)
 def pred () =

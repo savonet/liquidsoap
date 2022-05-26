@@ -1,6 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-%include "test.liq"
-
 log.level.set(5)
 audio.samplerate.set(48000)
 

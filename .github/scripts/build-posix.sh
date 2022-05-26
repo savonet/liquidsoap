@@ -8,9 +8,9 @@ PLATFORM=$2
 
 eval $(opam config env)
 
-cd /tmp/liquidsoap-full
+echo "::group::Preparing bindings"
 
-echo "\n### Preparing bindings\n"
+cd /tmp/liquidsoap-full
 
 git remote set-url origin https://github.com/savonet/liquidsoap-full.git
 git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
@@ -22,17 +22,11 @@ make clean
 make public
 make update
 
-echo "\n### Checking out CI commit\n"
+echo "::endgroup::"
 
-cd liquidsoap
-git fetch origin $GITHUB_SHA
-git checkout $GITHUB_SHA
-mv .github /tmp
-rm -rf *
-mv /tmp/.github .
-git reset --hard
+echo "::group::Setting up specific dependencies"
 
-echo "\n### Setting up specific dependencies\n"
+cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
@@ -42,22 +36,54 @@ sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
-echo "\n### Compiling\n"
+opam install -y ppx_string dune-site dune-build-info
 
-./bootstrap
+echo "::endgroup::"
+
+echo "::group::Checking out CI commit::"
+
+cd /tmp/liquidsoap-full/liquidsoap
+
+git fetch origin $GITHUB_SHA
+git checkout $GITHUB_SHA
+mv .github /tmp
+rm -rf *
+mv /tmp/.github .
+git reset --hard
+
+echo "::endgroup::"
+
+echo "::group::Compiling"
+
+cd /tmp/liquidsoap-full
+
+# Workaround
+touch liquidsoap/configure
+
 ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
             --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
             --with-camomile-data-dir=/usr/share/liquidsoap/camomile \
             CFLAGS=-g
 
-cd liquidsoap
-make -j $CPU_CORES
+# Workaround
+rm liquidsoap/configure
+
+export OCAMLPATH=`cat .ocamlpath`
+
+cd /tmp/liquidsoap-full/liquidsoap
+dune build
+
+echo "::endgroup::"
 
 if [ "${PLATFORM}" = "armhf" ]; then
   exit 0;
 fi
 
-echo "\n### Basic tests\n"
+echo "::group::Basic tests"
 
-./src/liquidsoap --no-stdlib --version
-./src/liquidsoap --no-stdlib ./libs/stdlib.liq --check 'print("hello world")'
+cd /tmp/liquidsoap-full/liquidsoap
+
+dune exec -- liquidsoap --version
+dune exec -- liquidsoap --check 'print("hello world")'
+
+echo "::endgroup::"

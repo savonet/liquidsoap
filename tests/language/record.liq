@@ -1,8 +1,4 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq
-
 success = ref(true)
-
-%include "test.liq"
 
 def t(x, y)
   if x != y then

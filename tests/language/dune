@@ -1,0 +1,31 @@
+; Regenerate using dune build @gendune --auto-promote
+
+(include dune.inc)
+
+(executable
+ (name gen_dune)
+ (modules gen_dune))
+
+(rule
+ (alias gendune)
+ (deps (source_tree .))
+ (target dune.inc.gen)
+ (action
+  (with-stdout-to
+   dune.inc.gen
+   (run ./gen_dune.exe))))
+
+(rule
+ (alias gendune)
+ (action
+  (diff dune.inc dune.inc.gen)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  (:type_error ./type_errors.pl)
+  (:stdlib ../../libs/stdlib.liq)
+  (:run_test ../run_test.sh))
+ (action
+  (run %{run_test} /usr/bin/perl %{type_error})))

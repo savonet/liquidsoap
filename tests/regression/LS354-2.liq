@@ -1,5 +1,3 @@
-%include "test.liq"
-
 s1 = source.fail()
 s2 = blank(duration=1.)
 

@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
-%include "test.liq"
-
 uname_s = string.trim(process.run("uname -s").stdout)
 
 if uname_s == "Darwin" then

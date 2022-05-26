@@ -2,8 +2,6 @@
 
 # Make sure infallible output can shutdown properly.
 
-%include "test.liq"
-
 output.dummy(blank())
 
 thread.run(delay=1., test.pass)

@@ -1,5 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
 # Testing invalid record members. The default error was
 # At line 4, char 4:
 # Error 5: this value has type

@@ -1,12 +1,8 @@
-#!../../src/liquidsoap -i ../../libs/stdlib.liq
-
 # Basic radio test
 
-%include "test.liq"
-
-day     = playlist("files/playlist")
-night   = playlist("files/playlist")
-jingles = playlist("files/playlist")
+day     = playlist("playlist")
+night   = playlist("playlist")
+jingles = playlist("playlist")
 
 # Day / night switch
 radio = switch([({8h-20h}, day), ({20h-8h}, night)])

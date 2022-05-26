@@ -3,8 +3,6 @@
 # main phase. This code reproduces the issue by throwing
 # an exception in output.icecast.
 
-%include "test.liq"
-
 # Reopen stderr to /dev/null to
 # disable printing expected exception
 #reopen.stderr("/dev/null")

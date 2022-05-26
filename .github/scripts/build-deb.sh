@@ -1,4 +1,4 @@
-#!/bin/sh
+dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"#!/bin/sh
 
 set -e
 
@@ -14,14 +14,15 @@ ARCH=`dpkg --print-architecture`
 
 COMMIT_SHORT=`echo "${GITHUB_SHA}" | cut -c-7`
 
-DEBFULLNAME="The Savonet Team"
-DEBEMAIL="savonet-users@lists.sourceforge.net"
-
-eval $(opam config env)
+export DEBFULLNAME="The Savonet Team"
+export DEBEMAIL="savonet-users@lists.sourceforge.net"
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-LIQ_VERSION=`opam show -f version . | cut -d'-' -f 1`
+eval $(opam config env)
+export OCAMLPATH=`cat ../.ocamlpath`
+
+LIQ_VERSION=`opam show -f version ./liquidsoap.opam | cut -d'-' -f 1`
 LIQ_TAG=`echo ${DOCKER_TAG} | sed -e 's#_#-#g'`
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then

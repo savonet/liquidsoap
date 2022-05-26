@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq
-
-%include "test.liq"
-
 def c(x, y) =
   if x != y then
     print("#{x} != #{y}")

@@ -1,16 +1,13 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-%include "test.liq"
-
 log.level.set(5)
 settings.decoder.decoders.set(["FFMPEG"])
 
-out_copy = "files/test_ffmpeg_inline_encode_decode_copy.mp4"
+out_copy = "test_ffmpeg_inline_encode_decode_copy.mp4"
 
 if file.exists(out_copy) then
   file.remove(out_copy)
 end
 
-out_encode = "files/test_ffmpeg_inline_encode_decode_encode.mp4"
+out_encode = "test_ffmpeg_inline_encode_decode_encode.mp4"
 if file.exists(out_encode) then
   file.remove(out_encode)
 end
@@ -21,7 +18,7 @@ todo = ref(2)
 
 def on_done () =
   def check(out) =
-    j = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
     let json.parse ( parsed : {
       streams: [{

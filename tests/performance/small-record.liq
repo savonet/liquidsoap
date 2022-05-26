@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq --force-start
-
-%include "performance.liq"
-
 def r2()
   r = {a0 = 0, a1 = 1}
   x = ref(0)

@@ -1,11 +1,8 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-%include "test.liq"
-
 log.level.set(4)
 settings.ffmpeg.log.level.set(12)
 audio.samplerate.set(48000)
 
-out = "files/test_stream_video.mp4"
+out = "test_stream_video.mp4"
 
 if file.exists(out) then
   file.remove(out)
@@ -26,7 +23,7 @@ s = (s:source(1,1,0))
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  j = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
+  j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
   let json.parse ( parsed: {
     streams: [{

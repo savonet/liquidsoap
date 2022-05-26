@@ -1,11 +1,7 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
-%include "test.liq"
-
 set("log.level",4)
 
 def f() =
-  m = file.metadata.taglib("media/files/audio/@mp3(mono).mp3")
+  m = file.metadata.taglib("@mp3[mono].mp3")
 
   if m["track"] != "" then
     test.fail()

@@ -1,11 +1,8 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-%include "test.liq"
-
 log.level.set(5)
 settings.decoder.decoders.set(["FFMPEG"])
 
 fname = argv(default="",1)
-out = "files/test_ffmpeg_raw_and_copy_decoder.mp4"
+out = "#{fname}+test_ffmpeg_raw_and_copy_decoder.mp4"
 
 if file.exists(out) then
   file.remove(out)
@@ -18,8 +15,8 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  ijson = process.read("ffprobe -v quiet -print_format json -show_streams '#{fname}'")
-  ojson = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
+  ijson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(fname)}")
+  ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
   let json.parse ( iparsed : {
     streams: [{

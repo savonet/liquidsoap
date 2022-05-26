@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
-%include "test.liq"
-
 count = ref(1)
 fail = ref(false)
 

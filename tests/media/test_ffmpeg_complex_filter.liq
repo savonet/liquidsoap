@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
-%include "test.liq"
-
 def filter(s, s') =
   def mkfilter_multi(graph) =
     s = ffmpeg.filter.audio.input(graph, pass_metadata=true, s)
@@ -23,9 +19,9 @@ def filter(s, s') =
   ffmpeg.filter.create(mkfilter_multi)
 end
 
-s = single("annotate:tag=\"s\":files/audio/@mp3(stereo).mp3")
+s = single("annotate:tag=\"s\":@mp3[stereo].mp3")
 
-s' = single("annotate:tag=\"s'\":files/audio/@mp3(mono).mp3")
+s' = single("annotate:tag=\"s'\":@mp3[mono].mp3")
 
 s = filter(s, s')
 

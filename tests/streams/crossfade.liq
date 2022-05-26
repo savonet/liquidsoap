@@ -1,7 +1,3 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
-
-%include "test.liq"
-
 video.frame.rate.set(24)
 
 a = sine(duration=20.,440.)

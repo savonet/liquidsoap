@@ -1,0 +1,25 @@
+(rule
+ (targets liquidsoap.ml)
+ (mode fallback)
+ (deps ../../liquidsoap.config)
+ (action
+  (echo "this should not happen")))
+
+(executable
+ (name liquidsoap)
+ (public_name liquidsoap)
+ (package liquidsoap)
+ (modules liquidsoap main)
+ (libraries liquidsoap_core liquidsoap_optionals liquidsoap_builtins))
+
+(executable
+ (name build_config)
+ (modules build_config)
+ (preprocess
+  (pps ppx_string))
+ (libraries liquidsoap_optionals))
+
+(executable
+ (name dune_config)
+ (modules dune_config)
+ (libraries dune-configurator))
