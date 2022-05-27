@@ -11,18 +11,17 @@ We believe that liquidsoap is easy to use. For basic purposes, the scripts
 consist of the definition of a tree of sources.
 You will quickly [learn](quick_start.html)
 how natural it is to use liquidsoap in such cases. The good thing is that
-when you will want to make your stream more complex,
-you will be able to stay in the same framework and keep a maintainable 
+when you'll want to make your stream more complex,
+you'll be able to stay in the same framework and keep a maintainable 
 configuration.
 Of course, using some complex features might require a deeper
 understanding of the concepts of [source](sources.html) and
 [request](requests.html) and of our [scripting language](language.html).
 
-We discuss below what liquidsoap is and what it is not.
-If you already know that and want to get started with liquidsoap,
+We'll discuss below what liquidsoap is and what it isn't.
+If you're already familiar with it and want to get started,
 just jump to the [documentation index](documentation.html).
-It guides you through these pages,
-starting with the [quickstart tour](quick_start.html).
+It will provide guidance,starting with the [quickstart tour](quick_start.html).
 
 Liquidsoap is an open-source software
 from the [Savonet](http://liquidsoap.info) project.
@@ -55,7 +54,7 @@ If you need something else, it's highly possible that you can have it -- at leas
 
 Non-Features
 ------------
-Liquidsoap is a flexible tool for processing audio and video streams, that's all. We have used it for several internet radio projects, and we know that this flexibility is useful. However, an internet radio usually requires more than just an audio stream, and the other components cannot easily be built from basic primitives as we do in liquidsoap for streams. We don't have any magic solution for these, although we sometimes have some nice tools which could be adapted to various uses.
+Liquidsoap is a flexible tool for processing audio and video streams, that's all. We've used it for several internet radio projects, and we know its flexibility is useful. However, internet radio usually requires more than just an audio stream, as such components cannot easily be built from basic primitives as we do in liquidsoap for streams. We don't have any magic solution for these, although we sometimes have some nice tools which could be adapted to various uses.
 
 Liquidsoap itself doesn't have a nice GUI or any graphical programming environment. You'll have to write the script by hand, and the only possible interaction with a running liquidsoap is the telnet server. 
 
