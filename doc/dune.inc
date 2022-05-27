@@ -3,8 +3,8 @@
   (alias doc)
   (deps
     (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../libs/stdlib.liq)
-    (source_tree ../libs))
+    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs))
   (target protocols.md)
   (action
     (with-stdout-to protocols.md
@@ -15,8 +15,8 @@
   (alias doc)
   (deps
     (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../libs/stdlib.liq)
-    (source_tree ../libs))
+    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs))
   (target reference.md)
   (action
     (with-stdout-to reference.md
@@ -27,8 +27,8 @@
   (alias doc)
   (deps
     (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../libs/stdlib.liq)
-    (source_tree ../libs))
+    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs))
   (target reference-extras.md)
   (action
     (with-stdout-to reference-extras.md
@@ -39,8 +39,8 @@
   (alias doc)
   (deps
     (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../libs/stdlib.liq)
-    (source_tree ../libs))
+    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs))
   (target settings.md)
   (action
     (with-stdout-to settings.md
@@ -470,6 +470,19 @@
     language.dtd
     template.html
     no-pandoc
+    (:md content/ffmpeg_encoder.md))
+  (target ffmpeg_encoder.html)
+  (action
+    (ignore-outputs
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg_encoder --template=template.html -o ffmpeg_encoder.html || cp no-pandoc ffmpeg_encoder.html"))))
+
+(rule
+  (alias doc)
+  (deps
+    liquidsoap.xml
+    language.dtd
+    template.html
+    no-pandoc
     (:md content/help.md))
   (target help.html)
   (action
@@ -743,6 +756,19 @@
     language.dtd
     template.html
     no-pandoc
+    (:md content/ffmpeg.md))
+  (target ffmpeg.html)
+  (action
+    (ignore-outputs
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg --template=template.html -o ffmpeg.html || cp no-pandoc ffmpeg.html"))))
+
+(rule
+  (alias doc)
+  (deps
+    liquidsoap.xml
+    language.dtd
+    template.html
+    no-pandoc
     (:md content/cookbook.md))
   (target cookbook.html)
   (action
@@ -826,6 +852,19 @@
   (action
     (ignore-outputs
       (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=shoutcast --template=template.html -o shoutcast.html || cp no-pandoc shoutcast.html"))))
+
+(rule
+  (alias doc)
+  (deps
+    liquidsoap.xml
+    language.dtd
+    template.html
+    no-pandoc
+    (:md content/ffmpeg_cookbook.md))
+  (target ffmpeg_cookbook.html)
+  (action
+    (ignore-outputs
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg_cookbook --template=template.html -o ffmpeg_cookbook.html || cp no-pandoc ffmpeg_cookbook.html"))))
 
 (rule
   (alias doc)
@@ -936,6 +975,7 @@
 (profiling.html as html/profiling.html)
 (release-assets.html as html/release-assets.html)
 (faq.html as html/faq.html)
+(ffmpeg_encoder.html as html/ffmpeg_encoder.html)
 (help.html as html/help.html)
 (requests.html as html/requests.html)
 (protocols-presentation.html as html/protocols-presentation.html)
@@ -957,6 +997,7 @@
 (documentation.html as html/documentation.html)
 (beets.html as html/beets.html)
 (split-cue.html as html/split-cue.html)
+(ffmpeg.html as html/ffmpeg.html)
 (cookbook.html as html/cookbook.html)
 (frequence3.html as html/frequence3.html)
 (migrating.html as html/migrating.html)
@@ -964,6 +1005,7 @@
 (on2_part1.html as html/on2_part1.html)
 (request_sources.html as html/request_sources.html)
 (shoutcast.html as html/shoutcast.html)
+(ffmpeg_cookbook.html as html/ffmpeg_cookbook.html)
 (ffmpeg_filters.html as html/ffmpeg_filters.html)
 (quick_start.html as html/quick_start.html)
 (ladspa.html as html/ladspa.html)

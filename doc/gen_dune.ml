@@ -35,8 +35,8 @@ let mk_generated_rule (file, option) =
   (alias doc)
   (deps
     (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../libs/stdlib.liq)
-    (source_tree ../libs))
+    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs))
   (target %s)
   (action
     (with-stdout-to %s

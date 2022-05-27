@@ -27,8 +27,8 @@ AC5109.liq
 LS268.liq
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action

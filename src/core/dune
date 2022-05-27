@@ -235,6 +235,7 @@
   sleeper
   source
   speex_format
+  srt_decoder
   srt_parser
   start_stop
   still_frame

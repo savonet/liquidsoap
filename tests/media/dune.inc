@@ -132,8 +132,8 @@
  (deps
   (:encoder @flac[stereo]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -143,8 +143,8 @@
  (deps
   (:encoder @flac[mono]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -154,8 +154,8 @@
  (deps
   (:encoder @wav[stereo]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -165,8 +165,8 @@
  (deps
   (:encoder @wav[mono]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -176,8 +176,8 @@
  (deps
   (:encoder @mp3[mono]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -187,8 +187,8 @@
  (deps
   (:encoder @mp3[stereo]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -198,8 +198,8 @@
  (deps
   (:encoder @ogg[@vorbis[mono]]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -209,8 +209,8 @@
  (deps
   (:encoder @ogg[@vorbis[stereo]]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -220,8 +220,8 @@
  (deps
   (:encoder @ogg[@flac[mono]]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -231,8 +231,8 @@
  (deps
   (:encoder @ogg[@flac[stereo]]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -242,8 +242,8 @@
  (deps
   (:encoder @ogg[@opus[mono]]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -253,8 +253,8 @@
  (deps
   (:encoder @ogg[@opus[stereo]]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -264,8 +264,8 @@
  (deps
   (:encoder @ffmpeg[format='mp4',@audio[codec='aac'],@video.none]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -275,8 +275,8 @@
  (deps
   (:encoder @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -286,8 +286,8 @@
  (deps
   (:encoder @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -297,8 +297,8 @@
  (deps
   (:encoder @ffmpeg[format='mp4',@audio.none,@video[codec='libx264']]_encoder.liq)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -330,8 +330,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -343,8 +343,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -356,8 +356,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -369,8 +369,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -382,8 +382,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -395,8 +395,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -408,8 +408,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -421,8 +421,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -434,8 +434,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -447,8 +447,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -460,8 +460,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -473,8 +473,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -486,8 +486,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -499,8 +499,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -512,8 +512,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -525,8 +525,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -538,8 +538,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -551,8 +551,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -564,8 +564,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -577,8 +577,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -590,8 +590,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -603,8 +603,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -616,8 +616,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -629,8 +629,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -642,8 +642,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -655,8 +655,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -668,8 +668,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -681,8 +681,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -694,8 +694,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -707,8 +707,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -720,8 +720,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -733,8 +733,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -746,8 +746,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -759,8 +759,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -772,8 +772,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -785,8 +785,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -798,8 +798,8 @@
   all_media_files
   test_mono.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -811,8 +811,8 @@
   all_media_files
   test_stereo.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -824,8 +824,8 @@
   all_media_files
   test_ffmpeg_audio_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -837,8 +837,8 @@
   all_media_files
   test_ffmpeg_video_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -850,8 +850,8 @@
   all_media_files
   test_video_size.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -863,8 +863,8 @@
   all_media_files
   test_ffmpeg_video_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -876,8 +876,8 @@
   all_media_files
   test_video_size.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -889,8 +889,8 @@
   all_media_files
   test_ffmpeg_video_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -902,8 +902,8 @@
   all_media_files
   test_video_size.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -915,8 +915,8 @@
   all_media_files
   test_ffmpeg_add_text.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -928,8 +928,8 @@
   all_media_files
   test_ffmpeg_copy_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -941,8 +941,8 @@
   all_media_files
   test_ffmpeg_copy_and_encode_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -954,8 +954,8 @@
   all_media_files
   test_ffmpeg_filter.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -967,8 +967,8 @@
   all_media_files
   test_ffmpeg_raw_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -980,8 +980,8 @@
   all_media_files
   test_ffmpeg_raw_and_encode_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -993,8 +993,8 @@
   all_media_files
   test_ffmpeg_raw_and_copy_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1006,8 +1006,8 @@
   all_media_files
   test_ffmpeg_add_text.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1019,8 +1019,8 @@
   all_media_files
   test_ffmpeg_copy_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1032,8 +1032,8 @@
   all_media_files
   test_ffmpeg_copy_and_encode_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1045,8 +1045,8 @@
   all_media_files
   test_ffmpeg_filter.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1058,8 +1058,8 @@
   all_media_files
   test_ffmpeg_raw_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1071,8 +1071,8 @@
   all_media_files
   test_ffmpeg_raw_and_encode_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1084,8 +1084,8 @@
   all_media_files
   test_ffmpeg_raw_and_copy_decoder.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1097,8 +1097,8 @@
   all_media_files
   test_ffmpeg_inline_encode_decode.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1110,8 +1110,8 @@
   all_media_files
   test_ffmpeg_inline_encode_decode_audio.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1123,8 +1123,8 @@
   all_media_files
   test_ffmpeg_inline_encode_decode_video.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1136,8 +1136,8 @@
   all_media_files
   test_ffmpeg_distributed_hls.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1149,8 +1149,8 @@
   all_media_files
   test_ffmpeg_raw_hls.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
@@ -1162,8 +1162,8 @@
   all_media_files
   test_taglib.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action

@@ -31,8 +31,8 @@ let () =
   ./playlist
   ./huge_playlist
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../libs)
-  (:stdlib ../../libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
