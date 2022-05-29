@@ -130,20 +130,6 @@ val any : Frame.content_kind
 (** Any internal stream type. *)
 val internal : Frame.content_kind
 
-(* Audio (PCM format) *)
-val audio_pcm : Frame.content_kind
-val audio_params : Content.Audio.params -> Frame.content_kind
-val audio_n : int -> Frame.content_kind
-val audio_mono : Frame.content_kind
-val audio_stereo : Frame.content_kind
-
-(* Video *)
-val video_yuva420p : Frame.content_kind
-
-(* Midi *)
-val midi : Frame.content_kind
-val midi_n : int -> Frame.content_kind
-
 (* Conversion to format *)
 val kind_type_of_kind_format : Frame.content_kind -> t
 

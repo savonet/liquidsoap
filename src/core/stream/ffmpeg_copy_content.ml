@@ -36,6 +36,7 @@ module BaseSpecs = struct
 
   let kind = `Copy
   let parse_param _ _ = None
+  let internal_content_type = None
 
   let merge ~compatible p p' =
     match (p, p') with

@@ -51,16 +51,16 @@ let http.codes = [
 #The server successfully processed the request, but is returning information that
 #may be from another source.
 
-(204,"No Content"),
+(204,"No Lang_content"),
 #The server successfully processed the request, but is not returning any
 #content.
 
-(205,"Reset Content"),
+(205,"Reset Lang_content"),
 #The server successfully processed the request, but is not returning any content.
 #Unlike a 204 response, this response requires that the requester reset the
 #document view.
 
-(206,"Partial Content"),
+(206,"Partial Lang_content"),
 #The server is delivering only part of the resource due to a range header sent by
 #the client. The range header is used by tools like wget to enable resuming of
 #interrupted downloads, or split a download into multiple simultaneous

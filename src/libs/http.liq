@@ -7,7 +7,7 @@
 # @param ~protocol HTTP protocol used.
 # @param ~code Response code.
 # @param ~headers Response headers.
-# @param ~content_type Content type for the data.
+# @param ~content_type Lang_content type for the data.
 # @param ~data Response data.
 def http.response(~protocol="HTTP/1.1",
                   ~code=200,~headers=[],
@@ -17,11 +17,11 @@ def http.response(~protocol="HTTP/1.1",
   # Set content-length and connection: close
   headers = 
     list.append(headers, 
-                [("Content-Length", "#{string.length(data)}"),
+                [("Lang_content-Length", "#{string.length(data)}"),
                  ("Connection", "close")])
   headers =
     if content_type != "" then
-      ("Content-Type", content_type)::headers
+      ("Lang_content-Type", content_type)::headers
     else
       headers
     end
@@ -56,7 +56,7 @@ end
 # @param ~code Response code.
 # @param ~headers Response headers.
 # @param ~data_len Response length in bytes.
-# @param ~content_type Content type for the data.
+# @param ~content_type Lang_content type for the data.
 # @param ~data Response data.
 def http.response.stream(
          ~protocol="HTTP/1.1",
@@ -67,11 +67,11 @@ def http.response.stream(
   # Set content-length and connection: close
   headers =
     list.append(headers,
-                [("Content-Length", "#{data_len}"),
+                [("Lang_content-Length", "#{data_len}"),
                  ("Connection", "close")])
   headers =
     if content_type != "" then
-      ("Content-Type", content_type)::headers
+      ("Lang_content-Type", content_type)::headers
     else
       headers
     end
@@ -201,7 +201,7 @@ content_type = file.mime
 # @param ~path Base path.
 # @param ~headers Default response headers.
 # @param ~browse List files in directories.
-# @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
+# @param ~content_type Callback to specify Lang_content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served.
 def replaces harbor.http.static(~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
   # Make the method argument non-optional, see #1018
@@ -216,7 +216,7 @@ end
 # @param ~path Base path.
 # @param ~headers Default response headers.
 # @param ~browse List files in directories.
-# @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
+# @param ~content_type Callback to specify Lang_content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served.
 def harbor.https.static(~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
   serve = fun(~method,uri,handler) -> harbor.https.register(port=port,method=method,uri,handler)

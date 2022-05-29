@@ -14,16 +14,13 @@
   (pps sedlex.ppx))
  (wrapped false)
  (library_flags -linkall)
- (libraries dtools duppy menhirLib mm pcre strings)
+ (libraries dtools duppy menhirLib pcre strings)
  (modules_without_implementation
   clock
-  content
   configure
   console
-  decoder
   encoder
   frame
-  generator
   kind
   lifecycle
   log
@@ -34,9 +31,7 @@
  (modules
   clock
   configure
-  content
   console
-  decoder
   doc
   documentation
   encoder
@@ -44,13 +39,13 @@
   error
   evaluation
   frame
-  generator
   json_base
   json_lexer
   json_parser
   json
   kind
   lang
+  lang_content
   lang_core
   lang_encoder
   lang_error
@@ -76,4 +71,5 @@
   type
   typechecking
   typing
+  unifier
   value))

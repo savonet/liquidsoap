@@ -47,7 +47,7 @@ let debug_variance = ref false
 (** Ground types *)
 
 type ground = ..
-type ground += Bool | Int | String | Float | Format of Content.format
+type ground += Bool | Int | String | Float | Format of Lang_content.format
 
 let ground_printers = Queue.create ()
 let register_ground_printer fn = Queue.add fn ground_printers
@@ -63,7 +63,7 @@ let () =
     | Bool -> Some "bool"
     | Int -> Some "int"
     | Float -> Some "float"
-    | Format p -> Some (Content.string_of_format p)
+    | Format p -> Some (Lang_content.string_of_format p)
     | _ -> None);
   register_ground_resolver (function
     | "string" -> Some String
@@ -146,7 +146,7 @@ and descr =
   | Arrow of (bool * string * t) list * t
   | Var of invar ref
 
-(** Contents of a variable. *)
+(** Lang_contents of a variable. *)
 and invar =
   | Free of var  (** the variable is free *)
   | Link of variance * t  (** the variable has bee substituted *)

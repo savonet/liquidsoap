@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 (** Generic content registration API. *)
 
 module Contents : sig
@@ -157,42 +155,6 @@ module None : sig
   val is_format : Contents.format -> bool
 end
 
-module Audio : sig
-  include
-    Content
-      with type kind = [ `Pcm ]
-       and type params = Contents.audio_params
-       and type data = Audio.Mono.buffer array
-
-  val kind : Contents.kind
-  val channels_of_format : Contents.format -> int
-  val format_of_channels : int -> Contents.format
-end
-
-module Video : sig
-  include
-    Content
-      with type kind = [ `Canvas ]
-       and type params = Contents.video_params
-       and type data = Video.Canvas.t
-
-  val kind : Contents.kind
-  val dimensions_of_format : Contents.format -> int * int
-end
-
-module Midi : sig
-  include
-    Content
-      with type kind = [ `Midi ]
-       and type params = Contents.midi_params
-       and type data = MIDI.Multitrack.buffer
-
-  val kind : Contents.kind
-end
-
-val default_audio : unit -> Contents.format
-val default_video : unit -> Contents.format
-val default_midi : unit -> Contents.format
 val is_internal_kind : kind -> bool
 val is_internal_format : format -> bool
 
