@@ -31,7 +31,8 @@ let () =
     | Runtime_error { kind; msg; pos } ->
         Some
           (Printf.sprintf "Lang.Runtime_error { kind: %s, msg: %s, pos: [%s] }"
-             (Utils.quote_string kind) (Utils.quote_string msg)
+             (String_utils.quote_string kind)
+             (String_utils.quote_string msg)
              (String.concat ", " (List.map (fun pos -> Pos.to_string pos) pos)))
     | _ -> None)
 

@@ -100,7 +100,7 @@ let settings_module =
              ("init", ([], init_t), "Daemon settings");
              ("log", ([], log_t), "Logging settings");
            ]
-         Utils.conf
+         Configure.conf
      in
      let get_v fn conv_to conv_from conf =
        let get =
@@ -152,7 +152,7 @@ let settings_module =
      in
      let init = get_value Dtools.Init.conf in
      let log = get_value Dtools.Log.conf in
-     settings := get_value ~sub:[("log", log); ("init", init)] Utils.conf;
+     settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
      Lang.add_builtin_base ~category:`Liquidsoap "settings"
        ~descr:"All settings." !settings.Lang.value settings_t)
 

@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Json_parser
-open Utils
+open String_utils
 open Runtime_error
 
 (* Json specs *)
@@ -200,7 +200,7 @@ let rec json5_token lexbuf =
     | ',' -> COMMA
     | ':' -> COLON
     | identifier ->
-        IDENTIFIER (Utils.unescape_string (Sedlexing.Utf8.lexeme lexbuf))
+        IDENTIFIER (String_utils.unescape_string (Sedlexing.Utf8.lexeme lexbuf))
     | "//" ->
         read_single_line_comment
           (fst (Sedlexing.lexing_positions lexbuf))

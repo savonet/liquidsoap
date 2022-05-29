@@ -51,7 +51,7 @@ let () =
     | _ -> None)
 
 let conf =
-  Dtools.Conf.void ~p:(Utils.conf#plug "lang") "Language configuration."
+  Dtools.Conf.void ~p:(Configure.conf#plug "lang") "Language configuration."
 
 let conf_debug =
   Dtools.Conf.bool ~p:(conf#plug "debug") ~d:false
@@ -213,7 +213,7 @@ module Ground = struct
       (function Int _ -> true | _ -> false)
       { descr = to_string; to_json; compare = compare to_int; typ = Type.Int };
     let to_string = function
-      | String s -> Utils.quote_string s
+      | String s -> String_utils.quote_string s
       | _ -> assert false
     in
     let to_json = function String s -> `String s | _ -> assert false in

@@ -27,8 +27,8 @@ let usage =
   \ - OPTION is one of the options listed below:\n"
 
 let () =
-  Utils.conf#plug "init" Dtools.Init.conf;
-  Utils.conf#plug "log" Dtools.Log.conf
+  Configure.conf#plug "init" Dtools.Init.conf;
+  Configure.conf#plug "log" Dtools.Log.conf
 
 (* Set log to stdout by default. *)
 let () =
@@ -357,7 +357,7 @@ let options =
           Arg.Unit
             (fun () ->
               load_libs ();
-              Utils.print_string ~pager:true
+              String_utils.print_string ~pager:true
                 (Builtins_settings.print_settings ());
               exit 0),
           "Display configuration keys in markdown format." );
@@ -383,7 +383,7 @@ let parse argv l f msg =
         Printf.eprintf "%s" msg;
         exit 2
     | Arg.Help msg ->
-        Utils.print_string ~pager:true msg;
+        String_utils.print_string ~pager:true msg;
         exit 0
 
 let absolute s =
@@ -497,7 +497,7 @@ let check_directories () =
     let path = conf_path#get in
     let dir = Filename.dirname path in
     if not (Sys.file_exists dir) then (
-      let routes = Utils.conf#routes conf_path#ut in
+      let routes = Configure.conf#routes conf_path#ut in
       Printf.printf
         "FATAL ERROR: %s directory %S does not exist.\n\
          To change it, add the following to your script:\n\

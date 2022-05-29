@@ -1,5 +1,8 @@
 type t = Json_base.t
 
+(** A position. *)
+type pos = Lexing.position * Lexing.position
+
 let from_string ?(pos = []) ?(json5 = false) s =
   let parser = if json5 then Json_parser.json5 else Json_parser.json in
   let processor = MenhirLib.Convert.Simplified.traditional2revised parser in
@@ -26,22 +29,24 @@ let from_string ?(pos = []) ?(json5 = false) s =
 let quote_utf8_string =
   let escape_char =
     let utf8_char_code s pos len =
-      try Utils.utf8_char_code s pos len with _ -> Uchar.to_int Uchar.rep
+      try String_utils.utf8_char_code s pos len
+      with _ -> Uchar.to_int Uchar.rep
     in
-    Utils.escape_char ~escape_fun:(fun s pos len ->
+    String_utils.escape_char ~escape_fun:(fun s pos len ->
         Printf.sprintf "\\u%04X" (utf8_char_code s pos len))
   in
   let next s i =
-    try Utils.utf8_next s i with _ -> max (String.length s) (i + 1)
+    try String_utils.utf8_next s i with _ -> max (String.length s) (i + 1)
   in
   let escape_utf8_formatter =
-    Utils.escape
+    String_utils.escape
       ~special_char:(fun s pos len ->
         if s.[pos] = '\'' && len = 1 then false
-        else Utils.utf8_special_char s pos len)
+        else String_utils.utf8_special_char s pos len)
       ~escape_char ~next
   in
-  fun s -> Printf.sprintf "\"%s\"" (Utils.escape_string escape_utf8_formatter s)
+  fun s ->
+    Printf.sprintf "\"%s\"" (String_utils.escape_string escape_utf8_formatter s)
 
 let rec to_string_compact ~json5 = function
   | `Null -> "null"
@@ -93,7 +98,8 @@ let rec to_string_pp ~json5 f v =
     | `Assoc [] -> Format.fprintf f "{}"
     | `Assoc l ->
         let format_field f (k, v) =
-          Format.fprintf f "@[<hv2>%s: %a@]" (Utils.quote_string k)
+          Format.fprintf f "@[<hv2>%s: %a@]"
+            (String_utils.quote_string k)
             (to_string_pp ~json5) v
         in
         Format.fprintf f "{@;<1 0>%a@;<1 -2>}" (pp_list "," format_field) l

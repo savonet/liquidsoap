@@ -218,7 +218,7 @@ module Make (Harbor : T) = struct
         begin
           match dumpfile with
           | Some f -> (
-              try dump <- Some (open_out_bin (Utils.home_unrelate f))
+              try dump <- Some (open_out_bin (String_utils.home_unrelate f))
               with e ->
                 self#log#severe "Could not open dump file: %s"
                   (Printexc.to_string e))
@@ -227,7 +227,7 @@ module Make (Harbor : T) = struct
         begin
           match logfile with
           | Some f -> (
-              try logf <- Some (open_out_bin (Utils.home_unrelate f))
+              try logf <- Some (open_out_bin (String_utils.home_unrelate f))
               with e ->
                 self#log#severe "Could not open log file: %s"
                   (Printexc.to_string e))

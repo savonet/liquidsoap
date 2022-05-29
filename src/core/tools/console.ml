@@ -25,7 +25,7 @@
 let log = Log.make ["console"]
 
 let conf_console =
-  Dtools.Conf.void ~p:(Utils.conf#plug "console") "Console configuration"
+  Dtools.Conf.void ~p:(Configure.conf#plug "console") "Console configuration"
 
 let conf_colorize =
   Dtools.Conf.string

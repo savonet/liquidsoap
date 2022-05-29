@@ -7,6 +7,9 @@ let requests_max_id = 50
 let requests_table_size = 50
 let default_font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
+(** General configuration *)
+let conf = Dtools.Conf.void "Liquidsoap configuration"
+
 let libs_versions () =
   let libs =
     List.filter

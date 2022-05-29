@@ -31,7 +31,9 @@ let () =
     | _ -> None)
 
 let conf =
-  Dtools.Conf.void ~p:(Utils.conf#plug "server") "Server configuration"
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "server")
+    "Server configuration"
     ~comments:
       [
         "The server is an abstract text-command-based communication protocol, ";

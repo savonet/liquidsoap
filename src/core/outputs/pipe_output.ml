@@ -298,7 +298,7 @@ class virtual ['a] file_output_base p =
     method private filename =
       let filename = filename () in
       let filename = Utils.strftime filename in
-      let filename = Utils.home_unrelate filename in
+      let filename = String_utils.home_unrelate filename in
       (* Avoid / in metas for filename.. *)
       let subst m = Pcre.substitute ~pat:"/" ~subst:(fun _ -> "-") m in
       self#interpolate ~subst filename

@@ -22,7 +22,8 @@
   *****************************************************************************)
 
 let conf_harbor =
-  Dtools.Conf.void ~p:(Utils.conf#plug "harbor")
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "harbor")
     "Harbor settings (Icecast/shoutcast stream receiver)."
 
 let conf_harbor_bind_addrs =

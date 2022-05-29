@@ -59,13 +59,13 @@ module RegExp = Value.MkAbstract (struct
 
   let escape_regex_descr =
     let escape_regex_formatter =
-      Utils.escape
+      String_utils.escape
         ~special_char:(fun s pos len ->
           if s.[pos] = '\'' && len = 1 then true
-          else Utils.utf8_special_char s pos len)
-        ~escape_char:Utils.escape_utf8_char ~next:Utils.utf8_next
+          else String_utils.utf8_special_char s pos len)
+        ~escape_char:String_utils.escape_utf8_char ~next:String_utils.utf8_next
     in
-    Utils.escape_string escape_regex_formatter
+    String_utils.escape_string escape_regex_formatter
 
   let descr { descr; flags } =
     Printf.sprintf "r/%s/%s" (escape_regex_descr descr)

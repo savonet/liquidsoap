@@ -124,7 +124,7 @@ let () =
                 Lang.to_bool
                   (Lang.apply f [("", Lang.string (String.sub s ofs len))])
           | None, `Ascii -> Utils.ascii_special_char
-          | None, `Utf8 -> Utils.utf8_special_char
+          | None, `Utf8 -> String_utils.utf8_special_char
       in
       let escape_char =
         match (Lang.to_option (List.assoc "escape_char" p), encoding) with
@@ -132,18 +132,18 @@ let () =
               fun s ofs len ->
                 Lang.to_string
                   (Lang.apply f [("", Lang.string (String.sub s ofs len))])
-          | None, `Ascii -> Utils.escape_hex_char
-          | None, `Utf8 -> Utils.escape_utf8_char
+          | None, `Ascii -> String_utils.escape_hex_char
+          | None, `Utf8 -> String_utils.escape_utf8_char
       in
       let next =
         match encoding with
           | `Ascii -> Utils.ascii_next
-          | `Utf8 -> Utils.utf8_next
+          | `Utf8 -> String_utils.utf8_next
       in
       try
         Lang.string
-          (Utils.escape_string
-             (Utils.escape ~special_char ~escape_char ~next)
+          (String_utils.escape_string
+             (String_utils.escape ~special_char ~escape_char ~next)
              s)
       with _ ->
         let bt = Printexc.get_raw_backtrace () in
@@ -175,9 +175,9 @@ let () =
       let format = List.assoc "format" p in
       let escape_char, next =
         match Lang.to_string format with
-          | "octal" -> (Utils.escape_octal_char, Utils.ascii_next)
-          | "hex" -> (Utils.escape_hex_char, Utils.ascii_next)
-          | "utf8" -> (Utils.escape_utf8_char, Utils.utf8_next)
+          | "octal" -> (String_utils.escape_octal_char, Utils.ascii_next)
+          | "hex" -> (String_utils.escape_hex_char, Utils.ascii_next)
+          | "utf8" -> (String_utils.escape_utf8_char, String_utils.utf8_next)
           | _ ->
               raise
                 (Error.Invalid_value
@@ -187,8 +187,10 @@ let () =
       in
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string
-        (Utils.escape_string
-           (Utils.escape ~special_char:(fun _ _ _ -> true) ~escape_char ~next)
+        (String_utils.escape_string
+           (String_utils.escape
+              ~special_char:(fun _ _ _ -> true)
+              ~escape_char ~next)
            s))
 
 let () =
@@ -211,7 +213,7 @@ let () =
       let encoding = List.assoc "encoding" p in
       match Lang.to_string encoding with
         | "ascii" -> Lang.bool (Utils.ascii_special_char s 0 len)
-        | "utf8" -> Lang.bool (Utils.utf8_special_char s 0 len)
+        | "utf8" -> Lang.bool (String_utils.utf8_special_char s 0 len)
         | _ ->
             raise
               (Error.Invalid_value

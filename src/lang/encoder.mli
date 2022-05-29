@@ -22,17 +22,7 @@
 
 (** Common infrastructure for encoding streams *)
 
-type format =
-  | WAV of Wav_format.t
-  | AVI of Avi_format.t
-  | Ogg of Ogg_format.t
-  | MP3 of Mp3_format.t
-  | Shine of Shine_format.t
-  | Flac of Flac_format.t
-  | Ffmpeg of Ffmpeg_format.t
-  | FdkAacEnc of Fdkaac_format.t
-  | External of External_encoder_format.t
-  | GStreamer of Gstreamer_format.t
+type format = ..
 
 val audio_kind : int -> Frame.kind Frame.fields
 val audio_video_kind : int -> Frame.kind Frame.fields

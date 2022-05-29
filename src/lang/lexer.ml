@@ -380,7 +380,7 @@ and read_string c pos buf lexbuf =
         ascii_hex_digit,
         ascii_hex_digit ) ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
-        Buffer.add_string buf (Utils.unescape_utf8_char matched);
+        Buffer.add_string buf (String_utils.unescape_utf8_char matched);
         read_string c pos buf lexbuf
     (* Multiline string support: some text \
        Some more text *)

@@ -25,7 +25,7 @@
 let log = Log.make ["playlist parser"]
 
 let conf_playlists =
-  Dtools.Conf.void ~p:(Utils.conf#plug "playlists") "Playlist formats"
+  Dtools.Conf.void ~p:(Configure.conf#plug "playlists") "Playlist formats"
 
 let conf_mime_types =
   Dtools.Conf.void

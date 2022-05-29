@@ -22,7 +22,7 @@
 
 let conf =
   Dtools.Conf.void
-    ~p:(Utils.conf#plug "encoder")
+    ~p:(Configure.conf#plug "encoder")
     "Encoder settings"
     ~comments:["Settings for the encoder"]
 

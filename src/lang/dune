@@ -1,0 +1,79 @@
+(env
+ (dev
+  (flags
+   (:standard -w -7-9 -warn-error -33))))
+
+(include_subdirs unqualified)
+
+(menhir
+ (modules parser json_parser))
+
+(library
+ (name liquidsoap_lang)
+ (preprocess
+  (pps sedlex.ppx))
+ (wrapped false)
+ (library_flags -linkall)
+ (libraries dtools duppy menhirLib mm pcre strings)
+ (modules_without_implementation
+  clock
+  content
+  configure
+  console
+  decoder
+  encoder
+  frame
+  generator
+  kind
+  lifecycle
+  log
+  meta_format
+  request
+  source
+  tutils)
+ (modules
+  clock
+  configure
+  content
+  console
+  decoder
+  doc
+  documentation
+  encoder
+  environment
+  error
+  evaluation
+  frame
+  generator
+  json_base
+  json_lexer
+  json_parser
+  json
+  kind
+  lang
+  lang_core
+  lang_encoder
+  lang_error
+  lang_source
+  lexer
+  lifecycle
+  log
+  meta_format
+  modules
+  parser
+  parser_helper
+  plug
+  pos
+  preprocessor
+  profiler
+  repr
+  request
+  runtime
+  runtime_error
+  source
+  term
+  tutils
+  type
+  typechecking
+  typing
+  value))

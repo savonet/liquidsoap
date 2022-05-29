@@ -89,4 +89,4 @@ let stats () =
   in
   let l = [| "function"; "self"; "total"; "calls" |] :: [||] :: l in
   let l = Array.of_list l in
-  Utils.string_of_matrix l
+  String_utils.string_of_matrix l

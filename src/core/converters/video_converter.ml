@@ -28,7 +28,9 @@ let log = Log.make ["video"; "converter"]
 
 (* TODO: is it the good place for this ? *)
 let video_conf =
-  Dtools.Conf.void ~p:(Utils.conf#plug "video") "Video settings"
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "video")
+    "Video settings"
     ~comments:["Options related to video."]
 
 let video_converter_conf =

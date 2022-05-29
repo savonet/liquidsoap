@@ -22,7 +22,9 @@
 
 (** Common infrastructure for encoding streams *)
 
-type format =
+type format = ..
+
+type format +=
   | WAV of Wav_format.t
   | AVI of Avi_format.t
   | Ogg of Ogg_format.t
@@ -115,6 +117,7 @@ let kind_of_format = function
   | GStreamer ({ Gstreamer_format.has_video } as gst) ->
       let channels = Gstreamer_format.audio_channels gst in
       if has_video then audio_video_kind channels else audio_kind channels
+  | _ -> assert false
 
 let string_of_format = function
   | WAV w -> Wav_format.to_string w
@@ -127,6 +130,7 @@ let string_of_format = function
   | FdkAacEnc w -> Fdkaac_format.to_string w
   | External w -> External_encoder_format.to_string w
   | GStreamer w -> Gstreamer_format.to_string w
+  | _ -> assert false
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } }

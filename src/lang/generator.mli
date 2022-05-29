@@ -1,0 +1,1 @@
+../core/stream/generator.mli

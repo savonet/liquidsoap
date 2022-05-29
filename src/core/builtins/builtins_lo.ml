@@ -26,7 +26,8 @@ module S = Lo.Server
 let () = Lang.add_module "osc"
 
 let conf_osc =
-  Dtools.Conf.void ~p:(Utils.conf#plug "osc")
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "osc")
     "Interactions through the OSC protocol."
 
 let conf_port =

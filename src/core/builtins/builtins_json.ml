@@ -154,7 +154,7 @@ let rec string_of_json_ellipsis (nullable, ty) =
         let lbl =
           match lbl' with
             | Some v ->
-                Printf.sprintf "%s as %s" (Utils.quote_utf8_string v) lbl
+                Printf.sprintf "%s as %s" (String_utils.quote_utf8_string v) lbl
             | None -> lbl
         in
         f

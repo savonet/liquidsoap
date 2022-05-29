@@ -28,7 +28,9 @@ let log = Log.make ["audio"; "converter"]
 
 (* TODO: is it the right place for this ? *)
 let audio_conf =
-  Dtools.Conf.void ~p:(Utils.conf#plug "audio") "Audio settings"
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "audio")
+    "Audio settings"
     ~comments:["Options related to audio."]
 
 let converter_conf =

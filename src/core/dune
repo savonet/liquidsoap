@@ -5,9 +5,6 @@
 
 (include_subdirs unqualified)
 
-(menhir
- (modules parser json_parser))
-
 (generate_sites_module
  (module liquidsoap_sites)
  (sites liquidsoap-core))
@@ -31,9 +28,11 @@
   dune-site
   dune-build-info
   duppy
+  liquidsoap_lang
   menhirLib
   camomile
   metadata
+  strings
   (select
    file_watcher.ml
    from
@@ -91,8 +90,6 @@
   decoder_utils
   delay
   delay_line
-  doc
-  documentation
   drop
   dtmf
   dune_config
@@ -100,9 +97,6 @@
   echo
   encoder
   encoder_formats
-  environment
-  error
-  evaluation
   external_decoder
   external_encoder
   external_encoder_format
@@ -137,17 +131,9 @@
   image_plug
   insert_metadata
   ioRing
-  json
-  json_base
-  json_lexer
-  json_parser
   keyboard
   kind
-  lang
   lang_avi
-  lang_core
-  lang_encoder
-  lang_error
   lang_external_encoder
   lang_fdkaac
   lang_ffmpeg
@@ -157,13 +143,11 @@
   lang_ogg
   lang_opus
   lang_shine
-  lang_source
   lang_speex
   lang_theora
   lang_vorbis
   lang_wav
   latest_metadata
-  lexer
   lifecycle
   liq_time
   liqmagic
@@ -180,7 +164,6 @@
   midi_decoder
   midi_routing
   midimeter
-  modules
   mp3_format
   mpd
   ms_stereo
@@ -199,32 +182,23 @@
   opus_format
   output
   pan
-  parser
-  parser_helper
   pipe
   pipe_output
   pitch
   playlist_basic
   playlist_parser
-  plug
   pool
-  pos
   ppm_decoder
   prepend
-  preprocessor
   process_handler
   producer_consumer
-  profiler
   raw_audio_decoder
-  repr
   request
   request_simple
   request_source
   resample
   rms_smooth
   rqueue
-  runtime
-  runtime_error
   sandbox
   sequence
   server
@@ -239,24 +213,17 @@
   srt_parser
   start_stop
   still_frame
-  stringView
-  strings
   swap
   switch
   synth_op
   synthesized
-  term
   theora_format
   time_warp
   tutils
-  type
-  typechecking
-  typing
   udp_io
   unifier
   utils
   vFrame
-  value
   video_converter
   video_effects
   video_fade

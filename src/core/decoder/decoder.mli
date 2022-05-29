@@ -40,7 +40,7 @@ type input = {
 
 module G = Generator.From_audio_video_plus
 
-type fps = Decoder_utils.fps = { num : int; den : int }
+type fps = { num : int; den : int }
 
 (* Buffer passed to decoder. This wraps around
    regular buffer, adding:

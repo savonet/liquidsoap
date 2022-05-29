@@ -1,5 +1,7 @@
 (** Constants describing configuration options of liquidsoap. *)
 
+val conf : Dtools.Conf.ut
+
 (** String describing the OS *)
 val host : string
 

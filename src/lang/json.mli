@@ -7,5 +7,8 @@ type t =
   | `Int of int
   | `Null ]
 
-val from_string : ?pos:Pos.List.t -> ?json5:bool -> string -> t
+(** A position. *)
+type pos = Lexing.position * Lexing.position
+
+val from_string : ?pos:pos list -> ?json5:bool -> string -> t
 val to_string : ?compact:bool -> ?json5:bool -> t -> string
