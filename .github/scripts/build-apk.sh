@@ -13,7 +13,7 @@ APK_RELEASE=0
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-APK_VERSION=`opam show -f version . | cut -d'-' -f 1`
+APK_VERSION=`opam show -f version ./liquidsoap.opam | cut -d'-' -f 1`
 COMMIT_SHORT=`echo "${GITHUB_SHA}" | cut -c-7`
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
