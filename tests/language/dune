@@ -25,7 +25,7 @@
  (package liquidsoap)
  (deps
   (:type_error ./type_errors.pl)
-  (:stdlib ../../libs/stdlib.liq)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:run_test ../run_test.sh))
  (action
   (run %{run_test} /usr/bin/perl %{type_error})))

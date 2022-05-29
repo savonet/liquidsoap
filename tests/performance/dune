@@ -17,7 +17,7 @@
   (deps
     (:liquidsoap ../../src/bin/liquidsoap.exe)
     (source_tree ../../libs)
-    (:stdlib ../../libs/stdlib.liq)
+    (:stdlib ../../src/libs/stdlib.liq)
     (:small_record ./small-record.liq)
     (:big_record ./big-record.liq)
     (:erathostenes ./erathostenes.liq)
