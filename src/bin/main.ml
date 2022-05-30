@@ -543,7 +543,10 @@ let () =
         if !interactive then (
           load_libs ();
           check_directories ();
-          ignore (Thread.create Runtime.interactive ());
+          ignore
+            (Thread.create (fun () ->
+                 Runtime.interactive ();
+                 Tutils.shutdown 0));
           Dtools.Init.init main)
         else if Source.has_outputs () || force_start#get then (
           check_directories ();

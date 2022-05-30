@@ -24,8 +24,7 @@
   kind
   lifecycle
   log
-  source
-  tutils)
+  source)
  (modules
   clock
   configure
@@ -64,7 +63,6 @@
   runtime_error
   source
   term
-  tutils
   type
   typechecking
   typing

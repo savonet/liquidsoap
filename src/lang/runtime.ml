@@ -314,5 +314,4 @@ let interactive () =
             true
     then loop ()
   in
-  loop ();
-  Tutils.shutdown 0
+  loop ()
