@@ -26,7 +26,6 @@ open Term.Ground
 exception Encoder_error of (Pos.Option.t * string)
 
 let has_started = ref false
-let () = Lifecycle.before_start (fun () -> has_started := true)
 
 let error ~pos msg =
   match !has_started with

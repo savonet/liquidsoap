@@ -21,7 +21,6 @@
   encoder
   frame
   kind
-  lifecycle
   log
   source)
  (modules
@@ -48,7 +47,6 @@
   lang_source
   lang_string
   lexer
-  lifecycle
   log
   modules
   parser

@@ -283,3 +283,5 @@ let get_factory fmt =
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
   with Found factory -> factory
+
+let () = Lifecycle.before_start (fun () -> Lang_encoder.has_started := true)
