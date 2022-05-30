@@ -22,31 +22,20 @@
 
 (* Some of the code below was borrowed from opam. *)
 
-let log = Log.make ["console"]
-
-let conf_console =
-  Dtools.Conf.void ~p:(Configure.conf#plug "console") "Console configuration"
-
-let conf_colorize =
-  Dtools.Conf.string
-    ~p:(conf_console#plug "colorize")
-    ~d:"auto"
-    "Use color in console output when available. One of: \"always\", \"never\" \
-     or \"auto\"."
-
 let dumb_term =
   lazy (try Sys.getenv "TERM" = "dumb" with Not_found -> Sys.win32)
+
+type color_conf = [ `Always | `Never | `Auto ]
+
+let color_conf : color_conf ref = ref `Auto
 
 let color =
   let auto = lazy (Unix.isatty Unix.stdout && not (Lazy.force dumb_term)) in
   fun () ->
-    match conf_colorize#get with
-      | "always" -> true
-      | "never" -> false
-      | "auto" -> Lazy.force auto
-      | _ ->
-          log#important "Invalid color configuration, using default \"auto\"";
-          Lazy.force auto
+    match !color_conf with
+      | `Always -> true
+      | `Never -> false
+      | `Auto -> Lazy.force auto
 
 type text_style =
   [ `bold

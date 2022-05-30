@@ -50,3 +50,27 @@ let vendor () =
 let path () =
   let s = try Sys.getenv "PATH" with Not_found -> "" in
   bin_dir () :: Str.split (Str.regexp_string ":") s
+
+let conf_console =
+  Dtools.Conf.void ~p:(conf#plug "console") "Console configuration"
+
+let conf_colorize =
+  Dtools.Conf.string
+    ~p:(conf_console#plug "colorize")
+    ~d:
+      (match !Console.color_conf with
+        | `Auto -> "auto"
+        | `Always -> "always"
+        | `Never -> "never")
+    "Use color in console output when available. One of: \"always\", \"never\" \
+     or \"auto\"."
+
+let () =
+  let log = Log.make ["console"] in
+  conf_colorize#on_change (function
+    | "auto" -> Console.color_conf := `Auto
+    | "always" -> Console.color_conf := `Always
+    | "never" -> Console.color_conf := `Never
+    | _ ->
+        log#important "Invalid color configuration, using default \"auto\"";
+        Console.color_conf := `Auto)

@@ -18,7 +18,6 @@
  (modules_without_implementation
   clock
   configure
-  console
   encoder
   frame
   kind
