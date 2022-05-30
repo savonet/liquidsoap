@@ -29,24 +29,24 @@ let from_string ?(pos = []) ?(json5 = false) s =
 let quote_utf8_string =
   let escape_char =
     let utf8_char_code s pos len =
-      try String_utils.utf8_char_code s pos len
+      try Lang_string.utf8_char_code s pos len
       with _ -> Uchar.to_int Uchar.rep
     in
-    String_utils.escape_char ~escape_fun:(fun s pos len ->
+    Lang_string.escape_char ~escape_fun:(fun s pos len ->
         Printf.sprintf "\\u%04X" (utf8_char_code s pos len))
   in
   let next s i =
-    try String_utils.utf8_next s i with _ -> max (String.length s) (i + 1)
+    try Lang_string.utf8_next s i with _ -> max (String.length s) (i + 1)
   in
   let escape_utf8_formatter =
-    String_utils.escape
+    Lang_string.escape
       ~special_char:(fun s pos len ->
         if s.[pos] = '\'' && len = 1 then false
-        else String_utils.utf8_special_char s pos len)
+        else Lang_string.utf8_special_char s pos len)
       ~escape_char ~next
   in
   fun s ->
-    Printf.sprintf "\"%s\"" (String_utils.escape_string escape_utf8_formatter s)
+    Printf.sprintf "\"%s\"" (Lang_string.escape_string escape_utf8_formatter s)
 
 let rec to_string_compact ~json5 = function
   | `Null -> "null"
@@ -99,7 +99,7 @@ let rec to_string_pp ~json5 f v =
     | `Assoc l ->
         let format_field f (k, v) =
           Format.fprintf f "@[<hv2>%s: %a@]"
-            (String_utils.quote_string k)
+            (Lang_string.quote_string k)
             (to_string_pp ~json5) v
         in
         Format.fprintf f "{@;<1 0>%a@;<1 -2>}" (pp_list "," format_field) l

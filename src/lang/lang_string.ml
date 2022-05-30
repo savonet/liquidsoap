@@ -237,17 +237,17 @@ let string_of_matrix a =
       len.(i) <- max len.(i) (String.length a.(j).(i))
     done
   done;
-  let ans = Strings.Mutable.empty () in
+  let ans = Buffer.create 10 in
   for j = 0 to height - 1 do
     for i = 0 to Array.length a.(j) - 1 do
       let s = a.(j).(i) in
-      if i <> 0 then Strings.Mutable.add ans " ";
-      Strings.Mutable.add ans s;
-      Strings.Mutable.add ans (String.make (len.(i) - String.length s) ' ')
+      if i <> 0 then Buffer.add_string ans " ";
+      Buffer.add_string ans s;
+      Buffer.add_string ans (String.make (len.(i) - String.length s) ' ')
     done;
-    Strings.Mutable.add ans "\n"
+    Buffer.add_string ans "\n"
   done;
-  Strings.Mutable.to_string ans
+  Buffer.contents ans
 
 (** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
 let unbreak_md md =
@@ -287,9 +287,9 @@ let find_cmd cmds =
   in
   cmd cmds
 
-let print_strings ?(pager = false) s =
+let print_string ?(pager = false) s =
   let pager = if Sys.getenv_opt "PAGER" = Some "none" then false else pager in
-  let default s = Strings.iter (output_substring stdout) s in
+  let default = output_string stdout in
   let cmd =
     let cmds = [("less", "-F -X"); ("more", "")] in
     let cmds = try (Sys.getenv "PAGER", "") :: cmds with Not_found -> cmds in
@@ -303,7 +303,7 @@ let print_strings ?(pager = false) s =
     | true, Some pager -> (
         let fname, oc = Filename.open_temp_file "liquidsoap" ".txt" in
         try
-          Strings.iter (output_substring oc) s;
+          output_string oc s;
           flush oc;
           if Sys.command (Printf.sprintf "%s %s" pager fname) <> 0 then
             default s;
@@ -312,16 +312,12 @@ let print_strings ?(pager = false) s =
           close_out oc;
           Unix.unlink fname)
 
-let print_string ?(pager = false) s =
-  if not pager then print_string s
-  else print_strings ~pager (Strings.of_string s)
-
 let kprint_string ?(pager = false) f =
   if not pager then f (print_string ~pager)
   else (
-    let ans = Strings.Mutable.empty () in
-    f (Strings.Mutable.add ans);
-    print_strings ~pager (Strings.Mutable.to_strings ans))
+    let ans = Buffer.create 10 in
+    f (Buffer.add_string ans);
+    print_string ~pager (Buffer.contents ans))
 
 (** Operations on versions of Liquidsoap. *)
 module Version = struct

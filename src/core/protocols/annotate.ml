@@ -50,7 +50,7 @@ let parse s =
     let startp, endp = Sedlexing.loc lexbuf in
     let err = Printf.sprintf "Char %d-%d: Syntax error" startp endp in
     log#info "Error while parsing annotate URI %s: %s"
-      (String_utils.quote_string s)
+      (Lang_string.quote_string s)
       err;
     raise (Error err)
 

@@ -213,7 +213,7 @@ module Ground = struct
       (function Int _ -> true | _ -> false)
       { descr = to_string; to_json; compare = compare to_int; typ = Type.Int };
     let to_string = function
-      | String s -> String_utils.quote_string s
+      | String s -> Lang_string.quote_string s
       | _ -> assert false
     in
     let to_json = function String s -> `String s | _ -> assert false in

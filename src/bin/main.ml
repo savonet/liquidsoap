@@ -357,7 +357,7 @@ let options =
           Arg.Unit
             (fun () ->
               load_libs ();
-              String_utils.print_string ~pager:true
+              Lang_string.print_string ~pager:true
                 (Builtins_settings.print_settings ());
               exit 0),
           "Display configuration keys in markdown format." );
@@ -383,7 +383,7 @@ let parse argv l f msg =
         Printf.eprintf "%s" msg;
         exit 2
     | Arg.Help msg ->
-        String_utils.print_string ~pager:true msg;
+        Lang_string.print_string ~pager:true msg;
         exit 0
 
 let absolute s =

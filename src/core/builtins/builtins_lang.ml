@@ -48,9 +48,9 @@ let () =
     [("", Lang.string_t, None, Some "Minimal version.")] Lang.bool_t (fun p ->
       let v = List.assoc "" p |> Lang.to_string in
       Lang.bool
-        (String_utils.Version.compare
-           (String_utils.Version.of_string v)
-           (String_utils.Version.of_string (Configure.version ()))
+        (Lang_string.Version.compare
+           (Lang_string.Version.of_string v)
+           (Lang_string.Version.of_string (Configure.version ()))
         <= 0))
 
 let () =
@@ -570,19 +570,19 @@ let () =
        where metadata is a list of (key,value) bindings."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
-      let f = String_utils.home_unrelate f in
+      let f = Lang_string.home_unrelate f in
       if not (Sys.file_exists f) then
         Runtime_error.error
           ~message:
             (Printf.sprintf "File %s does not exist!"
-               (String_utils.quote_string f))
+               (Lang_string.quote_string f))
           "playlist";
       if Sys.is_directory f then
         Runtime_error.error
           ~message:
             (Printf.sprintf
                "File %s is a directory! A regular file was expected."
-               (String_utils.quote_string f))
+               (Lang_string.quote_string f))
           "playlist";
       let content = Utils.read_all f in
       let pwd =

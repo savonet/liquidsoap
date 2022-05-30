@@ -160,7 +160,7 @@ let throw print_error = function
       Format.printf
         "Uncaught runtime error:@ type: %s,@ message: %s,@\nstack: %s\n@]@."
         kind
-        (String_utils.quote_string msg)
+        (Lang_string.quote_string msg)
         pos;
       raise Error
   | Sedlexing.MalFormed -> print_error 15 "Malformed file."
@@ -220,7 +220,7 @@ let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
-  let fname = String_utils.home_unrelate filename in
+  let fname = Lang_string.home_unrelate filename in
   from_in_channel ~fname
     ~dir:(Filename.dirname filename)
     ?parse_only ~ns ~lib ic;
@@ -264,7 +264,7 @@ let interactive () =
      @.";
   if Dtools.Log.conf_file#get then
     Format.printf "Logs can be found in %s.\n@."
-      (String_utils.quote_string Dtools.Log.conf_file_path#get);
+      (Lang_string.quote_string Dtools.Log.conf_file_path#get);
   let lexbuf =
     (* See ocaml-community/sedlex#45 *)
     let chunk_size = 512 in

@@ -32,7 +32,6 @@
   menhirLib
   camomile
   metadata
-  strings
   (select
    file_watcher.ml
    from
@@ -43,8 +42,6 @@
    from
    (magic -> liqmagic.enabled.ml)
    (-> liqmagic.disabled.ml)))
- (preprocess
-  (pps ppx_string sedlex.ppx))
  (foreign_stubs
   (language c)
   (names unix_c))
@@ -213,6 +210,8 @@
   srt_parser
   start_stop
   still_frame
+  stringView
+  strings
   swap
   switch
   synth_op

@@ -61,10 +61,10 @@ let eval_ifdefs tokenizer =
           (* XXX Less natural meaning than the original one. *)
           if test (Environment.has_builtin v) then go_on () else skip ()
       | Parser.PP_IFVERSION (cmp, ver), _ ->
-          let current = String_utils.Version.of_string (Configure.version ()) in
-          let ver = String_utils.Version.of_string ver in
+          let current = Lang_string.Version.of_string (Configure.version ()) in
+          let ver = Lang_string.Version.of_string ver in
           let test =
-            let compare = String_utils.Version.compare current ver in
+            let compare = Lang_string.Version.compare current ver in
             match cmp with
               | `Eq -> compare = 0
               | `Geq -> compare >= 0
@@ -114,7 +114,7 @@ let includer dir tokenizer =
   let rec token () =
     match peek () () with
       | Parser.PP_INCLUDE fname, (_, curp) ->
-          let fname = String_utils.home_unrelate fname in
+          let fname = Lang_string.home_unrelate fname in
           let fname =
             if Filename.is_relative fname then
               Filename.concat (current_dir ()) fname
@@ -128,11 +128,11 @@ let includer dir tokenizer =
                 (if curp.Lexing.pos_fname = "" then "L"
                 else
                   Printf.sprintf "File %s, l"
-                    (String_utils.quote_string curp.Lexing.pos_fname))
+                    (Lang_string.quote_string curp.Lexing.pos_fname))
                 curp.Lexing.pos_lnum
                 (curp.Lexing.pos_cnum - curp.Lexing.pos_bol);
               Printf.printf "file %s doesn't exist.\n"
-                (String_utils.quote_string fname);
+                (Lang_string.quote_string fname);
               flush_all ();
               exit 1
           in
@@ -364,7 +364,7 @@ let parse_comments tokenizer =
     let main, special, params, methods = parse_doc ([], [], [], []) doc in
     let main = List.rev main and params = List.rev params in
     let main = String.concat "\n" main in
-    let main = String_utils.unbreak_md main in
+    let main = Lang_string.unbreak_md main in
     (* let main = String.concat "\n" main in *)
     let doc =
       let sort = false in

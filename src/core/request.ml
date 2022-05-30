@@ -42,7 +42,7 @@ let remove_file_proto s =
   (* Then remove file: 😇 *)
   Pcre.substitute ~pat:"^file:" ~subst:(fun _ -> "") s
 
-let home_unrelate s = String_utils.home_unrelate (remove_file_proto s)
+let home_unrelate s = Lang_string.home_unrelate (remove_file_proto s)
 
 let parse_uri uri =
   try
@@ -63,10 +63,10 @@ let string_of_metadata metadata =
     (fun k v ->
       if !first then (
         first := false;
-        try Format.fprintf f "%s=\"%s\"" k (String_utils.escape_utf8_string v)
+        try Format.fprintf f "%s=\"%s\"" k (Lang_string.escape_utf8_string v)
         with _ -> ())
       else (
-        try Format.fprintf f "\n%s=\"%s\"" k (String_utils.escape_utf8_string v)
+        try Format.fprintf f "\n%s=\"%s\"" k (Lang_string.escape_utf8_string v)
         with _ -> ()))
     metadata;
   Format.pp_print_flush f ();
@@ -326,10 +326,10 @@ let read_metadata t =
   let indicator = peek_indicator t in
   let name = indicator.string in
   if not (file_exists name) then
-    log#important "File %s does not exist!" (String_utils.quote_string name)
+    log#important "File %s does not exist!" (Lang_string.quote_string name)
   else if not (file_is_readable name) then
     log#important "Read permission denied for %s!"
-      (String_utils.quote_string name)
+      (Lang_string.quote_string name)
   else
     List.iter
       (fun (_, resolver) ->
@@ -358,7 +358,7 @@ let local_check t =
         let metadata = get_all_metadata t in
         if not (file_is_readable name) then (
           log#important "Read permission denied for %s!"
-            (String_utils.quote_string name);
+            (Lang_string.quote_string name);
           add_log t "Read permission denied!";
           pop_indicator t)
         else (
@@ -378,7 +378,7 @@ let push_indicators t l =
   if l <> [] then (
     let hd = List.hd l in
     add_log t
-      (Printf.sprintf "Pushed [%s;...]." (String_utils.quote_string hd.string));
+      (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string hd.string));
     t.indicators <- l :: t.indicators;
     t.decoder <- None;
 
@@ -598,7 +598,7 @@ let resolve ~ctype t timeout =
               | Some handler ->
                   add_log t
                     (Printf.sprintf "Resolving %s (timeout %.0fs)..."
-                       (String_utils.quote_string i.string)
+                       (Lang_string.quote_string i.string)
                        timeout);
                   let production =
                     handler.resolve ~log:(add_log t) arg maxtime
@@ -607,19 +607,19 @@ let resolve ~ctype t timeout =
                     log#info
                       "Failed to resolve %s! For more info, see server command \
                        `request.trace %d`."
-                      (String_utils.quote_string i.string)
+                      (Lang_string.quote_string i.string)
                       t.id;
                     ignore (pop_indicator t))
                   else push_indicators t production
               | None ->
                   log#important "Unknown protocol %S in URI %s!" proto
-                    (String_utils.quote_string i.string);
+                    (Lang_string.quote_string i.string);
                   add_log t "Unknown protocol!";
                   pop_indicator t)
         | None ->
             let log_level = if i.string = "" then 4 else 3 in
             log#f log_level "Nonexistent file or ill-formed URI %s!"
-              (String_utils.quote_string i.string);
+              (Lang_string.quote_string i.string);
             add_log t "Nonexistent file or ill-formed URI!";
             pop_indicator t)
   in

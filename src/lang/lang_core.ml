@@ -125,21 +125,6 @@ let val_cst_fun p c =
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 
-(** Helpers for defining protocols. *)
-
-let to_proto_doc ~syntax ~static doc =
-  let item = new Doc.item ~sort:false doc in
-  item#add_subsection "syntax" (Lazy.from_val (Doc.trivial syntax));
-  item#add_subsection "static"
-    (Lazy.from_val (Doc.trivial (string_of_bool static)));
-  item
-
-let add_protocol ~syntax ~doc ~static name resolver =
-  let doc () = to_proto_doc ~syntax ~static doc in
-  let doc = Lazy.from_fun doc in
-  let spec = { Request.static; resolve = resolver } in
-  Request.protocols#register ~doc name spec
-
 (** Helpers for defining builtin functions. *)
 
 type proto = (string * t * value option * string option) list

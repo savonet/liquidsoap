@@ -276,7 +276,7 @@ let print_lang (i : item) =
       s
   in
   Format.fprintf ff "@.@[%a@]@." print_string_split
-    (String_utils.unbreak_md i#get_doc);
+    (Lang_string.unbreak_md i#get_doc);
   let sub = i#get_subsections in
   let sub =
     Format.fprintf ff "@.Type: %s@." (i#get_subsection "_type")#get_doc;
@@ -336,4 +336,4 @@ let print_lang (i : item) =
       meths);
   Format.fprintf ff "@.";
   Format.pp_print_flush ff ();
-  String_utils.print_string ~pager:true (Buffer.contents b)
+  Lang_string.print_string ~pager:true (Buffer.contents b)

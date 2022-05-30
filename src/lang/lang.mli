@@ -84,16 +84,6 @@ val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
    of the application. *)
 val apply : value -> env -> value
 
-(** {3 Helpers for registering protocols} *)
-
-val add_protocol :
-  syntax:string ->
-  doc:string ->
-  static:bool ->
-  string ->
-  Request.resolver ->
-  unit
-
 (** {3 Helpers for source builtins} *)
 
 type proto = (string * t * value option * string option) list

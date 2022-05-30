@@ -14,7 +14,7 @@
   (pps sedlex.ppx))
  (wrapped false)
  (library_flags -linkall)
- (libraries dtools duppy menhirLib pcre strings)
+ (libraries dtools duppy menhirLib pcre)
  (modules_without_implementation
   clock
   configure
@@ -24,8 +24,6 @@
   kind
   lifecycle
   log
-  meta_format
-  request
   source
   tutils)
  (modules
@@ -50,10 +48,10 @@
   lang_encoder
   lang_error
   lang_source
+  lang_string
   lexer
   lifecycle
   log
-  meta_format
   modules
   parser
   parser_helper
@@ -62,7 +60,6 @@
   preprocessor
   profiler
   repr
-  request
   runtime
   runtime_error
   source

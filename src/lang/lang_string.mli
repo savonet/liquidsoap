@@ -66,7 +66,6 @@ val unescape_string :
 val string_of_matrix : string array array -> string
 val unbreak_md : string -> string
 val find_cmd : (string * string) list -> string option
-val print_strings : ?pager:bool -> Strings.t -> unit
 val print_string : ?pager:bool -> string -> unit
 val kprint_string : ?pager:bool -> ((string -> unit) -> unit) -> unit
 

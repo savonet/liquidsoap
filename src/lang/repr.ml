@@ -333,7 +333,7 @@ let print f t =
               let rec aux vars = function
                 | [(l, (g, t), Some json_name)] ->
                     Format.fprintf f "%s as %s : %s"
-                      (String_utils.quote_utf8_string json_name)
+                      (Lang_string.quote_utf8_string json_name)
                       l (gen g);
                     print ~par:true vars t
                 | [(l, (g, t), None)] ->
@@ -341,7 +341,7 @@ let print f t =
                     print ~par:false vars t
                 | (l, (g, t), Some json_name) :: m ->
                     Format.fprintf f "%s as %s : %s"
-                      (String_utils.quote_utf8_string json_name)
+                      (Lang_string.quote_utf8_string json_name)
                       l (gen g);
                     let vars = print ~par:false vars t in
                     Format.fprintf f ",@ ";
