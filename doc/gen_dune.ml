@@ -34,14 +34,12 @@ let mk_generated_rule (file, option) =
 (rule
   (alias doc)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../src/libs/stdlib.liq)
-    (source_tree ../src/libs))
+    (:liquidsoap ../src/bin/liquidsoap.exe))
   (target %s)
   (action
     (with-stdout-to %s
       (setenv PAGER none
-        (run %%{liquidsoap} --no-stdlib %%{stdlib} %s)))))
+        (run %%{liquidsoap} %s)))))
 |}
     file file option
 

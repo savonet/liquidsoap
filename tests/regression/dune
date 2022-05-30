@@ -8,7 +8,8 @@
 
 (rule
  (alias gendune)
- (deps (source_tree .))
+ (deps
+  (source_tree .))
  (target dune.inc.gen)
  (action
   (with-stdout-to

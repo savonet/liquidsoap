@@ -104,26 +104,29 @@
   (run ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 %{target})))
 
 (rule
-  (target test.mp3)
-  (action
-    (run ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 %{target}))) 
+ (target test.mp3)
+ (action
+  (run ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 %{target})))
 
 (rule
-  (target json)
-  (action (progn
-    (run rm -rf json)
-    (run git clone --depth 1 https://github.com/nst/JSONTestSuite json)
-    (system "cd json && mv test_parsing/*.json .")
-    (system "cd json && find . -maxdepth 1 -type d | grep -v '^\\.$' | xargs rm -rf"))))
+ (target json)
+ (action
+  (progn
+   (run rm -rf json)
+   (run git clone --depth 1 https://github.com/nst/JSONTestSuite json)
+   (system "cd json && mv test_parsing/*.json .")
+   (system
+    "cd json && find . -maxdepth 1 -type d | grep -v '^\\.$' | xargs rm -rf"))))
 
 (rule
-  (target json5)
-  (action (progn
-    (run rm -rf json5)
-    (run git clone --depth 1 https://github.com/json5/json5-tests.git json5)
-    (system "cd json5 && find . -type f | egrep '\\.json|\\.js|\\.txt' | xargs -I % mv % .")
-    (system "cd json5 && find . -type d | grep -v '^\\.$' | xargs rm -rf")))) 
-      
+ (target json5)
+ (action
+  (progn
+   (run rm -rf json5)
+   (run git clone --depth 1 https://github.com/json5/json5-tests.git json5)
+   (system
+    "cd json5 && find . -type f | egrep '\\.json|\\.js|\\.txt' | xargs -I % mv % .")
+   (system "cd json5 && find . -type d | grep -v '^\\.$' | xargs rm -rf"))))
 
 (rule
  (alias runtest)

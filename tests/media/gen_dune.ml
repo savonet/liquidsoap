@@ -98,12 +98,10 @@ let mk_encoded_file format =
  (deps
   (:encoder %s)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
-   (run %%{run_test} "%%{liquidsoap} --no-stdlib %%{stdlib} %%{test_liq} -" %%{encoder} %S)))|}
+   (run %%{run_test} "%%{liquidsoap} %%{test_liq} -" %%{encoder} %S)))|}
     (escaped_format format) (encoder_script format) (encoder_format format)
 
 let () =
@@ -129,12 +127,10 @@ let file_test ~label ~test fname =
   all_media_files
   %s
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
-  (run %%{run_test} "%%{liquidsoap} --no-stdlib %%{stdlib} %%{test_liq} - -- %s" %s %S)))|}
+  (run %%{run_test} "%%{liquidsoap} %%{test_liq} - -- %s" %s %S)))|}
     test fname test label
 
 let () =

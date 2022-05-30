@@ -2,50 +2,42 @@
 (rule
   (alias doc)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../src/libs/stdlib.liq)
-    (source_tree ../src/libs))
+    (:liquidsoap ../src/bin/liquidsoap.exe))
   (target protocols.md)
   (action
     (with-stdout-to protocols.md
       (setenv PAGER none
-        (run %{liquidsoap} --no-stdlib %{stdlib} --list-protocols-md)))))
+        (run %{liquidsoap} --list-protocols-md)))))
 
 (rule
   (alias doc)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../src/libs/stdlib.liq)
-    (source_tree ../src/libs))
+    (:liquidsoap ../src/bin/liquidsoap.exe))
   (target reference.md)
   (action
     (with-stdout-to reference.md
       (setenv PAGER none
-        (run %{liquidsoap} --no-stdlib %{stdlib} --list-functions-md)))))
+        (run %{liquidsoap} --list-functions-md)))))
 
 (rule
   (alias doc)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../src/libs/stdlib.liq)
-    (source_tree ../src/libs))
+    (:liquidsoap ../src/bin/liquidsoap.exe))
   (target reference-extras.md)
   (action
     (with-stdout-to reference-extras.md
       (setenv PAGER none
-        (run %{liquidsoap} --no-stdlib %{stdlib} --list-extra-functions-md)))))
+        (run %{liquidsoap} --list-extra-functions-md)))))
 
 (rule
   (alias doc)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
-    (:stdlib ../src/libs/stdlib.liq)
-    (source_tree ../src/libs))
+    (:liquidsoap ../src/bin/liquidsoap.exe))
   (target settings.md)
   (action
     (with-stdout-to settings.md
       (setenv PAGER none
-        (run %{liquidsoap} --no-stdlib %{stdlib} --list-settings)))))
+        (run %{liquidsoap} --list-settings)))))
 
 (rule
   (alias doc)

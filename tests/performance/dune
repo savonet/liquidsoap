@@ -1,30 +1,29 @@
 (executable
-  (name gen_bigrecord)
-  (preprocess
-   (pps ppx_string))
-  (modules gen_bigrecord))
+ (name gen_bigrecord)
+ (preprocess
+  (pps ppx_string))
+ (modules gen_bigrecord))
 
 (rule
-  (target big-record.liq)
-  (deps
-    (:gen_bigrecord ./gen_bigrecord.exe))
-  (action
-    (with-stdout-to %{target}
-      (run %{gen_bigrecord}))))
+ (target big-record.liq)
+ (deps
+  (:gen_bigrecord ./gen_bigrecord.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{gen_bigrecord}))))
 
 (rule
-  (alias runtest)
-  (deps
-    (:liquidsoap ../../src/bin/liquidsoap.exe)
-    (source_tree ../../libs)
-    (:stdlib ../../src/libs/stdlib.liq)
-    (:small_record ./small-record.liq)
-    (:big_record ./big-record.liq)
-    (:erathostenes ./erathostenes.liq)
-    (:performance performance.liq)
-    (:test_liq ../test.liq))
-  (action
-    (progn
-      (run %{liquidsoap} --no-stdlib %{stdlib} %{test_liq} %{performance} %{small_record})
-      (run %{liquidsoap} --no-stdlib %{stdlib} %{test_liq} %{performance} %{big_record})
-      (run %{liquidsoap} --no-stdlib %{stdlib} %{test_liq} %{performance} %{erathostenes}))))
+ (alias runtest)
+ (deps
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:small_record ./small-record.liq)
+  (:big_record ./big-record.liq)
+  (:erathostenes ./erathostenes.liq)
+  (:performance performance.liq)
+  (:test_liq ../test.liq))
+ (action
+  (progn
+   (run %{liquidsoap} %{test_liq} %{performance} %{small_record})
+   (run %{liquidsoap} %{test_liq} %{performance} %{big_record})
+   (run %{liquidsoap} %{test_liq} %{performance} %{erathostenes}))))

@@ -7,9 +7,7 @@ let () =
   in
   let runtests =
     List.map
-      (Printf.sprintf
-         "(run %%{run_test} \"%%{liquidsoap} --no-stdlib %%{stdlib} \
-          %%{test_liq} -\" %s)")
+      (Printf.sprintf "(run %%{run_test} \"%%{liquidsoap} %%{test_liq} -\" %s)")
       tests
   in
   Printf.printf
@@ -21,8 +19,6 @@ let () =
   %s
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
