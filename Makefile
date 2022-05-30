@@ -1,4 +1,4 @@
 all: build
 
-build clean test:
+build install clean test:
 	@dune $@
