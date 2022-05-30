@@ -1,2 +1,2 @@
 #!/bin/sh
-dune exec src/bin/liquidsoap.exe -- src/libs/stdlib.liq $*
+dune exec src/bin/liquidsoap.exe -- $*
