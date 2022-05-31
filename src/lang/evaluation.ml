@@ -185,9 +185,9 @@ and eval (env : Env.t) tm =
           let k = of_frame_kind_t k in
           let k =
             {
-              Frame.audio = frame_content_of_t k.Frame.audio;
-              video = frame_content_of_t k.Frame.video;
-              midi = frame_content_of_t k.Frame.midi;
+              Lang_frame.audio = frame_content_of_t k.Lang_frame.audio;
+              video = frame_content_of_t k.Lang_frame.video;
+              midi = frame_content_of_t k.Lang_frame.midi;
             }
           in
           let fn = !source_eval_check in

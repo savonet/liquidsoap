@@ -91,7 +91,7 @@ let source_methods =
         val_fun [] (fun _ ->
             float
               (let r = s#remaining in
-               if r < 0 then infinity else Frame.seconds_of_main r)) );
+               if r < 0 then infinity else Lang_frame.seconds_of_main r)) );
     ( "elapsed",
       ([], fun_t [] float_t),
       "Elapsed time in the current track.",
@@ -99,7 +99,7 @@ let source_methods =
         val_fun [] (fun _ ->
             float
               (let e = s#elapsed in
-               if e < 0 then infinity else Frame.seconds_of_main e)) );
+               if e < 0 then infinity else Lang_frame.seconds_of_main e)) );
     ( "duration",
       ([], fun_t [] float_t),
       "Estimation of the duration of the current track.",
@@ -107,7 +107,7 @@ let source_methods =
         val_fun [] (fun _ ->
             float
               (let d = s#duration in
-               if d < 0 then infinity else Frame.seconds_of_main d)) );
+               if d < 0 then infinity else Lang_frame.seconds_of_main d)) );
     ( "self_sync",
       ([], fun_t [] bool_t),
       "Is the source currently controling its own real-time loop.",
@@ -160,8 +160,9 @@ let source_methods =
       fun s ->
         val_fun [("", "", None)] (fun p ->
             float
-              (Frame.seconds_of_main
-                 (s#seek (Frame.main_of_seconds (to_float (List.assoc "" p))))))
+              (Lang_frame.seconds_of_main
+                 (s#seek
+                    (Lang_frame.main_of_seconds (to_float (List.assoc "" p))))))
     );
     ( "skip",
       ([], fun_t [] unit_t),
@@ -185,10 +186,10 @@ let source_methods =
               else 0
             in
             let frame_position =
-              Lazy.force Frame.duration *. float_of_int ticks
+              Lazy.force Lang_frame.duration *. float_of_int ticks
             in
             let in_frame_position =
-              Frame.seconds_of_main (Frame.position s#memo)
+              Lang_frame.seconds_of_main (Lang_frame.position s#memo)
             in
             float (frame_position +. in_frame_position)) );
   ]

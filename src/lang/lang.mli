@@ -103,14 +103,14 @@ val add_builtin_base :
 (** Declare a new module. *)
 val add_module : string -> unit
 
-val empty : Frame.content_kind
-val any : Frame.content_kind
+val empty : Lang_frame.content_kind
+val any : Lang_frame.content_kind
 
 (** Any internal stream type. *)
-val internal : Frame.content_kind
+val internal : Lang_frame.content_kind
 
 (* Conversion to format *)
-val kind_type_of_kind_format : Frame.content_kind -> t
+val kind_type_of_kind_format : Lang_frame.content_kind -> t
 
 (** {2 Manipulation of values} *)
 
@@ -133,7 +133,7 @@ val to_product : value -> value * value
 val to_tuple : value -> value list
 val to_ref : value -> value ref
 val to_metadata_list : value -> (string * string) list
-val to_metadata : value -> Frame.metadata
+val to_metadata : value -> Lang_frame.metadata
 val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_fun : value -> (string * value) list -> value
@@ -162,10 +162,10 @@ val error_t : t
 val source_t : t -> t
 val of_source_t : t -> t
 val format_t : t -> t
-val kind_t : Frame.kind -> t
+val kind_t : Lang_frame.kind -> t
 val kind_none_t : t
 val frame_kind_t : audio:t -> video:t -> midi:t -> t
-val of_frame_kind_t : t -> t Frame.fields
+val of_frame_kind_t : t -> t Lang_frame.fields
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].
@@ -206,7 +206,7 @@ val val_fun : (string * string * value option) list -> (env -> value) -> value
 val val_cst_fun : (string * value option) list -> value -> value
 
 (** Convert a metadata packet to a list associating strings to strings. *)
-val metadata : Frame.metadata -> value
+val metadata : Lang_frame.metadata -> value
 
 (** Raise an error. *)
 val raise_error :

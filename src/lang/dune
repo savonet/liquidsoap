@@ -15,7 +15,6 @@
  (wrapped false)
  (library_flags -linkall)
  (libraries menhirLib pcre)
- (modules_without_implementation frame)
  (modules
   console
   doc
@@ -23,7 +22,6 @@
   environment
   error
   evaluation
-  frame
   json_base
   json_lexer
   json_parser
@@ -32,6 +30,7 @@
   lang_content
   lang_core
   lang_error
+  lang_frame
   lang_string
   lexer
   modules

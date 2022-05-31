@@ -21,17 +21,9 @@
  *****************************************************************************)
 
 include Frame_settings
+include Lang_frame
 open Content
 
-(** Data types *)
-
-type 'a fields = { audio : 'a; video : 'a; midi : 'a }
-
-(** High-level description of the content. *)
-type kind =
-  [ `Any | `Internal | `Kind of Content.kind | `Format of Content.format ]
-
-let none = `Format None.format
 let audio_pcm = `Kind Audio.kind
 
 let audio_n = function
@@ -54,13 +46,6 @@ let audio_stereo =
 let video_yuva420p = `Kind Video.kind
 let midi_native = `Kind Midi.kind
 let midi_n c = `Format Midi.(lift_params { Contents.channels = c })
-
-type content_kind = kind fields
-
-(** Precise description of the channel types for the current track. *)
-type content_type = format fields
-
-type content = data fields
 
 (** Compatibilities between content kinds, types and values.
   * [sub a b] if [a] is more permissive than [b]..
@@ -90,10 +75,6 @@ let compatible c c' =
   && Content.compatible c.midi c'.midi
 
 (* Frames *)
-
-(** A metadata is just a mutable hash table.
-  * It might be a good idea to straighten that up in the future. *)
-type metadata = (string, string) Hashtbl.t
 
 let metadata_of_list l =
   let m = Hashtbl.create (List.length l) in

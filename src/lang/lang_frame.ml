@@ -16,30 +16,31 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
-(** To be filled when source values are instantiated. *)
-val source_eval_check : (k:Lang_frame.content_kind -> Value.t -> unit) ref
+(** Operations on frames, which are small portions of streams. *)
 
-(** To be filled when encoder values are instantiated. *)
-type encoder_params =
-  (string * [ `Value of Value.t | `Encoder of encoder ]) list
+(** {2 Lang_frame definitions} *)
 
-and encoder = string * encoder_params
+type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
-val make_encoder : (pos:Pos.Option.t -> Term.t -> encoder -> Value.t) ref
-val has_encoder : (Value.t -> bool) ref
-val liq_libs_dir : (unit -> string) ref
-val version : (unit -> string) ref
-val log_path : string option ref
+(** High-level description of the content. *)
+type kind =
+  [ `Any
+  | `Internal
+  | `Kind of Lang_content.kind
+  | `Format of Lang_content.format ]
 
-(** Evaluate a term in a given environment. *)
-val eval : ?env:(string * (Type.scheme * Value.t)) list -> Term.t -> Value.t
+type content_kind = kind fields
 
-(** Evaluate a toplevel term. *)
-val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
+(** Precise description of the channel types for the current track. *)
+type content_type = Lang_content.format fields
 
-(** Apply a function to arguments. *)
-val apply : ?pos:Pos.t -> Value.t -> (string * Value.t) list -> Value.t
+type content = Lang_content.data fields
+
+(** Metadata of a frame. *)
+type metadata = (string, string) Hashtbl.t
+
+let none = `Format Lang_content.None.format
