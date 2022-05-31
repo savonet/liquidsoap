@@ -23,6 +23,15 @@
 (** To be filled when source values are instantiated. *)
 val source_eval_check : (k:Frame.content_kind -> Value.t -> unit) ref
 
+(** To be filled when encoder values are instantiated. *)
+type encoder_params =
+  (string * [ `Value of Value.t | `Encoder of encoder ]) list
+
+and encoder = string * encoder_params
+
+val make_encoder : (pos:Pos.Option.t -> Term.t -> encoder -> Value.t) ref
+val has_encoder : (Value.t -> bool) ref
+
 (** Evaluate a term in a given environment. *)
 val eval : ?env:(string * (Type.scheme * Value.t)) list -> Term.t -> Value.t
 

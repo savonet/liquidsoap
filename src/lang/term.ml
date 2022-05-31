@@ -156,13 +156,6 @@ let of_source_t t =
     | Type.Constr { Type.constructor = "source"; Type.params = [(_, t)] } -> t
     | _ -> assert false
 
-let type_of_format ~pos f =
-  let kind = Encoder.kind_of_format f in
-  let audio = kind_t ~pos kind.Frame.audio in
-  let video = kind_t ~pos kind.Frame.video in
-  let midi = kind_t ~pos kind.Frame.midi in
-  format_t ~pos (frame_kind_t ~pos audio video midi)
-
 (** {2 Terms} *)
 
 (** Sets of variables. *)

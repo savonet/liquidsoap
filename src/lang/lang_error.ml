@@ -22,6 +22,8 @@
 
 include Runtime_error
 
+exception Encoder_error of (Pos.Option.t * string)
+
 type error = Runtime_error.runtime_error = {
   kind : string;
   msg : string;

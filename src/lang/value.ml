@@ -34,7 +34,6 @@ and lazy_env = (string * t Lazy.t) list
 
 and in_value =
   | Ground of Ground.t
-  | Encoder of Encoder.format
   | List of t list
   | Tuple of t list
   | Null
@@ -50,11 +49,6 @@ and in_value =
      doesn't capture anything in the environment. *)
   | FFI of (string * string * t option) list * (env -> t)
 
-type encoder_params = (string * [ `Value of t | `Encoder of encoder ]) list
-
-(** The type of evaluated encoder terms. *)
-and encoder = string * encoder_params
-
 let unit : in_value = Tuple []
 
 let string_of_float f =
@@ -64,7 +58,6 @@ let string_of_float f =
 let rec to_string v =
   match v.value with
     | Ground g -> Ground.to_string g
-    | Encoder e -> Encoder.string_of_format e
     | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
     | Ref a -> Printf.sprintf "ref(%s)" (to_string !a)
     | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"

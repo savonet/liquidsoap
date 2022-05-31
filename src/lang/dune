@@ -17,7 +17,6 @@
  (libraries dtools duppy menhirLib pcre)
  (modules_without_implementation
   configure
-  encoder
   frame
   log)
  (modules
@@ -25,7 +24,6 @@
   console
   doc
   documentation
-  encoder
   environment
   error
   evaluation
@@ -37,7 +35,6 @@
   lang
   lang_content
   lang_core
-  lang_encoder
   lang_error
   lang_string
   lexer

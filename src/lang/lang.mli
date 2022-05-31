@@ -55,7 +55,6 @@ and lazy_env = (string * value Lazy.t) list
 
 and in_value = Value.in_value =
   | Ground of Ground.t
-  | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
   | Null
@@ -125,7 +124,6 @@ val to_string_getter : value -> unit -> string
 val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_error : value -> Runtime_error.runtime_error
-val to_format : value -> Encoder.format
 val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_num : value -> [ `Int of int | `Float of float ]

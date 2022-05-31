@@ -290,9 +290,6 @@ let to_float_getter t =
             | _ -> assert false)
     | _ -> assert false
 
-let to_format t =
-  match (demeth t).value with Encoder f -> f | _ -> assert false
-
 let to_int t =
   match (demeth t).value with Ground (Int s) -> s | _ -> assert false
 

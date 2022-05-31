@@ -24,6 +24,17 @@
 
 open Term
 
+type encoder_params =
+  (string * [ `Value of Value.t | `Encoder of encoder ]) list
+
+and encoder = string * encoder_params
+
+let make_encoder =
+  ref (fun ~pos _ _ ->
+      raise (Lang_error.Encoder_error (pos, "Encoders are not implemented!")))
+
+let has_encoder = ref (fun _ -> false)
+
 (** [remove_first f l] removes the first element [e] of [l] such that [f e], and
     returns [e,l'] where [l'] is the list without [e]. Asserts that there is
     such an element. *)
@@ -195,9 +206,7 @@ and eval (env : Env.t) tm =
             p
         in
         let p = eval_param p in
-        let enc : Value.encoder = (e, p) in
-        let e = Lang_encoder.make_encoder ~pos tm enc in
-        mk (Value.Encoder e)
+        !make_encoder ~pos tm (e, p)
     | List l -> mk (Value.List (List.map (eval env) l))
     | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval env a) l))
     | Null -> mk Value.Null

@@ -75,18 +75,15 @@ let eval_ifdefs tokenizer =
           if test then go_on () else skip ()
       | (Parser.PP_IFENCODER, _ | Parser.PP_IFNENCODER, _) as tok ->
           let has_enc =
-            try
-              let fmt =
-                let token = fst (tokenizer ()) in
-                match token with
-                  | Parser.ENCODER e ->
-                      Lang_encoder.make_encoder ~pos:None (Term.make Term.unit)
-                        (e, [])
-                  | _ -> failwith "expected an encoding format after %ifencoder"
-              in
-              let (_ : Encoder.factory) = Encoder.get_factory fmt in
-              true
-            with _ -> false
+            let fmt =
+              let token = fst (tokenizer ()) in
+              match token with
+                | Parser.ENCODER e ->
+                    !Evaluation.make_encoder ~pos:None (Term.make Term.unit)
+                      (e, [])
+                | _ -> failwith "expected an encoding format after %ifencoder"
+            in
+            !Evaluation.has_encoder fmt
           in
           let test =
             if fst tok = Parser.PP_IFENCODER then fun x -> x else not
