@@ -356,9 +356,11 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~print_toplevel ~level ~env body;
         e.t >: body.t
 
+let display_types = ref false
+
 (* The simple definition for external use. *)
 let check ?(ignored = false) ~throw e =
-  let print_toplevel = !Configure.display_types in
+  let print_toplevel = !display_types in
   try
     let env = Environment.default_typing_environment () in
     check ~print_toplevel ~throw ~level:0 ~env e;

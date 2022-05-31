@@ -34,6 +34,8 @@ let make_encoder =
       raise (Lang_error.Encoder_error (pos, "Encoders are not implemented!")))
 
 let has_encoder = ref (fun _ -> false)
+let liq_libs_dir = ref (fun () -> raise Not_found)
+let version = ref (fun () -> raise Not_found)
 
 (** [remove_first f l] removes the first element [e] of [l] such that [f e], and
     returns [e,l'] where [l'] is the list without [e]. Asserts that there is

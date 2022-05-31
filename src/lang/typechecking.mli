@@ -1,4 +1,5 @@
 val debug : bool ref
+val display_types : bool ref
 val value_restriction : Term.t -> bool
 val add_task : (unit -> unit) -> unit
 val pop_tasks : unit -> unit

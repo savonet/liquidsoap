@@ -61,7 +61,9 @@ let eval_ifdefs tokenizer =
           (* XXX Less natural meaning than the original one. *)
           if test (Environment.has_builtin v) then go_on () else skip ()
       | Parser.PP_IFVERSION (cmp, ver), _ ->
-          let current = Lang_string.Version.of_string (Configure.version ()) in
+          let current =
+            Lang_string.Version.of_string (!Evaluation.version ())
+          in
           let ver = Lang_string.Version.of_string ver in
           let test =
             let compare = Lang_string.Version.compare current ver in

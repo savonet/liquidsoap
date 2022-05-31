@@ -31,6 +31,8 @@ and encoder = string * encoder_params
 
 val make_encoder : (pos:Pos.Option.t -> Term.t -> encoder -> Value.t) ref
 val has_encoder : (Value.t -> bool) ref
+val liq_libs_dir : (unit -> string) ref
+val version : (unit -> string) ref
 
 (** Evaluate a term in a given environment. *)
 val eval : ?env:(string * (Type.scheme * Value.t)) list -> Term.t -> Value.t

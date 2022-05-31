@@ -190,7 +190,7 @@ let report lexbuf f =
     Format.printf "%s\n@]@." error
   in
   let throw = throw print_error in
-  if Term.conf_debug_errors#get then f ~throw ()
+  if !Term.conf_debug_errors then f ~throw ()
   else (try f ~throw () with exn -> throw exn)
 
 (** {1 Parsing} *)
@@ -228,7 +228,7 @@ let from_file ?parse_only ~ns ~lib filename =
   close_in ic
 
 let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true) () =
-  let dir = Configure.liq_libs_dir () in
+  let dir = !Evaluation.liq_libs_dir () in
   let file = Filename.concat dir "stdlib.liq" in
   if not (Sys.file_exists file) then (
     if error_on_no_stdlib then

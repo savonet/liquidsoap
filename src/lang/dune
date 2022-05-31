@@ -16,11 +16,9 @@
  (library_flags -linkall)
  (libraries dtools duppy menhirLib pcre)
  (modules_without_implementation
-  configure
   frame
   log)
  (modules
-  configure
   console
   doc
   documentation

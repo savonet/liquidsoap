@@ -50,16 +50,8 @@ let () =
              (Pos.Option.to_string pos) e)
     | _ -> None)
 
-let conf =
-  Dtools.Conf.void ~p:(Configure.conf#plug "lang") "Language configuration."
-
-let conf_debug =
-  Dtools.Conf.bool ~p:(conf#plug "debug") ~d:false
-    "Debug language features such as type inference and reduction."
-
-let conf_debug_errors =
-  Dtools.Conf.bool ~p:(conf#plug "debug_errors") ~d:false
-    "Debug errors by showing stacktraces instead of printing messages."
+let conf_debug = ref false
+let conf_debug_errors = ref false
 
 (** Are we in debugging mode? *)
 let debug =
@@ -67,7 +59,7 @@ let debug =
       try
         ignore (Sys.getenv "LIQUIDSOAP_DEBUG_LANG");
         true
-      with Not_found -> conf_debug#get)
+      with Not_found -> !conf_debug)
 
 (* We want to keep this a reference and not a dtools and not something more
    complicated (e.g. dtools) in order not to impact performances. *)
