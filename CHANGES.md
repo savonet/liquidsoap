@@ -1,3 +1,9 @@
+2.0.6 (unreleased)
+=====
+
+New:
+* Added `video/mp4` to list of recognized mime types for request resolutions.
+
 2.0.5 (24-05-2022)
 =====
 
