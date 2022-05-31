@@ -36,3 +36,7 @@ type text_style =
 val colorize : text_style list -> string -> string
 val start_color : text_style list -> string
 val stop_color : unit -> string
+
+type color_conf = [ `Always | `Never | `Auto ]
+
+val color_conf : color_conf ref

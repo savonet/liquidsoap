@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+(** To be filled when source values are instantiated. *)
+val source_eval_check : (k:Frame.content_kind -> Value.t -> unit) ref
+
 (** Evaluate a term in a given environment. *)
 val eval : ?env:(string * (Type.scheme * Value.t)) list -> Term.t -> Value.t
 

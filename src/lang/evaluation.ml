@@ -129,6 +129,8 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
+let source_eval_check = ref (fun ~k:_ _ -> ())
+
 let rec prepare_fun fv p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
@@ -148,9 +150,10 @@ and eval (env : Env.t) tm =
   let mk v =
     (* Ensure that the kind computed at runtime for sources will agree with
        the typing. *)
+    let v = { Value.pos = tm.t.Type.pos; Value.value = v } in
     (match (Type.deref tm.t).Type.descr with
       | Type.Constr
-          { Type.constructor = "source"; params = [(Type.Invariant, k)] } -> (
+          { Type.constructor = "source"; params = [(Type.Invariant, k)] } ->
           let frame_content_of_t t =
             match (Type.deref t).Type.descr with
               | Type.Var _ -> `Any
@@ -167,28 +170,16 @@ and eval (env : Env.t) tm =
           in
           let k = of_frame_kind_t k in
           let k =
-            Kind.of_kind
-              {
-                Frame.audio = frame_content_of_t k.Frame.audio;
-                video = frame_content_of_t k.Frame.video;
-                midi = frame_content_of_t k.Frame.midi;
-              }
+            {
+              Frame.audio = frame_content_of_t k.Frame.audio;
+              video = frame_content_of_t k.Frame.video;
+              midi = frame_content_of_t k.Frame.midi;
+            }
           in
-          let rec demeth = function
-            | Value.Meth (_, _, v) -> demeth v.Value.value
-            | v -> v
-          in
-          match demeth v with
-            | Value.Source s -> Kind.unify s#kind k
-            | _ ->
-                raise
-                  (Internal_error
-                     ( Option.to_list tm.t.Type.pos,
-                       "term has type source but is not a source: "
-                       ^ Value.to_string
-                           { Value.pos = tm.t.Type.pos; Value.value = v } )))
+          let fn = !source_eval_check in
+          fn ~k v
       | _ -> ());
-    { Value.pos = tm.t.Type.pos; Value.value = v }
+    v
   in
   match tm.term with
     | Ground g -> mk (Value.Ground g)

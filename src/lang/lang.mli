@@ -55,7 +55,6 @@ and lazy_env = (string * value Lazy.t) list
 
 and in_value = Value.in_value =
   | Ground of Ground.t
-  | Source of Source.source
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
@@ -68,13 +67,6 @@ and in_value = Value.in_value =
   | FFI of (string * string * value option) list * (env -> value)
 
 val demeth : value -> value
-
-(** Iter a function over all sources contained in a value. This only applies to
-    statically referenced objects, i.e. it does not explore inside reference
-    cells. [on_reference] is used when we encounter a reference cell that may
-    contain a source. If not passed, we display a warning log. *)
-val iter_sources :
-  ?on_reference:(unit -> unit) -> (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)
 
@@ -123,20 +115,6 @@ val internal : Frame.content_kind
 (* Conversion to format *)
 val kind_type_of_kind_format : Frame.content_kind -> t
 
-type 'a operator_method = string * scheme * string * ('a -> value)
-
-(** Add an operator to the language and to the documentation. *)
-val add_operator :
-  category:Documentation.source ->
-  descr:string ->
-  ?flags:Documentation.flag list ->
-  ?meth:(< Source.source ; .. > as 'a) operator_method list ->
-  string ->
-  proto ->
-  return_t:t ->
-  (env -> 'a) ->
-  unit
-
 (** {2 Manipulation of values} *)
 
 val to_unit : value -> unit
@@ -147,7 +125,6 @@ val to_string_getter : value -> unit -> string
 val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_error : value -> Runtime_error.runtime_error
-val to_source : value -> Source.source
 val to_format : value -> Encoder.format
 val to_int : value -> int
 val to_int_getter : value -> unit -> int
@@ -163,7 +140,6 @@ val to_metadata_list : value -> (string * string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
 val to_int_list : value -> int list
-val to_source_list : value -> Source.source list
 val to_fun : value -> (string * value) list -> value
 val to_getter : value -> unit -> value
 
@@ -187,7 +163,7 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val error_t : t
-val source_t : ?methods:bool -> t -> t
+val source_t : t -> t
 val of_source_t : t -> t
 val format_t : t -> t
 val kind_t : Frame.kind -> t
@@ -218,7 +194,6 @@ val string : string -> value
 val list : value list -> value
 val null : value
 val error : Runtime_error.runtime_error -> value
-val source : Source.source -> value
 val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value

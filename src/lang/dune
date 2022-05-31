@@ -16,15 +16,11 @@
  (library_flags -linkall)
  (libraries dtools duppy menhirLib pcre)
  (modules_without_implementation
-  clock
   configure
   encoder
   frame
-  kind
-  log
-  source)
+  log)
  (modules
-  clock
   configure
   console
   doc
@@ -38,13 +34,11 @@
   json_lexer
   json_parser
   json
-  kind
   lang
   lang_content
   lang_core
   lang_encoder
   lang_error
-  lang_source
   lang_string
   lexer
   log
@@ -58,7 +52,6 @@
   repr
   runtime
   runtime_error
-  source
   term
   type
   typechecking

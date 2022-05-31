@@ -1,1 +1,0 @@
-../core/stream/kind.mli

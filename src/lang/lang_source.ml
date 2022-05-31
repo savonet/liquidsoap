@@ -281,3 +281,5 @@ let add_operator =
     in
     let category = `Source category in
     add_builtin ~category ~descr ~flags name proto return_t f
+
+let () = Evaluation.source_eval_check := fun ~k:_ _ -> assert false

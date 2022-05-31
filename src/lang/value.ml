@@ -34,7 +34,6 @@ and lazy_env = (string * t Lazy.t) list
 
 and in_value =
   | Ground of Ground.t
-  | Source of Source.source
   | Encoder of Encoder.format
   | List of t list
   | Tuple of t list
@@ -65,7 +64,6 @@ let string_of_float f =
 let rec to_string v =
   match v.value with
     | Ground g -> Ground.to_string g
-    | Source _ -> "<source>"
     | Encoder e -> Encoder.string_of_format e
     | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
     | Ref a -> Printf.sprintf "ref(%s)" (to_string !a)

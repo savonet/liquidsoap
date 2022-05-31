@@ -21,5 +21,4 @@
  *****************************************************************************)
 
 include Lang_core
-include Lang_source
 include Lang_error

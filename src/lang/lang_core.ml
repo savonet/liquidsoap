@@ -28,6 +28,7 @@ type t = Type.t
 type scheme = Type.scheme
 type value = Value.t = { pos : Pos.Option.t; value : in_value }
 
+let collect_after_fn = ref (fun fn -> fn ())
 let log = Log.make ["lang"]
 
 (** Type construction *)
@@ -103,7 +104,6 @@ let rec meth v0 = function
   | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
 
 let record = meth unit
-let source s = mk (Source s)
 let reference x = mk (Ref x)
 let val_fun p f = mk (FFI (p, f))
 
@@ -236,109 +236,11 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
 
 let add_module name = Environment.add_module (String.split_on_char '.' name)
 
-let iter_sources ?on_reference ~static_analysis_failed f v =
-  let itered_values = ref [] in
-  let rec iter_term env v =
-    match v.Term.term with
-      | Term.Ground _ | Term.Encoder _ -> ()
-      | Term.List l -> List.iter (iter_term env) l
-      | Term.Tuple l -> List.iter (iter_term env) l
-      | Term.Null -> ()
-      | Term.Cast (a, _) -> iter_term env a
-      | Term.Meth (_, a, b) ->
-          iter_term env a;
-          iter_term env b
-      | Term.Invoke (a, _) -> iter_term env a
-      | Term.Open (a, b) ->
-          iter_term env a;
-          iter_term env b
-      | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
-          iter_term env a;
-          iter_term env b
-      | Term.Var v -> (
-          try
-            (* If it's locally bound it won't be in [env]. *)
-            (* TODO since inner-bound variables don't mask outer ones in [env],
-             *   we are actually checking values that may be out of reach. *)
-            let v = List.assoc v env in
-            if Lazy.is_val v then (
-              let v = Lazy.force v in
-              iter_value v)
-            else ()
-          with Not_found -> ())
-      | Term.App (a, l) ->
-          iter_term env a;
-          List.iter (fun (_, v) -> iter_term env v) l
-      | Term.Fun (_, proto, body) | Term.RFun (_, _, proto, body) ->
-          iter_term env body;
-          List.iter
-            (fun (_, _, _, v) ->
-              match v with Some v -> iter_term env v | None -> ())
-            proto
-  and iter_value v =
-    if not (List.memq v !itered_values) then (
-      (* We need to avoid checking the same value multiple times, otherwise we
-         get an exponential blowup, see #1247. *)
-      itered_values := v :: !itered_values;
-      match v.value with
-        | Source s -> f s
-        | Ground _ | Encoder _ -> ()
-        | List l -> List.iter iter_value l
-        | Tuple l -> List.iter iter_value l
-        | Null -> ()
-        | Meth (_, a, b) ->
-            iter_value a;
-            iter_value b
-        | Fun (proto, env, body) ->
-            (* The following is necessarily imprecise: we might see sources that
-               will be unused in the execution of the function. *)
-            iter_term env body;
-            List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-        | FFI (proto, _) ->
-            List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-        | Ref r ->
-            if List.memq r !static_analysis_failed then ()
-            else (
-              (* Do not walk inside references, otherwise the list of "contained"
-                 sources may change from one time to the next, which makes it
-                 impossible to avoid ill-balanced activations. Not walking inside
-                 references does not break things more than they are already:
-                 detecting sharing in presence of references to sources cannot be
-                 done statically anyway. We display a fat log message to warn
-                 about this risky situation. *)
-              let may_have_source =
-                let rec aux v =
-                  match v.value with
-                    | Source _ -> true
-                    | Ground _ | Encoder _ | Null -> false
-                    | List l -> List.exists aux l
-                    | Tuple l -> List.exists aux l
-                    | Ref r -> aux !r
-                    | Fun _ | FFI _ -> true
-                    | Meth (_, v, t) -> aux v || aux t
-                in
-                aux v
-              in
-              static_analysis_failed := r :: !static_analysis_failed;
-              if may_have_source then (
-                match on_reference with
-                  | Some f -> f ()
-                  | None ->
-                      log#severe
-                        "WARNING! Found a reference, potentially containing \
-                         sources, inside a dynamic source-producing function. \
-                         Static analysis cannot be performed: make sure you \
-                         are not sharing sources contained in references!")))
-  in
-  iter_value v
-
-let iter_sources = iter_sources ~static_analysis_failed:(ref [])
-
 (* Delay this function in order not to have Lang depend on Evaluation. *)
 let apply_fun : (?pos:Pos.t -> value -> env -> value) ref =
   ref (fun ?pos:_ _ -> assert false)
 
-let apply f p = Clock.collect_after (fun () -> !apply_fun f p)
+let apply f p = !collect_after_fn (fun () -> !apply_fun f p)
 
 (** {1 High-level manipulation of values} *)
 
@@ -387,9 +289,6 @@ let to_float_getter t =
             | Ground (Float s) -> s
             | _ -> assert false)
     | _ -> assert false
-
-let to_source t =
-  match (demeth t).value with Source s -> s | _ -> assert false
 
 let to_format t =
   match (demeth t).value with Encoder f -> f | _ -> assert false
@@ -441,7 +340,6 @@ let to_metadata t =
 
 let to_string_list l = List.map to_string (to_list l)
 let to_int_list l = List.map to_int (to_list l)
-let to_source_list l = List.map to_source (to_list l)
 
 let to_getter t =
   match (demeth t).value with
