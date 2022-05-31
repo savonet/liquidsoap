@@ -180,7 +180,7 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
       "ogg"
     elsif list.mem(mime, ["audio/flac", "audio/x-flac"]) then
       "flac"
-    elsif list.mem(mime,["audio/mp4", "application/mp4"]) then
+    elsif list.mem(mime,["audio/mp4", "application/mp4", "video/mp4"]) then
       "mp4"
     elsif list.mem(mime,["audio/vnd.wave", "audio/wav",
                          "audio/wave", "audio/x-wav"]) then
