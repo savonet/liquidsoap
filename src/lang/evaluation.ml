@@ -36,6 +36,7 @@ let make_encoder =
 let has_encoder = ref (fun _ -> false)
 let liq_libs_dir = ref (fun () -> raise Not_found)
 let version = ref (fun () -> raise Not_found)
+let log_path = ref None
 
 (** [remove_first f l] removes the first element [e] of [l] such that [f e], and
     returns [e,l'] where [l'] is the list without [e]. Asserts that there is

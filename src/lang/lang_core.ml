@@ -29,7 +29,6 @@ type scheme = Type.scheme
 type value = Value.t = { pos : Pos.Option.t; value : in_value }
 
 let collect_after_fn = ref (fun fn -> fn ())
-let log = Log.make ["lang"]
 
 (** Type construction *)
 

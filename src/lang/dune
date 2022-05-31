@@ -14,10 +14,8 @@
   (pps sedlex.ppx))
  (wrapped false)
  (library_flags -linkall)
- (libraries dtools duppy menhirLib pcre)
- (modules_without_implementation
-  frame
-  log)
+ (libraries menhirLib pcre)
+ (modules_without_implementation frame)
  (modules
   console
   doc
@@ -36,7 +34,6 @@
   lang_error
   lang_string
   lexer
-  log
   modules
   parser
   parser_helper

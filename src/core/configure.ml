@@ -88,3 +88,11 @@ let conf_debug_errors =
 let () =
   conf_debug#on_change (fun v -> conf_debug := v);
   conf_debug_errors#on_change (fun v -> conf_debug_errors := v)
+
+let () =
+  let on_change v =
+    Evaluation.log_path :=
+      if v then Some Dtools.Log.conf_file_path#get else None
+  in
+  Dtools.Log.conf_file#on_change on_change;
+  on_change Dtools.Log.conf_file_#get

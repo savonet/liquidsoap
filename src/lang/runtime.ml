@@ -263,9 +263,11 @@ let interactive () =
      Each input will be fully processed: parsing, type-checking,\n\
      evaluation (forces default types), output startup (forces default clock).\n\
      @.";
-  if Dtools.Log.conf_file#get then
-    Format.printf "Logs can be found in %s.\n@."
-      (Lang_string.quote_string Dtools.Log.conf_file_path#get);
+  (match !Evaluation.log_path with
+    | None -> ()
+    | Some path ->
+        Format.printf "Logs can be found in %s.\n@."
+          (Lang_string.quote_string path));
   let lexbuf =
     (* See ocaml-community/sedlex#45 *)
     let chunk_size = 512 in
