@@ -30,7 +30,11 @@ type color_conf = [ `Always | `Never | `Auto ]
 let color_conf : color_conf ref = ref `Auto
 
 let color =
-  let auto = lazy (Unix.isatty Unix.stdout && not (Lazy.force dumb_term)) in
+  let auto =
+    lazy
+      (try Unix.isatty Unix.stdout && not (Lazy.force dumb_term)
+       with _ -> false)
+  in
   fun () ->
     match !color_conf with
       | `Always -> true

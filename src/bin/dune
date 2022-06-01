@@ -16,6 +16,7 @@
  (name liquidsoap_js)
  (modes js)
  (modules liquidsoap_js)
+ (preprocess (pps js_of_ocaml-ppx))
  (libraries liquidsoap_lang))
 
 (executable
