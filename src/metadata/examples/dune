@@ -1,6 +1,5 @@
 (executable
  (name meta)
- (package metadata)
  (modules meta)
  (libraries metadata))
 
