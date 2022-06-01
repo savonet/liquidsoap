@@ -14,7 +14,9 @@
   (pps sedlex.ppx))
  (wrapped false)
  (library_flags -linkall)
- (libraries menhirLib pcre)
+ (libraries
+   menhirLib
+   (select lang_regexp.ml from (pcre -> lang_regexp.pcre.ml) (-> lang_regexp.str.ml)))
  (modules
   console
   doc
@@ -31,6 +33,7 @@
   lang_core
   lang_error
   lang_frame
+  lang_regexp
   lang_string
   lexer
   modules

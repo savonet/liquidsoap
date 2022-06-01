@@ -53,16 +53,7 @@ val unescape_octal_char : string -> string
 val unescape_hex_char : string -> string
 val unescape_utf8_char : string -> string
 val unescape_char : string -> string
-
-val unescape_string :
-  ?iflags:Pcre.irflag ->
-  ?flags:Pcre.rflag list ->
-  ?pat:string ->
-  ?pos:int ->
-  ?callout:Pcre.callout ->
-  string ->
-  string
-
+val unescape_string : string -> string
 val string_of_matrix : string array array -> string
 val unbreak_md : string -> string
 val find_cmd : (string * string) list -> string option
