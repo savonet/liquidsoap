@@ -36,6 +36,7 @@
     (duppy (>= 0.9.1))
     (mm (>= 0.8.1))
     (pcre (>= 7.4.0))
+    menhirLib
     dune-site
     dune-build-info
     liquidsoap-lang
