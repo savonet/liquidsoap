@@ -19,7 +19,7 @@
    regexp.ml
    from
    (pcre -> regexp.pcre.ml)
-   (-> regexp.str.ml)))
+   (str -> regexp.str.ml)))
  (modules
   console
   content
