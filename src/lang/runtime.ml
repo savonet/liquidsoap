@@ -22,7 +22,7 @@
 
 (** {1 Running} *)
 
-let () = Lang.apply_fun := Evaluation.apply
+let () = Lang_core.apply_fun := Evaluation.apply
 
 let type_and_run ~throw ~lib ast =
   ignore

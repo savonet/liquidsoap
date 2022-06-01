@@ -129,7 +129,9 @@
   ioRing
   keyboard
   kind
+  lang
   lang_avi
+  lang_encoder
   lang_external_encoder
   lang_fdkaac
   lang_ffmpeg
@@ -138,6 +140,7 @@
   lang_mp3
   lang_ogg
   lang_opus
+  lang_source
   lang_shine
   lang_speex
   lang_theora
@@ -219,7 +222,6 @@
   time_warp
   tutils
   udp_io
-  unifier
   utils
   vFrame
   video_converter

@@ -22,7 +22,26 @@
 
 open Lang_core
 
-(* Augment source_t and source with default methods. *)
+let log = Log.make ["lang"]
+
+module V = MkAbstract (struct
+  type content = Source.source
+
+  let name = "source"
+  let descr s = Printf.sprintf "<source#%s>" s#id
+
+  let to_json _ =
+    raise
+      Runtime_error.(
+        Runtime_error
+          {
+            kind = "json";
+            msg = Printf.sprintf "Sources cannot be represented as json";
+            pos = [];
+          })
+
+  let compare s1 s2 = Stdlib.compare s1#id s2#id
+end)
 
 let source_methods =
   [
@@ -91,7 +110,7 @@ let source_methods =
         val_fun [] (fun _ ->
             float
               (let r = s#remaining in
-               if r < 0 then infinity else Lang_frame.seconds_of_main r)) );
+               if r < 0 then infinity else Frame.seconds_of_main r)) );
     ( "elapsed",
       ([], fun_t [] float_t),
       "Elapsed time in the current track.",
@@ -99,7 +118,7 @@ let source_methods =
         val_fun [] (fun _ ->
             float
               (let e = s#elapsed in
-               if e < 0 then infinity else Lang_frame.seconds_of_main e)) );
+               if e < 0 then infinity else Frame.seconds_of_main e)) );
     ( "duration",
       ([], fun_t [] float_t),
       "Estimation of the duration of the current track.",
@@ -107,7 +126,7 @@ let source_methods =
         val_fun [] (fun _ ->
             float
               (let d = s#duration in
-               if d < 0 then infinity else Lang_frame.seconds_of_main d)) );
+               if d < 0 then infinity else Frame.seconds_of_main d)) );
     ( "self_sync",
       ([], fun_t [] bool_t),
       "Is the source currently controling its own real-time loop.",
@@ -160,9 +179,8 @@ let source_methods =
       fun s ->
         val_fun [("", "", None)] (fun p ->
             float
-              (Lang_frame.seconds_of_main
-                 (s#seek
-                    (Lang_frame.main_of_seconds (to_float (List.assoc "" p))))))
+              (Frame.seconds_of_main
+                 (s#seek (Frame.main_of_seconds (to_float (List.assoc "" p))))))
     );
     ( "skip",
       ([], fun_t [] unit_t),
@@ -186,10 +204,10 @@ let source_methods =
               else 0
             in
             let frame_position =
-              Lazy.force Lang_frame.duration *. float_of_int ticks
+              Lazy.force Frame.duration *. float_of_int ticks
             in
             let in_frame_position =
-              Lang_frame.seconds_of_main (Lang_frame.position s#memo)
+              Frame.seconds_of_main (Frame.position s#memo)
             in
             float (frame_position +. in_frame_position)) );
   ]
@@ -201,13 +219,12 @@ let source_t ?(methods = false) t =
       (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
   else t
 
-let () =
-  Term.source_methods_t :=
-    fun () -> source_t ~methods:true (kind_type_of_kind_format any)
+let source s =
+  meth (V.to_value s)
+    (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
 
-let source v =
-  meth (source v)
-    (List.map (fun (name, _, _, fn) -> (name, fn v)) source_methods)
+let to_source = V.of_value
+let to_source_list l = List.map to_source (to_list l)
 
 (** A method: name, type scheme, documentation and implementation (which takes
     the currently defined source as argument). *)
@@ -283,4 +300,111 @@ let add_operator =
     let category = `Source category in
     add_builtin ~category ~descr ~flags name proto return_t f
 
-let () = Evaluation.source_eval_check := fun ~k:_ _ -> assert false
+let () =
+  Evaluation.source_eval_check :=
+    fun ~k ~pos v ->
+      if not (V.is_value v) then
+        raise
+          (Term.Internal_error
+             ( Option.to_list pos,
+               "term has type source but is not a source: " ^ Value.to_string v
+             ));
+      Kind.unify (V.of_value v)#kind (Kind.of_kind k)
+
+let iter_sources ?on_reference ~static_analysis_failed f v =
+  let itered_values = ref [] in
+  let rec iter_term env v =
+    match v.Term.term with
+      | Term.Ground _ | Term.Encoder _ -> ()
+      | Term.List l -> List.iter (iter_term env) l
+      | Term.Tuple l -> List.iter (iter_term env) l
+      | Term.Null -> ()
+      | Term.Cast (a, _) -> iter_term env a
+      | Term.Meth (_, a, b) ->
+          iter_term env a;
+          iter_term env b
+      | Term.Invoke (a, _) -> iter_term env a
+      | Term.Open (a, b) ->
+          iter_term env a;
+          iter_term env b
+      | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
+          iter_term env a;
+          iter_term env b
+      | Term.Var v -> (
+          try
+            (* If it's locally bound it won't be in [env]. *)
+            (* TODO since inner-bound variables don't mask outer ones in [env],
+             *   we are actually checking values that may be out of reach. *)
+            let v = List.assoc v env in
+            if Lazy.is_val v then (
+              let v = Lazy.force v in
+              iter_value v)
+            else ()
+          with Not_found -> ())
+      | Term.App (a, l) ->
+          iter_term env a;
+          List.iter (fun (_, v) -> iter_term env v) l
+      | Term.Fun (_, proto, body) | Term.RFun (_, _, proto, body) ->
+          iter_term env body;
+          List.iter
+            (fun (_, _, _, v) ->
+              match v with Some v -> iter_term env v | None -> ())
+            proto
+  and iter_value v =
+    if not (List.memq v !itered_values) then (
+      (* We need to avoid checking the same value multiple times, otherwise we
+         get an exponential blowup, see #1247. *)
+      itered_values := v :: !itered_values;
+      match v.value with
+        | _ when V.is_value v -> f (V.of_value v)
+        | Ground _ -> ()
+        | List l -> List.iter iter_value l
+        | Tuple l -> List.iter iter_value l
+        | Null -> ()
+        | Meth (_, a, b) ->
+            iter_value a;
+            iter_value b
+        | Fun (proto, env, body) ->
+            (* The following is necessarily imprecise: we might see sources that
+               will be unused in the execution of the function. *)
+            iter_term env body;
+            List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
+        | FFI (proto, _) ->
+            List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
+        | Ref r ->
+            if List.memq r !static_analysis_failed then ()
+            else (
+              (* Do not walk inside references, otherwise the list of "contained"
+                 sources may change from one time to the next, which makes it
+                 impossible to avoid ill-balanced activations. Not walking inside
+                 references does not break things more than they are already:
+                 detecting sharing in presence of references to sources cannot be
+                 done statically anyway. We display a fat log message to warn
+                 about this risky situation. *)
+              let may_have_source =
+                let rec aux v =
+                  match v.value with
+                    | _ when V.is_value v -> true
+                    | Ground _ | Null -> false
+                    | List l -> List.exists aux l
+                    | Tuple l -> List.exists aux l
+                    | Ref r -> aux !r
+                    | Fun _ | FFI _ -> true
+                    | Meth (_, v, t) -> aux v || aux t
+                in
+                aux v
+              in
+              static_analysis_failed := r :: !static_analysis_failed;
+              if may_have_source then (
+                match on_reference with
+                  | Some f -> f ()
+                  | None ->
+                      log#severe
+                        "WARNING! Found a reference, potentially containing \
+                         sources, inside a dynamic source-producing function. \
+                         Static analysis cannot be performed: make sure you \
+                         are not sharing sources contained in references!")))
+  in
+  iter_value v
+
+let iter_sources = iter_sources ~static_analysis_failed:(ref [])

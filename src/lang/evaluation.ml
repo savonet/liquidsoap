@@ -143,7 +143,7 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
-let source_eval_check = ref (fun ~k:_ _ -> ())
+let source_eval_check = ref (fun ~k:_ ~pos:_ _ -> ())
 
 let rec prepare_fun fv p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
@@ -191,7 +191,7 @@ and eval (env : Env.t) tm =
             }
           in
           let fn = !source_eval_check in
-          fn ~k v
+          fn ~k ~pos:tm.t.Type.pos v
       | _ -> ());
     v
   in

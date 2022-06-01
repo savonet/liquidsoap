@@ -23,7 +23,7 @@
 (* Declare general modules. *)
 
 let () =
-  List.iter Lang.add_module
+  List.iter Lang_core.add_module
     [
       "audio";
       "clock";

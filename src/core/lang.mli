@@ -22,6 +22,8 @@
 
 (** Values and types of the liquidsoap language. *)
 
+val log : Log.t
+
 (** The type of a value. *)
 type t = Type.t
 
@@ -65,6 +67,13 @@ and in_value = Value.in_value =
 
 val demeth : value -> value
 
+(** Iter a function over all sources contained in a value. This only applies to
+    statically referenced objects, i.e. it does not explore inside reference
+    cells. [on_reference] is used when we encounter a reference cell that may
+    contain a source. If not passed, we display a warning log. *)
+val iter_sources :
+  ?on_reference:(unit -> unit) -> (Source.source -> unit) -> value -> unit
+
 (** {2 Computation} *)
 
 val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
@@ -72,6 +81,16 @@ val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
 val apply : value -> env -> value
+
+(** {3 Helpers for registering protocols} *)
+
+val add_protocol :
+  syntax:string ->
+  doc:string ->
+  static:bool ->
+  string ->
+  Request.resolver ->
+  unit
 
 (** {3 Helpers for source builtins} *)
 
@@ -103,14 +122,42 @@ val add_builtin_base :
 (** Declare a new module. *)
 val add_module : string -> unit
 
-val empty : Lang_frame.content_kind
-val any : Lang_frame.content_kind
+val empty : Frame.content_kind
+val any : Frame.content_kind
 
 (** Any internal stream type. *)
-val internal : Lang_frame.content_kind
+val internal : Frame.content_kind
+
+(* Audio (PCM format) *)
+val audio_pcm : Frame.content_kind
+val audio_params : Content.Audio.params -> Frame.content_kind
+val audio_n : int -> Frame.content_kind
+val audio_mono : Frame.content_kind
+val audio_stereo : Frame.content_kind
+
+(* Video *)
+val video_yuva420p : Frame.content_kind
+
+(* Midi *)
+val midi : Frame.content_kind
+val midi_n : int -> Frame.content_kind
 
 (* Conversion to format *)
-val kind_type_of_kind_format : Lang_frame.content_kind -> t
+val kind_type_of_kind_format : Frame.content_kind -> t
+
+type 'a operator_method = string * scheme * string * ('a -> value)
+
+(** Add an operator to the language and to the documentation. *)
+val add_operator :
+  category:Documentation.source ->
+  descr:string ->
+  ?flags:Documentation.flag list ->
+  ?meth:(< Source.source ; .. > as 'a) operator_method list ->
+  string ->
+  proto ->
+  return_t:t ->
+  (env -> 'a) ->
+  unit
 
 (** {2 Manipulation of values} *)
 
@@ -122,6 +169,8 @@ val to_string_getter : value -> unit -> string
 val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_error : value -> Runtime_error.runtime_error
+val to_source : value -> Source.source
+val to_format : value -> Encoder.format
 val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_num : value -> [ `Int of int | `Float of float ]
@@ -133,9 +182,10 @@ val to_product : value -> value * value
 val to_tuple : value -> value list
 val to_ref : value -> value ref
 val to_metadata_list : value -> (string * string) list
-val to_metadata : value -> Lang_frame.metadata
+val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
 val to_int_list : value -> int list
+val to_source_list : value -> Source.source list
 val to_fun : value -> (string * value) list -> value
 val to_getter : value -> unit -> value
 
@@ -159,13 +209,13 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val error_t : t
-val source_t : t -> t
+val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t
-val kind_t : Lang_frame.kind -> t
+val kind_t : Frame.kind -> t
 val kind_none_t : t
 val frame_kind_t : audio:t -> video:t -> midi:t -> t
-val of_frame_kind_t : t -> t Lang_frame.fields
+val of_frame_kind_t : t -> t Frame.fields
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].
@@ -190,6 +240,7 @@ val string : string -> value
 val list : value list -> value
 val null : value
 val error : Runtime_error.runtime_error -> value
+val source : Source.source -> value
 val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
@@ -206,7 +257,7 @@ val val_fun : (string * string * value option) list -> (env -> value) -> value
 val val_cst_fun : (string * value option) list -> value -> value
 
 (** Convert a metadata packet to a list associating strings to strings. *)
-val metadata : Lang_frame.metadata -> value
+val metadata : Frame.metadata -> value
 
 (** Raise an error. *)
 val raise_error :

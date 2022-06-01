@@ -235,13 +235,13 @@ let options =
              Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
          "Print debugging log messages." );
        ( ["--debug-errors"],
-         Arg.Unit (fun () -> Term.conf_debug_errors#set true),
+         Arg.Unit (fun () -> Configure.conf_debug_errors#set true),
          "Debug errors (show stacktrace instead of printing a message)." );
        ( ["--debug-lang"],
          Arg.Unit
            (fun () ->
              Type.debug := true;
-             Term.conf_debug#set true),
+             Configure.conf_debug#set true),
          "Debug language implementation." );
        (["--profile"], Arg.Set Term.profile, "Profile execution.");
        ( ["--strict"],
@@ -269,7 +269,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_xml (Plug.plugs : Doc.item))),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
@@ -279,7 +279,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_json (Plug.plugs : Doc.item))),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
@@ -289,7 +289,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print (Plug.plugs : Doc.item))),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
@@ -299,7 +299,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_functions (Plug.plugs : Doc.item))),
           Printf.sprintf "List all functions." );
         ( ["--list-functions-md"],
@@ -307,7 +307,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_functions_md ~extra:false (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all functions in markdown." );
         ( ["--list-extra-functions-md"],
@@ -315,7 +315,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_functions_md ~extra:true (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all extra functions in markdown." );
         ( ["--list-protocols-md"],
@@ -323,7 +323,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_protocols_md (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all protocols in markdown." );
         ( ["--no-stdlib"],
@@ -544,9 +544,11 @@ let () =
           load_libs ();
           check_directories ();
           ignore
-            (Thread.create (fun () ->
+            (Thread.create
+               (fun () ->
                  Runtime.interactive ();
-                 Tutils.shutdown 0));
+                 Tutils.shutdown 0)
+               ());
           Dtools.Init.init main)
         else if Source.has_outputs () || force_start#get then (
           check_directories ();

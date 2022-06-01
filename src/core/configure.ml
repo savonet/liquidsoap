@@ -43,6 +43,10 @@ let version () =
     | Some v -> Build_info.V1.Version.to_string v
     | None -> "dev"
 
+let () =
+  Evaluation.liq_libs_dir := liq_libs_dir;
+  Evaluation.version := version
+
 let vendor () =
   Printf.sprintf "Liquidsoap/%s (%s; OCaml %s)" (version ()) Sys.os_type
     Sys.ocaml_version
@@ -67,15 +71,13 @@ let conf_colorize =
 
 let () =
   let log = Log.make ["console"] in
-  conf_colorize#on_change
-    (function
-      | "auto" -> Console.color_conf := `Auto
-      | "always" -> Console.color_conf := `Always
-      | "never" -> Console.color_conf := `Never
-      | _ ->
-          log#important "Invalid color configuration, using default \"auto\"";
-          Console.color_conf := `Auto)
-    i
+  conf_colorize#on_change (function
+    | "auto" -> Console.color_conf := `Auto
+    | "always" -> Console.color_conf := `Always
+    | "never" -> Console.color_conf := `Never
+    | _ ->
+        log#important "Invalid color configuration, using default \"auto\"";
+        Console.color_conf := `Auto)
 
 let conf_debug =
   Dtools.Conf.bool ~p:(conf#plug "debug") ~d:!Term.conf_debug
@@ -86,13 +88,14 @@ let conf_debug_errors =
     "Debug errors by showing stacktraces instead of printing messages."
 
 let () =
-  conf_debug#on_change (fun v -> conf_debug := v);
-  conf_debug_errors#on_change (fun v -> conf_debug_errors := v)
+  conf_debug#on_change (fun v -> Term.conf_debug := v);
+  conf_debug_errors#on_change (fun v -> Term.conf_debug_errors := v)
 
 let () =
   let on_change v =
     Evaluation.log_path :=
-      if v then Some Dtools.Log.conf_file_path#get else None
+      if v then (try Some Dtools.Log.conf_file_path#get with _ -> None)
+      else None
   in
   Dtools.Log.conf_file#on_change on_change;
-  on_change Dtools.Log.conf_file_#get
+  ignore (Option.map on_change Dtools.Log.conf_file#get_d)

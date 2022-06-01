@@ -10,6 +10,7 @@
 
 (library
  (name liquidsoap_lang)
+ (public_name liquidsoap-lang)
  (preprocess
   (pps sedlex.ppx))
  (wrapped false)
@@ -28,7 +29,6 @@
   json_lexer
   json_parser
   json
-  lang
   lang_content
   lang_core
   lang_error

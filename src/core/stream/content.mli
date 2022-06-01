@@ -24,18 +24,7 @@ open Mm
 
 (** Generic content registration API. *)
 
-module Contents : sig
-  type kind
-  type format
-  type data
-
-  type audio_params = {
-    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
-  }
-
-  type video_params = { width : int Lazy.t option; height : int Lazy.t option }
-  type midi_params = { channels : int }
-end
+module Contents = Lang_content.Contents
 
 (* Raised during any invalid operation below. *)
 exception Invalid

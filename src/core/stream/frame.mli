@@ -24,7 +24,7 @@
 
 (** {2 Frame definitions} *)
 
-type 'a fields = { audio : 'a; video : 'a; midi : 'a }
+type 'a fields = 'a Lang_frame.fields = { audio : 'a; video : 'a; midi : 'a }
 
 val map_fields : ('a -> 'b) -> 'a fields -> 'b fields
 

@@ -40,9 +40,14 @@
     (sedlex (>= 2.2))
     dune-site
     dune-build-info
+    liquidsoap-lang
     (ppx_string :build))
   (sites (share libs) (share bin) (lib_root lib_root))
   (synopsis "Liquidsoap core module"))
+
+(package
+  (name liquidsoap-lang)
+  (synopsis "Liquidsoap language"))
 
 (package
   (name liquidsoap-stdlib)
