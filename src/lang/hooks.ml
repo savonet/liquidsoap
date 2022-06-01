@@ -15,3 +15,7 @@ let version = ref (fun () -> raise Not_found)
 let log_path = ref None
 let source_eval_check = ref (fun ~k:_ ~pos:_ _ -> ())
 let collect_after = ref (fun fn -> fn ())
+
+module type Regexp_t = Regexp.T
+
+let regexp = Regexp.regexp_ref

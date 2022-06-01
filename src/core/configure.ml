@@ -100,3 +100,17 @@ let () =
   in
   Dtools.Log.conf_file#on_change on_change;
   ignore (Option.map on_change Dtools.Log.conf_file#get_d)
+
+module Regexp = struct
+  type t = Pcre.regexp
+  type sub = Pcre.substrings
+
+  let regexp s = Pcre.regexp s
+  let regexp_or l = Pcre.regexp_or l
+  let split ~pat s = Pcre.split ~pat s
+  let exec ?pat ?rex s = Pcre.exec ?pat ?rex s
+  let get_substring sub pos = Pcre.get_substring sub pos
+  let substitute ?pat ?rex ~subst s = Pcre.substitute ?pat ?rex ~subst s
+end
+
+let () = Hooks.regexp := (module Regexp : Hooks.Regexp_t)

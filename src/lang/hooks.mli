@@ -15,3 +15,7 @@ val liq_libs_dir : (unit -> string) ref
 val version : (unit -> string) ref
 val log_path : string option ref
 val collect_after : ((unit -> Value.t) -> Value.t) ref
+
+module type Regexp_t = Regexp.T
+
+val regexp : (module Regexp_t) ref

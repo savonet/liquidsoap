@@ -14,7 +14,6 @@ depends: [
   "menhir" {>= "20180703"}
   "odoc" {with-doc}
 ]
-depopts: ["pcre"]
 build: [
   ["dune" "subst"] {dev}
   [

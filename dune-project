@@ -135,7 +135,6 @@
     (ocaml (>= 4.12.0))
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))
-  (depopts pcre)
   (synopsis "Liquidsoap language"))
 
 (package
