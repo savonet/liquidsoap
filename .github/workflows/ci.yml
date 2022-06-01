@@ -157,7 +157,7 @@ jobs:
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
         exclude:
           - os: debian_buster
-            platform: armhf
+          #  platform: armhf
           - os: ubuntu_impish
             platform: armhf
           - os: ubuntu_focal
@@ -365,6 +365,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/s3-artifacts
 
   build_win32:
+    if: false
     runs-on: ubuntu-latest
     needs: build_details
     strategy:
