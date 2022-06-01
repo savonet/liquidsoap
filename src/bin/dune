@@ -13,6 +13,12 @@
  (libraries liquidsoap_core liquidsoap_optionals liquidsoap_builtins))
 
 (executable
+ (name liquidsoap_js)
+ (modes js)
+ (modules liquidsoap_js)
+ (libraries liquidsoap_lang))
+
+(executable
  (name build_config)
  (modules build_config)
  (preprocess

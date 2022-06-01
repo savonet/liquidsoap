@@ -10,5 +10,4 @@ val type_of_pat :
   Term.pattern ->
   (string list * Type.t) list * Type.t
 
-val type_of_encoder : (pos:Pos.Option.t -> Term.encoder -> Type.t) ref
 val check : ?ignored:bool -> throw:(exn -> unit) -> Term.t -> unit

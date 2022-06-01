@@ -33,6 +33,7 @@
   lang_core
   lang_error
   lang_frame
+  lang_hooks
   lang_regexp
   lang_string
   lexer

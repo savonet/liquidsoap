@@ -120,10 +120,6 @@ let rec type_of_pat ~level ~pos = function
       in
       (env, ty)
 
-let type_of_encoder =
-  ref (fun ~pos _ ->
-      raise (Lang_error.Encoder_error (pos, "Encoders are not implemented!")))
-
 (* Type-check an expression. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let check = check ~throw in
@@ -171,7 +167,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         in
         check_enc f;
         let t =
-          try !type_of_encoder ~pos:e.t.Type.pos f
+          try !Lang_hooks.type_of_encoder ~pos:e.t.Type.pos f
           with Not_found ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace

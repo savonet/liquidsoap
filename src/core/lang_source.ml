@@ -301,7 +301,7 @@ let add_operator =
     add_builtin ~category ~descr ~flags name proto return_t f
 
 let () =
-  Evaluation.source_eval_check :=
+  Lang_hooks.source_eval_check :=
     fun ~k ~pos v ->
       if not (V.is_value v) then
         raise

@@ -44,8 +44,8 @@ let version () =
     | None -> "dev"
 
 let () =
-  Evaluation.liq_libs_dir := liq_libs_dir;
-  Evaluation.version := version
+  Lang_hooks.liq_libs_dir := liq_libs_dir;
+  Lang_hooks.version := version
 
 let vendor () =
   Printf.sprintf "Liquidsoap/%s (%s; OCaml %s)" (version ()) Sys.os_type
@@ -93,7 +93,7 @@ let () =
 
 let () =
   let on_change v =
-    Evaluation.log_path :=
+    Lang_hooks.log_path :=
       if v then (try Some Dtools.Log.conf_file_path#get with _ -> None)
       else None
   in

@@ -62,7 +62,7 @@ let eval_ifdefs tokenizer =
           if test (Environment.has_builtin v) then go_on () else skip ()
       | Parser.PP_IFVERSION (cmp, ver), _ ->
           let current =
-            Lang_string.Version.of_string (!Evaluation.version ())
+            Lang_string.Version.of_string (!Lang_hooks.version ())
           in
           let ver = Lang_string.Version.of_string ver in
           let test =
@@ -81,11 +81,11 @@ let eval_ifdefs tokenizer =
               let token = fst (tokenizer ()) in
               match token with
                 | Parser.ENCODER e ->
-                    !Evaluation.make_encoder ~pos:None (Term.make Term.unit)
+                    !Lang_hooks.make_encoder ~pos:None (Term.make Term.unit)
                       (e, [])
                 | _ -> failwith "expected an encoding format after %ifencoder"
             in
-            !Evaluation.has_encoder fmt
+            !Lang_hooks.has_encoder fmt
           in
           let test =
             if fst tok = Parser.PP_IFENCODER then fun x -> x else not

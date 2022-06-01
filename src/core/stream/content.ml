@@ -226,7 +226,7 @@ module MidiSpecs = struct
   type params = Contents.midi_params
   type data = MIDI.Multitrack.t
 
-  let internal_content_type = Some `Audio
+  let internal_content_type = Some `Midi
   let is_empty m = MIDI.Multitrack.duration m = 0
   let string_of_kind = function `Midi -> "midi"
   let string_of_params { channels } = Printf.sprintf "channels=%d" channels

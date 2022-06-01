@@ -228,7 +228,7 @@ let from_file ?parse_only ~ns ~lib filename =
   close_in ic
 
 let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true) () =
-  let dir = !Evaluation.liq_libs_dir () in
+  let dir = !Lang_hooks.liq_libs_dir () in
   let file = Filename.concat dir "stdlib.liq" in
   if not (Sys.file_exists file) then (
     if error_on_no_stdlib then
@@ -263,7 +263,7 @@ let interactive () =
      Each input will be fully processed: parsing, type-checking,\n\
      evaluation (forces default types), output startup (forces default clock).\n\
      @.";
-  (match !Evaluation.log_path with
+  (match !Lang_hooks.log_path with
     | None -> ()
     | Some path ->
         Format.printf "Logs can be found in %s.\n@."

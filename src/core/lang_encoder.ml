@@ -75,7 +75,7 @@ let generic_error (l, t) : exn =
 type encoder = {
   kind_of_encoder : Term.encoder_params -> Frame.kind Frame.fields;
       (** Compute the kind of the encoder. *)
-  make : Evaluation.encoder_params -> Encoder.format;
+  make : Lang_hooks.encoder_params -> Encoder.format;
       (** Actually create the encoder. *)
 }
 
@@ -112,7 +112,7 @@ let type_of_encoder ~pos e =
   let midi = kind_t ?pos kind.Frame.midi in
   format_t ?pos (frame_kind_t ?pos audio video midi)
 
-let make_encoder ~pos t ((e, p) : Evaluation.encoder) =
+let make_encoder ~pos t ((e, p) : Lang_hooks.encoder) =
   try
     let e = (find_encoder e).make p in
     let (_ : Encoder.factory) = Encoder.get_factory e in
@@ -122,8 +122,9 @@ let make_encoder ~pos t ((e, p) : Evaluation.encoder) =
       (error ~pos (Printf.sprintf "unsupported format: %s" (Term.to_string t)))
 
 let () =
-  Evaluation.make_encoder := make_encoder;
-  Evaluation.has_encoder :=
+  Lang_hooks.type_of_encoder := type_of_encoder;
+  Lang_hooks.make_encoder := make_encoder;
+  Lang_hooks.has_encoder :=
     fun fmt ->
       try
         let (_ : Encoder.factory) = Encoder.get_factory (V.of_value fmt) in

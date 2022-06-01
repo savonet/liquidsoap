@@ -213,7 +213,8 @@ module MkAbstractFromTerm (Term : Term.Abstract) = struct
       | Ground g when is_ground g -> of_ground g
       | _ -> assert false
 
-  let is_value t = match t.value with Ground g -> is_ground g | _ -> false
+  let is_value t =
+    match (demeth t).value with Ground g -> is_ground g | _ -> false
 end
 
 module MkAbstract (Def : AbstractDef) = struct

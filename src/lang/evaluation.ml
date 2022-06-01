@@ -24,20 +24,6 @@
 
 open Term
 
-type encoder_params =
-  (string * [ `Value of Value.t | `Encoder of encoder ]) list
-
-and encoder = string * encoder_params
-
-let make_encoder =
-  ref (fun ~pos _ _ ->
-      raise (Lang_error.Encoder_error (pos, "Encoders are not implemented!")))
-
-let has_encoder = ref (fun _ -> false)
-let liq_libs_dir = ref (fun () -> raise Not_found)
-let version = ref (fun () -> raise Not_found)
-let log_path = ref None
-
 (** [remove_first f l] removes the first element [e] of [l] such that [f e], and
     returns [e,l'] where [l'] is the list without [e]. Asserts that there is
     such an element. *)
@@ -143,8 +129,6 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
-let source_eval_check = ref (fun ~k:_ ~pos:_ _ -> ())
-
 let rec prepare_fun fv p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
@@ -190,7 +174,7 @@ and eval (env : Env.t) tm =
               midi = frame_content_of_t k.Lang_frame.midi;
             }
           in
-          let fn = !source_eval_check in
+          let fn = !Lang_hooks.source_eval_check in
           fn ~k ~pos:tm.t.Type.pos v
       | _ -> ());
     v
@@ -209,7 +193,7 @@ and eval (env : Env.t) tm =
             p
         in
         let p = eval_param p in
-        !make_encoder ~pos tm (e, p)
+        !Lang_hooks.make_encoder ~pos tm (e, p)
     | List l -> mk (Value.List (List.map (eval env) l))
     | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval env a) l))
     | Null -> mk Value.Null
