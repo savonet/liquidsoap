@@ -1,0 +1,3 @@
+depopts: [
+  "pcre"
+]

@@ -9,6 +9,9 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "2.8"}
+  "ocaml" {>= "4.12.0"}
+  "sedlex" {>= "2.2"}
+  "menhir" {>= "20180703"}
   "odoc" {with-doc}
 ]
 build: [
@@ -26,3 +29,6 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
+depopts: [
+  "pcre"
+]
