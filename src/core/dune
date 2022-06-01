@@ -86,6 +86,7 @@
   decoder_utils
   delay
   delay_line
+  documentation
   drop
   dtmf
   dune_config
@@ -93,6 +94,7 @@
   echo
   encoder
   encoder_formats
+  error
   external_decoder
   external_encoder
   external_encoder_format
@@ -127,6 +129,7 @@
   image_plug
   insert_metadata
   ioRing
+  json
   keyboard
   kind
   lang
@@ -143,6 +146,7 @@
   lang_source
   lang_shine
   lang_speex
+  lang_string
   lang_theora
   lang_vorbis
   lang_wav
@@ -186,6 +190,7 @@
   pitch
   playlist_basic
   playlist_parser
+  plug
   pool
   ppm_decoder
   prepend
@@ -198,6 +203,7 @@
   resample
   rms_smooth
   rqueue
+  runtime_error
   sandbox
   sequence
   server
@@ -218,11 +224,16 @@
   switch
   synth_op
   synthesized
+  term
   theora_format
   time_warp
   tutils
+  type
+  typing
+  unifier
   udp_io
   utils
+  value
   vFrame
   video_converter
   video_effects

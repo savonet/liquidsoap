@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lang_core
+open Liquidsoap_lang.Lang_core
 
 let log = Log.make ["lang"]
 
@@ -301,7 +301,7 @@ let add_operator =
     add_builtin ~category ~descr ~flags name proto return_t f
 
 let () =
-  Lang_hooks.source_eval_check :=
+  Liquidsoap_lang.Hooks.source_eval_check :=
     fun ~k ~pos v ->
       if not (V.is_value v) then
         raise

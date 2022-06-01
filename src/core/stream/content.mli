@@ -24,7 +24,7 @@ open Mm
 
 (** Generic content registration API. *)
 
-module Contents = Lang_content.Contents
+module Contents = Liquidsoap_lang.Content.Contents
 
 (* Raised during any invalid operation below. *)
 exception Invalid

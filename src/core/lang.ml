@@ -1,7 +1,7 @@
-include Lang_core
-include Lang_error
+include Liquidsoap_lang.Lang
 include Lang_source
 include Lang_encoder.L
+module Doc = Liquidsoap_lang.Doc
 
 let audio_pcm = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any }
 

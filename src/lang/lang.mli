@@ -22,79 +22,56 @@
 
 (** Values and types of the liquidsoap language. *)
 
-val log : Log.t
-
 (** The type of a value. *)
-type t = Liquidsoap_lang.Type.t
+type t = Type.t
 
-type scheme = Liquidsoap_lang.Type.scheme
+type scheme = Type.scheme
 
 (** {2 Values} *)
 
 (** A typed value. *)
 module Ground : sig
-  type t = Liquidsoap_lang.Term.Ground.t = ..
+  type t = Term.Ground.t = ..
   type t += Bool of bool | Int of int | String of string | Float of float
 
-  type content = Liquidsoap_lang.Term.Ground.content = {
+  type content = Term.Ground.content = {
     descr : t -> string;
     to_json : t -> Json.t;
     compare : t -> t -> int;
-    typ : Liquidsoap_lang.Type.ground;
+    typ : Type.ground;
   }
 
   val register : (t -> bool) -> content -> unit
   val to_string : t -> string
 end
 
-type value = Liquidsoap_lang.Value.t = {
-  pos : Liquidsoap_lang.Pos.Option.t;
-  value : in_value;
-}
+type value = Value.t = { pos : Pos.Option.t; value : in_value }
 
 and env = (string * value) list
 
 and lazy_env = (string * value Lazy.t) list
 
-and in_value = Liquidsoap_lang.Value.in_value =
+and in_value = Value.in_value =
   | Ground of Ground.t
   | List of value list
   | Tuple of value list
   | Null
   | Meth of string * value * value
   | Ref of value ref
-  | Fun of
-      (string * string * value option) list * lazy_env * Liquidsoap_lang.Term.t
+  | Fun of (string * string * value option) list * lazy_env * Term.t
   (* A function with given arguments (argument label, argument variable, default
      value), closure and value. *)
   | FFI of (string * string * value option) list * (env -> value)
 
 val demeth : value -> value
 
-(** Iter a function over all sources contained in a value. This only applies to
-    statically referenced objects, i.e. it does not explore inside reference
-    cells. [on_reference] is used when we encounter a reference cell that may
-    contain a source. If not passed, we display a warning log. *)
-val iter_sources :
-  ?on_reference:(unit -> unit) -> (Source.source -> unit) -> value -> unit
-
 (** {2 Computation} *)
 
-val apply_fun : (?pos:Liquidsoap_lang.Pos.t -> value -> env -> value) ref
+val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
 val apply : value -> env -> value
-
-(** {3 Helpers for registering protocols} *)
-
-val add_protocol :
-  syntax:string ->
-  doc:string ->
-  static:bool ->
-  string ->
-  Request.resolver ->
-  unit
 
 (** {3 Helpers for source builtins} *)
 
@@ -105,7 +82,7 @@ val add_builtin :
   category:Documentation.category ->
   descr:string ->
   ?flags:Documentation.flag list ->
-  ?meth:(string * Liquidsoap_lang.Type.scheme * string * value) list ->
+  ?meth:(string * Type.scheme * string * value) list ->
   ?examples:string list ->
   string ->
   proto ->
@@ -132,36 +109,8 @@ val any : Frame.content_kind
 (** Any internal stream type. *)
 val internal : Frame.content_kind
 
-(* Audio (PCM format) *)
-val audio_pcm : Frame.content_kind
-val audio_params : Content.Audio.params -> Frame.content_kind
-val audio_n : int -> Frame.content_kind
-val audio_mono : Frame.content_kind
-val audio_stereo : Frame.content_kind
-
-(* Video *)
-val video_yuva420p : Frame.content_kind
-
-(* Midi *)
-val midi : Frame.content_kind
-val midi_n : int -> Frame.content_kind
-
 (* Conversion to format *)
 val kind_type_of_kind_format : Frame.content_kind -> t
-
-type 'a operator_method = string * scheme * string * ('a -> value)
-
-(** Add an operator to the language and to the documentation. *)
-val add_operator :
-  category:Documentation.source ->
-  descr:string ->
-  ?flags:Documentation.flag list ->
-  ?meth:(< Source.source ; .. > as 'a) operator_method list ->
-  string ->
-  proto ->
-  return_t:t ->
-  (env -> 'a) ->
-  unit
 
 (** {2 Manipulation of values} *)
 
@@ -173,8 +122,6 @@ val to_string_getter : value -> unit -> string
 val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_error : value -> Runtime_error.runtime_error
-val to_source : value -> Source.source
-val to_format : value -> Encoder.format
 val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_num : value -> [ `Int of int | `Float of float ]
@@ -189,7 +136,6 @@ val to_metadata_list : value -> (string * string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
 val to_int_list : value -> int list
-val to_source_list : value -> Source.source list
 val to_fun : value -> (string * value) list -> value
 val to_getter : value -> unit -> value
 
@@ -213,7 +159,7 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val error_t : t
-val source_t : ?methods:bool -> t -> t
+val source_t : t -> t
 val of_source_t : t -> t
 val format_t : t -> t
 val kind_t : Frame.kind -> t
@@ -228,7 +174,7 @@ val of_frame_kind_t : t -> t Frame.fields
   * label) and [t] is the type of the argument. *)
 val fun_t : (bool * string * t) list -> t -> t
 
-val univ_t : ?constraints:Liquidsoap_lang.Type.constraints -> unit -> t
+val univ_t : ?constraints:Type.constraints -> unit -> t
 
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t
@@ -244,7 +190,6 @@ val string : string -> value
 val list : value list -> value
 val null : value
 val error : Runtime_error.runtime_error -> value
-val source : Source.source -> value
 val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
@@ -266,7 +211,7 @@ val metadata : Frame.metadata -> value
 (** Raise an error. *)
 val raise_error :
   ?bt:Printexc.raw_backtrace ->
-  ?pos:Liquidsoap_lang.Pos.List.t ->
+  ?pos:Pos.List.t ->
   ?message:string ->
   string ->
   'a

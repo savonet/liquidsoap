@@ -22,25 +22,22 @@
 
 (** Operations on frames, which are small portions of streams. *)
 
-(** {2 Lang_frame definitions} *)
+(** {2 Frame definitions} *)
 
 type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
 (** High-level description of the content. *)
 type kind =
-  [ `Any
-  | `Internal
-  | `Kind of Lang_content.kind
-  | `Format of Lang_content.format ]
+  [ `Any | `Internal | `Kind of Content.kind | `Format of Content.format ]
+
+val none : kind
 
 type content_kind = kind fields
 
 (** Precise description of the channel types for the current track. *)
-type content_type = Lang_content.format fields
+type content_type = Content.format fields
 
-type content = Lang_content.data fields
+type content = Content.data fields
 
 (** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
-
-let none = `Format Lang_content.None.format

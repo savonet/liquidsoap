@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Mm
-include Lang_content
+include Liquidsoap_lang.Content
 
 module AudioSpecs = struct
   open Frame_settings

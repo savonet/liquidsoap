@@ -74,24 +74,15 @@ let source_t t = Term.source_t t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
 let kind_t k = Term.kind_t k
-let kind_none_t = Term.kind_t Lang_frame.none
-
-let empty =
-  {
-    Lang_frame.audio = Lang_frame.none;
-    video = Lang_frame.none;
-    midi = Lang_frame.none;
-  }
-
-let any = { Lang_frame.audio = `Any; video = `Any; midi = `Any }
-
-let internal =
-  { Lang_frame.audio = `Internal; video = `Internal; midi = `Internal }
+let kind_none_t = Term.kind_t Frame.none
+let empty = { Frame.audio = Frame.none; video = Frame.none; midi = Frame.none }
+let any = { Frame.audio = `Any; video = `Any; midi = `Any }
+let internal = { Frame.audio = `Internal; video = `Internal; midi = `Internal }
 
 let kind_type_of_kind_format fields =
-  let audio = Term.kind_t fields.Lang_frame.audio in
-  let video = Term.kind_t fields.Lang_frame.video in
-  let midi = Term.kind_t fields.Lang_frame.midi in
+  let audio = Term.kind_t fields.Frame.audio in
+  let video = Term.kind_t fields.Frame.video in
+  let midi = Term.kind_t fields.Frame.midi in
   frame_kind_t ~audio ~video ~midi
 
 (** Value construction *)

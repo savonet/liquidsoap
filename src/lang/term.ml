@@ -99,15 +99,15 @@ let kind_t ?pos kind =
         Type.make ?pos
           (Type.Constr
              {
-               Type.constructor = Lang_content.string_of_kind k;
+               Type.constructor = Content.string_of_kind k;
                Type.params = [(Type.Covariant, evar ())];
              })
     | `Format f ->
-        let k = Lang_content.kind f in
+        let k = Content.kind f in
         Type.make ?pos
           (Type.Constr
              {
-               Type.constructor = Lang_content.string_of_kind k;
+               Type.constructor = Content.string_of_kind k;
                Type.params = [(Type.Covariant, mk_format f)];
              })
 
@@ -119,13 +119,13 @@ let of_frame_kind_t t =
           Type.constructor = "stream_kind";
           Type.params = [(_, audio); (_, video); (_, midi)];
         } ->
-        { Lang_frame.audio; video; midi }
+        { Frame.audio; video; midi }
     | Type.Var ({ contents = Type.Free _ } as var) ->
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
         var := Type.Link (Type.Invariant, frame_kind_t audio video midi);
-        { Lang_frame.audio; video; midi }
+        { Frame.audio; video; midi }
     | _ -> assert false
 
 (** Type of audio formats that can encode frame of a given kind. *)

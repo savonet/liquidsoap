@@ -1,6 +1,6 @@
 (** To be filled when source values are instantiated. *)
 val source_eval_check :
-  (k:Lang_frame.content_kind -> pos:Pos.Option.t -> Value.t -> unit) ref
+  (k:Frame.content_kind -> pos:Pos.Option.t -> Value.t -> unit) ref
 
 (** To be filled when encoder values are instantiated. *)
 type encoder_params =

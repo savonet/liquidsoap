@@ -33,9 +33,10 @@ let parse s =
   let lexbuf = Sedlexing.Utf8.from_string s in
   try
     let processor =
-      MenhirLib.Convert.Simplified.traditional2revised Parser.annotate
+      MenhirLib.Convert.Simplified.traditional2revised
+        Liquidsoap_lang.Parser.annotate
     in
-    let tokenizer = Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
+    let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
     let metadata = processor tokenizer in
     let b = Buffer.create 10 in
     let rec f () =

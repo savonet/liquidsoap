@@ -61,9 +61,7 @@ let eval_ifdefs tokenizer =
           (* XXX Less natural meaning than the original one. *)
           if test (Environment.has_builtin v) then go_on () else skip ()
       | Parser.PP_IFVERSION (cmp, ver), _ ->
-          let current =
-            Lang_string.Version.of_string (!Lang_hooks.version ())
-          in
+          let current = Lang_string.Version.of_string (!Hooks.version ()) in
           let ver = Lang_string.Version.of_string ver in
           let test =
             let compare = Lang_string.Version.compare current ver in
@@ -81,11 +79,10 @@ let eval_ifdefs tokenizer =
               let token = fst (tokenizer ()) in
               match token with
                 | Parser.ENCODER e ->
-                    !Lang_hooks.make_encoder ~pos:None (Term.make Term.unit)
-                      (e, [])
+                    !Hooks.make_encoder ~pos:None (Term.make Term.unit) (e, [])
                 | _ -> failwith "expected an encoding format after %ifencoder"
             in
-            !Lang_hooks.has_encoder fmt
+            !Hooks.has_encoder fmt
           in
           let test =
             if fst tok = Parser.PP_IFENCODER then fun x -> x else not
@@ -162,7 +159,7 @@ let expand_string tokenizer =
   let add pos x = Queue.add (x, pos) state in
   let pop () = ignore (Queue.take state) in
   let parse s pos =
-    let l = Lang_regexp.split ~pat:"#{(.*?)}" s in
+    let l = Regexp.split ~pat:"#{(.*?)}" s in
     let l = if l = [] then [""] else l in
     let add = add pos in
     let rec parse = function
@@ -228,8 +225,7 @@ let parse_comments tokenizer =
     in
     let doc =
       List.map
-        (fun x ->
-          Lang_regexp.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "") x)
+        (fun x -> Regexp.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "") x)
         doc
     in
     let get_args doc =
@@ -248,12 +244,12 @@ let parse_comments tokenizer =
       | line :: lines -> (
           try
             let sub =
-              Lang_regexp.exec
+              Regexp.exec
                 ~pat:"^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$"
                 line
             in
-            let s = Lang_regexp.get_substring sub 2 in
-            match Lang_regexp.get_substring sub 1 with
+            let s = Regexp.get_substring sub 2 in
+            match Regexp.get_substring sub 1 with
               | "docof" ->
                   let doc = Environment.builtins#get_subsection s in
                   let main_doc = doc#get_doc in
@@ -280,16 +276,15 @@ let parse_comments tokenizer =
                   let s, only, except =
                     try
                       let sub =
-                        Lang_regexp.exec
-                          ~pat:"^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$" s
+                        Regexp.exec ~pat:"^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$" s
                       in
-                      let s = Lang_regexp.get_substring sub 1 in
+                      let s = Regexp.get_substring sub 1 in
                       let args =
                         List.filter
                           (fun s -> s <> "")
                           (List.map String.trim
                              (String.split_on_char ','
-                                (Lang_regexp.get_substring sub 2)))
+                                (Regexp.get_substring sub 2)))
                       in
                       let only, except =
                         List.fold_left
@@ -324,11 +319,9 @@ let parse_comments tokenizer =
               | "flag" ->
                   parse_doc (main, `Flag s :: special, params, methods) lines
               | "param" ->
-                  let sub =
-                    Lang_regexp.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s
-                  in
-                  let label = Lang_regexp.get_substring sub 1 in
-                  let descr = Lang_regexp.get_substring sub 2 in
+                  let sub = Regexp.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s in
+                  let label = Regexp.get_substring sub 1 in
+                  let descr = Regexp.get_substring sub 2 in
                   let label =
                     if label.[0] = '~' then
                       String.sub label 1 (String.length label - 1)
@@ -339,7 +332,7 @@ let parse_comments tokenizer =
                       | [] -> raise Not_found
                       | line :: lines ->
                           let line =
-                            Lang_regexp.substitute ~pat:"^ *"
+                            Regexp.substitute ~pat:"^ *"
                               ~subst:(fun _ -> "")
                               line
                           in
@@ -356,11 +349,9 @@ let parse_comments tokenizer =
                     (main, special, (label, descr) :: params, methods)
                     lines
               | "method" ->
-                  let sub =
-                    Lang_regexp.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s
-                  in
-                  let label = Lang_regexp.get_substring sub 1 in
-                  let descr = Lang_regexp.get_substring sub 2 in
+                  let sub = Regexp.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s in
+                  let label = Regexp.get_substring sub 1 in
+                  let descr = Regexp.get_substring sub 2 in
                   parse_doc
                     (main, special, params, (label, descr) :: methods)
                     lines

@@ -1,3 +1,4 @@
+open Liquidsoap_lang
 include Dune_config
 include Liquidsoap_paths
 
@@ -44,8 +45,8 @@ let version () =
     | None -> "dev"
 
 let () =
-  Lang_hooks.liq_libs_dir := liq_libs_dir;
-  Lang_hooks.version := version
+  Hooks.liq_libs_dir := liq_libs_dir;
+  Hooks.version := version
 
 let vendor () =
   Printf.sprintf "Liquidsoap/%s (%s; OCaml %s)" (version ()) Sys.os_type
@@ -93,7 +94,7 @@ let () =
 
 let () =
   let on_change v =
-    Lang_hooks.log_path :=
+    Hooks.log_path :=
       if v then (try Some Dtools.Log.conf_file_path#get with _ -> None)
       else None
   in

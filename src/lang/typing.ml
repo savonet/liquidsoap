@@ -229,13 +229,13 @@ let satisfies_constraint b = function
   | InternalMedia -> (
       let is_internal name =
         try
-          let kind = Lang_content.kind_of_string name in
-          Lang_content.is_internal_kind kind
-        with Lang_content.Invalid -> false
+          let kind = Content.kind_of_string name in
+          Content.is_internal_kind kind
+        with Content.Invalid -> false
       in
       match b.descr with
         | Constr { constructor } when is_internal constructor -> ()
-        | Ground (Format f) when Lang_content.(is_internal_format f) -> ()
+        | Ground (Format f) when Content.(is_internal_format f) -> ()
         | Var { contents = Free v } ->
             if not (List.mem InternalMedia v.constraints) then
               v.constraints <- InternalMedia :: v.constraints
@@ -529,7 +529,7 @@ let rec ( <: ) a b =
                  ( `Arrow (l2 @ [ellipsis], `Ellipsis),
                    `Arrow ([ellipsis], `Ellipsis) )))
       | Ground (Format k), Ground (Format k') -> (
-          try Lang_content.merge k k'
+          try Content.merge k k'
           with _ ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace (Error (Repr.make a, Repr.make b)) bt)

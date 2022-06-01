@@ -158,23 +158,22 @@ and eval (env : Env.t) tm =
               | Type.Constr { Type.constructor; params = [(_, t)] } -> (
                   match (Type.deref t).Type.descr with
                     | Type.Ground (Type.Format fmt) -> `Format fmt
-                    | Type.Var _ ->
-                        `Kind (Lang_content.kind_of_string constructor)
+                    | Type.Var _ -> `Kind (Content.kind_of_string constructor)
                     | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
                   )
               | Type.Constr { Type.constructor = "none" } ->
-                  `Kind (Lang_content.kind_of_string "none")
+                  `Kind (Content.kind_of_string "none")
               | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
           in
           let k = of_frame_kind_t k in
           let k =
             {
-              Lang_frame.audio = frame_content_of_t k.Lang_frame.audio;
-              video = frame_content_of_t k.Lang_frame.video;
-              midi = frame_content_of_t k.Lang_frame.midi;
+              Frame.audio = frame_content_of_t k.Frame.audio;
+              video = frame_content_of_t k.Frame.video;
+              midi = frame_content_of_t k.Frame.midi;
             }
           in
-          let fn = !Lang_hooks.source_eval_check in
+          let fn = !Hooks.source_eval_check in
           fn ~k ~pos:tm.t.Type.pos v
       | _ -> ());
     v
@@ -193,7 +192,7 @@ and eval (env : Env.t) tm =
             p
         in
         let p = eval_param p in
-        !Lang_hooks.make_encoder ~pos tm (e, p)
+        !Hooks.make_encoder ~pos tm (e, p)
     | List l -> mk (Value.List (List.map (eval env) l))
     | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval env a) l))
     | Null -> mk Value.Null

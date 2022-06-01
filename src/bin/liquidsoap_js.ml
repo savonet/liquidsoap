@@ -1,1 +1,1 @@
-let () = Printf.printf "Version: %s\n%!" (!Lang_hooks.version ())
+let () = Printf.printf "Version: %s\n%!" (!Liquidsoap_lang.Hooks.version ())

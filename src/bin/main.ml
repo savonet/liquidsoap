@@ -20,6 +20,11 @@
 
  *****************************************************************************)
 
+module Runtime = Liquidsoap_lang.Runtime
+module Doc = Liquidsoap_lang.Doc
+module Environment = Liquidsoap_lang.Environment
+module Profiler = Liquidsoap_lang.Profiler
+
 let usage =
   "Usage : liquidsoap [OPTION, SCRIPT or EXPR]...\n\
   \ - SCRIPT for evaluating a liquidsoap script file;\n\

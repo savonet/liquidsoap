@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 include Frame_settings
-include Lang_frame
+include Liquidsoap_lang.Frame
 open Content
 
 let audio_pcm = `Kind Audio.kind

@@ -224,8 +224,8 @@ let unescape_char = function
   | _ -> assert false
 
 let unescape_string s =
-  let rex = Lang_regexp.regexp_or unescape_patterns in
-  Lang_regexp.substitute ~rex ~subst:unescape_char s
+  let rex = Regexp.regexp_or unescape_patterns in
+  Regexp.substitute ~rex ~subst:unescape_char s
 
 (** String representation of a matrix of strings. *)
 let string_of_matrix a =
@@ -325,10 +325,10 @@ module Version = struct
 
   (* We assume something like, 2.0.0+git@7e211ffd *)
   let of_string s : t =
-    let rex = Lang_regexp.regexp "([\\.\\d]+)([^\\.]+)?" in
-    let sub = Lang_regexp.exec ~rex s in
-    let num = Lang_regexp.get_substring sub 1 in
-    let str = try Lang_regexp.get_substring sub 2 with Not_found -> "" in
+    let rex = Regexp.regexp "([\\.\\d]+)([^\\.]+)?" in
+    let sub = Regexp.exec ~rex s in
+    let num = Regexp.get_substring sub 1 in
+    let str = try Regexp.get_substring sub 2 with Not_found -> "" in
     let num = String.split_on_char '.' num |> List.map int_of_string in
     (num, str)
 

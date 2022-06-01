@@ -13,28 +13,30 @@
  (public_name liquidsoap-lang)
  (preprocess
   (pps sedlex.ppx))
- (wrapped false)
- (library_flags -linkall)
  (libraries
-   menhirLib
-   (select lang_regexp.ml from (pcre -> lang_regexp.pcre.ml) (-> lang_regexp.str.ml)))
+  menhirLib
+  (select
+   regexp.ml
+   from
+   (pcre -> regexp.pcre.ml)
+   (-> regexp.str.ml)))
  (modules
   console
+  content
   doc
   documentation
   environment
   error
   evaluation
+  frame
+  hooks
   json_base
   json_lexer
   json_parser
   json
-  lang_content
+  lang
   lang_core
   lang_error
-  lang_frame
-  lang_hooks
-  lang_regexp
   lang_string
   lexer
   modules
@@ -45,6 +47,7 @@
   preprocessor
   profiler
   repr
+  regexp
   runtime
   runtime_error
   term
