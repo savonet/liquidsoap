@@ -90,16 +90,16 @@
   (progn
    (run
     %{run_test}
-    "%{liquidsoap} -"
+    "%{liquidsoap} %{test_liq} -"
     test_ffmpeg_copy_concat.liq
     "FFmpeg copy+concat")
    (run
     %{run_test}
-    "%{liquidsoap} -"
+    "%{liquidsoap} %{test_liq} -"
     test_ffmpeg_complex_filter.liq
     "FFmpeg complex filter")
    (run
     %{run_test}
-    "%{liquidsoap} -"
+    "%{liquidsoap} %{test_liq} -"
     test_ffmpeg_transparency_filter.liq
     "FFmpeg transparency filter"))))
