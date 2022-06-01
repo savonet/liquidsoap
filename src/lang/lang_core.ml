@@ -28,8 +28,6 @@ type t = Type.t
 type scheme = Type.scheme
 type value = Value.t = { pos : Pos.Option.t; value : in_value }
 
-let collect_after_fn = ref (fun fn -> fn ())
-
 (** Type construction *)
 
 let ground_t x = Type.make (Type.Ground x)
@@ -239,7 +237,7 @@ let add_module name = Environment.add_module (String.split_on_char '.' name)
 let apply_fun : (?pos:Pos.t -> value -> env -> value) ref =
   ref (fun ?pos:_ _ -> assert false)
 
-let apply f p = !collect_after_fn (fun () -> !apply_fun f p)
+let apply f p = !Hooks.collect_after (fun () -> !apply_fun f p)
 
 (** {1 High-level manipulation of values} *)
 

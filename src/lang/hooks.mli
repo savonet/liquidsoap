@@ -14,3 +14,4 @@ val has_encoder : (Value.t -> bool) ref
 val liq_libs_dir : (unit -> string) ref
 val version : (unit -> string) ref
 val log_path : string option ref
+val collect_after : ((unit -> Value.t) -> Value.t) ref

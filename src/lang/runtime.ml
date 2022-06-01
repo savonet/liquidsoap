@@ -26,7 +26,7 @@ let () = Lang_core.apply_fun := Evaluation.apply
 
 let type_and_run ~throw ~lib ast =
   ignore
-    (!Lang_core.collect_after_fn (fun () ->
+    (!Hooks.collect_after (fun () ->
          if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
          (* Type checking *)
          Typechecking.check ~throw ~ignored:true ast;
@@ -248,7 +248,7 @@ let eval ~ignored ~ty s =
   let lexbuf = Sedlexing.Utf8.from_string s in
   let expr = mk_expr ~pwd:(Unix.getcwd ()) Parser.program lexbuf in
   let expr = Term.(make (Cast (expr, ty))) in
-  !Lang_core.collect_after_fn (fun () ->
+  !Hooks.collect_after (fun () ->
       report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
       Evaluation.eval expr)
 
@@ -304,7 +304,7 @@ let interactive () =
             Typechecking.check ~throw ~ignored:false expr;
             Term.check_unused ~throw ~lib:true expr;
             ignore
-              (!Lang_core.collect_after_fn (fun () ->
+              (!Hooks.collect_after (fun () ->
                    Evaluation.eval_toplevel ~interactive:true expr)));
         true
       with
