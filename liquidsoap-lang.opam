@@ -14,6 +14,7 @@ depends: [
   "menhir" {>= "20180703"}
   "odoc" {with-doc}
 ]
+depopts: ["pcre"]
 build: [
   ["dune" "subst"] {dev}
   [
@@ -29,6 +30,3 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
-depopts: [
-  "pcre"
-]
