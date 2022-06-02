@@ -15,6 +15,7 @@ package() {
 	cd liquidsoap
 
         export LIQUIDSOAP_BUILD_TARGET=posix
+        eval $(opam config env)
         dune build @install
         dune install --relocatable --prefix "${pkgdir}/usr"
 
