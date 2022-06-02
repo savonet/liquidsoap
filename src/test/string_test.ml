@@ -1,1 +1,1 @@
-let () = assert ("aa\\\"bb" = Utils.escape_utf8_string "aa\"bb")
+let () = assert ("aa\\\"bb" = Lang_string.escape_utf8_string "aa\"bb")

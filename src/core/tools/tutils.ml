@@ -22,7 +22,7 @@
 
 let conf_scheduler =
   Dtools.Conf.void
-    ~p:(Utils.conf#plug "scheduler")
+    ~p:(Configure.conf#plug "scheduler")
     "Internal scheduler"
     ~comments:
       [

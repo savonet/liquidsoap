@@ -24,18 +24,7 @@ open Mm
 
 (** Generic content registration API. *)
 
-module Contents : sig
-  type kind
-  type format
-  type data
-
-  type audio_params = {
-    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
-  }
-
-  type video_params = { width : int Lazy.t option; height : int Lazy.t option }
-  type midi_params = { channels : int }
-end
+module Contents = Liquidsoap_lang.Content.Contents
 
 (* Raised during any invalid operation below. *)
 exception Invalid
@@ -43,12 +32,16 @@ exception Invalid
 (* Raised when calling [merge] below. *)
 exception Incompatible_format of Contents.format * Contents.format
 
+type internal_content_type = [ `None | `Audio | `Video | `Midi ]
+
 module type ContentSpecs = sig
   type kind
   type params
   type data
 
   (** Data *)
+
+  val internal_content_type : internal_content_type option
 
   (* Size is in main ticks. *)
   val make : size:int -> params -> data

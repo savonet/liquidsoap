@@ -35,7 +35,7 @@ let error_translator e =
     | _ -> None
 
 let () = Printexc.register_printer error_translator
-let conf = Dtools.Conf.void ~p:(Utils.conf#plug "alsa") "ALSA configuration"
+let conf = Dtools.Conf.void ~p:(Configure.conf#plug "alsa") "ALSA configuration"
 
 let conf_buffer_length =
   Dtools.Conf.int

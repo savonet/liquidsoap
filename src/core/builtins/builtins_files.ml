@@ -133,7 +133,7 @@ let () =
     [("", Lang.string_t, None, None)]
     Lang.bool_t ~descr:"Returns true if the file or directory exists." (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
-      let f = Utils.home_unrelate f in
+      let f = Lang_string.home_unrelate f in
       Lang.bool (Sys.file_exists f))
 
 let () =
@@ -142,7 +142,7 @@ let () =
     Lang.bool_t ~descr:"Returns true if the file exists and is a directory."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
-      let f = Utils.home_unrelate f in
+      let f = Lang_string.home_unrelate f in
       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
 let () =
@@ -196,7 +196,7 @@ let () =
         [access_flag] @ create_flags @ data_flags @ non_blocking_flags
       in
       let file_perms = Lang.to_int (List.assoc "perms" p) in
-      let path = Utils.home_unrelate (Lang.to_string (List.assoc "" p)) in
+      let path = Lang_string.home_unrelate (Lang.to_string (List.assoc "" p)) in
       try
         Builtins_socket.SocketValue.to_value
           (Unix.openfile path flags file_perms)
@@ -221,7 +221,7 @@ let () =
        `unwatch` method."
     (fun p ->
       let fname = Lang.to_string (List.assoc_nth "" 0 p) in
-      let fname = Utils.home_unrelate fname in
+      let fname = Lang_string.home_unrelate fname in
       let f = List.assoc_nth "" 1 p in
       let f () = ignore (Lang.apply f []) in
       let unwatch = File_watcher.watch [`Modify] fname f in
@@ -267,7 +267,7 @@ let () =
       let pattern = Option.value ~default:"" pattern in
       let rex = Pcre.regexp pattern in
       let dir = Lang.to_string (List.assoc "" p) in
-      let dir = Utils.home_unrelate dir in
+      let dir = Lang_string.home_unrelate dir in
       let readdir dir =
         Array.to_list (Sys.readdir dir)
         |> List.filter (fun s -> Pcre.pmatch ~rex s)
@@ -353,7 +353,7 @@ let () =
     ~descr:"Expand path that start with '~' with the current home directory."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
-      Lang.string (Utils.home_unrelate f))
+      Lang.string (Lang_string.home_unrelate f))
 
 let () =
   Lang.add_builtin "path.basename" ~category:`File

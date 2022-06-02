@@ -20,11 +20,13 @@
 
  *****************************************************************************)
 
+open Liquidsoap_lang
+
 (** Operations on frames, which are small portions of streams. *)
 
 (** {2 Frame definitions} *)
 
-type 'a fields = { audio : 'a; video : 'a; midi : 'a }
+type 'a fields = 'a Frame.fields = { audio : 'a; video : 'a; midi : 'a }
 
 val map_fields : ('a -> 'b) -> 'a fields -> 'b fields
 

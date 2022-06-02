@@ -28,7 +28,9 @@ include Source.Clock_variables
 
 let create_known s = create_known (s :> Source.clock)
 let log = Log.make ["clock"]
-let conf_clock = Dtools.Conf.void ~p:(Utils.conf#plug "clock") "Clock settings"
+
+let conf_clock =
+  Dtools.Conf.void ~p:(Configure.conf#plug "clock") "Clock settings"
 
 module Time : Liq_time.T = (val !Liq_time.implementation)
 open Time
@@ -114,7 +116,7 @@ let leave ?failed_to_start (s : active_source) =
   * One can also think of alsa-clocks, etc. *)
 
 let conf =
-  Dtools.Conf.void ~p:(Utils.conf#plug "root") "Streaming clock settings"
+  Dtools.Conf.void ~p:(Configure.conf#plug "root") "Streaming clock settings"
 
 let conf_max_latency =
   Dtools.Conf.float ~p:(conf#plug "max_latency") ~d:60.
@@ -516,6 +518,8 @@ let collect_after f =
       Mutex.lock lock;
       after_collect_tasks := !after_collect_tasks - 1;
       collect ~must_lock:false)
+
+let () = Liquidsoap_lang.Hooks.collect_after := collect_after
 
 (** Initialize only some sources, recognized by a filter function.
   * The advantage over collect is that it is synchronous and a list

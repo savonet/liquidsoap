@@ -447,7 +447,8 @@ let parse_common_options p =
     ref (fun () -> ignore (Lang.apply on_connect [])),
     ref (fun () -> ignore (Lang.apply on_disconnect [])) )
 
-let conf_srt = Dtools.Conf.void ~p:(Utils.conf#plug "srt") "SRT configuration"
+let conf_srt =
+  Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
 
 let conf_log =
   Dtools.Conf.bool ~p:(conf_srt#plug "log") ~d:true

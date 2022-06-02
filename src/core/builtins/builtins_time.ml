@@ -149,11 +149,14 @@ let () =
       let lexbuf = Sedlexing.Utf8.from_string predicate in
       try
         let processor =
-          MenhirLib.Convert.Simplified.traditional2revised Parser.time_predicate
+          MenhirLib.Convert.Simplified.traditional2revised
+            Liquidsoap_lang.Parser.time_predicate
         in
-        let tokenizer = Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
+        let tokenizer =
+          Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf
+        in
         let predicate = processor tokenizer in
-        Lang.val_fun [] (fun _ -> Evaluation.eval predicate)
+        Lang.val_fun [] (fun _ -> Liquidsoap_lang.Evaluation.eval predicate)
       with _ ->
         raise
           Runtime_error.(

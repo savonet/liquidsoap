@@ -22,7 +22,7 @@
 
 open Mm
 open Source
-open Modules
+open Liquidsoap_lang.Modules
 
 (* TODO: share code with visu.volume. *)
 

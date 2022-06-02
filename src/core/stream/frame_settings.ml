@@ -27,7 +27,9 @@ let log = Log.make ["frame"]
 module Conf = Dtools.Conf
 
 let conf =
-  Conf.void ~p:(Utils.conf#plug "frame") "Frame format"
+  Conf.void
+    ~p:(Configure.conf#plug "frame")
+    "Frame format"
     ~comments:
       [
         "Settings for the data representation in frames, which are the";

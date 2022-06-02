@@ -34,7 +34,7 @@ let () =
     | _ -> None)
 
 let conf_ffmpeg =
-  Dtools.Conf.void ~p:(Utils.conf#plug "ffmpeg") "FFMPEG configuration"
+  Dtools.Conf.void ~p:(Configure.conf#plug "ffmpeg") "FFMPEG configuration"
 
 let conf_log = Dtools.Conf.void ~p:(conf_ffmpeg#plug "log") "Log configuration"
 

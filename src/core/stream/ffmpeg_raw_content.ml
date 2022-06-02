@@ -40,6 +40,8 @@ module BaseSpecs = struct
 
   let copy : 'a. ('a, 'b) content -> ('a, 'b) content =
    fun src -> copy ~copy:(fun x -> x) src
+
+  let internal_content_type = None
 end
 
 module AudioSpecs = struct

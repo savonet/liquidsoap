@@ -5,9 +5,6 @@
 
 (include_subdirs unqualified)
 
-(menhir
- (modules parser json_parser))
-
 (generate_sites_module
  (module liquidsoap_sites)
  (sites liquidsoap-core))
@@ -31,6 +28,7 @@
   dune-site
   dune-build-info
   duppy
+  liquidsoap_lang
   menhirLib
   camomile
   metadata
@@ -44,8 +42,6 @@
    from
    (magic -> liqmagic.enabled.ml)
    (-> liqmagic.disabled.ml)))
- (preprocess
-  (pps ppx_string sedlex.ppx))
  (foreign_stubs
   (language c)
   (names unix_c))
@@ -80,7 +76,6 @@
   compress
   compress_exp
   compress_old
-  console
   content
   conversion
   configure
@@ -91,7 +86,6 @@
   decoder_utils
   delay
   delay_line
-  doc
   documentation
   drop
   dtmf
@@ -100,9 +94,7 @@
   echo
   encoder
   encoder_formats
-  environment
   error
-  evaluation
   external_decoder
   external_encoder
   external_encoder_format
@@ -138,16 +130,11 @@
   insert_metadata
   ioRing
   json
-  json_base
-  json_lexer
-  json_parser
   keyboard
   kind
   lang
   lang_avi
-  lang_core
   lang_encoder
-  lang_error
   lang_external_encoder
   lang_fdkaac
   lang_ffmpeg
@@ -156,14 +143,14 @@
   lang_mp3
   lang_ogg
   lang_opus
-  lang_shine
   lang_source
+  lang_shine
   lang_speex
+  lang_string
   lang_theora
   lang_vorbis
   lang_wav
   latest_metadata
-  lexer
   lifecycle
   liq_time
   liqmagic
@@ -180,7 +167,6 @@
   midi_decoder
   midi_routing
   midimeter
-  modules
   mp3_format
   mpd
   ms_stereo
@@ -199,8 +185,6 @@
   opus_format
   output
   pan
-  parser
-  parser_helper
   pipe
   pipe_output
   pitch
@@ -208,22 +192,17 @@
   playlist_parser
   plug
   pool
-  pos
   ppm_decoder
   prepend
-  preprocessor
   process_handler
   producer_consumer
-  profiler
   raw_audio_decoder
-  repr
   request
   request_simple
   request_source
   resample
   rms_smooth
   rqueue
-  runtime
   runtime_error
   sandbox
   sequence
@@ -250,13 +229,12 @@
   time_warp
   tutils
   type
-  typechecking
   typing
-  udp_io
   unifier
+  udp_io
   utils
-  vFrame
   value
+  vFrame
   video_converter
   video_effects
   video_fade

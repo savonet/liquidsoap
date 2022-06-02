@@ -20,6 +20,11 @@
 
  *****************************************************************************)
 
+module Runtime = Liquidsoap_lang.Runtime
+module Doc = Liquidsoap_lang.Doc
+module Environment = Liquidsoap_lang.Environment
+module Profiler = Liquidsoap_lang.Profiler
+
 let usage =
   "Usage : liquidsoap [OPTION, SCRIPT or EXPR]...\n\
   \ - SCRIPT for evaluating a liquidsoap script file;\n\
@@ -27,8 +32,8 @@ let usage =
   \ - OPTION is one of the options listed below:\n"
 
 let () =
-  Utils.conf#plug "init" Dtools.Init.conf;
-  Utils.conf#plug "log" Dtools.Log.conf
+  Configure.conf#plug "init" Dtools.Init.conf;
+  Configure.conf#plug "log" Dtools.Log.conf
 
 (* Set log to stdout by default. *)
 let () =
@@ -235,13 +240,13 @@ let options =
              Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
          "Print debugging log messages." );
        ( ["--debug-errors"],
-         Arg.Unit (fun () -> Term.conf_debug_errors#set true),
+         Arg.Unit (fun () -> Configure.conf_debug_errors#set true),
          "Debug errors (show stacktrace instead of printing a message)." );
        ( ["--debug-lang"],
          Arg.Unit
            (fun () ->
              Type.debug := true;
-             Term.conf_debug#set true),
+             Configure.conf_debug#set true),
          "Debug language implementation." );
        (["--profile"], Arg.Set Term.profile, "Profile execution.");
        ( ["--strict"],
@@ -269,7 +274,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_xml (Plug.plugs : Doc.item))),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
@@ -279,7 +284,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_json (Plug.plugs : Doc.item))),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
@@ -289,7 +294,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print (Plug.plugs : Doc.item))),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
@@ -299,7 +304,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_functions (Plug.plugs : Doc.item))),
           Printf.sprintf "List all functions." );
         ( ["--list-functions-md"],
@@ -307,7 +312,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_functions_md ~extra:false (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all functions in markdown." );
         ( ["--list-extra-functions-md"],
@@ -315,7 +320,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_functions_md ~extra:true (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all extra functions in markdown." );
         ( ["--list-protocols-md"],
@@ -323,7 +328,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Utils.kprint_string ~pager:true
+              Lang_string.kprint_string ~pager:true
                 (Doc.print_protocols_md (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all protocols in markdown." );
         ( ["--no-stdlib"],
@@ -357,7 +362,7 @@ let options =
           Arg.Unit
             (fun () ->
               load_libs ();
-              Utils.print_string ~pager:true
+              Lang_string.print_string ~pager:true
                 (Builtins_settings.print_settings ());
               exit 0),
           "Display configuration keys in markdown format." );
@@ -383,7 +388,7 @@ let parse argv l f msg =
         Printf.eprintf "%s" msg;
         exit 2
     | Arg.Help msg ->
-        Utils.print_string ~pager:true msg;
+        Lang_string.print_string ~pager:true msg;
         exit 0
 
 let absolute s =
@@ -497,7 +502,7 @@ let check_directories () =
     let path = conf_path#get in
     let dir = Filename.dirname path in
     if not (Sys.file_exists dir) then (
-      let routes = Utils.conf#routes conf_path#ut in
+      let routes = Configure.conf#routes conf_path#ut in
       Printf.printf
         "FATAL ERROR: %s directory %S does not exist.\n\
          To change it, add the following to your script:\n\
@@ -543,7 +548,12 @@ let () =
         if !interactive then (
           load_libs ();
           check_directories ();
-          ignore (Thread.create Runtime.interactive ());
+          ignore
+            (Thread.create
+               (fun () ->
+                 Runtime.interactive ();
+                 Tutils.shutdown 0)
+               ());
           Dtools.Init.init main)
         else if Source.has_outputs () || force_start#get then (
           check_directories ();

@@ -1,5 +1,9 @@
 (** Constants describing configuration options of liquidsoap. *)
 
+val conf : Dtools.Conf.ut
+val conf_debug : bool Dtools.Conf.t
+val conf_debug_errors : bool Dtools.Conf.t
+
 (** String describing the OS *)
 val host : string
 

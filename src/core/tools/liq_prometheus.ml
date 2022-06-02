@@ -28,7 +28,7 @@ let log = Log.make ["prometheus"; "server"]
 
 let conf_prometheus =
   Dtools.Conf.void
-    ~p:(Utils.conf#plug "prometheus")
+    ~p:(Configure.conf#plug "prometheus")
     "Metric reporting using prometheus."
 
 let conf_server =

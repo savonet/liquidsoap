@@ -24,7 +24,7 @@ let log = Log.make ["sandbox"]
 
 let conf_sandbox =
   Dtools.Conf.bool
-    ~p:(Utils.conf#plug "sandbox")
+    ~p:(Configure.conf#plug "sandbox")
     ~d:false "Sandboxing for external processes."
 
 let tmpdir = Filename.get_temp_dir_name ()

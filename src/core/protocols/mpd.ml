@@ -23,7 +23,7 @@
 module Conf = Dtools.Conf
 
 let conf =
-  Conf.void ~p:(Utils.conf#plug "mpd") "Parameters for the mpd protocol."
+  Conf.void ~p:(Configure.conf#plug "mpd") "Parameters for the mpd protocol."
 
 let conf_host = Conf.string ~p:(conf#plug "host") ~d:"127.0.0.1" "MPD host."
 let conf_port = Conf.int ~p:(conf#plug "port") ~d:6600 "MPD port."

@@ -13,7 +13,8 @@ let enc_of_name s =
   try C.of_name s with Not_found -> raise (Unknown_encoding s)
 
 let conf_tag =
-  Dtools.Conf.void ~p:(Utils.conf#plug "tag")
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "tag")
     "Settings related to metadata tags"
 
 let conf_encoding =
