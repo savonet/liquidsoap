@@ -4,6 +4,9 @@
 New:
 * Added `video/mp4` to list of recognized mime types for request resolutions.
 
+Fixed:
+* Memory leak when executing `process.run` (#2424)
+
 2.0.5 (24-05-2022)
 =====
 
