@@ -24,7 +24,7 @@
  (modules build_config)
  (preprocess
   (pps ppx_string))
- (libraries liquidsoap_optionals))
+ (libraries liquidsoap_core liquidsoap_optionals))
 
 (executable
  (name dune_config)
