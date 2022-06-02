@@ -27,6 +27,8 @@ let open_process cmd env =
   { stdin; stdout; stderr }
 
 let close_process { stdout; stdin; stderr } =
+  (* See: https://github.com/ocaml/ocaml/issues/11289 *)
+  Gc.full_major ();
   try Unix.close_process_full (stdout, stdin, stderr)
   with Unix.Unix_error (Unix.ECHILD, _, _) -> Unix.WEXITED 0
 
