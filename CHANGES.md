@@ -7,6 +7,7 @@ New:
 Fixed:
 * Memory leak when executing `process.run` (#2424)
 
+---
 2.0.5 (24-05-2022)
 =====
 
