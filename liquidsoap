@@ -1,3 +1,4 @@
 #!/bin/sh
 export DIR=$(dirname "$0")
+dune build
 dune exec $DIR/src/bin/liquidsoap.exe -- $*
