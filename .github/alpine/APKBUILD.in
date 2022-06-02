@@ -14,13 +14,9 @@ package() {
 	eval $(opam env)
 	cd liquidsoap
 
-	make install \
-	  DESTDIR="$pkgdir" \
-	  OCAMLFIND_DESTDIR="$pkgdir/$OCAML_STDLIB_DIR" \
-	  prefix="$pkgdir/usr" \
-	  sysconfdir="$pkgdir/etc" \
-	  INSTALL_DAEMON=no \
-	  OCAMLFIND_LDCONF=ignore
+        export LIQUIDSOAP_BUILD_TARGET=posix
+        dune build @install
+        dune install --relocatable --prefix "${pkgdir}/usr"
 
         rm -rf "$pkgdir/usr/share/doc"
         rm -rf "$pkgdir/usr/share/man"
