@@ -2,3 +2,4 @@
 *~
 _build/
 liquidsoap.config
+*.install
