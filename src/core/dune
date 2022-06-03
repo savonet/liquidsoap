@@ -63,9 +63,6 @@
   avi_format
   biquad_filter
   blank
-  builtins_harbor
-  builtins_request
-  builtins_runtime
   camomile_utils
   child_support
   chord
@@ -255,13 +252,14 @@
  (name liquidsoap_builtins)
  (library_flags -linkall)
  (wrapped false)
- (libraries liquidsoap_core liquidsoap_optionals)
+ (libraries liquidsoap_core)
  (modules
   builtins_bool
   builtins_callbacks
   builtins_eval
   builtins_files
   builtins_getter
+  builtins_harbor
   builtins_json
   builtins_lang
   builtins_list
@@ -271,7 +269,9 @@
   builtins_profiler
   builtins_ref
   builtins_regexp
+  builtins_request
   builtins_resolvers
+  builtins_runtime
   builtins_server
   builtins_settings
   builtins_socket
@@ -556,7 +556,7 @@
 
 (library
  (name liquidsoap_secure_transport)
- (libraries osx-secure-transport liquidsoap_core)
+ (libraries osx-secure-transport liquidsoap_core liquidsoap_builtins)
  (library_flags -linkall)
  (wrapped false)
  (optional)
@@ -649,7 +649,7 @@
 
 (library
  (name liquidsoap_ssl)
- (libraries ssl liquidsoap_core)
+ (libraries ssl liquidsoap_core liquidsoap_builtins)
  (library_flags -linkall)
  (wrapped false)
  (optional)

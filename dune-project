@@ -11,6 +11,7 @@
 
 (version 2.1.0)
 (generate_opam_files true)
+(executables_implicit_empty_intf true)
 
 (package
   (name liquidsoap)

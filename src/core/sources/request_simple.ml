@@ -33,7 +33,7 @@ let () =
         Lang.float_t,
         Some (Lang.float 20.),
         Some "Timeout in seconds for resolving the request." );
-      ("", Builtins_request.Value.t, None, Some "Request to play.");
+      ("", Request.Value.t, None, Some "Request to play.");
     ]
     ~meth:
       [
@@ -46,14 +46,14 @@ let () =
            content type is decoded from the request.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#resolve) );
         ( "request",
-          ([], Builtins_request.Value.t),
+          ([], Request.Value.t),
           "Get the request played by this source",
-          fun s -> Builtins_request.Value.to_value s#request );
+          fun s -> Request.Value.to_value s#request );
       ]
     ~return_t
     (fun p ->
       let timeout = List.assoc "timeout" p |> Lang.to_float in
-      let r = List.assoc "" p |> Builtins_request.Value.of_value in
+      let r = List.assoc "" p |> Request.Value.of_value in
       let kind = Kind.of_kind kind in
       new once ~kind ~name:"request.once" ~timeout r)
 
@@ -133,8 +133,8 @@ let () =
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
        WARNING: if used uncarefully, it can crash your application!"
-    [("", Builtins_request.Value.t, None, None)] ~return_t:t (fun p ->
-      let request = Builtins_request.Value.of_value (List.assoc "" p) in
+    [("", Request.Value.t, None, None)] ~return_t:t (fun p ->
+      let request = Request.Value.of_value (List.assoc "" p) in
       let kind = Kind.of_kind kind in
       (new unqueued ~kind ~timeout:60. request :> source))
 
@@ -157,8 +157,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
       try
         match
           ( available (),
-            Lang.to_valued_option Builtins_request.Value.of_value
-              (Lang.apply f []) )
+            Lang.to_valued_option Request.Value.of_value (Lang.apply f []) )
         with
           | false, _ -> `Empty
           | true, Some r ->
@@ -179,7 +178,7 @@ let () =
   let t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "request.dynamic" ~category:`Input
     ~descr:"Play request dynamically created by a given function."
-    (("", Lang.fun_t [] (Lang.nullable_t Builtins_request.Value.t), None, None)
+    (("", Lang.fun_t [] (Lang.nullable_t Request.Value.t), None, None)
     :: ( "retry_delay",
          Lang.getter_t Lang.float_t,
          Some (Lang.float 0.1),
@@ -211,16 +210,16 @@ let () =
                       log#important "Fetch failed: empty.";
                       Lang.bool false) );
         ( "queue",
-          ([], Lang.fun_t [] (Lang.list_t Builtins_request.Value.t)),
+          ([], Lang.fun_t [] (Lang.list_t Request.Value.t)),
           "Get the requests currently in the queue.",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 Lang.list
                   (Queue.fold
-                     (fun c i -> Builtins_request.Value.to_value i.request :: c)
+                     (fun c i -> Request.Value.to_value i.request :: c)
                      [] s#queue)) );
         ( "add",
-          ([], Lang.fun_t [(false, "", Builtins_request.Value.t)] Lang.bool_t),
+          ([], Lang.fun_t [(false, "", Request.Value.t)] Lang.bool_t),
           "Add a request to the queue. Requests are resolved before being \
            added. Returns `true` if the request was successfully added.",
           fun s ->
@@ -228,22 +227,18 @@ let () =
                 Lang.bool
                   (s#add
                      {
-                       request =
-                         Builtins_request.Value.of_value (List.assoc "" p);
+                       request = Request.Value.of_value (List.assoc "" p);
                        expired = false;
                      })) );
         ( "set_queue",
-          ( [],
-            Lang.fun_t
-              [(false, "", Lang.list_t Builtins_request.Value.t)]
-              Lang.unit_t ),
+          ([], Lang.fun_t [(false, "", Lang.list_t Request.Value.t)] Lang.unit_t),
           "Set the queue of requests. Requests are resolved before being added \
            to the queue. You are responsible for destroying the requests \
            currently in the queue.",
           fun s ->
             Lang.val_fun [("", "", None)] (fun p ->
                 let l =
-                  List.map Builtins_request.Value.of_value
+                  List.map Request.Value.of_value
                     (Lang.to_list (List.assoc "" p))
                 in
                 let q = Queue.create () in
@@ -253,13 +248,13 @@ let () =
                 s#set_queue q;
                 Lang.unit) );
         ( "current",
-          ([], Lang.fun_t [] (Lang.nullable_t Builtins_request.Value.t)),
+          ([], Lang.fun_t [] (Lang.nullable_t Request.Value.t)),
           "Get the request currently being played.",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 match s#current with
                   | None -> Lang.null
-                  | Some c -> Builtins_request.Value.to_value c.req) );
+                  | Some c -> Request.Value.to_value c.req) );
       ]
     ~return_t:t
     (fun p ->

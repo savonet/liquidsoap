@@ -649,3 +649,15 @@ let resolve ~ctype t timeout =
 (* Make a few functions more user-friendly, internal stuff is over. *)
 
 let peek_indicator t = (peek_indicator t).string
+
+module Value = Value.MkAbstract (struct
+  type content = t
+
+  let name = "request"
+
+  let to_json _ =
+    Runtime_error.error ~message:"Requests cannot be represented as json" "json"
+
+  let descr r = Printf.sprintf "<request(id=%d)>" (get_id r)
+  let compare = Stdlib.compare
+end)

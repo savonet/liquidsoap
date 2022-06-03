@@ -1,0 +1,6 @@
+(executable
+ (name liquidsoap_js)
+ (modes js)
+ (modules liquidsoap_js regexp)
+ (preprocess (pps js_of_ocaml-ppx))
+ (libraries liquidsoap_lang))

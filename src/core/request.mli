@@ -194,3 +194,5 @@ val mresolvers : (string -> (string * string) list) Plug.plug
 
 (** Functions for resolving URIs. *)
 val protocols : protocol Plug.plug
+
+module Value : Value.Abstract with type content := t
