@@ -21,11 +21,6 @@
  *****************************************************************************)
 
 let () =
-  Lang.add_module "runtime";
-  Lang.add_module "runtime.gc";
-  Lang.add_module "runtime.sys"
-
-let () =
   Lang.add_builtin "runtime.gc.full_major" ~category:`Liquidsoap
     ~descr:"Trigger full major garbage collection." [] Lang.unit_t (fun _ ->
       Gc.full_major ();

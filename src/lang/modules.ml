@@ -45,6 +45,9 @@ let () =
       "reopen";
       "request";
       "request.dynamic";
+      "runtime";
+      "runtime.gc";
+      "runtime.sys";
       "server";
       "source";
       "stereo";
