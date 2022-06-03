@@ -8,7 +8,7 @@ license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "dune" {>= "2.8"}
+  "dune" {>= "3.1"}
   "ocaml" {>= "4.12.0"}
   "camomile" {>= "1.0.0"}
   "dtools" {>= "0.4.4"}
@@ -119,9 +119,11 @@ build: [
     name
     "-j"
     jobs
+    "--promote-install-files=false"
     "@install"
     "@runtest" {with-test}
     "@doc" {with-doc}
   ]
+  ["dune" "install" "-p" name "--create-install-files" name]
 ]
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
