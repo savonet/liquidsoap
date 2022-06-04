@@ -66,7 +66,7 @@ jobs:
           git pull
           cp PACKAGES.minimal PACKAGES
           eval $(opam config env) && ocamlfind query curl | xargs rm -rf
-          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | grep -v lilv | xargs opam remove --force -y
+          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | grep -v lilv | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app
           echo "::endgroup::"
           cd liquidsoap
           ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
