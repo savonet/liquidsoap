@@ -1,6 +1,34 @@
+; Regenerate using dune build @gendune --auto-promote
+
+(include dune.inc)
+
+(executable
+ (name gen_dune)
+ (libraries pcre)
+ (modules gen_dune))
+
+(rule
+ (alias gendune)
+ (target dune.inc.gen)
+ (deps
+  (source_tree .)
+  (source_tree ../libs))
+ (action
+  (with-stdout-to
+   dune.inc.gen
+   (run ./gen_dune.exe))))
+
+(rule
+ (alias gendune)
+ (action
+  (diff dune.inc dune.inc.gen)))
+
 (executable
  (name liquidsoap_js)
  (modes js)
  (modules liquidsoap_js regexp)
- (preprocess (pps js_of_ocaml-ppx))
+ (js_of_ocaml
+  (javascript_files filesystem.js))
+ (preprocess
+  (pps js_of_ocaml-ppx))
  (libraries liquidsoap_lang))
