@@ -197,7 +197,7 @@ jobs:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
         exclude:
-          - os: debian_buster
+          - os: debian_bullseye
             platform: armhf
           - os: ubuntu_impish
             platform: armhf
