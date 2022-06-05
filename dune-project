@@ -9,7 +9,7 @@
 (homepage "https://github.com/savonet/liquidsoap")
 (bug_reports "https://github.com/savonet/liquidsoap/issues")
 
-(version 2.1.0)
+(version 2.2.0)
 (generate_opam_files true)
 (executables_implicit_empty_intf true)
 
@@ -108,6 +108,7 @@
     (lame (< 0.3.5))
     (lastfm (< 0.3.0))
     (lo (< 0.2.0))
+    (liquidsoap (< 2.2.0))
     (mad (< 0.5.0))
     (magic (< 0.6))
     (mem_usage (< 0.0.3))
