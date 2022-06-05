@@ -21,7 +21,7 @@
 
 (library
  (name liquidsoap_core)
- (package liquidsoap-core)
+ (public_name liquidsoap-core)
  (libraries
   mm
   dtools
