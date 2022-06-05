@@ -1,4 +1,3 @@
 (library
  (name metadata)
- (public_name metadata)
  (libraries camomile))

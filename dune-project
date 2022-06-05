@@ -143,10 +143,3 @@
   (name liquidsoap-stdlib)
   (synopsis "Liquidsoap standard library")
   (depends liquidsoap-core))
-
-(package
- (name metadata)
- (synopsis "Read metadata from various file formats")
- (description "A pure OCaml library for reading files from various formats.")
- (depends
-  camomile))
