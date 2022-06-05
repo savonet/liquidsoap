@@ -102,20 +102,7 @@ let unix_translator = function
   | _ -> None
 
 let () = Printexc.register_printer unix_translator
-
-(** Perfect Fisher-Yates shuffle
-  * (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
-let randomize a =
-  let permute i j =
-    let tmp = a.(i) in
-    a.(i) <- a.(j);
-    a.(j) <- tmp
-  in
-  let l = Array.length a in
-  if l >= 2 then
-    for i = 0 to l - 2 do
-      permute i (i + Random.int (l - i))
-    done
+let randomize = Liquidsoap_lang.Builtins_list.randomize
 
 (* Here we take care not to introduce new redexes when substituting *)
 

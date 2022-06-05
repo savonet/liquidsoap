@@ -33,6 +33,15 @@ val load_libs :
   unit ->
   unit
 
+val throw : (int -> string -> unit) -> exn -> unit
+
+val mk_expr :
+  ?fname:string ->
+  pwd:string ->
+  (Parser.token, Term.t) MenhirLib.Convert.traditional ->
+  Sedlexing.lexbuf ->
+  Term.t
+
 (** Evaluate a script from an [in_channel]. *)
 val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
 

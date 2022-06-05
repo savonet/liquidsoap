@@ -20,6 +20,20 @@
 
  *****************************************************************************)
 
+(** Perfect Fisher-Yates shuffle
+  * (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
+let randomize a =
+  let permute i j =
+    let tmp = a.(i) in
+    a.(i) <- a.(j);
+    a.(j) <- tmp
+  in
+  let l = Array.length a in
+  if l >= 2 then
+    for i = 0 to l - 2 do
+      permute i (i + Random.int (l - i))
+    done
+
 let () = Lang.add_module "list"
 
 let () =
@@ -127,7 +141,7 @@ let () =
   Lang.add_builtin "list.randomize" ~category:`List
     ~descr:"Shuffle the content of a list." [("", t, None, None)] t (fun p ->
       let l = Array.of_list (Lang.to_list (List.assoc "" p)) in
-      Utils.randomize l;
+      randomize l;
       Lang.list (Array.to_list l))
 
 let () =

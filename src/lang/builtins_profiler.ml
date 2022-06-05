@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Profiler = Liquidsoap_lang.Profiler
-
 let () = Lang.add_module "profiler"
 
 let () =
