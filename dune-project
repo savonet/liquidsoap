@@ -84,7 +84,6 @@
     ssl
     taglib
     theora
-    sdl-liquidsoap
     tsdl
     tsdl-image
     tsdl-ttf
