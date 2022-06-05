@@ -42,7 +42,7 @@ let audio_kind n =
         Content.(
           Audio.lift_params
             {
-              Contents.channel_layout =
+              Content.channel_layout =
                 lazy (Audio_converter.Channel_layout.layout_of_channels n);
             })
   in
@@ -77,7 +77,7 @@ let kind_of_format = function
                 Content.(
                   Audio.lift_params
                     {
-                      Contents.channel_layout =
+                      Content.channel_layout =
                         lazy
                           (Audio_converter.Channel_layout.layout_of_channels
                              channels);

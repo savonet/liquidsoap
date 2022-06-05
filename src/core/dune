@@ -257,7 +257,6 @@
   builtins_callbacks
   builtins_files
   builtins_harbor
-  builtins_lang
   builtins_process
   builtins_regexp
   builtins_request
@@ -267,7 +266,8 @@
   builtins_settings
   builtins_socket
   builtins_source
-  builtins_string
+  builtins_string_extra
+  builtins_sys
   builtins_thread
   builtins_time))
 

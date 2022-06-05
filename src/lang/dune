@@ -20,10 +20,12 @@
   builtins_eval
   builtins_getter
   builtins_json
+  builtins_lang
   builtins_list
   builtins_math
   builtins_null
   builtins_profiler
+  builtins_string
   builtins_ref
   console
   content

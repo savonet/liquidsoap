@@ -113,8 +113,7 @@ let () =
             (Error.Invalid_value (channels_v, "unsupported number of channels"))
       in
       let kind =
-        Lang.audio_params
-          { Content.Contents.channel_layout = lazy channel_layout }
+        Lang.audio_params { Content.channel_layout = lazy channel_layout }
       in
       let kind = Kind.of_kind kind in
       let samplerate = Lang.to_int (List.assoc "samplerate" p) in

@@ -575,7 +575,7 @@ let get_type ~ctype ~url container =
           Content.(
             Audio.lift_params
               {
-                Contents.channel_layout =
+                Content.channel_layout =
                   lazy
                     (Audio_converter.Channel_layout.layout_of_channels
                        (Avcodec.Audio.get_nb_channels p));

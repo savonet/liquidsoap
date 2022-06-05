@@ -20,12 +20,13 @@ let exec ?pat ?rex s =
       | None, None -> failwith "At least one of pat or rex must be provided!"
   in
   let s = Js.string s in
-  if not (Js.to_bool (rex##test s)) then raise Not_found;
-  let ret = Option.get (Js.Opt.to_option (rex##exec s)) in
+  let ret =
+    Js.Opt.case (rex##exec s) (fun () -> raise Not_found) (fun x -> x)
+  in
   Js.match_result ret
 
 let get_substring sub pos =
-  Js.to_string (Option.get (Js.Optdef.to_option (Js.array_get sub (pos + 1))))
+  Js.to_string (Option.get (Js.Optdef.to_option (Js.array_get sub pos)))
 
 let substitute ?pat ?rex ~subst s =
   let rex =

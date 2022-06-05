@@ -34,6 +34,13 @@ exception Incompatible_format of Contents.format * Contents.format
 
 type internal_content_type = [ `None | `Audio | `Video | `Midi ]
 
+type audio_params = {
+  channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+}
+
+type video_params = { width : int Lazy.t option; height : int Lazy.t option }
+type midi_params = { channels : int }
+
 module type ContentSpecs = sig
   type kind
   type params
@@ -150,7 +157,7 @@ module Audio : sig
   include
     Content
       with type kind = [ `Pcm ]
-       and type params = Contents.audio_params
+       and type params = audio_params
        and type data = Audio.Mono.buffer array
 
   val kind : Contents.kind
@@ -162,7 +169,7 @@ module Video : sig
   include
     Content
       with type kind = [ `Canvas ]
-       and type params = Contents.video_params
+       and type params = video_params
        and type data = Video.Canvas.t
 
   val kind : Contents.kind
@@ -173,7 +180,7 @@ module Midi : sig
   include
     Content
       with type kind = [ `Midi ]
-       and type params = Contents.midi_params
+       and type params = midi_params
        and type data = MIDI.Multitrack.buffer
 
   val kind : Contents.kind

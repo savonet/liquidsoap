@@ -1,9 +1,11 @@
 open Js_of_ocaml
 open Liquidsoap_lang
+open Content_js
 
 let () =
   Hooks.regexp := (module Regexp_js : Hooks.Regexp_t);
-  Hooks.liq_libs_dir := fun () -> "/static"
+  (Hooks.liq_libs_dir := fun () -> "/static");
+  Runtime.load_libs ()
 
 let execute expr =
   let lexbuf = Sedlexing.Utf8.from_string expr in

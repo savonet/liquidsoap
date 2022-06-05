@@ -32,13 +32,6 @@ module Contents = struct
   let register_type () =
     incr _type;
     !_type
-
-  type audio_params = {
-    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
-  }
-
-  type video_params = { width : int Lazy.t option; height : int Lazy.t option }
-  type midi_params = { channels : int }
 end
 
 let merge_param ~name = function

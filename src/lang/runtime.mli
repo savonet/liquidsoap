@@ -22,6 +22,8 @@
 
 (** {1 Main script evaluation} *)
 
+exception Error
+
 (** Raise errors for warnings. *)
 val strict : bool ref
 

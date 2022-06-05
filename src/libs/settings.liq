@@ -1,3 +1,4 @@
+%ifdef settings
 # Instantiate a new setting
 # @flag hidden
 def settings.make(~comments="", ~(description:string), v) =
@@ -14,3 +15,4 @@ end
 def settings.make.void(~comments="", (description:string)) =
   { description = description, comments = comments }
 end
+%endif

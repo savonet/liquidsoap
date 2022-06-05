@@ -21,17 +21,17 @@ let () =
 let () =
   let none = Content.None.format in
   let mono =
-    Content.(Audio.lift_params { Contents.channel_layout = lazy `Mono })
+    Content.(Audio.lift_params { Content.channel_layout = lazy `Mono })
   in
   let stereo =
-    Content.(Audio.lift_params { Contents.channel_layout = lazy `Stereo })
+    Content.(Audio.lift_params { Content.channel_layout = lazy `Stereo })
   in
   let five_point_one =
     Content.(
-      Audio.lift_params { Contents.channel_layout = lazy `Five_point_one })
+      Audio.lift_params { Content.channel_layout = lazy `Five_point_one })
   in
   let yuva420p = Content.default_video () in
-  let midi = Content.(Midi.lift_params { Contents.channels = 1 }) in
+  let midi = Content.(Midi.lift_params { Content.channels = 1 }) in
   assert (
     Decoder.can_decode_type
       { audio = stereo; video = none; midi = none }

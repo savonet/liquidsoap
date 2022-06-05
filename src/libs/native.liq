@@ -78,6 +78,7 @@ end
 # This allows doing `open native`
 let native.request = request
 
+%ifdef request.dynamic
 # @docof request.dynamic
 def native.request.dynamic(%argsof(request.dynamic), f)
   ignore(available)
@@ -165,3 +166,4 @@ def native.request.dynamic(%argsof(request.dynamic), f)
     current=get_current
   }
 end
+%endif
