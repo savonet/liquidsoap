@@ -4,6 +4,8 @@
 
 (executable
  (name gen_dune)
+ (preprocess
+  (pps ppx_string))
  (libraries pcre)
  (modules gen_dune))
 

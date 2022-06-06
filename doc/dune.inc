@@ -2,42 +2,54 @@
 (rule
   (alias doc)
   (deps
+    
     (:liquidsoap ../src/bin/liquidsoap.exe))
-  (target protocols.md)
+  (target content/protocols.md)
   (action
-    (with-stdout-to protocols.md
+    (with-stdout-to content/protocols.md
+      
       (setenv PAGER none
         (run %{liquidsoap} --list-protocols-md)))))
+      
 
 (rule
   (alias doc)
   (deps
+    (:header content/reference-header.md)
     (:liquidsoap ../src/bin/liquidsoap.exe))
-  (target reference.md)
+  (target content/reference.md)
   (action
-    (with-stdout-to reference.md
+    (with-stdout-to content/reference.md
+      (progn (cat %{header})
       (setenv PAGER none
         (run %{liquidsoap} --list-functions-md)))))
+      )
 
 (rule
   (alias doc)
   (deps
+    (:header content/reference-header.md)
     (:liquidsoap ../src/bin/liquidsoap.exe))
-  (target reference-extras.md)
+  (target content/reference-extras.md)
   (action
-    (with-stdout-to reference-extras.md
+    (with-stdout-to content/reference-extras.md
+      (progn (cat %{header})
       (setenv PAGER none
         (run %{liquidsoap} --list-extra-functions-md)))))
+      )
 
 (rule
   (alias doc)
   (deps
+    
     (:liquidsoap ../src/bin/liquidsoap.exe))
-  (target settings.md)
+  (target content/settings.md)
   (action
-    (with-stdout-to settings.md
+    (with-stdout-to content/settings.md
+      
       (setenv PAGER none
         (run %{liquidsoap} --list-settings)))))
+      
 
 (rule
   (alias doc)
@@ -46,11 +58,11 @@
     language.dtd
     template.html
     no-pandoc
-    (:md protocols.md))
-  (target protocols.html)
+    (:md content/protocols.md))
+  (target content/protocols.html)
   (action
     (ignore-outputs
-      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=protocols --template=template.html -o protocols.html || cp no-pandoc protocols.html"))))
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=content/protocols --template=template.html -o content/protocols.html || cp no-pandoc content/protocols.html"))))
 
 (rule
   (alias doc)
@@ -59,11 +71,11 @@
     language.dtd
     template.html
     no-pandoc
-    (:md reference.md))
-  (target reference.html)
+    (:md content/reference.md))
+  (target content/reference.html)
   (action
     (ignore-outputs
-      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference --template=template.html -o reference.html || cp no-pandoc reference.html"))))
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=content/reference --template=template.html -o content/reference.html || cp no-pandoc content/reference.html"))))
 
 (rule
   (alias doc)
@@ -72,11 +84,11 @@
     language.dtd
     template.html
     no-pandoc
-    (:md reference-extras.md))
-  (target reference-extras.html)
+    (:md content/reference-extras.md))
+  (target content/reference-extras.html)
   (action
     (ignore-outputs
-      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference-extras --template=template.html -o reference-extras.html || cp no-pandoc reference-extras.html"))))
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=content/reference-extras --template=template.html -o content/reference-extras.html || cp no-pandoc content/reference-extras.html"))))
 
 (rule
   (alias doc)
@@ -85,11 +97,24 @@
     language.dtd
     template.html
     no-pandoc
-    (:md settings.md))
-  (target settings.html)
+    (:md content/settings.md))
+  (target content/settings.html)
   (action
     (ignore-outputs
-      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=settings --template=template.html -o settings.html || cp no-pandoc settings.html"))))
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=content/settings --template=template.html -o content/settings.html || cp no-pandoc content/settings.html"))))
+
+(rule
+  (alias doc)
+  (deps
+    liquidsoap.xml
+    language.dtd
+    template.html
+    no-pandoc
+    (:md content/reference-header.md))
+  (target reference-header.html)
+  (action
+    (ignore-outputs
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference-header --template=template.html -o reference-header.html || cp no-pandoc reference-header.html"))))
 
 (rule
   (alias doc)
@@ -935,11 +960,12 @@
 (orig/images/tabs/tab_about.png as html/images/tabs/tab_about.png)
 (orig/css/style.css as html/css/style.css)
 (orig/css/homepage.css as html/css/homepage.css)
-    (protocols.html as html/protocols.html)
-(reference.html as html/reference.html)
-(reference-extras.html as html/reference-extras.html)
-(settings.html as html/settings.html)
-    (language.html as html/language.html)
+    (content/protocols.html as html/content/protocols.html)
+(content/reference.html as html/content/reference.html)
+(content/reference-extras.html as html/content/reference-extras.html)
+(content/settings.html as html/content/settings.html)
+    (reference-header.html as html/reference-header.html)
+(language.html as html/language.html)
 (geekradio.html as html/geekradio.html)
 (on2_part3.html as html/on2_part3.html)
 (prometheus.html as html/prometheus.html)
