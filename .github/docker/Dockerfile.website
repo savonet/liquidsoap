@@ -15,7 +15,7 @@ RUN apt-get -y install libcurl4-gnutls-dev
 USER opam
 
 # This is until the next image rebuild:
-RUN eval $(opam config env) && opam install -y ocurl
+RUN eval $(opam config env) && opam install -y ocurl js_of_ocaml js_of_ocaml-ppx
 
 WORKDIR /tmp/liquidsoap-full
 
@@ -48,7 +48,8 @@ RUN eval $(opam config env) && \
     rm liquidsoap/configure && \
     export OCAMLPATH=`cat .ocamlpath` && \
     cd liquidsoap && \
-    dune build
+    dune build && \
+    dune build --release src/js
 
 WORKDIR /tmp/liquidsoap-full/website
 
