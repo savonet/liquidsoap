@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-let log_deprecated = Log.make ["deprecated"]
-let log = Log.make ["lang"; "json"]
-
 let rec json_of_value v : Json.t =
   match v.Value.value with
     | Value.Null -> `Null
@@ -482,7 +479,7 @@ let () =
       ("default", t, None, Some "Default value if string cannot be parsed.");
       ("", Lang.string_t, None, None);
     ] t (fun p ->
-      log_deprecated#important
+      Printf.eprintf
         "WARNING: \"json.parse\" is deprecated and will be removed in future \
          version. Please use \"let json.parse ...\" instead";
       let default = List.assoc "default" p in
@@ -491,5 +488,5 @@ let () =
         let json = Json.from_string s in
         deprecated_of_json default json
       with e ->
-        log#info "JSON parsing failed: %s" (Printexc.to_string e);
+        Printf.eprintf "JSON parsing failed: %s" (Printexc.to_string e);
         default)

@@ -254,21 +254,10 @@
  (wrapped false)
  (libraries liquidsoap_core)
  (modules
-  builtins_bool
   builtins_callbacks
-  builtins_eval
-  builtins_files
-  builtins_getter
+  builtins_files_extra
   builtins_harbor
-  builtins_json
-  builtins_lang
-  builtins_list
-  builtins_math
-  builtins_null
   builtins_process
-  builtins_profiler
-  builtins_ref
-  builtins_regexp
   builtins_request
   builtins_resolvers
   builtins_runtime
@@ -276,7 +265,8 @@
   builtins_settings
   builtins_socket
   builtins_source
-  builtins_string
+  builtins_string_extra
+  builtins_sys
   builtins_thread
   builtins_time))
 

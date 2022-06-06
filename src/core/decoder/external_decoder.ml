@@ -95,7 +95,7 @@ let audio_n n =
   Content.(
     Audio.lift_params
       {
-        Contents.channel_layout =
+        Content.channel_layout =
           lazy (Audio_converter.Channel_layout.layout_of_channels n);
       })
 

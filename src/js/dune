@@ -2,6 +2,11 @@
 
 (include dune.inc)
 
+(env
+ (dev
+  (flags
+   (:standard -w -7-9 -warn-error -33))))
+
 (executable
  (name gen_dune)
  (libraries pcre)
@@ -26,7 +31,7 @@
 (executable
  (name liquidsoap_js)
  (modes js)
- (modules liquidsoap_js regexp)
+ (modules liquidsoap_js content_js regexp_js)
  (js_of_ocaml
   (javascript_files filesystem.js))
  (preprocess

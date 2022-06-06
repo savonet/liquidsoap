@@ -20,9 +20,57 @@
 
  *****************************************************************************)
 
-open Extralib
+module Filename = struct
+  include Filename
 
-let log = Log.make ["lang.file"]
+  let rand_digits () =
+    let rand = Random.State.(bits (make_self_init ()) land 0xFFFFFF) in
+    Printf.sprintf "%06x" rand
+
+  let mk_temp_dir ?(mode = 0o700) ?dir prefix suffix =
+    let dir = match dir with Some d -> d | None -> get_temp_dir_name () in
+    let raise_err msg = raise (Sys_error msg) in
+    let rec loop count =
+      if count < 0 then raise_err "mk_temp_dir: too many failing attempts"
+      else (
+        let dir =
+          Printf.sprintf "%s/%s%s%s" dir prefix (rand_digits ()) suffix
+        in
+        try
+          Unix.mkdir dir mode;
+          dir
+        with
+          | Unix.Unix_error (Unix.EEXIST, _, _) -> loop (count - 1)
+          | Unix.Unix_error (Unix.EINTR, _, _) -> loop count
+          | Unix.Unix_error (e, _, _) ->
+              raise_err ("mk_temp_dir: " ^ Unix.error_message e))
+    in
+    loop 1000
+end
+
+(* From OCaml *)
+let file_extension_len ~dir_sep name =
+  let rec check i0 i =
+    if i < 0 || name.[i] = dir_sep then 0
+    else if name.[i] = '.' then check i0 (i - 1)
+    else String.length name - i0
+  in
+  let rec search_dot i =
+    if i < 0 || name.[i] = dir_sep then 0
+    else if name.[i] = '.' then check i (i - 1)
+    else search_dot (i - 1)
+  in
+  search_dot (String.length name - 1)
+
+let file_extension ?(leading_dot = true) ?(dir_sep = Filename.dir_sep) name =
+  let dir_sep = dir_sep.[0] in
+  let l = file_extension_len ~dir_sep name in
+  let s = if l = 0 then "" else String.sub name (String.length name - l) l in
+  try
+    match (leading_dot, s.[0]) with
+      | false, '.' -> String.sub s 1 (String.length s - 1)
+      | _ -> s
+  with Invalid_argument _ -> s
 
 let () =
   Lang.add_builtin "file.extension" ~category:`File
@@ -43,7 +91,7 @@ let () =
       let dir_sep = Lang.to_string (List.assoc "dir_sep" p) in
       let leading_dot = Lang.to_bool (List.assoc "leading_dot" p) in
       Lang.string
-        (Utils.file_extension ~dir_sep ~leading_dot
+        (file_extension ~dir_sep ~leading_dot
            (Lang.to_string (List.assoc "" p))))
 
 let () =
@@ -82,12 +130,31 @@ let () =
         Lang.unit
       with _ -> Lang.unit)
 
+let rm_dir dir =
+  let rec finddepth f roots =
+    Array.iter
+      (fun root ->
+        (match Unix.lstat root with
+          | { Unix.st_kind = S_DIR } ->
+              finddepth f (Array.map (Filename.concat root) (Sys.readdir root))
+          | _ -> ());
+        f root)
+      roots
+  in
+  let zap path =
+    match Unix.lstat path with
+      | { st_kind = S_DIR } -> Unix.rmdir path
+      | _ -> Unix.unlink path
+  in
+  finddepth zap [| dir |];
+  Unix.rmdir dir
+
 let () =
   Lang.add_builtin "file.rmdir" ~category:`File
     ~descr:"Remove a directory and its content."
     [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
       try
-        Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p));
+        rm_dir (Lang.to_string (List.assoc "" p));
         Lang.unit
       with _ -> Lang.unit)
 
@@ -121,7 +188,7 @@ let () =
     ] Lang.string_t (fun p ->
       try
         Lang.string
-          (Extralib.Filename.mk_temp_dir
+          (Filename.mk_temp_dir
              (Lang.to_string (Lang.assoc "" 1 p))
              (Lang.to_string (Lang.assoc "" 2 p)))
       with exn ->
@@ -144,94 +211,6 @@ let () =
       let f = Lang.to_string (List.assoc "" p) in
       let f = Lang_string.home_unrelate f in
       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
-
-let () =
-  Lang.add_builtin "file.open" ~category:`File
-    [
-      ( "write",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Open file for writing" );
-      ( "create",
-        Lang.nullable_t Lang.bool_t,
-        Some Lang.null,
-        Some
-          "Create if nonexistent. Default: `false` in read-only mode, `true` \
-           when writing." );
-      ( "append",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Append data if file exists." );
-      ( "non_blocking",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Open in non-blocking mode." );
-      ( "perms",
-        Lang.int_t,
-        Some (Lang.int 0o644),
-        Some "Default file rights if created. Default: `0o644`" );
-      ("", Lang.string_t, None, None);
-    ]
-    Builtins_socket.SocketValue.t ~descr:"Open a file."
-    (fun p ->
-      let write = Lang.to_bool (List.assoc "write" p) in
-      let access_flag = if write then Unix.O_RDWR else Unix.O_RDONLY in
-      let create = Lang.to_valued_option Lang.to_bool (List.assoc "create" p) in
-      let create_flags =
-        Option.value
-          ~default:(if write then [Unix.O_CREAT] else [])
-          (Option.map (fun x -> if x then [Unix.O_CREAT] else []) create)
-      in
-      let data_flags =
-        match (write, Lang.to_bool (List.assoc "append" p)) with
-          | true, true -> [Unix.O_APPEND]
-          | true, false -> [Unix.O_TRUNC]
-          | false, _ -> []
-      in
-      let non_blocking_flags =
-        if Lang.to_bool (List.assoc "non_blocking" p) then [Unix.O_NONBLOCK]
-        else []
-      in
-      let flags =
-        [access_flag] @ create_flags @ data_flags @ non_blocking_flags
-      in
-      let file_perms = Lang.to_int (List.assoc "perms" p) in
-      let path = Lang_string.home_unrelate (Lang.to_string (List.assoc "" p)) in
-      try
-        Builtins_socket.SocketValue.to_value
-          (Unix.openfile path flags file_perms)
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"file" exn)
-
-let () =
-  Lang.add_builtin "file.watch" ~category:`File
-    [
-      ("", Lang.string_t, None, Some "File to watch.");
-      ("", Lang.fun_t [] Lang.unit_t, None, Some "Handler function.");
-    ]
-    (Lang.method_t Lang.unit_t
-       [
-         ( "unwatch",
-           ([], Lang.fun_t [] Lang.unit_t),
-           "Function to remove the watch on the file." );
-       ])
-    ~descr:
-      "Call a function when a file is modified. Returns unwatch function in \
-       `unwatch` method."
-    (fun p ->
-      let fname = Lang.to_string (List.assoc_nth "" 0 p) in
-      let fname = Lang_string.home_unrelate fname in
-      let f = List.assoc_nth "" 1 p in
-      let f () = ignore (Lang.apply f []) in
-      let unwatch = File_watcher.watch [`Modify] fname f in
-      Lang.meth Lang.unit
-        [
-          ( "unwatch",
-            Lang.val_fun [] (fun _ ->
-                unwatch ();
-                Lang.unit) );
-        ])
 
 let () =
   Lang.add_builtin "file.ls" ~category:`File
@@ -260,17 +239,19 @@ let () =
       in
       let pattern =
         pattern
-        |> Option.map (fun s -> Pcre.replace ~pat:"\\." ~templ:"\\." s)
-        |> Option.map (fun s -> Pcre.replace ~pat:"\\*" ~templ:".*" s)
+        |> Option.map (fun s ->
+               Regexp.substitute ~pat:"\\." ~subst:(fun _ -> "\\.") s)
+        |> Option.map (fun s ->
+               Regexp.substitute ~pat:"\\*" ~subst:(fun _ -> ".*") s)
         |> Option.map (fun s -> "^" ^ s ^ "$")
       in
       let pattern = Option.value ~default:"" pattern in
-      let rex = Pcre.regexp pattern in
+      let rex = Regexp.regexp pattern in
       let dir = Lang.to_string (List.assoc "" p) in
       let dir = Lang_string.home_unrelate dir in
       let readdir dir =
         Array.to_list (Sys.readdir dir)
-        |> List.filter (fun s -> Pcre.pmatch ~rex s)
+        |> List.filter (fun s -> Regexp.test ~rex s)
       in
       let files =
         if not recursive then readdir dir
@@ -304,44 +285,6 @@ let () =
       in
       let files = List.map Lang.string files in
       Lang.list files)
-
-let () =
-  Lang.add_builtin "file.metadata" ~category:`File
-    [
-      ( "",
-        Lang.string_t,
-        None,
-        Some "File from which the metadata should be read." );
-    ] Lang.metadata_t ~descr:"Read metadata from a file." (fun p ->
-      let uri = Lang.to_string (List.assoc "" p) in
-      let r = Request.create uri in
-      if Request.resolve ~ctype:None r 30. = Request.Resolved then (
-        Request.read_metadata r;
-        Lang.metadata (Request.get_all_metadata r))
-      else Lang.metadata (Hashtbl.create 0))
-
-let () =
-  Lifecycle.on_init (fun () ->
-      List.iter
-        (fun (name, decoder) ->
-          let name = String.lowercase_ascii name in
-          Lang.add_builtin ("file.metadata." ^ name) ~category:`File
-            [
-              ( "",
-                Lang.string_t,
-                None,
-                Some "File from which the metadata should be read." );
-            ]
-            Lang.metadata_t
-            ~descr:("Read metadata from a file using the " ^ name ^ " decoder.")
-            (fun p ->
-              let uri = Lang.to_string (List.assoc "" p) in
-              let m = try decoder uri with _ -> [] in
-              let m =
-                List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
-              in
-              Lang.metadata (Frame.metadata_of_list m)))
-        Request.mresolvers#get_all)
 
 (************** Paths ********************)
 
@@ -388,19 +331,6 @@ let () =
     Lang.string_t ~descr:"Remove the file extension from a path." (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.remove_extension f))
-
-(************** MP3 ********************)
-
-let () =
-  Lang.add_builtin "file.which" ~category:`File
-    ~descr:
-      "`file.which(\"progname\")` looks for an executable named \"progname\" \
-       using directories from the PATH environment variable and returns \"\" \
-       if it could not find one." [("", Lang.string_t, None, None)]
-    (Lang.nullable_t Lang.string_t) (fun p ->
-      let file = Lang.to_string (List.assoc "" p) in
-      try Lang.string (Utils.which ~path:(Configure.path ()) file)
-      with Not_found -> Lang.null)
 
 let () =
   Lang.add_builtin "file.digest" ~category:`File

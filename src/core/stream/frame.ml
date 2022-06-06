@@ -33,19 +33,19 @@ let audio_n = function
         Audio.(
           lift_params
             {
-              Contents.channel_layout =
+              Content.channel_layout =
                 lazy (Audio_converter.Channel_layout.layout_of_channels c);
             })
 
 let audio_mono =
-  `Format Audio.(lift_params { Contents.channel_layout = lazy `Mono })
+  `Format Audio.(lift_params { Content.channel_layout = lazy `Mono })
 
 let audio_stereo =
-  `Format Audio.(lift_params { Contents.channel_layout = lazy `Stereo })
+  `Format Audio.(lift_params { Content.channel_layout = lazy `Stereo })
 
 let video_yuva420p = `Kind Video.kind
 let midi_native = `Kind Midi.kind
-let midi_n c = `Format Midi.(lift_params { Contents.channels = c })
+let midi_n c = `Format Midi.(lift_params { Content.channels = c })
 
 (** Compatibilities between content kinds, types and values.
   * [sub a b] if [a] is more permissive than [b]..

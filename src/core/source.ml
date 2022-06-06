@@ -267,15 +267,6 @@ let add_new_output, iterate_new_outputs =
         List.iter f !l;
         l := []) )
 
-(** Generate an identifier from the name of the source. *)
-let generate_id =
-  let t = Hashtbl.create 10 in
-  fun name ->
-    if not (Hashtbl.mem t name) then Hashtbl.add t name (ref (-1));
-    let n = Hashtbl.find t name in
-    incr n;
-    name ^ "_" ^ string_of_int !n
-
 class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
   sources =
   let f kind (fn, el) = match el with None -> kind | Some v -> fn kind v in
@@ -303,7 +294,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     val mutable definitive_id = false
     val mutable name = name
     method set_name n = name <- n
-    initializer id <- generate_id name
+    initializer id <- Lang_string.generate_id name
     method id = id
 
     method set_id ?(definitive = true) s =

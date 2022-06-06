@@ -23,12 +23,19 @@
 open Mm
 include Liquidsoap_lang.Content
 
+type audio_params = {
+  channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+}
+
+type video_params = { width : int Lazy.t option; height : int Lazy.t option }
+type midi_params = { channels : int }
+
 module AudioSpecs = struct
   open Frame_settings
   open Contents
 
   type kind = [ `Pcm ]
-  type params = Contents.audio_params
+  type params = audio_params
   type data = Audio.Mono.buffer array
 
   let internal_content_type = Some `Audio
@@ -119,7 +126,7 @@ module VideoSpecs = struct
   open Contents
 
   type kind = [ `Canvas ]
-  type params = Contents.video_params
+  type params = video_params
   type data = Video.Canvas.t
 
   let internal_content_type = Some `Video
@@ -208,12 +215,10 @@ module Video = struct
   let dimensions_of_format p =
     let p = get_params p in
     let width =
-      Lazy.force
-        (Option.value ~default:Frame_settings.video_width p.Contents.width)
+      Lazy.force (Option.value ~default:Frame_settings.video_width p.width)
     in
     let height =
-      Lazy.force
-        (Option.value ~default:Frame_settings.video_height p.Contents.height)
+      Lazy.force (Option.value ~default:Frame_settings.video_height p.height)
     in
     (width, height)
 end
@@ -223,7 +228,7 @@ module MidiSpecs = struct
   open Contents
 
   type kind = [ `Midi ]
-  type params = Contents.midi_params
+  type params = midi_params
   type data = MIDI.Multitrack.t
 
   let internal_content_type = Some `Midi
@@ -280,11 +285,11 @@ let default_video () =
   if Lazy.force Frame_settings.default_video_enabled then
     Video.lift_params
       {
-        Contents.width = Some Frame_settings.video_width;
+        width = Some Frame_settings.video_width;
         height = Some Frame_settings.video_height;
       }
   else None.format
 
 let default_midi () =
   let channels = Lazy.force Frame_settings.midi_channels in
-  if channels = 0 then None.format else Midi.lift_params { Contents.channels }
+  if channels = 0 then None.format else Midi.lift_params { channels }

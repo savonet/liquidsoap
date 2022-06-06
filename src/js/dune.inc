@@ -1,9 +1,11 @@
 
 (rule
  (target filesystem.js)
- (deps (source_tree ../libs))
+ (deps
+  (:stdlib_js ./stdlib_js.liq)
+  (source_tree ../libs))
  (action
-  (run js_of_ocaml build-fs -I ../libs -o %{target} visualization.liq
+  (run js_of_ocaml build-fs -I . -I ../libs -o %{target} %{stdlib_js} visualization.liq
 resolvers.liq
 externals.liq
 gstreamer.liq

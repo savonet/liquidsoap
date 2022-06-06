@@ -22,6 +22,8 @@
 
 (** {1 Main script evaluation} *)
 
+exception Error
+
 (** Raise errors for warnings. *)
 val strict : bool ref
 
@@ -30,8 +32,20 @@ val load_libs :
   ?error_on_no_stdlib:bool ->
   ?parse_only:bool ->
   ?deprecated:bool ->
+  ?stdlib:string ->
   unit ->
   unit
+
+(* Wrapper for format language errors. Re-raises [Error]
+   after printing language errors. *)
+val throw : ?formatter:Format.formatter -> Sedlexing.lexbuf -> exn -> unit
+
+val mk_expr :
+  ?fname:string ->
+  pwd:string ->
+  (Parser.token, Term.t) MenhirLib.Convert.traditional ->
+  Sedlexing.lexbuf ->
+  Term.t
 
 (** Evaluate a script from an [in_channel]. *)
 val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit

@@ -11,10 +11,24 @@
 (library
  (name liquidsoap_lang)
  (public_name liquidsoap-lang)
+ (library_flags -linkall)
  (preprocess
   (pps sedlex.ppx))
  (libraries str unix menhirLib)
  (modules
+  builtins_bool
+  builtins_eval
+  builtins_files
+  builtins_getter
+  builtins_json
+  builtins_lang
+  builtins_list
+  builtins_math
+  builtins_null
+  builtins_profiler
+  builtins_regexp
+  builtins_string
+  builtins_ref
   console
   content
   doc

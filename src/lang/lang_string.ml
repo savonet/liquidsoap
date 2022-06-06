@@ -398,3 +398,141 @@ let home_unrelate =
         | _ -> s)
   in
   unrel
+
+(** Generate an identifier from the name of the source. *)
+let generate_id =
+  let t = Hashtbl.create 10 in
+  fun name ->
+    if not (Hashtbl.mem t name) then Hashtbl.add t name (ref (-1));
+    let n = Hashtbl.find t name in
+    incr n;
+    name ^ "_" ^ string_of_int !n
+
+(** Decode Base64-encoded data *)
+let decode64 s =
+  let padding = ref 0 in
+  let to_int c =
+    match c with
+      | 'A' .. 'Z' -> int_of_char c - int_of_char 'A'
+      | 'a' .. 'z' -> int_of_char c - int_of_char 'a' + 26
+      | '0' .. '9' -> int_of_char c - int_of_char '0' + 52
+      | '+' -> 62
+      | '/' -> 63
+      | '=' ->
+          incr padding;
+          0
+      | _ -> failwith "decode64: invalid encoding"
+  in
+  let result = ref [] in
+  let add x = result := char_of_int x :: !result in
+  for i = 0 to (String.length s / 4) - 1 do
+    (* Read 4 64-digits, i.e. 3 bytes. *)
+    let c n = to_int s.[(i * 4) + n] in
+    let i = c 3 + (c 2 lsl 6) + (c 1 lsl 12) + (c 0 lsl 18) in
+    add ((i land 0xff0000) lsr 16);
+    add ((i land 0x00ff00) lsr 8);
+    add (i land 0x0000ff)
+  done;
+  let result =
+    (* Remove up to two bytes depending on the padding. *)
+    match !padding with
+      | 0 -> !result
+      | 1 -> List.tl !result
+      | 2 -> List.tl (List.tl !result)
+      | _ -> failwith "decode64: invalid encoding"
+  in
+  let len = List.length result in
+  let s = Bytes.make len ' ' in
+  ignore
+    (List.fold_left
+       (fun i c ->
+         Bytes.set s i c;
+         i - 1)
+       (len - 1) result);
+  Bytes.unsafe_to_string s
+
+(** Base 64 encoding. *)
+let encode64 s =
+  let digit =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  in
+  let extra = String.length s mod 3 in
+  let s = match extra with 1 -> s ^ "\000\000" | 2 -> s ^ "\000" | _ -> s in
+  let n = String.length s in
+  let dst = Bytes.create (4 * (n / 3)) in
+  for i = 0 to (n / 3) - 1 do
+    let ( := ) j v = Bytes.set dst ((i * 4) + j) digit.[v] in
+    let c j = int_of_char s.[(i * 3) + j] in
+    let c0 = c 0 and c1 = c 1 and c2 = c 2 in
+    0 := c0 lsr 2;
+    1 := (c0 lsl 4) land 63 lor (c1 lsr 4);
+    2 := (c1 lsl 2) land 63 lor (c2 lsr 6);
+    3 := c2 land 63
+  done;
+  if extra = 1 then (
+    Bytes.set dst ((4 * (n / 3)) - 2) '=';
+    Bytes.set dst ((4 * (n / 3)) - 1) '=')
+  else if extra = 2 then Bytes.set dst ((4 * (n / 3)) - 1) '=';
+  Bytes.unsafe_to_string dst
+
+(* URL encoding/decoding according to RFC 1738, RFC 1630.
+ * Borrowed from ocamlnet. *)
+
+(** Converts k to a 2-digit hexadecimal string. *)
+let to_hex2 =
+  let hex_digits =
+    [|
+      '0';
+      '1';
+      '2';
+      '3';
+      '4';
+      '5';
+      '6';
+      '7';
+      '8';
+      '9';
+      'A';
+      'B';
+      'C';
+      'D';
+      'E';
+      'F';
+    |]
+  in
+  fun k ->
+    let s = Bytes.create 2 in
+    Bytes.set s 0 hex_digits.((k lsr 4) land 15);
+    Bytes.set s 1 hex_digits.(k land 15);
+    Bytes.unsafe_to_string s
+
+let url_encode ?(plus = true) s =
+  Regexp.substitute ~pat:"[^A-Za-z0-9_.!*-]"
+    ~subst:(fun x ->
+      if plus && x = " " then "+"
+      else (
+        let k = Char.code x.[0] in
+        "%" ^ to_hex2 k))
+    s
+
+let of_hex1 c =
+  match c with
+    | '0' .. '9' -> Char.code c - Char.code '0'
+    | 'A' .. 'F' -> Char.code c - Char.code 'A' + 10
+    | 'a' .. 'f' -> Char.code c - Char.code 'a' + 10
+    | _ -> failwith "invalid url"
+
+let url_decode ?(plus = true) s =
+  Regexp.substitute
+    ~pat:
+      "\\+|%..|%.|%"
+      (* TODO why do we match %. and % and seem to exclude them below ? *)
+    ~subst:(fun s ->
+      if s = "+" then if plus then " " else "+"
+      else (
+        (* Assertion: s.[0] = '%' *)
+        if String.length s < 3 then failwith "invalid url";
+        let k1 = of_hex1 s.[1] in
+        let k2 = of_hex1 s.[2] in
+        String.make 1 (Char.chr ((k1 lsl 4) lor k2))))
+    s

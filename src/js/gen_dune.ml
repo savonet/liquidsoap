@@ -11,8 +11,10 @@ let () =
     {|
 (rule
  (target filesystem.js)
- (deps (source_tree ../libs))
+ (deps
+  (:stdlib_js ./stdlib_js.liq)
+  (source_tree ../libs))
  (action
-  (run js_of_ocaml build-fs -I ../libs -o %%{target} %s)))
+  (run js_of_ocaml build-fs -I . -I ../libs -o %%{target} %%{stdlib_js} %s)))
   |}
     (String.concat "\n" libs)

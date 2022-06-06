@@ -90,12 +90,16 @@ let load_libs =
   let loaded = ref false in
   fun () ->
     if !stdlib && not !loaded then (
-      let save = !Configure.display_types in
-      Configure.display_types := false;
-      Runtime.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
-        ~parse_only:!parse_only ();
-      loaded := true;
-      Configure.display_types := save)
+      try
+        let save = !Configure.display_types in
+        Configure.display_types := false;
+        Runtime.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
+          ~parse_only:!parse_only ();
+        loaded := true;
+        Configure.display_types := save
+      with Liquidsoap_lang.Runtime.Error ->
+        flush_all ();
+        exit 1)
 
 (** Evaluate a script or expression.
   * This used to be done immediately, which made it possible to
@@ -112,18 +116,22 @@ let last_item_lib = ref false
 let do_eval, eval =
   let delayed = ref None in
   let eval src ~lib =
-    load_libs ();
-    match src with
-      | `StdIn -> Runtime.from_in_channel ~lib ~parse_only:!parse_only stdin
-      | `Expr_or_File expr when not (Sys.file_exists expr) ->
-          Runtime.from_string ~lib ~parse_only:!parse_only expr
-      | `Expr_or_File f ->
-          let basename = Filename.basename f in
-          let basename =
-            try Filename.chop_extension basename with _ -> basename
-          in
-          Utils.var_script := basename;
-          Runtime.from_file ~lib ~parse_only:!parse_only f
+    try
+      load_libs ();
+      match src with
+        | `StdIn -> Runtime.from_in_channel ~lib ~parse_only:!parse_only stdin
+        | `Expr_or_File expr when not (Sys.file_exists expr) ->
+            Runtime.from_string ~lib ~parse_only:!parse_only expr
+        | `Expr_or_File f ->
+            let basename = Filename.basename f in
+            let basename =
+              try Filename.chop_extension basename with _ -> basename
+            in
+            Utils.var_script := basename;
+            Runtime.from_file ~lib ~parse_only:!parse_only f
+    with Liquidsoap_lang.Runtime.Error ->
+      flush_all ();
+      exit 1
   in
   let force ~lib =
     match !delayed with

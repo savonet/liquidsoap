@@ -56,54 +56,6 @@ module Unix = struct
   include Unix
 
   let read_retry fd = read_retry (read fd)
-
-  let rm_dir dir =
-    let rec finddepth f roots =
-      Array.iter
-        (fun root ->
-          (match lstat root with
-            | { st_kind = S_DIR } ->
-                finddepth f
-                  (Array.map (Filename.concat root) (Sys.readdir root))
-            | _ -> ());
-          f root)
-        roots
-    in
-    let zap path =
-      match lstat path with
-        | { st_kind = S_DIR } -> rmdir path
-        | _ -> unlink path
-    in
-    finddepth zap [| dir |];
-    rmdir dir
-end
-
-module Filename = struct
-  include Filename
-
-  let rand_digits () =
-    let rand = Random.State.(bits (make_self_init ()) land 0xFFFFFF) in
-    Printf.sprintf "%06x" rand
-
-  let mk_temp_dir ?(mode = 0o700) ?dir prefix suffix =
-    let dir = match dir with Some d -> d | None -> get_temp_dir_name () in
-    let raise_err msg = raise (Sys_error msg) in
-    let rec loop count =
-      if count < 0 then raise_err "mk_temp_dir: too many failing attempts"
-      else (
-        let dir =
-          Printf.sprintf "%s/%s%s%s" dir prefix (rand_digits ()) suffix
-        in
-        try
-          Unix.mkdir dir mode;
-          dir
-        with
-          | Unix.Unix_error (Unix.EEXIST, _, _) -> loop (count - 1)
-          | Unix.Unix_error (Unix.EINTR, _, _) -> loop count
-          | Unix.Unix_error (e, _, _) ->
-              raise_err ("mk_temp_dir: " ^ Unix.error_message e))
-    in
-    loop 1000
 end
 
 module Int = struct

@@ -104,13 +104,36 @@ let () =
 module Regexp = struct
   type t = Pcre.regexp
   type sub = Pcre.substrings
+  type flag = [ `i | `g | `s | `m ]
 
-  let regexp s = Pcre.regexp s
-  let regexp_or l = Pcre.regexp_or l
-  let split ~pat s = Pcre.split ~pat s
+  let cflags_of_flags (flags : flag list) =
+    List.fold_left
+      (fun l f ->
+        match f with
+          | `i -> `CASELESS :: l
+          (* `g is handled at the call level. *)
+          | `g -> l
+          | `s -> `DOTALL :: l
+          | `m -> `MULTILINE :: l)
+      [] flags
+
+  let regexp ?(flags = []) s =
+    let iflags = Pcre.cflags (cflags_of_flags flags) in
+    Pcre.regexp ~iflags s
+
+  let regexp_or ?(flags = []) l =
+    let iflags = Pcre.cflags (cflags_of_flags flags) in
+    Pcre.regexp_or ~iflags l
+
+  let split ?pat ?rex s = Pcre.split ?pat ?rex s
   let exec ?pat ?rex s = Pcre.exec ?pat ?rex s
+  let test ?pat ?rex s = Pcre.pmatch ?pat ?rex s
+  let num_of_subs sub = Pcre.num_of_subs sub
   let get_substring sub pos = Pcre.get_substring sub pos
   let substitute ?pat ?rex ~subst s = Pcre.substitute ?pat ?rex ~subst s
+
+  let substitute_first ?pat ?rex ~subst s =
+    Pcre.substitute_first ?pat ?rex ~subst s
 end
 
 let () = Hooks.regexp := (module Regexp : Hooks.Regexp_t)

@@ -73,7 +73,7 @@ let () =
               {
                 audio = Content.None.format;
                 video = Content.None.format;
-                midi = Content.(Midi.lift_params { Contents.channels = 16 });
+                midi = Content.(Midi.lift_params { Content.channels = 16 });
               });
       file_decoder =
         Some (fun ~metadata:_ ~ctype:_ filename -> decoder filename);

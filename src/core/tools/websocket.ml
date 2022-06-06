@@ -48,7 +48,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
   let wsa wsk =
     let wsa = wsk ^ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" in
     let wsa = Sha1.digest wsa in
-    let wsa = Utils.encode64 wsa in
+    let wsa = Lang_string.encode64 wsa in
     wsa
 
   (** Handle an upgrade to websocket request. *)

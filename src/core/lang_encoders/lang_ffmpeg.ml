@@ -52,7 +52,7 @@ let kind_of_encoder p =
                 Content.(
                   Audio.lift_params
                     {
-                      Contents.channel_layout =
+                      Content.channel_layout =
                         lazy
                           (Audio_converter.Channel_layout.layout_of_channels
                              channels);

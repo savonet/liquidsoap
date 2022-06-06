@@ -500,11 +500,12 @@ type explanation = bool * Type.t * Type.t * t * t
 
 exception Type_error of explanation
 
-let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
+let print_type_error ~formatter error_header
+    ((flipped, ta, tb, a, b) : explanation) =
   error_header ta.pos;
   match b with
     | `Meth (l, ([], `Ellipsis), _, `Ellipsis) when not flipped ->
-        Format.printf "this value has no method `%s`@." l
+        Format.fprintf formatter "this value has no method `%s`@." l
     | _ ->
         let inferred_pos a =
           let dpos = (deref a).pos in
@@ -515,9 +516,10 @@ let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
               | Some p -> " (inferred at " ^ Pos.to_string ~prefix:"" p ^ ")")
         in
         let ta, tb, a, b = if flipped then (tb, ta, b, a) else (ta, tb, a, b) in
-        Format.printf "this value has type@.@[<2>  %a@]%s@ " print a
+        Format.fprintf formatter "this value has type@.@[<2>  %a@]%s@ " print a
           (inferred_pos ta);
-        Format.printf "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
+        Format.fprintf formatter
+          "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
           (if flipped then "super" else "sub")
           (match tb.pos with
             | None -> ""

@@ -44,15 +44,15 @@ let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
 
-let error_header idx pos =
+let error_header ~formatter idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
   let pos = Pos.Option.to_string pos in
-  Format.printf "@[%s:\n%s\n%s %i: " (position pos) e error idx
+  Format.fprintf formatter "@[%s:\n%s\n%s %i: " (position pos) e error idx
 
-let warning_header idx pos =
+let warning_header ~formatter idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
   let pos = Pos.Option.to_string pos in
-  Format.printf "@[%s:\n%s\n%s %i: " (position pos) e warning idx
+  Format.fprintf formatter "@[%s:\n%s\n%s %i: " (position pos) e warning idx
 
 (** Exception raised by report_error after an error has been displayed.
   * Unknown errors are re-raised, so that their content is not totally lost. *)
@@ -60,57 +60,64 @@ exception Error
 
 let strict = ref false
 
-let throw print_error = function
+let throw ?(formatter = Format.std_formatter) lexbuf =
+  let print_error ~formatter idx error =
+    flush_all ();
+    let pos = Sedlexing.lexing_positions lexbuf in
+    error_header ~formatter idx (Some pos);
+    Format.fprintf formatter "%s\n@]@." error
+  in
+  function
   (* Warnings *)
   | Term.Ignored tm when Type.is_fun tm.Term.t ->
       flush_all ();
-      warning_header 1 tm.Term.t.Type.pos;
-      Format.printf
+      warning_header ~formatter 1 tm.Term.t.Type.pos;
+      Format.fprintf formatter
         "Trying to ignore a function,@ which is of type %s.@ Did you forget to \
          apply it to arguments?@]@."
         (Type.to_string tm.Term.t);
       if !strict then raise Error
   | Term.Ignored tm when Type.is_source tm.Term.t ->
       flush_all ();
-      warning_header 2 tm.Term.t.Type.pos;
-      Format.printf
+      warning_header ~formatter 2 tm.Term.t.Type.pos;
+      Format.fprintf formatter
         "This source is unused, maybe it needs to@ be connected to an \
          output.@]@.";
       if !strict then raise Error
   | Term.Ignored tm ->
       flush_all ();
-      warning_header 3 tm.Term.t.Type.pos;
-      Format.printf "This expression should have type unit.@]@.";
+      warning_header ~formatter 3 tm.Term.t.Type.pos;
+      Format.fprintf formatter "This expression should have type unit.@]@.";
       if !strict then raise Error
   | Term.Unused_variable (s, pos) ->
       flush_all ();
-      warning_header 4 (Some pos);
-      Format.printf "Unused variable %s@]@." s;
+      warning_header ~formatter 4 (Some pos);
+      Format.fprintf formatter "Unused variable %s@]@." s;
       if !strict then raise Error
   (* Errors *)
   | Failure s when s = "lexing: empty token" ->
-      print_error 1 "Empty token";
+      print_error ~formatter 1 "Empty token";
       raise Error
   | Parser.Error | Parsing.Parse_error ->
-      print_error 2 "Parse error";
+      print_error ~formatter 2 "Parse error";
       raise Error
   | Term.Parse_error (pos, s) ->
-      error_header 3 (Some pos);
-      Format.printf "%s@]@." s;
+      error_header ~formatter 3 (Some pos);
+      Format.fprintf formatter "%s@]@." s;
       raise Error
   | Term.Unbound (pos, s) ->
-      error_header 4 pos;
-      Format.printf "Undefined variable %s@]@." s;
+      error_header ~formatter 4 pos;
+      Format.fprintf formatter "Undefined variable %s@]@." s;
       raise Error
   | Repr.Type_error explain ->
       flush_all ();
-      Repr.print_type_error (error_header 5) explain;
+      Repr.print_type_error ~formatter (error_header ~formatter 5) explain;
       raise Error
   | Term.No_label (f, lbl, first, x) ->
       let pos_f = Pos.Option.to_string f.Term.t.Type.pos in
       flush_all ();
-      error_header 6 x.Term.t.Type.pos;
-      Format.printf
+      error_header ~formatter 6 x.Term.t.Type.pos;
+      Format.fprintf formatter
         "Cannot apply that parameter because the function %s@ has %s@ %s!@]@."
         pos_f
         (if first then "no" else "no more")
@@ -118,53 +125,57 @@ let throw print_error = function
         else Format.sprintf "argument labeled %S" lbl);
       raise Error
   | Error.Invalid_value (v, msg) ->
-      error_header 7 v.Value.pos;
-      Format.printf "Invalid value:@ %s@]@." msg;
+      error_header ~formatter 7 v.Value.pos;
+      Format.fprintf formatter "Invalid value:@ %s@]@." msg;
       raise Error
   | Lang_error.Encoder_error (pos, s) ->
-      error_header 8 pos;
-      Format.printf "%s@]@." (String.capitalize_ascii s);
+      error_header ~formatter 8 pos;
+      Format.fprintf formatter "%s@]@." (String.capitalize_ascii s);
       raise Error
   | Failure s ->
-      print_error 9 (Printf.sprintf "Failure: %s" s);
+      print_error ~formatter 9 (Printf.sprintf "Failure: %s" s);
       raise Error
   | Error.Clock_conflict (pos, a, b) ->
       (* TODO better printing of clock errors: we don't have position
        *   information, use the source's ID *)
-      error_header 10 pos;
-      Format.printf "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
+      error_header ~formatter 10 pos;
+      Format.fprintf formatter
+        "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
       raise Error
   | Error.Clock_loop (pos, a, b) ->
-      error_header 11 pos;
-      Format.printf "Cannot unify two nested clocks (%s,@ %s).@]@." a b;
+      error_header ~formatter 11 pos;
+      Format.fprintf formatter "Cannot unify two nested clocks (%s,@ %s).@]@." a
+        b;
       raise Error
   | Error.Kind_conflict (pos, a, b) ->
-      error_header 10 pos;
-      Format.printf "Source kinds don't match@ (%s vs@ %s).@]@." a b;
+      error_header ~formatter 10 pos;
+      Format.fprintf formatter "Source kinds don't match@ (%s vs@ %s).@]@." a b;
       raise Error
   | Term.Unsupported_format (pos, fmt) ->
-      error_header 12 pos;
-      Format.printf
+      error_header ~formatter 12 pos;
+      Format.fprintf formatter
         "Unsupported format: %s.@ You must be missing an optional \
          dependency.@]@."
         fmt;
       raise Error
   | Term.Internal_error (pos, e) ->
       (* Bad luck, error 13 should never have happened. *)
-      error_header 13 (try Some (Pos.List.to_pos pos) with _ -> None);
+      error_header ~formatter 13
+        (try Some (Pos.List.to_pos pos) with _ -> None);
       let pos = Pos.List.to_string ~newlines:true pos in
-      Format.printf "Internal error: %s,@ stack:\n%s\n@]@." e pos;
+      Format.fprintf formatter "Internal error: %s,@ stack:\n%s\n@]@." e pos;
       raise Error
   | Term.Runtime_error { Term.kind; msg; pos } ->
-      error_header 14 (try Some (Pos.List.to_pos pos) with _ -> None);
+      error_header ~formatter 14
+        (try Some (Pos.List.to_pos pos) with _ -> None);
       let pos = Pos.List.to_string ~newlines:true pos in
-      Format.printf
+      Format.fprintf formatter
         "Uncaught runtime error:@ type: %s,@ message: %s,@\nstack: %s\n@]@."
         kind
         (Lang_string.quote_string msg)
         pos;
       raise Error
-  | Sedlexing.MalFormed -> print_error 15 "Malformed file."
+  | Sedlexing.MalFormed -> print_error ~formatter 15 "Malformed file."
   | Term.Missing_arguments (pos, args) ->
       let args =
         List.map
@@ -172,24 +183,20 @@ let throw print_error = function
           args
         |> String.concat ", "
       in
-      error_header 15 pos;
-      Format.printf "Missing arguments in function application: %s.@]@." args;
+      error_header ~formatter 15 pos;
+      Format.fprintf formatter
+        "Missing arguments in function application: %s.@]@." args;
       raise Error
   | End_of_file -> raise End_of_file
   | e ->
       let bt = Printexc.get_backtrace () in
-      error_header (-1) None;
-      Format.printf "Exception raised: %s@.%s@]@." (Printexc.to_string e) bt;
+      error_header ~formatter (-1) None;
+      Format.fprintf formatter "Exception raised: %s@.%s@]@."
+        (Printexc.to_string e) bt;
       raise Error
 
 let report lexbuf f =
-  let print_error idx error =
-    flush_all ();
-    let pos = Sedlexing.lexing_positions lexbuf in
-    error_header idx (Some pos);
-    Format.printf "%s\n@]@." error
-  in
-  let throw = throw print_error in
+  let throw = throw lexbuf in
   if !Term.conf_debug_errors then f ~throw ()
   else (try f ~throw () with exn -> throw exn)
 
@@ -207,13 +214,9 @@ let from_lexbuf ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
     | Some ns -> Sedlexing.set_filename lexbuf ns
     | None -> ()
   end;
-  try
-    report lexbuf (fun ~throw () ->
-        let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
-        if not parse_only then type_and_run ~throw ~lib expr)
-  with Error ->
-    flush_all ();
-    exit 1
+  report lexbuf (fun ~throw () ->
+      let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
+      if not parse_only then type_and_run ~throw ~lib expr)
 
 let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
@@ -227,9 +230,10 @@ let from_file ?parse_only ~ns ~lib filename =
     ?parse_only ~ns ~lib ic;
   close_in ic
 
-let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true) () =
+let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true)
+    ?(stdlib = "stdlib.liq") () =
   let dir = !Hooks.liq_libs_dir () in
-  let file = Filename.concat dir "stdlib.liq" in
+  let file = Filename.concat dir stdlib in
   if not (Sys.file_exists file) then (
     if error_on_no_stdlib then
       failwith "Could not find default stdlib.liq library!")

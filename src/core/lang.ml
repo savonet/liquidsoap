@@ -13,10 +13,8 @@ let audio_params p =
   }
 
 let audio_n n = { Frame.audio = Frame.audio_n n; video = `Any; midi = `Any }
-let audio_mono = audio_params { Content.Contents.channel_layout = lazy `Mono }
-
-let audio_stereo =
-  audio_params { Content.Contents.channel_layout = lazy `Stereo }
+let audio_mono = audio_params { Content.channel_layout = lazy `Mono }
+let audio_stereo = audio_params { Content.channel_layout = lazy `Stereo }
 
 let video_yuva420p =
   { Frame.audio = `Any; video = Frame.video_yuva420p; midi = `Any }
@@ -27,7 +25,7 @@ let midi_n n =
   {
     Frame.audio = `Any;
     video = `Any;
-    midi = `Format (Content.Midi.lift_params { Content.Contents.channels = n });
+    midi = `Format (Content.Midi.lift_params { Content.channels = n });
   }
 
 (** Helpers for defining protocols. *)

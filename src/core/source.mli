@@ -72,9 +72,6 @@ type watcher = {
   after_output : unit -> unit;
 }
 
-(** Generate an identifier from the name of the source. *)
-val generate_id : string -> string
-
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
   ?name:string
