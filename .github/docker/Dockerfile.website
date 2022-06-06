@@ -29,16 +29,26 @@ RUN git remote set-url origin https://github.com/savonet/liquidsoap-full.git && 
     git reset --hard HEAD && \
     git pull
 
-# Remove after next base image rebuild
-RUN rm -rf ocaml-lastfm/src/lastfm_constants.ml
-
 RUN eval $(opam config env) && make clean
+
+RUN cd liquidsoap && \
+    mv .git /tmp && \
+    rm -rf * && \
+    mv /tmp/.git . && \
+    git reset --hard
 
 RUN make public && make update
 
 RUN cp PACKAGES.default PACKAGES
 
-RUN eval $(opam config env) && export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig && ./bootstrap && ./configure --enable-graphics && cd liquidsoap && make clean && make
+RUN eval $(opam config env) && \
+    export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig && \
+    touch liquidsoap/configure && \
+    ./configure --enable-graphics && \
+    rm liquidsoap/configure && \
+    export OCAMLPATH=`cat .ocamlpath` && \
+    cd liquidsoap && \
+    dune build
 
 WORKDIR /tmp/liquidsoap-full/website
 
