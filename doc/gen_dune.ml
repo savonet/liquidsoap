@@ -1,13 +1,11 @@
 let generated_md =
   [
-    ("content/protocols.md", "--list-protocols-md", None);
-    ( "content/reference.md",
-      "--list-functions-md",
-      Some "content/reference-header.md" );
-    ( "content/reference-extras.md",
+    ("protocols.md", "--list-protocols-md", None);
+    ("reference.md", "--list-functions-md", Some "content/reference-header.md");
+    ( "reference-extras.md",
       "--list-extra-functions-md",
       Some "content/reference-header.md" );
-    ("content/settings.md", "--list-settings", None);
+    ("settings.md", "--list-settings", None);
   ]
 
 let mk_html f = Pcre.substitute ~pat:"md$" ~subst:(fun _ -> "html") f

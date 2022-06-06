@@ -4,9 +4,9 @@
   (deps
     
     (:liquidsoap ../src/bin/liquidsoap.exe))
-  (target content/protocols.md)
+  (target protocols.md)
   (action
-    (with-stdout-to content/protocols.md
+    (with-stdout-to protocols.md
       
       (setenv PAGER none
         (run %{liquidsoap} --list-protocols-md)))))
@@ -17,9 +17,9 @@
   (deps
     (:header content/reference-header.md)
     (:liquidsoap ../src/bin/liquidsoap.exe))
-  (target content/reference.md)
+  (target reference.md)
   (action
-    (with-stdout-to content/reference.md
+    (with-stdout-to reference.md
       (progn (cat %{header})
       (setenv PAGER none
         (run %{liquidsoap} --list-functions-md)))))
@@ -30,9 +30,9 @@
   (deps
     (:header content/reference-header.md)
     (:liquidsoap ../src/bin/liquidsoap.exe))
-  (target content/reference-extras.md)
+  (target reference-extras.md)
   (action
-    (with-stdout-to content/reference-extras.md
+    (with-stdout-to reference-extras.md
       (progn (cat %{header})
       (setenv PAGER none
         (run %{liquidsoap} --list-extra-functions-md)))))
@@ -43,9 +43,9 @@
   (deps
     
     (:liquidsoap ../src/bin/liquidsoap.exe))
-  (target content/settings.md)
+  (target settings.md)
   (action
-    (with-stdout-to content/settings.md
+    (with-stdout-to settings.md
       
       (setenv PAGER none
         (run %{liquidsoap} --list-settings)))))
@@ -58,11 +58,11 @@
     language.dtd
     template.html
     no-pandoc
-    (:md content/protocols.md))
-  (target content/protocols.html)
+    (:md protocols.md))
+  (target protocols.html)
   (action
     (ignore-outputs
-      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=content/protocols --template=template.html -o content/protocols.html || cp no-pandoc content/protocols.html"))))
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=protocols --template=template.html -o protocols.html || cp no-pandoc protocols.html"))))
 
 (rule
   (alias doc)
@@ -71,11 +71,11 @@
     language.dtd
     template.html
     no-pandoc
-    (:md content/reference.md))
-  (target content/reference.html)
+    (:md reference.md))
+  (target reference.html)
   (action
     (ignore-outputs
-      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=content/reference --template=template.html -o content/reference.html || cp no-pandoc content/reference.html"))))
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference --template=template.html -o reference.html || cp no-pandoc reference.html"))))
 
 (rule
   (alias doc)
@@ -84,11 +84,11 @@
     language.dtd
     template.html
     no-pandoc
-    (:md content/reference-extras.md))
-  (target content/reference-extras.html)
+    (:md reference-extras.md))
+  (target reference-extras.html)
   (action
     (ignore-outputs
-      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=content/reference-extras --template=template.html -o content/reference-extras.html || cp no-pandoc content/reference-extras.html"))))
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference-extras --template=template.html -o reference-extras.html || cp no-pandoc reference-extras.html"))))
 
 (rule
   (alias doc)
@@ -97,11 +97,11 @@
     language.dtd
     template.html
     no-pandoc
-    (:md content/settings.md))
-  (target content/settings.html)
+    (:md settings.md))
+  (target settings.html)
   (action
     (ignore-outputs
-      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=content/settings --template=template.html -o content/settings.html || cp no-pandoc content/settings.html"))))
+      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=settings --template=template.html -o settings.html || cp no-pandoc settings.html"))))
 
 (rule
   (alias doc)
@@ -960,10 +960,10 @@
 (orig/images/tabs/tab_about.png as html/images/tabs/tab_about.png)
 (orig/css/style.css as html/css/style.css)
 (orig/css/homepage.css as html/css/homepage.css)
-    (content/protocols.html as html/content/protocols.html)
-(content/reference.html as html/content/reference.html)
-(content/reference-extras.html as html/content/reference-extras.html)
-(content/settings.html as html/content/settings.html)
+    (protocols.html as html/protocols.html)
+(reference.html as html/reference.html)
+(reference-extras.html as html/reference-extras.html)
+(settings.html as html/settings.html)
     (reference-header.html as html/reference-header.html)
 (language.html as html/language.html)
 (geekradio.html as html/geekradio.html)
