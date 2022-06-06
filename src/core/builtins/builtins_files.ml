@@ -321,24 +321,27 @@ let () =
       else Lang.metadata (Hashtbl.create 0))
 
 let () =
-  List.iter
-    (fun (name, decoder) ->
-      let name = String.lowercase_ascii name in
-      Lang.add_builtin ("file.metadata." ^ name) ~category:`File
-        [
-          ( "",
-            Lang.string_t,
-            None,
-            Some "File from which the metadata should be read." );
-        ]
-        Lang.metadata_t
-        ~descr:("Read metadata from a file using the " ^ name ^ " decoder.")
-        (fun p ->
-          let uri = Lang.to_string (List.assoc "" p) in
-          let m = try decoder uri with _ -> [] in
-          let m = List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m in
-          Lang.metadata (Frame.metadata_of_list m)))
-    Request.mresolvers#get_all
+  Lifecycle.on_init (fun () ->
+      List.iter
+        (fun (name, decoder) ->
+          let name = String.lowercase_ascii name in
+          Lang.add_builtin ("file.metadata." ^ name) ~category:`File
+            [
+              ( "",
+                Lang.string_t,
+                None,
+                Some "File from which the metadata should be read." );
+            ]
+            Lang.metadata_t
+            ~descr:("Read metadata from a file using the " ^ name ^ " decoder.")
+            (fun p ->
+              let uri = Lang.to_string (List.assoc "" p) in
+              let m = try decoder uri with _ -> [] in
+              let m =
+                List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
+              in
+              Lang.metadata (Frame.metadata_of_list m)))
+        Request.mresolvers#get_all)
 
 (************** Paths ********************)
 
