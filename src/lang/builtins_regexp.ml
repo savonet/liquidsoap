@@ -23,21 +23,10 @@
 type regexp = {
   descr : string;
   flags : [ `i | `g | `s | `m ] list;
-  regexp : Pcre.regexp;
+  regexp : Regexp.t;
 }
 
 let all_regexp_flags = [`i; `g; `s; `m]
-
-let cflags_of_flags (flags : [ `i | `g | `s | `m ] list) =
-  List.fold_left
-    (fun l f ->
-      match f with
-        | `i -> `CASELESS :: l
-        (* `g is handled at the call level. *)
-        | `g -> l
-        | `s -> `DOTALL :: l
-        | `m -> `MULTILINE :: l)
-    [] flags
 
 let string_of_regexp_flag = function
   | `i -> "i"
@@ -93,7 +82,7 @@ let test_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t
 let test_fun ~flags:_ rex =
   Lang.val_fun [("", "", None)] (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
-      Lang.bool (Pcre.pmatch ~rex string))
+      Lang.bool (Regexp.test ~rex string))
 
 let split_t =
   Lang.fun_t [(false, "", Lang.string_t)] (Lang.list_t Lang.string_t)
@@ -101,7 +90,7 @@ let split_t =
 let split_fun ~flags:_ rex =
   Lang.val_fun [("", "", None)] (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
-      Lang.list (List.map Lang.string (Pcre.split ~rex string)))
+      Lang.list (List.map Lang.string (Regexp.split ~rex string)))
 
 let exec_t =
   Lang.fun_t
@@ -112,11 +101,11 @@ let exec_fun ~flags:_ regexp =
   Lang.val_fun [("", "", None)] (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       try
-        let sub = Pcre.exec ~rex:regexp string in
-        let n = Pcre.num_of_subs sub in
+        let sub = Regexp.exec ~rex:regexp string in
+        let n = Regexp.num_of_subs sub in
         let rec extract acc i =
           if i < n then (
-            try extract ((i, Pcre.get_substring sub i) :: acc) (i + 1)
+            try extract ((i, Regexp.get_substring sub i) :: acc) (i + 1)
             with Not_found -> extract acc (i + 1))
           else List.rev acc
         in
@@ -143,18 +132,18 @@ let replace_fun ~flags regexp =
       in
       let string = Lang.to_string (Lang.assoc "" 2 p) in
       let sub =
-        if List.mem `g flags then Pcre.substitute else Pcre.substitute_first
+        if List.mem `g flags then Regexp.substitute else Regexp.substitute_first
       in
       let string =
         try sub ~rex:regexp ~subst string
-        with Pcre.Error err ->
+        with exn ->
           raise
             (Term.Runtime_error
                {
                  Term.kind = "string";
                  msg =
-                   Printf.sprintf "string.replace pcre error: %s"
-                     (Utils.string_of_pcre_error err);
+                   Printf.sprintf "string.replace error: %s"
+                     (Printexc.to_string exn);
                  pos;
                })
       in
@@ -209,9 +198,8 @@ let () =
             with _ -> raise (Error.Invalid_value (v, "Invalid regexp flag")))
           (Lang.to_list (List.assoc "flags" p))
       in
-      let iflags = Pcre.cflags (cflags_of_flags flags) in
       let descr = Lang.to_string (List.assoc "" p) in
-      let regexp = Pcre.regexp ~iflags descr in
+      let regexp = Regexp.regexp ~flags descr in
       let v = RegExp.to_value { descr; flags; regexp } in
       let meth =
         List.map (fun (name, _, _, fn) -> (name, fn ~flags regexp)) meth

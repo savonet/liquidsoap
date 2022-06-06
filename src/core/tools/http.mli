@@ -16,7 +16,7 @@ end
 
 module type Http_t = sig
   (** Error handling *)
-  type error = Socket | Response | UrlDecoding
+  type error = Socket | Response
 
   exception Error of error
 
@@ -39,12 +39,6 @@ module type Http_t = sig
 
   (** User-agent for liquidsoap *)
   val user_agent : string
-
-  (** Decode an url. *)
-  val url_decode : ?plus:bool -> string -> string
-
-  (** Encode an url. *)
-  val url_encode : ?plus:bool -> string -> string
 
   (** Split an URL into its components. *)
   val parse_url : string -> uri

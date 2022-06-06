@@ -32,6 +32,7 @@ val load_libs :
   ?error_on_no_stdlib:bool ->
   ?parse_only:bool ->
   ?deprecated:bool ->
+  ?stdlib:string ->
   unit ->
   unit
 

@@ -49,7 +49,7 @@ end
 
 module type Http_t = sig
   (** Error handling *)
-  type error = Socket | Response | UrlDecoding
+  type error = Socket | Response
 
   exception Error of error
 
@@ -69,8 +69,6 @@ module type Http_t = sig
 
   val default_port : int
   val user_agent : string
-  val url_decode : ?plus:bool -> string -> string
-  val url_encode : ?plus:bool -> string -> string
   val parse_url : string -> uri
   val is_url : string -> bool
   val dirname : string -> string
@@ -110,7 +108,7 @@ module Make (Transport : Transport_t) = struct
 
   include Extralib
 
-  type error = Socket | Response | UrlDecoding
+  type error = Socket | Response
 
   exception Error of error
 
@@ -118,7 +116,6 @@ module Make (Transport : Transport_t) = struct
     match e with
       | Socket -> "Http: error while communicating to socket"
       | Response -> "Http: invalid answer to request"
-      | UrlDecoding -> "Http: URL decoding failed"
 
   (** Error translator *)
   let error_translator (e : exn) =
@@ -141,68 +138,6 @@ module Make (Transport : Transport_t) = struct
   let default_port = Transport.default_port
   let user_agent = Configure.vendor ()
 
-  (* URL encoding/decoding according to RFC 1738, RFC 1630.
-   * Borrowed from ocamlnet. *)
-
-  (** Converts k to a 2-digit hexadecimal string. *)
-  let to_hex2 =
-    let hex_digits =
-      [|
-        '0';
-        '1';
-        '2';
-        '3';
-        '4';
-        '5';
-        '6';
-        '7';
-        '8';
-        '9';
-        'A';
-        'B';
-        'C';
-        'D';
-        'E';
-        'F';
-      |]
-    in
-    fun k ->
-      let s = Bytes.create 2 in
-      Bytes.set s 0 hex_digits.((k lsr 4) land 15);
-      Bytes.set s 1 hex_digits.(k land 15);
-      Bytes.unsafe_to_string s
-
-  let url_encode ?(plus = true) s =
-    Pcre.substitute ~pat:"[^A-Za-z0-9_.!*-]"
-      ~subst:(fun x ->
-        if plus && x = " " then "+"
-        else (
-          let k = Char.code x.[0] in
-          "%" ^ to_hex2 k))
-      s
-
-  let of_hex1 c =
-    match c with
-      | '0' .. '9' -> Char.code c - Char.code '0'
-      | 'A' .. 'F' -> Char.code c - Char.code 'A' + 10
-      | 'a' .. 'f' -> Char.code c - Char.code 'a' + 10
-      | _ -> raise UrlDecoding
-
-  let url_decode ?(plus = true) s =
-    Pcre.substitute
-      ~pat:
-        "\\+|%..|%.|%"
-        (* TODO why do we match %. and % and seem to exclude them below ? *)
-      ~subst:(fun s ->
-        if s = "+" then if plus then " " else "+"
-        else (
-          (* Assertion: s.[0] = '%' *)
-          if String.length s < 3 then raise UrlDecoding;
-          let k1 = of_hex1 s.[1] in
-          let k2 = of_hex1 s.[2] in
-          String.make 1 (Char.chr ((k1 lsl 4) lor k2))))
-      s
-
   let args_split s =
     let args = Hashtbl.create 2 in
     let fill_arg arg =
@@ -210,7 +145,9 @@ module Make (Transport : Transport_t) = struct
         | e :: l ->
             (* There should be only arg=value *)
             List.iter
-              (fun v -> Hashtbl.replace args (url_decode e) (url_decode v))
+              (fun v ->
+                Hashtbl.replace args (Lang_string.url_decode e)
+                  (Lang_string.url_decode v))
               l
         | [] -> ()
     in

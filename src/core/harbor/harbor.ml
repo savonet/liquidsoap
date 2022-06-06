@@ -391,7 +391,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let data = Pcre.split ~rex:(Pcre.regexp "[ \t]+") auth in
           match data with
             | "Basic" :: x :: _ -> (
-                let auth_data = Pcre.split ~pat:":" (Utils.decode64 x) in
+                let auth_data = Pcre.split ~pat:":" (Lang_string.decode64 x) in
                 match auth_data with
                   | x :: y :: _ -> (x, y)
                   | _ -> raise Not_found)

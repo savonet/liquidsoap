@@ -121,3 +121,25 @@ let () =
         if ans > b then Lang.null else Lang.int ans
       in
       Lang.val_fun [] f)
+
+let () =
+  let ss = Lang.product_t Lang.string_t Lang.string_t in
+  let ret_t = Lang.list_t ss in
+  Lang.add_builtin "environment" ~category:`System
+    ~descr:"Return the process environment." [] ret_t (fun _ ->
+      let l = Lang.environment () in
+      let l = List.map (fun (x, y) -> (Lang.string x, Lang.string y)) l in
+      let l = List.map (fun (x, y) -> Lang.product x y) l in
+      Lang.list l)
+
+let () =
+  Lang.add_builtin "setenv" ~category:`System
+    ~descr:"Set the value associated to a variable in the process environment."
+    [
+      ("", Lang.string_t, None, Some "Variable to be set.");
+      ("", Lang.string_t, None, Some "Value to set.");
+    ] Lang.unit_t (fun p ->
+      let label = Lang.to_string (Lang.assoc "" 1 p) in
+      let value = Lang.to_string (Lang.assoc "" 2 p) in
+      Unix.putenv label value;
+      Lang.unit)

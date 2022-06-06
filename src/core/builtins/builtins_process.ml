@@ -129,7 +129,7 @@ let () =
           | Some v -> Lang.to_bool v
       in
       let inherit_env = Lang.to_bool (List.assoc "inherit_env" p) in
-      let env = if env = [] && inherit_env then Utils.environment () else env in
+      let env = if env = [] && inherit_env then Lang.environment () else env in
       let timeout =
         match
           Option.map Lang.to_float (Lang.to_option (List.assoc "timeout" p))

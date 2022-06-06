@@ -273,3 +273,6 @@ val raise_error :
 
 (** Re-raise an error as a runtime error. *)
 val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
+
+(** Return the process' environment. *)
+val environment : unit -> (string * string) list

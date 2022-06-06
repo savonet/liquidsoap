@@ -359,3 +359,16 @@ let raise_as_runtime ~bt ~kind exn =
             (Printf.sprintf "%s\nBacktrace:\n%s" (Printexc.to_string exn)
                (Printexc.raw_backtrace_to_string bt))
           kind
+
+let environment () =
+  let l = Unix.environment () in
+  (* Split at first occurrence of '='. Return v,"" if
+   * no '=' could be found. *)
+  let split s =
+    try
+      let pos = String.index s '=' in
+      (String.sub s 0 pos, String.sub s (pos + 1) (String.length s - pos - 1))
+    with _ -> (s, "")
+  in
+  let l = Array.to_list l in
+  List.map split l

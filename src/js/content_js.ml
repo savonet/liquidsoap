@@ -51,7 +51,7 @@ end
 module VideoSpecs = struct
   type kind = [ `Canvas ]
   type params = video_params
-  type data = ()
+  type data = unit
 
   let internal_content_type = Some `Video
   let string_of_kind = function `Canvas -> "canvas"

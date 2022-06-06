@@ -1,4 +1,3 @@
-%ifdef process
 # Perform a shell call and return its output.
 # @category System
 # @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
@@ -46,4 +45,3 @@ def read(~hide=false)
   print("")
   s
 end
-%endif

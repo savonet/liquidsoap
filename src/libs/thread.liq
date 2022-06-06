@@ -1,4 +1,3 @@
-%ifdef thread
 # Run a function in a separate thread.
 # @category Control
 # @param ~fast Whether the thread is supposed to return quickly or not. Typically, blocking tasks (e.g. fetching data over the internet) should not be considered to be fast. When set to `false` its priority will be lowered below that of request resolutions and fast timeouts. This is only effective if you set a dedicated queue for fast tasks, see the "scheduler" settings for more details.
@@ -37,4 +36,3 @@ def default_error_handler(~backtrace, err) =
   log(label="runtime", level=1, "Uncaught error #{err}!\n#{backtrace}")
 end
 thread.on_error(null(), default_error_handler)
-%endif

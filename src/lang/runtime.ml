@@ -223,9 +223,10 @@ let from_file ?parse_only ~ns ~lib filename =
     ?parse_only ~ns ~lib ic;
   close_in ic
 
-let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true) () =
+let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true)
+    ?(stdlib = "stdlib.liq") () =
   let dir = !Hooks.liq_libs_dir () in
-  let file = Filename.concat dir "stdlib.liq" in
+  let file = Filename.concat dir stdlib in
   if not (Sys.file_exists file) then (
     if error_on_no_stdlib then
       failwith "Could not find default stdlib.liq library!")

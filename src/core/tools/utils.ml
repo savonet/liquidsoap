@@ -237,73 +237,6 @@ let get_tempdir () =
   if Sys.win32 then Option.value (Sys.getenv_opt "TEMP") ~default:"C:\\temp"
   else Option.value (Sys.getenv_opt "TMPDIR") ~default:"/tmp"
 
-(** Decode Base64-encoded data *)
-let decode64 s =
-  let padding = ref 0 in
-  let to_int c =
-    match c with
-      | 'A' .. 'Z' -> int_of_char c - int_of_char 'A'
-      | 'a' .. 'z' -> int_of_char c - int_of_char 'a' + 26
-      | '0' .. '9' -> int_of_char c - int_of_char '0' + 52
-      | '+' -> 62
-      | '/' -> 63
-      | '=' ->
-          incr padding;
-          0
-      | _ -> failwith "decode64: invalid encoding"
-  in
-  let result = ref [] in
-  let add x = result := char_of_int x :: !result in
-  for i = 0 to (String.length s / 4) - 1 do
-    (* Read 4 64-digits, i.e. 3 bytes. *)
-    let c n = to_int s.[(i * 4) + n] in
-    let i = c 3 + (c 2 lsl 6) + (c 1 lsl 12) + (c 0 lsl 18) in
-    add ((i land 0xff0000) lsr 16);
-    add ((i land 0x00ff00) lsr 8);
-    add (i land 0x0000ff)
-  done;
-  let result =
-    (* Remove up to two bytes depending on the padding. *)
-    match !padding with
-      | 0 -> !result
-      | 1 -> List.tl !result
-      | 2 -> List.tl (List.tl !result)
-      | _ -> failwith "decode64: invalid encoding"
-  in
-  let len = List.length result in
-  let s = Bytes.make len ' ' in
-  ignore
-    (List.fold_left
-       (fun i c ->
-         Bytes.set s i c;
-         i - 1)
-       (len - 1) result);
-  Bytes.unsafe_to_string s
-
-(** Base 64 encoding. *)
-let encode64 s =
-  let digit =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-  in
-  let extra = String.length s mod 3 in
-  let s = match extra with 1 -> s ^ "\000\000" | 2 -> s ^ "\000" | _ -> s in
-  let n = String.length s in
-  let dst = Bytes.create (4 * (n / 3)) in
-  for i = 0 to (n / 3) - 1 do
-    let ( := ) j v = Bytes.set dst ((i * 4) + j) digit.[v] in
-    let c j = int_of_char s.[(i * 3) + j] in
-    let c0 = c 0 and c1 = c 1 and c2 = c 2 in
-    0 := c0 lsr 2;
-    1 := (c0 lsl 4) land 63 lor (c1 lsr 4);
-    2 := (c1 lsl 2) land 63 lor (c2 lsr 6);
-    3 := c2 land 63
-  done;
-  if extra = 1 then (
-    Bytes.set dst ((4 * (n / 3)) - 2) '=';
-    Bytes.set dst ((4 * (n / 3)) - 1) '=')
-  else if extra = 2 then Bytes.set dst ((4 * (n / 3)) - 1) '=';
-  Bytes.unsafe_to_string dst
-
 (* This is not guaranteed to work 100% but should
  * be ok on reasonable cases. A problematic cases
  * is for instance: http://bla.com/foo.mp3?gni=bla.truc *)
@@ -403,43 +336,6 @@ let float_of_extended_float bytes =
     let f = ldexp (float_of_unsigned hiMant) expon in
     let f = f +. ldexp (float_of_unsigned loMant) (expon - 32) in
     if int_of_char bytes.[0] land 0x80 <> 0 then -1. *. f else f)
-
-(* From OCaml *)
-let file_extension_len ~dir_sep name =
-  let rec check i0 i =
-    if i < 0 || name.[i] = dir_sep then 0
-    else if name.[i] = '.' then check i0 (i - 1)
-    else String.length name - i0
-  in
-  let rec search_dot i =
-    if i < 0 || name.[i] = dir_sep then 0
-    else if name.[i] = '.' then check i (i - 1)
-    else search_dot (i - 1)
-  in
-  search_dot (String.length name - 1)
-
-let file_extension ?(leading_dot = true) ?(dir_sep = Filename.dir_sep) name =
-  let dir_sep = dir_sep.[0] in
-  let l = file_extension_len ~dir_sep name in
-  let s = if l = 0 then "" else String.sub name (String.length name - l) l in
-  try
-    match (leading_dot, s.[0]) with
-      | false, '.' -> String.sub s 1 (String.length s - 1)
-      | _ -> s
-  with Invalid_argument _ -> s
-
-let environment () =
-  let l = Unix.environment () in
-  (* Split at first occurrence of '='. Return v,"" if
-   * no '=' could be found. *)
-  let split s =
-    try
-      let pos = String.index s '=' in
-      (String.sub s 0 pos, String.sub s (pos + 1) (String.length s - pos - 1))
-    with _ -> (s, "")
-  in
-  let l = Array.to_list l in
-  List.map split l
 
 (** Size of an OCaml value (including referred elements) in bytes. *)
 let reachable_size x = Obj.reachable_words (Obj.repr x) * Sys.word_size

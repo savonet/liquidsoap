@@ -255,10 +255,9 @@
  (libraries liquidsoap_core)
  (modules
   builtins_callbacks
-  builtins_files
+  builtins_files_extra
   builtins_harbor
   builtins_process
-  builtins_regexp
   builtins_request
   builtins_resolvers
   builtins_runtime

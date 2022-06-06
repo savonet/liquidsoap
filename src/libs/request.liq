@@ -2,7 +2,6 @@ let request.queue = ()
 
 let stdlib_native = native
 
-i%ifdef request.dynamic
 # @docof request.dynamic
 # @param ~native Use native implementation.
 def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
@@ -12,7 +11,6 @@ def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
     request.dynamic(%argsof(request.dynamic), f)
   end
 end
-%endif
 
 # Play a queue of requests (the first added request gets played first).
 # @category Source / Track Processing
@@ -33,7 +31,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
     if !queue != [] then
       let [r, ...q] = !queue
       queue := q
-      r
+      (r:request)
     else
       null()
     end

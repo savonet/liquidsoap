@@ -1,4 +1,3 @@
-%ifdef request.dynamic
 # Default id assignment for playlists
 # @category Liquidsoap
 # @param ~default Default name pattern when no useful name can be extracted from `uri`
@@ -201,7 +200,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
           end
         end
         failed_time := time()
-        next():request?)
+        (next():request?)
       else
         failed_count := 0
         if check_next(r) then
@@ -419,4 +418,3 @@ def replaces playlist(
 
   s
 end
-%endif

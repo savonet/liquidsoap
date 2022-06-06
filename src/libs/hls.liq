@@ -103,7 +103,6 @@ end
 
 let output.harbor.hls = ()
 
-%ifdef output.file.hls
 # @flag hidden
 def output.harbor.hls.base(
   %argsof(output.file.hls[!segment_name]),
@@ -153,7 +152,6 @@ def replaces output.harbor.hls(
   end
   output.harbor.hls.base(%argsof(output.file.hls),path=path,port=port,tmpdir=tmpdir,serve,formats,s)
 end
-%endif
 
 %ifdef harbor.https.static
 # Output the source stream to an HTTP live stream served from the harbor HTTPS server.

@@ -426,3 +426,56 @@ let () =
           Runtime_error.error ~message:"Invalid character code!" "invalid"
       in
       Lang.string (String.make n c))
+
+let () =
+  Lang.add_builtin "string.id" ~category:`String
+    ~descr:"Generate an identifier with given operator name."
+    [("", Lang.string_t, None, Some "Operator name.")] Lang.string_t (fun p ->
+      let name = List.assoc "" p |> Lang.to_string in
+      Lang.string (Lang_string.generate_id name))
+
+let () = Lang.add_module "string.base64"
+
+let () =
+  Lang.add_builtin "string.base64.decode" ~category:`String
+    ~descr:"Decode a Base64 encoded string." [("", Lang.string_t, None, None)]
+    Lang.string_t (fun p ->
+      let string = Lang.to_string (List.assoc "" p) in
+      try Lang.string (Lang_string.decode64 string)
+      with _ ->
+        Runtime_error.error ~message:"Invalid base64 string!" "invalid")
+
+let () =
+  Lang.add_builtin "string.base64.encode" ~category:`String
+    ~descr:"Encode a string in Base64." [("", Lang.string_t, None, None)]
+    Lang.string_t (fun p ->
+      let string = Lang.to_string (List.assoc "" p) in
+      Lang.string (Lang_string.encode64 string))
+
+let () = Lang.add_module "url"
+
+let () =
+  Lang.add_builtin "url.decode" ~category:`String
+    ~descr:"Decode an encoded url (e.g. \"%20\" becomes \" \")."
+    [
+      ("plus", Lang.bool_t, Some (Lang.bool true), None);
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.string_t
+    (fun p ->
+      let plus = Lang.to_bool (List.assoc "plus" p) in
+      let string = Lang.to_string (List.assoc "" p) in
+      Lang.string (Lang_string.url_decode ~plus string))
+
+let () =
+  Lang.add_builtin "url.encode" ~category:`String
+    ~descr:"Encode an url (e.g. \" \" becomes \"%20\")."
+    [
+      ("plus", Lang.bool_t, Some (Lang.bool true), None);
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.string_t
+    (fun p ->
+      let plus = Lang.to_bool (List.assoc "plus" p) in
+      let string = Lang.to_string (List.assoc "" p) in
+      Lang.string (Lang_string.url_encode ~plus string))

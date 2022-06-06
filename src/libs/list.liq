@@ -334,7 +334,7 @@ end
 # @param l List to insert into.
 def list.insert(index, new_element, l) =
   if list.length(l) < index then
-    error.raise(error.not_found, "List should have at least #{index} elements")
+    error.raise(error.not_found, "List should have at least #{index} elemments")
   end
 
   if index == 0 then

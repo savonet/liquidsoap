@@ -1,4 +1,3 @@
-%ifdef log
 # Log a critical message
 # @category Liquidsoap
 def log.critical(~label="lang",msg) =
@@ -46,4 +45,3 @@ end
 def log.stdout =
   settings.log.stdout
 end
-%endif
