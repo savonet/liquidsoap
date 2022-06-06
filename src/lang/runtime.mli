@@ -36,7 +36,9 @@ val load_libs :
   unit ->
   unit
 
-val throw : (int -> string -> unit) -> exn -> unit
+(* Wrapper for format language errors. Re-raises [Error]
+   after printing language errors. *)
+val throw : ?formatter:Format.formatter -> Sedlexing.lexbuf -> exn -> unit
 
 val mk_expr :
   ?fname:string ->
