@@ -453,9 +453,17 @@ let start_telnet () =
       handler = incoming;
     }
 
+let on_start_fns = ref []
+let started = ref false
+
+let on_start fn =
+  if !started then fn () else on_start_fns := fn :: !on_start_fns
+
 let start () =
   if conf_telnet#get then start_telnet ();
-  if conf_socket#get then start_socket ()
+  if conf_socket#get then start_socket ();
+  List.iter (fun fn -> fn ()) !on_start_fns;
+  started := true
 
 (* Re-wrap exec for external use *)
 let exec s = try exec s with Exit -> "ERROR: Attempt to exit!"
