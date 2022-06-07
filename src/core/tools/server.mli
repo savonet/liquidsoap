@@ -91,5 +91,9 @@ val remove : ns:namespace -> string -> unit
   * @raise Not_found if the command does not exist.  *)
 val exec : string -> string
 
+(** Register a handle to be executed on server start or immediately
+    if the server has already started. *)
+val on_start : (unit -> unit) -> unit
+
 (** Start server and telnet if enabled. *)
 val start : unit -> unit

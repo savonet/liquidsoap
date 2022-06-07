@@ -20,3 +20,13 @@
  (alias gendune)
  (action
   (diff dune.inc dune.inc.gen)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  (:server_port ./server_port.sh)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:run_test ../run_test.sh))
+ (action
+  (run %{run_test} "./%{server_port} %{liquidsoap}" %{server_port})))
