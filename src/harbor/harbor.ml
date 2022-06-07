@@ -1,24 +1,24 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2016 Savonet team
+    Liquidsoap, a programmable audio stream generator.
+    Copyright 2003-2016 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details, fully stated in the COPYING
+    file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
-*****************************************************************************)
+  *****************************************************************************)
 open Harbor_base
 module Monad = Duppy.Monad
 
@@ -1039,7 +1039,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       Hashtbl.add opened_ports port (h, socks);
       h
 
-  (* Add sources... *)
+  (* Add sources... This is tied up to sources lifecycle so
+     no need to prevent early start *)
   let add_source ~port ~mountpoint ~icy source =
     let sources =
       let handler = get_handler ~icy port in
@@ -1068,31 +1069,37 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   (* Add http_handler... *)
   let add_http_handler ~port ~verb ~uri h =
-    let handler = get_handler ~icy:false port in
-    log#important "Adding handler for '%s %s' on port %i" (string_of_verb verb)
-      uri port;
-    if Hashtbl.mem handler.http (verb, uri) then
-      log#important "WARNING: Handler already registered, old one removed!"
-    else ();
-    Hashtbl.replace handler.http (verb, uri) h
+    let exec () =
+      let handler = get_handler ~icy:false port in
+      log#important "Adding handler for '%s %s' on port %i"
+        (string_of_verb verb) uri port;
+      if Hashtbl.mem handler.http (verb, uri) then
+        log#important "WARNING: Handler already registered, old one removed!"
+      else ();
+      Hashtbl.replace handler.http (verb, uri) h
+    in
+    Server.on_start exec
 
   (* Remove http_handler. *)
   let remove_http_handler ~port ~verb ~uri () =
-    let handler, socks = Hashtbl.find opened_ports port in
-    assert (Hashtbl.mem handler.http (verb, uri));
-    log#important "Removing handler for '%s %s' on port %i"
-      (string_of_verb verb) uri port;
-    Hashtbl.remove handler.http (verb, uri);
-    if Hashtbl.length handler.sources = 0 && Hashtbl.length handler.http = 0
-    then (
-      log#info "Nothing more on port %i: closing sockets." port;
-      let f in_s =
-        ignore (Unix.write in_s (Bytes.of_string " ") 0 1);
-        Unix.close in_s
-      in
-      List.iter f socks;
-      Hashtbl.remove opened_ports port)
-    else ()
+    let exec () =
+      let handler, socks = Hashtbl.find opened_ports port in
+      assert (Hashtbl.mem handler.http (verb, uri));
+      log#important "Removing handler for '%s %s' on port %i"
+        (string_of_verb verb) uri port;
+      Hashtbl.remove handler.http (verb, uri);
+      if Hashtbl.length handler.sources = 0 && Hashtbl.length handler.http = 0
+      then (
+        log#info "Nothing more on port %i: closing sockets." port;
+        let f in_s =
+          ignore (Unix.write in_s (Bytes.of_string " ") 0 1);
+          Unix.close in_s
+        in
+        List.iter f socks;
+        Hashtbl.remove opened_ports port)
+      else ()
+    in
+    Server.on_start exec
 end
 
 module Unix = Make (Unix_transport)

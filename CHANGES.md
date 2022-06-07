@@ -6,6 +6,7 @@ New:
 
 Fixed:
 * Memory leak when executing `process.run` (#2424)
+* Delay harbr server endpoint registration until application has started (#1589)
 
 ---
 2.0.5 (24-05-2022)
