@@ -39,6 +39,9 @@ echo "\n### Setting up specific dependencies\n"
 
 ./.github/scripts/checkout-deps.sh
 
+# See: https://github.com/whitequark/ocaml-inotify/pull/20
+opam install -y inotify.2.3
+
 cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
