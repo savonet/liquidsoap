@@ -187,6 +187,10 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       Format.fprintf formatter
         "Missing arguments in function application: %s.@]@." args;
       raise Error
+  | Lang_encoders.Error (term, msg) ->
+      error_header 16 term.Term.t.Type.pos;
+      Format.printf "%s.@]@." msg;
+      raise Error
   | End_of_file -> raise End_of_file
   | e ->
       let bt = Printexc.get_backtrace () in
