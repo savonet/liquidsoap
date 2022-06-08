@@ -208,6 +208,11 @@ let throw print_error = function
         pos;
       raise Error
   | Sedlexing.MalFormed -> print_error 13 "Malformed file."
+  | Lang_encoders.Error (term, msg) ->
+      (* 14 and 15 are already claimed in 2.1x *)
+      error_header 16 term.Term.t.Type.pos;
+      Format.printf "%s.@]@." msg;
+      raise Error
   | End_of_file -> raise End_of_file
   | e ->
       let bt = Printexc.get_backtrace () in
