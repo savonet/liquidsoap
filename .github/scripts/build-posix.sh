@@ -57,6 +57,9 @@ echo "::endgroup::"
 
 echo "::group::Compiling"
 
+# See: https://github.com/whitequark/ocaml-inotify/pull/20
+opam install -y inotify.2.3
+
 cd /tmp/liquidsoap-full
 
 # Workaround
