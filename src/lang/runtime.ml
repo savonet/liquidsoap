@@ -124,10 +124,6 @@ let throw print_error = function
       error_header 8 pos;
       Format.printf "%s@]@." (String.capitalize_ascii s);
       raise Error
-  | Lang_encoders.Error (term, msg) ->
-      error_header 8 term.Term.t.Type.pos;
-      Format.printf "%s.@]@." msg;
-      raise Error
   | Failure s ->
       print_error 9 (Printf.sprintf "Failure: %s" s);
       raise Error
