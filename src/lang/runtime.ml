@@ -124,6 +124,10 @@ let throw print_error = function
       error_header 8 pos;
       Format.printf "%s@]@." (String.capitalize_ascii s);
       raise Error
+  | Lang_encoders.Error (term, msg) ->
+      error_header 8 term.Term.t.Type.pos;
+      Format.printf "%s.@]@." msg;
+      raise Error
   | Failure s ->
       print_error 9 (Printf.sprintf "Failure: %s" s);
       raise Error
@@ -171,10 +175,6 @@ let throw print_error = function
       in
       error_header 15 pos;
       Format.printf "Missing arguments in function application: %s.@]@." args;
-      raise Error
-  | Lang_encoders.Error (term, msg) ->
-      error_header 16 term.Term.t.Type.pos;
-      Format.printf "%s.@]@." msg;
       raise Error
   | End_of_file -> raise End_of_file
   | e ->
