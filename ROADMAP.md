@@ -38,3 +38,4 @@
   - support for hiding fields
 - ocaml5 support
   - we don't seem to have bigarrays anymore?
+- can we reimplement something like [melt](https://www.mltframework.org/)?
