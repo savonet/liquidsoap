@@ -6,7 +6,7 @@ New:
 
 Fixed:
 * Memory leak when executing `process.run` (#2424)
-* Delay harbr server endpoint registration until application has started (#1589)
+* Delay harbor server endpoint registration until application has started (#1589)
 * Print user-readable encoder parameter error report.
 
 ---
