@@ -1,4 +1,4 @@
 (library
  (name metadata)
- (package liquidsoap-core)
+ (package liquidsoap)
  (libraries camomile))

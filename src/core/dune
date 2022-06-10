@@ -7,7 +7,7 @@
 
 (generate_sites_module
  (module liquidsoap_sites)
- (sites liquidsoap-core))
+ (sites liquidsoap))
 
 (rule
  (targets dune_config.ml)
@@ -21,7 +21,7 @@
 
 (library
  (name liquidsoap_core)
- (public_name liquidsoap-core)
+ (public_name liquidsoap)
  (libraries
   mm
   dtools

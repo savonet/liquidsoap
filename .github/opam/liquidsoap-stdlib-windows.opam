@@ -9,14 +9,14 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "2.8"}
-  "liquidsoap-core-windows"
+  "liquidsoap-windows"
 ]
 build: [
   [
     "dune"
     "build"
     "-p"
-    "liquidsoap-stdlib"
+    "liquidsoap"
     "-j"
     jobs
     "-x"

@@ -15,21 +15,6 @@
 
 (package
   (name liquidsoap)
-  (synopsis "Swiss-army knife for multimedia streaming")
-  (description
-"\| Liquidsoap is a powerful and flexible language for describing your
-"\| streams. It offers a rich collection of operators that you can combine
-"\| at will, giving you more power than you need for creating or
-"\| transforming streams. But liquidsoap is still very light and easy to
-"\| use, in the Unix tradition of simple strong components working
-"\| together.
-  )
-  (depends
-    liquidsoap-core
-    liquidsoap-stdlib))
-
-(package
-  (name liquidsoap-core)
   (depends
     (ocaml (>= 4.12.0))
     (camomile (>= 1.0.0))
@@ -129,7 +114,15 @@
     (vorbis (< 0.8.0))
     (xmlplaylist (< 0.1.3)))
   (sites (share libs) (share bin) (lib_root lib_root))
-  (synopsis "Liquidsoap core module"))
+  (synopsis "Swiss-army knife for multimedia streaming")
+  (description
+"\| Liquidsoap is a powerful and flexible language for describing your
+"\| streams. It offers a rich collection of operators that you can combine
+"\| at will, giving you more power than you need for creating or
+"\| transforming streams. But liquidsoap is still very light and easy to
+"\| use, in the Unix tradition of simple strong components working
+"\| together.
+  ))
 
 (package
   (name liquidsoap-lang)
@@ -138,8 +131,3 @@
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))
   (synopsis "Liquidsoap language"))
-
-(package
-  (name liquidsoap-stdlib)
-  (synopsis "Liquidsoap standard library")
-  (depends liquidsoap-core))

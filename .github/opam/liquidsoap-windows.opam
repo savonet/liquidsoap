@@ -17,8 +17,8 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "2.8"}
-  "liquidsoap-core-windows"
-  "liquidsoap-stdlib-windows"
+  "liquidsoap-windows"
+  "liquidsoap-windows"
 ]
 build: [
   [ "env" "LIQUIDSOAP_BUILD_TARGET=standlone"

@@ -26,7 +26,7 @@ build: [
     "dune"
     "build"
     "-p"
-    "liquidsoap-core"
+    "liquidsoap"
     "-j"
     jobs
     "-x"
