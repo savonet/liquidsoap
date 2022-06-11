@@ -23,28 +23,51 @@
 let log = Log.make ["playlist"; "basic"]
 let split_lines buf = Pcre.split ~pat:"[\r\n]+" buf
 
+let parse_meta =
+  let rec f cur s =
+    try
+      let lexbuf = Sedlexing.Utf8.from_string s in
+      let processor =
+        MenhirLib.Convert.Simplified.traditional2revised
+          Liquidsoap_lang.Parser.annotate_metadata_entry
+      in
+      let tokenizer =
+        Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf
+      in
+      let metadata = processor tokenizer in
+      let b = Buffer.create 10 in
+      let rec g () =
+        match Sedlexing.next lexbuf with
+          | Some c ->
+              Buffer.add_utf_8_uchar b c;
+              g ()
+          | None -> Buffer.contents b
+      in
+      f (metadata :: cur) (g ())
+    with _ -> if cur <> [] then (List.rev cur, s) else ([], "")
+  in
+  f []
+
 let parse_extinf s =
   try
-    let rex = Pcre.regexp "#EXTINF:(\\d*)\\s*([^\\s]*),(.*)" in
+    let rex = Pcre.regexp "#EXTINF:(\\d*)\\s*(.*)" in
     let sub = Pcre.exec ~rex s in
+    let meta, song =
+      match Pcre.get_substring sub 2 with
+        | "" -> ([], "")
+        | s when s.[0] = ',' -> ([], String.sub s 1 (String.length s - 1))
+        | s -> parse_meta s
+    in
     let meta =
       match Pcre.get_substring sub 1 with
-        | "" -> []
-        | duration -> [("extinf_duration", duration)]
+        | "" -> meta
+        | duration -> ("extinf_duration", duration) :: meta
     in
-    let meta =
-      meta
-      @
-      match Pcre.get_substring sub 2 with
-        | "" -> []
-        | key_values -> (
-            try fst (Annotate.parse (key_values ^ ":foo")) with _ -> [])
-    in
-    let song = Pcre.get_substring sub 3 in
     let lines = Pcre.split ~pat:"\\s*-\\s*" song in
     meta
     @
     match lines with
+      | [] -> []
       | [""; song] -> [("song", String.trim song)]
       | [artist; title] ->
           [("artist", String.trim artist); ("title", String.trim title)]
