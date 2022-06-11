@@ -98,6 +98,9 @@ open Parser_helper
 %start annotate
 %type <(string * string) list> annotate
 
+%start annotate_metadata_entry
+%type <string * string> annotate_metadata_entry
+
 %start time_predicate
 %type <Term.t> time_predicate
 
@@ -460,8 +463,11 @@ annotate:
 
 annotate_metadata:
   | COMMA annotate_metadata { $2 }
-  | annotate_key GETS annotate_value COMMA annotate_metadata { ($1,$3)::$5 }
+  | annotate_metadata_entry annotate_metadata { $1::$2 }
   | annotate_key GETS annotate_value { [$1, $3] }
+
+annotate_metadata_entry:
+  | annotate_key GETS annotate_value COMMA { $1, $3 }
 
 annotate_key:
   | VAR { $1 }
