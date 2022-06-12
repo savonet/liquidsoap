@@ -74,32 +74,50 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-  all_media_files
   first-concat.mp4
   second-concat.mp4
   third-concat.mp4
+  test_ffmpeg_copy_concat.liq
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+  (run
+   %{run_test}
+   "%{liquidsoap} %{test_liq} -"
+   test_ffmpeg_copy_concat.liq
+   "FFmpeg copy+concat")))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_complex_filter.liq
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action
+  (run
+   %{run_test}
+   "%{liquidsoap} %{test_liq} -"
+   test_ffmpeg_complex_filter.liq
+   "FFmpeg complex filter")))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
   background.jpg
   logo.png
-  test_ffmpeg_copy_concat.liq
-  test_ffmpeg_complex_filter.liq
   test_ffmpeg_transparency_filter.liq
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action
-  (progn
-   (run
-    %{run_test}
-    "%{liquidsoap} %{test_liq} -"
-    test_ffmpeg_copy_concat.liq
-    "FFmpeg copy+concat")
-   (run
-    %{run_test}
-    "%{liquidsoap} %{test_liq} -"
-    test_ffmpeg_complex_filter.liq
-    "FFmpeg complex filter")
-   (run
-    %{run_test}
-    "%{liquidsoap} %{test_liq} -"
-    test_ffmpeg_transparency_filter.liq
-    "FFmpeg transparency filter"))))
+  (run
+   %{run_test}
+   "%{liquidsoap} %{test_liq} -"
+   test_ffmpeg_transparency_filter.liq
+   "FFmpeg transparency filter")))
