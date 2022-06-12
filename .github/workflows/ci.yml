@@ -365,7 +365,6 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/s3-artifacts
 
   build_win32:
-    if: false
     runs-on: ubuntu-latest
     needs: build_details
     strategy:
