@@ -29,7 +29,7 @@ let parse_meta =
       let lexbuf = Sedlexing.Utf8.from_string s in
       let processor =
         MenhirLib.Convert.Simplified.traditional2revised
-          Liquidsoap_lang.Parser.annotate_metadata_entry
+          Parser.annotate_metadata_entry
       in
       let tokenizer =
         Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf
