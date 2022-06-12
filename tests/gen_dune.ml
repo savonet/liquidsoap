@@ -1,17 +1,14 @@
 let () =
-  let location = Filename.dirname Sys.executable_name in
+  let location = Sys.getcwd () in
   let tests =
     List.filter
       (fun f -> Filename.extension f = ".liq")
       (Array.to_list (Sys.readdir location))
   in
-  let runtests =
-    List.map
-      (Printf.sprintf "(run %%{run_test} \"%%{liquidsoap} %%{test_liq} -\" %s)")
-      tests
-  in
-  Printf.printf
-    {|
+  List.iter
+    (fun test ->
+      Printf.printf
+        {|
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -21,9 +18,7 @@ let () =
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
- (action
-  (progn
-    %s)))
+ (action (run %%{run_test} "%%{liquidsoap} %%{test_liq} -" %s)))
   |}
-    (String.concat "\n" tests)
-    (String.concat "\n" runtests)
+        test test)
+    tests

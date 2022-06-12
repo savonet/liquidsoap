@@ -2,10 +2,6 @@
 
 (include dune.inc)
 
-(executable
- (name gen_dune)
- (modules gen_dune))
-
 (rule
  (alias gendune)
  (deps
@@ -14,7 +10,7 @@
  (action
   (with-stdout-to
    dune.inc.gen
-   (run ./gen_dune.exe))))
+   (run ../gen_dune.exe))))
 
 (rule
  (alias gendune)
