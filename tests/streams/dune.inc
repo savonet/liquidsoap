@@ -4,6 +4,17 @@
  (package liquidsoap)
  (deps
   197.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -15,6 +26,17 @@
  (package liquidsoap)
  (deps
   huge-playlist.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -26,6 +48,17 @@
  (package liquidsoap)
  (deps
   playlist-watch.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -37,6 +70,17 @@
  (package liquidsoap)
  (deps
   on_frame.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -48,6 +92,17 @@
  (package liquidsoap)
  (deps
   195.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -59,6 +114,17 @@
  (package liquidsoap)
  (deps
   image.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -70,6 +136,17 @@
  (package liquidsoap)
  (deps
   ctype2.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -81,6 +158,17 @@
  (package liquidsoap)
  (deps
   say.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -92,6 +180,17 @@
  (package liquidsoap)
  (deps
   ctype1.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -103,6 +202,17 @@
  (package liquidsoap)
  (deps
   random.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -114,6 +224,17 @@
  (package liquidsoap)
  (deps
   smart-crossfade.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -125,6 +246,17 @@
  (package liquidsoap)
  (deps
   request.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -136,6 +268,17 @@
  (package liquidsoap)
  (deps
   radio2.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -147,6 +290,17 @@
  (package liquidsoap)
  (deps
   cross.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -158,6 +312,17 @@
  (package liquidsoap)
  (deps
   stretch-clock-propagation.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -169,6 +334,17 @@
  (package liquidsoap)
  (deps
   rotate.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -180,6 +356,17 @@
  (package liquidsoap)
  (deps
   sine.detect.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -191,6 +378,17 @@
  (package liquidsoap)
  (deps
   on_metadata.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -202,6 +400,17 @@
  (package liquidsoap)
  (deps
   dtmf.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -213,6 +422,17 @@
  (package liquidsoap)
  (deps
   on_track.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -224,6 +444,17 @@
  (package liquidsoap)
  (deps
   crossfade.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -235,6 +466,17 @@
  (package liquidsoap)
  (deps
   radio.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
@@ -246,6 +488,17 @@
  (package liquidsoap)
  (deps
   autostart.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
   ../media/all_media_files
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
