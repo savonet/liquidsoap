@@ -73,8 +73,11 @@ class unqueued ~kind ~timeout request =
         <> Request.resolve ~ctype:(Some self#ctype) request timeout
       then raise (Invalid_URI uri);
       let filename = Option.get (Request.get_filename request) in
-      if String.length filename < 15 then self#set_id filename;
-      super#wake_up x
+      if String.length filename < 15 then (
+        try self#set_id filename
+        with _ ->
+          ();
+          super#wake_up x)
 
     method stype = Infallible
     method get_next_file = `Request request
