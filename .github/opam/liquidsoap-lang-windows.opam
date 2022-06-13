@@ -27,3 +27,6 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
+url {
+  src: "https://github.com/savonet/liquidsoap/archive/@COMMIT_SHORT@.tar.gz"
+}
