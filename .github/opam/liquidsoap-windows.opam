@@ -18,15 +18,25 @@ bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.1"}
   "ocaml-windows" {>= "4.12.0"}
+  "camomile" {>= "1.0.0"}
   "camomile-windows" {>= "1.0.0"}
+  "dtools" {>= "0.4.4"}
   "dtools-windows" {>= "0.4.4"}
+  "duppy" {>= "0.9.1"}
   "duppy-windows" {>= "0.9.1"}
+  "mm" {>= "0.8.1"}
   "mm-windows" {>= "0.8.1"}
+  "pcre" {>= "7.4.0"}
   "pcre-windows" {>= "7.4.0"}
+  "menhirLib"
   "menhirLib-windows"
+  "dune-site"
   "dune-site-windows"
+  "dune-build-info"
   "dune-build-info-windows"
+  "liquidsoap-lang"
   "liquidsoap-lang-windows"
+  "ppx_string" {build}
   "ppx_string-windows" {build}
 ]
 build: [
