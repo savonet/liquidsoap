@@ -30,7 +30,7 @@ depends: [
   "ppx_string-windows" {build}
 ]
 build: [
-  [ "env" "LIQUIDSOAP_BUILD_TARGET=posix" 
+  [ "env" "LIQUIDSOAP_BUILD_TARGET=standalone" 
     "dune"
     "build"
     "-p"
