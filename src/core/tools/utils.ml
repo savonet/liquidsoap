@@ -385,8 +385,8 @@ let string_of_pcre_error =
         "Maximum allowed number of match attempts with backtracking or \
          recursion is reached during matching."
     | RecursionLimit -> "Maximum allowed number of recursion reached"
-    | WorkspaceSize -> "Provided workspace array is too small"
-    | InternalError msg -> Printf.sprintf "Internal error: %s" msg)
+    | InternalError msg -> Printf.sprintf "Internal error: %s" msg
+    | _ -> "Unknown error")
 
 let () =
   Printexc.register_printer
