@@ -9,6 +9,7 @@
  (name liquidsoap)
  (public_name liquidsoap)
  (package liquidsoap)
+ (link_flags -lssp) 
  (libraries
   liquidsoap_core
   liquidsoap_optionals
