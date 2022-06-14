@@ -737,6 +737,7 @@
   taglib_option
   theora_option
   vorbis_option
+  winsvc_option
   xmlplaylist_option)
  (libraries
   (select
