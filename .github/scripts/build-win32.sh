@@ -38,7 +38,7 @@ eval `opam config env`
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 cd /home/opam/opam-cross-windows/
 opam remove -y ppx_tools_versioned-windows `echo $OPAM_DEPS | sed -e 's#,# #g'`
-opam upgrade -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows.1.1.2 ffmpeg-avutil-windows.1.1.2 liquidsoap-windows
+opam upgrade -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows.1.1.4 ffmpeg-avutil-windows.1.1.4 liquidsoap-windows
 
 cd ~
 cp -rf ${BASE_DIR}/.github/win32 liquidsoap-$BUILD
