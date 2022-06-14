@@ -9,7 +9,7 @@
  (name liquidsoap)
  (public_name liquidsoap)
  (package liquidsoap)
- (link_flags -lssp) 
+ (link_flags -cclib %{env:LDFLAGS=})
  (libraries
   liquidsoap_core
   liquidsoap_optionals
@@ -25,6 +25,7 @@
 (executable
  (name build_config)
  (modules build_config)
+ (link_flags -cclib %{env:LDFLAGS=})
  (preprocess
   (pps ppx_string))
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -32,4 +33,5 @@
 (executable
  (name dune_config)
  (modules dune_config)
+ (link_flags -cclib %{env:LDFLAGS=})
  (libraries dune-configurator))

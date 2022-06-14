@@ -40,7 +40,9 @@ depends: [
   "ppx_string-windows" {build}
 ]
 build: [
-  [ "env" "LIQUIDSOAP_BUILD_TARGET=standalone" 
+  [ "env"
+    "LIQUIDSOAP_BUILD_TARGET=standalone" 
+    "LDFLAGS=-lssp"
     "dune"
     "build"
     "-p"
