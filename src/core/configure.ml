@@ -1,5 +1,5 @@
 open Liquidsoap_lang
-include Dune_config
+include Sys_config
 include Liquidsoap_paths
 
 (* See: https://github.com/ocaml/dune/issues/4453 *)

@@ -143,3 +143,9 @@ let () =
       let value = Lang.to_string (Lang.assoc "" 2 p) in
       Unix.putenv label value;
       Lang.unit)
+
+let () =
+  Lang.add_builtin_base ~category:`Liquidsoap
+    ~descr:"OCaml verion used to compile liquidspap." "liquidsoap.ocaml_version"
+    Lang.(Ground (Ground.String Sys.ocaml_version))
+    Lang.string_t

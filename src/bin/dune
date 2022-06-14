@@ -31,7 +31,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (executable
- (name dune_config)
- (modules dune_config)
+ (name sys_config)
+ (modules sys_config)
  (link_flags -cclib %{env:LDFLAGS=})
  (libraries dune-configurator))

@@ -10,9 +10,14 @@
  (sites liquidsoap))
 
 (rule
- (targets dune_config.ml)
+ (targets sys_config.dune.ml)
  (action
-  (run ../bin/dune_config.exe)))
+  (run ../bin/sys_config.exe)))
+
+(rule
+ (target sys_config.ml)
+ (action
+  (copy sys_config.%{env:LIQUIDSOAP_SYS_CONFIG=dune}.ml %{target})))
 
 (rule
  (target liquidsoap_paths.ml)
@@ -86,7 +91,6 @@
   documentation
   drop
   dtmf
-  dune_config
   dyn_op
   echo
   encoder
@@ -221,6 +225,7 @@
   switch
   synth_op
   synthesized
+  sys_config
   term
   theora_format
   time_warp
