@@ -42,7 +42,7 @@ depends: [
 build: [
   [ "env"
     "LIQUIDSOAP_BUILD_TARGET=standalone" 
-    "LDFLAGS=-lssp"
+    "LDFLAGS=-fstack-protector"
     "dune"
     "build"
     "-p"
