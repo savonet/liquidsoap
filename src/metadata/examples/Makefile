@@ -4,5 +4,5 @@ all:
 test-mp3:
 	@for i in ~/Music/misc/*; do \
 	  echo; echo Testing $$i; echo; \
-	  dune exec -- meta "$$i"; \
+	  dune exec -- ./meta.exe "$$i"; \
 	done
