@@ -38,13 +38,6 @@ eval `opam config env`
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 cd /home/opam/opam-cross-windows/
 opam remove -y ppx_tools_versioned-windows `echo $OPAM_DEPS | sed -e 's#,# #g'`
-
-unset PKG_CONFIG_PATH
-
-opam install -y dune.3.2.0 pcre
-
-export PKG_CONFIG_PATH=/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig
-
 opam upgrade -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows.1.1.2 ffmpeg-avutil-windows.1.1.2 liquidsoap-windows
 
 cd ~
