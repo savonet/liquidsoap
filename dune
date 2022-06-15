@@ -1,6 +1,7 @@
 (rule
  (target liquidsoap.config)
  (deps ./src/bin/liquidsoap.exe)
+ (package liquidsoap)
  (alias install)
  (enabled_if %{env:LIQUIDSOAP_ENABLE_BUILD_CONFIG=true})
  (mode
