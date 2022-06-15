@@ -129,6 +129,8 @@ build: [
     "build"
     "-x"
     "windows"
+    "--profile"
+    "release"
     "@install"
     "-j"
     jobs
