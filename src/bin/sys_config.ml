@@ -2,7 +2,7 @@ module C = Configurator.V1
 
 let () =
   C.main ~name:"liquidsoap" (fun c ->
-      let oc = open_out "dune_config.ml" in
+      let oc = open_out "sys_config.dune.ml" in
       output_string oc
         (Printf.sprintf {|
 let ext_exe = %S

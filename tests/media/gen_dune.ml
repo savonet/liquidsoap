@@ -80,6 +80,7 @@ let mk_encoder source format =
   Printf.printf
     {|
 (rule
+  (alias  runtest)
   (target %s)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
@@ -94,6 +95,7 @@ let mk_encoded_file format =
   Printf.printf
     {|
 (rule
+ (alias  runtest)
  (target %s)
  (deps
   (:encoder %s)
@@ -111,6 +113,7 @@ let () =
   Printf.printf
     {|
 (rule
+  (alias  runtest)
   (target all_media_files)
   (deps
     %s)

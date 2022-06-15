@@ -5,6 +5,7 @@
  (modules gen_bigrecord))
 
 (rule
+ (alias runtest)
  (target big-record.liq)
  (deps
   (:gen_bigrecord ./gen_bigrecord.exe))

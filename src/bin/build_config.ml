@@ -1,16 +1,12 @@
-let print_config () =
+let build_config () =
   let path_mode =
     match Liquidsoap_paths.mode with
       | `Default -> "default"
       | `Standalone -> "standalone"
       | `Posix -> "posix"
   in
-  Printf.printf "%s\n%!"
-    [%string
-      {|
-Congratulation on building liquidsoap! Here are the details
-of your build and configuration:
-
+  [%string
+    {|
  * Liquidsoap version  : %{Configure.version ()}
 
  * Configured paths  
@@ -100,7 +96,7 @@ of your build and configuration:
    - Prometheus        : %{Prometheus_option.detected}
 |}]
 
-let liquidsoap_config =
+let opam_config =
   [%string
     {|
 opam-version: "2.0"
@@ -117,9 +113,3 @@ variables {
   taglib-enabled: %{Taglib_option.enabled}
 }
 |}]
-
-let () =
-  print_config ();
-  let oc = open_out "liquidsoap.config" in
-  output_string oc liquidsoap_config;
-  close_out oc

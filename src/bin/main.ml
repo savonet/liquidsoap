@@ -359,6 +359,18 @@ let options =
                 (Configure.version ());
               exit 0),
           "Display liquidsoap's version." );
+        ( ["--build-config"],
+          Arg.Unit
+            (fun () ->
+              Printf.printf "%s\n" (Build_config.build_config ());
+              exit 0),
+          "Display liquidsoap's build configuration." );
+        ( ["--opam-config"],
+          Arg.Unit
+            (fun () ->
+              Printf.printf "%s\n" Build_config.opam_config;
+              exit 0),
+          "Print out opam's liquidsoap.config, for internal use." );
         ( ["--interactive"],
           Arg.Set interactive,
           "Start an interactive interpreter." );

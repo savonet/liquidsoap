@@ -22,6 +22,7 @@
   (diff dune.inc dune.inc.gen)))
 
 (rule
+ (alias runtest)
  (target first-concat.mp4)
  (action
   (run
@@ -35,6 +36,7 @@
    %{target})))
 
 (rule
+ (alias runtest)
  (target second-concat.mp4)
  (action
   (run
@@ -48,6 +50,7 @@
    %{target})))
 
 (rule
+ (alias runtest)
  (target third-concat.mp4)
  (action
   (run
@@ -61,11 +64,13 @@
    %{target})))
 
 (rule
+ (alias runtest)
  (target background.jpg)
  (action
   (run ffmpeg -f lavfi -i testsrc=size=1280x720 -t 1 -f mjpeg %{target})))
 
 (rule
+ (alias runtest)
  (target logo.png)
  (action
   (run ffmpeg -f lavfi -i testsrc=size=50x50 -t 1 -f mjpeg %{target})))
