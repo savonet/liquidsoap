@@ -25,6 +25,7 @@
   (diff dune.inc dune.inc.gen)))
 
 (rule
+ (alias doc)
  (target liquidsoap.1)
  (deps
   no-pandoc
