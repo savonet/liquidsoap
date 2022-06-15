@@ -131,6 +131,7 @@ build: [
     "windows"
     "--profile"
     "release"
+    "--ignore-promoted-rules"
     "@install"
     "-j"
     jobs

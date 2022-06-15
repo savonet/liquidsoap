@@ -5,3 +5,8 @@
   (promote (until-clean)))
  (action
   (run ./src/bin/build_config.exe)))
+
+(alias
+ (name default)
+ (deps
+  (alias_rec install)))
