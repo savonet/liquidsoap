@@ -1,6 +1,6 @@
 (rule
  (targets liquidsoap.config)
- (alias install)
+ (alias base)
  (mode
   (promote (until-clean)))
  (action
@@ -9,4 +9,9 @@
 (alias
  (name default)
  (deps
-  (alias_rec install)))
+  (alias_rec base)))
+
+(alias
+ (name install)
+ (deps
+  (alias_rec base)))

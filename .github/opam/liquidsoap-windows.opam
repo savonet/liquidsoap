@@ -132,9 +132,6 @@ build: [
     "--profile"
     "release"
     "--ignore-promoted-rules"
-    "src/bin/liquidsoap.exe"
-    "src/bin/build_config.exe"
-    "@check"
     "-j"
     jobs
   ]

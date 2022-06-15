@@ -1,3 +1,8 @@
+(rule
+ (alias base)
+ (deps liquidsoap.exe build_config.exe)
+ (action (echo "Liquidsoap built!\n")))
+
 (executable
  (name liquidsoap)
  (public_name liquidsoap)
