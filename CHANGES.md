@@ -9,6 +9,7 @@ Fixed:
 * Delay harbor server endpoint registration until application has started (#1589)
 * Print user-readable encoder parameter error report.
 * Fixed m3u metadata parsing when artist has a comma in their name (#2449)
+* Cleanup failed request in `playlist` operator.
 
 ---
 2.0.5 (24-05-2022)
