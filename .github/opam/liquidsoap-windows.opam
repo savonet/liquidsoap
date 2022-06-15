@@ -121,7 +121,6 @@ conflicts: [
   "xmlplaylist-windows" {< "0.1.3"}
 ]
 build: [
-  [ "touch" "liquidsoap.config" ]
   [ "env"
     "LIQUIDSOAP_BUILD_TARGET=standalone" 
     "LIQUIDSOAP_SYS_CONFIG=mingw"
