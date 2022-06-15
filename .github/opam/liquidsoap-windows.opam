@@ -23,11 +23,13 @@ depends: [
   "duppy-windows" {>= "0.9.1"}
   "mm-windows" {>= "0.8.1"}
   "pcre-windows"
+  "sedlex"
   "sedlex-windows"
   "menhir-windows"
   "menhirLib-windows"
   "dune-site-windows"
   "dune-build-info-windows"
+  "ppx_string" {build}
   "ppx_string-windows" {build}
 ]
 depopts: [
@@ -133,7 +135,6 @@ build: [
     "src/bin/build_config.exe"
     "-j"
     jobs
-    "@install"
   ]
   [ "wine" "./_build/default.windows/src/bin/build_config.exe"]
 ]
