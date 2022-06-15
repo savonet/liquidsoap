@@ -190,6 +190,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
       r = request.create(file)
       if not request.resolve(content_type=s, r) then
         log.info(label=id, "Could not resolve request: #{request.uri(r)}.")
+        request.destroy(r)
         ref.incr(failed_count)
         # Playlist failed, call handler.
         if !failed_count >= max_fail then
