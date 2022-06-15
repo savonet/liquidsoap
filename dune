@@ -6,14 +6,16 @@
  (enabled_if %{env:LIQUIDSOAP_ENABLE_BUILD_CONFIG=true})
  (mode
   (promote
-    (only liquidsoap.config)
-    (until-clean)))
+   (only liquidsoap.config)
+   (until-clean)))
  (action
   (progn
-    (echo "\nCongratulation on building liquidsoap! Here are the details of your build and configuration:\n")
-    (run ./src/bin/liquidsoap.exe --build-config)
-    (with-stdout-to %{target}
-      (run ./src/bin/liquidsoap.exe --opam-config)))))
+   (echo
+    "\nCongratulation on building liquidsoap! Here are the details of your build and configuration:\n")
+   (run ./src/bin/liquidsoap.exe --build-config)
+   (with-stdout-to
+    %{target}
+    (run ./src/bin/liquidsoap.exe --opam-config)))))
 
 (alias
  (name default)
