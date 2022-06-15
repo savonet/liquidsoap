@@ -135,7 +135,6 @@ build: [
     "-j"
     jobs
   ]
-  [ "wine" "./_build/default.windows/src/bin/build_config.exe"]
 ]
 post-messages: [
   """\

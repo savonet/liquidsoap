@@ -1,12 +1,9 @@
-(rule
- (alias base)
- (deps liquidsoap.exe build_config.exe)
- (action (echo "Liquidsoap built!\n")))
-
 (executable
  (name liquidsoap)
  (public_name liquidsoap)
  (package liquidsoap)
+ (preprocess
+  (pps ppx_string))
  (link_flags -cclib %{env:LDFLAGS=})
  (libraries
   liquidsoap_core
@@ -17,15 +14,7 @@
    from
    (winsvc -> runner.winsvc.ml)
    (-> runner.default.ml)))
- (modules liquidsoap runner main))
-
-(executable
- (name build_config)
- (modules build_config)
- (link_flags -cclib %{env:LDFLAGS=})
- (preprocess
-  (pps ppx_string))
- (libraries liquidsoap_core liquidsoap_optionals))
+ (modules liquidsoap runner main build_config))
 
 (executable
  (name sys_config)
