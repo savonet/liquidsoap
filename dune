@@ -1,0 +1,7 @@
+(rule
+ (targets liquidsoap.config)
+ (alias install)
+ (mode
+  (promote (until-clean)))
+ (action
+  (run ./src/bin/build_config.exe)))

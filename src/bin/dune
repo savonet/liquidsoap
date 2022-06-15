@@ -11,8 +11,7 @@
    runner.ml
    from
    (winsvc -> runner.winsvc.ml)
-   (-> runner.default.ml))
- )
+   (-> runner.default.ml)))
  (modules liquidsoap runner main))
 
 (executable

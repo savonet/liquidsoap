@@ -22,16 +22,19 @@
   (diff dune.inc dune.inc.gen)))
 
 (rule
+ (alias runtest)
  (target test.wav)
  (action
   (run ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 %{target})))
 
 (rule
+ (alias runtest)
  (target test.mp3)
  (action
   (run ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 %{target})))
 
 (rule
+ (alias runtest)
  (target json)
  (action
   (progn
@@ -42,6 +45,7 @@
     "cd json && find . -maxdepth 1 -type d | grep -v '^\\.$' | xargs rm -rf"))))
 
 (rule
+ (alias runtest)
  (target json5)
  (action
   (progn
