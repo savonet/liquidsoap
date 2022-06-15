@@ -56,7 +56,7 @@
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target protocols.html)
-  (action (run cp %{no_pandoc} protocols.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -69,14 +69,14 @@
   (target protocols.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=protocols --template=template.html -o protocols.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=protocols --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target reference.html)
-  (action (run cp %{no_pandoc} reference.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -89,14 +89,14 @@
   (target reference.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference --template=template.html -o reference.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target reference-extras.html)
-  (action (run cp %{no_pandoc} reference-extras.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -109,14 +109,14 @@
   (target reference-extras.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference-extras --template=template.html -o reference-extras.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference-extras --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target settings.html)
-  (action (run cp %{no_pandoc} settings.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -129,14 +129,14 @@
   (target settings.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=settings --template=template.html -o settings.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=settings --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target reference-header.html)
-  (action (run cp %{no_pandoc} reference-header.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -149,14 +149,14 @@
   (target reference-header.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference-header --template=template.html -o reference-header.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference-header --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target language.html)
-  (action (run cp %{no_pandoc} language.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -169,14 +169,14 @@
   (target language.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=language --template=template.html -o language.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=language --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target geekradio.html)
-  (action (run cp %{no_pandoc} geekradio.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -189,14 +189,14 @@
   (target geekradio.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=geekradio --template=template.html -o geekradio.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=geekradio --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target on2_part3.html)
-  (action (run cp %{no_pandoc} on2_part3.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -209,14 +209,14 @@
   (target on2_part3.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=on2_part3 --template=template.html -o on2_part3.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=on2_part3 --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target prometheus.html)
-  (action (run cp %{no_pandoc} prometheus.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -229,14 +229,14 @@
   (target prometheus.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=prometheus --template=template.html -o prometheus.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=prometheus --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target hls_output.html)
-  (action (run cp %{no_pandoc} hls_output.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -249,14 +249,14 @@
   (target hls_output.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=hls_output --template=template.html -o hls_output.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=hls_output --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target book.html)
-  (action (run cp %{no_pandoc} book.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -269,14 +269,14 @@
   (target book.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=book --template=template.html -o book.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=book --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target http_input.html)
-  (action (run cp %{no_pandoc} http_input.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -289,14 +289,14 @@
   (target http_input.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=http_input --template=template.html -o http_input.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=http_input --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target gstreamer_encoder.html)
-  (action (run cp %{no_pandoc} gstreamer_encoder.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -309,14 +309,14 @@
   (target gstreamer_encoder.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=gstreamer_encoder --template=template.html -o gstreamer_encoder.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=gstreamer_encoder --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target phases.html)
-  (action (run cp %{no_pandoc} phases.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -329,14 +329,14 @@
   (target phases.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=phases --template=template.html -o phases.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=phases --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target crossfade.html)
-  (action (run cp %{no_pandoc} crossfade.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -349,14 +349,14 @@
   (target crossfade.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=crossfade --template=template.html -o crossfade.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=crossfade --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target custom-path.html)
-  (action (run cp %{no_pandoc} custom-path.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -369,14 +369,14 @@
   (target custom-path.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=custom-path --template=template.html -o custom-path.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=custom-path --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target on2_part2.html)
-  (action (run cp %{no_pandoc} on2_part2.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -389,14 +389,14 @@
   (target on2_part2.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=on2_part2 --template=template.html -o on2_part2.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=on2_part2 --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target sources.html)
-  (action (run cp %{no_pandoc} sources.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -409,14 +409,14 @@
   (target sources.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=sources --template=template.html -o sources.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=sources --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target blank.html)
-  (action (run cp %{no_pandoc} blank.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -429,14 +429,14 @@
   (target blank.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=blank --template=template.html -o blank.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=blank --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target flows_devel.html)
-  (action (run cp %{no_pandoc} flows_devel.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -449,14 +449,14 @@
   (target flows_devel.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=flows_devel --template=template.html -o flows_devel.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=flows_devel --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target rolling-release.html)
-  (action (run cp %{no_pandoc} rolling-release.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -469,14 +469,14 @@
   (target rolling-release.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=rolling-release --template=template.html -o rolling-release.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=rolling-release --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target clocks.html)
-  (action (run cp %{no_pandoc} clocks.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -489,14 +489,14 @@
   (target clocks.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=clocks --template=template.html -o clocks.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=clocks --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target script_loading.html)
-  (action (run cp %{no_pandoc} script_loading.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -509,14 +509,14 @@
   (target script_loading.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=script_loading --template=template.html -o script_loading.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=script_loading --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target video.html)
-  (action (run cp %{no_pandoc} video.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -529,14 +529,14 @@
   (target video.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=video --template=template.html -o video.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=video --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target json.html)
-  (action (run cp %{no_pandoc} json.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -549,14 +549,14 @@
   (target json.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=json --template=template.html -o json.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=json --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target replay_gain.html)
-  (action (run cp %{no_pandoc} replay_gain.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -569,14 +569,14 @@
   (target replay_gain.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=replay_gain --template=template.html -o replay_gain.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=replay_gain --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target complete_case.html)
-  (action (run cp %{no_pandoc} complete_case.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -589,14 +589,14 @@
   (target complete_case.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=complete_case --template=template.html -o complete_case.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=complete_case --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target dynamic_sources.html)
-  (action (run cp %{no_pandoc} dynamic_sources.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -609,14 +609,14 @@
   (target dynamic_sources.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=dynamic_sources --template=template.html -o dynamic_sources.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=dynamic_sources --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target seek.html)
-  (action (run cp %{no_pandoc} seek.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -629,14 +629,14 @@
   (target seek.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=seek --template=template.html -o seek.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=seek --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target playlist_parsers.html)
-  (action (run cp %{no_pandoc} playlist_parsers.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -649,14 +649,14 @@
   (target playlist_parsers.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=playlist_parsers --template=template.html -o playlist_parsers.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=playlist_parsers --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target profiling.html)
-  (action (run cp %{no_pandoc} profiling.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -669,14 +669,14 @@
   (target profiling.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=profiling --template=template.html -o profiling.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=profiling --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target release-assets.html)
-  (action (run cp %{no_pandoc} release-assets.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -689,14 +689,14 @@
   (target release-assets.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=release-assets --template=template.html -o release-assets.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=release-assets --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target faq.html)
-  (action (run cp %{no_pandoc} faq.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -709,14 +709,14 @@
   (target faq.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=faq --template=template.html -o faq.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=faq --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target ffmpeg_encoder.html)
-  (action (run cp %{no_pandoc} ffmpeg_encoder.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -729,14 +729,14 @@
   (target ffmpeg_encoder.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg_encoder --template=template.html -o ffmpeg_encoder.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg_encoder --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target help.html)
-  (action (run cp %{no_pandoc} help.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -749,14 +749,14 @@
   (target help.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=help --template=template.html -o help.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=help --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target requests.html)
-  (action (run cp %{no_pandoc} requests.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -769,14 +769,14 @@
   (target requests.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=requests --template=template.html -o requests.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=requests --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target protocols-presentation.html)
-  (action (run cp %{no_pandoc} protocols-presentation.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -789,14 +789,14 @@
   (target protocols-presentation.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=protocols-presentation --template=template.html -o protocols-presentation.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=protocols-presentation --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target encoding_formats.html)
-  (action (run cp %{no_pandoc} encoding_formats.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -809,14 +809,14 @@
   (target encoding_formats.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=encoding_formats --template=template.html -o encoding_formats.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=encoding_formats --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target metadata.html)
-  (action (run cp %{no_pandoc} metadata.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -829,14 +829,14 @@
   (target metadata.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=metadata --template=template.html -o metadata.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=metadata --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target external_streams.html)
-  (action (run cp %{no_pandoc} external_streams.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -849,14 +849,14 @@
   (target external_streams.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=external_streams --template=template.html -o external_streams.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=external_streams --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target publications.html)
-  (action (run cp %{no_pandoc} publications.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -869,14 +869,14 @@
   (target publications.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=publications --template=template.html -o publications.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=publications --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target radiopi.html)
-  (action (run cp %{no_pandoc} radiopi.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -889,14 +889,14 @@
   (target radiopi.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=radiopi --template=template.html -o radiopi.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=radiopi --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target index.html)
-  (action (run cp %{no_pandoc} index.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -909,14 +909,14 @@
   (target index.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=index --template=template.html -o index.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=index --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target external_encoders.html)
-  (action (run cp %{no_pandoc} external_encoders.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -929,14 +929,14 @@
   (target external_encoders.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=external_encoders --template=template.html -o external_encoders.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=external_encoders --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target presentations.html)
-  (action (run cp %{no_pandoc} presentations.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -949,14 +949,14 @@
   (target presentations.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=presentations --template=template.html -o presentations.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=presentations --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target harbor_http.html)
-  (action (run cp %{no_pandoc} harbor_http.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -969,14 +969,14 @@
   (target harbor_http.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=harbor_http --template=template.html -o harbor_http.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=harbor_http --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target video-static.html)
-  (action (run cp %{no_pandoc} video-static.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -989,14 +989,14 @@
   (target video-static.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=video-static --template=template.html -o video-static.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=video-static --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target harbor.html)
-  (action (run cp %{no_pandoc} harbor.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1009,14 +1009,14 @@
   (target harbor.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=harbor --template=template.html -o harbor.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=harbor --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target server.html)
-  (action (run cp %{no_pandoc} server.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1029,14 +1029,14 @@
   (target server.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=server --template=template.html -o server.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=server --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target stream_content.html)
-  (action (run cp %{no_pandoc} stream_content.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1049,14 +1049,14 @@
   (target stream_content.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=stream_content --template=template.html -o stream_content.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=stream_content --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target on2.html)
-  (action (run cp %{no_pandoc} on2.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1069,14 +1069,14 @@
   (target on2.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=on2 --template=template.html -o on2.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=on2 --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target in_production.html)
-  (action (run cp %{no_pandoc} in_production.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1089,14 +1089,14 @@
   (target in_production.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=in_production --template=template.html -o in_production.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=in_production --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target documentation.html)
-  (action (run cp %{no_pandoc} documentation.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1109,14 +1109,14 @@
   (target documentation.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=documentation --template=template.html -o documentation.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=documentation --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target beets.html)
-  (action (run cp %{no_pandoc} beets.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1129,14 +1129,14 @@
   (target beets.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=beets --template=template.html -o beets.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=beets --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target split-cue.html)
-  (action (run cp %{no_pandoc} split-cue.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1149,14 +1149,14 @@
   (target split-cue.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=split-cue --template=template.html -o split-cue.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=split-cue --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target ffmpeg.html)
-  (action (run cp %{no_pandoc} ffmpeg.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1169,14 +1169,14 @@
   (target ffmpeg.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg --template=template.html -o ffmpeg.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target cookbook.html)
-  (action (run cp %{no_pandoc} cookbook.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1189,14 +1189,14 @@
   (target cookbook.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=cookbook --template=template.html -o cookbook.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=cookbook --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target frequence3.html)
-  (action (run cp %{no_pandoc} frequence3.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1209,14 +1209,14 @@
   (target frequence3.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=frequence3 --template=template.html -o frequence3.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=frequence3 --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target migrating.html)
-  (action (run cp %{no_pandoc} migrating.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1229,14 +1229,14 @@
   (target migrating.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=migrating --template=template.html -o migrating.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=migrating --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target icy_metadata.html)
-  (action (run cp %{no_pandoc} icy_metadata.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1249,14 +1249,14 @@
   (target icy_metadata.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=icy_metadata --template=template.html -o icy_metadata.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=icy_metadata --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target on2_part1.html)
-  (action (run cp %{no_pandoc} on2_part1.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1269,14 +1269,14 @@
   (target on2_part1.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=on2_part1 --template=template.html -o on2_part1.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=on2_part1 --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target request_sources.html)
-  (action (run cp %{no_pandoc} request_sources.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1289,14 +1289,14 @@
   (target request_sources.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=request_sources --template=template.html -o request_sources.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=request_sources --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target shoutcast.html)
-  (action (run cp %{no_pandoc} shoutcast.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1309,14 +1309,14 @@
   (target shoutcast.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=shoutcast --template=template.html -o shoutcast.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=shoutcast --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target ffmpeg_cookbook.html)
-  (action (run cp %{no_pandoc} ffmpeg_cookbook.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1329,14 +1329,14 @@
   (target ffmpeg_cookbook.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg_cookbook --template=template.html -o ffmpeg_cookbook.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg_cookbook --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target ffmpeg_filters.html)
-  (action (run cp %{no_pandoc} ffmpeg_filters.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1349,14 +1349,14 @@
   (target ffmpeg_filters.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg_filters --template=template.html -o ffmpeg_filters.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ffmpeg_filters --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target quick_start.html)
-  (action (run cp %{no_pandoc} quick_start.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1369,14 +1369,14 @@
   (target quick_start.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=quick_start --template=template.html -o quick_start.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=quick_start --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target ladspa.html)
-  (action (run cp %{no_pandoc} ladspa.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1389,14 +1389,14 @@
   (target ladspa.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ladspa --template=template.html -o ladspa.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=ladspa --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target external_decoders.html)
-  (action (run cp %{no_pandoc} external_decoders.html)))
+  (action (run cp %{no_pandoc} %{target})))
 
 (rule
   (alias doc)
@@ -1409,7 +1409,7 @@
   (target external_decoders.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=external_decoders --template=template.html -o external_decoders.html))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=external_decoders --template=template.html -o %{target}))))
 
 (install
  (section doc)
