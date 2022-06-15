@@ -124,6 +124,7 @@ build: [
   [ "env"
     "LIQUIDSOAP_BUILD_TARGET=standalone"
     "LIQUIDSOAP_SYS_CONFIG=mingw"
+    "LIQUIDSOAP_ENABLE_BUILD_CONFIG=false"
     "LDFLAGS=-lssp"
     "dune"
     "build"
