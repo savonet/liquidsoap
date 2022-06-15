@@ -10,8 +10,3 @@
  (name default)
  (deps
   (alias_rec base)))
-
-(alias
- (name install)
- (deps
-  (alias_rec base)))

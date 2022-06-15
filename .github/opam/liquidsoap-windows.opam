@@ -121,7 +121,6 @@ conflicts: [
   "xmlplaylist-windows" {< "0.1.3"}
 ]
 build: [
-  [ "cp" ".github/dune-workspace.windows" "dune-workspace" ]
   [ "env"
     "LIQUIDSOAP_BUILD_TARGET=standalone" 
     "LIQUIDSOAP_SYS_CONFIG=mingw"
