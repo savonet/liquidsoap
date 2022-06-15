@@ -127,12 +127,13 @@ build: [
     "LDFLAGS=-lssp"
     "dune"
     "build"
+    "src/bin/liquidsoap.exe"
+    "src/bin/build_config.exe"
     "-x"
     "windows"
     "--profile"
     "release"
-    "src/bin/liquidsoap.exe"
-    "src/bin/build_config.exe"
+    "--verbose"
     "-j"
     jobs
   ]
