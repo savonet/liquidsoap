@@ -48,6 +48,8 @@ echo "::group::Install liquidsoap-windows"
 opam install -y liquidsoap-windows
 echo "::endgroup::"
 
+wine ${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap --build-config
+
 echo "::group::Bundling executable"
 
 cd ~
