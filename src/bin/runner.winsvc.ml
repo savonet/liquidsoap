@@ -26,7 +26,6 @@ let name = ref "Liquidsoap"
 let display = ref "Liquidsoap Streaming Service"
 let text = ref "Powerful streaming service using Liquidsoap"
 let action = ref `None
-let split s = Str.split (Str.regexp " ") s
 
 let run () =
   Main.options :=
