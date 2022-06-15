@@ -122,16 +122,15 @@ conflicts: [
 ]
 build: [
   [ "env"
-    "LIQUIDSOAP_BUILD_TARGET=standalone" 
+    "LIQUIDSOAP_BUILD_TARGET=standalone"
     "LIQUIDSOAP_SYS_CONFIG=mingw"
     "LDFLAGS=-lssp"
     "dune"
     "build"
     "-x"
     "windows"
-    "--profile"
-    "release"
-    "--ignore-promoted-rules"
+    "-p"
+    "liquidsoap,liquidsoap-lang"
     "@install"
     "-j"
     jobs
