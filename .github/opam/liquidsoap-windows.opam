@@ -133,7 +133,6 @@ build: [
     "windows"
     "--profile"
     "release"
-    "--verbose"
     "-j"
     jobs
   ]
