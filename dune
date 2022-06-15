@@ -2,8 +2,11 @@
  (target liquidsoap.config)
  (deps ./src/bin/liquidsoap.exe)
  (alias install)
+ (enabled_if (= %{context_name} default))
  (mode
-  (promote (until-clean)))
+  (promote
+    (only liquidsoap.config)
+    (until-clean)))
  (action
   (progn
     (echo "\nCongratulation on building liquidsoap! Here are the details of your build and configuration:\n")
