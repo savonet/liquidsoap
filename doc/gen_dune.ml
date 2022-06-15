@@ -16,19 +16,27 @@ let mk_html_rule ~content f =
     {|
 (rule
   (alias doc)
+  (enabled_if (not %%{bin-available:pandoc}))
+  (deps (:no_pandoc no-pandoc))
+  (target %s)
+  (action (run cp %%{no_pandoc} %s)))
+
+(rule
+  (alias doc)
+  (enabled_if %%{bin-available:pandoc})
   (deps
     liquidsoap.xml
     language.dtd
     template.html
-    no-pandoc
     (:md %s%s))
   (target %s)
   (action
     (ignore-outputs
-      (system "pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %%{md} --metadata pagetitle=%s --template=template.html -o %s || cp no-pandoc %s"))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %%{md} --metadata pagetitle=%s --template=template.html -o %s))))
 |}
+    (mk_html f) (mk_html f)
     (if content then "content/" else "")
-    f (mk_html f) (mk_title f) (mk_html f) (mk_html f)
+    f (mk_html f) (mk_title f) (mk_html f)
 
 let mk_generated_rule (file, option, header) =
   let header_deps, header_action, header_close =
