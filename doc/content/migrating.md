@@ -10,6 +10,7 @@ From 2.0.x to 2.1.x
 ### Regular expressions
 
 First-class [regular expression](language.html#regular-expressions) are introduced and are used to replace the following operators:
+
 * `string.match(pattern=<regexp>, <string>` is replaced by: `r/<regexp>/.test(<string>)`
 * `string.extract(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/.exec(<string>)`
 * `string.replace(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/g.replace(<string>)`
@@ -28,7 +29,9 @@ For instance, suppose that we defined the addition function with two arguments
 with
 
 ```liquidsoap
-def add(x,y) = x + y end
+def add(x,y) =
+  x + y
+end
 ```
 
 and defined the successor function by partially applying it to the first
@@ -48,11 +51,22 @@ suc = fun(x) -> add(1, x)
 or
 
 ```liquidsoap
-def suc(x) = add(1, x) end
+def suc(x) =
+  add(1, x)
+end
 ```
 
-### Deprecations
+### JSON parsing
 
+JSON parsing was greatly improved and is now much more user-friendly.
+You can check out our detailed presentation [here](json.html).
+
+### Deprecations and breaking changes
+
+* The argument `streams_info` of `output.file.hls` is now a record.
+* Deprecated argument `timeout` of `http.*` operators.
+* `source.on_metadata` and `source.on_track` now return a source as this was the case in previous versions, and associated handlers are triggered only when the returned source is pulled 
+* `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and `quality` arguments and added a single encoder argument to allow stream copy and more.
 * `list.mem_assoc` is replaced by `list.assoc.mem`
 * `timeout` argument in `http.*` operators is replaced by `timeout_ms`.
 * `request.ready` is replaced by `request.resolved`
