@@ -79,6 +79,9 @@ script.
 \--version
 : Display Liquidsoap's version.
 
+\--build-config
+: Display Liquidsoap's build config.
+
 -c, \--check
 : Check and evaluate scripts but do not perform any streaming.
 
