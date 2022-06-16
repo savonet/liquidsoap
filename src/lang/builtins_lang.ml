@@ -149,10 +149,6 @@ let () =
     ~descr:"Liquidsoap version string." "liquidsoap.version"
     Lang.(Ground (Ground.String Build_config.version))
     Lang.string_t;
-  Lang.add_builtin_base ~category:`Liquidsoap
-    ~descr:"OCaml verion used to compile liquidspap." "liquidsoap.ocaml_version"
-    Lang.(Ground (Ground.String Sys.ocaml_version))
-    Lang.string_t;
   Lang.add_builtin_base "liquidsoap.executable" ~category:`Liquidsoap
     ~descr:"Path to the Liquidsoap executable."
     Lang.(Ground (Ground.String Sys.executable_name))
@@ -178,6 +174,11 @@ let () =
 
 let () =
   Lang.add_module "liquidsoap.build_config";
+  Lang.add_builtin_base ~category:`Liquidsoap
+    ~descr:"OCaml verion used to compile liquidspap."
+    "liquidsoap.build_config.ocaml_version"
+    Lang.(Ground (Ground.String Sys.ocaml_version))
+    Lang.string_t;
   List.iter
     (fun (name, value) ->
       Lang.add_builtin_base ~category:`Liquidsoap
