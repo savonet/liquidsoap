@@ -4,6 +4,9 @@
 New:
 * Added `video/mp4` to list of recognized mime types for request resolutions.
 
+Changed:
+* Log errors when using `process.read` (##2420, @martinkirch)
+
 Fixed:
 * Memory leak when executing `process.run` (#2424)
 * Delay harbor server endpoint registration until application has started (#1589)
