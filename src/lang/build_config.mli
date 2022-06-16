@@ -1,3 +1,5 @@
+val is_release : bool
+val git_sha : string option
 val version : string
 val ext_exe : string
 val architecture : string

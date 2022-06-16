@@ -12,8 +12,10 @@ let build_config =
  * Liquidsoap version  : %{Build_config.version}
  
  * Compilation options
+   - Release build       : %{string_of_bool Build_config.is_release}
+   - Git SHA             : %{Option.value ~default:"(none)" Build_config.git_sha}
    - OCaml version       : %{Sys.ocaml_version}
-   - Os type             : %{Sys.os_type}
+   - OS type             : %{Sys.os_type}
    - Libs versions       : %{Configure.libs_versions ()}
    - architecture        : %{Build_config.architecture}
    - host                : %{Build_config.host}

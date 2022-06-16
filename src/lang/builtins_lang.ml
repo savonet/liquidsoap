@@ -179,6 +179,17 @@ let () =
     "liquidsoap.build_config.ocaml_version"
     Lang.(Ground (Ground.String Sys.ocaml_version))
     Lang.string_t;
+  Lang.add_builtin_base ~category:`Liquidsoap
+    ~descr:"Git sha used to compile liquidsoap."
+    "liquidsoap.build_config.git_sha"
+    (match Build_config.git_sha with
+      | None -> Lang.Null
+      | Some sha -> Lang.(Ground (Ground.String sha)))
+    Lang.(nullable_t string_t);
+  Lang.add_builtin_base ~category:`Liquidsoap
+    ~descr:"Is this build a release build?" "liquidsoap.build_config.is_release"
+    Lang.(Ground (Ground.Bool Build_config.is_release))
+    Lang.bool_t;
   List.iter
     (fun (name, value) ->
       Lang.add_builtin_base ~category:`Liquidsoap

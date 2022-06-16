@@ -13,8 +13,25 @@
  (action
   (with-stdout-to
    %{target}
-   (echo
-    "let version = \"%{version:liquidsoap-lang}\"\n\n           let ext_exe = \"%{ocaml-config:ext_exe}\"\n\n           let architecture = \"%{ocaml-config:architecture}\"\n\n           let host = \"%{ocaml-config:host}\"\n\n           let target = \"%{ocaml-config:target}\"\n\n           let system = \"%{ocaml-config:system}\"\n\n           let ocamlopt_cflags = \"%{ocaml-config:ocamlopt_cflags}\"\n\n           let native_c_compiler = \"%{ocaml-config:native_c_compiler}\"\n\n           let native_c_libraries = \"%{ocaml-config:native_c_libraries}\""))))
+   (progn
+    (echo "let is_release = %{env:LIQUIDSOAP_RELEASE_BUILD=false}\n")
+    (echo "let git_sha = match String.trim \"")
+    (with-accepted-exit-codes
+     (or 0 128)
+     (run git rev-parse --short HEAD))
+    (echo "\" with \"\" -> None | s -> Some s\n")
+    (echo "let version = \"%{version:liquidsoap-lang}\"\n")
+    (echo
+     "let version = version ^ (if is_release then \"\" else (match git_sha with None -> \"+dev\" | Some sha -> \"+git@\" ^ sha))\n")
+    (echo "let ext_exe = \"%{ocaml-config:ext_exe}\"\n")
+    (echo "let architecture = \"%{ocaml-config:architecture}\"\n")
+    (echo "let host = \"%{ocaml-config:host}\"\n")
+    (echo "let target = \"%{ocaml-config:target}\"\n")
+    (echo "let system = \"%{ocaml-config:system}\"\n")
+    (echo "let ocamlopt_cflags = \"%{ocaml-config:ocamlopt_cflags}\"\n")
+    (echo "let native_c_compiler = \"%{ocaml-config:native_c_compiler}\"\n")
+    (echo
+     "let native_c_libraries = \"%{ocaml-config:native_c_libraries}\"\n")))))
 
 (library
  (name liquidsoap_lang)
