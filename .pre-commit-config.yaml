@@ -24,3 +24,11 @@ repos:
     hooks:
       - id: prettier
         files: \.(md|yml|yaml|json)$
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.1.0
+    hooks:
+      - id: codespell
+        args:
+          - --ignore-words=.codespellignore
+          - --builtin=clear,rare,informal
