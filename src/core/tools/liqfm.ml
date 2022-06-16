@@ -103,7 +103,7 @@ let init host =
   let submissions = Queue.create () in
   (* A mutex to manage thread concurrency *)
   let submit_m = Mutex.create () in
-  let reason = log#important "Lastfm Submission failed: %s" in
+  let reason s = log#important "Lastfm Submission failed: %s" s in
   (* Define a new task *)
   let do_submit () =
     try

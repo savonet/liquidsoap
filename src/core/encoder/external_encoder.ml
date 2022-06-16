@@ -84,7 +84,7 @@ let encoder id ext =
         log#important "Error: %s" (Printexc.to_string e);
         restart_decision ()
   in
-  let log = log#important "%s" in
+  let log s = log#important "%s" s in
   let on_stdout =
     Tutils.mutexify mutex (fun puller ->
         begin
