@@ -496,7 +496,7 @@ Fixed:
 - Register audio/opus mime type for ogg decoding (#1089)
 - Re-encode name, genre and description in `output.icecast` using the given
   encoding (#1092)
-- Accept 24 bits per sample in %flac encoder (#1073).
+- Accept 24 bits per sample in `%flac` encoder (#1073).
 - Fix rare stack overflow during clock unification (#1108).
 - Prevent metadata inserted via `insert_metadata` from being visible to
   underlying sources (#1115)
@@ -531,7 +531,7 @@ Fixed:
 - Register audio/opus mime type for ogg decoding (#1089)
 - Re-encode name, genre and description in `output.icecast` using the given
   encoding (#1092)
-- Accept 24 bits per sample in %flac encoder (#1073).
+- Accept 24 bits per sample in `%flac` encoder (#1073).
 - Fix rare stack overflow during clock unification (#1108).
 - Prevent metadata inserted via `insert_metadata` from being visible to
   underlying sources (#1115)
@@ -801,8 +801,8 @@ New:
 
 Changed:
 
-- Renamed secure transport harbor key paths to: harbor.secure_transport.\*
-- Renamed secure transport I/O to: {input,output}.harbor.secure_transport.
+- Renamed secure transport harbor key paths to: `harbor.secure_transport.*`
+- Renamed secure transport I/O to: `{input,output}.harbor.secure_transport`.
 - Added `.wma` to `gstreamer` file decoder file extensions (#483)
 
 Fixed:
@@ -871,7 +871,7 @@ New:
 - Added mutexify to protect a function from being called concurrently.
 - Added request.log to get log data associated with a request
 - Added overlap_sources to rotate between sources with overlapping tracks.
-- Added replay_metadata to input.harbor()
+- Added replay_metadata to `input.harbor()`
 - Added \<char code> syntax for strings (#368)
 - Added string.sub
 - Added `run_process` to run a process with optional environment and return
@@ -883,10 +883,10 @@ New:
 - Reimplemented curl-based fetch process using process:
 - Added s3:// protocol to fetch files from AWS S3 using the AWS CLI.
 - Added polly: protocol to enable speech synthesis using AWS polly. Generated
-  files are mono so make sure you use audio_to_stereo().
+  files are mono so make sure you use `audio_to_stereo()`.
 - Added youtube-dl: protocol to resolved requests using youtube-dl
-- Added which() to find an executable within the $PATH
-- Added register() to allow to register new configuration settings
+- Added `which()` to find an executable within the $PATH
+- Added `register()` to allow to register new configuration settings
 
 Changed:
 
@@ -894,7 +894,7 @@ Changed:
 - Moved say: protocol registration to utils.liq.
 - Moved `get_process_lines` and `get_process_output` to utils.liq, added
   optional env parameter
-- Set conservative=true by default in cross() and smartcross()
+- Set conservative=true by default in `cross()` and `smartcross()`
 
 Deprecated (can be removed in any future version):
 
@@ -917,7 +917,7 @@ Bugfixes:
 - Fix timestamp in some logged output (#395)
 - Fix crash in external (download) protocol.
 - Fix fade.{in,out} metadata handling for new fade duration and type.
-- Compute normalization regardless of child sources ready status in add() to
+- Compute normalization regardless of child sources ready status in `add()` to
   avoid unexpected change of volume.
 
   # 1.2.1 (01-07-2016)
@@ -929,7 +929,7 @@ New:
 - Added input.https.
 - Added list.mapi.
 - Added rotate.sequence.
-- New pipe() operator to pipe audio data through an external program.
+- New `pipe()` operator to pipe audio data through an external program.
 - Switched to curl for request resolution/fetch.
 
 Bugfixes:
@@ -954,7 +954,7 @@ New:
 
 Enhancements:
 
-- Add support for sending OSC data (osc.send\_\*).
+- Add support for sending OSC data (`osc.send_*`).
 - Native support for (some) AVI files (#256) which enables support for external
   video encoders (#233).
 - Improve rms operator (#105) to have per channel rms (#102), the ability to
@@ -963,7 +963,7 @@ Enhancements:
 - Add support for multiple shoutcast extensions (#216).
 - Fade type can be overridden by metadata in fade.in / fade.out (#64).
 - Allow LADSPA plugins with arbitrary number of channels (#191).
-- Rename shine encoder from %mp3.fxp to %shine.
+- Rename shine encoder from `%mp3.fxp` to `%shine`.
 - fdkaac: dynamic plugin (#79), set afterburner parameter, use MPEG4 by default
   (#83).
 - Improved subtyping on lists (#125, #126).
@@ -983,24 +983,24 @@ New:
 
 - Add support for FDK-AAC, which seems to be the best AAC(+) encoder around for
   now. Replacement candidate for VO-AAC and AACPLUS
-- Add %ifencoder to check whether Liquidsoap was compiled with support for a
+- Add `%ifencoder` to check whether Liquidsoap was compiled with support for a
   particular encoding format.
 - There is now an emacs mode in scripts/liquidsoap-mode.el.
 - Liquidsoap can be used as a Windows service.
 
 Enhancements:
 
-- Handle more OSC types (float, float*pair, bool, string, string_pair) and added
-  osc.on*\*.
+- Handle more OSC types (`float`, `float_pair`, `bool`, `string`, `string_pair`) and added
+  `osc.on_*`.
 - Better infrastructure for decoding images. add_image can now handle most image
   file types.
 - Add random.int as well as min_int and max_int to standard library.
 - Add playlist.merge to play a whole playlist as one track.
 - Add gstreamer.hls to play http live streams (HLS).
 - Add say.program to specify text-to-speech program in scripts.
-- Add "random" transition type to video.fade.\* in order to select a random
+- Add "random" transition type to `video.fade.*` in order to select a random
   transition each time.
-- Add max parameter to drop data on buffer overrun with input.gstreamer.\*.
+- Add max parameter to drop data on buffer overrun with `input.gstreamer.*`.
 - Add bytes_per_page parameter to ogg encoders.
 - Add support for DTX in speex and opus, as well as VAD for speex.
 - Localize some more parsing errors in files.
@@ -1020,7 +1020,7 @@ Bugfixes:
 
 New:
 
-- Add support for GStreamer decoding, processing and encoding (%gstreamer
+- Add support for GStreamer decoding, processing and encoding (`%gstreamer`
   format, v4l webcam input is now implemented using GStreamer).
 - Add support for opus decoding and encoding.
 - Add support for the shine encoder, which can efficiently work on architectures
@@ -1029,10 +1029,12 @@ New:
   "duration" metadata [LS-641]. It can be enabled with
   set("request.metadata_decoders.duration",true)
 - Add support for frei0r video effects.
-- Allow %define'd variables in encoding formats [LS-634], e.g.
+- Allow `%define`'d variables in encoding formats [LS-634], e.g.
+  ```
   %define BITRATE 24
   %define STEREO true
   output.file(%mp3(bitrate = BITRATE, stereo = STEREO),"bla.mp3",s)
+  ```
 
 Enhancements:
 
@@ -1084,32 +1086,32 @@ Bugfixes:
 
 Fixes:
 
-- correct type for the "flush" parameter in output.external()
+- correct type for the "flush" parameter in `output.external()`
   thanks to Romaric Petion for pointing it out
 - fix bug where MP3 encoder would discard initial ID3v2 rendering
-- fix bug where smart_cross() would stop before the end of tracks,
+- fix bug where `smart_cross()` would stop before the end of tracks,
   thanks to Edward Kimber for raising the issue
 - load libraries in --interactive [LS-618]
 - update examples, notably the installed radio.liq
   thanks to Emery Hemingway for noticing the problem
-- generalize the types of input.http() and input.harbor() to allow variable
+- generalize the types of `input.http()` and `input.harbor()` to allow variable
   content kinds, and also allow video for harbor [LS-601]
-- request.equeue() now allows to remove requests from the primary queue
+- `request.equeue()` now allows to remove requests from the primary queue
 - fix compilation of lame dynamic plugin.
 
 New:
 
 - new values for metadata fields does not override old one anymore;
   use setting "request.metadata_decoders.override" to restore old behavior
-- stereo_mode and internal_quality parameters for %mp3 encoder
+- stereo_mode and internal_quality parameters for `%mp3` encoder
 - enable mad decoder for MP1 and MP2 in addition to MP3, create aliased
   configuration keys "decoder.file_extensions/mime_types.mad"
 - support for CUE sheet playlists and metadata in M3U
 - setting "decoder.taglib.force_mpeg" to force taglib to consider files as MPEG
-- scripting builtins getenv(), setenv() and environment()
-- scripting builtin source.fallible()
+- scripting builtins `getenv()`, `setenv()` and `environment()`
+- scripting builtin `source.fallible()`
 - harbor is now verb-oriented, supporting GET, POST, PUT, HEAD, DELETE, OPTIONS
-- load DSSI plugins from environment variables and using dssi.register()
+- load DSSI plugins from environment variables and using `dssi.register()`
 - also display the type of the whole expression when -i is passed
 - generalized custom path support for facilitating standalone distributions
 - and as usual, various improvements in the code, log and error messages, etc.
@@ -1118,61 +1120,65 @@ New:
 
 Finally, the 1.0.0 release! It brings several important fixes, but
 also some nice novelties.
-The most outstanding difference concerns output.icecast(): its restart
-and restart*delay parameters are gone, replaced by a new on_stop handler
+The most outstanding difference concerns `output.icecast()`: its restart
+and `restart_delay` parameters are gone, replaced by a new `on_stop` handler
 which is called on every error (failed connection or disconnection) and
-returns the new restart delay. The on_error handler receives a string
+returns the new restart delay. The `on_error` handler receives a string
 describing the error which enables user-friendly reporting, adaptative
 delays, etc.
-Note that on_error defaults to fun(*)->3. which is equivalent to having
-restart=true, restart_delay=3. in previous versions, NOT the same as the
-former restart=false default. As a result, liquidsoap won't fail to startup
+Note that `on_error` defaults to `fun(_)->3`. which is equivalent to having
+`restart=true`, `restart_delay=3`. in previous versions, NOT the same as the
+former `restart=false` default. As a result, liquidsoap won't fail to startup
 if an initial connection attempt fails.
 
 Fixes:
 
 - LS-532,527: avoid freeze after errors in streaming threads or source
   initialization routines
-- LS-542: race condition in playlist\*() breaking randomness
+- LS-542: race condition in `playlist*()` breaking randomness
 - LS-489: double expiration lead to illegal queue length and freeze of
   request-based sources
-- Avoid multiple simultaneous reloading in playlist\*(),
+- Avoid multiple simultaneous reloading in `playlist*()`,
   thanks to Fabio Costa for his help on this one!
 - Pass charset information to icecast server to avoid encoding bugs
 - LS-555: timeout for icecast connection attempts
 - LS-559: permanent stop after disconnection on Ogg streams
 - LS-565: efficient and crash-free error handling in input.http/harbor()
   when the input stream has an invalid number of channels
-- LS-431: proper handling of duration in blank() avoids abusive empty tracks
+- LS-431: proper handling of duration in `blank()` avoids abusive empty tracks
 - LS-556: rework conversion operators, optimizations used to be unsafe & broken
 - LS-574: silent MIDI synthesis operators
-- LS-396: drop\*()'s types reflect that they don't support variable arities
+- LS-396: `drop*()`'s types reflect that they don't support variable arities
 - LS-442: allow comments not terminated by newline at end of file
-  New:
-- on_error handler in output.icecast(), see above
-- New msg param in %mp3 for marking frame headers, defaults to version string
-- output.file(): new on_close parameter, may be used to write exact duration
-- %mp3.vbr/abr for variable bitrate MP3, %mp3 is now a synonym of %mp3.cbr
+
+New:
+
+- on_error handler in `output.icecast()`, see above
+- New msg param in `%mp3` for marking frame headers, defaults to version string
+- `output.file()`: new on_close parameter, may be used to write exact duration
+- `%mp3.vbr/abr` for variable bitrate MP3, `%mp3` is now a synonym of `%mp3.cbr`
 - MP3 encoders now support ID3v2 tags
-- input.http(): new "status" command
-- LS-556: mux_mono() for adding a single audio channel into a stream
-- video.add_text() using libgd (gd4o) for environments without X
+- `input.http()`: new "status" command
+- LS-556: `mux_mono()` for adding a single audio channel into a stream
+- `video.add_text()` using libgd (gd4o) for environments without X
   Dependency on graphics can be disabled (to work around erreneous detection)
 - script language: add infix operator mod (patch by Fabio Costa)
-- delay() now has an "initial" parameter
+- `delay()` now has an "initial" parameter
 - LS-557: "server.timeout" setting can now be disabled by setting it to -1
-- LS-532: source.init() for selective init with a way to handle errors,
+- LS-532: `source.init()` for selective init with a way to handle errors,
   plus settings "clock.allow_streaming_errors" and "init.force_stat" (or
   --force-start on the command line) for easing dynamic uses of liquidsoap
-  Enhancements:
+
+Enhancements:
+
 - Panic crash to avoid frozen liquidsoap after duppy crashes
 - Text-to-speech: festival and sox are now only runtime dependencies
-- LS-475,516: better support for dynamic URL change in input.http()
+- LS-475,516: better support for dynamic URL change in `input.http()`
 - LS-484: display user-friendly error messages in interactive mode
 - LS-308: use seconds internally in request sources, avoid overflow and
   display more user-friendly debug messages
-- Cleanup visu.volume() and video.vis_volume()
-- LS-573: replace " " by "\_" in identifiers to make them valid in the server
+- Cleanup `visu.volume()` and `video.vis_volume()`
+- LS-573: replace ` ` by `_` in identifiers to make them valid in the server
 - Script syntax: unary minus now usable without parenthesis after semicolon
 - Two generic queues by default, to avoid deadlocks in advanced situations
 - Documentation, build & install system, etc.
@@ -1196,8 +1202,8 @@ Fixes:
 
   # 1.0.0 beta2.1 (07-07-2011)
 
-- Fix: playlist.safe() was unusable in beta2, as a side effect of removing
-  duplicate "timeout" parameter in playlist().
+- Fix: `playlist.safe()` was unusable in beta2, as a side effect of removing
+  duplicate "timeout" parameter in `playlist()`.
 - Minor enhancements to documentation, settings and reference.
 
   # 1.0.0 beta2 (04-07-2011)
@@ -1206,8 +1212,8 @@ This release introduces lots of fixes and cleanup, but also some new features.
 Major novelties: support for fast seeking and cue points, FLAC and improved
 AAC+ support, introduction of the liquidsoap yellowpages "flows",
 plugin support and improved messages for scripting errors
-Compatibility warning: insert_metadata has changed, and clock.assign_new()
-should be used instead of clock() to avoid some of the new static checks
+Compatibility warning: insert_metadata has changed, and `clock.assign_new()`
+should be used instead of `clock()` to avoid some of the new static checks
 
 Decoders:
 
@@ -1228,7 +1234,7 @@ Decoders:
 
 Encoders:
 
-- New FLAC encoders %flac (native) and %ogg(%flac)
+- New FLAC encoders `%flac` (native) and `%ogg(%flac)`
 - New AAC+ 2.0 and vo-aacenc
 - New settings to theora: keyframes make files much smaller!
 - New settings for WAV encoding: headerless, samplesize.
@@ -1240,25 +1246,25 @@ Encoders:
 
 Harbor:
 
-- New: output.harbor() which acts as a mini icecast server,
+- New: `output.harbor()` which acts as a mini icecast server,
   accepting listeners directly. Encoding is shared among users,
   and is only performed when needed.
 - New: ability to register HTTP GET/POST handlers to create simpler
   web services, using harbor.http.register/remove().
 - Make all settings local: port, user and password can be set independently
-  for each input.harbor() source
-- New: "metadata_charset" and "icy_metadata_charset" in input.harbor()
+  for each `input.harbor()` source
+- New: "metadata_charset" and "icy_metadata_charset" in `input.harbor()`
 - Fix: race condition possibly leading to abusive "source taken" (LS-500)
 
 Icecast:
 
 - Add support for streaming native flac, only works when streaming to
-  input.harbor(), not supported by actual Icecast servers
+  `input.harbor()`, not supported by actual Icecast servers
 - Fix bugs in ICY protocol support (header parsing, user name)
 - Use ICY metadata updates when streaming AAC(+)
-- New: "encoding" parameter for output.icecast(), used for recoding metadata
+- New: "encoding" parameter for `output.icecast()`, used for recoding metadata
   Defaults to "latin1" with shoutcast servers
-- New: icy.update_metadata() function for manual updates
+- New: `icy.update_metadata()` function for manual updates
 - Enhance default "song" metadata, avoiding " - " when unnecessary (#467)
 
 Input/output:
@@ -1266,7 +1272,7 @@ Input/output:
 - New experimental input.v4l/v4l2() for webcams
 - New experimental input/output.udp() for unchecked UDP streaming,
   available with most formats (at your own risk)
-- Restore output.pipe.external(), now called output.external()
+- Restore `output.pipe.external()`, now called `output.external()`
 - New parameters for most outputs and inputs (start, on_start,
   on_stop, fallible); cleanup and uniformize implementations (LS-365)
 - New ALSA settings alsa.alsa_buffer, alsa.buffer_length and alsa.periods
@@ -1277,37 +1283,37 @@ Input/output:
 
 Operators:
 
-- New: support for cue points with cue_cut()
-- Change insert.metadata() which is now more script friendly,
+- New: support for cue points with `cue_cut()`
+- Change `insert.metadata()` which is now more script friendly,
   returning an insertion function rather than register a server
-  command. The old functionality is available as server.insert_metadata().
-- New: rms() operator for getting RMS of a stream, and server.rms() which
+  command. The old functionality is available as `server.insert_metadata()`.
+- New: `rms()` operator for getting RMS of a stream, and `server.rms()` which
   makes this information available as a server command.
 - New: track_sensitive mode for blank detection operators
-- New: playlist.reloadable() for playing a list once, with a command
+- New: `playlist.reloadable()` for playing a list once, with a command
   for restarting it.
-- Remove id.\*() which can be replaced by type annotations
+- Remove `id.*()` which can be replaced by type annotations
 
 Scripting API:
 
-- New: OSC support through osc.bool(), osc.float() and osc.float_pair()
-- New: JSON export json_of()
-- New: http.get() and http.post()
+- New: OSC support through `osc.bool()`, `osc.float()` and `osc.float_pair()`
+- New: JSON export `json_of()`
+- New: `http.get()` and `http.post()`
 - New: url.encode/decode(), base64.encode/decode()
-- New: string.recode() for charset conversions using camomile
-- New: notify_metadata() and osd_metadata(), suitable for use with
-  on_track() and on_metadata()
-- New: request.metadata() for getting a request's metadata
-- New: string.length()
-- Enhance log_clocks() with parameter for delaying startup
-- Enhance get_clock_status() with "uptime" reference time
+- New: `string.recode()` for charset conversions using camomile
+- New: `notify_metadata()` and `osd_metadata()`, suitable for use with
+  `on_track()` and `on_metadata()`
+- New: `request.metadata()` for getting a request's metadata
+- New: `string.length()`
+- Enhance `log_clocks()` with parameter for delaying startup
+- Enhance `get_clock_status()` with "uptime" reference time
 
 Server interface:
 
 - Print the playlist's URI when calling <playlist>.uri without an
   argument.
 - Enhance <queue>.ignore now works also in the primary queue
-- New command for changing the URL of an input.http() (#466). The
+- New command for changing the URL of an `input.http()` (#466). The
   command is <id>.url and it needs a restart (<id>.stop, then start)
   to take effect.
 - Fixed double registration of server commands which resulted in broken
@@ -1334,14 +1340,14 @@ General:
   other crashes: LS-460 (source becomes not ready without operator knowing)
   #403 (information about being ready is not precise enough)
 - Fix incorrect image accesses (LS-430) by introducing a safer VFrame API
-  Applies to most video operators (video.fade(), video.text(), effects...)
+  Applies to most video operators (`video.fade()`, `video.text()`, effects...)
 - Cleanup resource (de)allocation, which is becoming critical with dynamic
-  reconfigurations (e.g., dynamic output creation, source.dynamic())
+  reconfigurations (e.g., dynamic output creation, `source.dynamic()`)
   Enforce that server commands are always deallocated (LS-495)
   Attempt to stop sources when initialization fails, so they cleanup as
   much as possible (LS-503)
   Avoid deadlocks upon crashes in IoRing-based operators
-  Share code for stoppable feeding threads, use it in input.harbor()
+  Share code for stoppable feeding threads, use it in `input.harbor()`
   Avoid useless initialization of SDL systems
 - Dynamic loading of lame and aacplus libraries, making it possible to
   ship them as separate binary packages. This is particularly useless
@@ -1364,15 +1370,15 @@ Miscellaneous:
 
 - Update liguidsoap, make microphone input optional (LS-496)
 - Do not crash upon charset-recoding failures [LS-473]
-- Fix in source.dynamic(): missing source re-selection [LS-354]
+- Fix in `source.dynamic()`: missing source re-selection [LS-354]
 - Avoid deadlock on startup in daemon mode [LS-229]
 - Fixes in LADSPA and SDL causing early freezing of Frame parameters.
-- Fullscreen mode for output.sdl()
+- Fullscreen mode for `output.sdl()`
 - Fix: SIGPIPE used to cause crashes (LS-53,LS-287)
-- Fix: video.volume() could crash upon some end-of-track situationos
+- Fix: `video.volume()` could crash upon some end-of-track situationos
 - Fix: properly escape filenames in external file duration methods
 - Rework timeout management for various sockets (notably icecast & harbor)
-  Set nodelay, remove TCP\_\*TIMEOUT [LS-508,LS-509]
+  Set nodelay, remove `TCP_*TIMEOUT` [LS-508,LS-509]
 
   # 1.0.0 beta1 (06-09-2010)
 
@@ -1391,18 +1397,18 @@ New:
   time flows, and avoiding inconsistencies that can result from it.
   Soundcard I/O and cross-based operators notably make use of it.
 - Remove root.sync, replaced by attaching a source s to clock(sync=false,s).
-- Enable dynamic source creation and source.shutdown().
+- Enable dynamic source creation and `source.shutdown()`.
 - Extend and adapt MIDI and video operators.
 - Introduce purely metadata streams (audio=video=midi=0 channels) and
   metadata stream decoder.
 - Support WAV streams in input.http/harbor().
 - Introduce static image decoder using SDL image.
 - Remove bound of request identifies (RID).
-- Experimental: source.dynamic() for advanced dangerous hacking.
-- Make path relative to script in %include "PATH", and introduce
-  %include <...> where path is relative to liquidsoap library directory.
-- Add channels_matrix parameter to output.ao().
-- Add on\_(dis)connect hooks in input.harbor().
+- Experimental: `source.dynamic()` for advanced dangerous hacking.
+- Make path relative to script in `%include "PATH"`, and introduce
+  `%include <...>` where path is relative to liquidsoap library directory.
+- Add channels_matrix parameter to `output.ao()`.
+- Add `on_(dis)connect` hooks in `input.harbor()`.
 
 Cleanup and fixes:
 
@@ -1436,8 +1442,8 @@ important bugfixes. As a snapshot, it contains experimental or unpolished
 features, and also breaks compatibility with previous versions.
 You should in particular notice the two "New" items below:
 
-- random(strict=true) is now called rotate();
-- request sources (playlists, request.\*) have a new queuing behavior,
+- random(strict=true) is now called `rotate()`;
+- request sources (playlists, `request.*`) have a new queuing behavior,
   check the doc (request-sources.html) or revert to conservative=true.
 
 Bugs fixed:
@@ -1455,20 +1461,20 @@ Bugs fixed:
   It enforces that "root.sync" be deactivated for these sources, such that
   synchronisation is done by the source. (#203)
 - Factorized file decoding code.
-- Fixed reversed order when parsing playlists using playlist.parse().
+- Fixed reversed order when parsing playlists using `playlist.parse()`.
 - Avoid bad crashes when resources lack, e.g. no more memory.
 - Tighten and enforce the inter-source protocol.
 - All outputs: fix the autostart server command. With the former code,
   a modification of the autostart parameter was only taken into account
   one start/stop cycle later.
-- on_blank(): fix a bug that prevented the first call to on_noise.
+- `on_blank()`: fix a bug that prevented the first call to on_noise.
 - Fixed estimated remaining samples on ogg files, fixes issues with
-  operators relying on this value, in particular crossfade() and
+  operators relying on this value, in particular `crossfade()` and
   request-based sources when operating in non-conservative mode.
 - Fixed socket descriptor leak in input.http. (#318)
 - Fixed deadlock at init when an exception was raised at wake_up
   phase. (#319)
-- Fix delay() which could sometimes incorrectly declare itself ready,
+- Fix `delay()` which could sometimes incorrectly declare itself ready,
   and thus try to get some data from its unavailable input source.
 - Bug in queue duration estimation led to infinite feeding of the queue,
   until all request IDs are taken.
@@ -1476,18 +1482,18 @@ Bugs fixed:
 
 New:
 
-- The operator rotate() replaces random(strict=true), and random()
+- The operator `rotate()` replaces random(strict=true), and `random()`
   does not have a strict parameter anymore.
 - Switch to new behaviour in request-based sources.
   Use conservative=true to get to the old behaviour.
-- on_blank(): provide an on_noise handler.
-- playlist\*(): add server commands for reloading the playlist and changing
+- `on_blank()`: provide an on_noise handler.
+- `playlist*()`: add server commands for reloading the playlist and changing
   its URI.
 - Fallible outputs: all outputs now have a fallible mode, in which
   they accept fallible sources, and automatically start/stop when the child
   fails to stream.
 - EXPERIMENTAL ogg/dirac encoding support.
-- output.\*.aacplus(): native outputs encoding in AAC+ using ocaml-aacplus.
+- `output.*.aacplus()`: native outputs encoding in AAC+ using ocaml-aacplus.
 - Switched to a custom implementation of the various shout protocols.
   It notably allows arbitrary content-type settings which enables
   AAC+ streaming. Enabled wrappers for external encoders for AAC+ format
@@ -1508,7 +1514,7 @@ New:
   configure.{libdir,pidfile,logdir}.
 - Added built-in support for replay_gain, through the replay_gain protocol
   (enabled by default) and the replay gain metadata resolver (to be enabled
-  using enable_replaygain_metadata()). (#103 & #317)
+  using `enable_replaygain_metadata()`). (#103 & #317)
 - Reverse DNS operations can be disabled using settings keys
   "server.telnet.reverse_dns" and "harbor.reverse_dns".
 
@@ -1562,8 +1568,8 @@ Bugs fixed:
 - Fixed mp3 audio glitches when decoding
   files with picture id3v2 tags using ocaml-mad (#162).
 - Fixed liquidsoap crash on weird telnet and harbor input (#164).
-- Fixed request.queue() not considering initial queue on wake-up (#196).
-- Fixed source leak in append().
+- Fixed `request.queue()` not considering initial queue on wake-up (#196).
+- Fixed source leak in `append()`.
 - Fixed after_output propagation in the transitions of switches (#208).
 - Fixed compilation for ocaml 3.11 (#216).
 - Fixed (again) Vorbis mono output (#211).
@@ -1582,7 +1588,7 @@ Bugs fixed:
 
 Changes:
 
-- Warning: interactive_float() is now interactive.float().
+- Warning: `interactive_float()` is now `interactive.float()`.
 
 New:
 
@@ -1593,12 +1599,12 @@ New:
 - Cleanup icecast class hierarchy and restart mechanism, especially
   with respect to the encoder.
 - Support for breaks and metadata in generators.
-  As a result, input.http() and input.harbor() now fully support them.
+  As a result, `input.http()` and `input.harbor()` now fully support them.
   See new_track_on_metadata parameters there.
 - Switch operators (fallback,random and switch) can now replay the metadata
   of a source that has been left in the middle of a track.
-- New force_mime parameter for input.http().
-- New insert_missing parameter for append().
+- New force_mime parameter for `input.http()`.
+- New insert_missing parameter for `append()`.
 - Multi-line strings in liq scripts, with a caml-like syntax.
 - Slight modification of the scripting syntax, handling unary minus.
 - Added user_agent parameter for input.http and input.lastfm
@@ -1617,13 +1623,13 @@ New:
 - Support for external processes as audio file decoder:
   - Added support for flac audio files using the flac binary.
   - Added support for m4a files using the faad binary.
-  - Added optional support for mplayer, enabled with enable_mplayer().
+  - Added optional support for mplayer, enabled with `enable_mplayer()`.
 - Support for external metadata decoders.
 - Support for generic authentication function in harbor,
   also available for ICY (shoutcast) clients.
 - Added optional support for the samplerate library,
   and dynamic configuration of resampling routine.
-- Added lag() operator, which delays a stream by a constant time.
+- Added `lag()` operator, which delays a stream by a constant time.
 - Initial support for PulseAudio.
 - Added experimental support for {input,output}.marshal, allowing
   raw communication between various liquidsoap instances.
@@ -1638,9 +1644,9 @@ New:
   - Support for ogg/theora file and icecast output
   - Support for SDL output.
   - Optional support for ocaml-gavl as video converter.
-  - Support for video in _some_ existing operators, including switches, add(),
+  - Support for video in _some_ existing operators, including switches, `add()`,
     metadata/track manipulations.
-  - Added operators: video.fade.\*, video.fill, video.greyscale, video.image,
+  - Added operators: `video.fade.*`, video.fill, video.greyscale, video.image,
     video.invert, video.lomo, video.noise, video.opacity, video.opacity.blur,
     video.rotate, video.scale, video.sepia, video.text, video.tile,
     video.transparent, video.volume.
@@ -1700,15 +1706,15 @@ Bugs fixed:
 
 - Now works on FreeBSD and hopefully other unices that are stricter than
   Linux about Mutex usage.
-- input.http() now has a bind_address parameter.
+- `input.http()` now has a bind_address parameter.
 - Harbor socket now has a timeout for lost connections.
-- smartcross() is now more compliant with the inter-sources protocol,
+- `smartcross()` is now more compliant with the inter-sources protocol,
   fixes several "get frame didn't change the buffer" bugs.
 - Ogg packeting bugs.
 - Buffering policy in input.http/harbor().
 - No "." in IDs and labels.
-- Resources: FD leaks, useless threads (threads leaks?) in input.http().
-- fade.out() used to run into infinite loops when the delay was 0.
+- Resources: FD leaks, useless threads (threads leaks?) in `input.http()`.
+- `fade.out()` used to run into infinite loops when the delay was 0.
 
 New:
 
@@ -1723,12 +1729,12 @@ New:
 - Metadata is no more punctual but interval-based, which suppresses some
   surprising behaviours.
 - Perfected daemon behaviour.
-- All output.file.\*() now have the features that used to be only in
-  output.file.vorbis(), notable re-opening. Added %w to the strftime-like
+- All `output.file.*()` now have the features that used to be only in
+  `output.file.vorbis()`, notable re-opening. Added `%w` to the strftime-like
   format codes allowed in their filename parameter.
-- Add clear_metadata() and map_metadata(). Now, rewrite_metadata() is a simple
-  specialization of map_metadata(), written in utils.liq.
-- Dynamic amplification factor in amplify(), e.g. useful for replay gain.
+- Add `clear_metadata()` and `map_metadata()`. Now, `rewrite_metadata()` is a simple
+  specialization of `map_metadata()`, written in utils.liq.
+- Dynamic amplification factor in `amplify()`, e.g. useful for replay gain.
 - Lots of new functions in the scripting API: for lists, requests, system
   interaction, shutdown, command-line parsing, scripted server commands, etc.
 
@@ -1761,27 +1767,27 @@ Notation: "-" stands for a change, "+" for an addition.
 - Language
   - Support for polymorphism, subtyping and basic ad-hoc polymorphism,
     which allows a much simpler API, notably for maths and serialization.
-  * Added interactive\_\*() for mutable values.
+  * Added `interactive_*()` for mutable values.
   - The right syntax for settings is now set("var", value) and can be used
     anywhere in the scripts.
   - The volume parameters of most operators are now in dB.
   - Many builtin functions added.
   - Nicer type error messages.
 - Sources
-  - Added input.lastfm() to relay last.fm streams.
-  - Added input.harbor() to received Icecast2 source streams.
-  - Added noise() to generate white noise
+  - Added `input.lastfm()` to relay last.fm streams.
+  - Added `input.harbor()` to received Icecast2 source streams.
+  - Added `noise()` to generate white noise
   * Reimplemented playlist support, added various xml and text formats.
   * Added mpd protocol to find files using mpd.
 - Operators
-  - New effects: compress(), flanger(), pan().
-  - New filters: filter.fir._(), filter.iir._(), filter.biquad.\*(), comb().
+  - New effects: `compress()`, `flanger()`, `pan()`.
+  - New filters: `filter.fir._()`, `filter.iir._()`, `filter.biquad.*()`, `comb()`.
   - Added support for LADSPA effects.
-  - Added eat_blank() to remove blanks.
+  - Added `eat_blank()` to remove blanks.
 - Outputs
-  - Added non-default restart option for output.icecast.\*().
+  - Added non-default restart option for `output.icecast.*()`.
   - Added the possibility to tweak some settings at runtime.
-  - Split output.icecast.vorbis() into output.icecast.vorbis.\*() to distinguish
+  - Split `output.icecast.vorbis()` into `output.icecast.vorbis.*()` to distinguish
     between encoding modes -- and similarly for output.file.vorbis and mp3.
   - Better handling of Icecast disconnections.
 - IO
@@ -1795,21 +1801,21 @@ Notation: "-" stands for a change, "+" for an addition.
   removing several back-and-forth conversions and enhancing the perfs a lot;
   reviewed all sources and operators, made many minor enhancements btw.
 - Lots of sound processing operators: compand, compress, normalize,
-  pitch, bpm, soundtouch, saw, square, etc. Add more shapes to fade.\*().
+  pitch, bpm, soundtouch, saw, square, etc. Add more shapes to `fade.*()`.
 - New track processing operators: insert_metadata, on_track.
 - Smart cross: allows to select a transition based on the volumes around the
   end-of-track.
 - Support for AAC encoding/decoding.
 - Several fixes to output.icecast.mp3 in order to support shoutcast servers.
-- Automatic format recognition for input.http(), support for playlists.
+- Automatic format recognition for `input.http()`, support for playlists.
 - OSS I/O.
 - Unbuffered ALSA I/O for low latency.
 - Server interface via UNIX domain sockets.
 - Better output.file.vorbis with support for re-opening the file, appending,
   interpolate strftime format codes, etc.
 - Add pre-processing and math primitives to the language, new _[_] notation for
-  assoc(), ruby-style anti-quotation ("..#{..}.."), add_timeout(), execute(),
-  log()...
+  `assoc()`, ruby-style anti-quotation ("..#{..}.."), `add_timeout()`, `execute()`,
+  `log()`...
 - Ability to tweak the internal PCM stream format.
 - Classify sources and operators in categories for more structured doc.
 - Started a few visualization operators, text and graphics based.
@@ -1817,18 +1823,18 @@ Notation: "-" stands for a change, "+" for an addition.
 
   # 0.3.2 (16-03-2007)
 
-- New portable output to speakers using libao().
+- New portable output to speakers using `libao()`.
 - Updated liGuidsoap to use it until ALSA gets enhanced.
 - Implemented a decent estimation of the remaining time in a track.
-- Added the cross() operator allowing cross-fading.
-- Generalized say_metadata() into append() and prepend().
-- Per-track settings for cross(), fade.\*(), prepend() and append()
+- Added the `cross()` operator allowing cross-fading.
+- Generalized `say_metadata()` into `append()` and `prepend()`.
+- Per-track settings for `cross()`, `fade.*()`, `prepend()` and `append()`
   using requests' metadatas.
 - Implemented input.http.mp3(), including support for icy metadata.
-- New pipe() operator which allows one to filter the raw audio through an
+- New `pipe()` operator which allows one to filter the raw audio through an
   external program. However, sox and other common tools aren't suitable for that
   because they don't flush their output often enough.
-- New on_blank() operator for calling a callback on excessive blanks.
+- New `on_blank()` operator for calling a callback on excessive blanks.
 - Restart outputs on insane latencies.
 - Type checkings for settings.
 - Setting for not starting the internal telnet server.
