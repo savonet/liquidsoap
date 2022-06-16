@@ -8,6 +8,18 @@ let build_config () =
   [%string
     {|
  * Liquidsoap version  : %{Configure.version ()}
+ 
+ * Compilation options
+   - OCaml version       : %{Sys.ocaml_version}
+   - Os type             : %{Sys.os_type}
+   - Libs versions       : %{Configure.libs_versions ()}
+   - architecture        : %{Sys_config.architecture}
+   - host                : %{Sys_config.host}
+   - target              : %{Sys_config.target}
+   - system              : %{Sys_config.system}
+   - ocamlopt_cflags     : %{Sys_config.ocamlopt_cflags}
+   - native_c_compiler   : %{Sys_config.native_c_compiler}
+   - native_c_libraries  : %{Sys_config.native_c_libraries}
 
  * Configured paths  
    - mode              : %{path_mode}

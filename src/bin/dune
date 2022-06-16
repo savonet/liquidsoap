@@ -15,9 +15,3 @@
    (winsvc -> runner.winsvc.ml)
    (-> runner.default.ml)))
  (modules liquidsoap runner main build_config))
-
-(executable
- (name sys_config)
- (modules sys_config)
- (link_flags -cclib %{env:LDFLAGS=})
- (libraries dune-configurator))

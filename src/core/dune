@@ -10,14 +10,17 @@
  (sites liquidsoap))
 
 (rule
- (targets sys_config.dune.ml)
- (action
-  (run ../bin/sys_config.exe)))
-
-(rule
  (target sys_config.ml)
  (action
-  (copy sys_config.%{env:LIQUIDSOAP_SYS_CONFIG=dune}.ml %{target})))
+  (with-stdout-to %{target}
+    (echo "let ext_exe = \"%{ocaml-config:ext_exe}\"\n
+           let architecture = \"%{ocaml-config:architecture}\"\n
+           let host = \"%{ocaml-config:host}\"\n
+           let target = \"%{ocaml-config:target}\"\n
+           let system = \"%{ocaml-config:system}\"\n
+           let ocamlopt_cflags = \"%{ocaml-config:ocamlopt_cflags}\"\n
+           let native_c_compiler = \"%{ocaml-config:native_c_compiler}\"\n
+           let native_c_libraries = \"%{ocaml-config:native_c_libraries}\""))))
 
 (rule
  (target liquidsoap_paths.ml)
