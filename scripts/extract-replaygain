@@ -23,7 +23,7 @@ if test -z "$SED"; then
 fi
 
 # check for replaygain metadata
-if [ -n "$FFPROBE" ]; then 
+if [ -n "$FFPROBE" ]; then
   RG=`$FFPROBE "$FILE" 2>&1 | $SED -n -r 's/.* REPLAYGAIN_TRACK_GAIN: ([-+]?[0-9]+\.[0-9]+ dB).*/\1/pi'`
 
   if [ -n "$RG" ]; then

@@ -1,5 +1,4 @@
-2022-05-13
-----------
+## 2022-05-13
 
 - refine video support in order to have next liquidshop running on Liquidsoap
   (dogfooding)

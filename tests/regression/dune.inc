@@ -9,7 +9,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" GH1159.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -20,7 +20,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" LS460.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -31,7 +31,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" LS503.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -42,7 +42,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" 115-1.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -53,7 +53,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" 115-2.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -64,7 +64,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" 123.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -75,7 +75,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" LS354-2.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -86,7 +86,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" init-error.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -97,7 +97,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" LS354-1.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -108,7 +108,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" GH1129.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -119,7 +119,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" metadata_cache.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -130,7 +130,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" GH1279.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -141,7 +141,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" GH1327.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -152,7 +152,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" BUG403.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -163,7 +163,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" input_rtmp.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -174,7 +174,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" infallible-shutdown.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -185,7 +185,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" GH-action-919422659.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -196,7 +196,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" GH1151.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -207,7 +207,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" playlist-id.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -218,7 +218,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" GH1146.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -229,7 +229,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" AC5109.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -240,4 +240,3 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" LS268.liq)))
-  

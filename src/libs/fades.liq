@@ -41,7 +41,7 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
       log_shape
     elsif type == "lin" then
       lin_shape
-    else 
+    else
       log("Invalid type #{type}, using \"lin\"")
       lin_shape
     end
@@ -170,16 +170,16 @@ def fade.skip(~id="fade.skip",~duration=5.,
   end
 
   def skip()
-    log("Fade finished executing. Calling skip now") 
+    log("Fade finished executing. Calling skip now")
     source.skip(s);
   end
 
-  def update_fade(m) = 
+  def update_fade(m) =
     if m[override_skip] == "true" then
       remaining = source.remaining(s)
-      duration = if remaining < !duration then remaining else !duration end  
-      log("Skip fade executed for: #{duration}s")      
-      fn := mkfade(start=1.,stop=0.,type=!type,duration=duration, on_done=skip,s)       
+      duration = if remaining < !duration then remaining else !duration end
+      log("Skip fade executed for: #{duration}s")
+      fn := mkfade(start=1.,stop=0.,type=!type,duration=duration, on_done=skip,s)
     end
 
     if m[override_duration] != "" then
@@ -341,7 +341,7 @@ end
 # @param ~override_duration \
 #                      Metadata field which, if present and containing a \
 #                      float, overrides the 'duration' parameter for current \
-#                      track. 
+#                      track.
 # @param ~fade_in      Fade-in duration, if any.
 # @param ~fade_out     Fade-out duration, if any.
 # @param ~width        Width of the volume analysis window.
@@ -351,7 +351,7 @@ end
 #                      there may not be enough data for a decent composition. \
 #                      Set to 0. to avoid having transitions after skips, \
 #                      or more to avoid transitions on short tracks. \
-#                      With a negative default, transitions always occur.    
+#                      With a negative default, transitions always occur.
 # @param ~default      Smart crossfade: transition used when no rule applies \
 #                      (default: sequence).
 # @param ~smart        Enable smart crossfading
@@ -383,7 +383,7 @@ def crossfade(~id=null(), ~duration=5.,~override_duration="liq_cross_duration",
     list.iter(fun(x)-> log(level=4,"After : #{x}"), metadata.cover.remove(b.metadata))
 
     cross.smart(log=log, fade_in=fade_in, fade_out=fade_out, default=default,
-                high=high, medium=medium, margin=margin, a, b) 
+                high=high, medium=medium, margin=margin, a, b)
   end
 
   transition =

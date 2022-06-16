@@ -76,7 +76,7 @@ type decoder = {
 
 type input = {
   read : bytes -> int -> int -> int;
-  (* Seek to an absolute position in bytes. 
+  (* Seek to an absolute position in bytes.
    * Returns the current position after seeking. *)
   lseek : (int -> int) option;
   tell : (unit -> int) option;

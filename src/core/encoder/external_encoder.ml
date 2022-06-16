@@ -167,7 +167,7 @@ let encoder id ext =
   in
   {
     Encoder.insert_metadata;
-    (* External encoders do not support 
+    (* External encoders do not support
      * headers for now. They will probably
      * never do.. *)
     header = Strings.empty;

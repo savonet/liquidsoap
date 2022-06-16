@@ -46,7 +46,7 @@
   *  since those are structural, not nominal like a variant type.) *)
 type source_t = [ `Fallible | `Infallible ]
 
-(** {1 Proto clocks} 
+(** {1 Proto clocks}
   *
   * Roughly describe what a clock is, and build a notion of clock variable
   * on top of that. More concrete clock stuff is done the [Clock] module.

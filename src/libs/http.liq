@@ -12,11 +12,11 @@
 def http.response(~protocol="HTTP/1.1",
                   ~code=200,~headers=[],
                   ~content_type="",
-                  ~data="") = 
+                  ~data="") =
   status = http.codes[code]
   # Set content-length and connection: close
-  headers = 
-    list.append(headers, 
+  headers =
+    list.append(headers,
                 [("Content-Length", "#{string.length(data)}"),
                  ("Connection", "close")])
   headers =

@@ -1,8 +1,7 @@
-FFmpeg filters
-==============
+# FFmpeg filters
 
 [FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html) provide audio and video filters that can be used
-to transform content using the ffmpeg library. They are enabled in liquidsoap when compiled with the 
+to transform content using the ffmpeg library. They are enabled in liquidsoap when compiled with the
 optional [ffmpeg-avfilter](https://github.com/savonet/ocaml-ffmpeg).
 
 ## Filter as operators
@@ -61,6 +60,7 @@ This filter receives an audio input, creates a `ffmpeg.filter.audio.input` with 
 to filters, applies a flanger effect and then a high pass effect, creates an audio output from it and returns it.
 
 Here's another example for video:
+
 ```liquidsoap
 def hflip(s) =
   def mkfilter(graph) =
@@ -76,7 +76,7 @@ end
 This filter receives a video input, creates a `ffmpeg.filter.video.input` with it that can be passed to filters,
 applies a `hflip` filter (flips the video vertically), creates a video output from it and returns it.
 
-FFmpeg filters are very powerful, they can also convert audio to video, for instance displaying information about the 
+FFmpeg filters are very powerful, they can also convert audio to video, for instance displaying information about the
 stream, and they can combined into powerful graph processing filters.
 
 ## Filter commands
@@ -121,6 +121,7 @@ Filters with dynamic inputs or outputs can have multiple inputs or outputs, deci
 splits a video stream into multiple streams and `ffmpeg.filter.merge` merges multiple video streams into a single one.
 
 For these filters, the operators' signature is a little different. Here's an example for dynamic outputs:
+
 ```
 % liquidsoap -h ffmpeg.filter.asplit
 
@@ -148,6 +149,7 @@ Parameters:
 This filter returns a tuple `(audio, video)` of possible dynamic outputs.
 
 Likewise, with dynamic inputs:
+
 ```
 % liquidsoap -h ffmpeg.filter.amerge
 
@@ -173,9 +175,11 @@ Parameters:
 
  * (unlabeled) : [ffmpeg.filter.video] (default: None)
 ```
+
 This filter receives an array of possible `audio` inputs as well as an array of possible `video` inputs.
 
 Put together, this can be used as such:
+
 ```liquidsoap
 def parallel_flanger_highpass(s) =
   def mkfilter(graph) =
@@ -200,4 +204,3 @@ def parallel_flanger_highpass(s) =
   ffmpeg.filter.create(mkfilter)
 end
 ```
-

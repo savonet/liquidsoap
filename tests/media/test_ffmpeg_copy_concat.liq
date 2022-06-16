@@ -1,4 +1,4 @@
-out = "concat.mp4" 
+out = "concat.mp4"
 
 s1 = single("first-concat.mp4")
 s2 = single("second-concat.mp4")

@@ -1,5 +1,4 @@
-The Liquidsoap book
-===================
+# The Liquidsoap book
 
 Together with the release of Liquidsoap 2.0, we have written _the Liquidsoap
 book_ which covers in details the language and the process of building a

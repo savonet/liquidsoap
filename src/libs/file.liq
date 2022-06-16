@@ -58,7 +58,7 @@ def replaces file.write(~data, ~perms=0o644, ~append=false, path) =
   end
   write()
 end
-    
+
 # Read the whole contents of a file.
 # @category File
 def file.contents(fname) =
@@ -206,7 +206,7 @@ def file.metadata.flac.cover.decode(s) =
   end
 end
 
-# Encode cover metadata for embedding with 
+# Encode cover metadata for embedding with
 # flac files
 # @category String
 def file.metadata.flac.cover.encode(
@@ -222,7 +222,7 @@ def file.metadata.flac.cover.encode(
       error.raise(error.invalid, "Data length too long for APIC format!")
     end
     pad = string.make(char_code=0, len * 8 - string.length(s))
-    (str_len, "#{s}#{pad}") 
+    (str_len, "#{s}#{pad}")
   end
   pic_type = string.binary.of_int(little_endian=false, pad=4, picture_type)
   let (mime_len, mime) = encode_string(mime)

@@ -88,7 +88,7 @@ def enable_external_mpc_decoder() =
   mpc_mimes = [ "audio/x-musepack", "audio/musepack" ]
   mpc_filexts = [ "mpc", "mp+", "mpp" ]
 
-  mpcdec = settings.decoder.external.mpcdec.path() 
+  mpcdec = settings.decoder.external.mpcdec.path()
 
   def test_mpc(file) =
     def get_channels(file) =
@@ -142,7 +142,7 @@ let settings.decoder.external.metaflac.path = settings.make(
   "metaflac#{exe_ext}"
 )
 
-# Enable external FLAC decoders. Please note that built-in support for 
+# Enable external FLAC decoders. Please note that built-in support for
 # FLAC is available in liquidsoap if compiled and should be preferred
 # over the external decoder.
 # @category Liquidsoap
@@ -204,7 +204,7 @@ def enable_external_flac_decoder() =
   end
 end
 
-let settings.decoder.external.faad = settings.make.external("faad") 
+let settings.decoder.external.faad = settings.make.external("faad")
 
 let settings.decoder.external.faad.path = settings.make(
   description="Path to faad binary",

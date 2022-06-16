@@ -1,5 +1,5 @@
 (*****************************************************************************
-  
+
   Liquidsoap, a programmable audio stream generator.
   Copyright 2003-2022 Savonet team
 
@@ -7,17 +7,17 @@
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details, fully stated in the COPYING
   file at the root of the liquidsoap distribution.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
-  
+
  *****************************************************************************)
 
 (** Output to an harbor server. *)
@@ -58,11 +58,11 @@ module Make (T : T) = struct
   module M = Icecast_utils.Icecast_v (Icecast)
   open M
 
-  (* Max total length for ICY metadata is 255*16 
-   * Format is: "StreamTitle='%s';StreamUrl='%s'" 
+  (* Max total length for ICY metadata is 255*16
+   * Format is: "StreamTitle='%s';StreamUrl='%s'"
    * "StreamTitle='';"; is 15 chars long, "StreamUrl='';"
-   * is 13 chars long, leaving 4052 chars remaining. 
-   * Splitting those in: 
+   * is 13 chars long, leaving 4052 chars remaining.
+   * Splitting those in:
    * * max title length = 3852
    * * max url length = 200 *)
   let max_title = 3852

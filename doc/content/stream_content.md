@@ -1,5 +1,5 @@
-Stream contents
-===============
+# Stream contents
+
 In liquidsoap, a stream may contain any number of audio, video and
 MIDI channels. As part of the type checking of your script,
 liquidsoap checks that you make a consistent use of stream contents,
@@ -32,15 +32,15 @@ A [request](requests.html) is an abstract notion of file,
 often meant to be decoded, and it is useful to know into what
 kind of stream it is meant to be decoded.
 Finally, a [format](encoding_formats.html) describes how a stream
-should be encoded (*e.g.*, before output in a file or via icecast),
+should be encoded (_e.g._, before output in a file or via icecast),
 and the stream content is also useful here for the format
 to make sense.
 
 In this page, we explain how liquidsoap uses stream types
 to guess and check what you're doing.
 
-Global parameters
------------------
+## Global parameters
+
 You might have noticed that our description of stream contents is
 missing some information, such as sample rate, video size, etc.
 Indeed, that information is not part of the stream types, which is
@@ -55,8 +55,8 @@ video.frame.height.set(240)
 video.frame.rate.set(25)
 ```
 
-Checking stream contents
-------------------------
+## Checking stream contents
+
 Checking the consistency of use of stream contents is done as part
 of type checking. There is not so much to say here, except that you
 have to read type errors. We present a few examples.
@@ -82,8 +82,8 @@ accept to produce any number of channels, fixed once for
 all: it will attempt to initialize the soundcard with that number of
 channels and report a runtime error if that fails.
 
-Conversions
------------
+## Conversions
+
 The above example did not make much sense, but in some cases you'll
 get a type error on seemingly meaningful code, and you'll wonder how
 to fix it. Often, it suffices to perform a few explicit conversions.
@@ -94,6 +94,7 @@ to use AO to output the audio content of a video:
 This won't work, because the SDL output expects a pure video stream,
 but AO wants some audio. The solution is to split the stream in
 two, dropping the irrelevant content:
+
 ```liquidsoap
 s = single("file.ogv")
 output.sdl(drop_audio(s))
@@ -115,8 +116,8 @@ The last conversion is muxing.
 It is useful to add audio/video channels to a pure video/audio stream.
 See `mux_video`, `mux_audio` and `mux_midi`.
 
-Type annotations
-----------------
+## Type annotations
+
 You now have all the tools to write a correct script.
 But you might still be surprised by what stream content liquidsoap
 guesses you want to use.
@@ -134,12 +135,13 @@ you'll see that liquidsoap decides that stereo audio should be used,
 and consequently the ALSA I/O will be initialized with two channels.
 If you want to use a different number of channels,
 for example mono, you can explicitly specify it using:
+
 ```liquidsoap
 output.alsa((input.alsa():source(1,0,0)))
 ```
 
-Guessing stream contents
-------------------------
+## Guessing stream contents
+
 When all other methods fail, you might need to understand a little more
 how liquidsoap guesses what stream contents should be used for
 each source.
@@ -150,9 +152,11 @@ script.
 Usually, the outputs pretty much determine what sources should contain.
 A critical ingredient here is often the
 [encoding format](encoding_formats.html). For example, in
+
 ```liquidsoap
 output.icecast(%vorbis,mount="some.ogg",s)
 ```
+
 `%vorbis` has type `format(2,0,0)`, hence `s`
 should have type `source(2,0,0)`. This works in more complex
 examples, when the types are guessed successively for several intermediate
@@ -166,5 +170,3 @@ used. They are given by the setting
 `frame.audio/video/midi.channels` (whose defaults are respectively
 `2`, `0` and `0`). In our example,
 stereo audio would be chosen.
-
-

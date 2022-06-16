@@ -1,6 +1,6 @@
-ICY metadata
-============
-*ICY metadata* is the name for the mechanism used to update
+# ICY metadata
+
+_ICY metadata_ is the name for the mechanism used to update
 metadata in icecast's source streams.
 The techniques is primarily intended for data formats that do not support in-stream
 metadata, such as mp3 or AAC. However, it appears that icecast also supports
@@ -13,20 +13,20 @@ protocol you are using (ICY for shoutcast and icecast 1 or HTTP for icecast 2).
 Starting with 1.0, you can do several interesting things with icy metadata updates
 in liquidsoap. We list some of those here.
 
-Enable/disable ICY metadata updates
------------------------------------
+## Enable/disable ICY metadata updates
+
 You can enable or disable icy metadata update in `output.icecast`
 by setting the `icy_metadata` parameter to either `"true"`
 or `"false"`. The default value is `"guess"` and does the following:
 
-* Set `"true"` for: mp3, aac, aac+, wav
-* Set `"false"` for any format using the ogg container
+- Set `"true"` for: mp3, aac, aac+, wav
+- Set `"false"` for any format using the ogg container
 
 You may, for instance, enable icy metadata update for ogg/vorbis
 streams.
 
-Update metadata manually
-------------------------
+## Update metadata manually
+
 The function `icy.update_metadata` implements a manual metadata update
 using the ICY mechanism. It can be used independently from the `icy_metadata`
 parameter described above, provided icecast supports ICY metadata for the intended stream.
@@ -62,5 +62,3 @@ server.register("update",namespace="metadata",
 
 As usual, `liquidsoap -h icy.update_metadata` lists all the arguments
 of the function.
-
-

@@ -244,7 +244,7 @@ class virtual piped_output ~kind p =
       else super#insert_metadata m
   end
 
-(** Out channel virtual class: takes care 
+(** Out channel virtual class: takes care
   * of current out channel and writing to
   * it. *)
 let chan_proto kind arg_doc =

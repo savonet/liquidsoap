@@ -1,5 +1,4 @@
-Integrating a music library: an example with Beets
-==================================================
+# Integrating a music library: an example with Beets
 
 Liquidsoap's native sources can read from files and folders,
 but if your radio uses an important music library
@@ -18,7 +17,7 @@ The following examples may also inspire you to integrate another library or your
 After installing Beets,
 enable the `random` plug-in
 (see [Beets documentation on plug-ins](https://beets.readthedocs.io/en/stable/plugins/index.html#using-plugins)).
-To enable gain normalization, install and configure the 
+To enable gain normalization, install and configure the
 [`replaygain`](https://beets.readthedocs.io/en/stable/plugins/replaygain.html) plug-in.
 To easily add single tracks to you library,
 you might also be interested in the
@@ -30,12 +29,10 @@ which contains the complete path to your `beet` executable (on UNIX systems, fin
 BEET = "/home/radio/.local/bin/beet"
 ```
 
-
 Before creating a Liquidsoap source,
 let's see why Beets queries are interesting for a radio.
 
-Beets queries
--------------
+## Beets queries
 
 Queries are parameters that you usually provide to the `beet ls` command :
 Beets will find matching tracks.
@@ -61,7 +58,7 @@ Beets also holds internal meta-data, like `added`:
 the date and time when you imported each song.
 You can use it to query tracks inserted over the past month with `added:-1m..`.
 Or you can query track imported more than a year ago with `added:..-1y`.
-Beets also lets you 
+Beets also lets you
 [set your own tags](https://beets.readthedocs.io/en/stable/guides/advanced.html#store-any-data-you-like).
 
 You can use the `info` plug-in to see everything Beets knows about title(s) matching a query
@@ -70,8 +67,7 @@ See also [the Beets' documentation](https://beets.readthedocs.io/en/stable/refer
 for more details on queries operators.
 All these options should allow you to create both general and specialiazed Liquidsoap sources.
 
-A source querying each next track from Beets
---------------------------------------------
+## A source querying each next track from Beets
 
 As of Liquidsoap 2.x we can create a function that creates a dynamic source,
 given its `id` and a Beet query.
@@ -89,7 +85,7 @@ def beets(id, query) =
         )
       )
     })
-  (beets_src:source) 
+  (beets_src:source)
 end
 
 all_music = beets("all_music", "")
@@ -99,13 +95,11 @@ rock_music = beets("rock_music", "genre:Rock")
 
 Note that
 
-* `query` can be empty, it will match all tracks in the library.
-* we set `retry_delay` to a second, to avoid looping on `beet` calls if something goes wrong.
-* The final type hint (`:source`) will avoid false typing errors when the source is integrated in complex operators.
+- `query` can be empty, it will match all tracks in the library.
+- we set `retry_delay` to a second, to avoid looping on `beet` calls if something goes wrong.
+- The final type hint (`:source`) will avoid false typing errors when the source is integrated in complex operators.
 
-
-Applying ReplayGain
--------------------
+## Applying ReplayGain
 
 When the [`replaygain` plug-in](https://beets.readthedocs.io/en/stable/plugins/replaygain.html)
 is enabled, all tracks will have an additional metadata field called `replaygain_track_gain`.
@@ -119,7 +113,7 @@ import:
     write: yes
 ```
 
-Then  we only need to add `amplify` to our source creation function. In the example below we also add `blank.eat`, to automatically cut silence at the beginning or end of tracks.
+Then we only need to add `amplify` to our source creation function. In the example below we also add `blank.eat`, to automatically cut silence at the beginning or end of tracks.
 
 ```liquidsoap
 def beets(id, query) =
@@ -143,8 +137,7 @@ This is the recommended Beets integration ;
 such source will provide music continuously,
 at a regular volume.
 
-Beets as a requests protocol
------------------------------
+## Beets as a requests protocol
 
 If you're queueing tracks with `request.queue`,
 you may prefer to integrate Beets as a protocol.
@@ -169,11 +162,10 @@ add_protocol("beets", beets_protocol,
 )
 ```
 
-
 Once this is done,
 you can push a beets query from [the telnet server](server.html):
 if you created `request.queue(id="userrequested")`,
-the server command 
+the server command
 `userrequested.push beets:All along the watchtower`
 will push the Jimi Hendrix's song.
 
@@ -181,7 +173,7 @@ With this method, you can benefit from replay gain metadata too, by wrapping
 the recipient queue in an `amplify` operator, like
 
 ```liquidsoap
-userrequested = amplify(override="replaygain_track_gain", 1.0, 
+userrequested = amplify(override="replaygain_track_gain", 1.0,
   request.queue(id="userrequested")
 )
 ```

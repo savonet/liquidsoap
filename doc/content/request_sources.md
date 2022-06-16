@@ -15,9 +15,9 @@ to be played (local files with a valid content), and will
 feed this queue in the background.
 This process is described here.
 
-Common parameters
------------------
-Queued request sources maintain an *estimated remaining time*,
+## Common parameters
+
+Queued request sources maintain an _estimated remaining time_,
 and trigger a new request resolution when this remaining time
 goes below their `length` parameter.
 
@@ -39,18 +39,18 @@ This behavior can be restored by passing `conservative=true`,
 which is useful in some cases:
 it helps to ensure that a song will be ready in case of skip;
 generally, it prepares things more in advance, which is good when
-resolution is long (*e.g.*, heavily loaded server, remote files).
+resolution is long (_e.g._, heavily loaded server, remote files).
 
-Request.dynamic
----------------
+## Request.dynamic
+
 This source takes a custom function for creating its new requests.
 This function, of type `()->request`,
 can for example call an external program.
 
-To create the request, the function will have 
+To create the request, the function will have
 to use the `request.create` function which has type
 `(string,?indicators:[string])`.
-The first string is the initial URI of the request, 
+The first string is the initial URI of the request,
 which is resolved to get an audio file.
 The second argument can be used to directly specify the first row of URIs
 (see the page about [requests](requests.html) for more details),
@@ -60,8 +60,9 @@ until a valid audio file is obtained.
 
 An example that takes the output of an external script as an URI
 to create a new request can be:
+
 ```liquidsoap
-def my_request_function() = 
+def my_request_function() =
   # Get the first line of my external process
   result =
     list.hd(default="", process.read.lines("my_script my_params"))
@@ -73,15 +74,15 @@ end
 s = request.dynamic.list(my_request_function)
 ```
 
-Queues
-------
+## Queues
+
 Liquidsoap features two sources which provide request queues that
 can be directly manipulated by the user, via the server interface:
 `request.queue` and `request.equeue`.
 The former is a queued source where you can only push new requests,
 while the later can be edited.
 
-Both operators actually deal with two queues: *primary* and *secondary* queues.
+Both operators actually deal with two queues: _primary_ and _secondary_ queues.
 The secondary queue is user-controlled.
 The primary queue is the one that all queued request sources have,
 its behavior is the same as described above, and it cannot be changed
@@ -96,5 +97,3 @@ The two sources are controlled via the [command server](advanced.html).
 They both feature commands for looking up the queues,
 queuing new requests, and the `equeue` operator also allows
 removal and exchange of requests in the secondary queue.
-
-

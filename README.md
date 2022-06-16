@@ -17,14 +17,14 @@ Copyright 2003-2022 Savonet team
 [![Install with Opam !](https://img.shields.io/badge/Install%20with-Opam-1abc9c.svg)](http://opam.ocaml.org/packages/liquidsoap/)
 [![Chat on slack !](https://img.shields.io/badge/Chat%20on-Slack-1a1f9c.svg)](http://slack.liquidsoap.info/)
 
-|                |                                              |
-| -------------- | -------------------------------------------- |
-| Slack Chat     | http://slack.liquidsoap.info                 |
-| IRC            | #savonet on [irc.libera.chat](https://libera.chat/) (slack bridge)  |
-| Mailing list.  | savonet-users@lists.sourceforge.net          |
-| Homepage       | http://liquidsoap.info                       |
-| Bug reports    | https://github.com/savonet/liquidsoap/issues |
-| User questions | https://github.com/savonet/liquidsoap/discussions |
+|                |                                                                    |
+| -------------- | ------------------------------------------------------------------ |
+| Slack Chat     | http://slack.liquidsoap.info                                       |
+| IRC            | #savonet on [irc.libera.chat](https://libera.chat/) (slack bridge) |
+| Mailing list.  | savonet-users@lists.sourceforge.net                                |
+| Homepage       | http://liquidsoap.info                                             |
+| Bug reports    | https://github.com/savonet/liquidsoap/issues                       |
+| User questions | https://github.com/savonet/liquidsoap/discussions                  |
 
 ## Installation
 
@@ -33,28 +33,31 @@ See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.ht
 ## Release Details
 
 Current release status by version:
-| Branch  | Latest release | Supported | Rolling Release |
+| Branch | Latest release | Supported | Rolling Release |
 | --------|----------------|-----------|-----------------|
-| `2.2.x` | In development | ⚠️.        | ❌              |
-| `2.1.x` | Next stable release | ✅        | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x)                |
-| `2.0.x` | [2.0.6](https://github.com/savonet/liquidsoap/releases/tag/v2.0.6)        | ⚠️        | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
-| `1.4.x` | [1.4.4](https://github.com/savonet/liquidsoap/releases/tag/v1.4.4)        | ❌        | ❌              |
+| `2.2.x` | In development | ⚠️. | ❌ |
+| `2.1.x` | Next stable release | ✅ | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x) |
+| `2.0.x` | [2.0.6](https://github.com/savonet/liquidsoap/releases/tag/v2.0.6) | ⚠️ | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
+| `1.4.x` | [1.4.4](https://github.com/savonet/liquidsoap/releases/tag/v1.4.4) | ❌ | ❌ |
 
 ### Notes
 
-* Development branch `2.2.x` is currently under development and can break at any time. We do, however, encourage early testing and feedback~!
-* Development branch `2.0.x` is at the end of its development cycle and will ony be updated on a best effort basis or in case of a major issue.
+- Development branch `2.2.x` is currently under development and can break at any time. We do, however, encourage early testing and feedback~!
+- Development branch `2.0.x` is at the end of its development cycle and will ony be updated on a best effort basis or in case of a major issue.
 
 ### Versions
 
 Liquidsoap releases follow a semantic versioning as follows:
+
 ```
 <major_version>.<minor_version>.<bugfix_version>
 ```
+
 Where:
-* `major_version` is bumped when there are major changes, i.e. changes in the paradigm, major implementation change etc. Versions with different major versions **are** incompatible
-* `minor_version` is bumped when there are minor changes, i.e. new operators, renaming, new modules etc. Version with different minor versions **may be** incompatible
-* `bugfix_version` is bumped when a new bugfix version is published. Versions with only bugfix version changes **should be** compatible
+
+- `major_version` is bumped when there are major changes, i.e. changes in the paradigm, major implementation change etc. Versions with different major versions **are** incompatible
+- `minor_version` is bumped when there are minor changes, i.e. new operators, renaming, new modules etc. Version with different minor versions **may be** incompatible
+- `bugfix_version` is bumped when a new bugfix version is published. Versions with only bugfix version changes **should be** compatible
 
 Please note that liquidsoap is a complex framework with a lot of operators and advanced implementations. For this reason, it is possible that a bugfix actually fixes the behavior of an operator the way it was intended to do and may break scripts that previously relied on incorrect implementation.
 
@@ -85,7 +88,7 @@ version.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU General Public License for more details, fully
+PARTICULAR PURPOSE. See the GNU General Public License for more details, fully
 stated in the COPYING file at the root of the liquidsoap distribution.
 
 You should have received a copy of the GNU General Public License along with
@@ -94,15 +97,15 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 
 ## Authors
 
-* Developers:
-  * [Romain Beauxis](https://github.com/toots)
-  * [Samuel Mimram](http://www.mimram.fr)
-* Former project leader and emeritus developer:
-  * [David Baelde](http://www.lsv.fr/~baelde/)
-* Contributors:
-  * Florent   Bouchez
-  * Julien    Cristau
-  * Stéphane  Gimenez
-  * Clément   Renard
-  * Vincent   Tabard
-  * Sattisvar Tandabany
+- Developers:
+  - [Romain Beauxis](https://github.com/toots)
+  - [Samuel Mimram](http://www.mimram.fr)
+- Former project leader and emeritus developer:
+  - [David Baelde](http://www.lsv.fr/~baelde/)
+- Contributors:
+  - Florent Bouchez
+  - Julien Cristau
+  - Stéphane Gimenez
+  - Clément Renard
+  - Vincent Tabard
+  - Sattisvar Tandabany

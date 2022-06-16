@@ -1,20 +1,18 @@
-Migrating to a new Liquidsoap version
-=====================================
+# Migrating to a new Liquidsoap version
 
 In this page, we list the most common catches when migrating to a new version of
 Liquidsoap.
 
-From 2.0.x to 2.1.x
--------------------
+## From 2.0.x to 2.1.x
 
 ### Regular expressions
 
 First-class [regular expression](language.html#regular-expressions) are introduced and are used to replace the following operators:
 
-* `string.match(pattern=<regexp>, <string>` is replaced by: `r/<regexp>/.test(<string>)`
-* `string.extract(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/.exec(<string>)`
-* `string.replace(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/g.replace(<string>)`
-* `string.split(separator=<regexp>, <string>)` is replaced by: `r/<regexp>/.split(<string>)`
+- `string.match(pattern=<regexp>, <string>` is replaced by: `r/<regexp>/.test(<string>)`
+- `string.extract(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/.exec(<string>)`
+- `string.replace(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/g.replace(<string>)`
+- `string.split(separator=<regexp>, <string>)` is replaced by: `r/<regexp>/.split(<string>)`
 
 ### Partial application
 
@@ -63,20 +61,19 @@ You can check out our detailed presentation [here](json.html).
 
 ### Deprecations and breaking changes
 
-* The argument `streams_info` of `output.file.hls` is now a record.
-* Deprecated argument `timeout` of `http.*` operators.
-* `source.on_metadata` and `source.on_track` now return a source as this was the case in previous versions, and associated handlers are triggered only when the returned source is pulled 
-* `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and `quality` arguments and added a single encoder argument to allow stream copy and more.
-* `list.mem_assoc` is replaced by `list.assoc.mem`
-* `timeout` argument in `http.*` operators is replaced by `timeout_ms`.
-* `request.ready` is replaced by `request.resolved`
+- The argument `streams_info` of `output.file.hls` is now a record.
+- Deprecated argument `timeout` of `http.*` operators.
+- `source.on_metadata` and `source.on_track` now return a source as this was the case in previous versions, and associated handlers are triggered only when the returned source is pulled
+- `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and `quality` arguments and added a single encoder argument to allow stream copy and more.
+- `list.mem_assoc` is replaced by `list.assoc.mem`
+- `timeout` argument in `http.*` operators is replaced by `timeout_ms`.
+- `request.ready` is replaced by `request.resolved`
 
-From 1.4.x to 2.0.0
--------------------
+## From 1.4.x to 2.0.0
 
 ### `audio_to_stereo`
 
-`audio_to_stereo` should not be required in most situations anymore. `liquidsoap` can handle channels conversions transparently now! 
+`audio_to_stereo` should not be required in most situations anymore. `liquidsoap` can handle channels conversions transparently now!
 
 ### `auth` function in `input.harbor`
 
@@ -89,6 +86,7 @@ end
 ```
 
 You would now do:
+
 ```liquidsoap
 def auth(params)
   user     = params.user
@@ -114,7 +112,7 @@ Error 5: this value has type
     seek : (float) -> float,
     is_active : () -> bool,
     is_up : () -> bool,
-    log : 
+    log :
     {level : (() -> int?).{set : ((int) -> unit)}
     },
     self_sync : () -> bool,
@@ -142,6 +140,7 @@ s = fallback([
   (s3:source)
 ])
 ```
+
 This tells the type checker not to worry about the source methods and just focus on what matters, that they are actually sources.. 🙂
 
 ### Http input and operators
@@ -150,9 +149,9 @@ In order to provide as much compatibility as possible with the different HTTP pr
 to delegate HTTP support to external libraries which have large scale support and implementation. This means that,
 if you have installed `liquidsoap` using `opam`:
 
-* You need to install the `ocurl` package to enable all HTTP request operators, `http.get`, `http.post`, `http.put`, `http.delete` and `http.head`
-* You need to install the `ffmpeg` package (version `1.0.0` or above) to enable `input.http`
-* You do not need to install the `ssl` package anymore to enable their `https` counter-part. These operators have been deprecated.
+- You need to install the `ocurl` package to enable all HTTP request operators, `http.get`, `http.post`, `http.put`, `http.delete` and `http.head`
+- You need to install the `ffmpeg` package (version `1.0.0` or above) to enable `input.http`
+- You do not need to install the `ssl` package anymore to enable their `https` counter-part. These operators have been deprecated.
 
 ### Crossfade
 
@@ -199,7 +198,7 @@ Likewise, to get a setting's value you can now do:
 current_decoders = settings.decoder.decoders()
 ```
 
-This provides many good features, in particular type-safety. 
+This provides many good features, in particular type-safety.
 
 For convenience, we have added shorter versions of the most used settings. These are all shortcuts to their respective `settings` values:
 
@@ -254,7 +253,7 @@ Queueing for request-based sources has been simplified. The `default_duration` a
 a simpler implementation. You can now pass a `prefetch` parameter which tells the source how many requests should be queued
 in advance.
 
-Should you need more advanced queueing strategy, `request.dynamic.list` and `request.dynamic` now export functions to retrieve 
+Should you need more advanced queueing strategy, `request.dynamic.list` and `request.dynamic` now export functions to retrieve
 and set their own queue of requests.
 
 ### JSON import/export
@@ -274,7 +273,8 @@ Starting with liquidsoap `2.0.0`, output operators return the empty value `()` w
 This helps enforce the fact that outputs should be end-points of your scripting graphs. However, in some cases, this can cause
 issues while migrating old scripts, in particular if the returned value of an output was used in the script.
 
-The way to fix this is to apply your operator to the source directly underneath the output. For instance, the following clock assignment: 
+The way to fix this is to apply your operator to the source directly underneath the output. For instance, the following clock assignment:
+
 ```liquidsoap
 s = ...
 
@@ -282,6 +282,7 @@ clock.assign_new([output.icecast(..., s)])
 ```
 
 Should now be written:
+
 ```liquidsoap
 s = ...
 
@@ -292,29 +293,29 @@ output.icecast(..., s)
 
 ### Deprecated operators
 
-Some operators have been deprecated. For most of them, we provide a backward-compatible support 
+Some operators have been deprecated. For most of them, we provide a backward-compatible support
 but it is good practice to update your script. You should see logs in your script when running
 deprecated operatords. Here's a list of the most important ones:
 
-* `playlist.safe` is replaced by: `playlist(mksafe(..))`
-* `playlist.once` is replaced by: `playlist`, setting `reload_mode` argument to `"never"` and `loop` to `false`
-* `rewrite_metadata` should be rewritten using `metadata.map`
-* `fade.inital` and `fade.final` are not needed anymore
-* `get_process_output` is replaced by: `process.read`
-* `get_process_lines` is replaced by: `process.read.lines`
-* `test_process` is replaced by: `process.test`
-* `system` is replaced by: `process.run`
-* `add_timeout` is replaced by: `thread.run.recurrent`
-* `on_blank` is replaced by: `blank.detect`
-* `skip_blank` is replaced by: `blank.skip`
-* `eat_blank` is replaced by: `blank.eat`
-* `strip_blank` is replaced by: `blank.strip`
-* `which` is replaced by: `file.which`
-* `register_flow`: flow is no longer maintained
-* `empty` is replaced by: `source.fail`
-* `file.unlink` is replaced by: `file.remove`
-* `string.utf8.escape` is replaced by: `string.escape`   
-* `metadata.map` is replaced by: `metadata.map`
+- `playlist.safe` is replaced by: `playlist(mksafe(..))`
+- `playlist.once` is replaced by: `playlist`, setting `reload_mode` argument to `"never"` and `loop` to `false`
+- `rewrite_metadata` should be rewritten using `metadata.map`
+- `fade.inital` and `fade.final` are not needed anymore
+- `get_process_output` is replaced by: `process.read`
+- `get_process_lines` is replaced by: `process.read.lines`
+- `test_process` is replaced by: `process.test`
+- `system` is replaced by: `process.run`
+- `add_timeout` is replaced by: `thread.run.recurrent`
+- `on_blank` is replaced by: `blank.detect`
+- `skip_blank` is replaced by: `blank.skip`
+- `eat_blank` is replaced by: `blank.eat`
+- `strip_blank` is replaced by: `blank.strip`
+- `which` is replaced by: `file.which`
+- `register_flow`: flow is no longer maintained
+- `empty` is replaced by: `source.fail`
+- `file.unlink` is replaced by: `file.remove`
+- `string.utf8.escape` is replaced by: `string.escape`
+- `metadata.map` is replaced by: `metadata.map`
 
 ### Windows build
 

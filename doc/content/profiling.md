@@ -1,5 +1,4 @@
-Profiling scripts
-=================
+# Profiling scripts
 
 Sometimes, some functions of your script are taking up time and you would like
 to optimize those. We are not speaking here about the encoding of streams, which
@@ -21,7 +20,7 @@ print(profiler.stats.string())
 It will output something like
 
 ```
-function              self              total             calls 
+function              self              total             calls
 
 +                     0.359139919281    0.359139919281    302000
 list.add              0.324638843536    442.74707818      202000

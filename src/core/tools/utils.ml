@@ -65,11 +65,11 @@ let remove_one f l =
   aux [] l
 
 (* Read all data from a given filename.
- * We cannot use really_input with the 
+ * We cannot use really_input with the
  * reported length of the file because
  * some OSes such as windows may do implicit
- * conversions (file opened in text mode in 
- * win32), thus making the actual number of 
+ * conversions (file opened in text mode in
+ * win32), thus making the actual number of
  * characters that can be read from the file
  * different than its reported length.. *)
 let read_all filename =

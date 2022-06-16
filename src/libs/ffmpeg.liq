@@ -132,7 +132,7 @@ def video.add_text.ffmpeg.raw.filter(
       meta = (null.get(metadata):string)
       d = escape(m[meta])
       if d != "" then
-        log(level=3,  label="ffmpeg.filter.drawtext", "Setting new text #{d} from metadata #{meta}") 
+        log(level=3,  label="ffmpeg.filter.drawtext", "Setting new text #{d} from metadata #{meta}")
         list.iter((fun (el) ->
            ignore(el.filter.process_command("reinit", "text=#{d}"))), filters)
       end

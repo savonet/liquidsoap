@@ -1,5 +1,4 @@
-Geek Radio
-==========
+# Geek Radio
 
 The historical webradio, founded by David Baelde and Samuel Mimram at the ENS
 Lyon.
@@ -28,8 +27,7 @@ etc. Most died. But still, Liquidsoap was born, and they had plenty of new
 libraries for OCaml. Since then, Liquidsoap has been greatly enhanced, and is
 now spreading outside the ENS Lyon.
 
-Features
---------
+## Features
 
 The liquidsoap script schedules several static (but periodically reloaded)
 playlists played on different times, adds jingle to the usual stream every hour,
@@ -43,5 +41,3 @@ that project is now dead, a simple hack is now used instead: bubble.
 
 The usual way of sending a request is via an IRC bot, which queries the database
 and sends the chosen URI to liquidsoap.
-
-

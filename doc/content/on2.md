@@ -5,8 +5,7 @@ Liquidsoap workshop.
 <iframe src="https://player.vimeo.com/video/16528307" width="640" height="352" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
 <p><a href="https://vimeo.com/16528307">Liquidsoap presentation at ON2</a> from <a href="https://vimeo.com/smimram">Samuel Mimram</a> on <a href="https://vimeo.com">Vimeo</a>.</p>
 
-Liquidsoap Workshop
-===================
+# Liquidsoap Workshop
 
 Below is a list of topics that we covered, proposing problems,
 guiding you through solving them and discussing various solutions.
@@ -27,5 +26,3 @@ etc.
 For those who are interested, we can go through more advanced examples
 exploring the possibilities of video and midi support in liquidsoap.
 [More...](on2_part3.html)
-
-

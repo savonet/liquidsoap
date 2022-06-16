@@ -1,34 +1,35 @@
-Harbor as HTTP server
-=====================
-The harbor server can be used as a HTTP server. You 
+# Harbor as HTTP server
+
+The harbor server can be used as a HTTP server. You
 can use the function `harbor.http.register` to register
 HTTP handlers. Its parameters are are follow:
 
 ```liquidsoap
 harbor.http.register(port=8080,method="GET",uri,handler)
 ```
+
 where:
 
-* `port` is the port where to receive incoming connections
-* `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
-* `uri` is used to match requested uri. Perl regular expressions are accepted.
+- `port` is the port where to receive incoming connections
+- `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
+- `uri` is used to match requested uri. Perl regular expressions are accepted.
 
-* `handler` is the function used to process requests.
+- `handler` is the function used to process requests.
 
 `handler` function has type:
 
 ```
-(~protocol:string, ~data:string, 
+(~protocol:string, ~data:string,
  ~headers:[(string*string)], string)->'a))->unit
 where 'a is either string or ()->string
 ```
 
 where:
 
-* `protocol` is the HTTP protocol used by the client. Currently, one of `"HTTP/1.0"` or `"HTTP/1.1"`
-* `data` is the data passed during a POST request
-* `headers` is the list of HTTP headers sent by the client
-* `string` is the (unparsed) uri requested by the client, e.g.: `"/foo?var=bar"`
+- `protocol` is the HTTP protocol used by the client. Currently, one of `"HTTP/1.0"` or `"HTTP/1.1"`
+- `data` is the data passed during a POST request
+- `headers` is the list of HTTP headers sent by the client
+- `string` is the (unparsed) uri requested by the client, e.g.: `"/foo?var=bar"`
 
 The `handler` function returns HTTP and HTML data to be sent to the client,
 for instance:
@@ -48,7 +49,7 @@ The handler is a _string getter_, which means that it can be of either type `str
 The former is used to return the response in one call while the later can be used to returned bigger response
 without having to load the whole response string in memory, for instance in the case of a file.
 
-For convenience, two functions, `http.response` and `http.response.stream` are provided to 
+For convenience, two functions, `http.response` and `http.response.stream` are provided to
 create a HTTP response string. `http.response` has the following type:
 
 ```
@@ -58,10 +59,10 @@ create a HTTP response string. `http.response` has the following type:
 
 where:
 
-* `protocol` is the HTTP protocol of the response (default `HTTP/1.1`)
-* `code` is the response code (default `200`)
-* `headers` is the response headers. It defaults to `[]` but an appropriate `"Content-Length"` header is added if not set by the user and `data` is not empty.
-* `data` is an optional response data (default `""`)
+- `protocol` is the HTTP protocol of the response (default `HTTP/1.1`)
+- `code` is the response code (default `200`)
+- `headers` is the response headers. It defaults to `[]` but an appropriate `"Content-Length"` header is added if not set by the user and `data` is not empty.
+- `data` is an optional response data (default `""`)
 
 `http.response.stream` has the following type:
 
@@ -72,17 +73,17 @@ where:
 
 where:
 
-* `protocol` is the HTTP protocol of the response (default `HTTP/1.1`)
-* `code` is the response code (default `200`)
-* `headers` is the response headers. It defaults to `[]` but an appropriate `"Content-Length"` header is added if not set by the user and `data` is not empty.
-* `data_len` is the length of the streamed response
-* `data` is the response stream
+- `protocol` is the HTTP protocol of the response (default `HTTP/1.1`)
+- `code` is the response code (default `200`)
+- `headers` is the response headers. It defaults to `[]` but an appropriate `"Content-Length"` header is added if not set by the user and `data` is not empty.
+- `data_len` is the length of the streamed response
+- `data` is the response stream
 
 These functions can be used to create your own HTTP interface. Some examples
 are:
 
-Redirect Icecast's pages
-------------------------
+## Redirect Icecast's pages
+
 Some source clients using the harbor may also request pages that
 are served by an icecast server, for instance listeners statistics.
 In this case, you can register the following handler:
@@ -125,7 +126,7 @@ def proxy_icecast(~protocol,~data,~headers,uri) =
   end
   headers = list.map(f,headers)
   headers = string.concat(separator="\r\n",headers)
-  request = 
+  request =
     "#{method} #{uri} #{protocol}\r\n\
      #{headers}\r\n\r\n"
   process.read("echo #{quote(request)} | \
@@ -144,10 +145,10 @@ This method is not recommended because some servers may not
 close the socket after serving a request, causing `nc` and
 liquidsoap to hang.
 
-Get metadata
-------------
-You can use harbor to register HTTP services to 
-fecth/set the metadata of a source. For instance, 
+## Get metadata
+
+You can use harbor to register HTTP services to
+fecth/set the metadata of a source. For instance,
 using the [JSON export function](json.html) `json.stringify`:
 
 ```liquidsoap
@@ -187,7 +188,7 @@ end
 harbor.http.register(port=7000,method="GET","/getmeta",get_meta)
 ```
 
-Once the script is running, 
+Once the script is running,
 a GET/POST request for `/getmeta` at port `7000`
 returns the following:
 
@@ -203,11 +204,11 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-Which can be used with AJAX-based backends to fetch the current 
+Which can be used with AJAX-based backends to fetch the current
 metadata of source `s`
 
-Set metadata
-------------
+## Set metadata
+
 Using `insert_metadata`, you can register a GET handler that
 updates the metadata of a given source. For instance:
 
@@ -225,7 +226,7 @@ def set_meta(~protocol,~data,~headers,uri) =
 
   # Filter out unusual metadata
   meta = metadata.export(snd(x))
-  
+
   # Grab the returned message
   ret =
     if meta != [] then
@@ -252,15 +253,13 @@ Now, a request of the form `http://server:7000/setmeta?title=foo`
 will update the metadata of source `s` with `[("title","foo")]`. You
 can use this handler, for instance, in a custom HTML form.
 
-Limitations
-===========
-When using harbor's HTTP server, please be warned that the server is 
+# Limitations
+
+When using harbor's HTTP server, please be warned that the server is
 **not** meant to be used under heavy load. Therefore, it should **not**
 be exposed to your users/listeners if you expect many of them. In this
-case, you should use it as a backend/middle-end and have some kind of 
+case, you should use it as a backend/middle-end and have some kind of
 caching between harbor and the final user. In particular, the harbor server
-is not meant to server big files because it loads their entire content in 
-memory before sending them. However, the harbor HTTP server is fully equipped 
-to serve any kind of CGI script. 
-
-
+is not meant to server big files because it loads their entire content in
+memory before sending them. However, the harbor HTTP server is fully equipped
+to serve any kind of CGI script.

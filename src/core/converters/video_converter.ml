@@ -51,7 +51,7 @@ let proportional_scale_conf =
 
 module Img = Image.Generic
 
-(** [~proportional src dst] performs the 
+(** [~proportional src dst] performs the
   * conversion from frame src to frame dst.
   * raises Not_found if no conversion routine
   * was found *)

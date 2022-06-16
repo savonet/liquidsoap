@@ -141,7 +141,7 @@ test_ffmpeg_inline_encode_decode_audio:
 test_ffmpeg_inline_encode_decode_video:
 	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_inline_encode_decode_video.liq
 
-test_ffmpeg_distributed_hls: 
+test_ffmpeg_distributed_hls:
 	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" media/test_ffmpeg_distributed_hls.liq
 
 test_ffmpeg_raw_hls:
@@ -152,7 +152,7 @@ test_taglib: files/audio/@mp3(mono).mp3
 
 files/ffmpeg_copy_concat/first-concat.mp4:
 	mkdir -p files/ffmpeg_copy_concat
-	ffmpeg -f lavfi -i testsrc=duration=20:size=1280x720:rate=30 -vf 'setpts=N+1235' $@ 
+	ffmpeg -f lavfi -i testsrc=duration=20:size=1280x720:rate=30 -vf 'setpts=N+1235' $@
 
 files/ffmpeg_copy_concat/second-concat.mp4:
 	mkdir -p files/ffmpeg_copy_concat

@@ -1,9 +1,8 @@
-Presentations about Liquidsoap
-==============================
+# Presentations about Liquidsoap
 
 ## Liquidshop
 
-In January 2021, we organized [the *Liquidshop*, a workshop around
+In January 2021, we organized [the _Liquidshop_, a workshop around
 Liquidsoap](http://www.liquidsoap.info/liquidshop/), where you can find lots of
 presentations around Liquidsoap.
 

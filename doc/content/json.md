@@ -1,8 +1,7 @@
-Importing JSON values
----------------------
+## Importing JSON values
 
 _Note:_ If you are reading this page for the first time, you might want to skip directly to the
-explicit type annotation below as this is the recommended way of parsing JSON data. The content 
+explicit type annotation below as this is the recommended way of parsing JSON data. The content
 before that is here to explain the inner workings of JSON parsing in `liquidsoap`.
 
 Liquidsoap supports importing JSON values through a special `let` syntax. Using this syntax
@@ -16,13 +15,14 @@ print("We parsed a JSON object and got value " ^ v.foo ^ " for attribute foo!")
 ```
 
 This prints:
+
 ```
 We parsed a JSON object and got value abc for attribute foo!
 ```
 
 What happened here is that liquidsoap kept track of the fact that `v` was called with
 `v.foo` and that the result of that was a string. Then, at runtime, it checks the parsed
-JSON value against this type and raises an issue if that did not match. For instance, 
+JSON value against this type and raises an issue if that did not match. For instance,
 the following script:
 
 ```liquidsoap
@@ -32,6 +32,7 @@ print("We parsed a JSON object and got value " ^ v.foo ^ " for attribute foo!")
 ```
 
 raises the following exception:
+
 ```
 Error 14: Uncaught runtime error:
 type: json,
@@ -39,6 +40,7 @@ message: "Parsing error: json value cannot be parsed as type {foo: string, _}"
 ```
 
 Of course, this all seems pretty trivial presented like that but, let's switch to reading a file instead:
+
 ```liquidsoap
 let json.parse v = file.contents("/path/to/file.json")
 
@@ -47,6 +49,7 @@ print("We parsed a JSON object and got value " ^ v.foo ^ " for attribute foo!")
 
 Now, this is getting somewhere! Let's push it further and parse a whole `package.json` from
 a typical `npm` package:
+
 ```liquidsoap
 # Content of package.json is:
 # {
@@ -66,11 +69,13 @@ print("This is package " ^  name ^ ", version " ^ version ^ " with test script: 
 ```
 
 And we get:
+
 ```
 This is package my_package, version 1.0.0 with test script: echo "Error: no test specified" && exit 1
 ```
 
 This can even be combined with _patterns_:
+
 ```liquidsoap
 let json.parse {
   name,
@@ -85,12 +90,12 @@ print("This is package " ^  name ^ ", version " ^ version ^ " with test script: 
 
 Now, this is looking nice!
 
-Explicit type annotation
-------------------------
+## Explicit type annotation
 
 Explicit type annotation are the recommended way to parse JSON data.
 
 Let's try a slight variation of the previous script now:
+
 ```liquidsoap
 let json.parse {
   name,
@@ -104,6 +109,7 @@ print("This is package #{name}, version #{version} with test script: #{test}")
 ```
 
 This returns:
+
 ```
 This is package null, version null with test script: null
 ```
@@ -136,6 +142,7 @@ print("This is package #{name}, version #{version} with test script: #{test}")
 ```
 
 And we get:
+
 ```
 This is package my_package, version 1.0.0 with test script: echo "Error: no test specified" && exit 1
 ```
@@ -152,10 +159,11 @@ The syntax for type annotation is as follows:
 
 #### Nullable types
 
-All type annotation can be postfixed with a trailing `?` to denote a _nullable_ value. If a type is nullable, the json parser will return `null` when it cannot parse 
+All type annotation can be postfixed with a trailing `?` to denote a _nullable_ value. If a type is nullable, the json parser will return `null` when it cannot parse
 the value as the principal type. This is particularly useful when you are not sure of all the types that you are parsing.
 
 For instance, some `npm` packages do not have a `scripts` entry or a `test` entry, so you would parse them as:
+
 ```liquidsoap
 let json.parse ({
   name,
@@ -175,14 +183,14 @@ And, later, inspect the returned value to see if it is in fact present.
 #### Tuple types
 
 The type `(int * float * string)` tells liquidsoap to parse a JSON array whose _first values_ are of type: `int`, `float` and `string`. If any further values
-are present in the array, they will be ignored. 
+are present in the array, they will be ignored.
 
 For arrays as well as any other structured types, the special notation `_` can be used to denote any type. For instance, `(_ * _ * float)` denotes an JSON
-array whose first 2 elements can be of any type and its third element is a floating point number. 
+array whose first 2 elements can be of any type and its third element is a floating point number.
 
 #### Lists
 
-The type `[int]` tells liquidsoap to parse a JSON array where _all its values_ are integers as a list of integers. If you are not sure if all elements in the 
+The type `[int]` tells liquidsoap to parse a JSON array where _all its values_ are integers as a list of integers. If you are not sure if all elements in the
 array are integers, you can always use nullable integers: `[int?]`
 
 #### Objects
@@ -195,15 +203,16 @@ as a record with an attribute labelled `foo_bar_key` which maps to the attribute
 
 #### Associative lists as objects
 
-It can sometimes be useful to parse a JSON object as an associative list, for instance if you do not know in advance all the possible keys of 
+It can sometimes be useful to parse a JSON object as an associative list, for instance if you do not know in advance all the possible keys of
 an object. In this case, you can use the special type: `[(string * int)] as json.object`. This tells liquidsoap to parse the JSON object as a list
-of pairs `(string * int)` where `string` represents the attribute label and `int` represent the attribute value. 
+of pairs `(string * int)` where `string` represents the attribute label and `int` represent the attribute value.
 
 If you are not sure if all the object values are integers you can always use nullable integers: `[(string * int?)] as json.object`
 
 #### Example
 
 Here's a full example. Feel free to refer to `tests/language/json.liq` in the source code for more of them.
+
 ```liquidsoap
   data = '{
     "foo": 34.24,
@@ -251,31 +260,33 @@ Here's a full example. Feel free to refer to `tests/language/json.liq` in the so
 ### JSON5 extension
 
 Liquidsoap supports the [JSON5](https://json5.org/) extension. Parsing of `json5` values is enabled with the following argument:
+
 ```liquidsoap
 let json.parse[json5=true] x = ...
 ```
 
-If a `json5` variable is in scope, you can also simply use `let json.parse[json5] x = ...`  
+If a `json5` variable is in scope, you can also simply use `let json.parse[json5] x = ...`
 
-Exporting JSON values
----------------------
+## Exporting JSON values
 
 Exporting JSON values works similarly to importing, using the `json.stringify` let syntax:
+
 ```liquidsoap
 let json.stringify s = x
 ```
+
 You can also use type annotation to explicitely state what kind of JSON value you want to render:
+
 ```liquidsoap
 let json.stringify s = (x : {foo: int})
 ```
 
 The `json.stringify` syntax supports the following arguments:
 
-* `json5`: allow `json5` representations, in particular infinite and `NaN` floating point numbers. Default: `false`
-* `compact`: output a compact value instead of a human-readable value. Default: `false`.
+- `json5`: allow `json5` representations, in particular infinite and `NaN` floating point numbers. Default: `false`
+- `compact`: output a compact value instead of a human-readable value. Default: `false`.
 
-Generic JSON objects
---------------------
+## Generic JSON objects
 
 Generic `JSON` objects can be manipulated through the `json()` operator. This operator
 returns an opaque json variable with methods to `add` and `remove` attributes:

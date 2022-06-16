@@ -20,7 +20,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" 197.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -42,7 +42,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" huge-playlist.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -64,7 +64,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" playlist-watch.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -86,7 +86,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" on_frame.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -108,7 +108,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" 195.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -130,7 +130,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" image.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -152,7 +152,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" ctype2.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -174,7 +174,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" say.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -196,7 +196,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" ctype1.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -218,7 +218,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" random.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -240,7 +240,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" smart-crossfade.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -262,7 +262,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" request.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -284,7 +284,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" radio2.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -306,7 +306,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" cross.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -328,7 +328,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" stretch-clock-propagation.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -350,7 +350,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" rotate.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -372,7 +372,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" sine.detect.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -394,7 +394,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" on_metadata.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -416,7 +416,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" dtmf.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -438,7 +438,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" on_track.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -460,7 +460,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" crossfade.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -482,7 +482,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" radio.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -504,4 +504,3 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" autostart.liq)))
-  

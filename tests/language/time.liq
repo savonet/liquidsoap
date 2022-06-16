@@ -6,4 +6,4 @@ def f() =
   end
 end
 
-test.check(f) 
+test.check(f)

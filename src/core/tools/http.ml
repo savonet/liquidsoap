@@ -228,7 +228,7 @@ module Make (Transport : Transport_t) = struct
      * The maximal length is a security but it may
      * be lifted.. *)
     while !count_n < count && !n < max && not !stop do
-      (* This is quite ridiculous but we have 
+      (* This is quite ridiculous but we have
        * no way to know how much data is available
        * in the socket.. *)
       Transport.wait_for ~log (`Read socket) timeout;

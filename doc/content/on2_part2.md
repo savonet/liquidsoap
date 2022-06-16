@@ -1,5 +1,5 @@
-Building an advanced stream: file-based sources
-===============================================
+# Building an advanced stream: file-based sources
+
 The purpose of this part is to document and illustrate the creation of an
 advanced stream using static files.
 
@@ -9,16 +9,17 @@ implemented using external scripts, which is the most common practice, and has
 proved to be very convenient in order to integrate your liquidsoap stream into
 the framework that you use to manage your radio.
 
-Preliminaries
--------------
+## Preliminaries
+
 In order to make things more clear and modular, we will
 separate the code in two parts:
 
-* `radio.liq` is the script that contains the definition of the main stream
-* `library.liq` is the script that contains the functions used to build the stream
+- `radio.liq` is the script that contains the definition of the main stream
+- `library.liq` is the script that contains the functions used to build the stream
 
 The scripts here should be tested using the following
 command line:
+
 ```
 liquidsoap /path/to/radio.liq
 ```
@@ -26,36 +27,40 @@ liquidsoap /path/to/radio.liq
 Thus, we do not define here daemonized script. In order to make
 things work smoothly, you should put the following lines at the beginning
 of `radio.liq`:
+
 ```liquidsoap
 log.file.set(false)
 log.stdout.set(true)
 log.level.set(3)
 ```
 
-Finally, we add the following line at the beginning of `radio.liq`, 
+Finally, we add the following line at the beginning of `radio.liq`,
 in order to load our pre-defined functions:
+
 ```liquidsoap
 %include "/path/to/library.liq"
 ```
 
 We will use the telnet server to interact with the radio.
 Thus, we enable the telnet server by adding the following line in `radio.liq`:
+
 ```liquidsoap
 settings.server.telnet.set(true)
 ```
 
-An initial model
-----------------
-In this part, we describe the initial stream that we want. 
-We start with a simple stream that contains songs from 
+## An initial model
+
+In this part, we describe the initial stream that we want.
+We start with a simple stream that contains songs from
 a static playlist, with some jingles, with 3 songs for one jingle,
-and output the result to an icecast server. This 
+and output the result to an icecast server. This
 is described by the following graph:
 
 ![Initial stream model](/assets/img/on2_part2_schema1.svg)
 
 This very simple stream is defined by the following content
 in `radio.liq`:
+
 ```liquidsoap
 # The file source
 songs = playlist("/path/to/some/files/")
@@ -63,39 +68,41 @@ songs = playlist("/path/to/some/files/")
 # The jingle source
 jingles = playlist("/path/to/some/jingles")
 
-# We combine the sources and play 
+# We combine the sources and play
 # one single every 3 songs:
 s = rotate(weights=[1,3], [jingles, songs])
 
 # We output the stream to an icecast
 # server, in ogg/vorbis format.
 output.icecast(%vorbis,id="icecast",
-               fallible=true,mount="my_radio.ogg", 
+               fallible=true,mount="my_radio.ogg",
                host="my_server", password="hack_me_not",
                s)
 ```
+
 For now, `library.liq` does not contain any code so we only do:
+
 ```
 touch /path/to/library.liq
 ```
 
-* Write this script to a file, change the default directories and parameters.
-* Run it.
-* Listen to your initial stream.
-* Connect to the telnet server (`telnet localhost 1234`)
-* Try the telnet comment: `icecast.skip`
-* Check that a jingle is played every 3 songs.
-* Sometimes, when skipping, the source does not prepare a new file quickly enough, which breaks the rotation. If this is the case, add the parameter `conservative=true` to each playlist and try again.
+- Write this script to a file, change the default directories and parameters.
+- Run it.
+- Listen to your initial stream.
+- Connect to the telnet server (`telnet localhost 1234`)
+- Try the telnet comment: `icecast.skip`
+- Check that a jingle is played every 3 songs.
+- Sometimes, when skipping, the source does not prepare a new file quickly enough, which breaks the rotation. If this is the case, add the parameter `conservative=true` to each playlist and try again.
 
 Now, we extend this initial stream with some advanced features:
 
 ### Notify when a song is played
 
-Once the stream is started, we may want to be able to keep track of the songs that are played, 
+Once the stream is started, we may want to be able to keep track of the songs that are played,
 for instance to display this information on a website.
 One nice way to do this is to call a function every time that a new track is passed to the
 output, which will inform the user of which tracks are played and when. This can be done
-using the `on_metadata` operator. 
+using the `on_metadata` operator.
 
 First, we define a function that is called every time a new metadata is seen in the stream.
 This is a function of type `(metadata)->unit`, i.e. a function that receives the metadata
@@ -104,6 +111,7 @@ The `metadata` type is actually `[(string*string)]`,
 i.e. a list of elements of the form `("label","value")`.
 
 Thus, we add the following in `library.liq`:
+
 ```liquidsoap
 # This function is called when
 # a new metadata block is passed in
@@ -116,53 +124,56 @@ end
 ```
 
 **Note**: the string `"foo #{bla}"` can also be written `"foo " ^ bla` and is the
-string ``foo bar'', if `bla` is the string `"bar"`.
+string ``foo bar'', if `bla`is the string`"bar"`.
 
 Now, we apply the `on_metadata` operator with this function just
 before passing the final source to the output, so we write in `radio.liq`,
 before the output line:
+
 ```liquidsoap
 s = on_metadata(apply_metadata,s)
 ```
 
-* Update your scripts.
-* Run the new radio.
-* Observe the lines printed on new metadata.
-* You may prefer to use the `log` function rather than `print`.
+- Update your scripts.
+- Run the new radio.
+- Observe the lines printed on new metadata.
+- You may prefer to use the `log` function rather than `print`.
 
 Solutions:
 
-* [radio.liq](radio.liq-notify)
-* [library.liq](library.liq-notify)
+- [radio.liq](radio.liq-notify)
+- [library.liq](library.liq-notify)
 
 ### Custom scheduling
 
-Another issue with the above stream is the fact that jingles have a strict 
-frequency of one jingle every 3 songs. In a lot of cases, you may want 
+Another issue with the above stream is the fact that jingles have a strict
+frequency of one jingle every 3 songs. In a lot of cases, you may want
 more flexibility and have full-features scheduling of your songs. The
-best approach in this case is to *externalize* this operation by creating
-a scheduler with the language/framework of your choice and integrating it 
+best approach in this case is to _externalize_ this operation by creating
+a scheduler with the language/framework of your choice and integrating it
 with liquidsoap using `request.dynamic.list`.
 
 `request.dynamic.list` takes a function of type `()->[request('a)]`,
-i.e. a function with no arguments that returns an array of new requests to queue 
-and create a source with it. Every time that liquidsoap needs to 
+i.e. a function with no arguments that returns an array of new requests to queue
+and create a source with it. Every time that liquidsoap needs to
 prepare a new file, it will execute the function and use its result.
 
 Requests in liquidsoap are created with the function `request.create`,
-which takes an URIs of the form: 
+which takes an URIs of the form:
+
 ```
 protocol:arguments
 ```
+
 where `protocol:` is optional is `arguments` is the URI of a local file.
-For instance, `ftp://server.net/path/to/file.mp3` is a requests using 
-the *ftp* protocol, which is resolved using `wget` (if present in the 
+For instance, `ftp://server.net/path/to/file.mp3` is a requests using
+the _ftp_ protocol, which is resolved using `wget` (if present in the
 system).
 
-We are going to use `request.dynamic.list` to merge both the `songs` and 
-`jingles` sources into one source and let our external scheduler 
-decides when to play a jingle or a song. However, we will need 
-later to know if we are currently playing a song or a jingle. 
+We are going to use `request.dynamic.list` to merge both the `songs` and
+`jingles` sources into one source and let our external scheduler
+decides when to play a jingle or a song. However, we will need
+later to know if we are currently playing a song or a jingle.
 
 For these reasons, we will be using the `annotate:` protocol.
 This protocol can be used to pass additional metadata along
@@ -171,43 +182,48 @@ labeled `"type"`, with value `"song"` if the track is a song
 or `"jingle"` otherwise.
 
 In the context of this simple presentation, we will write
-a dummy script. Thus, we create a file `"/tmp/request"` 
+a dummy script. Thus, we create a file `"/tmp/request"`
 that contains a line of the form:
+
 ```
 annotate:type="song":/path/to/song.mp3
 ```
+
 And, we add in `library.liq`:
+
 ```liquidsoap
 # Our custom request function
-def get_request() = 
+def get_request() =
   # Get the URI
   uri = list.hd(default="",get_process_lines("cat /tmp/request"))
   # Create a request
   [request.create(uri)]
 end
 ```
+
 Now, we replace the lines defining `songs`, `files` and the line
 using the `rotate` operator in `radio.liq` with the following code:
+
 ```liquidsoap
 s = request.dynamic.list(id="s",get_request)
 ```
 
-* Update your scripts.
-* Run the new radio.
-* Edit `"/tmp/request"` and change its content to:
+- Update your scripts.
+- Run the new radio.
+- Edit `"/tmp/request"` and change its content to:
 
 ```liquidsoap
 annotate:type="jingle":/path/to/jingle.mp3
 ```
 
-* Use the command `s.skip` through the telnet server and verify that the new song is being played. This may need more than one skip..
-* Use the commands `request.on_air` and `request.metadata` through the telnet server to verify the presence of the `type` metadata
-* Extra: think about how to use the previous notification code to interact with this function.
+- Use the command `s.skip` through the telnet server and verify that the new song is being played. This may need more than one skip..
+- Use the commands `request.on_air` and `request.metadata` through the telnet server to verify the presence of the `type` metadata
+- Extra: think about how to use the previous notification code to interact with this function.
 
 Solutions:
 
-* [radio.liq](radio.liq-request.dynamic.list)
-* [library.liq](library.liq-request.dynamic.list)
+- [radio.liq](radio.liq-request.dynamic.list)
+- [library.liq](library.liq-request.dynamic.list)
 
 ### Custom metadata
 
@@ -222,19 +238,22 @@ the metadata with the values returned by the function.
 
 Here, we use this operator to customize the title metadata with the name of our radio.
 First, we create a file `"/tmp/metadata"` containing:
+
 ```
 My Awesome Liquidsoap Radio!
 ```
+
 Then, in `library.liq`, we add the following function:
+
 ```liquidsoap
 # This function updates the title metadata with
 # the content of "/tmp/metadata"
-def update_title(m) = 
+def update_title(m) =
   # The title metadata
   title = m["title"]
   # Our addition
   content = list.hd(get_process_lines("cat /tmp/metadata"))
-  
+
   # If title is empty
   if title == "" then
     [("title",content)]
@@ -244,23 +263,25 @@ def update_title(m) =
   end
 end
 ```
+
 Finally, we apply `metadata.map` to the source, just after the `request.dynamic.list`
 definition in `radio.liq`:
+
 ```liquidsoap
 s = metadata.map(update_title,s)
 ```
 
 Solutions:
 
-* [radio.liq](radio.liq-map_meta)
-* [library.liq](library.liq-map_meta)
+- [radio.liq](radio.liq-map_meta)
+- [library.liq](library.liq-map_meta)
 
 ### Infallible sources
 
 It is reasonable, for a radio, to expect that a stream is
 always available for broadcasting. However, problems may happen (and always
 do at some point). Thus, we need to offer an alternative for the case
-where nothing is available. 
+where nothing is available.
 
 Instead of using `mksafe`, which streams blank
 audio when this happens, we use a custom sound file. For instance, this
@@ -272,6 +293,7 @@ of the given sentence. Otherwise, you may record a (more serious) file and
 pass it to the single operator...
 
 First, we add the following in `library.liq`
+
 ```liquidsoap
 # This function turns a fallible
 # source into an infallible source
@@ -293,31 +315,35 @@ def my_safe(s) =
   fallback(track_sensitive=false,[s,security])
 end
 ```
+
 Then, we add the following line in `radio.liq`, just before
 the output line:
+
 ```liquidsoap
 s = my_safe(s)
 ```
+
 And we also remove the `fallible=true` from the parameters of `output.icecast`.
 
-* Update your scripts.
-* Run and test the new radio.
-* To hear the security jingle, you can empty `"/tmp/request"` and use the skip command in telnet or wait for the end of the current song.
-* If you put a new valid request in `"/tmp/request"` then the stream comes back to the normal source.
+- Update your scripts.
+- Run and test the new radio.
+- To hear the security jingle, you can empty `"/tmp/request"` and use the skip command in telnet or wait for the end of the current song.
+- If you put a new valid request in `"/tmp/request"` then the stream comes back to the normal source.
 
 Solutions:
 
-* [radio.liq](radio.liq-safe)
-* [library.liq](library.liq-safe)
+- [radio.liq](radio.liq-safe)
+- [library.liq](library.liq-safe)
 
 ### Multiple outputs
 
-We may as well output the stream to several targets, 
-for instance to different icecast mount points with different 
+We may as well output the stream to several targets,
+for instance to different icecast mount points with different
 formats. Therefore, we define a custom output function
-that defines all these outputs. 
+that defines all these outputs.
 
 We add the following in `library.liq`:
+
 ```liquidsoap
 # A function that contains all the output
 # we want to create with the final stream
@@ -326,13 +352,13 @@ def outputs(s) =
   # with common parameters. The resulting function
   # is stored in a new definition of output.icecast,
   # but this could be my_icecast or anything.
-  output.icecast = output.icecast(host="my_server", 
+  output.icecast = output.icecast(host="my_server",
                                   password="hack_me_not")
 
   # An output in ogg/vorbis to the "my_radio.ogg"
   # mountpoint:
   output.icecast(%vorbis, mount="my_radio.ogg",s)
-  
+
   # An output in mp3 at 128kbits to the "my_radio"
   # mountpoint:
   output.icecast(%mp3(bitrate=128), mount="my_radio",s)
@@ -346,13 +372,15 @@ def outputs(s) =
   output.icecast(%fdkaac(bitrate=32), mount="my_radio.aac",s)
 end
 ```
+
 And we replace the output line in `radio.liq` by:
+
 ```liquidsoap
 outputs(s)
 ```
 
-* Write your own output function.
-* Run and test your new radio.
+- Write your own output function.
+- Run and test your new radio.
 
 **Note** liquidsoap may fail with the following error:
 
@@ -360,63 +388,66 @@ outputs(s)
 Connection failed: 403, too many sources connected (HTTP/1.0)!
 ```
 
-In this case, you should check the maximum number of sources that your 
+In this case, you should check the maximum number of sources that your
 icecast server accepts.
 
 Solutions:
 
-* [radio.liq](radio.liq-outputs)
-* [library.liq](library.liq-outputs)
+- [radio.liq](radio.liq-outputs)
+- [library.liq](library.liq-outputs)
 
-More advanced functions!
-------------------------
+## More advanced functions!
 
-Now that we have a controllable initial radio, we extend our initial 
-scripts to add advanced features. The following graph illustrates what 
+Now that we have a controllable initial radio, we extend our initial
+scripts to add advanced features. The following graph illustrates what
 we are going to add:
 
 ![Advanced stream model](/assets/img/on2_part2_schema2.svg)
 
-** The `Replay gain` node normalizes all the songs using the [Replay Gain](https://en.wikipedia.org/wiki/ReplayGain) technology.
-* The `Smart crossfade` node adds crossfading between songs but not jingles.
-* The `Smooth_add` node adds the possibility to insert a jingle in the middle of a song, fading out and then back in the initial stream while the jingle is being played.
+\*\* The `Replay gain` node normalizes all the songs using the [Replay Gain](https://en.wikipedia.org/wiki/ReplayGain) technology.
+
+- The `Smart crossfade` node adds crossfading between songs but not jingles.
+- The `Smooth_add` node adds the possibility to insert a jingle in the middle of a song, fading out and then back in the initial stream while the jingle is being played.
 
 ### Replaygain
 
 The replaygain support is achieved in liquidsoap in two steps:
 
-* apply the `amplify` operator to change a source's volume
-* pass a `"replay_gain"` metadata indicating to the `amplify` operator which value to use.
+- apply the `amplify` operator to change a source's volume
+- pass a `"replay_gain"` metadata indicating to the `amplify` operator which value to use.
 
 The `"replay_gain"` metadata can be passed manually or computed by liquidsoap.
 Liquidsoap comes with a script that can extract the replaygain information
 from ogg/vorbis, mp3 and FLAC files. This is a very convenient script but it generate
 a high CPU usage which can be bad for real-time streaming.
-In some situations, you may compute beforehand this value and pass it manually 
+In some situations, you may compute beforehand this value and pass it manually
 using the `annotate` protocol.
 
 If you cannot compute the value beforehand, liquidsoap comes with two ways
 to extract the replaygain information
 
-* The `replay_gain:` protocol. All requests of the form `replay_gain:URI` are resolved by passing `URI` to the script provided by liquidsoap. This method allows to select which files should be used with replay gain. However, it will only work if `URI` is a local file.
-* The replay gain metadata resolver, enabled by adding a line of the form `enable_replaygain_metadata ()` in your script. In this cases, all requests and not only local files can be processed and you cannot select which one should be used with replaygain.
+- The `replay_gain:` protocol. All requests of the form `replay_gain:URI` are resolved by passing `URI` to the script provided by liquidsoap. This method allows to select which files should be used with replay gain. However, it will only work if `URI` is a local file.
+- The replay gain metadata resolver, enabled by adding a line of the form `enable_replaygain_metadata ()` in your script. In this cases, all requests and not only local files can be processed and you cannot select which one should be used with replaygain.
 
 The most simple solution, in our case, is to change the requests
 passed to `request.dynamic.list` to something of the form:
+
 ```
 annotate:type="song":replay_gain:URI
 ```
+
 However, in order to illustrate a bit more the functionalities of liquidsoap we present
 another solution.
 The method we propose here consists in using `metadata.map`, which we have already seen
 to update the metadata with a `"replay_gain"` metadata when we see the `"type"` metadata
 with the value `"song"`. Thus, we add the following function in `library.liq`:
+
 ```liquidsoap
 # This function takes a metadata,
 # check if it is of type "file"
 # and add the replay_gain metadata in
 # this case
-def add_replaygain(m) = 
+def add_replaygain(m) =
   # Get the type
   type = m["type"]
   # The replaygain script is located there
@@ -426,7 +457,7 @@ def add_replaygain(m) =
 
   # If type = "song", proceed:
   if type == "song" then
-    info = list.hd(get_process_lines("#{script} #{filename}")) 
+    info = list.hd(get_process_lines("#{script} #{filename}"))
     [("replay_gain",info)]
   # Otherwise add nothing
   else
@@ -434,28 +465,32 @@ def add_replaygain(m) =
   end
 end
 ```
+
 And, we add the following line in `radio.liq` after the `request.dynamic.list` line:
+
 ```liquidsoap
 s = metadata.map(add_replaygain,s)
 ```
+
 Finally, we add the `amplify` operator. We set the default amplification
 to `1.`, i.e. no amplification, and tell the operator to update this value with
 the content of the `"replay_gain"` metadata. Thus, only the tracks which have this
-metadata will be modified. 
+metadata will be modified.
 
 We add the following in `radio.liq`, after the line we just inserted:
+
 ```liquidsoap
 s = amplify(override="replay_gain",1.,s)
 ```
 
-**Note** we can also apply `amplify` only to `songs`, *before* the `switch` operator
+**Note** we can also apply `amplify` only to `songs`, _before_ the `switch` operator
 
-* Update your scripts.
-* Run and test the new radio.
-* Change the content of `"/tmp/request"` with something of type `"file"` and skip the current song.
-* Use the telnet server to make sure that the new `"replay_gain"` metadata has been added.
-* Also, in the logs, you should be able to see that the `replay_gain` information was used to override the amplification factor.
-* Can you find a content for `"/tmp/request"` that will enable replay gain on a file which is not of type `"song"`?
+- Update your scripts.
+- Run and test the new radio.
+- Change the content of `"/tmp/request"` with something of type `"file"` and skip the current song.
+- Use the telnet server to make sure that the new `"replay_gain"` metadata has been added.
+- Also, in the logs, you should be able to see that the `replay_gain` information was used to override the amplification factor.
+- Can you find a content for `"/tmp/request"` that will enable replay gain on a file which is not of type `"song"`?
 
 **Note** in this case, the `replay_gain` metadata is not added during the request resolution.
 Thus, it is not visible in the `request.metadata`. However, you should be able to find another
@@ -463,38 +498,39 @@ command that displays it!
 
 Solutions:
 
-* [radio.liq](radio.liq-replay)
-* [library.liq](library.liq-replay)
+- [radio.liq](radio.liq-replay)
+- [library.liq](library.liq-replay)
 
 ### Smart crossfade
 
 The `smart_crossfade` is a crossfade operator that decides the crossfading to apply depending
-on the volume and metadata of the old and new track. 
+on the volume and metadata of the old and new track.
 
 It is defined using a generic `smart_cross`
 operator, that takes a function of type `(float, float, metadata, metadata, source, source) -> source`,
-i.e. a function that take the volume level (in decibels) of, respectively, the old and new 
+i.e. a function that take the volume level (in decibels) of, respectively, the old and new
 tracks, the metadata of, resp. the old and new tracks and, finally, the old and new tracks,
 and returns the new source with the required transition.
 
 We give here a simple custom implementation of our crossfade. What we do is:
 
-* Crossfade tracks if none of the old and new track are jingle;
-* Sequentialize the tracks otherwise.
+- Crossfade tracks if none of the old and new track are jingle;
+- Sequentialize the tracks otherwise.
 
-We identify the type of each track by reading the `"type"` metadata we 
+We identify the type of each track by reading the `"type"` metadata we
 have added when creating the `request.dynamic.list` source.
 
 A typical `smart_crossfade` operator is defined in `utils.liq`
 but you may do much more things with a little bit of imagination.
 
 Here, we add the following in `library.liq`:
+
 ```liquidsoap
-# Our custom crossfade that 
+# Our custom crossfade that
 # only crossfade between tracks
-def my_crossfade(s) = 
+def my_crossfade(s) =
   # Our transition function
-  def f(_,_, old_m, new_m, old, new) = 
+  def f(_,_, old_m, new_m, old, new) =
     # If none of old and new have "type" metadata
     # with value "jingles", we crossfade the source:
     if old_m["type"] != "jingle" and new_m["type"] != "jingle" then
@@ -508,35 +544,37 @@ def my_crossfade(s) =
 end
 ```
 
-Finally, we add the following line in `radio.liq`, just after the 
+Finally, we add the following line in `radio.liq`, just after the
 `amplify` operator:
+
 ```liquidsoap
 s = my_crossfade(s)
 ```
 
-* Update your scripts.
-* Run and test the new radio.
-* Modify the custom crossfading to fade out the old song if it is not a jingle, and fade in the new song if it is not a jingle.
+- Update your scripts.
+- Run and test the new radio.
+- Modify the custom crossfading to fade out the old song if it is not a jingle, and fade in the new song if it is not a jingle.
 
 Solutions:
 
-* [radio.liq](radio.liq-smart)
-* [library.liq](library.liq-smart)
+- [radio.liq](radio.liq-smart)
+- [library.liq](library.liq-smart)
 
 ### Smooth_add
 
 Finally, we add another nice feature: a jingle that is played on top of the
-current stream. We use the `smooth_add` operator, which is also defined in 
+current stream. We use the `smooth_add` operator, which is also defined in
 `utils.liq`. This operator takes a normal source and a special jingle source.
 Every time that a new track is available in the special source, it fades out
-the volume of the normal source, plays the track from the special source 
+the volume of the normal source, plays the track from the special source
 on top of the current track of the normal source, and then fades back in
 the volume of the normal source when the track is finished.
 
-Typically, you use for the special source a `request.queue` where you push a new 
-jingle every time you want to use this feature. 
+Typically, you use for the special source a `request.queue` where you push a new
+jingle every time you want to use this feature.
 
 We modify `radio.liq` and add the following line just before `my_safe`:
+
 ```liquidsoap
 # A special source
 special = request.queue(id="special")
@@ -544,57 +582,57 @@ special = request.queue(id="special")
 s = smooth_add(normal=s,special=special)
 ```
 
-* Update your script.
-* Run and test the new radio.
-* Use the telnet server to push the request `say:My new radio rocks!` in the special source.
-* Listen!
+- Update your script.
+- Run and test the new radio.
+- Use the telnet server to push the request `say:My new radio rocks!` in the special source.
+- Listen!
 
 Solutions:
 
-* [radio.liq](radio.liq-smooth)
-* [library.liq](library.liq-smooth)
+- [radio.liq](radio.liq-smooth)
+- [library.liq](library.liq-smooth)
 
-What about DJs?
----------------
+## What about DJs?
 
 We present now another important part of an advanced stream: the addition of a live stream
 in order to allow DJs to broadcast their shows.
 
 We are going to add the following features:
 
-* A live input that is played immediately when it is available
-* Use different harbor ports, to replace mount points for shoutcast source clients
-* A transition jingle that is played when switching between live and files
-* Skip the file currently being played when switching to a live source so that the file-based source starts with a fresh song when the live stops
-* Define different authentications for the DJs and make sure that a DJ can only broadcast when its show is scheduled
+- A live input that is played immediately when it is available
+- Use different harbor ports, to replace mount points for shoutcast source clients
+- A transition jingle that is played when switching between live and files
+- Skip the file currently being played when switching to a live source so that the file-based source starts with a fresh song when the live stops
+- Define different authentications for the DJs and make sure that a DJ can only broadcast when its show is scheduled
 
 ### Live inputs
 
 The live inputs in liquidsoap are of two types:
 
-* Network-based, mostly `input.http` and `input.harbor`.
-* Hardware-based, with operators like `input.alsa`, `input.jack`, etc.
+- Network-based, mostly `input.http` and `input.harbor`.
+- Hardware-based, with operators like `input.alsa`, `input.jack`, etc.
 
 We focus here on the first type, and more precisely on `input.harbor`. When using
-this operator in your script, the running instance will be able to receive data 
-coming from icecast and shoutcast source clients. Then, your DJs can broadcast 
-a live stream using their favorite software. Liquidsoap supports most of the 
+this operator in your script, the running instance will be able to receive data
+coming from icecast and shoutcast source clients. Then, your DJs can broadcast
+a live stream using their favorite software. Liquidsoap supports most of the
 usual data formats, when enabled as encoder:
 
-* MP3
-* Any supported ogg stream
-* Aac and Aac+
+- MP3
+- Any supported ogg stream
+- Aac and Aac+
 
 You may also communicate data between two liquidsoap instance, one using `output.icecast`
 to send data and the other one `input.harbor` to receive it. In this case, you want also
 use the WAVE or FLAC format to send lossless data.
 
 We add a live source in `radio.liq`, anywhere before the outputs:
+
 ```liquidsoap
 live = input.harbor("live")
 ```
 
-**Note** `"live"` is the name of the mountpoint that will be 
+**Note** `"live"` is the name of the mountpoint that will be
 associated to this source. The default parameters for the port,
 user and password are contained in the following settings:
 
@@ -607,30 +645,34 @@ settings.harbor.username.set("source")
 We want the live source to be played as soon as it becomes available. Thus, we
 use a `fallback` to combine it with the file-based source, and add the following code
 after `my_safe` in `radio.liq`:
+
 ```liquidsoap
 s = fallback(track_sensitive=false, [live,s])
 ```
-**Note** the `track_sensitive=false` parameter tells liquidsoap to 
-switch immediately to `live` when it becomes available instead of waiting 
+
+**Note** the `track_sensitive=false` parameter tells liquidsoap to
+switch immediately to `live` when it becomes available instead of waiting
 for the end of the track currently played by `s`.
 
-* Update your script
-* Run the new radio
-* Try to connect to the harbor mountpoint. You may use a separate liquidsoap script and `output.icecast`
-* Why is the output still infallible ?
+- Update your script
+- Run the new radio
+- Try to connect to the harbor mountpoint. You may use a separate liquidsoap script and `output.icecast`
+- Why is the output still infallible ?
 
 Solutions:
 
-* [radio.liq](radio.liq-harbor)
-* [library.liq](library.liq-harbor)
+- [radio.liq](radio.liq-harbor)
+- [library.liq](library.liq-harbor)
 
 ### Enabling shoutcast clients
 
 By default, shoutcast source clients are not supported. You can enable them by
 adding the following settings:
+
 ```liquidsoap
 settings.harbor.icy.set(true)
 ```
+
 **Note** `ICY` is the technical name of the original shoutcast source
 protocol.
 
@@ -639,37 +681,41 @@ of mountpoint: all the sources try to connect to the same `"/"` mountpoint.
 However, you can emulate this in liquidsoap by using different harbor sources
 on different port.
 
-For instance, if we replace the definition of `live` in `radio.liq` with the 
+For instance, if we replace the definition of `live` in `radio.liq` with the
 following:
+
 ```liquidsoap
 live1 = input.harbor(port=9000,"/")
 live2 = input.harbor(port=7000,"/")
 ```
+
 And the `fallback` line with:
+
 ```liquidsoap
-s = fallback(track_sensitive=false, [live1,live2,s]) 
+s = fallback(track_sensitive=false, [live1,live2,s])
 ```
+
 Then your a DJ should be able to send data using the port `9000`
 and another one using the port `7000`, and the one connecting on port
 `9000` may be played in priority if the two are connected at the same time.
 
-* Update your script
-* Run the new radio
-* Connect one source client to port `7000`
-* Connect another source client to port `9000`
-* Verify that the client on port `9000` is broadcasting
+- Update your script
+- Run the new radio
+- Connect one source client to port `7000`
+- Connect another source client to port `9000`
+- Verify that the client on port `9000` is broadcasting
 
 Solutions:
 
-* [radio.liq](radio.liq-shoutcast)
-* [library.liq](library.liq-shoutcast)
+- [radio.liq](radio.liq-shoutcast)
+- [library.liq](library.liq-shoutcast)
 
 ### A nice transition!
 
 Now that our radio support live shows, we deal with another issue: when switching
 to the live show, the current song is cut at the point where it is and the audio
 content switches over to the live data without any transition, which is not very nice
-for the listeners. Further, when switching back to the file-based source at the 
+for the listeners. Further, when switching back to the file-based source at the
 end of the live, the source resumes in the middle of the song that was last played..
 
 In this part, we define a transition for switching from file to live, which fades
@@ -680,20 +726,23 @@ This parameter contains functions of the type: `source * source -> source`,
 i.e. functions that take two sources as arguments, the old and new source,
 and returned a source that is the result of the desired transition. Finally,
 when defined as:
+
 ```liquidsoap
 fallback(transition=[f,g], [s1, s2])
 ```
+
 `f` is called when switching to `s1` (and `g` when switching to `s2`).
 
-We also use `source.skip`, which skips the file currently being played, in 
+We also use `source.skip`, which skips the file currently being played, in
 order to play a fresh file when switching back to the file-based source.
 
 First, we add the following code in `library.liq`:
+
 ```liquidsoap
 # Define a transition that fades out the
-# old source, adds a single, and then 
+# old source, adds a single, and then
 # plays the new source
-def to_live(jingle,old,new) = 
+def to_live(jingle,old,new) =
   # Fade out old source
   old = fade.final(old)
   # Superpose the jingle
@@ -709,19 +758,20 @@ def to_file(old,new) =
   # currently in new
   # in order to being with
   # a fresh file
-  source.skip(new) 
+  source.skip(new)
   sequence([old,new])
 end
 ```
 
-**Note** `source.skip` may cause troubles if 
+**Note** `source.skip` may cause troubles if
 the file source does not prepare a new track quickly enough.
-In this case, you may add `conservative=true` to the 
+In this case, you may add `conservative=true` to the
 parameters of the `request.dynamic.list` source.
 
 Then, we add the following code in `radio.liq`, where
-we defined the `fallback` between the two live sources and 
+we defined the `fallback` between the two live sources and
 the file-based source:
+
 ```liquidsoap
 # The transition to live1
 jingle1 = single("say:And now, we present the awesome show number one!!")
@@ -734,42 +784,43 @@ to_live2 = to_live(jingle2)
 # Combine lives and files:
 s = fallback(track_sensitive=false,
              transitions=[to_live1, to_live2, to_file],
-             [live1, live2, s]) 
+             [live1, live2, s])
 ```
 
-* Update your script
-* Run the new radio
-* Connect to each harbor and listen to the result
+- Update your script
+- Run the new radio
+- Connect to each harbor and listen to the result
 
 Solutions:
 
-* [radio.liq](radio.liq-transitions)
-* [library.liq](library.liq-transitions)
+- [radio.liq](radio.liq-transitions)
+- [library.liq](library.liq-transitions)
 
 ### Custom logins
 
-Another powerful feature of `input.harbor` is the possibility to define a 
-custom authentication. For instance, imagine that DJ Alice may connect to 
+Another powerful feature of `input.harbor` is the possibility to define a
+custom authentication. For instance, imagine that DJ Alice may connect to
 the `live1` source only between 20h and 21h, which is the time of her shows,
 with the password `"rabbit"`, while DJ Bob may connect to the `live2` source
 between 18h and 20h with password `"foo"`.
 
-This can be implemented using the `auth` parameter of `input.harbor`. This 
-parameter is a function of type: `string * string -> bool`, i.e. a function 
+This can be implemented using the `auth` parameter of `input.harbor`. This
+parameter is a function of type: `string * string -> bool`, i.e. a function
 that takes a pair `(user,password)` and returns `true` if the connection should
-be granted. 
+be granted.
 
-You may use this, for instance, with an external script and integrate harbor 
+You may use this, for instance, with an external script and integrate harbor
 and DJ authentication into the framework of your choice. Here we illustrate
-this functionality with a custom functions. Thus, we add the following 
+this functionality with a custom functions. Thus, we add the following
 in `library.liq`:
+
 ```liquidsoap
 # Our custom authentication
-# Note: the ICY protocol 
-# does not have any username and for 
+# Note: the ICY protocol
+# does not have any username and for
 # icecast, it is "source" most of the time
 # thus, we discard it
-def harbor_auth(port,_,password) = 
+def harbor_auth(port,_,password) =
   # Alice connects on port 9000 between 20h and 21h
   # with password "rabbit"
   (port == 9000 and 20h-21h and password == "rabbit")
@@ -779,7 +830,9 @@ def harbor_auth(port,_,password) =
   (port == 7000 and 18h-20h and password == "foo")
 end
 ```
+
 And we use it by replacing the `live1` and `live2` definitions by:
+
 ```liquidsoap
 # Authentication for live 1:
 auth1 = harbor_auth(9000)
@@ -790,9 +843,7 @@ auth2 = harbor_auth(7000)
 live2 = input.harbor(port=7000,auth=auth2,"/")
 ```
 
-* Write your custom login function
-* Run and test your new radio
+- Write your custom login function
+- Run and test your new radio
 
 No solution here :-)
-
-

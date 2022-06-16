@@ -1,5 +1,5 @@
-Customize metadata using Liquidsoap
-===================================
+# Customize metadata using Liquidsoap
+
 Liquidsoap has several mechanism for manipulating the metadata attached to your
 stream. In this page we quickly detail and compare the different operators, see
 the [language reference](reference.html) for full details about them.
@@ -9,8 +9,8 @@ not support many fields. It mainly support one: `song`. So, if you
 need to customize the metadata displayed by these servers, you should
 customize only the `song` metadata.
 
-The annotate protocol
----------------------
+## The annotate protocol
+
 The metadata are read from files, so the most simple way is to properly tag the
 files. However, if it not possible to modify the files for some reason, the
 `annotate` protocol can be used in playlists to insert and modify some
@@ -24,8 +24,8 @@ annotate:title="Title 2",artist="Artist 2":music2.mp3
 the title metadata for file music1.mp3 will be overridden and changed to ``Title
 1'' (and similarly for the artist).
 
-Map metadata
-------------
+## Map metadata
+
 The `metadata.map` operator applies a specified function to transform
 each metadata chunk of a stream. It can be used to add or decorate metadata, but
 is also useful in more complex cases.
@@ -54,9 +54,10 @@ remove any metadata (even empty one) using the `strip` option.
 
 See the documentation on `metadata.map` for more details.
 
-Insert metadata
----------------
+## Insert metadata
+
 ### Using the telnet server
+
 This operator is used for inserting metadata using a server command. If you have
 an `server.insert_metadata` node named `ID` in your configuration, as in
 
@@ -79,7 +80,7 @@ occurs. In this case, the function `insert_metadata` (not to be confused with
 a source with an added `insert_metadata` method.
 
 For instance, suppose that you want to insert metadata on the stream using the
-OSC protocol. When a pair of strings ``title'' ``The new title'' is received on
+OSC protocol. When a pair of strings `title'' `The new title'' is received on
 `/metadata`, we want to change the title of the stream accordingly. This can be
 achieved as follows.
 

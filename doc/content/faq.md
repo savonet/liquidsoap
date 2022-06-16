@@ -1,13 +1,10 @@
-Frequently Asked Questions
-==========================
+# Frequently Asked Questions
 
-What does this message means?
------------------------------
+## What does this message means?
 
 ### Type error
 
-Liquidsoap might also reject a script with a series of errors of the form ```
-this value has type ... but it should be a subtype of ...```
+Liquidsoap might also reject a script with a series of errors of the form ` this value has type ... but it should be a subtype of ...`
 . Usually the last error tells you what the problem is, but the previous errors might provide a better information as to where the error comes from.
 
 For example, the error might indicate that a value of type `int` has been passed where a float was expected, in which case you should use a conversion, or more likely change an integer value such as `13` into a float `13.`.
@@ -38,7 +35,7 @@ Indeed, `fallback` expects a source, but `mux_audio(x)` is still a function expe
 
 ### That source is fallible!
 
-See the [quickstart](quick_start.html), or read more about 
+See the [quickstart](quick_start.html), or read more about
 [sources](sources.html).
 
 ### Clock error
@@ -59,11 +56,11 @@ hang, making the clock late.
 
 The first kind of latency is problematic because it tends to accumulate,
 eventually leading to the restarting of outputs:
+
 ```
 Too much latency!
 Resetting active source...
 ```
-
 
 The second kind of latency can often be ignored: if you are streaming to
 an icecast server, there are several buffers between you and your
@@ -78,7 +75,7 @@ For more details on those techniques, read about [clocks](clocks.html).
 
 ### Unable to decode ``file'' as {audio=pcm;video=none;midi=none}!
 
-This log message informs you that liquidsoap failed to decode a file, not 
+This log message informs you that liquidsoap failed to decode a file, not
 necessarily because it cannot handle the file, but also possibly because
 the file does not contain the expected media type. For example, if audio and video
 is expected, an audio file with no video will be rejected.
@@ -98,7 +95,7 @@ type: not_found, message: "File not found!"
 ```
 
 These are errors that the script programmer can catch and decide what to do when they
-occur. Such errors will typically occur when trying to read a file that does not 
+occur. Such errors will typically occur when trying to read a file that does not
 exist and etc.
 
 The [language page](language.html) has more details about errors, how to raise them
@@ -116,30 +113,30 @@ Liquidsoap dies with messages such as these by the end of the log:
 
 Those internal errors can be of two sorts:
 
-* **Bug**: Normally, this means that you've found a bug, which you should report on the mailing list or bug tracker.
-* **User error**: In some cases, we let an exception go on user errors, instead of nicely reporting and handling it. By looking at the surrounding log messages, you might realize that liquidsoap crashed for a good reason, that you are responsible for fixing. You can still report a bug: you should not have seen an exception and its backtrace.
+- **Bug**: Normally, this means that you've found a bug, which you should report on the mailing list or bug tracker.
+- **User error**: In some cases, we let an exception go on user errors, instead of nicely reporting and handling it. By looking at the surrounding log messages, you might realize that liquidsoap crashed for a good reason, that you are responsible for fixing. You can still report a bug: you should not have seen an exception and its backtrace.
 
 In any case, once that kind of error happens, there is no way for the
 user to prevent liquidsoap from crashing. Those exceptions cannot be
 caught or handled in any way at the level of liquidsoap scripts.
 
-Troubleshooting
----------------
+## Troubleshooting
 
 ### Pulseaudio
 
-When using ALSA input or output or, more generally any audio input or output 
+When using ALSA input or output or, more generally any audio input or output
 that is not using pulseaudio, you should disable pulseaudio, which is often installed
-by default. Pulseaudio emulates ALSA but this also generates bugs, 
+by default. Pulseaudio emulates ALSA but this also generates bugs,
 in particular errors of this form:
+
 ```
 Alsa.Unknown_error(1073697252)!
 ```
 
 There are two things you may do:
 
-* Make sure your alsa input/output does not use pulseaudio
-* Disable pulseaudio on your system
+- Make sure your alsa input/output does not use pulseaudio
+- Disable pulseaudio on your system
 
 In the first case, you should first find out which sound card you want to use,
 with the command `aplay -l`. An example of its output is:
@@ -219,11 +216,9 @@ also achieve various effects using synthesis sources such as
 
 ### Temporary files
 
-Liquidsoap relies on OCaml's `Filename.tmp_dir_name` variable to store temporary 
+Liquidsoap relies on OCaml's `Filename.tmp_dir_name` variable to store temporary
 files. It is documented as follows:
 
-The name of the temporary directory: Under Unix, the value of the `TMPDIR` environment 
-variable, or `"/tmp"` if the variable is not set. Under Windows, the value of the `TEMP` 
+The name of the temporary directory: Under Unix, the value of the `TMPDIR` environment
+variable, or `"/tmp"` if the variable is not set. Under Windows, the value of the `TEMP`
 environment variable, or `"."` if the variable is not set.
-
-

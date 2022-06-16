@@ -9,7 +9,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" file.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -20,7 +20,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" osc.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -31,7 +31,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" pp.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -42,7 +42,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" pattern.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -53,7 +53,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" interactive.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -64,7 +64,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" encoders.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -75,7 +75,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" predicate.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -86,7 +86,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" metadata.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -97,7 +97,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" file.watch2.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -108,7 +108,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" doc.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -119,7 +119,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" bool.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -130,7 +130,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" null.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -141,7 +141,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" error.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -152,7 +152,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" string.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -163,7 +163,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" eval.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -174,7 +174,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" stdlib.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -185,7 +185,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" file_protocol.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -196,7 +196,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" getter.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -207,7 +207,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" typing.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -218,7 +218,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" loop.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -229,7 +229,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" functions.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -240,7 +240,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" ref.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -251,7 +251,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" process.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -262,7 +262,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" math.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -273,7 +273,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" json.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -284,7 +284,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" argsof.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -295,7 +295,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" rec.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -306,7 +306,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" regexp.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -317,7 +317,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" file.watch.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -328,7 +328,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" record.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -339,7 +339,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" list.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -350,7 +350,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" mem_usage.liq)))
-  
+
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -361,4 +361,3 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" time.liq)))
-  

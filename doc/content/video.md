@@ -2,10 +2,12 @@
 header-includes: |
   \DeclareUnicodeCharacter{03C0}{$\pi$}
 ...
+
 Basically streaming videos does not change anything compared to streaming audio:
 you just have to use video files instead of sound files! For instance, if you
 want to stream a single file to an icecast server in ogg format (with theora and
 vorbis as codecs for audio and video) you can simply type:
+
 ```liquidsoap
 source = single("video.mp4")
 
@@ -43,6 +45,7 @@ and `output.url`. On top of that, it also supports all the [FFmpeg filters](http
 and passing encoded data, if your script does not need re-encoding.
 
 The syntax for the encoder is detailed in the [encoders page](encoding_formats.html). Here are some examples:
+
 ```liquidsoap
 # AC3 audio and H264 video encapsulated in a MPEG-TS bitstream
 %ffmpeg(format="mpegts",
@@ -74,9 +77,10 @@ The main input to take advantage of FFmpeg is `input.ffmpeg`. It should be able 
 can take as input. This is, in particular, how `input.rtmp` is defined.
 
 For outputing, one can use the regular outputs but some of them have special features when used with `%ffmpeg`:
-* `output.file` is able to properly close a file after it is done encoding it. This makes it possible to encode in formats that need a proper header after encoding is done, such as `mp4`.
-* `output.url` will only work with the `%ffmpeg` encoder. It delegates data output to FFmpeg and can support any url that the `ffmpeg` command-line supports.
-* `output.file.hls` and `output.harbor.hls` should only be used with `%ffmpeg`. The other encoders do work but `%ffmpeg` is the only encoder able to generate valid `MPEG-TS` and `MP4` data segments for the HLS specifications.
+
+- `output.file` is able to properly close a file after it is done encoding it. This makes it possible to encode in formats that need a proper header after encoding is done, such as `mp4`.
+- `output.url` will only work with the `%ffmpeg` encoder. It delegates data output to FFmpeg and can support any url that the `ffmpeg` command-line supports.
+- `output.file.hls` and `output.harbor.hls` should only be used with `%ffmpeg`. The other encoders do work but `%ffmpeg` is the only encoder able to generate valid `MPEG-TS` and `MP4` data segments for the HLS specifications.
 
 ## Useful tips & tricks
 
@@ -87,6 +91,7 @@ Video is a really exciting world where there are lots of cool stuff to do.
 Transitions at the beginning or at the end of video can be achieved using
 `video.fade.in` and `video.fade.out`. For instance, fading at the beginning of
 videos is done by
+
 ```liquidsoap
 source = video.fade.in(transition="fade",duration=3.,source)
 ```
@@ -94,6 +99,7 @@ source = video.fade.in(transition="fade",duration=3.,source)
 ### Adding a logo
 
 You can add a logo (any image) using the `video.add_image` operator, as follows:
+
 ```liquidsoap
 source = video.add_image(
        width=30,height=30,
@@ -106,6 +112,7 @@ source = video.add_image(
 
 If your computer has a webcam, it can be used as a source thanks to the
 `input.v4l2` operator. For instance:
+
 ```liquidsoap
 output.sdl(input.v4l2())
 ```
@@ -114,6 +121,7 @@ output.sdl(input.v4l2())
 
 Suppose that you have two video sources `source` and `source2` and you want to
 display a small copy of `source2` on top of `source`. This can be achieved by
+
 ```liquidsoap
 source2 = video.scale(scale=0.2,x=10,y=10,source2)
 source = add([source,source2])
@@ -122,6 +130,7 @@ source = add([source,source2])
 ### Scrolling text
 
 Adding scrolling text at the bottom of your video is as easy as
+
 ```liquidsoap
 source = video.add_text.sdl(
        font="/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf",
@@ -146,6 +155,7 @@ You can say that a specific color should be transparent using
 `video.transparent`. For instance, you can put yourself in front of a blue
 screen (whose RGB color should be around 0x0000ff) and replace the blue screen
 by an image of the weather using
+
 ```liquidsoap
 img = single("weather.jpg")
 cam = input.v4l2()
