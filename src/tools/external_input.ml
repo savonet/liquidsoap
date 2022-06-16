@@ -62,7 +62,7 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
           | `Status (Unix.WEXITED 0) -> restart
           | _ -> restart_on_error
       in
-      let log = self#log#important "%s" in
+      let log s = self#log#important "%s" s in
       process <-
         Some
           (Process_handler.run ~priority:Tutils.Blocking ~on_stop ~on_stdout

@@ -47,7 +47,7 @@ let external_input process input =
       Process_handler.really_write (Bytes.sub buf 0 read) pusher;
       `Continue)
   in
-  let log = log#important "%s" in
+  let log s = log#important "%s" s in
   (* reading from input is blocking.. *)
   let priority = Tutils.Blocking in
   let process =
