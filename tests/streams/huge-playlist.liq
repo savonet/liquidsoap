@@ -10,7 +10,7 @@ end
 
 def f() =
   s = playlist(mode="normal", "huge_playlist")
-  print("\nWe have #{s.length()} songs!\n")
+  print("We have #{s.length()} songs!\n")
   output.dummy(mksafe(s))
 end
 

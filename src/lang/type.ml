@@ -104,7 +104,7 @@ let resolve_ground_opt name =
 type constr =
   | Num  (** a number *)
   | Ord  (** an orderable type *)
-  | Dtools  (** something useable by dtools *)
+  | Dtools  (** something usable by dtools *)
   | InternalMedia  (** a media type *)
 
 (** Constraints on a type variable. *)
@@ -128,7 +128,7 @@ and constructed = { constructor : string; params : (variance * t) list }
 (** A method. *)
 and meth = {
   meth : string;  (** name of the method *)
-  scheme : scheme;  (** type sheme *)
+  scheme : scheme;  (** type scheme *)
   doc : string;  (** documentation *)
   json_name : string option;  (** name when represented as JSON *)
 }

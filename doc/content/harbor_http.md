@@ -215,7 +215,7 @@ updates the metadata of a given source. For instance:
 ```liquidsoap
 # s = some source
 
-# Create a source equiped with a `insert_metadata` method:
+# Create a source equipped with a `insert_metadata` method:
 s = insert_metadata(s)
 
 # The handler

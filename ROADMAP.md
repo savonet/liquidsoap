@@ -24,11 +24,11 @@
   Structural Polymorphism_
 - ~switch to dune (if it makes sense)~
 - separate standard library (in pure liq), might be easier with dune
-- ~separate langage core (#2397)~
+- ~separate language core (#2397)~
   - ~we need to remove formats (add them separately with += in types)~
   - ~can we have extensible parsers~
 - online version (#2397)
-  - ~we first need the separate langage~
+  - ~we first need the separate language~
   - ~we cannot use threads (unless we use lwt) and all libraries (dtools [which
     uses threads], pcre, mm)~
   - Available at: https://www.liquidsoap.info/try/

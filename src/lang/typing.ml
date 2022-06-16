@@ -119,7 +119,7 @@ let copy_with (subst : Subst.t) t =
         | Arrow (p, t) ->
             Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t)
         | Var { contents = Link (_, t) } ->
-            (* TOOD: we remove the link here, it would be too difficult to preserve
+            (* TODO: we remove the link here, it would be too difficult to preserve
                sharing. We could at least keep it when no variable is changed. *)
             (aux t).descr
     in

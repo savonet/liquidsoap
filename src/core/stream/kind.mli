@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Content kind represent incomplete content specifications
-  * and are used in sources to negociate a baseline of content
+  * and are used in sources to negotiate a baseline of content
   * that works through a content production pipeline. *)
 
 type kind

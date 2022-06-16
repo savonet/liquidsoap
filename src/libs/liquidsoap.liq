@@ -1,7 +1,7 @@
 let liquidsoap.chroot = ()
 
 # Export all the files required to install liquidsoap in a
-# root folder. Usefull for packaging and docker images
+# root folder. Useful for packaging and docker images
 # @category Liquidsoap
 def liquidsoap.chroot.make(chroot) =
   def chroot(p) =

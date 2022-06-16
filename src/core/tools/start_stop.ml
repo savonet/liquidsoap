@@ -39,7 +39,7 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
     method virtual private stop : unit
     method virtual stype : [ `Fallible | `Infallible ]
 
-    (* Default [reset] method. Can be overriden if necessary. *)
+    (* Default [reset] method. Can be overridden if necessary. *)
     method reset =
       match self#state with
         | `Started ->

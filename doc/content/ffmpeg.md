@@ -47,7 +47,7 @@ Priority for the decoder is set via:
 settings.decoder.priorities.ffmpeg.set(10)
 ```
 
-You can use this setting to adjust wether or not the ffmpeg decoder should be tried first when decoding media files, in particular in
+You can use this setting to adjust whether or not the ffmpeg decoder should be tried first when decoding media files, in particular in
 conjunction with the other `settings.decoder.priorities.*` settings.
 
 For each type of media codec, the `settings.decoder.ffmpeg.codecs.*` settings can be used to tell `ffmpeg` which decoder to use to

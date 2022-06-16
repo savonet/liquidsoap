@@ -87,7 +87,7 @@ Methods:
      seeked).
 
  * self_sync : () -> bool
-     Is the source currently controling its own real-time loop.
+     Is the source currently controlling its own real-time loop.
 
  * skip : () -> unit
      Skip to the next track.
@@ -102,7 +102,7 @@ through the [API reference](reference.html).
 Please note that some functions
 in that list are optional and may not be available with your local `liquidsoap`
 install unless you install the optional dependency that enables it. The list of
-optional dependecies is listed via `opam info liquidsoap` if you have installed
+optional dependencies is listed via `opam info liquidsoap` if you have installed
 it this way or can in our [build page](build.html).
 
 ## Settings

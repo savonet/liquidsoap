@@ -129,7 +129,7 @@ let source_methods =
                if d < 0 then infinity else Frame.seconds_of_main d)) );
     ( "self_sync",
       ([], fun_t [] bool_t),
-      "Is the source currently controling its own real-time loop.",
+      "Is the source currently controlling its own real-time loop.",
       fun s -> val_fun [] (fun _ -> bool (snd s#self_sync)) );
     ( "log",
       ( [],
