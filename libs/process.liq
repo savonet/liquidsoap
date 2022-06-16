@@ -3,9 +3,13 @@
 # @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
 # @param ~env Process environment
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
+# @param ~log_errors Log details if the command does not return 0.
 # @param command Command to run
-def process.read(~timeout=(-1.),~env=[],~inherit_env=true,command)
+def process.read(~timeout=(-1.),~env=[],~inherit_env=true,~log_errors=true,command)
   p = process.run(timeout=timeout, env=env, inherit_env=inherit_env, command)
+  if log_errors and (string(p.status) != "exit" or p.status.code != 0) then
+    log.important("Failed to execute `#{command}`: #{p.status} (#{p.status.code}) #{p.stdout} #{p.stderr}")
+  end
   p.stdout
 end
 
@@ -14,9 +18,10 @@ end
 # @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
 # @param ~env Process environment
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
+# @param ~log_errors Log details if the command does not return 0.
 # @param command Command to run
-def process.read.lines(~timeout=(-1.),~env=[],~inherit_env=true,command)
-  s = process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
+def process.read.lines(~timeout=(-1.),~env=[],~inherit_env=true,~log_errors=true,command)
+  s = process.read(timeout=timeout, env=env, inherit_env=inherit_env, log_errors=log_errors, command)
   string.split(separator="\r?\n", s)
 end
 
