@@ -70,10 +70,9 @@ New:
 Changed:
 
 - Make sure source shutdown can only be called on sources that
-  can actually be shutdown:
+  can actually be shutdown: (#2259)
   - Remove generic `source.shutdown`
   - Keep `s.shutdown()` method only on sources that are active.
-    Refs: #2259
 - Optimized memory usage when accessing frame content (#2266)
 - Optimized memory usage when accessing ground terms.
 - Allow crossfade duration getter to override duration at the
@@ -1308,7 +1307,7 @@ Server interface:
 - Print the playlist's URI when calling <playlist>.uri without an
   argument.
 - Enhance <queue>.ignore now works also in the primary queue
-- New command for changing the URL of an input.http(), ref #466. The
+- New command for changing the URL of an input.http() (#466). The
   command is <id>.url and it needs a restart (<id>.stop, then start)
   to take effect.
 - Fixed double registration of server commands which resulted in broken
@@ -1552,7 +1551,7 @@ New:
   set to the old behaviour, and a conservative option has
   been added to switch to the new behaviour. New behavivour
   will be the default for the next release.
-  fixes #169, references #146
+  fixes #169 (#146)
 
   # 0.9.0 (01-03-2009)
 
