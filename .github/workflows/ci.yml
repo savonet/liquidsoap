@@ -25,6 +25,29 @@ jobs:
           python-version: "3.x"
       - uses: pre-commit/action@v3.0.0
 
+  check-shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+      - run: |
+          python -m venv venv && source venv/bin/activate
+          pip install gh-release-install
+
+          sudo venv/bin/gh-release-install \
+            koalaman/shellcheck \
+            shellcheck-{tag}.linux.x86_64.tar.xz --extract shellcheck-{tag}/shellcheck \
+            /usr/bin/shellcheck
+
+          sudo venv/bin/gh-release-install \
+            mvdan/sh \
+            shfmt_{tag}_linux_amd64 \
+            /usr/bin/shfmt
+
+      - run: SEVERITY=warning make shell-check
+
   build_details:
     runs-on: ubuntu-latest
     outputs:
