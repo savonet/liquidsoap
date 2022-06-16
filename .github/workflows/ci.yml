@@ -18,11 +18,25 @@ jobs:
 
   pre-commit:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
+
+      - name: Install opam
+        run: |
+          sudo apt-get -q update
+          sudo apt-get -q install -y opam
+
+          opam init
+
+      - name: Install ocamlformat
+        run: |
+          eval "$(opam env)"
+          opam install --yes ocamlformat.0.19.0
+
       - uses: pre-commit/action@v3.0.0
 
   check-shell:

@@ -33,3 +33,12 @@ repos:
         args:
           - --ignore-words=.codespellignore
           - --builtin=clear,rare,informal
+
+  - repo: local
+    hooks:
+      - id: ocamlformat
+        name: ocamlformat
+        description: Formatting ML files
+        language: system
+        entry: bash -c 'eval "$(opam env)" && ocamlformat -i -n 3 $@'
+        files: (\.ml|\.mli)$
