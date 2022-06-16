@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BASEPATH=$0
-BASEDIR=`dirname $0`
+BASEDIR=$(dirname $0)
 
 TIMEOUT=10m
 
@@ -14,9 +14,9 @@ run_test() {
     TEST_NAME=${TEST}
   fi
 
-  TEST_NAME=`echo ${TEST_NAME} | sed -e 's#%#%%#g'`
+  TEST_NAME=$(echo ${TEST_NAME} | sed -e 's#%#%%#g')
 
-  LOG_FILE=`mktemp`
+  LOG_FILE=$(mktemp)
 
   START_TIME="$(date +%s)"
 
@@ -32,8 +32,8 @@ run_test() {
   }
 
   on_timeout() {
-    T="$(($(date +%s)-START_TIME))"
-    printf "${ERROR_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[1;34m[timeout]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+    T="$(($(date +%s) - START_TIME))"
+    printf "${ERROR_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[1;34m[timeout]\033[0m (Test time: %02dm:%02ds)\n" "$((T / 60))" "$((T % 60))"
     cat "${LOG_FILE}"
     kill -9 "$PID"
     exit 1
@@ -44,10 +44,10 @@ run_test() {
   ${CMD} < "${TEST}" > "${LOG_FILE}" 2>&1
 
   STATUS=$?
-  T="$(($(date +%s)-START_TIME))"
+  T="$(($(date +%s) - START_TIME))"
 
   if [ "${STATUS}" == "0" ]; then
-    printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[0;32m[ok]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+    printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[0;32m[ok]\033[0m (Test time: %02dm:%02ds)\n" "$((T / 60))" "$((T % 60))"
     exit 0
   fi
 
@@ -56,7 +56,7 @@ run_test() {
       exit 0
   fi
 
-  printf "${ERROR_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[0;31m[failed]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+  printf "${ERROR_PREFIX}Ran test \033[1m${TEST_NAME}\033[0m: \033[0;31m[failed]\033[0m (Test time: %02dm:%02ds)\n" "$((T / 60))" "$((T % 60))"
   cat "${LOG_FILE}"
   exit 1
 }

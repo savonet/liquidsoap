@@ -2,8 +2,8 @@
 
 set -e
 
-PWD=`dirname $0`
-BASE_DIR=`cd "${PWD}/../.." && pwd`
+PWD=$(dirname $0)
+BASE_DIR=$(cd "${PWD}/../.." && pwd)
 
 DOCKER_IMAGE=savonet/liquidsoap-github-actions-website
 

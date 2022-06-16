@@ -5,7 +5,7 @@ set -e
 if [ "$1" = "purge" ] && [ -d /usr/share/liquidsoap ]; then
     if ! rmdir /usr/share/liquidsoap; then
         echo "leaving /usr/share/liquidsoap in place"
-    fi
+  fi
 fi
 
 #DEBHELPER#

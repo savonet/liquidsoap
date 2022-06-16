@@ -3,8 +3,8 @@
 nc -l 2000 &
 pid=$!
 
-function cleanup() {
-  kill $pid;
+cleanup() {
+  kill $pid
 }
 
 trap cleanup EXIT

@@ -4,5 +4,5 @@ set -e
 
 cd /tmp/liquidsoap-full/liquidsoap
 eval $(opam config env)
-export OCAMLPATH=`cat ../.ocamlpath`
+export OCAMLPATH=$(cat ../.ocamlpath)
 dune test

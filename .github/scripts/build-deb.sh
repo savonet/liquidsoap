@@ -1,4 +1,4 @@
-dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"#!/bin/sh
+dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}" #!/bin/sh
 
 set -e
 
@@ -10,9 +10,9 @@ IS_ROLLING_RELEASE=$5
 IS_RELEASE=$6
 DEB_RELEASE=1
 
-ARCH=`dpkg --print-architecture`
+ARCH=$(dpkg --print-architecture)
 
-COMMIT_SHORT=`echo "${GITHUB_SHA}" | cut -c-7`
+COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 export DEBFULLNAME="The Savonet Team"
 export DEBEMAIL="savonet-users@lists.sourceforge.net"
@@ -20,17 +20,17 @@ export DEBEMAIL="savonet-users@lists.sourceforge.net"
 cd /tmp/liquidsoap-full/liquidsoap
 
 eval $(opam config env)
-export OCAMLPATH=`cat ../.ocamlpath`
+export OCAMLPATH=$(cat ../.ocamlpath)
 
-LIQ_VERSION=`opam show -f version ./liquidsoap.opam | cut -d'-' -f 1`
-LIQ_TAG=`echo ${DOCKER_TAG} | sed -e 's#_#-#g'`
+LIQ_VERSION=$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)
+LIQ_TAG=$(echo ${DOCKER_TAG} | sed -e 's#_#-#g')
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
   LIQ_PACKAGE="liquidsoap-${COMMIT_SHORT}"
 elif [ -n "${IS_RELEASE}" ]; then
   LIQ_PACKAGE="liquidsoap"
 else
-  TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
+  TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
   LIQ_PACKAGE="liquidsoap-${TAG}"
 fi
 

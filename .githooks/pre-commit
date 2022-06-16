@@ -2,22 +2,22 @@
 
 echo "--> Formatting ML files.. "
 
-NEW_FILES=`git status --show-stash -s | grep '^[MARCD]' | grep -v '\->' | grep -v '^D' | cut -d' ' -f3 | grep -E '\.ml$|\.mli$'`
-RENAMED_FILES=`git status --show-stash -s | grep '^[MARCD]' | grep '\->' | cut -d'>' -f 2 | grep -E '\.ml$|\.mli$'`
+NEW_FILES=$(git status --show-stash -s | grep '^[MARCD]' | grep -v '\->' | grep -v '^D' | cut -d' ' -f3 | grep -E '\.ml$|\.mli$')
+RENAMED_FILES=$(git status --show-stash -s | grep '^[MARCD]' | grep '\->' | cut -d'>' -f 2 | grep -E '\.ml$|\.mli$')
 FILES="${NEW_FILES} ${RENAMED_FILES}"
 
-OCAMLFORMAT=`which ocamlformat`
+OCAMLFORMAT=$(which ocamlformat)
 
 if [ "${FILES}" = " " ]; then
-  echo "No ML files in this commit!";
+  echo "No ML files in this commit!"
   exit 0
 fi
 
-OCAMLFORMAT=`which ocamlformat`
+OCAMLFORMAT=$(which ocamlformat)
 
 if [ ! -x "${OCAMLFORMAT}" ]; then
-  echo "git pre-commit hook failed.. Please install ocamlformat!";
-  exit 1;
+  echo "git pre-commit hook failed.. Please install ocamlformat!"
+  exit 1
 fi
 
 set -e

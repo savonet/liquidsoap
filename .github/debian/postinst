@@ -3,10 +3,10 @@
 set -e
 
 case "$1" in
-    configure)
-    ;;
+    configure) ;;
 
-    abort-upgrade|abort-remove|abort-deconfigure)
+    \
+    abort-upgrade | abort-remove | abort-deconfigure)
     exit 0
     ;;
 
@@ -19,10 +19,10 @@ esac
 [ $(getent group liquidsoap) ] || addgroup --system liquidsoap
 
 # Create the new system account
-id liquidsoap >dev/null 2>&1 || (\
+id liquidsoap > dev/null 2>&1 || (
   adduser --system --disabled-password --disabled-login \
-  --home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap && \
-  usermod --append --groups audio liquidsoap\
+    --home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap &&
+    usermod --append --groups audio liquidsoap
 )
 
 # Add again /usr/share/liquidsoap if user was already created
