@@ -39,6 +39,12 @@ let on_execute =
       Js._true)
 
 let on_load =
+  let output = Js.Unsafe.coerce (Dom_html.getElementById_exn "output") in
+  output##.value :=
+    [%string
+      {|# Welcome to liquidsoap's online interpreter!
+Language version: %{Build_config.version}
+|}];
   Dom_html.handler (fun e ->
       Dom.preventDefault e;
       let execute = Dom_html.getElementById_exn "execute" in

@@ -35,5 +35,5 @@
  (js_of_ocaml
   (javascript_files filesystem.js))
  (preprocess
-  (pps js_of_ocaml-ppx))
+  (pps ppx_string js_of_ocaml-ppx))
  (libraries liquidsoap_lang))
