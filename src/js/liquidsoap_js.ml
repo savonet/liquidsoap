@@ -45,7 +45,7 @@ let on_load =
       output##.value :=
         [%string
           {|# Welcome to liquidsoap's online interpreter!
-Language version: %{Build_config.version}
+# Language version: %{Build_config.version}
 |}];
       let execute = Dom_html.getElementById_exn "execute" in
       ignore
