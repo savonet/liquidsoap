@@ -11,16 +11,10 @@
 (rule
  (target build_config.ml)
  (action
-  (with-stdout-to %{target}
-    (echo "let version = \"%{version:liquidsoap-lang}\"\n
-           let ext_exe = \"%{ocaml-config:ext_exe}\"\n
-           let architecture = \"%{ocaml-config:architecture}\"\n
-           let host = \"%{ocaml-config:host}\"\n
-           let target = \"%{ocaml-config:target}\"\n
-           let system = \"%{ocaml-config:system}\"\n
-           let ocamlopt_cflags = \"%{ocaml-config:ocamlopt_cflags}\"\n
-           let native_c_compiler = \"%{ocaml-config:native_c_compiler}\"\n
-           let native_c_libraries = \"%{ocaml-config:native_c_libraries}\""))))
+  (with-stdout-to
+   %{target}
+   (echo
+    "let version = \"%{version:liquidsoap-lang}\"\n\n           let ext_exe = \"%{ocaml-config:ext_exe}\"\n\n           let architecture = \"%{ocaml-config:architecture}\"\n\n           let host = \"%{ocaml-config:host}\"\n\n           let target = \"%{ocaml-config:target}\"\n\n           let system = \"%{ocaml-config:system}\"\n\n           let ocamlopt_cflags = \"%{ocaml-config:ocamlopt_cflags}\"\n\n           let native_c_compiler = \"%{ocaml-config:native_c_compiler}\"\n\n           let native_c_libraries = \"%{ocaml-config:native_c_libraries}\""))))
 
 (library
  (name liquidsoap_lang)
