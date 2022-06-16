@@ -53,18 +53,21 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
 
   (** Handle an upgrade to websocket request. *)
   let upgrade headers =
-    assert (List.assoc "Upgrade" headers = "websocket");
+    let headers =
+      List.map (fun (lbl, value) -> (String.uppercase_ascii lbl, value)) headers
+    in
+    assert (List.assoc "UPGRADE" headers = "websocket");
     let origin =
-      try Printf.sprintf "Origin: %s\r\n" (List.assoc "Origin" headers)
+      try Printf.sprintf "Origin: %s\r\n" (List.assoc "ORIGIN" headers)
       with _ -> ""
     in
     let version =
       try
-        let value = List.assoc "Sec-WebSocket-Version" headers in
+        let value = List.assoc "SEC-WEBSOCKET-VERSION" headers in
         Printf.sprintf "Sec-WebSocket-Version: %s\r\n" value
       with Not_found -> ""
     in
-    let wsk = List.assoc "Sec-WebSocket-Key" headers in
+    let wsk = List.assoc "SEC-WEBSOCKET-KEY" headers in
     let wsa = wsa wsk in
     Printf.sprintf
       "HTTP/1.1 101 Switching Protocols\r\n\
