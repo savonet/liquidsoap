@@ -1,5 +1,5 @@
 open Liquidsoap_lang
-include Sys_config
+include Build_config
 include Liquidsoap_paths
 
 (* See: https://github.com/ocaml/dune/issues/4453 *)
@@ -38,18 +38,10 @@ let () =
 
 let restart = ref false
 let display_types = Typechecking.display_types
+let () = Hooks.liq_libs_dir := liq_libs_dir
 
-let version () =
-  match Build_info.V1.version () with
-    | Some v -> Build_info.V1.Version.to_string v
-    | None -> "dev"
-
-let () =
-  Hooks.liq_libs_dir := liq_libs_dir;
-  Hooks.version := version
-
-let vendor () =
-  Printf.sprintf "Liquidsoap/%s (%s; OCaml %s)" (version ()) Sys.os_type
+let vendor =
+  Printf.sprintf "Liquidsoap/%s (%s; OCaml %s)" version Sys.os_type
     Sys.ocaml_version
 
 let path () =

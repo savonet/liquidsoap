@@ -8,13 +8,13 @@ val conf_debug_errors : bool Dtools.Conf.t
 val host : string
 
 (** String describing the version. *)
-val version : unit -> string
+val version : string
 
 val restart : bool ref
 val git_snapshot : bool
 
 (** String describing the software. *)
-val vendor : unit -> string
+val vendor : string
 
 (** Where to look for standard .liq scripts to include *)
 val liq_libs_dir : unit -> string
@@ -24,9 +24,6 @@ val bin_dir : unit -> string
 
 (** Standard path. *)
 val path : unit -> string list
-
-(** Executable extension. *)
-val ext_exe : string
 
 (** Default font file *)
 val default_font : string

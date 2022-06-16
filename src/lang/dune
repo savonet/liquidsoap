@@ -8,14 +8,28 @@
 (menhir
  (modules parser json_parser))
 
+(rule
+ (target build_config.ml)
+ (action
+  (with-stdout-to %{target}
+    (echo "let version = \"%{version:liquidsoap-lang}\"\n
+           let ext_exe = \"%{ocaml-config:ext_exe}\"\n
+           let architecture = \"%{ocaml-config:architecture}\"\n
+           let host = \"%{ocaml-config:host}\"\n
+           let target = \"%{ocaml-config:target}\"\n
+           let system = \"%{ocaml-config:system}\"\n
+           let ocamlopt_cflags = \"%{ocaml-config:ocamlopt_cflags}\"\n
+           let native_c_compiler = \"%{ocaml-config:native_c_compiler}\"\n
+           let native_c_libraries = \"%{ocaml-config:native_c_libraries}\""))))
+
 (library
  (name liquidsoap_lang)
  (public_name liquidsoap-lang)
- (library_flags -linkall)
  (preprocess
   (pps sedlex.ppx))
  (libraries str unix menhirLib)
  (modules
+  build_config
   builtins_bool
   builtins_eval
   builtins_files

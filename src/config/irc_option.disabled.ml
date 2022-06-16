@@ -1,2 +1,2 @@
 let detected = "no (requires irc-client-unix)"
-let enabled = "false"
+let enabled = false

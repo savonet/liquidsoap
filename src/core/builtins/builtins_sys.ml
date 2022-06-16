@@ -23,10 +23,6 @@
 open Extralib
 
 let () =
-  Lang.add_builtin_base ~category:`Liquidsoap
-    ~descr:"Liquidsoap version string." "liquidsoap.version"
-    Lang.(Ground (Ground.String (Configure.version ())))
-    Lang.string_t;
   List.iter
     (fun (name, kind, str) ->
       Lang.add_builtin_base ~category:`Liquidsoap
@@ -41,35 +37,7 @@ let () =
       ("logdir", "logging directory", Configure.logdir ());
       ("camomile_dir", "camomile files directory", Camomile_utils.camomile_dir);
       ("default_font", "default font file", Configure.default_font);
-    ];
-  Lang.add_builtin ~category:`Liquidsoap
-    ~descr:"Ensure that Liquidsoap version is greater or equal to given one."
-    "liquidsoap.version.at_least"
-    [("", Lang.string_t, None, Some "Minimal version.")] Lang.bool_t (fun p ->
-      let v = List.assoc "" p |> Lang.to_string in
-      Lang.bool
-        (Lang_string.Version.compare
-           (Lang_string.Version.of_string v)
-           (Lang_string.Version.of_string (Configure.version ()))
-        <= 0))
-
-let () =
-  Lang.add_builtin_base "liquidsoap.executable" ~category:`Liquidsoap
-    ~descr:"Path to the Liquidsoap executable."
-    Lang.(Ground (Ground.String Sys.executable_name))
-    Lang.string_t
-
-let () =
-  Lang.add_builtin_base ~category:`System
-    ~descr:"Type of OS running liquidsoap." "os.type"
-    Lang.(Ground (Ground.String Sys.os_type))
-    Lang.string_t
-
-let () =
-  Lang.add_builtin_base ~category:`System ~descr:"Executable file extension."
-    "exe_ext"
-    Lang.(Ground (Ground.String Configure.ext_exe))
-    Lang.string_t
+    ]
 
 (** Liquidsoap stuff *)
 

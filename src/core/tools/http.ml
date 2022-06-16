@@ -136,7 +136,7 @@ module Make (Transport : Transport_t) = struct
   let () = Printexc.register_printer error_translator
   let raise e = raise (Error e)
   let default_port = Transport.default_port
-  let user_agent = Configure.vendor ()
+  let user_agent = Configure.vendor
 
   let args_split s =
     let args = Hashtbl.create 2 in

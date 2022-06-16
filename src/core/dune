@@ -10,19 +10,6 @@
  (sites liquidsoap))
 
 (rule
- (target sys_config.ml)
- (action
-  (with-stdout-to %{target}
-    (echo "let ext_exe = \"%{ocaml-config:ext_exe}\"\n
-           let architecture = \"%{ocaml-config:architecture}\"\n
-           let host = \"%{ocaml-config:host}\"\n
-           let target = \"%{ocaml-config:target}\"\n
-           let system = \"%{ocaml-config:system}\"\n
-           let ocamlopt_cflags = \"%{ocaml-config:ocamlopt_cflags}\"\n
-           let native_c_compiler = \"%{ocaml-config:native_c_compiler}\"\n
-           let native_c_libraries = \"%{ocaml-config:native_c_libraries}\""))))
-
-(rule
  (target liquidsoap_paths.ml)
  (action
   (copy liquidsoap_paths.%{env:LIQUIDSOAP_BUILD_TARGET=default}.ml %{target})))
@@ -228,7 +215,6 @@
   switch
   synth_op
   synthesized
-  sys_config
   term
   theora_format
   time_warp
@@ -703,6 +689,7 @@
   alsa_option
   ao_option
   bjack_option
+  builtins_optionals
   camlimages_option
   cry_option
   dssi_option

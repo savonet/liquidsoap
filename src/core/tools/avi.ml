@@ -153,7 +153,7 @@ let header ~width ~height ~channels ~samplerate () =
   in
   let headers = list ("hdrl" ^ avi_header ^ video_header ^ audio_header) in
   let info =
-    let producer = chunk "ISFT" (Configure.vendor ()) in
+    let producer = chunk "ISFT" Configure.vendor in
     list ("INFO" ^ producer)
   in
   "RIFF"

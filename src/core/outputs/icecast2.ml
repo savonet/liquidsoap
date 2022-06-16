@@ -552,8 +552,7 @@ class output ~kind p =
       f data.info.channels "channels" string_of_int;
       let user_agent =
         try List.assoc "User-Agent" headers
-        with Not_found ->
-          Printf.sprintf "liquidsoap %s" (Configure.version ())
+        with Not_found -> Printf.sprintf "liquidsoap %s" Configure.version
       in
       let source =
         Cry.connection ~host ~port ~user ~password ?genre ?url ?description

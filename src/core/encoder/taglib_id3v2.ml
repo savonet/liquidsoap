@@ -29,7 +29,7 @@ let render m =
   let t = Taglib.Inline.Id3v2.init () in
   let t =
     Taglib.Inline.Id3v2.attach_frame t "TSSE"
-      (Printf.sprintf "Encoded by %s" (Configure.vendor ()))
+      (Printf.sprintf "Encoded by %s" Configure.vendor)
   in
   let f t (l, g) =
     try

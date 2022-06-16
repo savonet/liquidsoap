@@ -356,13 +356,13 @@ let options =
                  Liquidsoap is open-source software, released under GNU \
                  General Public License.\n\
                  See <http://liquidsoap.info> for more information.\n"
-                (Configure.version ());
+                Configure.version;
               exit 0),
           "Display liquidsoap's version." );
         ( ["--build-config"],
           Arg.Unit
             (fun () ->
-              Printf.printf "%s\n" (Build_config.build_config ());
+              Printf.printf "%s\n" Build_config.build_config;
               exit 0),
           "Display liquidsoap's build configuration." );
         ( ["--opam-config"],
@@ -425,7 +425,7 @@ let () =
       Dtools.Init.conf_daemon_pidfile_path#set_d
         (Some "<sysrundir>/<script>.pid");
 
-      log#important "Liquidsoap %s" (Configure.version ());
+      log#important "Liquidsoap %s" Configure.version;
       log#important "Using:%s" (Configure.libs_versions ());
       if Configure.git_snapshot then
         List.iter (log#important "%s")

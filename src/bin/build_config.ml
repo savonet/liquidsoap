@@ -1,4 +1,6 @@
-let build_config () =
+open Liquidsoap_lang
+
+let build_config =
   let path_mode =
     match Liquidsoap_paths.mode with
       | `Default -> "default"
@@ -7,19 +9,19 @@ let build_config () =
   in
   [%string
     {|
- * Liquidsoap version  : %{Configure.version ()}
+ * Liquidsoap version  : %{Build_config.version}
  
  * Compilation options
    - OCaml version       : %{Sys.ocaml_version}
    - Os type             : %{Sys.os_type}
    - Libs versions       : %{Configure.libs_versions ()}
-   - architecture        : %{Sys_config.architecture}
-   - host                : %{Sys_config.host}
-   - target              : %{Sys_config.target}
-   - system              : %{Sys_config.system}
-   - ocamlopt_cflags     : %{Sys_config.ocamlopt_cflags}
-   - native_c_compiler   : %{Sys_config.native_c_compiler}
-   - native_c_libraries  : %{Sys_config.native_c_libraries}
+   - architecture        : %{Build_config.architecture}
+   - host                : %{Build_config.host}
+   - target              : %{Build_config.target}
+   - system              : %{Build_config.system}
+   - ocamlopt_cflags     : %{Build_config.ocamlopt_cflags}
+   - native_c_compiler   : %{Build_config.native_c_compiler}
+   - native_c_libraries  : %{Build_config.native_c_libraries}
 
  * Configured paths  
    - mode              : %{path_mode}
@@ -113,15 +115,15 @@ let opam_config =
     {|
 opam-version: "2.0"
 variables {
-  cry-enabled: %{Cry_option.enabled}
-  ffmpeg-enabled: %{Ffmpeg_option.enabled}
-  lame-enabled: %{Lame_option.enabled}
-  mad-enabled: %{Mad_option.enabled}
-  ocurl-enabled: %{Ocurl_option.enabled}
-  samperate-enabled: %{Samplerate_option.enabled}
-  secure-transport-enabled: %{Osx_secure_transport_option.enabled}
-  shine-enabled: %{Shine_option.enabled}
-  ssl-enabled: %{Ssl_option.enabled}
-  taglib-enabled: %{Taglib_option.enabled}
+  cry-enabled: %{string_of_bool Cry_option.enabled}
+  ffmpeg-enabled: %{string_of_bool Ffmpeg_option.enabled}
+  lame-enabled: %{string_of_bool Lame_option.enabled}
+  mad-enabled: %{string_of_bool Mad_option.enabled}
+  ocurl-enabled: %{string_of_bool Ocurl_option.enabled}
+  samperate-enabled: %{string_of_bool Samplerate_option.enabled}
+  secure-transport-enabled: %{string_of_bool Osx_secure_transport_option.enabled}
+  shine-enabled: %{string_of_bool Shine_option.enabled}
+  ssl-enabled: %{string_of_bool Ssl_option.enabled}
+  taglib-enabled: %{string_of_bool Taglib_option.enabled}
 }
 |}]

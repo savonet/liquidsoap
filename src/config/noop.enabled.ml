@@ -1,2 +1,2 @@
 let detected = "yes"
-let enabled = "true"
+let enabled = true

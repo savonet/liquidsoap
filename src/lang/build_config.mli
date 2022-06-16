@@ -1,3 +1,4 @@
+val version : string
 val ext_exe : string
 val architecture : string
 val host : string

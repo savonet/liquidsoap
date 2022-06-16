@@ -146,6 +146,51 @@ let () =
 
 let () =
   Lang.add_builtin_base ~category:`Liquidsoap
+    ~descr:"Liquidsoap version string." "liquidsoap.version"
+    Lang.(Ground (Ground.String Build_config.version))
+    Lang.string_t;
+  Lang.add_builtin_base ~category:`Liquidsoap
     ~descr:"OCaml verion used to compile liquidspap." "liquidsoap.ocaml_version"
     Lang.(Ground (Ground.String Sys.ocaml_version))
-    Lang.string_t
+    Lang.string_t;
+  Lang.add_builtin_base "liquidsoap.executable" ~category:`Liquidsoap
+    ~descr:"Path to the Liquidsoap executable."
+    Lang.(Ground (Ground.String Sys.executable_name))
+    Lang.string_t;
+  Lang.add_builtin_base ~category:`System
+    ~descr:"Type of OS running liquidsoap." "os.type"
+    Lang.(Ground (Ground.String Sys.os_type))
+    Lang.string_t;
+  Lang.add_builtin_base ~category:`System ~descr:"Executable file extension."
+    "exe_ext"
+    Lang.(Ground (Ground.String Build_config.ext_exe))
+    Lang.string_t;
+  Lang.add_builtin ~category:`Liquidsoap
+    ~descr:"Ensure that Liquidsoap version is greater or equal to given one."
+    "liquidsoap.version.at_least"
+    [("", Lang.string_t, None, Some "Minimal version.")] Lang.bool_t (fun p ->
+      let v = List.assoc "" p |> Lang.to_string in
+      Lang.bool
+        (Lang_string.Version.compare
+           (Lang_string.Version.of_string v)
+           (Lang_string.Version.of_string Build_config.version)
+        <= 0))
+
+let () =
+  Lang.add_module "liquidsoap.build_config";
+  List.iter
+    (fun (name, value) ->
+      Lang.add_builtin_base ~category:`Liquidsoap
+        ~descr:("Build-time configuration value for " ^ name)
+        ("liquidsoap.build_config." ^ name)
+        Lang.(Ground (Ground.String value))
+        Lang.string_t)
+    [
+      ("architecture", Build_config.architecture);
+      ("host", Build_config.host);
+      ("target", Build_config.target);
+      ("system", Build_config.system);
+      ("ocamlopt_cflags", Build_config.ocamlopt_cflags);
+      ("native_c_compiler", Build_config.native_c_compiler);
+      ("native_c_libraries", Build_config.native_c_libraries);
+    ]
