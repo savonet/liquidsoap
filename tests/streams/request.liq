@@ -2,18 +2,10 @@
 
 settings.log.level.set(4)
 
-def next() =
-  request.create("file1.mp3")
-end
+test.check(fun () ->
+  begin
+    r = request.dynamic(prefetch=1, fun () -> request.create("invalid"))
 
-r = request.dynamic(prefetch=1, next)
-
-output.dummy(fallible=true, r)
-
-def f() =
-  if not r.is_ready() then
-    0.1
-  else
     if not r.add(request.create("file2.mp3")) then
       print("Failed to add request")
       test.fail()
@@ -31,23 +23,33 @@ def f() =
       test.fail()
     end
 
-    c = r.current()
-
-    if not null.defined(c) then
-      print("Invalid current track")
-      test.fail()
+    def next() =
+      request.create("file1.mp3")
     end
 
-    c = null.get(c)
-    if request.filename(c) != "file1.mp3" then
-      print("Invalid filename")
-      test.fail()
-    end
+    r = request.dynamic(prefetch=1, next)
 
-    test.pass()
+    output.dummy(fallible=true, r)
 
-    (-1.)
-  end
-end
+    thread.run.recurrent(fun () ->
+     if not r.is_ready() then
+       0.1
+     else
+      c = r.current()
 
-thread.run.recurrent(f)
+      if not null.defined(c) then
+        print("Invalid current track")
+        test.fail()
+      end
+
+      c = null.get(c)
+      if request.filename(c) != "file1.mp3" then
+        print("Invalid filename")
+        test.fail()
+      end
+
+      test.pass()
+
+      (-1.)
+     end)
+ end)
