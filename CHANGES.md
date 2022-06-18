@@ -13,7 +13,8 @@ Fixed:
 * Print user-readable encoder parameter error report.
 * Fixed m3u metadata parsing when artist has a comma in their name (#2449)
 * Cleanup failed request in `playlist` operator.
-* Cleanup requests pool whenever possible.
+* Make sure requests are always cleaned up, making `request.destroy` calls
+  optionals.
 
 ---
 2.0.5 (24-05-2022)
