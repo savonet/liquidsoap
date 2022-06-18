@@ -31,7 +31,7 @@ end
 module type S = sig
   type t
 
-  val add : unit -> int * (t -> unit)
+  val add : (int -> t) -> t
   val kill : int -> float -> unit
   val find : int -> t option
   val fold : (int -> t -> 'a -> 'a) -> 'a -> 'a
@@ -46,7 +46,6 @@ module Make (P : T) : S with type t = P.t = struct
 
   let m = Mutex.create ()
   let h : (int, entry) Hashtbl.t = Hashtbl.create 100
-  let size = Tutils.mutexify m (fun () -> Hashtbl.length h)
 
   let find =
     Tutils.mutexify m (fun i ->
@@ -84,22 +83,32 @@ module Make (P : T) : S with type t = P.t = struct
           { (Hashtbl.find h i) with death_time = Some (Unix.time () +. grace) })
       ()
 
-  let next =
-    let rec find i =
-      try
-        match (Hashtbl.find h i).death_time with
-          | Some t when Unix.time () > t -> i
-          | _ -> find (i + 1)
-      with Not_found -> i
-    in
-    Tutils.mutexify m (fun () ->
-        let i = find 0 in
-        Hashtbl.replace h i { death_time = None; value = None };
-        i)
+  let clear () =
+    let time = Unix.time () in
+    Hashtbl.filter_map_inplace
+      (fun _ -> function
+        | { death_time = Some f } when f <= time -> None
+        | v -> Some v)
+      h
 
-  let add () =
-    let i = next () in
-    ( i,
-      Tutils.mutexify m (fun t ->
-          Hashtbl.replace h i { death_time = None; value = Some t }) )
+  let next () =
+    clear ();
+    let rec find i =
+      match Hashtbl.find_opt h i with None -> i | Some _ -> find (i + 1)
+    in
+    find 0
+
+  let add fn =
+    Tutils.mutexify m
+      (fun () ->
+        let i = next () in
+        let v = fn i in
+        Hashtbl.replace h i { death_time = None; value = Some v };
+        v)
+      ()
+
+  let size =
+    Tutils.mutexify m (fun () ->
+        clear ();
+        Hashtbl.length h)
 end
