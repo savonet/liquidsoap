@@ -3,9 +3,9 @@ type req = { id : int; destroyed : bool }
 module Pool = Pool.Make (struct
   type t = req
 
-  let id { id } = id
+  let id { id; _ } = id
   let destroyed id = { id; destroyed = true }
-  let is_destroyed { destroyed } = destroyed
+  let is_destroyed { destroyed; _ } = destroyed
 end)
 
 let () =
