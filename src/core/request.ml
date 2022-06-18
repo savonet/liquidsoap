@@ -496,24 +496,23 @@ let create ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
          also help."
         n
   in
-  let rid, register = Pool.add () in
   let t =
-    {
-      id = rid;
-      initial_uri = u;
-      ctype = None;
-      (* This is fixed when resolving the request. *)
-      persistent;
-      on_air = None;
-      resolving = None;
-      status = Idle;
-      decoder = None;
-      log = Queue.create ();
-      root_metadata = Hashtbl.create 10;
-      indicators = [];
-    }
+    Pool.add (fun rid ->
+        {
+          id = rid;
+          initial_uri = u;
+          ctype = None;
+          (* This is fixed when resolving the request. *)
+          persistent;
+          on_air = None;
+          resolving = None;
+          status = Idle;
+          decoder = None;
+          log = Queue.create ();
+          root_metadata = Hashtbl.create 10;
+          indicators = [];
+        })
   in
-  register t;
   List.iter (fun (k, v) -> Hashtbl.replace t.root_metadata k v) metadata;
   push_indicators t (if indicators = [] then [indicator u] else indicators);
   t

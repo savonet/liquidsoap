@@ -84,6 +84,20 @@
 
 
 (executable
+ (name pool_test)
+ (modules pool_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  
+  (:pool_test pool_test.exe))
+ (action (run %{pool_test} )))
+
+
+(executable
  (name timezone)
  (modules timezone)
  (libraries liquidsoap_core liquidsoap_optionals))
