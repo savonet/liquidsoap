@@ -27,11 +27,6 @@
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 
-let grace_time =
-  Dtools.Conf.float ~p:(conf#plug "grace_time") ~d:600.
-    "Time (in seconds) after which a destroyed request cannot be accessed \
-     anymore."
-
 let log = Log.make ["request"]
 
 (** File utilities. *)
@@ -459,6 +454,26 @@ let get_root_metadata t =
 module Pool = Pool.Make (struct
   type req = t
   type t = req
+
+  let id { id } = id
+
+  let destroyed =
+    {
+      id = 0;
+      initial_uri = "";
+      ctype = None;
+      persistent = false;
+      status = Destroyed;
+      resolving = None;
+      on_air = None;
+      log = Queue.create ();
+      root_metadata = Hashtbl.create 0;
+      indicators = [];
+      decoder = None;
+    }
+
+  let destroyed id = { destroyed with id }
+  let is_destroyed { status } = status = Destroyed
 end)
 
 let get_id t = t.id
@@ -484,6 +499,29 @@ let leak_warning =
   Dtools.Conf.int ~p:(conf#plug "leak_warning") ~d:100
     "Number of requests at which a leak warning should be issued."
 
+let destroy ?force t =
+  if t.status <> Destroyed then (
+    if t.status = Playing then t.status <- Ready;
+    if force = Some true || not t.persistent then (
+      t.on_air <- None;
+      t.status <- Idle;
+
+      (* Freeze the metadata *)
+      t.root_metadata <- get_all_metadata t;
+
+      (* Remove the URIs, unlink temporary files *)
+      while t.indicators <> [] do
+        pop_indicator t
+      done;
+      t.status <- Destroyed;
+      add_log t "Request finished."))
+
+let finalise = destroy ~force:true
+
+let clean () =
+  Pool.iter (fun _ r -> if r.status <> Destroyed then destroy ~force:true r);
+  Pool.clear ()
+
 let create ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
   (* Find instantaneous request loops *)
   let () =
@@ -491,57 +529,37 @@ let create ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
     if n > 0 && n mod leak_warning#get = 0 then
       log#severe
         "There are currently %d RIDs, possible request leak! Please check that \
-         you don't have a loop on empty/unavailable requests, or creating \
-         requests without destroying them. Decreasing request.grace_time can \
-         also help."
+         you don't have a loop on empty/unavailable requests."
         n
   in
   let t =
-    Pool.add (fun rid ->
-        {
-          id = rid;
-          initial_uri = u;
-          ctype = None;
-          (* This is fixed when resolving the request. *)
-          persistent;
-          on_air = None;
-          resolving = None;
-          status = Idle;
-          decoder = None;
-          log = Queue.create ();
-          root_metadata = Hashtbl.create 10;
-          indicators = [];
-        })
+    let req =
+      {
+        id = 0;
+        initial_uri = u;
+        ctype = None;
+        (* This is fixed when resolving the request. *)
+        persistent;
+        on_air = None;
+        resolving = None;
+        status = Idle;
+        decoder = None;
+        log = Queue.create ();
+        root_metadata = Hashtbl.create 10;
+        indicators = [];
+      }
+    in
+    Pool.add (fun id -> { req with id })
   in
   List.iter (fun (k, v) -> Hashtbl.replace t.root_metadata k v) metadata;
   push_indicators t (if indicators = [] then [indicator u] else indicators);
+  Gc.finalise finalise t;
   t
 
 let on_air t =
   t.on_air <- Some (Unix.time ());
   t.status <- Playing;
   add_log t "Currently on air."
-
-let destroy ?force t =
-  assert (t.status <> Destroyed);
-  t.on_air <- None;
-  if t.status = Playing then t.status <- Ready;
-  if force = Some true || not t.persistent then (
-    t.status <- Idle;
-
-    (* Freeze the metadata *)
-    t.root_metadata <- get_all_metadata t;
-
-    (* Remove the URIs, unlink temporary files *)
-    while t.indicators <> [] do
-      pop_indicator t
-    done;
-    t.status <- Destroyed;
-    add_log t "Request finished.";
-    Pool.kill t.id grace_time#get)
-
-let clean () =
-  Pool.iter (fun _ r -> if r.status <> Destroyed then destroy ~force:true r)
 
 let get_decoder r = match r.decoder with None -> None | Some d -> Some (d ())
 
