@@ -40,7 +40,7 @@ eval `opam config env`
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 cd /home/opam/opam-cross-windows/
 opam remove -y ppx_tools_versioned-windows `echo $OPAM_DEPS | sed -e 's#,# #g'`
-opam upgrade -y `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows.1.1.4 ffmpeg-avutil-windows.1.1.4
+opam upgrade -y `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows ffmpeg-avutil-windows
 
 echo "::endgroup::"
 
