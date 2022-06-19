@@ -38,7 +38,7 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 opam update
 
-opam install -y dune.3.2.0 ppx_string dune-site dune-build-info
+opam install -y ppx_string dune-site dune-build-info
 
 echo "::endgroup::"
 
