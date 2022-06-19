@@ -34,6 +34,8 @@ cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
+export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
+
 echo "::endgroup::"
 
 echo "::group::Checking out CI commit::"
