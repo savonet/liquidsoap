@@ -39,7 +39,7 @@ RUN cd liquidsoap && \
 
 RUN make public && make update
 
-RUN cp PACKAGES.default PACKAGES
+RUN cat PACKAGES.default | grep -v gstreamer > PACKAGES
 
 RUN eval $(opam config env) && \
     export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig && \
