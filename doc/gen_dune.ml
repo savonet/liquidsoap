@@ -8,8 +8,31 @@ let generated_md =
     ("settings.md", "--list-settings", None);
   ]
 
-let mk_html f = Pcre.substitute ~pat:"md$" ~subst:(fun _ -> "html") f
+let mk_html f = Pcre.substitute ~pat:"md(?:\\.in)?$" ~subst:(fun _ -> "html") f
+
+let mk_md ?(content = true) f =
+  if Pcre.pmatch ~pat:"md\\.in$" f then
+    Pcre.substitute ~pat:"\\.in$" ~subst:(fun _ -> "") (Filename.basename f)
+  else if content then "content/" ^ f
+  else f
+
 let mk_title = Filename.remove_extension
+
+let mk_subst_rule f =
+  if Pcre.pmatch ~pat:"md\\.in$" f then (
+    let target = mk_md f in
+    Printf.printf
+      {|
+(rule
+  (alias doc)
+  (deps
+    (:subst_md ./subst_md.exe)
+    (:in_md content/%s))
+  (target %s)
+  (action
+    (with-stdout-to %%{target}
+      (run %%{subst_md} %%{in_md}))))|}
+      f target)
 
 let mk_html_rule ~content f =
   Printf.printf
@@ -28,15 +51,13 @@ let mk_html_rule ~content f =
     liquidsoap.xml
     language.dtd
     template.html
-    (:md %s%s))
+    (:md %s))
   (target %s)
   (action
     (ignore-outputs
       (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %%{md} --metadata pagetitle=%s --template=template.html -o %%{target}))))
 |}
-    (mk_html f)
-    (if content then "content/" else "")
-    f (mk_html f) (mk_title f)
+    (mk_html f) (mk_md ~content f) (mk_html f) (mk_title f)
 
 let mk_generated_rule (file, option, header) =
   let header_deps, header_action, header_close =
@@ -78,11 +99,13 @@ let rec readdir ?(cur = []) ~location dir =
 let () =
   let location = Filename.dirname Sys.executable_name in
   let md =
-    List.filter
-      (fun f -> Filename.extension f = ".md")
-      (Array.to_list (Sys.readdir (Filename.concat location "content")))
+    List.sort compare
+      (List.filter
+         (fun f -> Filename.extension f = ".md" || Filename.extension f = ".in")
+         (Array.to_list (Sys.readdir (Filename.concat location "content"))))
   in
   List.iter mk_generated_rule generated_md;
+  List.iter mk_subst_rule md;
   List.iter (fun (file, _, _) -> mk_html_rule ~content:false file) generated_md;
   List.iter (mk_html_rule ~content:true) md;
   Printf.printf

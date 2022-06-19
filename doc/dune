@@ -9,6 +9,11 @@
  (libraries pcre)
  (modules gen_dune))
 
+(executable
+ (name subst_md)
+ (libraries pcre liquidsoap_lang)
+ (modules subst_md))
+
 (rule
  (alias gendune)
  (target dune.inc.gen)
