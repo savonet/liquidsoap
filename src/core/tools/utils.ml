@@ -386,6 +386,7 @@ let string_of_pcre_error =
          recursion is reached during matching."
     | RecursionLimit -> "Maximum allowed number of recursion reached"
     | InternalError msg -> Printf.sprintf "Internal error: %s" msg
+    | WorkspaceSize -> "Provided workspace array is too small"
     | _ -> "Unknown error")
 
 let () =

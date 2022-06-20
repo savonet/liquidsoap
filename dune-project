@@ -16,12 +16,12 @@
 (package
   (name liquidsoap)
   (depends
-    (ocaml (>= 4.12.0))
+    (ocaml (and (>= 4.12.0) (< 5.0.0)))
     (camomile (>= 1.0.0))
     (dtools (>= 0.4.4))
     (duppy (>= 0.9.1))
     (mm (>= 0.8.1))
-    (pcre (>= 7.4.0))
+    (pcre (>= 7.5.0))
     menhirLib
     dune-site
     dune-build-info
