@@ -72,10 +72,11 @@ module Make (P : T) : S with type t = P.t = struct
       h
 
   let remove id = WeakHash.remove h (P.destroyed id)
+  let current_id = Atomic.make 0
 
   let add fn =
     let rec f () =
-      let id = Random.full_int max_int in
+      let id = Atomic.fetch_and_add current_id 1 in
       let v = fn id in
       match WeakHash.merge h v with v' when v == v' -> v | _ -> f ()
     in
