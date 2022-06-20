@@ -63,6 +63,48 @@ Changes:
 - Deprecated `request.ready` in favor of `request.resolved`.
 
 ---
+2.0.6 (2022-06-20)
+=====
+
+New:
+* Added `video/mp4` to list of recognized mime types for request resolutions.
+
+Changed:
+* Log errors when using `process.read` (##2420, @martinkirch)
+
+Fixed:
+* Memory leak when executing `process.run` (#2424)
+* Delay harbor server endpoint registration until application has started (#1589)
+* Print user-readable encoder parameter error report.
+* Fixed m3u metadata parsing when artist has a comma in their name (#2449)
+* Cleanup failed request in `playlist` operator.
+* Make sure requests are always cleaned up, making `request.destroy` calls
+  optionals.
+
+2.0.5 (24-05-2022)
+=====
+
+New:
+* Extended m3u EXTINF parser to support empty duration and annotations.
+
+Changed:
+* Brought back `mix` operator (#2401)
+
+Fixed:
+* Allow crossfade duration override of `0.`
+* Buffer synchronization issues.
+* Drop methods from ffmpeg filter input source
+  types to avoid unecessary conflicts.
+* Fix evaluation of abstract values with methods.
+* Prevent some sources from being consumed when not active,
+  namely ffmpeg inline encoders, `soundtouch`, `resample` and all
+  the muxing operators.
+* Raise runtime exceptions in `string.replace` failures with
+  useful message. (#2408)
+* Prevent `request.dynamic` from raising exceptions when checking
+  if the source is ready (#2381)
+
+---
 2.0.4 (23-04-2022)
 =====
 
