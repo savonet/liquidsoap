@@ -62,7 +62,7 @@ Therefore, we **strongly** recommend to maintain a `staging` environement that m
 
 ### Assets
 
-Release assets are provided at: https://github.com/savonet/liquidsoap/releases. Published, versioned releases are available using their published that, i.e. `vx.y.z`.
+Release assets are provided at: https://github.com/savonet/liquidsoap/releases. Published, versioned releases are available using their published tag, i.e. `vx.y.z`.
 
 We also provide **rolling releases**. A rolling release is a snapshot of a current, unpublished release. It can be a future stable release or a future bugfix release for a given major/minor version.
 
