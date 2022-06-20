@@ -18,7 +18,7 @@ let () =
   Gc.full_major ();
   assert (Pool.size () = 99);
   let r = Pool.add (fun id -> { id; destroyed = false }) in
-  assert (r.id = 15);
+  assert (r.id = 100);
   Gc.full_major ();
   assert (List.length l = 100);
   assert (Pool.size () = 99);
