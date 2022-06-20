@@ -6,7 +6,8 @@ SYSTEM=$1
 BRANCH=$2
 CPU_CORES=$3
 IS_ROLLING_RELEASE=$4
-GITHUB_SHA=$5
+IS_RELEASE=$5
+GITHUB_SHA=$6
 
 OPAM_PREFIX=`opam var prefix`
 VERSION=`opam show -f version ./liquidsoap.opam | cut -d'-' -f 1`
@@ -15,14 +16,16 @@ BASE_DIR=`cd "${PWD}/../.." && pwd`
 COMMIT_SHORT=`echo "${GITHUB_SHA}" | cut -c-7`
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
-  TAG=${COMMIT_SHORT}
+  TAG=${COMMIT_SHORT}-
+elif [ -n "${IS_RELEASE}" ]; then
+  TAG=""
 else
-  TAG=${BRANCH}
+  TAG=${BRANCH}-
 fi
 
 if [ "${SYSTEM}" = "x64" ]; then
   HOST="x86_64-w64-mingw32.static"
-  BUILD="${TAG}-${VERSION}-win64"
+  BUILD="${TAG}${VERSION}-win64"
   PKG_CONFIG_PATH="/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/"
 else
   HOST="i686-w64-mingw32.static"
