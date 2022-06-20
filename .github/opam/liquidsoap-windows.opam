@@ -111,7 +111,7 @@ build: [
   ["./bootstrap"]
   ["./configure" "--enable-custom-path" "--host=%{conf-gcc-windows:host}%"
                  "--prefix=%{prefix}%" "--with-libs-dir=%{prefix}%/lib/liquidsoap"
-                 "LDFLAGS=-lssp" "OCAMLFIND_TOOLCHAIN=windows"]
+                 "LDFLAGS=-lssp -ldl" "OCAMLFIND_TOOLCHAIN=windows"]
   ["env" "OCAMLFIND_TOOLCHAIN=windows" make "-j" jobs]
 ]
 install: [
