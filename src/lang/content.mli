@@ -22,6 +22,9 @@
 
 (** Generic content registration API. *)
 
+type 'a chunk = { data : 'a; offset : int; size : int }
+type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
+
 module Contents : sig
   type kind
   type format
@@ -48,17 +51,17 @@ module type ContentSpecs = sig
   (* Size is in main ticks. *)
   val make : size:int -> params -> data
 
-  (* [blit src src_pos dst dst_pos len] copies data from [src] 
-   * into [dst]. *)
+  (* TODO: This will be removed when reworking
+     the streaming API. *)
   val blit : data -> int -> data -> int -> int -> unit
 
-  (* [fill src src_pos dst dst_pos len] assigns data from [src]
-   * into [dst] without copying when possible. *)
-  val fill : data -> int -> data -> int -> int -> unit
-  val sub : data -> int -> int -> data
+  (* Returns length in main ticks. *)
+  val length : data -> int
   val copy : data -> data
+
+  (* TODO: this will be removed when rewriting
+     streaming API. *)
   val clear : data -> unit
-  val is_empty : data -> bool
 
   (** Params *)
 
@@ -86,6 +89,7 @@ module type Content = sig
   val is_data : Contents.data -> bool
   val lift_data : data -> Contents.data
   val get_data : Contents.data -> data
+  val get_chunked_data : Contents.data -> (params, data) chunks
 
   (** Format *)
 
