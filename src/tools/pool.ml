@@ -74,11 +74,12 @@ module Make (P : T) : S with type t = P.t = struct
   let remove id = WeakHash.remove h (P.destroyed id)
 
   let add fn =
-    let rec f id =
+    let rec f () =
+      let id = Random.full_int max_int in
       let v = fn id in
-      match WeakHash.merge h v with v' when v == v' -> v | _ -> f (id + 1)
+      match WeakHash.merge h v with v' when v == v' -> v | _ -> f ()
     in
-    f 0
+    f ()
 
   let size () = WeakHash.count h
   let clear () = WeakHash.clear h
