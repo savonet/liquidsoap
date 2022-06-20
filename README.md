@@ -43,7 +43,7 @@ Current release status by version:
 ### Notes
 
 * Development branch `2.2.x` is currently under development and can break at any time. We do, however, encourage early testing and feedback~!
-* Development branch `2.0.x` is at the end of its development cycle and will ony be updated on a best effort basis or in case or a major issue.
+* Development branch `2.0.x` is at the end of its development cycle and will ony be updated on a best effort basis or in case of a major issue.
 
 ### Versions
 
