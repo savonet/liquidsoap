@@ -1,4 +1,3 @@
 #!/bin/sh
 export DIR=$(dirname "$0")
-cd $DIR
-dune exec ./src/bin/liquidsoap.exe -- $*
+dune exec $DIR/src/bin/liquidsoap.exe -- --no-stdlib $DIR/src/libs/stdlib.liq $*
