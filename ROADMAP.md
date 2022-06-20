@@ -23,15 +23,17 @@
     using cross and a tag system to know from which source we come
 - use row variables for methods, using Garrigue's _Simple Type Inference for
   Structural Polymorphism_
-- switch to dune (if it makes sense)
+- ~switch to dune (if it makes sense)~
 - separate standard library (in pure liq), might be easier with dune
-- separate langage core (#2397)
-  - we need to remove formats (add them separately with += in types)
-  - can we have extensible parsers
+- ~separate langage core (#2397)~
+  - ~we need to remove formats (add them separately with += in types)~
+  - ~can we have extensible parsers~
 - online version (#2397)
-  - we first need the separate langage
-  - we cannot use threads (unless we use lwt) and all libraries (dtools [which
-    uses threads], pcre, mm)
+  - ~we first need the separate langage~
+  - ~we cannot use threads (unless we use lwt) and all libraries (dtools [which
+    uses threads], pcre, mm)~
+  - Available at: https://www.liquidsoap.info/try/
+  - Needs some cleanup, definition of a minimal JS library.
 - modules (#1934 based on runtime types, not ideal): we can implement them as
   records
   - import
