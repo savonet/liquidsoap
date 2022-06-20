@@ -69,6 +69,7 @@
   compress_exp
   compress_old
   content
+  content_internal
   conversion
   configure
   cross
