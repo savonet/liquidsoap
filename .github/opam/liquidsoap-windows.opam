@@ -25,7 +25,7 @@ depends: [
   "ocamlfind" {build}
   "conf-pkg-config" {build}
   "conf-which" {build}
-  "pcre-windows"
+  "pcre-windows" {>= "7.5.0"}
   "sedlex-windows" {>= "2.2"}
   "winsvc-windows"
 ]
