@@ -22,6 +22,7 @@
 
 (** {1 Running} *)
 
+let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
 let type_and_run ~throw ~lib ast =
