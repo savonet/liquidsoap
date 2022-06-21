@@ -249,9 +249,15 @@ module MkContent (C : ContentSpecs) :
   let content = function _, Content d -> d | _ -> assert false
   let params { params } = params
 
+  let length { chunks } =
+    List.fold_left (fun cur { size } -> cur + size) 0 chunks
+
+  let is_empty d = length d = 0
+
   let sub data ofs len =
     let start = ofs in
     let stop = start + len in
+    assert (stop <= length data);
     {
       data with
       chunks =
@@ -272,11 +278,6 @@ module MkContent (C : ContentSpecs) :
                   (pos + size, cur))
                 (0, []) data.chunks));
     }
-
-  let length { chunks } =
-    List.fold_left (fun cur { size } -> cur + size) 0 chunks
-
-  let is_empty d = length d = 0
 
   let copy_chunks =
     List.map (fun chunk -> { chunk with data = C.copy chunk.data })
@@ -321,8 +322,7 @@ module MkContent (C : ContentSpecs) :
     dst.params <- src.params;
     let dst_len = length dst in
     dst.chunks <-
-      (sub dst 0 dst_pos).chunks
-      @ (consolidate_chunks (sub src src_pos len)).chunks
+      (sub dst 0 dst_pos).chunks @ (sub src src_pos len).chunks
       @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
     assert (dst_len = length dst)
 
