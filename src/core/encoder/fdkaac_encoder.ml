@@ -24,8 +24,6 @@ open Mm
 
 (** FDK-AAC encoder *)
 
-module G = Generator.Generator
-
 let create_encoder params =
   let encoder = Fdkaac.Encoder.create params.Fdkaac_format.channels in
   let bandwidth =

@@ -68,6 +68,9 @@
   compress
   compress_exp
   compress_old
+  content_frame
+  content_internal
+  content_timed
   content
   conversion
   configure
@@ -102,7 +105,7 @@
   flac_format
   flanger
   frame
-  frame_settings
+  frame_base
   gate
   generated
   generator
@@ -155,6 +158,7 @@
   max_duration
   mean
   meta_format
+  metadata_generator
   midi_decoder
   midi_routing
   midimeter

@@ -444,8 +444,6 @@ let () =
 
 (* Audio + video. *)
 
-module Generator = Generator.From_audio_video_plus
-
 type 'a sink = { pending : unit -> int; pull : unit -> 'a }
 
 class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =

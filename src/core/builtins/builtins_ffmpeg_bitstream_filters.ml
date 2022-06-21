@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-module Generator = Generator.From_audio_video
 open Builtins_ffmpeg_base
 
 let log = Log.make ["ffmpeg"; "filter"; "bitstream"]
@@ -79,7 +78,9 @@ let process (type a) ~put_data ~(lift_data : a lift_data) ~generator
         (pos, { Ffmpeg_copy_content.packet; time_base; stream_idx }))
       packets
   in
-  let data = { Ffmpeg_content_base.params = Some params; data } in
+  let data =
+    { Ffmpeg_content_base.params = Some params; data; size = duration }
+  in
   let data = lift_data data in
   put_data ?pts:None generator data 0 duration
 

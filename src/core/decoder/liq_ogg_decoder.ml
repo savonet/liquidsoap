@@ -104,7 +104,7 @@ let create_decoder ?(merge_tracks = false) source input =
       (* We enforce that all contents end together, otherwise there will
        * be a lag between different content types in the next track. *)
       if not merge_tracks then
-        Decoder.G.add_break ~sync:true buffer.Decoder.generator);
+        Generator.add_break ~sync:true buffer.Decoder.generator);
     let add_meta f t =
       (* Initial metadata in files is handled separately. *)
       if source = `Stream || (merge_tracks && not !first_meta) then (
@@ -114,7 +114,7 @@ let create_decoder ?(merge_tracks = false) source input =
           (fun (x, y) -> Hashtbl.add metas (String.lowercase_ascii x) y)
           m;
         Hashtbl.add metas "vendor" v;
-        Decoder.G.add_metadata buffer.Decoder.generator metas);
+        Generator.add_metadata buffer.Decoder.generator metas);
       first_meta := false
     in
     let drop_track d t =
@@ -126,7 +126,7 @@ let create_decoder ?(merge_tracks = false) source input =
     match
       ( tracks.Ogg_decoder.audio_track,
         tracks.Ogg_decoder.video_track,
-        Decoder.G.mode buffer.Decoder.generator )
+        Generator.mode buffer.Decoder.generator )
     with
       | Some audio, Some video, `Both ->
           add_meta Ogg_decoder.audio_info audio;
@@ -141,7 +141,7 @@ let create_decoder ?(merge_tracks = false) source input =
   in
   let decode buffer =
     let decode_audio, decode_video =
-      match Decoder.G.mode buffer.Decoder.generator with
+      match Generator.mode buffer.Decoder.generator with
         | `Both -> (true, true)
         | `Audio -> (true, false)
         | `Video -> (false, true)
@@ -174,8 +174,8 @@ let create_decoder ?(merge_tracks = false) source input =
           (* Only decode the one which is late, so that we don't have memory
              problems. *)
           if
-            Decoder.G.audio_length buffer.Decoder.generator
-            < Decoder.G.video_length buffer.Decoder.generator
+            Generator.audio_length buffer.Decoder.generator
+            < Generator.video_length buffer.Decoder.generator
           then (true, false)
           else (false, true)
         else (decode_audio, decode_video)

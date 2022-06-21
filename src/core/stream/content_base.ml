@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+type 'a chunk = { data : 'a; offset : int; size : int }
+type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
+
 module Contents = struct
   type format = ..
   type kind = ..
@@ -83,6 +86,7 @@ module type Content = sig
   val is_data : Contents.data -> bool
   val lift_data : data -> Contents.data
   val get_data : Contents.data -> data
+  val get_chunked_data : Contents.data -> (params, data) chunks
   val is_format : Contents.format -> bool
   val lift_params : params -> Contents.format
   val get_params : Contents.format -> params
@@ -230,14 +234,7 @@ let duplicate p = (get_params_handler p).duplicate ()
 let compatible p p' = (get_params_handler p).compatible p'
 let string_of_kind f = (get_kind_handler f).string_of_kind ()
 
-type 'a chunk = { data : 'a; offset : int; size : int }
-type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
-
-module MkContent (C : ContentSpecs) :
-  Content
-    with type kind = C.kind
-     and type params = C.params
-     and type data = C.data = struct
+module MkContent (C : ContentSpecs) = struct
   type Contents.kind += Kind of C.kind
   type Contents.format += Format of C.params Unifier.t
   type Contents.content += Content of (C.params, C.data) chunks
@@ -296,18 +293,21 @@ module MkContent (C : ContentSpecs) :
     assert (dst_len = length dst)
 
   let consolidate_chunks d =
-    let size = length d in
-    if size = 0 then d.chunks <- []
-    else (
-      let buf = C.make ~size d.params in
-      ignore
-        (List.fold_left
-           (fun pos { data; offset; size } ->
-             C.blit data offset buf pos size;
-             pos + size)
-           0 d.chunks);
-      d.chunks <- [{ offset = 0; size; data = buf }]);
-    d
+    match (length d, d.chunks) with
+      | 0, _ ->
+          d.chunks <- [];
+          d
+      | _, [{ offset = 0; size; data }] when size = C.length data -> d
+      | size, _ ->
+          let buf = C.make ~size d.params in
+          ignore
+            (List.fold_left
+               (fun pos { data; offset; size } ->
+                 C.blit data offset buf pos size;
+                 pos + size)
+               0 d.chunks);
+          d.chunks <- [{ offset = 0; size; data = buf }];
+          d
 
   let blit src src_pos dst dst_pos len =
     let src = content src in

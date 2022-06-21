@@ -10,7 +10,7 @@ if file.exists(out) then
   file.remove(out)
 end
 
-s = (single(fname) : source(video=canvas(width=47, height=52)))
+s = (single(fname) : source(video=yuva420p(width=47, height=52)))
 s = once(s)
 s = mux_audio(audio=blank(), s)
 

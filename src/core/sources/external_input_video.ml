@@ -25,9 +25,6 @@ open Extralib
 
 (* Video-only input. Ideally this should be merged with previous one. *)
 
-module Generator = Generator.From_audio_video_plus
-module Generated = Generated.From_audio_video_plus
-
 exception Finished of string * bool
 
 class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
@@ -79,7 +76,6 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
       log_error := self#log#severe "%s";
       if self#ctype.Frame.audio = Content.None.format then
         Generator.set_mode abg `Video;
-      Generator.set_content_type abg self#ctype;
       self#log#debug "Generator mode: %s."
         (match Generator.mode abg with
           | `Video -> "video"

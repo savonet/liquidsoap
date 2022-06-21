@@ -20,6 +20,16 @@
 
  *****************************************************************************)
 
+(** A metadata is just a mutable hash table.
+  * It might be a good idea to straighten that up in the future. *)
+type metadata = (string, string) Hashtbl.t
+
+type 'a fields = 'a Liquidsoap_lang.Frame.fields = {
+  audio : 'a;
+  video : 'a;
+  midi : 'a;
+}
+
 (** Configuration entries *)
 
 let log = Log.make ["frame"]

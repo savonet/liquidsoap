@@ -152,7 +152,7 @@ def f() =
   end
   ignore(sum_eq)
 
-  (noise():source(audio=pcm,video=canvas,midi=none))
+  (noise():source(audio=pcm,video=yuva420p,midi=none))
   (noise():source(audio=pcm(mono)))
   (noise():source(audio=pcm("5.1")))
   (noise():source(audio=none,video=none,midi=none))

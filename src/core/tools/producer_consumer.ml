@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Generator = Generator.From_audio_video
-
 type write_payload = [ `Frame of Frame.t | `Flush ]
 type write_frame = write_payload -> unit
 

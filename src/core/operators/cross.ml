@@ -22,8 +22,6 @@
 
 open Mm
 open Source
-module Generator = Generator.From_frames
-module Generated = Generated.Make (Generator)
 
 let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
@@ -70,7 +68,7 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
      * of samples, maintain the sum of squares, and the number of samples in that
      * sum. The sliding window is necessary because of possibly inaccurate
      * remaining time estimaton. *)
-    val mutable gen_before = Generator.create ()
+    val mutable gen_before = Generator.create `Both
     val mutable rms_before = 0.
     val mutable rmsi_before = 0
     val mutable mem_before = Array.make rms_width 0.
@@ -78,7 +76,7 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
     val mutable before_metadata = None
 
     (* Same for the new track. No need for a sliding window here. *)
-    val mutable gen_after = Generator.create ()
+    val mutable gen_after = Generator.create `Both
     val mutable rms_after = 0.
     val mutable rmsi_after = 0
     val mutable after_metadata = None
@@ -86,11 +84,11 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
     (* An audio frame for intermediate computations. It is used to buffer the
        end and beginnings of tracks. Its past metadata should mimic that of the
        main stream in order to avoid metadata duplication. *)
-    val mutable buf_frame = Frame.dummy
+    val mutable buf_frame = Frame.dummy ()
 
     method private reset_analysis =
-      gen_before <- Generator.create ();
-      gen_after <- Generator.create ();
+      gen_before <- Generator.create `Both;
+      gen_after <- Generator.create `Both;
       rms_before <- 0.;
       rmsi_before <- 0;
       mem_i <- 0;
@@ -107,7 +105,10 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
 
     (* Give a default value for the transition source. *)
     val mutable transition_source = None
-    val mutable pending_after = Generator.create ()
+
+    (* This is used to track the state of the transition source and switch back
+       to the current source w/o introducing artificial track marks. *)
+    val mutable pending_after = Generator.create `Both
 
     method private prepare_transition_source s =
       let s = (s :> source) in
@@ -273,9 +274,7 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
       in
       self#save_last_metadata `Before buf_frame;
       self#update_cross_length buf_frame start;
-      Generator.feed gen_before
-        ~metadata:(Frame.get_all_metadata buf_frame)
-        (Frame.content buf_frame)
+      Generator.feed gen_before (Frame.content buf_frame)
         (Frame.main_of_audio start)
         (Frame.main_of_audio (stop - start));
 
@@ -303,9 +302,7 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
           source#get buf_frame;
           AFrame.position buf_frame
         in
-        Generator.feed gen_after
-          ~metadata:(Frame.get_all_metadata buf_frame)
-          (Frame.content buf_frame)
+        Generator.feed gen_after (Frame.content buf_frame)
           (Frame.main_of_audio start)
           (Frame.main_of_audio (stop - start));
         let after_len = Generator.length gen_after in
