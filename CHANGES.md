@@ -61,6 +61,8 @@ Changes:
   `mux_audio(audio=blank(),image)` anymore (#2230).
 - Removed deprecated `timeout` argument in `http.*` operators.
 - Deprecated `request.ready` in favor of `request.resolved`.
+- Removed support for `%define` variables, superseeded by support for actual
+  varialbes in encoders.
 
 ---
 2.0.6 (2022-06-20)

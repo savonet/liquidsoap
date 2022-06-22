@@ -498,37 +498,11 @@ let strip_newlines tokenizer =
   in
   token
 
-(* Inline %define x value. *)
-let expand_define tokenizer =
-  let defs = ref [] in
-  let rec token () =
-    match tokenizer () with
-      | Parser.PP_DEFINE, pos -> (
-          match tokenizer () with
-            | Parser.VAR def_name, _ -> (
-                if def_name <> String.uppercase_ascii def_name then
-                  raise Parsing.Parse_error;
-                match tokenizer () with
-                  | ( Parser.INT _, _
-                    | Parser.FLOAT _, _
-                    | Parser.STRING _, _
-                    | Parser.BOOL _, _ ) as def_val ->
-                      defs := (def_name, (fst def_val, pos)) :: !defs;
-                      token ()
-                  | _ -> raise Parsing.Parse_error)
-            | _ -> raise Parsing.Parse_error)
-      | (Parser.VAR def_name, _) as v -> (
-          try List.assoc def_name !defs with Not_found -> v)
-      | x -> x
-  in
-  token
-
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname ~pwd lexbuf =
   let tokenizer =
     mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
     |> expand_string |> int_meth |> dotvar |> uminus |> strip_newlines
-    |> expand_define
   in
   fun () ->
     let t, (startp, endp) = tokenizer () in
