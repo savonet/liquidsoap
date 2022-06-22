@@ -80,7 +80,7 @@ module type Content = sig
   include ContentSpecs
 
   val is_data : Contents.data -> bool
-  val lift_data : length:int -> data -> Contents.data
+  val lift_data : ?offset:int -> length:int -> data -> Contents.data
   val get_data : Contents.data -> data
   val get_chunked_data : Contents.data -> (params, data) chunks
   val is_format : Contents.format -> bool
@@ -412,10 +412,10 @@ module MkContent (C : ContentSpecs) :
   let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
   let is_data = function _, Content _ -> true | _ -> false
 
-  let lift_data ~length d =
+  let lift_data ?(offset = 0) ~length d =
     ( _type,
-      Content
-        { params = C.params d; chunks = [{ offset = 0; length; data = d }] } )
+      Content { params = C.params d; chunks = [{ offset; length; data = d }] }
+    )
 
   let get_chunked_data = function _, Content d -> d | _ -> raise Invalid
 

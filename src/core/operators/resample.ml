@@ -72,20 +72,16 @@ class resample ~kind ~ratio source_val =
       let content, len =
         let content = AFrame.pcm frame in
         let converter = Option.get converter in
-        let pcm, ofs, len =
+        let pcm, offset, length =
           Audio_converter.Samplerate.resample converter ratio content 0
             (Audio.length content)
         in
-        assert (ofs = 0);
         ( {
-            Frame.audio =
-              Content.Audio.lift_data
-                ~length:(Frame_settings.main_of_audio (Audio.length pcm))
-                pcm;
+            Frame.audio = Content.Audio.lift_data ~offset ~length pcm;
             video = Content.None.data;
             midi = Content.None.data;
           },
-          len )
+          length )
       in
       let convert x = int_of_float (float x *. ratio) in
       let metadata =

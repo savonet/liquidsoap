@@ -56,7 +56,9 @@ let mk_audio_decoder ~stream_idx ~format container =
     (Content.merge format
        Ffmpeg_raw_content.(Audio.lift_params (AudioSpecs.mk_params params)));
   let stream_time_base = Av.get_time_base stream in
-  let lift_data = Ffmpeg_raw_content.Audio.lift_data in
+  let lift_data ~length data =
+    Ffmpeg_raw_content.Audio.lift_data ~length data
+  in
   let mk_params = Ffmpeg_raw_content.AudioSpecs.mk_params in
   ( idx,
     stream,
@@ -70,7 +72,9 @@ let mk_video_decoder ~stream_idx ~format container =
     (Content.merge format
        Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params params)));
   let stream_time_base = Av.get_time_base stream in
-  let lift_data = Ffmpeg_raw_content.Video.lift_data in
+  let lift_data ~length data =
+    Ffmpeg_raw_content.Video.lift_data ~length data
+  in
   let mk_params = Ffmpeg_raw_content.VideoSpecs.mk_params in
   ( idx,
     stream,

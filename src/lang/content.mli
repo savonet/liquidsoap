@@ -84,7 +84,7 @@ module type Content = sig
   (** Data *)
 
   val is_data : Contents.data -> bool
-  val lift_data : length:int -> data -> Contents.data
+  val lift_data : ?offset:int -> length:int -> data -> Contents.data
   val get_data : Contents.data -> data
   val get_chunked_data : Contents.data -> (params, data) chunks
 

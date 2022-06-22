@@ -225,7 +225,9 @@ let () =
                   match mode with
                     | `Audio | `Audio_only ->
                         let put_data = Generator.put_audio in
-                        let lift_data = Ffmpeg_copy_content.Audio.lift_data in
+                        let lift_data ~length data =
+                          Ffmpeg_copy_content.Audio.lift_data ~length data
+                        in
                         let current_handler, get_handler, clear_handler =
                           handler_getters ~lift_data ~put_data ~generator
                             ~filter ~filter_opts
@@ -246,7 +248,9 @@ let () =
                                  (Content.sub (Frame.audio frame) 0 pos)) )
                     | `Video | `Video_only ->
                         let put_data = Generator.put_video in
-                        let lift_data = Ffmpeg_copy_content.Video.lift_data in
+                        let lift_data ~length data =
+                          Ffmpeg_copy_content.Video.lift_data ~length data
+                        in
                         let current_handler, get_handler, clear_handler =
                           handler_getters ~lift_data ~put_data ~generator
                             ~filter ~filter_opts
