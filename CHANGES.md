@@ -1,66 +1,10 @@
-2.1.0 (unreleased)
+2.2.0 (unreleased)
 =====
-
-New:
-
-- Added support for variables in encoders (#1858)
-- Added support for regular expressions (#1881)
-- Added generalized support for value extraction patterns (#1970)
-- Added support for string getter for `http.{post,put}` operations (#1984)
-- Added `output.youtube.live.hls`
-- Rewrote out internal JSON parser/renderer (#2011). **Breaking change** values
-  that cannot be represented as `JSON` will now raise `error.json` when
-  converted to `JSON`. `infinite` and `nan` floats can be exported using the
-  `json5` export format.
-- Added socket API (#2014).
-- Added support for ffmpeg bitstream filters (#2387)
-- Added `liquidsoap.version.at_least`.
-- Added `video.rectangle`, `video.persistence`.
-- Added `video.vumeter`.
-- Added `video.slideshow`.
-- Added `video.add_text.camlimages` (#2202).
-- Added `video.text.*` and re-implemented `video.add_text.*` from those (#2226).
-- Added `irc.channel` operator to retrieve the contents of an IRC channel
-  (#2210).
-- Added new in-house parsing of metadata for some image and video formats
-  (#2236).
-- Added `file.download`
-- Added new options for `%ffmpeg` copy encoder: `ignore_keyframes`
-  and `wait_for_keyframe` (#2382)
 
 Changes:
 
-- Removed support for partial application, which should avoid some type errors,
-  improve performance and simplifies the code related to the reduction (#2204).
-- Video dimensions (width and height) can now be specified per stream in the
-  type and are then used instead of the default ones. For instance, you can now
-  write
-  ```
-  s = (single("file.mp4") : source(video(width=300,height=200)))
-  ```
-  in order to force the decoding of a file to be performed at the 300×200
-  resolution (#2212).
-- Video images are now _canvas_, which means that they do not directly contain
-  the images, but are constituted of multiple images placed at various
-  positions. This should make much more efficient operations such as making
-  videos from multiple ones, adding a logo, etc. (#2207)
-- `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and
-  `quality` arguments and added a single encoder argument to allow stream copy
-  and more.
-- `source.on_metadata` and `source.on_track` now return a source as this was the
-  case in previous versions, and associated handlers are triggered only when the
-  returned source is pulled (#2103).
-- Made `streams_info` parameter of `output.file.hls` a record (#2173).
-- Disable scrolling by default in `video.add_text`. You can re-enable it by
-  using `video.add_text(speed=70, ...)`.
-- Added "example" sections to operators documentation, we now need to populate
-  those (#2227).
-- Default implementation of `video.testsrc` is now builtin, previous
-  implementation can be found under `video.testsrc.ffmpeg`.
-- Images can now generate blank audio if needed, no need to add
-  `mux_audio(audio=blank(),image)` anymore (#2230).
-- Removed deprecated `timeout` argument in `http.*` operators.
-- Deprecated `request.ready` in favor of `request.resolved`.
+- Switched to `dune` for building the binary and libraries.
+- Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseeded by support for actual
   varialbes in encoders.
 
