@@ -63,7 +63,6 @@ module type ContentSpecs = sig
   val internal_content_type : internal_content_type option
   val make : length:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
-  val length : data -> int
   val copy : data -> data
   val clear : data -> unit
   val params : data -> params
@@ -81,7 +80,7 @@ module type Content = sig
   include ContentSpecs
 
   val is_data : Contents.data -> bool
-  val lift_data : data -> Contents.data
+  val lift_data : length:int -> data -> Contents.data
   val get_data : Contents.data -> data
   val get_chunked_data : Contents.data -> (params, data) chunks
   val is_format : Contents.format -> bool
@@ -169,6 +168,7 @@ type data_handler = {
   blit : data -> int -> data -> int -> int -> unit;
   fill : data -> int -> data -> int -> int -> unit;
   sub : data -> int -> int -> data;
+  _length : data -> int;
   is_empty : data -> bool;
   copy : data -> data;
   format : data -> format;
@@ -181,6 +181,7 @@ let dummy_handler =
     blit = (fun _ _ _ _ _ -> assert false);
     fill = (fun _ _ _ _ _ -> assert false);
     sub = (fun _ _ _ -> assert false);
+    _length = (fun _ -> assert false);
     is_empty = (fun _ -> assert false);
     copy = (fun _ -> assert false);
     format = (fun _ -> assert false);
@@ -201,6 +202,8 @@ let blit src = (get_data_handler src).blit src
 let fill src = (get_data_handler src).fill src
 let sub d = (get_data_handler d).sub d
 let is_empty c = (get_data_handler c).is_empty c
+let length c = (get_data_handler c)._length c
+let append c c' = (get_data_handler c).append c c'
 let copy c = (get_data_handler c).copy c
 let format c = (get_data_handler c).format c
 let clear c = (get_data_handler c).clear c
@@ -250,7 +253,7 @@ module MkContent (C : ContentSpecs) :
   let params { params } = params
 
   let length { chunks } =
-    List.fold_left (fun cur { length } -> cur + length) 0 chunks
+    List.fold_left (fun cur { length } -> cur + (length : int)) 0 chunks
 
   let is_empty d = length d = 0
 
@@ -304,7 +307,7 @@ module MkContent (C : ContentSpecs) :
       | 0, _ ->
           d.chunks <- [];
           d
-      | _, [{ offset = 0; length; data }] when length = C.length data -> d
+      | _, [_] -> d
       | length, _ ->
           let buf = C.make ~length d.params in
           ignore
@@ -322,7 +325,7 @@ module MkContent (C : ContentSpecs) :
     dst.params <- src.params;
     let dst_len = length dst in
     dst.chunks <-
-      (sub dst 0 dst_pos).chunks @ (sub src src_pos len).chunks
+      (sub dst 0 dst_pos).chunks @ (copy (sub src src_pos len)).chunks
       @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
     assert (dst_len = length dst)
 
@@ -394,6 +397,7 @@ module MkContent (C : ContentSpecs) :
         is_empty = (fun d -> is_empty (content d));
         copy = (fun d -> (_type, Content (copy (content d))));
         format = (fun d -> Format (Unifier.make (params (content d))));
+        _length = (fun d -> length (content d));
         clear;
         append;
       }
@@ -408,13 +412,10 @@ module MkContent (C : ContentSpecs) :
   let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
   let is_data = function _, Content _ -> true | _ -> false
 
-  let lift_data d =
+  let lift_data ~length d =
     ( _type,
       Content
-        {
-          params = C.params d;
-          chunks = [{ offset = 0; length = C.length d; data = d }];
-        } )
+        { params = C.params d; chunks = [{ offset = 0; length; data = d }] } )
 
   let get_chunked_data = function _, Content d -> d | _ -> raise Invalid
 
@@ -422,9 +423,7 @@ module MkContent (C : ContentSpecs) :
     let d = get_chunked_data d in
     match (consolidate_chunks d).chunks with
       | [] -> C.make ~length:0 d.params
-      | [{ offset = 0; length; data }] ->
-          assert (length = C.length data);
-          data
+      | [{ data }] -> data
       | _ -> assert false
 
   let () =
@@ -448,7 +447,6 @@ module NoneSpecs = struct
   let make ~length:_ _ = ()
   let clear _ = ()
   let blit _ _ _ _ _ = ()
-  let length _ = 0
   let copy _ = ()
   let params _ = ()
   let merge _ _ = ()
@@ -464,7 +462,7 @@ end
 module None = struct
   include MkContent (NoneSpecs)
 
-  let data = lift_data ()
+  let data = lift_data ~length:0 ()
   let format = lift_params ()
 end
 

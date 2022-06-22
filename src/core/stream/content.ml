@@ -20,4 +20,5 @@
 
  *****************************************************************************)
 
+include Liquidsoap_lang.Content
 include Content_internal

@@ -67,9 +67,6 @@ module type ContentSpecs = sig
   (* TODO: This will be removed when reworking
      the streaming API. *)
   val blit : data -> int -> data -> int -> int -> unit
-
-  (* Returns length in main ticks. *)
-  val length : data -> int
   val copy : data -> data
 
   (* TODO: this will be removed when rewriting
@@ -100,7 +97,7 @@ module type Content = sig
   (** Data *)
 
   val is_data : Contents.data -> bool
-  val lift_data : data -> Contents.data
+  val lift_data : length:int -> data -> Contents.data
   val get_data : Contents.data -> data
   val get_chunked_data : Contents.data -> (params, data) chunks
 
@@ -135,6 +132,8 @@ val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
 val copy : data -> data
 val clear : data -> unit
+val length : data -> int
+val append : data -> data -> data
 val is_empty : data -> bool
 
 (** Format *)

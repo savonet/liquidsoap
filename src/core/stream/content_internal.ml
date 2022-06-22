@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Mm
-include Liquidsoap_lang.Content
+open Liquidsoap_lang.Content
 
 type audio_params = {
   channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
@@ -46,8 +46,6 @@ module AudioSpecs = struct
       | `Mono -> "mono"
       | `Stereo -> "stereo"
       | `Five_point_one -> "5.1"
-
-  let length d = main_of_audio (Audio.length d)
 
   let merge p p' =
     assert (!!(p.channel_layout) = !!(p'.channel_layout));
@@ -172,7 +170,6 @@ module VideoSpecs = struct
     let ( ! ) = Frame_settings.video_of_main in
     Video.Canvas.blit src !src_pos dst !dst_pos !len
 
-  let length d = main_of_video (Video.Canvas.length d)
   let copy = Video.Canvas.copy
 
   let params data =
@@ -227,7 +224,6 @@ module MidiSpecs = struct
     let ( ! ) = midi_of_main in
     Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
 
-  let length d = main_of_midi (MIDI.Multitrack.duration d)
   let copy m = Array.map MIDI.copy m
   let params m = { channels = MIDI.Multitrack.channels m }
   let kind = `Midi

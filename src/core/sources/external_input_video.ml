@@ -224,17 +224,20 @@ let () =
                      (String.length data)
                      (width * height * 3));
               let data = (Option.get !video_converter) data in
+              let duration = Frame.main_of_video 1 in
               Generator.put_video abg
-                (Content.Video.lift_data (Video.Canvas.single data))
-                0 (Frame.main_of_video 1)
+                (Content.Video.lift_data ~length:duration
+                   (Video.Canvas.single data))
+                0 duration
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
               let data, ofs, len =
                 converter (Bytes.unsafe_of_string data) 0 (String.length data)
               in
+              let duration = Frame.main_of_audio len in
               Generator.put_audio abg
-                (Content.Audio.lift_data data)
-                (Frame.main_of_audio ofs) (Frame.main_of_audio len)
+                (Content.Audio.lift_data ~length:duration data)
+                (Frame.main_of_audio ofs) duration
           | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
@@ -306,10 +309,11 @@ let () =
         in
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
+        let duration = Frame.main_of_video 1 in
         Generator.put_video abg
-          (Content.Video.lift_data
+          (Content.Video.lift_data ~length:duration
              (Video.Canvas.single (Video.Canvas.Image.make data)))
-          0 (Frame.main_of_video 1)
+          0 duration
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in

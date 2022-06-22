@@ -35,6 +35,7 @@ type 'a handler = {
 }
 
 type 'a lift_data =
+  length:int ->
   ( 'a Avcodec.params option,
     'a Ffmpeg_copy_content.packet )
   Ffmpeg_content_base.content ->
@@ -80,7 +81,7 @@ let process (type a) ~put_data ~(lift_data : a lift_data) ~generator
       packets
   in
   let data = { Ffmpeg_content_base.params = Some params; data } in
-  let data = lift_data data in
+  let data = lift_data ~length:duration data in
   put_data ?pts:None generator data 0 duration
 
 let flush_filter ~generator ~put_data ~lift_data handler =

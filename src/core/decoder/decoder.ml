@@ -462,7 +462,11 @@ let mk_buffer ~ctype generator =
         let data, _, _ = resampler ~samplerate data 0 (Audio.length data) in
         let data = (get_channel_converter ()) data in
         let len = Audio.length data in
-        let data = Content.Audio.lift_data data in
+        let data =
+          Content.Audio.lift_data
+            ~length:(Frame_settings.main_of_audio len)
+            data
+        in
         G.put_audio ?pts generator data 0 (Frame.main_of_audio len))
     else fun ?pts:_ ~samplerate:_ _ -> ()
   in
@@ -486,7 +490,11 @@ let mk_buffer ~ctype generator =
         let data = Array.map video_scale data in
         let data = video_resample ~in_freq:fps ~out_freq data in
         let len = Video.Canvas.length data in
-        let data = Content.Video.lift_data data in
+        let data =
+          Content.Video.lift_data
+            ~length:(Frame_settings.main_of_video len)
+            data
+        in
         G.put_video ?pts generator data 0 (Frame.main_of_video len))
     else fun ?pts:_ ~fps:_ _ -> ()
   in

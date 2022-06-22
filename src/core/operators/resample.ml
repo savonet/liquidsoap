@@ -78,7 +78,10 @@ class resample ~kind ~ratio source_val =
         in
         assert (ofs = 0);
         ( {
-            Frame.audio = Content.Audio.lift_data pcm;
+            Frame.audio =
+              Content.Audio.lift_data
+                ~length:(Frame_settings.main_of_audio (Audio.length pcm))
+                pcm;
             video = Content.None.data;
             midi = Content.None.data;
           },
