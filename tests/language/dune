@@ -26,4 +26,4 @@
   (:stdlib ../../src/libs/stdlib.liq)
   (:run_test ../run_test.sh))
  (action
-  (run %{run_test} /usr/bin/perl %{type_error} %{liquidsoap})))
+  (run %{run_test} /usr/bin/perl %{type_error})))
