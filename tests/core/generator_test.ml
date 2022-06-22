@@ -156,7 +156,7 @@ let () =
 let () =
   let frame_size = Lazy.force Frame.size in
   let gen = G.create `Both in
-  let data = Content.None.data in
+  let data = Content.None.lift_data ~length:0 () in
   (* Put this:
      2----3----4--> audio
      ?----?----?----?----?----> video *)

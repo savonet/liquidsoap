@@ -732,7 +732,6 @@ module From_audio_video = struct
     if mode = `Both || mode = `Video then
       List.iter
         (fun ({ data }, vpos, vpos', vl) ->
-          Printf.printf "Content len: %d\n%!" (Content.length data);
           Content.blit data vpos (VFrame.content frame) (fpos + vpos') vl)
         video;
 
