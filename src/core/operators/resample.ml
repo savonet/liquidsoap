@@ -76,10 +76,12 @@ class resample ~kind ~ratio source_val =
           Audio_converter.Samplerate.resample converter ratio content 0
             (Audio.length content)
         in
+        let offset = Frame_settings.main_of_audio offset in
+        let length = Frame_settings.main_of_audio length in
         ( {
             Frame.audio = Content.Audio.lift_data ~offset ~length pcm;
-            video = Content.None.data;
-            midi = Content.None.data;
+            video = Content.None.lift_data ~length ();
+            midi = Content.None.lift_data ~length ();
           },
           length )
       in

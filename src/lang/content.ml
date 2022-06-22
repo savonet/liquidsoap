@@ -462,7 +462,7 @@ end
 module None = struct
   include MkContent (NoneSpecs)
 
-  let data = lift_data ~length:0 ()
+  let lift_data ~length () = lift_data ~length ()
   let format = lift_params ()
 end
 

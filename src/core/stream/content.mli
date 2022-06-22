@@ -159,7 +159,7 @@ val kind_of_string : string -> kind
 (* None content type is abstract and only used
    via its params and data. *)
 module None : sig
-  val data : Contents.data
+  val lift_data : length:int -> unit -> Contents.data
   val format : Contents.format
   val is_format : Contents.format -> bool
 end

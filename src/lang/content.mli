@@ -148,7 +148,7 @@ module NoneSpecs : ContentSpecs with type data = unit
 (* None content type is abstract and only used
    via its params and data. *)
 module None : sig
-  val data : Contents.data
+  val lift_data : length:int -> unit -> data
   val format : Contents.format
   val is_format : Contents.format -> bool
 end

@@ -104,7 +104,7 @@ let create ctype =
   { pts = None; breaks = []; metadata = []; content = create_content ctype }
 
 let dummy =
-  let data = Content.None.data in
+  let data = Content.None.lift_data ~length:0 () in
   {
     pts = None;
     breaks = [];
