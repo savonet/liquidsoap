@@ -22,7 +22,7 @@
 
 (** Generic content registration API. *)
 
-type 'a chunk = { data : 'a; offset : int; size : int }
+type 'a chunk = { data : 'a; offset : int; length : int }
 type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
 
 module Contents : sig
@@ -49,7 +49,7 @@ module type ContentSpecs = sig
   val internal_content_type : internal_content_type option
 
   (* Size is in main ticks. *)
-  val make : size:int -> params -> data
+  val make : length:int -> params -> data
 
   (* TODO: This will be removed when reworking
      the streaming API. *)
@@ -116,7 +116,7 @@ type data = Contents.data
 
 (** Data *)
 
-val make : size:int -> format -> data
+val make : length:int -> format -> data
 val blit : data -> int -> data -> int -> int -> unit
 val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data

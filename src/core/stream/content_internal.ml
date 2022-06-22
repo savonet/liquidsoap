@@ -47,7 +47,7 @@ module AudioSpecs = struct
       | `Stereo -> "stereo"
       | `Five_point_one -> "5.1"
 
-  let length d = Frame_settings.main_of_audio (Audio.length d)
+  let length d = main_of_audio (Audio.length d)
 
   let merge p p' =
     assert (!!(p.channel_layout) = !!(p'.channel_layout));
@@ -87,14 +87,14 @@ module AudioSpecs = struct
 
   let clear _ = ()
 
-  let make ~size { channel_layout } =
+  let make ~length { channel_layout } =
     let channels =
       match !!channel_layout with
         | `Mono -> 1
         | `Stereo -> 2
         | `Five_point_one -> 6
     in
-    Array.init channels (fun _ -> Audio.Mono.create (audio_of_main size))
+    Array.init channels (fun _ -> Audio.Mono.create (audio_of_main length))
 
   let kind_of_string = function "audio" | "pcm" -> Some `Pcm | _ -> None
 end
@@ -126,10 +126,10 @@ module VideoSpecs = struct
   let internal_content_type = Some `Video
   let string_of_kind = function `Canvas -> "canvas"
 
-  let make ~size (p : params) : data =
+  let make ~length (p : params) : data =
     let width = !!(Option.value ~default:video_width p.width) in
     let height = !!(Option.value ~default:video_height p.height) in
-    Video.Canvas.make (video_of_main size) (width, height)
+    Video.Canvas.make (video_of_main length) (width, height)
 
   let clear _ = ()
 
@@ -172,7 +172,7 @@ module VideoSpecs = struct
     let ( ! ) = Frame_settings.video_of_main in
     Video.Canvas.blit src !src_pos dst !dst_pos !len
 
-  let length d = Frame_settings.main_of_video (Video.Canvas.length d)
+  let length d = main_of_video (Video.Canvas.length d)
   let copy = Video.Canvas.copy
 
   let params data =
@@ -227,15 +227,15 @@ module MidiSpecs = struct
     let ( ! ) = midi_of_main in
     Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
 
-  let length d = Frame_settings.main_of_midi (MIDI.Multitrack.duration d)
+  let length d = main_of_midi (MIDI.Multitrack.duration d)
   let copy m = Array.map MIDI.copy m
   let params m = { channels = MIDI.Multitrack.channels m }
   let kind = `Midi
   let default_params _ = { channels = Lazy.force Frame_settings.midi_channels }
   let clear _ = ()
 
-  let make ~size { channels } =
-    MIDI.Multitrack.create channels (midi_of_main size)
+  let make ~length { channels } =
+    MIDI.Multitrack.create channels (midi_of_main length)
 
   let kind_of_string = function "midi" -> Some `Midi | _ -> None
 

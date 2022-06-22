@@ -22,7 +22,7 @@
 
 type ('a, 'b) content = { mutable params : 'a; mutable data : (int * 'b) list }
 
-let make ~size:_ params = { params; data = [] }
+let make ~length:_ params = { params; data = [] }
 let clear d = d.data <- []
 let is_empty { data } = data = []
 let stream_idx = ref 0L

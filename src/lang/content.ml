@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type 'a chunk = { data : 'a; offset : int; size : int }
+type 'a chunk = { data : 'a; offset : int; length : int }
 type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
 
 module Contents = struct
@@ -61,7 +61,7 @@ module type ContentSpecs = sig
   type data
 
   val internal_content_type : internal_content_type option
-  val make : size:int -> params -> data
+  val make : length:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
   val length : data -> int
   val copy : data -> data
@@ -192,11 +192,11 @@ let data_handlers = Array.make 12 dummy_handler
 
 let register_data_handler t h =
   if Array.length data_handlers - 1 < t then
-    failwith "Please increase media content array size!";
+    failwith "Please increase media content array length!";
   Array.unsafe_set data_handlers t h
 
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
-let make ~size k = (get_params_handler k).make size
+let make ~length k = (get_params_handler k).make length
 let blit src = (get_data_handler src).blit src
 let fill src = (get_data_handler src).fill src
 let sub d = (get_data_handler d).sub d
@@ -250,7 +250,7 @@ module MkContent (C : ContentSpecs) :
   let params { params } = params
 
   let length { chunks } =
-    List.fold_left (fun cur { size } -> cur + size) 0 chunks
+    List.fold_left (fun cur { length } -> cur + length) 0 chunks
 
   let is_empty d = length d = 0
 
@@ -264,18 +264,18 @@ module MkContent (C : ContentSpecs) :
         List.rev
           (snd
              (List.fold_left
-                (fun (pos, cur) { data; offset; size } ->
+                (fun (pos, cur) { data; offset; length } ->
                   let cur =
                     (* This is essentially a segment overlap calculation. *)
                     let start = max 0 (start - pos) in
-                    let stop = min size (stop - pos) in
+                    let stop = min length (stop - pos) in
                     if start < stop then (
                       let offset = offset + start in
-                      let size = stop - start in
-                      { data; offset; size } :: cur)
+                      let length = stop - start in
+                      { data; offset; length } :: cur)
                     else cur
                   in
-                  (pos + size, cur))
+                  (pos + length, cur))
                 (0, []) data.chunks));
     }
 
@@ -304,16 +304,16 @@ module MkContent (C : ContentSpecs) :
       | 0, _ ->
           d.chunks <- [];
           d
-      | _, [{ offset = 0; size; data }] when size = C.length data -> d
-      | size, _ ->
-          let buf = C.make ~size d.params in
+      | _, [{ offset = 0; length; data }] when length = C.length data -> d
+      | length, _ ->
+          let buf = C.make ~length d.params in
           ignore
             (List.fold_left
-               (fun pos { data; offset; size } ->
-                 C.blit data offset buf pos size;
-                 pos + size)
+               (fun pos { data; offset; length } ->
+                 C.blit data offset buf pos length;
+                 pos + length)
                0 d.chunks);
-          d.chunks <- [{ offset = 0; size; data = buf }];
+          d.chunks <- [{ offset = 0; length; data = buf }];
           d
 
   let blit src src_pos dst dst_pos len =
@@ -330,8 +330,8 @@ module MkContent (C : ContentSpecs) :
     let d = content d in
     List.iter (fun { data } -> C.clear data) d.chunks
 
-  let make ~size params =
-    { params; chunks = [{ data = C.make ~size params; offset = 0; size }] }
+  let make ~length params =
+    { params; chunks = [{ data = C.make ~length params; offset = 0; length }] }
 
   let merge p p' =
     let p' = match p' with Format p' -> p' | _ -> raise Invalid in
@@ -370,7 +370,8 @@ module MkContent (C : ContentSpecs) :
             {
               kind = (fun () -> Kind C.kind);
               make =
-                (fun size -> (_type, Content (make ~size (Unifier.deref p))));
+                (fun length ->
+                  (_type, Content (make ~length (Unifier.deref p))));
               merge = (fun p' -> merge p p');
               duplicate = (fun () -> Format Unifier.(make (deref p)));
               compatible = (fun p' -> compatible p p');
@@ -412,7 +413,7 @@ module MkContent (C : ContentSpecs) :
       Content
         {
           params = C.params d;
-          chunks = [{ offset = 0; size = C.length d; data = d }];
+          chunks = [{ offset = 0; length = C.length d; data = d }];
         } )
 
   let get_chunked_data = function _, Content d -> d | _ -> raise Invalid
@@ -420,9 +421,9 @@ module MkContent (C : ContentSpecs) :
   let get_data d =
     let d = get_chunked_data d in
     match (consolidate_chunks d).chunks with
-      | [] -> C.make ~size:0 d.params
-      | [{ offset = 0; size; data }] ->
-          assert (size = C.length data);
+      | [] -> C.make ~length:0 d.params
+      | [{ offset = 0; length; data }] ->
+          assert (length = C.length data);
           data
       | _ -> assert false
 
@@ -444,7 +445,7 @@ module NoneSpecs = struct
   type data = unit
 
   let internal_content_type = Some `None
-  let make ~size:_ _ = ()
+  let make ~length:_ _ = ()
   let clear _ = ()
   let blit _ _ _ _ _ = ()
   let length _ = 0

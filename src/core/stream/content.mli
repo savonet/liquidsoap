@@ -27,7 +27,7 @@ open Mm
 type 'a chunk = 'a Liquidsoap_lang.Content.chunk = {
   data : 'a;
   offset : int;
-  size : int;
+  length : int;
 }
 
 type ('a, 'b) chunks = ('a, 'b) Liquidsoap_lang.Content.chunks = {
@@ -62,7 +62,7 @@ module type ContentSpecs = sig
   val internal_content_type : internal_content_type option
 
   (* Size is in main ticks. *)
-  val make : size:int -> params -> data
+  val make : length:int -> params -> data
 
   (* TODO: This will be removed when reworking
      the streaming API. *)
@@ -129,7 +129,7 @@ type data = Contents.data
 
 (** Data *)
 
-val make : size:int -> format -> data
+val make : length:int -> format -> data
 val blit : data -> int -> data -> int -> int -> unit
 val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
