@@ -98,13 +98,13 @@ type t = {
 }
 
 (** Create a content chunk. All chunks have the same size. *)
-let create_content ctype = map_fields (make ~size:!!size) ctype
+let create_content ctype = map_fields (make ~length:!!size) ctype
 
 let create ctype =
   { pts = None; breaks = []; metadata = []; content = create_content ctype }
 
 let dummy =
-  let data = Content.None.data in
+  let data = Content.None.lift_data ~length:0 () in
   {
     pts = None;
     breaks = [];

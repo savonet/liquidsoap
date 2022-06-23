@@ -55,7 +55,10 @@ class basic source =
               | [| chan |] -> [| chan; chan |]
               | audio -> Array.sub audio 0 2
           in
-          Frame.set_audio frame (Content.Audio.lift_data audio))
+          Frame.set_audio frame
+            (Content.Audio.lift_data
+               ~length:(Frame_settings.main_of_audio (Audio.length audio))
+               audio))
   end
 
 let () =

@@ -71,7 +71,9 @@ let decode_audio_frame ~mode generator =
               (!last_pts, InternalResampler.flush converter)
       in
       let len = Audio.length data in
-      let data = Content.Audio.lift_data data in
+      let data =
+        Content.Audio.lift_data ~length:(Frame_settings.main_of_audio len) data
+      in
       Producer_consumer.(
         Generator.put_audio generator ?pts data 0 (Frame.main_of_audio len))
   in
@@ -294,7 +296,11 @@ let decode_video_frame ~mode generator =
               (InternalScaler.convert scaler data)
           in
           let data = Video.Canvas.single_image img in
-          let data = Content.Video.lift_data data in
+          let data =
+            Content.Video.lift_data
+              ~length:(Frame_settings.main_of_video 1)
+              data
+          in
           Producer_consumer.(
             Generator.put_video generator ?pts data 0 (Frame.main_of_video 1)))
   in

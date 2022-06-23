@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+type 'a chunk = { data : 'a; offset : int; length : int }
+type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
+
 module Contents = struct
   type format = ..
   type kind = ..
@@ -58,13 +61,10 @@ module type ContentSpecs = sig
   type data
 
   val internal_content_type : internal_content_type option
-  val make : size:int -> params -> data
+  val make : length:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
-  val fill : data -> int -> data -> int -> int -> unit
-  val sub : data -> int -> int -> data
   val copy : data -> data
   val clear : data -> unit
-  val is_empty : data -> bool
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -80,8 +80,9 @@ module type Content = sig
   include ContentSpecs
 
   val is_data : Contents.data -> bool
-  val lift_data : data -> Contents.data
+  val lift_data : ?offset:int -> length:int -> data -> Contents.data
   val get_data : Contents.data -> data
+  val get_chunked_data : Contents.data -> (params, data) chunks
   val is_format : Contents.format -> bool
   val lift_params : params -> Contents.format
   val get_params : Contents.format -> params
@@ -167,10 +168,12 @@ type data_handler = {
   blit : data -> int -> data -> int -> int -> unit;
   fill : data -> int -> data -> int -> int -> unit;
   sub : data -> int -> int -> data;
+  _length : data -> int;
   is_empty : data -> bool;
   copy : data -> data;
   format : data -> format;
   clear : data -> unit;
+  append : data -> data -> data;
 }
 
 let dummy_handler =
@@ -178,25 +181,29 @@ let dummy_handler =
     blit = (fun _ _ _ _ _ -> assert false);
     fill = (fun _ _ _ _ _ -> assert false);
     sub = (fun _ _ _ -> assert false);
+    _length = (fun _ -> assert false);
     is_empty = (fun _ -> assert false);
     copy = (fun _ -> assert false);
     format = (fun _ -> assert false);
     clear = (fun _ -> assert false);
+    append = (fun _ _ -> assert false);
   }
 
 let data_handlers = Array.make 12 dummy_handler
 
 let register_data_handler t h =
   if Array.length data_handlers - 1 < t then
-    failwith "Please increase media content array size!";
+    failwith "Please increase media content array length!";
   Array.unsafe_set data_handlers t h
 
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
-let make ~size k = (get_params_handler k).make size
+let make ~length k = (get_params_handler k).make length
 let blit src = (get_data_handler src).blit src
 let fill src = (get_data_handler src).fill src
 let sub d = (get_data_handler d).sub d
 let is_empty c = (get_data_handler c).is_empty c
+let length c = (get_data_handler c)._length c
+let append c c' = (get_data_handler c).append c c'
 let copy c = (get_data_handler c).copy c
 let format c = (get_data_handler c).format c
 let clear c = (get_data_handler c).clear c
@@ -239,20 +246,95 @@ module MkContent (C : ContentSpecs) :
      and type data = C.data = struct
   type Contents.kind += Kind of C.kind
   type Contents.format += Format of C.params Unifier.t
-  type Contents.content += Content of C.data
+  type Contents.content += Content of (C.params, C.data) chunks
 
   let _type = Contents.register_type ()
-  let data = function _, Content d -> d | _ -> assert false
+  let content = function _, Content d -> d | _ -> assert false
+  let params { params } = params
 
-  let blit src src_ofs dst dst_ofs len =
-    let src = data src in
-    let dst = data dst in
-    C.blit src src_ofs dst dst_ofs len
+  let length { chunks } =
+    List.fold_left (fun cur { length } -> cur + (length : int)) 0 chunks
 
-  let fill src src_ofs dst dst_ofs len =
-    let src = data src in
-    let dst = data dst in
-    C.fill src src_ofs dst dst_ofs len
+  let is_empty d = length d = 0
+
+  let sub data ofs len =
+    let start = ofs in
+    let stop = start + len in
+    assert (stop <= length data);
+    {
+      data with
+      chunks =
+        List.rev
+          (snd
+             (List.fold_left
+                (fun (pos, cur) { data; offset; length } ->
+                  let cur =
+                    (* This is essentially a segment overlap calculation. *)
+                    let start = max 0 (start - pos) in
+                    let stop = min length (stop - pos) in
+                    if start < stop then (
+                      let offset = offset + start in
+                      let length = stop - start in
+                      { data; offset; length } :: cur)
+                    else cur
+                  in
+                  (pos + length, cur))
+                (0, []) data.chunks));
+    }
+
+  let copy_chunks =
+    List.map (fun chunk -> { chunk with data = C.copy chunk.data })
+
+  let copy data = { data with chunks = copy_chunks data.chunks }
+
+  let append d d' =
+    let d = content d in
+    let d' = content d' in
+    (_type, Content { d with chunks = d.chunks @ d'.chunks })
+
+  let fill src src_pos dst dst_pos len =
+    let src = content src in
+    let dst = content dst in
+    dst.params <- src.params;
+    let dst_len = length dst in
+    dst.chunks <-
+      (sub dst 0 dst_pos).chunks @ (sub src src_pos len).chunks
+      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
+    assert (dst_len = length dst)
+
+  let consolidate_chunks d =
+    match (length d, d.chunks) with
+      | 0, _ ->
+          d.chunks <- [];
+          d
+      | _, [_] -> d
+      | length, _ ->
+          let buf = C.make ~length d.params in
+          ignore
+            (List.fold_left
+               (fun pos { data; offset; length } ->
+                 C.blit data offset buf pos length;
+                 pos + length)
+               0 d.chunks);
+          d.chunks <- [{ offset = 0; length; data = buf }];
+          d
+
+  let blit src src_pos dst dst_pos len =
+    let src = content src in
+    let dst = content dst in
+    dst.params <- src.params;
+    let dst_len = length dst in
+    dst.chunks <-
+      (sub dst 0 dst_pos).chunks @ (copy (sub src src_pos len)).chunks
+      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
+    assert (dst_len = length dst)
+
+  let clear d =
+    let d = content d in
+    List.iter (fun { data } -> C.clear data) d.chunks
+
+  let make ~length params =
+    { params; chunks = [{ data = C.make ~length params; offset = 0; length }] }
 
   let merge p p' =
     let p' = match p' with Format p' -> p' | _ -> raise Invalid in
@@ -291,7 +373,8 @@ module MkContent (C : ContentSpecs) :
             {
               kind = (fun () -> Kind C.kind);
               make =
-                (fun size -> (_type, Content (C.make ~size (Unifier.deref p))));
+                (fun length ->
+                  (_type, Content (make ~length (Unifier.deref p))));
               merge = (fun p' -> merge p p');
               duplicate = (fun () -> Format Unifier.(make (deref p)));
               compatible = (fun p' -> compatible p p');
@@ -310,11 +393,13 @@ module MkContent (C : ContentSpecs) :
       {
         blit;
         fill;
-        sub = (fun d ofs len -> (_type, Content (C.sub (data d) ofs len)));
-        is_empty = (fun d -> C.is_empty (data d));
-        copy = (fun d -> (_type, Content (C.copy (data d))));
-        format = (fun d -> Format (Unifier.make (C.params (data d))));
-        clear = (fun d -> C.clear (data d));
+        sub = (fun d ofs len -> (_type, Content (sub (content d) ofs len)));
+        is_empty = (fun d -> is_empty (content d));
+        copy = (fun d -> (_type, Content (copy (content d))));
+        format = (fun d -> Format (Unifier.make (params (content d))));
+        _length = (fun d -> length (content d));
+        clear;
+        append;
       }
     in
     register_data_handler _type data_handler
@@ -326,8 +411,20 @@ module MkContent (C : ContentSpecs) :
   let lift_params p = Format (Unifier.make p)
   let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
   let is_data = function _, Content _ -> true | _ -> false
-  let lift_data d = (_type, Content d)
-  let get_data = function _type, Content d -> d | _ -> raise Invalid
+
+  let lift_data ?(offset = 0) ~length d =
+    ( _type,
+      Content { params = C.params d; chunks = [{ offset; length; data = d }] }
+    )
+
+  let get_chunked_data = function _, Content d -> d | _ -> raise Invalid
+
+  let get_data d =
+    let d = get_chunked_data d in
+    match (consolidate_chunks d).chunks with
+      | [] -> C.make ~length:0 d.params
+      | [{ data }] -> data
+      | _ -> assert false
 
   let () =
     let entry = { is_kind; is_format } in
@@ -347,12 +444,9 @@ module NoneSpecs = struct
   type data = unit
 
   let internal_content_type = Some `None
-  let is_empty _ = true
-  let make ~size:_ _ = ()
+  let make ~length:_ _ = ()
   let clear _ = ()
   let blit _ _ _ _ _ = ()
-  let fill _ _ _ _ _ = ()
-  let sub _ _ _ = ()
   let copy _ = ()
   let params _ = ()
   let merge _ _ = ()
@@ -368,7 +462,7 @@ end
 module None = struct
   include MkContent (NoneSpecs)
 
-  let data = lift_data ()
+  let lift_data ~length () = lift_data ~length ()
   let format = lift_params ()
 end
 

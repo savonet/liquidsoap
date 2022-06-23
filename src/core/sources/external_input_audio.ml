@@ -42,9 +42,10 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
     let ret = reader buf 0 buflen in
     let data, ofs, len = converter buf 0 ret in
     let buffered = Generator.length abg in
+    let duration = Frame.main_of_audio len in
     Generator.put_audio abg
-      (Content.Audio.lift_data data)
-      (Frame.main_of_audio ofs) (Frame.main_of_audio len);
+      (Content.Audio.lift_data ~length:duration data)
+      (Frame.main_of_audio ofs) duration;
     if abg_max_len < buffered + len then
       `Delay (Frame.seconds_of_audio (buffered + len - (3 * abg_max_len / 4)))
     else `Continue
