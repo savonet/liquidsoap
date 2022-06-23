@@ -28,7 +28,7 @@ New:
 - Added new options for `%ffmpeg` copy encoder: `ignore_keyframes`
   and `wait_for_keyframe` (#2382)
 
-Changes:
+Changed:
 
 - Removed support for partial application, which should avoid some type errors,
   improve performance and simplifies the code related to the reduction (#2204).
@@ -61,6 +61,10 @@ Changes:
   `mux_audio(audio=blank(),image)` anymore (#2230).
 - Removed deprecated `timeout` argument in `http.*` operators.
 - Deprecated `request.ready` in favor of `request.resolved`.
+
+Fixed:
+
+- Fixed typo in `status` command of the `mix` operator.
 
 ---
 2.0.6 (2022-06-20)
