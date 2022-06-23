@@ -79,6 +79,8 @@ jobs:
     container:
       image: savonet/liquidsoap-ci:debian_bookworm_amd64
       options: --user opam
+    env:
+      HOME: /home/opam
     steps:
       - name: Checkout code
         run: |
@@ -86,13 +88,12 @@ jobs:
           git remote set-url origin https://github.com/savonet/liquidsoap.git
           git fetch origin ${{ github.sha }}
           git checkout ${{ github.sha }}
-      - name: Install dependencies
-        run: |
-          opam install -y js_of_ocaml js_of_ocaml-ppx
       - name: Build JS
         run: |
           cd /tmp/liquidsoap-full/liquidsoap 
-          eval $(opam config env) && dune build ./src/js/liquidsoap_js.bc.js
+          eval $(opam config env)
+          opam install -y js_of_ocaml js_of_ocaml-ppx
+          dune build ./src/js/liquidsoap_js.bc.js
 
   run_tests:
     runs-on: ubuntu-latest
