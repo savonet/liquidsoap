@@ -88,6 +88,8 @@ jobs:
           git remote set-url origin https://github.com/savonet/liquidsoap.git
           git fetch origin ${{ github.sha }}
           git checkout ${{ github.sha }}
+          git rm -rf *
+          git reset --hard
       - name: Build JS
         run: |
           cd /tmp/liquidsoap-full/liquidsoap 
