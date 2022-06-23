@@ -384,7 +384,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
                          end
                       end)
      server.register(namespace=source.id(s), description="Display current status.",
-                     "single", fun (i) -> begin
+                     "status", fun (i) -> begin
                          try
                            status(list.nth(inputs, int_of_string(i)))
                          catch _ do
