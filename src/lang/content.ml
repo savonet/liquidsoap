@@ -307,7 +307,7 @@ module MkContent (C : ContentSpecs) :
       | 0, _ ->
           d.chunks <- [];
           d
-      | _, [_] -> d
+      | l, [{ offset = 0; length }] when l = length -> d
       | length, _ ->
           let buf = C.make ~length d.params in
           ignore

@@ -197,6 +197,22 @@ module Midi : sig
   val kind : Contents.kind
 end
 
+module Metadata : sig
+  include Content with type kind = [ `Metadata ] and type params = unit
+
+  val format : format
+  val get_data : Contents.data -> (int * Frame_base.metadata) list
+  val set_data : Contents.data -> (int * Frame_base.metadata) list -> unit
+end
+
+module TrackMark : sig
+  include Content with type kind = [ `TrackMark ] and type params = unit
+
+  val format : format
+  val get_data : Contents.data -> int list
+  val set_data : Contents.data -> int list -> unit
+end
+
 val default_audio : unit -> Contents.format
 val default_video : unit -> Contents.format
 val default_midi : unit -> Contents.format
