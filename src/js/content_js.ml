@@ -35,12 +35,9 @@ module AudioSpecs = struct
   let kind = `Pcm
   let default_params _ = { channel_layout = `Stereo }
   let kind_of_string = function "audio" | "pcm" -> Some `Pcm | _ -> None
-  let is_empty _ = true
-  let make ~size:_ _ = ()
+  let make ~length:_ _ = ()
   let clear _ = ()
   let blit _ _ _ _ _ = ()
-  let fill _ _ _ _ _ = ()
-  let sub _ _ _ = ()
   let copy _ = ()
 end
 
@@ -87,12 +84,9 @@ module VideoSpecs = struct
   let kind = `Canvas
   let default_params _ = { width = None; height = None }
   let kind_of_string = function "canvas" -> Some `Canvas | _ -> None
-  let is_empty _ = true
-  let make ~size:_ _ = ()
+  let make ~length:_ _ = ()
   let clear : data -> unit = fun _ -> ()
   let blit : data -> int -> data -> int -> int -> unit = fun _ _ _ _ _ -> ()
-  let fill : data -> int -> data -> int -> int -> unit = fun _ _ _ _ _ -> ()
-  let sub _ _ _ = ()
   let copy _ = ()
 end
 
