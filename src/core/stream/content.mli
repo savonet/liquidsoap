@@ -61,8 +61,9 @@ module type ContentSpecs = sig
 
   val internal_content_type : internal_content_type option
 
-  (* Size is in main ticks. *)
+  (* Length is in main ticks. *)
   val make : length:int -> params -> data
+  val length : data -> int
 
   (* TODO: This will be removed when reworking
      the streaming API. *)
@@ -97,7 +98,7 @@ module type Content = sig
   (** Data *)
 
   val is_data : Contents.data -> bool
-  val lift_data : ?offset:int -> length:int -> data -> Contents.data
+  val lift_data : ?offset:int -> ?length:int -> data -> Contents.data
   val get_data : Contents.data -> data
   val get_chunked_data : Contents.data -> (params, data) chunks
 
@@ -195,6 +196,22 @@ module Midi : sig
        and type data = MIDI.Multitrack.buffer
 
   val kind : Contents.kind
+end
+
+module Metadata : sig
+  include Content with type kind = [ `Metadata ] and type params = unit
+
+  val format : format
+  val get_data : Contents.data -> (int * Frame_base.metadata) list
+  val set_data : Contents.data -> (int * Frame_base.metadata) list -> unit
+end
+
+module TrackMark : sig
+  include Content with type kind = [ `TrackMark ] and type params = unit
+
+  val format : format
+  val get_data : Contents.data -> int list
+  val set_data : Contents.data -> int list -> unit
 end
 
 val default_audio : unit -> Contents.format

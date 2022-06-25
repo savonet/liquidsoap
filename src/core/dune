@@ -69,7 +69,9 @@
   compress_exp
   compress_old
   content
+  content_base
   content_internal
+  content_timed
   conversion
   configure
   cross
@@ -103,6 +105,7 @@
   flac_format
   flanger
   frame
+  frame_base
   frame_settings
   gate
   generated

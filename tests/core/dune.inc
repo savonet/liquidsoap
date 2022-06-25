@@ -168,6 +168,20 @@
 
 
 (executable
+ (name content_test)
+ (modules content_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  
+  (:content_test content_test.exe))
+ (action (run %{content_test} )))
+
+
+(executable
  (name is_url)
  (modules is_url)
  (libraries liquidsoap_core liquidsoap_optionals))

@@ -227,11 +227,13 @@ class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata kind
             stream_idx;
           }
         in
+        let length = get_duration ffmpeg_frame in
         let content =
           {
             Ffmpeg_content_base.params =
               Ffmpeg_raw_content.AudioSpecs.frame_params frame;
             data = [(0, frame)];
+            length;
           }
         in
         let pts =
@@ -242,7 +244,7 @@ class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata kind
         in
         let duration = get_duration ffmpeg_frame in
         Generator.put_audio ?pts generator
-          (Ffmpeg_raw_content.Audio.lift_data ~length:duration content)
+          (Ffmpeg_raw_content.Audio.lift_data content)
           0 duration
 
     method abort_track = ()
@@ -307,13 +309,13 @@ class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
             (Ffmpeg_utils.best_pts ffmpeg_frame)
         in
         let params = Ffmpeg_raw_content.VideoSpecs.frame_params frame in
+        let length = Lazy.force duration in
         let content =
-          { Ffmpeg_raw_content.VideoSpecs.params; data = [(0, frame)] }
+          { Ffmpeg_raw_content.VideoSpecs.params; data = [(0, frame)]; length }
         in
-        let duration = Lazy.force duration in
         Generator.put_video ?pts generator
-          (Ffmpeg_raw_content.Video.lift_data ~length:duration content)
-          0 duration
+          (Ffmpeg_raw_content.Video.lift_data content)
+          0 length
 
     method abort_track = ()
   end

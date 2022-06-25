@@ -20,5 +20,6 @@
 
  *****************************************************************************)
 
-include Liquidsoap_lang.Content
+include Content_base
 include Content_internal
+include Content_timed

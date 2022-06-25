@@ -94,6 +94,7 @@ module AudioSpecs = struct
     in
     Array.init channels (fun _ -> Audio.Mono.create (audio_of_main length))
 
+  let length d = main_of_audio (Audio.length d)
   let kind_of_string = function "audio" | "pcm" -> Some `Pcm | _ -> None
 end
 
@@ -129,6 +130,7 @@ module VideoSpecs = struct
     let height = !!(Option.value ~default:video_height p.height) in
     Video.Canvas.make (video_of_main length) (width, height)
 
+  let length d = main_of_video (Video.Canvas.length d)
   let clear _ = ()
 
   let string_of_params { width; height } =
@@ -233,6 +235,7 @@ module MidiSpecs = struct
   let make ~length { channels } =
     MIDI.Multitrack.create channels (midi_of_main length)
 
+  let length d = main_of_midi (MIDI.Multitrack.duration d)
   let kind_of_string = function "midi" -> Some `Midi | _ -> None
 
   let parse_param label value =
