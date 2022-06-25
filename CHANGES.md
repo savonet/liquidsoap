@@ -65,6 +65,7 @@ Changed:
 Fixed:
 
 - Fixed typo in `status` command of the `mix` operator.
+- Fixed performances issues with `input.ffmpeg` and `input.http` (#2475)
 
 ---
 2.0.6 (2022-06-20)
