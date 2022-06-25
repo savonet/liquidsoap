@@ -172,6 +172,15 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       self#connect
 
     val mutable last_metadata = []
+    val mutable buffer = None
+
+    method private buffer =
+      match buffer with
+        | Some b -> b
+        | None ->
+            let b = Decoder.mk_buffer ~ctype:self#ctype generator in
+            buffer <- Some b;
+            b
 
     method private get_frame frame =
       let pos = Frame.position frame in
@@ -179,9 +188,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let _, decoder, get_metadata =
           self#mutexify (fun () -> Option.get container) ()
         in
-        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
         while Generator.length generator < Lazy.force Frame.size do
-          decoder buffer
+          decoder self#buffer
         done;
         Generator.fill generator frame;
         let m = get_metadata () in
