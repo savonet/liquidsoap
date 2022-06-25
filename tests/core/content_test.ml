@@ -2,8 +2,8 @@ open Content
 
 let () =
   let marks ?(offset = 0) len = List.init len (fun x -> x + offset) in
-  let c = TrackMark.(lift_data ~length:1000 (make ~length:1000 ())) in
-  let c' = TrackMark.(lift_data ~length:10 (make ~length:10 ())) in
+  let c = TrackMark.(lift_data (make ~length:1000 ())) in
+  let c' = TrackMark.(lift_data (make ~length:10 ())) in
   TrackMark.set_data c (marks 1000);
   (* Track marks outside of the declared length should be ignored. *)
   TrackMark.set_data c' (marks 10);

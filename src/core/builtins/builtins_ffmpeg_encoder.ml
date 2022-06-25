@@ -77,7 +77,7 @@ let encode_audio_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
 
           let write_packet packet =
             match Ffmpeg_utils.Duration.push duration_converter packet with
-              | Some (duration, packets) ->
+              | Some (length, packets) ->
                   let data =
                     List.map
                       (fun (pos, packet) ->
@@ -89,12 +89,10 @@ let encode_audio_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data } in
-                  let data =
-                    Ffmpeg_copy_content.Audio.lift_data ~length:duration data
-                  in
+                  let data = { Ffmpeg_content_base.params; data; length } in
+                  let data = Ffmpeg_copy_content.Audio.lift_data data in
                   Producer_consumer.(
-                    Generator.put_audio generator data 0 duration)
+                    Generator.put_audio generator data 0 length)
               | None -> ()
           in
 
@@ -127,7 +125,7 @@ let encode_audio_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
             function
             | `Frame frame -> (
                 match Ffmpeg_utils.Duration.push duration_converter frame with
-                  | Some (duration, frames) ->
+                  | Some (length, frames) ->
                       let data =
                         List.map
                           (fun (pos, frame) ->
@@ -139,12 +137,10 @@ let encode_audio_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
                               } ))
                           frames
                       in
-                      let data = { Ffmpeg_content_base.params; data } in
-                      let data =
-                        Ffmpeg_raw_content.Audio.lift_data ~length:duration data
-                      in
+                      let data = { Ffmpeg_content_base.params; data; length } in
+                      let data = Ffmpeg_raw_content.Audio.lift_data data in
                       Producer_consumer.(
-                        Generator.put_audio generator data 0 duration)
+                        Generator.put_audio generator data 0 length)
                   | None -> ())
             | `Flush -> () ))
   in
@@ -256,7 +252,7 @@ let encode_video_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
 
           let write_packet packet =
             match Ffmpeg_utils.Duration.push duration_converter packet with
-              | Some (duration, packets) ->
+              | Some (length, packets) ->
                   let data =
                     List.map
                       (fun (pos, packet) ->
@@ -268,12 +264,10 @@ let encode_video_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data } in
-                  let data =
-                    Ffmpeg_copy_content.Video.lift_data ~length:duration data
-                  in
+                  let data = { Ffmpeg_content_base.params; data; length } in
+                  let data = Ffmpeg_copy_content.Video.lift_data data in
                   Producer_consumer.(
-                    Generator.put_video generator data 0 duration)
+                    Generator.put_video generator data 0 length)
               | None -> ()
           in
 
@@ -312,7 +306,7 @@ let encode_video_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
           function
           | `Frame frame -> (
               match Ffmpeg_utils.Duration.push duration_converter frame with
-                | Some (duration, frames) ->
+                | Some (length, frames) ->
                     let data =
                       List.map
                         (fun (pos, frame) ->
@@ -321,12 +315,10 @@ let encode_video_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
                           ))
                         frames
                     in
-                    let data = { Ffmpeg_content_base.params; data } in
-                    let data =
-                      Ffmpeg_raw_content.Video.lift_data ~length:duration data
-                    in
+                    let data = { Ffmpeg_content_base.params; data; length } in
+                    let data = Ffmpeg_raw_content.Video.lift_data data in
                     Producer_consumer.(
-                      Generator.put_video generator data 0 duration)
+                      Generator.put_video generator data 0 length)
                 | None -> ())
           | `Flush -> ())
   in

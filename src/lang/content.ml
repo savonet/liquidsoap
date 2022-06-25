@@ -62,6 +62,7 @@ module type ContentSpecs = sig
 
   val internal_content_type : internal_content_type option
   val make : length:int -> params -> data
+  val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
   val clear : data -> unit
@@ -80,7 +81,7 @@ module type Content = sig
   include ContentSpecs
 
   val is_data : Contents.data -> bool
-  val lift_data : ?offset:int -> length:int -> data -> Contents.data
+  val lift_data : ?offset:int -> ?length:int -> data -> Contents.data
   val get_data : Contents.data -> data
   val get_chunked_data : Contents.data -> (params, data) chunks
   val is_format : Contents.format -> bool
@@ -412,7 +413,8 @@ module MkContent (C : ContentSpecs) :
   let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
   let is_data = function _, Content _ -> true | _ -> false
 
-  let lift_data ?(offset = 0) ~length d =
+  let lift_data ?(offset = 0) ?length d =
+    let length = match length with None -> C.length d | Some l -> l in
     ( _type,
       Content { params = C.params d; chunks = [{ offset; length; data = d }] }
     )
@@ -441,13 +443,14 @@ end
 module NoneSpecs = struct
   type kind = unit
   type params = unit
-  type data = unit
+  type data = int
 
   let internal_content_type = Some `None
-  let make ~length:_ _ = ()
+  let make ~length () = length
+  let length l = l
   let clear _ = ()
   let blit _ _ _ _ _ = ()
-  let copy _ = ()
+  let copy l = l
   let params _ = ()
   let merge _ _ = ()
   let compatible _ _ = true
@@ -462,7 +465,7 @@ end
 module None = struct
   include MkContent (NoneSpecs)
 
-  let lift_data ~length () = lift_data ~length ()
+  let lift_data ~length () = lift_data (make ~length ())
   let format = lift_params ()
 end
 

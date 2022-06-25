@@ -101,8 +101,9 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let data, ofs, len = resampler ~samplerate data 0 (Audio.length data) in
         let buffered = Generator.length abg in
         let duration = Frame.main_of_audio len in
+        let offset = Frame.main_of_audio ofs in
         Generator.put_audio abg
-          (Content.Audio.lift_data ~length:duration data)
+          (Content.Audio.lift_data ~offset ~length:duration data)
           (Frame.main_of_audio ofs) duration;
         let to_replay =
           Tutils.mutexify mutex

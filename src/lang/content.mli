@@ -48,8 +48,9 @@ module type ContentSpecs = sig
 
   val internal_content_type : internal_content_type option
 
-  (* Size is in main ticks. *)
+  (* Length is in main ticks. *)
   val make : length:int -> params -> data
+  val length : data -> int
 
   (* TODO: This will be removed when reworking
      the streaming API. *)
@@ -84,7 +85,7 @@ module type Content = sig
   (** Data *)
 
   val is_data : Contents.data -> bool
-  val lift_data : ?offset:int -> length:int -> data -> Contents.data
+  val lift_data : ?offset:int -> ?length:int -> data -> Contents.data
   val get_data : Contents.data -> data
   val get_chunked_data : Contents.data -> (params, data) chunks
 
@@ -143,7 +144,7 @@ val kind_of_string : string -> kind
 
 (** Internal content types. *)
 
-module NoneSpecs : ContentSpecs with type data = unit
+module NoneSpecs : ContentSpecs
 
 (* None content type is abstract and only used
    via its params and data. *)

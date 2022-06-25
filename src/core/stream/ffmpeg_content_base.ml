@@ -20,11 +20,15 @@
 
  *****************************************************************************)
 
-type ('a, 'b) content = { mutable params : 'a; mutable data : (int * 'b) list }
+type ('a, 'b) content = {
+  length : int;
+  mutable params : 'a;
+  mutable data : (int * 'b) list;
+}
 
-let make ~length:_ params = { params; data = [] }
+let make ~length params = { length; params; data = [] }
+let length { length } = length
 let clear d = d.data <- []
-let is_empty { data } = data = []
 let stream_idx = ref 0L
 
 let new_stream_idx () =
@@ -70,14 +74,7 @@ let fill :
  fun src src_pos dst dst_pos len ->
   blit ~copy:(fun x -> x) src src_pos dst dst_pos len
 
-let copy ~copy { data; params } =
-  { data = List.map (fun (pos, x) -> (pos, copy x)) data; params }
+let copy ~copy { length; data; params } =
+  { length; data = List.map (fun (pos, x) -> (pos, copy x)) data; params }
 
 let params { params } = params
-
-(* We don't account for content block length yet to total length is
-   the largest pts. *)
-let length { data } =
-  match List.sort (fun (p, _) (p', _) -> Stdlib.compare p' p) data with
-    | (pos, _) :: _ -> pos
-    | [] -> 0

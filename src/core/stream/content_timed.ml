@@ -26,6 +26,7 @@ module Specs = struct
   type 'a content = { mutable length : int; mutable data : (int * 'a) list }
 
   let make ~length () = { length; data = [] }
+  let length { length } = length
   let clear d = d.data <- []
   let is_empty { data } = data = []
 

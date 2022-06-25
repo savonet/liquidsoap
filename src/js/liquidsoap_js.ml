@@ -1,6 +1,5 @@
 open Js_of_ocaml
 open Liquidsoap_lang
-open Content_js
 
 let () =
   Hooks.regexp := (module Regexp_js : Hooks.Regexp_t);

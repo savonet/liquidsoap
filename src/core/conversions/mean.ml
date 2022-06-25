@@ -47,8 +47,7 @@ class mean ~normalize source =
             content.(0).(i) <-
               Array.fold_left (fun m b -> m +. b.(i)) 0. tmp_content *. amp
           done;
-          Frame.set_audio frame
-            (Content.Audio.lift_data ~length:(Lazy.force Frame.size) content))
+          Frame.set_audio frame (Content.Audio.lift_data content))
   end
 
 let () =

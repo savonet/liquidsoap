@@ -42,7 +42,7 @@ let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~put_data params =
         raise Corrupt);
       let packets = Ffmpeg_utils.Duration.push duration_converter packet in
       if packets = None then raise Empty;
-      let duration, packets = Option.get packets in
+      let length, packets = Option.get packets in
       let data =
         List.map
           (fun (pos, packet) ->
@@ -54,9 +54,9 @@ let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~put_data params =
               } ))
           packets
       in
-      let data = { Ffmpeg_content_base.params = Some params; data } in
-      let data = lift_data ~length:duration data in
-      put_data ?pts:None buffer.Decoder.generator data 0 duration
+      let data = { Ffmpeg_content_base.params = Some params; data; length } in
+      let data = lift_data data in
+      put_data ?pts:None buffer.Decoder.generator data 0 length
     with Empty | Corrupt (* Might want to change that later. *) -> ()
 
 let mk_audio_decoder ~stream_idx ~format container =
@@ -65,9 +65,7 @@ let mk_audio_decoder ~stream_idx ~format container =
   ignore
     (Content.merge format Ffmpeg_copy_content.(Audio.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
-  let lift_data ~length data =
-    Ffmpeg_copy_content.Audio.lift_data ~length data
-  in
+  let lift_data data = Ffmpeg_copy_content.Audio.lift_data data in
   ( idx,
     stream,
     mk_decoder ~stream_idx ~lift_data ~stream_time_base ~put_data:G.put_audio
@@ -79,9 +77,7 @@ let mk_video_decoder ~stream_idx ~format container =
   ignore
     (Content.merge format Ffmpeg_copy_content.(Video.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
-  let lift_data ~length data =
-    Ffmpeg_copy_content.Video.lift_data ~length data
-  in
+  let lift_data data = Ffmpeg_copy_content.Video.lift_data data in
   ( idx,
     stream,
     mk_decoder ~stream_idx ~lift_data ~stream_time_base ~put_data:G.put_video

@@ -35,7 +35,6 @@ type 'a handler = {
 }
 
 type 'a lift_data =
-  length:int ->
   ( 'a Avcodec.params option,
     'a Ffmpeg_copy_content.packet )
   Ffmpeg_content_base.content ->
@@ -73,16 +72,16 @@ let modes name (codecs : Avcodec.id list) =
 
 let process (type a) ~put_data ~(lift_data : a lift_data) ~generator
     ({ time_base; params; stream_idx } : a handler)
-    ((duration, packets) : int * (int * a Avcodec.Packet.t) list) =
+    ((length, packets) : int * (int * a Avcodec.Packet.t) list) =
   let data =
     List.map
       (fun (pos, packet) ->
         (pos, { Ffmpeg_copy_content.packet; time_base; stream_idx }))
       packets
   in
-  let data = { Ffmpeg_content_base.params = Some params; data } in
-  let data = lift_data ~length:duration data in
-  put_data ?pts:None generator data 0 duration
+  let data = { Ffmpeg_content_base.params = Some params; data; length } in
+  let data = lift_data data in
+  put_data ?pts:None generator data 0 length
 
 let flush_filter ~generator ~put_data ~lift_data handler =
   let rec f () =
@@ -225,8 +224,8 @@ let () =
                   match mode with
                     | `Audio | `Audio_only ->
                         let put_data = Generator.put_audio in
-                        let lift_data ~length data =
-                          Ffmpeg_copy_content.Audio.lift_data ~length data
+                        let lift_data data =
+                          Ffmpeg_copy_content.Audio.lift_data data
                         in
                         let current_handler, get_handler, clear_handler =
                           handler_getters ~lift_data ~put_data ~generator
@@ -248,8 +247,8 @@ let () =
                                  (Content.sub (Frame.audio frame) 0 pos)) )
                     | `Video | `Video_only ->
                         let put_data = Generator.put_video in
-                        let lift_data ~length data =
-                          Ffmpeg_copy_content.Video.lift_data ~length data
+                        let lift_data data =
+                          Ffmpeg_copy_content.Video.lift_data data
                         in
                         let current_handler, get_handler, clear_handler =
                           handler_getters ~lift_data ~put_data ~generator
