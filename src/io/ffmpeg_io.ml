@@ -107,6 +107,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           Ffmpeg_decoder.mk_decoder ?audio ?video ~decode_first_metadata:true
             ~target_position:(ref None) input
         in
+        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
         Generator.set_rewrite_metadata generator (fun m ->
             Hashtbl.replace m "source_url" url;
             m);
@@ -123,7 +124,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
               | Some (`Frame (_, stream, _)) -> Av.get_metadata stream
               | None -> [])
         in
-        container <- Some (input, decoder, get_metadata);
+        container <- Some (input, decoder, buffer, get_metadata);
         source_status <- `Connected url;
         on_connect input;
         -1.
@@ -150,7 +151,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private disconnect_fn =
       match container with
         | None -> ()
-        | Some (input, _, _) ->
+        | Some (input, _, _, _) ->
             Tutils.mutexify interrupt_m (fun () -> interrupt <- true) ();
             (try Av.close input
              with exn ->
@@ -173,24 +174,15 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         ()
 
     val mutable last_metadata = []
-    val mutable buffer = None
-
-    method private buffer =
-      match buffer with
-        | Some b -> b
-        | None ->
-            let b = Decoder.mk_buffer ~ctype:self#ctype generator in
-            buffer <- Some b;
-            b
 
     method private get_frame frame =
       let pos = Frame.position frame in
       try
-        let _, decoder, get_metadata =
+        let _, decoder, buffer, get_metadata =
           self#mutexify (fun () -> Option.get container) ()
         in
         while Generator.length generator < Lazy.force Frame.size do
-          decoder self#buffer
+          decoder buffer
         done;
         Generator.fill generator frame;
         let m = get_metadata () in

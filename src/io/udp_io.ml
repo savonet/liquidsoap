@@ -134,7 +134,11 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 
     method private start =
       begin
-        decoder_factory <- Some (get_stream_decoder self#ctype);
+        let decoder args =
+          let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
+          (get_stream_decoder self#ctype args, buffer)
+        in
+        decoder_factory <- Some decoder;
         match wait_feeding with
           | None -> ()
           | Some f ->
@@ -174,8 +178,7 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
       try
         (* Feeding loop. *)
-        let decoder = self#decoder_factory input in
-        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
+        let decoder, buffer = self#decoder_factory input in
         while true do
           if should_stop () then failwith "stop";
           decoder.Decoder.decode buffer
