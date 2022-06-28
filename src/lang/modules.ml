@@ -41,6 +41,7 @@ let () =
       "midi";
       "output";
       "os";
+      "osc";
       "playlist";
       "reopen";
       "request";

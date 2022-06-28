@@ -21,11 +21,10 @@
  *****************************************************************************)
 
 open Extralib
-module S = Lo.Server
 
 let conf_osc =
   Dtools.Conf.void
-    ~p:(Configure.conf#plug "osc")
+    ~p:(Configure.conf#plug "osc.native")
     "Interactions through the OSC protocol."
 
 let conf_port =
@@ -35,19 +34,17 @@ let conf_port =
 let handlers = ref []
 let add_handler path t f = handlers := ((path, t), f) :: !handlers
 
-let handler path (data : Lo.Message.data array) =
-  let typ = function
-    | `Float _ | `Double _ -> `Float
-    | `Int32 _ | `Int64 _ -> `Int
-    | `True | `False -> `Bool
-    | `String _ | `Symbol _ -> `String
+let handler path (data : Osc.Types.argument array) =
+  let typ : Osc.Types.argument -> [ `Float | `Int | `String ] = function
+    | Float32 _ -> `Float
+    | Int32 _ -> `Int
+    | String _ -> `String
     | _ -> failwith "Unhandled value."
   in
-  let value = function
-    | `Float x | `Double x -> Lang.float x
-    | `Int32 x | `Int64 x -> Lang.int x
-    | (`True | `False) as b -> Lang.bool (b = `True)
-    | `String s | `Symbol s -> Lang.string s
+  let value : Osc.Types.argument -> Lang.value = function
+    | Float32 x -> Lang.float x
+    | Int32 x -> Lang.int (Int32.to_int x)
+    | String s -> Lang.string s
     | _ -> failwith "Unhandled value."
   in
   try
@@ -69,26 +66,29 @@ let server = ref None
 let should_start = ref false
 let started = ref false
 let started_m = Mutex.create ()
-let log = Log.make ["lo"]
+let log = Log.make ["osc.native"]
 
 let start_server () =
   log#info "Starting OSC server";
+  let buflen = 1024 in
   let port = conf_port#get in
-  let s = S.create port handler in
+  let addr = Unix.ADDR_INET (Unix.inet_addr_any, port) in
+  let s = Osc_unix.Udp.Server.create addr buflen in
   server := Some s;
   ignore
     (Thread.create
        (fun () ->
          try
-           while true do
-             S.recv s
+           while !server <> None do
+             match Osc_unix.Udp.Server.recv s with
+               | Ok (Osc.Types.Message m, _) ->
+                   handler m.address (Array.of_list m.arguments)
+               | _ -> ()
            done
-         with
-           | Lo.Server.Stopped -> ()
-           | exn ->
-               let backtrace = Printexc.get_backtrace () in
-               log#important "OSC server thread exited with exception: %s\n%s"
-                 (Printexc.to_string exn) backtrace)
+         with exn ->
+           let backtrace = Printexc.get_backtrace () in
+           log#important "OSC server thread exited with exception: %s\n%s"
+             (Printexc.to_string exn) backtrace)
        ())
 
 let () =
@@ -103,14 +103,26 @@ let () =
          match !server with
            | Some s ->
                log#info "Stopping OSC server";
-               S.stop s;
-               server := None
+               server := None;
+               Osc_unix.Udp.Server.destroy s
            | None -> ()))
 
 let start_server =
   Tutils.mutexify started_m (fun () ->
       if !started && !server = None then start_server ()
       else should_start := true)
+
+let client =
+  let c = ref None in
+  fun () ->
+    match !c with
+      | Some c -> c
+      | None ->
+          let c' = Osc_unix.Udp.Client.create () in
+          c := Some c';
+          c'
+
+let () = Lang.add_module "osc.native"
 
 let register name osc_t liq_t =
   let val_array vv =
@@ -119,7 +131,7 @@ let register name osc_t liq_t =
       | 2 -> Lang.product vv.(0) vv.(1)
       | _ -> assert false
   in
-  Lang.add_builtin ("osc." ^ name) ~category:`Interaction
+  Lang.add_builtin ("osc.native." ^ name) ~category:`Interaction
     [
       ("", Lang.string_t, None, Some "OSC path.");
       ("", liq_t, None, Some "Initial value.");
@@ -131,7 +143,7 @@ let register name osc_t liq_t =
       add_handler path osc_t handle;
       start_server ();
       Lang.val_fun [] (fun _ -> !v));
-  Lang.add_builtin ("osc.on_" ^ name) ~category:`Interaction
+  Lang.add_builtin ("osc.native.on_" ^ name) ~category:`Interaction
     [
       ("", Lang.string_t, None, Some "OSC path.");
       ( "",
@@ -150,7 +162,7 @@ let register name osc_t liq_t =
       add_handler path osc_t handle;
       start_server ();
       Lang.unit);
-  Lang.add_builtin ("osc.send_" ^ name) ~category:`Interaction
+  Lang.add_builtin ("osc.native.send_" ^ name) ~category:`Interaction
     [
       ("host", Lang.string_t, None, Some "OSC client address.");
       ("port", Lang.int_t, None, Some "OSC client port.");
@@ -161,17 +173,19 @@ let register name osc_t liq_t =
       let port = Lang.to_int (List.assoc "port" p) in
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.assoc "" 2 p in
-      let address = Lo.Address.create host port in
+      let address =
+        Unix.ADDR_INET ((Unix.gethostbyname host).h_addr_list.(0), port)
+      in
       let osc_val v =
         match v.Lang.value with
-          | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
-          | Lang.(Ground (Ground.String s)) -> [`String s]
-          | Lang.(Ground (Ground.Float x)) -> [`Float x]
+          | Lang.(Ground (Ground.String s)) -> [Osc.Types.String s]
+          | Lang.(Ground (Ground.Float x)) -> [Osc.Types.Float32 x]
           | _ -> failwith "Unhandled value."
       in
-      (* There was a bug in early versions of lo bindings and anyway we don't
-         really want errors to show up here... *)
-      (try Lo.send address path (osc_val v) with _ -> ());
+      let packet =
+        Osc.Types.Message { address = path; arguments = osc_val v }
+      in
+      Osc_unix.Udp.Client.send (client ()) address packet;
       Lang.unit)
 
 let () =
@@ -181,7 +195,7 @@ let () =
     (Lang.product_t Lang.float_t Lang.float_t);
   register "int" [| `Int |] Lang.int_t;
   register "int_pair" [| `Int; `Int |] (Lang.product_t Lang.int_t Lang.int_t);
-  register "bool" [| `Bool |] Lang.bool_t;
+  (* register "bool" [| `Bool |] Lang.bool_t; *)
   register "string" [| `String |] Lang.string_t;
   register "string_pair"
     [| `String; `String |]

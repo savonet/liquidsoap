@@ -530,6 +530,14 @@
  (modules liq_opus_decoder opus_encoder))
 
 (library
+ (name liquidsoap_osc)
+ (libraries osc-unix liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_osc))
+
+(library
  (name liquidsoap_oss)
  (libraries liquidsoap_core)
  (enabled_if
@@ -720,6 +728,7 @@
   ocurl_option
   ogg_option
   opus_option
+  osc_option
   oss_option
   osx_secure_transport_option
   portaudio_option
@@ -885,6 +894,11 @@
    from
    (liquidsoap_opus -> opus_option.enabled.ml)
    (-> opus_option.disabled.ml))
+  (select
+   osc_option.ml
+   from
+   (liquidsoap_osc -> osc_option.enabled.ml)
+   (-> osc_option.disabled.ml))
   (select
    oss_option.ml
    from
