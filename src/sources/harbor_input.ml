@@ -153,8 +153,7 @@ module Make (Harbor : T) = struct
           { Decoder.read; tell = None; length = None; lseek = None }
         in
         try
-          let decoder = create_decoder input in
-          let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
+          let decoder, buffer = create_decoder input in
           while true do
             Tutils.mutexify relay_m
               (fun () ->
@@ -200,8 +199,12 @@ module Make (Harbor : T) = struct
           with Not_found -> mime
         in
         match Decoder.get_stream_decoder ~ctype:self#ctype mime with
-          | Some d ->
-              create_decoder <- d;
+          | Some decoder ->
+              let decoder args =
+                let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
+                (decoder args, buffer)
+              in
+              create_decoder <- decoder;
               mime_type <- Some mime
           | None -> raise Harbor.Unknown_codec
 
