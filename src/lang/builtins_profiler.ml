@@ -20,23 +20,23 @@
 
  *****************************************************************************)
 
-let () = Lang.add_module "profiler"
+let profiler_module = Lang.(add_module root_module "profiler")
 
-let () =
-  Lang.add_builtin "profiler.enable" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~root_module:profiler_module "enable" ~category:`Liquidsoap
     ~descr:"Record profiling statistics." [] Lang.unit_t (fun _ ->
       Term.profile := true;
       Lang.unit)
 
-let () =
-  Lang.add_builtin "profiler.disable" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~root_module:profiler_module "disable" ~category:`Liquidsoap
     ~descr:"Record profiling statistics." [] Lang.unit_t (fun _ ->
       Term.profile := false;
       Lang.unit)
 
-let () =
+let _ =
   let a = Lang.univ_t () in
-  Lang.add_builtin "profiler.run" ~category:`Liquidsoap
+  Lang.add_builtin ~root_module:profiler_module "run" ~category:`Liquidsoap
     ~descr:"Time a function with the profiler."
     [
       ("", Lang.string_t, None, Some "Name of the profiled function.");
@@ -49,8 +49,8 @@ let () =
       let f () = Lang.apply f [] in
       Profiler.time name f ())
 
-let () =
-  Lang.add_module "profiler.stats";
-  Lang.add_builtin "profiler.stats.string" ~category:`Liquidsoap
+let _ =
+  let stats_module = Lang.add_module profiler_module "stats" in
+  Lang.add_builtin ~root_module:stats_module "string" ~category:`Liquidsoap
     ~descr:"Profiling statistics." [] Lang.string_t (fun _ ->
       Lang.string (Profiler.stats ()))

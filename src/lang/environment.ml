@@ -32,9 +32,14 @@ let default_environment () = !builtins_env
 let default_typing_environment () =
   List.map (fun (x, (t, _)) -> (x, t)) !builtins_env
 
-let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
+let add_builtin ?(root_module = []) ?(override = false) ?(register = true) ?doc
+    name ((g, t), v) =
+  if String.contains name '.' then
+    failwith "Builtin variable cannot containt dots!";
+  let name = root_module @ [name] in
   if register then builtins#register ?doc (String.concat "." name) ((g, t), v);
-  match name with
+  begin
+    match name with
     | [name] ->
         (* Don't allow overriding builtins. *)
         if (not override) && List.mem_assoc name !builtins_env then
@@ -82,33 +87,42 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
         assert (g = []);
         builtins_env := (x, ((g0, t), v)) :: !builtins_env
     | [] -> assert false
+  end;
+  name
 
 let has_builtin name = builtins#is_registered name
 let get_builtin name = builtins#get name
 
+type _module = string list
+
+let root_module = []
+
 (** Declare a module. *)
-let add_module name =
+let add_module root_module name =
   (* Ensure that it does not already exist. *)
-  (match name with
-    | [] -> assert false
-    | [x] ->
-        if List.mem_assoc x !builtins_env then
-          failwith ("Module " ^ String.concat "." name ^ " already declared")
-    | x :: mm -> (
+  (match root_module with
+    | [] ->
+        if List.mem_assoc name !builtins_env then
+          failwith ("Module " ^ name ^ " already declared")
+    | mm -> (
         let mm = List.rev mm in
         let l = List.hd mm in
         let mm = List.rev (List.tl mm) in
         let e =
-          try Value.invokes (snd (List.assoc x !builtins_env)) mm
+          try Value.invokes (snd (List.assoc name !builtins_env)) mm
           with _ ->
             failwith
-              ("Could not find the parent module of " ^ String.concat "." name)
+              ("Could not find the parent module of "
+              ^ String.concat "." (root_module @ [name]))
         in
         try
           ignore (Value.invoke e l);
-          failwith ("Module " ^ String.concat "." name ^ " already exists")
+          failwith
+            ("Module "
+            ^ String.concat "." (root_module @ [name])
+            ^ " already exists")
         with _ -> ()));
-  add_builtin ~register:false name
+  add_builtin ~register:false ~root_module name
     (([], Type.make Type.unit), { Value.pos = None; value = Value.unit })
 
 (* Builtins are only used for documentation now. *)

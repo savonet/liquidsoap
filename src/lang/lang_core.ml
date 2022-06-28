@@ -181,8 +181,8 @@ let to_plugin_doc category flags examples main_doc proto return_t =
 
 let meth_fun = meth
 
-let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
-    name proto return_t f =
+let add_builtin ~category ~descr ?root_module ?(flags = []) ?(meth = [])
+    ?(examples = []) name proto return_t f =
   let return_t =
     if meth = [] then return_t
     else (
@@ -205,11 +205,9 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
   let generalized = Type.filter_vars (fun _ -> true) t in
   let doc () = to_plugin_doc category flags examples descr proto return_t in
   let doc = Lazy.from_fun doc in
-  Environment.add_builtin ~doc
-    (String.split_on_char '.' name)
-    ((generalized, t), value)
+  Environment.add_builtin ?root_module ~doc name ((generalized, t), value)
 
-let add_builtin_base ~category ~descr ?(flags = []) name value t =
+let add_builtin_base ~category ~descr ?root_module ?(flags = []) name value t =
   let value = { pos = t.Type.pos; value } in
   let generalized = Type.filter_vars (fun _ -> true) t in
   let doc () =
@@ -227,11 +225,13 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
       flags;
     doc
   in
-  Environment.add_builtin ~doc:(Lazy.from_fun doc)
-    (String.split_on_char '.' name)
+  Environment.add_builtin ?root_module ~doc:(Lazy.from_fun doc) name
     ((generalized, t), value)
 
-let add_module name = Environment.add_module (String.split_on_char '.' name)
+type _module = Environment._module
+
+let root_module = Environment.root_module
+let add_module = Environment.add_module
 
 (* Delay this function in order not to have Lang depend on Evaluation. *)
 let apply_fun : (?pos:Pos.t -> value -> env -> value) ref =

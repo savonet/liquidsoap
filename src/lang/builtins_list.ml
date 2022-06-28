@@ -34,7 +34,7 @@ let randomize a =
       permute i (i + Random.int (l - i))
     done
 
-let () = Lang.add_module "list"
+let list_module = Lang.(add_module root_module "list")
 
 let () =
   let a = Lang.univ_t ~constraints:[Type.Ord] () in
@@ -61,7 +61,7 @@ let () =
 let () =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  Lang.add_builtin "list.case" ~category:`List
+  Lang.add_builtin ~root_module:list_module "case" ~category:`List
     ~descr:
       "Define a function by case analysis, depending on whether a list is \
        empty or not."
@@ -87,7 +87,7 @@ let () =
 let () =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  Lang.add_builtin "list.ind" ~category:`List
+  Lang.add_builtin ~root_module:list_module "ind" ~category:`List
     ~descr:
       "Define a function by induction on a list. This is slightly more \
        efficient than defining a recursive function. The list is scanned from \
@@ -123,22 +123,23 @@ let () =
 let () =
   let a = Lang.univ_t () in
   List.iter
-    (fun name ->
-      Lang.add_builtin name ~category:`List
-        ~descr:"Add an element at the top of a list."
-        [("", a, None, None); ("", Lang.list_t a, None, None)]
-        (Lang.list_t a)
-        (fun p ->
-          let x, l =
-            match p with [("", x); ("", l)] -> (x, l) | _ -> assert false
-          in
-          let l = Lang.to_list l in
-          Lang.list (x :: l)))
-    ["list.add"; "_::_"]
+    (fun (root_module, name) ->
+      ignore
+        (Lang.add_builtin name ~root_module ~category:`List
+           ~descr:"Add an element at the top of a list."
+           [("", a, None, None); ("", Lang.list_t a, None, None)]
+           (Lang.list_t a)
+           (fun p ->
+             let x, l =
+               match p with [("", x); ("", l)] -> (x, l) | _ -> assert false
+             in
+             let l = Lang.to_list l in
+             Lang.list (x :: l))))
+    [(list_module, "add"); (Lang.root_module, "_::_")]
 
 let () =
   let t = Lang.list_t (Lang.univ_t ()) in
-  Lang.add_builtin "list.randomize" ~category:`List
+  Lang.add_builtin ~root_module:list_module "randomize" ~category:`List
     ~descr:"Shuffle the content of a list." [("", t, None, None)] t (fun p ->
       let l = Array.of_list (Lang.to_list (List.assoc "" p)) in
       randomize l;
@@ -146,7 +147,7 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  Lang.add_builtin "list.sort" ~category:`List
+  Lang.add_builtin ~root_module:list_module "sort" ~category:`List
     ~descr:"Sort a list according to a comparison function."
     [
       ( "",

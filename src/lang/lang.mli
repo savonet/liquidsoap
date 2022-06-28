@@ -77,10 +77,17 @@ val apply : value -> env -> value
 
 type proto = (string * t * value option * string option) list
 
+(** Declare a new module. *)
+type _module
+
+val add_module : _module -> string -> _module
+val root_module : _module
+
 (** Add an builtin to the language, high-level version for functions. *)
 val add_builtin :
   category:Documentation.category ->
   descr:string ->
+  ?root_module:_module ->
   ?flags:Documentation.flag list ->
   ?meth:(string * Type.scheme * string * value) list ->
   ?examples:string list ->
@@ -99,9 +106,6 @@ val add_builtin_base :
   in_value ->
   t ->
   unit
-
-(** Declare a new module. *)
-val add_module : string -> unit
 
 val empty : Frame.content_kind
 val any : Frame.content_kind

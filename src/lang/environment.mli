@@ -31,17 +31,21 @@ val get_builtin : string -> (Type.scheme * Value.t) option
 (** Documentation for builtins. *)
 val builtins : Doc.item
 
+(** Declare a module. *)
+type _module
+
+val root_module : _module
+val add_module : _module -> string -> _module
+
 (** Add a builtin value. *)
 val add_builtin :
+  ?root_module:_module ->
   ?override:bool ->
   ?register:bool ->
   ?doc:Doc.item Lazy.t ->
-  string list ->
+  string ->
   Type.scheme * Value.t ->
-  unit
-
-(** Declare a module. *)
-val add_module : string list -> unit
+  _module
 
 (** {1 Environments} *)
 

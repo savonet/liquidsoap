@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let () = Lang.add_module "random"
+let random_module = Lang.(add_module root_module "random")
 
 let () =
   let add op name descr =
