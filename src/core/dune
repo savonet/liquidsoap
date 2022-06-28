@@ -739,6 +739,7 @@
   winsvc_option
   xmlplaylist_option)
  (libraries
+  liquidsoap_core
   (select
    alsa_option.ml
    from
