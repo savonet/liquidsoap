@@ -894,15 +894,15 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
       let pos = Frame.position frame in
       try
         let socket = self#get_socket in
-        let decoder =
+        let decoder, buffer =
           match decoder_data with
             | None ->
+                let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
                 let decoder = self#create_decoder socket in
-                decoder_data <- Some decoder;
-                decoder
+                decoder_data <- Some (decoder, buffer);
+                (decoder, buffer)
             | Some d -> d
         in
-        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
         while Generator.length generator < Lazy.force Frame.size do
           decoder.Decoder.decode buffer
         done;
