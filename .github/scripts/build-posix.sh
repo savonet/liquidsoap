@@ -27,7 +27,7 @@ echo "::endgroup::"
 echo "::group::Setting up specific dependencies"
 
 # TODO: Add those to docker CI images.
-opam install -y --confirm-level=unsafe-yes irc-client-unix lilv
+opam install -y --confirm-level=unsafe-yes irc-client-unix
 
 cd /tmp/liquidsoap-full/liquidsoap
 
