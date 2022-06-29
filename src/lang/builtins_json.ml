@@ -173,7 +173,7 @@ let rec value_of_typed_json ~ty json =
             log#important
               "You are parsing a JSON value without type annotation. This has \
                confusing side-effects. Consider adding a type annotation: `let \
-               json.parse x : <type annotation> = ...`"
+               json.parse (x : ...) = ...`"
         | _ -> ()
     in
     match (json, ty.Type.descr) with
