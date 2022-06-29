@@ -83,6 +83,12 @@ if [ "${PLATFORM}" = "armhf" ]; then
   exit 0;
 fi
 
+echo "::group::Print build config"
+
+dune exec -- liquidsoap --build-config
+
+echo "::endgroup::"
+
 echo "::group::Basic tests"
 
 cd /tmp/liquidsoap-full/liquidsoap
