@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let log = Hooks.log ["json"; "parse"]
+
 let rec json_of_value v : Json.t =
   match v.Value.value with
     | Value.Null -> `Null
@@ -165,6 +167,15 @@ let rec value_of_typed_json ~ty json =
   let nullable, _ty = nullable_deref ty in
   try
     let tm, ty = Type.split_meths _ty in
+    let () =
+      match ty.Type.descr with
+        | Type.Var _ ->
+            log#important
+              "You are parsing a JSON value without type annotation. This has \
+               confusing side-effects. Consider adding a type annotation: `let \
+               json.parse x : <type annotation> = ...`"
+        | _ -> ()
+    in
     match (json, ty.Type.descr) with
       | `Assoc l, Type.Var _ | `Assoc l, Type.Tuple [] ->
           Typing.(ty <: Lang.unit_t);
@@ -479,7 +490,7 @@ let () =
       ("default", t, None, Some "Default value if string cannot be parsed.");
       ("", Lang.string_t, None, None);
     ] t (fun p ->
-      Printf.eprintf
+      log#important
         "WARNING: \"json.parse\" is deprecated and will be removed in future \
          version. Please use \"let json.parse ...\" instead";
       let default = List.assoc "default" p in
@@ -488,5 +499,5 @@ let () =
         let json = Json.from_string s in
         deprecated_of_json default json
       with e ->
-        Printf.eprintf "JSON parsing failed: %s" (Printexc.to_string e);
+        log#important "JSON parsing failed: %s" (Printexc.to_string e);
         default)

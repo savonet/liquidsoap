@@ -129,3 +129,4 @@ module Regexp = struct
 end
 
 let () = Hooks.regexp := (module Regexp : Hooks.Regexp_t)
+let () = Hooks.make_log := fun name -> (Log.make name :> Hooks.log)

@@ -18,3 +18,14 @@ val collect_after : ((unit -> Value.t) -> Value.t) ref
 module type Regexp_t = Regexp.T
 
 val regexp : (module Regexp_t) ref
+
+type log =
+  < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
+  ; critical : 'a. ('a, unit, string, unit) format4 -> 'a
+  ; severe : 'a. ('a, unit, string, unit) format4 -> 'a
+  ; important : 'a. ('a, unit, string, unit) format4 -> 'a
+  ; info : 'a. ('a, unit, string, unit) format4 -> 'a
+  ; debug : 'a. ('a, unit, string, unit) format4 -> 'a >
+
+val make_log : (string list -> log) ref
+val log : string list -> log

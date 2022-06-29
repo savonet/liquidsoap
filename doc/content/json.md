@@ -1,6 +1,10 @@
 Importing JSON values
 ---------------------
 
+_Note:_ If you are reading this page for the first time, you might want to skip directly to the
+explicit type annotation below as this is the recommended way of parsing JSON data. The content 
+before that is here to explain the inner workings of JSON parsing in `liquidsoap`.
+
 Liquidsoap supports importing JSON values through a special `let` syntax. Using this syntax
 makes it relatively natural to parse JSON data in your script while keeping type-safety at runtime.
 Here's an example:
@@ -83,6 +87,8 @@ Now, this is looking nice!
 
 Explicit type annotation
 ------------------------
+
+Explicit type annotation are the recommended way to parse JSON data.
 
 Let's try a slight variation of the previous script now:
 ```liquidsoap
