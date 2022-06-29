@@ -1,14 +1,17 @@
 2.2.0 (unreleased)
 =====
 
+New:
+
+- Added support for native osc library (#2426, #2480).
+
 Changes:
 
 - Switched to `dune` for building the binary and libraries.
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseeded by support for actual
-  varialbes in encoders.
+  variables in encoders.
 
----
 2.0.6 (2022-06-20)
 =====
 
