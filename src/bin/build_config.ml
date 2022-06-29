@@ -49,7 +49,7 @@ let build_config =
    - Ffmpeg            : %{Ffmpeg_option.detected}
    - MP3               : %{Lame_option.detected}
    - MP3 (fixed-point) : %{Shine_option.detected}
-   - Opus         x     : %{Opus_option.detected}
+   - Opus              : %{Opus_option.detected}
    - Speex             : %{Speex_option.detected}
    - Theora            : %{Theora_option.detected}
    - Vorbis            : %{Vorbis_option.detected}
