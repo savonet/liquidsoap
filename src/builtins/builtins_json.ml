@@ -168,6 +168,15 @@ let rec value_of_typed_json ~ty json =
   let nullable, _ty = nullable_deref ty in
   try
     let tm, ty = Type.split_meths _ty in
+    let () =
+      match ty.Type.descr with
+        | Type.Var _ ->
+            log#important
+              "You are parsing a JSON value without type annotation. This has \
+               confusing side-effects. Consider adding a type annotation: `let \
+               json.parse x : <type annotation> = ...`"
+        | _ -> ()
+    in
     match (json, ty.Type.descr) with
       | `Assoc l, Type.Var _ | `Assoc l, Type.Tuple [] ->
           Typing.(ty <: Lang.unit_t);
