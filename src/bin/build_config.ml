@@ -102,6 +102,7 @@ let build_config =
    - magic             : %{Magic_option.detected}
    - memtrace          : %{Memtrace_option.detected}
    - mem_usage         : %{Mem_usage_option.detected}
+   - osc               : %{Osc_option.detected}
    - SecureTransport   : %{Osx_secure_transport_option.detected}
    - ssl               : %{Ssl_option.detected}
    - posix-time2       : %{Posix_time_option.detected}

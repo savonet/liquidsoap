@@ -36,6 +36,7 @@ let () =
       ("ocurl", Ocurl_option.enabled);
       ("ogg", Ogg_option.enabled);
       ("opus", Opus_option.enabled);
+      ("osc", Osc_option.enabled);
       ("oss", Oss_option.enabled);
       ("osx_secure_transport", Osx_secure_transport_option.enabled);
       ("portaudio", Portaudio_option.enabled);

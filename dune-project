@@ -56,6 +56,7 @@
     ocurl
     ogg
     opus
+    osc-unix
     osx-secure-transport
     portaudio
     posix-time2
