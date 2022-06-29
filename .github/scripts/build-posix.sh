@@ -26,6 +26,9 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
+# TODO: Add those to docker CI images.
+opam install -y irc-client-unix lilv
+
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
