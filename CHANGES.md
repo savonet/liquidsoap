@@ -12,6 +12,7 @@ Changes:
 - Removed support for `%define` variables, superseeded by support for actual
   variables in encoders.
 
+---
 2.0.6 (2022-06-20)
 =====
 
