@@ -24,7 +24,7 @@ open Extralib
 
 let conf_osc =
   Dtools.Conf.void
-    ~p:(Configure.conf#plug "osc.native")
+    ~p:(Configure.conf#plug "oscnative")
     "Interactions through the OSC protocol."
 
 let conf_port =
@@ -54,14 +54,14 @@ let handler path (data : Osc.Types.argument array) =
     List.iter (fun f -> f v) h
   with _ -> ()
 
-(* We have to start the server _after_
-   daemonizing. See: savonet/liquidsoap#1365.
+(* We have to start the server _after_ daemonizing.
+   See: savonet/liquidsoap#1365.
 
    There are two cases:
-   - Server is requested before we daemonize (i.e.
-     in a top-level call), start it after daemonization.
-   - Server is requested after we daemonize (i.e.
-     in a callback), start it immediately. *)
+   - Server is requested before we daemonize (i.e. in a top-level call), start
+     it after daemonization.
+   - Server is requested after we daemonize (i.e. in a callback), start it
+     immediately. *)
 let server = ref None
 let should_start = ref false
 let started = ref false
