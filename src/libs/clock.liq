@@ -34,5 +34,6 @@ end
 # Get the current time in seconds for all allocated clocks.
 # @category Liquidsoap
 def clock.status.seconds()
-  list.map(fun(ct) -> (fst(ct), seconds_of_main(snd(ct))), clock.status())
+  d = frame.duration()
+  list.map(fun(ct) -> (fst(ct), float(snd(ct))*d), clock.status())
 end
