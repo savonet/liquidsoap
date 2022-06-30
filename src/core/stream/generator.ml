@@ -22,6 +22,26 @@
 
 exception Incorrect_stream_type
 
+type content = Content.data Frame.fields
+
+let type_of_content = Frame.map_fields Content.format
+let copy_audio c = { c with Frame.audio = Content.copy c.Frame.audio }
+let copy_video c = { c with Frame.video = Content.copy c.Frame.video }
+let copy_content = Frame.map_fields Content.copy
+
+let content frame =
+  {
+    Frame.audio = Frame.audio frame;
+    video = Frame.video frame;
+    midi = Frame.midi frame;
+  }
+
+let fill_content src src_pos dst dst_pos len =
+  let fill src dst = Content.fill src src_pos dst dst_pos len in
+  fill src.Frame.audio dst.Frame.audio;
+  fill src.Frame.video dst.Frame.video;
+  fill src.Frame.midi dst.Frame.midi
+
 module type S = sig
   type t
 
@@ -212,7 +232,7 @@ module From_frames = struct
   type t = {
     mutable metadata : (int * Frame.metadata) list;
     mutable breaks : int list;
-    generator : Frame.content Generator.t;
+    generator : content Generator.t;
   }
 
   let create () =
@@ -257,9 +277,9 @@ module From_frames = struct
     let content =
       match copy with
         | `None -> content
-        | `Audio -> Frame.copy_audio content
-        | `Video -> Frame.copy_video content
-        | `Both -> Frame.copy content
+        | `Audio -> copy_audio content
+        | `Video -> copy_video content
+        | `Both -> copy_content content
     in
     fg.breaks <- fg.breaks @ List.map (fun p -> length fg + p - ofs) breaks;
     fg.metadata <-
@@ -284,13 +304,13 @@ module From_frames = struct
           (List.filter (fun x -> x < position) (Frame.breaks frame));
 
     (* Feed all content layers into the generator. *)
-    let content = Frame.content frame in
+    let content = content frame in
     let content =
       match copy with
         | `None -> content
-        | `Audio -> Frame.copy_audio content
-        | `Video -> Frame.copy_video content
-        | `Both -> Frame.copy content
+        | `Audio -> copy_audio content
+        | `Video -> copy_video content
+        | `Both -> copy_content content
     in
     Generator.put fg.generator content 0 position
 
@@ -306,8 +326,8 @@ module From_frames = struct
     let blocks = Generator.get fg.generator needed in
     List.iter
       (fun (block, o, o', size) ->
-        let dst = Frame.content frame in
-        Frame.fill_content block o dst (offset + o') size)
+        let dst = content frame in
+        fill_content block o dst (offset + o') size)
       blocks;
     List.iter
       (fun (p, m) -> if p < needed then Frame.set_metadata frame (offset + p) m)
@@ -632,20 +652,20 @@ module From_audio_video = struct
     let pts = Frame.pts frame in
     let mode = match mode with Some mode -> mode | None -> t.mode in
     let pos = Frame.position frame in
-    let content = Frame.content frame in
+    let content = content frame in
 
     match mode with
       | `Audio ->
           let content =
             match copy with
-              | `Audio | `Both -> Frame.copy_audio content
+              | `Audio | `Both -> copy_audio content
               | _ -> content
           in
           put_audio ?pts t content.Frame.audio 0 pos
       | `Video ->
           let content =
             match copy with
-              | `Video | `Both -> Frame.copy_video content
+              | `Video | `Both -> copy_video content
               | _ -> content
           in
           put_video ?pts t content.Frame.video 0 pos
@@ -653,9 +673,9 @@ module From_audio_video = struct
           let content =
             match copy with
               | `None -> content
-              | `Audio -> Frame.copy_audio content
-              | `Video -> Frame.copy_video content
-              | `Both -> Frame.copy content
+              | `Audio -> copy_audio content
+              | `Video -> copy_video content
+              | `Both -> copy_content content
           in
           put_audio ?pts t content.Frame.audio 0 pos;
           put_video ?pts t content.Frame.video 0 pos
@@ -827,11 +847,11 @@ module From_audio_video_plus = struct
         let p = Frame.position frame in
         let breaks = Frame.breaks frame in
         Super.fill t.gen frame;
-        let c = Frame.content frame in
+        let c = content frame in
         match t.ctype with
-          | None -> t.ctype <- Some (Frame.type_of_content c)
+          | None -> t.ctype <- Some (type_of_content c)
           | Some ctype ->
-              if not (Frame.compatible (Frame.type_of_content c) ctype) then (
+              if not (Frame.compatible (type_of_content c) ctype) then (
                 t.log "Incorrect stream type!";
                 t.error <- true;
                 Super.clear t.gen;

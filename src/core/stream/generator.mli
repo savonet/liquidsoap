@@ -33,6 +33,10 @@
     number of audio channels, etc.). *)
 exception Incorrect_stream_type
 
+type content = Content.data Frame.fields
+
+val content : Frame.t -> content
+
 (** Signature for a generator. *)
 module type S = sig
   type t
@@ -153,7 +157,7 @@ module From_frames : sig
     ?copy:[ `None | `Audio | `Video | `Both ] ->
     ?breaks:int list ->
     ?metadata:(int * Frame.metadata) list ->
-    Frame.content ->
+    content ->
     int ->
     int ->
     unit
