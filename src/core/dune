@@ -253,6 +253,7 @@
  (libraries liquidsoap_core)
  (modules
   builtins_callbacks
+  builtins_clock
   builtins_files_extra
   builtins_harbor
   builtins_process
