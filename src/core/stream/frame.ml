@@ -54,7 +54,6 @@ let midi_n c = `Format Midi.(lift_params { Content.channels = c })
 let map_fields fn c =
   { audio = fn c.audio; video = fn c.video; midi = fn c.midi }
 
-let type_of_content = map_fields format
 let string_of_format = string_of_format
 
 let string_of_kind = function
@@ -80,6 +79,8 @@ let metadata_of_list l =
   let m = Hashtbl.create (List.length l) in
   List.iter (fun (k, v) -> Hashtbl.add m k v) l;
   m
+
+type content = Content.data fields
 
 type t = {
   (* Presentation time, in multiple of frame size. *)
@@ -113,8 +114,6 @@ let dummy =
   }
 
 let content_type { content } = map_fields format content
-let content { content } = content
-let set_content frame content = frame.content <- content
 let audio { content; _ } = content.audio
 let set_audio frame audio = frame.content <- { frame.content with audio }
 let video { content; _ } = content.video
@@ -161,12 +160,6 @@ let free_metadata b t =
 let free_all_metadata b = b.metadata <- []
 let get_all_metadata b = List.sort (fun (x, _) (y, _) -> compare x y) b.metadata
 let set_all_metadata b l = b.metadata <- l
-
-let fill_content src src_pos dst dst_pos len =
-  let fill src dst = fill src src_pos dst dst_pos len in
-  fill src.audio dst.audio;
-  fill src.video dst.video;
-  fill src.midi dst.midi
 
 let blit_content src src_pos dst dst_pos len =
   let blit src dst = blit src src_pos dst dst_pos len in
@@ -258,7 +251,3 @@ let get_chunk ab from =
           else aux i tl
   in
   aux 0 (List.rev from.breaks)
-
-let copy_audio c = { c with audio = copy c.audio }
-let copy_video c = { c with video = copy c.video }
-let copy = map_fields copy

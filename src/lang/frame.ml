@@ -35,8 +35,6 @@ type content_kind = kind fields
 (** Precise description of the channel types for the current track. *)
 type content_type = Content.format fields
 
-type content = Content.data fields
-
 (** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
 
