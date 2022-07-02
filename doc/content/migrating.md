@@ -61,6 +61,22 @@ end
 JSON parsing was greatly improved and is now much more user-friendly.
 You can check out our detailed presentation [here](json.html).
 
+### Runtime evaluation
+
+Runtime evaluation of strings has been re-implemented as a type-safe
+eval `let` decoration. You can now do:
+
+```liquidsoap
+let eval x = "[1,2,3]"
+````
+
+And, just like with JSON parsing, the recommended use is with a
+_type annotation_:
+
+```liquidsoap
+let eval (x: [int]) = "[1,2,3]"
+```
+
 ### Deprecations and breaking changes
 
 * The argument `streams_info` of `output.file.hls` is now a record.
