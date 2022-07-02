@@ -58,7 +58,9 @@ class remove ~kind (source : source) t =
   end
 
 let () =
-  let kind = { Frame.audio = `Any; video = `Any; midi = Frame.midi_native } in
+  let kind =
+    Frame.mk_fields ~audio:`Any ~video:`Any ~midi:Frame.midi_native ()
+  in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "midi.merge_all"
     [
@@ -74,7 +76,9 @@ let () =
       new merge ~kind src out)
 
 let () =
-  let kind = { Frame.audio = `Any; video = `Any; midi = Frame.midi_native } in
+  let kind =
+    Frame.mk_fields ~audio:`Any ~video:`Any ~midi:Frame.midi_native ()
+  in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "midi.remove"
     [

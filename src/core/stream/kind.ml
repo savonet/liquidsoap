@@ -25,43 +25,32 @@ open Frame
 exception Conflict of string * string
 
 type kind = Frame.kind Unifier.t
-type t = kind fields
+type t = kind Fields.t
 
 let deref = Unifier.deref
+let of_kind = Frame.map_fields Unifier.make
+let set_audio fields k = Frame.set_audio_field fields (Unifier.make k)
+let set_video fields k = Frame.set_video_field fields (Unifier.make k)
+let set_midi fields k = Frame.set_midi_field fields (Unifier.make k)
 
-let of_kind { audio; video; midi } =
-  let f = Unifier.make in
-  { audio = f audio; video = f video; midi = f midi }
-
-let set_audio { video; midi } audio =
-  { Frame.audio = Unifier.make audio; video; midi }
-
-let set_video { audio; midi } video =
-  { Frame.audio; video = Unifier.make video; midi }
-
-let set_midi { audio; video } midi =
-  { Frame.audio; video; midi = Unifier.make midi }
-
-let content_type { audio; video; midi } =
-  let get t v =
+let content_type =
+  let get field v =
     match deref v with
       | `Internal | `Any -> (
-          match t with
-            | `Audio -> Content.default_audio ()
-            | `Video -> Content.default_video ()
-            | `Midi -> Content.default_midi ())
+          match field with
+            | v when v = Frame.audio_field -> Content.default_audio ()
+            | v when v = Frame.video_field -> Content.default_video ()
+            | v when v = Frame.midi_field -> Content.default_midi ()
+            | _ ->
+                failwith
+                  ("No default content for field: " ^ string_of_field field))
       | `Format f -> f
       | `Kind k -> Content.default_format k
   in
-  {
-    Frame.audio = get `Audio audio;
-    video = get `Video video;
-    midi = get `Midi midi;
-  }
+  Frame.mapi_fields get
 
-let to_string { audio; video; midi } =
-  Frame.string_of_content_kind
-    { Frame.audio = deref audio; video = deref video; midi = deref midi }
+let to_string fields =
+  Frame.string_of_content_kind (Frame.map_fields deref fields)
 
 let unify_kind k k' =
   let to_s k = Frame.string_of_kind (deref k) in
@@ -91,6 +80,6 @@ let unify_kind k k' =
   with _ -> raise (Conflict (to_s k, to_s k'))
 
 let unify k k' =
-  unify_kind k.audio k'.audio;
-  unify_kind k.video k'.video;
-  unify_kind k.midi k'.midi
+  unify_kind (Frame.find_audio k) (Frame.find_audio k');
+  unify_kind (Frame.find_video k) (Frame.find_video k');
+  unify_kind (Frame.find_midi k) (Frame.find_midi k')

@@ -250,7 +250,7 @@ let file_type ~ctype:_ filename =
         if video = 0 then Content.None.format
         else Content.(default_format Video.kind)
       in
-      Some { Frame.audio; video; midi = Content.None.format })
+      Some (Frame.mk_fields ~audio ~video ~midi:Content.None.format ()))
 
 let mime_types =
   Dtools.Conf.list

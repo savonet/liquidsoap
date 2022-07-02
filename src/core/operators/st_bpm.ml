@@ -38,7 +38,7 @@ class bpm ~kind (source : source) =
       bpm <-
         Some
           (Soundtouch.BPM.make
-             (Content.Audio.channels_of_format self#ctype.Frame.audio)
+             (Content.Audio.channels_of_format (Frame.find_audio self#ctype))
              (Lazy.force Frame.audio_rate))
 
     method private get_frame buf =

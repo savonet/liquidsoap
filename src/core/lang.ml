@@ -3,30 +3,28 @@ include Lang_source
 include Lang_encoder.L
 module Doc = Liquidsoap_lang.Doc
 
-let audio_pcm = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any }
+let audio_pcm = Frame.mk_fields ~audio:Frame.audio_pcm ~video:`Any ~midi:`Any ()
 
 let audio_params p =
-  {
-    Frame.audio = `Format (Content.Audio.lift_params p);
-    video = `Any;
-    midi = `Any;
-  }
+  Frame.mk_fields
+    ~audio:(`Format (Content.Audio.lift_params p))
+    ~video:`Any ~midi:`Any ()
 
-let audio_n n = { Frame.audio = Frame.audio_n n; video = `Any; midi = `Any }
+let audio_n n =
+  Frame.mk_fields ~audio:(Frame.audio_n n) ~video:`Any ~midi:`Any ()
+
 let audio_mono = audio_params { Content.channel_layout = lazy `Mono }
 let audio_stereo = audio_params { Content.channel_layout = lazy `Stereo }
 
 let video_yuva420p =
-  { Frame.audio = `Any; video = Frame.video_yuva420p; midi = `Any }
+  Frame.mk_fields ~audio:`Any ~video:Frame.video_yuva420p ~midi:`Any ()
 
-let midi = { Frame.audio = `Any; video = `Any; midi = Frame.midi_native }
+let midi = Frame.mk_fields ~audio:`Any ~video:`Any ~midi:Frame.midi_native ()
 
 let midi_n n =
-  {
-    Frame.audio = `Any;
-    video = `Any;
-    midi = `Format (Content.Midi.lift_params { Content.channels = n });
-  }
+  Frame.mk_fields ~audio:`Any ~video:`Any
+    ~midi:(`Format (Content.Midi.lift_params { Content.channels = n }))
+    ()
 
 (** Helpers for defining protocols. *)
 

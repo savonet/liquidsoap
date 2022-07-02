@@ -52,7 +52,8 @@ class synth ~kind (synth : Synth.synth) (source : source) chan volume =
 
 let register obj name descr =
   let kind =
-    { Frame.audio = Frame.audio_mono; video = `Any; midi = Frame.midi_n 1 }
+    Frame.mk_fields ~audio:Frame.audio_mono ~video:`Any ~midi:(Frame.midi_n 1)
+      ()
   in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator ("synth." ^ name)
@@ -98,7 +99,8 @@ let register obj name descr =
       let kind = Kind.of_kind kind in
       (new synth ~kind (obj adsr) src chan volume :> Source.source));
   let kind =
-    { Frame.audio = Frame.audio_mono; video = `Any; midi = Frame.midi_n 16 }
+    Frame.mk_fields ~audio:Frame.audio_mono ~video:`Any ~midi:(Frame.midi_n 16)
+      ()
   in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator ("synth.all." ^ name)

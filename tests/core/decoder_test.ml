@@ -1,5 +1,3 @@
-open Frame
-
 let channel_layout_converter src dst =
   match (src, dst) with
     | `Mono, `Mono
@@ -34,39 +32,39 @@ let () =
   let midi = Content.(Midi.lift_params { Content.channels = 1 }) in
   assert (
     Decoder.can_decode_type
-      { audio = stereo; video = none; midi = none }
-      { audio = stereo; video = none; midi = none });
+      (Frame.mk_fields ~audio:stereo ~video:none ~midi:none ())
+      (Frame.mk_fields ~audio:stereo ~video:none ~midi:none ()));
   assert (
     Decoder.can_decode_type
-      { audio = mono; video = none; midi = none }
-      { audio = stereo; video = none; midi = none });
+      (Frame.mk_fields ~audio:mono ~video:none ~midi:none ())
+      (Frame.mk_fields ~audio:stereo ~video:none ~midi:none ()));
   assert (
     Decoder.can_decode_type
-      { audio = five_point_one; video = none; midi = none }
-      { audio = stereo; video = none; midi = none });
+      (Frame.mk_fields ~audio:five_point_one ~video:none ~midi:none ())
+      (Frame.mk_fields ~audio:stereo ~video:none ~midi:none ()));
   assert (
     not
       (Decoder.can_decode_type
-         { audio = mono; video = none; midi = none }
-         { audio = stereo; video = yuva420p; midi = none }));
+         (Frame.mk_fields ~audio:mono ~video:none ~midi:none ())
+         (Frame.mk_fields ~audio:stereo ~video:yuva420p ~midi:none ())));
   assert (
     Decoder.can_decode_type
-      { audio = mono; video = yuva420p; midi = none }
-      { audio = stereo; video = yuva420p; midi = none });
+      (Frame.mk_fields ~audio:mono ~video:yuva420p ~midi:none ())
+      (Frame.mk_fields ~audio:stereo ~video:yuva420p ~midi:none ()));
   assert (
     not
       (Decoder.can_decode_type
-         { audio = mono; video = none; midi = none }
-         { audio = stereo; video = none; midi }));
+         (Frame.mk_fields ~audio:mono ~video:none ~midi:none ())
+         (Frame.mk_fields ~audio:stereo ~video:none ~midi ())));
   assert (
     Decoder.can_decode_type
-      { audio = stereo; video = yuva420p; midi }
-      { audio = stereo; video = none; midi = none });
+      (Frame.mk_fields ~audio:stereo ~video:yuva420p ~midi ())
+      (Frame.mk_fields ~audio:stereo ~video:none ~midi ()));
   assert (
     Decoder.can_decode_type
-      { audio = stereo; video = yuva420p; midi }
-      { audio = stereo; video = yuva420p; midi });
+      (Frame.mk_fields ~audio:stereo ~video:yuva420p ~midi ())
+      (Frame.mk_fields ~audio:stereo ~video:yuva420p ~midi ()));
   assert (
     Decoder.can_decode_type
-      { audio = stereo; video = yuva420p; midi = none }
-      { audio = none; video = yuva420p; midi = none })
+      (Frame.mk_fields ~audio:stereo ~video:yuva420p ~midi ())
+      (Frame.mk_fields ~audio:none ~video:yuva420p ~midi ()))

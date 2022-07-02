@@ -78,11 +78,9 @@ class visu ~kind source =
         let vFrame =
           Frame.(
             create
-              {
-                audio = Content.None.format;
-                video = Content.(default_format Video.kind);
-                midi = Content.None.format;
-              })
+              (Frame.mk_fields ~audio:Content.None.format
+                 ~video:Content.(default_format Video.kind)
+                 ~midi:Content.None.format ()))
         in
         Frame.set_video frame (VFrame.content vFrame);
 

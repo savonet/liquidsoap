@@ -66,22 +66,31 @@ let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
 let univ_t ?(constraints = []) () = Type.var ~constraints ()
 let getter_t a = Type.make (Type.Getter a)
-let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
+
+let frame_kind_t kind =
+  Term.frame_kind_t (Frame.find_audio kind) (Frame.find_video kind)
+    (Frame.find_midi kind)
+
 let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t t = Term.source_t t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
 let kind_t k = Term.kind_t k
 let kind_none_t = Term.kind_t Frame.none
-let empty = { Frame.audio = Frame.none; video = Frame.none; midi = Frame.none }
-let any = { Frame.audio = `Any; video = `Any; midi = `Any }
-let internal = { Frame.audio = `Internal; video = `Internal; midi = `Internal }
+
+let empty =
+  Frame.mk_fields ~audio:Frame.none ~video:Frame.none ~midi:Frame.none ()
+
+let any = Frame.mk_fields ~audio:`Any ~video:`Any ~midi:`Any ()
+
+let internal =
+  Frame.mk_fields ~audio:`Internal ~video:`Internal ~midi:`Internal ()
 
 let kind_type_of_kind_format fields =
-  let audio = Term.kind_t fields.Frame.audio in
-  let video = Term.kind_t fields.Frame.video in
-  let midi = Term.kind_t fields.Frame.midi in
-  frame_kind_t ~audio ~video ~midi
+  let audio = Term.kind_t (Frame.find_audio fields) in
+  let video = Term.kind_t (Frame.find_video fields) in
+  let midi = Term.kind_t (Frame.find_midi fields) in
+  frame_kind_t (Frame.mk_fields ~audio ~video ~midi ())
 
 (** Value construction *)
 

@@ -118,7 +118,7 @@ let () =
   let in_k = Lang.kind_type_of_kind_format Lang.any in
   let out_k =
     Lang.kind_type_of_kind_format
-      { Frame.audio = `Any; video = `Any; midi = Frame.midi_n 1 }
+      (Frame.mk_fields ~audio:`Any ~video:`Any ~midi:(Frame.midi_n 1) ())
   in
   Lang.add_operator "midi.chord"
     [

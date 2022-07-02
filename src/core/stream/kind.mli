@@ -25,7 +25,7 @@
   * that works through a content production pipeline. *)
 
 type kind
-type t = kind Frame.fields
+type t = kind Frame.Fields.t
 
 val of_kind : Frame.content_kind -> t
 val to_string : t -> string

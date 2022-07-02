@@ -131,7 +131,8 @@ let register_descr plugin_name descr_n descr outputs =
   let liq_params, params = Ladspa_op.params_of_descr ladspa_descr in
   let chans = Array.length outputs in
   let kind =
-    { Frame.audio = Frame.audio_n chans; video = `Any; midi = Frame.midi_n 1 }
+    Frame.mk_fields ~audio:(Frame.audio_n chans) ~video:`Any
+      ~midi:(Frame.midi_n 1) ()
   in
   let k = Lang.kind_type_of_kind_format kind in
   let liq_params = liq_params in
@@ -152,11 +153,8 @@ let register_descr plugin_name descr_n descr outputs =
       let params = params p in
       new dssi ~kind plugin_name descr_n outputs params ~chan source);
   let kind =
-    {
-      Frame.audio = Frame.audio_n chans;
-      video = `Any;
-      midi = Frame.midi_n all_chans;
-    }
+    Frame.mk_fields ~audio:(Frame.audio_n chans) ~video:`Any
+      ~midi:(Frame.midi_n all_chans) ()
   in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator

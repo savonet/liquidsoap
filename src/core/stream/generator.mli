@@ -33,7 +33,7 @@
     number of audio channels, etc.). *)
 exception Incorrect_stream_type
 
-type content = Content.data Frame.fields
+type content = Content.data Frame.Fields.t
 
 val content : Frame.t -> content
 

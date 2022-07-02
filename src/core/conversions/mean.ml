@@ -53,12 +53,14 @@ class mean ~normalize source =
 let () =
   let in_kind =
     Lang.frame_kind_t
-      ~audio:(Lang.kind_t Frame.audio_pcm)
-      ~video:(Lang.univ_t ()) ~midi:(Lang.univ_t ())
+      (Frame.mk_fields
+         ~audio:(Lang.kind_t Frame.audio_pcm)
+         ~video:(Lang.univ_t ()) ~midi:(Lang.univ_t ()) ())
   in
   let out_kind =
-    let { Frame.video; midi } = Lang.of_frame_kind_t in_kind in
-    Lang.frame_kind_t ~audio:(Lang.kind_t Frame.audio_mono) ~video ~midi
+    let fields = Lang.of_frame_kind_t in_kind in
+    Lang.frame_kind_t
+      (Frame.set_audio_field fields (Lang.kind_t Frame.audio_mono))
   in
   Lang.add_operator "mean"
     [

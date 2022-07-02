@@ -149,25 +149,22 @@ let () =
         (fun ~ctype filename ->
           if
             Decoder.get_image_file_decoder filename <> None
-            && Content.is_internal_format ctype.Frame.audio
+            && Content.is_internal_format (Frame.find_audio ctype)
           then
             Some
-              Frame.
-                {
-                  audio = ctype.audio;
-                  video = Content.(default_format Video.kind);
-                  midi = Content.None.format;
-                }
+              (Frame.mk_fields ~audio:(Frame.find_audio ctype)
+                 ~video:Content.(default_format Video.kind)
+                 ~midi:Content.None.format ())
           else None);
       file_decoder =
         Some
           (fun ~metadata ~ctype filename ->
             let img = Option.get (Decoder.get_image_file_decoder filename) in
             let width, height =
-              Content.Video.dimensions_of_format ctype.Frame.video
+              Content.Video.dimensions_of_format (Frame.find_video ctype)
             in
             create_decoder
-              ~audio:(Content.Audio.is_format ctype.Frame.audio)
+              ~audio:(Content.Audio.is_format (Frame.find_audio ctype))
               ~width ~height ~metadata img);
       stream_decoder = None;
     }

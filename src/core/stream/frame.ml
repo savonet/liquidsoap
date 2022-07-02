@@ -45,15 +45,17 @@ let audio_stereo =
 
 let video_yuva420p = `Kind Video.kind
 let midi_native = `Kind Midi.kind
-let midi_n c = `Format Midi.(lift_params { Content.channels = c })
+
+let midi_n = function
+  | 0 -> none
+  | c -> `Format Midi.(lift_params { Content.channels = c })
 
 (** Compatibilities between content kinds, types and values.
   * [sub a b] if [a] is more permissive than [b]..
   * TODO this is the other way around... it's correct in Lang, phew! *)
 
-let map_fields fn c =
-  { audio = fn c.audio; video = fn c.video; midi = fn c.midi }
-
+let map_fields fn = Fields.map fn
+let mapi_fields fn = Fields.mapi fn
 let string_of_format = string_of_format
 
 let string_of_kind = function
@@ -62,16 +64,28 @@ let string_of_kind = function
   | `Format f -> string_of_format f
   | `Kind k -> string_of_kind k
 
-let string_of_fields fn { audio; video; midi } =
-  Printf.sprintf "{audio=%s,video=%s,midi=%s}" (fn audio) (fn video) (fn midi)
+let string_of_fields fn fields =
+  Printf.sprintf "{%s}"
+    (String.concat ","
+       (Fields.fold
+          (fun f v cur ->
+            Printf.sprintf "%s=%s" (string_of_field f) (fn v) :: cur)
+          fields []))
 
 let string_of_content_kind = string_of_fields string_of_kind
 let string_of_content_type = string_of_fields string_of_format
 
+module S = Set.Make (struct
+  type t = Fields.key
+
+  let compare = Stdlib.compare
+end)
+
 let compatible c c' =
-  Content.compatible c.audio c'.audio
-  && Content.compatible c.video c'.video
-  && Content.compatible c.midi c'.midi
+  let f = List.map fst (Fields.bindings c) in
+  let f' = List.map fst (Fields.bindings c') in
+  S.(equal (of_list f) (of_list f'))
+  && Fields.for_all (fun k v -> Content.compatible v (Fields.find k c')) c
 
 (* Frames *)
 
@@ -80,7 +94,7 @@ let metadata_of_list l =
   List.iter (fun (k, v) -> Hashtbl.add m k v) l;
   m
 
-type content = Content.data fields
+type content = Content.data Fields.t
 
 type t = {
   (* Presentation time, in multiple of frame size. *)
@@ -110,16 +124,24 @@ let dummy =
     pts = None;
     breaks = [];
     metadata = [];
-    content = { audio = data; video = data; midi = data };
+    content = mk_fields ~audio:data ~video:data ~midi:data ();
   }
 
 let content_type { content } = map_fields format content
-let audio { content; _ } = content.audio
-let set_audio frame audio = frame.content <- { frame.content with audio }
-let video { content; _ } = content.video
-let set_video frame video = frame.content <- { frame.content with video }
-let midi { content; _ } = content.midi
-let set_midi frame midi = frame.content <- { frame.content with midi }
+let audio { content; _ } = Fields.find audio_field content
+
+let set_audio frame audio =
+  frame.content <- Fields.add audio_field audio frame.content
+
+let video { content; _ } = Fields.find video_field content
+
+let set_video frame video =
+  frame.content <- Fields.add video_field video frame.content
+
+let midi { content; _ } = Fields.find midi_field content
+
+let set_midi frame midi =
+  frame.content <- Fields.add midi_field midi frame.content
 
 (** Content independent *)
 
@@ -130,9 +152,7 @@ let set_breaks b breaks = b.breaks <- breaks
 let add_break b br = b.breaks <- br :: b.breaks
 
 let clear (b : t) =
-  Content.clear b.content.audio;
-  Content.clear b.content.video;
-  Content.clear b.content.midi;
+  Fields.iter (fun _ c -> Content.clear c) b.content;
   b.breaks <- [];
   b.metadata <- []
 
@@ -163,9 +183,7 @@ let set_all_metadata b l = b.metadata <- l
 
 let blit_content src src_pos dst dst_pos len =
   let blit src dst = blit src src_pos dst dst_pos len in
-  blit src.audio dst.audio;
-  blit src.video dst.video;
-  blit src.midi dst.midi
+  Fields.iter (fun field src -> blit src (Fields.find field dst)) src
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)

@@ -363,85 +363,81 @@ let mk_encoder mode =
   let has_encoded_video = List.mem mode [`Video_encoded; `Both_encoded] in
   let has_raw_video = List.mem mode [`Video_raw; `Both_raw] in
   let source_kind =
-    Frame.
-      {
-        audio = (if has_audio then audio_pcm else none);
-        video = (if has_video then video_yuva420p else none);
-        midi = none;
-      }
+    Frame.mk_fields
+      ~audio:(if has_audio then Frame.audio_pcm else Frame.none)
+      ~video:(if has_video then Frame.video_yuva420p else Frame.none)
+      ~midi:Frame.none ()
   in
   let source_t = Lang.kind_type_of_kind_format source_kind in
   let source_kind_t = Lang.of_frame_kind_t source_t in
   let format_kind =
-    Frame.
-      {
-        audio =
-          (match mode with
-            | `Audio_encoded | `Both_encoded -> source_kind.Frame.audio
-            | `Audio_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Audio.kind
-            | _ -> none);
-        video =
-          (match mode with
-            | `Video_encoded | `Both_encoded -> source_kind.Frame.video
-            | `Video_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Video.kind
-            | _ -> none);
-        midi = none;
-      }
+    Frame.mk_fields
+      ~audio:
+        (match mode with
+          | `Audio_encoded | `Both_encoded -> Frame.find_audio source_kind
+          | `Audio_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Audio.kind
+          | _ -> Frame.none)
+      ~video:
+        (match mode with
+          | `Video_encoded | `Both_encoded -> Frame.find_video source_kind
+          | `Video_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Video.kind
+          | _ -> Frame.none)
+      ~midi:Frame.none ()
   in
   let format_t =
     Lang.frame_kind_t
-      ~audio:
-        (match mode with
-          | `Audio_encoded | `Both_encoded -> source_kind_t.Frame.audio
-          | `Audio_raw | `Both_raw ->
-              Lang.kind_t (`Kind Ffmpeg_raw_content.Audio.kind)
-          | _ -> Lang.kind_none_t)
-      ~video:
-        (match mode with
-          | `Video_encoded | `Both_encoded -> source_kind_t.Frame.video
-          | `Video_raw | `Both_raw ->
-              Lang.kind_t (`Kind Ffmpeg_raw_content.Video.kind)
-          | _ -> Lang.kind_none_t)
-      ~midi:Lang.kind_none_t
+      (Frame.mk_fields
+         ~audio:
+           (match mode with
+             | `Audio_encoded | `Both_encoded -> Frame.find_audio source_kind_t
+             | `Audio_raw | `Both_raw ->
+                 Lang.kind_t (`Kind Ffmpeg_raw_content.Audio.kind)
+             | _ -> Lang.kind_none_t)
+         ~video:
+           (match mode with
+             | `Video_encoded | `Both_encoded -> Frame.find_video source_kind_t
+             | `Video_raw | `Both_raw ->
+                 Lang.kind_t (`Kind Ffmpeg_raw_content.Video.kind)
+             | _ -> Lang.kind_none_t)
+         ~midi:Lang.kind_none_t ())
   in
   let format_kind_t = Lang.of_frame_kind_t format_t in
   let return_kind =
-    Frame.
-      {
-        audio =
-          (match mode with
-            | `Audio_encoded | `Both_encoded ->
-                `Kind Ffmpeg_copy_content.Audio.kind
-            | `Audio_raw | `Both_raw -> format_kind.Frame.audio
-            | _ -> none);
-        video =
-          (match mode with
-            | `Video_encoded | `Both_encoded ->
-                `Kind Ffmpeg_copy_content.Video.kind
-            | `Video_raw | `Both_raw -> format_kind.Frame.video
-            | _ -> none);
-        midi = none;
-      }
-  in
-  let return_t =
-    Lang.frame_kind_t
+    Frame.mk_fields
       ~audio:
         (match mode with
           | `Audio_encoded | `Both_encoded ->
-              Lang.kind_t (`Kind Ffmpeg_copy_content.Audio.kind)
-          | `Audio_raw | `Both_raw -> format_kind_t.Frame.audio
-          | _ -> Lang.kind_none_t)
+              `Kind Ffmpeg_copy_content.Audio.kind
+          | `Audio_raw | `Both_raw -> Frame.find_audio format_kind
+          | _ -> Frame.none)
       ~video:
         (match mode with
           | `Video_encoded | `Both_encoded ->
-              Lang.kind_t (`Kind Ffmpeg_copy_content.Video.kind)
-          | `Video_raw | `Both_raw -> format_kind_t.Frame.video
-          | _ -> Lang.kind_none_t)
-      ~midi:Lang.kind_none_t
+              `Kind Ffmpeg_copy_content.Video.kind
+          | `Video_raw | `Both_raw -> Frame.find_video format_kind
+          | _ -> Frame.none)
+      ~midi:Frame.none ()
+  in
+  let return_t =
+    Lang.frame_kind_t
+      (Frame.mk_fields
+         ~audio:
+           (match mode with
+             | `Audio_encoded | `Both_encoded ->
+                 Lang.kind_t (`Kind Ffmpeg_copy_content.Audio.kind)
+             | `Audio_raw | `Both_raw -> Frame.find_audio format_kind_t
+             | _ -> Lang.kind_none_t)
+         ~video:
+           (match mode with
+             | `Video_encoded | `Both_encoded ->
+                 Lang.kind_t (`Kind Ffmpeg_copy_content.Video.kind)
+             | `Video_raw | `Both_raw -> Frame.find_video format_kind_t
+             | _ -> Lang.kind_none_t)
+         ~midi:Lang.kind_none_t ())
   in
   let return_kind_t = Lang.of_frame_kind_t return_t in
-  let audio_kind_t = return_kind_t.Frame.audio in
-  let video_kind_t = return_kind_t.Frame.video in
+  let audio_kind_t = Frame.find_audio return_kind_t in
+  let video_kind_t = Frame.find_video return_kind_t in
   let extension =
     match mode with
       | `Audio_encoded -> "encode.audio"

@@ -158,11 +158,9 @@ let file_type filename =
          channels)."
         filename layer (f.Mad.bitrate / 1000) f.Mad.samplerate f.Mad.channels;
       Some
-        {
-          Frame.audio = Content.Audio.format_of_channels f.Mad.channels;
-          video = Content.None.format;
-          midi = Content.None.format;
-        })
+        (Frame.mk_fields
+           ~audio:(Content.Audio.format_of_channels f.Mad.channels)
+           ~video:Content.None.format ~midi:Content.None.format ()))
 
 let create_file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder

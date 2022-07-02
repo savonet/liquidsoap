@@ -71,7 +71,7 @@ class text ~kind init render_text ttf ttf_size color duration text =
 
 let register name init render_text =
   let kind =
-    { Frame.audio = `Any; video = Frame.video_yuva420p; midi = `Any }
+    Frame.mk_fields ~audio:`Any ~video:Frame.video_yuva420p ~midi:`Any ()
   in
   let k = Lang.kind_type_of_kind_format kind in
   let add_operator op =
