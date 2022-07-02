@@ -1196,6 +1196,17 @@ Some other useful functions include
 - `null.case`: execute a function or another, depending on whether a value is
   null or not.
 
+### Runtime evaluation of scripting values
+
+Similarly to how JSON is [parsed](json.html), you can evaluate string into values at runtime
+using the `eval` decorator. As with JSON, too, the recommended way to use it is by adding an
+explicit type annotation:
+
+```liquidsoap
+let eval (x: {foo: int, bla: string}) = "{foo = 123, bla = \"gni\"}"
+print("x.foo = #{x.foo}, x.bla = #{x.bla}") 
+```
+
 ### Including other files
 
 It is often useful to split your script over multiple files, either because it
