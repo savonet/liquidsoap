@@ -16,6 +16,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -38,6 +39,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -60,6 +62,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -82,6 +85,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -104,6 +108,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -126,10 +131,34 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" image.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  fades-persistent-override.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  (source_tree ../../src/libs)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action (run %{run_test} "%{liquidsoap} %{test_liq} -" fades-persistent-override.liq)))
   
 (rule
  (alias runtest)
@@ -148,6 +177,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -170,6 +200,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -192,6 +223,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -214,6 +246,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -236,6 +269,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -258,6 +292,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -280,6 +315,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -302,6 +338,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -324,10 +361,34 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" stretch-clock-propagation.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  fades-overrides.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  (source_tree ../../src/libs)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action (run %{run_test} "%{liquidsoap} %{test_liq} -" fades-overrides.liq)))
   
 (rule
  (alias runtest)
@@ -346,10 +407,57 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" rotate.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  cross-override.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  (source_tree ../../src/libs)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action (run %{run_test} "%{liquidsoap} %{test_liq} -" cross-override.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  cross-persist-override.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  (source_tree ../../src/libs)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action (run %{run_test} "%{liquidsoap} %{test_liq} -" cross-persist-override.liq)))
   
 (rule
  (alias runtest)
@@ -368,6 +476,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -390,6 +499,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -412,6 +522,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -434,6 +545,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -456,6 +568,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -478,6 +591,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -500,6 +614,7 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))

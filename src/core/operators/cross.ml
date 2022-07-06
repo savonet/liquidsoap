@@ -32,9 +32,11 @@ let finalise_child_clock child_clock source =
 (** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
-class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
-  ~minimum_length ~conservative ~active transition =
+class cross ~kind val_source ~duration_getter ~override_duration
+  ~persist_override ~rms_width ~minimum_length ~conservative ~active transition
+  =
   let s = Lang.to_source val_source in
+  let original_duration_getter = duration_getter in
   object (self)
     inherit source ~name:"cross" kind as super
 
@@ -49,10 +51,11 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
     val mutable cross_length = 0
-    val mutable duration_getter = duration_getter
+    val mutable duration_getter = original_duration_getter
+    method cross_duration = duration_getter ()
 
     method set_cross_length =
-      let new_cross_length = duration_getter () in
+      let new_cross_length = self#cross_duration in
       let main_new_cross_length = Frame.main_of_seconds new_cross_length in
 
       if main_new_cross_length <> cross_length then
@@ -182,6 +185,8 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
         | _ -> ()
 
     method private update_cross_length frame pos =
+      if Frame.is_partial frame && not persist_override then
+        duration_getter <- original_duration_getter;
       List.iter
         (fun (p, m) ->
           if p >= pos then (
@@ -439,6 +444,10 @@ let () =
         Some
           "Metadata field which, if present and containing a float, overrides \
            the 'duration' parameter for current track." );
+      ( "persist_override",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Keep duration override on track change." );
       ( "minimum",
         Lang.float_t,
         Some (Lang.float (-1.)),
@@ -481,6 +490,13 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:`Audio
+    ~meth:
+      [
+        ( "cross_duration",
+          Lang.([], fun_t [] float_t),
+          "Get the current crossfade duration.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#cross_duration) );
+      ]
     ~descr:
       "Cross operator, allowing the composition of the _n_ last seconds of a \
        track with the beginning of the next track, using a transition function \
@@ -491,6 +507,7 @@ let () =
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)
       in
+      let persist_override = Lang.to_bool (List.assoc "persist_override" p) in
       let minimum = Lang.to_float (List.assoc "minimum" p) in
       let minimum_length = Frame.audio_of_seconds minimum in
       let rms_width = Lang.to_float (List.assoc "width" p) in
@@ -500,9 +517,6 @@ let () =
       let active = Lang.to_bool (List.assoc "active" p) in
       let source = Lang.assoc "" 2 p in
       let kind = Kind.of_kind kind in
-      let c =
-        new cross
-          ~kind source transition ~conservative ~active ~duration_getter
-          ~rms_width ~minimum_length ~override_duration
-      in
-      (c :> source))
+      new cross
+        ~kind source transition ~conservative ~active ~duration_getter
+        ~rms_width ~minimum_length ~override_duration ~persist_override)

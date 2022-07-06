@@ -48,6 +48,9 @@ run_test() {
 
   if [ "${STATUS}" == "0" ]; then
     printf "Ran test \033[1m${TEST_NAME}\033[0m: \033[0;32m[ok]\033[0m (Test time: %02dm:%02ds)\n" "$((T/60))" "$((T%60))"
+    if [ -n "${LIQ_VERBOSE_TEST}" ]; then
+      cat "${LOG_FILE}"
+    fi
     exit 0
   fi
 

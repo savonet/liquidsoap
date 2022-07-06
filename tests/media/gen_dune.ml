@@ -80,7 +80,7 @@ let mk_encoder source format =
   Printf.printf
     {|
 (rule
-  (alias  runtest)
+  (alias runtest)
   (target %s)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
@@ -95,10 +95,11 @@ let mk_encoded_file format =
   Printf.printf
     {|
 (rule
- (alias  runtest)
+ (alias runtest)
  (target %s)
  (deps
   (:encoder %s)
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
@@ -129,6 +130,7 @@ let file_test ~label ~test fname =
  (deps
   all_media_files
   %s
+  (source_tree ../../src/libs)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
