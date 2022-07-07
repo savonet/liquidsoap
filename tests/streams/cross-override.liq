@@ -1,3 +1,5 @@
+success = ref(false)
+
 a = sine(duration=5.,440.)
 a = metadata.map(update=false, (fun (_) -> [("source", "a")]), a)
 
@@ -24,7 +26,7 @@ def on_metadata(m) =
   if !track_count == 2 then
     if m["source"] != "c" then test.fail() end
     if s.cross_duration() != 5. then test.fail() end
-    test.pass()
+    success := true
   end
 end
 
@@ -32,4 +34,12 @@ s.on_metadata(on_metadata)
 
 clock.assign_new(sync="none",[s])
 
-output.dummy(fallible=true, s)
+def on_stop() =
+  if !success then
+    test.pass()
+  else
+    test.fail()
+  end
+end
+
+output.dummy(fallible=true, on_stop=on_stop, s)

@@ -1,4 +1,4 @@
-log.level.set(4)
+success = ref(false)
 
 a = sine(duration=5.,440.)
 a = metadata.map(update=false, (fun (_) -> [("source", "a")]), a)
@@ -33,7 +33,7 @@ def on_track(m) =
     if fade_out.fade_duration() != 5. then test.fail() end
     if fade_in.fade_type() != "sin" then test.fail() end
     if fade_out.fade_type() != "sin" then test.fail() end
-    test.pass()
+    success := true
   end
 end
 
@@ -41,4 +41,12 @@ fade_out.on_track(on_track)
 
 clock.assign_new(sync="none",[fade_out])
 
-output.dummy(fallible=true, fade_out)
+def on_stop() =
+  if !success then
+    test.pass()
+  else
+    test.fail()
+  end
+end
+
+output.dummy(fallible=true, on_stop=on_stop, fade_out)
