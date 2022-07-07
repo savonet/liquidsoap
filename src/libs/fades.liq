@@ -81,27 +81,31 @@ end
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
+# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
+# @param ~persist_overrides Keep duration and type overrides on track change.
 # @param ~track_sensitive Be track sensitive (if `false` we only fade ou once at the beginning of the track).
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.out(~id="fade.out",~duration=3.,
              ~override_duration="liq_fade_out",
              ~override_type="liq_fade_type",
+             ~persist_overrides=false,
              ~track_sensitive=true,
              ~type="lin",s) =
   def log(x) = log(label=source.id(s),level=4,x) end
   fn = ref(fun () -> 1.)
+  original_type = type
   type = ref(type)
+  original_duration = duration
   duration = ref(duration)
   start_time = ref(-1.)
   started = ref(false)
 
   def start_fade(d,_) =
-    log("Fading out with #{d}s remaining.")
+    log("Fading out with type #{!type}, duration: #{!duration} and #{d}s remaining.")
     start_time := source.time(s)
-    duration = if d < !duration then d else !duration end
-    fn := mkfade(start=1.,stop=0.,type=!type,duration=duration,s)
+    d = if d < !duration then d else !duration end
+    fn := mkfade(start=1.,stop=0.,type=!type,duration=d,s)
     started := true
   end
 
@@ -129,8 +133,15 @@ def fade.out(~id="fade.out",~duration=3.,
     end
   end
 
+  def reset_overrides(_) =
+    if not persist_overrides then
+      duration := original_duration
+      type := original_type
+    end
+  end
+
+  s = source.on_track(s, reset_overrides)
   s = source.on_metadata(s, update_fade)
-  delay = fun () -> !duration
   s =
     if track_sensitive then
       source.on_track(s, stop_fade)
@@ -138,26 +149,32 @@ def fade.out(~id="fade.out",~duration=3.,
       start_fade(!duration, [])
       s
     end
+
+  delay = fun () -> !duration
   s = if track_sensitive then source.on_end(s, delay=delay, start_fade) else s end
-  fade.scale(id=id, apply, s)
+  fade.scale(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type}}
 end
 
 # Fade when the metadata trigger is received and then skip.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
+# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
 # @param ~override_skip Metadata field which, when present and set to "true", will trigger the fade
+# @param ~persist_overrides Keep duration and type overrides on track change.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.skip(~id="fade.skip",~duration=5.,
              ~override_duration="liq_fade_skip",
-             ~override_type="liq_fade_skip",
+             ~override_type="liq_fade_type",
+             ~persist_overrides=false,
              ~override_skip="liq_skip_meta",
              ~type="lin",s) =
   def log(x) = log(label=source.id(s),level=4,x) end
   fn = ref(fun () -> 1.)
+  original_type = type
   type = ref(type)
+  original_duration = duration
   duration = ref(duration)
 
   def apply() =
@@ -193,27 +210,39 @@ def fade.skip(~id="fade.skip",~duration=5.,
     end
   end
 
+  def reset_overrides(_) =
+    if not persist_overrides then
+      duration := original_duration
+      type := original_type
+    end
+  end
+
+  s = source.on_track(s, reset_overrides)
   s = source.on_metadata(s, update_fade)
   s = source.on_track(s, stop_fade)
-  fade.scale(id=id, apply, s)
+  fade.scale(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type} }
 end
 
 # Fade the beginning of tracks.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
+# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
+# @param ~persist_overrides Keep duration and type overrides on track change.
 # @param ~track_sensitive Be track sensitive (if `false` we only fade in once at the beginning of the track).
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.in(~id="fade.in",~duration=3.,
             ~override_duration="liq_fade_in",
             ~override_type="liq_fade_type",
+            ~persist_overrides=false,
             ~track_sensitive=true,
             ~type="lin",s) =
   def log(x) = log(label=source.id(s),level=4,x) end
   fn = ref(fun () -> 0.)
+  original_duration = duration
   duration = ref(duration)
+  original_type = type
   type = ref(type)
 
   def apply() =
@@ -222,7 +251,7 @@ def fade.in(~id="fade.in",~duration=3.,
   end
 
   def start_fade(_) =
-    log("Fading in (type: #{!type}, duration: #{!duration}s).")
+    log("Fading in with type: #{!type} and duration: #{!duration}s.")
     fn := mkfade(start=0.,stop=1.,type=!type,duration=!duration,s)
   end
 
@@ -238,10 +267,18 @@ def fade.in(~id="fade.in",~duration=3.,
     end
   end
 
+  def reset_overrides(_) =
+    if not persist_overrides then
+      duration := original_duration
+      type := original_type
+    end
+  end
+
+  s = source.on_track(s, reset_overrides)
   s = source.on_metadata(s, update_fade)
   s = if track_sensitive then source.on_track(s, start_fade) else start_fade([]); s end
 
-  fade.scale(id=id,apply,s)
+  fade.scale(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type} }
 end
 
 # Simple transition for crossfade
@@ -342,6 +379,7 @@ end
 #                      Metadata field which, if present and containing a \
 #                      float, overrides the 'duration' parameter for current \
 #                      track. 
+# @param ~persist_override Keep duration override on track change.
 # @param ~fade_in      Fade-in duration, if any.
 # @param ~fade_out     Fade-out duration, if any.
 # @param ~width        Width of the volume analysis window.
@@ -363,7 +401,7 @@ end
 #                      removes duplicate metadata from the returned source.
 # @param s             The input source.
 def crossfade(~id=null(), ~duration=5.,~override_duration="liq_cross_duration",
-              ~fade_in=3.,~fade_out=3.,~smart=false,
+              ~persist_override=false,~fade_in=3.,~fade_out=3.,~smart=false,
               ~default=(fun (a,b) -> (sequence([a, b]):source)),
               ~high=-15., ~medium=-32., ~margin=4., ~deduplicate=true,
               ~minimum=(-1.),~width=2.,~conservative=true,s)
@@ -395,14 +433,16 @@ def crossfade(~id=null(), ~duration=5.,~override_duration="liq_cross_duration",
 
   let (cross_id, deduplicate_id) = deduplicate ? (null(), null(id)) : (null(id), null())
 
-  s = cross(id=cross_id, width=width, duration=duration, override_duration=override_duration,
+  crossed = cross(id=cross_id, width=width, duration=duration, persist_override=persist_override, override_duration=override_duration,
             conservative=conservative, minimum=minimum, transition, s)
 
-  if deduplicate then
-    metadata.deduplicate(id=deduplicate_id, s)
+  s = if deduplicate then
+    metadata.deduplicate(id=deduplicate_id, crossed)
   else
-    s
+    crossed
   end
+
+  s.{cross_duration={crossed.cross_duration()}}
 end
 
 # Mixes two streams, with faded transitions between the state when only the

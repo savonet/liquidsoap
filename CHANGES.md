@@ -11,6 +11,11 @@ Changes:
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseeded by support for actual
   variables in encoders.
+- Switched default persistence for cross and fade-related overrides
+  to follow documented behavior. By default, `"liq_fade_out"`, `"liq_fade_skip"`,
+  `"liq_fade_in"`, `"liq_cross_duration"` and `"liq_fade_type"` now all reset on
+  new tracks. Use `persist_overrides` to revert to previous behavior
+  (`persist_override` for `cross`/`crossfade`) (#2488).
 
 ---
 2.0.6 (2022-06-20)

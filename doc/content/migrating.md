@@ -4,6 +4,23 @@ Migrating to a new Liquidsoap version
 In this page, we list the most common catches when migrating to a new version of
 Liquidsoap.
 
+From 2.1.x to 2.2.x
+-------------------
+
+### Metadata overrides
+
+Some metadata overrides have been made to reset on track boundaries. Previously, those were permanent even though they 
+were documented as only applying to the current track. If you need to keep the previous behavior, you can used the 
+`persist_overrides` parameters (`persis_override` for `cross`/`crossfade`).
+
+The list of concerned metadata is:
+
+* `"liq_fade_out"`
+* `"liq_fade_skip"`
+* `"liq_fade_in"`
+* `"liq_cross_duration"`
+* `"liq_fade_type"`
+
 From 2.0.x to 2.1.x
 -------------------
 
