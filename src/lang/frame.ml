@@ -31,14 +31,14 @@ let field_idx = Atomic.make 0
 module FieldNames = Hashtbl.Make (struct
   type t = int
 
-  let equal x y = x = y
-  let hash x = x
+  let equal (x : int) (y : int) = x = y [@@inline always]
+  let hash (x : int) = x [@@inline always]
 end)
 
 module Fields = Map.Make (struct
   type t = field
 
-  let compare = Stdlib.compare
+  let compare (x : int) (y : int) = Stdlib.compare x y [@@inline always]
 end)
 
 let field_names = FieldNames.create 0
