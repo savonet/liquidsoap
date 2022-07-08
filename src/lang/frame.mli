@@ -24,7 +24,13 @@
 
 (** {2 Frame definitions} *)
 
-type 'a fields = { audio : 'a; video : 'a; midi : 'a }
+type field
+
+val string_of_field : field -> string
+val field_of_string : string -> field
+val register_field : string -> field
+
+module Fields : Map.S with type key = field
 
 (** High-level description of the content. *)
 type kind =
@@ -32,10 +38,23 @@ type kind =
 
 val none : kind
 
-type content_kind = kind fields
+type content_kind = kind Fields.t
 
 (** Precise description of the channel types for the current track. *)
-type content_type = Content.format fields
+type content_type = Content.format Fields.t
 
 (** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
+
+val audio_field : field
+val video_field : field
+val midi_field : field
+
+(* The following raise [Not_found] when the field does not exist. *)
+val find_audio : 'a Fields.t -> 'a
+val find_video : 'a Fields.t -> 'a
+val find_midi : 'a Fields.t -> 'a
+val set_audio_field : 'a Fields.t -> 'a -> 'a Fields.t
+val set_video_field : 'a Fields.t -> 'a -> 'a Fields.t
+val set_midi_field : 'a Fields.t -> 'a -> 'a Fields.t
+val mk_fields : audio:'a -> video:'a -> midi:'a -> unit -> 'a Fields.t

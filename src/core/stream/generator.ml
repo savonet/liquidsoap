@@ -22,25 +22,29 @@
 
 exception Incorrect_stream_type
 
-type content = Content.data Frame.fields
+type content = Content.data Frame.Fields.t
 
 let type_of_content = Frame.map_fields Content.format
-let copy_audio c = { c with Frame.audio = Content.copy c.Frame.audio }
-let copy_video c = { c with Frame.video = Content.copy c.Frame.video }
+
+let copy_audio =
+  Frame.mapi_fields (fun field c ->
+      if field = Frame.audio_field then Content.copy c else c)
+
+let copy_video =
+  Frame.mapi_fields (fun field c ->
+      if field = Frame.video_field then Content.copy c else c)
+
 let copy_content = Frame.map_fields Content.copy
 
 let content frame =
-  {
-    Frame.audio = Frame.audio frame;
-    video = Frame.video frame;
-    midi = Frame.midi frame;
-  }
+  Frame.mk_fields ~audio:(Frame.audio frame) ~video:(Frame.video frame)
+    ~midi:(Frame.midi frame) ()
 
 let fill_content src src_pos dst dst_pos len =
   let fill src dst = Content.fill src src_pos dst dst_pos len in
-  fill src.Frame.audio dst.Frame.audio;
-  fill src.Frame.video dst.Frame.video;
-  fill src.Frame.midi dst.Frame.midi
+  fill (Frame.find_audio src) (Frame.find_audio dst);
+  fill (Frame.find_video src) (Frame.find_video dst);
+  fill (Frame.find_midi src) (Frame.find_midi dst)
 
 module type S = sig
   type t
@@ -661,14 +665,14 @@ module From_audio_video = struct
               | `Audio | `Both -> copy_audio content
               | _ -> content
           in
-          put_audio ?pts t content.Frame.audio 0 pos
+          put_audio ?pts t (Frame.find_audio content) 0 pos
       | `Video ->
           let content =
             match copy with
               | `Video | `Both -> copy_video content
               | _ -> content
           in
-          put_video ?pts t content.Frame.video 0 pos
+          put_video ?pts t (Frame.find_video content) 0 pos
       | `Both ->
           let content =
             match copy with
@@ -677,8 +681,8 @@ module From_audio_video = struct
               | `Video -> copy_video content
               | `Both -> copy_content content
           in
-          put_audio ?pts t content.Frame.audio 0 pos;
-          put_video ?pts t content.Frame.video 0 pos
+          put_audio ?pts t (Frame.find_audio content) 0 pos;
+          put_video ?pts t (Frame.find_video content) 0 pos
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)

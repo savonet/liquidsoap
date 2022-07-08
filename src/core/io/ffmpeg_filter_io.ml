@@ -197,7 +197,8 @@ class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata kind
           sample_format = Some Avfilter.(sample_format v.context);
         }
       in
-      Content.merge self#ctype.Frame.audio
+      Content.merge
+        (Frame.find_audio self#ctype)
         (Ffmpeg_raw_content.Audio.lift_params output_format);
       output <- Some v
 
@@ -277,7 +278,8 @@ class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
           pixel_aspect = Avfilter.(pixel_aspect v.context);
         }
       in
-      Content.merge self#ctype.Frame.video
+      Content.merge
+        (Frame.find_video self#ctype)
         (Ffmpeg_raw_content.Video.lift_params output_format);
       output <- Some v
 

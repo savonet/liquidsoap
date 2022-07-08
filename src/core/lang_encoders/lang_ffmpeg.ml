@@ -75,7 +75,7 @@ let kind_of_encoder p =
           | _ -> audio)
       Frame.none p
   in
-  { Frame.audio; video; midi = Frame.none }
+  Frame.mk_fields ~audio ~video ~midi:Frame.none ()
 
 let flag_qscale = ref 0
 let qp2lambda = ref 0

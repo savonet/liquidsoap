@@ -173,36 +173,24 @@ let () =
             match mode with
               | `Audio ->
                   ( name ^ ".audio",
-                    Frame.
-                      {
-                        audio = `Kind Ffmpeg_copy_content.Audio.kind;
-                        video = `Any;
-                        midi = Frame.none;
-                      } )
+                    Frame.mk_fields
+                      ~audio:(`Kind Ffmpeg_copy_content.Audio.kind) ~video:`Any
+                      ~midi:Frame.none () )
               | `Audio_only ->
                   ( name,
-                    Frame.
-                      {
-                        audio = `Kind Ffmpeg_copy_content.Audio.kind;
-                        video = `Any;
-                        midi = Frame.none;
-                      } )
+                    Frame.mk_fields
+                      ~audio:(`Kind Ffmpeg_copy_content.Audio.kind) ~video:`Any
+                      ~midi:Frame.none () )
               | `Video ->
                   ( name ^ ".video",
-                    Frame.
-                      {
-                        audio = `Any;
-                        video = `Kind Ffmpeg_copy_content.Video.kind;
-                        midi = Frame.none;
-                      } )
+                    Frame.mk_fields ~audio:`Any
+                      ~video:(`Kind Ffmpeg_copy_content.Video.kind)
+                      ~midi:Frame.none () )
               | `Video_only ->
                   ( name,
-                    Frame.
-                      {
-                        audio = `Any;
-                        video = `Kind Ffmpeg_copy_content.Video.kind;
-                        midi = Frame.none;
-                      } )
+                    Frame.mk_fields ~audio:`Any
+                      ~video:(`Kind Ffmpeg_copy_content.Video.kind)
+                      ~midi:Frame.none () )
           in
           let source_t = Lang.kind_type_of_kind_format source_kind in
           let args_t = ("", Lang.source_t source_t, None, None) :: args in

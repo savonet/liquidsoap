@@ -256,7 +256,7 @@ let can_decode_type decoded_type target_type =
          try
            ignore
              (create
-                (channel_layout decoded_type.Frame.audio)
+                (channel_layout (Frame.find_audio decoded_type))
                 (channel_layout audio));
            true
          with _ -> false)
@@ -265,27 +265,33 @@ let can_decode_type decoded_type target_type =
     (* Either we can decode straight away. *)
     | _ when Frame.compatible decoded_type target_type -> true
     (* Or we can convert audio and/or drop video and midi *)
-    | { Frame.audio; video; midi } ->
+    | fields ->
+        let audio = Frame.find_audio fields in
         let audio =
-          if can_convert_audio audio then audio else decoded_type.Frame.audio
+          if can_convert_audio audio then audio
+          else Frame.find_audio decoded_type
         in
+        let video = Frame.find_video fields in
         let video =
           if Content.None.is_format video then none
-          else decoded_type.Frame.video
+          else Frame.find_video decoded_type
         in
+        let midi = Frame.find_midi fields in
         let midi =
-          if Content.None.is_format midi then none else decoded_type.Frame.midi
+          if Content.None.is_format midi then none
+          else Frame.find_midi decoded_type
         in
-        Frame.compatible target_type { Frame.audio; video; midi }
+        Frame.compatible target_type (Frame.mk_fields ~audio ~video ~midi ())
 
 let decoder_modes ctype =
-  match Frame.map_fields (fun c -> not (Content.None.is_format c)) ctype with
-    | Frame.{ audio = true; video = true; midi = false } -> [`Audio_video]
-    | Frame.{ audio = true; video = false; midi = false } ->
-        [`Audio; `Audio_video]
-    | Frame.{ audio = false; video = true; midi = false } ->
-        [`Video; `Audio_video]
-    | Frame.{ audio = false; video = false; midi = false } -> [`Midi]
+  let fields =
+    Frame.map_fields (fun c -> not (Content.None.is_format c)) ctype
+  in
+  match Frame.(find_audio fields, find_video fields, find_midi fields) with
+    | true, true, false -> [`Audio_video]
+    | true, false, false -> [`Audio; `Audio_video]
+    | false, true, false -> [`Video; `Audio_video]
+    | false, false, true -> [`Midi]
     | _ -> []
 
 exception Found of (string * Frame.content_type * decoder_specs)
@@ -428,11 +434,14 @@ let get_stream_decoder ~ctype mime =
 (** {1 Helpers for defining decoders} *)
 
 let mk_buffer ~ctype generator =
+  let fields =
+    Frame.map_fields (fun c -> not (Content.None.is_format c)) ctype
+  in
   let mode =
-    match Frame.map_fields (fun c -> not (Content.None.is_format c)) ctype with
-      | Frame.{ audio = true; video = true } -> `Both
-      | Frame.{ audio = true; video = false } -> `Audio
-      | Frame.{ audio = false; video = true } -> `Video
+    match Frame.(find_audio fields, find_video fields) with
+      | true, true -> `Both
+      | true, false -> `Audio
+      | false, true -> `Video
       | _ -> failwith "Invalid type for buffer!"
   in
 
@@ -452,7 +461,7 @@ let mk_buffer ~ctype generator =
       in
 
       let get_channel_converter () =
-        let dst = channel_layout ctype.Frame.audio in
+        let dst = channel_layout (Frame.find_audio ctype) in
         match !current_channel_converter with
           | None -> mk_channel_converter dst
           | Some _ when !current_dst <> Some dst -> mk_channel_converter dst
@@ -472,7 +481,7 @@ let mk_buffer ~ctype generator =
       let video_resample = Decoder_utils.video_resample () in
       let video_scale =
         let width, height =
-          try Content.Video.dimensions_of_format ctype.Frame.video
+          try Content.Video.dimensions_of_format (Frame.find_video ctype)
           with Content.Invalid ->
             (* We might have encoded contents *)
             (Lazy.force Frame.video_width, Lazy.force Frame.video_height)

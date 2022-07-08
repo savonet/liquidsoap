@@ -77,7 +77,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#severe "%s";
-      if self#ctype.Frame.audio = Content.None.format then
+      if Frame.find_audio self#ctype = Content.None.format then
         Generator.set_mode abg `Video;
       Generator.set_content_type abg self#ctype;
       self#log#debug "Generator mode: %s."
@@ -93,7 +93,10 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
 let log = Log.make ["input"; "external"; "video"]
 
 let () =
-  let kind = Frame.{ audio = audio_pcm; video = video_yuva420p; midi = none } in
+  let kind =
+    Frame.mk_fields ~audio:Frame.audio_pcm ~video:Frame.video_yuva420p
+      ~midi:Frame.none ()
+  in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.avi" ~category:`Input ~flags:[`Experimental]
     ~meth:

@@ -125,11 +125,9 @@ let file_type filename =
         (Lang_string.quote_string filename)
         rate channels;
       Some
-        {
-          Frame.audio = Content.Audio.format_of_channels channels;
-          video = Content.None.format;
-          midi = Content.None.format;
-        })
+        (Frame.mk_fields
+           ~audio:(Content.Audio.format_of_channels channels)
+           ~video:Content.None.format ~midi:Content.None.format ()))
 
 let file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder

@@ -69,12 +69,10 @@ let () =
       file_type =
         (fun ~ctype:_ _ ->
           Some
-            Frame.
-              {
-                audio = Content.None.format;
-                video = Content.None.format;
-                midi = Content.(Midi.lift_params { Content.channels = 16 });
-              });
+            (Frame.mk_fields ~audio:Content.None.format
+               ~video:Content.None.format
+               ~midi:Content.(Midi.lift_params { Content.channels = 16 })
+               ()));
       file_decoder =
         Some (fun ~metadata:_ ~ctype:_ filename -> decoder filename);
       stream_decoder = None;

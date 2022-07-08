@@ -188,20 +188,23 @@ let priority =
     ~p:(Decoder.conf_priorities#plug "gstreamer")
     "Priority for the GStreamer decoder" ~d:0
 
-let channels { Frame.audio } =
+let channels fields =
+  let audio = Frame.find_audio fields in
   if audio = Content.None.format then 0
   else Content.Audio.channels_of_format audio
 
 let create_file_decoder filename content_type ctype =
   let mode =
-    match (content_type.Frame.video, content_type.Frame.audio) with
+    match (Frame.find_video content_type, Frame.find_audio content_type) with
       | video, _ when video = Content.None.format -> `Audio
       | _, audio when audio = Content.None.format -> `Video
       | _, _ -> `Both
   in
   let channels = channels content_type in
   let decoder, close, bin =
-    let width, height = Content.Video.dimensions_of_format ctype.Frame.video in
+    let width, height =
+      Content.Video.dimensions_of_format (Frame.find_video ctype)
+    in
     create_decoder ~width ~height ~channels ~merge_tracks:true ~mode `File
       filename
   in
@@ -280,7 +283,7 @@ let get_type ~channels filename =
     if video = 0 then Content.None.format
     else Content.(default_format Video.kind)
   in
-  { Frame.video; audio; midi = Content.None.format }
+  Frame.mk_fields ~video ~audio ~midi:Content.None.format ()
 
 let file_decoder ~metadata:_ ~ctype filename =
   let channels = channels ctype in

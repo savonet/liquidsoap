@@ -147,19 +147,17 @@ let file_type ~ctype:_ filename =
               0
       in
       Some
-        {
-          Frame.video = Content.None.format;
-          midi = Content.None.format;
-          audio =
-            Content.(
-              Audio.lift_params
-                {
-                  Content.channel_layout =
-                    lazy
-                      (Audio_converter.Channel_layout.layout_of_channels
-                         channels);
-                });
-        })
+        (Frame.mk_fields ~video:Content.None.format ~midi:Content.None.format
+           ~audio:
+             Content.(
+               Audio.lift_params
+                 {
+                   Content.channel_layout =
+                     lazy
+                       (Audio_converter.Channel_layout.layout_of_channels
+                          channels);
+                 })
+           ()))
 
 let wav_mime_types =
   Dtools.Conf.list

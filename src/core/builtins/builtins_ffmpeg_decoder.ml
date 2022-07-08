@@ -419,31 +419,27 @@ let mk_encoder mode =
   let has_encoded_audio = List.mem mode [`Audio_encoded; `Both_encoded] in
   let has_encoded_video = List.mem mode [`Video_encoded; `Both_encoded] in
   let source_kind =
-    Frame.
-      {
-        audio =
-          (match mode with
-            | `Audio_encoded | `Both_encoded ->
-                `Kind Ffmpeg_copy_content.Audio.kind
-            | `Audio_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Audio.kind
-            | _ -> none);
-        video =
-          (match mode with
-            | `Video_encoded | `Both_encoded ->
-                `Kind Ffmpeg_copy_content.Video.kind
-            | `Video_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Video.kind
-            | _ -> none);
-        midi = none;
-      }
+    Frame.mk_fields
+      ~audio:
+        (match mode with
+          | `Audio_encoded | `Both_encoded ->
+              `Kind Ffmpeg_copy_content.Audio.kind
+          | `Audio_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Audio.kind
+          | _ -> Frame.none)
+      ~video:
+        (match mode with
+          | `Video_encoded | `Both_encoded ->
+              `Kind Ffmpeg_copy_content.Video.kind
+          | `Video_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Video.kind
+          | _ -> Frame.none)
+      ~midi:Frame.none ()
   in
   let source_t = Lang.kind_type_of_kind_format source_kind in
   let return_kind =
-    Frame.
-      {
-        audio = (if has_audio then audio_pcm else none);
-        video = (if has_video then video_yuva420p else none);
-        midi = none;
-      }
+    Frame.mk_fields
+      ~audio:(if has_audio then Frame.audio_pcm else Frame.none)
+      ~video:(if has_video then Frame.video_yuva420p else Frame.none)
+      ~midi:Frame.none ()
   in
   let return_t = Lang.kind_type_of_kind_format return_kind in
   let extension =

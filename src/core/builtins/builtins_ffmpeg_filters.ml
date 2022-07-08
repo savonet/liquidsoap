@@ -597,10 +597,12 @@ let () =
   let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.kind in
   let raw_video_format = `Kind Ffmpeg_raw_content.Video.kind in
   let audio_frame =
-    { Frame.audio = raw_audio_format; video = Frame.none; midi = Frame.none }
+    Frame.mk_fields ~audio:raw_audio_format ~video:Frame.none ~midi:Frame.none
+      ()
   in
   let video_frame =
-    { Frame.audio = Frame.none; video = raw_video_format; midi = Frame.none }
+    Frame.mk_fields ~audio:Frame.none ~video:raw_video_format ~midi:Frame.none
+      ()
   in
   let audio_t =
     Lang.(source_t ~methods:false (kind_type_of_kind_format audio_frame))
@@ -629,16 +631,13 @@ let () =
 
       let kind =
         Kind.of_kind
-          Frame.
-            {
-              (* We need to make sure that we are using a format here to
-                 ensure that its params are properly unified with the underlying source. *)
-              audio =
-                `Format
-                  Ffmpeg_raw_content.Audio.(lift_params (default_params `Raw));
-              video = Frame.none;
-              midi = Frame.none;
-            }
+          (Frame.mk_fields
+           (* We need to make sure that we are using a format here to
+              ensure that its params are properly unified with the underlying source. *)
+             ~audio:
+               (`Format
+                 Ffmpeg_raw_content.Audio.(lift_params (default_params `Raw)))
+             ~video:Frame.none ~midi:Frame.none ())
       in
       let name = uniq_name "abuffer" in
       let pos = source_val.Lang.pos in
@@ -677,7 +676,11 @@ let () =
 
       Audio.to_value (`Output audio));
 
-  let return_kind = Frame.{ audio_frame with video = none; midi = none } in
+  let return_kind =
+    Frame.mk_fields
+      ~audio:(Frame.find_audio audio_frame)
+      ~video:Frame.none ~midi:Frame.none ()
+  in
   let return_t = Lang.kind_type_of_kind_format return_kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:`Audio
     ~descr:"Return an audio source from a filter's output" ~return_t
@@ -697,12 +700,8 @@ let () =
 
       let kind =
         Kind.of_kind
-          Frame.
-            {
-              audio = `Kind Ffmpeg_raw_content.Audio.kind;
-              video = none;
-              midi = none;
-            }
+          (Frame.mk_fields ~audio:(`Kind Ffmpeg_raw_content.Audio.kind)
+             ~video:Frame.none ~midi:Frame.none ())
       in
       let s =
         new Ffmpeg_filter_io.audio_input
@@ -749,16 +748,14 @@ let () =
 
       let kind =
         Kind.of_kind
-          Frame.
-            {
-              (* We need to make sure that we are using a format here to
-                 ensure that its params are properly unified with the underlying source. *)
-              audio = Frame.none;
-              video =
-                `Format
-                  Ffmpeg_raw_content.Video.(lift_params (default_params `Raw));
-              midi = Frame.none;
-            }
+          (Frame.mk_fields
+           (* We need to make sure that we are using a format here to
+              ensure that its params are properly unified with the underlying source. *)
+             ~audio:Frame.none
+             ~video:
+               (`Format
+                 Ffmpeg_raw_content.Video.(lift_params (default_params `Raw)))
+             ~midi:Frame.none ())
       in
       let name = uniq_name "buffer" in
       let pos = source_val.Lang.pos in
@@ -796,7 +793,11 @@ let () =
 
       Video.to_value (`Output video));
 
-  let return_kind = Frame.{ video_frame with audio = none; midi = none } in
+  let return_kind =
+    Frame.mk_fields ~audio:Frame.none
+      ~video:(Frame.find_video video_frame)
+      ~midi:Frame.none ()
+  in
   let return_t = Lang.kind_type_of_kind_format return_kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:`Video
     ~descr:"Return a video source from a filter's output" ~return_t
@@ -824,12 +825,8 @@ let () =
 
       let kind =
         Kind.of_kind
-          Frame.
-            {
-              audio = none;
-              video = `Kind Ffmpeg_raw_content.Video.kind;
-              midi = none;
-            }
+          (Frame.mk_fields ~audio:Frame.none
+             ~video:(`Kind Ffmpeg_raw_content.Video.kind) ~midi:Frame.none ())
       in
       let s =
         new Ffmpeg_filter_io.video_input

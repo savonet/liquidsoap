@@ -142,7 +142,7 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
 
 (** Lang interface *)
 
-let kind = { Frame.audio = `Any; video = Frame.video_yuva420p; midi = `Any }
+let kind = Frame.mk_fields ~audio:`Any ~video:Frame.video_yuva420p ~midi:`Any ()
 let return_t = Lang.kind_type_of_kind_format kind
 
 (* TODO: share more with fade.ml *)

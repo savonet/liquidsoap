@@ -30,12 +30,10 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   let g = Generator.create `Both in
   let main_kind =
     Kind.of_kind
-      Frame.
-        {
-          audio = (if main_content = `Audio then `Any else none);
-          video = (if main_content = `Video then `Any else none);
-          midi = `Any;
-        }
+      (Frame.mk_fields
+         ~audio:(if main_content = `Audio then `Any else Frame.none)
+         ~video:(if main_content = `Video then `Any else Frame.none)
+         ~midi:`Any ())
   in
   let main_output_kind =
     match main_content with
@@ -50,12 +48,10 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   in
   let aux_kind =
     Kind.of_kind
-      Frame.
-        {
-          audio = (if aux_content = `Audio then `Any else none);
-          video = (if aux_content = `Video then `Any else none);
-          midi = none;
-        }
+      (Frame.mk_fields
+         ~audio:(if aux_content = `Audio then `Any else Frame.none)
+         ~video:(if aux_content = `Video then `Any else Frame.none)
+         ~midi:Frame.none ())
   in
   let aux_output_kind =
     match aux_content with
@@ -69,15 +65,15 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
       ~name:aux_output_kind ~kind:aux_kind ~source:aux_source ()
   in
   let muxed_kind =
-    {
-      Frame.audio =
-        (if aux_content = `Audio then aux#kind.Frame.audio
-        else main#kind.Frame.audio);
-      video =
-        (if aux_content = `Video then aux#kind.Frame.video
-        else main#kind.Frame.video);
-      midi = main#kind.Frame.midi;
-    }
+    Frame.mk_fields
+      ~audio:
+        (if aux_content = `Audio then Frame.find_audio aux#kind
+        else Frame.find_audio main#kind)
+      ~video:
+        (if aux_content = `Video then Frame.find_video aux#kind
+        else Frame.find_video main#kind)
+      ~midi:(Frame.find_midi main#kind)
+      ()
   in
   let producer =
     new producer (* We are expecting real-rate with a couple of hickups.. *)
@@ -90,10 +86,15 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
 let () =
   let kind = Lang.any in
   let out_t = Lang.kind_type_of_kind_format kind in
-  let { Frame.audio; video; midi } = Lang.of_frame_kind_t out_t in
-  let main_t = Lang.frame_kind_t ~audio ~video:Lang.kind_none_t ~midi in
+  let out_kind = Lang.of_frame_kind_t out_t in
+  let main_t =
+    Lang.frame_kind_t (Frame.set_video_field out_kind Lang.kind_none_t)
+  in
   let aux_t =
-    Lang.frame_kind_t ~audio:Lang.kind_none_t ~video ~midi:Lang.kind_none_t
+    Lang.frame_kind_t
+      (Frame.mk_fields ~audio:Lang.kind_none_t
+         ~video:(Frame.find_video out_kind)
+         ~midi:Lang.kind_none_t ())
   in
   Lang.add_operator "mux_video" ~category:`Conversion
     ~descr:
@@ -115,10 +116,15 @@ let () =
 let () =
   let kind = Lang.any in
   let out_t = Lang.kind_type_of_kind_format kind in
-  let { Frame.audio; video; midi } = Lang.of_frame_kind_t out_t in
-  let main_t = Lang.frame_kind_t ~audio:Lang.kind_none_t ~video ~midi in
+  let out_kind = Lang.of_frame_kind_t out_t in
+  let main_t =
+    Lang.frame_kind_t (Frame.set_audio_field out_kind Lang.kind_none_t)
+  in
   let aux_t =
-    Lang.frame_kind_t ~audio ~video:Lang.kind_none_t ~midi:Lang.kind_none_t
+    Lang.frame_kind_t
+      (Frame.mk_fields
+         ~audio:(Frame.find_audio out_kind)
+         ~video:Lang.kind_none_t ~midi:Lang.kind_none_t ())
   in
   Lang.add_operator "mux_audio" ~category:`Conversion
     ~descr:

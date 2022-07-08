@@ -107,14 +107,12 @@ let test_ctype f filename =
   if ret = 0 then None
   else
     Some
-      {
-        Frame.video = Content.None.format;
-        midi = Content.None.format;
-        (* TODO: this is not perfect *)
-        audio =
-          (if ret < 0 then audio_n (Lazy.force Frame.audio_channels)
-          else audio_n ret);
-      }
+      (Frame.mk_fields ~video:Content.None.format
+         ~midi:Content.None.format (* TODO: this is not perfect *)
+         ~audio:
+           (if ret < 0 then audio_n (Lazy.force Frame.audio_channels)
+           else audio_n ret)
+         ())
 
 let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =
   Decoder.decoders#register name ~sdoc
@@ -163,11 +161,9 @@ let external_input_oblivious process filename prebuf =
   let input = { Decoder.read; tell = None; length = None; lseek = None } in
   (* TODO: is this really what we want for audio channels? *)
   let ctype =
-    {
-      Frame.audio = audio_n (Lazy.force Frame.audio_channels);
-      video = Content.None.format;
-      midi = Content.None.format;
-    }
+    Frame.mk_fields
+      ~audio:(audio_n (Lazy.force Frame.audio_channels))
+      ~video:Content.None.format ~midi:Content.None.format ()
   in
   let gen = Generator.create ~log_overfull:false ~log:(log#info "%s") `Audio in
   let buffer = Decoder.mk_buffer ~ctype gen in

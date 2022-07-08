@@ -74,7 +74,7 @@ let generic_error (l, t) : exn =
 
 (** An encoder. *)
 type encoder = {
-  kind_of_encoder : Term.encoder_params -> Frame.kind Frame.fields;
+  kind_of_encoder : Term.encoder_params -> Frame.kind Frame.Fields.t;
       (** Compute the kind of the encoder. *)
   make : Hooks.encoder_params -> Encoder.format;
       (** Actually create the encoder. *)
@@ -108,9 +108,9 @@ let kind_of_encoder ((e, p) : Term.encoder) = (find_encoder e).kind_of_encoder p
 
 let type_of_encoder ~pos e =
   let kind = kind_of_encoder e in
-  let audio = kind_t ?pos kind.Frame.audio in
-  let video = kind_t ?pos kind.Frame.video in
-  let midi = kind_t ?pos kind.Frame.midi in
+  let audio = kind_t ?pos (Frame_base.find_audio kind) in
+  let video = kind_t ?pos (Frame_base.find_video kind) in
+  let midi = kind_t ?pos (Frame_base.find_midi kind) in
   format_t ?pos (frame_kind_t ?pos audio video midi)
 
 let make_encoder ~pos t ((e, p) : Hooks.encoder) =

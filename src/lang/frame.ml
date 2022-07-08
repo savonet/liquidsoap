@@ -24,18 +24,63 @@
 
 (** {2 Frame definitions} *)
 
-type 'a fields = { audio : 'a; video : 'a; midi : 'a }
+type field = int
+
+let field_idx = Atomic.make 0
+
+module FieldNames = Hashtbl.Make (struct
+  type t = int
+
+  let equal (x : int) (y : int) = x = y [@@inline always]
+  let hash (x : int) = x [@@inline always]
+end)
+
+module Fields = Map.Make (struct
+  type t = field
+
+  let compare (x : int) (y : int) = Stdlib.compare x y [@@inline always]
+end)
+
+let field_names = FieldNames.create 0
+let name_fields = Hashtbl.create 0
+let string_of_field = FieldNames.find field_names
+let field_of_string = Hashtbl.find name_fields
+
+let register_field name =
+  (try
+     ignore (field_of_string name);
+     failwith "Field already registered!"
+   with Not_found -> ());
+  let field = Atomic.fetch_and_add field_idx 1 in
+  FieldNames.replace field_names field name;
+  Hashtbl.replace name_fields name field;
+  field
 
 (** High-level description of the content. *)
 type kind =
   [ `Any | `Internal | `Kind of Content.kind | `Format of Content.format ]
 
-type content_kind = kind fields
+type content_kind = kind Fields.t
 
 (** Precise description of the channel types for the current track. *)
-type content_type = Content.format fields
+type content_type = Content.format Fields.t
 
 (** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
 
 let none = `Format Content.None.format
+let audio_field = register_field "audio"
+let video_field = register_field "video"
+let midi_field = register_field "midi"
+let find_audio c = Fields.find audio_field c
+let find_video c = Fields.find video_field c
+let find_midi c = Fields.find midi_field c
+let set_audio_field fields value = Fields.add audio_field value fields
+let set_video_field fields value = Fields.add video_field value fields
+let set_midi_field fields value = Fields.add midi_field value fields
+
+let mk_fields ~audio ~video ~midi () =
+  List.fold_left
+    (fun fields (field, v) -> Fields.add field v fields)
+    Fields.empty
+    [(audio_field, audio); (video_field, video); (midi_field, midi)]

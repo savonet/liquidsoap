@@ -5,7 +5,9 @@ let () =
   Frame_settings.lazy_config_eval := true;
 
   let src =
-    create { audio = None.format; video = None.format; midi = None.format }
+    create
+      (Frame.mk_fields ~audio:None.format ~video:None.format ~midi:None.format
+         ())
   in
   add_break src (Lazy.force size);
   let m = Hashtbl.create 1 in
@@ -15,7 +17,9 @@ let () =
   (* First check that last meta from src is
      set when dst does not have one. *)
   let dst =
-    create { audio = None.format; video = None.format; midi = None.format }
+    create
+      (Frame.mk_fields ~audio:None.format ~video:None.format ~midi:None.format
+         ())
   in
   add_break dst 1;
   get_chunk dst src;
@@ -24,7 +28,9 @@ let () =
   (* Then check that is not set when it has
      one that is the same. *)
   let dst =
-    create { audio = None.format; video = None.format; midi = None.format }
+    create
+      (Frame.mk_fields ~audio:None.format ~video:None.format ~midi:None.format
+         ())
   in
   add_break dst 1;
   let m' = Hashtbl.create 1 in
@@ -36,7 +42,9 @@ let () =
   (* Then check that it is set when it has one
      but it is different. *)
   let dst =
-    create { audio = None.format; video = None.format; midi = None.format }
+    create
+      (Frame.mk_fields ~audio:None.format ~video:None.format ~midi:None.format
+         ())
   in
   add_break dst 1;
   let m' = Hashtbl.create 1 in

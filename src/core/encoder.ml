@@ -46,13 +46,11 @@ let audio_kind n =
                 lazy (Audio_converter.Channel_layout.layout_of_channels n);
             })
   in
-  { Frame.audio; video = Frame.none; midi = Frame.none }
+  Frame.mk_fields ~audio ~video:Frame.none ~midi:Frame.none ()
 
 let audio_video_kind n =
-  {
-    (audio_kind n) with
-    Frame.video = `Format Content.(default_format Video.kind);
-  }
+  Frame.set_video_field (audio_kind n)
+    (`Format Content.(default_format Video.kind))
 
 let kind_of_format = function
   | WAV w -> audio_kind w.Wav_format.channels
@@ -94,7 +92,7 @@ let kind_of_format = function
                 Content.(default_format (kind_of_string "ffmpeg.video.raw"))
           | Some (`Internal _) -> `Format Content.(default_format Video.kind)
       in
-      { Frame.audio; video; midi = Frame.none }
+      Frame.mk_fields ~audio ~video ~midi:Frame.none ()
   | FdkAacEnc m -> audio_kind m.Fdkaac_format.channels
   | Ogg { Ogg_format.audio; video } ->
       let channels =

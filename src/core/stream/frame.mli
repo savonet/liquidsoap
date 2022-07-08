@@ -21,14 +21,31 @@
  *****************************************************************************)
 
 open Liquidsoap_lang
+module Fields = Frame.Fields
 
 (** Operations on frames, which are small portions of streams. *)
 
 (** {2 Frame definitions} *)
 
-type 'a fields = 'a Frame.fields = { audio : 'a; video : 'a; midi : 'a }
+type field = Frame.field
 
-val map_fields : ('a -> 'b) -> 'a fields -> 'b fields
+val audio_field : field
+val video_field : field
+val midi_field : field
+
+(* The following raise [Not_found] when the field does not exist. *)
+val find_audio : 'a Fields.t -> 'a
+val find_video : 'a Fields.t -> 'a
+val find_midi : 'a Fields.t -> 'a
+val set_audio_field : 'a Fields.t -> 'a -> 'a Fields.t
+val set_video_field : 'a Fields.t -> 'a -> 'a Fields.t
+val set_midi_field : 'a Fields.t -> 'a -> 'a Fields.t
+val mk_fields : audio:'a -> video:'a -> midi:'a -> unit -> 'a Fields.t
+val string_of_field : field -> string
+val field_of_string : string -> field
+val register_field : string -> field
+val map_fields : ('a -> 'b) -> 'a Fields.t -> 'b Fields.t
+val mapi_fields : (field -> 'a -> 'b) -> 'a Fields.t -> 'b Fields.t
 
 (** High-level description of the content. *)
 type kind =
@@ -44,10 +61,10 @@ val video_yuva420p : kind
 val midi_native : kind
 val midi_n : int -> kind
 
-type content_kind = kind fields
+type content_kind = kind Fields.t
 
 (** Precise description of the channel types for the current track. *)
-type content_type = Content.format fields
+type content_type = Content.format Fields.t
 
 (** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
