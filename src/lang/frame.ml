@@ -38,7 +38,7 @@ end)
 module Fields = Map.Make (struct
   type t = field
 
-  let compare (x : int) (y : int) = Stdlib.compare x y [@@inline always]
+  let compare (x : int) (y : int) = x - y [@@inline always]
 end)
 
 let field_names = FieldNames.create 0
