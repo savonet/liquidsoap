@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let compare (x : int) (y : int) = x - y [@@inline always]
+
 (** Generic content spec for timed list contents. *)
 module Specs = struct
   type params = unit
@@ -31,7 +33,7 @@ module Specs = struct
   let is_empty { data } = data = []
 
   let sort : 'a. (int * 'a) list -> (int * 'a) list =
-   fun data -> List.sort (fun (p, _) (p', _) -> Stdlib.compare p p') data
+   fun data -> List.sort (fun (p, _) (p', _) -> compare p p') data
 
   let sub c ofs len =
     {
@@ -90,7 +92,7 @@ module Metadata = struct
     let { Specs.length; data } = get_data d in
     List.filter
       (fun (p, _) -> p < length)
-      (List.sort (fun (p, _) (p', _) -> Stdlib.compare p p') data)
+      (List.sort (fun (p, _) (p', _) -> compare p p') data)
 end
 
 module TrackMarkSpecs = struct
@@ -122,7 +124,5 @@ module TrackMark = struct
 
   let get_data d =
     let { Specs.length; data } = get_data d in
-    List.filter
-      (fun p -> p < length)
-      (List.sort Stdlib.compare (List.map fst data))
+    List.filter (fun p -> p < length) (List.sort compare (List.map fst data))
 end
