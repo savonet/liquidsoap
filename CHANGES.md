@@ -5,7 +5,7 @@ New:
 
 - Added support for native osc library (#2426, #2480).
 
-Changes:
+Changed:
 
 - Switched to `dune` for building the binary and libraries.
 - Added support for a Javascript build an interpreter.
@@ -16,6 +16,11 @@ Changes:
   `"liq_fade_in"`, `"liq_cross_duration"` and `"liq_fade_type"` now all reset on
   new tracks. Use `persist_overrides` to revert to previous behavior
   (`persist_override` for `cross`/`crossfade`) (#2488).
+
+Fixed:
+
+- The randomization function `list.shuffle` used in `playlist` was incorrect and
+  could lead to incorrectly randomized playlists (#2507, #2500).
 
 ---
 2.0.6 (2022-06-20)
