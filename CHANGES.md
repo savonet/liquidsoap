@@ -6,7 +6,15 @@ maintained on a best-effort basis. You are advised to switch to the `2.1.x` deve
 branch for all new liquidsoap work.
 
 ---
-2.0.7 (unreleased)
+2.0.8 (unreleased)
+=====
+
+Fixed:
+- Fixed `list.shuffle` which was used to randomize playlists in `playlist`
+  operator (#2507, #2500).
+
+---
+2.0.7 (2022-07-15)
 =====
 
 Fixed:

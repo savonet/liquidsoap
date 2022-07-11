@@ -361,7 +361,7 @@ end
 # @category List
 # @param l List of which the elements should be shuffled.
 def list.shuffle(l) =
-  list.sort(fun(_,_) -> random.bool()?-1:1, l)
+  list.randomize(l)
 end
 
 # Compute the beginning of a list.
