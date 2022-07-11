@@ -256,6 +256,7 @@
   builtins_clock
   builtins_files_extra
   builtins_harbor
+  builtins_list_extra
   builtins_process
   builtins_request
   builtins_resolvers

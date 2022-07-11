@@ -355,13 +355,6 @@ def list.insert(index, new_element, l) =
   end
 end
 
-# Create a list with the same elements as another, but in a random order.
-# @category List
-# @param l List of which the elements should be shuffled.
-def list.shuffle(l) =
-  list.sort(fun(_,_) -> random.bool()?-1:1, l)
-end
-
 # Compute the beginning of a list.
 # @category List
 # @param n Number of elements in the returned list.

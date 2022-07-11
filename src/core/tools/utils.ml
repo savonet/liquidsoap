@@ -102,7 +102,6 @@ let unix_translator = function
   | _ -> None
 
 let () = Printexc.register_printer unix_translator
-let randomize = Liquidsoap_lang.Builtins_list.randomize
 
 (* Here we take care not to introduce new redexes when substituting *)
 

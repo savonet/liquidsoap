@@ -1,11 +1,24 @@
 let id x = x
 
+module Array = struct
+  include Array
+
+  (** Perfect Fisher-Yates shuffle
+      (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
+  let shuffle a =
+    let permute i j =
+      let tmp = a.(i) in
+      a.(i) <- a.(j);
+      a.(j) <- tmp
+    in
+    let l = Array.length a in
+    for i = 0 to l - 1 do
+      permute i (i + Random.int (l - i))
+    done
+end
+
 module List = struct
   include List
-
-  let init n f =
-    let rec aux k = if k = n then [] else f k :: aux (k + 1) in
-    aux 0
 
   let rec assoc_nth l n = function
     | [] -> raise Not_found
@@ -21,6 +34,11 @@ module List = struct
     match l with
       | [] -> []
       | x :: l -> if n = 0 then [] else x :: prefix (n - 1) l
+
+  let shuffle l =
+    let a = Array.of_list l in
+    Array.shuffle a;
+    Array.to_list a
 end
 
 module String = struct
