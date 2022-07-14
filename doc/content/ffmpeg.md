@@ -6,6 +6,8 @@ Since the `2.0.x` release cycle, liquidsoap integrates a tight support of ffmpeg
 * [Encoders](#encoders)
 * [Filters](#filters)
 * [Bitstream filters](#bitstream-filters)
+* [Encoded data tweaks](#encoded-data-tweaks)
+* [Examples](#examples)
 
 Ffmpeg support includes 3 types of content:
 
@@ -115,6 +117,129 @@ Methods:
 ```
 
 Please consult the FFmpeg documentation for more details about that each filter do and why/how to use them.
+
+## Encoded data tweaks
+
+`liquisoap` provides operators to encode data using `%ffmpeg` and re-use it accross output. This is called _inline encoding_. Here's an example:
+
+```liquidsoap
+audio_source = single(audio_url)
+video_source = single(image)
+
+stream = mux_video(video=video_source, audio_source)
+
+stream = ffmpeg.encode.audio_video(
+    %ffmpeg(
+        %audio(codec="aac", b="128k"),
+        %video(codec="libx264", b="4000k")
+    ),
+    stream
+)
+
+flv = %ffmpeg(
+    format="flv",
+    %audio.copy,
+    %video.copy,
+)
+
+# Send to one youtube output:
+output.youtube.live.rtmp(
+    encoder = flv,
+    stream,
+    ...
+)
+
+mpegts = %ffmpeg(
+    format="mpegts",
+    %audio.copy,
+    %video.copy,
+)
+
+# And to a hls one:
+output.file.hls(
+  ["mpegts", mpegts],
+  stream,
+  ... 
+)
+```
+
+Working with encoded data, however, requires a bit of knowledge of ffmpeg internal and media codecs and containers. Here, for instance, this stream
+will have issues because the `flv` format requires global data, something that in ffmpeg terms is called `extradata`.
+
+When working with a single encoder such as:
+
+```liquidsoap
+%ffmpeg(
+  format="flv",
+  %audio(codec="aac", b="128k"),
+  %video(codec="libx264", b="4000k")
+)
+```
+
+We are aware when initializing the encoders that it is aimed for a `flv` container so the code implicitely enables the global header for each encoder.
+
+However, when encoding inline, we do not know at the time of encoding the container that will be used to encapsulate the stream, even worst, it can be
+used potentially with different containers with different requirements!
+
+In our case here, you have two ways to solve the issue:
+
+If you know that all the containers will be okay with global header, you can enable the corresponding flag in the encoder:
+
+```liquidsoap
+stream = ffmpeg.encode.audio_video(
+    %ffmpeg(
+        %audio(codec="aac", b="128k", flags="+global_header"),
+        %video(codec="libx264", b="4000k", flags="+global_header")
+    ),
+    stream
+)
+```
+
+However, it is also possible that one stream needs global header but not the other one, which is the case here with `mpegts`. In this case, you can
+use the _bitstream filter_ `ffmpeg.filter.bitstream.extract_extradata` to extract global data to only one stream:
+
+```
+audio_source = single(audio_url)
+video_source = single(image)
+
+stream = mux_video(video=video_source, audio_source)
+
+stream = ffmpeg.encode.audio_video(
+    %ffmpeg(
+        %audio(codec="aac", b="128k"),
+        %video(codec="libx264", b="4000k")
+    ),
+    stream
+)
+
+flv = %ffmpeg(
+    format="flv",
+    %audio.copy,
+    %video.copy,
+)
+
+flv_stream = ffmpeg.filter.bitstream.extract_extradata(stream)
+
+# Send to one youtube output:
+output.youtube.live.rtmp(
+    encoder = flv,
+    flv_stream,
+    ...
+)
+
+mpegts = %ffmpeg(
+    format="mpegts",
+    %audio.copy,
+    %video.copy,
+)
+
+# And to a hls one:
+output.file.hls(
+  ["mpegts", mpegts],
+  stream,
+  ...
+)
+```
 
 ## Examples
 
