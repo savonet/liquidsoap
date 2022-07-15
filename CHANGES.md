@@ -1,12 +1,4 @@
-2.0.x (permanent rolling release)
-======
-
-This development branch has reached the end of its release cycle and will only be
-maintained on a best-effort basis. You are advised to switch to the `2.1.x` development
-branch for all new liquidsoap work.
-
----
-2.0.7 (unreleased)
+2.0.7 (2022-07-15)
 =====
 
 Fixed:
