@@ -14,6 +14,20 @@
 
 
 (executable
+ (name output_encoded_test)
+ (modules output_encoded_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  
+  (:output_encoded_test output_encoded_test.exe))
+ (action (run %{output_encoded_test} )))
+
+
+(executable
  (name stream_decoder_test)
  (modules stream_decoder_test)
  (libraries liquidsoap_core liquidsoap_optionals))
