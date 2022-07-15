@@ -235,13 +235,11 @@ class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
     method private send_frame frame =
       let rec output_chunks frame =
         let f start stop =
-          begin
-            match Frame.get_metadata frame start with
+          let data = self#encode frame start (stop - start) in
+          self#send data;
+          match Frame.get_metadata frame start with
             | None -> ()
             | Some m -> self#insert_metadata (Meta_format.export_metadata m)
-          end;
-          let data = self#encode frame start (stop - start) in
-          self#send data
         in
         function
         | [] -> assert false

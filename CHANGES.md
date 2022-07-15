@@ -6,6 +6,15 @@ maintained on a best-effort basis. You are advised to switch to the `2.1.x` deve
 branch for all new liquidsoap work.
 
 ---
+2.0.7 (unreleased)
+=====
+
+Fixed:
+* Fixed memory leaks with opus bindings.
+* Make sure decoding buffer and samplerate converter are only created once. (#2475)
+* Make sure first metadata is always sent in icecast/shoutcast output (#2506)
+
+---
 2.0.6 (2022-06-20)
 =====
 
