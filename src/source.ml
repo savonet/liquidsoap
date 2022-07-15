@@ -622,7 +622,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
      * returns the number of ticks actually skipped.
      * By default it always returns 0, refusing to seek at all. *)
     method seek (_ : int) =
-      self#log#important "Seek not implemented!";
+      self#log#important "Seeking not supported by this source!";
       0
 
     (* Is there some data available for the next [get]?
