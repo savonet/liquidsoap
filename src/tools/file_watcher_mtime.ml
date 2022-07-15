@@ -26,6 +26,7 @@ type watched_files = {
   mutable mtime : float;
 }
 
+let log = Log.make ["file_watcher"; "native"]
 let launched = ref false
 let watched = ref []
 let m = Mutex.create ()
@@ -36,9 +37,15 @@ let rec handler _ =
     (fun () ->
       List.iter
         (fun ({ file; callback; mtime } as w) ->
-          let mtime' = try file_mtime file with _ -> mtime in
-          if mtime' <> mtime then callback ();
-          w.mtime <- mtime')
+          try
+            let mtime' = try file_mtime file with _ -> mtime in
+            if mtime' <> mtime then callback ();
+            w.mtime <- mtime'
+          with exn ->
+            let bt = Printexc.get_backtrace () in
+            Utils.log_exception ~log ~bt
+              (Printf.sprintf "Error while executing file watcher callback: %s"
+                 (Printexc.to_string exn)))
         !watched;
       [
         {
