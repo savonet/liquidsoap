@@ -44,6 +44,7 @@ class once :
        method private get_frame : Frame.t -> unit
        method resolve : bool
        method abort_track : unit
+       method seek : int -> int
      end
 
 class virtual unqueued :
@@ -62,6 +63,7 @@ class virtual unqueued :
        method remaining : int
        method self_sync : Source.self_sync
        method current : handler option
+       method seek : int -> int
      end
 
 type queue_item = {

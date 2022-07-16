@@ -172,7 +172,7 @@ class virtual source :
            By default it always returns 0, refusing to seek at all.
            That method may be called from any thread, concurrently
            with [#get], so they should not interfer. *)
-       method seek : int -> int
+       method virtual seek : int -> int
 
        (** [is_ready] tells you if [get] can be called. *)
        method virtual is_ready : bool
@@ -262,6 +262,12 @@ class virtual active_operator :
   -> object
        inherit active_source
      end
+
+class virtual no_seek :
+  object
+    method virtual log : Log.t
+    method seek : int -> int
+  end
 
 val has_outputs : unit -> bool
 val iterate_new_outputs : (active_source -> unit) -> unit

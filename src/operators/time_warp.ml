@@ -56,6 +56,11 @@ module Buffer = struct
       method remaining = proceed c (fun () -> Generator.remaining c.generator)
       method is_ready = proceed c (fun () -> not c.buffering)
 
+      method seek len =
+        let len = min (Generator.length c.generator) len in
+        Generator.remove c.generator len;
+        len
+
       method private get_frame frame =
         proceed c (fun () ->
             assert (not c.buffering);
@@ -203,6 +208,7 @@ module AdaptativeBuffer = struct
     let alpha = log 2. *. AFrame.duration () /. averaging in
     object (self)
       inherit Source.source kind ~name:"buffer.adaptative_producer"
+      inherit Source.no_seek
       method stype = `Fallible
       method self_sync = (`Static, false)
       method remaining = proceed c (fun () -> MG.remaining c.mg)

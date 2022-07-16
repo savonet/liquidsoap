@@ -60,6 +60,7 @@ let port_t d p =
 class virtual base ~kind source =
   object
     inherit operator ~name:"ladspa" kind [source]
+    inherit Source.no_seek
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -71,6 +72,7 @@ class virtual base ~kind source =
 class virtual base_nosource ~kind =
   object
     inherit source ~name:"ladspa" kind
+    inherit Source.no_seek
     method stype = `Infallible
     method is_ready = true
     method self_sync = (`Static, false)
