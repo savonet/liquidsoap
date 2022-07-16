@@ -59,12 +59,17 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
   picked_index = ref(-1)
 
   # Number of tracks played per selected source
-  tracks_played = list.map(fun (s) -> (source.id(s), ref(0)), sources)
+  # source IDs can change between calls..
+  tracks_played = list.map(fun (s) -> ((fun () -> source.id(s)), ref(0)), sources)
+  tracks_played = fun () -> list.map(fun (x) -> begin
+    label_fn = fst(x)
+    (label_fn(), snd(x))
+  end, tracks_played)
 
   # Find index of next source to play, i.e. first ready source after currently
   # selected one.
   def pick() =
-    list.iter((fun (el) -> snd(el) := 0), tracks_played)
+    list.iter((fun (el) -> snd(el) := 0), tracks_played())
 
     if list.exists(source.is_ready, sources) then
       def rec f(index) =
@@ -89,7 +94,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
       if !picked_index != -1 then
         picked_weight = list.nth(default=default_weight, weights, !picked_index)
         picked_source = list.nth(sources, !picked_index)
-        if picked_weight () <= !list.assoc(source.id(picked_source), tracks_played) then
+        if picked_weight () <= !list.assoc(source.id(picked_source), tracks_played()) then
           pick()
         end
       end
@@ -107,8 +112,8 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
   def f(_) =
     if null.defined(s.selected()) then
       selected_id = source.id(null.get(s.selected()))
-      if list.assoc.mem(selected_id, tracks_played) then
-        played = list.assoc(selected_id, tracks_played)
+      if list.assoc.mem(selected_id, tracks_played()) then
+        played = list.assoc(selected_id, tracks_played())
         ref.incr(played)
       end
     end
