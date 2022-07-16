@@ -46,6 +46,8 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
         ~infallible ~on_stop ~on_start ~content_kind:(Kind.of_kind kind) ~name
           ~output_kind:"output.oss" val_source start as super
 
+    inherit Source.no_seek
+
     method private set_clock =
       super#set_clock;
       if clock_safe then
@@ -92,6 +94,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         ~name:(Printf.sprintf "oss_in(%s)" dev)
         ~on_start ~on_stop ~fallible ~autostart:start ()
 
+    inherit Source.no_seek
     val mutable fd = None
     method self_sync = (`Dynamic, fd <> None)
     method abort_track = ()
