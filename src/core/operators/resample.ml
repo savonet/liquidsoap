@@ -42,6 +42,11 @@ class resample ~kind ~ratio source_val =
     method self_sync = source#self_sync
     method stype = source#stype
 
+    method seek len =
+      let glen = min (Generator.length generator) len in
+      Generator.remove generator glen;
+      (if glen < len then source#seek (len - glen) else 0) + glen
+
     method remaining =
       let rem = source#remaining in
       if rem = -1 then rem

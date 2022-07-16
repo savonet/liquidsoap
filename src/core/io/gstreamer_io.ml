@@ -471,6 +471,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
   let gen = Generator.create ~log_overfull ~log:(fun x -> !rlog x) content in
   object (self)
     inherit Source.source ~name:"input.gstreamer.audio_video" kind as super
+    inherit Source.no_seek
     inherit [string sink, Gstreamer.data sink] element_factory ~on_error
     initializer rlog := fun s -> self#log#important "%s" s
     method set_state s = ignore (Element.set_state self#get_element.bin s)

@@ -38,6 +38,7 @@ class visu ~kind source =
     method remaining = source#remaining
     method abort_track = source#abort_track
     method self_sync = source#self_sync
+    method seek = source#seek
 
     (* Ringbuffer for previous values, with its current position. *)
     val mutable vol = [||]

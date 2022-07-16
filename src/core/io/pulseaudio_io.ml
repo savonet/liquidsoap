@@ -39,6 +39,7 @@ let () = Printexc.register_printer error_translator
 class virtual base ~client ~device =
   let device = if device = "" then None else Some device in
   object
+    inherit Source.no_seek
     val client_name = client
     val dev = device
     method virtual log : Log.t
