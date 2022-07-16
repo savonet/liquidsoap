@@ -53,6 +53,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         ~name ~content_kind:kind ~fallible:true ~clock_safe ~on_start ~on_stop
           ~autostart () as super
 
+    inherit Source.no_seek
     val mutable connect_task = None
     val mutable container = None
     val generator = generator

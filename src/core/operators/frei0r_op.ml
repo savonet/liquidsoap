@@ -81,6 +81,7 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
   let dt = 1. /. float fps in
   object (self)
     inherit operator ~name:("frei0r." ^ name) kind [source; source2] as super
+    inherit Source.no_seek
 
     method stype =
       match (source#stype, source2#stype) with
@@ -158,6 +159,7 @@ class frei0r_source ~kind ~name bgra instance params =
   let dt = 1. /. float fps in
   object
     inherit source ~name:("frei0r." ^ name) kind
+    inherit Source.no_seek
     method stype = `Infallible
     method is_ready = true
     method self_sync = (`Static, false)

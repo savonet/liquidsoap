@@ -36,6 +36,7 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
     method abort_track = source#abort_track
     method remaining = source#remaining
     method self_sync = source#self_sync
+    method seek = source#seek
     val mutable state = `Idle
 
     method private get_frame ab =
@@ -89,6 +90,7 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
     method stype = source#stype
     method abort_track = source#abort_track
     method self_sync = source#self_sync
+    method seek = source#seek
 
     (* Fade-out length (in video frames) for the current track.
      * The value is set at the beginning of every track, depending on metadata. *)

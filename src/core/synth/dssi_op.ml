@@ -51,6 +51,7 @@ let all_chans = 16
 class dssi ~kind ?chan plugin descr outputs params source =
   object
     inherit operator ~name:"dssi" (Kind.of_kind kind) [source]
+    inherit Source.no_seek
     method stype = source#stype
     method remaining = source#remaining
     method is_ready = source#is_ready

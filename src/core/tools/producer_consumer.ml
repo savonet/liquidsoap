@@ -78,6 +78,11 @@ class producer ~check_self_sync ~consumers ~name ~kind g =
 
     method stype = if infallible then `Infallible else `Fallible
 
+    method seek len =
+      let len = min (Generator.length g) len in
+      Generator.remove g len;
+      len
+
     method remaining =
       match List.fold_left (fun r p -> min r p#remaining) (-1) consumers with
         | -1 -> -1

@@ -29,6 +29,8 @@ let initialized = ref false
 
 class virtual base =
   object (self)
+    inherit Source.no_seek
+
     initializer
     if not !initialized then (
       Portaudio.init ();

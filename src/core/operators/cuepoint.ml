@@ -49,6 +49,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
     method is_ready = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
+    method seek = source#seek
 
     method remaining =
       let source_remaining = source#remaining in
