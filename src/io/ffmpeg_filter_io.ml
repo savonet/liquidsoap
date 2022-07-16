@@ -41,6 +41,7 @@ class audio_output ~pass_metadata ~name ~kind source_val =
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
           ~output_kind:"ffmpeg.filter.input" source_val true
 
+    inherit Source.no_seek
     initializer Kind.unify (Lang.to_source source_val)#kind self#kind
     val mutable input = fun _ -> ()
     method set_input fn = input <- fn
@@ -181,6 +182,7 @@ class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata kind
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
+    inherit Source.no_seek
 
     inherit
       [[ `Audio ]] input_base
@@ -261,6 +263,7 @@ class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
+    inherit Source.no_seek
 
     inherit
       [[ `Video ]] input_base

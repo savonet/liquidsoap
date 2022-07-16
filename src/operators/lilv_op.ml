@@ -36,6 +36,7 @@ let lilv_enabled =
 class virtual base ~kind source =
   object
     inherit operator ~name:"lilv" (Kind.of_kind kind) [source]
+    inherit Source.no_seek
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -47,6 +48,7 @@ class virtual base ~kind source =
 class virtual base_nosource ~kind =
   object
     inherit source ~name:"lilv" kind
+    inherit Source.no_seek
     method stype = `Infallible
     method is_ready = true
     val mutable must_fail = false

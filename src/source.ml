@@ -544,9 +544,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     (* [self#seek x] skips [x] main ticks.
      * returns the number of ticks actually skipped.
      * By default it always returns 0, refusing to seek at all. *)
-    method seek (_ : int) =
-      self#log#important "Seeking not supported by this source!";
-      0
+    method virtual seek : int -> int
 
     (* Is there some data available for the next [get]?
      * Must always be true while playing a track, i.e. all tracks
@@ -744,6 +742,15 @@ class virtual source ?name ?audio_in ?video_in ?midi_in content_kind =
 class virtual active_source ?name ?audio_in ?video_in ?midi_in content_kind =
   object
     inherit active_operator ?name ?audio_in ?video_in ?midi_in content_kind []
+  end
+
+class virtual no_seek =
+  object (self)
+    method virtual log : Log.t
+
+    method seek (_ : int) =
+      self#log#important "Seeking not supported by this source!";
+      0
   end
 
 (** Specialized shortcuts *)

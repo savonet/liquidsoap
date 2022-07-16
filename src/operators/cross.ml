@@ -401,6 +401,12 @@ class cross ~kind val_source ~duration_getter ~override_duration ~rms_width
         | `Limit -> -1
         | `After -> (Option.get transition_source)#remaining
 
+    method seek len =
+      match status with
+        | `Before | `Idle -> source#seek len
+        | `Limit -> -1
+        | `After -> (Option.get transition_source)#seek len
+
     method is_ready =
       match status with
         | `Idle | `Before -> source#is_ready

@@ -127,6 +127,7 @@ class replay ~kind meta src =
     method abort_track = src#abort_track
     method remaining = src#remaining
     method self_sync = src#self_sync
+    method seek = src#seek
 
     method private get_frame ab =
       let start = Frame.position ab in
