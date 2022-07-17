@@ -37,7 +37,7 @@ Current release status by version:
 | --------|----------------|-----------|-----------------|
 | `2.2.x` | In development | ⚠️.        | ❌              |
 | `2.1.x` | Next stable release | ✅        | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x)                |
-| `2.0.x` | [2.0.6](https://github.com/savonet/liquidsoap/releases/tag/v2.0.6)        | ⚠️        | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
+| `2.0.x` | [2.0.7](https://github.com/savonet/liquidsoap/releases/tag/v2.0.7)        | ⚠️        | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
 | `1.4.x` | [1.4.4](https://github.com/savonet/liquidsoap/releases/tag/v1.4.4)        | ❌        | ❌              |
 
 ### Notes
