@@ -29,7 +29,7 @@ The available options are:
 * `process`: this parameter is a function that takes the current metadata and return the process to start.
 * `header`: if set to `false` then no WAV header will be added to the data fed to the encoding process, thus the encoding process shall operate on RAW data.
 * `restart_on_crash`: whether to restart the encoding process if it crashed. Useful when the external process fails to encode properly data after some time.
-* `restart_on_metadata`: restart encoding process on each new metadata:. Useful in conjunction with the `process` parameter for audio formats that need a new header, possibly with metadatas, for each new track. This is the case for the ogg container.
+* `restart_on_metadata`: restart encoding process on each new metadata. Useful in conjunction with the `process` parameter for audio formats that need a new header, possibly with metadatas, for each new track. This is the case for the ogg container.
 * `restart_encoder_delay`: Restart the encoder after some delay. This can be useful for encoders that cannot operate on infinite streams, or are buggy after some time, like the `lame` binary. The default for `lame` and `accplusenc`-based encoders is to restart the encoder every hour.
 
 Only one of `restart_encoder_delay` or `restart_on_new_track` should be used.
@@ -45,7 +45,7 @@ If you use an external encoder with the `output.icecast` operator,
 you should also use the following options of `output.icecast`:
 
 * `icy_metadata`: send new metadata as ICY update. This is the case for headerless formats, such as MP3 or AAC, and it appears to work also for ogg/vorbis streams.
-* `format`: Content-type (mime) of the data sent to icecast. For instance, for ogg data, it is one of ``application/ogg'', ``audio/ogg'' or ``video/ogg'' and for mp3 data it is ``audio/mpeg''.
+* `format`: Content-type (mime) of the data sent to icecast. For instance, for ogg data, it is one of `"application/ogg"`, `"audio/ogg"` or `"video/ogg"` and for mp3 data it is `"audio/mpeg"`.
 
 Video support
 -------------
