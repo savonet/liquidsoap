@@ -7,15 +7,11 @@ on:
       - rolling-release-*
       - v*
 
-jobs:
-  cancel_previous_run:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.8.0
-        with:
-          access_token: ${{ github.token }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   build_details:
     runs-on: ubuntu-latest
     outputs:
@@ -38,6 +34,7 @@ jobs:
 
   export_tarball:
     runs-on: ubuntu-latest
+    if: false
     container:
       image: savonet/liquidsoap-ci:debian_bookworm_amd64
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
@@ -83,6 +80,7 @@ jobs:
 
   build_minimal:
     runs-on: ubuntu-latest
+    if: false
     needs: build_details
     container:
       image: savonet/liquidsoap-ci:debian_bookworm_amd64
@@ -118,6 +116,7 @@ jobs:
 
   run_tests:
     runs-on: ubuntu-latest
+    if: false
     needs: build_details
     container:
       image: savonet/liquidsoap-ci:debian_bookworm_amd64
@@ -165,7 +164,7 @@ jobs:
   build_opam:
     runs-on: ubuntu-latest
     needs: build_details
-    if: needs.build_details.outputs.build_opam 
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -189,6 +188,7 @@ jobs:
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
+    if: false
     needs: build_details
     strategy:
       fail-fast: false
@@ -289,6 +289,7 @@ jobs:
 
   fetch_s3_artifacts:
     runs-on: ubuntu-latest
+    if: false
     needs: [build_details, build_posix]
     steps:
       - name: Prepare directory
@@ -455,7 +456,7 @@ jobs:
   update_release:
     runs-on: ubuntu-latest
     needs: [build_details, export_tarball, build_minimal, run_tests, build_opam, build_posix, build_win32, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_release
+    if: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -517,6 +518,7 @@ jobs:
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
+    if: false
     needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
     strategy:
       fail-fast: false
@@ -545,6 +547,7 @@ jobs:
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
+    if: false
     needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
     strategy:
       fail-fast: false
@@ -574,7 +577,7 @@ jobs:
   build_docker_release:
     runs-on: ubuntu-latest
     needs: [build_details, build_opam, build_docker, build_docker_alpine]
-    if: needs.build_details.outputs.docker_release
+    if: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
