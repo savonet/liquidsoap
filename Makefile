@@ -1,3 +1,5 @@
+-include Makefile.defs
+
 DISTFILES = \
 	CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.sub config.guess m4 \
@@ -113,5 +115,3 @@ print-tarball-filename:
 tarball: dist
 	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)
 	rm -rf $(DISTDIR)
-
--include Makefile.defs
