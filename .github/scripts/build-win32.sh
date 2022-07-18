@@ -10,7 +10,7 @@ IS_RELEASE=$5
 GITHUB_SHA=$6
 
 OPAM_PREFIX=`opam var prefix`
-VERSION=`opam show -f version . | cut -d'-' -f 1`
+VERSION=`opam show -f version ./liquidsoap.opam | cut -d'-' -f 1`
 PWD=`dirname $0`
 BASE_DIR=`cd "${PWD}/../.." && pwd`
 COMMIT_SHORT=`echo "${GITHUB_SHA}" | cut -c-7`
@@ -37,10 +37,21 @@ export OPAMSOLVERTIMEOUT=480
 export OPAMJOBS=$CPU_CORES
 export CC=""
 
+echo "::group::Installing deps"
+
 eval `opam config env`
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 cd /home/opam/opam-cross-windows/
-opam upgrade -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows.1.1.2 ffmpeg-avutil-windows.1.1.2 liquidsoap-windows
+opam remove -y ppx_tools_versioned-windows `echo $OPAM_DEPS | sed -e 's#,# #g'`
+opam upgrade -y `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows ffmpeg-avutil-windows
+
+echo "::endgroup::"
+
+echo "::group::Install liquidsoap-windows"
+opam install -y -v liquidsoap-windows
+echo "::endgroup::"
+
+echo "::group::Bundling executable"
 
 cd ~
 cp -rf ${BASE_DIR}/.github/win32 liquidsoap-$BUILD
@@ -54,3 +65,5 @@ zip -r liquidsoap-$BUILD.zip liquidsoap-$BUILD
 mv liquidsoap-$BUILD.zip /tmp/${GITHUB_RUN_NUMBER}/win32/dist
 
 echo "##[set-output name=basename;]liquidsoap-${BUILD}"
+
+echo "::endgroup::"
