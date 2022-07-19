@@ -24,6 +24,9 @@
 
 open Type
 
+(** Print debugging messages for subtyping. *)
+val debug_subtyping : bool ref
+
 (** A typing environment. *)
 type env = (string * scheme) list
 
