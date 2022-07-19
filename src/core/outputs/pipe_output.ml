@@ -74,7 +74,8 @@ class virtual base ~kind ~source ~name p =
     method insert_metadata m = (Option.get encoder).Encoder.insert_metadata m
   end
 
-(** url output: discard encoded data, try to restart on encoding error (can be networking issues etc.) *)
+(** url output: discard encoded data, try to restart on encoding error (can be
+    networking issues etc.) *)
 let url_proto kind =
   Output.proto
   @ [
@@ -244,9 +245,8 @@ class virtual piped_output ~kind p =
       else super#insert_metadata m
   end
 
-(** Out channel virtual class: takes care 
-  * of current out channel and writing to
-  * it. *)
+(** Out channel virtual class: takes care of current out channel and writing to
+    it. *)
 let chan_proto kind arg_doc =
   [
     ( "flush",
