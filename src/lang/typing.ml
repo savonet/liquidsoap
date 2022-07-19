@@ -94,9 +94,8 @@ module Subst = struct
   let is_identity (s : t) = M.is_empty s
 end
 
-(** Copy a term, substituting some EVars as indicated by a list
-  * of associations. Other EVars are not copied, so sharing is
-  * preserved. *)
+(** Copy a term, substituting some EVars as indicated by a list of
+    associations. Other EVars are not copied, so sharing is preserved. *)
 let copy_with (subst : Subst.t) t =
   let rec aux t =
     let descr =
