@@ -45,58 +45,59 @@ let debug_variance = ref false
  * and universal ('a) type variables. *)
 
 (** Ground types *)
+module Ground = struct
+  type t = ..
+  type t += Bool | Int | String | Float | Format of Content.format
 
-type ground = ..
-type ground += Bool | Int | String | Float | Format of Content.format
+  let ground_printers = Queue.create ()
+  let register_printer fn = Queue.add fn ground_printers
+  let ground_resolvers = Queue.create ()
+  let register_resolver fn = Queue.add fn ground_resolvers
 
-let ground_printers = Queue.create ()
-let register_ground_printer fn = Queue.add fn ground_printers
-let ground_resolvers = Queue.create ()
-let register_ground_resolver fn = Queue.add fn ground_resolvers
+  exception FoundName of string
+  exception Found of t
 
-exception FoundName of string
-exception FoundGround of ground
+  let () =
+    register_printer (function
+      | String -> Some "string"
+      | Bool -> Some "bool"
+      | Int -> Some "int"
+      | Float -> Some "float"
+      | Format p -> Some (Content.string_of_format p)
+      | _ -> None);
+    register_resolver (function
+      | "string" -> Some String
+      | "bool" -> Some Bool
+      | "int" -> Some Int
+      | "float" -> Some Float
+      | _ -> None)
 
-let () =
-  register_ground_printer (function
-    | String -> Some "string"
-    | Bool -> Some "bool"
-    | Int -> Some "int"
-    | Float -> Some "float"
-    | Format p -> Some (Content.string_of_format p)
-    | _ -> None);
-  register_ground_resolver (function
-    | "string" -> Some String
-    | "bool" -> Some Bool
-    | "int" -> Some Int
-    | "float" -> Some Float
-    | _ -> None)
+  let to_string v =
+    try
+      Queue.iter
+        (fun fn -> match fn v with Some s -> raise (FoundName s) | None -> ())
+        ground_printers;
+      assert false
+    with FoundName s -> s
 
-let string_of_ground v =
-  try
-    Queue.iter
-      (fun fn -> match fn v with Some s -> raise (FoundName s) | None -> ())
-      ground_printers;
-    assert false
-  with FoundName s -> s
+  let resolve name =
+    try
+      Queue.iter
+        (fun fn -> match fn name with Some g -> raise (Found g) | None -> ())
+        ground_resolvers;
+      raise Not_found
+    with Found g -> g
 
-let resolve_ground name =
-  try
-    Queue.iter
-      (fun fn ->
-        match fn name with Some g -> raise (FoundGround g) | None -> ())
-      ground_resolvers;
-    raise Not_found
-  with FoundGround g -> g
+  let resolve_opt name =
+    try
+      Queue.iter
+        (fun fn -> match fn name with Some g -> raise (Found g) | None -> ())
+        ground_resolvers;
+      None
+    with Found g -> Some g
+end
 
-let resolve_ground_opt name =
-  try
-    Queue.iter
-      (fun fn ->
-        match fn name with Some g -> raise (FoundGround g) | None -> ())
-      ground_resolvers;
-    None
-  with FoundGround g -> Some g
+type ground = Ground.t
 
 (** Type constraints *)
 

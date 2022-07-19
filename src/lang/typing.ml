@@ -209,17 +209,20 @@ let satisfies_constraint b = function
   | Dtools -> (
       match b.descr with
         | Ground g ->
-            if not (List.mem g [Bool; Int; Float; String]) then
-              raise (Unsatisfied_constraint (Dtools, b))
+            if
+              not
+                (List.mem g
+                   [Ground.Bool; Ground.Int; Ground.Float; Ground.String])
+            then raise (Unsatisfied_constraint (Dtools, b))
         | Tuple [] -> ()
         | List { t = b' } -> (
             match (deref b').descr with
               | Ground g ->
-                  if g <> String then
+                  if g <> Ground.String then
                     raise (Unsatisfied_constraint (Dtools, b'))
               | Var ({ contents = Free _ } as v) ->
                   (* TODO: we should check the constraints *)
-                  v := Link (Invariant, make ?pos:b.pos (Ground String))
+                  v := Link (Invariant, make ?pos:b.pos (Ground Ground.String))
               | _ -> raise (Unsatisfied_constraint (Dtools, b')))
         | Var { contents = Free v } ->
             if not (List.mem Dtools v.constraints) then
@@ -234,7 +237,7 @@ let satisfies_constraint b = function
       in
       match b.descr with
         | Constr { constructor } when is_internal constructor -> ()
-        | Ground (Format f) when Content.(is_internal_format f) -> ()
+        | Ground (Ground.Format f) when Content.(is_internal_format f) -> ()
         | Var { contents = Free v } ->
             if not (List.mem InternalMedia v.constraints) then
               v.constraints <- InternalMedia :: v.constraints
@@ -242,7 +245,7 @@ let satisfies_constraint b = function
   | Num -> (
       match (demeth b).descr with
         | Ground g ->
-            if g <> Int && g <> Float then
+            if g <> Ground.Int && g <> Ground.Float then
               raise (Unsatisfied_constraint (Num, b))
         | Var { contents = Free v } ->
             if not (List.mem Num v.constraints) then
@@ -528,7 +531,7 @@ let rec ( <: ) a b =
               (Error
                  ( `Arrow (l2 @ [ellipsis], `Ellipsis),
                    `Arrow ([ellipsis], `Ellipsis) )))
-      | Ground (Format k), Ground (Format k') -> (
+      | Ground (Ground.Format k), Ground (Ground.Format k') -> (
           try Content.merge k k'
           with _ ->
             let bt = Printexc.get_raw_backtrace () in

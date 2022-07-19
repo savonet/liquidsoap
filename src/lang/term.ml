@@ -91,7 +91,7 @@ let frame_kind_t ?pos audio video midi =
 
 let kind_t ?pos kind =
   let evar ?(constraints = []) () = Type.var ~constraints ?pos () in
-  let mk_format f = Type.make ?pos (Type.Ground (Type.Format f)) in
+  let mk_format f = Type.make ?pos (Type.Ground (Type.Ground.Format f)) in
   match kind with
     | `Any -> evar ()
     | `Internal -> evar ~constraints:[Type.InternalMedia] ()
@@ -190,13 +190,23 @@ module Ground = struct
     let to_json b = `Bool (to_bool b) in
     register
       (function Bool _ -> true | _ -> false)
-      { descr = to_string; to_json; compare = compare to_bool; typ = Type.Bool };
+      {
+        descr = to_string;
+        to_json;
+        compare = compare to_bool;
+        typ = Type.Ground.Bool;
+      };
     let to_int = function Int i -> i | _ -> assert false in
     let to_string i = string_of_int (to_int i) in
     let to_json i = `Int (to_int i) in
     register
       (function Int _ -> true | _ -> false)
-      { descr = to_string; to_json; compare = compare to_int; typ = Type.Int };
+      {
+        descr = to_string;
+        to_json;
+        compare = compare to_int;
+        typ = Type.Ground.Int;
+      };
     let to_string = function
       | String s -> Lang_string.quote_string s
       | _ -> assert false
@@ -208,7 +218,7 @@ module Ground = struct
         descr = to_string;
         to_json;
         compare = compare (function String s -> s | _ -> assert false);
-        typ = Type.String;
+        typ = Type.Ground.String;
       };
     let to_float = function Float f -> f | _ -> assert false in
     let to_json f = `Float (to_float f) in
@@ -218,7 +228,7 @@ module Ground = struct
         descr = (fun f -> string_of_float (to_float f));
         to_json;
         compare = compare to_float;
-        typ = Type.Float;
+        typ = Type.Ground.Float;
       }
 end
 
@@ -583,7 +593,7 @@ module type AbstractDef = sig
 end
 
 module MkAbstract (Def : AbstractDef) = struct
-  type Type.ground += Type
+  type Type.Ground.t += Type
   type Ground.t += Value of Def.content
 
   let () =
@@ -594,8 +604,8 @@ module MkAbstract (Def : AbstractDef) = struct
     Ground.register
       (function Value _ -> true | _ -> false)
       { Ground.descr; to_json; compare; typ = Type };
-    Type.register_ground_printer (function Type -> Some Def.name | _ -> None);
-    Type.register_ground_resolver (fun s ->
+    Type.Ground.register_printer (function Type -> Some Def.name | _ -> None);
+    Type.Ground.register_resolver (fun s ->
         if s = Def.name then Some Type else None)
 
   type content = Def.content

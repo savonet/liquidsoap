@@ -31,11 +31,11 @@ type value = Value.t = { pos : Pos.Option.t; value : in_value }
 (** Type construction *)
 
 let ground_t x = Type.make (Type.Ground x)
-let int_t = ground_t Type.Int
+let int_t = ground_t Type.Ground.Int
 let unit_t = Type.make Type.unit
-let float_t = ground_t Type.Float
-let bool_t = ground_t Type.Bool
-let string_t = ground_t Type.String
+let float_t = ground_t Type.Ground.Float
+let bool_t = ground_t Type.Ground.Bool
+let string_t = ground_t Type.Ground.String
 let tuple_t l = Type.make (Type.Tuple l)
 let product_t a b = tuple_t [a; b]
 
@@ -121,11 +121,14 @@ let val_cst_fun p c =
      for printing. *)
   match c.value with
     | Tuple [] -> f (Type.make Type.unit) Term.unit
-    | Ground (Int i) -> f (mkg Type.Int) (Term.Ground (Term.Ground.Int i))
-    | Ground (Bool i) -> f (mkg Type.Bool) (Term.Ground (Term.Ground.Bool i))
-    | Ground (Float i) -> f (mkg Type.Float) (Term.Ground (Term.Ground.Float i))
+    | Ground (Int i) ->
+        f (mkg Type.Ground.Int) (Term.Ground (Term.Ground.Int i))
+    | Ground (Bool i) ->
+        f (mkg Type.Ground.Bool) (Term.Ground (Term.Ground.Bool i))
+    | Ground (Float i) ->
+        f (mkg Type.Ground.Float) (Term.Ground (Term.Ground.Float i))
     | Ground (String i) ->
-        f (mkg Type.String) (Term.Ground (Term.Ground.String i))
+        f (mkg Type.Ground.String) (Term.Ground (Term.Ground.String i))
     | _ -> mk (FFI (p, fun _ -> c))
 
 let metadata m =

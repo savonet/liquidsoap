@@ -255,7 +255,7 @@ let print f t =
     | `Constr ("none", _) ->
         Format.fprintf f "none";
         vars
-    | `Constr (_, [(_, `Ground (Format format))]) ->
+    | `Constr (_, [(_, `Ground (Ground.Format format))]) ->
         Format.fprintf f "%s" (Content.string_of_format format);
         vars
     | `Constr (name, params) ->
@@ -266,7 +266,7 @@ let print f t =
         Format.close_box ();
         vars
     | `Ground g ->
-        Format.fprintf f "%s" (string_of_ground g);
+        Format.fprintf f "%s" (Ground.to_string g);
         vars
     | `Tuple [] ->
         Format.fprintf f "unit";

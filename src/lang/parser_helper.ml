@@ -474,7 +474,10 @@ let mk_source_ty ~pos name args =
   Term.source_t (Term.frame_kind_t audio video midi)
 
 let mk_json_assoc_object_ty ~pos = function
-  | ( { Type.descr = Type.Tuple [{ Type.descr = Type.Ground Type.String }; ty] },
+  | ( {
+        Type.descr =
+          Type.Tuple [{ Type.descr = Type.Ground Type.Ground.String }; ty];
+      },
       "as",
       "json",
       "object" ) ->
@@ -482,7 +485,7 @@ let mk_json_assoc_object_ty ~pos = function
         make ~pos
           (List
              {
-               t = make ~pos (Tuple [make (Ground String); ty]);
+               t = make ~pos (Tuple [make (Ground Ground.String); ty]);
                json_repr = `Object;
              }))
   | _ -> raise (Parse_error (pos, "Invalid type constructor"))
@@ -491,14 +494,14 @@ let mk_ty ~pos name =
   match name with
     | "_" -> Type.var ()
     | "unit" -> Type.make Type.unit
-    | "bool" -> Type.make (Type.Ground Type.Bool)
-    | "int" -> Type.make (Type.Ground Type.Int)
-    | "float" -> Type.make (Type.Ground Type.Float)
-    | "string" -> Type.make (Type.Ground Type.String)
+    | "bool" -> Type.make (Type.Ground Type.Ground.Bool)
+    | "int" -> Type.make (Type.Ground Type.Ground.Int)
+    | "float" -> Type.make (Type.Ground Type.Ground.Float)
+    | "string" -> Type.make (Type.Ground Type.Ground.String)
     | "source" -> mk_source_ty ~pos "source" []
     | "source_methods" -> !Term.source_methods_t ()
     | name -> (
-        match Type.resolve_ground_opt name with
+        match Type.Ground.resolve_opt name with
           | Some g -> Type.make (Type.Ground g)
           | None ->
               raise
