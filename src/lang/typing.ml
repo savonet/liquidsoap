@@ -287,6 +287,7 @@ exception Incompatible
     has a chance be be greater than the first. No binding is performed by this
     function so that it should always be followed by a subtyping. *)
 let rec sup ~pos a b =
+  (* Printf.printf "  sup: %s \\/ %s\n%!" (Type.to_string a) (Type.to_string b); *)
   let sup = sup ~pos in
   let mk descr = { pos; descr } in
   let scheme_sup t t' =
@@ -580,8 +581,8 @@ let rec ( <: ) a b =
                  ( `Meth (l, ([], `Ellipsis), json_name1, a),
                    `Meth (l, ([], `Ellipsis), json_name2, b) ))
               bt)
-      | _, Meth ({ meth = l; scheme = g2, t2; json_name }, u2) -> (
-          try
+      | _, Meth ({ meth = l; scheme = g2, t2; json_name }, u2) ->
+          if Type.has_meth a l then (
             let g1, t1 = invoke a l in
             (try
                (* TODO: we should perform proper type scheme subtyping, but this
@@ -600,8 +601,8 @@ let rec ( <: ) a b =
               let bt = Printexc.get_raw_backtrace () in
               Printexc.raise_with_backtrace
                 (Error (a, `Meth (l, ([], `Ellipsis), json_name, b)))
-                bt
-          with Not_found -> (
+                bt)
+          else (
             let a' = demeth a in
             match a'.descr with
               | Var { contents = Free _ } ->
@@ -620,7 +621,7 @@ let rec ( <: ) a b =
                   raise
                     (Error
                        ( Repr.make a,
-                         `Meth (l, ([], `Ellipsis), json_name, `Ellipsis) ))))
+                         `Meth (l, ([], `Ellipsis), json_name, `Ellipsis) )))
       | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
       | _, Getter t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
