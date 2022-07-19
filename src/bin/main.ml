@@ -91,12 +91,9 @@ let load_libs =
   fun () ->
     if !stdlib && not !loaded then (
       try
-        let display_types = !Configure.display_types in
-        Configure.display_types := false;
         Runtime.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
           ~parse_only:!parse_only ();
-        loaded := true;
-        Configure.display_types := display_types
+        loaded := true
       with Liquidsoap_lang.Runtime.Error ->
         flush_all ();
         exit 1)
@@ -346,7 +343,9 @@ let options =
         ( ["--no-deprecated"],
           Arg.Clear deprecated,
           "Do not load wrappers for deprecated operators." );
-        (["-i"], Arg.Set Configure.display_types, "Display inferred types.");
+        ( ["-i"],
+          Arg.Set Liquidsoap_lang.Typechecking.display_types,
+          "Display inferred types." );
         ( ["--version"],
           Arg.Unit
             (fun () ->

@@ -38,8 +38,5 @@ val rundir : unit -> string
 
 val logdir : unit -> string
 
-(** Display inferred types. *)
-val display_types : bool ref
-
 (** String containing versions of all enabled bindings. *)
 val libs_versions : unit -> string

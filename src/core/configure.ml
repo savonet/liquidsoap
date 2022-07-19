@@ -37,7 +37,6 @@ let () =
       Utils.add_subst "<syslogdir>" (logdir ()))
 
 let restart = ref false
-let display_types = Typechecking.display_types
 let () = Hooks.liq_libs_dir := liq_libs_dir
 
 let vendor =
