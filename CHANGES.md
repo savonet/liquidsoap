@@ -1,4 +1,12 @@
-2.1.0 (unreleased)
+2.1.1 (unreleased)
+======
+
+Changed:
+
+* Renamed `playlist.remaining` into `playlist.remaining_files` (#2524)
+
+---
+2.1.0 (2022-07-15)
 =====
 
 New:
@@ -68,6 +76,15 @@ Fixed:
 - Fixed performances issues with `input.ffmpeg` and `input.http` (#2475)
 - Fixed `list.shuffle` which was used to randomize playlists in `playlist`
   operator (#2507, #2500).
+
+---
+2.0.7 (2022-07-15)
+=====
+
+Fixed:
+* Fixed memory leaks with opus bindings.
+* Make sure decoding buffer and samplerate converter are only created once. (#2475)
+* Make sure first metadata is always sent in icecast/shoutcast output (#2506)
 
 ---
 2.0.6 (2022-06-20)
