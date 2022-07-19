@@ -36,9 +36,10 @@ let rec value_restriction t =
     | Null -> true
     | List l | Tuple l -> List.for_all value_restriction l
     | Meth (_, t, u) -> value_restriction t && value_restriction u
-    (* | Invoke (t, _) -> value_restriction t *)
     | Ground _ -> true
     | Let l -> value_restriction l.def && value_restriction l.body
+    | Cast (t, _) -> value_restriction t
+    (* | Invoke (t, _) -> value_restriction t *)
     | _ -> false
 
 (** A simple mechanism for delaying printing toplevel tasks as late as possible,
@@ -167,7 +168,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         in
         check_enc f;
         let t =
-          try !Hooks.type_of_encoder ~pos:e.t.Type.pos f
+          try !Hooks.type_of_encoder ~pos f
           with Not_found ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace
@@ -298,8 +299,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check_fun ~proto ~env e body
     | Var var ->
         let generalized, orig =
-          try List.assoc var env
-          with Not_found -> raise (Unbound (e.t.Type.pos, var))
+          try List.assoc var env with Not_found -> raise (Unbound (pos, var))
         in
         e.t >: Typing.instantiate ~level ~generalized orig;
         if Lazy.force Term.debug then
