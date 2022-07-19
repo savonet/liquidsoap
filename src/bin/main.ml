@@ -350,11 +350,11 @@ let options =
           Arg.Unit
             (fun () ->
               Printf.printf
-                "Liquidsoap %s\n\
-                 Copyright (c) 2003-2022 Savonet team\n\
-                 Liquidsoap is open-source software, released under GNU \
-                 General Public License.\n\
-                 See <http://liquidsoap.info> for more information.\n"
+                {|Liquidsoap %s
+Copyright (c) 2003-2022 Savonet team
+Liquidsoap is open-source software, released under GNU General Public License.
+See <http://liquidsoap.info> for more information.
+|}
                 Configure.version;
               exit 0),
           "Display liquidsoap's version." );
