@@ -47,14 +47,12 @@ let string_of_field = FieldNames.find field_names
 let field_of_string = Hashtbl.find name_fields
 
 let register_field name =
-  (try
-     ignore (field_of_string name);
-     failwith "Field already registered!"
-   with Not_found -> ());
-  let field = Atomic.fetch_and_add field_idx 1 in
-  FieldNames.replace field_names field name;
-  Hashtbl.replace name_fields name field;
-  field
+  try field_of_string name
+  with Not_found ->
+    let field = Atomic.fetch_and_add field_idx 1 in
+    FieldNames.replace field_names field name;
+    Hashtbl.replace name_fields name field;
+    field
 
 (** High-level description of the content. *)
 type kind =
