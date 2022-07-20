@@ -55,7 +55,7 @@ class bpm ~kind (source : source) =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "bpm"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:`Visualization

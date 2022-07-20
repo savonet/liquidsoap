@@ -195,7 +195,7 @@ let () =
     Lang.fun_t
       [
         (false, "label_values", Lang.list_t Lang.string_t);
-        (false, "", Lang.source_t (Lang.univ_t ()));
+        (false, "", Lang.source_t (Lang.content_t Lang.any));
       ]
       Lang.unit_t
   in

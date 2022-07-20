@@ -35,11 +35,19 @@ module FieldNames = Hashtbl.Make (struct
   let hash (x : int) = x [@@inline always]
 end)
 
-module Fields = Map.Make (struct
-  type t = field
+module Fields = struct
+  include Map.Make (struct
+    type t = field
 
-  let compare (x : int) (y : int) = x - y [@@inline always]
-end)
+    let compare (x : int) (y : int) = x - y [@@inline always]
+  end)
+
+  module Set = Set.Make (struct
+    type t = int
+
+    let compare (x : int) (y : int) = x - y [@@inline always]
+  end)
+end
 
 let field_names = FieldNames.create 0
 let name_fields = Hashtbl.create 0

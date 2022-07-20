@@ -71,7 +71,7 @@ let () =
     (proto
     @ [
         ( "",
-          Lang.list_t (Lang.source_t (Lang.univ_t ())),
+          Lang.list_t (Lang.source_t (Lang.content_t Lang.any)),
           None,
           Some "List of sources to which the new clock will be assigned." );
       ])
@@ -85,7 +85,7 @@ let () =
 let () =
   Lang.add_builtin "clock.unify" ~category:`Liquidsoap
     ~descr:"Enforce that a list of sources all belong to the same clock."
-    [("", Lang.list_t (Lang.source_t (Lang.univ_t ())), None, None)]
+    [("", Lang.list_t (Lang.source_t (Lang.content_t Lang.any)), None, None)]
     Lang.unit_t
     (fun p ->
       let l = List.assoc "" p in

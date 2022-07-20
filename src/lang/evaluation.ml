@@ -151,28 +151,10 @@ and eval (env : Env.t) tm =
     let v = { Value.pos = tm.t.Type.pos; Value.value = v } in
     (match (Type.deref tm.t).Type.descr with
       | Type.Constr
-          { Type.constructor = "source"; params = [(Type.Invariant, k)] } ->
-          let frame_content_of_t t =
-            match (Type.deref t).Type.descr with
-              | Type.Var _ -> `Any
-              | Type.Constr { Type.constructor; params = [(_, t)] } -> (
-                  match (Type.deref t).Type.descr with
-                    | Type.Ground (Type.Ground.Format fmt) -> `Format fmt
-                    | Type.Var _ -> `Kind (Content.kind_of_string constructor)
-                    | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
-                  )
-              | Type.Constr { Type.constructor = "none" } ->
-                  `Kind (Content.kind_of_string "none")
-              | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
-          in
-          let k = of_frame_kind_t k in
-          let k =
-            Frame.mk_fields
-              ~audio:(frame_content_of_t (Frame.find_audio k))
-              ~video:(frame_content_of_t (Frame.find_video k))
-              ~midi:(frame_content_of_t (Frame.find_midi k))
-              ()
-          in
+          {
+            Type.constructor = "source";
+            params = [(Type.Invariant, { Type.descr = Content k })];
+          } ->
           let fn = !Hooks.source_eval_check in
           fn ~k ~pos:tm.t.Type.pos v
       | _ -> ());

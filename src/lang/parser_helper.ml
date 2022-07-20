@@ -429,26 +429,29 @@ let mk_time_pred ~pos (a, b, c) =
   mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
 let mk_kind ~pos (kind, params) =
-  if kind = "any" then Type.var ~pos ()
-  else (
-    try
-      let k = Content.kind_of_string kind in
-      match params with
-        | [] -> Term.kind_t (`Kind k)
-        | [("", "any")] -> Type.var ()
-        | [("", "internal")] -> Type.var ~constraints:[Type.InternalMedia] ()
-        | param :: params ->
-            let mk_format (label, value) = Content.parse_param k label value in
-            let f = mk_format param in
-            List.iter (fun param -> Content.merge f (mk_format param)) params;
-            assert (k = Content.kind f);
-            Term.kind_t (`Format f)
-    with _ ->
-      let params =
-        params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
-      in
-      let t = kind ^ "(" ^ params ^ ")" in
-      raise (Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")))
+  Content_unifier.make_content
+    (if kind = "any" then `Any
+    else (
+      try
+        let k = Content.kind_of_string kind in
+        match params with
+          | [] -> `Kind k
+          | [("", "any")] -> `Any
+          | [("", "internal")] -> `Internal
+          | param :: params ->
+              let mk_format (label, value) =
+                Content.parse_param k label value
+              in
+              let f = mk_format param in
+              List.iter (fun param -> Content.merge f (mk_format param)) params;
+              assert (k = Content.kind f);
+              `Format f
+      with _ ->
+        let params =
+          params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
+        in
+        let t = kind ^ "(" ^ params ^ ")" in
+        raise (Parse_error (pos, "Unknown type constructor: " ^ t ^ "."))))
 
 let mk_source_ty ~pos name args =
   if name <> "source" then
@@ -471,7 +474,10 @@ let mk_source_ty ~pos name args =
   let video = mk_kind ~pos !video in
   let midi = mk_kind ~pos !midi in
 
-  Term.source_t (Term.frame_kind_t audio video midi)
+  Term.source_t
+    (Content_unifier.make
+       ~fields:(Frame.mk_fields ~audio ~video ~midi ())
+       ~sealed:true ())
 
 let mk_json_assoc_object_ty ~pos = function
   | ( {

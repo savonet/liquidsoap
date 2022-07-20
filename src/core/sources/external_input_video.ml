@@ -97,7 +97,7 @@ let () =
     Frame.mk_fields ~audio:Frame.audio_pcm ~video:Frame.video_yuva420p
       ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "input.external.avi" ~category:`Input ~flags:[`Experimental]
     ~meth:
       [
@@ -257,7 +257,7 @@ let () =
 
 let () =
   let kind = Lang.video_yuva420p in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "input.external.rawvideo" ~category:`Input
     ~flags:[`Experimental]
     ~meth:

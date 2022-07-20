@@ -129,7 +129,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "output.oss"
     (Output.proto
     @ [
@@ -163,7 +163,7 @@ let () =
       (new output
          ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
         :> Output.output));
-  let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
+  let k = Lang.content_t Lang.audio_pcm in
   Lang.add_operator "input.oss"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [

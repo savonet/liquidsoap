@@ -30,7 +30,10 @@ val string_of_field : field -> string
 val field_of_string : string -> field
 val register_field : string -> field
 
-module Fields : Map.S with type key = field
+module Fields : sig
+  include Map.S with type key = field
+  module Set : Set.S with type elt = field
+end
 
 (** High-level description of the content. *)
 type kind =

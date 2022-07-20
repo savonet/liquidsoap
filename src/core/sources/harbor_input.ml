@@ -268,7 +268,7 @@ module Make (Harbor : T) = struct
     end
 
   let () =
-    Lang.add_operator Harbor.source_name ~return_t:(Lang.univ_t ())
+    Lang.add_operator Harbor.source_name ~return_t:(Lang.content_t Lang.any)
       ~meth:
         [
           ( "stop",

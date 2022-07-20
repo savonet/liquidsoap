@@ -201,7 +201,7 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "output.udp"
     ~descr:"Output encoded data to UDP, without any control whatsoever."
     ~category:`Output
@@ -246,7 +246,7 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "input.udp"
     ~descr:"Input encoded data from UDP, without any control whatsoever."
     ~category:`Input

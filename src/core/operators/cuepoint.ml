@@ -195,7 +195,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "cue_cut" ~return_t ~category:`Track
     ~descr:
       "Start track after a cue in point and stop it at cue out point. The cue \

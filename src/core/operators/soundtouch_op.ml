@@ -103,7 +103,7 @@ class soundtouch ~kind source_val rate tempo pitch =
 let () =
   (* TODO: could we keep the video in some cases? *)
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "soundtouch"
     [
       ("rate", Lang.getter_t Lang.float_t, Some (Lang.float 1.0), None);

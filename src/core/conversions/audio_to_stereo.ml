@@ -59,15 +59,11 @@ class basic source =
   end
 
 let () =
-  let input_kind = Lang.audio_pcm in
-  let input_type = Lang.kind_type_of_kind_format input_kind in
-  let fields = Lang.of_frame_kind_t input_type in
-  let output_type =
-    Lang.frame_kind_t
-      (Frame.set_audio_field fields (Lang.kind_t Frame.audio_stereo))
+  let input_t = Lang.content_t Lang.audio_pcm in
+  let return_t =
+    Lang.set_field_t input_t Frame.audio_field (Lang.kind_t Frame.audio_stereo)
   in
   Lang.add_operator "audio_to_stereo" ~category:`Conversion
-    ~descr:"Convert any pcm audio source into a stereo source."
-    ~return_t:output_type
-    [("", Lang.source_t input_type, None, None)]
+    ~descr:"Convert any pcm audio source into a stereo source." ~return_t
+    [("", Lang.source_t input_t, None, None)]
     (fun p -> new basic (Lang.to_source (List.assoc "" p)))

@@ -44,7 +44,7 @@ let () =
 let log = Lang.log
 
 let () =
-  let kind = Lang.univ_t () in
+  let kind = Lang.content_t Lang.any in
   Lang.add_builtin ~category:`Liquidsoap "encoder.content_type"
     ~descr:"Return the content-type (mime) of an encoder, if known."
     [("", Lang.format_t kind, None, None)]
@@ -54,7 +54,7 @@ let () =
       try Lang.string (Encoder.mime f) with _ -> Lang.string "")
 
 let () =
-  let kind = Lang.univ_t () in
+  let kind = Lang.content_t Lang.any in
   Lang.add_builtin ~category:`Liquidsoap "encoder.extension"
     ~descr:"Return the file extension of an encoder, if known."
     [("", Lang.format_t kind, None, None)]

@@ -64,7 +64,7 @@ let () =
   Lang.add_builtin "request.resolve" ~category:`Liquidsoap
     [
       ( "content_type",
-        Lang.nullable_t (Lang.source_t (Lang.univ_t ())),
+        Lang.nullable_t (Lang.source_t (Lang.content_t Lang.any)),
         Some Lang.null,
         Some
           "If specified, the request will be decoded with the same content \

@@ -192,7 +192,7 @@ let () =
                       ~video:(`Kind Ffmpeg_copy_content.Video.kind)
                       ~midi:Frame.none () )
           in
-          let source_t = Lang.kind_type_of_kind_format source_kind in
+          let source_t = Lang.content_t source_kind in
           let args_t = ("", Lang.source_t source_t, None, None) :: args in
           Lang.add_operator ~category:`FFmpegFilter
             ("ffmpeg.filter.bitstream." ^ name)

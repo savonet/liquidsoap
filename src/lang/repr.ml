@@ -81,6 +81,7 @@ let excerpt_opt = function Some pos -> excerpt pos | None -> None
 type t =
   [ `Constr of string * (variance * t) list
   | `Ground of ground
+  | `Content of Content_unifier.t
   | `List of t * [ `Object | `Tuple ]
   | `Tuple of t list
   | `Nullable of t
@@ -183,6 +184,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     else (
       match t.descr with
         | Ground g -> `Ground g
+        | Content c -> `Content c
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
         | Tuple l -> `Tuple (List.map (repr g) l)
@@ -227,36 +229,8 @@ let print f t =
    * The [par] params tells whether (..)->.. should be surrounded by
    * parenthesis or not. *)
   let rec print ~par vars : t -> DS.t = function
-    | `Constr ("stream_kind", params) -> (
-        (* Let's assume that stream_kind occurs only inside a source
-         * or format type -- this should be pretty much true with the
-         * current API -- and simplify the printing by labeling its
-         * parameters and omitting the stream_kind(...) to avoid
-         * source(stream_kind(pcm(stereo),none,none)). *)
-        match params with
-          | [(_, a); (_, v); (_, m)] ->
-              let first, has_ellipsis, vars =
-                List.fold_left
-                  (fun (first, has_ellipsis, vars) (lbl, t) ->
-                    if t = `Ellipsis then (false, true, vars)
-                    else (
-                      if not first then Format.fprintf f ",@ ";
-                      Format.fprintf f "%s=" lbl;
-                      let vars = print ~par:false vars t in
-                      (false, has_ellipsis, vars)))
-                  (true, false, vars)
-                  [("audio", a); ("video", v); ("midi", m)]
-              in
-              if not has_ellipsis then vars
-              else (
-                if not first then Format.fprintf f ",@,";
-                print ~par:false vars `Range_Ellipsis)
-          | _ -> assert false)
     | `Constr ("none", _) ->
         Format.fprintf f "none";
-        vars
-    | `Constr (_, [(_, `Ground (Ground.Format format))]) ->
-        Format.fprintf f "%s" (Content.string_of_format format);
         vars
     | `Constr (name, params) ->
         Format.open_box (1 + String.length name);
@@ -264,6 +238,9 @@ let print f t =
         let vars = print_list vars params in
         Format.fprintf f ")";
         Format.close_box ();
+        vars
+    | `Content c ->
+        Format.fprintf f "%s" (Content_unifier.to_string c);
         vars
     | `Ground g ->
         Format.fprintf f "%s" (Ground.to_string g);
@@ -377,12 +354,6 @@ let print f t =
         Format.fprintf f "{";
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
-        vars
-    | `EVar (a, [InternalMedia]) ->
-        Format.fprintf f "?internal(%s)" a;
-        vars
-    | `UVar (a, [InternalMedia]) ->
-        Format.fprintf f "internal(%s)" a;
         vars
     | `EVar (name, c) | `UVar (name, c) ->
         Format.fprintf f "%s" name;

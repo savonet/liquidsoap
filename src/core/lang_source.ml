@@ -309,7 +309,7 @@ let () =
              ( Option.to_list pos,
                "term has type source but is not a source: " ^ Value.to_string v
              ));
-      Kind.unify (V.of_value v)#kind (Kind.of_kind k)
+      Kind.unify (V.of_value v)#kind k
 
 let iter_sources ?on_reference ~static_analysis_failed f v =
   let itered_values = ref [] in

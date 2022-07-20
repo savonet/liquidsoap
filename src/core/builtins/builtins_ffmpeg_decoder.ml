@@ -434,14 +434,14 @@ let mk_encoder mode =
           | _ -> Frame.none)
       ~midi:Frame.none ()
   in
-  let source_t = Lang.kind_type_of_kind_format source_kind in
+  let source_t = Lang.content_t source_kind in
   let return_kind =
     Frame.mk_fields
       ~audio:(if has_audio then Frame.audio_pcm else Frame.none)
       ~video:(if has_video then Frame.video_yuva420p else Frame.none)
       ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format return_kind in
+  let return_t = Lang.content_t return_kind in
   let extension =
     match mode with
       | `Audio_encoded -> "decode.audio"

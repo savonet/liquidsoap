@@ -57,7 +57,7 @@ class midimeter ~kind source =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "midi.inspect"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:`Visualization

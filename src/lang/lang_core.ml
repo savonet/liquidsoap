@@ -66,17 +66,12 @@ let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
 let univ_t ?(constraints = []) () = Type.var ~constraints ()
 let getter_t a = Type.make (Type.Getter a)
-
-let frame_kind_t kind =
-  Term.frame_kind_t (Frame.find_audio kind) (Frame.find_video kind)
-    (Frame.find_midi kind)
-
-let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t t = Term.source_t t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
-let kind_t k = Term.kind_t k
-let kind_none_t = Term.kind_t Frame.none
+let kind_t = Content_unifier.make_content
+let of_kind_t = Content_unifier.content
+let kind_none_t = kind_t Frame.none
 
 let empty =
   Frame.mk_fields ~audio:Frame.none ~video:Frame.none ~midi:Frame.none ()
@@ -86,11 +81,24 @@ let any = Frame.mk_fields ~audio:`Any ~video:`Any ~midi:`Any ()
 let internal =
   Frame.mk_fields ~audio:`Internal ~video:`Internal ~midi:`Internal ()
 
-let kind_type_of_kind_format fields =
-  let audio = Term.kind_t (Frame.find_audio fields) in
-  let video = Term.kind_t (Frame.find_video fields) in
-  let midi = Term.kind_t (Frame.find_midi fields) in
-  frame_kind_t (Frame.mk_fields ~audio ~video ~midi ())
+let fields_t fields = Content_unifier.make ~fields ~sealed:true ()
+let of_fields_t = Content_unifier.fields
+
+let content_t fields =
+  let fields = Frame.Fields.map Content_unifier.make_content fields in
+  Content_unifier.make ~fields ~sealed:true ()
+
+let of_content_t k =
+  Frame.Fields.map Content_unifier.content (Content_unifier.fields k)
+
+let set_field_t fields field v =
+  Content_unifier.make
+    ~fields:(Frame.Fields.add field v (Content_unifier.fields fields))
+    ~sealed:(Content_unifier.sealed fields)
+    ()
+
+let get_field_t fields field =
+  Frame.Fields.find field (Content_unifier.fields fields)
 
 (** Value construction *)
 

@@ -270,7 +270,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "output.alsa"
     (Output.proto
     @ [
@@ -317,7 +317,7 @@ let () =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "input.alsa"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [

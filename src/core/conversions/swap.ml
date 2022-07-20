@@ -52,7 +52,7 @@ class swap ~kind (source : source) =
 
 let () =
   let kind = Lang.audio_stereo in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "swap"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:`Conversion

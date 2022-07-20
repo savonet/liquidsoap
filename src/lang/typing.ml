@@ -105,6 +105,7 @@ let copy_with (subst : Subst.t) t =
         | Constr c ->
             let params = List.map (fun (v, t) -> (v, aux t)) c.params in
             Constr { c with params }
+        | Content c -> Content (Content_unifier.copy c)
         | Ground _ as g -> g
         | Getter t -> Getter (aux t)
         | List { t; json_repr } -> List { t = aux t; json_repr }
@@ -177,7 +178,7 @@ let rec occur_check (a : var) b =
     | Arrow (p, t) ->
         ignore (List.fold_left arrow_check a p);
         occur_check a t
-    | Ground _ -> ()
+    | Content _ | Ground _ -> ()
     | Var { contents = Free x } ->
         if Type.Var.eq a x then raise (Occur_check (a, b));
         x.level <- min a.level x.level
@@ -228,20 +229,6 @@ let satisfies_constraint b = function
             if not (List.mem Dtools v.constraints) then
               v.constraints <- Dtools :: v.constraints
         | _ -> raise (Unsatisfied_constraint (Dtools, b)))
-  | InternalMedia -> (
-      let is_internal name =
-        try
-          let kind = Content.kind_of_string name in
-          Content.is_internal_kind kind
-        with Content.Invalid -> false
-      in
-      match b.descr with
-        | Constr { constructor } when is_internal constructor -> ()
-        | Ground (Ground.Format f) when Content.(is_internal_format f) -> ()
-        | Var { contents = Free v } ->
-            if not (List.mem InternalMedia v.constraints) then
-              v.constraints <- InternalMedia :: v.constraints
-        | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
   | Num -> (
       match (demeth b).descr with
         | Ground g ->
@@ -290,7 +277,6 @@ exception Incompatible
     has a chance be be greater than the first. No binding is performed by this
     function so that it should always be followed by a subtyping. *)
 let rec sup ~pos a b =
-  (* Printf.printf "  sup: %s \\/ %s\n%!" (Type.to_string a) (Type.to_string b); *)
   let sup = sup ~pos in
   let mk descr = { pos; descr } in
   let scheme_sup t t' =
@@ -320,10 +306,9 @@ let rec sup ~pos a b =
           if List.length l <> List.length m then raise Incompatible;
           mk (Tuple (List.map2 sup l m))
       | Ground g, Ground g' ->
-          (* We might try to compare functional values here. *)
-          let eq = try g = g' with _ -> false in
-          if not eq then raise Incompatible;
+          if g <> g' then raise Incompatible;
           mk (Ground g)
+      | Content c, Content c' -> mk (Content (Content_unifier.sup c c'))
       | Meth (m, a), _ -> (
           let a = hide_meth m.meth a in
           let mb = meth_type m.meth b in
@@ -531,8 +516,8 @@ let rec ( <: ) a b =
               (Error
                  ( `Arrow (l2 @ [ellipsis], `Ellipsis),
                    `Arrow ([ellipsis], `Ellipsis) )))
-      | Ground (Ground.Format k), Ground (Ground.Format k') -> (
-          try Content.merge k k'
+      | Content c, Content c' -> (
+          try Content_unifier.(c <: c')
           with _ ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace (Error (Repr.make a, Repr.make b)) bt)

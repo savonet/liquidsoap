@@ -50,7 +50,7 @@ class pan ~kind (source : source) phi phi_0 =
 
 let () =
   let kind = Lang.audio_stereo in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "stereo.pan"
     [
       ( "pan",

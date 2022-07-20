@@ -65,7 +65,7 @@ class blank ~kind duration =
 
 let () =
   let kind = Lang.internal in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "blank" ~category:`Input
     ~descr:"Produce silence and blank images." ~return_t
     [

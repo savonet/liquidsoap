@@ -121,7 +121,7 @@ end
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "buffer"
     ([
        ( "fallible",
@@ -353,7 +353,7 @@ end
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "buffer.adaptative"
     (Output.proto
     @ [

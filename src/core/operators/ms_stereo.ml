@@ -60,7 +60,7 @@ class msstereo ~kind (source : source) mode width =
 let () =
   Lang.add_module "stereo.ms";
   let kind = Lang.audio_stereo in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "stereo.ms.encode"
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:`Audio
@@ -119,7 +119,7 @@ class spatializer ~kind ~width (source : source) =
 
 let () =
   let kind = Lang.audio_stereo in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "stereo.width"
     [
       ( "",

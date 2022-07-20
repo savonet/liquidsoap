@@ -37,7 +37,7 @@ class on_frame ~kind f s =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "source.on_frame"
     [
       ("", Lang.source_t k, None, None);
@@ -79,11 +79,10 @@ let () = Lang.add_module "source.frame"
 
 let op name descr f_t f default =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator ("source.frame." ^ name)
     [("", Lang.source_t k, None, None)]
-    ~category:`Track ~descr
-    ~return_t:(Lang.method_t k [("frame_" ^ name, ([], f_t), descr)])
+    ~category:`Track ~descr ~return_t:k
     ~meth:[("frame_" ^ name, ([], f_t), descr, fun s -> s#value)]
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in

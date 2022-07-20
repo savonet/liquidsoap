@@ -21,21 +21,38 @@
  *****************************************************************************)
 
 open Frame
+module Content_unifier = Liquidsoap_lang.Content_unifier
 
-exception Conflict of string * string
+exception Conflict = Liquidsoap_lang.Content_unifier.Conflict
 
-type kind = Frame.kind Unifier.t
-type t = kind Fields.t
+type kind = Content_unifier.content
+type t = Content_unifier.t
 
-let deref = Unifier.deref
-let of_kind = Frame.map_fields Unifier.make
-let set_audio fields k = Frame.set_audio_field fields (Unifier.make k)
-let set_video fields k = Frame.set_video_field fields (Unifier.make k)
-let set_midi fields k = Frame.set_midi_field fields (Unifier.make k)
+let of_fields fields = Content_unifier.make ~sealed:true ~fields ()
 
-let content_type =
+let of_kind fields =
+  of_fields (Frame.Fields.map Content_unifier.make_content fields)
+
+let set_field field fields k =
+  let fields = Content_unifier.fields fields in
+  let content = Content_unifier.make_content k in
+  of_fields (Frame.Fields.add field content fields)
+
+let set_audio = set_field Frame.audio_field
+let set_video = set_field Frame.video_field
+let set_midi = set_field Frame.midi_field
+
+let find_field field fields =
+  Content_unifier.content
+    (Frame.Fields.find field (Content_unifier.fields fields))
+
+let find_audio = find_field Frame.audio_field
+let find_video = find_field Frame.video_field
+let find_midi = find_field Frame.midi_field
+
+let content_type k =
   let get field v =
-    match deref v with
+    match Content_unifier.content v with
       | `Internal | `Any -> (
           match field with
             | v when v = Frame.audio_field -> Content.default_audio ()
@@ -47,39 +64,8 @@ let content_type =
       | `Format f -> f
       | `Kind k -> Content.default_format k
   in
-  Frame.mapi_fields get
+  Frame.mapi_fields get (Content_unifier.fields k)
 
-let to_string fields =
-  Frame.string_of_content_kind (Frame.map_fields deref fields)
-
-let unify_kind k k' =
-  let to_s k = Frame.string_of_kind (deref k) in
-  try
-    match (deref k, deref k') with
-      (* Formats *)
-      | `Kind ki, `Kind ki' when ki = ki' -> Unifier.(k <-- k')
-      (* Params *)
-      | `Format f, `Format f' -> Content.merge f f'
-      (* Format/params *)
-      | `Kind ki, `Format f when Content.kind f = ki -> Unifier.(k <-- k')
-      | `Format f, `Kind ki when Content.kind f = ki -> Unifier.(k' <-- k)
-      (* `Internal/'a *)
-      | `Internal, `Internal -> Unifier.(k <-- k')
-      | `Internal, `Kind ki when Content.is_internal_kind ki ->
-          Unifier.(k <-- k')
-      | `Internal, `Format f when Content.(is_internal_format f) ->
-          Unifier.(k <-- k')
-      | `Kind ki, `Internal when Content.is_internal_kind ki ->
-          Unifier.(k' <-- k)
-      | `Format f, `Internal when Content.(is_internal_format f) ->
-          Unifier.(k' <-- k)
-      (* Any/'a *)
-      | `Any, _ -> Unifier.(k <-- k')
-      | _, `Any -> Unifier.(k' <-- k)
-      | _ -> assert false
-  with _ -> raise (Conflict (to_s k, to_s k'))
-
-let unify k k' =
-  unify_kind (Frame.find_audio k) (Frame.find_audio k');
-  unify_kind (Frame.find_video k) (Frame.find_video k');
-  unify_kind (Frame.find_midi k) (Frame.find_midi k')
+let to_string = Content_unifier.to_string
+let unify_kind = Content_unifier.unify_content
+let unify k k' = Content_unifier.(k <: k')

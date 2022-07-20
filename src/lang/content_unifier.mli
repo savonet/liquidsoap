@@ -20,24 +20,21 @@
 
  *****************************************************************************)
 
-(** Content kind represent incomplete content specifications
-  * and are used in sources to negociate a baseline of content
-  * that works through a content production pipeline. *)
-
-type kind = Liquidsoap_lang.Content_unifier.content
-type t = Liquidsoap_lang.Content_unifier.t
-
-val of_kind : Frame.content_kind -> t
-val to_string : t -> string
+(* Abstract module for resolving stream content during typecheck
+   and runtime. *)
 
 exception Conflict of string * string
 
-val unify_kind : kind -> kind -> unit
-val unify : t -> t -> unit
-val set_audio : t -> Frame.kind -> t
-val set_video : t -> Frame.kind -> t
-val set_midi : t -> Frame.kind -> t
-val find_audio : t -> Frame.kind
-val find_video : t -> Frame.kind
-val find_midi : t -> Frame.kind
-val content_type : t -> Frame.content_type
+type t
+type content
+
+val make : ?fields:content Frame.Fields.t -> sealed:bool -> unit -> t
+val make_content : Frame.kind -> content
+val sealed : t -> bool
+val fields : t -> content Frame.Fields.t
+val copy : t -> t
+val content : content -> Frame.kind
+val ( <: ) : t -> t -> unit
+val sup : t -> t -> t
+val unify_content : content -> content -> unit
+val to_string : t -> string

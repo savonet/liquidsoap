@@ -73,7 +73,7 @@ let register name init render_text =
   let kind =
     Frame.mk_fields ~audio:`Any ~video:Frame.video_yuva420p ~midi:`Any ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   let add_operator op =
     Lang.add_operator op
       [

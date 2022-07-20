@@ -107,11 +107,10 @@ let channels_of_params ?(default = 2) p =
 let kind_of_encoder ((e, p) : Term.encoder) = (find_encoder e).kind_of_encoder p
 
 let type_of_encoder ~pos e =
-  let kind = kind_of_encoder e in
-  let audio = kind_t ?pos (Frame_base.find_audio kind) in
-  let video = kind_t ?pos (Frame_base.find_video kind) in
-  let midi = kind_t ?pos (Frame_base.find_midi kind) in
-  format_t ?pos (frame_kind_t ?pos audio video midi)
+  let fields =
+    Frame.Fields.map Content_unifier.make_content (kind_of_encoder e)
+  in
+  format_t ?pos (Content_unifier.make ~fields ~sealed:true ())
 
 let make_encoder ~pos t ((e, p) : Hooks.encoder) =
   try

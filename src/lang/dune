@@ -57,6 +57,7 @@
   builtins_ref
   console
   content
+  content_unifier
   doc
   documentation
   environment

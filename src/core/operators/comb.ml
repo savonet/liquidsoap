@@ -61,7 +61,7 @@ class comb ~kind (source : source) delay feedback =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "comb"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");

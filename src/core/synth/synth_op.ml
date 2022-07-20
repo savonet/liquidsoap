@@ -56,7 +56,7 @@ let register obj name descr =
     Frame.mk_fields ~audio:Frame.audio_mono ~video:`Any ~midi:(Frame.midi_n 1)
       ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator ("synth." ^ name)
     [
       ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
@@ -103,7 +103,7 @@ let register obj name descr =
     Frame.mk_fields ~audio:Frame.audio_mono ~video:`Any ~midi:(Frame.midi_n 16)
       ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator ("synth.all." ^ name)
     [
       ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");

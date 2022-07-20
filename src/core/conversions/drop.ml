@@ -46,36 +46,35 @@ class drop ?(audio = false) ?(video = false) ?(midi = false) ~name source =
 let () =
   List.iter
     (fun content ->
-      let input = Lang.kind_type_of_kind_format Lang.any in
-      let input_kind = Lang.of_frame_kind_t input in
-      let name, descr, output, source =
+      let input_t = Lang.content_t Lang.any in
+      let name, descr, return_t, source =
         match content with
           | `Audio ->
               ( "drop_audio",
                 "Drop all audio content of a stream.",
-                Lang.frame_kind_t
-                  (Frame.set_audio_field input_kind (Lang.kind_t Frame.none)),
+                Lang.set_field_t input_t Frame.audio_field
+                  (Lang.kind_t Frame.none),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~audio:true ~name:"drop_audio" source )
           | `Video ->
               ( "drop_video",
                 "Drop all video content of a stream.",
-                Lang.frame_kind_t
-                  (Frame.set_video_field input_kind (Lang.kind_t Frame.none)),
+                Lang.set_field_t input_t Frame.video_field
+                  (Lang.kind_t Frame.none),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~video:true ~name:"drop_video" source )
           | `Midi ->
               ( "drop_midi",
                 "Drop all midi content of a stream.",
-                Lang.frame_kind_t
-                  (Frame.set_midi_field input_kind (Lang.kind_t Frame.none)),
+                Lang.set_field_t input_t Frame.midi_field
+                  (Lang.kind_t Frame.none),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~midi:true ~name:"drop_midi" source )
       in
-      Lang.add_operator name ~category:`Conversion ~descr ~return_t:output
-        [("", Lang.source_t input, None, None)]
+      Lang.add_operator name ~category:`Conversion ~descr ~return_t
+        [("", Lang.source_t input_t, None, None)]
         (fun p -> (source p :> Source.source)))
     [`Audio; `Video; `Midi]

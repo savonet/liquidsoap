@@ -197,7 +197,7 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
   end
 
 let kind = Lang.any
-let return_t = Lang.kind_type_of_kind_format kind
+let return_t = Lang.content_t kind
 
 let proto =
   [

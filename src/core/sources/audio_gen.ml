@@ -42,7 +42,7 @@ class gen ~kind ~seek name g freq duration ampl =
 
 let add name g =
   let kind = Lang.internal in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator name ~category:`Input
     ~descr:("Generate a " ^ name ^ " wave.")
     ~return_t

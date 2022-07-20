@@ -47,7 +47,7 @@ let debug_variance = ref false
 (** Ground types *)
 module Ground = struct
   type t = ..
-  type t += Bool | Int | String | Float | Format of Content.format
+  type t += Bool | Int | String | Float
 
   let ground_printers = Queue.create ()
   let register_printer fn = Queue.add fn ground_printers
@@ -63,7 +63,6 @@ module Ground = struct
       | Bool -> Some "bool"
       | Int -> Some "int"
       | Float -> Some "float"
-      | Format p -> Some (Content.string_of_format p)
       | _ -> None);
     register_resolver (function
       | "string" -> Some String
@@ -106,7 +105,6 @@ type constr =
   | Num  (** a number *)
   | Ord  (** an orderable type *)
   | Dtools  (** something useable by dtools *)
-  | InternalMedia  (** a media type *)
 
 (** Constraints on a type variable. *)
 type constraints = constr list
@@ -115,7 +113,6 @@ let string_of_constr = function
   | Num -> "a number type"
   | Ord -> "an orderable type"
   | Dtools -> "unit, bool, int, float, string or [string]"
-  | InternalMedia -> "an internal media type (none, pcm, yuva420p or midi)"
 
 (** {2 Types} *)
 
@@ -139,6 +136,7 @@ and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 and descr =
   | Constr of constructed
   | Ground of ground
+  | Content of Content_unifier.t
   | Getter of t
   | List of repr_t
   | Tuple of t list
@@ -265,7 +263,7 @@ let filter_vars f t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
-      | Ground _ -> l
+      | Content _ | Ground _ -> l
       | Getter t -> aux l t
       | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa

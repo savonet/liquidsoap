@@ -155,7 +155,7 @@ class keyboard ~kind velocity =
 
 let () =
   let kind = Lang.midi in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "input.keyboard.sdl"
     [
       ( "velocity",

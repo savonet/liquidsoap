@@ -159,7 +159,7 @@ class input ~kind p =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   let proto =
     [
       ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);

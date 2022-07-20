@@ -269,7 +269,7 @@ let parse_args ~t name p opts =
 
 let register_input is_http =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   let args ?t name =
     let t =
       match t with

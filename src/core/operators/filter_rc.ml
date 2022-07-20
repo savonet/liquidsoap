@@ -81,7 +81,7 @@ class filter ~kind (source : source) freq wet mode =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "filter.rc"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Cutoff frequency.");

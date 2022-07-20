@@ -69,7 +69,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
   end
 
 let kind = Lang.audio_pcm
-let k = Lang.kind_type_of_kind_format kind
+let k = Lang.content_t kind
 
 let proto =
   [

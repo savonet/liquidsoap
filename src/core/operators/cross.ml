@@ -427,7 +427,7 @@ class cross ~kind val_source ~duration_getter ~override_duration
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   let transition_arg =
     Lang.method_t Lang.unit_t
       [

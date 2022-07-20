@@ -25,7 +25,7 @@ open Request_source
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "request.once" ~category:`Input
     ~descr:"Play a request once and become unavailable."
     [
@@ -105,7 +105,7 @@ let log = Log.make ["single"]
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "single" ~category:`Input
     ~descr:
       "Loop on a request. It never fails if the request is static, meaning \
@@ -131,7 +131,7 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let t = Lang.kind_type_of_kind_format kind in
+  let t = Lang.content_t kind in
   Lang.add_operator "single.infallible" ~category:`Input ~flags:[`Hidden]
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
@@ -178,7 +178,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
 let () =
   let log = Log.make ["request"; "dynamic"] in
   let kind = Lang.any in
-  let t = Lang.kind_type_of_kind_format kind in
+  let t = Lang.content_t kind in
   Lang.add_operator "request.dynamic" ~category:`Input
     ~descr:"Play request dynamically created by a given function."
     (("", Lang.fun_t [] (Lang.nullable_t Request.Value.t), None, None)

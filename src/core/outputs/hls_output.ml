@@ -782,7 +782,7 @@ class hls_output p =
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let return_t = Lang.content_t Lang.any in
   Lang.add_operator "output.file.hls" (hls_proto return_t) ~return_t
     ~category:`Output ~meth:Output.meth
     ~descr:

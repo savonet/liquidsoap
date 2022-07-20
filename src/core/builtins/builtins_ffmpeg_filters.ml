@@ -604,12 +604,8 @@ let () =
     Frame.mk_fields ~audio:Frame.none ~video:raw_video_format ~midi:Frame.none
       ()
   in
-  let audio_t =
-    Lang.(source_t ~methods:false (kind_type_of_kind_format audio_frame))
-  in
-  let video_t =
-    Lang.(source_t ~methods:false (kind_type_of_kind_format video_frame))
-  in
+  let audio_t = Lang.(source_t ~methods:false (content_t audio_frame)) in
+  let video_t = Lang.(source_t ~methods:false (content_t video_frame)) in
 
   Lang.add_builtin ~category:`Filter "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
@@ -681,7 +677,7 @@ let () =
       ~audio:(Frame.find_audio audio_frame)
       ~video:Frame.none ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format return_kind in
+  let return_t = Lang.content_t return_kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:`Audio
     ~descr:"Return an audio source from a filter's output" ~return_t
     [
@@ -798,7 +794,7 @@ let () =
       ~video:(Frame.find_video video_frame)
       ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format return_kind in
+  let return_t = Lang.content_t return_kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:`Video
     ~descr:"Return a video source from a filter's output" ~return_t
     [

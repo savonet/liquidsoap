@@ -292,7 +292,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "pipe"
     [
       ("process", Lang.string_t, None, Some "Process used to pipe data to.");

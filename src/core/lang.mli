@@ -29,6 +29,8 @@ type t = Liquidsoap_lang.Type.t
 
 type scheme = Liquidsoap_lang.Type.scheme
 
+module Content_unifier = Liquidsoap_lang.Content_unifier
+
 (** {2 Values} *)
 
 (** A typed value. *)
@@ -146,9 +148,6 @@ val video_yuva420p : Frame.content_kind
 val midi : Frame.content_kind
 val midi_n : int -> Frame.content_kind
 
-(* Conversion to format *)
-val kind_type_of_kind_format : Frame.content_kind -> t
-
 type 'a operator_method = string * scheme * string * ('a -> value)
 
 (** Add an operator to the language and to the documentation. *)
@@ -159,7 +158,7 @@ val add_operator :
   ?meth:(< Source.source ; .. > as 'a) operator_method list ->
   string ->
   proto ->
-  return_t:t ->
+  return_t:Content_unifier.t ->
   (env -> 'a) ->
   unit
 
@@ -213,13 +212,24 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val error_t : t
-val source_t : ?methods:bool -> t -> t
-val of_source_t : t -> t
-val format_t : t -> t
-val kind_t : Frame.kind -> t
-val kind_none_t : t
-val frame_kind_t : t Frame.Fields.t -> t
-val of_frame_kind_t : t -> t Frame.Fields.t
+val kind_t : Frame.kind -> Content_unifier.content
+val of_kind_t : Content_unifier.content -> Frame.kind
+val kind_none_t : Content_unifier.content
+val fields_t : Content_unifier.content Frame.Fields.t -> Content_unifier.t
+val of_fields_t : Content_unifier.t -> Content_unifier.content Frame.Fields.t
+
+val set_field_t :
+  Content_unifier.t ->
+  Frame.field ->
+  Content_unifier.content ->
+  Content_unifier.t
+
+val get_field_t : Content_unifier.t -> Frame.field -> Content_unifier.content
+val content_t : Frame.content_kind -> Content_unifier.t
+val of_content_t : Content_unifier.t -> Frame.content_kind
+val format_t : Content_unifier.t -> t
+val source_t : ?methods:bool -> Content_unifier.t -> t
+val of_source_t : t -> Content_unifier.t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].

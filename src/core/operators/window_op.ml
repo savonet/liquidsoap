@@ -94,7 +94,7 @@ class window ~kind mode duration source =
 let declare mode suffix kind fun_ret_t f_ans =
   let name = match mode with RMS -> "rms" | Peak -> "peak" in
   let doc = match mode with RMS -> "RMS volume" | Peak -> "peak volume" in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator (name ^ suffix) ~category:`Audio
     ~meth:
       [

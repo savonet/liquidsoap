@@ -339,7 +339,7 @@ class lang_switch ~kind ~override_meta ~all_predicates ~transition_length mode
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   Lang.add_operator "switch" ~category:`Track
     ~descr:
@@ -348,10 +348,7 @@ let () =
     ~meth:
       [
         ( "selected",
-          ( [],
-            Lang.fun_t []
-              (Lang.nullable_t Lang.(source_t (kind_type_of_kind_format kind)))
-          ),
+          ([], Lang.fun_t [] (Lang.nullable_t Lang.(source_t (content_t kind)))),
           "Currently selected source.",
           fun s ->
             Lang.val_fun [] (fun _ ->

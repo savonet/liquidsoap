@@ -65,7 +65,7 @@ class amplify ~kind (source : source) override_field coeff =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "amplify"
     [
       ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");

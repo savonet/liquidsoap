@@ -158,7 +158,7 @@ class biquad ~kind (source : source) filter_type freq q gain =
 let () =
   Lang.add_module "filter.iir.eq";
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "filter.iir.eq.lowshelf"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
@@ -182,7 +182,7 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "filter.iir.eq.highshelf"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -206,7 +206,7 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "filter.iir.eq.low"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
@@ -227,7 +227,7 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "filter.iir.eq.high"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
@@ -248,7 +248,7 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "filter.iir.eq.bandpass"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -269,7 +269,7 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "filter.iir.eq.allpass"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -293,7 +293,7 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "filter.iir.eq.notch"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -313,7 +313,7 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "filter.iir.eq.peak"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");

@@ -51,16 +51,12 @@ class mean ~normalize source =
   end
 
 let () =
-  let in_kind =
-    Lang.frame_kind_t
-      (Frame.mk_fields
-         ~audio:(Lang.kind_t Frame.audio_pcm)
-         ~video:(Lang.univ_t ()) ~midi:(Lang.univ_t ()) ())
+  let in_t =
+    Lang.content_t
+      (Frame.mk_fields ~audio:Frame.audio_pcm ~video:`Any ~midi:`Any ())
   in
-  let out_kind =
-    let fields = Lang.of_frame_kind_t in_kind in
-    Lang.frame_kind_t
-      (Frame.set_audio_field fields (Lang.kind_t Frame.audio_mono))
+  let return_t =
+    Lang.set_field_t in_t Frame.audio_field (Lang.kind_t Frame.audio_mono)
   in
   Lang.add_operator "mean"
     [
@@ -69,11 +65,11 @@ let () =
         Some (Lang.bool true),
         Some "Divide the output volume by the number of channels." );
       ( "",
-        Lang.source_t in_kind,
+        Lang.source_t in_t,
         None,
         Some "Source whose mean should be computed." );
     ]
-    ~return_t:out_kind ~category:`Conversion
+    ~return_t ~category:`Conversion
     ~descr:"Produce mono audio by taking the mean of all audio channels."
     (fun p ->
       let normalize = Lang.to_bool (List.assoc "normalize" p) in

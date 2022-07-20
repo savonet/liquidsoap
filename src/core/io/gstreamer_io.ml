@@ -328,7 +328,7 @@ let () =
 
 let () =
   let kind = Frame.mk_fields ~audio:Frame.audio_pcm ~video:`Any ~midi:`Any () in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "output.gstreamer.audio"
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:`Output ~meth:Output.meth
@@ -359,7 +359,7 @@ let () =
 
 let () =
   let kind = Frame.mk_fields ~audio:Frame.audio_pcm ~video:`Any ~midi:`Any () in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "output.gstreamer.video"
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:`Output ~meth:Output.meth
@@ -393,7 +393,7 @@ let () =
     Frame.mk_fields ~audio:Frame.audio_pcm ~video:Frame.video_yuva420p
       ~midi:`Any ()
   in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "output.gstreamer.audio_video"
     (output_proto ~return_t ~pipeline:""
     @ [
@@ -661,7 +661,7 @@ let () =
     Frame.mk_fields ~audio:Frame.audio_stereo ~video:Frame.video_yuva420p
       ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   let proto =
     input_proto
     @ [
@@ -721,7 +721,7 @@ let () =
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   let proto =
     input_proto
     @ [
@@ -740,7 +740,7 @@ let () =
 
 let () =
   let kind = Lang.video_yuva420p in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   let proto =
     input_proto
     @ [

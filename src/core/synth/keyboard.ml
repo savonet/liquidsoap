@@ -133,7 +133,7 @@ class keyboard ~kind =
 
 let () =
   let kind = Lang.midi_n 1 in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "input.keyboard" [] ~return_t ~category:`Input
     ~flags:[`Hidden; `Experimental] ~descr:"Play notes from the keyboard."
     (fun _ ->

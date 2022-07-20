@@ -289,7 +289,7 @@ let register_plugin fname =
   in
   if inputs > 2 then raise Unhandled_number_of_inputs;
   let kind = Lang.video_yuva420p in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   let liq_params, params = params plugin info in
   let liq_params =
     let inputs =

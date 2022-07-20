@@ -74,7 +74,7 @@ class delay ~kind (source : source) duration =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "delay_line"
     [
       ( "",

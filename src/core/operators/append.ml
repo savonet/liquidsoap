@@ -154,7 +154,7 @@ class append ~kind ~insert_missing ~merge source f =
 
 let register =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator "append"
     [
       ( "merge",

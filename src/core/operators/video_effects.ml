@@ -58,7 +58,7 @@ class effect_map ~name ~kind (source : source) effect =
   end
 
 let kind = Kind.of_kind Lang.any
-let return_t = Lang.kind_type_of_kind_format Lang.any
+let return_t = Lang.content_t Lang.any
 let () = Lang.add_module "video.alpha"
 
 let () =

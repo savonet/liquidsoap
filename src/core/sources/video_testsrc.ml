@@ -75,7 +75,7 @@ class testsrc ?(duration = None) ~width ~height ~kind () =
 
 let () =
   let kind = Lang.internal in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "video.testsrc" ~category:`Input
     ~descr:"Generate a test video."
     [

@@ -129,7 +129,7 @@ class url_output p =
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let return_t = Lang.content_t Lang.any in
   Lang.add_operator "output.url" (url_proto return_t) ~return_t
     ~category:`Output ~meth:Output.meth
     ~descr:
@@ -416,7 +416,7 @@ let new_file_output p =
   else (new file_output ~format_val ~kind p :> piped_output)
 
 let () =
-  let return_t = Lang.univ_t () in
+  let return_t = Lang.content_t Lang.any in
   Lang.add_operator "output.file" (file_proto return_t) ~return_t
     ~category:`Output ~meth:Output.meth
     ~descr:"Output the source stream to a file." (fun p ->
@@ -461,7 +461,7 @@ let pipe_proto kind descr =
   :: chan_proto kind descr
 
 let () =
-  let return_t = Lang.univ_t () in
+  let return_t = Lang.content_t Lang.any in
   let meth =
     List.map
       (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))

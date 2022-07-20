@@ -310,7 +310,7 @@ let register_descr plugin_name descr_n d inputs outputs =
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_descr d in
   let input_kind = if mono then Lang.audio_pcm else Lang.audio_n ni in
-  let input_t = Lang.kind_type_of_kind_format input_kind in
+  let input_t = Lang.content_t input_kind in
   let liq_params =
     liq_params
     @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
@@ -327,7 +327,7 @@ let register_descr plugin_name descr_n d inputs outputs =
     try "lsp_" ^ String.residual label "http:_lsp_plugin_plugins_ladspa_"
     with Not_found -> label
   in
-  let return_t = Lang.kind_type_of_kind_format output_kind in
+  let return_t = Lang.content_t output_kind in
   Lang.add_operator ("ladspa." ^ label) liq_params ~return_t ~category:`Audio
     ~flags:[`Extra] ~descr (fun p ->
       let f v = List.assoc v p in

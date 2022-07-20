@@ -960,7 +960,7 @@ class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "input.srt" ~return_t ~category:`Input
     ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
@@ -1168,7 +1168,7 @@ class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   let output_meth =
     List.map
       (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))

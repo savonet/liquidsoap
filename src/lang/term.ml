@@ -74,78 +74,35 @@ let ref_t ?pos t =
   Type.make ?pos
     (Type.Constr { Type.constructor = "ref"; params = [(Type.Invariant, t)] })
 
-(** A frame kind type is a purely abstract type representing a
-    frame kind. *)
-let frame_kind_t ?pos audio video midi =
-  Type.make ?pos
-    (Type.Constr
-       {
-         Type.constructor = "stream_kind";
-         Type.params =
-           [
-             (Type.Covariant, audio);
-             (Type.Covariant, video);
-             (Type.Covariant, midi);
-           ];
-       })
-
-let kind_t ?pos kind =
-  let evar ?(constraints = []) () = Type.var ~constraints ?pos () in
-  let mk_format f = Type.make ?pos (Type.Ground (Type.Ground.Format f)) in
-  match kind with
-    | `Any -> evar ()
-    | `Internal -> evar ~constraints:[Type.InternalMedia] ()
-    | `Kind k ->
-        Type.make ?pos
-          (Type.Constr
-             {
-               Type.constructor = Content.string_of_kind k;
-               Type.params = [(Type.Covariant, evar ())];
-             })
-    | `Format f ->
-        let k = Content.kind f in
-        Type.make ?pos
-          (Type.Constr
-             {
-               Type.constructor = Content.string_of_kind k;
-               Type.params = [(Type.Covariant, mk_format f)];
-             })
-
-let of_frame_kind_t t =
-  let t = Type.deref t in
-  match t.Type.descr with
-    | Type.Constr
-        {
-          Type.constructor = "stream_kind";
-          Type.params = [(_, audio); (_, video); (_, midi)];
-        } ->
-        Frame.mk_fields ~audio ~video ~midi ()
-    | Type.Var ({ contents = Type.Free _ } as var) ->
-        let audio = kind_t `Any in
-        let video = kind_t `Any in
-        let midi = kind_t `Any in
-        var := Type.Link (Type.Invariant, frame_kind_t audio video midi);
-        Frame.mk_fields ~audio ~video ~midi ()
-    | _ -> assert false
-
 (** Type of audio formats that can encode frame of a given kind. *)
 let format_t ?pos k =
   Type.make ?pos
     (Type.Constr
-       { Type.constructor = "format"; Type.params = [(Type.Covariant, k)] })
+       {
+         Type.constructor = "format";
+         Type.params = [(Type.Covariant, Type.make ?pos (Content k))];
+       })
 
 (** Type of sources carrying frames of a given kind. *)
 let source_t ?pos k =
   Type.make ?pos
     (Type.Constr
-       { Type.constructor = "source"; Type.params = [(Type.Invariant, k)] })
+       {
+         Type.constructor = "source";
+         Type.params = [(Type.Invariant, Type.make ?pos (Content k))];
+       })
 
 (* Filled in later to avoid dependency cycles. *)
 let source_methods_t = ref (fun () : Type.t -> assert false)
 
 let of_source_t t =
   match (Type.deref t).Type.descr with
-    | Type.Constr { Type.constructor = "source"; Type.params = [(_, t)] } -> t
+    | Type.Constr
+        {
+          Type.constructor = "source";
+          Type.params = [(_, { Type.descr = Content k })];
+        } ->
+        k
     | _ -> assert false
 
 (** {2 Terms} *)

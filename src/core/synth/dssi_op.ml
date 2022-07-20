@@ -135,7 +135,7 @@ let register_descr plugin_name descr_n descr outputs =
     Frame.mk_fields ~audio:(Frame.audio_n chans) ~video:`Any
       ~midi:(Frame.midi_n 1) ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   let liq_params = liq_params in
   Lang.add_operator
     ("synth.dssi."
@@ -157,7 +157,7 @@ let register_descr plugin_name descr_n descr outputs =
     Frame.mk_fields ~audio:(Frame.audio_n chans) ~video:`Any
       ~midi:(Frame.midi_n all_chans) ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.content_t kind in
   Lang.add_operator
     ("synth.all.dssi."
     ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))

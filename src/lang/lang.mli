@@ -109,9 +109,6 @@ val any : Frame.content_kind
 (** Any internal stream type. *)
 val internal : Frame.content_kind
 
-(* Conversion to format *)
-val kind_type_of_kind_format : Frame.content_kind -> t
-
 (** {2 Manipulation of values} *)
 
 val to_unit : value -> unit
@@ -159,13 +156,24 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val error_t : t
-val source_t : t -> t
-val of_source_t : t -> t
-val format_t : t -> t
-val kind_t : Frame.kind -> t
-val kind_none_t : t
-val frame_kind_t : t Frame.Fields.t -> t
-val of_frame_kind_t : t -> t Frame.Fields.t
+val kind_t : Frame.kind -> Content_unifier.content
+val kind_none_t : Content_unifier.content
+val of_kind_t : Content_unifier.content -> Frame.kind
+val fields_t : Content_unifier.content Frame.Fields.t -> Content_unifier.t
+val of_fields_t : Content_unifier.t -> Content_unifier.content Frame.Fields.t
+
+val set_field_t :
+  Content_unifier.t ->
+  Frame.field ->
+  Content_unifier.content ->
+  Content_unifier.t
+
+val get_field_t : Content_unifier.t -> Frame.field -> Content_unifier.content
+val content_t : Frame.content_kind -> Content_unifier.t
+val of_content_t : Content_unifier.t -> Frame.content_kind
+val format_t : Content_unifier.t -> t
+val source_t : Content_unifier.t -> t
+val of_source_t : t -> Content_unifier.t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].

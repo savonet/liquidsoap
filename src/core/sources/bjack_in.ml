@@ -116,7 +116,7 @@ class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.content_t kind in
   Lang.add_operator "input.jack"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [

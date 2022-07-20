@@ -65,15 +65,15 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
       ~name:aux_output_kind ~kind:aux_kind ~source:aux_source ()
   in
   let muxed_kind =
-    Frame.mk_fields
-      ~audio:
-        (if aux_content = `Audio then Frame.find_audio aux#kind
-        else Frame.find_audio main#kind)
-      ~video:
-        (if aux_content = `Video then Frame.find_video aux#kind
-        else Frame.find_video main#kind)
-      ~midi:(Frame.find_midi main#kind)
-      ()
+    Kind.of_kind
+      (Frame.mk_fields
+         ~audio:
+           (if aux_content = `Audio then Kind.find_audio aux#kind
+           else Kind.find_audio main#kind)
+         ~video:
+           (if aux_content = `Video then Kind.find_video aux#kind
+           else Kind.find_video main#kind)
+         ~midi:(Kind.find_midi main#kind) ())
   in
   let producer =
     new producer (* We are expecting real-rate with a couple of hickups.. *)
@@ -84,23 +84,19 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   producer
 
 let () =
-  let kind = Lang.any in
-  let out_t = Lang.kind_type_of_kind_format kind in
-  let out_kind = Lang.of_frame_kind_t out_t in
-  let main_t =
-    Lang.frame_kind_t (Frame.set_video_field out_kind Lang.kind_none_t)
-  in
+  let return_t = Lang.content_t Lang.any in
+  let main_t = Lang.set_field_t return_t Frame.video_field Lang.kind_none_t in
   let aux_t =
-    Lang.frame_kind_t
+    Lang.fields_t
       (Frame.mk_fields ~audio:Lang.kind_none_t
-         ~video:(Frame.find_video out_kind)
+         ~video:(Lang.get_field_t return_t Frame.video_field)
          ~midi:Lang.kind_none_t ())
   in
   Lang.add_operator "mux_video" ~category:`Conversion
     ~descr:
       "Add video channels to a stream. Track marks and metadata are taken from \
        both sources."
-    ~return_t:out_t
+    ~return_t
     [
       ("video", Lang.source_t aux_t, None, None);
       ("", Lang.source_t main_t, None, None);
@@ -115,15 +111,12 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let out_t = Lang.kind_type_of_kind_format kind in
-  let out_kind = Lang.of_frame_kind_t out_t in
-  let main_t =
-    Lang.frame_kind_t (Frame.set_audio_field out_kind Lang.kind_none_t)
-  in
+  let out_t = Lang.content_t kind in
+  let main_t = Lang.set_field_t out_t Frame.audio_field Lang.kind_none_t in
   let aux_t =
-    Lang.frame_kind_t
+    Lang.fields_t
       (Frame.mk_fields
-         ~audio:(Frame.find_audio out_kind)
+         ~audio:(Lang.get_field_t out_t Frame.audio_field)
          ~video:Lang.kind_none_t ~midi:Lang.kind_none_t ())
   in
   Lang.add_operator "mux_audio" ~category:`Conversion

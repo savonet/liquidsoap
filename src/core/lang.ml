@@ -2,6 +2,7 @@ include Liquidsoap_lang.Lang
 include Lang_source
 include Lang_encoder.L
 module Doc = Liquidsoap_lang.Doc
+module Content_unifier = Liquidsoap_lang.Content_unifier
 
 let audio_pcm = Frame.mk_fields ~audio:Frame.audio_pcm ~video:`Any ~midi:`Any ()
 
