@@ -208,14 +208,14 @@ let () =
   add_http_error "http";
   List.iter
     (fun stream_body ->
-      add_http_request ~descr:"Perform a full Http GET request." ~request:Get
+      add_http_request ~descr:"Perform a full http GET request." ~request:Get
         ~stream_body "get";
-      add_http_request ~descr:"Perform a full Http POST request`." ~request:Post
+      add_http_request ~descr:"Perform a full http POST request." ~request:Post
         ~stream_body "post";
-      add_http_request ~descr:"Perform a full Http PUT request." ~request:Put
+      add_http_request ~descr:"Perform a full http PUT request." ~request:Put
         ~stream_body "put";
-      add_http_request ~descr:"Perform a full Http HEAD request." ~request:Head
+      add_http_request ~descr:"Perform a full http HEAD request." ~request:Head
         ~stream_body "head";
-      add_http_request ~descr:"Perform a full Http DELETE request."
+      add_http_request ~descr:"Perform a full http DELETE request."
         ~request:Delete ~stream_body "delete")
     [false; true]
