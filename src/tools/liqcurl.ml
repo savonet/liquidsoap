@@ -181,6 +181,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     connection#perform;
     match connection#get_redirecturl with
       | url when url <> "" && follow_redirect ->
+          Printf.printf "Redirecting to: %S\n%!" url;
           connection#cleanup;
           http_request ?headers ?http_version ~follow_redirect ~timeout ~url
             ~request ~on_body_data ()
