@@ -5,6 +5,10 @@ Changed:
 
 * Renamed `playlist.remaining` into `playlist.remaining_files` (#2524)
 
+Fixed;
+
+* Fixed `http.get` issues when `user-agent` was not set (#2517)
+
 ---
 2.1.0 (2022-07-15)
 =====

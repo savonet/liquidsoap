@@ -139,6 +139,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
   let connection = new Curl.handle in
   try
     connection#set_url url;
+    connection#set_useragent Http.user_agent;
     connection#set_writefunction (fun s ->
         on_body_data s;
         String.length s);
