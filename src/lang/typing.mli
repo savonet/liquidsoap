@@ -27,6 +27,9 @@ open Type
 (** Print debugging messages for subtyping. *)
 val debug_subtyping : bool ref
 
+(** Find all the free variables satisfying a predicate. *)
+val filter_vars : (var -> bool) -> t -> var list
+
 (** A typing environment. *)
 type env = (string * scheme) list
 

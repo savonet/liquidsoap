@@ -157,7 +157,7 @@ let to_plugin_doc category flags examples main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
   let meths, return_t = Type.split_meths return_t in
   let t = builtin_type proto return_t in
-  let generalized = Type.filter_vars (fun _ -> true) t in
+  let generalized = Typing.filter_vars (fun _ -> true) t in
   item#add_subsection "_category"
     (Lazy.from_fun (fun () ->
          Doc.trivial (Documentation.string_of_category category)));
@@ -214,7 +214,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
       value = FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, f);
     }
   in
-  let generalized = Type.filter_vars (fun _ -> true) t in
+  let generalized = Typing.filter_vars (fun _ -> true) t in
   let doc () = to_plugin_doc category flags examples descr proto return_t in
   let doc = Lazy.from_fun doc in
   Environment.add_builtin ~doc
@@ -223,7 +223,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let value = { pos = t.Type.pos; value } in
-  let generalized = Type.filter_vars (fun _ -> true) t in
+  let generalized = Typing.filter_vars (fun _ -> true) t in
   let doc () =
     let doc = new Doc.item ~sort:false descr in
     doc#add_subsection "_category"

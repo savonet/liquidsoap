@@ -260,26 +260,6 @@ let var =
   in
   f
 
-(** Find all the free variables satisfying a predicate. *)
-let filter_vars f t =
-  let rec aux l t =
-    let t = deref t in
-    match t.descr with
-      | Ground _ -> l
-      | Getter t -> aux l t
-      | List { t } | Nullable t -> aux l t
-      | Tuple aa -> List.fold_left aux l aa
-      | Meth ({ scheme = g, t }, u) ->
-          let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
-          aux l u
-      | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
-      | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
-      | Var { contents = Free var } ->
-          if f var && not (List.exists (Var.eq var) l) then var :: l else l
-      | Var { contents = Link _ } -> assert false
-  in
-  aux [] t
-
 let to_string_fun =
   ref (fun ?(generalized : var list option) _ ->
       ignore generalized;
