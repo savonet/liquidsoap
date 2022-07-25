@@ -1,7 +1,7 @@
 open MetadataBase
 module R = Reader
 
-let read_size ?(synch_safe = true) f =
+let read_size ~synch_safe f =
   let s = R.read f 4 in
   let s0 = int_of_char s.[0] in
   let s1 = int_of_char s.[1] in
@@ -51,7 +51,7 @@ let parse f : metadata =
   if v <> 3 && v <> 4 then raise Invalid;
   let flags = R.byte f in
   let extended_header = flags land 0b1000000 <> 0 in
-  let size = read_size f in
+  let size = read_size ~synch_safe:true f in
   if extended_header then (
     let size = read_size ~synch_safe:(v > 3) f in
     (* size *)
@@ -65,6 +65,8 @@ let parse f : metadata =
       if id = "\000\000\000\000" then len := 0 (* stop tag *)
       else (
         let size = read_size ~synch_safe:(v > 3) f in
+        (* make sure that we remain within the bounds in case of a problem *)
+        let size = min size (!len - 10) in
         let flags = R.read f 2 in
         let data = R.read f size in
         len := !len - (size + 10);
