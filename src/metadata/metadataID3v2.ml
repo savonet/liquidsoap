@@ -50,14 +50,16 @@ let parse f : metadata =
   let v = version.(1) in
   if v <> 3 && v <> 4 then raise Invalid;
   let flags = R.byte f in
+  let unsynchronization = flags land 0b10000000 <> 0 in
+  if unsynchronization then failwith "Unsynchronized headers not handled.";
   let extended_header = flags land 0b1000000 <> 0 in
   let size = read_size ~synch_safe:true f in
+  let len = ref size in
   if extended_header then (
     let size = read_size ~synch_safe:(v > 3) f in
-    (* size *)
     let size = if v = 3 then size else size - 4 in
+    len := !len - (size + 4);
     ignore (R.read f size));
-  let len = ref size in
   let tags = ref [] in
   while !len > 0 do
     try
