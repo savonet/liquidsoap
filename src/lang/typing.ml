@@ -103,7 +103,7 @@ let copy_with (subst : Subst.t) t =
         | Constr c ->
             let params = List.map (fun (v, t) -> (v, aux t)) c.params in
             Constr { c with params }
-        | Custom c -> Custom { c with typ = c.copy_with aux subst c.typ }
+        | Custom c -> Custom { c with typ = c.copy_with aux c.typ }
         | Getter t -> Getter (aux t)
         | List { t; json_repr } -> List { t = aux t; json_repr }
         | Nullable t -> Nullable (aux t)
@@ -176,7 +176,7 @@ let rec occur_check (a : var) b =
     | Arrow (p, t) ->
         ignore (List.fold_left arrow_check a p);
         occur_check a t
-    | Custom c -> c.occur_check a c.typ
+    | Custom c -> c.occur_check occur_check a c.typ
     | Var { contents = Free x } ->
         if Type.Var.eq a x then raise (Occur_check (a, b));
         x.level <- min a.level x.level
@@ -184,12 +184,12 @@ let rec occur_check (a : var) b =
     | _ -> raise NotImplemented
 
 (** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
-let satisfies_constraint b = function
+let rec satisfies_constraint b = function
   | Ord ->
       let rec check b =
         let m, b = split_meths b in
         match b.descr with
-          | Custom c -> c.satisfies_constraint check b c.typ
+          | Custom c -> c.satisfies_constraint satisfies_constraint c.typ Ord
           | Var { contents = Free v } ->
               if not (List.mem Ord v.constraints) then
                 v.constraints <- Ord :: v.constraints
@@ -207,18 +207,17 @@ let satisfies_constraint b = function
       in
       check b
   | Dtools -> (
-      match b.descr with
-        | Custom { typ } ->
-            if
-              not
-                (List.mem typ
-                   [
-                     Ground.Bool.Type;
-                     Ground.Int.Type;
-                     Ground.Float.Type;
-                     Ground.String.Type;
-                   ])
-            then raise (Unsatisfied_constraint (Dtools, b))
+      match (demeth b).descr with
+        | Custom { typ }
+          when List.mem typ
+                 [
+                   Ground.Bool.Type;
+                   Ground.Int.Type;
+                   Ground.Float.Type;
+                   Ground.String.Type;
+                 ] ->
+            ()
+        | Custom c -> c.satisfies_constraint satisfies_constraint c.typ Dtools
         | Tuple [] -> ()
         | List { t = b' } -> (
             match (deref b').descr with
@@ -240,20 +239,20 @@ let satisfies_constraint b = function
           Content.is_internal_kind kind
         with Content.Invalid -> false
       in
-      match b.descr with
+      match (demeth b).descr with
         | Constr { constructor } when is_internal constructor -> ()
-        | Custom { typ = Format_type.Type f }
-          when Content.(is_internal_format f) ->
-            ()
+        | Custom c ->
+            c.satisfies_constraint satisfies_constraint c.typ InternalMedia
         | Var { contents = Free v } ->
             if not (List.mem InternalMedia v.constraints) then
               v.constraints <- InternalMedia :: v.constraints
         | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
   | Num -> (
       match (demeth b).descr with
-        | Custom { typ } ->
-            if typ <> Ground.Int.Type && typ <> Ground.Float.Type then
-              raise (Unsatisfied_constraint (Num, b))
+        | Custom { typ = Ground.Int.Type } | Custom { typ = Ground.Float.Type }
+          ->
+            ()
+        | Custom c -> c.satisfies_constraint satisfies_constraint c.typ Num
         | Var { contents = Free v } ->
             if not (List.mem Num v.constraints) then
               v.constraints <- Num :: v.constraints
@@ -326,6 +325,11 @@ let rec sup ~pos a b =
       | Tuple l, Tuple m ->
           if List.length l <> List.length m then raise Incompatible;
           mk (Tuple (List.map2 sup l m))
+      | Custom { typ = Type_alias.(Type { typ }) }, _ -> sup typ b
+      | _, Custom { typ = Type_alias.(Type { typ }) } -> sup a typ
+      | Custom c, Custom c' -> (
+          try mk (Custom { c with typ = c.sup sup c.typ c'.typ })
+          with _ -> raise Incompatible)
       | Meth (m, a), _ -> (
           let a = hide_meth m.meth a in
           let mb = meth_type m.meth b in
@@ -364,8 +368,6 @@ let rec sup ~pos a b =
       | Getter a, _ -> mk (Getter (sup a b))
       | Arrow ([], a), Getter b -> mk (Getter (sup a b))
       | _, Getter b -> mk (Getter (sup a b))
-      | Custom c, _ | _, Custom c -> (
-          try c.sup sup a b with _ -> raise Incompatible)
       | _, _ ->
           if !debug_subtyping then
             failwith
@@ -535,6 +537,11 @@ let rec ( <: ) a b =
               (Error
                  ( `Arrow (l2 @ [ellipsis], `Ellipsis),
                    `Arrow ([ellipsis], `Ellipsis) )))
+      | Custom { typ = Type_alias.Type { Type_alias.typ } }, _ -> typ <: b
+      | _, Custom { typ = Type_alias.Type { Type_alias.typ } } -> a <: typ
+      | Custom c, Custom c' -> (
+          try c.subtype ( <: ) c.typ c'.typ
+          with _ -> raise (Error (Repr.make a, Repr.make b)))
       | Getter t1, Getter t2 -> (
           try t1 <: t2
           with Error (a, b) -> raise (Error (`Getter a, `Getter b)))
@@ -625,9 +632,6 @@ let rec ( <: ) a b =
       | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
       | _, Getter t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
-      | Custom c, _ | _, Custom c -> (
-          try c.subtype ( <: ) a b
-          with _ -> raise (Error (Repr.make a, Repr.make b)))
       | _, _ ->
           (* The superficial representation is enough for explaining the
              mismatch. *)

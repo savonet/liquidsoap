@@ -41,6 +41,7 @@ open Parser_helper
 %token <int option list * int option list> INTERVAL
 %token <string> ENCODER
 %token EOF
+%token TYPEDEF
 %token <Parser_helper.lexer_let_decoration> LET
 %token <Parser_helper.lexer_let_decoration> LETLBRA
 %token BEGIN END GETS TILD QUESTION
@@ -195,6 +196,8 @@ exprss:
 
 (* General expressions. *)
 expr:
+  | TYPEDEF VAR GETS ty              { Type.register_custom_type ~pos:$loc $2 (Type_alias.handler ~name:$2 $4);
+                                       mk ~pos:$loc (Tuple []) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (Cast ($2, $4)) }
   | UMINUS FLOAT                     { mk ~pos:$loc (Ground (Float (-. $2))) }
   | UMINUS INT                       { mk ~pos:$loc (Ground (Int (- $2))) }

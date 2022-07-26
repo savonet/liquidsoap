@@ -62,23 +62,24 @@ and var = Type_base.var = {
 and scheme = var list * t
 
 module Subst = Type_base.Subst
+module R = Type_base.R
 
 type custom = Type_base.custom = ..
 
 type custom_handler = Type_base.custom_handler = {
   typ : custom;
-  copy_with : (t -> t) -> Subst.t -> custom -> custom;
-  occur_check : var -> custom -> unit;
+  copy_with : (t -> t) -> custom -> custom;
+  occur_check : (var -> t -> unit) -> var -> custom -> unit;
   filter_vars :
     (var list -> t -> var list) ->
     var list ->
     (var -> bool) ->
     custom ->
     var list;
-  print : Format.formatter -> custom -> DS.t;
-  satisfies_constraint : (t -> unit) -> t -> custom -> unit;
-  subtype : (t -> t -> unit) -> t -> t -> unit;
-  sup : (t -> t -> t) -> t -> t -> t;
+  repr : (var list -> t -> Repr.t) -> var list -> custom -> Repr.t;
+  satisfies_constraint : (t -> constr -> unit) -> custom -> constr -> unit;
+  subtype : (t -> t -> unit) -> custom -> custom -> unit;
+  sup : (t -> t -> t) -> custom -> custom -> custom;
   to_string : custom -> string;
 }
 
@@ -94,6 +95,7 @@ type descr +=
   | Var of invar ref
 
 exception NotImplemented
+exception Exists of Pos.Option.t * string
 
 val unit : descr
 
@@ -120,3 +122,6 @@ val is_fun : t -> bool
 val is_source : t -> bool
 
 module Ground = Ground_type
+
+val register_custom_type : ?pos:Pos.t -> string -> custom_handler -> unit
+val find_custom_type_opt : string -> custom_handler option

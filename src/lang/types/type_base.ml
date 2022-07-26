@@ -123,22 +123,44 @@ module Subst = struct
   let is_identity (s : t) = M.is_empty s
 end
 
+module R = struct
+  type t =
+    [ `Constr of string * (variance * t) list
+    | `List of t * [ `Object | `Tuple ]
+    | `Tuple of t list
+    | `Nullable of t
+    | `Meth of
+      string * (var list * t) * string option * t
+      (* label, type scheme, JSON name, base type *)
+    | `Arrow of (bool * string * t) list * t
+    | `Getter of t
+    | `EVar of var (* existential variable *)
+    | `UVar of var (* universal variable *)
+    | `Ellipsis (* omitted sub-term *)
+    | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
+    | `Debug of
+      string * t * string
+      (* add annotations before / after, mostly used for debugging *) ]
+
+  and var = string * constraints
+end
+
 type custom = ..
 
 type custom_handler = {
   typ : custom;
-  copy_with : (t -> t) -> Subst.t -> custom -> custom;
-  occur_check : var -> custom -> unit;
+  copy_with : (t -> t) -> custom -> custom;
+  occur_check : (var -> t -> unit) -> var -> custom -> unit;
   filter_vars :
     (var list -> t -> var list) ->
     var list ->
     (var -> bool) ->
     custom ->
     var list;
-  print : Format.formatter -> custom -> DS.t;
-  satisfies_constraint : (t -> unit) -> t -> custom -> unit;
-  subtype : (t -> t -> unit) -> t -> t -> unit;
-  sup : (t -> t -> t) -> t -> t -> t;
+  repr : (var list -> t -> R.t) -> var list -> custom -> R.t;
+  satisfies_constraint : (t -> constr -> unit) -> custom -> constr -> unit;
+  subtype : (t -> t -> unit) -> custom -> custom -> unit;
+  sup : (t -> t -> t) -> custom -> custom -> custom;
   to_string : custom -> string;
 }
 
@@ -154,6 +176,7 @@ type descr +=
   | Var of invar ref
 
 exception NotImplemented
+exception Exists of Pos.Option.t * string
 
 let unit = Tuple []
 
@@ -272,3 +295,11 @@ let is_source t =
   match (demeth t).descr with
     | Constr { constructor = "source"; _ } -> true
     | _ -> false
+
+let custom_types : (string, custom_handler) Hashtbl.t = Hashtbl.create 10
+
+let register_custom_type ?pos name custom =
+  if Hashtbl.mem custom_types name then raise (Exists (pos, name));
+  Hashtbl.add custom_types name custom
+
+let find_custom_type_opt = Hashtbl.find_opt custom_types

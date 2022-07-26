@@ -20,32 +20,32 @@
 
  *****************************************************************************)
 
-module type Spec = sig
-  type t
+type alias = { name : string; typ : Type_base.t }
+type Type_base.custom += Type of alias
 
-  val name : string
-end
+let get = function Type { typ } -> typ | _ -> assert false
 
-module type Custom = sig
-  type Type_base.custom += Type
-
-  val descr : Type_base.descr
-end
-
-module Make (S : Spec) : Custom
-module Int : Custom
-
-val int : Type_base.descr
-
-module Float : Custom
-
-val float : Type_base.descr
-
-module String : Custom
-
-val string : Type_base.descr
-
-module Bool : Custom
-
-val bool : Type_base.descr
-val is_ground : Type_base.custom -> bool
+let handler ~name typ =
+  {
+    Type_base.typ = Type { name; typ };
+    copy_with =
+      (fun aux -> function
+        | Type { name; typ } -> Type { name; typ = aux typ }
+        | _ -> assert false);
+    occur_check = (fun occur_check v c -> occur_check v (get c));
+    filter_vars = (fun aux l _ c -> aux l (get c));
+    repr =
+      (fun repr g -> function
+        | Type { name; typ } ->
+            `Constr
+              ( name,
+                [
+                  ( Type_base.Invariant,
+                    `Constr ("alias", [(Type_base.Invariant, repr g typ)]) );
+                ] )
+        | _ -> assert false);
+    satisfies_constraint = (fun check c cons -> check (get c) cons);
+    subtype = (fun _ _ _ -> assert false);
+    sup = (fun _ _ _ -> assert false);
+    to_string = (fun c -> Type_base.to_string (get c));
+  }

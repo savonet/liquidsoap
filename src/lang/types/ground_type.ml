@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-let types = Hashtbl.create 10
-let resolve_opt t = Hashtbl.find_opt types t
-
 module type Spec = sig
   type t
 
@@ -35,46 +32,34 @@ module type Custom = sig
   val descr : Type_base.descr
 end
 
+let types = ref []
+
 module Make (S : Spec) = struct
   type Type_base.custom += Type
 
+  let () = types := Type :: !types
   let get = function Type -> Type | _ -> assert false
 
   let handler =
     {
       Type_base.typ = Type;
-      copy_with = (fun _ _ c -> get c);
-      occur_check = (fun _ c -> ignore (get c));
+      copy_with = (fun _ c -> get c);
+      occur_check = (fun _ _ c -> ignore (get c));
       filter_vars =
         (fun _ l _ c ->
           ignore (get c);
           l);
-      print =
-        (fun f c ->
+      repr =
+        (fun _ _ c ->
           ignore (get c);
-          Format.fprintf f "%s" S.name;
-          Type_base.DS.empty);
-      satisfies_constraint = (fun _ _ c -> ignore (get c));
-      subtype =
-        (fun _ c c' ->
-          match
-            ( (Type_base.deref c).Type_base.descr,
-              (Type_base.deref c').Type_base.descr )
-          with
-            | ( Type_base.Custom { Type_base.typ = Type },
-                Type_base.Custom { Type_base.typ = Type } ) ->
-                ()
-            | _ -> assert false);
+          `Constr (S.name, []));
+      satisfies_constraint =
+        (fun _ _ -> function Ord -> () | _ -> assert false);
+      subtype = (fun _ c c' -> assert (get c = get c'));
       sup =
         (fun _ c c' ->
-          match
-            ( (Type_base.deref c).Type_base.descr,
-              (Type_base.deref c').Type_base.descr )
-          with
-            | ( Type_base.Custom { Type_base.typ = Type },
-                Type_base.Custom { Type_base.typ = Type } ) ->
-                c
-            | _ -> assert false);
+          assert (get c = get c');
+          c);
       to_string =
         (fun c ->
           ignore (get c);
@@ -82,7 +67,7 @@ module Make (S : Spec) = struct
     }
 
   let descr = Type_base.Custom handler
-  let () = Hashtbl.add types S.name descr
+  let () = Type_base.register_custom_type S.name handler
 end
 
 module Int = Make (struct
@@ -116,3 +101,4 @@ module Bool = Make (struct
 end)
 
 let bool = Bool.descr
+let is_ground v = List.mem v !types

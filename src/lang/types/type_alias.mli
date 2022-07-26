@@ -20,32 +20,7 @@
 
  *****************************************************************************)
 
-module type Spec = sig
-  type t
+type alias = { name : string; typ : Type_base.t }
+type Type_base.custom += Type of alias
 
-  val name : string
-end
-
-module type Custom = sig
-  type Type_base.custom += Type
-
-  val descr : Type_base.descr
-end
-
-module Make (S : Spec) : Custom
-module Int : Custom
-
-val int : Type_base.descr
-
-module Float : Custom
-
-val float : Type_base.descr
-
-module String : Custom
-
-val string : Type_base.descr
-
-module Bool : Custom
-
-val bool : Type_base.descr
-val is_ground : Type_base.custom -> bool
+val handler : name:string -> Type_base.t -> Type_base.custom_handler

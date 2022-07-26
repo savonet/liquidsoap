@@ -505,8 +505,8 @@ let mk_ty ~pos name =
     | "source" -> mk_source_ty ~pos "source" []
     | "source_methods" -> !Term.source_methods_t ()
     | name -> (
-        match Type.Ground.resolve_opt name with
-          | Some c -> Type.make c
+        match Type.find_custom_type_opt name with
+          | Some c -> Type.make (Type.Custom c)
           | None ->
               raise
                 (Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")))

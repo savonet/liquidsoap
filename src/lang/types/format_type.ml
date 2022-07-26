@@ -27,38 +27,22 @@ let get = function Type c -> c | _ -> assert false
 let handler f =
   {
     Type_base.typ = Type f;
-    copy_with = (fun _ _ c -> Type (Content.duplicate (get c)));
-    occur_check = (fun _ c -> ignore (get c));
+    copy_with = (fun _ c -> Type (Content.duplicate (get c)));
+    occur_check = (fun _ _ c -> ignore (get c));
     filter_vars =
       (fun _ l _ c ->
         ignore (get c);
         l);
-    print =
-      (fun f c ->
-        Format.fprintf f "%s" (Content.string_of_format (get c));
-        Type_base.DS.empty);
-    satisfies_constraint = (fun _ _ c -> ignore (get c));
-    subtype =
-      (fun _ c c' ->
-        match
-          ( (Type_base.deref c).Type_base.descr,
-            (Type_base.deref c').Type_base.descr )
-        with
-          | ( Type_base.Custom { Type.typ = Type f },
-              Type_base.Custom { Type.typ = Type f' } ) ->
-              Content.merge f f'
-          | _ -> assert false);
+    repr = (fun _ _ c -> `Constr (Content.string_of_format (get c), []));
+    satisfies_constraint =
+      (fun _ c -> function
+        | InternalMedia when Content.(is_internal_format (get c)) -> ()
+        | _ -> assert false);
+    subtype = (fun _ c c' -> Content.merge (get c) (get c'));
     sup =
       (fun _ c c' ->
-        match
-          ( (Type_base.deref c).Type_base.descr,
-            (Type_base.deref c').Type_base.descr )
-        with
-          | ( Type_base.Custom { Type.typ = Type f },
-              Type_base.Custom { Type.typ = Type f' } ) ->
-              Content.merge f f';
-              c
-          | _ -> assert false);
+        Content.merge (get c) (get c');
+        c);
     to_string = (fun c -> Content.string_of_format (get c));
   }
 

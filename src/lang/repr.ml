@@ -28,7 +28,8 @@ let show_record_schemes = ref true
 (** Use globally unique names for existential variables. *)
 let global_evar_names = ref false
 
-open Type
+open Type_base
+include R
 
 (** Given a position, find the relevant excerpt. *)
 let excerpt (start, stop) =
@@ -77,27 +78,6 @@ let excerpt (start, stop) =
   with _ -> None
 
 let excerpt_opt = function Some pos -> excerpt pos | None -> None
-
-type t =
-  [ `Constr of string * (variance * t) list
-  | `Custom of custom_handler
-  | `List of t * [ `Object | `Tuple ]
-  | `Tuple of t list
-  | `Nullable of t
-  | `Meth of
-    string * (var list * t) * string option * t
-    (* label, type scheme, JSON name, base type *)
-  | `Arrow of (bool * string * t) list * t
-  | `Getter of t
-  | `EVar of var (* existential variable *)
-  | `UVar of var (* universal variable *)
-  | `Ellipsis (* omitted sub-term *)
-  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
-  | `Debug of
-    string * t * string
-    (* add annotations before / after, mostly used for debugging *) ]
-
-and var = string * constraints
 
 (** Given a strictly positive integer, generate a name in [a-z]+:
     a, b, ... z, aa, ab, ... az, ba, ... *)
@@ -182,7 +162,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     if filter_out t then `Ellipsis
     else (
       match t.descr with
-        | Custom c -> `Custom c
+        | Custom c -> c.repr repr g c.typ
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
         | Tuple l -> `Tuple (List.map (repr g) l)
@@ -246,6 +226,16 @@ let print f t =
                 if not first then Format.fprintf f ",@,";
                 print ~par:false vars `Range_Ellipsis)
           | _ -> assert false)
+    | `Constr (name, []) ->
+        Format.fprintf f "%s" name;
+        vars
+    | `Constr (name, [(_, `Constr ("alias", [(_, a)]))]) ->
+        Format.open_box (1 + String.length name);
+        Format.fprintf f "%s (alias of: " name;
+        let vars = print ~par:true vars a in
+        Format.fprintf f ")";
+        Format.close_box ();
+        vars
     | `Constr ("none", _) ->
         Format.fprintf f "none";
         vars
@@ -256,7 +246,6 @@ let print f t =
         Format.fprintf f ")";
         Format.close_box ();
         vars
-    | `Custom c -> c.print f c.typ
     | `Tuple [] ->
         Format.fprintf f "unit";
         vars
@@ -471,7 +460,7 @@ let print_scheme f (generalized, t) =
   if !debug then
     List.iter
       (fun v ->
-        print f (make ~generalized (Type.make (Var (ref (Free v)))));
+        print f (make ~generalized (Type_base.make (Var (ref (Free v)))));
         Format.fprintf f ".")
       generalized;
   print f (make ~generalized t)
@@ -480,12 +469,12 @@ let print_scheme f (generalized, t) =
 let string_of_type ?generalized t = to_string (make ?generalized t)
 
 (* This is filled in there in order to avoid cyclic dependencies. *)
-let () = Type.to_string_fun := string_of_type
+let () = Type_base.to_string_fun := string_of_type
 
 (** String representation of a type scheme. *)
 let string_of_scheme (g, t) = string_of_type ~generalized:g t
 
-type explanation = bool * Type.t * Type.t * t * t
+type explanation = bool * Type_base.t * Type_base.t * t * t
 
 exception Type_error of explanation
 
