@@ -106,6 +106,7 @@ let copy_with (subst : Subst.t) t =
         | Constr c ->
             let params = List.map (fun (v, t) -> (v, aux t)) c.params in
             Constr { c with params }
+        | Ground (Format f) -> Ground (Format (Content.duplicate f))
         | Ground _ as g -> g
         | Getter t -> Getter (aux t)
         | List { t; json_repr } -> List { t = aux t; json_repr }
