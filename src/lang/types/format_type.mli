@@ -20,5 +20,6 @@
 
  *****************************************************************************)
 
-include Type_base
-module Ground = Ground_type
+type Type_base.custom += Type of Content.format
+
+val descr : Content.format -> Type.descr

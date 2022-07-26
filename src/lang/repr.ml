@@ -80,7 +80,7 @@ let excerpt_opt = function Some pos -> excerpt pos | None -> None
 
 type t =
   [ `Constr of string * (variance * t) list
-  | `Ground of ground
+  | `Custom of custom_handler
   | `List of t * [ `Object | `Tuple ]
   | `Tuple of t list
   | `Nullable of t
@@ -182,7 +182,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     if filter_out t then `Ellipsis
     else (
       match t.descr with
-        | Ground g -> `Ground g
+        | Custom c -> `Custom c
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
         | Tuple l -> `Tuple (List.map (repr g) l)
@@ -208,16 +208,10 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | Var { contents = Link (Contravariant, t) }
           when !debug || !debug_variance ->
             `Debug ("[<", repr g t, "]")
-        | Var { contents = Link (_, t) } -> repr g t)
+        | Var { contents = Link (_, t) } -> repr g t
+        | _ -> raise NotImplemented)
   in
   repr generalized t
-
-(** Sets of type descriptions. *)
-module DS = Set.Make (struct
-  type t = string * constraints
-
-  let compare = compare
-end)
 
 (** Print a type representation. Unless in debug mode, variable identifiers are
     not shown, and variable names are generated. Names are only meaningful over
@@ -255,9 +249,6 @@ let print f t =
     | `Constr ("none", _) ->
         Format.fprintf f "none";
         vars
-    | `Constr (_, [(_, `Ground (Ground.Format format))]) ->
-        Format.fprintf f "%s" (Content.string_of_format format);
-        vars
     | `Constr (name, params) ->
         Format.open_box (1 + String.length name);
         Format.fprintf f "%s(" name;
@@ -265,9 +256,7 @@ let print f t =
         Format.fprintf f ")";
         Format.close_box ();
         vars
-    | `Ground g ->
-        Format.fprintf f "%s" (Ground.to_string g);
-        vars
+    | `Custom c -> c.print f c.typ
     | `Tuple [] ->
         Format.fprintf f "unit";
         vars

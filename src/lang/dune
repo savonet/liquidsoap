@@ -63,6 +63,8 @@
   error
   evaluation
   frame
+  format_type
+  ground_type
   hooks
   json_base
   json_lexer
@@ -86,6 +88,7 @@
   runtime_error
   term
   type
+  type_base
   typechecking
   typing
   unifier

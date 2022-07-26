@@ -68,7 +68,7 @@ let filter_vars f t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
-      | Ground _ -> l
+      | Custom c -> c.filter_vars aux l f c.typ
       | Getter t -> aux l t
       | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
@@ -80,6 +80,7 @@ let filter_vars f t =
       | Var { contents = Free var } ->
           if f var && not (List.exists (Var.eq var) l) then var :: l else l
       | Var { contents = Link _ } -> assert false
+      | _ -> raise NotImplemented
   in
   aux [] t
 
@@ -90,29 +91,6 @@ let filter_vars f t =
 let generalizable ~level t = filter_vars (fun v -> v.level > level) t
 
 let generalize ~level t : scheme = (generalizable ~level t, t)
-
-(** Substitutions. *)
-module Subst = struct
-  module M = Map.Make (struct
-    type t = var
-
-    (* We can compare variables with their indices. *)
-    let compare (v : var) (v' : var) = compare v.name v'.name
-  end)
-
-  type subst = t M.t
-  type t = subst
-
-  let of_list l : t = M.of_seq (List.to_seq l)
-
-  (** Retrieve the value of a variable. *)
-  let value (s : t) (i : var) = M.find i s
-
-  (* let filter f (s : t) = M.filter (fun i t -> f i t) s *)
-
-  (** Whether we have the identity substitution. *)
-  let is_identity (s : t) = M.is_empty s
-end
 
 (** Copy a term, substituting some EVars as indicated by a list of
     associations. Other EVars are not copied, so sharing is preserved. *)
@@ -125,7 +103,7 @@ let copy_with (subst : Subst.t) t =
         | Constr c ->
             let params = List.map (fun (v, t) -> (v, aux t)) c.params in
             Constr { c with params }
-        | Ground _ as g -> g
+        | Custom c -> Custom { c with typ = c.copy_with aux subst c.typ }
         | Getter t -> Getter (aux t)
         | List { t; json_repr } -> List { t = aux t; json_repr }
         | Nullable t -> Nullable (aux t)
@@ -141,6 +119,7 @@ let copy_with (subst : Subst.t) t =
             (* TOOD: we remove the link here, it would be too difficult to preserve
                sharing. We could at least keep it when no variable is changed. *)
             (aux t).descr
+        | _ -> raise NotImplemented
     in
     { t with descr }
   in
@@ -197,11 +176,12 @@ let rec occur_check (a : var) b =
     | Arrow (p, t) ->
         ignore (List.fold_left arrow_check a p);
         occur_check a t
-    | Ground _ -> ()
+    | Custom c -> c.occur_check a c.typ
     | Var { contents = Free x } ->
         if Type.Var.eq a x then raise (Occur_check (a, b));
         x.level <- min a.level x.level
     | Var { contents = Link (_, b) } -> occur_check a b
+    | _ -> raise NotImplemented
 
 (** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
 let satisfies_constraint b = function
@@ -209,7 +189,7 @@ let satisfies_constraint b = function
       let rec check b =
         let m, b = split_meths b in
         match b.descr with
-          | Ground _ -> ()
+          | Custom c -> c.satisfies_constraint check b c.typ
           | Var { contents = Free v } ->
               if not (List.mem Ord v.constraints) then
                 v.constraints <- Ord :: v.constraints
@@ -228,21 +208,26 @@ let satisfies_constraint b = function
       check b
   | Dtools -> (
       match b.descr with
-        | Ground g ->
+        | Custom { typ } ->
             if
               not
-                (List.mem g
-                   [Ground.Bool; Ground.Int; Ground.Float; Ground.String])
+                (List.mem typ
+                   [
+                     Ground.Bool.Type;
+                     Ground.Int.Type;
+                     Ground.Float.Type;
+                     Ground.String.Type;
+                   ])
             then raise (Unsatisfied_constraint (Dtools, b))
         | Tuple [] -> ()
         | List { t = b' } -> (
             match (deref b').descr with
-              | Ground g ->
-                  if g <> Ground.String then
+              | Custom { typ } ->
+                  if typ <> Ground.String.Type then
                     raise (Unsatisfied_constraint (Dtools, b'))
               | Var ({ contents = Free _ } as v) ->
                   (* TODO: we should check the constraints *)
-                  v := Link (Invariant, make ?pos:b.pos (Ground Ground.String))
+                  v := Link (Invariant, make ?pos:b.pos Ground.string)
               | _ -> raise (Unsatisfied_constraint (Dtools, b')))
         | Var { contents = Free v } ->
             if not (List.mem Dtools v.constraints) then
@@ -257,15 +242,17 @@ let satisfies_constraint b = function
       in
       match b.descr with
         | Constr { constructor } when is_internal constructor -> ()
-        | Ground (Ground.Format f) when Content.(is_internal_format f) -> ()
+        | Custom { typ = Format_type.Type f }
+          when Content.(is_internal_format f) ->
+            ()
         | Var { contents = Free v } ->
             if not (List.mem InternalMedia v.constraints) then
               v.constraints <- InternalMedia :: v.constraints
         | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
   | Num -> (
       match (demeth b).descr with
-        | Ground g ->
-            if g <> Ground.Int && g <> Ground.Float then
+        | Custom { typ } ->
+            if typ <> Ground.Int.Type && typ <> Ground.Float.Type then
               raise (Unsatisfied_constraint (Num, b))
         | Var { contents = Free v } ->
             if not (List.mem Num v.constraints) then
@@ -339,11 +326,6 @@ let rec sup ~pos a b =
       | Tuple l, Tuple m ->
           if List.length l <> List.length m then raise Incompatible;
           mk (Tuple (List.map2 sup l m))
-      | Ground g, Ground g' ->
-          (* We might try to compare functional values here. *)
-          let eq = try g = g' with _ -> false in
-          if not eq then raise Incompatible;
-          mk (Ground g)
       | Meth (m, a), _ -> (
           let a = hide_meth m.meth a in
           let mb = meth_type m.meth b in
@@ -382,6 +364,8 @@ let rec sup ~pos a b =
       | Getter a, _ -> mk (Getter (sup a b))
       | Arrow ([], a), Getter b -> mk (Getter (sup a b))
       | _, Getter b -> mk (Getter (sup a b))
+      | Custom c, _ | _, Custom c -> (
+          try c.sup sup a b with _ -> raise Incompatible)
       | _, _ ->
           if !debug_subtyping then
             failwith
@@ -551,13 +535,6 @@ let rec ( <: ) a b =
               (Error
                  ( `Arrow (l2 @ [ellipsis], `Ellipsis),
                    `Arrow ([ellipsis], `Ellipsis) )))
-      | Ground (Ground.Format k), Ground (Ground.Format k') -> (
-          try Content.merge k k'
-          with _ ->
-            let bt = Printexc.get_raw_backtrace () in
-            Printexc.raise_with_backtrace (Error (Repr.make a, Repr.make b)) bt)
-      | Ground x, Ground y ->
-          if x <> y then raise (Error (Repr.make a, Repr.make b))
       | Getter t1, Getter t2 -> (
           try t1 <: t2
           with Error (a, b) -> raise (Error (`Getter a, `Getter b)))
@@ -648,6 +625,9 @@ let rec ( <: ) a b =
       | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
       | _, Getter t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
+      | Custom c, _ | _, Custom c -> (
+          try c.subtype ( <: ) a b
+          with _ -> raise (Error (Repr.make a, Repr.make b)))
       | _, _ ->
           (* The superficial representation is enough for explaining the
              mismatch. *)

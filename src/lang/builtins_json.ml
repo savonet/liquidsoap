@@ -65,7 +65,8 @@ let rec json_of_typed_value ~ty v : Json.t =
   try
     match (v.Value.value, _ty.Type.descr) with
       | Value.Null, Type.Nullable _ -> `Null
-      | Value.Ground g, Type.Ground g' when Term.Ground.to_type g = g' ->
+      | Value.Ground g, Type.Custom { Type.typ }
+        when Term.Ground.to_type g = typ ->
           Term.Ground.to_json g
       | Value.List l, Type.(List { t = ty; json_repr = `Tuple }) ->
           `Tuple (List.map (json_of_typed_value ~ty) l)
@@ -73,7 +74,12 @@ let rec json_of_typed_value ~ty v : Json.t =
           Type.(
             List
               {
-                t = { descr = Tuple [{ descr = Ground Ground.String }; ty] };
+                t =
+                  {
+                    descr =
+                      Tuple
+                        [{ descr = Custom { typ = Ground.String.Type } }; ty];
+                  };
                 json_repr = `Object;
               }) ) ->
           `Assoc
@@ -209,7 +215,12 @@ let rec value_of_typed_json ~ty json =
           Type.(
             List
               {
-                t = { descr = Tuple [{ descr = Ground Ground.String }; ty] };
+                t =
+                  {
+                    descr =
+                      Tuple
+                        [{ descr = Custom { typ = Ground.String.Type } }; ty];
+                  };
                 json_repr = `Object;
               }) ) ->
           Lang.list
@@ -240,18 +251,23 @@ let rec value_of_typed_json ~ty json =
                    in
                    raise (Failed (nullable, `Tuple l)))
                t)
-      | `String s, Type.(Ground Ground.String) -> Lang.string s
-      | `Bool b, Type.(Ground Ground.Bool) -> Lang.bool b
-      | `Float f, Type.(Ground Ground.Float) -> Lang.float f
-      | `Int i, Type.(Ground Ground.Float) -> Lang.float (float i)
-      | `Int i, Type.(Ground Ground.Int) -> Lang.int i
+      | `String s, Type.(Custom { typ = Ground.String.Type }) -> Lang.string s
+      | `Bool b, Type.(Custom { typ = Ground.Bool.Type }) -> Lang.bool b
+      | `Float f, Type.(Custom { typ = Ground.Float.Type }) -> Lang.float f
+      | `Int i, Type.(Custom { typ = Ground.Float.Type }) ->
+          Lang.float (float i)
+      | `Int i, Type.(Custom { typ = Ground.Int.Type }) -> Lang.int i
       | _, Type.Var _ ->
           Typing.(ty <: type_of_json json);
           Lang.null
-      | _, Type.(Ground Ground.String) -> raise (Failed (nullable, `String))
-      | _, Type.(Ground Ground.Bool) -> raise (Failed (nullable, `Bool))
-      | _, Type.(Ground Ground.Float) -> raise (Failed (nullable, `Float))
-      | _, Type.(Ground Ground.Int) -> raise (Failed (nullable, `Int))
+      | _, Type.(Custom { typ = Ground.String.Type }) ->
+          raise (Failed (nullable, `String))
+      | _, Type.(Custom { typ = Ground.Bool.Type }) ->
+          raise (Failed (nullable, `Bool))
+      | _, Type.(Custom { typ = Ground.Float.Type }) ->
+          raise (Failed (nullable, `Float))
+      | _, Type.(Custom { typ = Ground.Int.Type }) ->
+          raise (Failed (nullable, `Int))
       | _ -> assert false
   with _ when nullable -> Lang.null
 

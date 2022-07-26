@@ -91,7 +91,7 @@ let frame_kind_t ?pos audio video midi =
 
 let kind_t ?pos kind =
   let evar ?(constraints = []) () = Type.var ~constraints ?pos () in
-  let mk_format f = Type.make ?pos (Type.Ground (Type.Ground.Format f)) in
+  let mk_format f = Type.make ?pos (Format_type.descr f) in
   match kind with
     | `Any -> evar ()
     | `Internal -> evar ~constraints:[Type.InternalMedia] ()
@@ -160,11 +160,14 @@ module Ground = struct
     descr : t -> string;
     to_json : t -> Json.t;
     compare : t -> t -> int;
-    typ : Type.ground;
+    typ : (module Type.Ground.Custom);
   }
 
   let handlers = Hashtbl.create 10
-  let register matcher c = Hashtbl.replace handlers c.typ (c, matcher)
+
+  let register matcher c =
+    let module C = (val c.typ : Type.Ground.Custom) in
+    Hashtbl.replace handlers C.Type (c, matcher)
 
   exception Found of content
 
@@ -178,7 +181,15 @@ module Ground = struct
 
   let to_string (v : t) = (find v).descr v
   let to_json (v : t) = (find v).to_json v
-  let to_type (v : t) = (find v).typ
+
+  let to_descr (v : t) =
+    let module C = (val (find v).typ : Type.Ground.Custom) in
+    C.descr
+
+  let to_type (v : t) =
+    let module C = (val (find v).typ : Type.Ground.Custom) in
+    C.Type
+
   let compare (v : t) = (find v).compare v
 
   type t += Bool of bool | Int of int | String of string | Float of float
@@ -194,7 +205,7 @@ module Ground = struct
         descr = to_string;
         to_json;
         compare = compare to_bool;
-        typ = Type.Ground.Bool;
+        typ = (module Type.Ground.Bool : Type.Ground.Custom);
       };
     let to_int = function Int i -> i | _ -> assert false in
     let to_string i = string_of_int (to_int i) in
@@ -205,7 +216,7 @@ module Ground = struct
         descr = to_string;
         to_json;
         compare = compare to_int;
-        typ = Type.Ground.Int;
+        typ = (module Type.Ground.Int : Type.Ground.Custom);
       };
     let to_string = function
       | String s -> Lang_string.quote_string s
@@ -218,7 +229,7 @@ module Ground = struct
         descr = to_string;
         to_json;
         compare = compare (function String s -> s | _ -> assert false);
-        typ = Type.Ground.String;
+        typ = (module Type.Ground.String : Type.Ground.Custom);
       };
     let to_float = function Float f -> f | _ -> assert false in
     let to_json f = `Float (to_float f) in
@@ -228,7 +239,7 @@ module Ground = struct
         descr = (fun f -> string_of_float (to_float f));
         to_json;
         compare = compare to_float;
-        typ = Type.Ground.Float;
+        typ = (module Type.Ground.Float : Type.Ground.Custom);
       }
 end
 
@@ -238,7 +249,7 @@ module type GroundDef = sig
   val descr : content -> string
   val to_json : content -> Json.t
   val compare : content -> content -> int
-  val typ : Type.ground
+  val typ : (module Type.Ground.Custom)
 end
 
 module MkGround (D : GroundDef) = struct
@@ -593,7 +604,12 @@ module type AbstractDef = sig
 end
 
 module MkAbstract (Def : AbstractDef) = struct
-  type Type.Ground.t += Type
+  module T = Type.Ground.Make (struct
+    type t
+
+    let name = Def.name
+  end)
+
   type Ground.t += Value of Def.content
 
   let () =
@@ -603,18 +619,15 @@ module MkAbstract (Def : AbstractDef) = struct
     let to_json v = Def.to_json (to_value v) in
     Ground.register
       (function Value _ -> true | _ -> false)
-      { Ground.descr; to_json; compare; typ = Type };
-    Type.Ground.register_printer (function Type -> Some Def.name | _ -> None);
-    Type.Ground.register_resolver (fun s ->
-        if s = Def.name then Some Type else None)
+      { Ground.descr; to_json; compare; typ = (module T : Type.Ground.Custom) }
 
   type content = Def.content
 
-  let t = Type.make (Type.Ground Type)
+  let t = Type.make T.descr
   let of_ground = function Value c -> c | _ -> assert false
   let to_ground c = Value c
   let is_ground = function Value _ -> true | _ -> false
   let of_term t = match t.term with Ground (Value c) -> c | _ -> assert false
-  let to_term c = { t = Type.make (Type.Ground Type); term = Ground (Value c) }
+  let to_term c = { t = Type.make T.descr; term = Ground (Value c) }
   let is_term t = match t.term with Ground (Value _) -> true | _ -> false
 end
