@@ -179,9 +179,10 @@ end
 # compute itself the replaygain: you can use either `enable_replaygain_metadata`
 # or the `replaygain:` protocol for this.
 # @category Source / Sound Processing
+# @param ~id Force the value of the source ID.
 # @param s Source to be amplified.
-def replaygain(s)
-  amplify(override="replaygain_track_gain", 1., s)
+def replaygain(~id=null(), s)
+  amplify(id=id, override="replaygain_track_gain", 1., s)
 end
 
 %ifdef soundtouch
