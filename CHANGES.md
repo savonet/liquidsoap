@@ -16,7 +16,6 @@ Changed:
   `"liq_fade_in"`, `"liq_cross_duration"` and `"liq_fade_type"` now all reset on
   new tracks. Use `persist_overrides` to revert to previous behavior
   (`persist_override` for `cross`/`crossfade`) (#2488).
-- Added `id` argument to `replaygain` operator (#2537).
 
 Fixed:
 
