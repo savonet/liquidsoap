@@ -213,9 +213,11 @@ let () =
           fun s ->
             Lang.val_fun [] (fun _ ->
                 Lang.list
-                  (Queue.fold
-                     (fun c i -> Builtins_request.Value.to_value i.request :: c)
-                     [] s#queue)) );
+                  (List.rev
+                     (Queue.fold
+                        (fun c i ->
+                          Builtins_request.Value.to_value i.request :: c)
+                        [] s#queue))) );
         ( "add",
           ([], Lang.fun_t [(false, "", Builtins_request.Value.t)] Lang.bool_t),
           "Add a request to the queue. Requests are resolved before being \
