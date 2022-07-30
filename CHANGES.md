@@ -4,6 +4,7 @@
 Changed:
 
 * Renamed `playlist.remaining` into `playlist.remaining_files` (#2524)
+* Added `id` argument to `replaygain` operator (#2537).
 
 Fixed;
 
