@@ -199,7 +199,7 @@ jobs:
         exclude:
           - os: debian_bullseye
             platform: armhf
-          - os: ubuntu_impish
+          - os: ubuntu_jammy
             platform: armhf
           - os: ubuntu_focal
             platform: armhf
