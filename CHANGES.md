@@ -15,6 +15,7 @@ Changed:
 Fixed:
 - Fixed `list.shuffle` which was used to randomize playlists in `playlist`
   operator (#2507, #2500).
+- Fixed order of `playlist.next` returned requests.
 
 ---
 2.0.7 (2022-07-15)
