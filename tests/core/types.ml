@@ -18,31 +18,31 @@ let should_fail t t' =
   with _ -> ()
 
 let () =
-  should_work (var ()).descr (Ground Bool) (Ground Bool);
-  should_work (Ground Bool) (var ()).descr (Ground Bool);
+  should_work (var ()).descr (Ground Ground.Bool) (Ground Ground.Bool);
+  should_work (Ground Ground.Bool) (var ()).descr (Ground Ground.Bool);
 
-  should_fail (Ground Bool) (Ground Int);
+  should_fail (Ground Ground.Bool) (Ground Ground.Int);
   should_fail
-    (List { t = make (Ground Bool); json_repr = `Tuple })
-    (List { t = make (Ground Int); json_repr = `Tuple });
+    (List { t = make (Ground Ground.Bool); json_repr = `Tuple })
+    (List { t = make (Ground Ground.Int); json_repr = `Tuple });
 
   let mk_meth meth ty t =
     Meth ({ meth; scheme = ([], make ty); doc = ""; json_name = None }, make t)
   in
 
-  let m = mk_meth "aa" (Ground Int) (Ground Bool) in
+  let m = mk_meth "aa" (Ground Ground.Int) (Ground Ground.Bool) in
 
-  should_work m (Ground Bool) (Ground Bool);
+  should_work m (Ground Ground.Bool) (Ground Ground.Bool);
 
-  let n = mk_meth "b" (Ground Bool) m in
+  let n = mk_meth "b" (Ground Ground.Bool) m in
 
   should_work m n m;
 
-  let n = mk_meth "aa" (Ground Int) (Ground Int) in
+  let n = mk_meth "aa" (Ground Ground.Int) (Ground Ground.Int) in
 
   should_fail m n;
 
-  let n = mk_meth "aa" (Ground Bool) (Ground Bool) in
+  let n = mk_meth "aa" (Ground Ground.Bool) (Ground Ground.Bool) in
 
   should_fail m n;
 

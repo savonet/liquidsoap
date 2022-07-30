@@ -20,16 +20,20 @@ let () =
 (* Test adding submethods. *)
 let () =
   let print t = Printf.printf "%s\n%!" (Type.to_string t) in
-  let t = Type.make (Type.Ground Type.Int) in
+  let t = Type.make (Type.Ground Type.Ground.Int) in
   print t;
-  let t = Type.meth "f" ([], Type.make (Type.Ground Type.Float)) t in
+  let t = Type.meth "f" ([], Type.make (Type.Ground Type.Ground.Float)) t in
   print t;
-  let t = Type.meth "ff" ([], Type.make (Type.Ground Type.Float)) t in
-  print t;
-  let t = Type.meths ["f"; "s"] ([], Type.make (Type.Ground Type.String)) t in
+  let t = Type.meth "ff" ([], Type.make (Type.Ground Type.Ground.Float)) t in
   print t;
   let t =
-    Type.meths ["f"; "s"; "f'"] ([], Type.make (Type.Ground Type.Float)) t
+    Type.meths ["f"; "s"] ([], Type.make (Type.Ground Type.Ground.String)) t
+  in
+  print t;
+  let t =
+    Type.meths ["f"; "s"; "f'"]
+      ([], Type.make (Type.Ground Type.Ground.Float))
+      t
   in
   print t
 
@@ -39,10 +43,10 @@ let () =
      We do: t = ('a).{ f : int } <: t' = int.{ ff : int, f : float }
      and make sure that this fails. *)
   let t = Type.var () in
-  let t = Type.meth "f" ([], Type.make (Type.Ground Type.Int)) t in
-  let t' = Type.make (Type.Ground Type.Int) in
-  let t' = Type.meth "f" ([], Type.make (Type.Ground Type.Float)) t' in
-  let t' = Type.meth "ff" ([], Type.make (Type.Ground Type.Int)) t' in
+  let t = Type.meth "f" ([], Type.make (Type.Ground Type.Ground.Int)) t in
+  let t' = Type.make (Type.Ground Type.Ground.Int) in
+  let t' = Type.meth "f" ([], Type.make (Type.Ground Type.Ground.Float)) t' in
+  let t' = Type.meth "ff" ([], Type.make (Type.Ground Type.Ground.Int)) t' in
   assert (
     try
       Typing.(t <: t');
