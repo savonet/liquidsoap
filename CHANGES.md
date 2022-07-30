@@ -9,6 +9,9 @@ branch for all new liquidsoap work.
 2.0.8 (unreleased)
 =====
 
+Changed:
+- Added `id` argument to `replaygain` operator (#2537).
+
 Fixed:
 - Fixed `list.shuffle` which was used to randomize playlists in `playlist`
   operator (#2507, #2500).
