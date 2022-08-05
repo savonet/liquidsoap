@@ -5,12 +5,14 @@ Changed:
 
 - Renamed `playlist.remaining` into `playlist.remaining_files` (#2524)
 - Added `id` argument to `replaygain` operator (#2537).
+- Made `ocurl` dependency required, added `uri` as required dependency (#2551)
 
 Fixed;
 
 - Fixed `http.get` issues when `user-agent` was not set (#2517)
 - Fixed order of `playlist.next` returned requests.
 - Fixed infinite loop when reloading a failed playlist.
+- Fixed http requests with urls containing spaces (#2551)
 
 ---
 2.1.0 (2022-07-15)

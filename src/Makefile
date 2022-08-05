@@ -204,7 +204,7 @@ tools = \
 	tools/http.ml tools/srt_parser.ml \
 	$(tools_metadata) \
         $(if $(W_MEMTRACE),tools/liqmemtrace.ml) \
-	$(if $(W_CURL),tools/liqcurl.ml) \
+	tools/liqcurl.ml \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
 	tools/pool.ml tools/sha1.ml tools/websocket.ml \
@@ -240,7 +240,7 @@ builtins = \
         builtins/builtins_thread.ml builtins/builtins_process.ml \
         builtins/builtins_source.ml builtins/builtins_getter.ml \
         builtins/builtins_profiler.ml builtins/builtins_eval.ml \
-	$(if $(W_CURL),builtins/builtins_http.ml) \
+	builtins/builtins_http.ml \
         builtins/builtins_harbor.ml \
         $(if $(W_SSL),builtins/builtins_harbor_ssl.ml) \
         $(if $(W_OSX_SECURE_TRANSPORT),builtins/builtins_harbor_secure_transport.ml) \

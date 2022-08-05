@@ -387,7 +387,14 @@ AC_SUBST(MENHIR)
 # Curl
 #
 
-AC_CHECK_OCAML_BINDING([curl])
+AC_CHECK_OCAML_BINDING([curl],[],[1])
+
+#
+# Uri
+#
+
+AC_CHECK_OCAML_BINDING([uri][],[1])
+
 
 #
 # Memtrace
@@ -1057,7 +1064,6 @@ cat <<EOMSG
    - SDL               : $w_TSDL
 
  * Additional libraries
-   - http requests     : $w_CURL
    - FFmpeg filters    : $w_FFMPEG
    - FFmpeg devices    : $w_FFMPEG
    - dynlink           : $w_DYNLINK
@@ -1128,7 +1134,6 @@ variables {
   bjack-enabled: $b_BJACK
   camlimages-enabled: $b_CAMLIMAGES
   camomile-enabled: $b_CAMOMILE
-  curl-enabled: $b_CURL
   cry-enabled: $b_CRY
   dssi-enabled: $b_DSSI
   faad-enabled: $b_FAAD

@@ -25,6 +25,8 @@ depends: [
   "ocamlfind" {build}
   "conf-pkg-config" {build}
   "conf-which" {build}
+  "ocurl"
+  "uri"
   "pcre" {>= "7.5.0"}
   "sedlex" {>= "2.2"}
 ]
@@ -54,7 +56,6 @@ depopts: [
   "magic"
   "memtrace"
   "mem_usage"
-  "ocurl"
   "ogg"
   "opus"
   "osx-secure-transport"

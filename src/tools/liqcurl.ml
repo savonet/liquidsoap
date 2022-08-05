@@ -138,6 +138,9 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     ~request ~on_body_data () =
   let connection = new Curl.handle in
   try
+    (* Check url correctness, fix fixable mistakes.
+     * See: https://github.com/savonet/liquidsoap/issues/2551 *)
+    let url = Uri.(to_string (of_string url)) in
     connection#set_url url;
     connection#set_useragent Http.user_agent;
     connection#set_writefunction (fun s ->
