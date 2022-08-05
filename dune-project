@@ -22,7 +22,7 @@
     (duppy (>= 0.9.1))
     (mm (>= 0.8.1))
     (pcre (>= 7.5.0))
-    curl
+    ocurl
     uri
     menhirLib
     dune-site
