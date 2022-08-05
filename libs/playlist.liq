@@ -193,7 +193,7 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
         request.destroy(r)
         ref.incr(failed_count)
         # Playlist failed, call handler.
-        if !failed_count >= max_fail then
+        if !failed_count < max_fail then
           log.info(label=id, "Playlist failed.")
           if null.defined(on_fail) then
             f = null.get(on_fail)
