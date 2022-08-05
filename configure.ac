@@ -393,7 +393,7 @@ AC_CHECK_OCAML_BINDING([curl],[],[1])
 # Uri
 #
 
-AC_CHECK_OCAML_BINDING([uri][],[1])
+AC_CHECK_OCAML_BINDING([uri],[],[1])
 
 
 #
