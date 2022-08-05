@@ -92,7 +92,6 @@ let build_config =
    - SDL               : %{Sdl_option.detected}
 
  * Additional libraries
-   - curl (http)       : %{Ocurl_option.detected}
    - FFmpeg filters:   : %{Ffmpeg_option.detected}
    - FFmpeg devices    : %{Ffmpeg_option.detected}
    - inotify           : %{Inotify_option.detected}
@@ -122,7 +121,6 @@ variables {
   ffmpeg-enabled: %{string_of_bool Ffmpeg_option.enabled}
   lame-enabled: %{string_of_bool Lame_option.enabled}
   mad-enabled: %{string_of_bool Mad_option.enabled}
-  ocurl-enabled: %{string_of_bool Ocurl_option.enabled}
   samperate-enabled: %{string_of_bool Samplerate_option.enabled}
   secure-transport-enabled: %{string_of_bool Osx_secure_transport_option.enabled}
   shine-enabled: %{string_of_bool Shine_option.enabled}

@@ -22,6 +22,8 @@
     (duppy (>= 0.9.1))
     (mm (>= 0.8.1))
     (pcre (>= 7.5.0))
+    curl
+    uri
     menhirLib
     dune-site
     dune-build-info
@@ -53,7 +55,6 @@
     magic
     memtrace
     mem_usage
-    ocurl
     ogg
     opus
     osc-unix

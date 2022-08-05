@@ -36,14 +36,15 @@ tarballs for easier builds.
 | ocaml-mm       | @mm_version_descr@        |
 | ocaml-pcre     | @pcre_version_descr@      |
 | menhir         | @menhirlib_version_descr@ |
+| camomile       | @camomile_version_descr@  |
+| ocurl          | @curl_version_descr@      |
+| uri            | @uri_version_descr@       |
 | sedlex         | @sedlex_version_descr@    |
 
 ### Recommended dependencies:
 
 | Dependency       | Version                       | Functionality                         |
 | ---------------- | ----------------------------- | ------------------------------------- |
-| camomile         | @camomile_version_descr@      | Charset recoding in metadata          |
-| ocurl            | @curl_version_descr@          | File download                         |
 | ocaml-ffmpeg     | @ffmpeg_version_descr@        | Comprehensive audio and video support |
 
 ### Optional dependencies:

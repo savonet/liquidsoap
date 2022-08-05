@@ -23,6 +23,8 @@ depends: [
   "duppy" {>= "0.9.1"}
   "mm" {>= "0.8.1"}
   "pcre" {>= "7.5.0"}
+  "curl"
+  "uri"
   "menhirLib"
   "dune-site"
   "dune-build-info"
@@ -56,7 +58,6 @@ depopts: [
   "magic"
   "memtrace"
   "mem_usage"
-  "ocurl"
   "ogg"
   "opus"
   "osc-unix"
@@ -158,10 +159,6 @@ for reading metatadata in audio files. This is a feature most users want."""
 We noticed that you did not install the samplerate package. We strongly
 recommend this package for audio samplerate conversion."""
     {success & !samperate-enabled}
-  """\
-We noticed that you did not install the ocurl package. We strongly
-recommend this package for http request resolving support."""
-    {success & !curl-enabled}
   """\
 We noticed that you did not install the cry package that provides icecast
 output. This is a feature most users want."""

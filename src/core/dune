@@ -26,6 +26,8 @@
   liquidsoap_lang
   menhirLib
   camomile
+  curl
+  uri
   metadata
   (select
    file_watcher.ml
@@ -146,6 +148,7 @@
   lang_vorbis
   lang_wav
   latest_metadata
+  liqcurl
   lifecycle
   liq_time
   liqmagic
@@ -256,6 +259,7 @@
   builtins_clock
   builtins_files_extra
   builtins_harbor
+  builtins_http
   builtins_list_extra
   builtins_process
   builtins_request
@@ -468,16 +472,8 @@
  (modules lame_encoder))
 
 (library
- (name liquidsoap_curl)
- (libraries curl liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules liqcurl builtins_http))
-
-(library
  (name liquidsoap_lastfm)
- (libraries lastfm liquidsoap_core liquidsoap_curl)
+ (libraries lastfm liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
  (optional)
@@ -727,7 +723,6 @@
   magic_option
   mem_usage_option
   memtrace_option
-  ocurl_option
   ogg_option
   opus_option
   osc_option
@@ -881,11 +876,6 @@
    from
    (liquidsoap_memtrace -> memtrace_option.enabled.ml)
    (-> memtrace_option.disabled.ml))
-  (select
-   ocurl_option.ml
-   from
-   (liquidsoap_curl -> ocurl_option.enabled.ml)
-   (-> ocurl_option.disabled.ml))
   (select
    ogg_option.ml
    from

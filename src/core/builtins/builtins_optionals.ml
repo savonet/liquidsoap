@@ -33,7 +33,6 @@ let () =
       ("magic", Magic_option.enabled);
       ("mem_usage", Mem_usage_option.enabled);
       ("memtrace", Memtrace_option.enabled);
-      ("ocurl", Ocurl_option.enabled);
       ("ogg", Ogg_option.enabled);
       ("opus", Opus_option.enabled);
       ("osc", Osc_option.enabled);
