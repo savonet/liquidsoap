@@ -38,7 +38,7 @@ echo "\n### Setting up specific dependencies\n"
 
 opam update
 # See: https://github.com/whitequark/ocaml-inotify/pull/20
-opam install -y inotify.2.3 mem_usage.0.0.4
+opam install -y curl uri inotify.2.3 mem_usage.0.0.4
 
 cd /tmp/liquidsoap-full
 
