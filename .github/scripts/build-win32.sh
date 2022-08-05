@@ -42,6 +42,10 @@ echo "::group::Installing deps"
 eval `opam config env`
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 cd /home/opam/opam-cross-windows/
+
+# Work around to avoid rebuilding the world.
+opam pin ocaml -n `opam info ocaml | grep '^version' | tr -s ' ' | cut -d' ' -f 2`
+
 opam remove -y ppx_tools_versioned-windows `echo $OPAM_DEPS | sed -e 's#,# #g'`
 opam upgrade -y `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows ffmpeg-avutil-windows
 
