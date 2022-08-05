@@ -10,6 +10,7 @@ Fixed;
 
 - Fixed `http.get` issues when `user-agent` was not set (#2517)
 - Fixed order of `playlist.next` returned requests.
+- Fixed infinite loop when reloading a failed playlist.
 
 ---
 2.1.0 (2022-07-15)
