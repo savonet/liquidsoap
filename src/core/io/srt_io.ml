@@ -393,7 +393,7 @@ let meth () =
         Lang.fun_t []
           (Lang.record_t
              (List.map (fun (name, typ, _, _) -> (name, typ)) stats_specs)) ),
-      "Statistics.",
+      "SRT connection statistics.",
       fun s ->
         Lang.val_fun [] (fun _ ->
             Lang.record
@@ -492,49 +492,43 @@ module Poll = struct
 
   type t = {
     p : Srt.Poll.t;
-    m : Mutex.t;
-    mutable max_fds : int;
+    max_fds : int Atomic.t;
     handlers : (Srt.socket, Srt.Poll.flag * (Srt.socket -> unit)) Hashtbl.t;
   }
 
   let t =
     let p = Srt.Poll.create () in
-    let m = Mutex.create () in
     let handlers = Hashtbl.create 0 in
-    { p; m; max_fds = 0; handlers }
+    { p; max_fds = Atomic.make 0; handlers }
 
   let process () =
     try
-      let max_fds = Tutils.mutexify t.m (fun () -> t.max_fds) () in
+      let max_fds = Atomic.get t.max_fds in
       if max_fds = 0 then raise Empty;
       let events = Srt.Poll.uwait t.p ~max_fds ~timeout:conf_timeout#get in
-      Tutils.mutexify t.m
-        (fun () ->
-          let apply fn s =
-            try fn s
-            with exn ->
-              let bt = Printexc.get_backtrace () in
-              Utils.log_exception ~log ~bt
-                (Printf.sprintf
-                   "Error while executing asynchronous callback: %s"
-                   (Printexc.to_string exn))
-          in
-          List.iter
-            (fun { Srt.Poll.fd; events } ->
-              Srt.Poll.remove_usock t.p fd;
-              t.max_fds <- t.max_fds - 1;
-              Srt.setsockflag fd Srt.sndsyn true;
-              Srt.setsockflag fd Srt.rcvsyn true;
-              let event, fn = Hashtbl.find t.handlers fd in
-              if List.mem event events then apply fn fd)
-            events)
-        ();
+      let apply fn s =
+        try fn s
+        with exn ->
+          let bt = Printexc.get_backtrace () in
+          Utils.log_exception ~log ~bt
+            (Printf.sprintf "Error while executing asynchronous callback: %s"
+               (Printexc.to_string exn))
+      in
+      List.iter
+        (fun { Srt.Poll.fd; events } ->
+          Srt.Poll.remove_usock t.p fd;
+          Atomic.decr t.max_fds;
+          Srt.setsockflag fd Srt.sndsyn true;
+          Srt.setsockflag fd Srt.rcvsyn true;
+          let event, fn = Hashtbl.find t.handlers fd in
+          if List.mem event events then apply fn fd)
+        events;
       0.
     with
       (* We are seeing this error while tracking [max_fds]. This could be due to the
          fact that the poll could remove closed sockets without us seeing it. *)
       | Srt.Error (`Epollempty, _) ->
-          Tutils.mutexify t.m (fun () -> t.max_fds <- 0) ();
+          Atomic.set t.max_fds 0;
           -1.
       | Empty -> -1.
       | Srt.Error (`Etimeout, _) -> 0.
@@ -550,12 +544,9 @@ module Poll = struct
   let add_socket ~mode socket fn =
     Srt.setsockflag socket Srt.sndsyn false;
     Srt.setsockflag socket Srt.rcvsyn false;
-    Tutils.mutexify t.m
-      (fun () ->
-        Hashtbl.add t.handlers socket (mode, fn);
-        Srt.Poll.add_usock t.p socket ~flags:[(mode :> Srt.Poll.flag)];
-        t.max_fds <- t.max_fds + 1)
-      ();
+    Hashtbl.add t.handlers socket (mode, fn);
+    Srt.Poll.add_usock t.p socket ~flags:[(mode :> Srt.Poll.flag)];
+    Atomic.incr t.max_fds;
     Duppy.Async.wake_up task
 end
 
