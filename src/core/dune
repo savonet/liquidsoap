@@ -639,7 +639,7 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
- (modules srt_io))
+ (modules builtins_srt srt_io))
 
 (library
  (name liquidsoap_ssl)

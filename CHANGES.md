@@ -4,6 +4,10 @@
 New:
 
 - Added support for native osc library (#2426, #2480).
+- SRT: added support for passphrase, pbkeylen, streamid,
+  added native type for srt sockets with methods, moved stats
+  to socket methods, added socket() method on srt input/outputs
+  (#2556)
 
 Changed:
 
@@ -21,6 +25,8 @@ Fixed:
 
 - The randomization function `list.shuffle` used in `playlist` was incorrect and
   could lead to incorrectly randomized playlists (#2507, #2500).
+- Fixed srt output in listener mode to allow more than one listener at a time and
+  prevent listening socket from being re-created on listener disconnection (#2556)
 
 ---
 2.1.0 (2022-07-15)
