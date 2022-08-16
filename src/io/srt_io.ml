@@ -89,7 +89,7 @@ let common_options ~mode =
       Some (Lang.int 100),
       Some "Interval used to collect statistics" );
     ( "on_connect",
-      Lang.fun_t [(false, "", Lang.unit_t)] Lang.unit_t,
+      Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
       Some "Function to execute when connected." );
     ( "on_disconnect",

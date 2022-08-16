@@ -13,6 +13,7 @@ Fixed;
 - Fixed order of `playlist.next` returned requests.
 - Fixed infinite loop when reloading a failed playlist.
 - Fixed http requests with urls containing spaces (#2551)
+- Fixed `on_connect` type for `srt` inputs and outputs.
 
 ---
 2.1.0 (2022-07-15)
