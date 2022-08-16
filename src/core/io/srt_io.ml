@@ -139,12 +139,20 @@ let common_options ~mode =
 let meth () =
   [
     ( "sockets",
-      ([], Lang.fun_t [] (Lang.list_t Builtins_srt.SocketValue.t)),
-      "Connected sockets",
+      ( [],
+        Lang.fun_t []
+          (Lang.list_t
+             (Lang.product_t Lang.string_t Builtins_srt.SocketValue.t)) ),
+      "List of `(connected_address, connected_socket)`",
       fun s ->
         Lang.val_fun [] (fun _ ->
-            Lang.list (List.map Builtins_srt.SocketValue.to_value s#get_sockets))
-    );
+            Lang.list
+              (List.map
+                 (fun (origin, s) ->
+                   Lang.product
+                     (Lang.string (Utils.name_of_sockaddr origin))
+                     (Builtins_srt.SocketValue.to_value s))
+                 s#get_sockets)) );
   ]
 
 type common_options = {
@@ -398,13 +406,13 @@ class virtual networking_agent =
 class virtual input_networking_agent =
   object
     inherit networking_agent
-    method virtual private get_socket : Srt.socket
+    method virtual private get_socket : Unix.sockaddr * Srt.socket
   end
 
 class virtual output_networking_agent =
   object
     inherit networking_agent
-    method virtual get_sockets : Srt.socket list
+    method virtual get_sockets : (Unix.sockaddr * Srt.socket) list
 
     method virtual private client_error
         : Srt.socket -> exn -> Printexc.raw_backtrace -> unit
@@ -436,7 +444,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
             let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
             let sockaddr = Unix.ADDR_INET (ipaddr, port) in
             self#log#important "Connecting to srt://%s:%d.." hostname port;
-            ignore (Option.map close_socket socket);
+            ignore (Option.map (fun (_, s) -> close_socket s) socket);
             let s = mk_socket ~payload_size ~messageapi () in
             Srt.setsockflag s Srt.sndsyn true;
             Srt.setsockflag s Srt.rcvsyn true;
@@ -469,7 +477,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
             Srt.connect s sockaddr;
             Srt.setsockflag s Srt.sndsyn true;
             Srt.setsockflag s Srt.rcvsyn true;
-            socket <- Some s;
+            socket <- Some (sockaddr, s);
             self#log#important "Client connected!";
             !on_connect ();
             -1.
@@ -498,7 +506,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         (fun () ->
           (match socket with
             | None -> ()
-            | Some socket ->
+            | Some (_, socket) ->
                 close_socket socket;
                 !on_disconnect ());
           socket <- None;
@@ -554,7 +562,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
             raise Done);
           self#mutexify
             (fun () ->
-              client_sockets <- client :: client_sockets;
+              client_sockets <- (origin, client) :: client_sockets;
               !on_connect ())
             ()
         with exn ->
@@ -611,7 +619,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
     method private disconnect =
       self#mutexify
         (fun () ->
-          List.iter close_socket client_sockets;
+          List.iter (fun (_, s) -> close_socket s) client_sockets;
           client_sockets <- [];
           ignore (Option.map close_socket listening_socket);
           listening_socket <- None;
@@ -698,7 +706,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
     method private get_frame frame =
       let pos = Frame.position frame in
       try
-        let socket = self#get_socket in
+        let _, socket = self#get_socket in
         let decoder, buffer =
           match decoder_data with
             | None ->
@@ -850,7 +858,8 @@ let () =
                ~bind_address ~read_timeout ~write_timeout ~connection_timeout
                ~payload_size ~clock_safe ~on_connect ~on_disconnect ~messageapi
                ~max ~log_overfull ~dump ~on_start ~on_stop ~autostart format
-              :> < Start_stop.active_source ; get_sockets : Srt.socket list >)
+              :> < Start_stop.active_source
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Caller ->
             (new input_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
@@ -858,7 +867,8 @@ let () =
                ~on_connect ~read_timeout ~write_timeout ~connection_timeout
                ~on_disconnect ~messageapi ~max ~log_overfull ~dump ~on_start
                ~on_stop ~autostart format
-              :> < Start_stop.active_source ; get_sockets : Srt.socket list >))
+              :> < Start_stop.active_source
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
 class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~autostart ~on_disconnect ~encoder_factory source =
@@ -900,7 +910,7 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
               f (pos + ret) socket
           | _ -> ()
       in
-      let f pos socket =
+      let f pos (_, socket) =
         try f pos socket
         with exn ->
           let bt = Printexc.get_raw_backtrace () in
@@ -1003,7 +1013,8 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
       self#mutexify
         (fun () ->
           close_socket socket;
-          client_sockets <- List.filter (fun s -> s <> socket) client_sockets)
+          client_sockets <-
+            List.filter (fun (_, s) -> s <> socket) client_sockets)
         ()
   end
 
@@ -1082,7 +1093,8 @@ let () =
                ~on_start ~on_stop ~read_timeout ~write_timeout
                ~connection_timeout ~infallible ~messageapi ~encoder_factory
                ~on_connect ~on_disconnect source
-              :> < Output.output ; get_sockets : Srt.socket list >)
+              :> < Output.output
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Listener ->
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~kind ~bind_address
@@ -1090,4 +1102,5 @@ let () =
                ~autostart ~on_start ~on_stop ~infallible ~messageapi
                ~encoder_factory ~on_connect ~on_disconnect ~listen_callback
                ~max_clients source
-              :> < Output.output ; get_sockets : Srt.socket list >))
+              :> < Output.output
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
