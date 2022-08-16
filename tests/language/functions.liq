@@ -24,6 +24,25 @@ def f() =
   end
   t(f(), 5)
 
+  def recf() =
+    ()
+  end
+  recf()
+
+  def replacesf() =
+    ()
+  end
+  replacesf()
+
+  let replacesg = ()
+  x = replacesg
+
+  let evalf = ()
+  x = evalf
+
+  let json.stringifyf = ()
+  x = json.stringifyf
+
   test.pass()
 end
 

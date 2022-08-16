@@ -182,20 +182,20 @@ let rec token lexbuf =
     | "%argsof" -> ARGS_OF
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF
-    | "def", Plus skipped, "rec" -> PP_DEF `Recursive
-    | "def", Plus skipped, "replaces" -> PP_DEF `Replaces
+    | "def", Plus skipped, "rec", Plus skipped -> PP_DEF `Recursive
+    | "def", Plus skipped, "replaces", Plus skipped -> PP_DEF `Replaces
     | "def" -> PP_DEF `None
     | "try" -> TRY
     | "catch" -> CATCH
     | "do" -> DO
-    | "let", Plus skipped, "replaces" -> LET `Replaces
-    | "let", Plus skipped, "eval" -> LET `Eval
+    | "let", Plus skipped, "replaces", Plus skipped -> LET `Replaces
+    | "let", Plus skipped, "eval", Plus skipped -> LET `Eval
     | "let", Plus skipped, "json.parse", Star skipped, '[' ->
         LETLBRA `Json_parse
-    | "let", Plus skipped, "json.parse" -> LET `Json_parse
+    | "let", Plus skipped, "json.parse", Plus skipped -> LET `Json_parse
     | "let", Plus skipped, "json.stringify", Star skipped, '[' ->
         LETLBRA `Json_stringify
-    | "let", Plus skipped, "json.stringify" -> LET `Json_stringify
+    | "let", Plus skipped, "json.stringify", Plus skipped -> LET `Json_stringify
     | "let" -> LET `None
     | "fun" -> FUN
     | '=' -> GETS
