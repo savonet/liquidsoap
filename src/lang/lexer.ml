@@ -303,11 +303,12 @@ let rec token lexbuf =
         let flags = read_regexp_flags [] lexbuf in
         let _, endp = Sedlexing.lexing_positions lexbuf in
         PP_REGEXP (regexp, flags, (startp, endp))
-    | _ ->
+    | any ->
         raise
           (Term.Parse_error
              ( Sedlexing.lexing_positions lexbuf,
                "Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf ))
+    | _ -> failwith "Internal error"
 
 and read_regexp_flags flags lexbuf =
   match%sedlex lexbuf with

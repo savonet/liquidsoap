@@ -16,6 +16,7 @@ Fixed;
 - Fixed `on_connect` type for `srt` inputs and outputs.
 - Fixed parsing issues with functions/variables definitions
   beginnign with `rec` or `replaces` (#2560)
+- Fixed infinite parse error loop (#2527)
 
 ---
 2.1.0 (2022-07-15)
