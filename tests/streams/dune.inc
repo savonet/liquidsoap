@@ -164,6 +164,29 @@
  (alias runtest)
  (package liquidsoap)
  (deps
+  srt_passphrase.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  (source_tree ../../src/libs)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action (run %{run_test} "%{liquidsoap} %{test_liq} -" srt_passphrase.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
   ctype2.liq
   ./file1.mp3
   ./file2.mp3
@@ -532,6 +555,29 @@
  (alias runtest)
  (package liquidsoap)
  (deps
+  srt_multiple_outputs.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  (source_tree ../../src/libs)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action (run %{run_test} "%{liquidsoap} %{test_liq} -" srt_multiple_outputs.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
   on_track.liq
   ./file1.mp3
   ./file2.mp3
@@ -619,4 +665,27 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" autostart.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  srt_listen_callback.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  (source_tree ../../src/libs)
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.sh))
+ (action (run %{run_test} "%{liquidsoap} %{test_liq} -" srt_listen_callback.liq)))
   

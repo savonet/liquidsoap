@@ -22,8 +22,6 @@
 
 (** SRT input *)
 
-open Unsigned
-
 exception Done
 exception Not_connected
 
@@ -46,6 +44,46 @@ let common_options ~mode =
       Some
         "Mode to operate on. One of: `\"listener\"` (waits for connection to \
          come in) or `\"caller\"` (initiate connection to a remote server)" );
+    ( "listen_callback",
+      Lang.nullable_t
+        (Lang.fun_t
+           [
+             (false, "hs_version", Lang.int_t);
+             (false, "peeraddr", Lang.string_t);
+             (false, "streamid", Lang.nullable_t Lang.string_t);
+             (false, "", Builtins_srt.SocketValue.t);
+           ]
+           Lang.bool_t),
+      Some Lang.null,
+      Some
+        "Callback used to decide wether to accept new incoming connections. \
+         Used in listener mode only." );
+    ( "streamid",
+      Lang.nullable_t Lang.string_t,
+      Some Lang.null,
+      Some
+        "Set `streamid`. This value can be retreived by the listener side when \
+         connecting to it. Used in caller mode only." );
+    ( "passphrase",
+      Lang.nullable_t Lang.string_t,
+      Some Lang.null,
+      Some
+        "When set to a non-empty string, this option enables encryption and \
+         sets the passphrase for it. See `libsrt` documentation for more \
+         details." );
+    ( "pbkeylen",
+      Lang.nullable_t Lang.int_t,
+      Some Lang.null,
+      Some
+        "Set encryption key length. See `libsrt` documentation for more \
+         details." );
+    ( "enforced_encryption",
+      Lang.nullable_t Lang.bool_t,
+      Some Lang.null,
+      Some
+        "Enforces that both connection parties have the same passphrase set, \
+         or both do not set the passphrase, otherwise the connection is \
+         rejected." );
     ( "host",
       Lang.string_t,
       Some (Lang.string "localhost"),
@@ -63,6 +101,10 @@ let common_options ~mode =
       Lang.string_t,
       Some (Lang.string "0.0.0.0"),
       Some "Address to bind on the local machine. Used only in listener mode" );
+    ( "polling_delay",
+      Lang.float_t,
+      Some (Lang.float 2.),
+      Some "Delay between connection attempts. Used only in caller mode." );
     ( "read_timeout",
       Lang.nullable_t Lang.int_t,
       Some (Lang.int 1_000),
@@ -77,19 +119,15 @@ let common_options ~mode =
          no data was received, indefinite if `null`." );
     ( "connection_timeout",
       Lang.nullable_t Lang.int_t,
-      Some
-        (match mode with `Listener -> Lang.null | `Caller -> Lang.int 3_000),
+      Some Lang.null,
       Some
         "Timeout, in milliseconds, after which initial connection operations \
-         are aborted if no data was received, indefinite if `null`." );
+         are aborted if no data was received. Uses library's default if \
+         `nulll`." );
     ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
     ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");
-    ( "stats_interval",
-      Lang.int_t,
-      Some (Lang.int 100),
-      Some "Interval used to collect statistics" );
     ( "on_connect",
-      Lang.fun_t [(false, "", Lang.unit_t)] Lang.unit_t,
+      Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
       Some "Function to execute when connected." );
     ( "on_disconnect",
@@ -98,315 +136,44 @@ let common_options ~mode =
       Some "Function to execute when disconnected" );
   ]
 
-let stats_specs =
-  [
-    ( "msTimeStamp",
-      Lang.int_t,
-      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.msTimeStamp)),
-      Lang.int (-1) );
-    ( "pktSentTotal",
-      Lang.int_t,
-      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktSentTotal)),
-      Lang.int (-1) );
-    ( "pktRecvTotal",
-      Lang.int_t,
-      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktRecvTotal)),
-      Lang.int (-1) );
-    ( "pktSndLossTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSndLossTotal),
-      Lang.int (-1) );
-    ( "pktRcvLossTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvLossTotal),
-      Lang.int (-1) );
-    ( "pktRetransTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRetransTotal),
-      Lang.int (-1) );
-    ( "pktSentACKTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSentACKTotal),
-      Lang.int (-1) );
-    ( "pktRecvACKTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRecvACKTotal),
-      Lang.int (-1) );
-    ( "pktSentNAKTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSentNAKTotal),
-      Lang.int (-1) );
-    ( "pktRecvNAKTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRecvNAKTotal),
-      Lang.int (-1) );
-    ( "usSndDurationTotal",
-      Lang.int_t,
-      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.usSndDurationTotal)),
-      Lang.int (-1) );
-    ( "pktSndDropTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSndDropTotal),
-      Lang.int (-1) );
-    ( "pktRcvDropTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvDropTotal),
-      Lang.int (-1) );
-    ( "pktRcvUndecryptTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvUndecryptTotal),
-      Lang.int (-1) );
-    ( "byteSentTotal",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteSentTotal)),
-      Lang.int (-1) );
-    ( "byteRecvTotal",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRecvTotal)),
-      Lang.int (-1) );
-    ( "byteRetransTotal",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRetransTotal)),
-      Lang.int (-1) );
-    ( "byteSndDropTotal",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteSndDropTotal)),
-      Lang.int (-1) );
-    ( "byteRcvDropTotal",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRcvDropTotal)),
-      Lang.int (-1) );
-    ( "byteRcvUndecryptTotal",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRcvUndecryptTotal)),
-      Lang.int (-1) );
-    ( "pktSent",
-      Lang.int_t,
-      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktSent)),
-      Lang.int (-1) );
-    ( "pktRecv",
-      Lang.int_t,
-      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktRecv)),
-      Lang.int (-1) );
-    ( "pktSndLoss",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSndLoss),
-      Lang.int (-1) );
-    ( "pktRcvLoss",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvLoss),
-      Lang.int (-1) );
-    ( "pktRetrans",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRetrans),
-      Lang.int (-1) );
-    ( "pktRcvRetrans",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvRetrans),
-      Lang.int (-1) );
-    ( "pktSentACK",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSentACK),
-      Lang.int (-1) );
-    ( "pktRecvACK",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRecvACK),
-      Lang.int (-1) );
-    ( "pktSentNAK",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSentNAK),
-      Lang.int (-1) );
-    ( "pktRecvNAK",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRecvNAK),
-      Lang.int (-1) );
-    ( "mbpsSendRate",
-      Lang.float_t,
-      (fun v -> Lang.float v.Srt.Stats.mbpsSendRate),
-      Lang.float (-1.) );
-    ( "mbpsRecvRate",
-      Lang.float_t,
-      (fun v -> Lang.float v.Srt.Stats.mbpsRecvRate),
-      Lang.float (-1.) );
-    ( "usSndDuration",
-      Lang.int_t,
-      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.usSndDuration)),
-      Lang.int (-1) );
-    ( "pktReorderDistance",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktReorderDistance),
-      Lang.int (-1) );
-    ( "pktRcvAvgBelatedTime",
-      Lang.float_t,
-      (fun v -> Lang.float v.Srt.Stats.pktRcvAvgBelatedTime),
-      Lang.float (-1.) );
-    ( "pktRcvBelated",
-      Lang.int_t,
-      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktRcvBelated)),
-      Lang.int (-1) );
-    ( "pktSndDrop",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSndDrop),
-      Lang.int (-1) );
-    ( "pktRcvDrop",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvDrop),
-      Lang.int (-1) );
-    ( "pktRcvUndecrypt",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvUndecrypt),
-      Lang.int (-1) );
-    ( "byteSent",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteSent)),
-      Lang.int (-1) );
-    ( "byteRecv",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRecv)),
-      Lang.int (-1) );
-    ( "byteRetrans",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRetrans)),
-      Lang.int (-1) );
-    ( "byteSndDrop",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteSndDrop)),
-      Lang.int (-1) );
-    ( "byteRcvDrop",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRcvDrop)),
-      Lang.int (-1) );
-    ( "byteRcvUndecrypt",
-      Lang.int_t,
-      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRcvUndecrypt)),
-      Lang.int (-1) );
-    ( "usPktSndPeriod",
-      Lang.float_t,
-      (fun v -> Lang.float v.Srt.Stats.usPktSndPeriod),
-      Lang.float (-1.) );
-    ( "pktFlowWindow",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktFlowWindow),
-      Lang.int (-1) );
-    ( "pktCongestionWindow",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktCongestionWindow),
-      Lang.int (-1) );
-    ( "pktFlightSize",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktFlightSize),
-      Lang.int (-1) );
-    ( "msRTT",
-      Lang.float_t,
-      (fun v -> Lang.float v.Srt.Stats.msRTT),
-      Lang.float (-1.) );
-    ( "mbpsBandwidth",
-      Lang.float_t,
-      (fun v -> Lang.float v.Srt.Stats.mbpsBandwidth),
-      Lang.float (-1.) );
-    ( "byteAvailSndBuf",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.byteAvailSndBuf),
-      Lang.int (-1) );
-    ( "byteAvailRcvBuf",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.byteAvailRcvBuf),
-      Lang.int (-1) );
-    ( "mbpsMaxBW",
-      Lang.float_t,
-      (fun v -> Lang.float v.Srt.Stats.mbpsMaxBW),
-      Lang.float (-1.) );
-    ( "byteMSS",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.byteMSS),
-      Lang.int (-1) );
-    ( "pktSndBuf",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSndBuf),
-      Lang.int (-1) );
-    ( "byteSndBuf",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.byteSndBuf),
-      Lang.int (-1) );
-    ( "msSndBuf",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.msSndBuf),
-      Lang.int (-1) );
-    ( "msSndTsbPdDelay",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.msSndTsbPdDelay),
-      Lang.int (-1) );
-    ( "pktRcvBuf",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvBuf),
-      Lang.int (-1) );
-    ( "byteRcvBuf",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.byteRcvBuf),
-      Lang.int (-1) );
-    ( "msRcvBuf",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.msRcvBuf),
-      Lang.int (-1) );
-    ( "msRcvTsbPdDelay",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.msRcvTsbPdDelay),
-      Lang.int (-1) );
-    ( "pktSndFilterExtraTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSndFilterExtraTotal),
-      Lang.int (-1) );
-    ( "pktRcvFilterExtraTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterExtraTotal),
-      Lang.int (-1) );
-    ( "pktRcvFilterSupplyTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterSupplyTotal),
-      Lang.int (-1) );
-    ( "pktRcvFilterLossTotal",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterLossTotal),
-      Lang.int (-1) );
-    ( "pktSndFilterExtra",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktSndFilterExtra),
-      Lang.int (-1) );
-    ( "pktRcvFilterExtra",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterExtra),
-      Lang.int (-1) );
-    ( "pktRcvFilterSupply",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterSupply),
-      Lang.int (-1) );
-    ( "pktRcvFilterLoss",
-      Lang.int_t,
-      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterLoss),
-      Lang.int (-1) );
-  ]
-
 let meth () =
   [
-    ( "stats",
+    ( "sockets",
       ( [],
         Lang.fun_t []
-          (Lang.record_t
-             (List.map (fun (name, typ, _, _) -> (name, typ)) stats_specs)) ),
-      "SRT connection statistics.",
+          (Lang.list_t
+             (Lang.product_t Lang.string_t Builtins_srt.SocketValue.t)) ),
+      "List of `(connected_address, connected_socket)`",
       fun s ->
         Lang.val_fun [] (fun _ ->
-            Lang.record
-              (match s#stats with
-                | Some stats ->
-                    List.map
-                      (fun (name, _, fn, _) -> (name, fn stats))
-                      stats_specs
-                | None ->
-                    List.map
-                      (fun (name, _, _, none) -> (name, none))
-                      stats_specs)) );
+            Lang.list
+              (List.map
+                 (fun (origin, s) ->
+                   Lang.product
+                     (Lang.string (Utils.name_of_sockaddr origin))
+                     (Builtins_srt.SocketValue.to_value s))
+                 s#get_sockets)) );
   ]
+
+type common_options = {
+  mode : [ `Listener | `Caller ];
+  hostname : string;
+  port : int;
+  bind_address : Unix.sockaddr;
+  listen_callback : Srt.listen_callback option;
+  streamid : string option;
+  pbkeylen : int option;
+  enforced_encryption : bool option;
+  passphrase : string option;
+  polling_delay : float;
+  read_timeout : int option;
+  write_timeout : int option;
+  connection_timeout : int option;
+  payload_size : int;
+  messageapi : bool;
+  on_connect : (unit -> unit) ref;
+  on_disconnect : (unit -> unit) ref;
+}
 
 let parse_common_options p =
   let bind_address = Lang.to_string (List.assoc "bind_address" p) in
@@ -418,13 +185,38 @@ let parse_common_options p =
            ( List.assoc "bind_address" p,
              Printf.sprintf "Invalid address: %s" (Printexc.to_string exn) ))
   in
+  let passphrase =
+    Lang.to_valued_option Lang.to_string (List.assoc "passphrase" p)
+  in
+  let streamid =
+    Lang.to_valued_option Lang.to_string (List.assoc "streamid" p)
+  in
+  let pbkeylen = Lang.to_valued_option Lang.to_int (List.assoc "pbkeylen" p) in
+  let enforced_encryption =
+    Lang.to_valued_option Lang.to_bool (List.assoc "enforced_encryption" p)
+  in
+  let listen_callback =
+    let fn = List.assoc "listen_callback" p in
+    Option.map
+      (fun fn socket hs_version peeraddr streamid ->
+        Lang.to_bool
+          (Lang.apply fn
+             [
+               ("hs_version", Lang.int hs_version);
+               ("peeraddr", Lang.string (Utils.name_of_sockaddr peeraddr));
+               ( "streamid",
+                 match streamid with
+                   | None -> Lang.null
+                   | Some s -> Lang.string s );
+               ("", Builtins_srt.SocketValue.to_value socket);
+             ]))
+      (Lang.to_option fn)
+  in
   let port = Lang.to_int (List.assoc "port" p) in
   let bind_address = Unix.ADDR_INET (bind_address, port) in
   let on_connect = List.assoc "on_connect" p in
   let on_disconnect = List.assoc "on_disconnect" p in
-  let stats_interval =
-    float (Lang.to_int (List.assoc "stats_interval" p)) /. 1000.
-  in
+  let polling_delay = Lang.to_float (List.assoc "polling_delay" p) in
   let read_timeout =
     Lang.to_valued_option Lang.to_int (List.assoc "read_timeout" p)
   in
@@ -434,18 +226,25 @@ let parse_common_options p =
   let connection_timeout =
     Lang.to_valued_option Lang.to_int (List.assoc "connection_timeout" p)
   in
-  ( mode_of_value (List.assoc "mode" p),
-    Lang.to_string (List.assoc "host" p),
-    Lang.to_int (List.assoc "port" p),
-    bind_address,
-    read_timeout,
-    write_timeout,
-    connection_timeout,
-    Lang.to_int (List.assoc "payload_size" p),
-    Lang.to_bool (List.assoc "messageapi" p),
-    stats_interval,
-    ref (fun () -> ignore (Lang.apply on_connect [])),
-    ref (fun () -> ignore (Lang.apply on_disconnect [])) )
+  {
+    mode = mode_of_value (List.assoc "mode" p);
+    hostname = Lang.to_string (List.assoc "host" p);
+    port = Lang.to_int (List.assoc "port" p);
+    bind_address;
+    listen_callback;
+    pbkeylen;
+    enforced_encryption;
+    passphrase;
+    streamid;
+    polling_delay;
+    read_timeout;
+    write_timeout;
+    connection_timeout;
+    payload_size = Lang.to_int (List.assoc "payload_size" p);
+    messageapi = Lang.to_bool (List.assoc "messageapi" p);
+    on_connect = ref (fun () -> ignore (Lang.apply on_connect []));
+    on_disconnect = ref (fun () -> ignore (Lang.apply on_disconnect []));
+  }
 
 let conf_srt =
   Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
@@ -595,51 +394,33 @@ class virtual base =
     method private set_should_stop = self#mutexify (fun b -> should_stop <- b)
   end
 
-class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
-  object (self)
+class virtual networking_agent =
+  object
     method virtual private connect : unit
     method virtual private disconnect : unit
     method virtual private is_connected : bool
-    method virtual private get_socket : Srt.socket
     method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     method virtual private should_stop : bool
-    val mutable stats : Srt.Stats.t option = None
-    val mutable stats_task = None
-
-    method collect_stats () =
-      (try
-         let s = self#get_socket in
-         self#mutexify
-           (fun () -> stats <- Some (Srt.Stats.bstats ~clear:true s))
-           ()
-       with _ -> ());
-      if self#should_stop then -1. else stats_interval
-
-    method stats = self#mutexify (fun () -> stats) ()
-
-    initializer
-    let current_on_connect = !on_connect in
-    (on_connect :=
-       fun () ->
-         if stats_interval > 0. then (
-           let t =
-             Duppy.Async.add ~priority:`Non_blocking Tutils.scheduler
-               self#collect_stats
-           in
-           stats_task <- Some t;
-           Duppy.Async.wake_up t);
-         current_on_connect ());
-
-    let current_on_disconnect = !on_disconnect in
-    on_disconnect :=
-      fun () ->
-        (try ignore (Option.map Duppy.Async.stop stats_task) with _ -> ());
-        stats <- None;
-        current_on_disconnect ()
   end
 
-class virtual caller ~payload_size ~messageapi ~hostname ~port
-  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
+class virtual input_networking_agent =
+  object
+    inherit networking_agent
+    method virtual private get_socket : Unix.sockaddr * Srt.socket
+  end
+
+class virtual output_networking_agent =
+  object
+    inherit networking_agent
+    method virtual get_sockets : (Unix.sockaddr * Srt.socket) list
+
+    method virtual private client_error
+        : Srt.socket -> exn -> Printexc.raw_backtrace -> unit
+  end
+
+class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
+  ~polling_delay ~payload_size ~messageapi ~hostname ~port ~connection_timeout
+  ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
   object (self)
     method virtual should_stop : bool
     val mutable connect_task = None
@@ -663,10 +444,24 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port
             let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
             let sockaddr = Unix.ADDR_INET (ipaddr, port) in
             self#log#important "Connecting to srt://%s:%d.." hostname port;
-            ignore (Option.map close_socket socket);
+            ignore (Option.map (fun (_, s) -> close_socket s) socket);
             let s = mk_socket ~payload_size ~messageapi () in
             Srt.setsockflag s Srt.sndsyn true;
             Srt.setsockflag s Srt.rcvsyn true;
+            ignore
+              (Option.map (fun id -> Srt.(setsockflag s streamid id)) streamid);
+            ignore
+              (Option.map
+                 (fun b -> Srt.(setsockflag s enforced_encryption b))
+                 enforced_encryption);
+            ignore
+              (Option.map
+                 (fun len -> Srt.(setsockflag s pbkeylen len))
+                 pbkeylen);
+            ignore
+              (Option.map
+                 (fun p -> Srt.(setsockflag s passphrase p))
+                 passphrase);
             ignore
               (Option.map
                  (fun v -> Srt.(setsockflag s conntimeo v))
@@ -680,13 +475,15 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port
                  (fun v -> Srt.(setsockflag s rcvtimeo v))
                  read_timeout);
             Srt.connect s sockaddr;
-            socket <- Some s;
+            Srt.setsockflag s Srt.sndsyn true;
+            Srt.setsockflag s Srt.rcvsyn true;
+            socket <- Some (sockaddr, s);
             self#log#important "Client connected!";
             !on_connect ();
             -1.
           with exn ->
             self#log#important "Connect failed: %s" (Printexc.to_string exn);
-            if not task_should_stop then 0. else -1.)
+            if not task_should_stop then polling_delay else -1.)
         ()
 
     method private connect =
@@ -709,7 +506,7 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port
         (fun () ->
           (match socket with
             | None -> ()
-            | Some socket ->
+            | Some (_, socket) ->
                 close_socket socket;
                 !on_disconnect ());
           socket <- None;
@@ -722,32 +519,30 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port
         ()
   end
 
-class virtual listener ~payload_size ~messageapi ~bind_address
-  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
+class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
+  ~listen_callback ~payload_size ~messageapi ~bind_address ~connection_timeout
+  ~read_timeout ~write_timeout ~on_connect ~on_disconnect () =
   object (self)
-    val mutable client_data = None
+    val mutable client_sockets = []
     method virtual log : Log.t
     method virtual should_stop : bool
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     val mutable listening_socket = None
 
     method private is_connected =
-      self#mutexify (fun () -> client_data <> None) ()
+      self#mutexify (fun () -> client_sockets <> []) ()
 
-    method private get_socket =
-      self#mutexify
-        (fun () ->
-          match client_data with Some s -> s | None -> raise Not_connected)
-        ()
+    method get_sockets = self#mutexify (fun () -> client_sockets) ()
 
     method private connect =
-      let on_connect s =
+      let rec accept_connection listener s =
         try
           ignore
             (Option.map
                (fun v -> Srt.(setsockflag s conntimeo v))
                connection_timeout);
           let client, origin = Srt.accept s in
+          Poll.add_socket ~mode:`Read listener (accept_connection listener);
           (try self#log#info "New connection from %s" (string_of_address origin)
            with exn ->
              self#log#important "Error while fetching connection source: %s"
@@ -767,17 +562,11 @@ class virtual listener ~payload_size ~messageapi ~bind_address
             raise Done);
           self#mutexify
             (fun () ->
-              client_data <- Some client;
+              client_sockets <- (origin, client) :: client_sockets;
               !on_connect ())
             ()
         with exn ->
-          self#log#debug "Failed to connect: %s" (Printexc.to_string exn);
-          self#mutexify
-            (fun () ->
-              ignore
-                (Option.map (fun socket -> close_socket socket) client_data);
-              client_data <- None)
-            ()
+          self#log#debug "Failed to connect: %s" (Printexc.to_string exn)
       in
       if not self#should_stop then
         self#mutexify
@@ -785,19 +574,53 @@ class virtual listener ~payload_size ~messageapi ~bind_address
             assert (listening_socket = None);
             let s = mk_socket ~payload_size ~messageapi () in
             Srt.bind s bind_address;
-            Srt.listen s 1;
+            let max_clients_callback =
+              Option.map
+                (fun n _ _ _ _ ->
+                  self#mutexify (fun () -> List.length client_sockets < n) ())
+                max_clients
+            in
+            let listen_callback =
+              List.fold_left
+                (fun cur v ->
+                  match (cur, v) with
+                    | None, _ -> v
+                    | Some _, None -> cur
+                    | Some cur, Some fn ->
+                        Some
+                          (fun s hs_version peeraddr streamid ->
+                            cur s hs_version peeraddr streamid
+                            && fn s hs_version peeraddr streamid))
+                None
+                [max_clients_callback; listen_callback]
+            in
+            ignore
+              (Option.map (fun fn -> Srt.listen_callback s fn) listen_callback);
+            ignore
+              (Option.map
+                 (fun b -> Srt.(setsockflag s enforced_encryption b))
+                 enforced_encryption);
+            ignore
+              (Option.map
+                 (fun len -> Srt.(setsockflag s pbkeylen len))
+                 pbkeylen);
+            ignore
+              (Option.map
+                 (fun p -> Srt.(setsockflag s passphrase p))
+                 passphrase);
+            Srt.listen s (Option.value ~default:1 max_clients);
             Srt.setsockflag s Srt.rcvsyn true;
             self#log#info "Setting up socket to listen at %s"
               (string_of_address bind_address);
             listening_socket <- Some s;
-            Poll.add_socket ~mode:`Read s on_connect)
+            Poll.add_socket ~mode:`Read s (accept_connection s))
           ()
 
     method private disconnect =
       self#mutexify
         (fun () ->
-          ignore (Option.map (fun socket -> close_socket socket) client_data);
-          client_data <- None;
+          List.iter (fun (_, s) -> close_socket s) client_sockets;
+          client_sockets <- [];
           ignore (Option.map close_socket listening_socket);
           listening_socket <- None;
           !on_disconnect ())
@@ -805,8 +628,7 @@ class virtual listener ~payload_size ~messageapi ~bind_address
   end
 
 class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
-  ~on_disconnect ~payload_size ~dump ~stats_interval ~on_start ~on_stop
-  ~autostart format =
+  ~on_disconnect ~payload_size ~dump ~on_start ~on_stop ~autostart format =
   let max_ticks = Frame.main_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -815,7 +637,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
       `Undefined
   in
   object (self)
-    inherit networking_agent ~on_connect ~on_disconnect ~stats_interval
+    inherit input_networking_agent
     inherit base
 
     inherit
@@ -884,7 +706,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
     method private get_frame frame =
       let pos = Frame.position frame in
       try
-        let socket = self#get_socket in
+        let _, socket = self#get_socket in
         let decoder, buffer =
           match decoder_data with
             | None ->
@@ -915,38 +737,48 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
       self#disconnect
   end
 
-class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
-  ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~read_timeout
-  ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start ~on_stop
-  ~autostart format =
-  object
+class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
+  ~bind_address ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
+  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
+  ~dump ~on_start ~on_stop ~autostart format =
+  object (self)
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump ~stats_interval ~on_start ~on_stop ~autostart
-          format
+          ~on_disconnect ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       listener
-        ~bind_address ~payload_size ~read_timeout ~write_timeout
-          ~connection_timeout ~messageapi ~on_connect ~on_disconnect
+        ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
+          ~max_clients:(Some 1) ~bind_address ~payload_size ~read_timeout
+          ~write_timeout ~connection_timeout ~messageapi ~on_connect
+          ~on_disconnect ()
+
+    method private get_socket =
+      match self#get_sockets with
+        | [s] -> s
+        | [] -> raise Not_connected
+        | _ -> assert false
   end
 
-class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
-  ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~read_timeout
-  ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start ~on_stop
-  ~autostart format =
-  object
+class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
+  ~polling_delay ~hostname ~port ~kind ~max ~log_overfull ~payload_size
+  ~clock_safe ~on_connect ~on_disconnect ~read_timeout ~write_timeout
+  ~connection_timeout ~messageapi ~dump ~on_start ~on_stop ~autostart format =
+  object (self)
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump ~stats_interval ~on_start ~on_stop ~autostart
-          format
+          ~on_disconnect ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       caller
-        ~hostname ~port ~payload_size ~read_timeout ~write_timeout
+        ~enforced_encryption ~pbkeylen ~passphrase ~streamid ~polling_delay
+          ~hostname ~port ~payload_size ~read_timeout ~write_timeout
           ~connection_timeout ~messageapi ~on_connect ~on_disconnect
+
+    method get_sockets =
+      match self#get_socket with s -> [s] | exception Not_found -> []
   end
 
 let () =
@@ -972,10 +804,6 @@ let () =
           Some
             "Dump received data to the given file for debugging. Unused is \
              empty." );
-        ( "stats_interval",
-          Lang.nullable_t Lang.int_t,
-          Some Lang.null,
-          Some "Interval used to collect internal stats in milliseconds" );
         ( "content_type",
           Lang.string_t,
           Some (Lang.string "application/ffmpeg"),
@@ -984,18 +812,25 @@ let () =
              stream." );
       ])
     (fun p ->
-      let ( mode,
-            hostname,
-            port,
-            bind_address,
-            read_timeout,
-            write_timeout,
-            connection_timeout,
-            payload_size,
-            messageapi,
-            stats_interval,
-            on_connect,
-            on_disconnect ) =
+      let {
+        mode;
+        hostname;
+        port;
+        streamid;
+        enforced_encryption;
+        pbkeylen;
+        passphrase;
+        bind_address;
+        listen_callback;
+        polling_delay;
+        read_timeout;
+        write_timeout;
+        connection_timeout;
+        payload_size;
+        messageapi;
+        on_connect;
+        on_disconnect;
+      } =
         parse_common_options p
       in
       let dump =
@@ -1019,26 +854,28 @@ let () =
       match mode with
         | `Listener ->
             (new input_listener
-               ~kind ~bind_address ~read_timeout ~write_timeout
-               ~connection_timeout ~payload_size ~clock_safe ~on_connect
-               ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
-               ~dump ~on_start ~on_stop ~autostart format
-              :> < Start_stop.active_source ; stats : Srt.Stats.t option >)
+               ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback ~kind
+               ~bind_address ~read_timeout ~write_timeout ~connection_timeout
+               ~payload_size ~clock_safe ~on_connect ~on_disconnect ~messageapi
+               ~max ~log_overfull ~dump ~on_start ~on_stop ~autostart format
+              :> < Start_stop.active_source
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Caller ->
             (new input_caller
-               ~kind ~hostname ~port ~payload_size ~clock_safe ~on_connect
-               ~read_timeout ~write_timeout ~connection_timeout ~stats_interval
+               ~enforced_encryption ~pbkeylen ~passphrase ~streamid
+               ~polling_delay ~kind ~hostname ~port ~payload_size ~clock_safe
+               ~on_connect ~read_timeout ~write_timeout ~connection_timeout
                ~on_disconnect ~messageapi ~max ~log_overfull ~dump ~on_start
                ~on_stop ~autostart format
-              :> < Start_stop.active_source ; stats : Srt.Stats.t option >))
+              :> < Start_stop.active_source
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
 class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect
-  ~encoder_factory source =
+  ~infallible ~autostart ~on_disconnect ~encoder_factory source =
   let buffer = Strings.Mutable.empty () in
   let tmp = Bytes.create payload_size in
   object (self)
-    inherit networking_agent ~on_connect ~on_disconnect ~stats_interval
+    inherit output_networking_agent
     inherit base
 
     inherit
@@ -1057,35 +894,35 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
         on_disconnect_cur ()
 
     method private send_chunk =
-      let socket = self#get_socket in
-      let send data =
-        if messageapi then Srt.sendmsg socket data (-1) false
-        else Srt.send socket data
-      in
       self#mutexify
         (fun () ->
           Strings.Mutable.blit buffer 0 tmp 0 payload_size;
           Strings.Mutable.drop buffer payload_size)
         ();
-      let rec f = function
-        | pos when pos < payload_size ->
-            let ret = send (Bytes.sub tmp pos (payload_size - pos)) in
-            f (pos + ret)
-        | _ -> ()
+      let send data socket =
+        if messageapi then Srt.sendmsg socket data (-1) false
+        else Srt.send socket data
       in
-      f 0
+      let rec f pos socket =
+        match pos with
+          | pos when pos < payload_size ->
+              let ret = send (Bytes.sub tmp pos (payload_size - pos)) socket in
+              f (pos + ret) socket
+          | _ -> ()
+      in
+      let f pos (_, socket) =
+        try f pos socket
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          self#client_error socket exn bt
+      in
+      List.iter (f 0) self#get_sockets
 
     method private send_chunks =
-      try
-        let len = self#mutexify (fun () -> Strings.Mutable.length buffer) in
-        while payload_size <= len () do
-          self#send_chunk
-        done
-      with exn ->
-        self#log#important "Error while sending client data: %s"
-          (Printexc.to_string exn);
-        self#disconnect;
-        if not self#should_stop then self#connect
+      let len = self#mutexify (fun () -> Strings.Mutable.length buffer) in
+      while payload_size <= len () do
+        self#send_chunk
+      done
 
     method private get_encoder =
       self#mutexify
@@ -1123,38 +960,62 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
         self#send_chunks)
   end
 
-class output_caller ~kind ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect ~port
-  ~hostname ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory
-  source =
-  object
+class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
+  ~polling_delay ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
+  ~autostart ~on_connect ~on_disconnect ~port ~hostname ~read_timeout
+  ~write_timeout ~connection_timeout ~encoder_factory source =
+  object (self)
     inherit
       output_base
         ~kind:(Kind.of_kind kind) ~payload_size ~messageapi ~on_start ~on_stop
-          ~infallible ~autostart ~stats_interval ~on_connect ~on_disconnect
-          ~encoder_factory source
+          ~infallible ~autostart ~on_disconnect ~encoder_factory source
 
     inherit
       caller
-        ~hostname ~port ~payload_size ~read_timeout ~write_timeout
+        ~enforced_encryption ~pbkeylen ~passphrase ~streamid ~polling_delay
+          ~hostname ~port ~payload_size ~read_timeout ~write_timeout
           ~connection_timeout ~messageapi ~on_connect ~on_disconnect
+
+    method private get_sockets =
+      try [self#get_socket] with Not_connected -> []
+
+    method private client_error _ exn bt =
+      Utils.log_exception ~log:self#log
+        ~bt:(Printexc.raw_backtrace_to_string bt)
+        (Printf.sprintf "Error while sending client data: %s"
+           (Printexc.to_string exn));
+      self#disconnect;
+      if not self#should_stop then self#connect
   end
 
-class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect
-  ~bind_address ~read_timeout ~write_timeout ~connection_timeout
-  ~encoder_factory source =
-  object
+class output_listener ~enforced_encryption ~pbkeylen ~passphrase
+  ~listen_callback ~max_clients ~kind ~payload_size ~messageapi ~on_start
+  ~on_stop ~infallible ~autostart ~on_connect ~on_disconnect ~bind_address
+  ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory source =
+  object (self)
     inherit
       output_base
         ~kind:(Kind.of_kind kind) ~payload_size ~messageapi ~on_start ~on_stop
-          ~infallible ~autostart ~stats_interval ~on_connect ~on_disconnect
-          ~encoder_factory source
+          ~infallible ~autostart ~on_disconnect ~encoder_factory source
 
     inherit
       listener
         ~bind_address ~payload_size ~read_timeout ~write_timeout
           ~connection_timeout ~messageapi ~on_connect ~on_disconnect
+          ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
+          ~max_clients ()
+
+    method private client_error socket exn bt =
+      Utils.log_exception ~log:self#log
+        ~bt:(Printexc.raw_backtrace_to_string bt)
+        (Printf.sprintf "Error while sending client data: %s"
+           (Printexc.to_string exn));
+      self#mutexify
+        (fun () ->
+          close_socket socket;
+          client_sockets <-
+            List.filter (fun (_, s) -> s <> socket) client_sockets)
+        ()
   end
 
 let () =
@@ -1171,25 +1032,39 @@ let () =
     (Output.proto
     @ common_options ~mode:`Caller
     @ [
+        ( "max_clients",
+          Lang.nullable_t Lang.int_t,
+          Some Lang.null,
+          Some "Max number of connected clients (listener mode only)" );
         ("", Lang.format_t return_t, None, Some "Encoding format.");
         ("", Lang.source_t return_t, None, None);
       ])
     (fun p ->
-      let ( mode,
-            hostname,
-            port,
-            bind_address,
-            read_timeout,
-            write_timeout,
-            connection_timeout,
-            payload_size,
-            messageapi,
-            stats_interval,
-            on_connect,
-            on_disconnect ) =
+      let {
+        mode;
+        hostname;
+        port;
+        streamid;
+        enforced_encryption;
+        pbkeylen;
+        passphrase;
+        bind_address;
+        listen_callback;
+        polling_delay;
+        read_timeout;
+        write_timeout;
+        connection_timeout;
+        payload_size;
+        messageapi;
+        on_connect;
+        on_disconnect;
+      } =
         parse_common_options p
       in
       let source = Lang.assoc "" 2 p in
+      let max_clients =
+        Lang.to_valued_option Lang.to_int (List.assoc "max_clients" p)
+      in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start =
@@ -1213,15 +1088,19 @@ let () =
       match mode with
         | `Caller ->
             (new output_caller
-               ~kind ~hostname ~port ~payload_size ~autostart ~on_start ~on_stop
-               ~stats_interval ~read_timeout ~write_timeout ~connection_timeout
-               ~infallible ~messageapi ~encoder_factory ~on_connect
-               ~on_disconnect source
-              :> < Output.output ; stats : Srt.Stats.t option >)
+               ~enforced_encryption ~pbkeylen ~passphrase ~streamid
+               ~polling_delay ~kind ~hostname ~port ~payload_size ~autostart
+               ~on_start ~on_stop ~read_timeout ~write_timeout
+               ~connection_timeout ~infallible ~messageapi ~encoder_factory
+               ~on_connect ~on_disconnect source
+              :> < Output.output
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Listener ->
             (new output_listener
-               ~kind ~bind_address ~read_timeout ~write_timeout
-               ~connection_timeout ~payload_size ~autostart ~on_start ~on_stop
-               ~infallible ~stats_interval ~messageapi ~encoder_factory
-               ~on_connect ~on_disconnect source
-              :> < Output.output ; stats : Srt.Stats.t option >))
+               ~enforced_encryption ~pbkeylen ~passphrase ~kind ~bind_address
+               ~read_timeout ~write_timeout ~connection_timeout ~payload_size
+               ~autostart ~on_start ~on_stop ~infallible ~messageapi
+               ~encoder_factory ~on_connect ~on_disconnect ~listen_callback
+               ~max_clients source
+              :> < Output.output
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
