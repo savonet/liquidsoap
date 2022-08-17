@@ -48,7 +48,7 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 echo "\n### Compiling\n"
 
-./bootstrap
+cd liquidsoqp && ./boostrap
 ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
             --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
             --with-camomile-data-dir=/usr/share/liquidsoap/camomile \
