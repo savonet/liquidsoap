@@ -499,9 +499,9 @@ let check_directories () =
     if not (Sys.file_exists dir) then (
       let routes = Configure.conf#routes conf_path#ut in
       Printf.printf
-        "FATAL ERROR: %s directory %S does not exist.\n\
-         To change it, add the following to your script:\n\
-        \  set(%S, \"<path>\")\n"
+        {|FATAL ERROR: %s directory %S does not exist.
+To change it, add the following to your script:
+  %s.set("<path>")|}
         kind dir
         (Dtools.Conf.string_of_path (List.hd routes));
       flush_all ();
@@ -554,8 +554,7 @@ let () =
           in
           let on_error e =
             Printf.eprintf
-              "init: security exit, %s. Override with \
-               set(\"init.allow_root\",true)\n"
+              "init: security exit, %s. Override with init.allow_root.set(true)\n"
               (msg_of_err e);
             sync_cleanup ();
             exit (-1)
