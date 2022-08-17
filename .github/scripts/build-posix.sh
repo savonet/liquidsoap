@@ -41,7 +41,7 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 echo "::endgroup::"
 
-echo "::group::Checking out CI commit::"
+echo "::group::Checking out CI commit"
 
 cd /tmp/liquidsoap-full/liquidsoap
 
