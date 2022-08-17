@@ -58,7 +58,7 @@ Where:
 
 Please note that liquidsoap is a complex framework with a lot of operators and advanced implementations. For this reason, it is possible that a bugfix actually fixes the behavior of an operator the way it was intended to be and may break scripts that previously relied on incorrect implementations.
 
-Therefore, we **strongly** recommend to maintain a `staging` environement that makes it possible to test new versions before using them in production. In this context, the semantic versioning above should guide you in knowing how much scrutiny you should put into a new release before validating it in your staging environment.
+Therefore, we **strongly** recommend maintaining a `staging` environement that makes it possible to test new versions before using them in production. In this context, the semantic versioning above should guide you in knowing how much scrutiny you should put into a new release before validating it in your staging environment.
 
 ### Assets
 
