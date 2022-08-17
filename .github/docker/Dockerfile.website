@@ -7,7 +7,7 @@ USER root
 # The following could also be interesting but compilation of the website takes
 # forever: amb-plugins caps cmt csladspa fomp lsp-plugins-ladspa lsp-plugins-lv2
 
-RUN apt-get update && apt-get dist-upgrade && apt-get -y install openssh-client && apt-get install -y abgate calf-plugins swh-lv2 swh-plugins tap-plugins zam-plugins frei0r-plugins
+RUN apt-get update && apt-get -y dist-upgrade && apt-get -y install openssh-client && apt-get install -y abgate calf-plugins swh-lv2 swh-plugins tap-plugins zam-plugins frei0r-plugins
 
 # This is until the next image rebuild:
 RUN apt-get -y install libcurl4-gnutls-dev
