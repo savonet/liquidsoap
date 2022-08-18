@@ -188,6 +188,10 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       Format.fprintf formatter
         "Missing arguments in function application: %s.@]@." args;
       raise Error
+  | Type.Exists (pos, typ) ->
+      error_header ~formatter 16 pos;
+      Format.fprintf formatter "Type %s already exists.@]@." typ;
+      raise Error
   | End_of_file -> raise End_of_file
   | e ->
       let bt = Printexc.get_backtrace () in

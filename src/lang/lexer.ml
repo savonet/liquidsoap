@@ -196,6 +196,7 @@ let rec token lexbuf =
     | "let", Plus skipped, "json.stringify", Star skipped, '[' ->
         LETLBRA `Json_stringify
     | "let", Plus skipped, "json.stringify", Plus skipped -> LET `Json_stringify
+    | "let", Plus skipped, "type", Plus skipped -> TYPEDEF
     | "let" -> LET `None
     | "fun" -> FUN
     | '=' -> GETS

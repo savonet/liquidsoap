@@ -20,5 +20,32 @@
 
  *****************************************************************************)
 
-include Type_base
-module Ground = Ground_type
+type alias = { name : string; typ : Type_base.t }
+type Type_base.custom += Type of alias
+
+let get = function Type { typ } -> typ | _ -> assert false
+
+let handler ~name typ =
+  {
+    Type_base.typ = Type { name; typ };
+    copy_with =
+      (fun aux -> function
+        | Type { name; typ } -> Type { name; typ = aux typ }
+        | _ -> assert false);
+    occur_check = (fun occur_check v c -> occur_check v (get c));
+    filter_vars = (fun aux l _ c -> aux l (get c));
+    repr =
+      (fun repr g -> function
+        | Type { name; typ } ->
+            `Constr
+              ( name,
+                [
+                  ( Type_base.Invariant,
+                    `Constr ("alias", [(Type_base.Invariant, repr g typ)]) );
+                ] )
+        | _ -> assert false);
+    satisfies_constraint = (fun check c cons -> check (get c) cons);
+    subtype = (fun _ _ _ -> assert false);
+    sup = (fun _ _ _ -> assert false);
+    to_string = (fun c -> Type_base.to_string (get c));
+  }

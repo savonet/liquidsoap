@@ -38,7 +38,7 @@ module Ground : sig
     descr : t -> string;
     to_json : t -> Json.t;
     compare : t -> t -> int;
-    typ : Type.ground;
+    typ : (module Type.Ground.Custom);
   }
 
   val register : (t -> bool) -> content -> unit

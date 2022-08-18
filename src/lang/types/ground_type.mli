@@ -20,5 +20,32 @@
 
  *****************************************************************************)
 
-include Type_base
-module Ground = Ground_type
+module type Spec = sig
+  type t
+
+  val name : string
+end
+
+module type Custom = sig
+  type Type_base.custom += Type
+
+  val descr : Type_base.descr
+end
+
+module Make (S : Spec) : Custom
+module Int : Custom
+
+val int : Type_base.descr
+
+module Float : Custom
+
+val float : Type_base.descr
+
+module String : Custom
+
+val string : Type_base.descr
+
+module Bool : Custom
+
+val bool : Type_base.descr
+val is_ground : Type_base.custom -> bool

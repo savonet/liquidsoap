@@ -476,7 +476,11 @@ let mk_source_ty ~pos name args =
 let mk_json_assoc_object_ty ~pos = function
   | ( {
         Type.descr =
-          Type.Tuple [{ Type.descr = Type.Ground Type.Ground.String }; ty];
+          Type.Tuple
+            [
+              { Type.descr = Type.Custom { Type.typ = Type.Ground.String.Type } };
+              ty;
+            ];
       },
       "as",
       "json",
@@ -485,7 +489,7 @@ let mk_json_assoc_object_ty ~pos = function
         make ~pos
           (List
              {
-               t = make ~pos (Tuple [make (Ground Ground.String); ty]);
+               t = make ~pos (Tuple [make Type.Ground.string; ty]);
                json_repr = `Object;
              }))
   | _ -> raise (Parse_error (pos, "Invalid type constructor"))
@@ -494,15 +498,15 @@ let mk_ty ~pos name =
   match name with
     | "_" -> Type.var ()
     | "unit" -> Type.make Type.unit
-    | "bool" -> Type.make (Type.Ground Type.Ground.Bool)
-    | "int" -> Type.make (Type.Ground Type.Ground.Int)
-    | "float" -> Type.make (Type.Ground Type.Ground.Float)
-    | "string" -> Type.make (Type.Ground Type.Ground.String)
+    | "bool" -> Type.make Type.Ground.bool
+    | "int" -> Type.make Type.Ground.int
+    | "float" -> Type.make Type.Ground.float
+    | "string" -> Type.make Type.Ground.string
     | "source" -> mk_source_ty ~pos "source" []
     | "source_methods" -> !Term.source_methods_t ()
     | name -> (
-        match Type.Ground.resolve_opt name with
-          | Some g -> Type.make (Type.Ground g)
+        match Type.find_custom_type_opt name with
+          | Some c -> Type.make (Type.Custom c)
           | None ->
               raise
                 (Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")))

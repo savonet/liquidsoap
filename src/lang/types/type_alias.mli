@@ -20,5 +20,7 @@
 
  *****************************************************************************)
 
-include Type_base
-module Ground = Ground_type
+type alias = { name : string; typ : Type_base.t }
+type Type_base.custom += Type of alias
+
+val handler : name:string -> Type_base.t -> Type_base.custom_handler

@@ -136,7 +136,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
      to loose it. *)
   let pos = e.t.Type.pos in
   let mk t = Type.make ?pos t in
-  let mkg t = mk (Type.Ground t) in
+  let mkg t = mk t in
   let check_fun ~proto ~env e body =
     let base_check = check ~level ~env in
     let proto_t, env =
@@ -157,7 +157,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     e.t >: mk (Type.Arrow (proto_t, body.t))
   in
   match e.term with
-    | Ground g -> e.t >: mkg (Ground.to_type g)
+    | Ground g -> e.t >: mkg (Ground.to_descr g)
     | Encoder f ->
         (* Ensure that we only use well-formed terms. *)
         let rec check_enc (_, p) =
