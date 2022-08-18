@@ -46,7 +46,7 @@ cd /home/opam/opam-cross-windows/
 # Work around to avoid rebuilding the world.
 opam pin ocaml-base-compiler -n `opam info ocaml-base-compiler | grep '^version' | tr -s ' ' | cut -d' ' -f 2`
 
-opam remove -y ppx_tools_versioned-windows `echo $OPAM_DEPS | sed -e 's#,# #g'`
+opam remove -y ppx_tools_versioned-windows liquidsoap-windows `echo $OPAM_DEPS | sed -e 's#,# #g'`
 opam upgrade -y `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows ffmpeg-avutil-windows
 
 echo "::endgroup::"
