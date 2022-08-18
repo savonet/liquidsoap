@@ -151,8 +151,6 @@ if test "$INSTALL_DAEMON" != "yes" ; then
 fi
 AC_SUBST(INSTALL_DAEMON)
 
-AC_PROG_CC
-
 if test -z `which pkg-config 2>/dev/null` ; then
   AC_MSG_ERROR(Cannot find pkg-config)
 fi
@@ -206,6 +204,10 @@ fi
 AC_SUBST(OS_TYPE)
 AC_SUBST(WIN32_HOST)
 AC_SUBST(UNIX_HOST)
+
+# Export CC from ocaml
+CC=`$OCAMLFIND ocamlc -config | grep native_c_compiler | cut -d':' -f 2`
+AC_SUBST(CC)
 
 # Add -fPIC to CFLAGS for compatibility with x86_64
 if test "$OS_TYPE" \!= "Win32" ; then
