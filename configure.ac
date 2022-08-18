@@ -151,6 +151,8 @@ if test "$INSTALL_DAEMON" != "yes" ; then
 fi
 AC_SUBST(INSTALL_DAEMON)
 
+AC_PROG_CC
+
 if test -z `which pkg-config 2>/dev/null` ; then
   AC_MSG_ERROR(Cannot find pkg-config)
 fi
