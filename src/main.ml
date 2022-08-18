@@ -554,7 +554,8 @@ let () =
           in
           let on_error e =
             Printf.eprintf
-              "init: security exit, %s. Override with init.allow_root.set(true)\n"
+              "init: security exit, %s. Override with \
+               settings.init.allow_root.set(true)\n"
               (msg_of_err e);
             sync_cleanup ();
             exit (-1)
