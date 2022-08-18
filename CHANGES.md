@@ -17,6 +17,7 @@ Fixed;
 - Fixed parsing issues with functions/variables definitions
   beginnign with `rec` or `replaces` (#2560)
 - Fixed infinite parse error loop (#2527)
+- Fixed empty initial `mp4` HLS segment.
 
 ---
 2.1.0 (2022-07-15)

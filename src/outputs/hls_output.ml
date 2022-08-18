@@ -728,7 +728,7 @@ class hls_output p =
         ({ extname; name; init_position } as s) =
       match init with
         | None -> s.init_state <- `No_init
-        | Some data ->
+        | Some data when not (Strings.is_empty data) ->
             let init_filename =
               segment_name ~position:init_position ~extname name
             in
@@ -737,6 +737,7 @@ class hls_output p =
             self#close_out ~filename:init_filename oc;
             segment.init_filename <- Some init_filename;
             s.init_state <- `Has_init init_filename
+        | Some _ -> raise Encoder.Not_enough_data
 
     method encode frame ofs len =
       List.map
