@@ -70,3 +70,52 @@ Liquidsoap also provides a `output.harbor.hls` and `output.harbor.hls.ssl` which
 liquidsoap. Their options should be the same as `output.file.hls`, except for harbor-specifc options `port` and `path`. It is 
 not recommended for listener-facing setup but can be useful to sync up with a caching system such as cloudfront.
    
+Mp4 format
+----------
+
+`mp4` container is supported by requires specific parameters. Here's an example that mixes `aac` and `flac` audio, The parameters
+required for `mp4` are `movflags` and `frag_duration`.
+
+```liquidsoap
+radio = ...
+
+aac_lofi = %ffmpeg(format="mp4",
+                   movflags="+dash+skip_sidx+skip_trailer+frag_custom",
+                   frag_duration=10,
+                   %audio(
+                     codec="aac",
+                     channels=2,
+                     ar=44100,
+                     b="192k"
+                   ))
+
+flac_hifi = %ffmpeg(format="mp4",
+                    movflags="+dash+skip_sidx+skip_trailer+frag_custom",
+                    frag_duration=10,
+                    strict="-2",
+                    %audio(
+                      codec="flac",
+                      channels=2,
+                      ar=44100
+                    ))
+
+flac_hires = %ffmpeg(format="mp4",
+                     movflags="+dash+skip_sidx+skip_trailer+frag_custom",
+                     frag_duration=10,
+                     strict="-2",
+                     %audio(
+                       codec="flac",
+                       channels=2,
+                       ar=48000
+                     ))
+
+streams = [("aac_lofi", aac_lofi),
+           ("flac_hifi", flac_hifi),
+           ("flac_hires", flac_hires)]
+
+
+output.file.hls(playlist="live.m3u8",
+                "/path/to/directory",
+                streams,
+                radio)
+```
