@@ -308,17 +308,6 @@ jobs:
           name: ${{ steps.apk_amd64.outputs.name }}
           path: ${{ steps.apk_amd64.outputs.path }}
           if-no-files-found: error
-      - name: Get alpine amd64 debug package name
-        id: apk_amd64_dbg
-        run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64 | xargs basename)"
-      - name: Upload alpine amd64 debug package
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ steps.apk_amd64_dbg.outputs.name }}
-          path: ${{ steps.apk_amd64_dbg.outputs.path }}
-          if-no-files-found: error
       - name: Get alpine arm64 package name
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
         id: apk_arm64
@@ -332,19 +321,6 @@ jobs:
           name: ${{ steps.apk_arm64.outputs.name }}
           path: ${{ steps.apk_arm64.outputs.path }}
           if-no-files-found: error
-      - name: Get alpine arm64 debug package name
-        if: contains(needs.build_details.outputs.build_platform, 'arm64')
-        id: apk_arm64_dbg
-        run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64 | xargs basename)"
-      - name: Upload alpine amd64 debug package
-        if: contains(needs.build_details.outputs.build_platform, 'arm64')
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ steps.apk_arm64_dbg.outputs.name }}
-          path: ${{ steps.apk_arm64_dbg.outputs.path }}
-          if-no-files-found: error
       - name: Get alpine armhf package name
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         id: apk_armhf
@@ -357,19 +333,6 @@ jobs:
         with:
           name: ${{ steps.apk_armhf.outputs.name }}
           path: ${{ steps.apk_armhf.outputs.path }}
-          if-no-files-found: error
-      - name: Get alpine armhf debug package name
-        if: contains(needs.build_details.outputs.build_platform, 'armhf')
-        id: apk_armhf_dbg
-        run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7 | xargs basename)"
-      - name: Upload alpine amrhf debug package
-        if: contains(needs.build_details.outputs.build_platform, 'armhf')
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ steps.apk_armhf_dbg.outputs.name }}
-          path: ${{ steps.apk_armhf_dbg.outputs.path }}
           if-no-files-found: error
       - name: Get debian armhf package name
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
@@ -558,9 +521,6 @@ jobs:
       - name: Get alpine package
         run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})"
         id: alpine_package
-      - name: Get alpine debug package
-        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})"
-        id: alpine_dbg_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
