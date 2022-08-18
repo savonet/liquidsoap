@@ -48,8 +48,10 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 echo "\n### Compiling\n"
 
-export CC="`ocamlc -config | grep native_c_compiler | cut -d':' -f 2 | xargs`"
 cd liquidsoqp && ./boostrap
+
+export CC="`ocamlc -config | grep native_c_compiler | cut -d':' -f 2 | xargs`"
+
 ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
             --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
             --with-camomile-data-dir=/usr/share/liquidsoap/camomile \
@@ -57,10 +59,6 @@ cd liquidsoqp && ./boostrap
 
 cd liquidsoap
 make -j $CPU_CORES
-
-if [ "${PLATFORM}" = "armhf" ]; then
-  exit 0;
-fi
 
 echo "\n### Basic tests\n"
 
