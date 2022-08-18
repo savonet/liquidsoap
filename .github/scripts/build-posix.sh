@@ -48,6 +48,7 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 echo "\n### Compiling\n"
 
+export CC="`ocamlc -config | grep native_c_compiler | cut -d':' -f 2 | xargs`"
 cd liquidsoqp && ./boostrap
 ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
             --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
