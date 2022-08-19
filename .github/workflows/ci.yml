@@ -50,6 +50,7 @@ jobs:
       - name: Install required tools
         run: |
           sudo apt-get update
+          sudo apt-get -y dist-upgrade
           sudo apt-get -y install rsync
       - name: Build tarball
         run: |
