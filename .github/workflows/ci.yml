@@ -300,7 +300,6 @@ jobs:
       - name: Get alpine amd64 package name
         id: apk_amd64
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64 | xargs basename)"
       - name: Upload alpine amd64 package
         uses: actions/upload-artifact@v2
@@ -312,7 +311,6 @@ jobs:
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
         id: apk_arm64
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64 | xargs basename)"
       - name: Upload alpine arm64 package
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
@@ -325,7 +323,6 @@ jobs:
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         id: apk_armhf
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7 | xargs basename)"
       - name: Upload alpine armhf package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
@@ -524,7 +521,7 @@ jobs:
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
-        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
+        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
 
   build_docker_release:
     runs-on: ubuntu-latest
