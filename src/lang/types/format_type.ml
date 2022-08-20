@@ -30,7 +30,7 @@ let handler f =
     copy_with = (fun _ c -> Type (Content.duplicate (get c)));
     occur_check = (fun _ _ c -> ignore (get c));
     filter_vars =
-      (fun _ l _ c ->
+      (fun _ l c ->
         ignore (get c);
         l);
     repr = (fun _ _ c -> `Constr (Content.string_of_format (get c), []));

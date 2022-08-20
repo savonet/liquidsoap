@@ -46,7 +46,7 @@ module Make (S : Spec) = struct
       copy_with = (fun _ c -> get c);
       occur_check = (fun _ _ c -> ignore (get c));
       filter_vars =
-        (fun _ l _ c ->
+        (fun _ l c ->
           ignore (get c);
           l);
       repr =

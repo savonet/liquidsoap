@@ -68,7 +68,7 @@ let filter_vars f t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
-      | Custom c -> c.filter_vars aux l f c.typ
+      | Custom c -> c.filter_vars aux l c.typ
       | Getter t -> aux l t
       | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa

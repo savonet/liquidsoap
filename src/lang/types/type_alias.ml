@@ -33,7 +33,7 @@ let handler ~name typ =
         | Type { name; typ } -> Type { name; typ = aux typ }
         | _ -> assert false);
     occur_check = (fun occur_check v c -> occur_check v (get c));
-    filter_vars = (fun aux l _ c -> aux l (get c));
+    filter_vars = (fun aux l c -> aux l (get c));
     repr =
       (fun repr g -> function
         | Type { name; typ } ->

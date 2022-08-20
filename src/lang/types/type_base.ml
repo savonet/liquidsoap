@@ -151,12 +151,7 @@ type custom_handler = {
   typ : custom;
   copy_with : (t -> t) -> custom -> custom;
   occur_check : (var -> t -> unit) -> var -> custom -> unit;
-  filter_vars :
-    (var list -> t -> var list) ->
-    var list ->
-    (var -> bool) ->
-    custom ->
-    var list;
+  filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
   repr : (var list -> t -> R.t) -> var list -> custom -> R.t;
   satisfies_constraint : (t -> constr -> unit) -> custom -> constr -> unit;
   subtype : (t -> t -> unit) -> custom -> custom -> unit;
