@@ -7,7 +7,7 @@ Changed:
 - Added `id` argument to `replaygain` operator (#2537).
 - Made `ocurl` dependency required, added `uri` as required dependency (#2551)
 
-Fixed;
+Fixed:
 
 - Fixed `http.get` issues when `user-agent` was not set (#2517)
 - Fixed order of `playlist.next` returned requests.
