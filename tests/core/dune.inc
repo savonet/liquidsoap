@@ -98,6 +98,20 @@
 
 
 (executable
+ (name output_test)
+ (modules output_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  
+  (:output_test output_test.exe))
+ (action (run %{output_test} )))
+
+
+(executable
  (name pool_test)
  (modules pool_test)
  (libraries liquidsoap_core liquidsoap_optionals))
