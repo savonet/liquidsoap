@@ -128,7 +128,8 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
           Thread.delay 1.
         done;
 
-      start_stop#transition_to (if autostart then `Started else `Stopped);
+      if source#stype = `Infallible then
+        start_stop#transition_to (if autostart then `Started else `Stopped);
 
       self#register_telnet
 

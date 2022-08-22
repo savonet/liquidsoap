@@ -18,6 +18,7 @@ Fixed;
   beginnign with `rec` or `replaces` (#2560)
 - Fixed infinite parse error loop (#2527)
 - Fixed empty initial `mp4` HLS segment.
+- Prevent initial start for autostart and fallible sources.
 
 ---
 2.1.0 (2022-07-15)
