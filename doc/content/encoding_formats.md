@@ -30,24 +30,6 @@ into a format acceptable for a given encoder. For instance, the `mean`
 operator transforms any audio source into a mono source and the `audio_to_stereo`
 operator transforms any audio source into a stereo source.
 
-Format variables (or lack of, rather..)
----------------------------------------
-You can store an atomic format in a variable, it is a value like another:
-`fmt = %mp3`. However, an atomic format is an atomic constant despite its
-appearance. You cannot use a variable for one of its parameters: for
-example
-```liquidsoap
-x = 44100
-%vorbis(samplerate=x)
-```
-
-is not allowed,
-you must write `%vorbis(samplerate=44100)`.
-
-If you really need to use variables in encoder, for instance if bitrate is given by 
-a user's configuration, you may alleviate that by generating a pre-defined list of possible
-encoders and include it on top of your script using the `%include` directive.
-
 List of formats and their syntax
 ================================
 All parameters are optional, and the parenthesis are not needed
@@ -67,7 +49,7 @@ Mp3 encoder comes in 3 flavors:
 Parameters common to each flavor are:
 
 * `stereo=true/false`, `mono=true/false`: Encode stereo or mono data (default: `stereo`).
-* `stereo_mode`: One of: `"stereo"`, `"joint_stereo"` or `"default"` (default: `"default"`)
+* `stereo_mode`: One of: `"stereo"`, `"joint_stereo"` or `"default"` (default: `"default"`). Default means that the underlying library (`libmp3lame`) will pick the stereo mode based on compression ration and input channels.
 * `samplerate=44100`: Encoded data samplerate (default: `44100`)
 * `internal_quality=2`: Lame algorithms internal quality. A value between `0` and `9`, `0` being highest quality and `9` the worst (default: `2`).
 * `id3v2=true`: Add an `id3v2` tag to encoded data (default: `false`). This option is only valid if liquidsoap has been compiled with taglib support. 
