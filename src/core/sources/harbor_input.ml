@@ -303,15 +303,15 @@ module Make (Harbor : T) = struct
           Lang.float_t,
           Some (Lang.float 12.),
           Some
-            "Duration of the pre-buffered data. Default value is set to make \
-             it possible to use `crossfade` transitions with `input.harbor`. \
-             You might be able to reduce it but, in this case, make sure to \
-             not use the operator with `crossfade` or make sure that it has \
-             enough buffered data for it." );
+            "Duration of the pre-buffered data (in seconds). Default value is \
+             set to make it possible to use `crossfade` transitions with \
+             `input.harbor`. You might be able to reduce it but, in this case, \
+             make sure to not use the operator with `crossfade` or make sure \
+             that it has enough buffered data for it." );
         ( "max",
           Lang.float_t,
           Some (Lang.float 20.),
-          Some "Maximum duration of the buffered data." );
+          Some "Maximum duration of the buffered data (in seconds)." );
         ( "timeout",
           Lang.float_t,
           Some (Lang.float 30.),
