@@ -231,7 +231,7 @@ def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_sto
                             ~stream_info=null(),
                             ~start=true, ~url="https://a.upload.youtube.com/http_upload_hls",
                             ~(key:string), ~encoder, s)
-  id = string.id.default(default="output.youtube.live.rtmp", id)
+  id = string.id.default(default="output.youtube.live.hls", id)
   streams_info = if null.defined(stream_info) then [null.get(stream_info)] else [] end
 
   def file_url(fname) =
