@@ -153,7 +153,7 @@ type custom_handler = {
   occur_check : (var -> t -> unit) -> var -> custom -> unit;
   filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
   repr : (var list -> t -> R.t) -> var list -> custom -> R.t;
-  satisfies_constraint : (t -> constr -> unit) -> custom -> constr -> unit;
+  satisfies_constraint : (t -> constr -> unit) -> t -> constr -> unit;
   subtype : (t -> t -> unit) -> custom -> custom -> unit;
   sup : (t -> t -> t) -> custom -> custom -> custom;
   to_string : custom -> string;
@@ -172,6 +172,7 @@ type descr +=
 
 exception NotImplemented
 exception Exists of Pos.Option.t * string
+exception Unsatisfied_constraint of constr * t
 
 let unit = Tuple []
 
