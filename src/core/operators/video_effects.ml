@@ -500,6 +500,46 @@ let () =
           Video.Canvas.Image.rendered ~transparent buf))
 
 let () =
+  let name = "video.viewport" in
+  Lang.add_operator name
+    [
+      ("x", Lang.int_t, Some (Lang.int 0), Some "Horizontal offset.");
+      ("y", Lang.int_t, Some (Lang.int 0), Some "Vertical offset.");
+      ( "width",
+        Lang.nullable_t Lang.int_t,
+        None,
+        Some "Width (default is frame width)." );
+      ( "height",
+        Lang.nullable_t Lang.int_t,
+        None,
+        Some "heigth (default is frame height)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Set the viewport for the current video."
+    (fun p ->
+      let x = List.assoc "x" p |> Lang.to_int in
+      let y = List.assoc "y" p |> Lang.to_int in
+      let width =
+        List.assoc "width" p |> Lang.to_option |> Option.map Lang.to_int
+      in
+      let height =
+        List.assoc "height" p |> Lang.to_option |> Option.map Lang.to_int
+      in
+      let s = List.assoc "" p |> Lang.to_source in
+      let width =
+        match width with
+          | Some width -> width
+          | None -> Lazy.force Frame.video_width
+      in
+      let height =
+        match height with
+          | Some height -> height
+          | None -> Lazy.force Frame.video_height
+      in
+      new effect_map ~name ~kind s (fun buf ->
+          Video.Canvas.Image.viewport ~x ~y width height buf))
+
+let () =
   let name = "video.crop" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
