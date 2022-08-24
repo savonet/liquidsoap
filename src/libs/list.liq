@@ -379,3 +379,15 @@ def list.pick(~default=null(), l)
     list.nth(l, random.int(min=0, max=list.length(l)))
   end
 end
+
+# Sort a list according to the "natural" order.
+# @category List
+# @param l List to sort
+def list.sort.natural(l)
+  def compare(x, y)
+    if x<y then -1
+    elsif x>y then 1
+    else 0 end
+  end
+  list.sort(compare, l)
+end

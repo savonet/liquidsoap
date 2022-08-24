@@ -36,7 +36,7 @@ def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
     log.info(label=id, "Playlist is a directory.")
     files = file.ls(absolute=true, recursive=true, uri)
     files = list.filter(fun(f) -> not (file.is_directory(f)), files)
-    files = list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, files)
+    files = list.sort.natural(files)
     files
   else
     pl = request.create(uri)
