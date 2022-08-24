@@ -143,7 +143,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
             add("<li><a href=\"#{uri}/#{url.encode(f)}\">#{f}</a></li>")
           end
           add("<html><body><ul>")
-          list.iter(add_file, list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, file.ls(fname)))
+          list.iter(add_file, file.ls(sorted=true, fname))
           add("</ul></body>")
           getter(http.response(protocol=protocol,code=200,headers=responseHeaders,content_type="text/html; charset=UTF-8",data=!page))
         else

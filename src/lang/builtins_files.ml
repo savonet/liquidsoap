@@ -180,17 +180,18 @@ let () =
   Lang.add_builtin "file.temp_dir" ~category:`File
     ~descr:
       "Return a fresh temporary directory name. The temporary directory is \
-       created empty, with permissions 0o700 (readable, writable and listable \
-       only by the file owner)."
+       created empty, in the default tmp directory, with permissions 0o700 \
+       (readable, writable and listable only by the file owner)."
     [
-      ("", Lang.string_t, None, Some "Directory prefix");
-      ("", Lang.string_t, None, Some "Directory suffix");
-    ] Lang.string_t (fun p ->
+      ("", Lang.string_t, None, Some "Directory name prefix.");
+      ("", Lang.string_t, Some (Lang.string ""), Some "Directory name suffix.");
+    ]
+    Lang.string_t
+    (fun p ->
       try
-        Lang.string
-          (Filename.mk_temp_dir
-             (Lang.to_string (Lang.assoc "" 1 p))
-             (Lang.to_string (Lang.assoc "" 2 p)))
+        let prefix = Lang.to_string (Lang.assoc "" 1 p) in
+        let suffix = Lang.to_string (Lang.assoc "" 2 p) in
+        Lang.string (Filename.mk_temp_dir prefix suffix)
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)
@@ -227,6 +228,10 @@ let () =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some "Pattern that the filenames should match (e.g. `\"*.mp3\"`)." );
+      ( "sorted",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Return results in a sorted order." );
       ("", Lang.string_t, None, Some "Directory to look in.");
     ]
     (Lang.list_t Lang.string_t)
@@ -244,8 +249,9 @@ let () =
         |> Option.map (fun s ->
                Regexp.substitute ~pat:"\\*" ~subst:(fun _ -> ".*") s)
         |> Option.map (fun s -> "^" ^ s ^ "$")
+        |> Option.value ~default:""
       in
-      let pattern = Option.value ~default:"" pattern in
+      let sorted = List.assoc "sorted" p |> Lang.to_bool in
       let rex = Regexp.regexp pattern in
       let dir = Lang.to_string (List.assoc "" p) in
       let dir = Lang_string.home_unrelate dir in
@@ -284,6 +290,7 @@ let () =
         if absolute then List.map (Filename.concat dir) files else files
       in
       let files = List.map Lang.string files in
+      let files = if sorted then List.sort compare files else files in
       Lang.list files)
 
 (************** Paths ********************)

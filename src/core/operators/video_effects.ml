@@ -322,6 +322,10 @@ let () =
         Lang.nullable_t (Lang.getter_t Lang.int_t),
         Some Lang.null,
         Some "Target height (`null` means original height)." );
+      ( "proportional",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Keep original proportions." );
       ("x", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "x offset.");
       ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
       ("", Lang.source_t return_t, None, None);
@@ -332,11 +336,12 @@ let () =
       let src = Lang.to_source (f "") in
       let width = Lang.to_valued_option Lang.to_int_getter (f "width") in
       let height = Lang.to_valued_option Lang.to_int_getter (f "height") in
+      let proportional = Lang.to_bool (f "proportional") in
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
       new effect_map ~name ~kind src (fun buf ->
-          let (x, y), (owidth, oheight) = Video.Canvas.Image.bounding_box buf in
-          let buf = Video.Canvas.Image.translate (-x) (-y) buf in
+          let owidth = Video.Canvas.Image.width buf in
+          let oheight = Video.Canvas.Image.height buf in
           let width = match width with None -> owidth | Some w -> w () in
           let height = match height with None -> oheight | Some h -> h () in
           let width, height =
@@ -350,7 +355,7 @@ let () =
             else assert false
           in
           buf
-          |> Video.Canvas.Image.scale (width, owidth) (height, oheight)
+          |> Video.Canvas.Image.resize ~proportional width height
           |> Video.Canvas.Image.translate (ox ()) (oy ())))
 
 let () =
@@ -495,18 +500,56 @@ let () =
           Video.Canvas.Image.rendered ~transparent buf))
 
 let () =
+  let name = "video.viewport" in
+  Lang.add_operator name
+    [
+      ("x", Lang.int_t, Some (Lang.int 0), Some "Horizontal offset.");
+      ("y", Lang.int_t, Some (Lang.int 0), Some "Vertical offset.");
+      ( "width",
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
+        Some "Width (default is frame width)." );
+      ( "height",
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
+        Some "heigth (default is frame height)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video ~descr:"Set the viewport for the current video."
+    (fun p ->
+      let x = List.assoc "x" p |> Lang.to_int in
+      let y = List.assoc "y" p |> Lang.to_int in
+      let width =
+        List.assoc "width" p |> Lang.to_option |> Option.map Lang.to_int
+      in
+      let height =
+        List.assoc "height" p |> Lang.to_option |> Option.map Lang.to_int
+      in
+      let s = List.assoc "" p |> Lang.to_source in
+      let width =
+        match width with
+          | Some width -> width
+          | None -> Lazy.force Frame.video_width
+      in
+      let height =
+        match height with
+          | Some height -> height
+          | None -> Lazy.force Frame.video_height
+      in
+      new effect_map ~name ~kind s (fun buf ->
+          Video.Canvas.Image.viewport ~x ~y width height buf))
+
+let () =
   let name = "video.crop" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:`Video
-    ~descr:
-      "Make the bounding box of the current video start at upper left corner. \
-       This is useful to place centered videos for instance."
+    ~descr:"Make the viewport of the current video match its bounding box."
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
       new effect_map ~name ~kind s (fun buf ->
-          let (x, y), _ = Video.Canvas.Image.bounding_box buf in
-          Video.Canvas.Image.translate (-x) (-y) buf))
+          let (x, y), (w, h) = Video.Canvas.Image.bounding_box buf in
+          Video.Canvas.Image.viewport ~x ~y w h buf))
 
 let () =
   let name = "video.dimensions" in
