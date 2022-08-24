@@ -228,6 +228,10 @@ let () =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some "Pattern that the filenames should match (e.g. `\"*.mp3\"`)." );
+      ( "sorted",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Return results in a sorted order." );
       ("", Lang.string_t, None, Some "Directory to look in.");
     ]
     (Lang.list_t Lang.string_t)
@@ -245,8 +249,9 @@ let () =
         |> Option.map (fun s ->
                Regexp.substitute ~pat:"\\*" ~subst:(fun _ -> ".*") s)
         |> Option.map (fun s -> "^" ^ s ^ "$")
+        |> Option.value ~default:""
       in
-      let pattern = Option.value ~default:"" pattern in
+      let sorted = List.assoc "sorted" p |> Lang.to_bool in
       let rex = Regexp.regexp pattern in
       let dir = Lang.to_string (List.assoc "" p) in
       let dir = Lang_string.home_unrelate dir in
@@ -285,6 +290,7 @@ let () =
         if absolute then List.map (Filename.concat dir) files else files
       in
       let files = List.map Lang.string files in
+      let files = if sorted then List.sort compare files else files in
       Lang.list files)
 
 (************** Paths ********************)
