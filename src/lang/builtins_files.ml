@@ -180,17 +180,18 @@ let () =
   Lang.add_builtin "file.temp_dir" ~category:`File
     ~descr:
       "Return a fresh temporary directory name. The temporary directory is \
-       created empty, with permissions 0o700 (readable, writable and listable \
-       only by the file owner)."
+       created empty, in the default tmp directory, with permissions 0o700 \
+       (readable, writable and listable only by the file owner)."
     [
-      ("", Lang.string_t, None, Some "Directory prefix");
-      ("", Lang.string_t, None, Some "Directory suffix");
-    ] Lang.string_t (fun p ->
+      ("", Lang.string_t, None, Some "Directory name prefix.");
+      ("", Lang.string_t, Some (Lang.string ""), Some "Directory name suffix.");
+    ]
+    Lang.string_t
+    (fun p ->
       try
-        Lang.string
-          (Filename.mk_temp_dir
-             (Lang.to_string (Lang.assoc "" 1 p))
-             (Lang.to_string (Lang.assoc "" 2 p)))
+        let prefix = Lang.to_string (Lang.assoc "" 1 p) in
+        let suffix = Lang.to_string (Lang.assoc "" 2 p) in
+        Lang.string (Filename.mk_temp_dir prefix suffix)
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)
