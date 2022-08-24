@@ -259,3 +259,53 @@ let () =
        follow the standard Windows quoting conventions."
     [("", Lang.string_t, None, Some "String to escape")] Lang.string_t (fun p ->
       Lang.string (Filename.quote (Lang.to_string (List.assoc "" p))))
+
+let () =
+  Lang.add_builtin "process.quote.command" ~category:`System
+    ~descr:
+      "Return a quoted command line, suitable for use as an argument to \
+       `process.run`.\n\n\
+       The optional arguments `stdin`, `stdout` and `stderr` are file names \
+       used to redirect the standard input, the standard output, or the \
+       standard error of the command.\n\n\
+       If `stdin=f` is given, a redirection `< f` is performed and the \
+       standard input of the command reads from file `f`.\n\n\
+       If `stdout=f` is given, a redirection `> f` is performed and the \
+       standard output of the command is written to file `f`.\n\n\
+       If `stderr=f` is given, a redirection `2> f` is performed and the \
+       standard error of the command is written to file `f`.\n\n\
+       If both `stdout=f` and `stderr=f` are given, with the exact same file \
+       name `f`, a `2>&1` redirection is performed so that the standard output \
+       and the standard error of the command are interleaved and redirected to \
+       the same file `f`."
+    [
+      ( "stdin",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "command standard input" );
+      ( "stdout",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "command standard output" );
+      ( "stderr",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "command standard error" );
+      ( "args",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list []),
+        Some "command arguments" );
+      ("", Lang.string_t, None, Some "Command to execute");
+    ]
+    Lang.string_t
+    (fun p ->
+      let stdin = Lang.to_valued_option Lang.to_string (List.assoc "stdin" p) in
+      let stdout =
+        Lang.to_valued_option Lang.to_string (List.assoc "stdout" p)
+      in
+      let stderr =
+        Lang.to_valued_option Lang.to_string (List.assoc "stderr" p)
+      in
+      let args = List.map Lang.to_string (Lang.to_list (List.assoc "args" p)) in
+      let cmd = Lang.to_string (List.assoc "" p) in
+      Lang.string (Filename.quote_command cmd ?stdin ?stdout ?stderr args))

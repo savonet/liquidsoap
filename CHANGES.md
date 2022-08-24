@@ -1,6 +1,10 @@
 2.1.1 (unreleased)
 ======
 
+New:
+- Added `process.quote.command` to generate complex quoted command strings suitable
+  for use with `process.run` and os-independent.
+
 Changed:
 
 - Renamed `playlist.remaining` into `playlist.remaining_files` (#2524)
