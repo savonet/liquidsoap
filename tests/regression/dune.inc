@@ -241,3 +241,12 @@
   (:run_test ../run_test.sh))
  (action (run %{run_test} "%{liquidsoap} %{test_liq} -" LS268.liq)))
   
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  GH2573.output
+  (:check_output ../check_output.exe)
+  (:run_test ../run_test.sh))
+ (action (run %{run_test} %{check_output} GH2573.output)))
+  

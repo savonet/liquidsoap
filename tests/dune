@@ -1,3 +1,8 @@
 (executable
  (name gen_dune)
  (modules gen_dune))
+
+(executable
+  (name check_output)
+  (modules check_output)
+  (libraries unix pcre liquidsoap-lang))
