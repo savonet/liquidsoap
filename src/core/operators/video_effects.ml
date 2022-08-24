@@ -507,11 +507,11 @@ let () =
       ("y", Lang.int_t, Some (Lang.int 0), Some "Vertical offset.");
       ( "width",
         Lang.nullable_t Lang.int_t,
-        None,
+        Some Lang.null,
         Some "Width (default is frame width)." );
       ( "height",
         Lang.nullable_t Lang.int_t,
-        None,
+        Some Lang.null,
         Some "heigth (default is frame height)." );
       ("", Lang.source_t return_t, None, None);
     ]
