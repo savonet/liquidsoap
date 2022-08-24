@@ -22,9 +22,7 @@ let () =
             to_string (List.assoc "expected" l) )
       | _ -> assert false
   in
-  let process =
-    String.concat " " (List.map (Printf.sprintf "%S") (cmd :: args))
-  in
+  let process = Filename.quote_command cmd args in
   let stdout = Unix.open_process_in process in
   let output = read_all stdout in
   ignore (Unix.close_process_in stdout);
