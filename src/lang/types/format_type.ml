@@ -35,9 +35,15 @@ let handler f =
         l);
     repr = (fun _ _ c -> `Constr (Content.string_of_format (get c), []));
     satisfies_constraint =
-      (fun _ c -> function
-        | InternalMedia when Content.(is_internal_format (get c)) -> ()
-        | _ -> assert false);
+      (fun _ t c ->
+        let f =
+          match t.Type_base.descr with
+            | Type_base.Custom { typ = Type f } -> f
+            | _ -> assert false
+        in
+        match c with
+          | InternalMedia when Content.(is_internal_format f) -> ()
+          | c -> raise (Type_base.Unsatisfied_constraint (c, t)));
     subtype = (fun _ c c' -> Content.merge (get c) (get c'));
     sup =
       (fun _ c c' ->

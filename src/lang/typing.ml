@@ -140,10 +140,8 @@ let instantiate ~level ~generalized =
 
 (** {1 Assignation} *)
 
-(** These two exceptions can be raised when attempting to assign a variable. *)
+(** This exception can be raised when attempting to assign a variable. *)
 exception Occur_check of var * t
-
-exception Unsatisfied_constraint of constr * t
 
 (** Check that [a] (a dereferenced type variable) does not occur in [b] and
     prepare the instantiation [a<-b] by adjusting the levels. *)
@@ -189,7 +187,7 @@ let rec satisfies_constraint b = function
       let rec check b =
         let m, b = split_meths b in
         match b.descr with
-          | Custom c -> c.satisfies_constraint satisfies_constraint c.typ Ord
+          | Custom c -> c.satisfies_constraint satisfies_constraint b Ord
           | Var { contents = Free v } ->
               if not (List.mem Ord v.constraints) then
                 v.constraints <- Ord :: v.constraints
@@ -207,7 +205,8 @@ let rec satisfies_constraint b = function
       in
       check b
   | Dtools -> (
-      match (demeth b).descr with
+      let b = demeth b in
+      match b.descr with
         | Custom { typ }
           when List.mem typ
                  [
@@ -217,7 +216,7 @@ let rec satisfies_constraint b = function
                    Ground.String.Type;
                  ] ->
             ()
-        | Custom c -> c.satisfies_constraint satisfies_constraint c.typ Dtools
+        | Custom c -> c.satisfies_constraint satisfies_constraint b Dtools
         | Tuple [] -> ()
         | List { t = b' } -> (
             match (deref b').descr with
@@ -239,20 +238,22 @@ let rec satisfies_constraint b = function
           Content.is_internal_kind kind
         with Content.Invalid -> false
       in
-      match (demeth b).descr with
+      let b = demeth b in
+      match b.descr with
         | Constr { constructor } when is_internal constructor -> ()
         | Custom c ->
-            c.satisfies_constraint satisfies_constraint c.typ InternalMedia
+            c.satisfies_constraint satisfies_constraint b InternalMedia
         | Var { contents = Free v } ->
             if not (List.mem InternalMedia v.constraints) then
               v.constraints <- InternalMedia :: v.constraints
         | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
   | Num -> (
-      match (demeth b).descr with
+      let b = demeth b in
+      match b.descr with
         | Custom { typ = Ground.Int.Type } | Custom { typ = Ground.Float.Type }
           ->
             ()
-        | Custom c -> c.satisfies_constraint satisfies_constraint c.typ Num
+        | Custom c -> c.satisfies_constraint satisfies_constraint b Num
         | Var { contents = Free v } ->
             if not (List.mem Num v.constraints) then
               v.constraints <- Num :: v.constraints
