@@ -484,16 +484,20 @@ end
 # @method clear Clear the list of files in the slideshow.
 # @method next Go to next file.
 # @method prev Go to previous file.
+# @method current Currently displayed file.
 def video.slideshow(~id=null(), ~cyclic=getter(true), ~advance=getter(-1.), l=[])
   id = string.id.default(default="video.slideshow", id)
   l = ref(l)
   n = ref(-1)
   s = source.dynamic()
+  def current()
+    list.nth(!l, !n)
+  end
   # Set current file to the nth.
   def set(n')
     if 0 <= n' and n' < list.length(!l) and n' != !n then
       n := n'
-      s.set(request.once(request.create(list.nth(!l, !n))))
+      s.set(request.once(request.create(current())))
     end
   end
   def next()
@@ -510,13 +514,14 @@ def video.slideshow(~id=null(), ~cyclic=getter(true), ~advance=getter(-1.), l=[]
   end
   def clear()
     l := []
+    n := 0
   end
   def append(l')
     l := list.append(!l, l')
   end
   set(0)
   if getter.get(advance) >= 0. then thread.run(delay=getter.get(advance), every=advance, next) end
-  s.{append=append, clear=clear, next=next, prev=prev}
+  s.{append=append, clear=clear, next=next, prev=prev, current=current}
 end
 
 # Generate a video filled with given color.
