@@ -436,7 +436,8 @@ let mk_kind ~pos (kind, params) =
       match params with
         | [] -> Term.kind_t (`Kind k)
         | [("", "any")] -> Type.var ()
-        | [("", "internal")] -> Type.var ~constraints:[Type.InternalMedia] ()
+        | [("", "internal")] ->
+            Type.var ~constraints:[Format_type.internal_media] ()
         | param :: params ->
             let mk_format (label, value) = Content.parse_param k label value in
             let f = mk_format param in

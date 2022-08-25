@@ -24,6 +24,44 @@ exception Found of (Lang.value * Lang.value option)
 
 let settings = ref Lang.null
 
+type Type.constr_t += Dtools
+
+let dtools_constr =
+  let open Liquidsoap_lang in
+  let open Type in
+  object (self : constr)
+    method t = Dtools
+    method descr = "unit, bool, int, float, string or [string]"
+
+    method satisfied b =
+      let b = demeth b in
+      match b.descr with
+        | Custom { typ }
+          when List.mem typ
+                 [
+                   Ground_type.Bool.Type;
+                   Ground_type.Int.Type;
+                   Ground_type.Float.Type;
+                   Ground_type.String.Type;
+                 ] ->
+            ()
+        | Custom { typ; satisfies_constraint } -> satisfies_constraint typ self
+        | Tuple [] -> ()
+        | List { t = b' } -> (
+            match (deref b').descr with
+              | Custom { typ } ->
+                  if typ <> Ground_type.String.Type then
+                    raise Unsatisfied_constraint
+              | Var ({ contents = Free _ } as v) ->
+                  (* TODO: we should check the constraints *)
+                  v := Link (Invariant, make ?pos:b.pos Ground_type.string)
+              | _ -> raise Unsatisfied_constraint)
+        | Var { contents = Free v } ->
+            if not (List.exists (fun c -> c#t = Dtools) v.constraints) then
+              v.constraints <- self :: v.constraints
+        | _ -> raise Unsatisfied_constraint
+  end
+
 (* Return a lazy variable, to be executed when all dependent
    OCaml modules have been linked. *)
 let settings_module =
@@ -270,7 +308,7 @@ let () =
     ~flags:[`Deprecated; `Hidden]
     [
       ("", Lang.string_t, None, None);
-      ("", Lang.univ_t ~constraints:[Type.Dtools] (), None, None);
+      ("", Lang.univ_t ~constraints:[dtools_constr] (), None, None);
     ]
     Lang.unit_t
     (fun p ->
@@ -290,7 +328,7 @@ let () =
        with Not_found -> log#severe "WARNING: setting %S does not exist!" path);
       Lang.unit);
 
-  let univ = Lang.univ_t ~constraints:[Type.Dtools] () in
+  let univ = Lang.univ_t ~constraints:[dtools_constr] () in
   Lang.add_builtin "get" ~category:`Liquidsoap ~descr:"Get a setting's value."
     ~flags:[`Deprecated; `Hidden]
     [("default", univ, None, None); ("", Lang.string_t, None, None)] univ

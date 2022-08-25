@@ -54,9 +54,10 @@ module Make (S : Spec) = struct
           ignore (get c);
           `Constr (S.name, []));
       satisfies_constraint =
-        (fun _ t -> function
-          | Ord -> ()
-          | c -> raise (Type_base.Unsatisfied_constraint (c, t)));
+        (fun _ constr ->
+          match constr#t with
+            | Type_base.Ord -> ()
+            | _ -> raise Type_base.Unsatisfied_constraint);
       subtype = (fun _ c c' -> assert (get c = get c'));
       sup =
         (fun _ c c' ->

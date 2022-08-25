@@ -94,7 +94,7 @@ let kind_t ?pos kind =
   let mk_format f = Type.make ?pos (Format_type.descr f) in
   match kind with
     | `Any -> evar ()
-    | `Internal -> evar ~constraints:[Type.InternalMedia] ()
+    | `Internal -> evar ~constraints:[Format_type.internal_media] ()
     | `Kind k ->
         Type.make ?pos
           (Type.Constr

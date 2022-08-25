@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 type Type_base.custom += Type of Content.format
+type Type_base.constr_t += InternalMedia
 
 let get = function Type c -> c | _ -> assert false
 
@@ -34,16 +35,7 @@ let handler f =
         ignore (get c);
         l);
     repr = (fun _ _ c -> `Constr (Content.string_of_format (get c), []));
-    satisfies_constraint =
-      (fun _ t c ->
-        let f =
-          match t.Type_base.descr with
-            | Type_base.Custom { typ = Type f } -> f
-            | _ -> assert false
-        in
-        match c with
-          | InternalMedia when Content.(is_internal_format f) -> ()
-          | c -> raise (Type_base.Unsatisfied_constraint (c, t)));
+    satisfies_constraint = (fun _ _ -> raise Type_base.Unsatisfied_constraint);
     subtype = (fun _ c c' -> Content.merge (get c) (get c'));
     sup =
       (fun _ c c' ->
@@ -51,5 +43,32 @@ let handler f =
         c);
     to_string = (fun c -> Content.string_of_format (get c));
   }
+
+let internal_media : Type_base.constr =
+  object (self)
+    method t = InternalMedia
+    method descr = "an internal media type (none, pcm, yuva420p or midi)"
+
+    method satisfied b =
+      let is_internal name =
+        try
+          let kind = Content.kind_of_string name in
+          Content.is_internal_kind kind
+        with Content.Invalid -> false
+      in
+      let b = Type_base.demeth b in
+      match b.Type_base.descr with
+        | Type_base.Constr { constructor } when is_internal constructor -> ()
+        | Type_base.Custom { Type_base.typ; satisfies_constraint } ->
+            satisfies_constraint typ self
+        | Type_base.Var { contents = Type_base.Free v } ->
+            if
+              not
+                (List.exists
+                   (fun c -> c#t = InternalMedia)
+                   v.Type_base.constraints)
+            then v.Type_base.constraints <- self :: v.Type_base.constraints
+        | _ -> raise Type_base.Unsatisfied_constraint
+  end
 
 let descr f = Type_base.Custom (handler f)

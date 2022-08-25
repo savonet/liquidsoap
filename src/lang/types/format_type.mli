@@ -21,5 +21,7 @@
  *****************************************************************************)
 
 type Type_base.custom += Type of Content.format
+type Type_base.constr_t += InternalMedia
 
-val descr : Content.format -> Type.descr
+val descr : Content.format -> Type_base.descr
+val internal_media : Type_base.constr

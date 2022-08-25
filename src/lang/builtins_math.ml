@@ -50,7 +50,7 @@ let () =
   add tanh "tanh" "Hyperbolic tangent. Argument is in radians."
 
 let () =
-  let t = Lang.univ_t ~constraints:[Type.Num] () in
+  let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "~-" ~category:`Math
     ~descr:"Returns the opposite of its argument." [("", t, None, None)] t
     (fun p ->
@@ -59,7 +59,7 @@ let () =
         | `Float i -> Lang.float ~-.i)
 
 let () =
-  let t = Lang.univ_t ~constraints:[Type.Num] () in
+  let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "abs" ~category:`Math ~descr:"Absolute value."
     [("", t, None, None)] t (fun p ->
       match Lang.to_num (List.assoc "" p) with
@@ -67,7 +67,7 @@ let () =
         | `Float i -> Lang.float (abs_float i))
 
 let () =
-  let t = Lang.univ_t ~constraints:[Type.Num] () in
+  let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   let register_op doc name op_int op_float =
     Lang.add_builtin name ~category:`Math
       ~descr:(Printf.sprintf "%s of numbers." doc)
@@ -90,7 +90,7 @@ let () =
   register_op "Remainder of division" "mod" ( mod ) mod_float
 
 let () =
-  let t = Lang.univ_t ~constraints:[Type.Num] () in
+  let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "float" ~category:`Math ~descr:"Convert a number to a float."
     [("", t, None, None)] Lang.float_t (fun p ->
       let x = List.assoc "" p |> Lang.to_num in

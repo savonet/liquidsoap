@@ -45,13 +45,8 @@ let handler ~name typ =
                 ] )
         | _ -> assert false);
     satisfies_constraint =
-      (fun check t cons ->
-        let t =
-          match t.Type_base.descr with
-            | Type_base.Custom { Type_base.typ = Type { typ } } -> typ
-            | _ -> assert false
-        in
-        check t cons);
+      (fun t constr ->
+        match t with Type { typ } -> constr#satisfied typ | _ -> assert false);
     subtype = (fun _ _ _ -> assert false);
     sup = (fun _ _ _ -> assert false);
     to_string = (fun c -> Type_base.to_string (get c));

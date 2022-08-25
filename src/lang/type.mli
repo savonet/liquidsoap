@@ -24,16 +24,15 @@ val debug : bool ref
 val debug_levels : bool ref
 val debug_variance : bool ref
 
-type constr = Type_base.constr = Num | Ord | Dtools | InternalMedia
-type constraints = constr list
-
-module DS = Type_base.DS
-
-val string_of_constr : constr -> string
-
 type variance = Type_base.variance = Covariant | Contravariant | Invariant
 
 type t = Type_base.t = { pos : Pos.Option.t; descr : descr }
+
+and constr_t = Type_base.constr_t = ..
+
+and constr = < t : constr_t ; descr : string ; satisfied : t -> unit >
+
+and constraints = constr list
 
 and constructed = Type_base.constructed = {
   constructor : string;
@@ -61,6 +60,15 @@ and var = Type_base.var = {
 
 and scheme = var list * t
 
+module DS = Type_base.DS
+
+val string_of_constr : constr -> string
+
+type constr_t += Num | Ord
+
+val num_constr : constr
+val ord_constr : constr
+
 module Subst = Type_base.Subst
 module R = Type_base.R
 
@@ -72,7 +80,7 @@ type custom_handler = Type_base.custom_handler = {
   occur_check : (var -> t -> unit) -> var -> custom -> unit;
   filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
   repr : (var list -> t -> Repr.t) -> var list -> custom -> Repr.t;
-  satisfies_constraint : (t -> constr -> unit) -> t -> constr -> unit;
+  satisfies_constraint : custom -> constr -> unit;
   subtype : (t -> t -> unit) -> custom -> custom -> unit;
   sup : (t -> t -> t) -> custom -> custom -> custom;
   to_string : custom -> string;
@@ -91,7 +99,7 @@ type descr +=
 
 exception NotImplemented
 exception Exists of Pos.Option.t * string
-exception Unsatisfied_constraint of constr * t
+exception Unsatisfied_constraint
 
 val unit : descr
 
