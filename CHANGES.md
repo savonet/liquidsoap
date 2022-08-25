@@ -8,6 +8,7 @@ New:
   added native type for srt sockets with methods, moved stats
   to socket methods, added socket() method on srt input/outputs
   (#2556)
+- Added `video.align`.
 
 Changed:
 

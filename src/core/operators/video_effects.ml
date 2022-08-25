@@ -552,6 +552,39 @@ let () =
           Video.Canvas.Image.viewport ~x ~y w h buf))
 
 let () =
+  let name = "video.align" in
+  Lang.add_operator name
+    [
+      ("left", Lang.bool_t, Some (Lang.bool false), Some "Align left.");
+      ("right", Lang.bool_t, Some (Lang.bool false), Some "Align right.");
+      ("top", Lang.bool_t, Some (Lang.bool false), Some "Align top.");
+      ("bottom", Lang.bool_t, Some (Lang.bool false), Some "Align bottom.");
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:`Video
+    ~descr:"Translate the video so that it is aligned on boundaries."
+    (fun p ->
+      let f x = List.assoc x p |> Lang.to_bool in
+      let left = f "left" in
+      let right = f "right" in
+      let top = f "top" in
+      let bottom = f "bottom" in
+      let s = List.assoc "" p |> Lang.to_source in
+      new effect_map ~name ~kind s (fun buf ->
+          let (x, y), (w, h) = Video.Canvas.Image.bounding_box buf in
+          let dx =
+            if left then -x
+            else if right then Video.Canvas.Image.width buf - w
+            else 0
+          in
+          let dy =
+            if top then -y
+            else if bottom then Video.Canvas.Image.height buf - h
+            else 0
+          in
+          Video.Canvas.Image.translate dx dy buf))
+
+let () =
   let name = "video.dimensions" in
   let width = ref 0 in
   let height = ref 0 in
