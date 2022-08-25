@@ -63,6 +63,18 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s)
   !ans
 end
 
+# What remains of a string after a given prefix.
+# @category String
+# @param ~prefix Requested prefix.
+def string.residual(~prefix, s)
+  n = string.length(prefix)
+  if string.contains(prefix=prefix, s) then
+    string.sub(s, start=n, length=string.length(s)-n)
+  else
+    null()
+  end
+end
+
 # Test whether a string is a valid integer.
 # @category String
 def string.is_int(s)

@@ -1,3 +1,5 @@
+#!../../liquidsoap ../test.liq
+
 success = ref(true)
 
 def t(x, y)
@@ -52,6 +54,8 @@ def f() =
   t(string.quote(encoding="ascii", "foo \"😅 o"), "\"foo \\\"\\xF0\\x9F\\x98\\x85 o\"")
   t(string.quote("foo \"😅 o"), "\"foo \\\"😅 o\"")
   t(string.quote("aa'bb"), "\"aa'bb\"")
+  t(string.residual(prefix="ab", "abcd"), "cd")
+  t(string.residual(prefix="xx", "abcd"), null())
 
   t(string.annotate.parse("foo=bla,\"foo\"=\"✨✅\",\"gni:gno\"=\"bla\\\"blu:\":😈uri"),
     ([("foo", "bla"), ("foo", "✨✅"), ("gni:gno", "bla\"blu:")], "😈uri"))
