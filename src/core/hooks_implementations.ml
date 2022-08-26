@@ -12,9 +12,10 @@ let () =
   ignore (Option.map on_change Dtools.Log.conf_file#get_d)
 
 module Regexp = struct
-  type t = Pcre.regexp
-  type sub = Pcre.substrings
-  type flag = [ `i | `g | `s | `m ]
+  open Liquidsoap_lang.Regexp
+
+  type t += Regexp of Pcre.regexp
+  type sub += Sub of Pcre.substrings
 
   let cflags_of_flags (flags : flag list) =
     List.fold_left
@@ -29,21 +30,25 @@ module Regexp = struct
 
   let regexp ?(flags = []) s =
     let iflags = Pcre.cflags (cflags_of_flags flags) in
-    Pcre.regexp ~iflags s
+    Regexp (Pcre.regexp ~iflags s)
 
   let regexp_or ?(flags = []) l =
     let iflags = Pcre.cflags (cflags_of_flags flags) in
-    Pcre.regexp_or ~iflags l
+    Regexp (Pcre.regexp_or ~iflags l)
 
-  let split ?pat ?rex s = Pcre.split ?pat ?rex s
-  let exec ?pat ?rex s = Pcre.exec ?pat ?rex s
-  let test ?pat ?rex s = Pcre.pmatch ?pat ?rex s
-  let num_of_subs sub = Pcre.num_of_subs sub
-  let get_substring sub pos = Pcre.get_substring sub pos
-  let substitute ?pat ?rex ~subst s = Pcre.substitute ?pat ?rex ~subst s
+  let get_rex = Option.map (function Regexp r -> r | _ -> assert false)
+  let get_sub = function Sub s -> s | _ -> assert false
+  let split ?pat ?rex s = Pcre.split ?pat ?rex:(get_rex rex) s
+  let exec ?pat ?rex s = Sub (Pcre.exec ?pat ?rex:(get_rex rex) s)
+  let test ?pat ?rex s = Pcre.pmatch ?pat ?rex:(get_rex rex) s
+  let num_of_subs sub = Pcre.num_of_subs (get_sub sub)
+  let get_substring sub pos = Pcre.get_substring (get_sub sub) pos
+
+  let substitute ?pat ?rex ~subst s =
+    Pcre.substitute ?pat ?rex:(get_rex rex) ~subst s
 
   let substitute_first ?pat ?rex ~subst s =
-    Pcre.substitute_first ?pat ?rex ~subst s
+    Pcre.substitute_first ?pat ?rex:(get_rex rex) ~subst s
 end
 
 let () =
