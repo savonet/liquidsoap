@@ -33,10 +33,13 @@ let () =
     ~descr:
       "Retrieve a character in a string. Raises `error.not_found` if character \
        does not exist."
-    ~examples:[{|
+    ~examples:
+      [
+        {|
 c = string.nth("abcde", 2)
-print(c) # should print "c"
-|}]
+print(c) # should print 99 which is the ascii code for "c"
+|};
+      ]
     [
       ("", Lang.string_t, None, Some "String to look into.");
       ("", Lang.int_t, None, Some "Index of the character.");

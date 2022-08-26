@@ -56,6 +56,7 @@ def f() =
   t(string.quote("aa'bb"), "\"aa'bb\"")
   t(string.residual(prefix="ab", "abcd"), "cd")
   t(string.residual(prefix="xx", "abcd"), null())
+  t(string.nth("abcde", 2), 99)
 
   t(string.annotate.parse("foo=bla,\"foo\"=\"✨✅\",\"gni:gno\"=\"bla\\\"blu:\":😈uri"),
     ([("foo", "bla"), ("foo", "✨✅"), ("gni:gno", "bla\"blu:")], "😈uri"))
