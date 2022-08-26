@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Liquidsoap_lang
+open Core_types
 open Term
 open Term.Ground
 
@@ -108,9 +109,9 @@ let kind_of_encoder ((e, p) : Term.encoder) = (find_encoder e).kind_of_encoder p
 
 let type_of_encoder ~pos e =
   let kind = kind_of_encoder e in
-  let audio = kind_t ?pos (Frame_base.find_audio kind) in
-  let video = kind_t ?pos (Frame_base.find_video kind) in
-  let midi = kind_t ?pos (Frame_base.find_midi kind) in
+  let audio = kind_t ?pos (Frame.find_audio kind) in
+  let video = kind_t ?pos (Frame.find_video kind) in
+  let midi = kind_t ?pos (Frame.find_midi kind) in
   format_t ?pos (frame_kind_t ?pos audio video midi)
 
 let make_encoder ~pos t ((e, p) : Hooks.encoder) =
@@ -121,13 +122,3 @@ let make_encoder ~pos t ((e, p) : Hooks.encoder) =
   with Not_found ->
     raise
       (error ~pos (Printf.sprintf "unsupported format: %s" (Term.to_string t)))
-
-let () =
-  Hooks.type_of_encoder := type_of_encoder;
-  Hooks.make_encoder := make_encoder;
-  Hooks.has_encoder :=
-    fun fmt ->
-      try
-        let (_ : Encoder.factory) = Encoder.get_factory (V.of_value fmt) in
-        true
-      with _ -> false

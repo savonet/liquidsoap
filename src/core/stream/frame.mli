@@ -20,14 +20,13 @@
 
  *****************************************************************************)
 
-open Liquidsoap_lang
-module Fields = Frame.Fields
-
 (** Operations on frames, which are small portions of streams. *)
 
 (** {2 Frame definitions} *)
 
-type field = Frame.field
+type field
+
+module Fields : Map.S with type key = field
 
 val audio_field : field
 val video_field : field

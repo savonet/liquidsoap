@@ -37,7 +37,6 @@ let () =
       Utils.add_subst "<syslogdir>" (logdir ()))
 
 let restart = ref false
-let () = Hooks.liq_libs_dir := liq_libs_dir
 
 let vendor =
   Printf.sprintf "Liquidsoap/%s (%s; OCaml %s)" version Sys.os_type
@@ -82,50 +81,3 @@ let conf_debug_errors =
 let () =
   conf_debug#on_change (fun v -> Term.conf_debug := v);
   conf_debug_errors#on_change (fun v -> Term.conf_debug_errors := v)
-
-let () =
-  let on_change v =
-    Hooks.log_path :=
-      if v then (try Some Dtools.Log.conf_file_path#get with _ -> None)
-      else None
-  in
-  Dtools.Log.conf_file#on_change on_change;
-  ignore (Option.map on_change Dtools.Log.conf_file#get_d)
-
-module Regexp = struct
-  type t = Pcre.regexp
-  type sub = Pcre.substrings
-  type flag = [ `i | `g | `s | `m ]
-
-  let cflags_of_flags (flags : flag list) =
-    List.fold_left
-      (fun l f ->
-        match f with
-          | `i -> `CASELESS :: l
-          (* `g is handled at the call level. *)
-          | `g -> l
-          | `s -> `DOTALL :: l
-          | `m -> `MULTILINE :: l)
-      [] flags
-
-  let regexp ?(flags = []) s =
-    let iflags = Pcre.cflags (cflags_of_flags flags) in
-    Pcre.regexp ~iflags s
-
-  let regexp_or ?(flags = []) l =
-    let iflags = Pcre.cflags (cflags_of_flags flags) in
-    Pcre.regexp_or ~iflags l
-
-  let split ?pat ?rex s = Pcre.split ?pat ?rex s
-  let exec ?pat ?rex s = Pcre.exec ?pat ?rex s
-  let test ?pat ?rex s = Pcre.pmatch ?pat ?rex s
-  let num_of_subs sub = Pcre.num_of_subs sub
-  let get_substring sub pos = Pcre.get_substring sub pos
-  let substitute ?pat ?rex ~subst s = Pcre.substitute ?pat ?rex ~subst s
-
-  let substitute_first ?pat ?rex ~subst s =
-    Pcre.substitute_first ?pat ?rex ~subst s
-end
-
-let () = Hooks.regexp := (module Regexp : Hooks.Regexp_t)
-let () = Hooks.make_log := fun name -> (Log.make name :> Hooks.log)

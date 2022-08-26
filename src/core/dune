@@ -76,6 +76,7 @@
   content_timed
   conversion
   configure
+  core_types
   cross
   cuepoint
   debug_sources
@@ -109,6 +110,7 @@
   frame
   frame_base
   frame_settings
+  format_type
   gate
   generated
   generator
@@ -117,6 +119,7 @@
   harbor_base
   harbor_input
   harbor_output
+  hooks_implementations
   hls_output
   http
   icecast_utils

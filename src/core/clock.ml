@@ -519,8 +519,6 @@ let collect_after f =
       after_collect_tasks := !after_collect_tasks - 1;
       collect ~must_lock:false)
 
-let () = Liquidsoap_lang.Hooks.collect_after := collect_after
-
 (** Initialize only some sources, recognized by a filter function.
   * The advantage over collect is that it is synchronous and a list
   * of errors (sources that failed to initialize) is returned. *)

@@ -21,8 +21,26 @@
  *****************************************************************************)
 
 open Liquidsoap_lang.Lang_core
+open Core_types
 
 let log = Log.make ["lang"]
+let metadata_t = list_t (product_t string_t string_t)
+
+let to_metadata_list t =
+  let pop v =
+    let f (a, b) = (to_string a, to_string b) in
+    f (to_product v)
+  in
+  List.map pop (to_list t)
+
+let to_metadata t =
+  let t = to_metadata_list t in
+  let metas = Hashtbl.create 10 in
+  List.iter (fun (a, b) -> Hashtbl.add metas a b) t;
+  metas
+
+let metadata m =
+  list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 
 module V = MkAbstract (struct
   type content = Source.source
@@ -299,17 +317,6 @@ let add_operator =
     in
     let category = `Source category in
     add_builtin ~category ~descr ~flags name proto return_t f
-
-let () =
-  Liquidsoap_lang.Hooks.source_eval_check :=
-    fun ~k ~pos v ->
-      if not (V.is_value v) then
-        raise
-          (Term.Internal_error
-             ( Option.to_list pos,
-               "term has type source but is not a source: " ^ Value.to_string v
-             ));
-      Kind.unify (V.of_value v)#kind (Kind.of_kind k)
 
 let iter_sources ?on_reference ~static_analysis_failed f v =
   let itered_values = ref [] in
