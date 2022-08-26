@@ -36,15 +36,16 @@ let force f fd x =
 (** Dedicated clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "OSS")
 
-class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
-  val_source =
+class output ~kind ~clock_safe ~on_start ~on_stop ~infallible
+  ~stop_when_not_available ~start dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:(Kind.of_kind kind) ~name
-          ~output_kind:"output.oss" val_source start as super
+        ~infallible ~stop_when_not_available ~on_stop ~on_start
+          ~content_kind:(Kind.of_kind kind) ~name ~output_kind:"output.oss"
+          val_source start as super
 
     inherit Source.no_seek
 
@@ -148,6 +149,9 @@ let () =
     (fun p ->
       let e f v = f (List.assoc v p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -161,7 +165,8 @@ let () =
       let device = e Lang.to_string "device" in
       let source = List.assoc "" p in
       (new output
-         ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
+         ~start ~on_start ~on_stop ~infallible ~stop_when_not_available ~kind
+         ~clock_safe device source
         :> Output.output));
   let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
   Lang.add_operator "input.oss"

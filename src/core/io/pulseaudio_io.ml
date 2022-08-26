@@ -46,7 +46,8 @@ class virtual base ~client ~device =
     method self_sync : Source.self_sync = (`Dynamic, dev <> None)
   end
 
-class output ~infallible ~start ~on_start ~on_stop ~kind p =
+class output ~infallible ~stop_when_not_available ~start ~on_start ~on_stop
+  ~kind p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
@@ -58,8 +59,9 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name
-          ~output_kind:"output.pulseaudio" val_source start as super
+        ~infallible ~stop_when_not_available ~on_stop ~on_start
+          ~content_kind:kind ~name ~output_kind:"output.pulseaudio" val_source
+          start as super
 
     method private set_clock =
       super#set_clock;
@@ -179,6 +181,9 @@ let () =
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -189,7 +194,8 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let kind = Kind.of_kind kind in
-      (new output ~infallible ~on_start ~on_stop ~start ~kind p
+      (new output
+         ~infallible ~stop_when_not_available ~on_start ~on_stop ~start ~kind p
         :> Output.output));
   Lang.add_operator "input.pulseaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)

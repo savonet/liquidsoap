@@ -247,6 +247,9 @@ class hls_output p =
   in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let stop_when_not_available =
+    Lang.to_bool (List.assoc "stop_when_not_available" p)
+  in
   let prefix = Lang.to_string (List.assoc "prefix" p) in
   let directory = Lang.to_string (Lang.assoc "" 1 p) in
   let () =
@@ -431,8 +434,9 @@ class hls_output p =
   object (self)
     inherit
       Output.encoded
-        ~infallible ~on_start ~on_stop ~autostart ~output_kind:"output.file"
-          ~name:main_playlist_filename ~content_kind:kind source
+        ~infallible ~stop_when_not_available ~on_start ~on_stop ~autostart
+          ~output_kind:"output.file" ~name:main_playlist_filename
+          ~content_kind:kind source
 
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams

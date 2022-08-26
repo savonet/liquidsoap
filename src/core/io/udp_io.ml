@@ -53,13 +53,13 @@ module Tutils = struct
     (kill, wait)
 end
 
-class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-  ~encoder_factory source =
+class output ~kind ~on_start ~on_stop ~infallible ~stop_when_not_available
+  ~autostart ~hostname ~port ~encoder_factory source =
   object (self)
     inherit
       Output.encoded
         ~output_kind:"udp" ~content_kind:kind ~on_start ~on_stop ~infallible
-          ~autostart
+          ~stop_when_not_available ~autostart
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
         source
 
@@ -218,6 +218,9 @@ let () =
       (* Generic output parameters *)
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -240,8 +243,8 @@ let () =
       let source = Lang.assoc "" 2 p in
       let kind = Kind.of_kind kind in
       (new output
-         ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-         ~encoder_factory:fmt source
+         ~kind ~on_start ~on_stop ~infallible ~stop_when_not_available
+         ~autostart ~hostname ~port ~encoder_factory:fmt source
         :> Source.source))
 
 let () =

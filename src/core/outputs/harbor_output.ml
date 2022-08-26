@@ -352,6 +352,9 @@ module Make (T : T) = struct
     in
     let autostart = Lang.to_bool (List.assoc "start" p) in
     let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+    let stop_when_not_available =
+      Lang.to_bool (List.assoc "stop_when_not_available" p)
+    in
     let on_start =
       let f = List.assoc "on_start" p in
       fun () -> ignore (Lang.apply f [])
@@ -413,7 +416,8 @@ module Make (T : T) = struct
       inherit
         Output.encoded
           ~content_kind:(Kind.of_kind kind) ~output_kind:T.source_name
-            ~infallible ~autostart ~on_start ~on_stop ~name:mount source
+            ~infallible ~stop_when_not_available ~autostart ~on_start ~on_stop
+            ~name:mount source
 
       val mutable dump = None
       val mutable encoder = None

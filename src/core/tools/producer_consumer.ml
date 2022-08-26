@@ -46,8 +46,8 @@ class consumer ~write_frame ~name ~kind ~source () =
   object
     inherit
       Output.output
-        ~content_kind:kind ~output_kind:name ~infallible ~on_start:noop
-          ~on_stop:noop source true as super
+        ~content_kind:kind ~output_kind:name ~infallible
+          ~stop_when_not_available:true ~on_start:noop ~on_stop:noop source true as super
 
     val mutable output_enabled = false
     method set_output_enabled v = output_enabled <- v

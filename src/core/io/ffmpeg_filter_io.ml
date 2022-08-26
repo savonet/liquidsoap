@@ -38,7 +38,8 @@ class audio_output ~pass_metadata ~name ~kind source_val =
   object (self)
     inherit
       Output.output
-        ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
+        ~infallible:false ~stop_when_not_available:true ~on_stop:noop
+          ~on_start:noop ~content_kind:kind ~name
           ~output_kind:"ffmpeg.filter.input" source_val true
 
     inherit Source.no_seek
@@ -89,7 +90,8 @@ class video_output ~pass_metadata ~kind ~name source_val =
   object (self)
     inherit
       Output.output
-        ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
+        ~infallible:false ~stop_when_not_available:true ~on_stop:noop
+          ~on_start:noop ~content_kind:kind ~name
           ~output_kind:"ffmpeg.filter.input" source_val true
 
     initializer Kind.unify (Lang.to_source source_val)#kind self#kind

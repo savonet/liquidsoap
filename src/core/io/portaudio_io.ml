@@ -55,17 +55,17 @@ class virtual base =
                 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
   end
 
-class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
-  val_source =
+class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible
+  ~stop_when_not_available buflen val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit base
 
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind
-          ~name:"output.portaudio" ~output_kind:"output.portaudio" val_source
-          start as super
+        ~infallible ~stop_when_not_available ~on_stop ~on_start
+          ~content_kind:kind ~name:"output.portaudio"
+          ~output_kind:"output.portaudio" val_source start as super
 
     method private set_clock =
       super#set_clock;
@@ -168,6 +168,9 @@ let () =
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -181,7 +184,8 @@ let () =
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let kind = Kind.of_kind kind in
       (new output
-         ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
+         ~kind ~start ~on_start ~on_stop ~infallible ~stop_when_not_available
+         ~clock_safe buflen source
         :> Output.output));
   Lang.add_operator "input.portaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)

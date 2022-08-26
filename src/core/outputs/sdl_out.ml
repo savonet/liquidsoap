@@ -26,12 +26,14 @@ open Mm
 
 open Tsdl
 
-class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
+class output ~infallible ~stop_when_not_available ~on_start ~on_stop ~autostart
+  ~kind source =
   let () = Sdl_utils.init [Sdl.Init.video] in
   object (self)
     inherit
       Output.output
-        ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~on_start ~on_stop
+        ~name:"sdl" ~output_kind:"output.sdl" ~infallible
+          ~stop_when_not_available ~on_start ~on_stop
           ~content_kind:(Kind.of_kind kind) source autostart
 
     val mutable fullscreen = false
@@ -103,6 +105,9 @@ let () =
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -112,7 +117,9 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output ~infallible ~autostart ~on_start ~on_stop ~kind source
+      (new output
+         ~infallible ~stop_when_not_available ~autostart ~on_start ~on_stop
+         ~kind source
         :> Output.output))
 
 let () =

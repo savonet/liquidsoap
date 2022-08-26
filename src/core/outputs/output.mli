@@ -30,6 +30,7 @@ class virtual output :
   -> output_kind:string
   -> ?name:string
   -> infallible:bool
+  -> stop_when_not_available:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> Lang.value
@@ -64,6 +65,7 @@ class virtual encoded :
   -> output_kind:string
   -> name:string
   -> infallible:bool
+  -> stop_when_not_available:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> autostart:bool
@@ -84,6 +86,7 @@ class virtual encoded :
 
 class dummy :
   infallible:bool
+  -> stop_when_not_available:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> autostart:bool

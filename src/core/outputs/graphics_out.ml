@@ -21,12 +21,14 @@
 
 open Mm
 
-class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
+class output ~kind ~infallible ~stop_when_not_available ~autostart ~on_start
+  ~on_stop source =
   object (self)
     inherit
       Output.output
-        ~name:"graphics" ~output_kind:"output.graphics" ~infallible ~on_start
-          ~on_stop ~content_kind:kind source autostart
+        ~name:"graphics" ~output_kind:"output.graphics" ~infallible
+          ~stop_when_not_available ~on_start ~on_stop ~content_kind:kind source
+          autostart
 
     val mutable sleep = false
     method stop = sleep <- true
@@ -57,6 +59,9 @@ let () =
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -67,5 +72,7 @@ let () =
       in
       let source = List.assoc "" p in
       let kind = Kind.of_kind kind in
-      (new output ~kind ~infallible ~autostart ~on_start ~on_stop source
+      (new output
+         ~kind ~infallible ~stop_when_not_available ~autostart ~on_start
+         ~on_stop source
         :> Output.output))

@@ -159,8 +159,9 @@ class virtual ['a, 'b] element_factory ~on_error =
 
 (* Audio/video output *)
 
-class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
-  ?(blocking = true) source start (pipeline, audio_pipeline, video_pipeline) =
+class output ~kind ~clock_safe ~on_error ~infallible ~stop_when_not_available
+  ~on_start ~on_stop ?(blocking = true) source start
+  (pipeline, audio_pipeline, video_pipeline) =
   let has_audio, audio_pipeline =
     match audio_pipeline with
       | Some audio_pipeline -> (true, audio_pipeline)
@@ -174,8 +175,9 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
   object (self)
     inherit
       Output.output
-        ~content_kind:kind ~infallible ~on_start ~on_stop
-          ~name:"output.gstreamer" ~output_kind:"gstreamer" source start as super
+        ~content_kind:kind ~infallible ~stop_when_not_available ~on_start
+          ~on_stop ~name:"output.gstreamer" ~output_kind:"gstreamer" source
+          start as super
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
     val mutable started = false
@@ -336,6 +338,9 @@ let () =
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
@@ -353,8 +358,8 @@ let () =
       let source = List.assoc "" p in
       let kind = Kind.of_kind kind in
       (new output
-         ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start
-         ("", Some pipeline, None)
+         ~kind ~clock_safe ~on_error ~infallible ~stop_when_not_available
+         ~on_start ~on_stop source start ("", Some pipeline, None)
         :> Output.output))
 
 let () =
@@ -367,6 +372,9 @@ let () =
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
@@ -384,8 +392,8 @@ let () =
       let source = List.assoc "" p in
       let kind = Kind.of_kind kind in
       (new output
-         ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start
-         ("", None, Some pipeline)
+         ~kind ~clock_safe ~infallible ~stop_when_not_available ~on_error
+         ~on_start ~on_stop source start ("", None, Some pipeline)
         :> Output.output))
 
 let () =
@@ -418,6 +426,9 @@ let () =
       let audio_pipeline = Lang.to_string (List.assoc "audio_pipeline" p) in
       let video_pipeline = Lang.to_string (List.assoc "video_pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
@@ -436,8 +447,8 @@ let () =
       let source = List.assoc "" p in
       let kind = Kind.of_kind kind in
       (new output
-         ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking
-         source start
+         ~kind ~clock_safe ~infallible ~stop_when_not_available ~on_error
+         ~on_start ~on_stop ~blocking source start
          (pipeline, Some audio_pipeline, Some video_pipeline)
         :> Output.output))
 

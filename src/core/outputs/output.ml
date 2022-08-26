@@ -33,6 +33,17 @@ let proto =
         Some
           "Allow the child source to fail, in which case the output will be \
            stopped until the source is available again." );
+      ( "stop_when_not_available",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Stop the output when the underlying source becomes unavailable. Set \
+           to `false` if you wish to keep resources allocated by the output to \
+           be kept when the underlying source cannot produce data. This should \
+           allow to e.g. keep a remote server connection open. This option is \
+           intended as an advanced use for cases where the source cannot be \
+           made infallible such as when copying encoded data with unknown \
+           codec content." );
     ]
 
 let meth = Start_stop.meth ()
@@ -42,7 +53,8 @@ let meth = Start_stop.meth ()
   * maintains a queue of last ten metadata and setups standard Server commands,
   * including start/stop. *)
 class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
-  ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
+  ~stop_when_not_available ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
+  val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
     initializer
@@ -173,9 +185,12 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
         if Frame.position self#memo > 0 then (
           self#send_frame self#memo;
           nb_frames <- Int64.succ nb_frames);
-        if Frame.is_partial self#memo then (
-          self#log#important "Source failed (no more tracks) stopping output...";
-          self#transition_to `Idle))
+        if Frame.is_partial self#memo then
+          if stop_when_not_available then (
+            self#log#important
+              "Source failed (no more tracks) stopping output...";
+            self#transition_to `Idle)
+          else self#log#important "Source failed (no more tracks)")
 
     method after_output =
       (* Let [memo] be cleared and signal propagated *)
@@ -188,12 +203,13 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
         self#abort_track)
   end
 
-class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
+class dummy ~infallible ~stop_when_not_available ~on_start ~on_stop ~autostart
+  ~kind source =
   object
     inherit
       output
         source autostart ~name:"dummy" ~output_kind:"output.dummy" ~infallible
-          ~on_start ~on_stop ~content_kind:kind
+          ~stop_when_not_available ~on_start ~on_stop ~content_kind:kind
 
     method private reset = ()
     method private start = ()
@@ -210,6 +226,9 @@ let () =
     ~return_t
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start = List.assoc "on_start" p in
       let on_stop = List.assoc "on_stop" p in
@@ -217,17 +236,18 @@ let () =
       let on_stop () = ignore (Lang.apply on_stop []) in
       let kind = Kind.of_kind kind in
       new dummy
-        ~kind ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p))
+        ~stop_when_not_available ~kind ~on_start ~on_stop ~infallible ~autostart
+        (List.assoc "" p))
 
 (** More concrete abstract-class, which takes care of the #send_frame
   * method for outputs based on encoders. *)
-class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
-  ~on_stop ~autostart source =
+class virtual encoded ~content_kind ~output_kind ~name ~infallible
+  ~stop_when_not_available ~on_start ~on_stop ~autostart source =
   object (self)
     inherit
       output
-        ~infallible ~on_start ~on_stop ~content_kind ~output_kind ~name source
-          autostart
+        ~stop_when_not_available ~infallible ~on_start ~on_stop ~content_kind
+          ~output_kind ~name source autostart
 
     method virtual private insert_metadata : Meta_format.export_metadata -> unit
     method virtual private encode : Frame.t -> int -> int -> 'a

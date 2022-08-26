@@ -155,15 +155,16 @@ class virtual base dev mode =
       self#open_device
   end
 
-class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
-  val_source =
+class output ~kind ~clock_safe ~start ~infallible ~stop_when_not_available
+  ~on_stop ~on_start dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:(Kind.of_kind kind) ~name
-          ~output_kind:"output.alsa" val_source start as super
+        ~infallible ~stop_when_not_available ~on_stop ~on_start
+          ~content_kind:(Kind.of_kind kind) ~name ~output_kind:"output.alsa"
+          val_source start as super
 
     inherit base dev [Pcm.Playback]
 
@@ -297,6 +298,9 @@ let () =
       let device = e Lang.to_string "device" in
       let source = List.assoc "" p in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -308,11 +312,13 @@ let () =
       in
       if bufferize then
         (new Alsa_out.output
-           ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible device source
+           ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible
+           ~stop_when_not_available device source
           :> Output.output)
       else
         (new output
-           ~kind ~clock_safe ~infallible ~start ~on_start ~on_stop device source
+           ~kind ~clock_safe ~infallible ~stop_when_not_available ~start
+           ~on_start ~on_stop device source
           :> Output.output))
 
 let () =

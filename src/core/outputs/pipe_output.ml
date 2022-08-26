@@ -35,6 +35,9 @@ class virtual base ~kind ~source ~name p =
   (* Output settings *)
   let autostart = e Lang.to_bool "start" in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let stop_when_not_available =
+    Lang.to_bool (List.assoc "stop_when_not_available" p)
+  in
   let on_start =
     let f = List.assoc "on_start" p in
     fun () -> ignore (Lang.apply f [])
@@ -46,8 +49,8 @@ class virtual base ~kind ~source ~name p =
   object (self)
     inherit
       Output.encoded
-        ~infallible ~on_start ~on_stop ~autostart ~output_kind:"output.file"
-          ~name ~content_kind:kind source
+        ~infallible ~stop_when_not_available ~on_start ~on_stop ~autostart
+          ~output_kind:"output.file" ~name ~content_kind:kind source
 
     val mutable encoder = None
     val mutable current_metadata = None

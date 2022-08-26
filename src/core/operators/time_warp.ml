@@ -79,8 +79,9 @@ module Buffer = struct
     object
       inherit
         Output.output
-          ~output_kind:id ~content_kind:kind ~infallible ~on_start ~on_stop
-            source_val autostart
+          ~output_kind:id ~content_kind:kind ~infallible
+            ~stop_when_not_available:true ~on_start ~on_stop source_val
+            autostart
 
       method reset = ()
       method start = ()
@@ -303,8 +304,9 @@ module AdaptativeBuffer = struct
     object
       inherit
         Output.output
-          ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
-            ~on_stop source_val autostart
+          ~output_kind:"buffer" ~content_kind:kind ~infallible
+            ~stop_when_not_available:true ~on_start ~on_stop source_val
+            autostart
 
       method reset = ()
       method start = ()

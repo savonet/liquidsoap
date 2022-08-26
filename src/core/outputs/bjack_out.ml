@@ -26,16 +26,17 @@ open Mm
 
 let bytes_per_sample = 2
 
-class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
-  source =
+class output ~kind ~clock_safe ~infallible ~stop_when_not_available ~on_stop
+  ~on_start ~nb_blocks ~server source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name:"output.jack"
-          ~output_kind:"output.jack" source true as super
+        ~infallible ~stop_when_not_available ~on_stop ~on_start
+          ~content_kind:kind ~name:"output.jack" ~output_kind:"output.jack"
+          source true as super
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
 
@@ -136,6 +137,9 @@ let () =
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -146,6 +150,6 @@ let () =
       in
       let kind = Kind.of_kind kind in
       (new output
-         ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server
-         source
+         ~kind ~clock_safe ~infallible ~stop_when_not_available ~on_start
+         ~on_stop ~nb_blocks ~server source
         :> Output.output))

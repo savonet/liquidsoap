@@ -871,7 +871,8 @@ let () =
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
 class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~autostart ~on_disconnect ~encoder_factory source =
+  ~infallible ~stop_when_not_available ~autostart ~on_disconnect
+  ~encoder_factory source =
   let buffer = Strings.Mutable.empty () in
   let tmp = Bytes.create payload_size in
   object (self)
@@ -881,7 +882,7 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
     inherit
       Output.encoded
         ~output_kind:"srt" ~content_kind:kind ~on_start ~on_stop ~infallible
-          ~autostart ~name:"output.srt" source
+          ~stop_when_not_available ~autostart ~name:"output.srt" source
 
     val mutable encoder = None
 
@@ -962,13 +963,14 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
 
 class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-  ~autostart ~on_connect ~on_disconnect ~port ~hostname ~read_timeout
-  ~write_timeout ~connection_timeout ~encoder_factory source =
+  ~stop_when_not_available ~autostart ~on_connect ~on_disconnect ~port ~hostname
+  ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory source =
   object (self)
     inherit
       output_base
         ~kind:(Kind.of_kind kind) ~payload_size ~messageapi ~on_start ~on_stop
-          ~infallible ~autostart ~on_disconnect ~encoder_factory source
+          ~infallible ~stop_when_not_available ~autostart ~on_disconnect
+          ~encoder_factory source
 
     inherit
       caller
@@ -990,13 +992,15 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
 
 class output_listener ~enforced_encryption ~pbkeylen ~passphrase
   ~listen_callback ~max_clients ~kind ~payload_size ~messageapi ~on_start
-  ~on_stop ~infallible ~autostart ~on_connect ~on_disconnect ~bind_address
-  ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory source =
+  ~on_stop ~infallible ~stop_when_not_available ~autostart ~on_connect
+  ~on_disconnect ~bind_address ~read_timeout ~write_timeout ~connection_timeout
+  ~encoder_factory source =
   object (self)
     inherit
       output_base
         ~kind:(Kind.of_kind kind) ~payload_size ~messageapi ~on_start ~on_stop
-          ~infallible ~autostart ~on_disconnect ~encoder_factory source
+          ~infallible ~stop_when_not_available ~autostart ~on_disconnect
+          ~encoder_factory source
 
     inherit
       listener
@@ -1066,6 +1070,9 @@ let () =
         Lang.to_valued_option Lang.to_int (List.assoc "max_clients" p)
       in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let stop_when_not_available =
+        Lang.to_bool (List.assoc "stop_when_not_available" p)
+      in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -1091,16 +1098,16 @@ let () =
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~kind ~hostname ~port ~payload_size ~autostart
                ~on_start ~on_stop ~read_timeout ~write_timeout
-               ~connection_timeout ~infallible ~messageapi ~encoder_factory
-               ~on_connect ~on_disconnect source
+               ~connection_timeout ~infallible ~stop_when_not_available
+               ~messageapi ~encoder_factory ~on_connect ~on_disconnect source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Listener ->
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~kind ~bind_address
                ~read_timeout ~write_timeout ~connection_timeout ~payload_size
-               ~autostart ~on_start ~on_stop ~infallible ~messageapi
-               ~encoder_factory ~on_connect ~on_disconnect ~listen_callback
-               ~max_clients source
+               ~autostart ~on_start ~on_stop ~infallible
+               ~stop_when_not_available ~messageapi ~encoder_factory ~on_connect
+               ~on_disconnect ~listen_callback ~max_clients source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
