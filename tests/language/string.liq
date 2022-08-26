@@ -57,6 +57,9 @@ def f() =
   t(string.residual(prefix="ab", "abcd"), "cd")
   t(string.residual(prefix="xx", "abcd"), null())
   t(string.nth("abcde", 2), 99)
+  t(string.index(substring="cd", "abcde"), 2)
+  t(string.index(substring="e", "abcde"), 4)
+  t(string.index(substring="xx", "abcde"), -1)
 
   t(string.annotate.parse("foo=bla,\"foo\"=\"✨✅\",\"gni:gno\"=\"bla\\\"blu:\":😈uri"),
     ([("foo", "bla"), ("foo", "✨✅"), ("gni:gno", "bla\"blu:")], "😈uri"))

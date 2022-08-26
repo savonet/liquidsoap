@@ -234,6 +234,32 @@ let () =
         (try String.sub string start len with Invalid_argument _ -> ""))
 
 let () =
+  Lang.add_builtin "string.index" ~category:`String
+    ~descr:
+      "Index where a substring occurs in a string. The function returns `-1` \
+       if the substring is not present"
+    [
+      ("substring", Lang.string_t, None, Some "Substring to look for.");
+      ("", Lang.string_t, None, Some "String in which to look.");
+    ] Lang.int_t (fun p ->
+      let t = List.assoc "substring" p |> Lang.to_string in
+      let s = List.assoc "" p |> Lang.to_string in
+      let ans =
+        let m = String.length t in
+        let n = String.length s in
+        let ans = ref (-1) in
+        try
+          for i = 0 to n - m do
+            if String.sub s i m = t then (
+              ans := i;
+              raise Exit)
+          done;
+          -1
+        with Exit -> !ans
+      in
+      Lang.int ans)
+
+let () =
   Lang.add_builtin "string.case" ~category:`String
     ~descr:"Convert a string to lower or upper case."
     [
