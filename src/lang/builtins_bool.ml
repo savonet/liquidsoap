@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 let () =
-  let t = Lang.univ_t ~constraints:[Type.Ord] () in
+  let t = Lang.univ_t ~constraints:[Type.ord_constr] () in
   let register_op name op =
     Lang.add_builtin name ~category:`Bool
       ~descr:"Comparison of comparable values."

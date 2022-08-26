@@ -44,36 +44,19 @@ let debug_variance = ref false
  * Finally, constraints can be attached to existential (unknown, '_a)
  * and universal ('a) type variables. *)
 
-(** Type constraints *)
-
-(** Constraint on the types a type variable can be substituted with. *)
-type constr =
-  | Num  (** a number *)
-  | Ord  (** an orderable type *)
-  | Dtools  (** something useable by dtools *)
-  | InternalMedia  (** a media type *)
-
-(** Constraints on a type variable. *)
-type constraints = constr list
-
-(** Sets of type descriptions. *)
-module DS = Set.Make (struct
-  type t = string * constraints
-
-  let compare = compare
-end)
-
-let string_of_constr = function
-  | Num -> "a number type"
-  | Ord -> "an orderable type"
-  | Dtools -> "unit, bool, int, float, string or [string]"
-  | InternalMedia -> "an internal media type (none, pcm, yuva420p or midi)"
-
 (** {2 Types} *)
 
 type variance = Covariant | Contravariant | Invariant
 
 type t = { pos : Pos.Option.t; descr : descr }
+
+(** Constraint on the types a type variable can be substituted with. *)
+and constr_t = ..
+
+and constr = < t : constr_t ; descr : string ; satisfied : t -> unit >
+
+(** Constraints on a type variable. *)
+and constraints = constr list
 
 (** A type constructor applied to arguments (e.g. source). *)
 and constructed = { constructor : string; params : (variance * t) list }
@@ -99,6 +82,19 @@ and var = { name : int; mutable level : int; mutable constraints : constraints }
 
 (** A type scheme (i.e. a type with universally quantified variables). *)
 and scheme = var list * t
+
+(** Type constraints *)
+
+type constr_t += Num | Ord
+
+(** Sets of type descriptions. *)
+module DS = Set.Make (struct
+  type t = string * constraints
+
+  let compare = compare
+end)
+
+let string_of_constr c = c#descr
 
 (** Substitutions. *)
 module Subst = struct
@@ -153,7 +149,7 @@ type custom_handler = {
   occur_check : (var -> t -> unit) -> var -> custom -> unit;
   filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
   repr : (var list -> t -> R.t) -> var list -> custom -> R.t;
-  satisfies_constraint : (t -> constr -> unit) -> t -> constr -> unit;
+  satisfies_constraint : custom -> constr -> unit;
   subtype : (t -> t -> unit) -> custom -> custom -> unit;
   sup : (t -> t -> t) -> custom -> custom -> custom;
   to_string : custom -> string;
@@ -172,7 +168,7 @@ type descr +=
 
 exception NotImplemented
 exception Exists of Pos.Option.t * string
-exception Unsatisfied_constraint of constr * t
+exception Unsatisfied_constraint
 
 let unit = Tuple []
 

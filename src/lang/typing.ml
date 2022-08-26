@@ -182,82 +182,7 @@ let rec occur_check (a : var) b =
     | _ -> raise NotImplemented
 
 (** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
-let rec satisfies_constraint b = function
-  | Ord ->
-      let rec check b =
-        let m, b = split_meths b in
-        match b.descr with
-          | Custom c -> c.satisfies_constraint satisfies_constraint b Ord
-          | Var { contents = Free v } ->
-              if not (List.mem Ord v.constraints) then
-                v.constraints <- Ord :: v.constraints
-          | Tuple [] ->
-              (* For records, we want to ensure that all fields are ordered. *)
-              List.iter
-                (fun Type.{ scheme = v, a } ->
-                  if v <> [] then raise (Unsatisfied_constraint (Ord, a));
-                  check a)
-                m
-          | Tuple l -> List.iter (fun b -> check b) l
-          | List { t = b } -> check b
-          | Nullable b -> check b
-          | _ -> raise (Unsatisfied_constraint (Ord, b))
-      in
-      check b
-  | Dtools -> (
-      let b = demeth b in
-      match b.descr with
-        | Custom { typ }
-          when List.mem typ
-                 [
-                   Ground.Bool.Type;
-                   Ground.Int.Type;
-                   Ground.Float.Type;
-                   Ground.String.Type;
-                 ] ->
-            ()
-        | Custom c -> c.satisfies_constraint satisfies_constraint b Dtools
-        | Tuple [] -> ()
-        | List { t = b' } -> (
-            match (deref b').descr with
-              | Custom { typ } ->
-                  if typ <> Ground.String.Type then
-                    raise (Unsatisfied_constraint (Dtools, b'))
-              | Var ({ contents = Free _ } as v) ->
-                  (* TODO: we should check the constraints *)
-                  v := Link (Invariant, make ?pos:b.pos Ground.string)
-              | _ -> raise (Unsatisfied_constraint (Dtools, b')))
-        | Var { contents = Free v } ->
-            if not (List.mem Dtools v.constraints) then
-              v.constraints <- Dtools :: v.constraints
-        | _ -> raise (Unsatisfied_constraint (Dtools, b)))
-  | InternalMedia -> (
-      let is_internal name =
-        try
-          let kind = Content.kind_of_string name in
-          Content.is_internal_kind kind
-        with Content.Invalid -> false
-      in
-      let b = demeth b in
-      match b.descr with
-        | Constr { constructor } when is_internal constructor -> ()
-        | Custom c ->
-            c.satisfies_constraint satisfies_constraint b InternalMedia
-        | Var { contents = Free v } ->
-            if not (List.mem InternalMedia v.constraints) then
-              v.constraints <- InternalMedia :: v.constraints
-        | _ -> raise (Unsatisfied_constraint (InternalMedia, b)))
-  | Num -> (
-      let b = demeth b in
-      match b.descr with
-        | Custom { typ = Ground.Int.Type } | Custom { typ = Ground.Float.Type }
-          ->
-            ()
-        | Custom c -> c.satisfies_constraint satisfies_constraint b Num
-        | Var { contents = Free v } ->
-            if not (List.mem Num v.constraints) then
-              v.constraints <- Num :: v.constraints
-        | _ -> raise (Unsatisfied_constraint (Num, b)))
+let satisfies_constraint b constr = constr#satisfied b
 
 let satisfies_constraints b c = List.iter (satisfies_constraint b) c
 
@@ -551,7 +476,7 @@ let rec ( <: ) a b =
           with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
       | Var { contents = Free _ }, _ -> (
           try bind a b
-          with Occur_check _ | Unsatisfied_constraint _ ->
+          with Occur_check _ | Unsatisfied_constraint ->
             (* Can't do more concise than a full representation, as the problem
                isn't local. *)
             raise (Error (Repr.make a, Repr.make b)))
@@ -561,7 +486,7 @@ let rec ( <: ) a b =
         when (not (has_meth a)) || v.constraints = [] || (demeth a).descr = unit
         -> (
           try bind ~variance:Covariant b a
-          with Occur_check _ | Unsatisfied_constraint _ ->
+          with Occur_check _ | Unsatisfied_constraint ->
             raise (Error (Repr.make a, Repr.make b)))
       | _, Nullable t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))

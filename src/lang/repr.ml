@@ -356,10 +356,10 @@ let print f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
         vars
-    | `EVar (a, [InternalMedia]) ->
+    | `EVar (a, [c]) when c#t = Format_type.InternalMedia ->
         Format.fprintf f "?internal(%s)" a;
         vars
-    | `UVar (a, [InternalMedia]) ->
+    | `UVar (a, [c]) when c#t = Format_type.InternalMedia ->
         Format.fprintf f "internal(%s)" a;
         vars
     | `EVar (name, c) | `UVar (name, c) ->

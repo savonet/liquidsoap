@@ -23,7 +23,7 @@
 let () = Lang.add_module "list"
 
 let () =
-  let a = Lang.univ_t ~constraints:[Type.Ord] () in
+  let a = Lang.univ_t ~constraints:[Type.ord_constr] () in
   Lang.add_builtin "_[_]" ~category:`List
     ~descr:
       "l[k] returns the first v such that (k,v) is in the list l (or \"\" if \

@@ -80,7 +80,7 @@ let () =
         | _ -> Lang.apply f [("", x)])
 
 let () =
-  let a = Lang.univ_t ~constraints:[Type.Ord] () in
+  let a = Lang.univ_t ~constraints:[Type.ord_constr] () in
   let b = Lang.univ_t () in
   Lang.add_builtin ~category:`Liquidsoap "getter.map.memoize"
     ~descr:
