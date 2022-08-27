@@ -23,9 +23,9 @@
 open Mm
 open Source
 
-class clip ~kind (source : source) =
+class clip (source : source) =
   object
-    inherit operator ~name:"clip" kind [source]
+    inherit operator ~name:"clip" [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -43,7 +43,7 @@ class clip ~kind (source : source) =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "clip"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:`Audio
@@ -54,5 +54,4 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      let kind = Kind.of_kind kind in
-      new clip ~kind src)
+      new clip src)

@@ -604,12 +604,8 @@ let () =
     Frame.mk_fields ~audio:Frame.none ~video:raw_video_format ~midi:Frame.none
       ()
   in
-  let audio_t =
-    Lang.(source_t ~methods:false (kind_type_of_kind_format audio_frame))
-  in
-  let video_t =
-    Lang.(source_t ~methods:false (kind_type_of_kind_format video_frame))
-  in
+  let audio_t = Lang.(source_t ~methods:false (frame_kind_t audio_frame)) in
+  let video_t = Lang.(source_t ~methods:false (frame_kind_t video_frame)) in
 
   Lang.add_builtin ~category:`Filter "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
@@ -629,8 +625,8 @@ let () =
       let graph = Graph.of_value graph_v in
       let source_val = Lang.assoc "" 2 p in
 
-      let kind =
-        Kind.of_kind
+      let frame_t =
+        Lang.frame_kind_t
           (Frame.mk_fields
            (* We need to make sure that we are using a format here to
               ensure that its params are properly unified with the underlying source. *)
@@ -644,12 +640,11 @@ let () =
       let s =
         try
           Ffmpeg_filter_io.(
-            new audio_output ~pass_metadata ~name ~kind source_val)
+            new audio_output ~pass_metadata ~name ~frame_t source_val)
         with
           | Source.Clock_conflict (a, b) ->
               raise (Error.Clock_conflict (pos, a, b))
           | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-          | Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
       in
       Queue.add (s :> Source.source) graph.graph_inputs;
 
@@ -681,7 +676,7 @@ let () =
       ~audio:(Frame.find_audio audio_frame)
       ~video:Frame.none ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format return_kind in
+  let return_t = Lang.frame_kind_t return_kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:`Audio
     ~descr:"Return an audio source from a filter's output" ~return_t
     [
@@ -698,8 +693,8 @@ let () =
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
 
-      let kind =
-        Kind.of_kind
+      let frame_t =
+        Lang.frame_kind_t
           (Frame.mk_fields ~audio:(`Kind Ffmpeg_raw_content.Audio.kind)
              ~video:Frame.none ~midi:Frame.none ())
       in
@@ -708,7 +703,7 @@ let () =
           ~pull:(fun () -> pull graph)
           ~is_ready:(fun () -> is_ready graph)
           ~self_sync:(fun () -> self_sync graph)
-          ~self_sync_type:(self_sync_type graph) ~pass_metadata kind
+          ~self_sync_type:(self_sync_type graph) ~pass_metadata frame_t
       in
       Queue.add (s :> Source.source) graph.graph_outputs;
 
@@ -746,8 +741,8 @@ let () =
       let graph = Graph.of_value graph_v in
       let source_val = Lang.assoc "" 2 p in
 
-      let kind =
-        Kind.of_kind
+      let frame_t =
+        Lang.frame_kind_t
           (Frame.mk_fields
            (* We need to make sure that we are using a format here to
               ensure that its params are properly unified with the underlying source. *)
@@ -762,12 +757,11 @@ let () =
       let s =
         try
           Ffmpeg_filter_io.(
-            new video_output ~pass_metadata ~name ~kind source_val)
+            new video_output ~pass_metadata ~name ~frame_t source_val)
         with
           | Source.Clock_conflict (a, b) ->
               raise (Error.Clock_conflict (pos, a, b))
           | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-          | Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
       in
       Queue.add (s :> Source.source) graph.graph_inputs;
 
@@ -798,7 +792,7 @@ let () =
       ~video:(Frame.find_video video_frame)
       ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format return_kind in
+  let return_t = Lang.frame_kind_t return_kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:`Video
     ~descr:"Return a video source from a filter's output" ~return_t
     [
@@ -823,8 +817,8 @@ let () =
       let fps = Option.map (fun v -> lazy (Lang.to_int v)) fps in
       let fps = Option.value fps ~default:Frame.video_rate in
 
-      let kind =
-        Kind.of_kind
+      let frame_t =
+        Lang.frame_kind_t
           (Frame.mk_fields ~audio:Frame.none
              ~video:(`Kind Ffmpeg_raw_content.Video.kind) ~midi:Frame.none ())
       in
@@ -833,7 +827,7 @@ let () =
           ~pull:(fun () -> pull graph)
           ~is_ready:(fun () -> is_ready graph)
           ~self_sync:(fun () -> self_sync graph)
-          ~self_sync_type:(self_sync_type graph) ~pass_metadata ~fps kind
+          ~self_sync_type:(self_sync_type graph) ~pass_metadata ~fps frame_t
       in
       Queue.add (s :> Source.source) graph.graph_outputs;
 

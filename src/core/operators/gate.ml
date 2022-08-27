@@ -23,10 +23,9 @@
 open Mm
 open Source
 
-class gate ~kind ~threshold ~attack ~release ~hold ~range ~window
-  (source : source) =
+class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
   object (self)
-    inherit operator ~name:"gate" kind [source]
+    inherit operator ~name:"gate" [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -101,7 +100,7 @@ class gate ~kind ~threshold ~attack ~release ~hold ~range ~window
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "gate"
     [
       ( "attack",
@@ -153,5 +152,4 @@ let () =
       let window = List.assoc "window" p |> Lang.to_float_getter in
       let window () = window () /. 1000. in
       let src = List.assoc "" p |> Lang.to_source in
-      let kind = Kind.of_kind kind in
-      new gate ~kind ~threshold ~attack ~release ~hold ~range ~window src)
+      new gate ~threshold ~attack ~release ~hold ~range ~window src)

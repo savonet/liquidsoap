@@ -434,14 +434,14 @@ let mk_encoder mode =
           | _ -> Frame.none)
       ~midi:Frame.none ()
   in
-  let source_t = Lang.kind_type_of_kind_format source_kind in
+  let source_t = Lang.frame_kind_t source_kind in
   let return_kind =
     Frame.mk_fields
       ~audio:(if has_audio then Frame.audio_pcm else Frame.none)
       ~video:(if has_video then Frame.video_yuva420p else Frame.none)
       ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format return_kind in
+  let return_t = Lang.frame_kind_t return_kind in
   let extension =
     match mode with
       | `Audio_encoded -> "decode.audio"
@@ -515,13 +515,18 @@ let mk_encoder mode =
 
       let consumer =
         new Producer_consumer.consumer
-          ~write_frame:decode_frame ~name:(id ^ ".consumer")
-          ~kind:(Kind.of_kind source_kind) ~source ()
+          ~write_frame:decode_frame ~name:(id ^ ".consumer") ~source ()
       in
-      new Producer_consumer.producer
-      (* We are expecting real-rate with a couple of hickups.. *)
-        ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer")
-        ~kind:(Kind.of_kind return_kind) generator)
+      Typing.(consumer#frame_type <: Lang.frame_kind_t source_kind);
+
+      let producer =
+        new Producer_consumer.producer
+        (* We are expecting real-rate with a couple of hickups.. *)
+          ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer")
+          generator
+      in
+      Typing.(producer#frame_type <: Lang.frame_kind_t return_kind);
+      producer)
 
 let () =
   List.iter mk_encoder

@@ -37,7 +37,7 @@ type track_mode = Sensitive | Insensitive
 
 type selection = { child : child; effective_source : source }
 
-class virtual switch ~kind ~name ~override_meta ~transition_length
+class virtual switch ~name ~override_meta ~transition_length
   ?(mode = fun () -> true) ?(replay_meta = true) (cases : child list) =
   let sources = ref (List.map (fun c -> c.source) cases) in
   let failed = ref false in
@@ -52,7 +52,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
     if !failed then lazy `Dynamic else Utils.self_sync_type !sources
   in
   object (self)
-    inherit operator ~name kind (List.map (fun x -> x.source) cases)
+    inherit operator ~name (List.map (fun x -> x.source) cases)
     val mutable transition_length = transition_length
     val mutable selected : selection option = None
 
@@ -170,7 +170,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                        * transition in between. *)
                       match c.source#last_metadata with
                         | Some m when replay_meta ->
-                            new Insert_metadata.replay ~kind m c.source
+                            new Insert_metadata.replay m c.source
                         | _ -> c.source
                     in
                     new_source#get_ready activation;
@@ -185,7 +185,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                     to_finish <- old_selection.effective_source :: to_finish;
                     Clock.collect_after (fun () ->
                         let old_source =
-                          if forget then Debug_sources.empty kind
+                          if forget then Debug_sources.empty ()
                           else old_selection.child.source
                         in
                         let new_source =
@@ -198,7 +198,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                            * transition in between. *)
                           match c.source#last_metadata with
                             | Some m when replay_meta ->
-                                new Insert_metadata.replay ~kind m c.source
+                                new Insert_metadata.replay m c.source
                             | _ -> c.source
                         in
                         let s =
@@ -215,11 +215,10 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                             | _ ->
                                 let s =
                                   new Max_duration.max_duration
-                                    ~kind ~override_meta
-                                    ~duration:transition_length s
+                                    ~override_meta ~duration:transition_length s
                                 in
                                 new Sequence.sequence
-                                  ~kind ~merge:true [s; new_source]
+                                  ~merge:true [s; new_source]
                         in
                         Clock.unify s#clock self#clock;
                         s#get_ready activation;
@@ -302,13 +301,13 @@ let find ?(strict = false) f l =
   in
   aux l
 
-class lang_switch ~kind ~override_meta ~all_predicates ~transition_length mode
+class lang_switch ~override_meta ~all_predicates ~transition_length mode
   ?replay_meta (children : (Lang.value * bool * child) list) =
   object
     inherit
       switch
-        ~name:"switch" ~kind ~mode ~override_meta ~transition_length
-          ?replay_meta (List.map third children)
+        ~name:"switch" ~mode ~override_meta ~transition_length ?replay_meta
+          (List.map third children)
 
     method private select =
       let selected s =
@@ -339,7 +338,7 @@ class lang_switch ~kind ~override_meta ~all_predicates ~transition_length mode
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   Lang.add_operator "switch" ~category:`Track
     ~descr:
@@ -348,10 +347,7 @@ let () =
     ~meth:
       [
         ( "selected",
-          ( [],
-            Lang.fun_t []
-              (Lang.nullable_t Lang.(source_t (kind_type_of_kind_format kind)))
-          ),
+          ([], Lang.fun_t [] (Lang.nullable_t Lang.(source_t return_t))),
           "Currently selected source.",
           fun s ->
             Lang.val_fun [] (fun _ ->
@@ -454,7 +450,6 @@ let () =
                ( List.assoc "single" p,
                  "there should be exactly one flag per children" ))
       in
-      let kind = Kind.of_kind kind in
       new lang_switch
-        ~kind ~replay_meta ~override_meta ~all_predicates ~transition_length:tl
-        ts children)
+        ~replay_meta ~override_meta ~all_predicates ~transition_length:tl ts
+        children)

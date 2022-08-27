@@ -53,13 +53,12 @@ module Tutils = struct
     (kill, wait)
 end
 
-class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
+class output ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
   ~encoder_factory source =
   object (self)
     inherit
       Output.encoded
-        ~output_kind:"udp" ~content_kind:kind ~on_start ~on_stop ~infallible
-          ~autostart
+        ~output_kind:"udp" ~on_start ~on_stop ~infallible ~autostart
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
         source
 
@@ -108,7 +107,7 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
-class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
+class input ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
   let max_ticks = 2 * Frame.main_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
@@ -123,8 +122,8 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 
     inherit
       Start_stop.active_source
-        ~name:"input.udp" ~content_kind:kind ~clock_safe:false ~fallible:true
-          ~on_start:ignore ~on_stop:ignore ~autostart:true ()
+        ~name:"input.udp" ~clock_safe:false ~fallible:true ~on_start:ignore
+          ~on_stop:ignore ~autostart:true ()
 
     initializer log_ref := fun s -> self#log#important "%s" s
     val mutable kill_feeding = None
@@ -135,8 +134,8 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
     method private start =
       begin
         let decoder args =
-          let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
-          (get_stream_decoder self#ctype args, buffer)
+          let buffer = Decoder.mk_buffer ~ctype:self#content_type generator in
+          (get_stream_decoder self#content_type args, buffer)
         in
         decoder_factory <- Some decoder;
         match wait_feeding with
@@ -201,7 +200,7 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "output.udp"
     ~descr:"Output encoded data to UDP, without any control whatsoever."
     ~category:`Output
@@ -238,15 +237,14 @@ let () =
                (fmt, "Cannot get a stream encoder for that format"))
       in
       let source = Lang.assoc "" 2 p in
-      let kind = Kind.of_kind kind in
       (new output
-         ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
+         ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
          ~encoder_factory:fmt source
         :> Source.source))
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "input.udp"
     ~descr:"Input encoded data from UDP, without any control whatsoever."
     ~category:`Input
@@ -281,7 +279,5 @@ let () =
                      "Cannot get a stream decoder for this MIME" ))
           | Some decoder_factory -> decoder_factory
       in
-      let kind = Kind.of_kind kind in
-      (new input
-         ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
+      (new input ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
         :> Source.source))

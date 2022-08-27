@@ -24,9 +24,9 @@
  *  that the underlying source is cleaned up when it's done
  *  pulling. Used in switch-based transitions to avoid infinite
  *  stack of sources. *)
-class max_duration ~kind ~override_meta ~duration source =
+class max_duration ~override_meta ~duration source =
   object (self)
-    inherit Source.operator ~name:"max_duration" kind []
+    inherit Source.operator ~name:"max_duration" []
     val mutable remaining = duration
     val mutable s : Source.source = source
     method self_sync = source#self_sync
@@ -72,13 +72,13 @@ class max_duration ~kind ~override_meta ~duration source =
       remaining <- remaining - Frame.position buf + offset;
       if remaining <= 0 then (
         s#leave (self :> Source.source);
-        s <- Debug_sources.empty kind;
+        s <- Debug_sources.empty ();
         s#get_ready [(self :> Source.source)])
   end
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "max_duration"
     [
       ( "override",
@@ -97,5 +97,4 @@ let () =
         Frame.main_of_seconds (Lang.to_float (Lang.assoc "" 1 p))
       in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
-      let kind = Kind.of_kind kind in
-      new max_duration ~kind ~override_meta ~duration s)
+      new max_duration ~override_meta ~duration s)

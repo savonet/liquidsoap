@@ -76,7 +76,6 @@
   content_timed
   conversion
   configure
-  core_types
   cross
   cuepoint
   debug_sources
@@ -110,6 +109,7 @@
   frame
   frame_base
   frame_settings
+  frame_type
   format_type
   gate
   generated
@@ -131,7 +131,6 @@
   ioRing
   json
   keyboard
-  kind
   lang
   lang_avi
   lang_encoder

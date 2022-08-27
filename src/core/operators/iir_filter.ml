@@ -27,11 +27,11 @@ open Filter
 type filter_type = Band_stop | Band_pass | High_pass | Low_pass | All_pass
 type filter_family = Butterworth | Resonator
 
-class iir ~kind (source : source) filter_family filter_type order freq1 freq2
-  qfactor =
+class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
+  =
   let rate = float (Frame.audio_of_seconds 1.) in
   object (self)
-    inherit operator ~name:"iir_filter" kind [source]
+    inherit operator ~name:"iir_filter" [source]
 
     (* Params *)
     val raw_alpha1 = freq1 /. rate
@@ -436,7 +436,7 @@ let () =
   Lang.add_module "filter.iir.butterworth";
   Lang.add_module "filter.iir.resonator";
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.iir.butterworth.high"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
@@ -451,8 +451,7 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      new iir ~kind src Butterworth High_pass order freq 0. 0.);
+      new iir src Butterworth High_pass order freq 0. 0.);
   Lang.add_operator "filter.iir.butterworth.low"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
@@ -467,8 +466,7 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      new iir ~kind src Butterworth Low_pass order freq 0. 0.);
+      new iir src Butterworth Low_pass order freq 0. 0.);
   Lang.add_operator "filter.iir.butterworth.bandpass"
     [
       ("frequency1", Lang.float_t, None, Some "First corner frequency");
@@ -485,8 +483,7 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      new iir ~kind src Butterworth Band_pass order freq1 freq2 0.);
+      new iir src Butterworth Band_pass order freq1 freq2 0.);
   Lang.add_operator "filter.iir.butterworth.bandstop"
     [
       ("frequency1", Lang.float_t, None, Some "First corner frequency");
@@ -503,8 +500,7 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      new iir ~kind src Butterworth Band_stop order freq1 freq2 0.);
+      new iir src Butterworth Band_stop order freq1 freq2 0.);
   Lang.add_operator "filter.iir.resonator.bandpass"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
@@ -519,8 +515,7 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      new iir ~kind src Resonator Band_pass 0 freq 0. q);
+      new iir src Resonator Band_pass 0 freq 0. q);
   Lang.add_operator "filter.iir.resonator.bandstop"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
@@ -535,8 +530,7 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      new iir ~kind src Resonator Band_pass 0 freq 0. q);
+      new iir src Resonator Band_pass 0 freq 0. q);
   Lang.add_operator "filter.iir.resonator.allpass"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
@@ -551,5 +545,4 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      new iir ~kind src Resonator Band_pass 0 freq 0. q)
+      new iir src Resonator Band_pass 0 freq 0. q)

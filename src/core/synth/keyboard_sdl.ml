@@ -82,10 +82,10 @@ let char_of_key k =
 let note_of_char c =
   try array_index knotes2 c + 71 with Not_found -> array_index knotes1 c + 59
 
-class keyboard ~kind velocity =
+class keyboard velocity =
   let () = Sdl_utils.init [Sdl.Init.events; Sdl.Init.video] in
   object (self)
-    inherit Source.active_source ~name:"input.keyboard.sdl" (Kind.of_kind kind)
+    inherit Source.active_source ~name:"input.keyboard.sdl" ()
     inherit Source.no_seek
     method stype = `Infallible
     method is_ready = true
@@ -155,7 +155,7 @@ class keyboard ~kind velocity =
 
 let () =
   let kind = Lang.midi in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "input.keyboard.sdl"
     [
       ( "velocity",
@@ -168,4 +168,4 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let velocity = Lang.to_float (f "velocity") in
-      (new keyboard ~kind velocity :> Source.source))
+      (new keyboard velocity :> Source.source))

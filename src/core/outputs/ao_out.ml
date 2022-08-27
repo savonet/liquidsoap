@@ -30,7 +30,7 @@ open Ao
   * per driver... but it might also depend on driver options. *)
 let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "ao")
 
-class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
+class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   ~options ?channels_matrix source start =
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -38,8 +38,8 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   object (self)
     inherit
       Output.output
-        ~content_kind:kind ~infallible ~on_start ~on_stop ~name:"ao"
-          ~output_kind:"output.ao" source start as super
+        ~infallible ~on_start ~on_stop ~name:"ao" ~output_kind:"output.ao"
+          source start as super
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
 
@@ -105,7 +105,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "output.ao"
     (Output.proto
     @ [
@@ -159,8 +159,7 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let kind = Kind.of_kind kind in
       (new output
-         ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
+         ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
          ?channels_matrix ~options source start
         :> Output.output))

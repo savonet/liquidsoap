@@ -28,7 +28,7 @@ let noop () = ()
 
 (** From the script perspective, the operator sending data to a filter graph
   * is an output. *)
-class audio_output ~pass_metadata ~name ~kind source_val =
+class audio_output ~pass_metadata ~name ~frame_t source_val =
   let convert_frame_pts =
     lazy
       Ffmpeg_utils.(
@@ -38,11 +38,16 @@ class audio_output ~pass_metadata ~name ~kind source_val =
   object (self)
     inherit
       Output.output
-        ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
+        ~infallible:false ~on_stop:noop ~on_start:noop ~name
           ~output_kind:"ffmpeg.filter.input" source_val true
 
     inherit Source.no_seek
-    initializer Kind.unify (Lang.to_source source_val)#kind self#kind
+
+    initializer
+    Typing.(
+      self#frame_type <: frame_t;
+      (Lang.to_source source_val)#frame_type <: self#frame_type)
+
     val mutable input = fun _ -> ()
     method set_input fn = input <- fn
     val mutable init : Avutil.audio Avutil.frame -> unit = fun _ -> assert false
@@ -79,7 +84,7 @@ class audio_output ~pass_metadata ~name ~kind source_val =
         frames
   end
 
-class video_output ~pass_metadata ~kind ~name source_val =
+class video_output ~pass_metadata ~name ~frame_t source_val =
   let convert_frame_pts =
     lazy
       Ffmpeg_utils.(
@@ -89,10 +94,14 @@ class video_output ~pass_metadata ~kind ~name source_val =
   object (self)
     inherit
       Output.output
-        ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
+        ~infallible:false ~on_stop:noop ~on_start:noop ~name
           ~output_kind:"ffmpeg.filter.input" source_val true
 
-    initializer Kind.unify (Lang.to_source source_val)#kind self#kind
+    initializer
+    Typing.(
+      self#frame_type <: frame_t;
+      (Lang.to_source source_val)#frame_type <: self#frame_type)
+
     val mutable input : Swscale.Frame.t -> unit = fun _ -> ()
     method set_input fn = input <- fn
     val mutable init : Avutil.video Avutil.frame -> unit = fun _ -> assert false
@@ -176,18 +185,19 @@ type audio_config = {
 }
 
 (* Same thing here. *)
-class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata kind
-  =
+class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata
+  frame_t =
   let generator = Generator.create `Audio in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
-    inherit Source.source kind ~name:"ffmpeg.filter.output"
+    inherit Source.source ~name:"ffmpeg.filter.output" ()
     inherit Source.no_seek
 
     inherit
       [[ `Audio ]] input_base
         ~generator ~self_sync_type ~self_sync ~is_ready ~pull
 
+    initializer Typing.(self#frame_type <: frame_t)
     val mutable config = None
 
     method set_output v =
@@ -200,7 +210,7 @@ class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata kind
         }
       in
       Content.merge
-        (Frame.find_audio self#ctype)
+        (Frame.find_audio self#content_type)
         (Ffmpeg_raw_content.Audio.lift_params output_format);
       output <- Some v
 
@@ -260,17 +270,19 @@ type video_config = {
 }
 
 class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
-  kind =
+  frame_t =
   let generator = Generator.create `Video in
   let duration = lazy (Frame.main_of_seconds (1. /. float (Lazy.force fps))) in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
-    inherit Source.source kind ~name:"ffmpeg.filter.output"
+    inherit Source.source ~name:"ffmpeg.filter.output" ()
     inherit Source.no_seek
 
     inherit
       [[ `Video ]] input_base
         ~generator ~self_sync_type ~self_sync ~is_ready ~pull
+
+    initializer Typing.(self#frame_type <: frame_t)
 
     method set_output v =
       let output_format =
@@ -282,7 +294,7 @@ class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
         }
       in
       Content.merge
-        (Frame.find_video self#ctype)
+        (Frame.find_video self#content_type)
         (Ffmpeg_raw_content.Video.lift_params output_format);
       output <- Some v
 

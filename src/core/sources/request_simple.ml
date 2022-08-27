@@ -25,7 +25,7 @@ open Request_source
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "request.once" ~category:`Input
     ~descr:"Play a request once and become unavailable."
     [
@@ -54,15 +54,14 @@ let () =
     (fun p ->
       let timeout = List.assoc "timeout" p |> Lang.to_float in
       let r = List.assoc "" p |> Request.Value.of_value in
-      let kind = Kind.of_kind kind in
-      new once ~kind ~name:"request.once" ~timeout r)
+      new once ~name:"request.once" ~timeout r)
 
 exception Invalid_URI of string
 
 (** [r] must resolve and be always ready. *)
-class unqueued ~kind ~timeout request =
+class unqueued ~timeout request =
   object (self)
-    inherit Request_source.unqueued ~name:"single" ~kind as super
+    inherit Request_source.unqueued ~name:"single" as super
 
     method wake_up x =
       let uri = Request.initial_uri request in
@@ -70,7 +69,7 @@ class unqueued ~kind ~timeout request =
         (Lang_string.quote_string uri);
       if
         Request.Resolved
-        <> Request.resolve ~ctype:(Some self#ctype) request timeout
+        <> Request.resolve ~ctype:(Some self#content_type) request timeout
       then raise (Invalid_URI uri);
       let filename = Option.get (Request.get_filename request) in
       if String.length filename < 15 then (
@@ -83,10 +82,9 @@ class unqueued ~kind ~timeout request =
     method get_next_file = `Request request
   end
 
-class queued ~kind uri prefetch timeout =
+class queued uri prefetch timeout =
   object (self)
-    inherit
-      Request_source.queued ~name:"single" ~kind ~prefetch ~timeout () as super
+    inherit Request_source.queued ~name:"single" ~prefetch ~timeout () as super
 
     method wake_up x =
       if String.length uri < 15 then self#set_id uri;
@@ -105,7 +103,7 @@ let log = Log.make ["single"]
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "single" ~category:`Input
     ~descr:
       "Loop on a request. It never fails if the request is static, meaning \
@@ -123,28 +121,26 @@ let () =
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let l, t = extract_queued_params p in
       let uri = Lang.to_string val_uri in
-      let kind = Kind.of_kind kind in
       if (not fallible) && Request.is_static uri then (
         let request = Request.create ~persistent:true uri in
-        (new unqueued ~kind ~timeout:t request :> source))
-      else (new queued uri ~kind l t :> source))
+        (new unqueued ~timeout:t request :> source))
+      else (new queued uri l t :> source))
 
 let () =
   let kind = Lang.any in
-  let t = Lang.kind_type_of_kind_format kind in
+  let t = Lang.frame_kind_t kind in
   Lang.add_operator "single.infallible" ~category:`Input ~flags:[`Hidden]
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
        WARNING: if used uncarefully, it can crash your application!"
     [("", Request.Value.t, None, None)] ~return_t:t (fun p ->
       let request = Request.Value.of_value (List.assoc "" p) in
-      let kind = Kind.of_kind kind in
-      (new unqueued ~kind ~timeout:60. request :> source))
+      (new unqueued ~timeout:60. request :> source))
 
-class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
+class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
   object (self)
     inherit
-      Request_source.queued ~kind ~name:"request.dynamic" ~prefetch ~timeout () as super
+      Request_source.queued ~name:"request.dynamic" ~prefetch ~timeout () as super
 
     val mutable retry_status = None
 
@@ -178,7 +174,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
 let () =
   let log = Log.make ["request"; "dynamic"] in
   let kind = Lang.any in
-  let t = Lang.kind_type_of_kind_format kind in
+  let t = Lang.frame_kind_t kind in
   Lang.add_operator "request.dynamic" ~category:`Input
     ~descr:"Play request dynamically created by a given function."
     (("", Lang.fun_t [] (Lang.nullable_t Request.Value.t), None, None)
@@ -266,5 +262,4 @@ let () =
       let available = Lang.to_bool_getter (List.assoc "available" p) in
       let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in
       let l, t = extract_queued_params p in
-      let kind = Kind.of_kind kind in
-      new dynamic ~kind ~available ~retry_delay f l t)
+      new dynamic ~available ~retry_delay f l t)

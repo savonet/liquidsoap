@@ -48,9 +48,9 @@ module Buffer = struct
   let proceed control f = Tutils.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~id ~kind c =
+  class producer ~id c =
     object (self)
-      inherit Source.source kind ~name:id
+      inherit Source.source ~name:id ()
       method self_sync = (`Static, false)
       method stype = `Fallible
       method remaining = proceed c (fun () -> Generator.remaining c.generator)
@@ -73,14 +73,13 @@ module Buffer = struct
     end
 
   class consumer ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
-    ~max_buffer ~kind source_val c =
+    ~max_buffer source_val c =
     let prebuf = Frame.main_of_seconds pre_buffer in
     let maxbuf = Frame.main_of_seconds max_buffer in
     object
       inherit
         Output.output
-          ~output_kind:id ~content_kind:kind ~infallible ~on_start ~on_stop
-            source_val autostart
+          ~output_kind:id ~infallible ~on_start ~on_stop source_val autostart
 
       method reset = ()
       method start = ()
@@ -101,7 +100,7 @@ module Buffer = struct
     end
 
   let create ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
-      ~max_buffer ~kind source_val =
+      ~max_buffer source_val =
     let control =
       {
         generator = Generator.create ();
@@ -113,15 +112,15 @@ module Buffer = struct
     let _ =
       new consumer
         ~id:(Printf.sprintf "%s.consumer" id)
-        ~autostart ~infallible ~on_start ~on_stop ~kind source_val ~pre_buffer
+        ~autostart ~infallible ~on_start ~on_stop source_val ~pre_buffer
         ~max_buffer control
     in
-    new producer ~id:(Printf.sprintf "%s.producer" id) ~kind control
+    new producer ~id:(Printf.sprintf "%s.producer" id) control
 end
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "buffer"
     ([
        ( "fallible",
@@ -158,9 +157,8 @@ let () =
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      let kind = Kind.of_kind kind in
       Buffer.create ~id ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
-        ~max_buffer ~kind s)
+        ~max_buffer s)
 
 module AdaptativeBuffer = struct
   (** Ringbuffers where number of channels is fixed on first write. *)
@@ -202,12 +200,12 @@ module AdaptativeBuffer = struct
   let proceed control f = Tutils.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~kind ~pre_buffer ~averaging ~limit c =
+  class producer ~pre_buffer ~averaging ~limit c =
     let prebuf = float (Frame.audio_of_seconds pre_buffer) in
     (* see get_frame for an explanation *)
     let alpha = log 2. *. AFrame.duration () /. averaging in
     object (self)
-      inherit Source.source kind ~name:"buffer.adaptative_producer"
+      inherit Source.source ~name:"buffer.adaptative_producer" ()
       inherit Source.no_seek
       method stype = `Fallible
       method self_sync = (`Static, false)
@@ -298,13 +296,13 @@ module AdaptativeBuffer = struct
     end
 
   class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
-    ~kind source_val c =
+    source_val c =
     let prebuf = Frame.audio_of_seconds pre_buffer in
     object
       inherit
         Output.output
-          ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
-            ~on_stop source_val autostart
+          ~output_kind:"buffer" ~infallible ~on_start ~on_stop source_val
+            autostart
 
       method reset = ()
       method start = ()
@@ -332,7 +330,7 @@ module AdaptativeBuffer = struct
     end
 
   let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
-      ~averaging ~limit ~reset ~kind source_val =
+      ~averaging ~limit ~reset source_val =
     let control =
       {
         lock = Mutex.create ();
@@ -345,15 +343,15 @@ module AdaptativeBuffer = struct
     in
     let _ =
       new consumer
-        ~autostart ~infallible ~on_start ~on_stop ~kind source_val ~pre_buffer
-        ~reset control
+        ~autostart ~infallible ~on_start ~on_stop source_val ~pre_buffer ~reset
+        control
     in
-    new producer ~kind ~pre_buffer ~averaging ~limit control
+    new producer ~pre_buffer ~averaging ~limit control
 end
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "buffer.adaptative"
     (Output.proto
     @ [
@@ -402,6 +400,5 @@ let () =
       let limit = if limit < 1. then 1. /. limit else limit in
       let reset = Lang.to_bool (List.assoc "reset" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      let kind = Kind.of_kind kind in
       AdaptativeBuffer.create ~infallible ~autostart ~on_start ~on_stop
-        ~pre_buffer ~max_buffer ~averaging ~limit ~reset ~kind s)
+        ~pre_buffer ~max_buffer ~averaging ~limit ~reset s)

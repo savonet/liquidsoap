@@ -19,8 +19,10 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
   *****************************************************************************)
+
 open Harbor_base
 module Monad = Duppy.Monad
+module Type = Liquidsoap_lang.Type
 
 module type Monad_t = module type of Monad with module Io := Monad.Io
 
@@ -106,26 +108,25 @@ module type T = sig
   (* Source input *)
 
   class virtual source :
-    kind:Kind.t
-    -> object
-         inherit Source.source
+    object
+      inherit Source.source
 
-         method virtual relay :
-           string ->
-           (string * string) list ->
-           ?read:(socket -> bytes -> int -> int -> int) ->
-           socket ->
-           unit
+      method virtual relay :
+        string ->
+        (string * string) list ->
+        ?read:(socket -> bytes -> int -> int -> int) ->
+        socket ->
+        unit
 
-         method virtual insert_metadata : (string, string) Hashtbl.t -> unit
+      method virtual insert_metadata : (string, string) Hashtbl.t -> unit
 
-         method virtual login :
-           string * (socket:socket -> string -> string -> bool)
+      method virtual login :
+        string * (socket:socket -> string -> string -> bool)
 
-         method virtual icy_charset : string option
-         method virtual meta_charset : string option
-         method virtual get_mime_type : string option
-       end
+      method virtual icy_charset : string option
+      method virtual meta_charset : string option
+      method virtual get_mime_type : string option
+    end
 
   val http_auth_check :
     ?args:(string, string) Hashtbl.t ->
@@ -163,9 +164,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (** Raised when source needs to retry read. *)
   exception Retry
 
-  class virtual source ~kind =
+  class virtual source =
     object
-      inherit Source.source ~name:"input.harbor" kind
+      inherit Source.source ~name:"input.harbor" ()
 
       method virtual relay
           : string ->

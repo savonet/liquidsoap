@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable stream generator.
+  Liquidsoap, a programmable audio stream generator.
   Copyright 2003-2022 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -16,25 +16,30 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-(** Content kind represent incomplete content specifications
-  * and are used in sources to negociate a baseline of content
-  * that works through a content production pipeline. *)
+open Liquidsoap_lang
 
-type kind
-type t = kind Frame.Fields.t
+val make :
+  ?pos:Pos.t -> audio:Type.t -> video:Type.t -> midi:Type.t -> unit -> Type.t
 
-val of_kind : Frame.content_kind -> t
-val to_string : t -> string
+val univ : ?pos:Pos.t -> unit -> Type.t
 
-exception Conflict of string * string
+val make_kind :
+  ?pos:Pos.t ->
+  [< `Any
+  | `Format of Content_base.format
+  | `Internal
+  | `Kind of Content_base.kind ] ->
+  Type.t
 
-val unify_kind : kind -> kind -> unit
-val unify : t -> t -> unit
-val set_audio : t -> Frame.kind -> t
-val set_video : t -> Frame.kind -> t
-val set_midi : t -> Frame.kind -> t
-val content_type : t -> Frame.content_type
+val set_audio : Type.t -> Type.t -> Type.t
+val set_video : Type.t -> Type.t -> Type.t
+val set_midi : Type.t -> Type.t -> Type.t
+val get_audio : Type.t -> Type.t
+val get_video : Type.t -> Type.t
+val get_midi : Type.t -> Type.t
+val to_string : Type.t -> string
+val content_type : Type.t -> Content_base.format Frame.Fields.t

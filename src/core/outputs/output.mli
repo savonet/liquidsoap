@@ -26,8 +26,7 @@
 val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
-  content_kind:Kind.t
-  -> output_kind:string
+  output_kind:string
   -> ?name:string
   -> infallible:bool
   -> on_start:(unit -> unit)
@@ -60,8 +59,7 @@ class virtual output :
 val meth : (string * Lang.scheme * string * (output -> Lang.value)) list
 
 class virtual encoded :
-  content_kind:Kind.t
-  -> output_kind:string
+  output_kind:string
   -> name:string
   -> infallible:bool
   -> on_start:(unit -> unit)
@@ -87,7 +85,6 @@ class dummy :
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> autostart:bool
-  -> kind:Kind.t
   -> Lang.value
   -> object
        inherit output

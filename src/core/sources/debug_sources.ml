@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class fail ~kind name =
+class fail name =
   object
-    inherit Source.source ~name kind
+    inherit Source.source ~name ()
     inherit Source.no_seek
     method stype = `Fallible
     method is_ready = false
@@ -32,23 +32,20 @@ class fail ~kind name =
     method get_frame _ = assert false
   end
 
-let fail kind = (new fail ~kind "fail" :> Source.source)
+let fail () = (new fail "fail" :> Source.source)
 let empty = fail
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "source.fail" ~category:`Input
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
-    ~return_t [] (fun _ ->
-      (let kind = Kind.of_kind kind in
-       new fail ~kind "source.fail"
-        :> Source.source))
+    ~return_t [] (fun _ -> (new fail "source.fail" :> Source.source))
 
-class fail_init ~kind =
+class fail_init =
   object
-    inherit fail ~kind "source.fail.init"
+    inherit fail "source.fail.init"
 
     method wake_up _ =
       raise
@@ -62,11 +59,9 @@ class fail_init ~kind =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "source.fail.init" ~category:`Input
     ~descr:
       "A source that errors during its initialization phase, used for testing \
        and debugging." ~flags:[`Experimental] ~return_t [] (fun _ ->
-      (let kind = Kind.of_kind kind in
-       new fail_init ~kind
-        :> Source.source))
+      (new fail_init :> Source.source))

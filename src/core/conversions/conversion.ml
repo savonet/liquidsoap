@@ -43,7 +43,7 @@ class base ?(audio = false) ?(video = false) ?(midi = false) ~converter
             (* We need to delay the creation of the frame in order not to evaluate
                the kind too early (the user has to have a chance of setting the
                default number of channels). *)
-            let frame = Frame.create source#ctype in
+            let frame = Frame.create source#content_type in
             tmp_frame <- Some frame;
             frame
 

@@ -23,10 +23,10 @@
 open Source
 module Generator = Generator.From_frames
 
-class accelerate ~kind ~ratio ~randomize source_val =
+class accelerate ~ratio ~randomize source_val =
   let source = Lang.to_source source_val in
   object (self)
-    inherit operator ~name:"accelerate" kind [source] as super
+    inherit operator ~name:"accelerate" [source] as super
 
     inherit
       Child_support.base ~check_self_sync:true [source_val] as child_support
@@ -46,7 +46,7 @@ class accelerate ~kind ~ratio ~randomize source_val =
 
     method private wake_up x =
       super#wake_up x;
-      null <- Frame.create self#ctype;
+      null <- Frame.create self#content_type;
       source#get_ready [(self :> source)]
 
     method private sleep = source#leave (self :> source)
@@ -102,7 +102,7 @@ class accelerate ~kind ~ratio ~randomize source_val =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "accelerate"
     [
       ( "ratio",
@@ -124,5 +124,4 @@ let () =
       let src = f "" in
       let ratio = Lang.to_float_getter (f "ratio") in
       let randomize = Lang.to_float_getter (f "randomize") in
-      let kind = Kind.of_kind kind in
-      new accelerate ~kind ~ratio ~randomize src)
+      new accelerate ~ratio ~randomize src)

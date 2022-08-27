@@ -22,9 +22,9 @@
 
 open Source
 
-class prepend ~kind ~merge source f =
+class prepend ~merge source f =
   object (self)
-    inherit operator ~name:"prepend" kind [source]
+    inherit operator ~name:"prepend" [source]
     val mutable state = `Idle
 
     method private get_frame buf =
@@ -33,7 +33,7 @@ class prepend ~kind ~merge source f =
             (* We're at the beginning of a track.
              * Let's peek one sample of data and read its metadata. *)
             (* TODO how does that play with caching ? *)
-            let peek = Frame.create self#ctype in
+            let peek = Frame.create self#content_type in
             let peekpos = AFrame.size () - 1 in
             AFrame.add_break peek peekpos;
             source#get peek;
@@ -145,7 +145,7 @@ class prepend ~kind ~merge source f =
 
 let register =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "prepend"
     [
       ( "merge",
@@ -171,5 +171,4 @@ let register =
       let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
       let source = Lang.to_source (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let kind = Kind.of_kind kind in
-      new prepend ~kind ~merge source f)
+      new prepend ~merge source f)

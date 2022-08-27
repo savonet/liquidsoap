@@ -36,10 +36,10 @@ open Source
   * performed immediately. *)
 type state = [ `Idle | `No_cue_out | `Cue_out of int * int ]
 
-class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
+class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
   let source = Lang.to_source source_val in
   object (self)
-    inherit operator ~name:"cue_cut" kind [source] as super
+    inherit operator ~name:"cue_cut" [source] as super
 
     inherit
       Child_support.base ~check_self_sync:true [source_val] as child_support
@@ -195,7 +195,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "cue_cut" ~return_t ~category:`Track
     ~descr:
       "Start track after a cue in point and stop it at cue out point. The cue \
@@ -227,5 +227,4 @@ let () =
       let on_cue_out = Lang.assoc "on_cue_out" 1 p in
       let on_cue_out () = ignore (Lang.apply on_cue_out []) in
       let s = Lang.assoc "" 1 p in
-      let kind = Kind.of_kind kind in
-      new cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out s)
+      new cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out s)

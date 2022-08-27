@@ -48,9 +48,9 @@ let plugin_dirs =
 let all_chans = 16
 
 (* chan = None means synth all channels *)
-class dssi ~kind ?chan plugin descr outputs params source =
+class dssi ?chan plugin descr outputs params source =
   object
-    inherit operator ~name:"dssi" (Kind.of_kind kind) [source]
+    inherit operator ~name:"dssi" [source]
     inherit Source.no_seek
     method stype = source#stype
     method remaining = source#remaining
@@ -135,7 +135,7 @@ let register_descr plugin_name descr_n descr outputs =
     Frame.mk_fields ~audio:(Frame.audio_n chans) ~video:`Any
       ~midi:(Frame.midi_n 1) ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   let liq_params = liq_params in
   Lang.add_operator
     ("synth.dssi."
@@ -152,12 +152,13 @@ let register_descr plugin_name descr_n descr outputs =
       let chan = Lang.to_int (f "channel") in
       let source = Lang.to_source (f "") in
       let params = params p in
-      new dssi ~kind plugin_name descr_n outputs params ~chan source);
+      new dssi plugin_name descr_n outputs params ~chan source);
+
   let kind =
     Frame.mk_fields ~audio:(Frame.audio_n chans) ~video:`Any
       ~midi:(Frame.midi_n all_chans) ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator
     ("synth.all.dssi."
     ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
@@ -168,7 +169,7 @@ let register_descr plugin_name descr_n descr outputs =
       let f v = List.assoc v p in
       let source = Lang.to_source (f "") in
       let params = params p in
-      new dssi ~kind plugin_name descr_n outputs params source)
+      new dssi plugin_name descr_n outputs params source)
 
 let register_plugin ?(log_errors = false) pname =
   try

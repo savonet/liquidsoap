@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Liquidsoap_lang.Lang_core
-open Core_types
 
 let log = Log.make ["lang"]
 let metadata_t = list_t (product_t string_t string_t)
@@ -230,8 +229,12 @@ let source_methods =
             float (frame_position +. in_frame_position)) );
   ]
 
-let source_t ?(methods = false) t =
-  let t = source_t t in
+let source_t ?(methods = false) frame_t =
+  let t =
+    Type.make
+      (Type.Constr
+         { Type.constructor = "source"; params = [(Type.Invariant, frame_t)] })
+  in
   if methods then
     method_t t
       (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
@@ -285,6 +288,9 @@ let add_operator =
            (fun id -> src#set_id id)
            (to_valued_option to_string (List.assoc "id" env)));
       let v = source (src :> Source.source) in
+      let generalized, return_t = Typing.generalize ~level:0 return_t in
+      let return_t = Typing.instantiate ~level:0 ~generalized return_t in
+      Typing.((V.of_value v)#frame_type <: return_t);
       _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
     in
     let f env =
@@ -299,7 +305,6 @@ let add_operator =
         | Source.Clock_conflict (a, b) ->
             raise (Error.Clock_conflict (pos, a, b))
         | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-        | Kind.Conflict (a, b) -> raise (Error.Kind_conflict (pos, a, b))
     in
     let return_t = source_t ~methods:true return_t in
     let return_t =

@@ -39,7 +39,7 @@ type chunk = {
   mutable len : int;
 }
 
-class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
+class pipe ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   ~restart ~restart_on_error source_val =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
@@ -57,7 +57,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   let bytes = Bytes.create Utils.pagesize in
   let source = Lang.to_source source_val in
   object (self)
-    inherit source ~name:"pipe" kind as super
+    inherit source ~name:"pipe" () as super
 
     (* We are expecting real-rate with a couple of hickups.. *)
     inherit
@@ -154,7 +154,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
       match tmp with
         | Some t -> t
         | None ->
-            let t = Frame.create self#ctype in
+            let t = Frame.create self#content_type in
             tmp <- Some t;
             t
 
@@ -292,7 +292,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "pipe"
     [
       ("process", Lang.string_t, None, Some "Process used to pipe data to.");
@@ -364,8 +364,7 @@ let () =
       let data_len =
         match data_len with None -> -1 | Some v -> Lang.to_int v
       in
-      let kind = Kind.of_kind kind in
       (new pipe
-         ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
+         ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
          ~restart_on_error ~process src
         :> source))

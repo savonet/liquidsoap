@@ -192,7 +192,7 @@ let () =
                       ~video:(`Kind Ffmpeg_copy_content.Video.kind)
                       ~midi:Frame.none () )
           in
-          let source_t = Lang.kind_type_of_kind_format source_kind in
+          let source_t = Lang.frame_kind_t source_kind in
           let args_t = ("", Lang.source_t source_t, None, None) :: args in
           Lang.add_operator ~category:`FFmpegFilter
             ("ffmpeg.filter.bitstream." ^ name)
@@ -271,14 +271,20 @@ let () =
                 | `Flush -> flush ()
               in
 
-              let kind = Kind.of_kind source_kind in
+              let frame_t = Lang.frame_kind_t source_kind in
               let consumer =
                 new Producer_consumer.consumer
-                  ~write_frame:encode_frame ~name:(name ^ ".consumer") ~kind
-                  ~source ()
+                  ~write_frame:encode_frame ~name:(name ^ ".consumer") ~source
+                  ()
               in
-              new Producer_consumer.producer
-                ~check_self_sync:false ~consumers:[consumer] ~kind
-                ~name:(name ^ ".producer") generator))
+              Typing.(consumer#frame_type <: frame_t);
+
+              let producer =
+                new Producer_consumer.producer
+                  ~check_self_sync:false ~consumers:[consumer]
+                  ~name:(name ^ ".producer") generator
+              in
+              Typing.(producer#frame_type <: frame_t);
+              producer))
         modes)
     Avcodec.BitstreamFilter.filters

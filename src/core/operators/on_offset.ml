@@ -28,9 +28,9 @@ let ( ++ ) = Int64.add
 let ticks_of_offset offset =
   Int64.of_float (offset *. float (Lazy.force Frame.main_rate))
 
-class on_offset ~kind ~force ~offset ~override f s =
+class on_offset ~force ~offset ~override f s =
   object (self)
-    inherit Source.operator ~name:"on_offset" kind [s]
+    inherit Source.operator ~name:"on_offset" [s]
     inherit Latest_metadata.source
     method stype = s#stype
     method is_ready = s#is_ready
@@ -81,7 +81,7 @@ class on_offset ~kind ~force ~offset ~override f s =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "on_offset"
     [
       ( "offset",
@@ -125,5 +125,4 @@ let () =
       let override = Lang.to_string (List.assoc "override" p) in
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
-      let kind = Kind.of_kind kind in
-      new on_offset ~kind ~offset ~force ~override f s)
+      new on_offset ~offset ~force ~override f s)

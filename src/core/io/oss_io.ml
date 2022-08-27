@@ -36,15 +36,14 @@ let force f fd x =
 (** Dedicated clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "OSS")
 
-class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
-  val_source =
+class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:(Kind.of_kind kind) ~name
-          ~output_kind:"output.oss" val_source start as super
+        ~infallible ~on_stop ~on_start ~name ~output_kind:"output.oss"
+          val_source start as super
 
     inherit Source.no_seek
 
@@ -85,12 +84,12 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
       assert (w = r)
   end
 
-class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
+class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source
-        ~get_clock ~clock_safe ~content_kind:(Kind.of_kind kind)
+        ~get_clock ~clock_safe
         ~name:(Printf.sprintf "oss_in(%s)" dev)
         ~on_start ~on_stop ~fallible ~autostart:start ()
 
@@ -129,7 +128,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "output.oss"
     (Output.proto
     @ [
@@ -161,9 +160,10 @@ let () =
       let device = e Lang.to_string "device" in
       let source = List.assoc "" p in
       (new output
-         ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
+         ~start ~on_start ~on_stop ~infallible ~clock_safe device source
         :> Output.output));
-  let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
+
+  let k = Lang.frame_kind_t Lang.audio_pcm in
   Lang.add_operator "input.oss"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
@@ -188,4 +188,4 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      new input ~kind ~start ~on_start ~on_stop ~fallible ~clock_safe device)
+      new input ~start ~on_start ~on_stop ~fallible ~clock_safe device)

@@ -22,9 +22,9 @@
 
 open Source
 
-class available ~kind ~track_sensitive ~override p (source : source) =
+class available ~track_sensitive ~override p (source : source) =
   object
-    inherit operator ~name:"source.available" kind [source]
+    inherit operator ~name:"source.available" [source]
     method stype = `Fallible
     method remaining = source#remaining
     method abort_track = source#abort_track
@@ -43,7 +43,7 @@ class available ~kind ~track_sensitive ~override p (source : source) =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "source.available"
     [
       ( "track_sensitive",
@@ -77,5 +77,4 @@ let () =
       let override = List.assoc "override" p |> Lang.to_bool in
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let pred = Lang.assoc "" 2 p |> Lang.to_bool_getter in
-      let kind = Kind.of_kind kind in
-      new available ~kind ~track_sensitive ~override pred s)
+      new available ~track_sensitive ~override pred s)

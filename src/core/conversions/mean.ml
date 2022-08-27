@@ -24,11 +24,7 @@ open Source
 
 class mean ~normalize source =
   object
-    inherit
-      operator
-        ~audio_in:Frame.audio_pcm
-        (Kind.of_kind Lang.audio_mono)
-        [source] ~name:"mean"
+    inherit operator ~audio_in:Frame.audio_pcm [source] ~name:"mean"
 
     inherit
       Conversion.base
@@ -52,15 +48,14 @@ class mean ~normalize source =
 
 let () =
   let in_kind =
-    Lang.frame_kind_t
+    Lang.frame_t
       (Frame.mk_fields
          ~audio:(Lang.kind_t Frame.audio_pcm)
          ~video:(Lang.univ_t ()) ~midi:(Lang.univ_t ()) ())
   in
   let out_kind =
-    let fields = Lang.of_frame_kind_t in_kind in
-    Lang.frame_kind_t
-      (Frame.set_audio_field fields (Lang.kind_t Frame.audio_mono))
+    let fields = Lang.of_frame_t in_kind in
+    Lang.frame_t (Frame.set_audio_field fields (Lang.kind_t Frame.audio_mono))
   in
   Lang.add_operator "mean"
     [

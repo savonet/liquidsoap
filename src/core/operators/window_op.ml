@@ -24,12 +24,10 @@ open Source
 
 type mode = RMS | Peak
 
-class window ~kind mode duration source =
+class window mode duration source =
   object (self)
     inherit
-      operator
-        kind [source]
-        ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
+      operator [source] ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
 
     method stype = source#stype
     method is_ready = source#is_ready
@@ -94,7 +92,7 @@ class window ~kind mode duration source =
 let declare mode suffix kind fun_ret_t f_ans =
   let name = match mode with RMS -> "rms" | Peak -> "peak" in
   let doc = match mode with RMS -> "RMS volume" | Peak -> "peak volume" in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator (name ^ suffix) ~category:`Audio
     ~meth:
       [
@@ -122,8 +120,7 @@ let declare mode suffix kind fun_ret_t f_ans =
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let duration = Lang.to_float_getter (f "duration") in
-      let kind = Kind.of_kind kind in
-      new window ~kind mode duration src)
+      new window mode duration src)
 
 let () =
   let mean value =

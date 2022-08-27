@@ -24,9 +24,9 @@ open Source
 
 type mode = Encode | Decode
 
-class msstereo ~kind (source : source) mode width =
+class msstereo (source : source) mode width =
   object
-    inherit operator ~name:"stereo.ms.encode" kind [source]
+    inherit operator ~name:"stereo.ms.encode" [source]
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
@@ -60,15 +60,14 @@ class msstereo ~kind (source : source) mode width =
 let () =
   Lang.add_module "stereo.ms";
   let kind = Lang.audio_stereo in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "stereo.ms.encode"
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:`Audio
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
-      let kind = Kind.of_kind kind in
-      new msstereo ~kind s Encode 0.);
+      new msstereo s Encode 0.);
   Lang.add_operator "stereo.ms.decode"
     [
       ( "width",
@@ -82,12 +81,11 @@ let () =
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let w = Lang.to_float (Lang.assoc "width" 1 p) in
-      let kind = Kind.of_kind kind in
-      new msstereo ~kind s Decode w)
+      new msstereo s Decode w)
 
-class spatializer ~kind ~width (source : source) =
+class spatializer ~width (source : source) =
   object
-    inherit operator ~name:"stereo.width" kind [source]
+    inherit operator ~name:"stereo.width" [source]
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
@@ -119,7 +117,7 @@ class spatializer ~kind ~width (source : source) =
 
 let () =
   let kind = Lang.audio_stereo in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "stereo.width"
     [
       ( "",
@@ -133,5 +131,4 @@ let () =
     (fun p ->
       let width = Lang.assoc "" 1 p |> Lang.to_float_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
-      let kind = Kind.of_kind kind in
-      new spatializer ~kind ~width s)
+      new spatializer ~width s)

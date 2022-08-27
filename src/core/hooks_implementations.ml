@@ -67,40 +67,9 @@ let () =
       with _ -> false
 
 let eval_check ~env:_ ~tm v =
-  let open Liquidsoap_lang in
-  let open Term in
-  match (Type.deref tm.t).Type.descr with
-    | Type.Constr
-        { Type.constructor = "source"; params = [(Type.Invariant, k)] } ->
-        let frame_content_of_t t =
-          match (Type.deref t).Type.descr with
-            | Type.Var _ -> `Any
-            | Type.Constr { Type.constructor; params = [(_, t)] } -> (
-                match (Type.deref t).Type.descr with
-                  | Type.Custom { Type.typ = Format_type.Type fmt } ->
-                      `Format fmt
-                  | Type.Var _ -> `Kind (Content.kind_of_string constructor)
-                  | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t))
-            | Type.Constr { Type.constructor = "none" } ->
-                `Kind (Content.kind_of_string "none")
-            | _ -> failwith ("Unhandled content: " ^ Type.to_string tm.t)
-        in
-        let k = Core_types.of_frame_kind_t k in
-        let k =
-          Frame.mk_fields
-            ~audio:(frame_content_of_t (Frame.find_audio k))
-            ~video:(frame_content_of_t (Frame.find_video k))
-            ~midi:(frame_content_of_t (Frame.find_midi k))
-            ()
-        in
-        if not (Lang_source.V.is_value v) then
-          raise
-            (Term.Internal_error
-               ( Option.to_list tm.t.Type.pos,
-                 "term has type source but is not a source: "
-                 ^ Value.to_string v ));
-        Kind.unify (Lang_source.V.of_value v)#kind (Kind.of_kind k)
-    | _ -> ()
+  let open Liquidsoap_lang.Term in
+  if Lang_source.V.is_value v then
+    Typing.(tm.t <: Lang.source_t (Lang_source.V.of_value v)#frame_type)
 
 let () = Hooks.eval_check := eval_check
 
@@ -110,7 +79,7 @@ let mk_kind ~pos (kind, params) =
     try
       let k = Content.kind_of_string kind in
       match params with
-        | [] -> Core_types.kind_t (`Kind k)
+        | [] -> Lang.kind_t (`Kind k)
         | [("", "any")] -> Type.var ()
         | [("", "internal")] ->
             Type.var ~constraints:[Format_type.internal_media] ()
@@ -119,7 +88,7 @@ let mk_kind ~pos (kind, params) =
             let f = mk_format param in
             List.iter (fun param -> Content.merge f (mk_format param)) params;
             assert (k = Content.kind f);
-            Core_types.kind_t (`Format f)
+            Lang.kind_t (`Format f)
     with _ ->
       let params =
         params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
@@ -148,6 +117,6 @@ let mk_source_ty ~pos name args =
   let video = mk_kind ~pos !video in
   let midi = mk_kind ~pos !midi in
 
-  Core_types.source_t (Core_types.frame_kind_t audio video midi)
+  Lang.source_t (Frame_type.make ~audio ~video ~midi ())
 
 let () = Hooks.mk_source_ty := mk_source_ty

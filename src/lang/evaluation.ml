@@ -145,14 +145,7 @@ let rec prepare_fun fv p env =
   (p, env)
 
 and eval (env : Env.t) tm =
-  let mk v =
-    (* Ensure that the kind computed at runtime for sources will agree with
-       the typing. *)
-    let v = { Value.pos = tm.t.Type.pos; Value.value = v } in
-    let fn = !Hooks.eval_check in
-    fn ~env ~tm v;
-    v
-  in
+  let mk v = { Value.pos = tm.t.Type.pos; Value.value = v } in
   match tm.term with
     | Ground g -> mk (Value.Ground g)
     | Encoder (e, p) ->
@@ -324,7 +317,11 @@ let eval ?env tm =
       | None -> Environment.default_environment ()
   in
   let env = List.map (fun (x, (_, v)) -> (x, Lazy.from_val v)) env in
-  eval env tm
+  let v = eval env tm in
+  (* This is used to unify runtime sources types with their infered type. *)
+  let fn = !Hooks.eval_check in
+  fn ~env ~tm v;
+  v
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
     evaluation of the next scripts. Also try to generate a structured

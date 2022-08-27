@@ -36,7 +36,7 @@ module Make (Harbor : T) = struct
     Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
       (Unix.getpeername s)
 
-  class http_input_server ~kind ~dumpfile ~logfile ~bufferize ~max ~icy ~port
+  class http_input_server ~dumpfile ~logfile ~bufferize ~max ~icy ~port
     ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
     ~on_disconnect ~login ~debug ~log_overfull ~timeout p =
     let max_ticks = Frame.main_of_seconds max in
@@ -49,7 +49,7 @@ module Make (Harbor : T) = struct
         `Undefined
     in
     object (self)
-      inherit Source.active_source ~name:Harbor.source_name kind as super
+      inherit Source.active_source ~name:Harbor.source_name () as super
       inherit Generated.source abg ~empty_on_abort:false ~replay_meta ~bufferize
       val mutable relay_socket = None
 
@@ -198,10 +198,12 @@ module Make (Harbor : T) = struct
             Pcre.get_substring sub 1
           with Not_found -> mime
         in
-        match Decoder.get_stream_decoder ~ctype:self#ctype mime with
+        match Decoder.get_stream_decoder ~ctype:self#content_type mime with
           | Some decoder ->
               let decoder args =
-                let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
+                let buffer =
+                  Decoder.mk_buffer ~ctype:self#content_type generator
+                in
                 (decoder args, buffer)
               in
               create_decoder <- decoder;
@@ -486,10 +488,9 @@ module Make (Harbor : T) = struct
         let on_disconnect () =
           ignore (Lang.apply (List.assoc "on_disconnect" p) [])
         in
-        let kind = Kind.of_kind Lang.any in
         new http_input_server
-          ~kind ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile ~logfile
-          ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
+          ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile ~logfile ~icy
+          ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
           ~on_disconnect ~debug ~log_overfull p)
 end
 

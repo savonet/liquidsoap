@@ -26,11 +26,11 @@ open Compress
 
 (** See http://www.musicdsp.org/archive.php?classid=4#169 *)
 
-class compress ~kind (source : source) attack release threshold ratio knee
-  rms_window gain =
+class compress (source : source) attack release threshold ratio knee rms_window
+  gain =
   let samplerate = Lazy.force Frame.audio_rate in
   object (self)
-    inherit operator ~name:"compress" kind [source] as super
+    inherit operator ~name:"compress" [source] as super
     val mutable effect = None
 
     method private wake_up a =
@@ -69,7 +69,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
   end
 
 let kind = Lang.audio_pcm
-let k = Lang.kind_type_of_kind_format kind
+let k = Lang.frame_kind_t kind
 
 let proto =
   [
@@ -112,9 +112,8 @@ let compress p =
       Lang.to_float_getter (f "gain"),
       Lang.to_source (f "") )
   in
-  let kind = Kind.of_kind kind in
   new compress
-    ~kind src
+    src
     (fun () -> attack () /. 1000.)
     (fun () -> release () /. 1000.)
     threshold ratio knee rmsw

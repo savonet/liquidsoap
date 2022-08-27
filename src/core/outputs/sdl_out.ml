@@ -26,13 +26,13 @@ open Mm
 
 open Tsdl
 
-class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
+class output ~infallible ~on_start ~on_stop ~autostart source =
   let () = Sdl_utils.init [Sdl.Init.video] in
   object (self)
     inherit
       Output.output
         ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~on_start ~on_stop
-          ~content_kind:(Kind.of_kind kind) source autostart
+          source autostart
 
     val mutable fullscreen = false
     val mutable window = None
@@ -95,7 +95,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
 
 let () =
   let kind = Lang.video_yuva420p in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "output.sdl"
     (Output.proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:`Output ~meth:Output.meth
@@ -112,7 +112,7 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output ~infallible ~autostart ~on_start ~on_stop ~kind source
+      (new output ~infallible ~autostart ~on_start ~on_stop source
         :> Output.output))
 
 let () =

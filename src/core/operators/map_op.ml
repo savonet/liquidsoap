@@ -22,9 +22,9 @@
 
 open Source
 
-class map ~kind source f =
+class map source f =
   object
-    inherit operator ~name:"audio.map" kind [source]
+    inherit operator ~name:"audio.map" [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -47,7 +47,7 @@ let to_fun_float f x = Lang.to_float (Lang.apply f [("", Lang.float x)])
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "audio.map"
     [
       ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);
@@ -59,5 +59,4 @@ let () =
     (fun p ->
       let f = to_fun_float (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
-      let kind = Kind.of_kind kind in
-      new map ~kind src f)
+      new map src f)

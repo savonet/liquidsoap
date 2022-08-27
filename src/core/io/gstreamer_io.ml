@@ -159,7 +159,7 @@ class virtual ['a, 'b] element_factory ~on_error =
 
 (* Audio/video output *)
 
-class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
+class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
   ?(blocking = true) source start (pipeline, audio_pipeline, video_pipeline) =
   let has_audio, audio_pipeline =
     match audio_pipeline with
@@ -174,8 +174,8 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
   object (self)
     inherit
       Output.output
-        ~content_kind:kind ~infallible ~on_start ~on_stop
-          ~name:"output.gstreamer" ~output_kind:"gstreamer" source start as super
+        ~infallible ~on_start ~on_stop ~name:"output.gstreamer"
+          ~output_kind:"gstreamer" source start as super
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
     val mutable started = false
@@ -328,7 +328,7 @@ let () =
 
 let () =
   let kind = Frame.mk_fields ~audio:Frame.audio_pcm ~video:`Any ~midi:`Any () in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "output.gstreamer.audio"
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:`Output ~meth:Output.meth
@@ -351,15 +351,14 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let kind = Kind.of_kind kind in
       (new output
-         ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start
+         ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start
          ("", Some pipeline, None)
         :> Output.output))
 
 let () =
   let kind = Frame.mk_fields ~audio:Frame.audio_pcm ~video:`Any ~midi:`Any () in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "output.gstreamer.video"
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:`Output ~meth:Output.meth
@@ -382,9 +381,8 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let kind = Kind.of_kind kind in
       (new output
-         ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start
+         ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start
          ("", None, Some pipeline)
         :> Output.output))
 
@@ -393,7 +391,7 @@ let () =
     Frame.mk_fields ~audio:Frame.audio_pcm ~video:Frame.video_yuva420p
       ~midi:`Any ()
   in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "output.gstreamer.audio_video"
     (output_proto ~return_t ~pipeline:""
     @ [
@@ -434,10 +432,9 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let kind = Kind.of_kind kind in
       (new output
-         ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking
-         source start
+         ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking source
+         start
          (pipeline, Some audio_pipeline, Some video_pipeline)
         :> Output.output))
 
@@ -449,7 +446,7 @@ module Generator = Generator.From_audio_video_plus
 
 type 'a sink = { pending : unit -> int; pull : unit -> 'a }
 
-class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
+class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
   let max = Lang.to_float (List.assoc "max" p) in
   let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
   let max_ticks = Frame.main_of_seconds max in
@@ -470,7 +467,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
   let rlog = ref (fun _ -> ()) in
   let gen = Generator.create ~log_overfull ~log:(fun x -> !rlog x) content in
   object (self)
-    inherit Source.source ~name:"input.gstreamer.audio_video" kind as super
+    inherit Source.source ~name:"input.gstreamer.audio_video" () as super
     inherit Source.no_seek
     inherit [string sink, Gstreamer.data sink] element_factory ~on_error
     initializer rlog := fun s -> self#log#important "%s" s
@@ -661,7 +658,7 @@ let () =
     Frame.mk_fields ~audio:Frame.audio_stereo ~video:Frame.video_yuva420p
       ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   let proto =
     input_proto
     @ [
@@ -714,14 +711,13 @@ let () =
       let video_pipeline =
         Lang.to_string_getter (List.assoc "video_pipeline" p)
       in
-      let kind = Kind.of_kind kind in
       new audio_video_input
-        p kind
+        p
         (pipeline, Some audio_pipeline, Some video_pipeline))
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   let proto =
     input_proto
     @ [
@@ -734,13 +730,12 @@ let () =
   Lang.add_operator "input.gstreamer.audio" proto ~return_t ~category:`Input
     ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
-      let kind = Kind.of_kind kind in
-      (new audio_video_input p kind ((fun () -> ""), Some pipeline, None)
+      (new audio_video_input p ((fun () -> ""), Some pipeline, None)
         :> Source.source))
 
 let () =
   let kind = Lang.video_yuva420p in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   let proto =
     input_proto
     @ [
@@ -753,6 +748,5 @@ let () =
   Lang.add_operator "input.gstreamer.video" proto ~return_t ~category:`Input
     ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
-      let kind = Kind.of_kind kind in
-      (new audio_video_input p kind ((fun () -> ""), None, Some pipeline)
+      (new audio_video_input p ((fun () -> ""), None, Some pipeline)
         :> Source.source))

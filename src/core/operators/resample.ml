@@ -24,17 +24,17 @@ open Mm
 open Source
 module Generator = Generator.From_frames
 
-class resample ~kind ~ratio source_val =
+class resample ~ratio source_val =
   let source = Lang.to_source source_val in
   let write_frame_ref = ref (fun _ -> ()) in
   let consumer =
     new Producer_consumer.consumer
       ~write_frame:(fun frame -> !write_frame_ref frame)
-      ~name:"stretch.consumer" ~kind ~source:source_val ()
+      ~name:"stretch.consumer" ~source:source_val ()
   in
   let generator = Generator.create () in
   object (self)
-    inherit operator ~name:"stretch" kind [(consumer :> Source.source)] as super
+    inherit operator ~name:"stretch" [(consumer :> Source.source)] as super
 
     inherit
       Child_support.base ~check_self_sync:true [source_val] as child_support
@@ -110,7 +110,7 @@ class resample ~kind ~ratio source_val =
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "stretch" (* TODO better name *)
     [
       ( "ratio",
@@ -127,5 +127,4 @@ let () =
       let f v = List.assoc v p in
       let src = f "" in
       let ratio = Lang.to_float_getter (f "ratio") in
-      let kind = Kind.of_kind kind in
-      new resample ~kind ~ratio src)
+      new resample ~ratio src)

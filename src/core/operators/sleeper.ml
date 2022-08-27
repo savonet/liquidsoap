@@ -22,10 +22,10 @@
 
 open Source
 
-class map ~kind source delay random freeze =
+class map source delay random freeze =
   let dt = AFrame.duration () in
   object
-    inherit operator kind [source]
+    inherit operator [source]
     val mutable lived = 0.
     method stype = source#stype
     method remaining = source#remaining
@@ -47,7 +47,7 @@ class map ~kind source delay random freeze =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "sleeper"
     [
       ( "delay",
@@ -78,5 +78,4 @@ let () =
       let random = AFrame.duration () *. random in
       let freeze = Lang.to_float (List.assoc "freeze" p) in
       let src = Lang.to_source (List.assoc "" p) in
-      let kind = Kind.of_kind kind in
-      new map ~kind src delay random freeze)
+      new map src delay random freeze)

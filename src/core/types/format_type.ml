@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type Type.custom += Type of Content.format
+type Type.custom += Type of Content_base.format
 type Type.constr_t += InternalMedia
 
 let get = function Type c -> c | _ -> assert false
@@ -28,20 +28,20 @@ let get = function Type c -> c | _ -> assert false
 let handler f =
   {
     Type.typ = Type f;
-    copy_with = (fun _ c -> Type (Content.duplicate (get c)));
+    copy_with = (fun _ c -> Type (Content_base.duplicate (get c)));
     occur_check = (fun _ _ c -> ignore (get c));
     filter_vars =
       (fun _ l c ->
         ignore (get c);
         l);
-    repr = (fun _ _ c -> `Constr (Content.string_of_format (get c), []));
+    repr = (fun _ _ c -> `Constr (Content_base.string_of_format (get c), []));
     satisfies_constraint = (fun _ _ -> raise Type.Unsatisfied_constraint);
-    subtype = (fun _ c c' -> Content.merge (get c) (get c'));
+    subtype = (fun _ c c' -> Content_base.merge (get c) (get c'));
     sup =
       (fun _ c c' ->
-        Content.merge (get c) (get c');
+        Content_base.merge (get c) (get c');
         c);
-    to_string = (fun c -> Content.string_of_format (get c));
+    to_string = (fun c -> Content_base.string_of_format (get c));
   }
 
 let internal_media : Type.constr =
@@ -52,12 +52,12 @@ let internal_media : Type.constr =
     method satisfied b =
       let is_internal name =
         try
-          let kind = Content.kind_of_string name in
-          Content.is_internal_kind kind
-        with Content.Invalid -> false
+          let kind = Content_base.kind_of_string name in
+          Content_base.is_internal_kind kind
+        with Content_base.Invalid -> false
       in
       let b = Type.demeth b in
-      match b.Type.descr with
+      match (Type.deref b).Type.descr with
         | Type.Constr { constructor } when is_internal constructor -> ()
         | Type.Custom { Type.typ; satisfies_constraint } ->
             satisfies_constraint typ self

@@ -39,15 +39,14 @@ let write_to_buffer ~content g = function
  *   clock animation framework.
  * Thus, we manually mark this operator as ready only
  * before we're about to pull from it. *)
-class consumer ~write_frame ~name ~kind ~source () =
+class consumer ~write_frame ~name ~source () =
   let s = Lang.to_source source in
   let infallible = s#stype = `Infallible in
   let noop () = () in
   object
     inherit
       Output.output
-        ~content_kind:kind ~output_kind:name ~infallible ~on_start:noop
-          ~on_stop:noop source true as super
+        ~output_kind:name ~infallible ~on_start:noop ~on_stop:noop source true as super
 
     val mutable output_enabled = false
     method set_output_enabled v = output_enabled <- v
@@ -61,11 +60,11 @@ class consumer ~write_frame ~name ~kind ~source () =
 (** The source which produces data by reading the buffer.
     We do NOT want to use [operator] here b/c the [consumers]
     may have different content-kind when this is used in the muxers. *)
-class producer ~check_self_sync ~consumers ~name ~kind g =
+class producer ~check_self_sync ~consumers ~name g =
   let infallible = List.for_all (fun s -> s#stype = `Infallible) consumers in
   let self_sync_type = Utils.self_sync_type consumers in
   object (self)
-    inherit Source.source kind ~name as super
+    inherit Source.source ~name () as super
 
     inherit
       Child_support.base

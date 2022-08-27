@@ -22,10 +22,10 @@
 
 open Source
 
-class biquad ~kind (source : source) filter_type freq q gain =
+class biquad (source : source) filter_type freq q gain =
   let samplerate = float (Frame.audio_of_seconds 1.) in
   object (self)
-    inherit operator ~name:"biquad_filter" kind [source] as super
+    inherit operator ~name:"biquad_filter" [source] as super
     val mutable p0 = 0.
     val mutable p1 = 0.
     val mutable p2 = 0.
@@ -158,7 +158,7 @@ class biquad ~kind (source : source) filter_type freq q gain =
 let () =
   Lang.add_module "filter.iir.eq";
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.iir.eq.lowshelf"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
@@ -176,13 +176,11 @@ let () =
           Lang.to_float_getter (f "slope"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      (new biquad ~kind src `Low_shelf freq param (fun () -> 0.)
-        :> Source.source))
+      (new biquad src `Low_shelf freq param (fun () -> 0.) :> Source.source))
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.iir.eq.highshelf"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -200,13 +198,11 @@ let () =
           Lang.to_float_getter (f "slope"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      (new biquad ~kind src `High_shelf freq param (fun () -> 0.)
-        :> Source.source))
+      (new biquad src `High_shelf freq param (fun () -> 0.) :> Source.source))
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.iir.eq.low"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
@@ -221,13 +217,11 @@ let () =
           Lang.to_float_getter (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      (new biquad ~kind src `Low_pass freq param (fun () -> 0.)
-        :> Source.source))
+      (new biquad src `Low_pass freq param (fun () -> 0.) :> Source.source))
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.iir.eq.high"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
@@ -242,13 +236,11 @@ let () =
           Lang.to_float_getter (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      (new biquad ~kind src `High_pass freq param (fun () -> 0.)
-        :> Source.source))
+      (new biquad src `High_pass freq param (fun () -> 0.) :> Source.source))
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.iir.eq.bandpass"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -263,13 +255,11 @@ let () =
           Lang.to_float_getter (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      (new biquad ~kind src `Band_pass freq param (fun () -> 0.)
-        :> Source.source))
+      (new biquad src `Band_pass freq param (fun () -> 0.) :> Source.source))
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.iir.eq.allpass"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -287,13 +277,11 @@ let () =
           Lang.to_float_getter (f "bandwidth"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      (new biquad ~kind src `All_pass freq param (fun () -> 0.)
-        :> Source.source))
+      (new biquad src `All_pass freq param (fun () -> 0.) :> Source.source))
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.iir.eq.notch"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -308,12 +296,11 @@ let () =
           Lang.to_float_getter (f "q"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      (new biquad ~kind src `Notch freq param (fun () -> 0.) :> Source.source))
+      (new biquad src `Notch freq param (fun () -> 0.) :> Source.source))
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.iir.eq.peak"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -333,5 +320,4 @@ let () =
           Lang.to_float_getter (f "gain"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      (new biquad ~kind src `Peaking freq param gain :> Source.source))
+      (new biquad src `Peaking freq param gain :> Source.source))

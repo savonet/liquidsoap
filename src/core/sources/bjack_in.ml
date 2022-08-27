@@ -25,8 +25,8 @@ open Mm
 let log = Log.make ["input"; "jack"]
 let bjack_clock = Tutils.lazy_cell (fun () -> new Clock.clock "bjack")
 
-class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
-  ~nb_blocks ~server =
+class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
+  ~server =
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let seconds_per_frame = float samples_per_frame /. float samples_per_second in
@@ -35,8 +35,8 @@ class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
   object (self)
     inherit
       Start_stop.active_source
-        ~name:"input.jack" ~content_kind:kind ~clock_safe ~on_start ~on_stop
-          ~fallible ~autostart () as active_source
+        ~name:"input.jack" ~clock_safe ~on_start ~on_stop ~fallible ~autostart
+          () as active_source
 
     inherit Source.no_seek
     inherit [Bytes.t] IoRing.input ~nb_blocks as ioring
@@ -116,7 +116,7 @@ class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "input.jack"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
@@ -145,8 +145,6 @@ let () =
       in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in
-      let kind = Kind.of_kind kind in
       (new jack_in
-         ~kind ~clock_safe ~nb_blocks ~server ~fallible ~on_start ~on_stop
-         ~autostart
+         ~clock_safe ~nb_blocks ~server ~fallible ~on_start ~on_stop ~autostart
         :> Start_stop.active_source))

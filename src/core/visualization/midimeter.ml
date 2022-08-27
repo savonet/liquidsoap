@@ -23,9 +23,9 @@
 open Mm
 open Source
 
-class midimeter ~kind source =
+class midimeter source =
   object
-    inherit operator ~name:"midi.inspect" kind [source]
+    inherit operator ~name:"midi.inspect" [source]
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
@@ -57,7 +57,7 @@ class midimeter ~kind source =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "midi.inspect"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:`Visualization
@@ -65,5 +65,4 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      let kind = Kind.of_kind kind in
-      (new midimeter ~kind src :> Source.source))
+      (new midimeter src :> Source.source))

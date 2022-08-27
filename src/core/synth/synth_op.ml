@@ -23,9 +23,9 @@
 open Mm
 open Source
 
-class synth ~kind (synth : Synth.synth) (source : source) chan volume =
+class synth (synth : Synth.synth) (source : source) chan volume =
   object (self)
-    inherit operator ~name:"synth" kind [source]
+    inherit operator ~name:"synth" [source]
     initializer synth#set_volume volume
     method stype = source#stype
     method self_sync = source#self_sync
@@ -56,7 +56,7 @@ let register obj name descr =
     Frame.mk_fields ~audio:Frame.audio_mono ~video:`Any ~midi:(Frame.midi_n 1)
       ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator ("synth." ^ name)
     [
       ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
@@ -97,13 +97,13 @@ let register obj name descr =
         else None
       in
       let src = Lang.to_source (f "") in
-      let kind = Kind.of_kind kind in
-      (new synth ~kind (obj adsr) src chan volume :> Source.source));
+      (new synth (obj adsr) src chan volume :> Source.source));
+
   let kind =
     Frame.mk_fields ~audio:Frame.audio_mono ~video:`Any ~midi:(Frame.midi_n 16)
       ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator ("synth.all." ^ name)
     [
       ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
@@ -143,14 +143,10 @@ let register obj name descr =
       in
       let synths =
         Array.init (Lazy.force Frame.midi_channels) (fun c ->
-            ( (fun () -> 1.),
-              let kind = Kind.of_kind kind in
-              new synth ~kind (obj adsr) src c 1. ))
+            ((fun () -> 1.), new synth (obj adsr) src c 1.))
       in
       let synths = Array.to_list synths in
-      let kind = Kind.of_kind kind in
       (new Add.add
-         ~kind
          ~renorm:(fun () -> false)
          ~power:(fun () -> false)
          synths

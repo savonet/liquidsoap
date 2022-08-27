@@ -23,9 +23,9 @@
 open Mm
 open Source
 
-class amplify ~kind (source : source) override_field coeff =
+class amplify (source : source) override_field coeff =
   object (self)
-    inherit operator ~name:"amplify" kind [source]
+    inherit operator ~name:"amplify" [source]
     val mutable override = None
     method stype = source#stype
     method is_ready = source#is_ready
@@ -65,7 +65,7 @@ class amplify ~kind (source : source) override_field coeff =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "amplify"
     [
       ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");
@@ -87,5 +87,4 @@ let () =
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       let o = Lang.to_option (Lang.assoc "override" 1 p) in
       let o = Option.map Lang.to_string o in
-      let kind = Kind.of_kind kind in
-      new amplify ~kind s o c)
+      new amplify s o c)

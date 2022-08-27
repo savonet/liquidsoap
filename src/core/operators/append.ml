@@ -22,7 +22,7 @@
 
 open Source
 
-class append ~kind ~insert_missing ~merge source f =
+class append ~insert_missing ~merge source f =
   let sources = ref [] in
   let failed = ref false in
   let () =
@@ -35,7 +35,7 @@ class append ~kind ~insert_missing ~merge source f =
     if !failed then lazy `Dynamic else Utils.self_sync_type !sources
   in
   object (self)
-    inherit operator ~name:"append" kind [source]
+    inherit operator ~name:"append" [source]
     val mutable state = `Idle
 
     method private get_frame buf =
@@ -154,7 +154,7 @@ class append ~kind ~insert_missing ~merge source f =
 
 let register =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "append"
     [
       ( "merge",
@@ -183,5 +183,4 @@ let register =
       let insert_missing = Lang.to_bool (Lang.assoc "insert_missing" 1 p) in
       let source = Lang.to_source (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let kind = Kind.of_kind kind in
-      new append ~kind ~insert_missing ~merge source f)
+      new append ~insert_missing ~merge source f)

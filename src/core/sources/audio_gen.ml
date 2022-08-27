@@ -26,10 +26,10 @@ open Mm
 
 open Source
 
-class gen ~kind ~seek name g freq duration ampl =
+class gen ~seek name g freq duration ampl =
   let g = g (freq ()) in
   object
-    inherit Synthesized.source ~seek ~name kind duration
+    inherit Synthesized.source ~seek ~name duration
 
     method private synthesize frame off len =
       let off = Frame.audio_of_main off in
@@ -42,7 +42,7 @@ class gen ~kind ~seek name g freq duration ampl =
 
 let add name g =
   let kind = Lang.internal in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator name ~category:`Input
     ~descr:("Generate a " ^ name ^ " wave.")
     ~return_t
@@ -61,9 +61,8 @@ let add name g =
         Some ("Frequency of the " ^ name ^ ".") );
     ]
     (fun p ->
-      let kind = Kind.of_kind kind in
       (new gen
-         ~seek:true ~kind name g
+         ~seek:true name g
          (Lang.to_float_getter (List.assoc "" p))
          (Lang.to_valued_option Lang.to_float (List.assoc "duration" p))
          (Lang.to_float_getter (List.assoc "amplitude" p))

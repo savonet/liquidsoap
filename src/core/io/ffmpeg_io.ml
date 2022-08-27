@@ -36,7 +36,7 @@ let normalize_metadata =
       (lbl, v))
 
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
-  ~clock_safe ~max_buffer ~log_overfull ~kind ~on_stop ~on_start ~on_connect
+  ~clock_safe ~max_buffer ~log_overfull ~on_stop ~on_start ~on_connect
   ~on_disconnect ~new_track_on_metadata ?format ~opts url =
   let max_ticks = Frame.main_of_seconds max_buffer in
   (* A log function for our generator: start with a stub, and replace it
@@ -50,8 +50,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   object (self)
     inherit
       Start_stop.active_source
-        ~name ~content_kind:kind ~fallible:true ~clock_safe ~on_start ~on_stop
-          ~autostart () as super
+        ~name ~fallible:true ~clock_safe ~on_start ~on_stop ~autostart () as super
 
     inherit Source.no_seek
     val mutable connect_task = None
@@ -97,18 +96,20 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             (Printf.sprintf "Unrecognized options: %s"
                (Ffmpeg_format.string_of_options opts));
         let content_type =
-          Ffmpeg_decoder.get_type ~ctype:self#ctype ~url input
+          Ffmpeg_decoder.get_type ~ctype:self#content_type ~url input
         in
-        if not (Decoder.can_decode_type content_type self#ctype) then
+        if not (Decoder.can_decode_type content_type self#content_type) then
           failwith
             (Printf.sprintf "url %S cannot produce content of type %s" url
-               (Frame.string_of_content_type self#ctype));
-        let audio, video = Ffmpeg_decoder.mk_streams ~ctype:self#ctype input in
+               (Frame.string_of_content_type self#content_type));
+        let audio, video =
+          Ffmpeg_decoder.mk_streams ~ctype:self#content_type input
+        in
         let decoder =
           Ffmpeg_decoder.mk_decoder ?audio ?video ~decode_first_metadata:true
             ~target_position:(ref None) input
         in
-        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
+        let buffer = Decoder.mk_buffer ~ctype:self#content_type generator in
         Generator.set_rewrite_metadata generator (fun m ->
             Hashtbl.replace m "source_url" url;
             m);
@@ -209,8 +210,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 let http_log = Log.make ["input"; "http"]
 
 class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
-  ~max_buffer ~log_overfull ~kind ~on_connect ~on_disconnect ?format ~opts
-  ~user_agent ~timeout ~on_start ~on_stop ~new_track_on_metadata url =
+  ~max_buffer ~log_overfull ~on_connect ~on_disconnect ?format ~opts ~user_agent
+  ~timeout ~on_start ~on_stop ~new_track_on_metadata url =
   let () =
     Hashtbl.replace opts "icy" (`Int 1);
     Hashtbl.replace opts "user_agent" (`String user_agent);
@@ -247,7 +248,7 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
     inherit
       input
         ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
-          ~max_buffer ~log_overfull ~kind ~on_stop ~on_start ~on_disconnect
+          ~max_buffer ~log_overfull ~on_stop ~on_start ~on_disconnect
           ~on_connect ?format ~opts ~new_track_on_metadata url
   end
 
@@ -269,7 +270,7 @@ let parse_args ~t name p opts =
 
 let register_input is_http =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   let args ?t name =
     let t =
       match t with
@@ -432,7 +433,6 @@ let register_input is_http =
       in
       let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
       let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
-      let kind = Kind.of_kind kind in
       if is_http then (
         let timeout = Lang.to_float (List.assoc "timeout" p) in
         let user_agent = Lang.to_string (List.assoc "user_agent" p) in
@@ -446,15 +446,14 @@ let register_input is_http =
           ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
         in
         (new http_input
-           ~kind ~debug ~autostart ~self_sync ~clock_safe ~poll_delay
-           ~on_connect ~on_disconnect ~user_agent ~new_track_on_metadata
-           ~max_buffer ~log_overfull ?format ~opts ~timeout ~on_start ~on_stop
-           url
+           ~debug ~autostart ~self_sync ~clock_safe ~poll_delay ~on_connect
+           ~on_disconnect ~user_agent ~new_track_on_metadata ~max_buffer
+           ~log_overfull ?format ~opts ~timeout ~on_start ~on_stop url
           :> input))
       else (
         let on_connect _ = ignore (Lang.apply (List.assoc "on_connect" p) []) in
         new input
-          ~kind ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_start
+          ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_start
           ~on_stop ~on_connect ~on_disconnect ~max_buffer ~log_overfull ?format
           ~opts ~new_track_on_metadata url))
 

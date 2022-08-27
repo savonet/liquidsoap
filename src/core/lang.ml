@@ -1,5 +1,4 @@
 include Liquidsoap_lang.Lang
-include Core_types
 include Lang_source
 include Lang_encoder.L
 module Doc = Liquidsoap_lang.Doc
@@ -42,13 +41,35 @@ let add_protocol ~syntax ~doc ~static name resolver =
   let spec = { Request.static; resolve = resolver } in
   Request.protocols#register ~doc name spec
 
-let frame_kind_t kind =
-  Core_types.frame_kind_t (Frame.find_audio kind) (Frame.find_video kind)
-    (Frame.find_midi kind)
+let format_t t = format_t t
+let kind_t k = Frame_type.make_kind k
+let kind_none_t = kind_t Frame.none
 
-let format_t t = Core_types.format_t t
-let kind_t t = Core_types.kind_t t
-let kind_none_t = Core_types.kind_t Frame.none
+let frame_t kind =
+  Frame_type.make ~audio:(Frame.find_audio kind) ~video:(Frame.find_video kind)
+    ~midi:(Frame.find_midi kind) ()
+
+let of_frame_t t =
+  let t = Type.deref t in
+  match (Type.deref t).Type.descr with
+    | Type.Constr
+        {
+          Type.constructor = "stream_kind";
+          params = [(_, audio); (_, video); (_, midi)];
+        } ->
+        Frame.mk_fields ~audio ~video ~midi ()
+    | Type.Var ({ contents = Type.Free _ } as var) ->
+        let audio = kind_t `Any in
+        let video = kind_t `Any in
+        let midi = kind_t `Any in
+        var := Type.Link (Type.Invariant, Frame_type.make ~audio ~video ~midi ());
+        Frame.mk_fields ~audio ~video ~midi ()
+    | _ -> assert false
+
+let of_source_t t =
+  match (Type.deref t).Type.descr with
+    | Type.Constr { Type.constructor = "source"; params = [(_, t)] } -> t
+    | _ -> assert false
 
 let empty =
   Frame.mk_fields ~audio:Frame.none ~video:Frame.none ~midi:Frame.none ()
@@ -58,8 +79,8 @@ let any = Frame.mk_fields ~audio:`Any ~video:`Any ~midi:`Any ()
 let internal =
   Frame.mk_fields ~audio:`Internal ~video:`Internal ~midi:`Internal ()
 
-let kind_type_of_kind_format fields =
-  let audio = Core_types.kind_t (Frame.find_audio fields) in
-  let video = Core_types.kind_t (Frame.find_video fields) in
-  let midi = Core_types.kind_t (Frame.find_midi fields) in
-  frame_kind_t (Frame.mk_fields ~audio ~video ~midi ())
+let frame_kind_t fields =
+  let audio = kind_t (Frame.find_audio fields) in
+  let video = kind_t (Frame.find_video fields) in
+  let midi = kind_t (Frame.find_midi fields) in
+  frame_t (Frame.mk_fields ~audio ~video ~midi ())

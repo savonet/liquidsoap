@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Liquidsoap_lang
-open Core_types
 open Term
 open Term.Ground
 
@@ -45,6 +44,12 @@ module V = Lang_core.MkAbstract (struct
 end)
 
 module L = struct
+  (** Type of audio formats that can encode frame of a given kind. *)
+  let format_t ?pos k =
+    Type.make ?pos
+      (Type.Constr
+         { Type.constructor = "format"; params = [(Type.Covariant, k)] })
+
   let to_format = V.of_value
   let format = V.to_value
 end
@@ -109,10 +114,10 @@ let kind_of_encoder ((e, p) : Term.encoder) = (find_encoder e).kind_of_encoder p
 
 let type_of_encoder ~pos e =
   let kind = kind_of_encoder e in
-  let audio = kind_t ?pos (Frame.find_audio kind) in
-  let video = kind_t ?pos (Frame.find_video kind) in
-  let midi = kind_t ?pos (Frame.find_midi kind) in
-  format_t ?pos (frame_kind_t ?pos audio video midi)
+  let audio = Frame_type.make_kind ?pos (Frame.find_audio kind) in
+  let video = Frame_type.make_kind ?pos (Frame.find_video kind) in
+  let midi = Frame_type.make_kind ?pos (Frame.find_midi kind) in
+  L.format_t ?pos (Frame_type.make ?pos ~audio ~video ~midi ())
 
 let make_encoder ~pos t ((e, p) : Hooks.encoder) =
   try

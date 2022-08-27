@@ -22,9 +22,9 @@
 
 open Source
 
-class compand ~kind (source : source) mu =
+class compand (source : source) mu =
   object
-    inherit operator ~name:"compand" kind [source]
+    inherit operator ~name:"compand" [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -49,7 +49,7 @@ class compand ~kind (source : source) mu =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "compand"
     [
       ("mu", Lang.float_t, Some (Lang.float 1.), None);
@@ -59,5 +59,4 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
-      let kind = Kind.of_kind kind in
-      new compand ~kind src mu)
+      new compand src mu)

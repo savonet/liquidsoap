@@ -148,10 +148,6 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       Format.fprintf formatter "Cannot unify two nested clocks (%s,@ %s).@]@." a
         b;
       raise Error
-  | Error.Kind_conflict (pos, a, b) ->
-      error_header ~formatter 10 pos;
-      Format.fprintf formatter "Source kinds don't match@ (%s vs@ %s).@]@." a b;
-      raise Error
   | Term.Unsupported_format (pos, fmt) ->
       error_header ~formatter 12 pos;
       Format.fprintf formatter

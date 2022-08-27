@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class on_frame ~kind f s =
+class on_frame f s =
   object
-    inherit Source.operator ~name:"on_frame" kind [s]
+    inherit Source.operator ~name:"on_frame" [s]
     method stype = s#stype
     method is_ready = s#is_ready
     method abort_track = s#abort_track
@@ -37,7 +37,7 @@ class on_frame ~kind f s =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "source.on_frame"
     [
       ("", Lang.source_t k, None, None);
@@ -52,13 +52,12 @@ let () =
     (fun p ->
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
-      let kind = Kind.of_kind kind in
-      new on_frame ~kind f s)
+      new on_frame f s)
 
 (** Operations on frames. *)
-class frame_op ~name ~kind f default s =
+class frame_op ~name f default s =
   object
-    inherit Source.operator ~name kind [s]
+    inherit Source.operator ~name [s]
     method stype = s#stype
     method is_ready = s#is_ready
     method abort_track = s#abort_track
@@ -79,7 +78,7 @@ let () = Lang.add_module "source.frame"
 
 let op name descr f_t f default =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator ("source.frame." ^ name)
     [("", Lang.source_t k, None, None)]
     ~category:`Track ~descr
@@ -87,8 +86,7 @@ let op name descr f_t f default =
     ~meth:[("frame_" ^ name, ([], f_t), descr, fun s -> s#value)]
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
-      let kind = Kind.of_kind kind in
-      new frame_op ~name ~kind f default s)
+      new frame_op ~name f default s)
 
 let () =
   op "duration" "Compute the duration of the last frame." Lang.float_t

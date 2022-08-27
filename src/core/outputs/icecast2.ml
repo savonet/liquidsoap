@@ -181,9 +181,9 @@ let no_name = "Use [mount]"
 let user_agent =
   Lang.product (Lang.string "User-Agent") (Lang.string Http.user_agent)
 
-let proto kind =
+let proto frame_t =
   Output.proto
-  @ Icecast_utils.base_proto kind
+  @ Icecast_utils.base_proto frame_t
   @ [
       ( "mount",
         Lang.string_t,
@@ -271,12 +271,12 @@ let proto kind =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some "Dump stream to file, for debugging purpose. Disabled if null." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
 
 (** Sending encoded data to a shout-compatible server.
   * It directly takes the Lang param list and extracts stuff from it. *)
-class output ~kind p =
+class output p =
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
   let s_opt v = e (Lang.to_valued_option Lang.to_string) v in
@@ -405,8 +405,8 @@ class output ~kind p =
   object (self)
     inherit
       Output.encoded
-        ~content_kind:(Kind.of_kind kind) ~output_kind:"output.icecast"
-          ~infallible ~autostart ~on_start ~on_stop ~name source
+        ~output_kind:"output.icecast" ~infallible ~autostart ~on_start ~on_stop
+          ~name source
 
     (** In this operator, we don't exactly follow the start/stop
     * mechanism of Output.encoded because we want to control
@@ -606,7 +606,4 @@ let () =
   Lang.add_operator "output.icecast" ~category:`Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
     ~meth:Output.meth (proto return_t) ~return_t (fun p ->
-      let format_val = Lang.assoc "" 1 p in
-      let format = Lang.to_format format_val in
-      let kind = Encoder.kind_of_format format in
-      (new output ~kind p :> Output.output))
+      (new output p :> Output.output))
