@@ -56,14 +56,11 @@
   builtins_string
   builtins_ref
   console
-  content
   doc
   documentation
   environment
   error
   evaluation
-  frame
-  format_type
   ground_type
   hooks
   json_base

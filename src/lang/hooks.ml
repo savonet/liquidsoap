@@ -12,7 +12,6 @@ let make_encoder =
 let has_encoder = ref (fun _ -> false)
 let liq_libs_dir = ref (fun () -> raise Not_found)
 let log_path = ref None
-let source_eval_check = ref (fun ~k:_ ~pos:_ _ -> ())
 let collect_after = ref (fun fn -> fn ())
 
 module type Regexp_t = Regexp.T
@@ -54,3 +53,7 @@ let log name =
     method info = self#f 4
     method debug = self#f 5
   end
+
+let eval_check = ref (fun ~env:_ ~tm:_ _ -> assert false)
+let mk_source_ty = ref (fun ~pos:_ _ _ -> assert false)
+let source_methods_t = ref (fun _ -> assert false)

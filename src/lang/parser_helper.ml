@@ -428,51 +428,9 @@ let mk_time_pred ~pos (a, b, c) =
   let args = List.map (fun x -> ("", mk ~pos (Ground (Int x)))) [a; b; c] in
   mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
-let mk_kind ~pos (kind, params) =
-  if kind = "any" then Type.var ~pos ()
-  else (
-    try
-      let k = Content.kind_of_string kind in
-      match params with
-        | [] -> Term.kind_t (`Kind k)
-        | [("", "any")] -> Type.var ()
-        | [("", "internal")] ->
-            Type.var ~constraints:[Format_type.internal_media] ()
-        | param :: params ->
-            let mk_format (label, value) = Content.parse_param k label value in
-            let f = mk_format param in
-            List.iter (fun param -> Content.merge f (mk_format param)) params;
-            assert (k = Content.kind f);
-            Term.kind_t (`Format f)
-    with _ ->
-      let params =
-        params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
-      in
-      let t = kind ^ "(" ^ params ^ ")" in
-      raise (Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")))
-
 let mk_source_ty ~pos name args =
-  if name <> "source" then
-    raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
-
-  let audio = ref ("any", []) in
-  let video = ref ("any", []) in
-  let midi = ref ("any", []) in
-
-  List.iter
-    (function
-      | "audio", k -> audio := k
-      | "video", k -> video := k
-      | "midi", k -> midi := k
-      | l, _ ->
-          raise (Parse_error (pos, "Unknown type constructor: " ^ l ^ ".")))
-    args;
-
-  let audio = mk_kind ~pos !audio in
-  let video = mk_kind ~pos !video in
-  let midi = mk_kind ~pos !midi in
-
-  Term.source_t (Term.frame_kind_t audio video midi)
+  let fn = !Hooks.mk_source_ty in
+  fn ~pos name args
 
 let mk_json_assoc_object_ty ~pos = function
   | ( {
@@ -504,7 +462,7 @@ let mk_ty ~pos name =
     | "float" -> Type.make Type.Ground.float
     | "string" -> Type.make Type.Ground.string
     | "source" -> mk_source_ty ~pos "source" []
-    | "source_methods" -> !Term.source_methods_t ()
+    | "source_methods" -> !Hooks.source_methods_t ()
     | name -> (
         match Type.find_custom_type_opt name with
           | Some c -> Type.make (Type.Custom c)

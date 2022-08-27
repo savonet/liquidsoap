@@ -1,8 +1,8 @@
-module type T = sig
-  type t
-  type sub
-  type flag = [ `i | `g | `s | `m ]
+type sub = ..
+type t = ..
+type flag = [ `i | `g | `s | `m ]
 
+module type T = sig
   val regexp : ?flags:flag list -> string -> t
   val regexp_or : ?flags:flag list -> string list -> t
   val split : ?pat:string -> ?rex:t -> string -> string list
@@ -19,10 +19,6 @@ module type T = sig
 end
 
 module DummyRegexp = struct
-  type t
-  type sub
-  type flag = [ `i | `g | `s | `m ]
-
   let regexp ?flags:_ _ = failwith "Not implemented"
   let regexp_or ?flags:_ _ = failwith "Not implemented"
   let split ?pat:_ ?rex:_ _ = failwith "Not implemented"
@@ -36,29 +32,25 @@ end
 
 let regexp_ref = ref (module DummyRegexp : T)
 
-type t
-type sub
-type flag = [ `i | `g | `s | `m ]
-
 let regexp ?flags s =
   let module Regexp = (val !regexp_ref : T) in
-  Obj.magic (Regexp.regexp ?flags s)
+  Regexp.regexp ?flags s
 
 let regexp_or ?flags l =
   let module Regexp = (val !regexp_ref : T) in
-  Obj.magic (Regexp.regexp_or ?flags l)
+  Regexp.regexp_or ?flags l
 
 let split ?pat ?rex s =
   let module Regexp = (val !regexp_ref : T) in
-  Regexp.split ?pat ?rex:(Obj.magic rex) s
+  Regexp.split ?pat ?rex s
 
 let exec ?pat ?rex s =
   let module Regexp = (val !regexp_ref : T) in
-  Obj.magic (Regexp.exec ?pat ?rex:(Obj.magic rex) s)
+  Regexp.exec ?pat ?rex s
 
 let test ?pat ?rex s =
   let module Regexp = (val !regexp_ref : T) in
-  Regexp.test ?pat ?rex:(Obj.magic rex) s
+  Regexp.test ?pat ?rex s
 
 let num_of_subs sub =
   let module Regexp = (val !regexp_ref : T) in

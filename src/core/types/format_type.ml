@@ -20,14 +20,14 @@
 
  *****************************************************************************)
 
-type Type_base.custom += Type of Content.format
-type Type_base.constr_t += InternalMedia
+type Type.custom += Type of Content.format
+type Type.constr_t += InternalMedia
 
 let get = function Type c -> c | _ -> assert false
 
 let handler f =
   {
-    Type_base.typ = Type f;
+    Type.typ = Type f;
     copy_with = (fun _ c -> Type (Content.duplicate (get c)));
     occur_check = (fun _ _ c -> ignore (get c));
     filter_vars =
@@ -35,7 +35,7 @@ let handler f =
         ignore (get c);
         l);
     repr = (fun _ _ c -> `Constr (Content.string_of_format (get c), []));
-    satisfies_constraint = (fun _ _ -> raise Type_base.Unsatisfied_constraint);
+    satisfies_constraint = (fun _ _ -> raise Type.Unsatisfied_constraint);
     subtype = (fun _ c c' -> Content.merge (get c) (get c'));
     sup =
       (fun _ c c' ->
@@ -44,7 +44,7 @@ let handler f =
     to_string = (fun c -> Content.string_of_format (get c));
   }
 
-let internal_media : Type_base.constr =
+let internal_media : Type.constr =
   object (self)
     method t = InternalMedia
     method descr = "an internal media type (none, pcm, yuva420p or midi)"
@@ -56,19 +56,17 @@ let internal_media : Type_base.constr =
           Content.is_internal_kind kind
         with Content.Invalid -> false
       in
-      let b = Type_base.demeth b in
-      match b.Type_base.descr with
-        | Type_base.Constr { constructor } when is_internal constructor -> ()
-        | Type_base.Custom { Type_base.typ; satisfies_constraint } ->
+      let b = Type.demeth b in
+      match b.Type.descr with
+        | Type.Constr { constructor } when is_internal constructor -> ()
+        | Type.Custom { Type.typ; satisfies_constraint } ->
             satisfies_constraint typ self
-        | Type_base.Var { contents = Type_base.Free v } ->
+        | Type.Var { contents = Type.Free v } ->
             if
               not
-                (List.exists
-                   (fun c -> c#t = InternalMedia)
-                   v.Type_base.constraints)
-            then v.Type_base.constraints <- self :: v.Type_base.constraints
-        | _ -> raise Type_base.Unsatisfied_constraint
+                (List.exists (fun c -> c#t = InternalMedia) v.Type.constraints)
+            then v.Type.constraints <- self :: v.Type.constraints
+        | _ -> raise Type.Unsatisfied_constraint
   end
 
-let descr f = Type_base.Custom (handler f)
+let descr f = Type.Custom (handler f)

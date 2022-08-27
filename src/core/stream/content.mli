@@ -24,18 +24,18 @@ open Mm
 
 (** Generic content registration API. *)
 
-type 'a chunk = 'a Liquidsoap_lang.Content.chunk = {
+type 'a chunk = 'a Content_base.chunk = {
   data : 'a;
   offset : int;
   length : int;
 }
 
-type ('a, 'b) chunks = ('a, 'b) Liquidsoap_lang.Content.chunks = {
+type ('a, 'b) chunks = ('a, 'b) Content_base.chunks = {
   mutable params : 'a;
   mutable chunks : 'b chunk list;
 }
 
-module Contents = Liquidsoap_lang.Content.Contents
+module Contents = Content_base.Contents
 
 (* Raised during any invalid operation below. *)
 exception Invalid

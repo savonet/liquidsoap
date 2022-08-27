@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Mm
-open Liquidsoap_lang.Content
+open Content_base
 
 type audio_params = {
   channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;

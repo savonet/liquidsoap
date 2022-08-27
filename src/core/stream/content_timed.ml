@@ -80,7 +80,7 @@ module MetadataSpecs = struct
 end
 
 module Metadata = struct
-  include Liquidsoap_lang.Content.MkContent (MetadataSpecs)
+  include Content_base.MkContent (MetadataSpecs)
 
   let format = lift_params ()
 
@@ -114,7 +114,7 @@ module TrackMarkSpecs = struct
 end
 
 module TrackMark = struct
-  include Liquidsoap_lang.Content.MkContent (TrackMarkSpecs)
+  include Content_base.MkContent (TrackMarkSpecs)
 
   let format = lift_params ()
 

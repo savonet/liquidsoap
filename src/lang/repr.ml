@@ -356,12 +356,6 @@ let print f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
         vars
-    | `EVar (a, [c]) when c#t = Format_type.InternalMedia ->
-        Format.fprintf f "?internal(%s)" a;
-        vars
-    | `UVar (a, [c]) when c#t = Format_type.InternalMedia ->
-        Format.fprintf f "internal(%s)" a;
-        vars
     | `EVar (name, c) | `UVar (name, c) ->
         Format.fprintf f "%s" name;
         if c <> [] then DS.add (name, c) vars else vars
