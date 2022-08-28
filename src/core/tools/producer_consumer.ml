@@ -33,21 +33,22 @@ let write_to_buffer ~content g = function
   | `Flush -> ()
 
 (* This here is tricky:
- * - We want to use the output API to have a method for
- *   generating data when calling a clock tick.
- * - We want to opt-out of the generic child_process
- *   clock animation framework.
- * Thus, we manually mark this operator as ready only
- * before we're about to pull from it. *)
+   - We want to use the output API to have a method for generating data when
+     calling a clock tick.
+   - We want to opt-out of the generic child_process clock animation framework.
+   Thus, we manually mark this operator as ready only before we're about to pull
+   from it. *)
 class consumer ~write_frame ~name ~kind ~source () =
   let s = Lang.to_source source in
   let infallible = s#stype = `Infallible in
   let noop () = () in
   object
     inherit
+      (* Note: we allow partial frames in the output in order to propagate track
+         boundaries. *)
       Output.output
         ~content_kind:kind ~output_kind:name ~infallible ~on_start:noop
-          ~on_stop:noop source true as super
+        ~on_stop:noop ~allow_partial:true source true as super
 
     val mutable output_enabled = false
     method set_output_enabled v = output_enabled <- v

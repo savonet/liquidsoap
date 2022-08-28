@@ -37,17 +37,18 @@ let proto =
 
 let meth = Start_stop.meth ()
 
-(** Given abstract start stop and send methods, creates an output.
-  * Takes care of pulling the data out of the source, type checkings,
-  * maintains a queue of last ten metadata and setups standard Server commands,
-  * including start/stop. *)
-class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
+(** Given abstract start stop and send methods, creates an output. Takes care of
+    pulling the data out of the source, type checkings, maintains a queue of last
+    ten metadata and setups standard Server commands, including start/stop. By
+    default, full frames are played for efficiency unless [allow_partial] is set
+    (which can be useful in order to keep track boundaries). *)
+class virtual output ~content_kind ~output_kind ?(name = "") ?(allow_partial=false) ~infallible
   ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
     initializer
-    (* This should be done before the active_operator initializer
-     * attaches us to a clock. *)
+    (* This should be done before the active_operator initializer attaches us
+       to a clock. *)
     if infallible && source#stype <> `Infallible then
       raise (Error.Invalid_value (val_source, "That source is fallible"))
 
@@ -158,7 +159,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
       if start_stop#state = `Started then (
         (* Complete filling of the frame *)
         let get_count = ref 0 in
-        while Frame.is_partial self#memo && self#is_ready do
+        while (Frame.is_partial self#memo && (not allow_partial || !get_count = 0)) && self#is_ready do
           incr get_count;
           if !get_count > Lazy.force Frame.size then
             self#log#severe
@@ -170,10 +171,10 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
           (Frame.get_all_metadata self#memo);
 
         (* Output that frame if it has some data *)
-        if Frame.position self#memo > 0 then (
+        if Frame.position self#memo > 0 || allow_partial then (
           self#send_frame self#memo;
           nb_frames <- Int64.succ nb_frames);
-        if Frame.is_partial self#memo then (
+        if not allow_partial && Frame.is_partial self#memo then (
           self#log#important "Source failed (no more tracks) stopping output...";
           self#transition_to `Idle))
 

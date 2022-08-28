@@ -29,6 +29,7 @@ class virtual output :
   content_kind:Kind.t
   -> output_kind:string
   -> ?name:string
+  -> ?allow_partial:bool
   -> infallible:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
