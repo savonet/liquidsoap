@@ -221,6 +221,7 @@ jobs:
           echo "opam hold" | sudo dpkg --set-selections
           sudo apt-get update
           sudo apt-get -y dist-upgrade
+          sudo apt-get -y autoremove
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
