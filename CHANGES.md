@@ -13,7 +13,8 @@ Changed:
 
 Fixed:
 
-- Fix missing ffmpeg features on windiws build.
+- Fixed missing ffmpeg features on windiws build.
+- Fixed sync issues with `ffmpeg.encode.*` inline encoders (#2584)
 - Fixed `http.get` issues when `user-agent` was not set (#2517)
 - Fixed order of `playlist.next` returned requests.
 - Fixed infinite loop when reloading a failed playlist.
