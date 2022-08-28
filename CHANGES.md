@@ -17,7 +17,7 @@ Fixed:
 - Fixed sync issues with `ffmpeg.encode.*` inline encoders (#2584)
 - Fixed `http.get` issues when `user-agent` was not set (#2517)
 - Fixed order of `playlist.next` returned requests.
-- Fixed infinite loop when reloading a failed playlist.
+- Fixed infinite loop when reloading a failed playlist (#2576)
 - Fixed http requests with urls containing spaces (#2551)
 - Fixed `on_connect` type for `srt` inputs and outputs.
 - Fixed parsing issues with functions/variables definitions
