@@ -344,7 +344,9 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
             interactive[i].value = 'false'
           }
         }
-        data = data.concat(interactive[i].name+'='+interactive[i].value)+'&';
+        if (interactive[i].type != 'button') {
+          data = data.concat(interactive[i].name+'='+interactive[i].value)+'&';
+        }
       }
       console.log('Posting: ' + data);
       let xmlHttp = new XMLHttpRequest();
