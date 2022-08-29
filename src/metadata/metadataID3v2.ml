@@ -12,6 +12,13 @@ let read_size ~synch_safe f =
     (s0 lsl 21) + (s1 lsl 14) + (s2 lsl 7) + s3)
   else (s0 lsl 24) + (s1 lsl 16) + (s2 lsl 8) + s3
 
+let read_size_v2 f =
+  let s = R.read f 3 in
+  let s0 = int_of_char s.[0] in
+  let s1 = int_of_char s.[1] in
+  let s2 = int_of_char s.[2] in
+  (s0 lsl 16) + (s1 lsl 8) + s2
+
 let recode enc =
   if enc = 0 then CharEncoding.convert CharEncoding.iso8859 CharEncoding.utf8
   else if enc = 1 || enc = 2 then
@@ -48,7 +55,10 @@ let parse f : metadata =
     [| 2; v1; v2 |]
   in
   let v = version.(1) in
-  if v <> 3 && v <> 4 then raise Invalid;
+  if not (List.mem v [2; 3; 3]) then raise Invalid;
+  let id_len, read_frame_size =
+    if v = 2 then (3, read_size_v2) else (4, read_size ~synch_safe:(v > 3))
+  in
   let flags = R.byte f in
   let unsynchronization = flags land 0b10000000 <> 0 in
   if unsynchronization then failwith "Unsynchronized headers not handled.";
@@ -63,17 +73,26 @@ let parse f : metadata =
   let tags = ref [] in
   while !len > 0 do
     try
-      let id = R.read f 4 in
-      if id = "\000\000\000\000" then len := 0 (* stop tag *)
+      let id = R.read f id_len in
+      if id = "\000\000\000\000" || id = "\000\000\000" then len := 0
+        (* stop tag *)
       else (
-        let size = read_size ~synch_safe:(v > 3) f in
+        let size = read_frame_size f in
         (* make sure that we remain within the bounds in case of a problem *)
         let size = min size (!len - 10) in
-        let flags = R.read f 2 in
+        let flags = if v = 2 then None else Some (R.read f 2) in
         let data = R.read f size in
         len := !len - (size + 10);
-        let compressed = int_of_char flags.[1] land 0b10000000 <> 0 in
-        let encrypted = int_of_char flags.[1] land 0b01000000 <> 0 in
+        let compressed =
+          match flags with
+            | None -> false
+            | Some flags -> int_of_char flags.[1] land 0b10000000 <> 0
+        in
+        let encrypted =
+          match flags with
+            | None -> false
+            | Some flags -> int_of_char flags.[1] land 0b01000000 <> 0
+        in
         if compressed || encrypted then raise Exit;
         if id.[0] = 'T' then (
           let encoding = int_of_char data.[0] in
@@ -117,6 +136,13 @@ type apic = {
   data : string;
 }
 
+type pic = {
+  pic_format : string;
+  pic_type : int;
+  pic_description : string;
+  pic_data : string;
+}
+
 (** Parse APIC data. *)
 let parse_apic apic =
   let text_encoding = int_of_char apic.[0] in
@@ -137,3 +163,20 @@ let parse_apic apic =
   let n = n + l + text_bytes in
   let data = String.sub apic n (String.length apic - n) in
   { mime; picture_type; description; data }
+
+let parse_pic pic =
+  let text_encoding = int_of_char pic.[0] in
+  let text_bytes = if text_encoding = 1 || text_encoding = 2 then 2 else 1 in
+  let recode = recode text_encoding in
+  let pic_format = String.sub pic 1 3 in
+  let pic_type = int_of_char pic.[4] in
+  let l =
+    Int.find (fun i ->
+        i mod text_bytes = 0
+        && pic.[5 + i] = '\000'
+        && (text_bytes = 1 || pic.[5 + i + 1] = '\000'))
+  in
+  let pic_description = recode (String.sub pic 5 l) in
+  let n = 5 + l + text_bytes in
+  let pic_data = String.sub pic n (String.length pic - n) in
+  { pic_format; pic_type; pic_description; pic_data }

@@ -10,6 +10,7 @@ New:
   (#2556)
 - Added `video.align`.
 - Added `string.index`.
+- Added support for id3v2 `v2.2.0` frames and pictures.
 
 Changed:
 
