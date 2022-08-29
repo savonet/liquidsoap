@@ -55,7 +55,7 @@ let parse f : metadata =
     [| 2; v1; v2 |]
   in
   let v = version.(1) in
-  if not (List.mem v [2; 3; 3]) then raise Invalid;
+  if not (List.mem v [2; 3; 4]) then raise Invalid;
   let id_len, read_frame_size =
     if v = 2 then (3, read_size_v2) else (4, read_size ~synch_safe:(v > 3))
   in
