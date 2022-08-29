@@ -62,7 +62,7 @@ def metadata.comment(m)
 end
 
 # Extract cover from metadata. This function implements cover extraction
-# for the following formats: coverart (ogg) and apic (flac, mp3). 
+# for the following formats: coverart (ogg), apic (flac, mp3) and pic (mp3). 
 # @category Source / Track Processing
 # @param m Metadata from which the cover should be extracted.
 # @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
@@ -80,29 +80,41 @@ def metadata.cover(~coverart_mime=null(), m)
       log.info("Failed to read cover metadata for #{fname}.")
       null()
     else
-      cover = null.get(cover)
-      cover.{mime=cover.mime}
+      null.get(cover)
     end
   else
     # Assume we have an mp3 file
     m =
-      if list.assoc.mem("apic", m) then
+      if list.assoc.mem("apic", m) or list.assoc.mem("pic", m) then
         m
       else
         # Try the builtin tag reader because APIC tags are not read by default,
         # e.g. with taglib
-        log.debug(label="metadata.cover", "APIC not found for #{fname}, trying builtin tag reader.")
+        log.debug(label="metadata.cover", "APIC or PIC not found for #{fname}, trying builtin tag reader.")
         file.metadata.id3v2(fname)
       end
+    pic = list.assoc(default="", "pic", m)
     apic = list.assoc(default="", "apic", m)
-    if apic == "" then
-      log.info("No cover found for #{fname}.")
-      null()
-    else
+    if apic != "" then
       log.debug(label="metadata.cover", "Found APIC for #{fname}.")
       # TODO: we could use file type in order to select cover if there are many
-      meta = string.apic.parse(apic)
-      meta.{mime=meta.mime}
+      string.apic.parse(apic)
+    elsif pic != "" then
+      log.debug(label="metadata.cover", "Found APIC for #{fname}.")
+      # TODO: we could use file type in order to select cover if there are many
+      pic = string.pic.parse(pic)
+      mime =
+        if pic.format == "JPG" then
+          "image/jpeg"
+         elsif pic.format == "PNG" then
+           "image/png" 
+         else
+           "application/octet-stream"
+         end
+      pic.{mime=mime}
+    else
+      log.info("No cover found for #{fname}.")
+      null()
     end
   end
 end
@@ -119,7 +131,7 @@ end
 # with coverart when logging metadata.
 # @category Source / Track Processing
 def metadata.cover.remove(m)
-  list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic" and k != "cover", m)
+  list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic" and k != "pic" and k != "cover", m)
 end
 
 # Cleanup metadata for export. This is used to remove Liquidsoap's internal

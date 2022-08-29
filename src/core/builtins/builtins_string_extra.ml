@@ -109,3 +109,29 @@ let () =
           ("picture_type", Lang.int apic.Metadata.ID3v2.picture_type);
           ("description", Lang.string apic.Metadata.ID3v2.description);
         ])
+
+let () =
+  Lang.add_module "string.pic";
+  let t =
+    Lang.method_t Lang.string_t
+      [
+        ("format", ([], Lang.string_t), "Picture format");
+        ("picture_type", ([], Lang.int_t), "Picture type");
+        ("description", ([], Lang.string_t), "Description");
+      ]
+  in
+  Lang.add_builtin "string.pic.parse" ~category:`File
+    [("", Lang.string_t, None, Some "PIC data.")] t
+    ~descr:
+      "Parse PIC ID3v2 tags (such as those obtained in the PIC tag from \
+       `file.metadata.id3v2`). The returned values are: format, picture type, \
+       description, and picture data." (fun p ->
+      let pic = Lang.to_string (List.assoc "" p) in
+      let pic = Metadata.ID3v2.parse_pic pic in
+      Lang.meth
+        (Lang.string pic.Metadata.ID3v2.pic_data)
+        [
+          ("format", Lang.string pic.Metadata.ID3v2.pic_format);
+          ("picture_type", Lang.int pic.Metadata.ID3v2.pic_type);
+          ("description", Lang.string pic.Metadata.ID3v2.pic_description);
+        ])

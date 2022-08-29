@@ -108,6 +108,7 @@ class producer ~check_self_sync ~consumers ~name g =
       while Generator.length g < Lazy.force Frame.size && self#is_ready do
         self#child_tick
       done;
+      needs_tick <- false;
       List.iter (fun c -> c#set_output_enabled false) consumers;
       Generator.fill g buf;
       if List.length b + 1 <> List.length (Frame.breaks buf) then (

@@ -23,7 +23,7 @@ let () =
       let m = parser fname in
       List.iter
         (fun (k, v) ->
-          let v = if k = "APIC" then "<redacted>" else v in
+          let v = if k = "APIC" || k = "PIC" then "<redacted>" else v in
           Printf.printf "- %s: %s\n%!" k v)
         m)
     !fname
