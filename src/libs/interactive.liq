@@ -8,12 +8,15 @@ variables_int    = ref([])
 variables_bool   = ref([])
 # String variables
 variables_string = ref([])
+# Unit variables: those are not references but handler functions
+variables_unit   = ref([])
 
 let interactive        = ()
 let interactive.float  = ()
 let interactive.int    = ()
 let interactive.bool   = ()
 let interactive.string = ()
+let interactive.unit   = ()
 
 let interactive.error = error.register("interactive.error")
 
@@ -61,6 +64,11 @@ def interactive.string.ref(name)
 end
 
 # @flag hidden
+def interactive.unit.handler(name)
+  list.assoc(name, !variables_unit).handler
+end
+
+# @flag hidden
 def interactive.remove(name)
   variables := list.assoc.remove.all(name, !variables)
 end
@@ -101,6 +109,15 @@ def interactive.string.remove(name)
   variables_string := list.assoc.remove.all(name, !variables_string)
 end
 
+# Remove an interactive variable.
+# @param name Name of the variable.
+# @category Interactive
+# @flag hidden
+def interactive.unit.remove(name)
+  interactive.remove(name)
+  variables_unit := list.assoc.remove.all(name, !variables_unit)
+end
+
 # Function called to ensure persistency of data.
 let interactive.persistency = ref(fun()->())
 
@@ -132,6 +149,12 @@ def interactive.string.set(name, v)
   p()
 end
 
+# @flag hidden
+def interactive.unit.set(name)
+  f = interactive.unit.handler(name)
+  f()
+end
+
 %ifdef osc
 let stdlib_osc = osc
 %endif
@@ -156,6 +179,8 @@ def interactive.create(~name, ~description="", ~osc="", ~type)
       stdlib_osc.on_bool(osc, interactive.bool.set(name))
     elsif type == "string" then
       stdlib_osc.on_string(osc, interactive.string.set(name))
+    elsif type == "unit" then
+      () # TODO
     else
       error.raise(error.not_found)
     end
@@ -181,6 +206,8 @@ try
     elsif t == "string" then
       r = interactive.string.ref(name)
       !r
+    elsif t == "unit" then
+      "()"
     else
       error.raise(error.not_found)
     end
@@ -205,6 +232,8 @@ def interactive.set(arg)
       interactive.bool.set(name, bool_of_string(value))
     elsif t == "string" then
       interactive.string.set(name, value)
+    elsif t == "unit" then
+      interactive.unit.set(name)
     else
       error.raise(error.not_found)
     end
@@ -274,7 +303,7 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
       data := !data ^ s ^ "\n"
     end
     title = "Interactive values"
-    add("<html><head>")
+    add("<!DOCTYPE html><html><head>")
     add("<meta charset='utf-8'/>")
     add("<title>#{title}</title>")
     add("<style>
@@ -305,8 +334,8 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
     # TODO: we could send only the updated value instead of sending them all
     add("<script>
     function send() {
-      var interactive = document.getElementsByClassName('interactive');
-      var data = '';
+      let interactive = document.getElementsByClassName('interactive');
+      let data = '';
       for(var i=0; i<interactive.length; i++){
         if (interactive[i].type == 'checkbox') {
           if (interactive[i].checked) {
@@ -315,10 +344,12 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
             interactive[i].value = 'false'
           }
         }
-        data = data.concat(interactive[i].name+'='+interactive[i].value)+'&';
+        if (interactive[i].type != 'button') {
+          data = data.concat(interactive[i].name+'='+interactive[i].value)+'&';
+        }
       }
-      console.log(data);
-      var xmlHttp = new XMLHttpRequest();
+      console.log('Posting: ' + data);
+      let xmlHttp = new XMLHttpRequest();
       xmlHttp.open('POST', '#{uri}');
       xmlHttp.onreadystatechange = function () {
         if(xmlHttp.readyState === XMLHttpRequest.DONE) {
@@ -332,6 +363,11 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
       }
       xmlHttp.send(data);
     }
+    function sendUnit(name) {
+      const body = name + '=';
+      console.log('Posting: ' + body);
+      fetch('#{uri}', {method: 'POST', body: body});
+    }
     </script>")
     add("</head><body>")
     add("<h1>#{title}</h1>")
@@ -339,7 +375,6 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
       let (name, v) = nv
       description = interactive.description(name)
       description = if description == "" then name else "#{description} (#{name})" end
-      # add("<div>")
       add("<label for=#{name}>#{description}</label>")
       common = "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
       if v.type == "float" then
@@ -366,14 +401,14 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
       elsif v.type == "string" then
         v = list.assoc(name, !variables_string)
         add("<input type='text' #{common} value='#{!v.ref}'>")
+      elsif v.type == "unit" then
+        add("<button type='button' #{common} onclick=\"sendUnit('#{name}')\">#{name}</button>")
       else
         ()
       end
-      # add("</div>")
     end
     add("<form>")
     list.iter(add_var, !variables)
-    # add("<input type='submit' value='Send'>")
     add("</form>")
     add("</body>")
     http.response(data=!data)
@@ -395,9 +430,11 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
           interactive.bool.set(name, bool_of_string(v))
         elsif t == "string" then
           interactive.string.set(name, v)
+        elsif t == "unit" then
+          interactive.unit.set(name)
         end
-      catch _ do
-        log.important(label="interactive.harbor", "Could not update variable #{name}.")
+      catch e do
+        log.important(label="interactive.harbor", "Could not update variable #{name} (#{e.kind}: #{e.message}).")
       end
     end
     list.iter(update, data)
@@ -462,6 +499,18 @@ def replaces interactive.string(~description="", ~osc="", name, v)
   r = ref(v)
   variables_string := (name, { ref=r }) :: !variables_string
   ref.getter(r).{set = fun(x) -> interactive.string.set(name, x), remove = {interactive.string.remove(name)}}
+end
+
+# Register a callback when a unit interactive input is set.
+# @category Interaction
+# @param ~description Description of the variable.
+# @param ~osc OSC address.
+# @param name Name of the variable.
+# @param f Function triggered when the value is set.
+def replaces interactive.unit(~description="", ~osc="", name, f)
+  interactive.create(name=name, description=description, osc=osc, type="unit")
+  variables_unit := (name, { handler=f }) :: !variables_unit
+  {set = f, remove = {interactive.float.remove(name)}}
 end
 
 # Create a multiband compressor whose parameters are interactive variables.
