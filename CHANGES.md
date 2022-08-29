@@ -33,6 +33,35 @@ Fixed:
   prevent listening socket from being re-created on listener disconnection (#2556)
 
 ---
+2.1.1 (2022-08-28)
+======
+
+New:
+- Added `process.quote.command` to generate complex quoted command strings suitable
+  for use with `process.run` and os-independent.
+
+Changed:
+
+- Renamed `playlist.remaining` into `playlist.remaining_files` (#2524)
+- Added `id` argument to `replaygain` operator (#2537).
+- Made `ocurl` dependency required, added `uri` as required dependency (#2551)
+
+Fixed:
+
+- Fixed missing ffmpeg features on windows build.
+- Fixed sync issues with `ffmpeg.encode.*` inline encoders (#2584)
+- Fixed `http.get` issues when `user-agent` was not set (#2517)
+- Fixed order of `playlist.next` returned requests.
+- Fixed infinite loop when reloading a failed playlist (#2576)
+- Fixed http requests with urls containing spaces (#2551)
+- Fixed `on_connect` type for `srt` inputs and outputs.
+- Fixed parsing issues with functions/variables definitions
+  beginning with `rec` or `replaces` (#2560)
+- Fixed infinite parse error loop (#2527)
+- Fixed empty initial `mp4` HLS segment.
+- Prevent initial start for autostart and fallible sources.
+
+---
 2.1.0 (2022-07-15)
 =====
 
