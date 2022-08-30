@@ -29,8 +29,8 @@ module Generated = Generated.From_audio_video_plus
 
 exception Finished of string * bool
 
-class external_input ~name ~kind ~restart ~bufferize ~log_overfull
-  ~restart_on_error ~max ~converter ?read_header command =
+class external_input ~name ~restart ~bufferize ~log_overfull ~restart_on_error
+  ~max ~converter ?read_header command =
   let abg_max_len = Frame.audio_of_seconds max in
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
@@ -54,7 +54,7 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
   object (self)
     inherit
       External_input.base
-        ~name ~kind ?read_header ~restart ~restart_on_error ~on_data command as base
+        ~name ?read_header ~restart ~restart_on_error ~on_data command as base
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
@@ -91,7 +91,7 @@ let proto =
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "input.external.rawaudio" ~category:`Input
     ~descr:
       "Stream raw PCM data (interleaved signed 16 bits little endian integers) \
@@ -108,16 +108,6 @@ let () =
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let channels_v = List.assoc "channels" p in
       let channels = Lang.to_int channels_v in
-      let channel_layout =
-        try Audio_converter.Channel_layout.layout_of_channels channels
-        with _ ->
-          raise
-            (Error.Invalid_value (channels_v, "unsupported number of channels"))
-      in
-      let kind =
-        Lang.audio_params { Content.channel_layout = lazy channel_layout }
-      in
-      let kind = Kind.of_kind kind in
       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
       let resampler = Decoder_utils.samplerate_converter () in
       let convert =
@@ -131,13 +121,13 @@ let () =
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       (new external_input
-         ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
+         ~restart ~bufferize ~log_overfull ~restart_on_error ~max
          ~name:"input.external.rawaudio" ~converter command
         :> Source.source))
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "input.external.wav" ~category:`Input
     ~descr:"Stream WAV data from an external application." proto ~return_t
     (fun p ->
@@ -165,8 +155,7 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      let kind = Kind.of_kind kind in
       (new external_input
-         ~kind ~restart ~bufferize ~log_overfull ~read_header ~restart_on_error
-         ~max ~name:"input.external.wav" ~converter command
+         ~restart ~bufferize ~log_overfull ~read_header ~restart_on_error ~max
+         ~name:"input.external.wav" ~converter command
         :> Source.source))

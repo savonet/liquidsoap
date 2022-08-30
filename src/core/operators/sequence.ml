@@ -27,10 +27,10 @@ open Source
   * advancing in the sequence. The [merge] flag will *not* merge tracks
   * while looping on the last source -- this behavior would not be suited
   * to the current use of [sequence] in transitions. *)
-class sequence ~kind ?(merge = false) sources =
+class sequence ?(merge = false) sources =
   let self_sync_type = Utils.self_sync_type sources in
   object (self)
-    inherit operator ~name:"sequence" kind sources
+    inherit operator ~name:"sequence" sources
     val mutable seq_sources = sources
 
     method self_sync =
@@ -104,9 +104,9 @@ class sequence ~kind ?(merge = false) sources =
           | [] -> assert false)
   end
 
-class merge_tracks ~kind source =
+class merge_tracks source =
   object (self)
-    inherit operator ~name:"sequence" kind [source]
+    inherit operator ~name:"sequence" [source]
     method stype = source#stype
     method is_ready = source#is_ready
     method abort_track = source#abort_track
@@ -127,7 +127,7 @@ class merge_tracks ~kind source =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "sequence"
     [
       ( "merge",
@@ -145,15 +145,13 @@ let () =
        which is played as much as available."
     ~return_t:k
     (fun p ->
-      let kind = Kind.of_kind kind in
       new sequence
-        ~kind
         ~merge:(Lang.to_bool (List.assoc "merge" p))
         (Lang.to_source_list (List.assoc "" p)))
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "merge_tracks"
     [("", Lang.source_t k, None, None)]
     ~category:`Track
@@ -161,6 +159,4 @@ let () =
       "Merge consecutive tracks from the input source. They will be considered \
        as one big track, so `on_track()` will not trigger for example."
     ~return_t:k
-    (fun p ->
-      let kind = Kind.of_kind kind in
-      new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))
+    (fun p -> new merge_tracks (Lang.to_source (List.assoc "" p)))

@@ -27,10 +27,9 @@ let () = Lang.add_module "video.fade"
 
 (** Fade-in at the beginning of every track.
   * The [duration] is in seconds. *)
-class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
-  =
+class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
   object
-    inherit operator ~name:"video.fade.in" kind [source]
+    inherit operator ~name:"video.fade.in" [source]
     method stype = source#stype
     method is_ready = source#is_ready
     method abort_track = source#abort_track
@@ -83,10 +82,9 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
   end
 
 (** Fade-out after every frame. *)
-class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
-  source =
+class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
   object
-    inherit operator ~name:"video.fade.out" kind [source]
+    inherit operator ~name:"video.fade.out" [source]
     method stype = source#stype
     method abort_track = source#abort_track
     method self_sync = source#self_sync
@@ -145,7 +143,7 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
 (** Lang interface *)
 
 let kind = Frame.mk_fields ~audio:`Any ~video:Frame.video_yuva420p ~midi:`Any ()
-let return_t = Lang.kind_type_of_kind_format kind
+let return_t = Lang.frame_kind_t kind
 
 (* TODO: share more with fade.ml *)
 let proto =
@@ -291,8 +289,7 @@ let () =
     (fun p ->
       let d, f, t, s = extract p in
       let meta = Lang.to_string (List.assoc "override" p) in
-      let kind = Kind.of_kind kind in
-      new fade_in ~kind ~meta d f t s);
+      new fade_in ~meta d f t s);
   Lang.add_operator "video.fade.out"
     (( "override",
        Lang.string_t,
@@ -306,5 +303,4 @@ let () =
     (fun p ->
       let d, f, t, s = extract p in
       let meta = Lang.to_string (List.assoc "override" p) in
-      let kind = Kind.of_kind kind in
-      new fade_out ~kind ~meta d f t s)
+      new fade_out ~meta d f t s)

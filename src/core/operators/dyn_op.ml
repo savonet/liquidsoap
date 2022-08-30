@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
+class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
   object (self)
-    inherit Source.source ~name:"source.dynamic" kind
+    inherit Source.source ~name:"source.dynamic" ()
     method stype = if infallible then `Infallible else `Fallible
     val mutable activation = []
 
@@ -69,7 +69,7 @@ class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
              match s with
                | None -> ()
                | Some s ->
-                   Kind.unify s#kind self#kind;
+                   Typing.(s#frame_type <: self#frame_type);
                    Clock.unify s#clock self#clock;
                    s#get_ready activation;
                    self#unregister_source ~already_locked:true;
@@ -121,7 +121,7 @@ class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "source.dynamic"
     [
       ( "init",
@@ -177,7 +177,5 @@ let () =
       let resurection_time =
         List.assoc "resurection_time" p |> Lang.to_valued_option Lang.to_float
       in
-      let kind = Kind.of_kind kind in
       new dyn
-        ~kind ~init ~track_sensitive ~infallible ~resurection_time
-        (List.assoc "" p))
+        ~init ~track_sensitive ~infallible ~resurection_time (List.assoc "" p))

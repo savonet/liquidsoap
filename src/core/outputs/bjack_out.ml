@@ -26,7 +26,7 @@ open Mm
 
 let bytes_per_sample = 2
 
-class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
+class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
   source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
@@ -34,7 +34,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name:"output.jack"
+        ~infallible ~on_stop ~on_start ~name:"output.jack"
           ~output_kind:"output.jack" source true as super
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
@@ -110,7 +110,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "output.jack"
     (Output.proto
     @ [
@@ -144,8 +144,6 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      let kind = Kind.of_kind kind in
       (new output
-         ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server
-         source
+         ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server source
         :> Output.output))

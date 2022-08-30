@@ -46,7 +46,7 @@ class virtual base ~client ~device =
     method self_sync : Source.self_sync = (`Dynamic, dev <> None)
   end
 
-class output ~infallible ~start ~on_start ~on_stop ~kind p =
+class output ~infallible ~start ~on_start ~on_stop p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
@@ -58,8 +58,8 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name
-          ~output_kind:"output.pulseaudio" val_source start as super
+        ~infallible ~on_stop ~on_start ~name ~output_kind:"output.pulseaudio"
+          val_source start as super
 
     method private set_clock =
       super#set_clock;
@@ -103,7 +103,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
       Simple.write stream buf 0 len
   end
 
-class input ~kind p =
+class input p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
   let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
@@ -121,8 +121,8 @@ class input ~kind p =
   object (self)
     inherit
       Start_stop.active_source
-        ~get_clock ~name:"input.pulseaudio" ~content_kind:kind ~clock_safe
-          ~on_start ~on_stop ~autostart:start ~fallible ()
+        ~get_clock ~name:"input.pulseaudio" ~clock_safe ~on_start ~on_stop
+          ~autostart:start ~fallible ()
 
     inherit base ~client ~device
     method private start = self#open_device
@@ -159,7 +159,7 @@ class input ~kind p =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   let proto =
     [
       ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);
@@ -188,14 +188,10 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      let kind = Kind.of_kind kind in
-      (new output ~infallible ~on_start ~on_stop ~start ~kind p
-        :> Output.output));
+      (new output ~infallible ~on_start ~on_stop ~start p :> Output.output));
   Lang.add_operator "input.pulseaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ proto)
     ~return_t:k ~category:`Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
-    (fun p ->
-      let kind = Kind.of_kind kind in
-      new input ~kind p)
+    (fun p -> new input p)

@@ -25,9 +25,9 @@
 
 open Source
 
-class delay ~kind ~initial (source : source) delay =
+class delay ~initial (source : source) delay =
   object (self)
-    inherit operator ~name:"delay" kind [source]
+    inherit operator ~name:"delay" [source]
     method stype = `Fallible
     method remaining = source#remaining
 
@@ -59,7 +59,7 @@ class delay ~kind ~initial (source : source) delay =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "delay"
     [
       ( "initial",
@@ -82,5 +82,4 @@ let () =
       let d = Lang.to_float_getter (f 1) in
       let s = Lang.to_source (f 2) in
       let initial = Lang.to_bool (List.assoc "initial" p) in
-      let kind = Kind.of_kind kind in
-      new delay ~kind ~initial s d)
+      new delay ~initial s d)

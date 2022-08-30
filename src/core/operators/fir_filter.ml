@@ -23,9 +23,9 @@
 open Source
 open Complex
 
-class fir ~kind (source : source) freq beta numcoeffs =
+class fir (source : source) freq beta numcoeffs =
   object (self)
-    inherit operator ~name:"fir_filter" kind [source] as super
+    inherit operator ~name:"fir_filter" [source] as super
 
     (* Needed to compute RC *)
     val f1 = (1. -. beta) *. (freq /. float_of_int (Frame.audio_of_seconds 1.))
@@ -153,7 +153,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter.fir"
     [
       ( "frequency",
@@ -175,5 +175,4 @@ let () =
           Lang.to_int (f "coeffs"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      (new fir ~kind src freq beta num :> Source.source))
+      (new fir src freq beta num :> Source.source))

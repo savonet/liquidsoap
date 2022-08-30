@@ -82,10 +82,10 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
               else if noise_len <> 0 then self#set_state (`Blank 0))
   end
 
-class detect ~kind ~start_blank ~max_blank ~min_noise ~threshold
-  ~track_sensitive ~on_blank ~on_noise source =
+class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
+  ~on_blank ~on_noise source =
   object (self)
-    inherit operator ~name:"blank.detect" kind [source]
+    inherit operator ~name:"blank.detect" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method stype = source#stype
     method is_ready = source#is_ready
@@ -108,13 +108,13 @@ class detect ~kind ~start_blank ~max_blank ~min_noise ~threshold
         | _ -> ()
   end
 
-class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
+class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
   source =
   object (self)
     (* Stripping is easy:
      *  - declare yourself as unavailable when the source is silent
      *  - keep pulling data from the source during those times. *)
-    inherit active_operator ~name:"blank.strip" kind [source]
+    inherit active_operator ~name:"blank.strip" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method stype = `Fallible
     method is_ready = (not self#is_blank) && source#is_ready
@@ -147,13 +147,13 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     method reset = ()
   end
 
-class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
-  ~min_noise ~threshold source =
+class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
+  ~threshold source =
   object (self)
     (* Eating blank is trickier than stripping.
      * TODO It requires control over the time flow of the source; we need
      * to force our own clock onto it. *)
-    inherit operator ~name:"blank.eat" kind [source]
+    inherit operator ~name:"blank.eat" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
 
     (** We strip when the source is silent,
@@ -197,7 +197,7 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
   end
 
 let kind = Lang.any
-let return_t = Lang.kind_type_of_kind_format kind
+let return_t = Lang.frame_kind_t kind
 
 let proto =
   [
@@ -272,10 +272,9 @@ let () =
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      let kind = Kind.of_kind kind in
       new detect
-        ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
-        ~on_blank ~on_noise s);
+        ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive ~on_blank
+        ~on_noise s);
   Lang.add_operator "blank.strip" ~return_t
     ~meth:
       [
@@ -290,9 +289,7 @@ let () =
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      let kind = Kind.of_kind kind in
-      new strip
-        ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s);
+      new strip ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s);
   Lang.add_operator "blank.eat" ~return_t ~category:`Track
     ~meth:
       [
@@ -314,7 +311,6 @@ let () =
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      let kind = Kind.of_kind kind in
       new eat
-        ~kind ~at_beginning ~track_sensitive ~start_blank ~max_blank ~min_noise
+        ~at_beginning ~track_sensitive ~start_blank ~max_blank ~min_noise
         ~threshold s)

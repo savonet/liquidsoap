@@ -68,9 +68,9 @@ module Make (T : T) = struct
   let max_title = 3852
   let max_url = 200
 
-  let proto kind =
+  let proto frame_t =
     Output.proto
-    @ Icecast_utils.base_proto kind
+    @ Icecast_utils.base_proto frame_t
     @ [
         ("mount", Lang.string_t, None, None);
         ("port", Lang.int_t, Some (Lang.int 8000), None);
@@ -162,7 +162,7 @@ module Make (T : T) = struct
           Some Lang.null,
           Some "Dump stream to file, for debugging purpose. Disabled if null."
         );
-        ("", Lang.source_t kind, None, None);
+        ("", Lang.source_t frame_t, None, None);
       ]
 
   type client_state = Hello | Sending | Done
@@ -295,7 +295,7 @@ module Make (T : T) = struct
 
   (** Sending encoded data to a shout-compatible server.
     * It directly takes the Lang param list and extracts stuff from it. *)
-  class output ~kind p =
+  class output p =
     let e f v = f (List.assoc v p) in
     let s v = e Lang.to_string v in
     let on_connect = List.assoc "on_connect" p in
@@ -412,8 +412,8 @@ module Make (T : T) = struct
       (** File descriptor where to dump. *)
       inherit
         Output.encoded
-          ~content_kind:(Kind.of_kind kind) ~output_kind:T.source_name
-            ~infallible ~autostart ~on_start ~on_stop ~name:mount source
+          ~output_kind:T.source_name ~infallible ~autostart ~on_start ~on_stop
+            ~name:mount source
 
       val mutable dump = None
       val mutable encoder = None
@@ -641,13 +641,10 @@ module Make (T : T) = struct
 
   let () =
     let kind = Lang.any in
-    let return_t = Lang.kind_type_of_kind_format kind in
+    let return_t = Lang.frame_kind_t kind in
     Lang.add_operator ~category:`Output ~descr:T.source_description
       ~meth:Output.meth T.source_name (proto return_t) ~return_t (fun p ->
-        let format_val = Lang.assoc "" 1 p in
-        let format = Lang.to_format format_val in
-        let kind = Encoder.kind_of_format format in
-        (new output ~kind p :> Output.output))
+        (new output p :> Output.output))
 end
 
 module Unix_output = struct

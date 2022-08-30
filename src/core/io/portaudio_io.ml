@@ -55,17 +55,16 @@ class virtual base =
                 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
   end
 
-class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
-  val_source =
+class output ~clock_safe ~start ~on_start ~on_stop ~infallible buflen val_source
+  =
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit base
 
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind
-          ~name:"output.portaudio" ~output_kind:"output.portaudio" val_source
-          start as super
+        ~infallible ~on_stop ~on_start ~name:"output.portaudio"
+          ~output_kind:"output.portaudio" val_source start as super
 
     method private set_clock =
       super#set_clock;
@@ -107,15 +106,15 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
           Portaudio.write_stream stream buf 0 len)
   end
 
-class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
+class input ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit base
 
     inherit
       Start_stop.active_source
-        ~get_clock ~clock_safe ~content_kind:kind ~name:"portaudio_in" ~on_start
-          ~on_stop ~fallible ~autostart:start ()
+        ~get_clock ~clock_safe ~name:"portaudio_in" ~on_start ~on_stop ~fallible
+          ~autostart:start ()
 
     method private start = self#open_device
     method private stop = self#close_device
@@ -148,7 +147,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "output.portaudio"
     (Output.proto
     @ [
@@ -179,9 +178,8 @@ let () =
       in
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-      let kind = Kind.of_kind kind in
       (new output
-         ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
+         ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
         :> Output.output));
   Lang.add_operator "input.portaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
@@ -207,5 +205,4 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      let kind = Kind.of_kind kind in
-      new input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen)
+      new input ~clock_safe ~start ~on_start ~on_stop ~fallible buflen)

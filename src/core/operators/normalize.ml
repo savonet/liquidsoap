@@ -23,14 +23,14 @@
 open Mm
 open Source
 
-class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
+class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
   (* Number of samples for computing rms. *)
     window (* Spring coefficient when the sound is going louder. *) kup
   (* Spring coefficient when the sound is going less loud. *)
     kdown threshold gmin gmax =
   let rmsi = Frame.audio_of_seconds window in
   object (self)
-    inherit operator ~name:"normalize" kind [source] as super
+    inherit operator ~name:"normalize" [source] as super
 
     (** Current squares of RMS. *)
     val mutable rms = 0.
@@ -109,7 +109,7 @@ let () = Lang.add_module "normalize"
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "normalize.old"
     [
       ( "target",
@@ -186,9 +186,8 @@ let () =
           Lang.to_source (f "") )
       in
       let track_sensitive = Lang.to_bool (f "track_sensitive") in
-      let kind = Kind.of_kind kind in
       new normalize
-        ~kind ~track_sensitive src
+        ~track_sensitive src
         (fun () -> Audio.lin_of_dB (target ()))
         window kup kdown
         (fun () -> Audio.lin_of_dB (threshold ()))

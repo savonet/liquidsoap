@@ -24,10 +24,10 @@ open Source
 
 type mode = Low_pass | High_pass | Band_pass | Notch
 
-class filter ~kind (source : source) freq q wet mode =
+class filter (source : source) freq q wet mode =
   let rate = float (Lazy.force Frame.audio_rate) in
   object (self)
-    inherit operator ~name:"filter" kind [source] as super
+    inherit operator ~name:"filter" [source] as super
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -87,7 +87,7 @@ class filter ~kind (source : source) freq q wet mode =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "filter"
     [
       ( "freq",
@@ -135,5 +135,4 @@ let () =
                 (Error.Invalid_value
                    (mode, "valid values are low|high|band|notch"))
       in
-      let kind = Kind.of_kind kind in
-      (new filter ~kind src freq q wet mode :> Source.source))
+      (new filter src freq q wet mode :> Source.source))

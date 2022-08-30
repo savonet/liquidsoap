@@ -30,8 +30,7 @@ type handler = {
 }
 
 class once :
-  kind:Kind.t
-  -> name:string
+  name:string
   -> timeout:float
   -> Request.t
   -> object
@@ -48,8 +47,7 @@ class once :
      end
 
 class virtual unqueued :
-  kind:Kind.t
-  -> name:string
+  name:string
   -> object
        (** [get_next_file] is the only thing you've got to define,
     * it's supposed to return "quickly" as it is run in the Root thread. *)
@@ -73,8 +71,7 @@ type queue_item = {
 }
 
 class virtual queued :
-  kind:Kind.t
-  -> name:string
+  name:string
   -> ?prefetch:int
   -> ?timeout:float
   -> unit

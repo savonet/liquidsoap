@@ -24,7 +24,7 @@ open Extralib
 
 (* {1 External Input handling} *)
 
-class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
+class virtual base ~name ~restart ~restart_on_error ~on_data ?read_header
   command =
   let no_header, read_header =
     match read_header with
@@ -32,7 +32,7 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
       | Some f -> (false, f)
   in
   object (self)
-    inherit Source.source ~name kind
+    inherit Source.source ~name ()
     val mutable process = None
 
     (** The header was already read. *)

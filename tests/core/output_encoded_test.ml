@@ -1,6 +1,3 @@
-let content_kind =
-  Frame.mk_fields ~audio:Frame.none ~video:Frame.none ~midi:Frame.none ()
-
 let insert_metadata_called = ref false
 let encode_called = ref false
 let send_called = ref false
@@ -11,12 +8,11 @@ class encoded_test =
   object (self)
     inherit
       Output.encoded
-        ~content_kind:(Kind.of_kind content_kind)
         ~output_kind:"foo" ~name:"encoded_test" ~infallible:false
         ~on_start:(fun _ -> ())
         ~on_stop:(fun _ -> ())
         ~autostart:false
-        (Lang.source (new Noise.noise ~kind:(Kind.of_kind content_kind) None))
+        (Lang.source (new Noise.noise None))
 
     method insert_metadata _ =
       assert !send_called;

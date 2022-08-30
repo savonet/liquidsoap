@@ -30,7 +30,7 @@ open Mm
 
 open Alsa
 
-class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
+class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
   let buffer_length = AFrame.size () in
   let alsa_device = device in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
@@ -38,8 +38,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
     inherit
       Start_stop.active_source
         ~name:"input.alsa" ~fallible ~on_start ~on_stop ~autostart:start
-          ~clock_safe ~get_clock:Alsa_settings.get_clock
-          ~content_kind:(Kind.of_kind kind) () as active_source
+          ~clock_safe ~get_clock:Alsa_settings.get_clock () as active_source
 
     inherit Source.no_seek
     inherit [Content.Audio.data] IoRing.input ~nb_blocks as ioring

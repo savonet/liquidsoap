@@ -26,9 +26,9 @@ open Mm
 open Source
 open Extralib
 
-class still_frame ~name ~kind (source : source) =
+class still_frame ~name (source : source) =
   object (self)
-    inherit operator ~name kind [source]
+    inherit operator ~name [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -66,8 +66,7 @@ class still_frame ~name ~kind (source : source) =
 
 let () =
   let k = Lang.video_yuva420p in
-  let return_t = Lang.kind_type_of_kind_format k in
-  let kind = Kind.of_kind k in
+  let return_t = Lang.frame_kind_t k in
   let name = "video.still_frame" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
@@ -87,4 +86,4 @@ let () =
       ]
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
-      new still_frame ~name ~kind s)
+      new still_frame ~name s)

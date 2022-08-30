@@ -138,9 +138,9 @@ module Make (Generator : Generator.S) = struct
 
   (* Reads data from a fixed audio buffer generator, of a certain kind.
    * The generator shouldn't be fed anymore. *)
-  class consumer ~kind generator =
+  class consumer generator =
     object
-      inherit Source.source ~name:"buffer" kind
+      inherit Source.source ~name:"buffer" ()
       inherit source generator ~bufferize:0. ~empty_on_abort:true
       method stype = `Fallible
     end

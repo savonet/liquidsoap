@@ -22,9 +22,9 @@
 
 open Source
 
-class map_metadata ~kind source rewrite_f insert_missing update strip =
+class map_metadata source rewrite_f insert_missing update strip =
   object (self)
-    inherit operator ~name:"metadata.map" kind [source]
+    inherit operator ~name:"metadata.map" [source]
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
@@ -68,7 +68,7 @@ class map_metadata ~kind source rewrite_f insert_missing update strip =
 
 let register =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "metadata.map"
     [
       ( "",
@@ -108,5 +108,4 @@ let register =
       let update = Lang.to_bool (List.assoc "update" p) in
       let strip = Lang.to_bool (List.assoc "strip" p) in
       let missing = Lang.to_bool (List.assoc "insert_missing" p) in
-      let kind = Kind.of_kind kind in
-      new map_metadata ~kind source f missing update strip)
+      new map_metadata source f missing update strip)

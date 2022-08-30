@@ -32,11 +32,11 @@ let max a b = if b = -1 || a = -1 then -1 else max a b
   * The [video_init] (resp. [video_loop]) parameter is used to pre-process
   * the first layer (resp. next layers) in the sum; this generalization
   * is used to add either as an overlay or as a tiling. *)
-class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
-  video_init video_loop =
+class add ~renorm ~power (sources : ((unit -> float) * source) list) video_init
+  video_loop =
   let self_sync_type = Utils.self_sync_type (List.map snd sources) in
   object (self)
-    inherit operator ~name:"add" kind (List.map snd sources) as super
+    inherit operator ~name:"add" (List.map snd sources) as super
 
     (* We want the sources at the beginning of the list to
      * have their metadatas copied to the output stream, so direction
@@ -85,7 +85,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
 
     method wake_up a =
       super#wake_up a;
-      tmp <- Frame.create self#ctype
+      tmp <- Frame.create self#content_type
 
     method private get_frame buf =
       let tmp = tmp in
@@ -173,7 +173,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
 
 let () =
   let kind = Lang.internal in
-  let kind_t = Lang.kind_type_of_kind_format kind in
+  let frame_t = Lang.frame_kind_t kind in
   Lang.add_operator "add" ~category:`Audio
     ~descr:
       "Mix sources, with optional normalization. Only relay metadata from the \
@@ -196,9 +196,9 @@ let () =
           "Relative weight of the sources in the sum. The empty list stands \
            for the homogeneous distribution. These are used as amplification \
            coefficients if we are not normalizing." );
-      ("", Lang.list_t (Lang.source_t kind_t), None, None);
+      ("", Lang.list_t (Lang.source_t frame_t), None, None);
     ]
-    ~return_t:kind_t
+    ~return_t:frame_t
     (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
@@ -215,9 +215,8 @@ let () =
           (Error.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
-      let kind = Kind.of_kind kind in
       (new add
-         ~kind ~renorm ~power
+         ~renorm ~power
          (List.map2 (fun w s -> (w, s)) weights sources)
          (fun _ -> ())
          (fun _ tmp buf -> Video.Canvas.Image.add tmp buf)
@@ -242,7 +241,7 @@ let tile_pos n =
 
 let () =
   let kind = Lang.video_yuva420p in
-  let kind_t = Lang.kind_type_of_kind_format kind in
+  let frame_t = Lang.frame_kind_t kind in
   Lang.add_operator "video.tile" ~category:`Video
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [
@@ -261,9 +260,9 @@ let () =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Scale preserving the proportions." );
-      ("", Lang.list_t (Lang.source_t kind_t), None, None);
+      ("", Lang.list_t (Lang.source_t frame_t), None, None);
     ]
-    ~return_t:kind_t
+    ~return_t:frame_t
     (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
@@ -307,9 +306,8 @@ let () =
           (Error.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
-      let kind = Kind.of_kind kind in
       (new add
-         ~kind ~renorm ~power
+         ~renorm ~power
          (List.map2 (fun w s -> (w, s)) weights sources)
          video_init video_loop
         :> Source.source))

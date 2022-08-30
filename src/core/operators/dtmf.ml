@@ -149,13 +149,13 @@ let key =
   in
   fun f -> List.assoc f keys
 
-class dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback
+class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
   (source : source) =
   let samplerate = float (Lazy.force Frame.audio_rate) in
   let nbands = bands in
   let size = float nbands in
   object (self)
-    inherit operator ~name:"dtmf" kind [source] as super
+    inherit operator ~name:"dtmf" [source] as super
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -235,7 +235,7 @@ let () = Lang.add_module "dtmf"
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "dtmf.detect"
     [
       ( "duration",
@@ -282,17 +282,16 @@ let () =
       let debug = List.assoc "debug" p |> Lang.to_bool_getter in
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let callback = Lang.assoc "" 2 p in
-      let kind = Kind.of_kind kind in
-      (new dtmf ~kind ~duration ~bands ~threshold ~smoothing ~debug callback s
+      (new dtmf ~duration ~bands ~threshold ~smoothing ~debug callback s
         :> Source.source))
 
-class detect ~kind ~duration ~bands ~threshold ~smoothing ~debug ~frequencies
-  callback (source : source) =
+class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
+  (source : source) =
   let samplerate = float (Lazy.force Frame.audio_rate) in
   let nbands = bands in
   let size = float nbands in
   object (self)
-    inherit operator ~name:"sine.detect" kind [source] as super
+    inherit operator ~name:"sine.detect" [source] as super
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -359,7 +358,7 @@ class detect ~kind ~duration ~bands ~threshold ~smoothing ~debug ~frequencies
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "sine.detect"
     [
       ( "duration",
@@ -410,8 +409,6 @@ let () =
       in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
       let callback = Lang.assoc "" 3 p in
-      let kind = Kind.of_kind kind in
       (new detect
-         ~kind ~duration ~bands ~threshold ~smoothing ~debug ~frequencies
-         callback s
+         ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback s
         :> Source.source))

@@ -32,18 +32,17 @@ let finalise_child_clock child_clock source =
 (** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
-class cross ~kind val_source ~duration_getter ~override_duration
-  ~persist_override ~rms_width ~minimum_length ~conservative ~active transition
-  =
+class cross val_source ~duration_getter ~override_duration ~persist_override
+  ~rms_width ~minimum_length ~conservative ~active transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
-    inherit source ~name:"cross" kind as super
+    inherit source ~name:"cross" () as super
 
     inherit
       Child_support.base ~check_self_sync:true [val_source] as child_support
 
-    initializer Kind.unify s#kind kind
+    initializer Typing.(s#frame_type <: self#frame_type)
     method stype = `Fallible
 
     (* This is complicated. crossfade should never be used with [self_sync]
@@ -128,7 +127,7 @@ class cross ~kind val_source ~duration_getter ~override_duration
 
     method private wake_up a =
       super#wake_up a;
-      buf_frame <- Frame.create self#ctype;
+      buf_frame <- Frame.create self#content_type;
       source#get_ready ~dynamic:true [(self :> source)];
       source#get_ready [(self :> source)];
       Lang.iter_sources
@@ -348,13 +347,13 @@ class cross ~kind val_source ~duration_getter ~override_duration
             let after_metadata = metadata after_metadata in
             let before =
               new Insert_metadata.replay
-                ~kind before_metadata
-                (new Generated.consumer ~kind gen_before)
+                before_metadata
+                (new Generated.consumer gen_before)
             in
             let after =
               new Insert_metadata.replay
-                ~kind after_metadata
-                (new Generated.consumer ~kind gen_after)
+                after_metadata
+                (new Generated.consumer gen_after)
             in
             let () =
               before#set_id (self#id ^ "_before");
@@ -390,7 +389,7 @@ class cross ~kind val_source ~duration_getter ~override_duration
               then f before after
               else (
                 self#log#important "Not enough data for crossing.";
-                (new Sequence.sequence ~kind [before; after] :> source))
+                (new Sequence.sequence [before; after] :> source))
             in
             Clock.unify compound#clock s#clock;
             compound)
@@ -427,7 +426,7 @@ class cross ~kind val_source ~duration_getter ~override_duration
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   let transition_arg =
     Lang.method_t Lang.unit_t
       [
@@ -522,7 +521,6 @@ let () =
       let conservative = Lang.to_bool (List.assoc "conservative" p) in
       let active = Lang.to_bool (List.assoc "active" p) in
       let source = Lang.assoc "" 2 p in
-      let kind = Kind.of_kind kind in
       new cross
-        ~kind source transition ~conservative ~active ~duration_getter
-        ~rms_width ~minimum_length ~override_duration ~persist_override)
+        source transition ~conservative ~active ~duration_getter ~rms_width
+        ~minimum_length ~override_duration ~persist_override)

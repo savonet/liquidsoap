@@ -25,10 +25,10 @@ open Source
 
 (* See http://en.wikipedia.org/wiki/Comb_filter *)
 
-class comb ~kind (source : source) delay feedback =
+class comb (source : source) delay feedback =
   let past_len = Frame.audio_of_seconds delay in
   object (self)
-    inherit operator ~name:"comb" kind [source] as super
+    inherit operator ~name:"comb" [source] as super
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -61,7 +61,7 @@ class comb ~kind (source : source) delay feedback =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "comb"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
@@ -79,5 +79,4 @@ let () =
           Lang.to_float_getter (f "feedback"),
           Lang.to_source (f "") )
       in
-      let kind = Kind.of_kind kind in
-      new comb ~kind src duration (fun () -> Audio.lin_of_dB (feedback ())))
+      new comb src duration (fun () -> Audio.lin_of_dB (feedback ())))

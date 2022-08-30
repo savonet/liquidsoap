@@ -22,9 +22,9 @@
 
 open Source
 
-class compress ~kind (source : source) mu =
+class compress (source : source) mu =
   object
-    inherit operator ~name:"compress" kind [source]
+    inherit operator ~name:"compress" [source]
     method stype = source#stype
     method remaining = source#remaining
     method is_ready = source#is_ready
@@ -48,7 +48,7 @@ class compress ~kind (source : source) mu =
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "compress.exponential" ~category:`Audio
     ~descr:"Exponential compressor."
     [
@@ -62,5 +62,4 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
-      let kind = Kind.of_kind kind in
-      new compress ~kind src mu)
+      new compress src mu)

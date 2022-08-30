@@ -627,7 +627,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
         ()
   end
 
-class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
+class virtual input_base ~max ~log_overfull ~clock_safe ~on_connect
   ~on_disconnect ~payload_size ~dump ~on_start ~on_stop ~autostart format =
   let max_ticks = Frame.main_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
@@ -642,8 +642,8 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
 
     inherit
       Start_stop.active_source
-        ~name:"input.srt" ~content_kind:(Kind.of_kind kind) ~clock_safe
-          ~on_start ~on_stop ~autostart ~fallible:true () as super
+        ~name:"input.srt" ~clock_safe ~on_start ~on_stop ~autostart
+          ~fallible:true () as super
 
     val mutable decoder_data = None
     val mutable dump_chan = None
@@ -679,7 +679,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
 
     method private create_decoder socket =
       let create_decoder =
-        match Decoder.get_stream_decoder ~ctype:self#ctype format with
+        match Decoder.get_stream_decoder ~ctype:self#content_type format with
           | Some d -> d
           | None -> raise Harbor.Unknown_codec
       in
@@ -710,7 +710,9 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
         let decoder, buffer =
           match decoder_data with
             | None ->
-                let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
+                let buffer =
+                  Decoder.mk_buffer ~ctype:self#content_type generator
+                in
                 let decoder = self#create_decoder socket in
                 decoder_data <- Some (decoder, buffer);
                 (decoder, buffer)
@@ -738,14 +740,14 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
   end
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-  ~bind_address ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
+  ~bind_address ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
   ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
   ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump ~on_start ~on_stop ~autostart format
+        ~max ~log_overfull ~payload_size ~clock_safe ~on_connect ~on_disconnect
+          ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       listener
@@ -762,14 +764,14 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   end
 
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~hostname ~port ~kind ~max ~log_overfull ~payload_size
-  ~clock_safe ~on_connect ~on_disconnect ~read_timeout ~write_timeout
-  ~connection_timeout ~messageapi ~dump ~on_start ~on_stop ~autostart format =
+  ~polling_delay ~hostname ~port ~max ~log_overfull ~payload_size ~clock_safe
+  ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout
+  ~messageapi ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump ~on_start ~on_stop ~autostart format
+        ~max ~log_overfull ~payload_size ~clock_safe ~on_connect ~on_disconnect
+          ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       caller
@@ -783,7 +785,7 @@ class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "input.srt" ~return_t ~category:`Input
     ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
@@ -854,7 +856,7 @@ let () =
       match mode with
         | `Listener ->
             (new input_listener
-               ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback ~kind
+               ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
                ~bind_address ~read_timeout ~write_timeout ~connection_timeout
                ~payload_size ~clock_safe ~on_connect ~on_disconnect ~messageapi
                ~max ~log_overfull ~dump ~on_start ~on_stop ~autostart format
@@ -863,14 +865,14 @@ let () =
         | `Caller ->
             (new input_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-               ~polling_delay ~kind ~hostname ~port ~payload_size ~clock_safe
+               ~polling_delay ~hostname ~port ~payload_size ~clock_safe
                ~on_connect ~read_timeout ~write_timeout ~connection_timeout
                ~on_disconnect ~messageapi ~max ~log_overfull ~dump ~on_start
                ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
-class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
+class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~autostart ~on_disconnect ~encoder_factory source =
   let buffer = Strings.Mutable.empty () in
   let tmp = Bytes.create payload_size in
@@ -880,8 +882,8 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
 
     inherit
       Output.encoded
-        ~output_kind:"srt" ~content_kind:kind ~on_start ~on_stop ~infallible
-          ~autostart ~name:"output.srt" source
+        ~output_kind:"srt" ~on_start ~on_stop ~infallible ~autostart
+          ~name:"output.srt" source
 
     val mutable encoder = None
 
@@ -961,14 +963,14 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
   end
 
 class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
+  ~polling_delay ~payload_size ~messageapi ~on_start ~on_stop ~infallible
   ~autostart ~on_connect ~on_disconnect ~port ~hostname ~read_timeout
   ~write_timeout ~connection_timeout ~encoder_factory source =
   object (self)
     inherit
       output_base
-        ~kind:(Kind.of_kind kind) ~payload_size ~messageapi ~on_start ~on_stop
-          ~infallible ~autostart ~on_disconnect ~encoder_factory source
+        ~payload_size ~messageapi ~on_start ~on_stop ~infallible ~autostart
+          ~on_disconnect ~encoder_factory source
 
     inherit
       caller
@@ -989,14 +991,14 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   end
 
 class output_listener ~enforced_encryption ~pbkeylen ~passphrase
-  ~listen_callback ~max_clients ~kind ~payload_size ~messageapi ~on_start
-  ~on_stop ~infallible ~autostart ~on_connect ~on_disconnect ~bind_address
-  ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory source =
+  ~listen_callback ~max_clients ~payload_size ~messageapi ~on_start ~on_stop
+  ~infallible ~autostart ~on_connect ~on_disconnect ~bind_address ~read_timeout
+  ~write_timeout ~connection_timeout ~encoder_factory source =
   object (self)
     inherit
       output_base
-        ~kind:(Kind.of_kind kind) ~payload_size ~messageapi ~on_start ~on_stop
-          ~infallible ~autostart ~on_disconnect ~encoder_factory source
+        ~payload_size ~messageapi ~on_start ~on_stop ~infallible ~autostart
+          ~on_disconnect ~encoder_factory source
 
     inherit
       listener
@@ -1020,7 +1022,7 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   let output_meth =
     List.map
       (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
@@ -1077,7 +1079,6 @@ let () =
       in
       let format_val = Lang.assoc "" 1 p in
       let format = Lang.to_format format_val in
-      let kind = Encoder.kind_of_format format in
       let encoder_factory =
         try Encoder.get_factory format
         with Not_found ->
@@ -1089,15 +1090,15 @@ let () =
         | `Caller ->
             (new output_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-               ~polling_delay ~kind ~hostname ~port ~payload_size ~autostart
-               ~on_start ~on_stop ~read_timeout ~write_timeout
-               ~connection_timeout ~infallible ~messageapi ~encoder_factory
-               ~on_connect ~on_disconnect source
+               ~polling_delay ~hostname ~port ~payload_size ~autostart ~on_start
+               ~on_stop ~read_timeout ~write_timeout ~connection_timeout
+               ~infallible ~messageapi ~encoder_factory ~on_connect
+               ~on_disconnect source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Listener ->
             (new output_listener
-               ~enforced_encryption ~pbkeylen ~passphrase ~kind ~bind_address
+               ~enforced_encryption ~pbkeylen ~passphrase ~bind_address
                ~read_timeout ~write_timeout ~connection_timeout ~payload_size
                ~autostart ~on_start ~on_stop ~infallible ~messageapi
                ~encoder_factory ~on_connect ~on_disconnect ~listen_callback

@@ -23,9 +23,9 @@
 open Mm
 open Source
 
-class pan ~kind (source : source) phi phi_0 =
+class pan (source : source) phi phi_0 =
   object
-    inherit operator ~name:"pan" kind [source]
+    inherit operator ~name:"pan" [source]
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
@@ -50,7 +50,7 @@ class pan ~kind (source : source) phi phi_0 =
 
 let () =
   let kind = Lang.audio_stereo in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "stereo.pan"
     [
       ( "pan",
@@ -68,5 +68,4 @@ let () =
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let phi_0 = Lang.to_float_getter (Lang.assoc "field" 1 p) in
       let phi = Lang.to_float_getter (Lang.assoc "pan" 1 p) in
-      let kind = Kind.of_kind kind in
-      new pan ~kind s phi phi_0)
+      new pan s phi phi_0)

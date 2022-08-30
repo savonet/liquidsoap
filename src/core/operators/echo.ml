@@ -23,9 +23,9 @@
 open Mm
 open Source
 
-class echo ~kind (source : source) delay feedback ping_pong =
+class echo (source : source) delay feedback ping_pong =
   object (self)
-    inherit operator ~name:"echo" kind [source] as super
+    inherit operator ~name:"echo" [source] as super
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -57,7 +57,7 @@ class echo ~kind (source : source) delay feedback ping_pong =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "echo"
     [
       ( "delay",
@@ -90,5 +90,4 @@ let () =
             (Error.Invalid_value (f "feedback", "feedback should be negative"));
         fun () -> Audio.lin_of_dB (feedback ())
       in
-      let kind = Kind.of_kind kind in
-      new echo ~kind src duration feedback pp)
+      new echo src duration feedback pp)

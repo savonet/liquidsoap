@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2022 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
@@ -267,15 +267,17 @@ let add_new_output, iterate_new_outputs =
         List.iter f !l;
         l := []) )
 
-class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
-  sources =
-  let f kind (fn, el) = match el with None -> kind | Some v -> fn kind v in
-  let in_kind =
-    List.fold_left f out_kind
+class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
+  let out_typ = Frame_type.univ () in
+  let f typ (fn, el) =
+    match el with None -> typ | Some v -> fn typ (Frame_type.make_kind v)
+  in
+  let in_typ =
+    List.fold_left f out_typ
       [
-        (Kind.set_audio, audio_in);
-        (Kind.set_video, video_in);
-        (Kind.set_midi, midi_in);
+        (Frame_type.set_audio, audio_in);
+        (Frame_type.set_video, video_in);
+        (Frame_type.set_midi, midi_in);
       ]
   in
   object (self)
@@ -346,27 +348,27 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       List.iter (fun s -> unify self#clock s#clock) sources
 
     initializer self#set_clock
-    method kind = out_kind
-    initializer List.iter (fun s -> Kind.unify s#kind in_kind) sources
+    method frame_type = out_typ
+    initializer List.iter (fun s -> Typing.(s#frame_type <: in_typ)) sources
     val mutable ctype = None
 
     (* Content type. *)
-    method ctype =
+    method content_type =
       match ctype with
         | Some ctype -> ctype
         | None ->
-            let ct = Kind.content_type self#kind in
-            self#log#debug "Content kind: %s, content type: %s"
-              (Kind.to_string self#kind)
+            let ct = Frame_type.content_type self#frame_type in
+            self#log#debug "Source type: %s, content type: %s"
+              (Frame_type.to_string self#frame_type)
               (Frame.string_of_content_type ct);
             ctype <- Some ct;
             ct
 
     method private audio_channels =
-      Content.Audio.channels_of_format (Frame.find_audio self#ctype)
+      Content.Audio.channels_of_format (Frame.find_audio self#content_type)
 
     method private video_dimensions =
-      Content.Video.dimensions_of_format (Frame.find_video self#ctype)
+      Content.Video.dimensions_of_format (Frame.find_video self#content_type)
 
     (** Startup/shutdown.
     *
@@ -455,8 +457,8 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     method get_ready ?(dynamic = false) (activation : operator list) =
       if log == source_log then self#create_log;
       if static_activations = [] && dynamic_activations = [] then (
-        source_log#info "Source %s gets up with content kind: %s." id
-          (Kind.to_string self#kind);
+        source_log#info "Source %s gets up with type: %s." id
+          (Frame_type.to_string self#frame_type);
         self#wake_up activation);
       if dynamic then dynamic_activations <- activation :: dynamic_activations
       else static_activations <- activation :: static_activations;
@@ -468,7 +470,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       in
       self#iter_watchers (fun w ->
           w.get_ready ~stype:self#stype ~is_active:self#is_active ~id:self#id
-            ~ctype:self#ctype ~clock_id ~clock_sync_mode);
+            ~ctype:self#content_type ~clock_id ~clock_sync_mode);
       let on_get_ready = self#mutexify (fun () -> on_get_ready) () in
       List.iter (fun fn -> fn ()) on_get_ready
 
@@ -509,7 +511,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     method private wake_up activation =
       self#log#debug "Clock is %s." (variable_to_string self#clock);
       self#log#info "Content type is %s."
-        (Frame.string_of_content_type self#ctype);
+        (Frame.string_of_content_type self#content_type);
       let activation = (self :> operator) :: activation in
       List.iter (fun s -> s#get_ready ?dynamic:None activation) sources
 
@@ -556,7 +558,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       match memo with
         | Some memo -> memo
         | None ->
-            let m = Frame.create self#ctype in
+            let m = Frame.create self#content_type in
             memo <- Some m;
             m
 
@@ -694,10 +696,9 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
-and virtual active_operator ?name ?audio_in ?video_in ?midi_in content_kind
-  sources =
+and virtual active_operator ?name ?audio_in ?video_in ?midi_in sources =
   object (self)
-    inherit operator ?name ?audio_in ?video_in ?midi_in content_kind sources
+    inherit operator ?name ?audio_in ?video_in ?midi_in sources
 
     initializer
     has_outputs := true;
@@ -717,14 +718,14 @@ and virtual active_operator ?name ?audio_in ?video_in ?midi_in content_kind
 
 (** Shortcuts for defining sources with no children *)
 
-class virtual source ?name ?audio_in ?video_in ?midi_in content_kind =
+class virtual source ?name ?audio_in ?video_in ?midi_in () =
   object
-    inherit operator ?name ?audio_in ?video_in ?midi_in content_kind []
+    inherit operator ?name ?audio_in ?video_in ?midi_in []
   end
 
-class virtual active_source ?name ?audio_in ?video_in ?midi_in content_kind =
+class virtual active_source ?name ?audio_in ?video_in ?midi_in () =
   object
-    inherit active_operator ?name ?audio_in ?video_in ?midi_in content_kind []
+    inherit active_operator ?name ?audio_in ?video_in ?midi_in []
   end
 
 class virtual no_seek =

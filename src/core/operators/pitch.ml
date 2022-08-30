@@ -54,13 +54,13 @@ let string_of_note = function
   | 11 -> "G#/Ab"
   | _ -> assert false
 
-class pitch ~kind every length freq_min freq_max (source : source) =
+class pitch every length freq_min freq_max (source : source) =
   (* Compute a wave length from a frequency. *)
   let samples_per_second = float (Frame.audio_of_seconds 1.) in
   let wl f = int_of_float (samples_per_second /. f) in
   let length = Frame.audio_of_seconds length in
   object (self)
-    inherit operator ~name:"pitch" kind [source]
+    inherit operator ~name:"pitch" [source]
     val mutable ring = None
 
     method ring : Ringbuffer.t =
@@ -114,7 +114,7 @@ class pitch ~kind every length freq_min freq_max (source : source) =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "pitch"
     [
       ( "length",
@@ -136,5 +136,4 @@ let () =
       let freq_min = Lang.to_float (f "freq_min") in
       let freq_max = Lang.to_float (f "freq_max") in
       let src = Lang.to_source (f "") in
-      let kind = Kind.of_kind kind in
-      (new pitch ~kind 10 length freq_min freq_max src :> Source.source))
+      (new pitch 10 length freq_min freq_max src :> Source.source))

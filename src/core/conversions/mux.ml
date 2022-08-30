@@ -28,14 +28,14 @@ open Producer_consumer
 
 let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   let g = Generator.create `Both in
-  let main_kind =
-    Kind.of_kind
+  let main_frame_t =
+    Lang.frame_kind_t
       (Frame.mk_fields
          ~audio:(if main_content = `Audio then `Any else Frame.none)
          ~video:(if main_content = `Video then `Any else Frame.none)
          ~midi:`Any ())
   in
-  let main_output_kind =
+  let main_name =
     match main_content with
       | `Audio -> "audio_main"
       | `Video -> "video_main"
@@ -44,16 +44,17 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   let main =
     new consumer
       ~write_frame:(write_to_buffer ~content:main_content g)
-      ~name:main_output_kind ~kind:main_kind ~source:main_source ()
+      ~name:main_name ~source:main_source ()
   in
-  let aux_kind =
-    Kind.of_kind
+  Typing.(main#frame_type <: main_frame_t);
+  let aux_frame_t =
+    Lang.frame_kind_t
       (Frame.mk_fields
          ~audio:(if aux_content = `Audio then `Any else Frame.none)
          ~video:(if aux_content = `Video then `Any else Frame.none)
          ~midi:Frame.none ())
   in
-  let aux_output_kind =
+  let aux_name =
     match aux_content with
       | `Audio -> "audio_aux"
       | `Video -> "video_aux"
@@ -62,36 +63,34 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   let aux =
     new consumer
       ~write_frame:(write_to_buffer ~content:aux_content g)
-      ~name:aux_output_kind ~kind:aux_kind ~source:aux_source ()
+      ~name:aux_name ~source:aux_source ()
   in
-  let muxed_kind =
-    Frame.mk_fields
+  Typing.(aux#frame_type <: aux_frame_t);
+  let muxed_frame_t =
+    Frame_type.make
       ~audio:
-        (if aux_content = `Audio then Frame.find_audio aux#kind
-        else Frame.find_audio main#kind)
+        (if aux_content = `Audio then Frame_type.get_audio aux_frame_t
+        else Frame_type.get_audio main_frame_t)
       ~video:
-        (if aux_content = `Video then Frame.find_video aux#kind
-        else Frame.find_video main#kind)
-      ~midi:(Frame.find_midi main#kind)
+        (if aux_content = `Video then Frame_type.get_video aux_frame_t
+        else Frame_type.get_video main_frame_t)
+      ~midi:(Frame_type.get_midi main_frame_t)
       ()
   in
   let producer =
     new producer (* We are expecting real-rate with a couple of hickups.. *)
-      ~check_self_sync:false ~consumers:[main; aux]
-      ~kind:(Kind.of_kind Lang.any) ~name g
+      ~check_self_sync:false ~consumers:[main; aux] ~name g
   in
-  Kind.unify muxed_kind producer#kind;
+  Typing.(producer#frame_type <: muxed_frame_t);
   producer
 
 let () =
   let kind = Lang.any in
-  let out_t = Lang.kind_type_of_kind_format kind in
-  let out_kind = Lang.of_frame_kind_t out_t in
-  let main_t =
-    Lang.frame_kind_t (Frame.set_video_field out_kind Lang.kind_none_t)
-  in
+  let out_t = Lang.frame_kind_t kind in
+  let out_kind = Lang.of_frame_t out_t in
+  let main_t = Lang.frame_t (Frame.set_video_field out_kind Lang.kind_none_t) in
   let aux_t =
-    Lang.frame_kind_t
+    Lang.frame_t
       (Frame.mk_fields ~audio:Lang.kind_none_t
          ~video:(Frame.find_video out_kind)
          ~midi:Lang.kind_none_t ())
@@ -115,13 +114,11 @@ let () =
 
 let () =
   let kind = Lang.any in
-  let out_t = Lang.kind_type_of_kind_format kind in
-  let out_kind = Lang.of_frame_kind_t out_t in
-  let main_t =
-    Lang.frame_kind_t (Frame.set_audio_field out_kind Lang.kind_none_t)
-  in
+  let out_t = Lang.frame_kind_t kind in
+  let out_kind = Lang.of_frame_t out_t in
+  let main_t = Lang.frame_t (Frame.set_audio_field out_kind Lang.kind_none_t) in
   let aux_t =
-    Lang.frame_kind_t
+    Lang.frame_t
       (Frame.mk_fields
          ~audio:(Frame.find_audio out_kind)
          ~video:Lang.kind_none_t ~midi:Lang.kind_none_t ())

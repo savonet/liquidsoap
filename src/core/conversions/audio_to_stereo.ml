@@ -35,10 +35,7 @@ open Mm
 class basic source =
   object
     inherit
-      Source.operator
-        ~audio_in:Frame.audio_pcm
-        (Kind.of_kind Lang.audio_stereo)
-        [source] ~name:"audio_to_stereo"
+      Source.operator ~audio_in:Frame.audio_pcm [source] ~name:"audio_to_stereo"
 
     inherit
       Conversion.base
@@ -60,11 +57,10 @@ class basic source =
 
 let () =
   let input_kind = Lang.audio_pcm in
-  let input_type = Lang.kind_type_of_kind_format input_kind in
-  let fields = Lang.of_frame_kind_t input_type in
+  let input_type = Lang.frame_kind_t input_kind in
+  let fields = Lang.of_frame_t input_type in
   let output_type =
-    Lang.frame_kind_t
-      (Frame.set_audio_field fields (Lang.kind_t Frame.audio_stereo))
+    Lang.frame_t (Frame.set_audio_field fields (Lang.kind_t Frame.audio_stereo))
   in
   Lang.add_operator "audio_to_stereo" ~category:`Conversion
     ~descr:"Convert any pcm audio source into a stereo source."

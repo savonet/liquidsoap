@@ -24,10 +24,10 @@ open Mm
 
 let () = Lang.add_module "video.text"
 
-class text ~kind init render_text ttf ttf_size color duration text =
+class text init render_text ttf ttf_size color duration text =
   let () = init () in
   object (self)
-    inherit Synthesized.source ~seek:true ~name:"video.text" kind duration
+    inherit Synthesized.source ~seek:true ~name:"video.text" duration
     val mutable text_frame = None
     val mutable font = None
     val mutable cur_text = text ()
@@ -73,7 +73,7 @@ let register name init render_text =
   let kind =
     Frame.mk_fields ~audio:`Any ~video:Frame.video_yuva420p ~midi:`Any ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   let add_operator op =
     Lang.add_operator op
       [
@@ -104,8 +104,7 @@ let register name init render_text =
           List.assoc "duration" p |> Lang.to_option |> Option.map Lang.to_float
         in
         let text = List.assoc "" p |> Lang.to_string_getter in
-        let kind = Kind.of_kind kind in
-        (new text ~kind init render_text ttf ttf_size color duration text
+        (new text init render_text ttf ttf_size color duration text
           :> Source.source))
   in
   add_operator ("video.text." ^ name)

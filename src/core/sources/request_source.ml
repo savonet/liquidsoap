@@ -38,9 +38,9 @@ let log_failed_request (log : Log.t) request ans =
       | Request.Resolved -> assert false)
 
 (** Play a request once and become unavailable. *)
-class once ~kind ~name ~timeout request =
+class once ~name ~timeout request =
   object (self)
-    inherit source kind ~name as super
+    inherit source ~name () as super
     method self_sync = (`Static, false)
     method stype = `Fallible
 
@@ -59,14 +59,16 @@ class once ~kind ~name ~timeout request =
     method request = request
 
     method resolve =
-      Request.resolve ~ctype:(Some self#ctype) request timeout
+      Request.resolve ~ctype:(Some self#content_type) request timeout
       = Request.Resolved
 
     method private wake_up activation =
       super#wake_up activation;
       if not over then (
         (* Ensure that the request is resolved. *)
-        (match Request.resolve ~ctype:(Some self#ctype) request timeout with
+        (match
+           Request.resolve ~ctype:(Some self#content_type) request timeout
+         with
           | Request.Resolved -> ()
           | ans -> log_failed_request self#log request ans);
         if not (Request.resolved request) then (
@@ -75,7 +77,7 @@ class once ~kind ~name ~timeout request =
           Request.destroy request)
         else (
           (match Request.ctype request with
-            | Some ctype -> assert (Frame.compatible ctype self#ctype)
+            | Some ctype -> assert (Frame.compatible ctype self#content_type)
             | None -> ());
           let file = Option.get (Request.get_filename request) in
           decoder <- Request.get_decoder request;
@@ -129,9 +131,9 @@ class once ~kind ~name ~timeout request =
     which is ready, i.e. has been resolved. On the top of it we define [queued],
     which manages a queue of files, feed by resolving in an other thread requests
     given by [get_next_request]. *)
-class virtual unqueued ~kind ~name =
+class virtual unqueued ~name =
   object (self)
-    inherit source kind ~name
+    inherit source ~name ()
 
     (** [get_next_file] returns a ready audio request. It is supposed to return
       "quickly", which means that no resolving can be done here. *)
@@ -182,7 +184,10 @@ class virtual unqueued ~kind ~name =
             self#log#debug "Failed to prepare track: no file.";
             false
         | `Request req when Request.resolved req && Request.ctype req <> None ->
-            assert (Frame.compatible (Option.get (Request.ctype req)) self#ctype);
+            assert (
+              Frame.compatible
+                (Option.get (Request.ctype req))
+                self#content_type);
 
             (* [Request.resolved] ensures that we can get a filename from the request,
                and it can be decoded. *)
@@ -269,9 +274,9 @@ let priority = `Maybe_blocking
     - the source tries to have more than [prefetch] requests in queue
     - downloading a file is required to take less than [timeout] seconds
    *)
-class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
+class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
   object (self)
-    inherit unqueued ~kind ~name as super
+    inherit unqueued ~name as super
     method stype = `Fallible
 
     method virtual get_next_request
@@ -291,7 +296,8 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
           Queue.iter
             (fun i ->
               match
-                Request.resolve ~ctype:(Some self#ctype) i.request timeout
+                Request.resolve ~ctype:(Some self#content_type) i.request
+                  timeout
               with
                 | Request.Resolved -> Queue.push i retrieved
                 | ans -> log_failed_request self#log i.request ans)
@@ -299,7 +305,9 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
 
     method add =
       self#mutexify (fun i ->
-          match Request.resolve ~ctype:(Some self#ctype) i.request timeout with
+          match
+            Request.resolve ~ctype:(Some self#content_type) i.request timeout
+          with
             | Request.Resolved ->
                 Queue.push i retrieved;
                 true
@@ -446,7 +454,9 @@ class virtual queued ~kind ~name ?(prefetch = 1) ?(timeout = 20.) () =
         | `Retry fn -> `Retry fn
         | `Request req -> (
             resolving <- Some req;
-            match Request.resolve ~ctype:(Some self#ctype) req timeout with
+            match
+              Request.resolve ~ctype:(Some self#content_type) req timeout
+            with
               | Request.Resolved ->
                   let rec remove_expired n =
                     if n = 0 then ()

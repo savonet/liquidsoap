@@ -22,7 +22,7 @@
 
 (** A frame kind type is a purely abstract type representing a
     frame kind. *)
-let frame_kind_t ?pos audio video midi =
+let frame_t ?pos audio video midi =
   Type.make ?pos
     (Type.Constr
        {
@@ -57,9 +57,9 @@ let kind_t ?pos kind =
                Type.params = [(Type.Covariant, mk_format f)];
              })
 
-let of_frame_kind_t t =
+let of_frame_t t =
   let t = Type.deref t in
-  match t.Type.descr with
+  match (Type.deref t).Type.descr with
     | Type.Constr
         {
           Type.constructor = "stream_kind";
@@ -70,7 +70,7 @@ let of_frame_kind_t t =
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
-        var := Type.Link (Type.Invariant, frame_kind_t audio video midi);
+        var := Type.Link (Type.Invariant, frame_t audio video midi);
         Frame.mk_fields ~audio ~video ~midi ()
     | _ -> assert false
 

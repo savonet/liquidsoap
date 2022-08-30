@@ -26,7 +26,7 @@ exception Invalid_state
 
 let log = Log.make ["hls"; "output"]
 
-let hls_proto kind =
+let hls_proto frame_t =
   let segment_name_t =
     Lang.fun_t
       [
@@ -128,10 +128,10 @@ let hls_proto kind =
         Some "Fail if an invalid saved state exists." );
       ("", Lang.string_t, None, Some "Directory for generated files.");
       ( "",
-        Lang.list_t (Lang.product_t Lang.string_t (Lang.format_t kind)),
+        Lang.list_t (Lang.product_t Lang.string_t (Lang.format_t frame_t)),
         None,
         Some "List of specifications for each stream: (name, format)." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
 
 type segment = {
@@ -427,12 +427,11 @@ class hls_output p =
     segments_per_playlist + Lang.to_int (List.assoc "segments_overhead" p)
   in
   let file_perm = Lang.to_int (List.assoc "perm" p) in
-  let kind = Kind.of_kind (Encoder.kind_of_format (List.hd streams).format) in
   object (self)
     inherit
       Output.encoded
         ~infallible ~on_start ~on_stop ~autostart ~output_kind:"output.file"
-          ~name:main_playlist_filename ~content_kind:kind source
+          ~name:main_playlist_filename source
 
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams

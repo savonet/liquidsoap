@@ -23,10 +23,10 @@
 open Mm
 open Source
 
-class blank ~kind duration =
+class blank duration =
   let ticks = if duration < 0. then -1 else Frame.main_of_seconds duration in
   object
-    inherit source ~name:"blank" kind
+    inherit source ~name:"blank" ()
 
     (** Remaining time, -1 for infinity. *)
     val mutable remaining = ticks
@@ -65,7 +65,7 @@ class blank ~kind duration =
 
 let () =
   let kind = Lang.internal in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "blank" ~category:`Input
     ~descr:"Produce silence and blank images." ~return_t
     [
@@ -78,5 +78,4 @@ let () =
     ]
     (fun p ->
       let d = Lang.to_float (List.assoc "duration" p) in
-      let kind = Kind.of_kind kind in
-      (new blank ~kind d :> source))
+      (new blank d :> source))

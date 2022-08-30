@@ -41,7 +41,7 @@ let meth = Start_stop.meth ()
   * Takes care of pulling the data out of the source, type checkings,
   * maintains a queue of last ten metadata and setups standard Server commands,
   * including start/stop. *)
-class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
+class virtual output ~output_kind ?(name = "") ~infallible
   ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
@@ -51,7 +51,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     if infallible && source#stype <> `Infallible then
       raise (Error.Invalid_value (val_source, "That source is fallible"))
 
-    inherit active_operator ~name:output_kind content_kind [source] as super
+    inherit active_operator ~name:output_kind [source] as super
     inherit Start_stop.base ~on_start ~on_stop as start_stop
     method virtual private start : unit
     method virtual private stop : unit
@@ -117,7 +117,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
       self#log#debug "Clock is %s."
         (Source.Clock_variables.to_string self#clock);
       self#log#info "Content type is %s."
-        (Frame.string_of_content_type self#ctype);
+        (Frame.string_of_content_type self#content_type);
 
       (* Get our source ready.
        * This can take a while (preparing playlists, etc). *)
@@ -188,12 +188,12 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
         self#abort_track)
   end
 
-class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
+class dummy ~infallible ~on_start ~on_stop ~autostart source =
   object
     inherit
       output
         source autostart ~name:"dummy" ~output_kind:"output.dummy" ~infallible
-          ~on_start ~on_stop ~content_kind:kind
+          ~on_start ~on_stop
 
     method private reset = ()
     method private start = ()
@@ -203,7 +203,7 @@ class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "output.dummy"
     (proto @ [("", Lang.source_t return_t, None, None)])
     ~category:`Output ~descr:"Dummy output for debugging purposes." ~meth
@@ -215,19 +215,15 @@ let () =
       let on_stop = List.assoc "on_stop" p in
       let on_start () = ignore (Lang.apply on_start []) in
       let on_stop () = ignore (Lang.apply on_stop []) in
-      let kind = Kind.of_kind kind in
-      new dummy
-        ~kind ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p))
+      new dummy ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p))
 
 (** More concrete abstract-class, which takes care of the #send_frame
   * method for outputs based on encoders. *)
-class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
-  ~on_stop ~autostart source =
+class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
+  ~autostart source =
   object (self)
     inherit
-      output
-        ~infallible ~on_start ~on_stop ~content_kind ~output_kind ~name source
-          autostart
+      output ~infallible ~on_start ~on_stop ~output_kind ~name source autostart
 
     method virtual private insert_metadata : Meta_format.export_metadata -> unit
     method virtual private encode : Frame.t -> int -> int -> 'a

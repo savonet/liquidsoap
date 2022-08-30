@@ -248,7 +248,7 @@ let options =
          Arg.Unit (fun () -> Configure.conf_debug_errors#set true),
          "Debug errors (show stacktrace instead of printing a message)." );
        ( ["--debug-subtyping"],
-         Arg.Set Liquidsoap_lang.Typing.debug_subtyping,
+         Arg.Set Typing.debug_subtyping,
          "Debug subtyping." );
        ( ["--debug-lang"],
          Arg.Unit

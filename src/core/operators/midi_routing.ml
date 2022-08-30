@@ -23,9 +23,9 @@
 open Mm
 open Source
 
-class virtual base ~kind ~name (source : source) =
+class virtual base ~name (source : source) =
   object
-    inherit operator ~name kind [source]
+    inherit operator ~name [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -34,9 +34,9 @@ class virtual base ~kind ~name (source : source) =
     method abort_track = source#abort_track
   end
 
-class merge ~kind (source : source) out =
+class merge (source : source) out =
   object
-    inherit base ~kind source ~name:"midi.merge_all"
+    inherit base source ~name:"midi.merge_all"
 
     method private get_frame buf =
       source#get buf;
@@ -47,9 +47,9 @@ class merge ~kind (source : source) out =
       done
   end
 
-class remove ~kind (source : source) t =
+class remove (source : source) t =
   object
-    inherit base ~kind source ~name:"midi.remove"
+    inherit base source ~name:"midi.remove"
 
     method private get_frame buf =
       source#get buf;
@@ -61,7 +61,7 @@ let () =
   let kind =
     Frame.mk_fields ~audio:`Any ~video:`Any ~midi:Frame.midi_native ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "midi.merge_all"
     [
       ("track_out", Lang.int_t, Some (Lang.int 0), Some "Destination track.");
@@ -72,14 +72,13 @@ let () =
       let f v = List.assoc v p in
       let out = Lang.to_int (f "track_out") in
       let src = Lang.to_source (f "") in
-      let kind = Kind.of_kind kind in
-      new merge ~kind src out)
+      new merge src out)
 
 let () =
   let kind =
     Frame.mk_fields ~audio:`Any ~video:`Any ~midi:Frame.midi_native ()
   in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "midi.remove"
     [
       ("", Lang.list_t Lang.int_t, None, Some "Tracks to remove.");
@@ -90,5 +89,4 @@ let () =
       (* let f v = List.assoc v p in *)
       let t = List.map Lang.to_int (Lang.to_list (Lang.assoc "" 1 p)) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
-      let kind = Kind.of_kind kind in
-      new remove ~kind src t)
+      new remove src t)

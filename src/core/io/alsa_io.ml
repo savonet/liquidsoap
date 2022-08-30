@@ -155,15 +155,14 @@ class virtual base dev mode =
       self#open_device
   end
 
-class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
-  val_source =
+class output ~clock_safe ~start ~infallible ~on_stop ~on_start dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:(Kind.of_kind kind) ~name
-          ~output_kind:"output.alsa" val_source start as super
+        ~infallible ~on_stop ~on_start ~name ~output_kind:"output.alsa"
+          val_source start as super
 
     inherit base dev [Pcm.Playback]
 
@@ -222,14 +221,14 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
         else raise e
   end
 
-class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
+class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   let samples_per_frame = AFrame.size () in
   object (self)
     inherit base dev [Pcm.Capture]
 
     inherit
       Start_stop.active_source
-        ~get_clock:Alsa_settings.get_clock ~content_kind:(Kind.of_kind kind)
+        ~get_clock:Alsa_settings.get_clock
         ~name:(Printf.sprintf "alsa_in(%s)" dev)
         ~clock_safe ~on_start ~on_stop ~fallible ~autostart:start ()
 
@@ -270,7 +269,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "output.alsa"
     (Output.proto
     @ [
@@ -308,16 +307,16 @@ let () =
       in
       if bufferize then
         (new Alsa_out.output
-           ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible device source
+           ~clock_safe ~start ~on_start ~on_stop ~infallible device source
           :> Output.output)
       else
         (new output
-           ~kind ~clock_safe ~infallible ~start ~on_start ~on_stop device source
+           ~clock_safe ~infallible ~start ~on_start ~on_stop device source
           :> Output.output))
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "input.alsa"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
@@ -345,9 +344,8 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       if bufferize then
-        (new Alsa_in.mic
-           ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device
+        (new Alsa_in.mic ~clock_safe ~fallible ~on_start ~on_stop ~start device
           :> Start_stop.active_source)
       else
-        (new input ~kind ~clock_safe ~on_start ~on_stop ~fallible ~start device
+        (new input ~clock_safe ~on_start ~on_stop ~fallible ~start device
           :> Start_stop.active_source))

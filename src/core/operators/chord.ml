@@ -43,9 +43,9 @@ let note_of_string = function
 
 let note_of_string s = note_of_string s - 12
 
-class chord ~kind metadata_name (source : source) =
+class chord metadata_name (source : source) =
   object (self)
-    inherit operator ~name:"chord" kind [source]
+    inherit operator ~name:"chord" [source]
     method stype = source#stype
     method remaining = source#remaining
     method is_ready = source#is_ready
@@ -115,9 +115,9 @@ class chord ~kind metadata_name (source : source) =
 
 let () =
   (* TODO: is this really the type we want to give to it? *)
-  let in_k = Lang.kind_type_of_kind_format Lang.any in
+  let in_k = Lang.frame_kind_t Lang.any in
   let out_k =
-    Lang.kind_type_of_kind_format
+    Lang.frame_kind_t
       (Frame.mk_fields ~audio:`Any ~video:`Any ~midi:(Frame.midi_n 1) ())
   in
   Lang.add_operator "midi.chord"
@@ -133,4 +133,4 @@ let () =
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let metadata = Lang.to_string (f "metadata") in
-      (new chord ~kind:(Kind.of_kind Lang.any) metadata src :> Source.source))
+      (new chord metadata src :> Source.source))

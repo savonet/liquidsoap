@@ -22,9 +22,9 @@
 
 open Mm
 
-class testsrc ?(duration = None) ~width ~height ~kind () =
+class testsrc ?(duration = None) ~width ~height () =
   object (self)
-    inherit Synthesized.source ~seek:true ~name:"video.testsrc" kind duration
+    inherit Synthesized.source ~seek:true ~name:"video.testsrc" duration
     val mutable u0 = 0
     val mutable v0 = 0
     val mutable dux = 0
@@ -75,7 +75,7 @@ class testsrc ?(duration = None) ~width ~height ~kind () =
 
 let () =
   let kind = Lang.internal in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "video.testsrc" ~category:`Input
     ~descr:"Generate a test video."
     [
@@ -86,5 +86,4 @@ let () =
     (fun p ->
       let width = List.assoc "width" p |> Lang.to_int in
       let height = List.assoc "height" p |> Lang.to_int in
-      let kind = Kind.of_kind kind in
-      new testsrc ~width ~height ~kind ())
+      new testsrc ~width ~height ())

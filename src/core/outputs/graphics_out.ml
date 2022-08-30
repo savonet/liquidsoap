@@ -21,12 +21,12 @@
 
 open Mm
 
-class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
+class output ~infallible ~autostart ~on_start ~on_stop source =
   object (self)
     inherit
       Output.output
         ~name:"graphics" ~output_kind:"output.graphics" ~infallible ~on_start
-          ~on_stop ~content_kind:kind source autostart
+          ~on_stop source autostart
 
     val mutable sleep = false
     method stop = sleep <- true
@@ -49,7 +49,7 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
 
 let () =
   let kind = Lang.video_yuva420p in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "output.graphics"
     (Output.proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:`Output ~meth:Output.meth
@@ -66,6 +66,5 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let kind = Kind.of_kind kind in
-      (new output ~kind ~infallible ~autostart ~on_start ~on_stop source
+      (new output ~infallible ~autostart ~on_start ~on_stop source
         :> Output.output))

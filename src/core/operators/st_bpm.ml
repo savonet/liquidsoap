@@ -22,9 +22,9 @@
 
 open Source
 
-class bpm ~kind (source : source) =
+class bpm (source : source) =
   object (self)
-    inherit operator ~name:"bpm" kind [source] as super
+    inherit operator ~name:"bpm" [source] as super
     method stype = source#stype
     method is_ready = source#is_ready
     method self_sync = source#self_sync
@@ -38,7 +38,8 @@ class bpm ~kind (source : source) =
       bpm <-
         Some
           (Soundtouch.BPM.make
-             (Content.Audio.channels_of_format (Frame.find_audio self#ctype))
+             (Content.Audio.channels_of_format
+                (Frame.find_audio self#content_type))
              (Lazy.force Frame.audio_rate))
 
     method private get_frame buf =
@@ -55,7 +56,7 @@ class bpm ~kind (source : source) =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "bpm"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:`Visualization
@@ -71,5 +72,4 @@ let () =
       ]
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
-      let kind = Kind.of_kind kind in
-      new bpm ~kind s)
+      new bpm s)

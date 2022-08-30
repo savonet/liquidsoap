@@ -147,7 +147,7 @@ val midi : Frame.content_kind
 val midi_n : int -> Frame.content_kind
 
 (* Conversion to format *)
-val kind_type_of_kind_format : Frame.content_kind -> t
+val frame_kind_t : Frame.content_kind -> t
 
 type 'a operator_method = string * scheme * string * ('a -> value)
 
@@ -218,8 +218,8 @@ val of_source_t : t -> t
 val format_t : t -> t
 val kind_t : Frame.kind -> t
 val kind_none_t : t
-val frame_kind_t : t Frame.Fields.t -> t
-val of_frame_kind_t : t -> t Frame.Fields.t
+val frame_t : t Frame.Fields.t -> t
+val of_frame_t : t -> t Frame.Fields.t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].

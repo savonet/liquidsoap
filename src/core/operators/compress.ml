@@ -28,11 +28,11 @@
 open Mm
 open Source
 
-class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
+class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
   ~pre_gain ~make_up_gain ~lookahead ~window ~wet (source : source) =
   let lookahead () = Frame.audio_of_seconds (lookahead ()) in
   object (self)
-    inherit operator ~name:"compress" kind [source] as super
+    inherit operator ~name:"compress" [source] as super
     val mutable effect = None
     method private wake_up a = super#wake_up a
     method stype = source#stype
@@ -168,7 +168,7 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "compress"
     [
       ( "attack",
@@ -247,7 +247,6 @@ let () =
       let window = List.assoc "window" p |> Lang.to_float_getter in
       let wet = List.assoc "wet" p |> Lang.to_float_getter in
       let s = List.assoc "" p |> Lang.to_source in
-      let kind = Kind.of_kind kind in
       new compress
-        ~kind ~attack ~release ~lookahead ~ratio ~knee ~threshold
-        ~track_sensitive ~pre_gain ~make_up_gain ~window ~wet s)
+        ~attack ~release ~lookahead ~ratio ~knee ~threshold ~track_sensitive
+        ~pre_gain ~make_up_gain ~window ~wet s)

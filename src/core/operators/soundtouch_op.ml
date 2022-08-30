@@ -24,18 +24,17 @@ open Mm
 open Source
 module Generator = Generator.From_audio_video
 
-class soundtouch ~kind source_val rate tempo pitch =
+class soundtouch source_val rate tempo pitch =
   let abg = Generator.create `Audio in
   let source = Lang.to_source source_val in
   let write_frame_ref = ref (fun _ -> ()) in
   let consumer =
     new Producer_consumer.consumer
       ~write_frame:(fun frame -> !write_frame_ref frame)
-      ~name:"soundtouch.consumer" ~kind ~source:source_val ()
+      ~name:"soundtouch.consumer" ~source:source_val ()
   in
   object (self)
-    inherit
-      operator ~name:"soundtouch" kind [(consumer :> Source.source)] as super
+    inherit operator ~name:"soundtouch" [(consumer :> Source.source)] as super
 
     inherit
       Child_support.base ~check_self_sync:true [source_val] as child_support
@@ -103,7 +102,7 @@ class soundtouch ~kind source_val rate tempo pitch =
 let () =
   (* TODO: could we keep the video in some cases? *)
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "soundtouch"
     [
       ("rate", Lang.getter_t Lang.float_t, Some (Lang.float 1.0), None);
@@ -120,5 +119,4 @@ let () =
       let tempo = Lang.to_float_getter (f "tempo") in
       let pitch = Lang.to_float_getter (f "pitch") in
       let s = f "" in
-      let kind = Kind.of_kind kind in
-      (new soundtouch ~kind s rate tempo pitch :> Source.source))
+      (new soundtouch s rate tempo pitch :> Source.source))

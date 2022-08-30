@@ -78,7 +78,7 @@ class virtual source :
   -> ?audio_in:Frame.kind
   -> ?video_in:Frame.kind
   -> ?midi_in:Frame.kind
-  -> Kind.t
+  -> unit
   -> object
        method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
@@ -145,10 +145,10 @@ class virtual source :
 
        (** {1 Streaming} *)
 
-       method kind : Kind.t
+       method frame_type : Type.t
 
        (** What type of content does this source produce. *)
-       method ctype : Frame.content_type
+       method content_type : Frame.content_type
 
        (** This method fails when content is not PCM. *)
        method private audio_channels : int
@@ -216,7 +216,7 @@ and virtual active_source :
   -> ?audio_in:Frame.kind
   -> ?video_in:Frame.kind
   -> ?midi_in:Frame.kind
-  -> Kind.t
+  -> unit
   -> object
        inherit source
 
@@ -233,7 +233,6 @@ class virtual operator :
   -> ?audio_in:Frame.kind
   -> ?video_in:Frame.kind
   -> ?midi_in:Frame.kind
-  -> Kind.t
   -> source list
   -> object
        inherit source
@@ -246,7 +245,6 @@ class virtual active_operator :
   -> ?audio_in:Frame.kind
   -> ?video_in:Frame.kind
   -> ?midi_in:Frame.kind
-  -> Kind.t
   -> source list
   -> object
        inherit active_source

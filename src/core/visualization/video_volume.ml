@@ -30,9 +30,9 @@ let backpoints = 200
 let group_size = 1764
 let f_group_size = float group_size
 
-class visu ~kind source =
+class visu source =
   object (self)
-    inherit operator ~name:"video.volume" kind [source] as super
+    inherit operator ~name:"video.volume" [source] as super
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
@@ -142,7 +142,7 @@ class visu ~kind source =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:`Visualization
@@ -150,5 +150,4 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      let kind = Kind.of_kind kind in
-      (new visu ~kind src :> Source.source))
+      (new visu src :> Source.source))

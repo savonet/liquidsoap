@@ -67,13 +67,13 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
         | `Idle, `Stopped | `Idle, `Idle -> ()
   end
 
-class virtual active_source ?get_clock ~name ~content_kind ~clock_safe
+class virtual active_source ?get_clock ~name ~clock_safe
   ~(on_start : unit -> unit) ~(on_stop : unit -> unit) ~fallible ~autostart () =
   let get_clock =
     Option.value ~default:(fun () -> new Clock.clock name) get_clock
   in
   object (self)
-    inherit Source.active_source ~name content_kind as super
+    inherit Source.active_source ~name () as super
     inherit base ~on_start ~on_stop as base
     method stype = if fallible then `Fallible else `Infallible
     method private wake_up _ = if autostart then base#transition_to `Started

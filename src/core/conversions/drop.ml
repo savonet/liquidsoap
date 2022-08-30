@@ -25,16 +25,8 @@ class drop ?(audio = false) ?(video = false) ?(midi = false) ~name source =
   let audio_in = f audio in
   let video_in = f video in
   let midi_in = f midi in
-  let kind =
-    Frame.mk_fields
-      ~audio:(if audio then Frame.none else `Any)
-      ~video:(if video then Frame.none else `Any)
-      ~midi:(if midi then Frame.none else `Any)
-      ()
-  in
-  let kind = Kind.of_kind kind in
   object
-    inherit Source.operator ?audio_in ?video_in ?midi_in kind [source] ~name
+    inherit Source.operator ?audio_in ?video_in ?midi_in [source] ~name
 
     inherit
       Conversion.base
@@ -46,14 +38,14 @@ class drop ?(audio = false) ?(video = false) ?(midi = false) ~name source =
 let () =
   List.iter
     (fun content ->
-      let input = Lang.kind_type_of_kind_format Lang.any in
-      let input_kind = Lang.of_frame_kind_t input in
+      let input = Lang.frame_kind_t Lang.any in
+      let input_kind = Lang.of_frame_t input in
       let name, descr, output, source =
         match content with
           | `Audio ->
               ( "drop_audio",
                 "Drop all audio content of a stream.",
-                Lang.frame_kind_t
+                Lang.frame_t
                   (Frame.set_audio_field input_kind (Lang.kind_t Frame.none)),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
@@ -61,7 +53,7 @@ let () =
           | `Video ->
               ( "drop_video",
                 "Drop all video content of a stream.",
-                Lang.frame_kind_t
+                Lang.frame_t
                   (Frame.set_video_field input_kind (Lang.kind_t Frame.none)),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
@@ -69,7 +61,7 @@ let () =
           | `Midi ->
               ( "drop_midi",
                 "Drop all midi content of a stream.",
-                Lang.frame_kind_t
+                Lang.frame_t
                   (Frame.set_midi_field input_kind (Lang.kind_t Frame.none)),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in

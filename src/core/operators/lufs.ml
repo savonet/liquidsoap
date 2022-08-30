@@ -103,9 +103,9 @@ end
 (** Compute the loudness from the mean of squares. *)
 let loudness z = -0.691 +. (10. *. log10 z)
 
-class lufs ~kind window source =
+class lufs window source =
   object (self)
-    inherit operator kind [source] ~name:"lufs" as super
+    inherit operator [source] ~name:"lufs" as super
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
@@ -186,7 +186,7 @@ class lufs ~kind window source =
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "lufs" ~category:`Visualization
     ~meth:
       [
@@ -215,5 +215,4 @@ let () =
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let window = Lang.to_float_getter (f "window") in
-      let kind = Kind.of_kind kind in
-      new lufs ~kind window src)
+      new lufs window src)

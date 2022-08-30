@@ -24,9 +24,9 @@ open Mm
 
 (** Generate a white noise *)
 
-class noise ~kind duration =
+class noise duration =
   object
-    inherit Synthesized.source ~seek:true ~name:"noise" kind duration
+    inherit Synthesized.source ~seek:true ~name:"noise" duration
 
     method private synthesize frame off len =
       (try
@@ -47,7 +47,7 @@ class noise ~kind duration =
 
 let () =
   let kind = Lang.internal in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "noise" ~category:`Input
     ~descr:"Generate audio white noise."
     [
@@ -58,7 +58,4 @@ let () =
     ]
     ~return_t
     (fun p ->
-      let kind = Kind.of_kind kind in
-      new noise
-        ~kind
-        (Lang.to_valued_option Lang.to_float (List.assoc "duration" p)))
+      new noise (Lang.to_valued_option Lang.to_float (List.assoc "duration" p)))

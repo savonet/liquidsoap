@@ -52,9 +52,9 @@ let array_index x =
 
 let note_of_char c = array_index c + 72
 
-class keyboard ~kind =
+class keyboard =
   object (self)
-    inherit Source.active_source ~name:"input.keyboard" kind
+    inherit Source.active_source ~name:"input.keyboard" ()
     inherit Source.no_seek
     method stype = `Infallible
     method is_ready = true
@@ -133,9 +133,7 @@ class keyboard ~kind =
 
 let () =
   let kind = Lang.midi_n 1 in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "input.keyboard" [] ~return_t ~category:`Input
     ~flags:[`Hidden; `Experimental] ~descr:"Play notes from the keyboard."
-    (fun _ ->
-      let kind = Kind.of_kind kind in
-      (new keyboard ~kind :> Source.source))
+    (fun _ -> (new keyboard :> Source.source))

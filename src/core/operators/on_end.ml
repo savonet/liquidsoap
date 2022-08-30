@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class on_end ~kind ~delay f s =
+class on_end ~delay f s =
   object (self)
-    inherit Source.operator ~name:"on_end" kind [s]
+    inherit Source.operator ~name:"on_end" [s]
     inherit Latest_metadata.source
     val mutable executed = false
     method stype = s#stype
@@ -51,7 +51,7 @@ class on_end ~kind ~delay f s =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "source.on_end"
     [
       ( "delay",
@@ -80,5 +80,4 @@ let () =
       let delay = Lang.to_float_getter (List.assoc "delay" p) in
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
-      let kind = Kind.of_kind kind in
-      new on_end ~kind ~delay f s)
+      new on_end ~delay f s)

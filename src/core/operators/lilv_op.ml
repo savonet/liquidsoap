@@ -35,7 +35,7 @@ let lilv_enabled =
 
 class virtual base ~kind source =
   object
-    inherit operator ~name:"lilv" (Kind.of_kind kind) [source]
+    inherit operator ~name:"lilv" (Lang.frame_kind_t kind) [source]
     inherit Source.no_seek
     method stype = source#stype
     method remaining = source#remaining
@@ -72,7 +72,8 @@ class lilv_mono ~kind (source : source) plugin input output params =
       super#wake_up a;
       let i =
         Array.init
-          (Content.Audio.channels_of_format (Frame.find_audio self#ctype))
+          (Content.Audio.channels_of_format
+             (Frame.find_audio self#content_type))
           (fun _ ->
             Plugin.instantiate plugin
               (float_of_int (Lazy.force Frame.audio_rate)))
@@ -301,7 +302,7 @@ let register_plugin plugin =
   let liq_params, params = params_of_plugin plugin in
   let mono = ni = 1 && no = 1 in
   let input_kind = Lang.audio_n ni in
-  let input_t = Lang.kind_type_of_kind_format input_kind in
+  let input_t = Lang.frame_kind_t input_kind in
   let liq_params =
     liq_params
     @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
@@ -321,8 +322,8 @@ let register_plugin plugin =
   in
   let descr = descr ^ " See <" ^ Plugin.uri plugin ^ ">." in
   let return_t =
-    let input_kind = Lang.of_frame_kind_t input_t in
-    Lang.frame_kind_t
+    let input_kind = Lang.of_frame_t input_t in
+    Lang.frame_t
       (Frame.set_audio_field input_kind (Lang.kind_t (Frame.audio_n no)))
   in
   Lang.add_operator
@@ -334,7 +335,7 @@ let register_plugin plugin =
       let params = params p in
       if ni = 0 then
         new lilv_nosource
-          ~kind:(Kind.of_kind (Lang.audio_n no))
+          ~kind:(Lang.frame_kind_t (Lang.audio_n no))
           plugin outputs params
       else if no = 0 then
         (* TODO: can we really use such a type? *)

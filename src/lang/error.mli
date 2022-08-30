@@ -25,4 +25,3 @@ exception Invalid_value of Value.t * string
 
 exception Clock_conflict of (Pos.Option.t * string * string)
 exception Clock_loop of (Pos.Option.t * string * string)
-exception Kind_conflict of (Pos.Option.t * string * string)

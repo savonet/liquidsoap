@@ -30,7 +30,7 @@ module Generated = Generated.From_audio_video_plus
 
 exception Finished of string * bool
 
-class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
+class video ~name ~restart ~bufferize ~log_overfull ~restart_on_error ~max
   ~on_data ?read_header command =
   let abg_max_len = Frame.main_of_seconds max in
   (* We need a temporary log until the source has an id *)
@@ -64,7 +64,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
   object (self)
     inherit
       External_input.base
-        ~name ~kind ?read_header ~restart ~restart_on_error ~on_data command as base
+        ~name ?read_header ~restart ~restart_on_error ~on_data command as base
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
@@ -77,9 +77,9 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#severe "%s";
-      if Frame.find_audio self#ctype = Content.None.format then
+      if Frame.find_audio self#content_type = Content.None.format then
         Generator.set_mode abg `Video;
-      Generator.set_content_type abg self#ctype;
+      Generator.set_content_type abg self#content_type;
       self#log#debug "Generator mode: %s."
         (match Generator.mode abg with
           | `Video -> "video"
@@ -97,7 +97,7 @@ let () =
     Frame.mk_fields ~audio:Frame.audio_pcm ~video:Frame.video_yuva420p
       ~midi:Frame.none ()
   in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "input.external.avi" ~category:`Input ~flags:[`Experimental]
     ~meth:
       [
@@ -248,16 +248,15 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      let kind = Kind.of_kind kind in
       new video
-        ~name:"input.external.avi" ~kind ~restart ~bufferize ~log_overfull
+        ~name:"input.external.avi" ~restart ~bufferize ~log_overfull
         ~restart_on_error ~max ~read_header ~on_data command)
 
 (***** raw video *****)
 
 let () =
   let kind = Lang.video_yuva420p in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "input.external.rawvideo" ~category:`Input
     ~flags:[`Experimental]
     ~meth:
@@ -323,7 +322,6 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      let kind = Kind.of_kind kind in
       new video
-        ~name:"input.external.rawvideo" ~kind ~restart ~bufferize ~log_overfull
+        ~name:"input.external.rawvideo" ~restart ~bufferize ~log_overfull
         ~restart_on_error ~max ~on_data command)

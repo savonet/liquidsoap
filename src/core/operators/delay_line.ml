@@ -23,10 +23,10 @@
 open Mm
 open Source
 
-class delay ~kind (source : source) duration =
+class delay (source : source) duration =
   let length () = Frame.audio_of_seconds (duration ()) in
   object (self)
-    inherit operator ~name:"amplify" kind [source] as super
+    inherit operator ~name:"amplify" [source] as super
     val mutable override = None
     method stype = source#stype
     method is_ready = source#is_ready
@@ -74,7 +74,7 @@ class delay ~kind (source : source) duration =
 
 let () =
   let kind = Lang.audio_pcm in
-  let k = Lang.kind_type_of_kind_format kind in
+  let k = Lang.frame_kind_t kind in
   Lang.add_operator "delay_line"
     [
       ( "",
@@ -88,5 +88,4 @@ let () =
     (fun p ->
       let duration = Lang.assoc "" 1 p |> Lang.to_float_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
-      let kind = Kind.of_kind kind in
-      new delay ~kind s duration)
+      new delay s duration)

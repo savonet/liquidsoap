@@ -30,7 +30,7 @@ let encoder_factory ?format format_val =
   with Not_found ->
     raise (Error.Invalid_value (format_val, "Unsupported encoding format"))
 
-class virtual base ~kind ~source ~name p =
+class virtual base ~source ~name p =
   let e f v = f (List.assoc v p) in
   (* Output settings *)
   let autostart = e Lang.to_bool "start" in
@@ -47,7 +47,7 @@ class virtual base ~kind ~source ~name p =
     inherit
       Output.encoded
         ~infallible ~on_start ~on_stop ~autostart ~output_kind:"output.file"
-          ~name ~content_kind:kind source
+          ~name source
 
     val mutable encoder = None
     val mutable current_metadata = None
@@ -76,7 +76,7 @@ class virtual base ~kind ~source ~name p =
 
 (** url output: discard encoded data, try to restart on encoding error (can be
     networking issues etc.) *)
-let url_proto kind =
+let url_proto frame_t =
   Output.proto
   @ [
       ("url", Lang.string_t, None, Some "Url to output to.");
@@ -90,8 +90,8 @@ let url_proto kind =
         Some
           "Should the source control its own synchronization? Set to `true` \
            for output to e.g. `rtmp` output using `%ffmpeg` and etc." );
-      ("", Lang.format_t kind, None, Some "Encoding format.");
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.format_t frame_t, None, Some "Encoding format.");
+      ("", Lang.source_t frame_t, None, None);
     ]
 
 class url_output p =
@@ -105,13 +105,12 @@ class url_output p =
            (format_val, "Encoding format does not support output url!"))
   in
   let format = Encoder.with_url_output format url in
-  let kind = Kind.of_kind (Encoder.kind_of_format format) in
   let source = Lang.assoc "" 2 p in
   let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let name = "output.url" in
   object (self)
-    inherit base p ~kind ~source ~name as super
+    inherit base p ~source ~name as super
     method private encoder_factory = encoder_factory ~format format_val
 
     method encode frame ofs len =
@@ -142,7 +141,7 @@ let () =
   * implements metadata interpolation and
   * takes care of the various reload mechanisms. *)
 
-let pipe_proto kind arg_doc =
+let pipe_proto frame_t arg_doc =
   Output.proto
   @ [
       ( "reopen_delay",
@@ -161,7 +160,7 @@ let pipe_proto kind arg_doc =
         Lang.fun_t [] Lang.bool_t,
         Some (Lang.val_cst_fun [] (Lang.bool false)),
         Some "When should the output be re-opened." );
-      ("", Lang.format_t kind, None, Some "Encoding format.");
+      ("", Lang.format_t frame_t, None, Some "Encoding format.");
       ( "",
         Lang.getter_t Lang.string_t,
         None,
@@ -169,10 +168,10 @@ let pipe_proto kind arg_doc =
           (arg_doc
          ^ " Some strftime conversion specifiers are available: `%SMHdmY`. You \
             can also use `$(..)` interpolation notation for metadata.") );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
 
-class virtual piped_output ~kind p =
+class virtual piped_output p =
   let reload_predicate = List.assoc "reopen_when" p in
   let reload_delay = Lang.to_float (List.assoc "reopen_delay" p) in
   let reload_on_error = Lang.to_bool (List.assoc "reopen_on_error" p) in
@@ -181,7 +180,7 @@ class virtual piped_output ~kind p =
   let name = name () in
   let source = Lang.assoc "" 3 p in
   object (self)
-    inherit base ~kind ~source ~name p as super
+    inherit base ~source ~name p as super
     method reopen_cmd = self#reopen
     val mutable open_date = 0.
     val mutable need_reset = false
@@ -247,14 +246,14 @@ class virtual piped_output ~kind p =
 
 (** Out channel virtual class: takes care of current out channel and writing to
     it. *)
-let chan_proto kind arg_doc =
+let chan_proto frame_t arg_doc =
   [
     ( "flush",
       Lang.bool_t,
       Some (Lang.bool false),
       Some "Perform a flush after each write." );
   ]
-  @ pipe_proto kind arg_doc
+  @ pipe_proto frame_t arg_doc
 
 class virtual ['a] chan_output p =
   let flush = Lang.to_bool (List.assoc "flush" p) in
@@ -334,9 +333,9 @@ class virtual ['a] file_output_base p =
     method private on_close = on_close
   end
 
-class file_output ~format_val ~kind p =
+class file_output ~format_val p =
   object
-    inherit piped_output ~kind p
+    inherit piped_output p
     inherit [out_channel] chan_output p
     inherit [out_channel] file_output_base p
     method encoder_factory = encoder_factory format_val
@@ -351,12 +350,12 @@ class file_output ~format_val ~kind p =
     method close_out = close_out
   end
 
-class file_output_using_encoder ~format_val ~kind p =
+class file_output_using_encoder ~format_val p =
   let format = Lang.to_format format_val in
   let append = Lang.to_bool (List.assoc "append" p) in
   let p = ("append", Lang.bool true) :: List.remove_assoc "append" p in
   object (self)
-    inherit piped_output ~kind p
+    inherit piped_output p
     inherit [unit] chan_output p
     inherit [unit] file_output_base p
 
@@ -376,7 +375,7 @@ class file_output_using_encoder ~format_val ~kind p =
     method close_out () = ()
   end
 
-let file_proto kind =
+let file_proto frame_t =
   [
     ( "append",
       Lang.bool_t,
@@ -405,15 +404,14 @@ let file_proto kind =
         "This function will be called for each file, after that it is finished \
          and closed. The filename will be passed as argument." );
   ]
-  @ chan_proto kind "Filename where to output the stream."
+  @ chan_proto frame_t "Filename where to output the stream."
 
 let new_file_output p =
   let format_val = Lang.assoc "" 1 p in
   let format = Lang.to_format format_val in
-  let kind = Kind.of_kind (Encoder.kind_of_format format) in
   if Encoder.file_output format then
-    (new file_output_using_encoder ~format_val ~kind p :> piped_output)
-  else (new file_output ~format_val ~kind p :> piped_output)
+    (new file_output_using_encoder ~format_val p :> piped_output)
+  else (new file_output ~format_val p :> piped_output)
 
 let () =
   let return_t = Lang.univ_t () in
@@ -426,12 +424,10 @@ let () =
 
 class external_output p =
   let format_val = Lang.assoc "" 1 p in
-  let format = Lang.to_format format_val in
-  let kind = Kind.of_kind (Encoder.kind_of_format format) in
   let process = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
-    inherit piped_output ~kind p
+    inherit piped_output p
     inherit [out_channel] chan_output p
     method encoder_factory = encoder_factory format_val
     method self_sync = (`Static, self_sync)
@@ -450,7 +446,7 @@ class external_output p =
     method close_out = close_out
   end
 
-let pipe_proto kind descr =
+let pipe_proto frame_t descr =
   ( "self_sync",
     Lang.bool_t,
     Some (Lang.bool false),
@@ -458,7 +454,7 @@ let pipe_proto kind descr =
       "Set to `true` if the process is expected to control the output's \
        latency. Typical example: `ffmpeg` with the `-re` command-line option."
   )
-  :: chan_proto kind descr
+  :: chan_proto frame_t descr
 
 let () =
   let return_t = Lang.univ_t () in

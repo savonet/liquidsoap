@@ -42,11 +42,11 @@ let plugin_dirs =
     Pcre.split ~pat:":" path
   with Not_found -> Frei0r.default_paths
 
-class frei0r_filter ~kind ~name bgra instance params (source : source) =
+class frei0r_filter ~name bgra instance params (source : source) =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
   object
-    inherit operator ~name:("frei0r." ^ name) kind [source]
+    inherit operator ~name:("frei0r." ^ name) [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -76,11 +76,11 @@ class frei0r_filter ~kind ~name bgra instance params (source : source) =
             done
   end
 
-class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
+class frei0r_mixer ~name bgra instance params (source : source) source2 =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
   object (self)
-    inherit operator ~name:("frei0r." ^ name) kind [source; source2] as super
+    inherit operator ~name:("frei0r." ^ name) [source; source2] as super
     inherit Source.no_seek
 
     method stype =
@@ -109,7 +109,7 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
 
     method private wake_up a =
       super#wake_up a;
-      tmp <- Frame.create self#ctype
+      tmp <- Frame.create self#content_type
 
     method private get_frame buf =
       (* Prepare buffer for the second source
@@ -154,11 +154,11 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
         | _ -> ()
   end
 
-class frei0r_source ~kind ~name bgra instance params =
+class frei0r_source ~name bgra instance params =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
   object
-    inherit source ~name:("frei0r." ^ name) kind
+    inherit source ~name:("frei0r." ^ name) ()
     inherit Source.no_seek
     method stype = `Infallible
     method is_ready = true
@@ -289,7 +289,7 @@ let register_plugin fname =
   in
   if inputs > 2 then raise Unhandled_number_of_inputs;
   let kind = Lang.video_yuva420p in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   let liq_params, params = params plugin info in
   let liq_params =
     let inputs =
@@ -321,15 +321,14 @@ let register_plugin fname =
       in
       let f v = List.assoc v p in
       let params = params instance p in
-      let kind = Kind.of_kind kind in
       if inputs = 1 then (
         let source = Lang.to_source (f "") in
-        new frei0r_filter ~kind ~name bgra instance params source)
+        new frei0r_filter ~name bgra instance params source)
       else if inputs = 2 then (
         let source = Lang.to_source (f "") in
         let source' = Lang.to_source (Lang.assoc "" 2 p) in
-        new frei0r_mixer ~kind ~name bgra instance params source source')
-      else if inputs = 0 then new frei0r_source ~kind ~name bgra instance params
+        new frei0r_mixer ~name bgra instance params source source')
+      else if inputs = 0 then new frei0r_source ~name bgra instance params
       else assert false)
 
 let register_plugin plugin =

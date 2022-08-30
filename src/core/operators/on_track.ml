@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class on_track ~kind f s =
+class on_track f s =
   object
-    inherit Source.operator ~name:"on_track" kind [s]
+    inherit Source.operator ~name:"on_track" [s]
     method stype = s#stype
     method is_ready = s#is_ready
     method abort_track = s#abort_track
@@ -48,7 +48,7 @@ class on_track ~kind f s =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "source.on_track"
     [
       ("", Lang.source_t return_t, None, None);
@@ -69,5 +69,4 @@ let () =
     (fun p ->
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
-      let kind = Kind.of_kind kind in
-      new on_track ~kind f s)
+      new on_track f s)

@@ -4,7 +4,6 @@ class dummy ~autostart ~on_start source =
       Output.dummy
         ~autostart ~infallible:false ~on_start
         ~on_stop:(fun () -> ())
-        ~kind:(Kind.of_kind Lang.internal)
         (Lang.source (source :> Source.source))
 
     method test_wake_up = self#wake_up []
@@ -16,7 +15,7 @@ class dummy ~autostart ~on_start source =
 
 class failed =
   object
-    inherit Debug_sources.fail ~kind:(Kind.of_kind Lang.internal) "failed"
+    inherit Debug_sources.fail "failed"
 
     method! get frame =
       Frame.add_break frame (Lazy.force Frame.size);

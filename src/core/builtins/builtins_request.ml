@@ -86,7 +86,7 @@ let () =
       let ctype =
         List.assoc "content_type" p
         |> Lang.to_option
-        |> Option.map (fun s -> (Lang.to_source s)#ctype)
+        |> Option.map (fun s -> (Lang.to_source s)#content_type)
       in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let r = Request.Value.of_value (List.assoc "" p) in

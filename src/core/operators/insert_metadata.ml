@@ -25,9 +25,9 @@ open Source
 exception Error
 
 (* This is an internal operator. *)
-class insert_metadata ~kind source =
+class insert_metadata source =
   object (self)
-    inherit operator ~name:"insert_metadata" kind [source]
+    inherit operator ~name:"insert_metadata" [source]
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
@@ -77,7 +77,7 @@ class insert_metadata ~kind source =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
 
   Lang.add_operator "insert_metadata" ~category:`Track
     ~meth:
@@ -112,15 +112,14 @@ let () =
     [("", Lang.source_t return_t, None, None)]
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
-      let kind = Kind.of_kind kind in
-      let s = new insert_metadata ~kind s in
+      let s = new insert_metadata s in
       s)
 
 (** Insert metadata at the beginning if none is set. Currently used by the
    switch classes. *)
-class replay ~kind meta src =
+class replay meta src =
   object
-    inherit operator ~name:"replay_metadata" kind [src]
+    inherit operator ~name:"replay_metadata" [src]
     val mutable first = true
     method stype = src#stype
     method is_ready = src#is_ready

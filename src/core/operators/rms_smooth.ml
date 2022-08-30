@@ -22,10 +22,10 @@
 
 open Source
 
-class rms ~kind ~tau source =
+class rms ~tau source =
   let samplerate = float (Lazy.force Frame.audio_rate) in
   object (self)
-    inherit operator kind [source] ~name:"rms" as super
+    inherit operator [source] ~name:"rms" as super
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
@@ -56,7 +56,7 @@ class rms ~kind ~tau source =
 
 let () =
   let kind = Lang.audio_pcm in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "rms.smooth" ~category:`Visualization
     ~meth:
       [
@@ -82,5 +82,4 @@ let () =
     (fun p ->
       let duration = List.assoc "duration" p |> Lang.to_float_getter in
       let src = List.assoc "" p |> Lang.to_source in
-      let kind = Kind.of_kind kind in
-      new rms ~kind ~tau:duration src)
+      new rms ~tau:duration src)
