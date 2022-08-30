@@ -357,10 +357,10 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
       match ctype with
         | Some ctype -> ctype
         | None ->
+            self#log#debug "Assigning source content type for frame type: %s"
+              (Type.to_string self#frame_type);
             let ct = Frame_type.content_type self#frame_type in
-            self#log#debug "Source type: %s, content type: %s"
-              (Frame_type.to_string self#frame_type)
-              (Frame.string_of_content_type ct);
+            self#log#debug "Content type: %s" (Frame.string_of_content_type ct);
             ctype <- Some ct;
             ct
 
