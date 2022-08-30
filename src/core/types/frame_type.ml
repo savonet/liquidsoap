@@ -42,25 +42,10 @@ let univ ?pos () =
 
 let make_kind ?pos kind =
   let evar ?(constraints = []) () = Type.var ~constraints ?pos () in
-  let mk_format f = Type.make ?pos (Format_type.descr f) in
   match kind with
     | `Any -> evar ()
     | `Internal -> evar ~constraints:[Format_type.internal_media] ()
-    | `Kind k ->
-        Type.make ?pos
-          (Type.Constr
-             {
-               Type.constructor = Content_base.string_of_kind k;
-               params = [(Type.Covariant, evar ())];
-             })
-    | `Format f ->
-        let k = Content_base.kind f in
-        Type.make ?pos
-          (Type.Constr
-             {
-               Type.constructor = Content_base.string_of_kind k;
-               params = [(Type.Covariant, mk_format f)];
-             })
+    | (`Kind _ as v) | (`Format _ as v) -> Type.make ?pos (Format_type.descr v)
 
 let set_audio t audio =
   match (Type.deref t).Type.descr with
@@ -181,17 +166,6 @@ let get_midi t =
 
 let to_string t = Type.to_string t
 
-let content_type ~default t =
-  match (Type.deref t).Type.descr with
-    | Type.Constr { Type.constructor = name; params = [(_, t)] } -> (
-        match (Type.deref t).Type.descr with
-          | Type.Custom { typ = Format_type.Type f } -> f
-          | Type.Var _ ->
-              Content_base.default_format (Content_base.kind_of_string name)
-          | _ -> assert false)
-    | Type.Var _ -> default ()
-    | _ -> assert false
-
 let content_type t =
   match (Type.deref t).Type.descr with
     | Type.Constr
@@ -205,22 +179,16 @@ let content_type t =
             ];
         } ->
         let audio =
-          content_type ~default:Content_internal.default_audio audio
+          Format_type.content_type ~default:Content_internal.default_audio audio
         in
         let video =
-          content_type ~default:Content_internal.default_video video
+          Format_type.content_type ~default:Content_internal.default_video video
         in
-        let midi = content_type ~default:Content_internal.default_midi midi in
+        let midi =
+          Format_type.content_type ~default:Content_internal.default_midi midi
+        in
         let ctype = Frame.mk_fields ~audio ~video ~midi () in
-        let mk_format f =
-          let k = Content_base.kind f in
-          Type.make
-            (Type.Constr
-               {
-                 Type.constructor = Content_base.string_of_kind k;
-                 params = [(Type.Covariant, Type.make (Format_type.descr f))];
-               })
-        in
+        let mk_format f = Type.make (Format_type.descr (`Format f)) in
         let t' =
           Type.make
             (Type.Constr
