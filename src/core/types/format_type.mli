@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-type Type.custom += Type of Content.format
-type Type.constr_t += InternalMedia
+type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
-val descr : Content.format -> Type.descr
+val descr : descr -> Type.descr
 val internal_media : Type.constr
+val content_type : default:(unit -> Content.format) -> Type.t -> Content.format
