@@ -110,9 +110,9 @@ module Transport = struct
   let read = Ssl.read
 
   let accept sock =
-    let ctx = get_ctx () in
     let s, caller = Unix.accept ~cloexec:true sock in
     set_socket_default s;
+    let ctx = get_ctx () in
     let ssl_s = Ssl.embed_socket s ctx in
     Ssl.accept ssl_s;
     (ssl_s, caller)
