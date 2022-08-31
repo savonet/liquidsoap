@@ -27,9 +27,9 @@ open Mm
 (** Plugin to add video-related configuration keys. *)
 val video_converter_conf : Dtools.Conf.ut
 
-(** [~proportional src dst] performs the conversion from frame src to frame dst.
-    raises Not_found if no conversion routine was found *)
-type converter = proportional:bool -> Image.Generic.t -> Image.Generic.t -> unit
+(** [f src dst] performs the conversion from frame [src] to frame [dst]. Raises
+    [Not_found] if no conversion routine was found. *)
+type converter = Image.Generic.t -> Image.Generic.t -> unit
 
 (** A converter plugin is a name, a list of input formats, a list of output
     formats, a function to create a converter. *)

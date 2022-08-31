@@ -63,13 +63,8 @@ let format_of frame =
 
 type fmt = Avutil.Pixel_format.t * int * int
 
-type conv = {
-  conv : Swscale.t;
-  dst_off : [ `Pixel of int | `Line of int | `Zero ];
-}
-
 module HT = struct
-  type t = (bool * fmt * fmt) * conv option
+  type t = (fmt * fmt) * Swscale.t option
 
   let equal (fmt, _) (fmt', _) = fmt = fmt'
   let hash (fmt, _) = Hashtbl.hash fmt
@@ -98,7 +93,7 @@ let converters = WH.create 5
 let is_rgb = function P.RGB _ -> true | _ -> false
 
 let create () =
-  let convert ~proportional src dst =
+  let convert src dst =
     let src_f = format_of src in
     let dst_f = format_of dst in
     let src_w = Img.width src in
@@ -106,36 +101,20 @@ let create () =
     let dst_w = Img.width dst in
     let dst_h = Img.height dst in
     let conv =
-      try
-        WH.assoc converters
-          (proportional, (src_f, src_w, src_h), (dst_f, dst_w, dst_h))
+      try WH.assoc converters ((src_f, src_w, src_h), (dst_f, dst_w, dst_h))
       with Not_found ->
-        let dst_off, dst_w, dst_h =
-          if proportional then
-            if dst_h * src_w < src_h * dst_w then (
-              let ox = (dst_w - (src_w * dst_h / src_h)) / 2 in
-              (`Pixel ox, dst_w - (2 * ox), dst_h))
-            else (
-              let oy = (dst_h - (src_h * dst_w / src_w)) / 2 in
-              (`Line oy, dst_w, dst_h - (2 * oy)))
-          else (`Zero, dst_w, dst_h)
-        in
         let conv =
           Swscale.create
             [Swscale.Bilinear; Swscale.Print_info]
             src_w src_h src_f dst_w dst_h dst_f
         in
-        let conv = { conv; dst_off } in
-        WH.add converters
-          (proportional, (src_f, src_w, src_h), (dst_f, dst_w, dst_h))
-          conv;
+        WH.add converters ((src_f, src_w, src_h), (dst_f, dst_w, dst_h)) conv;
         conv
     in
     let data f =
       match Img.pixel_format f with
         | P.RGB _ ->
             let buf, stride = Img.rgb_data f in
-            if conv.dst_off <> `Zero then Bigarray.Array1.fill buf 0;
             [| (buf, stride) |]
         | P.YUV _ ->
             let (y, sy), (u, v, s) = Img.yuv_data f in
@@ -143,20 +122,7 @@ let create () =
     in
     let src_d = data src in
     let dst_d = data dst in
-    let dst_off =
-      (* Since swscale does not know how to scale keeping aspect ratio, we have
-         to play a bit with offsets... *)
-      match conv.dst_off with
-        | `Zero -> 0
-        | `Line n ->
-            assert (n = 0 || Array.length dst_d = 1);
-            n * snd dst_d.(0)
-        | `Pixel n ->
-            if n = 0 || Array.length dst_d = 1 then
-              n * Avutil.Pixel_format.(bits (descriptor dst_f))
-            else 0
-    in
-    Swscale.scale conv.conv src_d 0 src_h dst_d dst_off
+    Swscale.scale conv src_d 0 src_h dst_d 0
   in
   convert
 

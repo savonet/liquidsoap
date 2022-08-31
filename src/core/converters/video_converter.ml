@@ -44,14 +44,9 @@ let preferred_converter_conf =
     ~p:(video_converter_conf#plug "preferred")
     ~d:"ffmpeg" "Preferred video converter"
 
-let proportional_scale_conf =
-  Dtools.Conf.bool
-    ~p:(video_converter_conf#plug "proportional_scale")
-    ~d:true "Preferred proportional scale."
-
 module Img = Image.Generic
 
-type converter = proportional:bool -> Img.t -> Img.t -> unit
+type converter = Img.t -> Img.t -> unit
 
 (* A converter plugin is a name, a list of input formats,
    * a list of output formats,
@@ -97,7 +92,7 @@ let find_converter src dst =
       (Img.Pixel.string_of_format src)
       (Img.Pixel.string_of_format dst);
     raise Not_found
-  with Exit x -> x ~proportional:proportional_scale_conf#get
+  with Exit x -> x
 
 let scaler () src dst =
   find_converter (Image.Generic.Pixel.YUV Image.Generic.Pixel.YUVJ420)
