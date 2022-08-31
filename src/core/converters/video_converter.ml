@@ -51,10 +51,6 @@ let proportional_scale_conf =
 
 module Img = Image.Generic
 
-(** [~proportional src dst] performs the 
-  * conversion from frame src to frame dst.
-  * raises Not_found if no conversion routine
-  * was found *)
 type converter = proportional:bool -> Img.t -> Img.t -> unit
 
 (* A converter plugin is a name, a list of input formats,
