@@ -1,6 +1,9 @@
 2.1.2 (unreleased)
 =====
 
+Fixed:
+* Stop error loop when opening a listening ssl socket with non-existent certificate. (#2590)
+
 ---
 2.1.1 (2022-08-28)
 ======
