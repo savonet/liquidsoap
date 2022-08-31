@@ -321,7 +321,7 @@ let () =
         Some "Target height (`null` means original height)." );
       ( "proportional",
         Lang.bool_t,
-        Some (Lang.bool false),
+        Some (Lang.bool true),
         Some "Keep original proportions." );
       ("x", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "x offset.");
       ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
