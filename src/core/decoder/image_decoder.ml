@@ -101,11 +101,9 @@ let create_decoder ~audio ~width ~height ~metadata img =
   let img =
     Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
   in
-  (* TODO: we don't use scaler for now because it does not support alpha channel
-     and images can have those. *)
-  (* let scaler = Video_converter.scaler () in *)
+  let scaler = Video_converter.scaler () in
   let img =
-    Video.Canvas.Image.scale (*~scaler*) (width, img_w) (height, img_h) img
+    Video.Canvas.Image.scale ~scaler (width, img_w) (height, img_h) img
   in
   let img = Video.Canvas.Image.translate off_x off_y img in
   let duration =

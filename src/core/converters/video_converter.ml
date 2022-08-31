@@ -94,8 +94,13 @@ let find_converter src dst =
     raise Not_found
   with Exit x -> x
 
-let scaler () src dst =
-  find_converter (Image.Generic.Pixel.YUV Image.Generic.Pixel.YUVJ420)
-    (Image.Generic.Pixel.YUV Image.Generic.Pixel.YUVJ420)
-    (Image.Generic.of_YUV420 src)
-    (Image.Generic.of_YUV420 dst)
+let scaler () =
+  let f =
+    find_converter (Image.Generic.Pixel.YUV Image.Generic.Pixel.YUVJ420)
+      (Image.Generic.Pixel.YUV Image.Generic.Pixel.YUVJ420)
+  in
+  fun src dst ->
+    (* TODO: optimized scalers don't handle α channels for now, defaulting to
+       the native one. *)
+    if Image.YUV420.has_alpha src then Image.YUV420.scale src dst
+    else f (Image.Generic.of_YUV420 src) (Image.Generic.of_YUV420 dst)

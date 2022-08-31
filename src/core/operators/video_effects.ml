@@ -336,6 +336,7 @@ let () =
       let proportional = Lang.to_bool (f "proportional") in
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
+      let scaler = Video_converter.scaler () in
       new effect_map ~name src (fun buf ->
           let owidth = Video.Canvas.Image.width buf in
           let oheight = Video.Canvas.Image.height buf in
@@ -352,7 +353,7 @@ let () =
             else assert false
           in
           buf
-          |> Video.Canvas.Image.resize ~proportional width height
+          |> Video.Canvas.Image.resize ~scaler ~proportional width height
           |> Video.Canvas.Image.translate (ox ()) (oy ())))
 
 let () =
@@ -435,7 +436,8 @@ let () =
           let d = 1080 in
           let cx = int_of_float ((cx *. float d) +. 0.5) in
           let cy = int_of_float ((cy *. float d) +. 0.5) in
-          let buf = Video.Canvas.Image.scale (cx, d) (cy, d) buf in
+          let scaler = Video_converter.scaler () in
+          let buf = Video.Canvas.Image.scale ~scaler (cx, d) (cy, d) buf in
           Video.Canvas.Image.translate (ox ()) (oy ()) buf))
 
 let () =
