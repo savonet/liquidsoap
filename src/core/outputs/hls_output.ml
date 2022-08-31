@@ -398,7 +398,7 @@ class hls_output p =
         extname;
         init_state = `Todo;
         init_position = 0;
-        position = 1;
+        position = 0;
         current_segment = None;
         discontinuity_count = 0;
       }
