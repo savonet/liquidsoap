@@ -33,9 +33,9 @@ let lilv_enabled =
     venv = "1" || venv = "true"
   with Not_found -> true
 
-class virtual base ~kind source =
+class virtual base source =
   object
-    inherit operator ~name:"lilv" (Lang.frame_kind_t kind) [source]
+    inherit operator ~name:"lilv" [source]
     inherit Source.no_seek
     method stype = source#stype
     method remaining = source#remaining
@@ -45,9 +45,9 @@ class virtual base ~kind source =
     method abort_track = source#abort_track
   end
 
-class virtual base_nosource ~kind =
+class virtual base_nosource =
   object
-    inherit source ~name:"lilv" kind
+    inherit source ~name:"lilv" ()
     inherit Source.no_seek
     method stype = `Infallible
     method is_ready = true
@@ -62,9 +62,9 @@ let constant_data len x =
   data
 
 (** A mono LV2 plugin: a plugin is created for each channel. *)
-class lilv_mono ~kind (source : source) plugin input output params =
+class lilv_mono (source : source) plugin input output params =
   object (self)
-    inherit base ~kind source as super
+    inherit base source as super
     method self_sync = source#self_sync
     val mutable inst = None
 
@@ -103,9 +103,9 @@ class lilv_mono ~kind (source : source) plugin input output params =
       done
   end
 
-class lilv ~kind (source : source) plugin inputs outputs params =
+class lilv (source : source) plugin inputs outputs params =
   object
-    inherit base ~kind source
+    inherit base source
     method self_sync = source#self_sync
 
     val inst =
@@ -153,9 +153,9 @@ class lilv ~kind (source : source) plugin inputs outputs params =
   end
 
 (** An LV2 plugin without audio input. *)
-class lilv_nosource ~kind plugin outputs params =
+class lilv_nosource plugin outputs params =
   object
-    inherit base_nosource ~kind
+    inherit base_nosource
     method self_sync = (`Static, false)
 
     val inst =
@@ -188,9 +188,9 @@ class lilv_nosource ~kind plugin outputs params =
 
 (** An LV2 plugin without audio output (e.g. to observe the stream). The input
    stream is returned. *)
-class lilv_noout ~kind source plugin inputs params =
+class lilv_noout source plugin inputs params =
   object
-    inherit base ~kind source
+    inherit base source
 
     val inst =
       Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
@@ -333,23 +333,16 @@ let register_plugin plugin =
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in
       let params = params p in
-      if ni = 0 then
-        new lilv_nosource
-          ~kind:(Lang.frame_kind_t (Lang.audio_n no))
-          plugin outputs params
+      if ni = 0 then new lilv_nosource plugin outputs params
       else if no = 0 then
         (* TODO: can we really use such a type? *)
-        (new lilv_noout
-           ~kind:(Lang.audio_n 0) (Option.get source) plugin inputs params
+        (new lilv_noout (Option.get source) plugin inputs params
           :> Source.source)
       else if mono then
-        (new lilv_mono
-           ~kind:Lang.any (Option.get source) plugin inputs.(0) outputs.(0)
-           params
+        (new lilv_mono (Option.get source) plugin inputs.(0) outputs.(0) params
           :> Source.source)
       else
-        (new lilv
-           ~kind:Lang.any (Option.get source) plugin inputs outputs params
+        (new lilv (Option.get source) plugin inputs outputs params
           :> Source.source))
 
 let register_plugin plugin =
