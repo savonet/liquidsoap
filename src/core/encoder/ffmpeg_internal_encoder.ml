@@ -395,7 +395,12 @@ let mk_video ~ffmpeg ~options output =
       let vstop = Frame.video_of_main (start + len) in
       let vbuf = VFrame.data frame in
       for i = vstart to vstop - 1 do
-        let f = Video.Canvas.render vbuf i in
+        let f =
+          Video.Canvas.get vbuf i
+          (* TODO: we could scale instead of agressively changing the viewport *)
+          |> Video.Canvas.Image.viewport src_width src_height
+          |> Video.Canvas.Image.render ~transparent:false
+        in
         let vdata = Ffmpeg_utils.pack_image f in
         let frame = InternalScaler.convert scaler vdata in
         Avutil.Frame.set_pts frame (Some !nb_frames);

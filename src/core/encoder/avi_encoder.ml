@@ -49,8 +49,14 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
     let vstart = Frame.video_of_main start in
     let vlen = Frame.video_of_main len in
     let data = Strings.Mutable.empty () in
+    let scaler = Video_converter.scaler () in
     for i = vstart to vstart + vlen - 1 do
-      let img = Video.Canvas.render vbuf i in
+      let img =
+        Video.Canvas.get vbuf i
+        |> Video.Canvas.Image.resize ~scaler ~proportional:true target_width
+             target_height
+        |> Video.Canvas.Image.render ~transparent:false
+      in
       let width = Image.YUV420.width img in
       let height = Image.YUV420.height img in
       if width <> target_width || height <> target_height then
