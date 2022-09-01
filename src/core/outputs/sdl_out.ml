@@ -87,9 +87,14 @@ class output ~infallible ~on_start ~on_stop ~autostart source =
       self#process_events;
       let window = Option.get window in
       let surface = Sdl_utils.check Sdl.get_window_surface window in
-      (* We only display the first image of each frame *)
-      let rgb = Video.Canvas.render (VFrame.data buf) 0 in
-      Sdl_utils.Surface.of_img surface rgb;
+      let img =
+        let width, height = self#video_dimensions in
+        (* We only display the first image of each frame *)
+        Video.Canvas.get (VFrame.data buf) 0
+        |> Video.Canvas.Image.viewport width height
+        |> Video.Canvas.Image.render ~transparent:false
+      in
+      Sdl_utils.Surface.of_img surface img;
       Sdl_utils.check Sdl.update_window_surface window
   end
 

@@ -105,6 +105,8 @@ module Surface = struct
 
   let of_img surface img =
     let width, height = Sdl.get_surface_size surface in
+    assert (width = Image.YUV420.width img);
+    assert (height = Image.YUV420.height img);
     let pitch = Sdl.get_surface_pitch surface in
     let fmt = Sdl.get_surface_format_enum surface in
     match fmt with

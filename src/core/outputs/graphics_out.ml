@@ -39,9 +39,13 @@ class output ~infallible ~autostart ~on_start ~on_stop source =
       sleep <- false
 
     method send_frame buf =
-      let rgb = Video.Canvas.render (VFrame.data buf) 0 in
-      let img = Video.Image.to_int_image rgb in
-      let img = Graphics.make_image img in
+      let img =
+        let width, height = self#video_dimensions in
+        Video.Canvas.get (VFrame.data buf) 0
+        |> Video.Canvas.Image.viewport width height
+        |> Video.Canvas.Image.render ~transparent:false
+        |> Image.YUV420.to_int_image |> Graphics.make_image
+      in
       Graphics.draw_image img 0 0
 
     method reset = ()
