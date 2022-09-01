@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let ( let* ) = Duppy.Monad.bind
+
 exception Bind_error of string
 
 let () =
@@ -278,54 +280,51 @@ let handle_client socket ip =
   in
   (* Read and process lines *)
   let process =
-    let __pa_duppy_0 =
+    let* req =
       Duppy.Monad.Io.read
         ?timeout:(Some (get_timeout ()))
         ~priority:`Non_blocking ~marker:(Duppy.Io.Split "[\r\n]+") h
     in
-    Duppy.Monad.bind __pa_duppy_0 (fun req ->
-        let rec run exec =
-          try Duppy.Monad.return (exec ()) with
-            | Server_wait opts ->
-                Duppy.Monad.bind (Duppy_c.wait opts.condition opts.mutex)
-                  (fun () -> run opts.resume)
-            | Write opts ->
-                (* Make sure write are synchronous by setting TCP_NODELAY off and off. *)
-                Unix.setsockopt socket Unix.TCP_NODELAY false;
-                Duppy.Monad.bind
-                  (Duppy.Monad.Io.write
-                     ?timeout:(Some (get_timeout ()))
-                     ~priority:`Non_blocking h
-                     (Bytes.of_string opts.payload))
-                  (fun () ->
-                    Unix.setsockopt socket Unix.TCP_NODELAY true;
-                    run opts.after)
-            | Read opts ->
-                let __pa_duppy_0 =
-                  Duppy.Monad.Io.read
-                    ?timeout:(Some (get_timeout ()))
-                    ~priority:`Non_blocking ~marker:opts.payload h
-                in
-                Duppy.Monad.bind __pa_duppy_0 (fun ret ->
-                    run (fun () -> opts.after ret))
-            | e -> Duppy.Monad.raise e
-        in
-        let __pa_duppy_0 =
-          Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
-            (run (fun () -> exec req))
-        in
-        Duppy.Monad.bind __pa_duppy_0 (fun ans ->
-            Duppy.Monad.bind
-              (Duppy.Monad.bind
-                 (Duppy.Monad.Io.write
-                    ?timeout:(Some (* "BEGIN\r\n"; *) (get_timeout ()))
-                    ~priority:`Non_blocking h (Bytes.of_string ans))
-                 (fun () ->
-                   Duppy.Monad.Io.write
-                     ?timeout:(Some (get_timeout ()))
-                     ~priority:`Non_blocking h
-                     (Bytes.of_string "\r\nEND\r\n")))
-              (fun () -> Duppy.Monad.return ())))
+    let rec run exec =
+      try Duppy.Monad.return (exec ()) with
+        | Server_wait opts ->
+            let* () = Duppy_c.wait opts.condition opts.mutex in
+            run opts.resume
+        | Write opts ->
+            (* Make sure write are synchronous by setting TCP_NODELAY off and off. *)
+            Unix.setsockopt socket Unix.TCP_NODELAY false;
+            let* () =
+              Duppy.Monad.Io.write
+                ?timeout:(Some (get_timeout ()))
+                ~priority:`Non_blocking h
+                (Bytes.of_string opts.payload)
+            in
+            Unix.setsockopt socket Unix.TCP_NODELAY true;
+            run opts.after
+        | Read opts ->
+            let* ret =
+              Duppy.Monad.Io.read
+                ?timeout:(Some (get_timeout ()))
+                ~priority:`Non_blocking ~marker:opts.payload h
+            in
+            run (fun () -> opts.after ret)
+        | e -> Duppy.Monad.raise e
+    in
+    let* ans =
+      Duppy.Monad.Io.exec ~priority:`Maybe_blocking h (run (fun () -> exec req))
+    in
+    let* () =
+      let* () =
+        Duppy.Monad.Io.write
+          ?timeout:(Some (* "BEGIN\r\n"; *) (get_timeout ()))
+          ~priority:`Non_blocking h (Bytes.of_string ans)
+      in
+      Duppy.Monad.Io.write
+        ?timeout:(Some (get_timeout ()))
+        ~priority:`Non_blocking h
+        (Bytes.of_string "\r\nEND\r\n")
+    in
+    Duppy.Monad.return ()
   in
   let close () = try Unix.close socket with _ -> () in
   let rec run () =

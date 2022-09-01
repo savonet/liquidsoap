@@ -20,6 +20,8 @@
   
  *****************************************************************************)
 
+let ( let* ) = Duppy.Monad.bind
+
 (** Output to an harbor server. *)
 module type T = sig
   include Harbor.Transport_t
@@ -254,7 +256,7 @@ module Make (T : T) = struct
     if c.metaint > 0 then process Strings.empty data else data
 
   let rec client_task c =
-    let __pa_duppy_0 =
+    let* data =
       Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
         (Tutils.mutexify c.mutex
            (fun () ->
@@ -267,23 +269,21 @@ module Make (T : T) = struct
              Duppy.Monad.return data)
            ())
     in
-    Duppy.Monad.bind __pa_duppy_0 (fun data ->
-        Duppy.Monad.bind
-          (if Strings.is_empty data then
-           Duppy.Monad.bind (Duppy_m.lock c.condition_m) (fun () ->
-               Duppy.Monad.bind (Duppy_c.wait c.condition c.condition_m)
-                 (fun () -> Duppy_m.unlock c.condition_m))
-          else
-            Duppy.Monad.Io.write ?timeout:(Some c.timeout)
-              ~priority:`Non_blocking c.handler (Strings.to_bytes data))
-          (fun () ->
-            let __pa_duppy_0 =
-              Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
-                (let ret = Tutils.mutexify c.mutex (fun () -> c.state) () in
-                 Duppy.Monad.return ret)
-            in
-            Duppy.Monad.bind __pa_duppy_0 (fun state ->
-                if state <> Done then client_task c else Duppy.Monad.return ())))
+    let* () =
+      if Strings.is_empty data then
+        let* () = Duppy_m.lock c.condition_m in
+        let* () = Duppy_c.wait c.condition c.condition_m in
+        Duppy_m.unlock c.condition_m
+      else
+        Duppy.Monad.Io.write ?timeout:(Some c.timeout) ~priority:`Non_blocking
+          c.handler (Strings.to_bytes data)
+    in
+    let* state =
+      Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
+        (let ret = Tutils.mutexify c.mutex (fun () -> c.state) () in
+         Duppy.Monad.return ret)
+    in
+    if state <> Done then client_task c else Duppy.Monad.return ()
 
   let client_task c =
     Tutils.mutexify c.mutex
@@ -511,33 +511,33 @@ module Make (T : T) = struct
           }
         in
         self#log#info "Serving client %s." ip;
-        Duppy.Monad.bind
-          (Duppy.Monad.catch
-             (if
-              (default_user <> None && default_password <> None)
-              || auth_function <> None
-             then (
-              let default_user = Option.value default_user ~default:"" in
-              Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-                (Harbor.http_auth_check ~args ~login:(default_user, login) s
-                   headers))
-             else Duppy.Monad.return ())
-             (function
-               | Harbor.Relay _ -> assert false
-               | Harbor.Close s ->
-                   self#log#info "Client %s failed to authenticate!" ip;
-                   client.state <- Done;
-                   Harbor.reply s))
-          (fun () ->
-            Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-              (Harbor.relayed reply (fun () ->
-                   self#log#info "Client %s connected" ip;
-                   Tutils.mutexify clients_m
-                     (fun () -> Queue.push client clients)
-                     ();
-                   let h_headers = Hashtbl.create (List.length headers) in
-                   List.iter (fun (x, y) -> Hashtbl.add h_headers x y) headers;
-                   on_connect ~protocol ~uri ~headers:h_headers ip)))
+        let* () =
+          Duppy.Monad.catch
+            (if
+             (default_user <> None && default_password <> None)
+             || auth_function <> None
+            then (
+             let default_user = Option.value default_user ~default:"" in
+             Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
+               (Harbor.http_auth_check ~args ~login:(default_user, login) s
+                  headers))
+            else Duppy.Monad.return ())
+            (function
+              | Harbor.Relay _ -> assert false
+              | Harbor.Close s ->
+                  self#log#info "Client %s failed to authenticate!" ip;
+                  client.state <- Done;
+                  Harbor.reply s)
+        in
+        Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
+          (Harbor.relayed reply (fun () ->
+               self#log#info "Client %s connected" ip;
+               Tutils.mutexify clients_m
+                 (fun () -> Queue.push client clients)
+                 ();
+               let h_headers = Hashtbl.create (List.length headers) in
+               List.iter (fun (x, y) -> Hashtbl.add h_headers x y) headers;
+               on_connect ~protocol ~uri ~headers:h_headers ip))
 
       method send b =
         let slen = Strings.length b in
