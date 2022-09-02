@@ -71,6 +71,21 @@ module Surface = struct
             done
           done;
           Sdl.unlock_surface surface
+      | fmt when fmt = Sdl.Pixel.format_argb8888 ->
+          assert (Sdl.lock_surface surface = Ok ());
+          let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
+          for j = 0 to height - 1 do
+            for i = 0 to width - 1 do
+              let r, g, b, a =
+                ( pix.{(j * pitch) + (4 * i) + 2},
+                  pix.{(j * pitch) + (4 * i) + 1},
+                  pix.{(j * pitch) + (4 * i) + 0},
+                  pix.{(j * pitch) + (4 * i) + 3} )
+              in
+              Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
+            done
+          done;
+          Sdl.unlock_surface surface
       | fmt when fmt = Sdl.Pixel.format_rgb24 ->
           assert (Sdl.lock_surface surface = Ok ());
           let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
