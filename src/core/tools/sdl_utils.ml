@@ -62,10 +62,16 @@ module Surface = struct
           for j = 0 to height - 1 do
             for i = 0 to width - 1 do
               let r, g, b, a =
-                ( pix.{(j * pitch) + (4 * i) + 2},
-                  pix.{(j * pitch) + (4 * i) + 1},
-                  pix.{(j * pitch) + (4 * i) + 0},
-                  0xff )
+                if Sys.big_endian then
+                  ( pix.{(j * pitch) + (4 * i) + 0},
+                    pix.{(j * pitch) + (4 * i) + 1},
+                    pix.{(j * pitch) + (4 * i) + 2},
+                    0xff )
+                else
+                  ( pix.{(j * pitch) + (4 * i) + 2},
+                    pix.{(j * pitch) + (4 * i) + 1},
+                    pix.{(j * pitch) + (4 * i) + 0},
+                    0xff )
               in
               Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
             done
@@ -77,10 +83,16 @@ module Surface = struct
           for j = 0 to height - 1 do
             for i = 0 to width - 1 do
               let r, g, b, a =
-                ( pix.{(j * pitch) + (4 * i) + 2},
-                  pix.{(j * pitch) + (4 * i) + 1},
-                  pix.{(j * pitch) + (4 * i) + 0},
-                  pix.{(j * pitch) + (4 * i) + 3} )
+                if Sys.big_endian then
+                  ( pix.{(j * pitch) + (4 * i) + 1},
+                    pix.{(j * pitch) + (4 * i) + 2},
+                    pix.{(j * pitch) + (4 * i) + 3},
+                    pix.{(j * pitch) + (4 * i) + 0} )
+                else
+                  ( pix.{(j * pitch) + (4 * i) + 2},
+                    pix.{(j * pitch) + (4 * i) + 1},
+                    pix.{(j * pitch) + (4 * i) + 0},
+                    pix.{(j * pitch) + (4 * i) + 3} )
               in
               Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
             done
