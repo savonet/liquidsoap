@@ -55,8 +55,7 @@ let render_text ~font ~size text =
   let get_pixel x y =
     assert (0 <= x && x < w);
     assert (0 <= y && y < h);
-    let _, _, _, r = Image.YUV420.get_pixel_rgba img x y in
-    r
+    Image.YUV420.get_pixel_a img x y
   in
   (w, h, get_pixel)
 
