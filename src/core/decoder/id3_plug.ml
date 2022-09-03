@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Metadata = Metadata.Make (Camomile_utils.C)
+
 let log = Log.make ["decoder"; "id3"]
 
 (** Configuration keys for id3. *)
