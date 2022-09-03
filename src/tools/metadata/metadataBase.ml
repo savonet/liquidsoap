@@ -97,8 +97,6 @@ module Reader = struct
       Printexc.raise_with_backtrace e bt
 end
 
-module CharEncoding = MetadataCharEncoding
-
 module Int = struct
   include Int
 

@@ -33,6 +33,8 @@ val dynlink : bool
 (** Where to look for private executables. *)
 val bin_dir : string
 
+module CamomileCharEncoding : CamomileLibrary.CharEncoding.Interface
+
 (** Where to find the camomile runtime files. *)
 val camomile_dir : string
 

@@ -735,7 +735,7 @@ let camomile_dir = CamomileDefaultConfig__.InstallConfig.share_dir
 EOCONF
     fi
     cat >> src/configure.ml <<EOCONF
-module C = CamomileLibrary.CharEncoding.Configure(struct
+module CamomileCharEncoding = CamomileLibrary.CharEncoding.Configure(struct
   let datadir = Filename.concat camomile_dir "database"
   let localedir = Filename.concat camomile_dir "locales"
   let charmapdir = Filename.concat camomile_dir "charmaps"
@@ -745,7 +745,7 @@ end)
 exception Unknown_encoding of string
 
 let enc_of_name s =
-  try C.of_name s with
+  try CamomileCharEncoding.of_name s with
     | Not_found -> raise (Unknown_encoding s)
 
 let conf_tag =
@@ -764,7 +764,7 @@ let get_encoding () =
     | Some e -> e
     | None ->
         let encs = conf_encoding#get in
-        let e = C.automatic "LIQ-TAGS" (List.map enc_of_name encs) C.utf8 in
+        let e = CamomileCharEncoding.automatic "LIQ-TAGS" (List.map enc_of_name encs) CamomileCharEncoding.utf8 in
           custom_encoding := Some e ;
           e
 
@@ -787,19 +787,19 @@ let recode_tag ?in_enc ?out_enc s =
       try
        match out_enc with
          | Some e -> enc_of_name e
-         | None -> C.utf8
+         | None -> CamomileCharEncoding.utf8
       with Unknown_encoding s ->
              raise (Output_encoding s)
     in
-      try C.recode_string ~in_enc ~out_enc s with e ->
+      try CamomileCharEncoding.recode_string ~in_enc ~out_enc s with e ->
         let in_enc =
           if in_enc == get_encoding () then
             Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
           else
-            C.name_of in_enc
+            CamomileCharEncoding.name_of in_enc
         in
         camolog#important "Failed to convert %S from %s to %s (%s)!"
-          s in_enc (C.name_of out_enc) (Printexc.to_string e) ;
+          s in_enc (CamomileCharEncoding.name_of out_enc) (Printexc.to_string e) ;
         s
   with
     | Unknown_encoding e ->
