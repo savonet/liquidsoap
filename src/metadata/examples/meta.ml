@@ -24,6 +24,6 @@ let () =
       List.iter
         (fun (k, v) ->
           let v = if k = "APIC" || k = "PIC" then "<redacted>" else v in
-          Printf.printf "- %s: %s\n%!" k v)
+          Printf.printf "- %s: %S\n%!" k v)
         m)
     !fname
