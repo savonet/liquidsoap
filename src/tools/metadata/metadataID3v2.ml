@@ -13,11 +13,48 @@ let read_size ?(synch_safe = true) f =
     (s0 lsl 21) + (s1 lsl 14) + (s2 lsl 7) + s3)
   else (s0 lsl 24) + (s1 lsl 16) + (s2 lsl 8) + s3
 
-let recode enc =
-  if enc = 0 then CharEncoding.convert CharEncoding.iso8859 CharEncoding.utf8
-  else if enc = 1 || enc = 2 then CharEncoding.convert CharEncoding.utf16 CharEncoding.utf8
-  else if enc = 3 then fun s -> s
-  else fun s -> s
+let read_size_v2 f =
+  let s = R.read f 3 in
+  let s0 = int_of_char s.[0] in
+  let s1 = int_of_char s.[1] in
+  let s2 = int_of_char s.[2] in
+  (s0 lsl 16) + (s1 lsl 8) + s2
+
+let rec trim_eos ?(from = 0) enc s =
+  match (enc, String.index_from_opt s from '\000') with
+    | 0, Some n -> String.sub s 0 n
+    | (1, Some n | 2, Some n | 3, Some n)
+      when String.length s > n + 1 && s.[n + 1] = '\000' ->
+        String.sub s 0 n
+    | 1, Some n | 2, Some n | 3, Some n -> trim_eos ~from:(n + 1) enc s
+    (* Probably invalid string *)
+    | _ -> s
+
+let recode = function
+  | 0 -> CharEncoding.convert CharEncoding.iso8859 CharEncoding.utf8
+  | 1 -> (
+      fun s ->
+        match String.length s with
+          (* Probably invalid string *)
+          | n when n < 2 -> s
+          | n -> (
+              match String.sub s 0 2 with
+                | "\255\246" ->
+                    CharEncoding.convert CharEncoding.utf16le CharEncoding.utf8
+                      (String.sub s 2 (n - 2))
+                | "\246\255" ->
+                    CharEncoding.convert CharEncoding.utf16be CharEncoding.utf8
+                      (String.sub s 2 (n - 2))
+                (* Probably invalid string *)
+                | _ ->
+                    CharEncoding.convert CharEncoding.utf16 CharEncoding.utf8 s)
+      )
+  | 2 -> CharEncoding.convert CharEncoding.utf16 CharEncoding.utf8
+  | 3 -> fun s -> s
+  (* Invalid encoding. *)
+  | _ -> fun s -> s
+
+let recode encoding s = recode encoding (trim_eos encoding s)
 
 let normalize_id = function
   | "COMM" -> "comment"
@@ -71,33 +108,12 @@ let parse f : metadata =
         let compressed = int_of_char flags.[1] land 0b10000000 <> 0 in
         let encrypted = int_of_char flags.[1] land 0b01000000 <> 0 in
         if compressed || encrypted then raise Exit;
-        if id.[0] = 'T' then (
+        let len = String.length data in
+        if id.[0] = 'T' && id <> "TXXX" && len >= 1 then (
           let encoding = int_of_char data.[0] in
           let recode = recode encoding in
-          let start, len =
-            match encoding with
-            | 0x00 (* ISO-8859-1 *) | 0x03 (* UTF8 *) ->
-              if data.[size - 1] = '\000' then (1, size - 2)
-              else (1, size - 1)
-            | 0x01 (* 16-bit unicode 2.0 *) | 0x02 (* UTF-16BE *) ->
-              if
-                size >= 2
-                && data.[size - 2] = '\000'
-                && data.[size - 1] = '\000'
-              then (1, size - 3)
-              else (1, size - 1)
-            | _ -> (0, size)
-          in
-          let text = String.sub data start len in
-          let text = recode text in
-          let id, text =
-            if id = "TXXX" && String.contains text '\000' then (
-              let n = String.index text '\000' in
-              ( String.sub text 0 n,
-                String.sub text (n + 1) (String.length text - (n + 1)) ))
-            else (id, text)
-          in
-          tags := (normalize_id id, text) :: !tags)
+          tags :=
+            (normalize_id id, recode (String.sub data 1 (len - 1))) :: !tags)
         else tags := (normalize_id id, data) :: !tags)
     with Exit -> ()
   done;
