@@ -4,6 +4,7 @@
 Fixed:
 * Stop error loop when opening a listening ssl socket with non-existent certificate. (#2590)
 * Youtube HLS upload for live streams.
+* Fixed `data:...` uri scheme to conform to RFC 2397 (#2491)
 
 ---
 2.1.1 (2022-08-28)

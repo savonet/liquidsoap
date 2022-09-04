@@ -164,20 +164,20 @@ end
 let string.data_uri = ()
 
 # Encode a string using the data uri format,
-# i.e. `"data:<mime>[;base64]:<data>"`.
+# i.e. `"data:<mime>[;base64],<data>"`.
 # @category String
 # @param ~base64 Encode data using the base64 format
 # @param ~mime Data mime type
 def string.data_uri.encode(~base64=true, ~(mime:string), s) =
-  s = base64 ? ";base64:#{string.base64.encode(s)}" : ":#{s}"
+  s = base64 ? ";base64,#{string.base64.encode(s)}" : ",#{s}"
   "data:#{mime}#{s}"
 end
 
 # Decode a string using the data uri format,
-# i.e. `"data:<mime>[;base64]:<data>"`.
+# i.e. `"data:<mime>[;base64],<data>"`.
 # @category String
 def string.data_uri.decode(s) =
-  captured = r/^data:([\/\w]+)(;base64)?:(.+)$/.exec(s)
+  captured = r/^data:([\/\w]+)(;base64)?,(.+)$/.exec(s)
   if list.assoc.mem(1, captured) and list.assoc.mem(3, captured) then
     mime = list.assoc(1, captured)
     data = list.assoc(3, captured)
