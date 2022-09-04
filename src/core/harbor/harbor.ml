@@ -23,6 +23,7 @@
 open Harbor_base
 module Monad = Duppy.Monad
 module Type = Liquidsoap_lang.Type
+module Regexp = Liquidsoap_lang.Regexp
 
 let ( let* ) = Duppy.Monad.bind
 
@@ -102,10 +103,10 @@ module type T = sig
   val reply : (unit -> string) -> ('a, reply) Duppy.Monad.t
 
   val add_http_handler :
-    port:int -> verb:http_verb -> uri:string -> http_handler -> unit
+    port:int -> verb:http_verb -> uri:Lang.regexp -> http_handler -> unit
 
   val remove_http_handler :
-    port:int -> verb:http_verb -> uri:string -> unit -> unit
+    port:int -> verb:http_verb -> uri:Lang.regexp -> unit -> unit
 
   (* Source input *)
 
@@ -265,7 +266,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     string ->
     (reply, reply) Duppy.Monad.t
 
-  type http_handlers = (http_verb * string, http_handler) Hashtbl.t
+  type http_handlers = (http_verb * Lang.regexp, http_handler) Hashtbl.t
   type handler = { sources : sources; http : http_handlers }
   type open_port = handler * Unix.file_descr list
 
@@ -727,10 +728,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
     (* First, try with a registered handler. *)
     let handler, _ = find_handler port in
-    let f (verb, reg_uri) handler =
-      let rex = Pcre.regexp reg_uri in
-      if (verb :> verb) = hmethod && Pcre.pmatch ~rex uri then (
-        log#info "Found handler '%s %s' on port %d." smethod reg_uri port;
+    let f (verb, rex) handler =
+      if (verb :> verb) = hmethod && Regexp.test ~rex:rex.Lang.regexp uri then (
+        log#info "Found handler '%s %s' on port %d." smethod
+          (Lang.string_of_regexp rex)
+          port;
         raise (Handled handler))
       else ()
     in
@@ -1030,7 +1032,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let exec () =
       let handler = get_handler ~icy:false port in
       log#important "Adding handler for '%s %s' on port %i"
-        (string_of_verb verb) uri port;
+        (string_of_verb verb)
+        (Lang.string_of_regexp uri)
+        port;
       if Hashtbl.mem handler.http (verb, uri) then
         log#important "WARNING: Handler already registered, old one removed!"
       else ();
@@ -1044,7 +1048,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let handler, socks = Hashtbl.find opened_ports port in
       assert (Hashtbl.mem handler.http (verb, uri));
       log#important "Removing handler for '%s %s' on port %i"
-        (string_of_verb verb) uri port;
+        (string_of_verb verb)
+        (Lang.string_of_regexp uri)
+        port;
       Hashtbl.remove handler.http (verb, uri);
       if Hashtbl.length handler.sources = 0 && Hashtbl.length handler.http = 0
       then (

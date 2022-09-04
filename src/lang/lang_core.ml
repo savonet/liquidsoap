@@ -28,6 +28,12 @@ type t = Type.t
 type scheme = Type.scheme
 type value = Value.t = { pos : Pos.Option.t; value : in_value }
 
+type regexp = {
+  descr : string;
+  flags : [ `i | `g | `s | `m ] list;
+  regexp : Regexp.t;
+}
+
 (** Type construction *)
 
 let int_t = Type.make Type.Ground.int

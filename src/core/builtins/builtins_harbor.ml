@@ -56,7 +56,7 @@ module Make (Harbor : T) = struct
           Some
             "Accepted method (\"GET\" / \"POST\" / \"PUT\" / \"DELETE\" / \
              \"HEAD\" / \"OPTIONS\")." );
-        ("", Lang.string_t, None, Some "URI to serve.");
+        ("", Lang.regexp_t, None, Some "URI to serve.");
         ( "",
           Lang.fun_t
             [
@@ -82,7 +82,7 @@ module Make (Harbor : T) = struct
         let verb =
           Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
         in
-        let uri = Lang.to_string (Lang.assoc "" 1 p) in
+        let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
         let f = Lang.assoc "" 2 p in
         let f ~protocol ~data ~headers ~socket:_ uri =
           let l =
@@ -118,12 +118,12 @@ module Make (Harbor : T) = struct
           Lang.string_t,
           Some (Lang.string "GET"),
           Some "Method served." );
-        ("", Lang.string_t, None, Some "URI served.");
+        ("", Lang.regexp_t, None, Some "URI served.");
       ]
       Lang.unit_t
       (fun p ->
         let port = Lang.to_int (List.assoc "port" p) in
-        let uri = Lang.to_string (Lang.assoc "" 1 p) in
+        let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
         let verb =
           Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
         in

@@ -350,6 +350,13 @@ module Make (T : T) = struct
     let uri =
       match mount.[0] with '/' -> mount | _ -> Printf.sprintf "%c%s" '/' mount
     in
+    let uri_rex =
+      {
+        Lang.descr = uri;
+        flags = [];
+        regexp = Liquidsoap_lang.Regexp.regexp uri;
+      }
+    in
     let autostart = Lang.to_bool (List.assoc "start" p) in
     let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
     let on_start =
@@ -607,7 +614,7 @@ module Make (T : T) = struct
           let args = Http.args_split args in
           self#add_client ~protocol ~headers ~uri ~args socket
         in
-        Harbor.add_http_handler ~port ~verb:`Get ~uri handler;
+        Harbor.add_http_handler ~port ~verb:`Get ~uri:uri_rex handler;
         match dumpfile with
           | Some f -> dump <- Some (open_out_bin f)
           | None -> ()
@@ -615,7 +622,7 @@ module Make (T : T) = struct
       method stop =
         ignore ((Option.get encoder).Encoder.stop ());
         encoder <- None;
-        Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
+        Harbor.remove_http_handler ~port ~verb:`Get ~uri:uri_rex ();
         let new_clients = Queue.create () in
         Tutils.mutexify clients_m
           (fun () ->
