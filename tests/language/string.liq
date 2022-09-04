@@ -64,11 +64,11 @@ def f() =
   t(string.annotate.parse("foo=bla,\"foo\"=\"✨✅\",\"gni:gno\"=\"bla\\\"blu:\":😈uri"),
     ([("foo", "bla"), ("foo", "✨✅"), ("gni:gno", "bla\"blu:")], "😈uri"))
 
-  t(string.data_uri.encode(mime="foo/bar", "✨"), "data:foo/bar;base64:4pyo")
-  t(string.data_uri.encode(base64=false, mime="foo/bar", "✨"), "data:foo/bar:✨")
+  t(string.data_uri.encode(mime="foo/bar", "✨"), "data:foo/bar;base64,4pyo")
+  t(string.data_uri.encode(base64=false, mime="foo/bar", "✨"), "data:foo/bar,✨")
 
-  t(string.data_uri.decode("data:foo/bar;base64:4pyo"), null("✨".{mime = "foo/bar"}))
-  t(string.data_uri.decode("data:foo/bar:✨"), null("✨".{mime = "foo/bar"}))
+  t(string.data_uri.decode("data:foo/bar;base64,4pyo"), null("✨".{mime = "foo/bar"}))
+  t(string.data_uri.decode("data:foo/bar,✨"), null("✨".{mime = "foo/bar"}))
   
   if !success then test.pass() else test.fail() end
 end
