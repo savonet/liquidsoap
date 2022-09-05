@@ -185,3 +185,37 @@ let () =
       let tz = Utils.timezone () in
       Lang.meth (Lang.string std)
         [("daylight", Lang.string dst); ("utc_diff", Lang.int tz)])
+
+let () =
+  Lang.add_builtin ~category:`String "time.string"
+    ~descr:
+      "Obtain a string representation of the current time. It takes a string \
+       as argument where special strings are replaced roughly following \
+       [strftime](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes): \
+       %H is replaced by the current hour, %M minute, %S second, %A week day \
+       (%a week day abbreviated), %d month day, %B month name (%b month name \
+       abbreviated), %z timezone."
+    [
+      ( "time",
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some
+          "If specified convert the given time (in seconds since 00:00:00 GMT, \
+           Jan. 1, 1970) instead of the current time." );
+      ( "",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some
+          "Description of the string to produce, e.g. `\"Current time is \
+           %H:%M`\"`." );
+    ]
+    Lang.string_t
+    (fun p ->
+      let time =
+        List.assoc "time" p |> Lang.to_option |> Option.map Lang.to_float
+      in
+      let s =
+        List.assoc "" p |> Lang.to_option |> Option.map Lang.to_string
+        |> Option.value ~default:"%A, %d %B %Y %H:%M:%S"
+      in
+      Lang.string (Utils.strftime ?time s))

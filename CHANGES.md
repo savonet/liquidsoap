@@ -1,6 +1,9 @@
 2.1.3 (unreleased)
 =====
 
+Added:
+* Added `time.string`.
+
 Changed:
 * Send data in-memory in `http.{post,put}.file` when input data
   is already in memory. This allows to use plain `Content-Length`
