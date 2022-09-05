@@ -191,10 +191,61 @@ let string_of_timezone tz =
   Printf.sprintf "%+03d%02d" (tz / 3600) (abs (tz / 60) mod 60)
 
 (** Very partial strftime clone *)
-let strftime str : string =
-  let t = Unix.localtime (Unix.gettimeofday ()) in
+let strftime ?time str : string =
+  let time =
+    match time with Some time -> time | None -> Unix.gettimeofday ()
+  in
+  let t = Unix.localtime time in
+  let weekday =
+    [|
+      "Sunday";
+      "Monday";
+      "Tuesday";
+      "Wednesday";
+      "Thursday";
+      "Friday";
+      "Saturday";
+    |]
+  in
+  let weekday_abbr = [| "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" |] in
+  let month =
+    [|
+      "January";
+      "Febrary";
+      "March";
+      "April";
+      "May";
+      "June";
+      "July";
+      "August";
+      "September";
+      "October";
+      "November";
+      "December";
+    |]
+  in
+  let month_abbr =
+    [|
+      "Jan";
+      "Feb";
+      "Mar";
+      "Apr";
+      "May";
+      "Jun";
+      "Jul";
+      "Aug";
+      "Sep";
+      "Oct";
+      "Nov";
+      "Dec";
+    |]
+  in
   let assoc =
     [
+      ("a", weekday_abbr.(t.Unix.tm_wday));
+      ("A", weekday.(t.Unix.tm_wday));
+      ("b", month_abbr.(t.Unix.tm_mon));
+      ("B", month.(t.Unix.tm_mon));
       ("S", Printf.sprintf "%02d" t.Unix.tm_sec);
       ("M", Printf.sprintf "%02d" t.Unix.tm_min);
       ("H", Printf.sprintf "%02d" t.Unix.tm_hour);

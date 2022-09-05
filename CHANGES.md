@@ -13,6 +13,7 @@ New:
 - Added support for unit interactive variables: those call a handler when their
   value is set.
 - Added support for id3v2 `v2.2.0` frames and pictures.
+- Added `time.string`.
 
 Changed:
 
