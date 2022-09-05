@@ -250,7 +250,9 @@ let strftime ?time str : string =
       ("M", Printf.sprintf "%02d" t.Unix.tm_min);
       ("H", Printf.sprintf "%02d" t.Unix.tm_hour);
       ("d", Printf.sprintf "%02d" t.Unix.tm_mday);
+      ("j", Printf.sprintf "%03d" t.Unix.tm_yday);
       ("m", Printf.sprintf "%02d" (t.Unix.tm_mon + 1));
+      ("p", if t.Unix.tm_hour < 12 then "AM" else "PM");
       ("Y", string_of_int (t.Unix.tm_year + 1900));
       ("w", string_of_int t.Unix.tm_wday);
       ("z", string_of_timezone (timezone ()));
