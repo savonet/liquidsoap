@@ -17,6 +17,8 @@
 (library
  (name liquidsoap_core)
  (public_name liquidsoap)
+ (preprocess
+  (pps ppx_string))
  (libraries
   mm
   dtools
@@ -257,6 +259,8 @@
 (library
  (name liquidsoap_builtins)
  (library_flags -linkall)
+ (preprocess
+  (pps ppx_string))
  (wrapped false)
  (libraries liquidsoap_core)
  (modules

@@ -32,7 +32,6 @@ video.liq
 ffmpeg.liq
 native.liq
 interactive.liq
-http_codes.liq
 predicate.liq
 file.liq
 shoutcast.liq

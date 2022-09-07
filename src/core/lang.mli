@@ -28,12 +28,7 @@ val log : Log.t
 type t = Liquidsoap_lang.Type.t
 
 type scheme = Liquidsoap_lang.Type.scheme
-
-type regexp = Liquidsoap_lang.Lang.regexp = {
-  descr : string;
-  flags : [ `i | `g | `s | `m ] list;
-  regexp : Liquidsoap_lang.Regexp.t;
-}
+type regexp
 
 (** {2 Values} *)
 
@@ -288,3 +283,5 @@ val environment : unit -> (string * string) list
 
 (** Return a string description of a regexp. *)
 val string_of_regexp : regexp -> string
+
+module Regexp : Liquidsoap_lang.Regexp.T with type t := regexp

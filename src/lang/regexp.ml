@@ -1,8 +1,10 @@
-type sub = ..
 type t = ..
+type sub = ..
 type flag = [ `i | `g | `s | `m ]
 
 module type T = sig
+  type t
+
   val regexp : ?flags:flag list -> string -> t
   val regexp_or : ?flags:flag list -> string list -> t
   val split : ?pat:string -> ?rex:t -> string -> string list
@@ -30,40 +32,42 @@ module DummyRegexp = struct
   let substitute_first ?pat:_ ?rex:_ ~subst:_ _ = failwith "Not implemented"
 end
 
-let regexp_ref = ref (module DummyRegexp : T)
+module type Regexp_t = T with type t := t
+
+let regexp_ref = ref (module DummyRegexp : Regexp_t)
 
 let regexp ?flags s =
-  let module Regexp = (val !regexp_ref : T) in
+  let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.regexp ?flags s
 
 let regexp_or ?flags l =
-  let module Regexp = (val !regexp_ref : T) in
+  let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.regexp_or ?flags l
 
 let split ?pat ?rex s =
-  let module Regexp = (val !regexp_ref : T) in
+  let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.split ?pat ?rex s
 
 let exec ?pat ?rex s =
-  let module Regexp = (val !regexp_ref : T) in
+  let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.exec ?pat ?rex s
 
 let test ?pat ?rex s =
-  let module Regexp = (val !regexp_ref : T) in
+  let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.test ?pat ?rex s
 
 let num_of_subs sub =
-  let module Regexp = (val !regexp_ref : T) in
+  let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.num_of_subs (Obj.magic sub)
 
 let get_substring sub pos =
-  let module Regexp = (val !regexp_ref : T) in
+  let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.get_substring (Obj.magic sub) pos
 
 let substitute ?pat ?rex ~subst s =
-  let module Regexp = (val !regexp_ref : T) in
+  let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.substitute ?pat ?rex:(Obj.magic rex) ~subst s
 
 let substitute_first ?pat ?rex ~subst s =
-  let module Regexp = (val !regexp_ref : T) in
+  let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.substitute_first ?pat ?rex:(Obj.magic rex) ~subst s

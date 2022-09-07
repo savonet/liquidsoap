@@ -296,8 +296,8 @@ end
 # @param ~port Port of the server.
 # @param ~uri URI of the server.
 def interactive.harbor(~port=8000, ~uri="/interactive")
-  def webpage(~protocol=_, ~data, ~headers=_, _)
-    form_data = data
+  def webpage(request, response)
+    form_data = request.data
     data = ref("")
     def add(s) =
       data := !data ^ s ^ "\n"
@@ -411,13 +411,13 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
     list.iter(add_var, !variables)
     add("</form>")
     add("</body>")
-    http.response(data=!data)
+    response.data(!data)
   end
 
   harbor.http.register(port=port, method="GET", uri, webpage)
 
-  def setter(~protocol=_, ~data, ~headers=_, _)
-    data = url.split_args(data)
+  def setter(request, _)
+    data = url.split_args(request.data)
     def update(nv)
       let (name, v) = nv
       try
@@ -438,7 +438,6 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
       end
     end
     list.iter(update, data)
-    http.response()
   end
 
   harbor.http.register(port=port, method="POST", uri, setter)

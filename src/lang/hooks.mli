@@ -1,5 +1,5 @@
 (* Language essentials *)
-module type Regexp_t = Regexp.T
+module type Regexp_t = Regexp.T with type t := Regexp.t
 
 val regexp : (module Regexp_t) ref
 

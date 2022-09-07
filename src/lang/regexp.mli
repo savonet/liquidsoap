@@ -3,6 +3,8 @@ type t = ..
 type flag = [ `i | `g | `s | `m ]
 
 module type T = sig
+  type t
+
   val regexp : ?flags:flag list -> string -> t
   val regexp_or : ?flags:flag list -> string list -> t
   val split : ?pat:string -> ?rex:t -> string -> string list
@@ -18,6 +20,8 @@ module type T = sig
     ?pat:string -> ?rex:t -> subst:(string -> string) -> string -> string
 end
 
-include T
+module type Regexp_t = T with type t := t
 
-val regexp_ref : (module T) ref
+val regexp_ref : (module Regexp_t) ref
+
+include T with type t := t

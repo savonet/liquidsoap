@@ -26,12 +26,7 @@
 type t = Type.t
 
 type scheme = Type.scheme
-
-type regexp = Lang_core.regexp = {
-  descr : string;
-  flags : [ `i | `g | `s | `m ] list;
-  regexp : Regexp.t;
-}
+type regexp
 
 (** {2 Values} *)
 
@@ -209,3 +204,5 @@ val environment : unit -> (string * string) list
 
 (** Return a string description of a regexp. *)
 val string_of_regexp : regexp -> string
+
+module Regexp : Regexp.T with type t := regexp

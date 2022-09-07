@@ -22,7 +22,11 @@
 
 module SocketValue = struct
   include Value.MkAbstract (struct
-    type content = Unix.file_descr
+    type content =
+      < typ : string
+      ; write : bytes -> int -> int -> int
+      ; read : bytes -> int -> int -> int
+      ; close : unit >
 
     let name = "socket"
 
@@ -36,12 +40,13 @@ module SocketValue = struct
               pos = [];
             })
 
-    let descr _ = "<socket>"
+    let descr s = Printf.sprintf "<%s socket>" s#typ
     let compare = Stdlib.compare
   end)
 
   let meths =
     [
+      ("type", ([], Lang.string_t), "Socket type", fun fd -> Lang.string fd#typ);
       ( "write",
         ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t),
         "Write data to a socket",
@@ -52,7 +57,7 @@ module SocketValue = struct
               let len = Bytes.length data in
               try
                 let rec f pos =
-                  let n = Unix.write fd data pos (len - pos) in
+                  let n = fd#write data pos (len - pos) in
                   if n < len then f (pos + n)
                 in
                 f 0;
@@ -63,13 +68,13 @@ module SocketValue = struct
       ( "read",
         ([], Lang.fun_t [] Lang.string_t),
         "Read data from a socket. Reading is done when the function returns an \
-         empty srring `\"\"`.",
+         empty string `\"\"`.",
         fun fd ->
           let buflen = Utils.pagesize in
           let buf = Bytes.create buflen in
           Lang.val_fun [] (fun _ ->
               try
-                let n = Unix.read fd buf 0 buflen in
+                let n = fd#read buf 0 buflen in
                 Lang.string (Bytes.sub_string buf 0 n)
               with exn ->
                 let bt = Printexc.get_raw_backtrace () in
@@ -80,7 +85,7 @@ module SocketValue = struct
         fun fd ->
           Lang.val_fun [] (fun _ ->
               try
-                Unix.close fd;
+                fd#close;
                 Lang.unit
               with exn ->
                 let bt = Printexc.get_raw_backtrace () in
@@ -90,9 +95,17 @@ module SocketValue = struct
   let t =
     Lang.method_t t (List.map (fun (lbl, t, descr, _) -> (lbl, t, descr)) meths)
 
-  let to_value err =
-    Lang.meth (to_value err)
-      (List.map (fun (lbl, _, _, m) -> (lbl, m err)) meths)
+  let to_value socket =
+    Lang.meth (to_value socket)
+      (List.map (fun (lbl, _, _, m) -> (lbl, m socket)) meths)
 
-  let of_value err = of_value (Lang.demeth err)
+  let of_unix_file_descr fd =
+    object
+      method typ = "unix"
+      method read = Unix.read fd
+      method write = Unix.write fd
+      method close = Unix.close fd
+    end
+
+  let of_value socket = of_value (Lang.demeth socket)
 end

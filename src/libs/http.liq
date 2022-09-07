@@ -1,108 +1,5 @@
 # Set of HTTP utils.
 
-%include "http_codes.liq"
-
-# Create a HTTP response string.
-# @category Interaction
-# @param ~protocol HTTP protocol used.
-# @param ~code Response code.
-# @param ~headers Response headers.
-# @param ~content_type Content type for the data.
-# @param ~data Response data.
-def http.response(~protocol="HTTP/1.1",
-                  ~code=200,~headers=[],
-                  ~content_type="",
-                  ~data="") = 
-  status = http.codes[code]
-  # Set content-length and connection: close
-  headers = 
-    list.append(headers, 
-                [("Content-Length", "#{string.length(data)}"),
-                 ("Connection", "close")])
-  headers =
-    if content_type != "" then
-      ("Content-Type", content_type)::headers
-    else
-      headers
-    end
-
-  headers = list.map(fun (x) -> "#{fst(x)}: #{snd(x)}",headers)
-  headers = string.concat(separator="\r\n",headers)
-  # If no headers are provided, we should avoid
-  # having an empty line for them. Therefore, we also
-  # conditionally add the final \r\n here.
-  headers =
-    if headers != "" then
-      "#{headers}\r\n"
-    else
-      headers
-    end
-  resp = ref(
-    "#{protocol} #{code} #{status}\r\n\
-     #{headers}\
-     \r\n\
-     #{data}")
-  def resp () =
-    ret = !resp
-    resp := ""
-    ret
-  end
-  resp
-end
-
-# Create a streamed HTTP response.
-# @category Interaction
-# @param ~protocol HTTP protocol used.
-# @param ~code Response code.
-# @param ~headers Response headers.
-# @param ~data_len Response length in bytes.
-# @param ~content_type Content type for the data.
-# @param ~data Response data.
-def http.response.stream(
-         ~protocol="HTTP/1.1",
-         ~code=200,~headers=[],
-         ~content_type="",
-         ~data_len,~data) =
-  status = http.codes[code]
-  # Set content-length and connection: close
-  headers =
-    list.append(headers,
-                [("Content-Length", "#{data_len}"),
-                 ("Connection", "close")])
-  headers =
-    if content_type != "" then
-      ("Content-Type", content_type)::headers
-    else
-      headers
-    end
-
-  headers = list.map(fun (x) -> "#{fst(x)}: #{snd(x)}",headers)
-  headers = string.concat(separator="\r\n",headers)
-  # If no headers are provided, we should avoid
-  # having an empty line for them. Therefore, we also
-  # conditionally add the final \r\n here.
-  headers =
-    if headers != "" then
-      "#{headers}\r\n"
-    else
-      headers
-    end
-  full_head =
-    "#{protocol} #{code} #{status}\r\n\
-     #{headers}\
-     \r\n"
-  head_sent = ref(false)
-  def resp () =
-    if !head_sent then
-      data()
-    else
-      head_sent := true
-      full_head
-    end
-  end
-  resp
-end
-
 let harbor.http.static = ()
 
 # @flag hidden
@@ -121,52 +18,47 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
     end
   directory = path.home.unrelate(directory)
 
-  responseHeaders = headers
+  def handler(request, response)
+    response.headers(headers)
 
-  def handler(~method,~protocol,~data=_,~headers=_,uri)
-    ret = regexp("^#{basepath}([^?]*)").exec(uri)
-    match =
-      if list.length(ret) == 0 then "."
-      else string.trim(ret[1]) end
-    match = url.decode(match)
-
-    fname = path.concat(directory, match)
+    fname = path.concat(directory, request.path)
     log.debug("Serving static file: #{fname}")
-    if file.exists(fname) then
+    if not file.exists(fname) then
+      response.code(404)
+    else
       if file.is_directory(fname) then
-        if browse then
+        if not browse then
+          response.code(403)
+        else
           page = ref("")
           def add(s)
             page := !page ^ s ^ "\n"
           end
           def add_file(f)
-            add("<li><a href=\"#{uri}/#{url.encode(f)}\">#{f}</a></li>")
+            add("<li><a href=\"#{request.path}/#{url.encode(f)}\">#{f}</a></li>")
           end
           add("<html><body><ul>")
           list.iter(add_file, file.ls(sorted=true, fname))
           add("</ul></body>")
-          getter(http.response(protocol=protocol,code=200,headers=responseHeaders,content_type="text/html; charset=UTF-8",data=!page))
-        else
-          getter(http.response(protocol=protocol,code=403,headers=responseHeaders,content_type="text/plain",data="Forbidden."))
+          response.content_type("text/html; charset=UTF-8")
+          response.data({!page})
         end
       else
         mime = content_type(fname)
-        if method == "OPTIONS" or method == "HEAD" then
-          getter(http.response(protocol=protocol,code=200,headers=responseHeaders,content_type=mime))
-        else
-          getter(http.response.stream(protocol=protocol,code=200,headers=responseHeaders,content_type=mime,data_len=file.size(fname),data=file.read(fname)))
+
+        if mime != "" then
+          response.content_type(mime)
+        end
+
+        if request.method == "GET" then
+          response.data(file.read(fname))
         end
       end
-    else
-      getter(http.response(protocol=protocol,code=404,headers=responseHeaders,content_type="text/plain",data="Not Found!"))
     end
   end
 
   def register(method)
-    def handler(~protocol,~data,~headers,uri)
-      handler(method=method, protocol=protocol, data=data, headers=headers, uri)
-    end
-    serve(method=method, "^#{basepath}", handler)
+    serve(method=method, basepath, handler)
   end
   list.iter(register, ["OPTIONS","HEAD","GET"])
 end

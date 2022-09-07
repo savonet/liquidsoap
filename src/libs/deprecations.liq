@@ -482,22 +482,6 @@ def of_json(%argsof(json.parse), v) =
   json.parse(%argsof(json.parse), v)
 end
 
-# Deprecated use `http.response` instead
-# @flag deprecated
-# @argsof http.response
-def http_response(%argsof(http.response)) =
-  deprecated("http_response", "http.response")
-  http.response(%argsof(http.response))
-end
-
-# Deprecated use `http.response.stream` instead
-# @flag deprecated
-# @argsof http.response.stream
-def http_response_stream(%argsof(http.response.stream)) =
-  deprecated("http_response_stream", "http.response.stream")
-  http.response.stream(%argsof(http.response.stream))
-end
-
 # Deprecated: use error method instead
 # @flag deprecated
 def error.kind(err) =

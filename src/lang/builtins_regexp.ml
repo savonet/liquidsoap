@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type regexp = Lang_core.regexp = {
+type regexp = {
   descr : string;
   flags : [ `i | `g | `s | `m ] list;
   regexp : Regexp.t;
