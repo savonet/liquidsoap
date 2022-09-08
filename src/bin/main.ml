@@ -168,10 +168,11 @@ let process_request s =
         flush_all ();
         exit 1
     | Request.Resolved ->
+        Request.read_metadata req;
         let metadata = Request.get_all_metadata req in
         let metadata = Request.string_of_metadata metadata in
         Printf.printf "Request resolved.\n%s\n" metadata;
-        Printf.printf "Computing duration: %!";
+        Printf.printf "Duration: %!";
         begin
           try
             Printf.printf "%.2f sec.\n"
@@ -208,7 +209,7 @@ let options =
        ( ["-"],
          Arg.Unit (fun () -> eval `StdIn),
          "Read script from standard input." );
-       (["-r"], Arg.String process_request, "Process a request.");
+       (["-r"; "--request"], Arg.String process_request, "Process a request.");
        ( ["-h"],
          Arg.String lang_doc,
          "Get help about a scripting value: source, operator, builtin or \
