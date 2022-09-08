@@ -6,6 +6,10 @@ Fixed:
 * Youtube HLS upload for live streams.
 * Fixed `data:...` uri scheme to conform to RFC 2397 (#2491)
 
+Internal Change:
+* `ref()` implementation switched to OCaml's `Atomic` to prevent race conditions,
+  `thread.mutexify` and `mutexify` functions removed. (#2603)
+
 ---
 2.1.1 (2022-08-28)
 ======

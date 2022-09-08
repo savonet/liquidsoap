@@ -354,7 +354,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
                     | Ground _ | Encoder _ | Null -> false
                     | List l -> List.exists aux l
                     | Tuple l -> List.exists aux l
-                    | Ref r -> aux !r
+                    | Ref r -> aux (Atomic.get r)
                     | Fun _ | FFI _ -> true
                     | Meth (_, v, t) -> aux v || aux t
                 in

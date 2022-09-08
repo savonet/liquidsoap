@@ -61,7 +61,7 @@ and in_value = Value.in_value =
   | Tuple of value list
   | Null
   | Meth of string * value * value
-  | Ref of value ref
+  | Ref of value Atomic.t
   | Fun of (string * string * value option) list * lazy_env * Term.t
   (* A function with given arguments (argument label, argument variable, default
      value), closure and value. *)
@@ -182,7 +182,7 @@ val to_valued_option : (value -> 'a) -> value -> 'a option
 val to_default_option : default:'a -> (value -> 'a) -> value -> 'a
 val to_product : value -> value * value
 val to_tuple : value -> value list
-val to_ref : value -> value ref
+val to_ref : value -> value Atomic.t
 val to_metadata_list : value -> (string * string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
@@ -247,7 +247,7 @@ val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
-val reference : value ref -> value
+val reference : value Atomic.t -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
     the label and optional values. *)
