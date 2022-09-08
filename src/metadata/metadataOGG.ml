@@ -3,7 +3,7 @@ module R = Reader
 
 let parse f : metadata =
   (* Packetized reading *)
-  let f =
+  let f, peek =
     (* Current page *)
     let page = ref "" in
     (* Read a page *)
@@ -26,22 +26,53 @@ let parse f : metadata =
       let n = List.fold_left ( + ) 0 lacing in
       page := !page ^ R.read f n
     in
-    let read b off len =
+    let ensure len =
       while String.length !page < len do
         fill ()
-      done;
+      done
+    in
+    let read b off len =
+      ensure len;
       Bytes.blit_string !page 0 b off len;
       page := String.sub !page len (String.length !page - len);
       len
     in
-    {
-      R.read;
-      seek = (fun n -> if n <> 0 then assert false);
-      size = (fun () -> None);
-      reset = (fun () -> assert false);
-    }
+    let seek n =
+      assert (n >= 0);
+      ensure n;
+      page := String.sub !page n (String.length !page - n)
+    in
+    let peek n =
+      ensure n;
+      let buf = Bytes.create n in
+      Bytes.blit_string !page 0 buf 0 n;
+      Bytes.unsafe_to_string buf
+    in
+    ( { R.read; seek; size = (fun () -> None); reset = (fun () -> assert false) },
+      peek )
   in
-  if R.read f 8 = "OpusHead" then (
+  let comments () =
+    let string () =
+      let n = R.uint32_le f in
+      R.read f n
+    in
+    let vendor = string () in
+    let n = R.uint32_le f in
+    let comments = List.init n (fun _ -> string ()) in
+    let comments =
+      List.filter_map
+        (fun c ->
+          match String.index_opt c '=' with
+            | Some n ->
+                Some
+                  ( String.sub c 0 n,
+                    String.sub c (n + 1) (String.length c - (n + 1)) )
+            | None -> None)
+        comments
+    in
+    ("vendor", vendor) :: comments
+  in
+  if peek 8 = "OpusHead" then (
     let v = R.uint8 f in
     (* version *)
     if v <> 1 then raise Invalid;
@@ -62,25 +93,18 @@ let parse f : metadata =
       (* coupled count *)
       ignore (R.read f c) (* channel mapping *));
     if R.read f 8 <> "OpusTags" then raise Invalid;
-    let string () =
-      let n = R.uint32_le f in
-      R.read f n
-    in
-    let vendor = string () in
-    let n = R.uint32_le f in
-    let comments = List.init n (fun _ -> string ()) in
-    let comments =
-      List.filter_map
-        (fun c ->
-          match String.index_opt c '=' with
-            | Some n ->
-                Some
-                  ( String.sub c 0 n,
-                    String.sub c (n + 1) (String.length c - (n + 1)) )
-            | None -> None)
-        comments
-    in
-    ("vendor", vendor) :: comments)
-  else raise Invalid
+    comments ())
+  else (
+    (* Assume vorbis *)
+    let t = R.uint8 f in
+    (* Packet type *)
+    if R.read f 6 <> "vorbis" then raise Invalid;
+    assert (t = 1);
+    (* identification header *)
+    R.drop f (4 + 1 + 4 + 4 + 4 + 4 + 2);
+    assert (R.uint8 f = 3);
+    (* comment header *)
+    if R.read f 6 <> "vorbis" then raise Invalid;
+    comments ())
 
 let parse_file = R.with_file parse
