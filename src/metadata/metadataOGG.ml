@@ -9,18 +9,18 @@ let parse f : metadata =
     (* Read a page *)
     let fill () =
       if R.read f 4 <> "OggS" then raise Invalid;
-      ignore (R.read f 1);
       (* stream_structure_version *)
       ignore (R.read f 1);
       (* header_type_flag *)
-      ignore (R.read f 8);
+      ignore (R.read f 1);
       (* absolute granule position *)
-      ignore (R.read f 4);
+      ignore (R.read f 8);
       (* stream serial number *)
       ignore (R.read f 4);
       (* page sequence no *)
       ignore (R.read f 4);
       (* page checksum *)
+      ignore (R.read f 4);
       let segments = R.uint8 f in
       let lacing = List.init segments (fun _ -> R.uint8 f) in
       let n = List.fold_left ( + ) 0 lacing in
@@ -73,25 +73,26 @@ let parse f : metadata =
     ("vendor", vendor) :: comments
   in
   if peek 8 = "OpusHead" then (
-    let v = R.uint8 f in
     (* version *)
+    let v = R.uint8 f in
     if v <> 1 then raise Invalid;
-    let c = R.uint8 f in
     (* output channels *)
-    ignore (R.uint16_le f);
+    let c = R.uint8 f in
     (* pre-skip *)
-    ignore (R.uint32_le f);
-    (* input samplerate *)
     ignore (R.uint16_le f);
+    (* input samplerate *)
+    ignore (R.uint32_le f);
     (* output gain *)
-    let mapping_family = R.uint8 f in
+    ignore (R.uint16_le f);
     (* mapping family *)
+    let mapping_family = R.uint8 f in
     if mapping_family <> 0 then (
-      ignore (R.uint8 f);
       (* stream count *)
       ignore (R.uint8 f);
       (* coupled count *)
-      ignore (R.read f c) (* channel mapping *));
+      ignore (R.uint8 f);
+      (* channel mapping *)
+      ignore (R.read f c));
     if R.read f 8 <> "OpusTags" then raise Invalid;
     comments ())
   else (
@@ -99,11 +100,11 @@ let parse f : metadata =
     let t = R.uint8 f in
     (* Packet type *)
     if R.read f 6 <> "vorbis" then raise Invalid;
-    assert (t = 1);
     (* identification header *)
+    assert (t = 1);
     R.drop f (4 + 1 + 4 + 4 + 4 + 4 + 2);
-    assert (R.uint8 f = 3);
     (* comment header *)
+    assert (R.uint8 f = 3);
     if R.read f 6 <> "vorbis" then raise Invalid;
     comments ())
 
