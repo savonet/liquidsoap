@@ -86,3 +86,16 @@ let env_has key =
 let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then fun ?in_enc:_ ?out_enc:_ s -> s
   else recode_tag
+
+let convert e =
+  let in_enc =
+    match e with
+      | `ISO8859 -> C.of_name "ISO-8859-1"
+      | `UTF8 -> C.utf8
+      | `UTF16 -> C.utf16
+      | `UTF16LE -> C.utf16le
+      | `UTF16BE -> C.utf16be
+      | `Auto ->
+          C.automatic "auto" [C.of_name "ISO-8859-1"; C.utf8; C.utf16] C.utf8
+  in
+  C.recode_string ~in_enc ~out_enc:C.utf8

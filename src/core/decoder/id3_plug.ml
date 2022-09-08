@@ -20,7 +20,9 @@
 
  *****************************************************************************)
 
-module Metadata = Metadata.Make (Camomile_utils.C)
+module Metadata = Metadata.Make (struct
+  let convert = Camomile_utils.convert
+end)
 
 let log = Log.make ["decoder"; "id3"]
 

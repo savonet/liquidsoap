@@ -1,8 +1,0 @@
-(executable
- (name test)
- (libraries metadata))
-
-(rule
- (alias runtest)
- (action
-  (run ./test.exe)))
