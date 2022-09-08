@@ -34,6 +34,7 @@ module Reader = struct
 
   let drop f n = f.seek n
   let byte f = int_of_char (read f 1).[0]
+  let uint8 f = byte f
 
   let int16_be f =
     let b0 = byte f in
@@ -45,6 +46,7 @@ module Reader = struct
     let b1 = byte f in
     (b1 lsl 8) + b0
 
+  let uint16_le = int16_le
   let int16 = function Big_endian -> int16_be | Little_endian -> int16_le
 
   let int32_le f =
@@ -53,6 +55,8 @@ module Reader = struct
     let b2 = byte f in
     let b3 = byte f in
     (b3 lsl 24) + (b2 lsl 16) + (b1 lsl 8) + b0
+
+  let uint32_le = int32_le
 
   let int32_be f =
     let b0 = byte f in

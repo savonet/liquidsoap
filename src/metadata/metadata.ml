@@ -4,6 +4,7 @@ struct
   module CharEncoding = MetadataCharEncoding.Make (CamomileCharEncoding)
   module ID3v1 = MetadataID3v1.Make (CharEncoding)
   module ID3v2 = MetadataID3v2.Make (CharEncoding)
+  module OGG = MetadataOGG
   module JPEG = MetadataJPEG
   module PNG = MetadataPNG
   module AVI = MetadataAVI
@@ -34,7 +35,7 @@ struct
       | [] -> raise Invalid
 
   module Audio = struct
-    let parsers = [ID3.parse]
+    let parsers = [ID3.parse; OGG.parse]
     let parse = first_valid parsers
     let parse_file = Reader.with_file parse
   end
