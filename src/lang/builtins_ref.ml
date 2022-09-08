@@ -26,7 +26,7 @@ let () =
     ~descr:"Create a reference, i.e. a value which can be modified."
     [("", a, None, None)] (Lang.ref_t a) (fun p ->
       let x = List.assoc "" p in
-      Lang.reference (ref x))
+      Lang.reference (Atomic.make x))
 
 let () =
   let a = Lang.univ_t () in
@@ -36,7 +36,7 @@ let () =
     a
     (fun p ->
       let r = Lang.to_ref (List.assoc "" p) in
-      !r)
+      Atomic.get r)
 
 let () =
   let a = Lang.univ_t () in
@@ -47,5 +47,5 @@ let () =
     (fun p ->
       let r = Lang.to_ref (Lang.assoc "" 1 p) in
       let v = Lang.assoc "" 2 p in
-      r := v;
+      Atomic.set r v;
       Lang.unit)

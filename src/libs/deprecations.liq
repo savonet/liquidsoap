@@ -55,13 +55,6 @@ def exec_at(~freq=1., ~pred, f)
   thread.when(every=freq, pred, f)
 end
 
-# Deprecated: this function has been replaced by `thread.mutexify`.
-# @flag deprecated
-def mutexify(f)
-  deprecated("mutexify", "thread.mutexify")
-  thread.mutexify(f)
-end
-
 # Deprecated: this function has been replaced by `file.which`.
 # @flag deprecated
 def which(f)
