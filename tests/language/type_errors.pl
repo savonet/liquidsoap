@@ -2,7 +2,7 @@
 
 use strict ;
 
-my $liquidsoap = "../../src/bin/liquidsoap.exe  --no-stdlib ../../src/libs/stdlib.liq -c";
+my $liquidsoap = "liquidsoap -c";
 
 sub section {
   print "\n*** $_[0] ***\n\n" ;

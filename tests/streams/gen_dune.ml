@@ -26,11 +26,11 @@ let () =
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %%{run_test} "%%{liquidsoap} %%{test_liq} -" %s)))
+  (:run_test ../run_test.exe))
+ (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
   |}
-        test test)
+        test test test)
     tests

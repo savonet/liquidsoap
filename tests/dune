@@ -6,3 +6,8 @@
  (name check_output)
  (modules check_output)
  (libraries unix pcre liquidsoap-lang))
+
+(executable
+ (name run_test)
+ (modules run_test)
+ (libraries unix threads))

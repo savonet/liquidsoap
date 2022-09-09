@@ -15,12 +15,14 @@ let () =
  (deps
   %s
   ../media/all_media_files
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %%{run_test} "%%{liquidsoap} %%{test_liq} -" %s)))
+  (:run_test ../run_test.exe))
+ (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
   |}
-        test test)
+        test test test)
     tests;
 
   let output_tests =
@@ -38,8 +40,8 @@ let () =
  (deps
   %s
   (:check_output ../check_output.exe)
-  (:run_test ../run_test.sh))
- (action (run %%{run_test} %%{check_output} %s)))
+  (:run_test ../run_test.exe))
+ (action (run %%{run_test} %s %%{check_output})))
   |}
         test test)
     output_tests

@@ -21,9 +21,14 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-  (:server_port ./server_port.sh)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
-  (:run_test ../run_test.sh))
+  (:run_test ../run_test.exe))
  (action
-  (run %{run_test} ./%{server_port} /dev/null %{server_port})))
+  (run
+   %{run_test}
+   "server port"
+   liquidsoap
+   --check
+   "harbor.http.register(port=2000,method=\"GET\",\"/foo\",(fun (~protocol=_,~data=_,~headers=_,_) -> \"test\"))")))
