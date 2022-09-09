@@ -27,6 +27,7 @@ depends: [
   "sedlex-windows"
   "menhir-windows"
   "menhirLib-windows"
+  "metadata-windows"
   "dune-site-windows"
   "dune-build-info-windows"
   "ppx_string" {build}
