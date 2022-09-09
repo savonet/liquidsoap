@@ -14,11 +14,8 @@ cd /tmp/liquidsoap-full
 
 git remote set-url origin https://github.com/savonet/liquidsoap-full.git
 git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
-
-# Remove later
-git submodule init ocaml-metadata
-git submodule update ocaml-metadata
-
+git submodule init
+git submodule update
 make public
 git reset --hard
 
