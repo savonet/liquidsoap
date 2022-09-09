@@ -25,6 +25,7 @@
     ocurl
     uri
     menhirLib
+    metadata
     dune-site
     dune-build-info
     liquidsoap-lang
