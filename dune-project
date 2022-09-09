@@ -22,7 +22,8 @@
     (duppy (>= 0.9.1))
     (mm (>= 0.8.1))
     (pcre (>= 7.5.0))
-    ocurl
+    (ocurl (>= 0.9.2))
+    (cry (>= 0.6.5))
     uri
     menhirLib
     metadata
@@ -35,7 +36,6 @@
     ao
     bjack
     camlimages
-    cry
     dssi
     faad
     fdkaac
@@ -81,7 +81,6 @@
     (alsa (< 0.3.0))
     (ao (< 0.2.0))
     (bjack (< 0.1.3))
-    (cry (< 0.6.5))
     (dssi (< 0.1.3))
     (faad (< 0.5.0))
     (fdkaac (< 0.3.1))
@@ -99,7 +98,6 @@
     (mad (< 0.5.0))
     (magic (< 0.6))
     (mem_usage (< 0.0.3))
-    (ocurl (< 0.9.2))
     (ogg (< 0.7.0))
     (opus (< 0.2.0))
     (portaudio (< 0.2.0))

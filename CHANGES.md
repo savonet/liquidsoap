@@ -18,6 +18,7 @@ New:
 Changed:
 
 - Switched to `dune` for building the binary and libraries.
+- Changed `cry` to be a required dependency.
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseeded by support for actual
   variables in encoders.

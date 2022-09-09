@@ -27,6 +27,7 @@
   menhirLib
   camomile
   curl
+  cry
   uri
   metadata
   (select
@@ -123,6 +124,7 @@
   hls_output
   http
   icecast_utils
+  icecast2
   id3_plug
   iir_filter
   image_decoder
@@ -259,6 +261,7 @@
  (modules
   builtins_callbacks
   builtins_clock
+  builtins_cry
   builtins_files_extra
   builtins_harbor
   builtins_http
@@ -307,14 +310,6 @@
  (wrapped false)
  (optional)
  (modules camlimages_decoder))
-
-(library
- (name liquidsoap_cry)
- (libraries cry liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules icecast2 builtins_cry))
 
 (library
  (name liquidsoap_mem_usage)
@@ -703,7 +698,6 @@
   bjack_option
   builtins_optionals
   camlimages_option
-  cry_option
   dssi_option
   faad_option
   fdkaac_option
@@ -768,11 +762,6 @@
    from
    (liquidsoap_camlimages -> camlimages_option.enabled.ml)
    (-> camlimages_option.disabled.ml))
-  (select
-   cry_option.ml
-   from
-   (liquidsoap_cry -> cry_option.enabled.ml)
-   (-> cry_option.disabled.ml))
   (select
    dssi_option.ml
    from

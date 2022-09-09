@@ -33,8 +33,8 @@ how to use OPAM. In order to use it:
 A typical installation with most expected features is done by executing:
 
 ```
-opam depext taglib mad lame cry ffmpeg liquidsoap
-opam install taglib mad lame cry ffmpeg liquidsoap
+opam depext taglib mad lame ffmpeg liquidsoap
+opam install taglib mad lame ffmpeg liquidsoap
 ```
 
 * `opam depext ...` takes care of installing the required external

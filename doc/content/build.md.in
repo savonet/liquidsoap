@@ -31,6 +31,7 @@ tarballs for easier builds.
 | Dependency     | Version                   |
 | -------------- | ------------------------- |
 | OCaml compiler | @ocaml_version_descr@     |
+| ocaml-cry      | @cry_version_descr@       |
 | ocaml-dtools   | @dtools_version_descr@    |
 | ocaml-duppy    | @duppy_version_descr@     |
 | ocaml-mm       | @mm_version_descr@        |
@@ -58,7 +59,6 @@ tarballs for easier builds.
 | ocaml-alsa          | @alsa_version_descr@                 | ALSA I/O                                      |
 | ocaml-ao            | @ao_version_descr@                   | Output via libao                              |
 | ocaml-bjack         | @bjack_version_descr@                | Jack support                                  |
-| ocaml-cry           | @cry_version_descr@                  | Sending to Shoutcast & Icecast                |
 | ocaml-dssi          | @dssi_version_descr@                 | DSSI sound synthesis                          |
 | ocaml-faad          | @faad_version_descr@                 | AAC stream decoding                           |
 | ocaml-fdkaac        | @fdkaac_version_descr@               | AAC(+) encoding                               |

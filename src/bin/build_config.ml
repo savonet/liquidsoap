@@ -62,7 +62,6 @@ let build_config =
    - ALSA              : %{Alsa_option.detected}
    - AO                : %{Ao_option.detected}
    - FFmpeg            : %{Ffmpeg_option.detected}
-   - Icecast/Shoutcast : %{Cry_option.detected}
    - GStreamer         : %{Gstreamer_option.detected}
    - JACK              : %{Bjack_option.detected}
    - OSS               : %{Oss_option.detected}
@@ -117,7 +116,6 @@ let opam_config =
     {|
 opam-version: "2.0"
 variables {
-  cry-enabled: %{string_of_bool Cry_option.enabled}
   ffmpeg-enabled: %{string_of_bool Ffmpeg_option.enabled}
   lame-enabled: %{string_of_bool Lame_option.enabled}
   mad-enabled: %{string_of_bool Mad_option.enabled}
