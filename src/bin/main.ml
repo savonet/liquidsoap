@@ -158,26 +158,30 @@ let process_request s =
   let req = Request.create s in
   match Request.resolve ~ctype:None req 20. with
     | Request.Failed ->
-        Printf.printf "Request resolution failed.\n";
+        Printf.eprintf "Request resolution failed.\n";
         Request.destroy req;
         flush_all ();
         exit 2
     | Request.Timeout ->
-        Printf.printf "Request resolution timeout.\n";
+        Printf.eprintf "Request resolution timeout.\n";
         Request.destroy req;
         flush_all ();
         exit 1
     | Request.Resolved ->
         Request.read_metadata req;
-        let metadata = Request.get_all_metadata req in
-        let metadata = Request.string_of_metadata metadata in
-        Printf.printf "Request resolved.\n%s\n" metadata;
-        Printf.printf "Duration: %!";
+        let metadata =
+          Request.get_all_metadata req
+          |> Hashtbl.to_seq
+          |> Seq.map (fun (k, v) -> k ^ " = " ^ v)
+          |> List.of_seq |> String.concat "\n"
+        in
+        Printf.printf "%s\n" metadata;
+        Printf.printf "duration = %!";
         begin
           try
-            Printf.printf "%.2f sec.\n"
+            Printf.printf "%.2f s\n"
               (Request.duration (Option.get (Request.get_filename req)))
-          with Not_found -> Printf.printf "failed.\n"
+          with Not_found -> Printf.printf "failed\n"
         end;
         Request.destroy req
 
@@ -209,7 +213,9 @@ let options =
        ( ["-"],
          Arg.Unit (fun () -> eval `StdIn),
          "Read script from standard input." );
-       (["-r"; "--request"], Arg.String process_request, "Process a request.");
+       ( ["-r"; "--request"],
+         Arg.String process_request,
+         "Process a file request and print the metadata." );
        ( ["-h"],
          Arg.String lang_doc,
          "Get help about a scripting value: source, operator, builtin or \
