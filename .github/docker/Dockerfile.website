@@ -25,9 +25,13 @@ RUN git remote set-url origin https://github.com/savonet/liquidsoap-full.git && 
     git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git && \
     git reset --hard && \
     git pull && \
+    git submodule init ocaml-metadata && \
+    git submodule update ocaml-metadata && \
     make public
 
 RUN eval $(opam config env) && make clean
+
+RUN cd ocaml-metadata && opam install -y .
 
 RUN cd liquidsoap && \
     mv .git /tmp && \
