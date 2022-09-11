@@ -29,6 +29,10 @@ def f() =
   t(r/gni/g.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnobla")
   
 
+  # Test string escape.
+  x = r/^\/foo$/g
+  t("#{x}", "r/^\\/foo$/g")
+
   test.pass()
 end
 

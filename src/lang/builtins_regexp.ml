@@ -45,9 +45,12 @@ let escape_regex_descr =
   let escape_regex_formatter =
     Lang_string.escape
       ~special_char:(fun s pos len ->
-        if s.[pos] = '\'' && len = 1 then true
+        if List.mem s.[pos] ['\''; '/'] && len = 1 then true
         else Lang_string.utf8_special_char s pos len)
-      ~escape_char:Lang_string.escape_utf8_char ~next:Lang_string.utf8_next
+      ~escape_char:(fun s pos len ->
+        if s.[pos] = '/' && len = 1 then "\\/"
+        else Lang_string.escape_utf8_char s pos len)
+      ~next:Lang_string.utf8_next
   in
   Lang_string.escape_string escape_regex_formatter
 
