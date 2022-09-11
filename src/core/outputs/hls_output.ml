@@ -398,7 +398,7 @@ class hls_output p =
         extname;
         init_state = `Todo;
         init_position = 0;
-        position = 0;
+        position = 1;
         current_segment = None;
         discontinuity_count = 0;
       }
@@ -552,7 +552,7 @@ class hls_output p =
       in
       let discontinuity_sequence, media_sequence =
         match segments with
-          | { current_discontinuity; id } :: _ -> (current_discontinuity, id)
+          | { current_discontinuity; id } :: _ -> (current_discontinuity, id - 1)
           | [] -> (0, 0)
       in
       let filename = self#playlist_name s in

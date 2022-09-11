@@ -16,11 +16,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" 197.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} 197.liq liquidsoap %{test_liq} 197.liq)))
   
 (rule
  (alias runtest)
@@ -39,11 +39,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" huge-playlist.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} huge-playlist.liq liquidsoap %{test_liq} huge-playlist.liq)))
   
 (rule
  (alias runtest)
@@ -62,11 +62,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" playlist-watch.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} playlist-watch.liq liquidsoap %{test_liq} playlist-watch.liq)))
   
 (rule
  (alias runtest)
@@ -85,11 +85,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" on_frame.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} on_frame.liq liquidsoap %{test_liq} on_frame.liq)))
   
 (rule
  (alias runtest)
@@ -108,11 +108,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" 195.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} 195.liq liquidsoap %{test_liq} 195.liq)))
   
 (rule
  (alias runtest)
@@ -131,11 +131,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" image.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} image.liq liquidsoap %{test_liq} image.liq)))
   
 (rule
  (alias runtest)
@@ -154,11 +154,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" fades-persistent-override.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} fades-persistent-override.liq liquidsoap %{test_liq} fades-persistent-override.liq)))
   
 (rule
  (alias runtest)
@@ -177,11 +177,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" srt_passphrase.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} srt_passphrase.liq liquidsoap %{test_liq} srt_passphrase.liq)))
   
 (rule
  (alias runtest)
@@ -200,11 +200,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" ctype2.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} ctype2.liq liquidsoap %{test_liq} ctype2.liq)))
   
 (rule
  (alias runtest)
@@ -223,11 +223,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" say.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} say.liq liquidsoap %{test_liq} say.liq)))
   
 (rule
  (alias runtest)
@@ -246,11 +246,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" ctype1.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} ctype1.liq liquidsoap %{test_liq} ctype1.liq)))
   
 (rule
  (alias runtest)
@@ -269,11 +269,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" random.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} random.liq liquidsoap %{test_liq} random.liq)))
   
 (rule
  (alias runtest)
@@ -292,11 +292,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" smart-crossfade.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} smart-crossfade.liq liquidsoap %{test_liq} smart-crossfade.liq)))
   
 (rule
  (alias runtest)
@@ -315,11 +315,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" request.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} request.liq liquidsoap %{test_liq} request.liq)))
   
 (rule
  (alias runtest)
@@ -338,11 +338,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" radio2.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} radio2.liq liquidsoap %{test_liq} radio2.liq)))
   
 (rule
  (alias runtest)
@@ -361,11 +361,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" cross.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} cross.liq liquidsoap %{test_liq} cross.liq)))
   
 (rule
  (alias runtest)
@@ -384,11 +384,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" stretch-clock-propagation.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} stretch-clock-propagation.liq liquidsoap %{test_liq} stretch-clock-propagation.liq)))
   
 (rule
  (alias runtest)
@@ -407,11 +407,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" fades-overrides.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} fades-overrides.liq liquidsoap %{test_liq} fades-overrides.liq)))
   
 (rule
  (alias runtest)
@@ -430,11 +430,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" rotate.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} rotate.liq liquidsoap %{test_liq} rotate.liq)))
   
 (rule
  (alias runtest)
@@ -453,11 +453,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" cross-override.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} cross-override.liq liquidsoap %{test_liq} cross-override.liq)))
   
 (rule
  (alias runtest)
@@ -476,11 +476,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" cross-persist-override.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} cross-persist-override.liq liquidsoap %{test_liq} cross-persist-override.liq)))
   
 (rule
  (alias runtest)
@@ -499,11 +499,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" sine.detect.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} sine.detect.liq liquidsoap %{test_liq} sine.detect.liq)))
   
 (rule
  (alias runtest)
@@ -522,11 +522,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" on_metadata.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} on_metadata.liq liquidsoap %{test_liq} on_metadata.liq)))
   
 (rule
  (alias runtest)
@@ -545,11 +545,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" dtmf.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} dtmf.liq liquidsoap %{test_liq} dtmf.liq)))
   
 (rule
  (alias runtest)
@@ -568,11 +568,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" srt_multiple_outputs.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} srt_multiple_outputs.liq liquidsoap %{test_liq} srt_multiple_outputs.liq)))
   
 (rule
  (alias runtest)
@@ -591,11 +591,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" on_track.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} on_track.liq liquidsoap %{test_liq} on_track.liq)))
   
 (rule
  (alias runtest)
@@ -614,11 +614,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" crossfade.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} crossfade.liq liquidsoap %{test_liq} crossfade.liq)))
   
 (rule
  (alias runtest)
@@ -637,11 +637,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" radio.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} radio.liq liquidsoap %{test_liq} radio.liq)))
   
 (rule
  (alias runtest)
@@ -660,11 +660,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" many-playlists.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} many-playlists.liq liquidsoap %{test_liq} many-playlists.liq)))
   
 (rule
  (alias runtest)
@@ -683,11 +683,11 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" autostart.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} autostart.liq liquidsoap %{test_liq} autostart.liq)))
   
 (rule
  (alias runtest)
@@ -706,9 +706,9 @@
   ./playlist
   ./huge_playlist
   ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
- (action (run %{run_test} "%{liquidsoap} %{test_liq} -" srt_listen_callback.liq)))
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} srt_listen_callback.liq liquidsoap %{test_liq} srt_listen_callback.liq)))
   

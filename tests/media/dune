@@ -23,6 +23,7 @@
 
 (rule
  (alias runtest)
+ (package liquidsoap)
  (target first-concat.mp4)
  (action
   (run
@@ -37,6 +38,7 @@
 
 (rule
  (alias runtest)
+ (package liquidsoap)
  (target second-concat.mp4)
  (action
   (run
@@ -51,6 +53,7 @@
 
 (rule
  (alias runtest)
+ (package liquidsoap)
  (target third-concat.mp4)
  (action
   (run
@@ -65,12 +68,14 @@
 
 (rule
  (alias runtest)
+ (package liquidsoap)
  (target background.jpg)
  (action
   (run ffmpeg -f lavfi -i testsrc=size=1280x720 -t 1 -f mjpeg %{target})))
 
 (rule
  (alias runtest)
+ (package liquidsoap)
  (target logo.png)
  (action
   (run ffmpeg -f lavfi -i testsrc=size=50x50 -t 1 -f mjpeg %{target})))
@@ -83,15 +88,20 @@
   second-concat.mp4
   third-concat.mp4
   test_ffmpeg_copy_concat.liq
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
+  (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
-   "%{liquidsoap} %{test_liq} -"
-   test_ffmpeg_copy_concat.liq
-   "FFmpeg copy+concat")))
+   "FFmpeg copy+concat"
+   liquidsoap
+   --no-stdlib
+   %{stdlib}
+   %{test_liq}
+   test_ffmpeg_copy_concat.liq)))
 
 (rule
  (alias runtest)
@@ -99,15 +109,20 @@
  (deps
   all_media_files
   test_ffmpeg_complex_filter.liq
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
+  (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
-   "%{liquidsoap} %{test_liq} -"
-   test_ffmpeg_complex_filter.liq
-   "FFmpeg complex filter")))
+   "FFmpeg complex filter"
+   liquidsoap
+   --no-stdlib
+   %{stdlib}
+   %{test_liq}
+   test_ffmpeg_complex_filter.liq)))
 
 (rule
  (alias runtest)
@@ -117,12 +132,17 @@
   background.jpg
   logo.png
   test_ffmpeg_transparency_filter.liq
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
+  (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
-   "%{liquidsoap} %{test_liq} -"
-   test_ffmpeg_transparency_filter.liq
-   "FFmpeg transparency filter")))
+   "FFmpeg transparency filter"
+   liquidsoap
+   --no-stdlib
+   %{stdlib}
+   %{test_liq}
+   test_ffmpeg_transparency_filter.liq)))

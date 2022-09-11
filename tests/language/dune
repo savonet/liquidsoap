@@ -24,6 +24,6 @@
   (:type_error ./type_errors.pl)
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:stdlib ../../src/libs/stdlib.liq)
-  (:run_test ../run_test.sh))
+  (:run_test ../run_test.exe))
  (action
-  (run %{run_test} /usr/bin/perl %{type_error})))
+  (run %{run_test} %{type_error} /usr/bin/perl %{type_error})))

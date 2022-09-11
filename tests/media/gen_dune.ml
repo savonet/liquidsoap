@@ -81,6 +81,7 @@ let mk_encoder source format =
     {|
 (rule
   (alias runtest)
+  (package liquidsoap)
   (target %s)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
@@ -96,15 +97,17 @@ let mk_encoded_file format =
     {|
 (rule
  (alias runtest)
+ (package liquidsoap)
  (target %s)
  (deps
   (:encoder %s)
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
+  (:run_test ../run_test.exe))
  (action
-   (run %%{run_test} "%%{liquidsoap} %%{test_liq} -" %%{encoder} %S)))|}
+   (run %%{run_test} %%{encoder} liquidsoap %%{test_liq} %%{encoder} -- %S)))|}
     (escaped_format format) (encoder_script format) (encoder_format format)
 
 let () =
@@ -114,7 +117,8 @@ let () =
   Printf.printf
     {|
 (rule
-  (alias  runtest)
+  (alias runtest)
+  (package liquidsoap)
   (target all_media_files)
   (deps
     %s)
@@ -130,13 +134,14 @@ let file_test ~label ~test fname =
  (deps
   all_media_files
   %s
+  ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
-  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
-  (:run_test ../run_test.sh))
+  (:run_test ../run_test.exe))
  (action
-  (run %%{run_test} "%%{liquidsoap} %%{test_liq} - -- %s" %s %S)))|}
-    test fname test label
+  (run %%{run_test} %S liquidsoap %%{test_liq} %s -- %S)))|}
+    test label test fname
 
 let () =
   List.iter
@@ -168,4 +173,4 @@ let () =
         audio_video_decoding_tests)
     audio_video_formats
 
-let () = List.iter (fun test -> file_test ~label:"" ~test "") standalone_tests
+let () = List.iter (fun test -> file_test ~label:test ~test "") standalone_tests
