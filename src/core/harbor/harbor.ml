@@ -340,7 +340,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     string ->
     (reply, reply) Duppy.Monad.t
 
-  type http_handlers = (http_verb * Lang.regexp, http_handler) Hashtbl.t
+  type http_handlers =
+    (http_verb * string, Lang.regexp * http_handler) Hashtbl.t
+
   type handler = { sources : sources; http : http_handlers }
   type open_port = handler * Unix.file_descr list
 
@@ -808,11 +810,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
     (* First, try with a registered handler. *)
     let handler, _ = find_handler port in
-    let f (verb, rex) handler =
+    let f (verb, srex) (rex, handler) =
       if (verb :> verb) = hmethod && Lang.Regexp.test ~rex base_uri then (
-        log#info "Found handler '%s %s' on port %d." smethod
-          (Lang.string_of_regexp rex)
-          port;
+        log#info "Found handler '%s %s' on port %d." smethod srex port;
         raise (Handled (verb, handler)))
       else ()
     in
@@ -1115,14 +1115,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let add_http_handler ~port ~verb ~uri h =
     let exec () =
       let handler = get_handler ~icy:false port in
+      let suri = Lang.string_of_regexp uri in
       log#important "Adding handler for '%s %s' on port %i"
-        (string_of_verb verb)
-        (Lang.string_of_regexp uri)
-        port;
-      if Hashtbl.mem handler.http (verb, uri) then
+        (string_of_verb verb) suri port;
+      if Hashtbl.mem handler.http (verb, suri) then
         log#important "WARNING: Handler already registered, old one removed!"
       else ();
-      Hashtbl.replace handler.http (verb, uri) h
+      Hashtbl.replace handler.http (verb, suri) (uri, h)
     in
     Server.on_start exec
 
@@ -1130,12 +1129,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let remove_http_handler ~port ~verb ~uri () =
     let exec () =
       let handler, socks = Hashtbl.find opened_ports port in
-      assert (Hashtbl.mem handler.http (verb, uri));
-      log#important "Removing handler for '%s %s' on port %i"
-        (string_of_verb verb)
-        (Lang.string_of_regexp uri)
-        port;
-      Hashtbl.remove handler.http (verb, uri);
+      let suri = Lang.string_of_regexp uri in
+      if Hashtbl.mem handler.http (verb, suri) then (
+        log#important "Removing handler for '%s %s' on port %i"
+          (string_of_verb verb) suri port;
+        Hashtbl.remove handler.http (verb, suri));
       if Hashtbl.length handler.sources = 0 && Hashtbl.length handler.http = 0
       then (
         log#info "Nothing more on port %i: closing sockets." port;
