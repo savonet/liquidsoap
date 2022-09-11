@@ -397,7 +397,7 @@ class hls_output p =
         video_size;
         extname;
         init_state = `Todo;
-        init_position = 0;
+        init_position = -1;
         position = 0;
         current_segment = None;
         discontinuity_count = 0;
