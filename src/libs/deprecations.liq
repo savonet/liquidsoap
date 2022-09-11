@@ -183,7 +183,7 @@ def register_flow(~server="",~user="default",~password="default",
 
     # TODO: do something with errors!
     answer = http.get(url)
-    log(level=4,"Response status: #{answer.protocol_version} #{answer.status_code} #{answer.status_message}")
+    log(level=4,"Response status: #{answer.http_version} #{answer.status_code} #{answer.status_message}")
     log(level=4,"Response headers:")
     list.iter(log_arg, answer.headers)
     log(level=4,"Response content: #{answer}")

@@ -1,4 +1,3 @@
-(* -*- mode: tuareg; -*- *)
 (*****************************************************************************
 
     Liquidsoap, a programmable audio stream generator.
@@ -34,7 +33,7 @@ module Make (Harbor : T) = struct
   let request_t =
     Lang.record_t
       [
-        ("protocol", Lang.string_t);
+        ("http_version", Lang.string_t);
         ("method", Lang.string_t);
         ("data", Lang.string_t);
         ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
@@ -51,9 +50,9 @@ module Make (Harbor : T) = struct
     in
     Lang.record_t
       [
-        ("protocol", getter_setter_t Lang.string_t);
-        ("code", getter_setter_t Lang.int_t);
-        ("status", getter_setter_t (Lang.nullable_t Lang.string_t));
+        ("http_version", getter_setter_t Lang.string_t);
+        ("status_code", getter_setter_t Lang.int_t);
+        ("status_message", getter_setter_t (Lang.nullable_t Lang.string_t));
         ("data", getter_setter_t (Lang.getter_t Lang.string_t));
         ("content_type", getter_setter_t (Lang.nullable_t Lang.string_t));
         ( "headers",
@@ -107,7 +106,7 @@ module Make (Harbor : T) = struct
       let request =
         Lang.record
           [
-            ("protocol", Lang.string protocol);
+            ("http_version", Lang.string protocol);
             ("method", Lang.string meth);
             ("headers", headers);
             ("query", query);
@@ -136,9 +135,10 @@ module Make (Harbor : T) = struct
       let response =
         Lang.record
           [
-            ("protocol", getter_setter Lang.string Lang.to_string resp_protocol);
-            ("code", getter_setter Lang.int Lang.to_int resp_code);
-            ( "status",
+            ( "http_version",
+              getter_setter Lang.string Lang.to_string resp_protocol );
+            ("status_code", getter_setter Lang.int Lang.to_int resp_code);
+            ( "status_message",
               getter_setter
                 (function None -> Lang.null | Some s -> Lang.string s)
                 Lang.(to_valued_option to_string)
@@ -168,7 +168,12 @@ module Make (Harbor : T) = struct
             ( "data",
               getter_setter
                 (fun fn -> Lang.(val_fun [] (fun _ -> string (fn ()))))
-                Lang.to_string_getter resp_data );
+                (fun v ->
+                  try
+                    let data = Atomic.make (Lang.to_string v) in
+                    fun () -> Atomic.exchange data ""
+                  with _ -> Lang.to_string_getter v)
+                resp_data );
             ("custom", getter_setter Lang.bool Lang.to_bool resp_custom);
           ]
       in

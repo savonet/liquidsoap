@@ -299,7 +299,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     let code = string_of_int code in
     let headers =
-      [%string {|%{protocol} %{code} %{status}\r\n%{headers}\r\n\r\n|}]
+      [%string "HTTP/%{protocol} %{code} %{status}\r\n%{headers}\r\n\r\n"]
     in
     let data =
       match data with
@@ -315,7 +315,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 let s = fn () in
                 Atomic.set is_done (s = "");
                 let len = string_of_int (String.length s) in
-                [%string {|%{len}\r\n%{s}\r\n]|}])
+                [%string "%{len}\r\n%{s}\r\n"])
     in
     let next = Atomic.make headers in
     let fn () = Atomic.exchange next (data ()) in
@@ -784,12 +784,6 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       with Not_found -> (uri, "")
     in
     let smethod = string_of_verb hmethod in
-    let protocol =
-      match hprotocol with
-        | `Http_10 -> "HTTP/1.0"
-        | `Http_11 -> "HTTP/1.1"
-        | _ -> assert false
-    in
     log#info "%s %s request on %s." protocol_name smethod base_uri;
     let args = Http.args_split args in
     (try
@@ -830,6 +824,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         | _ -> ans_404 ()
     with
       | Handled (meth, handler) ->
+          let protocol =
+            match hprotocol with
+              | `Http_10 -> "1.0"
+              | `Http_11 -> "1.1"
+              | _ -> assert false
+          in
           let query =
             Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) args []
           in

@@ -193,7 +193,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
             Pcre.split ~rex:(Pcre.regexp "[\r]?\n")
               (Buffer.contents response_headers)
           in
-          let protocol_version, status_code, status_message =
+          let http_version, status_code, status_message =
             parse_http_answer (List.hd response_headers)
           in
           let response_headers =
@@ -210,7 +210,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
               [] (List.tl response_headers)
           in
           connection#cleanup;
-          (protocol_version, status_code, status_message, response_headers)
+          (http_version, status_code, status_message, response_headers)
   with exn ->
     connection#cleanup;
     raise exn

@@ -24,11 +24,11 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
     fname = path.concat(directory, request.path)
     log.debug("Serving static file: #{fname}")
     if not file.exists(fname) then
-      response.code(404)
+      response.status_code(404)
     else
       if file.is_directory(fname) then
         if not browse then
-          response.code(403)
+          response.status_code(403)
         else
           page = ref("")
           def add(s)
