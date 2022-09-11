@@ -93,13 +93,15 @@ def check_stream() =
 end
 
 def segment_name(~position,~extname,stream_name) =
-  if position > 2 then
+  if position > 4 then
     check_stream()
   end
 
   timestamp = int_of_float(time())
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
+
+clock.assign_new(sync='none',[raw])
 
 output.file.hls(playlist="live.m3u8",
                 segment_duration=2.0,
