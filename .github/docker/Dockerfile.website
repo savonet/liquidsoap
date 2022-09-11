@@ -23,11 +23,9 @@ RUN rm -rf website/savonet.github.io
 
 RUN git remote set-url origin https://github.com/savonet/liquidsoap-full.git && \
     git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git && \
-    make public && \
     git reset --hard && \
-    git checkout master && \
-    git reset --hard HEAD && \
-    git pull
+    git pull && \
+    make public
 
 RUN eval $(opam config env) && make clean
 
