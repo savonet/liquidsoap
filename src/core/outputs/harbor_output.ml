@@ -524,7 +524,7 @@ module Make (T : T) = struct
                   headers))
             else Duppy.Monad.return ())
             (function
-              | Harbor.Relay _ -> assert false
+              | _ -> assert false
               | Harbor.Close s ->
                   self#log#info "Client %s failed to authenticate!" ip;
                   client.state <- Done;

@@ -174,20 +174,22 @@ module Make (Harbor : T) = struct
       in
 
       ignore (Lang.apply f [("", request); ("", response)]);
-      Harbor.(
-        http_reply
-          {
-            protocol = Atomic.get resp_protocol;
-            code = Atomic.get resp_code;
-            status = Atomic.get resp_status;
-            headers =
-              (Atomic.get resp_headers
-              @
-              match Atomic.get resp_content_type with
-                | None -> []
-                | Some m -> [("Content-Type", m)]);
-            data = `String_getter (Atomic.get resp_data);
-          })
+      if Atomic.get resp_custom then Harbor.custom ()
+      else
+        Harbor.(
+          http_reply
+            {
+              protocol = Atomic.get resp_protocol;
+              code = Atomic.get resp_code;
+              status = Atomic.get resp_status;
+              headers =
+                (Atomic.get resp_headers
+                @
+                match Atomic.get resp_content_type with
+                  | None -> []
+                  | Some m -> [("Content-Type", m)]);
+              data = `String_getter (Atomic.get resp_data);
+            })
     in
     (port, verb, handler)
 

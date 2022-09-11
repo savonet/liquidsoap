@@ -92,7 +92,11 @@ module type T = sig
   (* Http Server *)
 
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
-  type reply = Close of (unit -> string) | Relay of string * (unit -> unit)
+
+  type reply =
+    | Close of (unit -> string)
+    | Relay of string * (unit -> unit)
+    | Custom
 
   type http_handler =
     protocol:string ->
@@ -118,6 +122,7 @@ module type T = sig
   val mk_simple : string -> unit -> string
   val simple_reply : string -> ('a, reply) Duppy.Monad.t
   val reply : (unit -> string) -> ('a, reply) Duppy.Monad.t
+  val custom : unit -> ('a, reply) Duppy.Monad.t
 
   val add_http_handler :
     port:int -> verb:http_verb -> uri:Lang.regexp -> http_handler -> unit
@@ -264,7 +269,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     | `Xaudiocast_uri uri -> Printf.sprintf "X-AUDIOCAST (%s)" uri
     | `Websocket -> "WEBSOCKET"
 
-  type reply = Close of (unit -> string) | Relay of string * (unit -> unit)
+  type reply =
+    | Close of (unit -> string)
+    | Relay of string * (unit -> unit)
+    | Custom
 
   type http_response = {
     protocol : string;
@@ -320,6 +328,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let simple_reply s = Duppy.Monad.raise (Close (mk_simple s))
   let reply s = Duppy.Monad.raise (Close s)
   let relayed s f = Duppy.Monad.raise (Relay (s, f))
+  let custom () = Duppy.Monad.raise Custom
 
   type http_handler =
     protocol:string ->
@@ -987,6 +996,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let close () = try close socket with _ -> () in
           let s, exec =
             match r with
+              | Custom -> ("", fun () -> ())
               | Relay (s, exec) -> (s, exec)
               | Close fn ->
                   let s = fn () in
