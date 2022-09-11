@@ -408,13 +408,12 @@ let () =
 let () =
   Lang.add_builtin "sleep" ~category:`System
     ~descr:
-      "Sleep for a given amount of seconds (beware that it freezes the thread \
-       executing it)."
+      "Interrupt execution for a given amount of seconds. This freezes the \
+       calling thread and should not be used in the main streaming loop."
     [("", Lang.float_t, None, Some "Number of seconds of sleep.")] Lang.unit_t
     (fun p ->
       let t = Lang.to_float (List.assoc "" p) in
-      let t = int_of_float (t +. 0.5) in
-      Unix.sleep t;
+      Unix.sleepf t;
       Lang.unit)
 
 let () =

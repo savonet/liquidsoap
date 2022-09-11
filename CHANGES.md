@@ -1,6 +1,9 @@
 2.1.2 (unreleased)
 =====
 
+Changed:
+* Allow sub-second values in `sleep()` (#2610)
+
 Fixed:
 * Stop error loop when opening a listening ssl socket with non-existent certificate. (#2590)
 * Youtube HLS upload for live streams.
