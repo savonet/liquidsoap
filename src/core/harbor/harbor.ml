@@ -340,9 +340,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     string ->
     (reply, reply) Duppy.Monad.t
 
-  type http_handlers =
-    (http_verb * string, Lang.regexp * http_handler) Hashtbl.t
-
+  type http_handlers = (http_verb * Lang.regexp * http_handler) list Atomic.t
   type handler = { sources : sources; http : http_handlers }
   type open_port = handler * Unix.file_descr list
 
@@ -698,7 +696,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let f () = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
     relayed "" f
 
-  exception Handled of (http_verb * http_handler)
+  exception Handled of (http_verb * (string * string) list * http_handler)
 
   let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
     let ans_404 () =
@@ -804,14 +802,32 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
     (* First, try with a registered handler. *)
     let handler, _ = find_handler port in
-    let f (verb, srex) (rex, handler) =
+    let f (verb, rex, handler) =
       if (verb :> verb) = hmethod && Lang.Regexp.test ~rex base_uri then (
-        log#info "Found handler '%s %s' on port %d." smethod srex port;
-        raise (Handled (verb, handler)))
+        let subs = Lang.Regexp.exec ~rex base_uri in
+        let matches =
+          Array.(
+            to_list
+              (map
+                 (fun name ->
+                   (name, Lang.Regexp.get_named_substring rex name subs))
+                 (Lang.Regexp.names rex)))
+        in
+        log#info "Found handler '%s %s' on port %d%s." smethod
+          (Lang.descr_of_regexp rex) port
+          (match matches with
+            | [] -> ""
+            | matches ->
+                Printf.sprintf " with matches: %s"
+                  (String.concat ", "
+                     (List.map
+                        (fun (lbl, v) -> [%string "%{lbl}: %{v}"])
+                        matches)));
+        raise (Handled (verb, matches, handler)))
       else ()
     in
     try
-      Hashtbl.iter f handler.http;
+      List.iter f (Atomic.get handler.http);
 
       (* Otherwise, try with a standard handler. *)
       let is_admin s = try String.sub s 0 6 = "/admin" with _ -> false in
@@ -823,7 +839,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         | s when is_admin s -> ans_400 "unrecognised command"
         | _ -> ans_404 ()
     with
-      | Handled (meth, handler) ->
+      | Handled (meth, matches, handler) ->
           let protocol =
             match hprotocol with
               | `Http_10 -> "1.0"
@@ -831,14 +847,17 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               | _ -> assert false
           in
           let query =
-            Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) args []
+            matches
+            @ Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) args []
           in
           Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
             (handler ~protocol ~meth ~data ~headers
                ~socket:h.Duppy.Monad.Io.socket ~query base_uri)
       | e ->
-          log#info "%s %s request on uri '%s' failed: %s" protocol_name smethod
-            (Printexc.to_string e) uri;
+          let bt = Printexc.get_backtrace () in
+          Utils.log_exception ~log ~bt
+            (Printf.sprintf "%s %s request on uri '%s' failed: %s" protocol_name
+               smethod (Printexc.to_string e) uri);
           ans_500 ()
 
   let handle_client ~port ~icy h =
@@ -1079,7 +1098,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let socks = [open_port ~icy:false port] in
       (* Now the port with icy, is requested.*)
       let socks = if icy then open_port ~icy (port + 1) :: socks else socks in
-      let h = { sources = Hashtbl.create 1; http = Hashtbl.create 1 } in
+      let h = { sources = Hashtbl.create 1; http = Atomic.make [] } in
       Hashtbl.add opened_ports port (h, socks);
       h
 
@@ -1100,7 +1119,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     assert (Hashtbl.mem handler.sources mountpoint);
     log#important "Removing mountpoint '%s' on port %i" mountpoint port;
     Hashtbl.remove handler.sources mountpoint;
-    if Hashtbl.length handler.sources = 0 && Hashtbl.length handler.http = 0
+    if
+      Hashtbl.length handler.sources = 0
+      && List.length (Atomic.get handler.http) = 0
     then (
       log#important "Nothing more on port %i: closing sockets." port;
       let f in_s =
@@ -1115,13 +1136,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let add_http_handler ~port ~verb ~uri h =
     let exec () =
       let handler = get_handler ~icy:false port in
-      let suri = Lang.string_of_regexp uri in
+      let suri = Lang.descr_of_regexp uri in
       log#important "Adding handler for '%s %s' on port %i"
-        (string_of_verb verb) (Lang.descr_of_regexp uri) port;
-      if Hashtbl.mem handler.http (verb, suri) then
-        log#important "WARNING: Handler already registered, old one removed!"
-      else ();
-      Hashtbl.replace handler.http (verb, suri) (uri, h)
+        (string_of_verb verb) suri port;
+      Atomic.set handler.http ((verb, uri, h) :: Atomic.get handler.http)
     in
     Server.on_start exec
 
@@ -1129,12 +1147,19 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let remove_http_handler ~port ~verb ~uri () =
     let exec () =
       let handler, socks = Hashtbl.find opened_ports port in
-      let suri = Lang.string_of_regexp uri in
-      if Hashtbl.mem handler.http (verb, suri) then (
+      let suri = Lang.descr_of_regexp uri in
+      let handlers, removed =
+        List.partition
+          (fun (v, u, _) -> v = verb && suri = Lang.descr_of_regexp u)
+          (Atomic.get handler.http)
+      in
+      if removed <> [] then
         log#important "Removing handler for '%s %s' on port %i"
           (string_of_verb verb) suri port;
-        Hashtbl.remove handler.http (verb, suri));
-      if Hashtbl.length handler.sources = 0 && Hashtbl.length handler.http = 0
+      Atomic.set handler.http handlers;
+      if
+        Hashtbl.length handler.sources = 0
+        && List.length (Atomic.get handler.http) = 0
       then (
         log#info "Nothing more on port %i: closing sockets." port;
         let f in_s =

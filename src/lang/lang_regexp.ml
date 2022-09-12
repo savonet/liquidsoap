@@ -22,8 +22,13 @@ module Regexp = struct
   let split ?pat ?rex = Regexp.split ?pat ?rex:(get_rex rex)
   let exec ?pat ?rex = Regexp.exec ?pat ?rex:(get_rex rex)
   let test ?pat ?rex = Regexp.test ?pat ?rex:(get_rex rex)
+  let names { Builtins_regexp.regexp } = Regexp.names regexp
   let num_of_subs = Regexp.num_of_subs
   let get_substring = Regexp.get_substring
+
+  let get_named_substring { Builtins_regexp.regexp } name sub =
+    Regexp.get_named_substring regexp name sub
+
   let substitute ?pat ?rex = Regexp.substitute ?pat ?rex:(get_rex rex)
 
   let substitute_first ?pat ?rex =

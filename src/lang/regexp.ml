@@ -10,8 +10,10 @@ module type T = sig
   val split : ?pat:string -> ?rex:t -> string -> string list
   val exec : ?pat:string -> ?rex:t -> string -> sub
   val test : ?pat:string -> ?rex:t -> string -> bool
+  val names : t -> string array
   val num_of_subs : sub -> int
   val get_substring : sub -> int -> string
+  val get_named_substring : t -> string -> sub -> string
 
   val substitute :
     ?pat:string -> ?rex:t -> subst:(string -> string) -> string -> string
@@ -26,7 +28,9 @@ module DummyRegexp = struct
   let split ?pat:_ ?rex:_ _ = failwith "Not implemented"
   let exec ?pat:_ ?rex:_ _ = failwith "Not implemented"
   let test ?pat:_ ?rex:_ _ = failwith "Not implemented"
+  let names _ = failwith "Not implemented"
   let get_substring _ _ = failwith "Not implemented"
+  let get_named_substring _ _ _ = failwith "Not implemented"
   let num_of_subs _ = failwith "Not implemented"
   let substitute ?pat:_ ?rex:_ ~subst:_ _ = failwith "Not implemented"
   let substitute_first ?pat:_ ?rex:_ ~subst:_ _ = failwith "Not implemented"
@@ -56,18 +60,26 @@ let test ?pat ?rex s =
   let module Regexp = (val !regexp_ref : Regexp_t) in
   Regexp.test ?pat ?rex s
 
+let names rex =
+  let module Regexp = (val !regexp_ref : Regexp_t) in
+  Regexp.names rex
+
 let num_of_subs sub =
   let module Regexp = (val !regexp_ref : Regexp_t) in
-  Regexp.num_of_subs (Obj.magic sub)
+  Regexp.num_of_subs sub
 
 let get_substring sub pos =
   let module Regexp = (val !regexp_ref : Regexp_t) in
-  Regexp.get_substring (Obj.magic sub) pos
+  Regexp.get_substring sub pos
+
+let get_named_substring rex name sub =
+  let module Regexp = (val !regexp_ref : Regexp_t) in
+  Regexp.get_named_substring rex name sub
 
 let substitute ?pat ?rex ~subst s =
   let module Regexp = (val !regexp_ref : Regexp_t) in
-  Regexp.substitute ?pat ?rex:(Obj.magic rex) ~subst s
+  Regexp.substitute ?pat ?rex ~subst s
 
 let substitute_first ?pat ?rex ~subst s =
   let module Regexp = (val !regexp_ref : Regexp_t) in
-  Regexp.substitute_first ?pat ?rex:(Obj.magic rex) ~subst s
+  Regexp.substitute_first ?pat ?rex ~subst s

@@ -30,12 +30,29 @@ def f() =
   t(resp.status_code, 200)
   t("#{resp}", "")
 
+  # String response with matches
+  def handler(req, _) =
+    t(req.http_version, "1.1")
+    t(req.method, "GET")
+    t(req.data, "")
+    t(req.query, [("bla","blo"),("gni","gno")])
+    t(req.path, "/path/gno/blo")
+  end
+
+  harbor.http.register("/path/:gni/:bla", port=3456, handler)
+  resp = http.get("http://localhost:3456/path/gno/blo")
+  t(resp.headers, [("transfer-encoding", "chunked")])
+  t(resp.status_message, "OK")
+  t(resp.http_version, "1.1")
+  t(resp.status_code, 200)
+  t("#{resp}", "")
+
   # Full query
   def handler(req, res) =
     t(req.http_version, "1.0")
     t(req.method, "POST")
     t(req.data, "foobarlol")
-    t(req.query, [("gnu", "gno"), ("gni", "gno")])
+    t(req.query, [("bla", "in"), ("foo", "with"), ("gnu", "gno"), ("gni", "gno")])
     t(req.headers, [
       ("Host", "localhost:3456"),
       ("User-Agent", http.user_agent),
@@ -65,7 +82,7 @@ def f() =
     res.content_type("liquidsoap/test")
   end
 
-  harbor.http.register.regexp(r/full/g, method="POST", port=3456, handler)
+  harbor.http.register.regexp(r/(?<foo>[^\/]+)\/full\/(?<bla>[^\/]+)/g, method="POST", port=3456, handler)
   resp = http.post(http_version="1.0", data="foobarlol", headers=[("req","header")], "http://localhost:3456/some/path/with/full/in/it?gni=gno&gnu=gno")
   t(resp.headers, [
     ("content-type", "liquidsoap/test"),

@@ -198,6 +198,22 @@ module Make (Harbor : T) = struct
     in
     (port, verb, handler)
 
+  let regexp_of_uri uri =
+    let uri =
+      try
+        let rex = Pcre.regexp ":[\\w_]+" in
+        let uri =
+          Pcre.substitute ~rex
+            ~subst:(fun s ->
+              let name = String.sub s 1 (String.length s - 1) in
+              [%string "(?<%{name}>[^/]+)"])
+            uri
+        in
+        uri
+      with Not_found -> uri
+    in
+    Lang.Regexp.regexp [%string {|^%{uri}$|}]
+
   let () =
     Lang.add_builtin
       ("harbor." ^ Harbor.name ^ ".register")
@@ -223,8 +239,7 @@ module Make (Harbor : T) = struct
       Lang.unit_t
       (fun p ->
         let port, verb, handler = parse_register_args p in
-        let uri = Lang.to_string (Lang.assoc "" 1 p) in
-        let uri = Lang.Regexp.regexp [%string {|^%{uri}$|}] in
+        let uri = regexp_of_uri (Lang.to_string (Lang.assoc "" 1 p)) in
         Harbor.add_http_handler ~port ~verb ~uri handler;
         Lang.unit);
 

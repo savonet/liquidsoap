@@ -40,9 +40,14 @@ module Regexp = struct
   let get_sub = function Sub s -> s | _ -> assert false
   let split ?pat ?rex s = Pcre.split ?pat ?rex:(get_rex rex) s
   let exec ?pat ?rex s = Sub (Pcre.exec ?pat ?rex:(get_rex rex) s)
+  let names = function Regexp r -> Pcre.names r | _ -> assert false
   let test ?pat ?rex s = Pcre.pmatch ?pat ?rex:(get_rex rex) s
   let num_of_subs sub = Pcre.num_of_subs (get_sub sub)
   let get_substring sub pos = Pcre.get_substring (get_sub sub) pos
+
+  let get_named_substring = function
+    | Regexp r -> fun name sub -> Pcre.get_named_substring r name (get_sub sub)
+    | _ -> assert false
 
   let substitute ?pat ?rex ~subst s =
     Pcre.substitute ?pat ?rex:(get_rex rex) ~subst s
