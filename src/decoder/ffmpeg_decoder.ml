@@ -509,11 +509,18 @@ let get_tags file =
   Tutils.finalize
     ~k:(fun () -> Av.close container)
     (fun () ->
+      (* For now we only add the metadata from the best audio track *)
+      let audio_tags =
+        try
+          let _, s, _ = Av.find_best_audio_stream container in
+          Av.get_metadata s
+        with _ -> []
+      in
       let tags = Av.get_input_metadata container in
       List.map
         (fun (lbl, v) ->
           try (List.assoc lbl tags_substitutions, v) with _ -> (lbl, v))
-        tags)
+        (audio_tags @ tags))
 
 let () = Request.mresolvers#register "FFMPEG" get_tags
 

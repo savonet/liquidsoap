@@ -3,11 +3,13 @@
 
 Changed:
 * Allow sub-second values in `sleep()` (#2610)
+* Allowed many new format for `taglib` (#2605)
 
 Fixed:
 * Stop error loop when opening a listening ssl socket with non-existent certificate. (#2590)
 * Youtube HLS upload for live streams.
 * Fixed `data:...` uri scheme to conform to RFC 2397 (#2491)
+* Fixed multiple issues related to empty `ogg/opus` metadata (#2605)
 
 Internal Change:
 * `ref()` implementation switched to OCaml's `Atomic` to prevent race conditions,
