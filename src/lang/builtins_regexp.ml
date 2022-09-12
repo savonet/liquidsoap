@@ -54,7 +54,7 @@ let escape_regex_descr =
   in
   Lang_string.escape_string escape_regex_formatter
 
-let descr { descr; flags } =
+let string_of_regexp { descr; flags } =
   Printf.sprintf "r/%s/%s" (escape_regex_descr descr)
     (String.concat ""
        (List.sort Stdlib.compare (List.map string_of_regexp_flag flags)))
@@ -63,7 +63,7 @@ module RegExp = Value.MkAbstract (struct
   type content = regexp
 
   let name = "regexp"
-  let descr = descr
+  let descr = string_of_regexp
 
   let to_json _ =
     raise

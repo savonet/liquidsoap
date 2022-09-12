@@ -1117,7 +1117,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let handler = get_handler ~icy:false port in
       let suri = Lang.string_of_regexp uri in
       log#important "Adding handler for '%s %s' on port %i"
-        (string_of_verb verb) suri port;
+        (string_of_verb verb) (Lang.descr_of_regexp uri) port;
       if Hashtbl.mem handler.http (verb, suri) then
         log#important "WARNING: Handler already registered, old one removed!"
       else ();

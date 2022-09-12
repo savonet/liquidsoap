@@ -202,7 +202,10 @@ val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
 (** Return the process' environment. *)
 val environment : unit -> (string * string) list
 
-(** Return a string description of a regexp. *)
+(** Return an unescaped string description of a regexp, i.e. ^foo/bla$ *)
+val descr_of_regexp : regexp -> string
+
+(** Return a string description of a regexp value i.e. r/^foo\/bla$/g *)
 val string_of_regexp : regexp -> string
 
 module Regexp : Regexp.T with type t := regexp
