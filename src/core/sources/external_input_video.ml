@@ -105,7 +105,7 @@ let () =
           ( [],
             Lang.fun_t []
               (Lang.tuple_t [Lang.float_t; Lang.float_t; Lang.float_t]) ),
-          "Length of the buffer (in seconds).",
+          "Length of the buffer (in seconds, for audio, video and both).",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 let x, y, z = s#buffer_length_cmd in
@@ -265,7 +265,7 @@ let () =
           ( [],
             Lang.fun_t []
               (Lang.tuple_t [Lang.float_t; Lang.float_t; Lang.float_t]) ),
-          "Length of the buffer (in seconds).",
+          "Length of the buffer (in seconds, for audio, video and both).",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 let x, y, z = s#buffer_length_cmd in

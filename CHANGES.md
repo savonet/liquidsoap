@@ -28,6 +28,8 @@ Changed:
   new tracks. Use `persist_overrides` to revert to previous behavior
   (`persist_override` for `cross`/`crossfade`) (#2488).
 - Add `sorted` option to `file.ls`.
+- Add `buffer_length` method to `input.external.rawaudio` and
+  `input.external.wav` (#2612).
 
 Fixed:
 

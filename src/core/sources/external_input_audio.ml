@@ -62,6 +62,8 @@ class external_input ~name ~restart ~bufferize ~log_overfull ~restart_on_error
       (* Now we can create the log function *)
       log_ref := self#log#important "%s";
       base#wake_up x
+
+    method buffer_length = Frame.seconds_of_audio (Generator.length abg)
   end
 
 let proto =
@@ -102,6 +104,13 @@ let () =
         ("samplerate", Lang.int_t, Some (Lang.int 44100), Some "Samplerate.");
       ])
     ~return_t
+    ~meth:
+      [
+        ( "buffer_length",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Length of the buffer (in seconds).",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length) );
+      ]
     (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
@@ -120,16 +129,22 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      (new external_input
-         ~restart ~bufferize ~log_overfull ~restart_on_error ~max
-         ~name:"input.external.rawaudio" ~converter command
-        :> Source.source))
+      new external_input
+        ~restart ~bufferize ~log_overfull ~restart_on_error ~max
+        ~name:"input.external.rawaudio" ~converter command)
 
 let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "input.external.wav" ~category:`Input
     ~descr:"Stream WAV data from an external application." proto ~return_t
+    ~meth:
+      [
+        ( "buffer_length",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Length of the buffer (in seconds).",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length) );
+      ]
     (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
@@ -155,7 +170,6 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      (new external_input
-         ~restart ~bufferize ~log_overfull ~read_header ~restart_on_error ~max
-         ~name:"input.external.wav" ~converter command
-        :> Source.source))
+      new external_input
+        ~restart ~bufferize ~log_overfull ~read_header ~restart_on_error ~max
+        ~name:"input.external.wav" ~converter command)
