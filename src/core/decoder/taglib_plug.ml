@@ -28,7 +28,18 @@ let log = Log.make ["decoder"; "taglib"]
 let mime_types =
   Dtools.Conf.list
     ~p:(Decoder.conf_mime_types#plug "taglib")
-    "Mime-types used for decoding metadata using TAGLIB" ~d:["audio/mpeg"]
+    "Mime-types used for decoding metadata using TAGLIB"
+    ~d:
+      [
+        "audio/mpeg";
+        "audio/ogg";
+        "video/ogg";
+        "audio/wav";
+        "audio/wave";
+        "audio/flac";
+        "audio/mp4";
+        "video/mp4";
+      ]
 
 let conf_taglib =
   Dtools.Conf.void ~p:(Decoder.conf_decoder#plug "taglib") "Taglib settings"
@@ -36,7 +47,8 @@ let conf_taglib =
 let file_extensions =
   Dtools.Conf.list
     ~p:(Decoder.conf_file_extensions#plug "taglib")
-    "File extensions used for decoding metadata using TAGLIB" ~d:["mp3"]
+    "File extensions used for decoding metadata using TAGLIB"
+    ~d:["mp3"; "ogg"; "mkv"; "wav"; "flac"; "mp4"; "m4a"]
 
 let int_tags = [("year", Taglib.tag_year); ("tracknumber", Taglib.tag_track)]
 let tag_aliases = [("track", "tracknumber")]
@@ -50,7 +62,10 @@ let get_tags fname =
         (Decoder.test_file ~log ~mimes:mime_types#get
            ~extensions:file_extensions#get fname)
     then raise Invalid_file;
-    let f = Taglib.File.open_file `Autodetect fname in
+    let f =
+      try Taglib.File.open_file `OggOpus fname
+      with _ -> Taglib.File.open_file `Autodetect fname
+    in
     Tutils.finalize
       ~k:(fun () -> Taglib.File.close_file f)
       (fun () ->

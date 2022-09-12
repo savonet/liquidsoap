@@ -108,7 +108,7 @@
     (speex (< 0.4.0))
     (srt (< 0.2.1))
     (ssl (< 0.5.2))
-    (taglib (< 0.3.7))
+    (taglib (< 0.3.10))
     (sdl-liquidsoap (< 2))
     (tsdl-image (< 0.3.2))
     (theora (< 0.4.0))
