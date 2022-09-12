@@ -172,6 +172,8 @@ let process_request s =
         let metadata =
           Request.get_all_metadata req
           |> Hashtbl.to_seq
+          |> Seq.map (fun (k, v) ->
+                 (k, if String.length v > 1024 then "<redacted>" else v))
           |> Seq.map (fun (k, v) -> k ^ " = " ^ v)
           |> List.of_seq |> String.concat "\n"
         in
