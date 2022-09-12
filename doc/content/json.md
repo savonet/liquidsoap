@@ -260,19 +260,8 @@ If a `json5` variable is in scope, you can also simply use `let json.parse[json5
 Exporting JSON values
 ---------------------
 
-Exporting JSON values works similarly to importing, using the `json.stringify` let syntax:
-```liquidsoap
-let json.stringify s = x
-```
-You can also use type annotation to explicitely state what kind of JSON value you want to render:
-```liquidsoap
-let json.stringify s = (x : {foo: int})
-```
-
-The `json.stringify` syntax supports the following arguments:
-
-* `json5`: allow `json5` representations, in particular infinite and `NaN` floating point numbers. Default: `false`
-* `compact`: output a compact value instead of a human-readable value. Default: `false`.
+Exporting JSON values can be done using the `json.stringify` function. Please note that not
+all values are exportable as JSON, in which case the function will raise an exception.
 
 Generic JSON objects
 --------------------
@@ -288,6 +277,6 @@ j.add("baz", 3.14)
 j.add("key_with_methods", "value".{method = 123})
 j.add("record", { a = 1, b = "ert"})
 j.remove("foo")
-let json.stringify s = j
+s = json.stringify(j)
 - s: '{ "record": { "b": "ert", "a": 1 }, "key_with_methods": "value", "bla": "bar", "baz": 3.14 }'
 ```

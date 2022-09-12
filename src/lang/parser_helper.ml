@@ -28,15 +28,14 @@ open Ground
 type arglist = (string * string * Type.t * Term.t option) list
 
 type lexer_let_decoration =
-  [ `None | `Recursive | `Replaces | `Eval | `Json_parse | `Json_stringify ]
+  [ `None | `Recursive | `Replaces | `Eval | `Json_parse ]
 
 type let_decoration =
   [ `None
   | `Recursive
   | `Replaces
   | `Eval
-  | `Json_parse of (string * Term.t) list
-  | `Json_stringify of (string * Term.t) list ]
+  | `Json_parse of (string * Term.t) list ]
 
 type app_list_elem = (string * Term.t) list
 
@@ -65,7 +64,6 @@ type meth_pattern_el = string * Term.pattern option
 
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
-  | `Json_stringify -> `Json_stringify []
   | `Eval -> `Eval
   | `Recursive -> `Recursive
   | `None -> `None
@@ -77,7 +75,6 @@ let string_of_let_decoration = function
   | `Replaces -> "replaces"
   | `Eval -> "eval"
   | `Json_parse _ -> "json.parse"
-  | `Json_stringify _ -> "json.stringify"
 
 let args_of_json_parse ~pos = function
   | [] -> []
@@ -86,19 +83,6 @@ let args_of_json_parse ~pos = function
       raise
         (Parse_error
            (pos, "Invalid argument " ^ lbl ^ " for json.parse let constructor"))
-
-let args_of_json_stringify ~pos args =
-  match List.sort (fun (lbl, _) (lbl', _) -> Stdlib.compare lbl lbl') args with
-    | [] -> []
-    | [("compact", c)] -> [("compact", c)]
-    | [("compact", c); ("json5", j)] -> [("compact", c); ("json5", j)]
-    | [("json5", j)] -> [("json5", j)]
-    | (lbl, _) :: _ ->
-        raise
-          (Parse_error
-             ( pos,
-               "Invalid argument " ^ lbl ^ " for json.stringify let constructor"
-             ))
 
 let gen_args_of ~only ~except ~pos get_args name =
   match Environment.get_builtin name with
@@ -251,41 +235,6 @@ let mk_fun ~pos args body =
   let fv = Term.Vars.union fv (Term.free_vars ~bound body) in
   mk ~pos (Fun (fv, args, body))
 
-let mk_let_json_stringify ~pos (args, pat, def, cast) body =
-  (match List.sort Stdlib.compare (List.map (fun (lbl, _) -> lbl) args) with
-    | [] | ["compact"] | ["json5"] | ["compact"; "json5"] -> ()
-    | _ ->
-        raise
-          (Parse_error
-             (pos, "json.stringify only accepts `compact` and `json5` arguments")));
-  let find_arg name =
-    match List.assoc_opt name args with
-      | Some v -> v
-      | None -> Term.(make (Ground (Ground.Bool false)))
-  in
-  let json5 = find_arg "json5" in
-  let compact = find_arg "compact" in
-  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
-  let tty = Value.RuntimeType.to_term ty in
-  let def = mk ~pos (Cast (def, ty)) in
-  let parser = mk ~pos (Var "_internal_json_renderer_") in
-  let def =
-    mk ~pos
-      (App
-         ( parser,
-           [("json5", json5); ("compact", compact); ("type", tty); ("", def)] ))
-  in
-  mk ~pos
-    (Let
-       {
-         doc = (Doc.none (), [], []);
-         replace = false;
-         pat;
-         gen = [];
-         def;
-         body;
-       })
-
 let mk_let_json_parse ~pos (args, pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
@@ -353,8 +302,6 @@ let mk_let ~pos (doc, decoration, pat, arglist, def, cast) body =
     | None, `Eval -> mk_eval ~pos (doc, pat, def, body, cast)
     | None, `Json_parse args ->
         mk_let_json_parse ~pos (args, pat, def, cast) body
-    | None, `Json_stringify args ->
-        mk_let_json_stringify ~pos (args, pat, def, cast) body
     | Some _, v ->
         raise
           (Parse_error

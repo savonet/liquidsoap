@@ -40,9 +40,6 @@ def f() =
   let evalf = ()
   x = evalf
 
-  let json.stringifyf = ()
-  x = json.stringifyf
-
   test.pass()
 end
 

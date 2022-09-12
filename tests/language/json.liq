@@ -33,63 +33,23 @@ def test_parse_error(name, f, msg) =
 end
 
 def f() =
-  let json.stringify s = ()
-  t(s, '[]')
+  t(json.stringify(()), '[]')
+  t(json.stringify("aa'bb"), "\"aa'bb\"")
+  t(json.stringify("a"), '"a"')
+  t(json.stringify("©"), '"©"')
+  t(json.stringify('"'), '"\\""')
+  t(json.stringify('\\'), '"\\\\"')
 
-  let json.stringify s = "aa'bb"
-  t(s, "\"aa'bb\"")
-
-  let json.stringify s = "a"
-  t(s, '"a"')
-
-  let json.stringify s = "©"
-  t(s, '"©"')
-
-  let json.stringify s = '"'
-  t(s, '"\\""')
-
-  let json.stringify s = '\\'
-  t(s, '"\\\\"')
-
-  let json.stringify s = (infinity:float?)
-  t(s, 'null')
-
-  let json.stringify s = (0.-infinity:float?)
-  t(s, 'null')
-
-  let json.stringify s = (nan:float?)
-  t(s, 'null')
-
-  let json.stringify s = null(infinity)
-  t(s, 'null')
-
-  let json.stringify s = null(0.-infinity)
-  t(s, 'null')
-
-  let json.stringify s = null(nan)
-  t(s, 'null')
-
-  let json.stringify[json5=true] s = infinity
-  t(s, 'Infinity')
-
-  let json.stringify[json5=true] s = (0.-infinity)
-  t(s, '-Infinity')
-
-  let json.stringify[json5=true] s = nan
-  t(s, 'NaN')
-
-  let json.stringify s = ([("foo",123), ("bar", 456)]:[(string * int)] as json.object)
-  t(s, "{ \"foo\": 123, \"bar\": 456 }")
-
-  let json.stringify s = ({foo = 123}:{ "✨foo✨" as foo: int})
-  t(s, "{ \"✨foo✨\": 123 }")
+  t(json.stringify(json5=true, infinity), 'Infinity')
+  t(json.stringify(json5=true, (0.-infinity)), '-Infinity')
+  t(json.stringify(json5=true,nan), 'NaN')
 
   let b = json()
   b.add("b", 1)
-  let json.stringify s = {
+  s = json.stringify({
      a = null({a=1}),
      b = null(b)
-  }
+  })
   t(s, "{ \"b\": { \"b\": 1 }, \"a\": { \"a\": 1 } }")
 
   data = "123"
@@ -275,7 +235,7 @@ def f() =
   j.add("key_with_methods", "value".{method = 123})
   j.add("record", { a = 1, b = "ert"})
   j.remove("foo")
-  let json.stringify j = j
+  j = json.stringify(j)
   t(j, '{
   "record": { "b": "ert", "a": 1 },
   "key_with_methods": "value",
@@ -286,7 +246,7 @@ def f() =
   e = ref(null())
   def f(data)
     try
-      let json.stringify d = data
+      d = json.stringify(data)
       ignore(d)
     catch err do
       e := err

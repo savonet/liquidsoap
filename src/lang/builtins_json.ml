@@ -60,73 +60,6 @@ let nullable_deref ty =
   let ty = Type.deref ty in
   match ty.Type.descr with Type.Nullable ty -> (true, ty) | _ -> (false, ty)
 
-let rec json_of_typed_value ~ty v : Json.t =
-  let nullable, _ty = nullable_deref ty in
-  try
-    match (v.Value.value, _ty.Type.descr) with
-      | Value.Null, Type.Nullable _ -> `Null
-      | Value.Ground g, Type.Custom { Type.typ }
-        when Term.Ground.to_type g = typ ->
-          Term.Ground.to_json g
-      | Value.List l, Type.(List { t = ty; json_repr = `Tuple }) ->
-          `Tuple (List.map (json_of_typed_value ~ty) l)
-      | ( Value.List l,
-          Type.(
-            List
-              {
-                t =
-                  {
-                    descr =
-                      Tuple
-                        [{ descr = Custom { typ = Ground.String.Type } }; ty];
-                  };
-                json_repr = `Object;
-              }) ) ->
-          `Assoc
-            (List.map
-               (fun v ->
-                 let lbl, v = Lang.to_product v in
-                 (Lang.to_string lbl, json_of_typed_value ~ty v))
-               l)
-      | Value.Tuple l, Type.Tuple t ->
-          `Tuple
-            (List.mapi
-               (fun idx ty -> json_of_typed_value ~ty (List.nth l idx))
-               t)
-      | Value.Meth _, _ -> (
-          let tm, ty = Type.split_meths _ty in
-          let m, v = Value.split_meths v in
-          match ty.Type.descr with
-            | Type.Var _ | Type.Tuple [] ->
-                Typing.(ty <: Lang.unit_t);
-                `Assoc
-                  (List.mapi
-                     (fun idx Type.{ meth; json_name; scheme = _, ty } ->
-                       let _, v = List.nth m idx in
-                       let lbl = Option.value ~default:meth json_name in
-                       (lbl, json_of_typed_value ~ty v))
-                     tm)
-            | _ -> json_of_typed_value ~ty v)
-      | _, Type.Var _ ->
-          let j = json_of_value v in
-          Typing.(_ty <: type_of_json j);
-          j
-      | _ -> assert false
-  with
-    | _ when nullable -> `Null
-    | _ ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "json";
-                msg =
-                  Printf.sprintf
-                    "Value %s of type %s cannot be represented as json"
-                    (Value.to_string v) (Type.to_string ty);
-                pos = (match v.Value.pos with Some p -> [p] | None -> []);
-              })
-
 type json_ellipsis_base =
   [ `Assoc of (string * string option * json_ellipsis) list
   | `List of json_ellipsis
@@ -372,10 +305,9 @@ let () =
       Lang.meth (JsonValue.to_value v) meth)
 
 let () =
-  Lang.add_builtin "_internal_json_renderer_" ~category:`String ~flags:[`Hidden]
-    ~descr:"Internal JSON renderer."
+  Lang.add_builtin "json.stringify" ~category:`String
+    ~descr:"Convert a value to JSON when possible."
     [
-      ("type", Value.RuntimeType.t, None, Some "Runtime type.");
       ( "compact",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -389,20 +321,9 @@ let () =
     Lang.string_t
     (fun p ->
       let v = List.assoc "" p in
-      let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
       let compact = Lang.to_bool (List.assoc "compact" p) in
       let json5 = Lang.to_bool (List.assoc "json5" p) in
-      let nullable, ty = nullable_deref ty in
-      let v =
-        try
-          let json =
-            match ty.Type.descr with
-              | Type.Var _ -> json_of_value v
-              | _ -> json_of_typed_value ~ty v
-          in
-          Json.to_string ~compact ~json5 json
-        with _ when nullable -> "null"
-      in
+      let v = Json.to_string ~compact ~json5 (json_of_value v) in
       Lang.string v)
 
 let () =

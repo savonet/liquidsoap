@@ -248,12 +248,12 @@ server.register(usage="set <name> = <value>", description="Set the value of a va
 # @category Interactive
 # @param fname Name of the file.
 def interactive.save(fname)
-  let json.stringify data = {
+  data = json.stringify({
     float = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_float),
     int = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_int),
     bool = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_bool),
     string = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_string)
-  }
+  })
 
   file.write(data=data, fname)
 end
