@@ -1139,7 +1139,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let suri = Lang.descr_of_regexp uri in
       log#important "Adding handler for '%s %s' on port %i"
         (string_of_verb verb) suri port;
-      Atomic.set handler.http ((verb, uri, h) :: Atomic.get handler.http)
+      Atomic.set handler.http (Atomic.get handler.http @ [(verb, uri, h)])
     in
     Server.on_start exec
 

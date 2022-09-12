@@ -1,4 +1,35 @@
-# Set of HTTP utils.
+# @flag hidden
+def harbor.http.regexp_of_path(path) =
+  def named_capture(s) =
+    name = string.sub(s, start=1, length=string.length(s)-1)
+    "(?<#{name}>[^/]+)"
+  end
+  regexp(r/:[\w_]+/g.replace(named_capture, path))
+end
+
+let harbor.http.register.regexp = harbor.http.register
+
+# Register a HTTP handler on the harbor. The handler function
+# receives as argument the full requested information and returns the
+# answer sent to the client, including HTTP headers. This function
+# registers exact path matches, i.e. `"/users"`, `"/index.hml"`
+# as well as fragment matches, i.e. `"/user/:id"`, `"/users/:id/collabs/:cid"`,
+# etc. If you need more advanced matching, use `harbor.http.register.regexp`
+# to match regular expressions. Paths are resolved in the order they are declared
+# and can override default harbor paths such as metadata handlers.
+# The handler receives the request details as a record and a response
+# handler. Matched fragments are reported as part of the response `query` parameter.
+# The response handler can be used to fill up details about the http response,
+# which will be converted into a plain HTTP response string after the handler returns.
+# The request also contains the low-level socket associated with the query which the
+# caller can use to implement their own custom response, if needed.
+# In this case, one should set `custom_response` to `true` on the
+# response handler.
+# @category Liquidsoap
+# @argsof harbor.http.register
+def replaces harbor.http.register(%argsof(harbor.http.register), path, handler) =
+  harbor.http.register.regexp(%argsof(harbor.http.register), harbor.http.regexp_of_path(path), handler)
+end
 
 let harbor.http.static = ()
 
@@ -102,6 +133,30 @@ def replaces harbor.http.static(~port=8000,~path="/",~browse=false,~content_type
 end
 
 %ifdef harbor.https.register
+let harbor.https.register.regexp = harbor.https.register
+
+# Register a HTTPS handler on the harbor. The handler function
+# receives as argument the full requested information and returns the
+# answer sent to the client, including HTTP headers. This function
+# registers exact path matches, i.e. `"/users"`, `"/index.hml"`
+# as well as fragment matches, i.e. `"/user/:id"`, `"/users/:id/collabs/:cid"`,
+# etc. If you need more advanced matching, use `harbor.http.register.regexp`
+# to match regular expressions. Paths are resolved in the order they are declared
+# and can override default harbor paths such as metadata handlers.
+# The handler receives the request details as a record and a response
+# handler. Matched fragments are reported as part of the response `query` parameter.
+# The response handler can be used to fill up details about the http response,
+# which will be converted into a plain HTTP response string after the handler returns.
+# The request also contains the low-level socket associated with the query which the
+# caller can use to implement their own custom response, if needed.
+# In this case, one should set `custom_response` to `true` on the
+# response handler.
+# @category Liquidsoap
+# @argsof harbor.https.register
+def replaces harbor.https.register(%argsof(harbor.https.register), path, handler) =
+  harbor.https.register.regexp(%argsof(harbor.https.register), harbor.http.regexp_of_path(path), handler)
+end
+
 # Serve a static path.
 # @category Interaction
 # @param ~port Port for incoming harbor (https) connections.

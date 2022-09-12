@@ -70,6 +70,7 @@ module Make (Harbor : T) = struct
         Some
           "Accepted method (\"GET\" / \"POST\" / \"PUT\" / \"DELETE\" / \
            \"HEAD\" / \"OPTIONS\")." );
+      ("", Lang.regexp_t, None, Some "path to to serve.");
       ( "",
         Lang.fun_t [(false, "", request_t); (false, "", response_t)] Lang.unit_t,
         None,
@@ -79,6 +80,7 @@ module Make (Harbor : T) = struct
   let parse_register_args p =
     let port = Lang.to_int (List.assoc "port" p) in
     let verb = Harbor.verb_of_string (Lang.to_string (List.assoc "method" p)) in
+    let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
     let f = Lang.assoc "" 2 p in
     let handler ~protocol ~meth ~data ~headers ~query ~socket path =
       let meth = Harbor.string_of_verb meth in
@@ -196,23 +198,7 @@ module Make (Harbor : T) = struct
               data = `String_getter (Atomic.get resp_data);
             })
     in
-    (port, verb, handler)
-
-  let regexp_of_uri uri =
-    let uri =
-      try
-        let rex = Pcre.regexp ":[\\w_]+" in
-        let uri =
-          Pcre.substitute ~rex
-            ~subst:(fun s ->
-              let name = String.sub s 1 (String.length s - 1) in
-              [%string "(?<%{name}>[^/]+)"])
-            uri
-        in
-        uri
-      with Not_found -> uri
-    in
-    Lang.Regexp.regexp [%string {|^%{uri}$|}]
+    (uri, port, verb, handler)
 
   let () =
     Lang.add_builtin
@@ -220,51 +206,26 @@ module Make (Harbor : T) = struct
       ~category:`Liquidsoap
       ~descr:
         [%string
-          "Register a %{name_up} handler on the harbor. The handler function \
-           receives as argument the full requested information and returns the \
-           answer sent to the client, including HTTP headers. This function \
-           registers exact path matches, i.e. `\"/users\"`, `\"/index.hml\"`, \
-           etc. Use `harbor.%{Harbor.name}.register.regexp` to match regular \
-           expressions. Paths are resolved in the order that they are declared \
-           and can override default harbor paths such as metadata handlers. \
-           The handler receives the request details as a record and a response \
-           handler. The response handler can be used to fill up details about \
-           the http response, which will be converted into a plain HTTP \
-           response string after the handler returns. The request also \
-           contains the low-level socket associated with the query which the \
-           caller can use to implement their own custom response, if needed. \
-           In this case, one should set `custom_response` to `true` on the \
+          "Register a %{name_up} handler on the harbor. The handler function\n\
+           receives as argument the full requested information and returns the\n\
+           answer sent to the client, including HTTP headers.\n\
+           Paths are resolved in the order they are declared\n\
+           and can override default harbor paths such as metadata handlers.\n\
+           The handler receives the request details as a record and a response\n\
+           handler. Regex named matches are reported as part of the response \
+           `query` parameter.\n\
+           The response handler can be used to fill up details about the http \
+           response,\n\
+           which will be converted into a plain HTTP response string after the \
+           handler returns.\n\
+           The request also contains the low-level socket associated with the \
+           query which the\n\
+           caller can use to implement their own custom response, if needed.\n\
+           In this case, one should set `custom_response` to `true` on the\n\
            response handler."]
-      (("", Lang.string_t, None, Some "path to serve.") :: register_args)
-      Lang.unit_t
+      register_args Lang.unit_t
       (fun p ->
-        let port, verb, handler = parse_register_args p in
-        let uri = regexp_of_uri (Lang.to_string (Lang.assoc "" 1 p)) in
-        Harbor.add_http_handler ~port ~verb ~uri handler;
-        Lang.unit);
-
-    Lang.add_builtin
-      ("harbor." ^ Harbor.name ^ ".register.regexp")
-      ~category:`Liquidsoap
-      ~descr:
-        [%string
-          "Register a %{name_up} handler on the harbor. The handler function \
-           receives as argument the full requested information and returns the \
-           answer sent to the client, including HTTP headers. This function \
-           registers regular expressions that are matched against the \
-           request's path. The handler receives the request details as a \
-           record and a response handler. The response handler can be used to \
-           fill up details about the http response, which will be converted \
-           into a plain HTTP response string after the handler returns. The \
-           request also contains the low-level socket associated with the \
-           query which the caller can use to implement their own custom \
-           response, if needed. In this case, one should set `custom_response` \
-           to `true` on the response handler."]
-      (("", Lang.regexp_t, None, Some "path to to serve.") :: register_args)
-      Lang.unit_t
-      (fun p ->
-        let port, verb, handler = parse_register_args p in
-        let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
+        let uri, port, verb, handler = parse_register_args p in
         Harbor.add_http_handler ~port ~verb ~uri handler;
         Lang.unit)
 

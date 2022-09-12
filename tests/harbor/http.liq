@@ -6,13 +6,6 @@ def t(v, v') =
 end
 
 def f() =
-  # Make sure last declared endpoint is executed first
-  def handler(_, _) =
-    test.fail()
-  end
-
-  harbor.http.register.regexp(r/default/g, port=3456, handler)
-
   # Default response
   def handler(req, _) =
     t(req.http_version, "1.1")
@@ -29,6 +22,12 @@ def f() =
   t(resp.http_version, "1.1")
   t(resp.status_code, 200)
   t("#{resp}", "")
+
+  # Endpoint are executed in the order they are declared
+  def handler(_, _) =
+    test.fail()
+  end
+  harbor.http.register.regexp(r/default/g, port=3456, handler)
 
   # String response with matches
   def handler(req, _) =

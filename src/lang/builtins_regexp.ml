@@ -108,18 +108,32 @@ let exec_fun ~flags:_ regexp =
       let string = Lang_core.to_string (List.assoc "" p) in
       try
         let sub = Regexp.exec ~rex:regexp string in
+        let names = Regexp.names regexp in
         let n = Regexp.num_of_subs sub in
         let rec extract acc i =
           if i < n then (
-            try extract ((i, Regexp.get_substring sub i) :: acc) (i + 1)
+            try
+              extract
+                ((string_of_int i, Regexp.get_substring sub i) :: acc)
+                (i + 1)
             with Not_found -> extract acc (i + 1))
           else List.rev acc
         in
         let l = extract [] 1 in
+        let rec extract_named acc = function
+          | [] -> acc
+          | name :: names -> (
+              try
+                extract_named
+                  ((name, Regexp.get_named_substring regexp name sub) :: acc)
+                  names
+              with Not_found -> extract_named acc names)
+        in
+        let l = extract_named l (Array.to_list names) in
         Lang_core.list
           (List.map
              (fun (x, y) ->
-               Lang_core.product (Lang_core.int x) (Lang_core.string y))
+               Lang_core.product (Lang_core.string x) (Lang_core.string y))
              l)
       with Not_found -> Lang_core.list [])
 
