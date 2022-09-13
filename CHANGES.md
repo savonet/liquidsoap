@@ -10,6 +10,7 @@ Fixed:
 * Youtube HLS upload for live streams.
 * Fixed `data:...` uri scheme to conform to RFC 2397 (#2491)
 * Fixed multiple issues related to empty `ogg/opus` metadata (#2605)
+* Ensure that `video.add_text` fails when the source does (#2609)
 
 Internal Change:
 * `ref()` implementation switched to OCaml's `Atomic` to prevent race conditions,
