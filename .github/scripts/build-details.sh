@@ -14,7 +14,7 @@ echo "Branch is release branch"
 IS_RELEASE=true
 
 echo "Building on all architectures"
-BUILD_OS='["debian_testing"]'
+BUILD_OS='["debian_bullseye"]'
 BUILD_PLATFORM='["amd64"]'
 BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest"}]'
 
