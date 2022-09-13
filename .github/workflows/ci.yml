@@ -96,10 +96,9 @@ jobs:
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}"
-          ls -l ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
@@ -156,7 +155,7 @@ jobs:
           echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64 | xargs basename)"
       - name: Upload alpine amd64 package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.apk_amd64.outputs.name }}
           path: ${{ steps.apk_amd64.outputs.path }}
@@ -169,7 +168,7 @@ jobs:
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64 | xargs basename)"
       - name: Upload alpine arm64 package
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.apk_arm64.outputs.name }}
           path: ${{ steps.apk_arm64.outputs.path }}
@@ -182,7 +181,7 @@ jobs:
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7 | xargs basename)"
       - name: Upload alpine armhf package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.apk_armhf.outputs.name }}
           path: ${{ steps.apk_armhf.outputs.path }}
@@ -195,7 +194,7 @@ jobs:
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf | xargs basename)"
       - name: Upload debian armhf package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.deb_armhf.outputs.name }}
           path: ${{ steps.deb_armhf.outputs.path }}
@@ -207,7 +206,7 @@ jobs:
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf | xargs basename)"
       - name: Upload debian armhf debug package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.deb_armhf_dbg.outputs.name }}
           path: ${{ steps.deb_armhf_dbg.outputs.path }}
