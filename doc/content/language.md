@@ -210,9 +210,22 @@ Regular expression flags are:
 Regular expressions have the following methods:
 
 * `replace(fn, s)`: replace matched substrings of `s` using function `fn`. If the `g` flag is not passed, only the first match is replaced otherwise, all matches are replaced
-* `exec(s)`: execute the regular expression and return a list matches of the form: `[(<match index>, <match>), ..]`
 * `split(s)`: split the given string on all substrings matching the regular expression.
 * `test(s)`: returns `true` if the given string matches the regular expression.
+* `exec(s)`: execute the regular expression and return a of list matches of the form: `[(<match index>, <match>), ..]`. Named matches are also supported and returned as property `groups` of type `[string * string]`:
+```liquidsoap
+r/(foo)(?<gno>gni)?/g.exec("foogni")
+- : [int * string].{groups : [string * string]} = 
+[
+    (2, "gni"),
+    (1, "foo"),
+    (0, "foogni")
+].{
+    groups = [
+      ("gno", "gni")
+    ]
+}
+```
 
 ### Booleans
 
