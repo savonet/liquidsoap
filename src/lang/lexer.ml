@@ -50,8 +50,9 @@ end
 
 let parse_time t =
   let g sub n =
-    Option.map
-      (fun s -> int_of_string (String.sub s 0 (String.length s - 1)))
+    (function
+      | None | Some "" -> None
+      | Some s -> Some (int_of_string (String.sub s 0 (String.length s - 1))))
       (List.nth sub.Regexp.matches n)
   in
   try
