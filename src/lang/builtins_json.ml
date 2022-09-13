@@ -306,7 +306,9 @@ let () =
 
 let () =
   Lang.add_builtin "json.stringify" ~category:`String
-    ~descr:"Convert a value to JSON when possible."
+    ~descr:
+      "Convert a value to JSON. If the value cannot be represented as JSON \
+       (for instance a function), a `error.json` exception is raised."
     [
       ( "compact",
         Lang.bool_t,

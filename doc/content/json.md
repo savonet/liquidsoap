@@ -260,8 +260,14 @@ If a `json5` variable is in scope, you can also simply use `let json.parse[json5
 Exporting JSON values
 ---------------------
 
-Exporting JSON values can be done using the `json.stringify` function. Please note that not
-all values are exportable as JSON, in which case the function will raise an exception.
+Exporting JSON values can be done using the `json.stringify` function:
+
+```liquidsoap
+r = {artist = "Bla", title = "Blo"}
+print(json.stringify(r))
+```
+
+Please note that not all values are exportable as JSON, for instance function. In such cases the function will raise an `error.json` exception.
 
 Generic JSON objects
 --------------------
