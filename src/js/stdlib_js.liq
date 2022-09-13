@@ -6,5 +6,4 @@
 %include "getter.liq"
 %include "predicate.liq"
 %include "string.liq"
-%include "json.liq"
 %include "utils.liq"
