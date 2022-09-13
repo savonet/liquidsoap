@@ -104,9 +104,9 @@ def enable_external_mpc_decoder() =
       get_channels(file)
     else
       # Otherwise test file extension
-      ret = r/\.(.+)$/.exec(file)
+      ret = r/\.(?<ext>.+)$/.exec(file)
       if list.length(ret) != 0 then
-        ext = ret[1]
+        ext = ret.groups["ext"]
         if list.mem(ext,mpc_filexts) then
           get_channels(file)
         else
@@ -238,9 +238,9 @@ def enable_external_faad_decoder() =
       true
     else
       # Otherwise test file extension
-      ret = r/\.(.+)$/.exec(file)
+      ret = r/\.(?<ext>.+)$/.exec(file)
       if list.length(ret) != 0 then
-        ext = ret[1]
+        ext = ret.groups["ext"]
         list.mem(ext,aac_filexts)
       else
         false

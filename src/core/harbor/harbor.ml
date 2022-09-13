@@ -804,26 +804,18 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let handler, _ = find_handler port in
     let f (verb, rex, handler) =
       if (verb :> verb) = hmethod && Lang.Regexp.test ~rex base_uri then (
-        let subs = Lang.Regexp.exec ~rex base_uri in
-        let matches =
-          Array.(
-            to_list
-              (map
-                 (fun name ->
-                   (name, Lang.Regexp.get_named_substring rex name subs))
-                 (Lang.Regexp.names rex)))
-        in
+        let { Lang.Regexp.groups } = Lang.Regexp.exec ~rex base_uri in
         log#info "Found handler '%s %s' on port %d%s." smethod
           (Lang.descr_of_regexp rex) port
-          (match matches with
+          (match groups with
             | [] -> ""
-            | matches ->
+            | groups ->
                 Printf.sprintf " with matches: %s"
                   (String.concat ", "
                      (List.map
                         (fun (lbl, v) -> [%string "%{lbl}: %{v}"])
-                        matches)));
-        raise (Handled (verb, matches, handler)))
+                        groups)));
+        raise (Handled (verb, groups, handler)))
       else ()
     in
     try
@@ -839,7 +831,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         | s when is_admin s -> ans_400 "unrecognised command"
         | _ -> ans_404 ()
     with
-      | Handled (meth, matches, handler) ->
+      | Handled (meth, groups, handler) ->
           let protocol =
             match hprotocol with
               | `Http_10 -> "1.0"
@@ -847,8 +839,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               | _ -> assert false
           in
           let query =
-            matches
-            @ Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) args []
+            groups @ Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) args []
           in
           Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
             (handler ~protocol ~meth ~data ~headers

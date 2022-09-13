@@ -99,42 +99,48 @@ let split_fun ~flags:_ rex =
       Lang_core.list (List.map Lang_core.string (Regexp.split ~rex string)))
 
 let exec_t =
+  let matches_t =
+    Lang_core.list_t (Lang_core.product_t Lang_core.int_t Lang_core.string_t)
+  in
   Lang_core.fun_t
     [(false, "", Lang_core.string_t)]
-    (Lang_core.list_t (Lang_core.product_t Lang_core.int_t Lang_core.string_t))
+    (Lang_core.method_t matches_t
+       [
+         ( "groups",
+           ( [],
+             Lang_core.list_t
+               (Lang_core.product_t Lang_core.string_t Lang_core.string_t) ),
+           "Named captures" );
+       ])
 
 let exec_fun ~flags:_ regexp =
   Lang_core.val_fun [("", "", None)] (fun p ->
       let string = Lang_core.to_string (List.assoc "" p) in
       try
-        let sub = Regexp.exec ~rex:regexp string in
-        let names = Regexp.names regexp in
-        let n = Regexp.num_of_subs sub in
-        let rec extract acc i =
-          if i < n then (
-            try
-              extract
-                ((string_of_int i, Regexp.get_substring sub i) :: acc)
-                (i + 1)
-            with Not_found -> extract acc (i + 1))
-          else List.rev acc
+        let { Regexp.matches; groups } = Regexp.exec ~rex:regexp string in
+        let matches =
+          Lang_core.list
+            (List.fold_left
+               (fun matches (pos, value) ->
+                 match value with
+                   | None -> matches
+                   | Some value ->
+                       Lang_core.product (Lang_core.int pos)
+                         (Lang_core.string value)
+                       :: matches)
+               []
+               (List.mapi (fun pos v -> (pos, v)) matches))
         in
-        let l = extract [] 1 in
-        let rec extract_named acc = function
-          | [] -> acc
-          | name :: names -> (
-              try
-                extract_named
-                  ((name, Regexp.get_named_substring regexp name sub) :: acc)
-                  names
-              with Not_found -> extract_named acc names)
-        in
-        let l = extract_named l (Array.to_list names) in
-        Lang_core.list
-          (List.map
-             (fun (x, y) ->
-               Lang_core.product (Lang_core.string x) (Lang_core.string y))
-             l)
+        Lang_core.meth matches
+          [
+            ( "groups",
+              Lang_core.list
+                (List.map
+                   (fun (name, value) ->
+                     Lang_core.product (Lang_core.string name)
+                       (Lang_core.string value))
+                   groups) );
+          ]
       with Not_found -> Lang_core.list [])
 
 let replace_t =

@@ -328,8 +328,8 @@ module Version = struct
   let of_string s : t =
     let rex = Regexp.regexp "([\\.\\d]+)([^\\.]+)?" in
     let sub = Regexp.exec ~rex s in
-    let num = Regexp.get_substring sub 1 in
-    let str = try Regexp.get_substring sub 2 with Not_found -> "" in
+    let num = Option.get (List.nth sub.Regexp.matches 1) in
+    let str = Option.value ~default:"" (List.nth sub.Regexp.matches 2) in
     let num = String.split_on_char '.' num |> List.map int_of_string in
     (num, str)
 

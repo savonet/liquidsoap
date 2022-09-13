@@ -2,10 +2,13 @@ open Js_of_ocaml
 open Liquidsoap_lang.Regexp
 
 type t += Regexp of Js.regExp Js.t
-type sub += Sub of Js.match_result Js.t
+
+type sub = Liquidsoap_lang.Regexp.sub = {
+  matches : string option list;
+  groups : (string * string) list;
+}
 
 let get_regexp = function Regexp r -> r | _ -> assert false
-let get_sub = function Sub s -> s | _ -> assert false
 let string_of_flag = function `i -> "i" | `g -> "g" | `s -> "s" | `m -> "m"
 
 let flags_of_flags flags =
@@ -28,23 +31,40 @@ let split ?pat ?rex s =
   let split = Js.str_array split in
   Array.to_list (Array.map Js.to_string (Js.to_array split))
 
+class type match_result =
+  object
+    inherit Js.match_result
+    method groups : Js.Unsafe.any Js.optdef Js.readonly_prop
+  end
+
 let exec ?pat ?rex s =
   let rex = pat_of_rex rex pat in
   let s = Js.string s in
   let ret =
     Js.Opt.case (rex##exec s) (fun () -> raise Not_found) (fun x -> x)
   in
-  Sub (Js.match_result ret)
+  let sub : match_result Js.t = Js.Unsafe.coerce (Js.match_result ret) in
+  let matches =
+    List.init sub##.length (fun pos ->
+        Option.map Js.to_string (Js.Optdef.to_option (Js.array_get sub pos)))
+  in
+  let groups =
+    Js.Optdef.case sub##.groups
+      (fun () -> [])
+      (fun groups ->
+        let names = Js.to_array (Js.object_keys groups) in
+        Array.fold_left
+          (fun cur key ->
+            Js.Optdef.case (Js.Unsafe.get groups key)
+              (fun () -> cur)
+              (fun value -> (Js.to_string key, Js.to_string value) :: cur))
+          [] names)
+  in
+  { matches; groups }
 
 let test ?pat ?rex s =
   let rex = pat_of_rex rex pat in
   Js.to_bool (rex##test (Js.string s))
-
-let num_of_subs sub = (get_sub sub)##.length
-
-let get_substring sub pos =
-  Js.to_string
-    (Option.get (Js.Optdef.to_option (Js.array_get (get_sub sub) pos)))
 
 let substitute ?pat ?rex ~subst s =
   let rex = pat_of_rex rex pat in

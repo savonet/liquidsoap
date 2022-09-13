@@ -189,12 +189,12 @@ end
 # i.e. `"data:<mime>[;base64],<data>"`.
 # @category String
 def string.data_uri.decode(s) =
-  captured = r/^data:([\/\w]+)(;base64)?,(.+)$/.exec(s)
-  if list.assoc.mem(1, captured) and list.assoc.mem(3, captured) then
-    mime = list.assoc(1, captured)
-    data = list.assoc(3, captured)
+  captured = r/^data:(?<mime>[\/\w]+)(?<base64>;base64)?,(?<data>.+)$/.exec(s).groups
+  if list.assoc.mem("mime", captured) and list.assoc.mem("data", captured) then
+    mime = list.assoc("mime", captured)
+    data = list.assoc("data", captured)
     data =
-      if list.assoc.mem(2, captured) then
+      if list.assoc.mem("base64", captured) then
         string.base64.decode(data)
       else
         data

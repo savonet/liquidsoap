@@ -27,10 +27,10 @@ end
 # @category String
 # @param uri Url to split.
 def url.split(uri) =
-  ret = r/([^\?]*)\?(.*)/.exec(uri)
-  args = ret[2]
+  ret = r/(?<uri>[^\?]*)\?(?<args>.*)/.exec(uri).groups
+  args = ret["args"]
   if args != "" then
-    (url.decode(ret[1]),url.split_args(ret[2]))
+    (url.decode(ret["uri"]),url.split_args(args))
   else
     (url.decode(uri),[])
   end

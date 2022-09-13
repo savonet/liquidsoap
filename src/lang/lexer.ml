@@ -50,9 +50,9 @@ end
 
 let parse_time t =
   let g sub n =
-    let s = Regexp.get_substring sub n in
-    if s = "" then None
-    else Some (int_of_string (String.sub s 0 (String.length s - 1)))
+    Option.map
+      (fun s -> int_of_string (String.sub s 0 (String.length s - 1)))
+      (List.nth sub.Regexp.matches n)
   in
   try
     let pat = "^((?:\\d+w)?)((?:\\d+h)?)((?:\\d+m)?)((?:\\d+s)?)$" in
@@ -63,7 +63,12 @@ let parse_time t =
     let pat = "^((?:\\d+w)?)(\\d+h)(\\d+)$" in
     let sub = Regexp.exec ~pat t in
     let g = g sub in
-    [g 1; g 2; Some (int_of_string (Regexp.get_substring sub 3)); None]
+    [
+      g 1;
+      g 2;
+      Some (int_of_string (Option.get (List.nth sub.Regexp.matches 3)));
+      None;
+    ]
 
 let skipped = [%sedlex.regexp? Sub (white_space, '\n') | '\r' | '\t']
 let decimal_digit = [%sedlex.regexp? '0' .. '9']
