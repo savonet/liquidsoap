@@ -298,9 +298,11 @@ def add_text_builder(f) =
         if m != "" then tref := m end
       end
     end
+    available = s.is_ready
     s = null.defined(metadata) ? source.on_metadata(s, on_metadata) : s
     t = f(id=id, duration=duration, color=color, font=font, size=size, text)
     t = video.translate(x=x, y=y, t)
+    t = source.available(t, available) # ensure that we fail when s fails
     add(normalize=false, [(s:source),t])
   end
   at
