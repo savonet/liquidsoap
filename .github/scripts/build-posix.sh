@@ -44,6 +44,10 @@ opam update
 # See: https://github.com/whitequark/ocaml-inotify/pull/20
 opam install -y ocurl uri inotify.2.3
 
+git clone https://github.com/savonet/ocaml-posix.git
+cd ocaml-posix
+opam install -y .
+
 cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
