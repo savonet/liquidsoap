@@ -96,6 +96,7 @@ jobs:
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}"
+          ls -l /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
         uses: actions/upload-artifact@v3
