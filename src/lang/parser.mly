@@ -461,7 +461,6 @@ _let:
   | LETLBRA let_opt RBRA {
       match $1 with
         | `Json_parse     -> `Json_parse (Parser_helper.args_of_json_parse ~pos:$loc $2)
-        | `Json_stringify -> `Json_stringify (Parser_helper.args_of_json_stringify ~pos:$loc $2)
         | _ -> raise (Parse_error ($loc, "Invalid let constructor")) }
 
 binding:

@@ -30,6 +30,7 @@ Changed:
 - Add `sorted` option to `file.ls`.
 - Add `buffer_length` method to `input.external.rawaudio` and
   `input.external.wav` (#2612).
+- Removed confusing `let json.stringify` in favor of `json.stringify()`.
 
 Fixed:
 

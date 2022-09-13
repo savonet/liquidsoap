@@ -165,8 +165,9 @@ def metadata.json.stringify(~coverart_mime=null(), ~base64=true, ~compact=false,
       m
     end
 
-  let json.stringify[compact, json5] (data : [(string * string)] as json.object) = m
-  data
+  data = json()
+  list.iter(fun (v) -> data.add(fst(v),snd(v)), m)
+  json.stringify(json5=json5,compact=compact,data)
 end
 
 # Parse metadata from JSON object

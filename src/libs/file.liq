@@ -276,7 +276,7 @@ def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"]
   # Save into persistency file
   def save()
     if null.defined(persistency) then
-      let json.stringify data = !l
+      data = json.stringify(!l)
       file.write(data=data, null.get(persistency))
     end
   end

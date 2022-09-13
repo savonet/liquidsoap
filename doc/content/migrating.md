@@ -21,6 +21,11 @@ The list of concerned metadata is:
 * `"liq_cross_duration"`
 * `"liq_fade_type"`
 
+### JSON rendering
+
+The confusing `let json.stringify` syntax has been removed as it did not provide any feature not already covered by either
+the `json.stringify()` function or the generic `json()` object mapper. Please use either of those now.
+
 From 2.0.x to 2.1.x
 -------------------
 
