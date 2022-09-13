@@ -59,7 +59,7 @@ export CC="`ocamlc -config | grep native_c_compiler | cut -d':' -f 2 | xargs`"
 ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
             --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
             --with-camomile-data-dir=/usr/share/liquidsoap/camomile \
-            CFLAGS=-g
+            CFLAGS=-g LDFLAGS=-Wl,--no-as-needed,-ldl
 
 cd liquidsoap
 make -j $CPU_CORES
