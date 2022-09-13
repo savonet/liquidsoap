@@ -34,7 +34,7 @@ def f() =
     t(req.http_version, "1.1")
     t(req.method, "GET")
     t(req.data, "")
-    t(req.query, [("bla","blo"),("gni","gno")])
+    t(req.query, [("gni", "gno"), ("bla", "blo")])
     t(req.path, "/path/gno/blo")
   end
 
@@ -51,7 +51,7 @@ def f() =
     t(req.http_version, "1.0")
     t(req.method, "POST")
     t(req.data, "foobarlol")
-    t(req.query, [("bla", "in"), ("foo", "with"), ("gnu", "gno"), ("gni", "gno")])
+    t(req.query, [("foo", "with"), ("bla", "in"), ("gnu", "gno"), ("gni", "gno")])
     t(req.headers, [
       ("Host", "localhost:3456"),
       ("User-Agent", http.user_agent),
