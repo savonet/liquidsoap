@@ -524,11 +524,11 @@ module Make (T : T) = struct
                   headers))
             else Duppy.Monad.return ())
             (function
-              | _ -> assert false
               | Harbor.Close s ->
                   self#log#info "Client %s failed to authenticate!" ip;
                   client.state <- Done;
-                  Harbor.reply s)
+                  Harbor.reply s
+              | _ -> assert false)
         in
         Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
           (Harbor.relayed reply (fun () ->
