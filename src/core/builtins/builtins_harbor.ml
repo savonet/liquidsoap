@@ -28,6 +28,7 @@ end
 
 module Make (Harbor : T) = struct
   let name_up = String.uppercase_ascii Harbor.name
+  let resp_t = Lang.nullable_t (Lang.getter_t Lang.string_t)
   let () = Lang.add_module ("harbor." ^ Harbor.name)
 
   let request_t =
@@ -42,25 +43,6 @@ module Make (Harbor : T) = struct
         ("path", Lang.string_t);
       ]
 
-  let response_t =
-    let getter_setter_t ty =
-      Lang.method_t
-        (Lang.fun_t [(false, "", ty)] Lang.unit_t)
-        [("current", ([], Lang.fun_t [] ty), "Get current value")]
-    in
-    Lang.record_t
-      [
-        ("http_version", getter_setter_t Lang.string_t);
-        ("status_code", getter_setter_t Lang.int_t);
-        ("status_message", getter_setter_t (Lang.nullable_t Lang.string_t));
-        ("data", getter_setter_t (Lang.getter_t Lang.string_t));
-        ("content_type", getter_setter_t (Lang.nullable_t Lang.string_t));
-        ( "headers",
-          getter_setter_t
-            (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)) );
-        ("custom", getter_setter_t Lang.bool_t);
-      ]
-
   let register_args =
     [
       ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to server.");
@@ -72,7 +54,7 @@ module Make (Harbor : T) = struct
            \"HEAD\" / \"OPTIONS\")." );
       ("", Lang.regexp_t, None, Some "path to to serve.");
       ( "",
-        Lang.fun_t [(false, "", request_t); (false, "", response_t)] Lang.unit_t,
+        Lang.fun_t [(false, "", request_t)] resp_t,
         None,
         Some "Handler function" );
     ]
@@ -118,85 +100,12 @@ module Make (Harbor : T) = struct
           ]
       in
 
-      let resp_protocol = Atomic.make protocol in
-      let resp_code = Atomic.make 200 in
-      let resp_status = Atomic.make None in
-      let resp_headers = Atomic.make [] in
-      let resp_content_type = Atomic.make None in
-      let resp_data = Atomic.make (fun () -> "") in
-      let resp_custom = Atomic.make false in
-
-      let getter_setter to_v of_v v =
-        Lang.meth
-          (Lang.val_fun [("", "", None)] (fun p ->
-               Atomic.set v (of_v (List.assoc "" p));
-               Lang.unit))
-          [("current", Lang.val_fun [] (fun _ -> to_v (Atomic.get v)))]
-      in
-
-      let response =
-        Lang.record
-          [
-            ( "http_version",
-              getter_setter Lang.string Lang.to_string resp_protocol );
-            ("status_code", getter_setter Lang.int Lang.to_int resp_code);
-            ( "status_message",
-              getter_setter
-                (function None -> Lang.null | Some s -> Lang.string s)
-                Lang.(to_valued_option to_string)
-                resp_status );
-            ( "headers",
-              getter_setter
-                (fun headers ->
-                  Lang.(
-                    list
-                      (List.map
-                         (fun (v, v') -> product (string v) (string v'))
-                         headers)))
-                (fun headers ->
-                  Lang.(
-                    List.map
-                      (fun v ->
-                        let v, v' = to_product v in
-                        (to_string v, to_string v'))
-                      (to_list headers)))
-                resp_headers );
-            ( "content_type",
-              getter_setter
-                (function None -> Lang.null | Some s -> Lang.string s)
-                Lang.(to_valued_option to_string)
-                resp_content_type );
-            ("custom", getter_setter Lang.bool Lang.to_bool resp_custom);
-            ( "data",
-              getter_setter
-                (fun fn -> Lang.(val_fun [] (fun _ -> string (fn ()))))
-                (fun v ->
-                  try
-                    let data = Atomic.make (Lang.to_string v) in
-                    fun () -> Atomic.exchange data ""
-                  with _ -> Lang.to_string_getter v)
-                resp_data );
-            ("custom", getter_setter Lang.bool Lang.to_bool resp_custom);
-          ]
-      in
-
-      ignore (Lang.apply f [("", request); ("", response)]);
-      if Atomic.get resp_custom then Harbor.custom ()
-      else
-        Harbor.(
-          http_reply
-            {
-              protocol = Atomic.get resp_protocol;
-              code = Atomic.get resp_code;
-              status = Atomic.get resp_status;
-              headers =
-                (Atomic.get resp_headers
-                @
-                match Atomic.get resp_content_type with
-                  | None -> []
-                  | Some m -> [("Content-Type", m)]);
-              data = `String_getter (Atomic.get resp_data);
-            })
+      let resp = Lang.apply f [("", request)] in
+      match Lang.to_option resp with
+        | None -> Harbor.custom ()
+        | Some resp -> (
+            try Harbor.simple_reply (Lang.to_string resp)
+            with _ -> Harbor.reply (Lang.to_string_getter resp))
     in
     (uri, port, verb, handler)
 
@@ -205,24 +114,7 @@ module Make (Harbor : T) = struct
       ("harbor." ^ Harbor.name ^ ".register")
       ~category:`Liquidsoap
       ~descr:
-        [%string
-          "Register a %{name_up} handler on the harbor. The handler function\n\
-           receives as argument the full requested information and returns the\n\
-           answer sent to the client, including HTTP headers.\n\
-           Paths are resolved in the order they are declared\n\
-           and can override default harbor paths such as metadata handlers.\n\
-           The handler receives the request details as a record and a response\n\
-           handler. Regex named matches are reported as part of the response \
-           `query` parameter.\n\
-           The response handler can be used to fill up details about the http \
-           response,\n\
-           which will be converted into a plain HTTP response string after the \
-           handler returns.\n\
-           The request also contains the low-level socket associated with the \
-           query which the\n\
-           caller can use to implement their own custom response, if needed.\n\
-           In this case, one should set `custom_response` to `true` on the\n\
-           response handler."]
+        "Low-level harbor handler registration. Overriden in standard library."
       register_args Lang.unit_t
       (fun p ->
         let uri, port, verb, handler = parse_register_args p in

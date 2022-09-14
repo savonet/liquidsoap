@@ -1,6 +1,6 @@
 def t(v, v') =
   if v != v' then
-    print("expected: #{v'}, got: #{v}")
+    print("expected: #{json.stringify(v')}, got: #{json.stringify(v)}")
     test.fail()
   end
 end
@@ -17,7 +17,7 @@ def f() =
 
   harbor.http.register("/default", port=3456, handler)
   resp = http.get("http://localhost:3456/default")
-  t(resp.headers, [("transfer-encoding", "chunked")])
+  t(resp.headers, [])
   t(resp.status_message, "OK")
   t(resp.http_version, "1.1")
   t(resp.status_code, 200)
@@ -40,7 +40,7 @@ def f() =
 
   harbor.http.register("/path/:gni/:bla", port=3456, handler)
   resp = http.get("http://localhost:3456/path/gno/blo")
-  t(resp.headers, [("transfer-encoding", "chunked")])
+  t(resp.headers, [])
   t(resp.status_message, "OK")
   t(resp.http_version, "1.1")
   t(resp.status_code, 200)
@@ -84,9 +84,9 @@ def f() =
   harbor.http.register.regexp(r/(?<foo>[^\/]+)\/full\/(?<bla>[^\/]+)/g, method="POST", port=3456, handler)
   resp = http.post(http_version="1.0", data="foobarlol", headers=[("req","header")], "http://localhost:3456/some/path/with/full/in/it?gni=gno&gnu=gno")
   t(resp.headers, [
-    ("content-type", "liquidsoap/test"),
     ("some", "value"),
-    ("transfer-encoding", "chunked")
+    ("transfer-encoding", "chunked"),
+    ("content-type", "liquidsoap/test"),
   ])
   t(resp.status_message, "YYR")
   t(resp.http_version, "1.0")
@@ -94,18 +94,18 @@ def f() =
   t("#{resp}", "gnignognignognignognigno")
 
   # Custom response
-  def handler(req, res) =
+  def handler(req) =
     t(req.http_version, "1.1")
     t(req.method, "GET")
     t(req.data, "")
     t(req.query, [])
     t(req.path, "/custom")
-    res.custom(true)
     req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n")
     req.socket.close()
+    null()
   end
 
-  harbor.http.register("/custom", port=3456, handler)
+  harbor.http.register.core(r/^\/custom$/, port=3456, handler)
   resp = http.get("http://localhost:3456/custom")
   t(resp.headers, [("foo","bar")])
   t(resp.status_message, "YYR")

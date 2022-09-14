@@ -1,3 +1,132 @@
+# Set of HTTP utils.
+
+%include "http_codes.liq"
+
+# @flag hidden
+def harbor.http.response(~http_version="1.1",
+                         ~status_code=200,
+                         ~status_message=null(),
+                         ~headers=[],
+                         ~content_type=null(),
+                         ~data=getter("")) = 
+  http_version = ref(http_version)
+  status_code = ref(status_code)
+  status_message = ref(status_message)
+  headers = ref(headers)
+  content_type = ref(content_type)
+  data = ref(data)
+  headers_sent = ref(false)
+  response_ended = ref(false)
+
+  def mk_headers() =
+    headers_sent := true
+
+    http_version = !http_version
+    status_code = !status_code
+    status_message = !status_message
+    headers = !headers
+    content_type = !content_type
+    data = !data
+
+    status_message = status_message ?? http.codes[status_code]
+
+    headers =
+      if getter.is_constant(data) then
+        data = getter.get(data)
+        if data != "" then
+          ("Content-Length", "#{string.length(data)}")::headers
+        else
+          headers
+        end 
+      else
+        ("Transfer-Encoding", "chunked")::headers
+      end
+
+    headers =
+      if null.defined(content_type) and null.get(content_type) != "" then
+        ("Content-type", null.get(content_type))::headers
+      else
+        headers
+      end
+
+    headers = list.map(fun (v) -> "#{fst(v)}: #{snd(v)}", headers)
+    headers = string.concat(separator="\r\n", headers)
+    headers = if headers != "" then "#{headers}\r\n" else "" end 
+
+    "HTTP/#{http_version} #{status_code} #{status_message}\r\n\
+     #{headers}\r\n"
+  end
+
+  def mk_data() =
+    data = !data
+
+    if getter.is_constant(data) then
+      response_ended := true
+      getter.get(data)
+    else
+      data = getter.get(data)
+      response_ended := data == ""
+      "#{string.length(data)}\r\n#{data}\r\n"
+    end
+  end
+
+  def response() =
+    if !response_ended then
+      ""
+    else
+      if not !headers_sent then
+        mk_headers()
+      else
+        mk_data()
+      end
+    end
+  end
+
+  def attr_method(attr) =
+    def set(v) =
+      if !headers_sent then
+        error.raise(error.invalid, "HTTP response headers already sent!")
+      end
+      attr := v
+    end
+
+    def get() = !attr end
+
+    set.{current=get}
+  end
+
+  response.{
+    http_version = attr_method(http_version),
+    status_code = attr_method(status_code),
+    status_message = attr_method(status_message),
+    headers = attr_method(headers),
+    content_type = attr_method(content_type),
+    data = attr_method(data)
+  } 
+end
+
+# Register a HTTP handler on the harbor. This is the low-level function
+# that is exported from liquidsoap's core. Use this if you want to implement
+# a custom HTTP response. Otherwise, you are advised to use one of the higher-level
+# wrappers `harbor.http.register` or `harbor.http.register.regexp`
+# @category Liquidsoap
+# @argsof harbor.http.register
+let harbor.http.register.core = harbor.http.register
+
+def replaces harbor.http.register(%argsof(harbor.http.register), path, handler) =
+  def handler(request) =
+    response = harbor.http.response(
+      http_version=request.http_version,
+    )
+
+    handler(request, response)
+
+    response
+  end
+    
+  harbor.http.register.core(%argsof(harbor.http.register), path, handler)
+end
+
 # @flag hidden
 def harbor.http.regexp_of_path(path) =
   def named_capture(s) =
@@ -133,6 +262,28 @@ def replaces harbor.http.static(~port=8000,~path="/",~browse=false,~content_type
 end
 
 %ifdef harbor.https.register
+# Register a HTTPS handler on the harbor. This is the low-level function
+# that is exported from liquidsoap's core. Use this if you want to implement
+# a custom HTTPS response. Otherwise, you are advised to use one of the higher-level
+# wrappers `harbor.http.register` or `harbor.http.register.regexp`
+# @category Liquidsoap
+# @argsof harbor.https.register
+let harbor.https.register.core = harbor.https.register
+
+def replaces harbor.https.register(%argsof(harbor.https.register), path, handler) =
+  def handler(request) =
+    response = harbor.http.response(
+      http_version=request.http_version,
+    )
+
+    handler(request, response)
+
+    response
+  end
+
+  harbor.https.register.core(%argsof(harbor.https.register), path, handler)
+end
+
 let harbor.https.register.regexp = harbor.https.register
 
 # Register a HTTPS handler on the harbor. The handler function

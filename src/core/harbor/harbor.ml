@@ -108,17 +108,8 @@ module type T = sig
     string ->
     (reply, reply) Duppy.Monad.t
 
-  type http_response = {
-    protocol : string;
-    code : int;
-    status : string option;
-    headers : (string * string) list;
-    data : [ `None | `String of string | `String_getter of unit -> string ];
-  }
-
   val verb_of_string : string -> http_verb
   val string_of_verb : http_verb -> string
-  val http_reply : http_response -> ('a, reply) Duppy.Monad.t
   val mk_simple : string -> unit -> string
   val simple_reply : string -> ('a, reply) Duppy.Monad.t
   val reply : (unit -> string) -> ('a, reply) Duppy.Monad.t
@@ -273,53 +264,6 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     | Close of (unit -> string)
     | Relay of string * (unit -> unit)
     | Custom
-
-  type http_response = {
-    protocol : string;
-    code : int;
-    status : string option;
-    headers : (string * string) list;
-    data : [ `None | `String of string | `String_getter of unit -> string ];
-  }
-
-  let http_reply { protocol; code; headers; status; data } =
-    let headers =
-      match data with
-        | `None -> headers
-        | `String s ->
-            ("Content-Length", string_of_int (String.length s)) :: headers
-        | `String_getter _ -> ("Transfer-Encoding", "chunked") :: headers
-    in
-    let headers =
-      String.concat "\r\n"
-        (List.map (fun (lbl, v) -> [%string "%{lbl}: %{v}"]) headers)
-    in
-    let status =
-      match status with Some s -> s | None -> Http_base.status_of_code code
-    in
-    let code = string_of_int code in
-    let headers =
-      [%string "HTTP/%{protocol} %{code} %{status}\r\n%{headers}\r\n\r\n"]
-    in
-    let data =
-      match data with
-        | `None -> fun () -> ""
-        | `String data ->
-            let data = Atomic.make data in
-            fun () -> Atomic.exchange data ""
-        | `String_getter fn ->
-            let is_done = Atomic.make false in
-            fun () ->
-              if Atomic.get is_done then ""
-              else (
-                let s = fn () in
-                Atomic.set is_done (s = "");
-                let len = string_of_int (String.length s) in
-                [%string "%{len}\r\n%{s}\r\n"])
-    in
-    let next = Atomic.make headers in
-    let fn () = Atomic.exchange next (data ()) in
-    Duppy.Monad.raise (Close fn)
 
   let mk_simple s =
     let ret = Atomic.make s in

@@ -103,5 +103,3 @@ module Make (Transport : Transport_t) :
   Http_t with type connection = Transport.connection
 
 include Http_t with type connection = Unix.file_descr
-
-val status_of_code : int -> string

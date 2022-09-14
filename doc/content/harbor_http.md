@@ -40,8 +40,8 @@ up the details about the response, which is then used to write a proper HTTP res
 Named fragments from the request path are passed to the response `query` list.
 
 Advanced users also have access to the request's socket, which makes it possible to implement your own interaction 
-using the socket's `read`, `write` and `close` methods. In this case, you should set `response.custom(true)` on the
-response.
+using the socket's `read`, `write` and `close` methods. In this case, you should use the low-level function
+`harbor.http.register.core` and return `null()` as the response.
 
 For advanced path matching, the function `harbor.http.register.regexp` can be used. It behaves exactly like `harbor.http.register`
 except that it accepts regular expressions to be used to match the request path. Named capture groups in the regular
