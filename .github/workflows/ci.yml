@@ -49,11 +49,11 @@ jobs:
           - os: ubuntu_focal
             platform: armhf
     container:
-      image: savonet/liquidsoap-ci-asan:${{ matrix.os }}_${{ matrix.platform }}
+      image: savonet/liquidsoap-ci-lsan:${{ matrix.os }}_${{ matrix.platform }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
-      ASAN_OPTIONS: detect_leaks=0,exitcode=0
+      LSAN_OPTIONS: detect_leaks=0,exitcode=0
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1
