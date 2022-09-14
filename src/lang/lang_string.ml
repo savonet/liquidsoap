@@ -249,7 +249,8 @@ let string_of_matrix a =
   done;
   Buffer.contents ans
 
-(** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
+(** Remove line breaks from markdown text. This is useful for reflowing markdown
+    such as when printing doc. *)
 let unbreak_md md =
   let must_break = function
     | "" :: _ -> true

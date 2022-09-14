@@ -138,7 +138,7 @@ let () =
   Lang.add_builtin "string.escape.all"
     ~descr:
       "Escape each character in the given string using a specific escape \
-       sequence"
+       sequence."
     ~category:`String
     [
       ( "format",
