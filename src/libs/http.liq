@@ -111,7 +111,9 @@ end
 # wrappers `harbor.http.register` or `harbor.http.register.regexp`
 # @category Liquidsoap
 # @argsof harbor.http.register
-let harbor.http.register.core = harbor.http.register
+def harbor.http.register.core(%argsof(harbor.http.register), path, handler) = 
+  harbor.http.register(%argsof(harbor.http.register), path, handler)
+end
 
 def replaces harbor.http.register(%argsof(harbor.http.register), path, handler) =
   def handler(request) =
