@@ -117,6 +117,15 @@ end
 
 def replaces harbor.http.register(%argsof(harbor.http.register), path, handler) =
   def handler(request) =
+    request = {
+      data = request.data,
+      headers = request.headers,
+      http_version = request.http_version,
+      method = request.method,
+      path = request.path,
+      query = request.query
+    }
+
     response = harbor.http.response(
       http_version=request.http_version,
     )
@@ -152,10 +161,6 @@ let harbor.http.register.regexp = harbor.http.register
 # handler. Matched fragments are reported as part of the response `query` parameter.
 # The response handler can be used to fill up details about the http response,
 # which will be converted into a plain HTTP response string after the handler returns.
-# The request also contains the low-level socket associated with the query which the
-# caller can use to implement their own custom response, if needed.
-# In this case, one should set `custom_response` to `true` on the
-# response handler.
 # @category Liquidsoap
 # @argsof harbor.http.register
 def replaces harbor.http.register(%argsof(harbor.http.register), path, handler) =
@@ -300,10 +305,6 @@ let harbor.https.register.regexp = harbor.https.register
 # handler. Matched fragments are reported as part of the response `query` parameter.
 # The response handler can be used to fill up details about the http response,
 # which will be converted into a plain HTTP response string after the handler returns.
-# The request also contains the low-level socket associated with the query which the
-# caller can use to implement their own custom response, if needed.
-# In this case, one should set `custom_response` to `true` on the
-# response handler.
 # @category Liquidsoap
 # @argsof harbor.https.register
 def replaces harbor.https.register(%argsof(harbor.https.register), path, handler) =
