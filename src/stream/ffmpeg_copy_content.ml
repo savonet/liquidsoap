@@ -162,12 +162,14 @@ module VideoSpecs = struct
       | None, _ | _, None -> true
       | Some p, Some p' ->
           Video.get_params_id p = Video.get_params_id p'
+(*
           && Video.get_width p = Video.get_width p'
           && Video.get_height p = Video.get_height p'
           && compatible_aspect_radio
                (Video.get_sample_aspect_ratio p)
                (Video.get_sample_aspect_ratio p')
           && Video.get_pixel_format p = Video.get_pixel_format p'
+*)
 
   let merge = merge ~compatible
   let default_params _ = None
