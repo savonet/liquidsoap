@@ -32,23 +32,7 @@ def server.insert_metadata(~id=null(),s) =
   s = insert_metadata(id=id,s)
   insert = s.insert_metadata
   def insert(s) =
-    #TODO: we don't split as expected if one string contains a comma, but this
-    #is difficult to achieve with regexps
-    l = r/,/.split(s)
-    def f(l,x) =
-      def sub(s) = r/\"/.replace(fun (_) -> '"', s) end
-      if x != "" then
-        ret = r/([^=]+)\s*=\s*"((?:\"|[^"])*)"/.exec(x)
-        if ret[1] != "" then
-          list.append(l, [(ret[1], sub(ret[2]))])
-        else
-          l
-        end
-      else
-        l
-      end
-    end
-    meta = list.fold(f,[],l)
+    let (meta, _) = string.annotate.parse("#{s}:")
     if meta != [] then
       insert(meta)
       "Done"
