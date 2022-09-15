@@ -50,7 +50,6 @@ def handler(request, response) =
        method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
        data: #{request.data}")
 
-  # Sending a response. All calls below are optional:
   # Set response code. Defaults to 200
   response.status_code(201)
   
