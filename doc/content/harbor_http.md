@@ -62,7 +62,6 @@ def handler(request, response) =
   
   # Set a single header
   response.header("X-Foo", "bar")
- 
   
   # Set http protocol version
   response.http_version("1.1")
