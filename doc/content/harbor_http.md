@@ -70,8 +70,8 @@ def handler(request, response) =
   # Same as setting the "Content-Type" header
   response.content_type("application/liquidsoap")
 
- # Set response data. Can be a `string` or a function of type `()->string` returning an empty string
- # when done such as `file.read`
+  # Set response data. Can be a `string` or a function of type `()->string` returning an empty string
+  # when done such as `file.read`
   response.data("foo")
   
   # Advanced wrappers:
