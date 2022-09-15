@@ -100,6 +100,7 @@ def harbor.http.response(~http_version="1.1",
     status_code = attr_method(status_code),
     status_message = attr_method(status_message),
     headers = attr_method(headers),
+    header = (fun (l, v) -> headers := (l, v)::!headers),
     content_type = attr_method(content_type),
     data = attr_method(data)
   } 
