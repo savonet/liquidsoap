@@ -2,7 +2,18 @@
 
 %include "http_codes.liq"
 
-# @flag hidden
+# Initiate a response handler with pre-filled values.
+# @category Liquidsoap
+# @method content_type Set `"Content-Type"` header
+# @method data Set response data.
+# @method headers Replace response headers.
+# @method header Set a single header on the response
+# @method json Set content-type to json and data to `json.stringify` of the argument
+# @method redirect Set `status_code` and `Location:` header for a HTTP redirect response
+# @method html Set content-type to html and data to argument value 
+# @method http_version Set http protocol version
+# @method status_code Set response status code
+# @method status_message Set response status message
 def harbor.http.response(~http_version="1.1",
                          ~status_code=200,
                          ~status_message=null(),
@@ -95,28 +106,67 @@ def harbor.http.response(~http_version="1.1",
     set.{current=get}
   end
 
+  def header(k, v) =
+    headers := (k, v)::!headers
+  end
+
+  def redirect(~code=301, location) =
+    status_code := code
+    header("Location", location)
+  end
+
+  def json(v) =
+    content_type := "application/json; charset=utf-8"
+    data := json.stringify(v)
+  end
+
+  def html(d) =
+    content_type := "text/html"
+    data := d
+  end
+
   response.{
     http_version = attr_method(http_version),
     status_code = attr_method(status_code),
     status_message = attr_method(status_message),
     headers = attr_method(headers),
-    header = (fun (l, v) -> headers := (l, v)::!headers),
+    header = header,
+    redirect = redirect,
+    json = json,
+    html = html,
     content_type = attr_method(content_type),
     data = attr_method(data)
   } 
 end
 
-# Register a HTTP handler on the harbor. This is the low-level function
-# that is exported from liquidsoap's core. Use this if you want to implement
-# a custom HTTP response. Otherwise, you are advised to use one of the higher-level
-# wrappers `harbor.http.register` or `harbor.http.register.regexp`
+# @flag hidden
+def harbor.http.regexp_of_path(path) =
+  def named_capture(s) =
+    name = string.sub(s, start=1, length=string.length(s)-1)
+    "(?<#{name}>[^/]+)"
+  end
+  regexp(r/:[\w_]+/g.replace(named_capture, path))
+end
+
+# Register a HTTP handler on the harbor. This function offers a simple API,
+# suitable for quick implementation of HTTP handlers. See `harbor.http.register`
+# for a node/express like alternative API.
 # @category Liquidsoap
 # @argsof harbor.http.register
-def harbor.http.register.core(%argsof(harbor.http.register), path, handler) = 
+def harbor.http.register.simple(%argsof(harbor.http.register), path, handler) = 
+  harbor.http.register(%argsof(harbor.http.register), harbor.http.regexp_of_path(path), handler)
+end
+
+# Register a HTTP handler on the harbor with a generic regexp `path`. This function offers a simple API,
+# suitable for quick implementation of HTTP handlers. See `harbor.http.register`
+# for a node/express like alternative API.
+# @category Liquidsoap
+# @argsof harbor.http.register
+def harbor.http.register.simple.regexp(%argsof(harbor.http.register), path, handler) =
   harbor.http.register(%argsof(harbor.http.register), path, handler)
 end
 
-def replaces harbor.http.register(%argsof(harbor.http.register), path, handler) =
+def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
   def handler(request) =
     request = {
       data = request.data,
@@ -136,19 +186,8 @@ def replaces harbor.http.register(%argsof(harbor.http.register), path, handler) 
     response
   end
     
-  harbor.http.register.core(%argsof(harbor.http.register), path, handler)
+  harbor.http.register(%argsof(harbor.http.register), path, handler)
 end
-
-# @flag hidden
-def harbor.http.regexp_of_path(path) =
-  def named_capture(s) =
-    name = string.sub(s, start=1, length=string.length(s)-1)
-    "(?<#{name}>[^/]+)"
-  end
-  regexp(r/:[\w_]+/g.replace(named_capture, path))
-end
-
-let harbor.http.register.regexp = harbor.http.register
 
 # Register a HTTP handler on the harbor. The handler function
 # receives as argument the full requested information and returns the
@@ -270,15 +309,25 @@ def replaces harbor.http.static(~port=8000,~path="/",~browse=false,~content_type
 end
 
 %ifdef harbor.https.register
-# Register a HTTPS handler on the harbor. This is the low-level function
-# that is exported from liquidsoap's core. Use this if you want to implement
-# a custom HTTPS response. Otherwise, you are advised to use one of the higher-level
-# wrappers `harbor.http.register` or `harbor.http.register.regexp`
+# Register a HTTPS handler on the harbor. This function offers a simple API,
+# suitable for quick implementation of HTTPS handlers. See `harbor.https.register`
+# for a node/express like alternative API.
 # @category Liquidsoap
 # @argsof harbor.https.register
-let harbor.https.register.core = harbor.https.register
+def harbor.https.register.simple(%argsof(harbor.https.register), path, handler) =
+  harbor.https.register(%argsof(harbor.https.register), harbor.http.regexp_of_path(path), handler)
+end
 
-def replaces harbor.https.register(%argsof(harbor.https.register), path, handler) =
+# Register a HTTPS handler on the harbor with a generic regexp `path`. This function offers a simple API,
+# suitable for quick implementation of HTTP handlers. See `harbor.https.register`
+# for a node/express like alternative API.
+# @category Liquidsoap
+# @argsof harbor.https.register
+def harbor.https.register.simple.regexp(%argsof(harbor.https.register), path, handler) =
+  harbor.https.register(%argsof(harbor.https.register), path, handler)
+end
+
+def harbor.https.register.regexp(%argsof(harbor.https.register), path, handler) =
   def handler(request) =
     response = harbor.http.response(
       http_version=request.http_version,
@@ -289,10 +338,8 @@ def replaces harbor.https.register(%argsof(harbor.https.register), path, handler
     response
   end
 
-  harbor.https.register.core(%argsof(harbor.https.register), path, handler)
+  harbor.https.register(%argsof(harbor.https.register), path, handler)
 end
-
-let harbor.https.register.regexp = harbor.https.register
 
 # Register a HTTPS handler on the harbor. The handler function
 # receives as argument the full requested information and returns the

@@ -113,7 +113,7 @@ def f() =
     null()
   end
 
-  harbor.http.register.core(r/^\/custom$/, port=3456, handler)
+  harbor.http.register.simple("/custom", port=3456, handler)
   resp = http.get("http://localhost:3456/custom")
   t(resp.headers, [("foo","bar")])
   t(resp.status_message, "YYR")

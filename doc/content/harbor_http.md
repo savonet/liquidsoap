@@ -1,21 +1,43 @@
 Harbor as HTTP server
 =====================
 
-The harbor server can be used as a HTTP server. You 
-can use the function `harbor.http.register` to register
-HTTP handlers. Its parameters are are follow:
+The harbor server can be used as a HTTP server. We provide two type of APIs for this:
+
+Simple API
+----------
+
+The `harbor.http.register.simple` function provides a simple, easy to use registration API for quick
+HTTP response implementation. This function receives a record describing the request and returns 
+the HTTP response.
+
+For convenience, a HTTP response builder is provided via `harbor.http.response`. Here's an example:
 
 ```liquidsoap
-harbor.http.register(port=8080, method="GET", path, handler)
+def handler(request) =
+  log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
+       method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
+       data: #{request.data}")
+
+  harbor.http.response(
+    content_type="text/html",
+    data="<p>ok, this works!</p>"
+  )
+end
+
+harbor.http.register.simple(port=8080, method="GET", path, handler)
 ```
+
 where:
 
 * `port` is the port where to receive incoming connections
 * `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
-* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`.
-* `handler` is the function used to process requests.
+* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Named named framents are passed via `request.query`, for instance: `req.query["cid"]`.
 
-`handler` function is of the form:
+Node/express API
+----------------
+
+The `harbor.http.register` function offers a higher-level API for advanced HTTP response implementation. 
+Its API is very similar to the node/express API. Here's an example:
 
 ```liquidsoap
 def handler(request, response) =
@@ -32,20 +54,46 @@ def handler(request, response) =
   response.data("foo") # Can also be function of type `()->string` returning an empty string
                        # when done such as `file.read`
 end
+
+harbor.http.register(port=8080, method="GET", path, handler)
 ```
+
+where:
+
+* `port` is the port where to receive incoming connections
+* `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
+* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Matched named framents are passed via `request.query`, for instance: `req.query["cid"]`.
 
 The handler function receives a record containing all the information about the request and fills
 up the details about the response, which is then used to write a proper HTTP response to the client.
 
 Named fragments from the request path are passed to the response `query` list.
 
-Advanced users also have access to the request's socket, which makes it possible to implement your own interaction 
-using the socket's `read`, `write` and `close` methods. In this case, you should use the low-level function
-`harbor.http.register.core` and return `null()` as the response.
+Advanced usage
+--------------
 
-For advanced path matching, the function `harbor.http.register.regexp` can be used. It behaves exactly like `harbor.http.register`
-except that it accepts regular expressions to be used to match the request path. Named capture groups in the regular
-expression are also passed via the request `query` parameter.
+All registration functions have a `.regexp` counter part, e.g. `harbor.http.register.simple.regexp`. These function accept
+a full regular expression for their `path` argument. Named matches on the regular expression are also passed via the request's `query`
+parameter.
+
+It is also possible to directly interact with the underlying socket using the `simple` API:
+
+```liquidsoap
+  # Custom response
+  def handler(req) =
+    req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n")
+    req.socket.close()
+
+    # Null indicates that we're using the socket directly.
+    null()
+  end
+
+  harbor.http.register.simple("/custom", port=3456, handler)
+```
+
+
+Examples
+--------
 
 These functions can be used to create your own HTTP interface. Some examples
 are:
@@ -61,8 +109,7 @@ In this case, you can register the following handler:
 # than /admin.* to icecast,
 # located at localhost:8000
 def redirect_icecast(request, response) =
-  response.status_code(301)
-  response.headers([("Location","http://localhost:8000#{request.path}")])
+  response.redirect("http://localhost:8000#{request.path}")
 end
 
 # Register this handler at port 8005
@@ -90,8 +137,7 @@ s.on_metadata(fun (m) -> meta := m)
 
 # Return the json content of meta
 def get_meta(_, response) =
-  response.content_type("application/json; charset=utf-8")
-  response.data(json.stringify(!meta))
+  response.json(!meta)
 end
 
 # Register get_meta at port 700
@@ -139,8 +185,7 @@ def set_meta(request, response) =
       "No metadata to add!"
   end
 
-  response.content_type("text/html")
-  response.data("<html><body><b>#{ret}</b></body></html>")
+  response.html("<html><body><b>#{ret}</b></body></html>")
 end
 
 # Register handler on port 700
