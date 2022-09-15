@@ -55,7 +55,7 @@ def handler(request, response) =
   response.status_code(201)
   
   # Set response status message. Uses `status_code` if not specified
-  response.status_message("Created") # Uses `status_code` if not specified
+  response.status_message("Created")
   
   # Replaces response headers
   response.headers(["X-Foo", "bar"])
