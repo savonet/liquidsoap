@@ -131,4 +131,6 @@
     (ocaml (>= 4.12.0))
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))
+  (conflicts
+    (liquidsoap (<> :version)))
   (synopsis "Liquidsoap language"))
