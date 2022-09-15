@@ -108,7 +108,7 @@ def f() =
     t(req.data, "")
     t(req.query, [])
     t(req.path, "/custom")
-    req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n")
+    req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n\r\n")
     req.socket.close()
     null()
   end

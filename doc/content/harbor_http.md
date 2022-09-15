@@ -110,7 +110,7 @@ It is also possible to directly interact with the underlying socket using the `s
 ```liquidsoap
   # Custom response
   def handler(req) =
-    req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n")
+    req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n\r\n")
     req.socket.close()
 
     # Null indicates that we're using the socket directly.
