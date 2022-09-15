@@ -110,8 +110,9 @@ def harbor.http.response(~http_version="1.1",
     headers := (k, v)::!headers
   end
 
-  def redirect(~code=301, location) =
-    status_code := code
+  code = status_code
+  def redirect(~status_code=301, location) =
+    code := status_code
     header("Location", location)
   end
 
