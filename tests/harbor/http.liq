@@ -27,7 +27,15 @@ def f() =
   def handler(_, _) =
     test.fail()
   end
+
   harbor.http.register.regexp(r/default/g, port=3456, handler)
+  harbor.http.register("/default", port=3456, handler)
+  resp = http.get("http://localhost:3456/default")
+  t(resp.headers, [])
+  t(resp.status_message, "OK")
+  t(resp.http_version, "1.1")
+  t(resp.status_code, 200)
+  t("#{resp}", "")
 
   # String response with matches
   def handler(req, _) =
