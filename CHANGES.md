@@ -31,6 +31,8 @@ Changed:
 - Add `buffer_length` method to `input.external.rawaudio` and
   `input.external.wav` (#2612).
 - Removed confusing `let json.stringify` in favor of `json.stringify()`.
+- Font, font size and colors are now getters for text operators (`video.text`,
+  `video.add_text`, etc.) (#2623).
 
 Fixed:
 

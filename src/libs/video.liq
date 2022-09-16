@@ -279,7 +279,7 @@ end
 
 # @flags hidden
 def add_text_builder(f) =
-  def at(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata=null(),~size=18,~speed=0,~x=getter(10),~y=getter(10),text,s)
+  def at(~id=null(),~duration=null(),~color=getter(0xffffff),~cycle=true,~font=null(),~metadata=null(),~size=getter(18),~speed=0,~x=getter(10),~y=getter(10),text,s)
     x = if speed == 0 then x else
       fps = video.frame.rate()
       x = ref(getter.get(x))
@@ -434,7 +434,7 @@ thread.run.recurrent((fun () ->
 # @param ~font Path to ttf font file.
 # @param ~size Font size.
 # @param text Text to display.
-def replaces video.text(~id=null(), ~color=0xffffff, ~duration=null(), ~font=null(), ~size=18, text)
+def replaces video.text(~id=null(), ~color=getter(0xffffff), ~duration=null(), ~font=null(), ~size=getter(18), text)
   f = list.assoc(default=snd(list.hd(!video.text.available)), settings.video.text(), !video.text.available)
   f(id=id, color=color, duration=duration, font=font, size=size, text)
 end

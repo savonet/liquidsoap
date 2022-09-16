@@ -30,12 +30,17 @@ class text init render_text ttf ttf_size color duration text =
     inherit Synthesized.source ~seek:true ~name:"video.text" duration
     val mutable text_frame = None
     val mutable font = None
+    val mutable cur_ttf = ttf ()
+    val mutable cur_ttf_size = ttf_size ()
+    val mutable cur_color = color ()
     val mutable cur_text = text ()
 
-    method private render_text text =
-      let w, h, get_pixel_rgba = render_text ~font:ttf ~size:ttf_size text in
+    method private render_text =
+      let w, h, get_pixel_rgba =
+        render_text ~font:cur_ttf ~size:cur_ttf_size cur_text
+      in
       let tf = Video.Image.create w h in
-      let tr, tg, tb = Image.RGB8.Color.of_int color in
+      let tr, tg, tb = Image.RGB8.Color.of_int cur_color in
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let a = get_pixel_rgba x y in
@@ -49,16 +54,25 @@ class text init render_text ttf ttf_size color duration text =
       match text_frame with
         | Some tf -> tf
         | None ->
-            self#render_text cur_text;
+            self#render_text;
             Option.get text_frame
 
     method private synthesize frame off len =
       let off = Frame.video_of_main off in
       let len = Frame.video_of_main len in
+      let ttf = ttf () in
+      let ttf_size = ttf_size () in
+      let color = color () in
       let text = text () in
-      if cur_text <> text then (
+      if
+        cur_ttf <> ttf || cur_ttf_size <> ttf_size || cur_color <> color
+        || cur_text <> text
+      then (
+        cur_ttf <- ttf;
+        cur_ttf_size <- ttf_size;
+        cur_color <- color;
         cur_text <- text;
-        self#render_text cur_text);
+        self#render_text);
       let tf = self#get_text_frame in
       let buf = VFrame.data frame in
       for i = off to off + len - 1 do
@@ -78,12 +92,14 @@ let register name init render_text =
     Lang.add_operator op
       [
         ( "font",
-          Lang.nullable_t Lang.string_t,
+          Lang.nullable_t (Lang.getter_t Lang.string_t),
           Some Lang.null,
-          Some "Path to ttf font file." );
-        ("size", Lang.int_t, Some (Lang.int 18), Some "Font size.");
+          Some
+            (Printf.sprintf "Path to ttf font file (default is `\"%s\"`)."
+               Configure.default_font) );
+        ("size", Lang.getter_t Lang.int_t, Some (Lang.int 18), Some "Font size.");
         ( "color",
-          Lang.int_t,
+          Lang.getter_t Lang.int_t,
           Some (Lang.int 0xffffff),
           Some "Text color (in 0xRRGGBB format)." );
         ( "duration",
@@ -95,11 +111,12 @@ let register name init render_text =
       ~return_t:k ~category:`Video ~descr:"Display a text."
       (fun p ->
         let ttf =
-          List.assoc "font" p |> Lang.to_option |> Option.map Lang.to_string
+          List.assoc "font" p |> Lang.to_option
+          |> Option.map Lang.to_string_getter
+          |> Option.value ~default:(fun () -> Configure.default_font)
         in
-        let ttf = Option.value ~default:Configure.default_font ttf in
-        let ttf_size = List.assoc "size" p |> Lang.to_int in
-        let color = List.assoc "color" p |> Lang.to_int in
+        let ttf_size = List.assoc "size" p |> Lang.to_int_getter in
+        let color = List.assoc "color" p |> Lang.to_int_getter in
         let duration =
           List.assoc "duration" p |> Lang.to_option |> Option.map Lang.to_float
         in
