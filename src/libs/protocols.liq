@@ -23,7 +23,7 @@ let settings.protocol.replaygain.tag = settings.make(
 def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
                      ~delay=_,file)
   def log(x) = log.info(label="extract.replaygain",x) end
-  p = process.run(process.quote.command("extract_replaygain", args=[file]))
+  p = process.run(process.quote.command(extract_replaygain, args=[file]))
   stdout = r/\n/.replace(fun (_) -> "", p.stdout)
   if p.status == "exit" and p.status.code == 0 then
     stdout
