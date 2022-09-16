@@ -194,6 +194,7 @@ val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
 val to_fun : value -> (string * value) list -> value
 val to_getter : value -> unit -> value
+val to_http_transport : value -> Http.transport
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
   * This is useful for retrieving arguments of a function. *)
@@ -239,6 +240,9 @@ val metadata_t : t
 (** A getter on an arbitrary type. *)
 val getter_t : t -> t
 
+(** Abstract http transport *)
+val http_transport_t : t
+
 val unit : value
 val int : int -> value
 val bool : bool -> value
@@ -254,6 +258,7 @@ val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
 val reference : value Atomic.t -> value
+val http_transport : Http.transport -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
     the label and optional values. *)

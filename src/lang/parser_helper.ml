@@ -163,10 +163,16 @@ let args_of, app_of =
         | Type.Tuple t -> List.nth t pos
         | _ -> assert false
     in
-    let get_meth_type () =
-      match (Type.deref t).Type.descr with
-        | Type.Meth (_, t) -> t
-        | _ -> assert false
+    let get_meth_type name t =
+      let meths, t = Type.split_meths t in
+      let { Type.scheme = _, meth_t } =
+        List.find (fun { Type.meth } -> meth = name) meths
+      in
+      let meths = List.filter (fun { Type.meth } -> meth <> name) meths in
+      let t =
+        List.fold_left (fun t m -> Type.make (Type.Meth (m, t))) t meths
+      in
+      (meth_t, t)
     in
     let term =
       match value with
@@ -180,8 +186,9 @@ let args_of, app_of =
                  l)
         | Value.Null -> Term.Null
         | Value.Meth (name, v, v') ->
-            let t = get_meth_type () in
-            Term.Meth (name, term_of_value ~pos t v, term_of_value ~pos t v')
+            let meth_t, t = get_meth_type name t in
+            Term.Meth
+              (name, term_of_value ~pos meth_t v, term_of_value ~pos t v')
         | Value.Fun (args, [], body) ->
             let body =
               Term.{ body with t = Type.make ~pos body.t.Type.descr }

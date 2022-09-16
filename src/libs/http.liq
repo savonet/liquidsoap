@@ -317,78 +317,14 @@ content_type = file.mime
 # Serve a static path.
 # @category Interaction
 # @param ~port Port for incoming harbor (http) connections.
+# @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
 # @param ~path Base path.
 # @param ~headers Default response headers.
 # @param ~browse List files in directories.
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served.
-def replaces harbor.http.static(~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
+def replaces harbor.http.static(~transport=http.transport.unix,~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
   # Make the method argument non-optional, see #1018
-  serve = fun(~method,uri,handler) -> harbor.http.register(port=port,method=method,uri,handler)
+  serve = fun(~method,uri,handler) -> harbor.http.register(transport=transport,port=port,method=method,uri,handler)
   harbor.http.static.base(serve,content_type=content_type,basepath=path,browse=browse,headers=headers,directory)
 end
-
-%ifdef harbor.https.register
-# Register a HTTPS handler on the harbor. This function offers a simple API,
-# suitable for quick implementation of HTTPS handlers. See `harbor.https.register`
-# for a node/express like alternative API.
-# @category Liquidsoap
-# @argsof harbor.https.register
-def harbor.https.register.simple(%argsof(harbor.https.register), path, handler) =
-  harbor.https.register(%argsof(harbor.https.register), harbor.http.regexp_of_path(path), handler)
-end
-
-# Register a HTTPS handler on the harbor with a generic regexp `path`. This function offers a simple API,
-# suitable for quick implementation of HTTP handlers. See `harbor.https.register`
-# for a node/express like alternative API.
-# @category Liquidsoap
-# @argsof harbor.https.register
-def harbor.https.register.simple.regexp(%argsof(harbor.https.register), path, handler) =
-  harbor.https.register(%argsof(harbor.https.register), path, handler)
-end
-
-def harbor.https.register.regexp(%argsof(harbor.https.register), path, handler) =
-  def handler(request) =
-    response = http.response(
-      http_version=request.http_version,
-    )
-
-    handler(request, response)
-
-    response
-  end
-
-  harbor.https.register(%argsof(harbor.https.register), path, handler)
-end
-
-# Register a HTTPS handler on the harbor. The handler function
-# receives as argument the full requested information and returns the
-# answer sent to the client, including HTTP headers. This function
-# registers exact path matches, i.e. `"/users"`, `"/index.hml"`
-# as well as fragment matches, i.e. `"/user/:id"`, `"/users/:id/collabs/:cid"`,
-# etc. If you need more advanced matching, use `harbor.http.register.regexp`
-# to match regular expressions. Paths are resolved in the order they are declared
-# and can override default harbor paths such as metadata handlers.
-# The handler receives the request details as a record and a response
-# handler. Matched fragments are reported as part of the response `query` parameter.
-# The response handler can be used to fill up details about the http response,
-# which will be converted into a plain HTTP response string after the handler returns.
-# @category Liquidsoap
-# @argsof harbor.https.register
-def replaces harbor.https.register(%argsof(harbor.https.register), path, handler) =
-  harbor.https.register.regexp(%argsof(harbor.https.register), harbor.http.regexp_of_path(path), handler)
-end
-
-# Serve a static path.
-# @category Interaction
-# @param ~port Port for incoming harbor (https) connections.
-# @param ~path Base path.
-# @param ~headers Default response headers.
-# @param ~browse List files in directories.
-# @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
-# @param directory Local path to be served.
-def harbor.https.static(~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  serve = fun(~method,uri,handler) -> harbor.https.register(port=port,method=method,uri,handler)
-  harbor.http.static.base(serve,basepath=path,browse=browse,content_type=content_type,headers=headers,directory)
-end
-%endif

@@ -68,8 +68,9 @@ end
 # @category Liquidsoap
 # @flag extra
 # @param ~port Port of the server.
+# @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
 # @param ~uri URI of the server.
-def server.harbor(~port=8000, ~uri="/telnet")
+def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet")
   def webpage(_, response)
     response.html("
 <html>
@@ -129,7 +130,7 @@ def server.harbor(~port=8000, ~uri="/telnet")
 ")
   end
 
-  harbor.http.register(port=port, method="GET", uri, webpage)
+  harbor.http.register(transport=transport, port=port, method="GET", uri, webpage)
 
   def setter(request, response)
     log.info("Executing command: #{request.data}")
@@ -138,6 +139,6 @@ def server.harbor(~port=8000, ~uri="/telnet")
     response.data(answer)
   end
 
-  harbor.http.register(port=port, method="POST", uri, setter)
+  harbor.http.register(transport=transport, port=port, method="POST", uri, setter)
   log.important(label="server.harbor", "Website should be ready at <http://localhost:#{port}#{uri}>.")
 end

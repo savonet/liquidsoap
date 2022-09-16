@@ -23,6 +23,15 @@
 type request = Get | Post | Put | Head | Delete
 
 let request_with_body = [Get; Post; Put]
+let () = Lang.add_module "http.transport"
+
+let add_transport ~descr ~name transport =
+  Lang.add_builtin_base ~category:`Liquidsoap ~descr ("http.transport." ^ name)
+    (Lang.http_transport transport).Lang.value Lang.http_transport_t
+
+let () =
+  add_transport ~descr:"Http unencrypted transport" ~name:"unix"
+    Http.unix_transport
 
 let add_http_error kind =
   Lang.add_builtin_base ~category:`Liquidsoap

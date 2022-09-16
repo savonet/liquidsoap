@@ -55,30 +55,6 @@ let conf_harbor_ssl_write_timeout =
     "Read timeout on SSL sockets. Set to zero to never timeout, ignored \
      (system default) if negative."
 
-module Monad = Duppy.Monad
-
-module type Monad_t = module type of Monad with module Io := Monad.Io
-
-module Websocket_transport = struct
-  type socket = Ssl.socket
-
-  let read = Ssl.read
-  let read_retry fd = Extralib.read_retry (Ssl.read fd)
-  let write = Ssl.write
-end
-
-module Duppy_transport : Duppy.Transport_t with type t = Ssl.socket = struct
-  type t = Ssl.socket
-
-  type bigarray =
-    (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-  let sock = Ssl.file_descr_of_socket
-  let read = Ssl.read
-  let write = Ssl.write
-  let ba_write _ _ _ _ = failwith "Not implemented!"
-end
-
 let m = Mutex.create ()
 let ctx = ref None
 
@@ -102,38 +78,82 @@ let set_socket_default fd =
   if conf_harbor_ssl_write_timeout#get >= 0. then
     Unix.setsockopt_float fd Unix.SO_SNDTIMEO conf_harbor_ssl_write_timeout#get
 
-module Transport = struct
-  type socket = Ssl.socket
+let ssl_socket transport ssl =
+  object
+    method typ = "ssl"
+    method transport = transport
+    method file_descr = Ssl.file_descr_of_socket ssl
 
-  let name = "ssl"
-  let file_descr_of_socket = Ssl.file_descr_of_socket
-  let read = Ssl.read
-  let write = Ssl.write
+    method wait_for ?log event timeout =
+      let event =
+        match event with
+          | `Read -> `Read (Ssl.file_descr_of_socket ssl)
+          | `Write -> `Write (Ssl.file_descr_of_socket ssl)
+          | `Both -> `Both (Ssl.file_descr_of_socket ssl)
+      in
+      Tutils.wait_for ?log event timeout
 
-  let accept sock =
-    let s, caller = Unix.accept ~cloexec:true sock in
-    set_socket_default s;
-    let ctx = get_ctx () in
-    let ssl_s = Ssl.embed_socket s ctx in
-    Ssl.accept ssl_s;
-    (ssl_s, caller)
+    method read = Ssl.read ssl
+    method write = Ssl.write ssl
 
-  let close ssl =
-    Ssl.shutdown ssl;
-    Unix.close (Ssl.file_descr_of_socket ssl)
-
-  module Duppy = struct
-    module Io = Duppy.MakeIo (Duppy_transport)
-
-    module Monad = struct
-      module Io = Duppy.Monad.MakeIo (Io)
-      include (Monad : Monad_t)
-    end
+    method close =
+      Ssl.shutdown ssl;
+      Unix.close (Ssl.file_descr_of_socket ssl)
   end
 
-  module Http = Https
-  module Websocket = Websocket.Make (Websocket_transport)
-end
+let transport =
+  object (self)
+    method name = "ssl"
+    method protocol = "https"
+    method default_port = 443
 
-module Ssl = Harbor.Make (Transport)
-include Ssl
+    method connect ?bind_address host port =
+      let socketaddr =
+        Unix.ADDR_INET ((Unix.gethostbyname host).Unix.h_addr_list.(0), port)
+      in
+      let ctx = Ssl.create_context Ssl.SSLv23 Ssl.Client_context in
+      (* TODO: add option.. *)
+      Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
+      Ssl.set_verify_depth ctx 3;
+      ignore (Ssl.set_default_verify_paths ctx);
+      let domain =
+        match socketaddr with
+          | Unix.ADDR_UNIX _ -> Unix.PF_UNIX
+          | Unix.ADDR_INET (_, _) -> Unix.PF_INET
+      in
+      let unix_socket = Unix.socket domain Unix.SOCK_STREAM 0 in
+      let socket =
+        try
+          Unix.connect unix_socket socketaddr;
+          let socket = Ssl.embed_socket unix_socket ctx in
+          (try Ssl.set_client_SNI_hostname socket host with _ -> ());
+          Ssl.connect socket;
+          socket
+        with exn ->
+          Unix.close unix_socket;
+          raise exn
+      in
+      begin
+        match bind_address with
+        | None -> ()
+        | Some s ->
+            let unix_socket = Ssl.file_descr_of_socket socket in
+            let bind_addr_inet = (Unix.gethostbyname s).Unix.h_addr_list.(0) in
+            (* Seems like you need to bind on port 0 *)
+            let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
+            Unix.bind unix_socket bind_addr
+      end;
+      ssl_socket self socket
+
+    method accept sock =
+      let s, caller = Unix.accept ~cloexec:true sock in
+      set_socket_default s;
+      let ctx = get_ctx () in
+      let ssl_s = Ssl.embed_socket s ctx in
+      Ssl.accept ssl_s;
+      (ssl_socket self ssl_s, caller)
+  end
+
+let () =
+  Builtins_http.add_transport ~descr:"Https transport using libssl" ~name:"ssl"
+    transport
