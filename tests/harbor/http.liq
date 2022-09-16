@@ -61,12 +61,12 @@ def f() =
     t(req.data, "foobarlol")
     t(req.query, [("foo", "with"), ("bla", "in"), ("gnu", "gno"), ("gni", "gno")])
     t(req.headers, [
-      ("Host", "localhost:3456"),
-      ("User-Agent", http.user_agent),
-      ("Accept", "*/*"),
+      ("host", "localhost:3456"),
+      ("user-agent", http.user_agent),
+      ("accept", "*/*"),
       ("req", "header"),
-      ("Content-Length", "9"),
-      ("Content-Type", "application/x-www-form-urlencoded")
+      ("content-length", "9"),
+      ("content-type", "application/x-www-form-urlencoded")
     ])
     t(req.path, "/some/path/with/full/in/it")
 
@@ -120,6 +120,19 @@ def f() =
   t(resp.http_version, "1.0")
   t(resp.status_code, 201)
   t("#{resp}", "")
+
+  # Cors headers
+  harbor.http.register.middleware(harbor.http.cors(origin="foo.com"))
+  resp = http.get("http://localhost:3456/default")
+  t(resp.headers, [
+    ("access-control-allow-origin", "foo.com"),
+    ("vary", "Origin")
+  ])
+  t(resp.status_message, "OK")
+  t(resp.http_version, "1.1")
+  t(resp.status_code, 200)
+  t("#{resp}", "")
+  
 
   test.pass()
 end

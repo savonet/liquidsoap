@@ -12,12 +12,12 @@
 # @method http_version Set http protocol version
 # @method status_code Set response status code
 # @method status_message Set response status message
-def harbor.http.response(~http_version="1.1",
-                         ~status_code=200,
-                         ~status_message=null(),
-                         ~headers=[],
-                         ~content_type=null(),
-                         ~data=getter("")) = 
+def http.response(~http_version="1.1",
+                  ~status_code=200,
+                  ~status_message=null(),
+                  ~headers=[],
+                  ~content_type=null(),
+                  ~data=getter("")) = 
   http_version = ref(http_version)
   status_code = ref(status_code)
   status_message = ref(status_message)
@@ -170,7 +170,7 @@ let harbor.http.middleware = ref(fun (req, res, next) -> next(req, res))
 
 # Register a new harbor middleware
 # @category Liquidsoap
-def harbor.http.use(fn) =
+def harbor.http.register.middleware(fn) =
   middleware = !harbor.http.middleware
   harbor.http.middleware := fun (req, res, next) -> begin
     middleware(req, res, fun (res, res) -> 
@@ -190,7 +190,7 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
       query = request.query
     }
 
-    response = harbor.http.response(
+    response = http.response(
       http_version=request.http_version,
     )
 
@@ -347,7 +347,7 @@ end
 
 def harbor.https.register.regexp(%argsof(harbor.https.register), path, handler) =
   def handler(request) =
-    response = harbor.http.response(
+    response = http.response(
       http_version=request.http_version,
     )
 

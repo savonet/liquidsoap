@@ -1,4 +1,4 @@
-# Middleware to add CORS headers
+# Harbor middleware to add CORS headers
 # @category Liquidsoap
 # @flag extra
 # @param ~origin Configures the Access-Control-Allow-Origin CORS header
@@ -22,7 +22,7 @@ def harbor.http.cors(
   ~options_status_code=204) =
   fun (req, res, next) -> begin
     # This is for typing purposes
-    res = if false then harbor.http.response() else res end
+    res = if false then http.response() else res end
     if false then
       harbor.http.register("/foo", fun (r, _) -> ignore(if false then r else req end))
     end
@@ -125,5 +125,5 @@ end
 
 # This is for typing purposes
 if false then
-  harbor.http.use(harbor.http.cors())
+  harbor.http.register.middleware(harbor.http.cors())
 end
