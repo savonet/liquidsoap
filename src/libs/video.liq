@@ -295,13 +295,14 @@ def add_text_builder(f) =
 
     # Our text source.
     t = f(id=id, duration=duration, color=color, font=font, size=size, text)
+    t = video.dimensions(video.crop(t))
 
     # Handle scrolling if necessary.
     x = if speed == 0 then x else
       fps = video.frame.rate()
       x = ref(getter.get(x))
       def x()
-        if cycle and !x < 0 - video.frame.width() then x := video.frame.width() end
+        if cycle and !x < 0 - t.width() then x := video.frame.width() end
         x := !x - getter.get(speed) / fps
         !x
       end
