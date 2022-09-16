@@ -2,7 +2,7 @@
 # @category Liquidsoap
 # @flag extra
 # @param ~origin Configures the Access-Control-Allow-Origin CORS header
-# @param ~origin_callback Origin callback for advanced uses. If passed, overrides `~origin` argument. Takes the request as input and returns the allowed origin. Return `null` to skip all CORS headers.
+# @param ~origin_callback Origin callback for advanced uses. If passed, overrides `origin` argument. Takes the request as input and returns the allowed origin. Return `null` to skip all CORS headers.
 # @param ~methods Configures the Access-Control-Allow-Methods CORS header.
 # @param ~allowed_headers Configures the Access-Control-Allow-Headers CORS header. If not specified, defaults to reflecting the headers specified in the request's Access-Control-Request-Headers header.
 # @param ~exposed_headers Configures the Access-Control-Expose-Headers CORS header. If not specified, no custom headers are exposed.
@@ -11,7 +11,7 @@
 # @param ~preflight_continue Pass the CORS preflight response to the nexnhandler.
 # @param ~options_status_code Provides a status code to use for successful OPTIONS requests, since some legacy browsers (IE11, various SmartTVs) choke on 204.
 def harbor.http.cors(
-  ~origin="*",
+  ~origin=null("*"),
   ~origin_callback=null(),
   ~methods=["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
   ~allowed_headers=null(),
