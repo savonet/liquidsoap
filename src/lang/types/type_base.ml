@@ -158,13 +158,13 @@ type custom_handler = {
 type descr +=
   | Custom of custom_handler
   | Constr of constructed
-  | Getter of t
+  | Getter of t  (** a getter: something that is eiter a t or () -> t *)
   | List of repr_t
   | Tuple of t list
-  | Nullable of t
-  | Meth of meth * t
-  | Arrow of (bool * string * t) list * t
-  | Var of invar ref
+  | Nullable of t  (** something that is either t or null *)
+  | Meth of meth * t  (** t with a method added *)
+  | Arrow of (bool * string * t) list * t  (** a function *)
+  | Var of invar ref  (** a type variable *)
 
 exception NotImplemented
 exception Exists of Pos.Option.t * string
