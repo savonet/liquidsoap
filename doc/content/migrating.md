@@ -7,6 +7,12 @@ Liquidsoap.
 From 2.1.x to 2.2.x
 -------------------
 
+### Harbor HTTP server
+
+The API for registering HTTP server endpoint was completely. It should be more flexible and
+provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](harbor_http.html)
+for more details. 
+
 ### Metadata overrides
 
 Some metadata overrides have been made to reset on track boundaries. Previously, those were permanent even though they 
