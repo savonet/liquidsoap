@@ -279,7 +279,7 @@ end
 
 # @flags hidden
 def add_text_builder(f) =
-  def at(~id=null(),~duration=null(),~color=getter(0xffffff),~cycle=true,~font=null(),~metadata=null(),~size=getter(18),~speed=0,~x=getter(10),~y=getter(10),text,s)
+  def at(~id=null(),~duration=null(),~color=getter(0xffffff),~cycle=true,~font=null(),~metadata=null(),~size=getter(18),~speed=0,~x=getter(10),~y=getter(10),~on_cycle={()},text,s)
     available = s.is_ready
 
     # Handle modifying the text with metadata.
@@ -302,7 +302,7 @@ def add_text_builder(f) =
       fps = video.frame.rate()
       x = ref(getter.get(x))
       def x()
-        if cycle and !x < 0 - t.width() then x := video.frame.width() end
+        if cycle and !x < 0 - t.width() then on_cycle(); x := video.frame.width() end
         x := !x - getter.get(speed) / fps
         !x
       end
@@ -335,7 +335,6 @@ let video.text.available = ref([])
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-# def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.native = add_text_builder(video.text.native) end
 
 video.text.available := [("native", video.text.native), ...!video.text.available]
@@ -355,7 +354,6 @@ video.text.available := [("gd", video.text.gd), ...!video.text.available]
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-# def video.add_text.native = add_text_builder(video.text.native) end
 def video.text.gd = add_text_builder(video.text.gd) end
 %endif
 
@@ -374,7 +372,6 @@ video.text.available := [("gstreamer", video.text.gstreamer), ...!video.text.ava
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-# def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.gstreamer = add_text_builder(video.text.gstreamer) end
 %endif
 
@@ -393,7 +390,6 @@ video.text.available := [("sdl", video.text.sdl), ...!video.text.available]
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-# def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.sdl = add_text_builder(video.text.sdl) end
 %endif
 
@@ -412,7 +408,6 @@ video.text.available := [("camlimages", video.text.camlimages), ...!video.text.a
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-# def video.add_text.native = add_text_builder(video.text.native) end
 def video.add_text.camlimages = add_text_builder(video.text.camlimages) end
 %endif
 
@@ -458,11 +453,11 @@ end
 # @param ~speed Horizontal speed in pixels per second (`0` means no scrolling and update according to `x` and `y` in case they are variable).
 # @param ~x x offset.
 # @param ~y y offset.
+# @param ~on_cycle Function called when text is cycling.
 # @params d Text to display.
-def video.add_text.native = add_text_builder(video.text.native) end
-def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata=null(),~size=18,~speed=0,~x=getter(10),~y=getter(10),d,s) =
+def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata=null(),~size=18,~speed=0,~x=getter(10),~y=getter(10),~on_cycle={()},d,s) =
   add_text = add_text_builder(video.text)
-  add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
+  add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,on_cycle=on_cycle,d,s)
 end
 
 # Add subtitle from metadata.

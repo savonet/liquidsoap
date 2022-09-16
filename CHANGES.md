@@ -33,6 +33,8 @@ Changed:
 - Removed confusing `let json.stringify` in favor of `json.stringify()`.
 - Font, font size and colors are now getters for text operators (`video.text`,
   `video.add_text`, etc.) (#2623).
+- Add `on_cycle` option to `video.add_text` to register a handler when cycling
+  (#2621).
 
 Fixed:
 
