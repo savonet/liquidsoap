@@ -12,6 +12,7 @@ Fixed:
 * Fixed multiple issues related to empty `ogg/opus` metadata (#2605)
 * Ensure that `video.add_text` fails when the source does (#2609)
 * Fixed metadata parsing in `server.insert_metadata` (#2619)
+* Fixed `extract_replaygain` path (#2624, @parnikkapore)
 
 Internal Change:
 * `ref()` implementation switched to OCaml's `Atomic` to prevent race conditions,
