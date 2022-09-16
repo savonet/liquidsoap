@@ -21,62 +21,18 @@
 
  *****************************************************************************)
 
-open Dtools
+let get_ctx ~password ~certificate ~key () =
+  let ctx = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
+  ignore
+    (Option.map
+       (fun password -> Ssl.set_password_callback ctx (fun _ -> password))
+       password);
+  Ssl.use_certificate ctx certificate key;
+  ctx
 
-let conf_harbor_ssl =
-  Conf.void ~p:(Harbor_base.conf_harbor#plug "ssl") "Harbor SSL settings."
-
-let conf_harbor_ssl_certificate =
-  Conf.string
-    ~p:(conf_harbor_ssl#plug "certificate")
-    ~d:"" "Path to the server's SSL certificate. (mandatory)"
-
-let conf_harbor_ssl_private_key =
-  Conf.string
-    ~p:(conf_harbor_ssl#plug "private_key")
-    ~d:"" "Path to the server's SSL private key. (mandatory)"
-
-let conf_harbor_ssl_password =
-  Conf.string
-    ~p:(conf_harbor_ssl#plug "password")
-    ~d:"" "Path to the server's SSL password. (optional, blank if omitted)"
-
-let conf_harbor_ssl_read_timeout =
-  Conf.float
-    ~p:(conf_harbor_ssl#plug "read_timeout")
-    ~d:(-1.)
-    "Read timeout on SSL sockets. Set to zero to never timeout, ignored \
-     (system default) if negative."
-
-let conf_harbor_ssl_write_timeout =
-  Conf.float
-    ~p:(conf_harbor_ssl#plug "write_timeout")
-    ~d:(-1.)
-    "Read timeout on SSL sockets. Set to zero to never timeout, ignored \
-     (system default) if negative."
-
-let m = Mutex.create ()
-let ctx = ref None
-
-let get_ctx =
-  Tutils.mutexify m (fun () ->
-      match !ctx with
-        | Some ctx -> ctx
-        | None ->
-            let _ctx = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
-            let password = conf_harbor_ssl_password#get in
-            if password != "" then
-              Ssl.set_password_callback _ctx (fun _ -> password);
-            Ssl.use_certificate _ctx conf_harbor_ssl_certificate#get
-              conf_harbor_ssl_private_key#get;
-            ctx := Some _ctx;
-            _ctx)
-
-let set_socket_default fd =
-  if conf_harbor_ssl_read_timeout#get >= 0. then
-    Unix.setsockopt_float fd Unix.SO_RCVTIMEO conf_harbor_ssl_read_timeout#get;
-  if conf_harbor_ssl_write_timeout#get >= 0. then
-    Unix.setsockopt_float fd Unix.SO_SNDTIMEO conf_harbor_ssl_write_timeout#get
+let set_socket_default ~read_timeout ~write_timeout fd =
+  ignore (Option.map (Unix.setsockopt_float fd Unix.SO_RCVTIMEO) read_timeout);
+  ignore (Option.map (Unix.setsockopt_float fd Unix.SO_SNDTIMEO) write_timeout)
 
 let ssl_socket transport ssl =
   object
@@ -101,7 +57,7 @@ let ssl_socket transport ssl =
       Unix.close (Ssl.file_descr_of_socket ssl)
   end
 
-let transport =
+let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
   object (self)
     method name = "ssl"
     method protocol = "https"
@@ -147,13 +103,44 @@ let transport =
 
     method accept sock =
       let s, caller = Unix.accept ~cloexec:true sock in
-      set_socket_default s;
-      let ctx = get_ctx () in
+      set_socket_default ~read_timeout ~write_timeout s;
+      let ctx = get_ctx ~password ~certificate ~key () in
       let ssl_s = Ssl.embed_socket s ctx in
       Ssl.accept ssl_s;
       (ssl_socket self ssl_s, caller)
   end
 
 let () =
-  Builtins_http.add_transport ~descr:"Https transport using libssl" ~name:"ssl"
-    transport
+  Lang.add_builtin "http.transport.ssl" ~category:`Liquidsoap
+    ~descr:"Https transport using libssl"
+    [
+      ( "read_timeout",
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some "Read timeout" );
+      ( "write_timeout",
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some "Write timeout" );
+      ( "password",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "SSL certificate password" );
+      ("certificate", Lang.string_t, None, Some "Path to certificate file");
+      ("key", Lang.string_t, None, Some "Path to certificate private key");
+    ]
+    Lang.http_transport_t
+    (fun p ->
+      let read_timeout =
+        Lang.to_valued_option Lang.to_float (List.assoc "read_timeout" p)
+      in
+      let write_timeout =
+        Lang.to_valued_option Lang.to_float (List.assoc "write_timeout" p)
+      in
+      let password =
+        Lang.to_valued_option Lang.to_string (List.assoc "password" p)
+      in
+      let certificate = Lang.to_string (List.assoc "certificate" p) in
+      let key = Lang.to_string (List.assoc "key" p) in
+      Lang.http_transport
+        (transport ~read_timeout ~write_timeout ~password ~certificate ~key ()))

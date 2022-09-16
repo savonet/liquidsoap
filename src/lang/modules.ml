@@ -33,6 +33,7 @@ let () =
       "file";
       "harbor";
       "http";
+      "http.transport";
       "input";
       "input.external";
       "liquidsoap";

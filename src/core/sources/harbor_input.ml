@@ -30,7 +30,7 @@ let address_resolver s =
 
 class http_input_server ~transport ~dumpfile ~logfile ~bufferize ~max ~icy ~port
   ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect ~on_disconnect
-  ~login ~debug ~log_overfull ~timeout p =
+  ~login ~debug ~log_overfull ~timeout () =
   let max_ticks = Frame.main_of_seconds max in
   (* We need a temporary log until
    * the source has an id *)
@@ -156,22 +156,8 @@ class http_input_server ~transport ~dumpfile ~logfile ~bufferize ~max ~icy ~port
 
     method private wake_up act =
       super#wake_up act;
-      begin
-        try
-          Harbor.add_source ~transport ~port ~mountpoint ~icy
-            (self :> Harbor.source)
-        with Harbor.Registered ->
-          raise
-            (Error.Invalid_value
-               ( List.assoc "" p,
-                 (* TODO: raise two script values ? *)
-                 let port = Lang.to_int (List.assoc "port" p) in
-                 Printf.sprintf
-                   "A source is already register for this mountpoint '%s' and \
-                    port %i or this port is already in use with a different \
-                    encryption layer."
-                   mountpoint port ))
-      end;
+      Harbor.add_source ~transport ~port ~mountpoint ~icy
+        (self :> Harbor.source);
 
       (* Now we can create the log function *)
       log_ref := fun s -> self#log#important "%s" s
@@ -485,4 +471,4 @@ let () =
       new http_input_server
         ~transport ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
         ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
-        ~on_disconnect ~debug ~log_overfull p)
+        ~on_disconnect ~debug ~log_overfull ())

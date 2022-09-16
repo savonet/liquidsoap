@@ -21,28 +21,6 @@
 
  *****************************************************************************)
 
-open Dtools
-
-let conf_harbor_secure_transport =
-  Conf.void
-    ~p:(Harbor_base.conf_harbor#plug "secure_transport")
-    "Harbor SSL settings."
-
-let conf_harbor_secure_transport_certificate =
-  Conf.string
-    ~p:(conf_harbor_secure_transport#plug "certificate")
-    ~d:"" "Path to the server's SSL certificate. (mandatory)"
-
-let conf_harbor_secure_transport_private_key =
-  Conf.string
-    ~p:(conf_harbor_secure_transport#plug "private_key")
-    ~d:"" "Path to the server's SSL private key. (mandatory)"
-
-let conf_harbor_secure_transport_password =
-  Conf.string
-    ~p:(conf_harbor_secure_transport#plug "password")
-    ~d:"" "Path to the server's SSL password. (optional, blank if omitted)"
-
 let secure_transport_socket transport fd ctx =
   object
     method typ = "secure_transport"
@@ -66,7 +44,7 @@ let secure_transport_socket transport fd ctx =
       Unix.close fd
   end
 
-let transport =
+let transport ~password ~certificate ~key:_ () =
   object (self)
     method name = "secure_transport"
     method protocol = "https"
@@ -110,10 +88,9 @@ let transport =
       let ctx =
         SecureTransport.init SecureTransport.Server SecureTransport.Stream
       in
-      let password = conf_harbor_secure_transport_password#get in
-      let password = if password = "" then None else Some password in
-      let cert = conf_harbor_secure_transport_certificate#get in
-      let certs = SecureTransport.import_p12_certificate ?password cert in
+      let certs =
+        SecureTransport.import_p12_certificate ?password certificate
+      in
       List.iter (SecureTransport.set_certificate ctx) certs;
       SecureTransport.set_connection ctx sock;
       SecureTransport.handshake ctx;
@@ -121,5 +98,21 @@ let transport =
   end
 
 let () =
-  Builtins_http.add_transport ~descr:"Https transport using SecureTransport"
-    ~name:"secure_transport" transport
+  Lang.add_builtin "http.transport.secure_transport" ~category:`Liquidsoap
+    ~descr:"Https transport using macos' SecureTransport"
+    [
+      ( "password",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "SSL certificate password" );
+      ("certificate", Lang.string_t, None, Some "Path to certificate file");
+      ("key", Lang.string_t, None, Some "Path to certificate private key");
+    ]
+    Lang.http_transport_t
+    (fun p ->
+      let password =
+        Lang.to_valued_option Lang.to_string (List.assoc "password" p)
+      in
+      let certificate = Lang.to_string (List.assoc "certificate" p) in
+      let key = Lang.to_string (List.assoc "key" p) in
+      Lang.http_transport (transport ~password ~certificate ~key ()))

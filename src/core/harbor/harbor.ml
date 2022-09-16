@@ -100,7 +100,6 @@ module type T = sig
   exception Not_authenticated
   exception Unknown_codec
   exception Mount_taken
-  exception Registered
   exception Websocket_closed
 
   (* Generic *)
@@ -339,7 +338,6 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   exception Not_authenticated
   exception Unknown_codec
   exception Mount_taken
-  exception Registered
 
   let http_error_page code status msg =
     "HTTP/1.0 " ^ string_of_int code ^ " " ^ status
@@ -1055,7 +1053,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let get_handler ~transport ~icy port =
     try
       let { handler; fds; transport = t } = Hashtbl.find opened_ports port in
-      if transport != t then raise Registered;
+      if transport != t then
+        Runtime_error.error
+          ~message:"Port is already opened with a different transport" "http";
       (* If we have only one socket and icy=true,
        * we need to open a second one. *)
       if List.length fds = 1 && icy then (
@@ -1079,7 +1079,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let add_source ~transport ~port ~mountpoint ~icy source =
     let sources =
       let handler = get_handler ~transport ~icy port in
-      if Hashtbl.mem handler.sources mountpoint then raise Registered else ();
+      if Hashtbl.mem handler.sources mountpoint then
+        Runtime_error.error ~message:"Mountpoint is already taken!" "http"
+      else ();
       handler.sources
     in
     log#important "Adding mountpoint '%s' on port %i" mountpoint port;
