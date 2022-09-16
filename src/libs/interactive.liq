@@ -411,7 +411,7 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
     list.iter(add_var, !variables)
     add("</form>")
     add("</body>")
-    response.data(!data)
+    response.html(!data)
   end
 
   harbor.http.register(port=port, method="GET", uri, webpage)

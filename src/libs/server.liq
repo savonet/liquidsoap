@@ -71,7 +71,7 @@ end
 # @param ~uri URI of the server.
 def server.harbor(~port=8000, ~uri="/telnet")
   def webpage(_, response)
-    response.data("
+    response.html("
 <html>
   <head>
     <meta charset='utf-8'/>
