@@ -785,6 +785,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let query =
             groups @ Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) args []
           in
+          let headers =
+            List.map (fun (k, v) -> (String.lowercase_ascii k, v)) headers
+          in
           Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
             (handler ~protocol ~meth ~data ~headers
                ~socket:h.Duppy.Monad.Io.socket ~query base_uri)

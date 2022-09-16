@@ -1,7 +1,5 @@
 # Set of HTTP utils.
 
-%include "http_codes.liq"
-
 # Initiate a response handler with pre-filled values.
 # @category Liquidsoap
 # @method content_type Set `"Content-Type"` header
@@ -167,6 +165,20 @@ def harbor.http.register.simple.regexp(%argsof(harbor.http.register), path, hand
   harbor.http.register(%argsof(harbor.http.register), path, handler)
 end
 
+# @flag hidden
+let harbor.http.middleware = ref(fun (req, res, next) -> next(req, res))
+
+# Register a new harbor middleware
+# @category Liquidsoap
+def harbor.http.use(fn) =
+  middleware = !harbor.http.middleware
+  harbor.http.middleware := fun (req, res, next) -> begin
+    middleware(req, res, fun (res, res) -> 
+      fn(req, res, next))
+  end
+end
+
+# @flag hidden
 def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
   def handler(request) =
     request = {
@@ -182,7 +194,12 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
       http_version=request.http_version,
     )
 
-    handler(request, response)
+    handler = fun (req, res) -> begin
+      middleware = !harbor.http.middleware
+      middleware(req, res, fun (req, res) -> handler(req, res))
+    end
+
+    (handler(request, response):unit)
 
     response
   end
