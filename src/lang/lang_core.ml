@@ -465,7 +465,7 @@ let to_default_option ~default convert v =
 let to_product t =
   match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
 
-let to_ref t = match t.value with Ref r -> r | _ -> assert false
+let to_ref t = match (demth t).value with Ref r -> r | _ -> assert false
 
 let to_metadata_list t =
   let pop v =
