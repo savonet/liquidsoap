@@ -45,11 +45,6 @@ def handler(request, response) =
        method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
        data: #{request.data}")
 
-def handler(request, response) =
-  log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
-       method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       data: #{request.data}")
-
   # Set response code. Defaults to 200
   response.status_code(201)
   
@@ -97,6 +92,8 @@ The handler function receives a record containing all the information about the 
 up the details about the response, which is then used to write a proper HTTP response to the client.
 
 Named fragments from the request path are passed to the response `query` list.
+
+Middleware _a la_ node/express are also supported and registered via `http.harbor.middleware.register`. See `http.harbor.middleware.cors` for an example.
 
 Advanced usage
 --------------

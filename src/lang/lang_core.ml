@@ -299,7 +299,7 @@ let to_default_option ~default convert v =
 let to_product t =
   match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
 
-let to_ref t = match t.value with Ref r -> r | _ -> assert false
+let to_ref t = match (demeth t).value with Ref r -> r | _ -> assert false
 let to_string_list l = List.map to_string (to_list l)
 let to_int_list l = List.map to_int (to_list l)
 

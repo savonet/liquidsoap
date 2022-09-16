@@ -10,7 +10,7 @@
 # @param ~max_age Configures the Access-Control-Max-Age CORS header. Set to an integer to pass the header, otherwise it is omitted.
 # @param ~preflight_continue Pass the CORS preflight response to the nexnhandler.
 # @param ~options_status_code Provides a status code to use for successful OPTIONS requests, since some legacy browsers (IE11, various SmartTVs) choke on 204.
-def harbor.http.cors(
+def harbor.http.middleware.cors(
   ~origin=null("*"),
   ~origin_callback=null(),
   ~methods=["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
@@ -125,5 +125,5 @@ end
 
 # This is for typing purposes
 if false then
-  harbor.http.register.middleware(harbor.http.cors())
+  harbor.http.middleware.register(harbor.http.middleware.cors())
 end

@@ -122,7 +122,7 @@ def f() =
   t("#{resp}", "")
 
   # Cors headers
-  harbor.http.register.middleware(harbor.http.cors(origin="foo.com"))
+  harbor.http.middleware.register(harbor.http.middleware.cors(origin="foo.com"))
   resp = http.get("http://localhost:3456/default")
   t(resp.headers, [
     ("access-control-allow-origin", "foo.com"),

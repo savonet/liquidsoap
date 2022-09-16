@@ -170,7 +170,7 @@ let harbor.http.middleware = ref(fun (req, res, next) -> next(req, res))
 
 # Register a new harbor middleware
 # @category Liquidsoap
-def harbor.http.register.middleware(fn) =
+def harbor.http.middleware.register(fn) =
   middleware = !harbor.http.middleware
   harbor.http.middleware := fun (req, res, next) -> begin
     middleware(req, res, fun (res, res) -> 
@@ -206,6 +206,8 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
     
   harbor.http.register(%argsof(harbor.http.register), path, handler)
 end
+
+def replaces harbor.http.middleware = () end
 
 # Register a HTTP handler on the harbor. The handler function
 # receives as argument the full requested information and returns the
