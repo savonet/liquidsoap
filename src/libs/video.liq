@@ -280,6 +280,23 @@ end
 # @flags hidden
 def add_text_builder(f) =
   def at(~id=null(),~duration=null(),~color=getter(0xffffff),~cycle=true,~font=null(),~metadata=null(),~size=getter(18),~speed=0,~x=getter(10),~y=getter(10),text,s)
+    available = s.is_ready
+
+    # Handle modifying the text with metadata.
+    tref = ref(getter.get(text))
+    text = null.defined(metadata) ? {!tref} : text
+    def on_metadata(m)
+      if null.defined(metadata) then
+        m = m[null.get(metadata)]
+        if m != "" then tref := m end
+      end
+    end
+    s = null.defined(metadata) ? source.on_metadata(s, on_metadata) : s
+
+    # Our text source.
+    t = f(id=id, duration=duration, color=color, font=font, size=size, text)
+
+    # Handle scrolling if necessary.
     x = if speed == 0 then x else
       fps = video.frame.rate()
       x = ref(getter.get(x))
@@ -290,19 +307,12 @@ def add_text_builder(f) =
       end
       x
     end
-    tref = ref(getter.get(text))
-    text = null.defined(metadata) ? {!tref} : text
-    def on_metadata(m)
-      if null.defined(metadata) then
-        m = m[null.get(metadata)]
-        if m != "" then tref := m end
-      end
-    end
-    available = s.is_ready
-    s = null.defined(metadata) ? source.on_metadata(s, on_metadata) : s
-    t = f(id=id, duration=duration, color=color, font=font, size=size, text)
     t = video.translate(x=x, y=y, t)
-    t = source.available(t, available) # ensure that we fail when s fails
+
+    # Ensure that we fail when s fails.
+    t = source.available(t, available)
+
+    # Add the text to the original source.
     add(normalize=false, [(s:source),t])
   end
   at
@@ -320,8 +330,7 @@ let video.text.available = ref([])
 # @param ~font Path to ttf font file.
 # @param ~metadata Change text on a particular metadata (empty string means disabled).
 # @param ~size Font size.
-# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
-#               according to x and y in case they are variable).
+# @param ~speed Horizontal speed in pixels per second (`0` means no scrolling and update according to `x` and `y` in case they are variable).
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
@@ -341,8 +350,7 @@ video.text.available := [("gd", video.text.gd), ...!video.text.available]
 # @param ~font Path to ttf font file.
 # @param ~metadata Change text on a particular metadata (empty string means disabled).
 # @param ~size Font size.
-# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
-#               according to x and y in case they are variable).
+# @param ~speed Horizontal speed in pixels per second (`0` means no scrolling and update according to `x` and `y` in case they are variable).
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
@@ -361,8 +369,7 @@ video.text.available := [("gstreamer", video.text.gstreamer), ...!video.text.ava
 # @param ~font Path to ttf font file.
 # @param ~metadata Change text on a particular metadata (empty string means disabled).
 # @param ~size Font size.
-# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
-#               according to x and y in case they are variable).
+# @param ~speed Horizontal speed in pixels per second (`0` means no scrolling and update according to `x` and `y` in case they are variable).
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
@@ -381,8 +388,7 @@ video.text.available := [("sdl", video.text.sdl), ...!video.text.available]
 # @param ~font Path to ttf font file.
 # @param ~metadata Change text on a particular metadata (empty string means disabled).
 # @param ~size Font size.
-# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
-#               according to x and y in case they are variable).
+# @param ~speed Horizontal speed in pixels per second (`0` means no scrolling and update according to `x` and `y` in case they are variable).
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
@@ -401,8 +407,7 @@ video.text.available := [("camlimages", video.text.camlimages), ...!video.text.a
 # @param ~font Path to ttf font file.
 # @param ~metadata Change text on a particular metadata (empty string means disabled).
 # @param ~size Font size.
-# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
-#               according to x and y in case they are variable).
+# @param ~speed Horizontal speed in pixels per second (`0` means no scrolling and update according to `x` and `y` in case they are variable).
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
@@ -449,12 +454,11 @@ end
 # @param ~font Path to ttf font file.
 # @param ~metadata Change text on a particular metadata (empty string means disabled).
 # @param ~size Font size.
-# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
-#               according to x and y in case they are variable).
+# @param ~speed Horizontal speed in pixels per second (`0` means no scrolling and update according to `x` and `y` in case they are variable).
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-# def video.add_text.native = add_text_builder(video.text.native) end
+def video.add_text.native = add_text_builder(video.text.native) end
 def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata=null(),~size=18,~speed=0,~x=getter(10),~y=getter(10),d,s) =
   add_text = add_text_builder(video.text)
   add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,d,s)
