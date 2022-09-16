@@ -15,7 +15,11 @@ module Regexp = struct
   open Liquidsoap_lang.Regexp
 
   type t += Regexp of Pcre.regexp
-  type sub += Sub of Pcre.substrings
+
+  type sub = Lang.Regexp.sub = {
+    matches : string option list;
+    groups : (string * string) list;
+  }
 
   let cflags_of_flags (flags : flag list) =
     List.fold_left
@@ -37,12 +41,26 @@ module Regexp = struct
     Regexp (Pcre.regexp_or ~iflags l)
 
   let get_rex = Option.map (function Regexp r -> r | _ -> assert false)
-  let get_sub = function Sub s -> s | _ -> assert false
   let split ?pat ?rex s = Pcre.split ?pat ?rex:(get_rex rex) s
-  let exec ?pat ?rex s = Sub (Pcre.exec ?pat ?rex:(get_rex rex) s)
+
+  let exec ?pat ?rex s =
+    let rex = get_rex rex in
+    let sub = Pcre.exec ?pat ?rex s in
+    let matches = Array.to_list (Pcre.get_opt_substrings sub) in
+    let groups =
+      match rex with
+        | None -> []
+        | Some rex ->
+            List.fold_left
+              (fun groups name ->
+                try (name, Pcre.get_named_substring rex name sub) :: groups
+                with _ -> groups)
+              []
+              (Array.to_list (Pcre.names rex))
+    in
+    { Lang.Regexp.matches; groups }
+
   let test ?pat ?rex s = Pcre.pmatch ?pat ?rex:(get_rex rex) s
-  let num_of_subs sub = Pcre.num_of_subs (get_sub sub)
-  let get_substring sub pos = Pcre.get_substring (get_sub sub) pos
 
   let substitute ?pat ?rex ~subst s =
     Pcre.substitute ?pat ?rex:(get_rex rex) ~subst s

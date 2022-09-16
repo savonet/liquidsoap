@@ -41,9 +41,7 @@ let add_http_request ~stream_body ~descr ~request name =
     Lang.method_t
       (if (not has_body) || stream_body then Lang.unit_t else Lang.string_t)
       [
-        ( "protocol_version",
-          ([], Lang.string_t),
-          "Version of the HTTP protocol." );
+        ("http_version", ([], Lang.string_t), "Version of the HTTP protocol.");
         ("status_code", ([], Lang.int_t), "Status code.");
         ("status_message", ([], Lang.string_t), "Status message.");
         ("headers", ([], headers_t), "HTTP headers.");
@@ -147,7 +145,7 @@ let add_http_request ~stream_body ~descr ~request name =
             Utils.buffer_drop buf len;
             ret )
       in
-      let protocol_version, status_code, status_message, headers =
+      let http_version, status_code, status_message, headers =
         try
           let request =
             match request with
@@ -183,7 +181,7 @@ let add_http_request ~stream_body ~descr ~request name =
                 (Printexc.to_string e);
               Lang.raise_as_runtime ~bt ~kind:"http" e
       in
-      let protocol_version = Lang.string protocol_version in
+      let http_version = Lang.string http_version in
       let status_code = Lang.int status_code in
       let status_message = Lang.string status_message in
       let headers =
@@ -198,7 +196,7 @@ let add_http_request ~stream_body ~descr ~request name =
       in
       Lang.meth ret
         [
-          ("protocol_version", protocol_version);
+          ("http_version", http_version);
           ("status_code", status_code);
           ("status_message", status_message);
           ("headers", headers);
@@ -219,3 +217,9 @@ let () =
       add_http_request ~descr:"Perform a full http DELETE request."
         ~request:Delete ~stream_body "delete")
     [false; true]
+
+let () =
+  Lang.add_builtin_base ~category:`Liquidsoap ~descr:"Default user-agent"
+    "http.user_agent"
+    Lang.(Ground (Ground.String Http.user_agent))
+    Lang.string_t

@@ -26,6 +26,7 @@
 type t = Type.t
 
 type scheme = Type.scheme
+type regexp
 
 (** {2 Values} *)
 
@@ -110,6 +111,7 @@ val to_bool : value -> bool
 val to_bool_getter : value -> unit -> bool
 val to_string : value -> string
 val to_string_getter : value -> unit -> string
+val to_regexp : value -> regexp
 val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_error : value -> Runtime_error.runtime_error
@@ -137,6 +139,7 @@ val unit_t : t
 val float_t : t
 val bool_t : t
 val string_t : t
+val regexp_t : t
 val product_t : t -> t -> t
 val of_product_t : t -> t * t
 val tuple_t : t list -> t
@@ -166,6 +169,7 @@ val int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value
+val regexp : regexp -> value
 val list : value list -> value
 val null : value
 val error : Runtime_error.runtime_error -> value
@@ -197,3 +201,18 @@ val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
 
 (** Return the process' environment. *)
 val environment : unit -> (string * string) list
+
+(** Return an unescaped string description of a regexp, i.e. ^foo/bla$ *)
+val descr_of_regexp : regexp -> string
+
+(** Return a string description of a regexp value i.e. r/^foo\/bla$/g *)
+val string_of_regexp : regexp -> string
+
+module Regexp : sig
+  include Regexp.T with type t := regexp
+
+  type sub = Regexp.sub = {
+    matches : string option list;
+    groups : (string * string) list;
+  }
+end

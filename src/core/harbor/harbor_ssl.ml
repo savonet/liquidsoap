@@ -108,6 +108,7 @@ module Transport = struct
   let name = "ssl"
   let file_descr_of_socket = Ssl.file_descr_of_socket
   let read = Ssl.read
+  let write = Ssl.write
 
   let accept sock =
     let s, caller = Unix.accept ~cloexec:true sock in

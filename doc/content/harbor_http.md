@@ -1,82 +1,125 @@
 Harbor as HTTP server
 =====================
-The harbor server can be used as a HTTP server. You 
-can use the function `harbor.http.register` to register
-HTTP handlers. Its parameters are are follow:
+
+The harbor server can be used as a HTTP server. We provide two type of APIs for this:
+
+Simple API
+----------
+
+The `harbor.http.register.simple` function provides a simple, easy to use registration API for quick
+HTTP response implementation. This function receives a record describing the request and returns 
+the HTTP response.
+
+For convenience, a HTTP response builder is provided via `harbor.http.response`. Here's an example:
 
 ```liquidsoap
-harbor.http.register(port=8080,method="GET",uri,handler)
+def handler(request) =
+  log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
+       method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
+       data: #{request.data}")
+
+  harbor.http.response(
+    content_type="text/html",
+    data="<p>ok, this works!</p>"
+  )
+end
+
+harbor.http.register.simple(port=8080, method="GET", path, handler)
 ```
+
 where:
 
 * `port` is the port where to receive incoming connections
 * `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
-* `uri` is used to match requested uri. Perl regular expressions are accepted.
+* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Named named framents are passed via `request.query`, for instance: `req.query["cid"]`.
 
-* `handler` is the function used to process requests.
+Node/express API
+----------------
 
-`handler` function has type:
+The `harbor.http.register` function offers a higher-level API for advanced HTTP response implementation. 
+Its API is very similar to the node/express API. Here's an example:
 
-```
-(~protocol:string, ~data:string, 
- ~headers:[(string*string)], string)->'a))->unit
-where 'a is either string or ()->string
-```
+```liquidsoap
+def handler(request, response) =
+  log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
+       method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
+       data: #{request.data}")
 
-where:
+  # Set response code. Defaults to 200
+  response.status_code(201)
+  
+  # Set response status message. Uses `status_code` if not specified
+  response.status_message("Created")
+  
+  # Replaces response headers
+  response.headers(["X-Foo", "bar"])
+  
+  # Set a single header
+  response.header("X-Foo", "bar")
+  
+  # Set http protocol version
+  response.http_version("1.1")
+  
+  # Same as setting the "Content-Type" header
+  response.content_type("application/liquidsoap")
 
-* `protocol` is the HTTP protocol used by the client. Currently, one of `"HTTP/1.0"` or `"HTTP/1.1"`
-* `data` is the data passed during a POST request
-* `headers` is the list of HTTP headers sent by the client
-* `string` is the (unparsed) uri requested by the client, e.g.: `"/foo?var=bar"`
+  # Set response data. Can be a `string` or a function of type `()->string` returning an empty string
+  # when done such as `file.read`
+  response.data("foo")
+  
+  # Advanced wrappers:
 
-The `handler` function returns HTTP and HTML data to be sent to the client,
-for instance:
+  # Sets content-type to json and data to `json.stringify({foo = "bla"})`
+  response.json({foo = "bla"})
+  
+  # Sets `status_code` and `Location:` header for a HTTP redirect response. Takes an optional `status_code` argument.
+  response.redirect("http://...")
+  
+  # Sets content-type to html and data to `"<p>It works!</p>"`
+  response.html("<p>It works!</p>")
+end
 
-```
-HTTP/1.1 200 OK\r\n\
-Content-type: text/html\r\n\
-Content-Length: 35\r\n\
-\r\n\
-<html><body>It works!</body></html>
-```
-
-(`\r\n` should always be used for line return
-in HTTP content)
-
-The handler is a _string getter_, which means that it can be of either type `string` or type `()->string`.
-The former is used to return the response in one call while the later can be used to returned bigger response
-without having to load the whole response string in memory, for instance in the case of a file.
-
-For convenience, two functions, `http.response` and `http.response.stream` are provided to 
-create a HTTP response string. `http.response` has the following type:
-
-```
-(?protocol:string,?code:int,?headers:[(string*string)],
- ?data:string)->string
-```
-
-where:
-
-* `protocol` is the HTTP protocol of the response (default `HTTP/1.1`)
-* `code` is the response code (default `200`)
-* `headers` is the response headers. It defaults to `[]` but an appropriate `"Content-Length"` header is added if not set by the user and `data` is not empty.
-* `data` is an optional response data (default `""`)
-
-`http.response.stream` has the following type:
-
-```
-(?protocol:string,?code:int,?headers:[(string*string)],
- data_len:int,data:()->string)->string
+harbor.http.register(port=8080, method="GET", path, handler)
 ```
 
 where:
 
-* `protocol` is the HTTP protocol of the response (default `HTTP/1.1`)
-* `code` is the response code (default `200`)
-* `headers` is the response headers. It defaults to `[]` but an appropriate `"Content-Length"` header is added if not set by the user and `data` is not empty.
-* `data_len` is the length of the streamed response
-* `data` is the response stream
+* `port` is the port where to receive incoming connections
+* `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
+* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Matched named framents are passed via `request.query`, for instance: `req.query["cid"]`.
+
+The handler function receives a record containing all the information about the request and fills
+up the details about the response, which is then used to write a proper HTTP response to the client.
+
+Named fragments from the request path are passed to the response `query` list.
+
+Middleware _a la_ node/express are also supported and registered via `http.harbor.middleware.register`. See `http.harbor.middleware.cors` for an example.
+
+Advanced usage
+--------------
+
+All registration functions have a `.regexp` counter part, e.g. `harbor.http.register.simple.regexp`. These function accept
+a full regular expression for their `path` argument. Named matches on the regular expression are also passed via the request's `query`
+parameter.
+
+It is also possible to directly interact with the underlying socket using the `simple` API:
+
+```liquidsoap
+  # Custom response
+  def handler(req) =
+    req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n\r\n")
+    req.socket.close()
+
+    # Null indicates that we're using the socket directly.
+    null()
+  end
+
+  harbor.http.register.simple("/custom", port=3456, handler)
+```
+
+
+Examples
+--------
 
 These functions can be used to create your own HTTP interface. Some examples
 are:
@@ -91,58 +134,20 @@ In this case, you can register the following handler:
 # Redirect all files other
 # than /admin.* to icecast,
 # located at localhost:8000
-def redirect_icecast(~protocol,~data,~headers,uri) =
-   http.response(
-     protocol=protocol,
-     code=301,
-     headers=[("Location","http://localhost:8000#{uri}")]
-   )
+def redirect_icecast(request, response) =
+  response.redirect("http://localhost:8000#{request.path}")
 end
 
 # Register this handler at port 8005
 # (provided harbor sources are also served
 #  from this port).
-harbor.http.register(port=8005,method="GET",
-                     "^/(?!admin)",
-                     redirect_icecast)
+harbor.http.register.regexp(
+  port=8005,
+  method="GET",
+  r/^\/(?!admin)/,
+  redirect_icecast
+)
 ```
-
-Another alternative, less recommended, is to
-directly fetch the page's content from the Icecast server:
-
-```liquidsoap
-# Serve all files other
-# than /admin.* by fetching data
-# from Icecast, located at localhost:8000
-def proxy_icecast(~protocol,~data,~headers,uri) =
-  def f(x) =
-    # Replace Host
-    if string.case(lower=false, fst(x)) == "HOST" then
-      "Host: localhost:8000"
-    else
-      "#{fst(x)}: #{snd(x)}"
-    end
-  end
-  headers = list.map(f,headers)
-  headers = string.concat(separator="\r\n",headers)
-  request = 
-    "#{method} #{uri} #{protocol}\r\n\
-     #{headers}\r\n\r\n"
-  process.read("echo #{quote(request)} | \
-                      nc localhost 8000")
-end
-
-# Register this handler at port 8005
-# (provided harbor sources are also served
-#  from this port).
-harbor.http.register(port=8005,method="GET",
-                     "^/(?!admin)",
-                     proxy_icecast)
-```
-
-This method is not recommended because some servers may not
-close the socket after serving a request, causing `nc` and
-liquidsoap to hang.
 
 Get metadata
 ------------
@@ -154,33 +159,11 @@ using the [JSON export function](json.html) `json.stringify`:
 meta = ref([])
 
 # s = some source
+s.on_metadata(fun (m) -> meta := m)
 
-# Update current metadata
-# converted in UTF8
-def update_meta(m) =
-  m = metadata.export(m)
-  recode = string.recode(out_enc="UTF-8")
-  def f(x) =
-    (recode(fst(x)),recode(snd(x)))
-  end
-  meta := list.map(f,m)
-end
-
-# Apply update_metadata
-# every time we see a new
-# metadata
-s = on_metadata(update_meta,s)
-
-# Return the json content
-# of meta
-def get_meta(~protocol,~data,~headers,uri) =
-  m = !meta
-  http.response(
-    protocol=protocol,
-    code=200,
-    headers=[("Content-Type","application/json; charset=utf-8")],
-    data=json.stringify(m)
-  )
+# Return the json content of meta
+def get_meta(_, response) =
+  response.json(!meta)
 end
 
 # Register get_meta at port 700
@@ -188,7 +171,7 @@ harbor.http.register(port=7000,method="GET","/getmeta",get_meta)
 ```
 
 Once the script is running, 
-a GET/POST request for `/getmeta` at port `7000`
+a GET request for `/getmeta` at port `7000`
 returns the following:
 
 ```
@@ -203,9 +186,6 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-Which can be used with AJAX-based backends to fetch the current 
-metadata of source `s`
-
 Set metadata
 ------------
 Using `insert_metadata`, you can register a GET handler that
@@ -218,13 +198,9 @@ updates the metadata of a given source. For instance:
 s = insert_metadata(s)
 
 # The handler
-def set_meta(~protocol,~data,~headers,uri) =
-  # Split uri of the form request?foo=bar&...
-  # into (request,[("foo","bar"),..])
-  x = url.split(uri)
-
+def set_meta(request, response) =
   # Filter out unusual metadata
-  meta = metadata.export(snd(x))
+  meta = metadata.export(request.query)
   
   # Grab the returned message
   ret =
@@ -235,13 +211,7 @@ def set_meta(~protocol,~data,~headers,uri) =
       "No metadata to add!"
   end
 
-  # Return response
-  http.response(
-   protocol=protocol,
-   code=200,
-   headers=[("Content-Type","text/html")],
-   data="<html><body><b>#{ret}</b></body></html>"
-  )
+  response.html("<html><body><b>#{ret}</b></body></html>")
 end
 
 # Register handler on port 700
@@ -251,16 +221,3 @@ harbor.http.register(port=7000,method="GET","/setmeta",set_meta)
 Now, a request of the form `http://server:7000/setmeta?title=foo`
 will update the metadata of source `s` with `[("title","foo")]`. You
 can use this handler, for instance, in a custom HTML form.
-
-Limitations
-===========
-When using harbor's HTTP server, please be warned that the server is 
-**not** meant to be used under heavy load. Therefore, it should **not**
-be exposed to your users/listeners if you expect many of them. In this
-case, you should use it as a backend/middle-end and have some kind of 
-caching between harbor and the final user. In particular, the harbor server
-is not meant to server big files because it loads their entire content in 
-memory before sending them. However, the harbor HTTP server is fully equipped 
-to serve any kind of CGI script. 
-
-

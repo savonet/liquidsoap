@@ -1,4 +1,3 @@
-(* -*- mode: tuareg; -*- *)
 (*****************************************************************************
 
     Liquidsoap, a programmable audio stream generator.
@@ -29,81 +28,97 @@ end
 
 module Make (Harbor : T) = struct
   let name_up = String.uppercase_ascii Harbor.name
-  let resp_t = Lang.getter_t Lang.string_t
+  let resp_t = Lang.nullable_t (Lang.getter_t Lang.string_t)
   let () = Lang.add_module ("harbor." ^ Harbor.name)
+
+  let request_t =
+    Lang.record_t
+      [
+        ("http_version", Lang.string_t);
+        ("method", Lang.string_t);
+        ("data", Lang.string_t);
+        ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
+        ("query", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
+        ("socket", Builtins_socket.SocketValue.t);
+        ("path", Lang.string_t);
+      ]
+
+  let register_args =
+    [
+      ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to server.");
+      ( "method",
+        Lang.string_t,
+        Some (Lang.string "GET"),
+        Some
+          "Accepted method (\"GET\" / \"POST\" / \"PUT\" / \"DELETE\" / \
+           \"HEAD\" / \"OPTIONS\")." );
+      ("", Lang.regexp_t, None, Some "path to to serve.");
+      ( "",
+        Lang.fun_t [(false, "", request_t)] resp_t,
+        None,
+        Some "Handler function" );
+    ]
+
+  let parse_register_args p =
+    let port = Lang.to_int (List.assoc "port" p) in
+    let verb = Harbor.verb_of_string (Lang.to_string (List.assoc "method" p)) in
+    let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
+    let f = Lang.assoc "" 2 p in
+    let handler ~protocol ~meth ~data ~headers ~query ~socket path =
+      let meth = Harbor.string_of_verb meth in
+      let headers =
+        List.map
+          (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
+          headers
+      in
+      let headers = Lang.list headers in
+      let query =
+        List.map
+          (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
+          query
+      in
+      let query = Lang.list query in
+      let socket =
+        object
+          method typ = Harbor.socket_type
+          method read = Harbor.read socket
+          method write = Harbor.write socket
+          method close = Harbor.close socket
+        end
+      in
+      let socket = Builtins_socket.SocketValue.to_value socket in
+      let request =
+        Lang.record
+          [
+            ("http_version", Lang.string protocol);
+            ("method", Lang.string meth);
+            ("headers", headers);
+            ("query", query);
+            ("socket", socket);
+            ("data", Lang.string data);
+            ("path", Lang.string path);
+          ]
+      in
+
+      let resp = Lang.apply f [("", request)] in
+      match Lang.to_option resp with
+        | None -> Harbor.custom ()
+        | Some resp -> (
+            try Harbor.simple_reply (Lang.to_string resp)
+            with _ -> Harbor.reply (Lang.to_string_getter resp))
+    in
+    (uri, port, verb, handler)
 
   let () =
     Lang.add_builtin
       ("harbor." ^ Harbor.name ^ ".register")
       ~category:`Liquidsoap
       ~descr:
-        (Printf.sprintf
-           "Register a %s handler on the harbor. The given function receives \
-            as argument the full requested uri (e.g. \"foo?var=bar\"), http \
-            protocol version, possible input data and the list of HTTP headers \
-            and returns the answer sent to the client, including HTTP headers. \
-            Registered uri can be regular expressions (e.g. \".+\\.php\") and \
-            can override default metadata handlers. Response is a string \
-            getter, i.e. either of type `string` or type `()->string`. In the \
-            later case, getter function will be called until it returns an \
-            empty string."
-           name_up)
-      [
-        ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to server.");
-        ( "method",
-          Lang.string_t,
-          Some (Lang.string "GET"),
-          Some
-            "Accepted method (\"GET\" / \"POST\" / \"PUT\" / \"DELETE\" / \
-             \"HEAD\" / \"OPTIONS\")." );
-        ("", Lang.string_t, None, Some "URI to serve.");
-        ( "",
-          Lang.fun_t
-            [
-              (false, "protocol", Lang.string_t);
-              (false, "data", Lang.string_t);
-              ( false,
-                "headers",
-                Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) );
-              (false, "", Lang.string_t);
-            ]
-            resp_t,
-          None,
-          Some
-            "Function to execute. Method argument is \"PUT\" or \"GET\", \
-             protocol argument is \"HTTP/1.1\" or \"HTTP/1.0\" etc., data \
-             argument contains data passed in case of a PUT request, and \"\" \
-             otherwise. Headers argument contains the HTTP headers. Unlabeled \
-             argument contains the requested URI." );
-      ]
-      Lang.unit_t
+        "Low-level harbor handler registration. Overriden in standard library."
+      register_args Lang.unit_t
       (fun p ->
-        let port = Lang.to_int (List.assoc "port" p) in
-        let verb =
-          Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
-        in
-        let uri = Lang.to_string (Lang.assoc "" 1 p) in
-        let f = Lang.assoc "" 2 p in
-        let f ~protocol ~data ~headers ~socket:_ uri =
-          let l =
-            List.map
-              (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
-              headers
-          in
-          let l = Lang.list l in
-          let resp =
-            Lang.apply f
-              [
-                ("", Lang.string uri);
-                ("headers", l);
-                ("data", Lang.string data);
-                ("protocol", Lang.string protocol);
-              ]
-          in
-          try Harbor.simple_reply (Lang.to_string resp)
-          with _ -> Harbor.reply (Lang.to_string_getter resp)
-        in
-        Harbor.add_http_handler ~port ~verb ~uri f;
+        let uri, port, verb, handler = parse_register_args p in
+        Harbor.add_http_handler ~port ~verb ~uri handler;
         Lang.unit)
 
   let () =
@@ -118,12 +133,12 @@ module Make (Harbor : T) = struct
           Lang.string_t,
           Some (Lang.string "GET"),
           Some "Method served." );
-        ("", Lang.string_t, None, Some "URI served.");
+        ("", Lang.regexp_t, None, Some "URI served.");
       ]
       Lang.unit_t
       (fun p ->
         let port = Lang.to_int (List.assoc "port" p) in
-        let uri = Lang.to_string (Lang.assoc "" 1 p) in
+        let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
         let verb =
           Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
         in

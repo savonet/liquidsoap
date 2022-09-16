@@ -47,6 +47,7 @@ lastfm.liq
 playlist.liq
 hls.liq
 runtime.liq
+http_extra.liq
 server.liq
 settings.liq)))
   

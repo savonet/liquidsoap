@@ -350,6 +350,7 @@ module Make (T : T) = struct
     let uri =
       match mount.[0] with '/' -> mount | _ -> Printf.sprintf "%c%s" '/' mount
     in
+    let uri = Lang.Regexp.regexp [%string {|^\/%{uri}$|}] in
     let autostart = Lang.to_bool (List.assoc "start" p) in
     let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
     let on_start =
@@ -437,7 +438,7 @@ module Make (T : T) = struct
         (Option.get encoder).Encoder.insert_metadata
           (Meta_format.export_metadata m)
 
-      method add_client ~protocol ~headers ~uri ~args s =
+      method add_client ~protocol ~headers ~uri ~query s =
         let ip =
           (* Show port = true to catch different clients from same ip *)
           let fd = Harbor.file_descr_of_socket s in
@@ -519,15 +520,15 @@ module Make (T : T) = struct
             then (
              let default_user = Option.value default_user ~default:"" in
              Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-               (Harbor.http_auth_check ~args ~login:(default_user, login) s
+               (Harbor.http_auth_check ~query ~login:(default_user, login) s
                   headers))
             else Duppy.Monad.return ())
             (function
-              | Harbor.Relay _ -> assert false
               | Harbor.Close s ->
                   self#log#info "Client %s failed to authenticate!" ip;
                   client.state <- Done;
-                  Harbor.reply s)
+                  Harbor.reply s
+              | _ -> assert false)
         in
         Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
           (Harbor.relayed reply (fun () ->
@@ -596,16 +597,8 @@ module Make (T : T) = struct
         assert (encoder = None);
         let enc = data.factory self#id in
         encoder <- Some (enc Meta_format.empty_metadata);
-        let handler ~protocol ~data:_ ~headers ~socket uri =
-          let rex = Pcre.regexp "^(.+)\\?(.+)$" in
-          let _, args =
-            try
-              let sub = Pcre.exec ~rex uri in
-              (Pcre.get_substring sub 1, Pcre.get_substring sub 2)
-            with Not_found -> (uri, "")
-          in
-          let args = Http.args_split args in
-          self#add_client ~protocol ~headers ~uri ~args socket
+        let handler ~protocol ~meth:_ ~data:_ ~headers ~query ~socket uri =
+          self#add_client ~protocol ~headers ~uri ~query socket
         in
         Harbor.add_http_handler ~port ~verb:`Get ~uri handler;
         match dumpfile with

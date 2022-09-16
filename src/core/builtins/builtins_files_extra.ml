@@ -51,8 +51,8 @@ let () =
       let file_perms = Lang.to_int (List.assoc "perms" p) in
       let path = Lang_string.home_unrelate (Lang.to_string (List.assoc "" p)) in
       try
-        Builtins_socket.SocketValue.to_value
-          (Unix.openfile path flags file_perms)
+        Builtins_socket.SocketValue.(
+          to_value (of_unix_file_descr (Unix.openfile path flags file_perms)))
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)

@@ -31,4 +31,4 @@
    "server port"
    liquidsoap
    --check
-   "harbor.http.register(port=2000,method=\"GET\",\"/foo\",(fun (~protocol=_,~data=_,~headers=_,_) -> \"test\"))")))
+   "harbor.http.register.simple(port=2000,method=\"GET\",\"/foo\",(fun (_) -> \"test\"))")))

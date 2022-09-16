@@ -250,8 +250,8 @@ let parse_comments tokenizer =
                 ~pat:"^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$"
                 line
             in
-            let s = Regexp.get_substring sub 2 in
-            match Regexp.get_substring sub 1 with
+            let s = Option.get (List.nth sub.Regexp.matches 2) in
+            match Option.get (List.nth sub.Regexp.matches 1) with
               | "docof" ->
                   let doc = Environment.builtins#get_subsection s in
                   let main_doc = doc#get_doc in
@@ -280,13 +280,13 @@ let parse_comments tokenizer =
                       let sub =
                         Regexp.exec ~pat:"^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$" s
                       in
-                      let s = Regexp.get_substring sub 1 in
+                      let s = Option.get (List.nth sub.Regexp.matches 1) in
                       let args =
                         List.filter
                           (fun s -> s <> "")
                           (List.map String.trim
                              (String.split_on_char ','
-                                (Regexp.get_substring sub 2)))
+                                (Option.get (List.nth sub.Regexp.matches 2))))
                       in
                       let only, except =
                         List.fold_left
@@ -322,8 +322,8 @@ let parse_comments tokenizer =
                   parse_doc (main, `Flag s :: special, params, methods) lines
               | "param" ->
                   let sub = Regexp.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s in
-                  let label = Regexp.get_substring sub 1 in
-                  let descr = Regexp.get_substring sub 2 in
+                  let label = Option.get (List.nth sub.Regexp.matches 1) in
+                  let descr = Option.get (List.nth sub.Regexp.matches 2) in
                   let label =
                     if label.[0] = '~' then
                       String.sub label 1 (String.length label - 1)
@@ -352,8 +352,8 @@ let parse_comments tokenizer =
                     lines
               | "method" ->
                   let sub = Regexp.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s in
-                  let label = Regexp.get_substring sub 1 in
-                  let descr = Regexp.get_substring sub 2 in
+                  let label = Option.get (List.nth sub.Regexp.matches 1) in
+                  let descr = Option.get (List.nth sub.Regexp.matches 2) in
                   parse_doc
                     (main, special, params, (label, descr) :: methods)
                     lines

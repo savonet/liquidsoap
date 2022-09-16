@@ -41,25 +41,29 @@ let regexp_flag_of_string = function
   | "m" -> `m
   | _ -> assert false
 
+let escape_regex_descr =
+  let escape_regex_formatter =
+    Lang_string.escape
+      ~special_char:(fun s pos len ->
+        if List.mem s.[pos] ['\''; '/'] && len = 1 then true
+        else Lang_string.utf8_special_char s pos len)
+      ~escape_char:(fun s pos len ->
+        if s.[pos] = '/' && len = 1 then "\\/"
+        else Lang_string.escape_utf8_char s pos len)
+      ~next:Lang_string.utf8_next
+  in
+  Lang_string.escape_string escape_regex_formatter
+
+let string_of_regexp { descr; flags } =
+  Printf.sprintf "r/%s/%s" (escape_regex_descr descr)
+    (String.concat ""
+       (List.sort Stdlib.compare (List.map string_of_regexp_flag flags)))
+
 module RegExp = Value.MkAbstract (struct
   type content = regexp
 
   let name = "regexp"
-
-  let escape_regex_descr =
-    let escape_regex_formatter =
-      Lang_string.escape
-        ~special_char:(fun s pos len ->
-          if s.[pos] = '\'' && len = 1 then true
-          else Lang_string.utf8_special_char s pos len)
-        ~escape_char:Lang_string.escape_utf8_char ~next:Lang_string.utf8_next
-    in
-    Lang_string.escape_string escape_regex_formatter
-
-  let descr { descr; flags } =
-    Printf.sprintf "r/%s/%s" (escape_regex_descr descr)
-      (String.concat ""
-         (List.sort Stdlib.compare (List.map string_of_regexp_flag flags)))
+  let descr = string_of_regexp
 
   let to_json _ =
     raise
@@ -77,60 +81,89 @@ module RegExp = Value.MkAbstract (struct
       (r'.descr, List.sort Stdlib.compare r'.flags)
 end)
 
-let test_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t
+let test_t = Lang_core.fun_t [(false, "", Lang_core.string_t)] Lang_core.bool_t
 
 let test_fun ~flags:_ rex =
-  Lang.val_fun [("", "", None)] (fun p ->
-      let string = Lang.to_string (List.assoc "" p) in
-      Lang.bool (Regexp.test ~rex string))
+  Lang_core.val_fun [("", "", None)] (fun p ->
+      let string = Lang_core.to_string (List.assoc "" p) in
+      Lang_core.bool (Regexp.test ~rex string))
 
 let split_t =
-  Lang.fun_t [(false, "", Lang.string_t)] (Lang.list_t Lang.string_t)
+  Lang_core.fun_t
+    [(false, "", Lang_core.string_t)]
+    (Lang_core.list_t Lang_core.string_t)
 
 let split_fun ~flags:_ rex =
-  Lang.val_fun [("", "", None)] (fun p ->
-      let string = Lang.to_string (List.assoc "" p) in
-      Lang.list (List.map Lang.string (Regexp.split ~rex string)))
+  Lang_core.val_fun [("", "", None)] (fun p ->
+      let string = Lang_core.to_string (List.assoc "" p) in
+      Lang_core.list (List.map Lang_core.string (Regexp.split ~rex string)))
 
 let exec_t =
-  Lang.fun_t
-    [(false, "", Lang.string_t)]
-    (Lang.list_t (Lang.product_t Lang.int_t Lang.string_t))
+  let matches_t =
+    Lang_core.list_t (Lang_core.product_t Lang_core.int_t Lang_core.string_t)
+  in
+  Lang_core.fun_t
+    [(false, "", Lang_core.string_t)]
+    (Lang_core.method_t matches_t
+       [
+         ( "groups",
+           ( [],
+             Lang_core.list_t
+               (Lang_core.product_t Lang_core.string_t Lang_core.string_t) ),
+           "Named captures" );
+       ])
 
 let exec_fun ~flags:_ regexp =
-  Lang.val_fun [("", "", None)] (fun p ->
-      let string = Lang.to_string (List.assoc "" p) in
+  Lang_core.val_fun [("", "", None)] (fun p ->
+      let string = Lang_core.to_string (List.assoc "" p) in
       try
-        let sub = Regexp.exec ~rex:regexp string in
-        let n = Regexp.num_of_subs sub in
-        let rec extract acc i =
-          if i < n then (
-            try extract ((i, Regexp.get_substring sub i) :: acc) (i + 1)
-            with Not_found -> extract acc (i + 1))
-          else List.rev acc
+        let { Regexp.matches; groups } = Regexp.exec ~rex:regexp string in
+        let matches =
+          Lang_core.list
+            (List.fold_left
+               (fun matches (pos, value) ->
+                 match value with
+                   | None -> matches
+                   | Some value ->
+                       Lang_core.product (Lang_core.int pos)
+                         (Lang_core.string value)
+                       :: matches)
+               []
+               (List.mapi (fun pos v -> (pos, v)) matches))
         in
-        let l = extract [] 1 in
-        Lang.list
-          (List.map (fun (x, y) -> Lang.product (Lang.int x) (Lang.string y)) l)
-      with Not_found -> Lang.list [])
+        Lang_core.meth matches
+          [
+            ( "groups",
+              Lang_core.list
+                (List.map
+                   (fun (name, value) ->
+                     Lang_core.product (Lang_core.string name)
+                       (Lang_core.string value))
+                   groups) );
+          ]
+      with Not_found -> Lang_core.list [])
 
 let replace_t =
-  Lang.fun_t
+  Lang_core.fun_t
     [
-      (false, "", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t);
-      (false, "", Lang.string_t);
+      ( false,
+        "",
+        Lang_core.fun_t [(false, "", Lang_core.string_t)] Lang_core.string_t );
+      (false, "", Lang_core.string_t);
     ]
-    Lang.string_t
+    Lang_core.string_t
 
 let replace_fun ~flags regexp =
-  Lang.val_fun [("", "", None); ("", "", None)] (fun p ->
-      let subst = Lang.assoc "" 1 p in
-      let pos = match subst.Lang.pos with Some pos -> [pos] | None -> [] in
-      let subst s =
-        let ret = Lang.apply subst [("", Lang.string s)] in
-        Lang.to_string ret
+  Lang_core.val_fun [("", "", None); ("", "", None)] (fun p ->
+      let subst = Lang_core.assoc "" 1 p in
+      let pos =
+        match subst.Lang_core.pos with Some pos -> [pos] | None -> []
       in
-      let string = Lang.to_string (Lang.assoc "" 2 p) in
+      let subst s =
+        let ret = Lang_core.apply subst [("", Lang_core.string s)] in
+        Lang_core.to_string ret
+      in
+      let string = Lang_core.to_string (Lang_core.assoc "" 2 p) in
       let sub =
         if List.mem `g flags then Regexp.substitute else Regexp.substitute_first
       in
@@ -147,7 +180,7 @@ let replace_fun ~flags regexp =
                  pos;
                })
       in
-      Lang.string string)
+      Lang_core.string string)
 
 let () =
   let meth =
@@ -171,15 +204,15 @@ let () =
     ]
   in
   let t =
-    Lang.method_t RegExp.t
+    Lang_core.method_t RegExp.t
       (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
   in
-  Lang.add_builtin "regexp" ~category:`String
+  Lang_core.add_builtin "regexp" ~category:`String
     ~descr:"Create a regular expression"
     [
       ( "flags",
-        Lang.list_t Lang.string_t,
-        Some (Lang.list []),
+        Lang_core.list_t Lang_core.string_t,
+        Some (Lang_core.list []),
         Some
           (Printf.sprintf "List of flags. Valid flags: %s."
              (String.concat ", "
@@ -187,21 +220,21 @@ let () =
                    (fun f ->
                      Printf.sprintf "`\"%s\"`" (string_of_regexp_flag f))
                    all_regexp_flags))) );
-      ("", Lang.string_t, None, None);
+      ("", Lang_core.string_t, None, None);
     ]
     t
     (fun p ->
       let flags =
         List.map
           (fun v ->
-            try regexp_flag_of_string (Lang.to_string v)
+            try regexp_flag_of_string (Lang_core.to_string v)
             with _ -> raise (Error.Invalid_value (v, "Invalid regexp flag")))
-          (Lang.to_list (List.assoc "flags" p))
+          (Lang_core.to_list (List.assoc "flags" p))
       in
-      let descr = Lang.to_string (List.assoc "" p) in
+      let descr = Lang_core.to_string (List.assoc "" p) in
       let regexp = Regexp.regexp ~flags descr in
       let v = RegExp.to_value { descr; flags; regexp } in
       let meth =
         List.map (fun (name, _, _, fn) -> (name, fn ~flags regexp)) meth
       in
-      Lang.meth v meth)
+      Lang_core.meth v meth)
