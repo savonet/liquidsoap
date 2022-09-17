@@ -1,8 +1,13 @@
 # Get the value associated to a variable in the process environment.
-# Returns "" if the variable is not set.
+# Returns `default` if the variable is not set.
 # @category System
-def getenv(~default="", s) =
-  list.assoc(default=default, s, environment())
+def environment.get(~default=null(), s) =
+  env = environment()
+  if not list.assoc.mem(s, env) then
+    default
+  else 
+    list.assoc(default=default, s, env)
+  end
 end
 
 # Split the arguments of an url of the form `arg=bar&arg2=bar2` into

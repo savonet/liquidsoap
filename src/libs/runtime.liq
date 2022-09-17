@@ -36,5 +36,5 @@ end
 # variable.
 # @category Liquidsoap
 def time.zone.set(tz) =
-  setenv("TZ", tz)
+  environment.set("TZ", tz)
 end

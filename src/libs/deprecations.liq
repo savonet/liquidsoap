@@ -574,3 +574,15 @@ def request.ready(r) =
   deprecated("request.ready", "request.resolved")
   request.resolved(r)
 end
+
+# Deprecated: use `environment.get`
+# @flag deprecated
+def getenv(default="", v) =
+  environment.get(default=default, v)
+end
+
+# Deprecated: use `environment.set`
+# @flag deprecated
+def setenv(k, v) =
+  environment.set(k, v)
+end

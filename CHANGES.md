@@ -37,6 +37,7 @@ Changed:
   `video.add_text`, etc.) (#2623).
 - Add `on_cycle` option to `video.add_text` to register a handler when cycling
   (#2621).
+- Renamed `{get,set}env` into `environment.{get,set}`
 
 Fixed:
 
