@@ -142,7 +142,8 @@ def f() =
     t(error.message(err), "Port is already opened with a different transport")
   end
 
-  test.pass()
+  # Register output on the same port
+  output.harbor(port=3456, mount="bla.wav", on_start=test.pass, %wav, sine())
 end
 
 test.check(f)

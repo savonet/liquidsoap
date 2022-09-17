@@ -144,7 +144,8 @@ def harbor.http.regexp_of_path(path) =
     name = string.sub(s, start=1, length=string.length(s)-1)
     "(?<#{name}>[^/]+)"
   end
-  regexp(r/:[\w_]+/g.replace(named_capture, path))
+  rex = r/:[\w_]+/g.replace(named_capture, path)
+  regexp("^#{rex}$")
 end
 
 # Register a HTTP handler on the harbor. This function offers a simple API,
