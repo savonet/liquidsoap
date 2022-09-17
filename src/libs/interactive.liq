@@ -294,8 +294,9 @@ end
 # Expose interactive variables through habor http server.
 # @category Interaction
 # @param ~port Port of the server.
+# @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
 # @param ~uri URI of the server.
-def interactive.harbor(~port=8000, ~uri="/interactive")
+def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/interactive")
   def webpage(request, response)
     form_data = request.data
     data = ref("")
@@ -414,7 +415,7 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
     response.html(!data)
   end
 
-  harbor.http.register(port=port, method="GET", uri, webpage)
+  harbor.http.register(transport=transport, port=port, method="GET", uri, webpage)
 
   def setter(request, _)
     data = url.split_args(request.data)
@@ -440,7 +441,7 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
     list.iter(update, data)
   end
 
-  harbor.http.register(port=port, method="POST", uri, setter)
+  harbor.http.register(transport=transport, port=port, method="POST", uri, setter)
   log.important(label="interactive.harbor", "Website should be ready at <http://localhost:#{port}#{uri}>.")
 end
 

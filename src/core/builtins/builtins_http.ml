@@ -24,6 +24,11 @@ type request = Get | Post | Put | Head | Delete
 
 let request_with_body = [Get; Post; Put]
 
+let () =
+  Lang.add_builtin_base ~category:`Liquidsoap
+    ~descr:"Http unencrypted transport" "http.transport.unix"
+    (Lang.http_transport Http.unix_transport).Lang.value Lang.http_transport_t
+
 let add_http_error kind =
   Lang.add_builtin_base ~category:`Liquidsoap
     ~descr:(Printf.sprintf "Base error for %s" kind)

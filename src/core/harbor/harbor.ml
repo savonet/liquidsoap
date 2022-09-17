@@ -31,13 +31,11 @@ let ( let* ) = Duppy.Monad.bind
 module type Monad_t = module type of Monad with module Io := Monad.Io
 
 module type Transport_t = sig
-  type socket
+  type socket = Http.socket
 
-  val name : string
   val file_descr_of_socket : socket -> Unix.file_descr
   val read : socket -> bytes -> int -> int -> int
   val write : socket -> bytes -> int -> int -> int
-  val accept : Unix.file_descr -> socket * Unix.sockaddr
   val close : socket -> unit
 
   module Duppy : sig
@@ -51,23 +49,47 @@ module type Transport_t = sig
     end
   end
 
-  module Http : Http.Http_t with type connection = socket
   module Websocket : Websocket.Websocket_t with type socket = socket
 end
 
-module Unix_transport = struct
-  type socket = Unix.file_descr
+module Http_transport = struct
+  type socket = Http.socket
 
-  let name = "unix"
-  let file_descr_of_socket socket = socket
-  let read = Unix.read
-  let write = Unix.write
-  let accept fd = Unix.accept ~cloexec:true fd
-  let close = Unix.close
+  let file_descr_of_socket socket = socket#file_descr
+  let read socket = socket#read
+  let write socket = socket#write
+  let close socket = socket#close
 
-  module Duppy = Duppy
-  module Http = Http
-  module Websocket = Websocket
+  module Duppy_transport : Duppy.Transport_t with type t = Http.socket = struct
+    type t = Http.socket
+
+    type bigarray =
+      (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+    let sock socket = socket#file_descr
+    let read = read
+    let write = write
+    let ba_write _ _ _ _ = failwith "Not implemented!"
+  end
+
+  module Duppy = struct
+    module Io = Duppy.MakeIo (Duppy_transport)
+
+    module Monad = struct
+      module Io = Duppy.Monad.MakeIo (Io)
+      include (Monad : Monad_t)
+    end
+  end
+
+  module Websocket_transport = struct
+    type socket = Http.socket
+
+    let read = read
+    let read_retry socket = Extralib.read_retry socket#read
+    let write = write
+  end
+
+  module Websocket = Websocket.Make (Websocket_transport)
 end
 
 module type T = sig
@@ -78,13 +100,11 @@ module type T = sig
   exception Not_authenticated
   exception Unknown_codec
   exception Mount_taken
-  exception Registered
   exception Websocket_closed
 
   (* Generic *)
 
   val file_descr_of_socket : socket -> Unix.file_descr
-  val socket_type : string
   val read : socket -> bytes -> int -> int -> int
   val write : socket -> bytes -> int -> int -> int
   val close : socket -> unit
@@ -116,7 +136,12 @@ module type T = sig
   val custom : unit -> ('a, reply) Duppy.Monad.t
 
   val add_http_handler :
-    port:int -> verb:http_verb -> uri:Lang.regexp -> http_handler -> unit
+    transport:Http.transport ->
+    port:int ->
+    verb:http_verb ->
+    uri:Lang.regexp ->
+    http_handler ->
+    unit
 
   val remove_http_handler :
     port:int -> verb:http_verb -> uri:Lang.regexp -> unit -> unit
@@ -152,12 +177,19 @@ module type T = sig
     (unit, reply) Duppy.Monad.t
 
   val relayed : string -> (unit -> unit) -> ('a, reply) Duppy.Monad.t
-  val add_source : port:int -> mountpoint:string -> icy:bool -> source -> unit
+
+  val add_source :
+    transport:Http.transport ->
+    port:int ->
+    mountpoint:string ->
+    icy:bool ->
+    source ->
+    unit
+
   val remove_source : port:int -> mountpoint:string -> unit -> unit
 end
 
 module Make (T : Transport_t) : T with type socket = T.socket = struct
-  module Http = T.Http
   module Websocket = T.Websocket
   module Task = Duppy.Task
   module Duppy = T.Duppy
@@ -165,17 +197,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   type socket = T.socket
 
   let file_descr_of_socket = T.file_descr_of_socket
-  let socket_type = T.name
   let read = T.read
   let write = T.write
   let close = T.close
 
-  let protocol_name =
-    match T.name with
-      | "unix" -> "HTTP"
-      | "ssl" -> "HTTPS"
-      | "secure_transport" -> "HTTPS"
-      | _ -> assert false
+  let protocol_name h =
+    Printf.sprintf "%s/%s" h.Duppy.Monad.Io.socket#transport#protocol
+      h.Duppy.Monad.Io.socket#transport#name
 
   (* Define what we need as a source *)
 
@@ -286,13 +314,18 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   type http_handlers = (http_verb * Lang.regexp * http_handler) list Atomic.t
   type handler = { sources : sources; http : http_handlers }
-  type open_port = handler * Unix.file_descr list
+
+  type open_port = {
+    handler : handler;
+    transport : Http.transport;
+    fds : Unix.file_descr list;
+  }
 
   let opened_ports : (int, open_port) Hashtbl.t = Hashtbl.create 1
   let find_handler = Hashtbl.find opened_ports
 
   let find_source mount port =
-    Hashtbl.find (fst (find_handler port)).sources mount
+    Hashtbl.find (find_handler port).handler.sources mount
 
   exception Assoc of string
 
@@ -308,7 +341,6 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   exception Not_authenticated
   exception Unknown_codec
   exception Mount_taken
-  exception Registered
 
   let http_error_page code status msg =
     "HTTP/1.0 " ^ string_of_int code ^ " " ^ status
@@ -726,7 +758,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       with Not_found -> (uri, "")
     in
     let smethod = string_of_verb hmethod in
-    log#info "%s %s request on %s." protocol_name smethod base_uri;
+    log#info "%s %s request on %s." (protocol_name h) smethod base_uri;
     let args = Http.args_split args in
     (try
        if
@@ -742,10 +774,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Hashtbl.remove log_args "pass";
         log_args)
     in
-    Hashtbl.iter (log#info "%s Arg: %s, value: %s." protocol_name) log_args;
+    Hashtbl.iter (log#info "%s Arg: %s, value: %s." (protocol_name h)) log_args;
 
     (* First, try with a registered handler. *)
-    let handler, _ = find_handler port in
+    let { handler; _ } = find_handler port in
     let f (verb, rex, handler) =
       if (verb :> verb) = hmethod && Lang.Regexp.test ~rex base_uri then (
         let { Lang.Regexp.groups } = Lang.Regexp.exec ~rex base_uri in
@@ -794,8 +826,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       | e ->
           let bt = Printexc.get_backtrace () in
           Utils.log_exception ~log ~bt
-            (Printf.sprintf "%s %s request on uri '%s' failed: %s" protocol_name
-               smethod (Printexc.to_string e) uri);
+            (Printf.sprintf "%s %s request on uri '%s' failed: %s"
+               (protocol_name h) smethod (Printexc.to_string e) uri);
           ans_500 ()
 
   let handle_client ~port ~icy h =
@@ -913,12 +945,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   (* {1 The server} *)
   (* Open a port and listen to it. *)
-  let open_port ~icy port =
+  let open_port ~transport ~icy port =
     log#info "Opening port %d with icy = %b" port icy;
     let max_conn = conf_harbor_max_conn#get in
     let process_client sock =
       try
-        let socket, caller = T.accept sock in
+        let socket, caller = transport#accept sock in
         let ip = Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller in
         log#info "New client on port %i: %s" port ip;
         let unix_socket = T.file_descr_of_socket socket in
@@ -973,7 +1005,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       with e ->
         log#severe "Failed to accept new client: %s" (Printexc.to_string e)
     in
-    let rec incoming ~port ~icy events out_s e =
+    let rec incoming ~port ~icy events (out_s : Unix.file_descr) e =
       if List.mem (`Read out_s) e then (
         try
           List.iter
@@ -1021,31 +1053,38 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   (* This, contrary to the find_xx functions
    * creates the handlers when they are missing. *)
-  let get_handler ~icy port =
+  let get_handler ~transport ~icy port =
     try
-      let h, socks = Hashtbl.find opened_ports port in
+      let { handler; fds; transport = t } = Hashtbl.find opened_ports port in
+      if transport != t then
+        Runtime_error.error
+          ~message:"Port is already opened with a different transport" "http";
       (* If we have only one socket and icy=true,
        * we need to open a second one. *)
-      if List.length socks = 1 && icy then (
-        let socks = open_port ~icy (port + 1) :: socks in
-        Hashtbl.replace opened_ports port (h, socks))
+      if List.length fds = 1 && icy then (
+        let fds = open_port ~transport ~icy (port + 1) :: fds in
+        Hashtbl.replace opened_ports port { handler; fds; transport })
       else ();
-      h
+      handler
     with Not_found ->
       (* First the port without icy *)
-      let socks = [open_port ~icy:false port] in
+      let fds = [open_port ~transport ~icy:false port] in
       (* Now the port with icy, is requested.*)
-      let socks = if icy then open_port ~icy (port + 1) :: socks else socks in
-      let h = { sources = Hashtbl.create 1; http = Atomic.make [] } in
-      Hashtbl.add opened_ports port (h, socks);
-      h
+      let fds =
+        if icy then open_port ~transport ~icy (port + 1) :: fds else fds
+      in
+      let handler = { sources = Hashtbl.create 1; http = Atomic.make [] } in
+      Hashtbl.add opened_ports port { handler; fds; transport };
+      handler
 
   (* Add sources... This is tied up to sources lifecycle so
      no need to prevent early start *)
-  let add_source ~port ~mountpoint ~icy source =
+  let add_source ~transport ~port ~mountpoint ~icy source =
     let sources =
-      let handler = get_handler ~icy port in
-      if Hashtbl.mem handler.sources mountpoint then raise Registered else ();
+      let handler = get_handler ~transport ~icy port in
+      if Hashtbl.mem handler.sources mountpoint then
+        Runtime_error.error ~message:"Mountpoint is already taken!" "http"
+      else ();
       handler.sources
     in
     log#important "Adding mountpoint '%s' on port %i" mountpoint port;
@@ -1053,7 +1092,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   (* Remove source. *)
   let remove_source ~port ~mountpoint () =
-    let handler, socks = Hashtbl.find opened_ports port in
+    let { handler; fds; _ } = Hashtbl.find opened_ports port in
     assert (Hashtbl.mem handler.sources mountpoint);
     log#important "Removing mountpoint '%s' on port %i" mountpoint port;
     Hashtbl.remove handler.sources mountpoint;
@@ -1066,14 +1105,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         ignore (Unix.write in_s (Bytes.of_string " ") 0 1);
         Unix.close in_s
       in
-      List.iter f socks;
+      List.iter f fds;
       Hashtbl.remove opened_ports port)
     else ()
 
   (* Add http_handler... *)
-  let add_http_handler ~port ~verb ~uri h =
+  let add_http_handler ~transport ~port ~verb ~uri h =
     let exec () =
-      let handler = get_handler ~icy:false port in
+      let handler = get_handler ~transport ~icy:false port in
       let suri = Lang.descr_of_regexp uri in
       log#important "Adding handler for '%s %s' on port %i"
         (string_of_verb verb) suri port;
@@ -1084,7 +1123,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (* Remove http_handler. *)
   let remove_http_handler ~port ~verb ~uri () =
     let exec () =
-      let handler, socks = Hashtbl.find opened_ports port in
+      let { handler; fds; _ } = Hashtbl.find opened_ports port in
       let suri = Lang.descr_of_regexp uri in
       let handlers, removed =
         List.partition
@@ -1104,12 +1143,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           ignore (Unix.write in_s (Bytes.of_string " ") 0 1);
           Unix.close in_s
         in
-        List.iter f socks;
+        List.iter f fds;
         Hashtbl.remove opened_ports port)
       else ()
     in
     Server.on_start exec
 end
 
-module Unix = Make (Unix_transport)
-include Unix
+module Harbor = Make (Http_transport)
+include Harbor

@@ -557,11 +557,7 @@
  (wrapped false)
  (optional)
  (modules
-  harbor_secure_transport
-  harbor_input_secure_transport
-  harbor_output_secure_transport
-  https_secure_transport
-  builtins_harbor_secure_transport))
+  builtins_http_secure_transport))
 
 (library
  (name liquidsoap_portaudio)
@@ -651,11 +647,7 @@
  (optional)
  (modules
   ssl_base
-  harbor_ssl
-  harbor_input_ssl
-  harbor_output_ssl
-  https
-  builtins_harbor_ssl))
+  builtins_http_ssl))
 
 (library
  (name liquidsoap_taglib)

@@ -132,9 +132,18 @@ def f() =
   t(resp.http_version, "1.1")
   t(resp.status_code, 200)
   t("#{resp}", "")
-  
 
-  test.pass()
+  # transport conflict
+  transport = http.transport.ssl(certificate="foo", key="bla")
+  try
+    harbor.http.register("/default", transport=transport, port=3456, fun (_, _) -> ())
+    test.fail()
+  catch err : [error.http] do
+    t(error.message(err), "Port is already opened with a different transport")
+  end
+
+  # Register output on the same port
+  output.harbor(port=3456, mount="bla.wav", on_start=test.pass, %wav, sine())
 end
 
 test.check(f)
