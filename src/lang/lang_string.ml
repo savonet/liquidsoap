@@ -224,7 +224,7 @@ let unescape_char = function
   | _ -> assert false
 
 let unescape_string s =
-  let rex = Regexp.regexp (String.concat "|" unescape_patterns) in
+  let rex = Regexp.regexp ~flags:[`g] (String.concat "|" unescape_patterns) in
   Regexp.substitute rex ~subst:unescape_char s
 
 (** String representation of a matrix of strings. *)
