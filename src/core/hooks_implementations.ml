@@ -47,7 +47,12 @@ let regexp ?(flags = []) s =
       { Lang.Regexp.matches; groups }
 
     method test s = Pcre.pmatch ~rex s
-    method substitute ~subst s = Pcre.substitute ~rex ~subst s
+
+    method substitute ~subst s =
+      let substitute =
+        if List.mem `g flags then Pcre.substitute else Pcre.substitute_first
+      in
+      substitute ~rex ~subst s
   end
 
 let () =
