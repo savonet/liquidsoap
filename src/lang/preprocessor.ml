@@ -161,7 +161,7 @@ let expand_string tokenizer =
   let add pos x = Queue.add (x, pos) state in
   let pop () = ignore (Queue.take state) in
   let parse s pos =
-    let l = Regexp.split ~pat:"#{(.*?)}" s in
+    let l = Regexp.split (Regexp.regexp "#{(.*?)}") s in
     let l = if l = [] then [""] else l in
     let add = add pos in
     let rec parse = function
@@ -227,7 +227,8 @@ let parse_comments tokenizer =
     in
     let doc =
       List.map
-        (fun x -> Regexp.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "") x)
+        (fun x ->
+          Regexp.substitute (Regexp.regexp "^\\s*#\\s?") ~subst:(fun _ -> "") x)
         doc
     in
     let get_args doc =
@@ -247,7 +248,8 @@ let parse_comments tokenizer =
           try
             let sub =
               Regexp.exec
-                ~pat:"^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$"
+                (Regexp.regexp
+                   "^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$")
                 line
             in
             let s = Option.get (List.nth sub.Regexp.matches 2) in
@@ -278,7 +280,9 @@ let parse_comments tokenizer =
                   let s, only, except =
                     try
                       let sub =
-                        Regexp.exec ~pat:"^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$" s
+                        Regexp.exec
+                          (Regexp.regexp "^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$")
+                          s
                       in
                       let s = Option.get (List.nth sub.Regexp.matches 1) in
                       let args =
@@ -321,7 +325,9 @@ let parse_comments tokenizer =
               | "flag" ->
                   parse_doc (main, `Flag s :: special, params, methods) lines
               | "param" ->
-                  let sub = Regexp.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s in
+                  let sub =
+                    Regexp.exec (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$") s
+                  in
                   let label = Option.get (List.nth sub.Regexp.matches 1) in
                   let descr = Option.get (List.nth sub.Regexp.matches 2) in
                   let label =
@@ -334,7 +340,7 @@ let parse_comments tokenizer =
                       | [] -> raise Not_found
                       | line :: lines ->
                           let line =
-                            Regexp.substitute ~pat:"^ *"
+                            Regexp.substitute (Regexp.regexp "^ *")
                               ~subst:(fun _ -> "")
                               line
                           in
@@ -351,7 +357,9 @@ let parse_comments tokenizer =
                     (main, special, (label, descr) :: params, methods)
                     lines
               | "method" ->
-                  let sub = Regexp.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s in
+                  let sub =
+                    Regexp.exec (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$") s
+                  in
                   let label = Option.get (List.nth sub.Regexp.matches 1) in
                   let descr = Option.get (List.nth sub.Regexp.matches 2) in
                   parse_doc

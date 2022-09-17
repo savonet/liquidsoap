@@ -245,9 +245,9 @@ let () =
       let pattern =
         pattern
         |> Option.map (fun s ->
-               Regexp.substitute ~pat:"\\." ~subst:(fun _ -> "\\.") s)
+               Regexp.substitute (Regexp.regexp "\\.") ~subst:(fun _ -> "\\.") s)
         |> Option.map (fun s ->
-               Regexp.substitute ~pat:"\\*" ~subst:(fun _ -> ".*") s)
+               Regexp.substitute (Regexp.regexp "\\*") ~subst:(fun _ -> ".*") s)
         |> Option.map (fun s -> "^" ^ s ^ "$")
         |> Option.value ~default:""
       in
@@ -257,7 +257,7 @@ let () =
       let dir = Lang_string.home_unrelate dir in
       let readdir dir =
         Array.to_list (Sys.readdir dir)
-        |> List.filter (fun s -> Regexp.test ~rex s)
+        |> List.filter (fun s -> Regexp.test rex s)
       in
       let files =
         if not recursive then readdir dir

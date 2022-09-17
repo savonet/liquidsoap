@@ -13,9 +13,6 @@ let has_encoder = ref (fun _ -> false)
 let liq_libs_dir = ref (fun () -> raise Not_found)
 let log_path = ref None
 let collect_after = ref (fun fn -> fn ())
-
-module type Regexp_t = Regexp.T with type t := Regexp.t
-
 let regexp = Regexp.regexp_ref
 
 type log =

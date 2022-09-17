@@ -1,4 +1,5 @@
-type t = ..
+(* Operational module: *)
+
 type flag = [ `i | `g | `s | `m ]
 type sub = { matches : string option list; groups : (string * string) list }
 
@@ -6,20 +7,20 @@ module type T = sig
   type t
 
   val regexp : ?flags:flag list -> string -> t
-  val regexp_or : ?flags:flag list -> string list -> t
-  val split : ?pat:string -> ?rex:t -> string -> string list
-  val exec : ?pat:string -> ?rex:t -> string -> sub
-  val test : ?pat:string -> ?rex:t -> string -> bool
-
-  val substitute :
-    ?pat:string -> ?rex:t -> subst:(string -> string) -> string -> string
-
-  val substitute_first :
-    ?pat:string -> ?rex:t -> subst:(string -> string) -> string -> string
+  val split : t -> string -> string list
+  val exec : t -> string -> sub
+  val test : t -> string -> bool
+  val substitute : t -> subst:(string -> string) -> string -> string
 end
 
-module type Regexp_t = T with type t := t
+include T
 
-val regexp_ref : (module Regexp_t) ref
+(* Implementation, filled by language user: *)
 
-include T with type t := t
+type regexp =
+  < split : string -> string list
+  ; exec : string -> sub
+  ; test : string -> bool
+  ; substitute : subst:(string -> string) -> string -> string >
+
+val regexp_ref : (?flags:flag list -> string -> regexp) ref

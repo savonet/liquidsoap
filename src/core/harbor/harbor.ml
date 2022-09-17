@@ -779,8 +779,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     (* First, try with a registered handler. *)
     let { handler; _ } = find_handler port in
     let f (verb, rex, handler) =
-      if (verb :> verb) = hmethod && Lang.Regexp.test ~rex base_uri then (
-        let { Lang.Regexp.groups } = Lang.Regexp.exec ~rex base_uri in
+      if (verb :> verb) = hmethod && Lang.Regexp.test rex base_uri then (
+        let { Lang.Regexp.groups } = Lang.Regexp.exec rex base_uri in
         log#info "Found handler '%s %s' on port %d%s." smethod
           (Lang.descr_of_regexp rex) port
           (match groups with
