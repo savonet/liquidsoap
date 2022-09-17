@@ -11,67 +11,48 @@ let () =
   Dtools.Log.conf_file#on_change on_change;
   ignore (Option.map on_change Dtools.Log.conf_file#get_d)
 
-module Regexp = struct
-  open Liquidsoap_lang.Regexp
+type sub = Lang.Regexp.sub = {
+  matches : string option list;
+  groups : (string * string) list;
+}
 
-  type t += Regexp of Pcre.regexp
+let cflags_of_flags (flags : Liquidsoap_lang.Regexp.flag list) =
+  List.fold_left
+    (fun l f ->
+      match f with
+        | `i -> `CASELESS :: l
+        (* `g is handled at the call level. *)
+        | `g -> l
+        | `s -> `DOTALL :: l
+        | `m -> `MULTILINE :: l)
+    [] flags
 
-  type sub = Lang.Regexp.sub = {
-    matches : string option list;
-    groups : (string * string) list;
-  }
+let regexp ?(flags = []) s =
+  let iflags = Pcre.cflags (cflags_of_flags flags) in
+  let rex = Pcre.regexp ~iflags s in
+  object
+    method split s = Pcre.split ~rex s
 
-  let cflags_of_flags (flags : flag list) =
-    List.fold_left
-      (fun l f ->
-        match f with
-          | `i -> `CASELESS :: l
-          (* `g is handled at the call level. *)
-          | `g -> l
-          | `s -> `DOTALL :: l
-          | `m -> `MULTILINE :: l)
-      [] flags
+    method exec s =
+      let sub = Pcre.exec ~rex s in
+      let matches = Array.to_list (Pcre.get_opt_substrings sub) in
+      let groups =
+        List.fold_left
+          (fun groups name ->
+            try (name, Pcre.get_named_substring rex name sub) :: groups
+            with _ -> groups)
+          []
+          (Array.to_list (Pcre.names rex))
+      in
+      { Lang.Regexp.matches; groups }
 
-  let regexp ?(flags = []) s =
-    let iflags = Pcre.cflags (cflags_of_flags flags) in
-    Regexp (Pcre.regexp ~iflags s)
-
-  let regexp_or ?(flags = []) l =
-    let iflags = Pcre.cflags (cflags_of_flags flags) in
-    Regexp (Pcre.regexp_or ~iflags l)
-
-  let get_rex = Option.map (function Regexp r -> r | _ -> assert false)
-  let split ?pat ?rex s = Pcre.split ?pat ?rex:(get_rex rex) s
-
-  let exec ?pat ?rex s =
-    let rex = get_rex rex in
-    let sub = Pcre.exec ?pat ?rex s in
-    let matches = Array.to_list (Pcre.get_opt_substrings sub) in
-    let groups =
-      match rex with
-        | None -> []
-        | Some rex ->
-            List.fold_left
-              (fun groups name ->
-                try (name, Pcre.get_named_substring rex name sub) :: groups
-                with _ -> groups)
-              []
-              (Array.to_list (Pcre.names rex))
-    in
-    { Lang.Regexp.matches; groups }
-
-  let test ?pat ?rex s = Pcre.pmatch ?pat ?rex:(get_rex rex) s
-
-  let substitute ?pat ?rex ~subst s =
-    Pcre.substitute ?pat ?rex:(get_rex rex) ~subst s
-
-  let substitute_first ?pat ?rex ~subst s =
-    Pcre.substitute_first ?pat ?rex:(get_rex rex) ~subst s
-end
+    method test s = Pcre.pmatch ~rex s
+    method substitute ~subst s = Pcre.substitute ~rex ~subst s
+  end
 
 let () =
   Hooks.collect_after := Clock.collect_after;
-  Hooks.regexp := (module Regexp : Hooks.Regexp_t);
+  Hooks.regexp := regexp;
   (Hooks.make_log := fun name -> (Log.make name :> Hooks.log));
   Hooks.type_of_encoder := Lang_encoder.type_of_encoder;
   Hooks.make_encoder := Lang_encoder.make_encoder;

@@ -224,8 +224,8 @@ let unescape_char = function
   | _ -> assert false
 
 let unescape_string s =
-  let rex = Regexp.regexp_or unescape_patterns in
-  Regexp.substitute ~rex ~subst:unescape_char s
+  let rex = Regexp.regexp (String.concat "|" unescape_patterns) in
+  Regexp.substitute rex ~subst:unescape_char s
 
 (** String representation of a matrix of strings. *)
 let string_of_matrix a =
@@ -327,7 +327,7 @@ module Version = struct
   (* We assume something like, 2.0.0+git@7e211ffd *)
   let of_string s : t =
     let rex = Regexp.regexp "([\\.\\d]+)([^\\.]+)?" in
-    let sub = Regexp.exec ~rex s in
+    let sub = Regexp.exec rex s in
     let num = Option.get (List.nth sub.Regexp.matches 1) in
     let str = Option.value ~default:"" (List.nth sub.Regexp.matches 2) in
     let num = String.split_on_char '.' num |> List.map int_of_string in
@@ -508,7 +508,8 @@ let to_hex2 =
     Bytes.unsafe_to_string s
 
 let url_encode ?(plus = true) s =
-  Regexp.substitute ~pat:"[^A-Za-z0-9_.!*-]"
+  Regexp.substitute
+    (Regexp.regexp "[^A-Za-z0-9_.!*-]")
     ~subst:(fun x ->
       if plus && x = " " then "+"
       else (
@@ -525,9 +526,8 @@ let of_hex1 c =
 
 let url_decode ?(plus = true) s =
   Regexp.substitute
-    ~pat:
-      "\\+|%..|%.|%"
-      (* TODO why do we match %. and % and seem to exclude them below ? *)
+    (Regexp.regexp "\\+|%..|%.|%")
+    (* TODO why do we match %. and % and seem to exclude them below ? *)
     ~subst:(fun s ->
       if s = "+" then if plus then " " else "+"
       else (
