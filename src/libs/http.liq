@@ -75,19 +75,17 @@ def http.response(~http_version="1.1",
     else
       data = getter.get(data)
       response_ended := data == ""
-      "#{string.length(data)}\r\n#{data}\r\n"
+      "#{string.hex_of_int(string.length(data))}\r\n#{data}\r\n"
     end
   end
 
   def response() =
     if !response_ended then
       ""
+    elsif not !headers_sent then
+      mk_headers()
     else
-      if not !headers_sent then
-        mk_headers()
-      else
-        mk_data()
-      end
+      mk_data()
     end
   end
 
