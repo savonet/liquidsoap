@@ -95,6 +95,29 @@ Named fragments from the request path are passed to the response `query` list.
 
 Middleware _a la_ node/express are also supported and registered via `http.harbor.middleware.register`. See `http.harbor.middleware.cors` for an example.
 
+Https support
+-------------
+
+`https` is supported using either `libssl` or macos' `SecureTransport`. When compiled with either of them, a `http.transport.ssl` or `http.transport.secure_transport` 
+is available and can be passed to each `harbor` operator:
+
+```liquidsoap
+transport = http.transport.ssl(
+  certificate="/path/to/certificate/file",
+  key="/path/to/secret/key/file",
+  password="optional password"
+)
+
+harbor.http.register(transport=transport, port=8000, ...)
+
+input.harbor(transport=..., port=8000, ...)
+
+output.harbor(transport=..., port=8000, ...)
+```
+
+A given port can only support one type of transport at a time and registering handlers, sources or outputs on the same port with different transports
+will raise a `error.http` error.
+
 Advanced usage
 --------------
 
