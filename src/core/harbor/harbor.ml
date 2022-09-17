@@ -200,7 +200,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let read = T.read
   let write = T.write
   let close = T.close
-  let protocol_name h = h.Duppy.Monad.Io.socket#transport#protocol
+
+  let protocol_name h =
+    Printf.sprintf "%s/%s" h.Duppy.Monad.Io.socket#transport#protocol
+      h.Duppy.Monad.Io.socket#transport#name
 
   (* Define what we need as a source *)
 
