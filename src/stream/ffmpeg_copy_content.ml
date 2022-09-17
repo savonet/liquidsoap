@@ -99,11 +99,12 @@ module AudioSpecs = struct
   let compatible p p' =
     match (p, p') with
       | None, _ | _, None -> true
-      | Some p, Some p' ->
-          Audio.get_params_id p = Audio.get_params_id p'
+      | Some p, Some p' -> Audio.get_params_id p = Audio.get_params_id p'
+  (*
           && Audio.get_channel_layout p = Audio.get_channel_layout p'
           && Audio.get_sample_format p = Audio.get_sample_format p'
           && Audio.get_sample_rate p = Audio.get_sample_rate p'
+*)
 
   let merge = merge ~compatible
   let default_params _ = None
@@ -160,9 +161,8 @@ module VideoSpecs = struct
   let compatible p p' =
     match (p, p') with
       | None, _ | _, None -> true
-      | Some p, Some p' ->
-          Video.get_params_id p = Video.get_params_id p'
-(*
+      | Some p, Some p' -> Video.get_params_id p = Video.get_params_id p'
+  (*
           && Video.get_width p = Video.get_width p'
           && Video.get_height p = Video.get_height p'
           && compatible_aspect_radio
