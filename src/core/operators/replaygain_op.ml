@@ -71,16 +71,19 @@ let () =
                 s#reset;
                 Lang.unit) );
         ( "peak",
-          ([], Lang.fun_t [] Lang.unit_t),
+          ([], Lang.fun_t [] Lang.float_t),
           "Peak sample.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.float s#peak) );
         ( "gain",
-          ([], Lang.fun_t [] Lang.unit_t),
+          ([], Lang.fun_t [] Lang.float_t),
           "Suggested gain (in dB).",
           fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain) );
       ]
     [("", Lang.source_t k, None, None)]
-    ~return_t:k ~category:`Audio ~descr:"Multiply the amplitude of the signal."
+    ~return_t:k ~category:`Audio
+    ~descr:
+      "Compute the ReplayGain of the source. Data is acumulated until the \
+       `gain` method is called."
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
       new replaygain s)

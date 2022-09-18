@@ -30,7 +30,12 @@ end
 # @category File
 # @param fname File name.
 def file.replaygain(fname)
-  s = source.replaygain.compute(once(single(fname)))
-  source.drop(s)
-  s.gain()
+  r = request.create(fname)
+  if request.resolve(content_type=(sine():source(audio=pcm(stereo),video=none,midi=none)),r) then
+    s = source.replaygain.compute(request.once(r))
+    source.drop(s)
+    s.gain()
+  else
+    null()
+  end
 end
