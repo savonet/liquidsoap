@@ -6,15 +6,10 @@
 # @param ~delay Maximum delay for extracting metadata.
 # @param ~extract_replaygain The extraction program.
 def enable_replaygain_metadata(
-       ~delay=(-1.),
-       ~extract_replaygain="#{configure.bindir}/extract-replaygain")
-  def replaygain_metadata(file)
-    ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
-    if ret != "" then
-      [("replaygain_track_gain",ret)]
-    else
-      []
-    end
+       ~delay=(-1.))
+  def replaygain_metadata(fname)
+    gain = file.replaygain(fname)
+    [("replaygain_track_gain","#{gain} dB")]
   end
   add_metadata_resolver("replaygain_track_gain", replaygain_metadata)
 end

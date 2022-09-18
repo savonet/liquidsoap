@@ -220,3 +220,29 @@ let () =
       log#info "Source dumped.";
       fo#leave s;
       Lang.unit)
+
+let () =
+  let log = Log.make ["source"; "drop"] in
+  Lang.add_builtin "source.drop" ~category:`Liquidsoap
+    ~descr:"Animate the source as fast as possible, dropping its output."
+    ~flags:[`Experimental]
+    [("", Lang.source_t (Lang.univ_t ()), None, Some "Source to encode")]
+    Lang.unit_t
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_source in
+      let o =
+        new Output.dummy
+          ~infallible:false
+          ~on_start:(fun () -> ())
+          ~on_stop:(fun () -> ())
+          ~autostart:true (Lang.source s)
+      in
+      o#get_ready [s];
+      log#info "Start dropping source.";
+      while s#is_ready do
+        o#output;
+        o#after_output
+      done;
+      log#info "Source dropped.";
+      o#leave s;
+      Lang.unit)

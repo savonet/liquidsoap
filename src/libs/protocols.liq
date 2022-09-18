@@ -10,47 +10,21 @@ let settings.protocol = settings.make.void(
 ) 
 
 let settings.protocol.replaygain = settings.make.protocol("ReplayGain")
-let settings.protocol.replaygain.path = settings.make(
-  description="ReplayGain path",
-  "#{configure.bindir}/extract-replaygain"
-)
 let settings.protocol.replaygain.tag = settings.make(
   description="Tag used to annotate ReplayGain",
   "replaygain_track_gain"
 )
 
-# @flag hidden
-def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
-                     ~delay=_,file)
-  def log(x) = log.info(label="extract.replaygain",x) end
-  p = process.run(process.quote.command(extract_replaygain, args=[file]))
-  stdout = r/\n/.replace(fun (_) -> "", p.stdout)
-  if p.status == "exit" and p.status.code == 0 then
-    stdout
-  else
-    stderr = r/\n/.replace(fun (_) -> "", p.stderr)
-    log("ReplayGain extraction by #{extract_replaygain} failed with: #{stderr}")
-    ""
-  end
-end
-
 # Register the replaygain protocol.
 # @flag hidden
 def replaygain_protocol(~rlog=_,~maxtime,arg)
-  delay = maxtime - time()
-  # The extraction program
-  extract_replaygain = settings.protocol.replaygain.path()
-  ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
-  if ret != "" then
-    tag = settings.protocol.replaygain.tag()
-    ["annotate:#{tag}=\"#{ret}\":#{arg}"]
-  else
-    [arg]
-  end
+  gain = file.replaygain(arg)
+  tag = settings.protocol.replaygain.tag()
+  ["annotate:#{tag}=\"#{gain} dB\":#{arg}"]
 end
 add_protocol("replaygain", replaygain_protocol,
              syntax="replaygain:uri",
-             doc="Compute ReplayGain value using the extract-replaygain script. \
+             doc="Compute ReplayGain value. \
                   Adds returned value as `\"replaygain_track_gain\"` metadata")
 
 let settings.protocol.process = settings.make.protocol("process")
@@ -346,17 +320,10 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     list.fold(f,[],lines)
   end
 
-  def replaygain_filter(file) =
+  def replaygain_filter(fname) =
     if replaygain then
-      # The extraction program
-      extract_replaygain = settings.protocol.replaygain.path()
-      delay = maxtime - time()
-      ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
-      if ret != "" then
-        "-af \"volume=#{ret}\""
-      else
-        ""
-      end
+      gain = file.replaygain(fname)
+      "-af \"volume=#{gain} dB\""
     else
       ""
     end

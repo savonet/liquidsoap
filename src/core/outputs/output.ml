@@ -206,7 +206,8 @@ let () =
   let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "output.dummy"
     (proto @ [("", Lang.source_t return_t, None, None)])
-    ~category:`Output ~descr:"Dummy output for debugging purposes." ~meth
+    ~category:`Output
+    ~descr:"Dummy output: computes the stream, without actually using it." ~meth
     ~return_t
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in

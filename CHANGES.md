@@ -14,6 +14,10 @@ New:
   value is set.
 - Added support for id3v2 `v2.2.0` frames and pictures.
 - Added `time.string`.
+- Added `source.drop` to animate a source as fast as possible..
+- Added in house replaygain computation:
+  - `source.replaygain.compute` to compute replaygain of a source
+  - `file.replaygain` to compute the replaygain of a file
 
 Changed:
 

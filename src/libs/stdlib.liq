@@ -21,6 +21,7 @@
 %include "source.liq"
 %include "audio.liq"
 %include "fades.liq"
+%include "replaygain.liq"
 %include "protocols.liq"
 %include "resolvers.liq"
 %include "externals.liq"
