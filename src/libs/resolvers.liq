@@ -9,7 +9,11 @@ def enable_replaygain_metadata(
        ~delay=(-1.))
   def replaygain_metadata(fname)
     gain = file.replaygain(fname)
-    [("replaygain_track_gain","#{gain} dB")]
+    if null.defined(gain) then
+      [("replaygain_track_gain","#{null.get(gain)} dB")]
+    else
+      []
+    end
   end
   add_metadata_resolver("replaygain_track_gain", replaygain_metadata)
 end

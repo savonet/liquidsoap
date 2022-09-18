@@ -20,7 +20,11 @@ let settings.protocol.replaygain.tag = settings.make(
 def replaygain_protocol(~rlog=_,~maxtime,arg)
   gain = file.replaygain(arg)
   tag = settings.protocol.replaygain.tag()
-  ["annotate:#{tag}=\"#{gain} dB\":#{arg}"]
+  if null.defined(gain) then
+    ["annotate:#{tag}=\"#{null.get(gain)} dB\":#{arg}"]
+  else
+    [arg]
+  end
 end
 add_protocol("replaygain", replaygain_protocol,
              syntax="replaygain:uri",
@@ -323,7 +327,11 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
   def replaygain_filter(fname) =
     if replaygain then
       gain = file.replaygain(fname)
-      "-af \"volume=#{gain} dB\""
+      if null.defined(gain) then
+        "-af \"volume=#{null.get(gain)} dB\""
+      else
+        ""
+      end
     else
       ""
     end
