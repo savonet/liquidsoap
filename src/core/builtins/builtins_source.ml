@@ -199,7 +199,7 @@ let () =
     [
       ("", Lang.format_t kind, None, Some "Encoding format.");
       ("", Lang.string_t, None, Some "Name of the file.");
-      ("", Lang.source_t (Lang.univ_t ()), None, Some "Source to encode");
+      ("", Lang.source_t (Lang.univ_t ()), None, Some "Source to encode.");
     ]
     Lang.unit_t
     (fun p ->
@@ -226,7 +226,7 @@ let () =
   Lang.add_builtin "source.drop" ~category:`Liquidsoap
     ~descr:"Animate the source as fast as possible, dropping its output."
     ~flags:[`Experimental]
-    [("", Lang.source_t (Lang.univ_t ()), None, Some "Source to encode")]
+    [("", Lang.source_t (Lang.univ_t ()), None, Some "Source to animate.")]
     Lang.unit_t
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
