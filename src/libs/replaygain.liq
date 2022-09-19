@@ -45,7 +45,6 @@ end
 # value could be computed. For a finer-grained replay gain processing, use the
 # `replaygain:` protocol.
 # @category Liquidsoap
-# @param ~extract_replaygain The extraction program.
 def enable_replaygain_metadata()
   def replaygain_metadata(fname)
     gain = file.replaygain(fname)

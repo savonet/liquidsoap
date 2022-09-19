@@ -148,6 +148,7 @@ let () =
           if
             Decoder.get_image_file_decoder filename <> None
             && Content.is_internal_format (Frame.find_audio ctype)
+            && Content.Video.is_format (Frame.find_video ctype)
           then
             Some
               (Frame.mk_fields ~audio:(Frame.find_audio ctype)
