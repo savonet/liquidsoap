@@ -83,7 +83,8 @@ let () =
     ~return_t:k ~category:`Audio
     ~descr:
       "Compute the ReplayGain of the source. Data is acumulated until the \
-       `gain` method is called."
+       `gain` method is called, i.e. the gain is computed _after_ the source \
+       has been played.."
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
       new replaygain s)

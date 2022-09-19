@@ -17,7 +17,7 @@ let settings.protocol.replaygain.tag = settings.make(
 
 # Register the replaygain protocol.
 # @flag hidden
-def replaygain_protocol(~rlog=_,~maxtime,arg)
+def replaygain_protocol(~rlog=_,~maxtime=_,arg)
   gain = file.replaygain(arg)
   tag = settings.protocol.replaygain.tag()
   if null.defined(gain) then

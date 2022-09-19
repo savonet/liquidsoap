@@ -39,3 +39,21 @@ def file.replaygain(fname)
     null()
   end
 end
+
+# Enable ReplayGain metadata resolver. This resolver will process any file
+# decoded by Liquidsoap and add a `replaygain_track_gain` metadata when this
+# value could be computed. For a finer-grained replay gain processing, use the
+# `replaygain:` protocol.
+# @category Liquidsoap
+# @param ~extract_replaygain The extraction program.
+def enable_replaygain_metadata()
+  def replaygain_metadata(fname)
+    gain = file.replaygain(fname)
+    if null.defined(gain) then
+      [("replaygain_track_gain","#{null.get(gain)} dB")]
+    else
+      []
+    end
+  end
+  add_metadata_resolver("replaygain_track_gain", replaygain_metadata)
+end
