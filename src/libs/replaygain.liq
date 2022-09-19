@@ -29,12 +29,17 @@ end
 # Compute the ReplayGain for a file (in dB).
 # @category File
 # @param fname File name.
-def file.replaygain(fname)
+def file.replaygain(~id=null(), fname)
+  id = string.id.default(default="file.replaygain", id)
   r = request.create(fname)
-  if request.resolve(content_type=(sine():source(audio=pcm(stereo),video=none,midi=none)),r) then
+  if request.resolve(r) then
+    log.info(label=id, "Computing replay gain for #{fname}.")
+    t = time()
     s = source.replaygain.compute(request.once(r))
     source.drop(s)
-    s.gain()
+    gain = s.gain()
+    log.info(label=id, "Computed replay gain for #{fname}: #{gain} dB (in #{time() - t} s).")
+    gain
   else
     null()
   end
