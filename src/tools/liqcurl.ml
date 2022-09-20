@@ -212,5 +212,6 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
           connection#cleanup;
           (protocol_version, status_code, status_message, response_headers)
   with exn ->
+    let bt = Printexc.get_raw_backtrace () in
     connection#cleanup;
-    raise exn
+    Printexc.raise_with_backtrace exn bt
