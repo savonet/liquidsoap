@@ -45,6 +45,7 @@
     gd
     graphics
     gstreamer
+    imagelib
     inotify
     irc-client-unix
     ladspa

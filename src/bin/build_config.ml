@@ -80,6 +80,7 @@ let build_config =
    - camlimages        : %{Camlimages_option.detected}
    - FFmpeg            : %{Ffmpeg_option.detected}
    - frei0r            : %{Frei0r_option.detected}
+   - ImageLib          : %{Imagelib_option.detected}
    - SDL               : %{Sdl_option.detected}
 
  * MIDI manipulation
