@@ -18,6 +18,7 @@ New:
 - Added in house replaygain computation:
   - `source.replaygain.compute` to compute replaygain of a source
   - `file.replaygain` to compute the replaygain of a file
+- Added support for ImageLib to decode images.
 
 Changed:
 

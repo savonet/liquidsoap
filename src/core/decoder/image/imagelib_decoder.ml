@@ -20,20 +20,26 @@
 
  *****************************************************************************)
 
-open Mm
-open Tsdl
-module P = Image.Generic.Pixel
+(* open Mm *)
+(* module Img = Image.RGBA32 *)
+(* module P = Image.Generic.Pixel *)
 
-let log = Log.make ["decoder"; "sdlimage"]
+let log = Log.make ["decoder"; "imagelib"]
 
-let load_image filename =
-  let surface = Sdl_utils.check Tsdl_image.Image.load filename in
-  let img = Sdl_utils.Surface.to_img surface in
-  Sdl.free_surface surface;
+let load_image fname =
+  let f = ImageLib_unix.openfile fname in
+  let width = f.width in
+  let height = f.height in
+  let img = Mm.Video.Image.create width height in
+  for j = 0 to height - 1 do
+    for i = 0 to width - 1 do
+      Image.read_rgba f i j (fun r g b a ->
+          Mm.Video.Image.set_pixel_rgba img i j (r, g, b, a))
+    done
+  done;
   img
 
 let () =
-  Decoder.image_file_decoders#register "SDL/image"
-    ~sdoc:"Use SDL to decode images." (fun filename ->
-      let img = load_image filename in
-      Some img)
+  Decoder.image_file_decoders#register "ImageLib"
+    ~sdoc:"Use ImageLib to decode images." (fun fname ->
+      Some (load_image fname))
