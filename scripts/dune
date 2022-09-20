@@ -1,11 +1,4 @@
 (install
- (files extract-replaygain)
- (section
-  (site
-   (liquidsoap bin)))
- (package liquidsoap))
-
-(install
  (section share_root)
  (package liquidsoap)
  (files

@@ -161,7 +161,7 @@ let file.metadata.flac = fun (_) -> []
 
 let file.metadata.flac.cover = ()
 
-# Decode a flac-encoded cover metadata string
+# Decode a flac-encoded cover metadata string.
 # @category String
 def file.metadata.flac.cover.decode(s) =
   # See https://xiph.org/flac/format.html#metadata_block_picture
@@ -206,8 +206,7 @@ def file.metadata.flac.cover.decode(s) =
   end
 end
 
-# Encode cover metadata for embedding with 
-# flac files
+# Encode cover metadata for embedding with flac files.
 # @category String
 def file.metadata.flac.cover.encode(
         ~picture_type,
