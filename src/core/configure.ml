@@ -12,24 +12,19 @@ let default_font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 let conf = Dtools.Conf.void "Liquidsoap configuration"
 
 let libs_versions () =
-  let libs =
-    List.filter
-      (fun lib ->
-        not
-          (Pcre.pmatch ~pat:"^liquidsoap_"
-             (Build_info.V1.Statically_linked_library.name lib)))
-      (Build_info.V1.Statically_linked_libraries.to_list ())
-  in
-  String.concat " "
-    (List.map
-       (fun lib ->
-         String.concat "="
-           ([Build_info.V1.Statically_linked_library.name lib]
-           @
-           match Build_info.V1.Statically_linked_library.version lib with
-             | Some v -> [Build_info.V1.Version.to_string v]
-             | None -> []))
-       libs)
+  Build_info.V1.Statically_linked_libraries.to_list ()
+  |> List.map (fun lib ->
+         let name = Build_info.V1.Statically_linked_library.name lib in
+         let version =
+           Build_info.V1.Statically_linked_library.version lib
+           |> Option.map Build_info.V1.Version.to_string
+           |> Option.value ~default:"?"
+         in
+         (name, version))
+  |> List.sort compare
+  |> List.map (fun (name, version) ->
+         if version = "?" then name else name ^ "=" ^ version)
+  |> String.concat " "
 
 let () =
   Lifecycle.before_init (fun () ->
