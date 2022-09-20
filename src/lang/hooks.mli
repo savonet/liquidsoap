@@ -1,7 +1,6 @@
 (* Language essentials *)
-module type Regexp_t = Regexp.T with type t := Regexp.t
 
-val regexp : (module Regexp_t) ref
+val regexp : (?flags:Regexp.flag list -> string -> Regexp.regexp) ref
 
 type log =
   < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a

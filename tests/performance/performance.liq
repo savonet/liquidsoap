@@ -1,4 +1,4 @@
-profile = (getenv("LIQ_PROFILE") != "")
+profile = (environment.get("LIQ_PROFILE") != "")
 
 def time(name, f)
   if profile then profiler.enable() end

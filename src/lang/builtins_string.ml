@@ -309,7 +309,7 @@ let () =
       in
       Lang.string
         (if space_sensitive then (
-         let l = Regexp.split ~pat:" " string in
+         let l = Regexp.split (Regexp.regexp " ") string in
          let l = List.map f l in
          String.concat " " l)
         else f string))

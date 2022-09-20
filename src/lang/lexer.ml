@@ -56,13 +56,15 @@ let parse_time t =
       (List.nth sub.Regexp.matches n)
   in
   try
-    let pat = "^((?:\\d+w)?)((?:\\d+h)?)((?:\\d+m)?)((?:\\d+s)?)$" in
-    let sub = Regexp.exec ~pat t in
+    let rex =
+      Regexp.regexp "^((?:\\d+w)?)((?:\\d+h)?)((?:\\d+m)?)((?:\\d+s)?)$"
+    in
+    let sub = Regexp.exec rex t in
     let g = g sub in
     List.map g [1; 2; 3; 4]
   with Not_found ->
-    let pat = "^((?:\\d+w)?)(\\d+h)(\\d+)$" in
-    let sub = Regexp.exec ~pat t in
+    let rex = Regexp.regexp "^((?:\\d+w)?)(\\d+h)(\\d+)$" in
+    let sub = Regexp.exec rex t in
     let g = g sub in
     [
       g 1;
@@ -134,7 +136,7 @@ let rec token lexbuf =
     | skipped -> token lexbuf
     | Plus ('#', Star (Compl '\n'), '\n') ->
         let doc = Sedlexing.Utf8.lexeme lexbuf in
-        let doc = Regexp.split ~pat:"\n" doc in
+        let doc = Regexp.split (Regexp.regexp "\n") doc in
         PP_COMMENT doc
     | '\n' -> PP_ENDL
     | "%ifdef", Plus ' ', var, Star ("" | '.', var) ->

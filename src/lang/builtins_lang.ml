@@ -133,7 +133,7 @@ let () =
       Lang.list l)
 
 let () =
-  Lang.add_builtin "setenv" ~category:`System
+  Lang.add_builtin "environment.set" ~category:`System
     ~descr:"Set the value associated to a variable in the process environment."
     [
       ("", Lang.string_t, None, Some "Variable to be set.");
