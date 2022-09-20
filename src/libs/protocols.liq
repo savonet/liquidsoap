@@ -174,16 +174,21 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
 
   timeout = maxtime - time()
   
-  response = http.get.stream(
-    on_body_data=file_writer,
-    timeout_ms=int_of_float(timeout * 1000.),
-    uri
-  )
+  try
+    response = http.get.stream(
+      on_body_data=file_writer,
+      timeout_ms=int_of_float(timeout * 1000.),
+      uri
+    )
 
-  if response.status_code < 400 then
-    [output]
-  else
-    log(level=3, "Error while fetching http data: #{response.status_code} - #{response.status_message}")
+    if response.status_code < 400 then
+      [output]
+    else
+      log(level=3, "Error while fetching http data: #{response.status_code} - #{response.status_message}")
+      []
+    end
+  catch err do
+    log(level=3, "Error while fetching http data: #{err}")
     []
   end
 end
