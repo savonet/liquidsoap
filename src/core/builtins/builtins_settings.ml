@@ -192,7 +192,7 @@ let settings_module =
      let log = get_value Dtools.Log.conf in
      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
      Lang.add_builtin_base ~category:`Liquidsoap "settings"
-       ~descr:"All settings." !settings.Lang.value settings_t)
+       ~descr:"All settings." ~flags:[`Hidden] !settings.Lang.value settings_t)
 
 (** Hack to keep track of latest settings at runtime. *)
 let () =
