@@ -38,13 +38,20 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
   let abg = Generator.create ~log ~log_overfull `Audio in
   let buflen = Utils.pagesize in
   let buf = Bytes.create buflen in
+  let channel_converter =
+    Decoder_utils.channels_converter
+      (Audio_converter.Channel_layout.layout_of_channels
+         (Lazy.force Frame.audio_channels))
+  in
   let on_data reader =
     let ret = reader buf 0 buflen in
     let data, ofs, len = converter buf 0 ret in
+    let data = channel_converter (Audio.sub data ofs len) in
     let buffered = Generator.length abg in
     Generator.put_audio abg
       (Content.Audio.lift_data data)
-      (Frame.main_of_audio ofs) (Frame.main_of_audio len);
+      0
+      (Frame.main_of_audio (Audio.length data));
     if abg_max_len < buffered + len then
       `Delay (Frame.seconds_of_audio (buffered + len - (3 * abg_max_len / 4)))
     else `Continue
