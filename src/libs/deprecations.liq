@@ -578,11 +578,20 @@ end
 # Deprecated: use `environment.get`
 # @flag deprecated
 def getenv(default="", v) =
+  deprecated("getenv", "environment.get")
   environment.get(default=default, v)
 end
 
 # Deprecated: use `environment.set`
 # @flag deprecated
 def setenv(k, v) =
+  deprecated("setenv", "environment.set")
   environment.set(k, v)
+end
+
+# Deprecated: use `getpid`
+# @flag deprecated
+def getpid() =
+  deprecated("getpid", "process.pid")
+  process.pid()
 end

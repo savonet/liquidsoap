@@ -44,6 +44,7 @@ let () =
       "os";
       "osc";
       "playlist";
+      "process";
       "reopen";
       "request";
       "request.dynamic";

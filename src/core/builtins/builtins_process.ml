@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 let log = Log.make ["process"]
-let () = Lang.add_module "process"
 
 let () =
   let ret_t =

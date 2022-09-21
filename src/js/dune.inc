@@ -41,6 +41,7 @@ io.liq
 switches.liq
 list.liq
 telnet.liq
+replaygain.liq
 http.liq
 metadata.liq
 lastfm.liq

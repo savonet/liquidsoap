@@ -267,7 +267,7 @@ let () =
     (Utils.reopen_out stderr)
 
 let () =
-  Lang.add_builtin "getpid" ~category:`System [] Lang.int_t
+  Lang.add_builtin "process.pid" ~category:`System [] Lang.int_t
     ~descr:"Get the process' pid." (fun _ -> Lang.int (Unix.getpid ()))
 
 let () =
