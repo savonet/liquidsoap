@@ -62,7 +62,7 @@ echo "::endgroup::"
 echo "::group::Compiling"
 
 # See: https://github.com/whitequark/ocaml-inotify/pull/20
-opam install -y ocurl uri inotify.2.3
+opam install -y uri inotify.2.3
 
 cd /tmp/liquidsoap-full
 
