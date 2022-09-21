@@ -3,7 +3,9 @@ def filter(s, s') =
     s = ffmpeg.filter.audio.input(graph, pass_metadata=true, s)
     s = ffmpeg.filter.dynaudnorm(graph, s, gausssize=7, correctdc=true, altboundary=true, maxgain=80., b=true, targetrms=1.)
     s = ffmpeg.filter.volume(graph, s, volume="-18dB", precision=2, replaygain=0)
+%ifdef ffmpeg.filter.aexciter
     s = ffmpeg.filter.aexciter(graph, s, freq=6000.)
+%endif
     s = ffmpeg.filter.volume(graph, s, volume="+20dB", precision=2, replaygain=0)
     s = ffmpeg.filter.aresample(graph, s, sample_rate=192000)
     s = ffmpeg.filter.alimiter(graph, s, limit=0.8, attack=3., release=50., asc=false, asc_level=0., level=true)
