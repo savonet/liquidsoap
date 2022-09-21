@@ -13,6 +13,7 @@ Fixed:
 * Ensure that `video.add_text` fails when the source does (#2609)
 * Fixed metadata parsing in `server.insert_metadata` (#2619)
 * Fixed `extract_replaygain` path (#2624, @parnikkapore)
+* Fixed crash when terminating the process (#2585)
 
 Internal Change:
 * `ref()` implementation switched to OCaml's `Atomic` to prevent race conditions,
