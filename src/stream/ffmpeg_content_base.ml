@@ -22,6 +22,11 @@
 
 type ('a, 'b) content = { mutable params : 'a; mutable data : (int * 'b) list }
 
+let conf_ffmpeg_content =
+  Dtools.Conf.void
+    ~p:(Ffmpeg_utils.conf_ffmpeg#plug "content")
+    "FFmpeg content configuration"
+
 let make ~size:_ params = { params; data = [] }
 let clear d = d.data <- []
 let is_empty { data } = data = []

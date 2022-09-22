@@ -215,7 +215,7 @@ stream = \
 	stream/frame_settings.ml stream/content.ml \
         stream/frame.ml stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
         stream/generator.ml stream/kind.ml \
-        $(if $(W_FFMPEG), stream/ffmpeg_content_base.ml stream/ffmpeg_copy_content.ml stream/ffmpeg_raw_content.ml) \
+        $(if $(W_FFMPEG), tools/ffmpeg_utils.ml stream/ffmpeg_content_base.ml stream/ffmpeg_copy_content.ml stream/ffmpeg_raw_content.ml) \
         $(if $(W_GSTREAMER),tools/gstreamer_utils.ml)
 
 visualization = \
@@ -256,7 +256,7 @@ builtins = \
 
 liquidsoap_sources = \
 	$(tools) converters/audio_converter.ml $(stream) \
-	$(if $(W_FFMPEG),tools/ffmpeg_utils.ml tools/ffmpeg_avfilter_utils.ml) \
+	$(if $(W_FFMPEG),tools/ffmpeg_avfilter_utils.ml) \
         converters/video_converter.ml \
 	decoder/decoder_utils.ml decoder/decoder.ml \
         tools/liq_time.ml $(if $(W_POSIX_TIME2),tools/liq_posix_time.ml) \
