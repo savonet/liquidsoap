@@ -36,7 +36,7 @@ let conf_ffmpeg_copy =
 
 let conf_ffmpeg_copy_relaxed =
   Dtools.Conf.bool
-    ~p:(conf_ffmpeg_copy#plug "relaxed")
+    ~p:(conf_ffmpeg_copy#plug "relaxed_compatibility_check")
     ~d:false
     "If `true`, relax content compatibility, e.g. allow audio tracks with \
      different samplerate or video tracks with different resolution."

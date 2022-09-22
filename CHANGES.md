@@ -4,7 +4,7 @@
 Changed:
 * Allow sub-second values in `sleep()` (#2610)
 * Allowed many new format for `taglib` (#2605)
-* Add `settings.ffmpeg.content.copy.relaxed.set` settings to  allow relaxed
+* Add `settings.ffmpeg.content.copy.relaxed_compatibility_check.set` settings to  allow relaxed
   compatibility check for ffmpeg copy content, making it possible to encode
   streams with various audio samplerate or video size when the container
   supports it.
