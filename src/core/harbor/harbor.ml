@@ -121,7 +121,7 @@ module type T = sig
   type http_handler =
     protocol:string ->
     meth:http_verb ->
-    data:string ->
+    data:(unit -> string) ->
     headers:(string * string) list ->
     query:(string * string) list ->
     socket:socket ->
@@ -305,7 +305,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   type http_handler =
     protocol:string ->
     meth:http_verb ->
-    data:string ->
+    data:(unit -> string) ->
     headers:(string * string) list ->
     query:(string * string) list ->
     socket:socket ->
@@ -674,7 +674,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   exception Handled of (http_verb * (string * string) list * http_handler)
 
-  let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
+  let handle_http_request ~hmethod ~hprotocol ~port h uri headers =
     let ans_404 () =
       log#info "Returned 404 for '%s'." uri;
       simple_reply
@@ -695,6 +695,22 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         try Duppy.Monad.return (Hashtbl.find args "mode")
         with Not_found -> ans_400 "unrecognised command"
       in
+      let len =
+        try int_of_string (assoc_uppercase "CONTENT-LENGTH" headers)
+        with _ -> 0
+      in
+      let* data =
+        if len > 0 then
+          Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
+            ~priority:`Non_blocking ~marker:(Duppy.Io.Length len) h
+        else Duppy.Monad.return ""
+      in
+      (try
+         if
+           assoc_uppercase "CONTENT-TYPE" headers
+           = "application/x-www-form-urlencoded"
+         then Hashtbl.iter (Hashtbl.add args) (Http.args_split data)
+       with Not_found -> ());
       match mode with
         | "updinfo" ->
             let mount = try Hashtbl.find args "mount" with Not_found -> "/" in
@@ -760,12 +776,6 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let smethod = string_of_verb hmethod in
     log#info "%s %s request on %s." (protocol_name h) smethod base_uri;
     let args = Http.args_split args in
-    (try
-       if
-         assoc_uppercase "CONTENT-TYPE" headers
-         = "application/x-www-form-urlencoded"
-       then Hashtbl.iter (Hashtbl.add args) (Http.args_split data)
-     with Not_found -> ());
     (* Filter out password *)
     let log_args =
       if conf_pass_verbose#get then args
@@ -820,8 +830,15 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let headers =
             List.map (fun (k, v) -> (String.lowercase_ascii k, v)) headers
           in
+          let buf = Bytes.create 1024 in
+          let data () =
+            try
+              let len = h.Duppy.Monad.Io.socket#read buf 0 1024 in
+              Bytes.sub_string buf 0 len
+            with _ -> ""
+          in
           Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
-            (handler ~protocol ~meth ~data ~headers
+            (handler ~protocol ~meth ~headers ~data
                ~socket:h.Duppy.Monad.Io.socket ~query base_uri)
       | e ->
           let bt = Printexc.get_backtrace () in
@@ -910,17 +927,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       | `Options when huri = "*" ->
           handle_asterisk_options_request ~hprotocol ~headers h
       | (`Get | `Post | `Put | `Delete | `Options | `Head) when not icy ->
-          let len =
-            try int_of_string (assoc_uppercase "CONTENT-LENGTH" headers)
-            with _ -> 0
-          in
-          let* data =
-            if len > 0 then
-              Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
-                ~priority:`Non_blocking ~marker:(Duppy.Io.Length len) h
-            else Duppy.Monad.return ""
-          in
-          handle_http_request ~hmethod ~hprotocol ~data ~port h huri headers
+          handle_http_request ~hmethod ~hprotocol ~port h huri headers
       | `Shout when icy ->
           let* () =
             Duppy.Monad.Io.write ?timeout:(Some conf_timeout#get)
