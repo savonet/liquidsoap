@@ -45,5 +45,11 @@ val dirname : string -> string
 (** split arg=value&arg2=value2 into (arg, value) Hashtbl.t *)
 val args_split : string -> (string, string) Hashtbl.t
 
+(** Read with timeout. *)
+val read : timeout:float -> socket -> int -> string
+
+(** Read [len] bytes *)
+val really_read : timeout:float -> socket -> int -> string
+
 (* Read chunked data. *)
 val read_chunked : timeout:float -> socket -> string * int

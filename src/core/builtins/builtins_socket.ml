@@ -22,11 +22,7 @@
 
 module SocketValue = struct
   include Value.MkAbstract (struct
-    type content =
-      < typ : string
-      ; write : bytes -> int -> int -> int
-      ; read : bytes -> int -> int -> int
-      ; close : unit >
+    type content = Http.socket
 
     let name = "socket"
 
@@ -46,18 +42,47 @@ module SocketValue = struct
 
   let meths =
     [
-      ("type", ([], Lang.string_t), "Socket type", fun fd -> Lang.string fd#typ);
+      ( "type",
+        ([], Lang.string_t),
+        "Socket type",
+        fun (socket : content) -> Lang.string socket#typ );
       ( "write",
-        ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t),
+        ( [],
+          Lang.fun_t
+            [
+              (true, "timeout", Lang.nullable_t Lang.float_t);
+              (false, "", Lang.string_t);
+            ]
+            Lang.unit_t ),
         "Write data to a socket",
-        fun fd ->
-          Lang.val_fun [("", "", None)] (fun p ->
+        fun socket ->
+          Lang.val_fun
+            [("timeout", "timeout", Some (Lang.float 10.)); ("", "", None)]
+            (fun p ->
+              let timeout =
+                Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+              in
               let data = Lang.to_string (List.assoc "" p) in
               let data = Bytes.of_string data in
               let len = Bytes.length data in
+              let start_time = Unix.gettimeofday () in
+              let check_timeout () =
+                match timeout with
+                  | None -> ()
+                  | Some t -> (
+                      let rem = start_time +. t -. Unix.gettimeofday () in
+                      try
+                        if rem <= 0. then failwith "timeout!";
+                        socket#wait_for `Write rem
+                      with _ ->
+                        Runtime_error.error
+                          ~message:"Timeout while writing to the socket!"
+                          "socket")
+              in
               try
                 let rec f pos =
-                  let n = fd#write data pos (len - pos) in
+                  check_timeout ();
+                  let n = socket#write data pos (len - pos) in
                   if n < len then f (pos + n)
                 in
                 f 0;
@@ -66,15 +91,38 @@ module SocketValue = struct
                 let bt = Printexc.get_raw_backtrace () in
                 Lang.raise_as_runtime ~bt ~kind:"socket" exn) );
       ( "read",
-        ([], Lang.fun_t [] Lang.string_t),
+        ( [],
+          Lang.fun_t
+            [(true, "timeout", Lang.nullable_t Lang.float_t)]
+            Lang.string_t ),
         "Read data from a socket. Reading is done when the function returns an \
          empty string `\"\"`.",
-        fun fd ->
+        fun socket ->
           let buflen = Utils.pagesize in
           let buf = Bytes.create buflen in
-          Lang.val_fun [] (fun _ ->
+          Lang.val_fun
+            [("timeout", "timeout", Some (Lang.float 10.))]
+            (fun p ->
+              let timeout =
+                Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+              in
+              let start_time = Unix.gettimeofday () in
+              let check_timeout () =
+                match timeout with
+                  | None -> ()
+                  | Some t -> (
+                      let rem = start_time +. t -. Unix.gettimeofday () in
+                      try
+                        if rem <= 0. then failwith "timeout!";
+                        socket#wait_for `Read rem
+                      with _ ->
+                        Runtime_error.error
+                          ~message:"Timeout while reading from the socket!"
+                          "socket")
+              in
               try
-                let n = fd#read buf 0 buflen in
+                check_timeout ();
+                let n = socket#read buf 0 buflen in
                 Lang.string (Bytes.sub_string buf 0 n)
               with exn ->
                 let bt = Printexc.get_raw_backtrace () in
@@ -82,10 +130,10 @@ module SocketValue = struct
       ( "close",
         ([], Lang.fun_t [] Lang.unit_t),
         "Close the socket.",
-        fun fd ->
+        fun socket ->
           Lang.val_fun [] (fun _ ->
               try
-                fd#close;
+                socket#close;
                 Lang.unit
               with exn ->
                 let bt = Printexc.get_raw_backtrace () in
@@ -99,13 +147,6 @@ module SocketValue = struct
     Lang.meth (to_value socket)
       (List.map (fun (lbl, _, _, m) -> (lbl, m socket)) meths)
 
-  let of_unix_file_descr fd =
-    object
-      method typ = "unix"
-      method read = Unix.read fd
-      method write = Unix.write fd
-      method close = Unix.close fd
-    end
-
+  let of_unix_file_descr = Http.unix_socket
   let of_value socket = of_value (Lang.demeth socket)
 end

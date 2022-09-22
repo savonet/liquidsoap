@@ -13,31 +13,53 @@
 # @method status_code Set response status code
 # @method status_message Set response status message
 def http.response(~http_version="1.1",
-                  ~status_code=200,
+                  ~status_code=null(),
                   ~status_message=null(),
                   ~headers=[],
                   ~content_type=null(),
                   ~data=getter("")) = 
+  status_code = status_code ??
+    if http_version == "1.1" and headers["expect"] == "100-continue" and getter.get(data) == "" then
+      100
+    else
+      200
+    end
+
   http_version = ref(http_version)
   status_code = ref(status_code)
   status_message = ref(status_message)
   headers = ref(headers)
   content_type = ref(content_type)
   data = ref(data)
+  status_sent = ref(false)
   headers_sent = ref(false)
+  data_sent = ref(false)
   response_ended = ref(false)
+
+  def mk_status() =
+    status_sent := true
+
+    http_version = !http_version
+    status_code = !status_code
+
+    status_code =
+      if status_code == 100 and getter.get(!data) != "" then
+        200
+      else
+        status_code
+      end
+
+    status_message = !status_message ?? http.codes[status_code]
+
+    "HTTP/#{http_version} #{status_code} #{status_message}\r\n"
+  end
 
   def mk_headers() =
     headers_sent := true
 
-    http_version = !http_version
-    status_code = !status_code
-    status_message = !status_message
     headers = !headers
     content_type = !content_type
     data = !data
-
-    status_message = status_message ?? http.codes[status_code]
 
     headers =
       if getter.is_constant(data) then
@@ -62,11 +84,12 @@ def http.response(~http_version="1.1",
     headers = string.concat(separator="\r\n", headers)
     headers = if headers != "" then "#{headers}\r\n" else "" end 
 
-    "HTTP/#{http_version} #{status_code} #{status_message}\r\n\
-     #{headers}\r\n"
+    "#{headers}\r\n"
   end
 
   def mk_data() =
+    data_sent := true
+
     data = !data
 
     if getter.is_constant(data) then
@@ -82,6 +105,8 @@ def http.response(~http_version="1.1",
   def response() =
     if !response_ended then
       ""
+    elsif not !status_sent then
+      mk_status()
     elsif not !headers_sent then
       mk_headers()
     else
@@ -89,10 +114,10 @@ def http.response(~http_version="1.1",
     end
   end
 
-  def attr_method(attr) =
+  def attr_method(sent, attr) =
     def set(v) =
-      if !headers_sent then
-        error.raise(error.invalid, "HTTP response headers already sent!")
+      if !sent then
+        error.raise(error.invalid, "HTTP response has already been sent for this value!")
       end
       attr := v
     end
@@ -122,17 +147,25 @@ def http.response(~http_version="1.1",
     data := d
   end
 
+  def send_status(socket) =
+    if not !status_sent then
+      socket.write(mk_status())
+    end
+  end
+
   response.{
-    http_version = attr_method(http_version),
-    status_code = attr_method(status_code),
-    status_message = attr_method(status_message),
-    headers = attr_method(headers),
+    http_version = attr_method(status_sent, http_version),
+    status_code = attr_method(status_sent, status_code),
+    status_message = attr_method(status_sent, status_message),
+    headers = attr_method(headers_sent, headers),
     header = header,
     redirect = redirect,
     json = json,
     html = html,
-    content_type = attr_method(content_type),
-    data = attr_method(data)
+    content_type = attr_method(headers_sent, content_type),
+    data = attr_method(data_sent, data),
+    send_status = send_status,
+    status_sent = {!status_sent}
   } 
 end
 
@@ -180,18 +213,37 @@ end
 # @flag hidden
 def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
   def handler(request) =
+    response = http.response(
+      http_version=request.http_version,
+    )
+
+    is_response_done = ref(false)
+
+    def replaces response() =
+      ret = response()
+      is_response_done := ret == ""
+      ret
+    end
+
+    def data(~timeout=10.) =
+      if !is_response_done then
+        error.raise(error.http, "Response ended!")
+      end
+
+      if response.status_code.current() == 100 and not response.status_sent() then
+        response.send_status(request.socket)
+      end
+      request.data(timeout=timeout)
+    end
+
     request = {
-      data = request.data,
+      data = data,
       headers = request.headers,
       http_version = request.http_version,
       method = request.method,
       path = request.path,
       query = request.query
     }
-
-    response = http.response(
-      http_version=request.http_version,
-    )
 
     handler = fun (req, res) -> begin
       middleware = !harbor.http.middleware
@@ -420,4 +472,32 @@ def http.post.file(~name="file", ~content_type=null(), ~headers=[], ~boundary=nu
   headers = ("Content-Type", "multipart/form-data; boundary=#{data.boundary}")::headers
 
   http.post(headers=headers, timeout_ms=timeout, redirect=redirect, data=data.contents, url)
+end
+
+let harbor.http.request = ()
+
+# Read all data from a HTTP request
+# @category Liquidsoap
+# @param ~timeout Read timeout
+# @param req HTTP request
+def harbor.http.request.body(~timeout=10., req) =
+  # This is for typing purposes
+  if false then
+    harbor.http.register("/foo", fun (r, _) -> ignore(if false then r else req end))
+  end
+
+  data = ref("")
+  start_time = time()
+  def rec read() =
+    if start_time+timeout < time() then
+      error.raise(error.http, "Timeout!")
+    end
+
+    r = req.data(timeout=timeout)
+    if r == "" then !data else
+      data := "#{!data}#{r}"
+      read()
+    end
+  end
+  read()
 end
