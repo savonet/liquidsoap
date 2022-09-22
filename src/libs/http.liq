@@ -327,3 +327,41 @@ def replaces harbor.http.static(~transport=http.transport.unix,~port=8000,~path=
   serve = fun(~method,uri,handler) -> harbor.http.register(transport=transport,port=port,method=method,uri,handler)
   harbor.http.static.base(serve,content_type=content_type,basepath=path,browse=browse,headers=headers,directory)
 end
+
+stdlib_file = file
+
+# Send a file via POST request encoded in multipart/form-data. The contents can
+# either be directly specified (with the `contents` argument) or taken from a
+# file (with the `file` argument).
+# @category Interaction
+# @param ~headers Additional headers.
+# @param ~boundary Specify boundary to use for multipart/form-data.
+# @param ~filename File name sent in the request.
+# @param ~file File whose contents is to be sent in the request.
+# @param ~contents Contents of the file sent in the request.
+# @param ~timeout Timeout in ms.
+# @param ~redirect Follow reidrections.
+# @param url URL to post to.
+def http.post.file(~headers=[], ~boundary=null(), ~filename=null(), ~file=null(), ~contents=null(), ~timeout=null(), ~redirect=true, url)
+  # Massage parameters
+  filename = if not null.defined(filename) and null.defined(file) then path.basename(null.get(file)) else filename end
+  contents =
+    if null.defined(contents) then null.get(contents)
+    elsif null.defined(file) then stdlib_file.contents(null.get(file))
+    else ""
+  end
+  def default_boundary()
+    l = list.init(28, fun(_) -> "-")
+    s = string.concat(l)
+    z = string.nth("0", 0)
+    l = list.init(28, fun(_) -> string.char(z+random.int(min=0, max=10)))
+    s ^ string.concat(l)
+  end
+  boundary = null.default(boundary, default_boundary)
+
+  # Create query
+  headers = ("Content-Type", "multipart/form-data; boundary=#{boundary}")::headers
+  filename = if null.defined(filename) then " filename=\"#{filename}\"" else "" end
+  data = "--#{boundary}\nContent-Disposition: form-data; name=\"file\"#{filename}\n\n#{contents}\n--#{boundary}--\n"
+  http.post(headers=headers, timeout_ms=timeout, redirect=redirect, data=data, url)
+end

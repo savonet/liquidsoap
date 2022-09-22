@@ -20,6 +20,7 @@ New:
   - `file.replaygain` to compute the replaygain of a file
 - Added support for ImageLib to decode images.
 - Added `string.char`.
+- Added `http.post.file`.
 
 Changed:
 
