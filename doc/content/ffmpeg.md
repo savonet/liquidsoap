@@ -120,6 +120,25 @@ Please consult the FFmpeg documentation for more details about that each filter 
 
 ## Encoded data tweaks
 
+Manipulating encoded content is powerful but can sometimes require some specific knowledge of internals aspects of media codecs and containers. This section
+lists some specific cases.
+
+### Relaxed copy content compatibility check
+
+By default, liquidsoap keeps track  of the content passed in a stream containing ffmpeg encoded content (`ffmpeg.copy`) and only allows file and stream decoders to return strictly compatible
+content, e.g. same video resolution or audio samplerate.
+
+Some containers such as `mp4`, however, do allow stream where video resolution or audio samplerate changes between tracks. In this case, you can 
+relax those compatibility checks using the following setting:
+
+```liquidsoap
+settings.ffmpeg.content.copy.relaxed_compatibility_check.set(true)
+```
+
+This is a global setting for now and could be refined per-stream in the future if the needs arises.
+
+### Shared encoders
+
 `liquisoap` provides operators to encode data using `%ffmpeg` and re-use it accross output. This is called _inline encoding_. Here's an example:
 
 ```liquidsoap
