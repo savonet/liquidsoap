@@ -19,6 +19,7 @@ New:
   - `source.replaygain.compute` to compute replaygain of a source
   - `file.replaygain` to compute the replaygain of a file
 - Added support for ImageLib to decode images.
+- Added `string.char`.
 
 Changed:
 
