@@ -28,7 +28,7 @@ let request_t =
     [
       ("http_version", Lang.string_t);
       ("method", Lang.string_t);
-      ("data", Lang.fun_t [] Lang.string_t);
+      ("data", Lang.string_t);
       ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("query", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("socket", Builtins_socket.SocketValue.t);
@@ -90,7 +90,7 @@ let parse_register_args p =
           ("headers", headers);
           ("query", query);
           ("socket", socket);
-          ("data", Lang.val_fun [] (fun _ -> Lang.string (data ())));
+          ("data", Lang.string data);
           ("path", Lang.string path);
         ]
     in

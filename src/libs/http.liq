@@ -327,25 +327,3 @@ def replaces harbor.http.static(~transport=http.transport.unix,~port=8000,~path=
   serve = fun(~method,uri,handler) -> harbor.http.register(transport=transport,port=port,method=method,uri,handler)
   harbor.http.static.base(serve,content_type=content_type,basepath=path,browse=browse,headers=headers,directory)
 end
-
-let harbor.http.request = ()
-
-# Read all data from a HTTP request
-# @category Liquidsoap
-# @param req HTTP request
-def harbor.http.request.body(req) =
-  # This is for typing purposes
-  if false then
-    harbor.http.register("/foo", fun (r, _) -> ignore(if false then r else req end))
-  end
-
-  data = ref("")
-  def rec read() =
-    r = req.data()
-    if r == "" then !data else
-      data := "#{!data}#{r}"
-      read()
-    end
-  end
-  read()
-end
