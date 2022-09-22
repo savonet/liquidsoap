@@ -29,6 +29,18 @@ type 'a packet = {
   packet : 'a Packet.t;
 }
 
+let conf_ffmpeg_copy =
+  Dtools.Conf.void
+    ~p:(Ffmpeg_content_base.conf_ffmpeg_content#plug "copy")
+    "FFmpeg copy content configuration"
+
+let conf_ffmpeg_copy_relaxed =
+  Dtools.Conf.bool
+    ~p:(conf_ffmpeg_copy#plug "relaxed")
+    ~d:false
+    "If `true`, relax content compatibility, e.g. allow audio tracks with \
+     different samplerate or video tracks with different resolution."
+
 module BaseSpecs = struct
   include Ffmpeg_content_base
 
@@ -102,9 +114,10 @@ module AudioSpecs = struct
       | None, _ | _, None -> true
       | Some p, Some p' ->
           Audio.get_params_id p = Audio.get_params_id p'
-          && Audio.get_channel_layout p = Audio.get_channel_layout p'
-          && Audio.get_sample_format p = Audio.get_sample_format p'
-          && Audio.get_sample_rate p = Audio.get_sample_rate p'
+          && (conf_ffmpeg_copy_relaxed#get
+             || Audio.get_channel_layout p = Audio.get_channel_layout p'
+                && Audio.get_sample_format p = Audio.get_sample_format p'
+                && Audio.get_sample_rate p = Audio.get_sample_rate p')
 
   let merge = merge ~compatible
   let default_params _ = None
@@ -163,12 +176,13 @@ module VideoSpecs = struct
       | None, _ | _, None -> true
       | Some p, Some p' ->
           Video.get_params_id p = Video.get_params_id p'
-          && Video.get_width p = Video.get_width p'
-          && Video.get_height p = Video.get_height p'
-          && compatible_aspect_radio
-               (Video.get_sample_aspect_ratio p)
-               (Video.get_sample_aspect_ratio p')
-          && Video.get_pixel_format p = Video.get_pixel_format p'
+          && (conf_ffmpeg_copy_relaxed#get
+             || Video.get_width p = Video.get_width p'
+                && Video.get_height p = Video.get_height p'
+                && compatible_aspect_radio
+                     (Video.get_sample_aspect_ratio p)
+                     (Video.get_sample_aspect_ratio p')
+                && Video.get_pixel_format p = Video.get_pixel_format p')
 
   let merge = merge ~compatible
   let default_params _ = None
