@@ -83,7 +83,7 @@ let add_http_request ~stream_body ~descr ~request name =
         ( "",
           Lang.string_t,
           None,
-          Some "Requested URL, e.g. \"http://www.google.com/\"." );
+          Some "Requested URL, e.g. `\"http://www.liquidsoap.info/\"`." );
       ]
     @
     if stream_body then
