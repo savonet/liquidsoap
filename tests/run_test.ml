@@ -1,4 +1,4 @@
-let timeout = 10 * 3600
+let timeout = 10 * 60
 let test = Sys.argv.(1)
 let cmd = Sys.argv.(2)
 let args = try Array.sub Sys.argv 2 (Array.length Sys.argv - 2) with _ -> [||]
