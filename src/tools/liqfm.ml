@@ -58,7 +58,7 @@ module Liq_http = struct
       let x, code, y, _ =
         Liqcurl.http_request ?headers ~follow_redirect:true
           ~on_body_data:(Buffer.add_string data)
-          ~timeout:(int_of_float (timeout *. 1000.))
+          ~timeout:(Some (int_of_float (timeout *. 1000.)))
           ~url ~request ()
       in
       if code <> 200 then

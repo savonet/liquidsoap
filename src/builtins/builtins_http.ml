@@ -102,7 +102,9 @@ let add_http_request ~stream_body ~descr ~request name =
       let headers =
         List.map (fun (x, y) -> (Lang.to_string x, Lang.to_string y)) headers
       in
-      let timeout = Lang.to_int (List.assoc "timeout_ms" p) in
+      let timeout =
+        Lang.to_valued_option Lang.to_int (List.assoc "timeout_ms" p)
+      in
       let http_version =
         Option.map Lang.to_string (Lang.to_option (List.assoc "http_version" p))
       in
