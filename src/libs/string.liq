@@ -227,7 +227,7 @@ def string.getter.flush(~separator="", gen) =
   end
 end
 
-# Combine a list of string getters `[g1, ..., ]`
+# Combine a list of string getters `[g1, ...]`
 # and return a single getter `g` such that:
 # `string.getter.flush(separator=s, g) = string.concat(separator=s, list.filter(fun (s) -> s != "", [string.getter.flush(g1), ...]))`
 # @category String
