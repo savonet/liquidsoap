@@ -1,6 +1,10 @@
 2.1.2 (unreleased)
 =====
 
+New:
+* Added `string.char`, `string.getter.flush` and `string.getter.concat`.
+* Added `http.post.multipart_form_data` and `http.post.file`.
+
 Changed:
 * Allow sub-second values in `sleep()` (#2610)
 * Allowed many new format for `taglib` (#2605)

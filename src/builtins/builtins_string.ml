@@ -76,6 +76,13 @@ print(c) # should print "c"
           "not_found")
 
 let () =
+  Lang.add_builtin "string.char" ~category:`String
+    ~descr:"Create a string with one character."
+    [("", Lang.int_t, None, Some "Code of the character.")] Lang.string_t
+    (fun p ->
+      List.assoc "" p |> Lang.to_int |> Char.chr |> String.make 1 |> Lang.string)
+
+let () =
   Lang.add_builtin "string.escape" ~category:`String
     ~descr:
       "Escape special characters in an string. By default, the string is \

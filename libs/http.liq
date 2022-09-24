@@ -223,3 +223,98 @@ def harbor.https.static(~port=8000,~path="/",~browse=false,~content_type=content
   harbor.http.static.base(serve,basepath=path,browse=browse,content_type=content_type,headers=headers,directory)
 end
 %endif
+
+# Prepare a list of data to be sent as multipart form data
+# @category Interaction
+# @param ~boundary Specify boundary to use for multipart/form-data.
+# @param data data to insert
+def http.post.multipart_form_data(~boundary=null(), data)
+  def default_boundary()
+    range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
+    l = list.init(12, fun(_) -> string.char.ascii.random(range))
+    string.concat(l)
+  end
+  boundary = null.default(boundary, default_boundary)
+
+  def mk_content(contents, entry) =
+    data = entry.contents
+
+    attributes = [("name", entry.name), ...entry.attributes]
+    attributes = list.map(fun (v) -> "#{string(fst(v))}=#{string.quote(snd(v))}", attributes)
+    attributes = string.concat(separator="; ", attributes)
+    
+    headers = list.map(fun (v) -> "#{string(fst(v))}: #{string(snd(v))}", entry.headers)
+    headers = string.concat(separator="\r\n", headers)
+    headers = headers == "" ? "" : "#{headers}\r\n"
+
+    # This is for typing purposes
+    (entry:unit)
+
+    [
+      ...contents,
+      getter("--#{boundary}\r\n"),
+      getter("Content-Disposition: form-data; #{attributes}\r\n"),
+      getter(headers),
+      getter("\r\n"),
+      data,
+      getter("\r\n")
+    ]
+  end
+
+  contents = [
+    ...list.fold(mk_content, [], data),
+    getter("--#{boundary}--\r\n")
+  ]
+
+  { contents = string.getter.concat(contents), boundary = boundary }
+end
+
+stdlib_file = file
+
+# Send a file via POST request encoded in multipart/form-data. The contents can
+# either be directly specified (with the `contents` argument) or taken from a
+# file (with the `file` argument).
+# @category Interaction
+# @param ~name Name of the field field
+# @param ~content_type Content-type (mime) for the file.
+# @param ~headers Additional headers.
+# @param ~boundary Specify boundary to use for multipart/form-data.
+# @param ~filename File name sent in the request.
+# @param ~file File whose contents is to be sent in the request.
+# @param ~contents Contents of the file sent in the request.
+# @param ~timeout Timeout in ms.
+# @param ~redirect Follow reidrections.
+# @param url URL to post to.
+def http.post.file(~name="file", ~content_type=null(), ~headers=[], ~boundary=null(), ~filename=null(), ~file=null(), ~contents=null(), ~timeout=null(), ~redirect=true, url)
+  if not null.defined(filename) and not null.defined(file) then
+    error.raise(error.http, "At least one of: `file` or `filename` must be defined!")
+  end
+
+  if null.defined(file) and null.defined(contents) then
+    error.raise(error.http, "Only one of: `contents` or `file` must be defined!")
+  end
+
+  # Massage parameters
+  filename = null.defined(filename) ? null.get(filename) : string(path.basename(null.get(file)))
+  contents = null.defined(contents) ? null.get(contents) : getter(stdlib_file.read(null.get(file)))
+
+  # Create query
+
+  content_type =
+    if null.defined(content_type) then
+      null.get(content_type)
+    else
+      mime = stdlib_file.mime_default(filename)
+      mime == "" ? "application/octet-stream" : mime
+    end
+
+  data = http.post.multipart_form_data(boundary=boundary, [{
+    name=name,
+    attributes=[("filename", filename)],
+    headers=[("Content-Type",content_type)],
+    contents=contents
+  }])
+  headers = ("Content-Type", "multipart/form-data; boundary=#{data.boundary}")::headers
+
+  http.post(headers=headers, timeout_ms=timeout, redirect=redirect, data=data.contents, url)
+end
