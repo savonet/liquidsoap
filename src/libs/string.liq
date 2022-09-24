@@ -204,3 +204,50 @@ def string.data_uri.decode(s) =
     null()
   end
 end
+
+let string.getter = ()
+
+# Flush all values from a string getter and returns
+# the concatenated result. If the getter is constant,
+# return the constant string. Otherwise, call the getter
+# repeatedly until it returns an empty string and return
+# the concatenated result
+# @category String
+def string.getter.flush(~separator="", gen) =
+  if getter.is_constant(gen) then
+    getter.get(gen)
+  else
+    def rec f(data) =
+      chunk = getter.get(gen)
+      if chunk == "" then data else
+        data = data == "" ? chunk : "#{data}#{separator}#{chunk}"
+        f(data)
+      end
+    end
+    f("")
+  end
+end
+
+# Combine a list of string getters `[g1, ..., ]`
+# and return a single getter `g` such that:
+# `string.getter.flush(separator=s, g) = string.concat(separator=s, list.filter(fun (s) -> s != "", [string.getter.flush(g1), ...]))`
+# @category String
+def string.getter.concat(l) =
+  len = list.length(l)
+  pos = ref(0)
+
+  def rec f() =
+    if !pos == len then "" else
+      gen = list.nth(l, !pos)
+      ret = getter.get(gen)
+
+      if ret == "" or getter.is_constant(gen) then
+        ref.incr(pos)
+      end
+
+      ret == "" ? f () : ret
+    end
+  end
+
+  getter(f)
+end

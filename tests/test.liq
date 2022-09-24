@@ -59,6 +59,13 @@ def test.check_non_repeating(~nb_files,~nb_rounds,s)
   s
 end
 
+def test.equals(v, v') =
+  if v != v' then
+    print("expected: #{string.quote(string_of(v'))}, got: #{string.quote(string_of(v))}")
+    test.fail()
+  end
+end
+
 # Asynchronous test handler with dummy output
 # Best practice is to run all manual tests
 # through this one.

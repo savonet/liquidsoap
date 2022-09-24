@@ -31,6 +31,7 @@ let () =
       "debug";
       "encoder";
       "file";
+      "file.mime";
       "harbor";
       "http";
       "http.transport";

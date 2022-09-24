@@ -21,11 +21,12 @@
  *****************************************************************************)
 
 let () =
-  Lang.add_builtin "file.mime" ~category:`File
+  Lang.add_builtin "file.mime.libmagic" ~category:`File
     ~descr:"Get the MIME type of a file, according to libmagic."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, None)] (Lang.nullable_t Lang.string_t) (fun p ->
       (* TODO is that really impossible ? *)
       let file = Lang.to_string (Lang.assoc "" 1 p) in
       match Liqmagic.file_mime file with
+        | Some "" -> Lang.null
         | Some s -> Lang.string s
         | None -> assert false)
