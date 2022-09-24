@@ -251,3 +251,36 @@ def string.getter.concat(l) =
 
   getter(f)
 end
+
+let string.char.ascii = ()
+
+# All ASCII characters code
+# @category String
+let string.char.ascii = list.init(128, fun (c) -> c)
+
+# All ASCII control character codes
+# @category String
+let string.char.ascii.control = list.init(32, fun (c) -> c)
+
+# All ASCII printable character codes
+# @category String
+let string.char.ascii.printable = list.init(96, fun (c) -> c+32)
+
+# All ASCII alphabet character codes
+# @category String
+let string.char.ascii.alphabet = [
+  # A-Z
+  ...list.init(24, fun (c) -> c+65),
+  # a-z
+  ...list.init(24, fun (c) -> c+97),
+]
+
+# All ASCII number character codes
+# @category String
+let string.char.ascii.number = list.init(10, fun (c) -> c+48)
+
+# Return a random ascii character
+# @category String
+def string.char.ascii.random(range=[...string.char.ascii]) =
+  string.char(list.nth(range, random.int(min=0, max=list.length(range)-1)))
+end

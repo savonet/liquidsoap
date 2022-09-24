@@ -334,11 +334,9 @@ end
 # @param data data to insert
 def http.post.multipart_form_data(~boundary=null(), data)
   def default_boundary()
-    l = list.init(28, fun(_) -> "-")
-    s = string.concat(l)
-    z = string.nth("0", 0)
-    l = list.init(28, fun(_) -> string.char(z+random.int(min=0, max=10)))
-    s ^ string.concat(l)
+    range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
+    l = list.init(12, fun(_) -> string.char.ascii.random(range))
+    string.concat(l)
   end
   boundary = null.default(boundary, default_boundary)
 
