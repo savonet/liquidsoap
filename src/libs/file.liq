@@ -107,8 +107,8 @@ def file.mime.cli(fname) =
   mime == "" ? null() : mime
 end
 
-# Get a file's mime type. Uses libmime if enabled, otherwise try
-# get the value using the file binary. Returns `null()` if no value
+# Get a file's mime type. Uses libmagic if enabled, otherwise try
+# to get the value using the file binary. Returns `null()` if no value
 # can be found.
 # @category File
 # @param file The file to test
