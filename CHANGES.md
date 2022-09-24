@@ -19,8 +19,6 @@ New:
   - `source.replaygain.compute` to compute replaygain of a source
   - `file.replaygain` to compute the replaygain of a file
 - Added support for ImageLib to decode images.
-- Added `string.char`, `string.getter.flush` and `string.getter.concat` 
-- Added `http.post.multipart_form_data` and `http.post.file`.
 
 Changed:
 

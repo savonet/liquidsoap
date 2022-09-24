@@ -399,8 +399,8 @@ def http.post.file(~name="file", ~content_type=null(), ~headers=[], ~boundary=nu
   end
 
   # Massage parameters
-  filename = null.defined(filename) ? null.get(filename) : path.basename(null.get(file))
-  contents = null.defined(contents) ? null.get(contents) : stdlib_file.read(null.get(file))
+  filename = null.defined(filename) ? null.get(filename) : string(path.basename(null.get(file)))
+  contents = null.defined(contents) ? null.get(contents) : getter(stdlib_file.read(null.get(file)))
 
   # Create query
 
