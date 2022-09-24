@@ -219,12 +219,11 @@ def string.getter.flush(~separator="", gen) =
   else
     def rec f(data) =
       chunk = getter.get(gen)
-      if chunk == "" then data else
-        data = data == "" ? chunk : "#{data}#{separator}#{chunk}"
-        f(data)
+      if chunk == "" then string.concat(separator=separator, data) else
+        f([...data, chunk])
       end
     end
-    f("")
+    f([])
   end
 end
 
