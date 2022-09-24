@@ -152,6 +152,14 @@ let read_crlf ?(log = fun _ -> ()) ?(max = 4096) ?(count = 2) ~timeout
   done;
   Buffer.contents ans
 
+let read ~timeout (socket : socket) len =
+  if len = 0 then ""
+  else (
+    socket#wait_for `Read timeout;
+    let buf = Bytes.create len in
+    let len = socket#read buf 0 len in
+    Bytes.sub_string buf 0 len)
+
 let really_read ~timeout (socket : socket) len =
   let start_time = Unix.gettimeofday () in
   let buf = Buffer.create len in

@@ -6,6 +6,7 @@ let error.file = error.register("file")
 let error.string = error.register("string")
 let error.json = error.register("json")
 let error.http = error.register("http")
+let error.socket = error.register("socket")
 
 # Ensure that a condition is satisfied (raise `error.assertion` exception
 # otherwise).

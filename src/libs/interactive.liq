@@ -418,7 +418,7 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
   harbor.http.register(transport=transport, port=port, method="GET", uri, webpage)
 
   def setter(request, _)
-    data = url.split_args(request.data)
+    data = url.split_args(harbor.http.request.body(request))
     def update(nv)
       let (name, v) = nv
       try

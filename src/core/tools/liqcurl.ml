@@ -118,6 +118,16 @@ let () =
 let fail msg =
   raise Runtime_error.(Runtime_error { kind = "http"; msg; pos = [] })
 
+let interrupt = Atomic.make false
+let () = Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true)
+
+let mk_read =
+  let interrupt = Atomic.make false in
+  Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true);
+  fun fn len ->
+    if Atomic.get interrupt then Curl.Abort
+    else (try Proceed (fn len) with _ -> Curl.Abort)
+
 let parse_http_answer s =
   let f v c s = (v, c, s) in
   try Scanf.sscanf s "HTTP/%s %i %[^\r^\n]" f with
@@ -167,13 +177,13 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
           (match len with
             | Some len -> connection#set_postfieldsizelarge len
             | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
-          connection#set_readfunction get_data
+          connection#set_readfunction2 (mk_read get_data)
       | `Put (len, get_data) ->
           connection#set_put true;
           (match len with
             | Some len -> connection#set_postfieldsizelarge len
             | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
-          connection#set_readfunction get_data
+          connection#set_readfunction2 (mk_read get_data)
       | `Head -> connection#set_nobody true
       | `Delete -> connection#set_customrequest "DELETE");
     let response_headers = Buffer.create 1024 in

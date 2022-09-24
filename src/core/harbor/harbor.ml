@@ -121,7 +121,7 @@ module type T = sig
   type http_handler =
     protocol:string ->
     meth:http_verb ->
-    data:string ->
+    data:(float -> string) ->
     headers:(string * string) list ->
     query:(string * string) list ->
     socket:socket ->
@@ -305,7 +305,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   type http_handler =
     protocol:string ->
     meth:http_verb ->
-    data:string ->
+    data:(float -> string) ->
     headers:(string * string) list ->
     query:(string * string) list ->
     socket:socket ->
@@ -674,82 +674,94 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   exception Handled of (http_verb * (string * string) list * http_handler)
 
-  let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
-    let ans_404 () =
-      log#info "Returned 404 for '%s'." uri;
-      simple_reply
-        (http_error_page 404 "Not found" "This page isn't available.")
+  let ans_404 uri =
+    log#info "Returned 404 for '%s'." uri;
+    simple_reply (http_error_page 404 "Not found" "This page isn't available.")
+
+  let ans_500 uri =
+    log#info "Returned 500 for '%s'." uri;
+    simple_reply
+      (http_error_page 500 "Internal Server Error"
+         "There was an error processing your request.")
+
+  let ans_400 ~uri s =
+    log#info "Returned 400 for '%s': %s." uri s;
+    simple_reply (http_error_page 400 "Bad Request" s)
+
+  let admin ~icy ~port ~uri ~headers ~args h =
+    let* mode =
+      try Duppy.Monad.return (Hashtbl.find args "mode")
+      with Not_found -> ans_400 ~uri "unrecognised command"
     in
-    let ans_500 () =
-      log#info "Returned 500 for '%s'." uri;
-      simple_reply
-        (http_error_page 500 "Internal Server Error"
-           "There was an error processing your request.")
+    let len =
+      try int_of_string (assoc_uppercase "CONTENT-LENGTH" headers) with _ -> 0
     in
-    let ans_400 s =
-      log#info "Returned 400 for '%s': %s." uri s;
-      simple_reply (http_error_page 400 "Bad Request" s)
+    let* data =
+      if len > 0 then
+        Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
+          ~priority:`Non_blocking ~marker:(Duppy.Io.Length len) h
+      else Duppy.Monad.return ""
     in
-    let admin ~icy args =
-      let* mode =
-        try Duppy.Monad.return (Hashtbl.find args "mode")
-        with Not_found -> ans_400 "unrecognised command"
-      in
-      match mode with
-        | "updinfo" ->
-            let mount = try Hashtbl.find args "mount" with Not_found -> "/" in
-            log#info "Request to update metadata for mount %s on port %i" mount
-              port;
-            let* s =
-              try Duppy.Monad.return (find_source mount port)
-              with Not_found -> ans_400 "Source is not available"
-            in
-            let* () = exec_http_auth_check ~args ~login:s#login h headers in
-            let* () =
-              if
-                not
-                  (List.mem
-                     (Option.value ~default:"" s#get_mime_type)
-                     conf_icy_metadata#get)
-              then (
-                log#info
-                  "Returned 405 for '%s': Source format does not support ICY \
-                   metadata update"
-                  uri;
-                simple_reply
-                  (http_error_page 405 "Method Not Allowed" "Method Not Allowed"))
-              else Duppy.Monad.return ()
-            in
-            Hashtbl.remove args "mount";
-            Hashtbl.remove args "mode";
-            let in_enc =
-              try
-                let enc =
-                  match
-                    String.uppercase_ascii (Hashtbl.find args "charset")
-                  with
-                    | "LATIN1" -> "ISO-8859-1"
-                    | s -> s
-                in
-                Hashtbl.remove args "charset";
-                Some enc
-              with Not_found -> if icy then s#icy_charset else s#meta_charset
-            in
-            (* Recode tags.. *)
-            let f x y m =
-              let g = Camomile_utils.recode_tag ?in_enc in
-              Hashtbl.add m (g x) (g y);
-              m
-            in
-            let args =
-              Hashtbl.fold f args (Hashtbl.create (Hashtbl.length args))
-            in
-            s#insert_metadata args;
-            simple_reply
-              (Printf.sprintf
-                 "HTTP/1.0 200 OK\r\n\r\nUpdated metadatas for mount %s" mount)
-        | _ -> ans_500 ()
-    in
+    (try
+       if
+         assoc_uppercase "CONTENT-TYPE" headers
+         = "application/x-www-form-urlencoded"
+       then Hashtbl.iter (Hashtbl.add args) (Http.args_split data)
+     with Not_found -> ());
+    match mode with
+      | "updinfo" ->
+          let mount = try Hashtbl.find args "mount" with Not_found -> "/" in
+          log#info "Request to update metadata for mount %s on port %i" mount
+            port;
+          let* s =
+            try Duppy.Monad.return (find_source mount port)
+            with Not_found -> ans_400 ~uri "Source is not available"
+          in
+          let* () = exec_http_auth_check ~args ~login:s#login h headers in
+          let* () =
+            if
+              not
+                (List.mem
+                   (Option.value ~default:"" s#get_mime_type)
+                   conf_icy_metadata#get)
+            then (
+              log#info
+                "Returned 405 for '%s': Source format does not support ICY \
+                 metadata update"
+                uri;
+              simple_reply
+                (http_error_page 405 "Method Not Allowed" "Method Not Allowed"))
+            else Duppy.Monad.return ()
+          in
+          Hashtbl.remove args "mount";
+          Hashtbl.remove args "mode";
+          let in_enc =
+            try
+              let enc =
+                match String.uppercase_ascii (Hashtbl.find args "charset") with
+                  | "LATIN1" -> "ISO-8859-1"
+                  | s -> s
+              in
+              Hashtbl.remove args "charset";
+              Some enc
+            with Not_found -> if icy then s#icy_charset else s#meta_charset
+          in
+          (* Recode tags.. *)
+          let f x y m =
+            let g = Camomile_utils.recode_tag ?in_enc in
+            Hashtbl.add m (g x) (g y);
+            m
+          in
+          let args =
+            Hashtbl.fold f args (Hashtbl.create (Hashtbl.length args))
+          in
+          s#insert_metadata args;
+          simple_reply
+            (Printf.sprintf
+               "HTTP/1.0 200 OK\r\n\r\nUpdated metadatas for mount %s" mount)
+      | _ -> ans_500 uri
+
+  let handle_http_request ~hmethod ~hprotocol ~port h uri headers =
     let rex = Pcre.regexp "^(.+)\\?(.+)$" in
     let base_uri, args =
       try
@@ -760,12 +772,6 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let smethod = string_of_verb hmethod in
     log#info "%s %s request on %s." (protocol_name h) smethod base_uri;
     let args = Http.args_split args in
-    (try
-       if
-         assoc_uppercase "CONTENT-TYPE" headers
-         = "application/x-www-form-urlencoded"
-       then Hashtbl.iter (Hashtbl.add args) (Http.args_split data)
-     with Not_found -> ());
     (* Filter out password *)
     let log_args =
       if conf_pass_verbose#get then args
@@ -801,11 +807,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let is_admin s = try String.sub s 0 6 = "/admin" with _ -> false in
       match base_uri with
         (* Icecast *)
-        | "/admin/metadata" -> admin ~icy:false args
+        | "/admin/metadata" -> admin ~icy:false ~port ~uri ~headers ~args h
         (* Shoutcast *)
-        | "/admin.cgi" -> admin ~icy:true args
-        | s when is_admin s -> ans_400 "unrecognised command"
-        | _ -> ans_404 ()
+        | "/admin.cgi" -> admin ~icy:true ~port ~uri ~headers ~args h
+        | s when is_admin s -> ans_400 ~uri "unrecognised command"
+        | _ -> ans_404 uri
     with
       | Handled (meth, groups, handler) ->
           let protocol =
@@ -820,15 +826,69 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let headers =
             List.map (fun (k, v) -> (String.lowercase_ascii k, v)) headers
           in
+          let content_type =
+            try Some (assoc_uppercase "CONTENT-TYPE" headers) with _ -> None
+          in
+          let content_length =
+            try Some (int_of_string (assoc_uppercase "CONTENT-LENGTH" headers))
+            with _ -> None
+          in
+          let transfer_encoding =
+            try Some (assoc_uppercase "TRANSFER-ENCODING" headers)
+            with _ -> None
+          in
+          let socket : Http.socket =
+            let rem_data = h.Duppy.Monad.Io.data in
+            let rem_len = String.length rem_data in
+            let rem_ofs = Atomic.make 0 in
+            let socket = h.Duppy.Monad.Io.socket in
+            object
+              method typ = socket#typ
+              method transport = socket#transport
+              method file_descr = socket#file_descr
+              method write = socket#write
+              method close = socket#close
+
+              method wait_for ?log event timeout =
+                match (event, Atomic.get rem_ofs) with
+                  | `Read, ofs when ofs < rem_len -> ()
+                  | _ -> socket#wait_for ?log event timeout
+
+              method read buf dst_ofs len =
+                if Atomic.get rem_ofs < rem_len then (
+                  let src_ofs = Atomic.get rem_ofs in
+                  let len = min (rem_len - src_ofs) len in
+                  Bytes.blit_string rem_data src_ofs buf dst_ofs len;
+                  Atomic.set rem_ofs (src_ofs + len);
+                  len)
+                else socket#read buf dst_ofs len
+            end
+          in
+
+          let data =
+            match (content_type, content_length, transfer_encoding) with
+              | _, Some len, _ when len > 0 ->
+                  let buflen = min len 4096 in
+                  let len = Atomic.make len in
+                  fun timeout ->
+                    let ret =
+                      Http.read ~timeout socket (min (Atomic.get len) buflen)
+                    in
+                    Atomic.set len (Atomic.get len - String.length ret);
+                    ret
+              | _, _, Some "chunked" ->
+                  fun timeout -> fst (Http.read_chunked ~timeout socket)
+              | _ -> fun _ -> ""
+          in
           Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
-            (handler ~protocol ~meth ~data ~headers
+            (handler ~protocol ~meth ~headers ~data
                ~socket:h.Duppy.Monad.Io.socket ~query base_uri)
       | e ->
           let bt = Printexc.get_backtrace () in
           Utils.log_exception ~log ~bt
             (Printf.sprintf "%s %s request on uri '%s' failed: %s"
                (protocol_name h) smethod (Printexc.to_string e) uri);
-          ans_500 ()
+          ans_500 uri
 
   let handle_client ~port ~icy h =
     (* Read and process lines *)
@@ -910,17 +970,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       | `Options when huri = "*" ->
           handle_asterisk_options_request ~hprotocol ~headers h
       | (`Get | `Post | `Put | `Delete | `Options | `Head) when not icy ->
-          let len =
-            try int_of_string (assoc_uppercase "CONTENT-LENGTH" headers)
-            with _ -> 0
-          in
-          let* data =
-            if len > 0 then
-              Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
-                ~priority:`Non_blocking ~marker:(Duppy.Io.Length len) h
-            else Duppy.Monad.return ""
-          in
-          handle_http_request ~hmethod ~hprotocol ~data ~port h huri headers
+          handle_http_request ~hmethod ~hprotocol ~port h huri headers
       | `Shout when icy ->
           let* () =
             Duppy.Monad.Io.write ?timeout:(Some conf_timeout#get)

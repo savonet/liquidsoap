@@ -131,22 +131,17 @@ let add_http_request ~stream_body ~descr ~request name =
         let data = List.assoc "data" p in
         let buf = Buffer.create 10 in
         let len, refill =
-          match (Lang.demeth data).Lang.value with
-            | Lang.Ground (Lang.Ground.String s) ->
-                Buffer.add_string buf s;
-                (Some (Int64.of_int (String.length s)), fun () -> ())
-            | _ -> (
-                let fn = Lang.to_getter data in
-                ( None,
-                  fun () ->
-                    match (Lang.demeth (fn ())).Lang.value with
-                      | Lang.Ground (Lang.Ground.String s) ->
-                          Buffer.add_string buf s
-                      | _ -> () ))
+          try
+            let data = Lang.to_string data in
+            Buffer.add_string buf data;
+            (Some (Int64.of_int (String.length data)), fun () -> ())
+          with _ ->
+            let fn = Lang.to_getter data in
+            (None, fun () -> Buffer.add_string buf (Lang.to_string (fn ())))
         in
         ( len,
           fun len ->
-            refill ();
+            if Buffer.length buf = 0 then refill ();
             let len = min (Buffer.length buf) len in
             let ret = Buffer.sub buf 0 len in
             Utils.buffer_drop buf len;
@@ -171,17 +166,19 @@ let add_http_request ~stream_body ~descr ~request name =
           on_body_data None;
           ans
         with
+          | Curl.CurlException (Curl.CURLE_ABORTED_BY_CALLBACK, _, _) ->
+              ("1.0", 520, "Operation aborted", [])
           | Curl.(CurlException (CURLE_OPERATION_TIMEOUTED, _, _)) ->
-              ("HTTP/1.0", 522, "Connection timed out", [])
+              ("1.0", 522, "Connection timed out", [])
           | Curl.(CurlException (CURLE_COULDNT_CONNECT, _, _))
           | Curl.(CurlException (CURLE_COULDNT_RESOLVE_HOST, _, _)) ->
-              ("HTTP/1.0", 523, "Origin is unreachable", [])
+              ("1.0", 523, "Origin is unreachable", [])
           | Curl.(CurlException (CURLE_GOT_NOTHING, _, _)) ->
-              ("HTTP/1.0", 523, "Remote server did not return any data", [])
+              ("1.0", 523, "Remote server did not return any data", [])
           | Curl.(CurlException (CURLE_SSL_CONNECT_ERROR, _, _)) ->
-              ("HTTP/1.0", 525, "SSL handshake failed", [])
+              ("1.0", 525, "SSL handshake failed", [])
           | Curl.(CurlException (CURLE_SSL_CACERT, _, _)) ->
-              ("HTTP/1.0", 526, "Invalid SSL certificate", [])
+              ("1.0", 526, "Invalid SSL certificate", [])
           | e ->
               let bt = Printexc.get_raw_backtrace () in
               Lang.log#severe "Could not perform http request: %s."

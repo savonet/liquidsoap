@@ -67,14 +67,9 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     method private start = self#connect
     method private stop = self#disconnect
-    val mutable interrupt = false
-    val interrupt_m = Mutex.create ()
-    method interrupt = Tutils.mutexify interrupt_m (fun () -> interrupt)
-
-    initializer
-    Lifecycle.on_core_shutdown
-      (Tutils.mutexify interrupt_m (fun () -> interrupt <- true))
-
+    val mutable interrupt = Atomic.make false
+    method interrupt () = Atomic.get interrupt
+    initializer Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true)
     val mutable url = url
     method url = url ()
     method set_url u = url <- u
@@ -154,7 +149,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       match container with
         | None -> ()
         | Some (input, _, _, _) ->
-            Tutils.mutexify interrupt_m (fun () -> interrupt <- true) ();
+            Atomic.set interrupt true;
             (try Av.close input
              with exn ->
                let bt = Printexc.get_backtrace () in
@@ -163,7 +158,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                     (Printexc.to_string exn)));
             container <- None;
             source_status <- `Stopped;
-            Tutils.mutexify interrupt_m (fun () -> interrupt <- false) ();
+            Atomic.set interrupt false;
             on_disconnect ()
 
     method private disconnect = self#mutexify (fun () -> self#disconnect_fn) ()

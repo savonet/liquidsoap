@@ -10,13 +10,19 @@ The `harbor.http.register.simple` function provides a simple, easy to use regist
 HTTP response implementation. This function receives a record describing the request and returns 
 the HTTP response.
 
+The request passed to the function contains all expected information from the underlying HTTP
+query. Its `data` method is a _string getter_, that is a function of type: `() -> string` 
+which returns the empty string `""` when all data has been consumed. The convenience function
+`harbor.http.request.body` can be used to read all the data from the request and return it at
+once.
+
 For convenience, a HTTP response builder is provided via `harbor.http.response`. Here's an example:
 
 ```liquidsoap
 def handler(request) =
   log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
        method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       data: #{request.data}")
+       data: #{harbor.http.request.body((request.data)}")
 
   harbor.http.response(
     content_type="text/html",
@@ -43,7 +49,7 @@ Its API is very similar to the node/express API. Here's an example:
 def handler(request, response) =
   log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
        method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       data: #{request.data}")
+       data: #{harbor.http.request.body(request.data)}")
 
   # Set response code. Defaults to 200
   response.status_code(201)

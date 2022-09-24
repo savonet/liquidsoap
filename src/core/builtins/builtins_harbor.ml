@@ -28,7 +28,7 @@ let request_t =
     [
       ("http_version", Lang.string_t);
       ("method", Lang.string_t);
-      ("data", Lang.string_t);
+      ("data", Lang.fun_t [(true, "timeout", Lang.float_t)] Lang.string_t);
       ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("query", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("socket", Builtins_socket.SocketValue.t);
@@ -90,12 +90,18 @@ let parse_register_args p =
           ("headers", headers);
           ("query", query);
           ("socket", socket);
-          ("data", Lang.string data);
+          ( "data",
+            Lang.val_fun
+              [("timeout", "timeout", Some (Lang.float 10.))]
+              (fun p ->
+                let timeout = Lang.to_float (List.assoc "timeout" p) in
+                Lang.string (data timeout)) );
           ("path", Lang.string path);
         ]
     in
 
     let resp = Lang.apply f [("", request)] in
+
     match Lang.to_option resp with
       | None -> Harbor.custom ()
       | Some resp -> (
