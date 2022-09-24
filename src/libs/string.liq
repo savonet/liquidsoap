@@ -207,7 +207,7 @@ end
 
 let string.getter = ()
 
-# Flush all values from a string getter and returns
+# Flush all values from a string getter and return
 # the concatenated result. If the getter is constant,
 # return the constant string. Otherwise, call the getter
 # repeatedly until it returns an empty string and return
