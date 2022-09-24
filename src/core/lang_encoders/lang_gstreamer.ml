@@ -23,7 +23,7 @@
 open Value
 open Ground
 
-let kind_of_encoder p =
+let type_of_encoder p =
   let has_video =
     List.exists
       (function
@@ -31,8 +31,8 @@ let kind_of_encoder p =
       p
   in
   let channels = Lang_encoder.channels_of_params p in
-  if has_video then Encoder.audio_video_kind channels
-  else Encoder.audio_kind channels
+  if has_video then Encoder.audio_video_type channels
+  else Encoder.audio_type channels
 
 let make ?pos params =
   let defaults =
@@ -93,4 +93,4 @@ let make ?pos params =
          "must have a muxer when passing an audio and a video pipeline");
   Encoder.GStreamer gstreamer
 
-let () = Lang_encoder.register "gstreamer" kind_of_encoder (make ?pos:None)
+let () = Lang_encoder.register "gstreamer" type_of_encoder (make ?pos:None)

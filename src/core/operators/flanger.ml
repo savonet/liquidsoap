@@ -72,8 +72,10 @@ class flanger (source : source) delay freq feedback phase =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "flanger"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
@@ -89,9 +91,9 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some "Phase difference between channels in radians." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Flanger effect."
+    ~return_t:frame_t ~category:`Audio ~descr:"Flanger effect."
     (fun p ->
       let f v = List.assoc v p in
       let duration, freq, feedback, phase, src =

@@ -434,16 +434,20 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
 let () =
   Lang.add_module "filter.iir";
   Lang.add_module "filter.iir.butterworth";
-  Lang.add_module "filter.iir.resonator";
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  Lang.add_module "filter.iir.resonator"
+
+let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "filter.iir.butterworth.high"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"IIR filter"
+    ~return_t:frame_t ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, order, src =
@@ -451,14 +455,20 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
-      new iir src Butterworth High_pass order freq 0. 0.);
+      new iir src Butterworth High_pass order freq 0. 0.)
+
+let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "filter.iir.butterworth.low"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"IIR filter"
+    ~return_t:frame_t ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, order, src =
@@ -466,15 +476,21 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
-      new iir src Butterworth Low_pass order freq 0. 0.);
+      new iir src Butterworth Low_pass order freq 0. 0.)
+
+let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "filter.iir.butterworth.bandpass"
     [
       ("frequency1", Lang.float_t, None, Some "First corner frequency");
       ("frequency2", Lang.float_t, None, Some "Second corner frequency");
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"IIR filter"
+    ~return_t:frame_t ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq1, freq2, order, src =
@@ -483,15 +499,21 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
-      new iir src Butterworth Band_pass order freq1 freq2 0.);
+      new iir src Butterworth Band_pass order freq1 freq2 0.)
+
+let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "filter.iir.butterworth.bandstop"
     [
       ("frequency1", Lang.float_t, None, Some "First corner frequency");
       ("frequency2", Lang.float_t, None, Some "Second corner frequency");
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"IIR filter"
+    ~return_t:frame_t ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq1, freq2, order, src =
@@ -500,14 +522,20 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
-      new iir src Butterworth Band_stop order freq1 freq2 0.);
+      new iir src Butterworth Band_stop order freq1 freq2 0.)
+
+let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "filter.iir.resonator.bandpass"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.float_t, Some (Lang.float 60.), Some "Quality factor");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"IIR filter"
+    ~return_t:frame_t ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, q, src =
@@ -515,14 +543,20 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      new iir src Resonator Band_pass 0 freq 0. q);
+      new iir src Resonator Band_pass 0 freq 0. q)
+
+let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "filter.iir.resonator.bandstop"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.float_t, Some (Lang.float 60.), Some "Quality factor");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"IIR filter"
+    ~return_t:frame_t ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, q, src =
@@ -530,14 +564,20 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      new iir src Resonator Band_pass 0 freq 0. q);
+      new iir src Resonator Band_pass 0 freq 0. q)
+
+let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "filter.iir.resonator.allpass"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.float_t, Some (Lang.float 60.), Some "Quality factor");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"IIR filter"
+    ~return_t:frame_t ~category:`Audio ~descr:"IIR filter"
     (fun p ->
       let f v = List.assoc v p in
       let freq, q, src =

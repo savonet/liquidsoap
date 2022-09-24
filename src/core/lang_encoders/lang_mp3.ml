@@ -23,7 +23,7 @@
 open Value
 open Ground
 
-let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
+let type_of_encoder p = Encoder.audio_type (Lang_encoder.channels_of_params p)
 
 let allowed_bitrates =
   [
@@ -261,7 +261,7 @@ let make_vbr p =
     p
 
 let () =
-  Lang_encoder.register "mp3" kind_of_encoder make_cbr;
-  Lang_encoder.register "mp3.cbr" kind_of_encoder make_cbr;
-  Lang_encoder.register "mp3.abr" kind_of_encoder make_abr;
-  Lang_encoder.register "mp3.vbr" kind_of_encoder make_vbr
+  Lang_encoder.register "mp3" type_of_encoder make_cbr;
+  Lang_encoder.register "mp3.cbr" type_of_encoder make_cbr;
+  Lang_encoder.register "mp3.abr" type_of_encoder make_abr;
+  Lang_encoder.register "mp3.vbr" type_of_encoder make_vbr

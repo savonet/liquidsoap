@@ -60,8 +60,10 @@ class comb (source : source) delay feedback =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "comb"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
@@ -69,9 +71,9 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float (-6.)),
         Some "Feedback coefficient in dB." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Comb filter."
+    ~return_t:frame_t ~category:`Audio ~descr:"Comb filter."
     (fun p ->
       let f v = List.assoc v p in
       let duration, feedback, src =

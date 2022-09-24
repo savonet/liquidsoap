@@ -56,8 +56,10 @@ class echo (source : source) delay feedback ping_pong =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "echo"
     [
       ( "delay",
@@ -72,9 +74,9 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Use ping-pong delay." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Add echo."
+    ~return_t:frame_t ~category:`Audio ~descr:"Add echo."
     (fun p ->
       let f v = List.assoc v p in
       let duration, feedback, pp, src =

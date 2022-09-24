@@ -23,7 +23,7 @@
 open Value
 open Ground
 
-let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
+let type_of_encoder p = Encoder.audio_type (Lang_encoder.channels_of_params p)
 
 let make params =
   let defaults =
@@ -67,4 +67,4 @@ let make params =
   in
   Encoder.WAV wav
 
-let () = Lang_encoder.register "wav" kind_of_encoder make
+let () = Lang_encoder.register "wav" type_of_encoder make

@@ -4,7 +4,7 @@ let () =
   Frame_settings.lazy_config_eval := true;
   let frame_size = Lazy.force Frame.size in
   let gen = G.create `Both in
-  let data = Content.None.lift_data ~length:0 () in
+  let data = Generator.NoneContent.lift_data ~length:0 () in
   (* Set this:
      0----1----2--> audio
      0----1----2----3----4----> video *)
@@ -156,7 +156,7 @@ let () =
 let () =
   let frame_size = Lazy.force Frame.size in
   let gen = G.create `Both in
-  let data = Content.None.lift_data ~length:0 () in
+  let data = Generator.NoneContent.lift_data ~length:0 () in
   (* Put this:
      2----3----4--> audio
      ?----?----?----?----?----> video *)

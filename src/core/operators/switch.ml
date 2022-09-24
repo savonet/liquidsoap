@@ -337,8 +337,7 @@ class lang_switch ~override_meta ~all_predicates ~transition_length mode
   end
 
 let () =
-  let kind = Lang.any in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   Lang.add_operator "switch" ~category:`Track
     ~descr:

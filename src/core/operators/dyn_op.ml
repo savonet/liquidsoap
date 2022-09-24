@@ -120,12 +120,11 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
   end
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "source.dynamic"
     [
       ( "init",
-        Lang.nullable_t (Lang.source_t k),
+        Lang.nullable_t (Lang.source_t frame_t),
         Some Lang.null,
         Some "Initial value for the source" );
       ( "track_sensitive",
@@ -146,13 +145,13 @@ let () =
            should wait before trying to update source again (`null` means \
            never)." );
       ( "",
-        Lang.fun_t [] (Lang.nullable_t (Lang.source_t k)),
+        Lang.fun_t [] (Lang.nullable_t (Lang.source_t frame_t)),
         Some (Lang.val_fun [] (fun _ -> Lang.null)),
         Some
           "Function returning the source to be used, `null` means keep current \
            source." );
     ]
-    ~return_t:k
+    ~return_t:frame_t
     ~descr:
       "Dynamically change the underlying source: it can either be changed by \
        the function given as argument, which returns the source to be played, \
@@ -161,7 +160,7 @@ let () =
     ~meth:
       [
         ( "set",
-          ([], Lang.fun_t [(false, "", Lang.source_t k)] Lang.unit_t),
+          ([], Lang.fun_t [(false, "", Lang.source_t frame_t)] Lang.unit_t),
           "Set the source.",
           fun s ->
             Lang.val_fun [("", "x", None)] (fun p ->

@@ -84,11 +84,11 @@ class text init render_text ttf ttf_size color duration text =
   end
 
 let register name init render_text =
-  let kind =
-    Frame.mk_fields ~audio:`Any ~video:Frame.video_yuva420p ~midi:`Any ()
-  in
-  let k = Lang.frame_kind_t kind in
   let add_operator op =
+    let return_t =
+      Lang.frame_t (Lang.univ_t ())
+        (Frame.mk_fields ~video:(Format_type.video ()) ())
+    in
     Lang.add_operator op
       [
         ( "font",
@@ -108,7 +108,7 @@ let register name init render_text =
           Some "Duration in seconds (`null` means infinite)." );
         ("", Lang.getter_t Lang.string_t, None, Some "Text to display.");
       ]
-      ~return_t:k ~category:`Video ~descr:"Display a text."
+      ~return_t ~category:`Video ~descr:"Display a text."
       (fun p ->
         let ttf =
           List.assoc "font" p |> Lang.to_option

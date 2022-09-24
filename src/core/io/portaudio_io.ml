@@ -146,8 +146,10 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "output.portaudio"
     (Output.proto
     @ [
@@ -159,9 +161,9 @@ let () =
           Lang.int_t,
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
-        ("", Lang.source_t k, None, None);
+        ("", Lang.source_t frame_t, None, None);
       ])
-    ~return_t:k ~category:`Output ~meth:Output.meth
+    ~return_t:frame_t ~category:`Output ~meth:Output.meth
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -180,7 +182,12 @@ let () =
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       (new output
          ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
-        :> Output.output));
+        :> Output.output))
+
+let () =
+  let return_t =
+    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "input.portaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
@@ -189,7 +196,7 @@ let () =
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
       ])
-    ~return_t:k ~category:`Input ~meth:(Start_stop.meth ())
+    ~return_t ~category:`Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
     (fun p ->
       let e f v = f (List.assoc v p) in

@@ -119,8 +119,7 @@ module Buffer = struct
 end
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "buffer"
     ([
        ( "fallible",
@@ -138,9 +137,9 @@ let () =
           Lang.float_t,
           Some (Lang.float 10.),
           Some "Maximum amount of buffered data, in seconds." );
-        ("", Lang.source_t k, None, None);
+        ("", Lang.source_t frame_t, None, None);
       ])
-    ~return_t:k ~category:`Liquidsoap
+    ~return_t:frame_t ~category:`Liquidsoap
     ~descr:"Create a buffer between two different clocks."
     (fun p ->
       let id =
@@ -350,8 +349,10 @@ module AdaptativeBuffer = struct
 end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "buffer.adaptative"
     (Output.proto
     @ [
@@ -377,9 +378,9 @@ let () =
           Some
             "Reset speed estimation to 1. when the source becomes available \
              again." );
-        ("", Lang.source_t k, None, None);
+        ("", Lang.source_t frame_t, None, None);
       ])
-    ~return_t:k ~category:`Liquidsoap
+    ~return_t:frame_t ~category:`Liquidsoap
     ~descr:
       "Create a buffer between two different clocks. The speed of the output \
        is adapted so that no buffer underrun or overrun occurs. This wonderful \

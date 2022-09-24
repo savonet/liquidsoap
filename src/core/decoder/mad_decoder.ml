@@ -160,7 +160,7 @@ let file_type filename =
       Some
         (Frame.mk_fields
            ~audio:(Content.Audio.format_of_channels f.Mad.channels)
-           ~video:Content.None.format ~midi:Content.None.format ()))
+           ()))
 
 let create_file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder

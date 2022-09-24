@@ -39,7 +39,7 @@ class bpm (source : source) =
         Some
           (Soundtouch.BPM.make
              (Content.Audio.channels_of_format
-                (Frame.find_audio self#content_type))
+                (Option.get (Frame.find_audio self#content_type)))
              (Lazy.force Frame.audio_rate))
 
     method private get_frame buf =
@@ -55,11 +55,13 @@ class bpm (source : source) =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "bpm"
-    [("", Lang.source_t k, None, None)]
-    ~return_t:k ~category:`Visualization
+    [("", Lang.source_t frame_t, None, None)]
+    ~return_t:frame_t ~category:`Visualization
     ~descr:
       "Detect the BPM (number of beats per minute). The returned source has a \
        method `bpm`, which can be called to compute it."

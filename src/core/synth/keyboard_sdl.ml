@@ -154,8 +154,9 @@ class keyboard velocity =
   end
 
 let () =
-  let kind = Lang.midi in
-  let k = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t Lang.unit_t (Frame.mk_fields ~midi:(Format_type.midi ()) ())
+  in
   Lang.add_operator "input.keyboard.sdl"
     [
       ( "velocity",
@@ -163,7 +164,7 @@ let () =
         Some (Lang.float 0.8),
         Some "Velocity of notes." );
     ]
-    ~return_t:k ~category:`Input ~flags:[`Experimental]
+    ~return_t ~category:`Input ~flags:[`Experimental]
     ~descr:"Play notes from the keyboard."
     (fun p ->
       let f v = List.assoc v p in

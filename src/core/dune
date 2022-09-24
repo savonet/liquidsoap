@@ -68,9 +68,11 @@
   compress_exp
   compress_old
   content
+  content_audio
   content_base
-  content_internal
+  content_midi
   content_timed
+  content_video
   conversion
   configure
   cross

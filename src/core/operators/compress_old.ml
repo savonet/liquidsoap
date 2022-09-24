@@ -68,10 +68,7 @@ class compress (source : source) attack release threshold ratio knee rms_window
       if AFrame.is_partial buf then effect#reset
   end
 
-let kind = Lang.audio_pcm
-let k = Lang.frame_kind_t kind
-
-let proto =
+let proto frame_t =
   [
     ( "attack",
       Lang.getter_t Lang.float_t,
@@ -97,7 +94,7 @@ let proto =
       Lang.getter_t Lang.float_t,
       Some (Lang.float 0.),
       Some "Additional gain (dB)." );
-    ("", Lang.source_t k, None, None);
+    ("", Lang.source_t frame_t, None, None);
   ]
 
 let compress p =
@@ -120,17 +117,25 @@ let compress p =
     (fun () -> Audio.lin_of_dB (gain ()))
 
 let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "compress.old"
     (( "ratio",
        Lang.getter_t Lang.float_t,
        Some (Lang.float 2.),
        Some "Gain reduction ratio (n:1)." )
-    :: proto)
-    ~return_t:k ~category:`Audio ~descr:"Compress the signal." compress;
+    :: proto frame_t)
+    ~return_t:frame_t ~category:`Audio ~descr:"Compress the signal." compress;
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "limit"
     (( "ratio",
        Lang.getter_t Lang.float_t,
        Some (Lang.float 20.),
        Some "Gain reduction ratio (n:1)." )
-    :: proto)
-    ~return_t:k ~category:`Audio ~descr:"Limit the signal." compress
+    :: proto frame_t)
+    ~return_t:frame_t ~category:`Audio ~descr:"Limit the signal." compress

@@ -55,10 +55,14 @@ class effect_map ~name (source : source) effect =
       base ~name source (fun buf off len -> Video.Canvas.map effect buf off len)
   end
 
-let return_t = Lang.frame_kind_t Lang.any
+let return_t () =
+  Lang.frame_t (Lang.univ_t ())
+    (Frame.mk_fields ~video:(Format_type.video ()) ())
+
 let () = Lang.add_module "video.alpha"
 
 let () =
+  let return_t = return_t () in
   let name = "video.greyscale" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
@@ -69,6 +73,7 @@ let () =
       new effect ~name src Image.YUV420.Effect.greyscale)
 
 let () =
+  let return_t = return_t () in
   let name = "video.sepia" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
@@ -79,6 +84,7 @@ let () =
       new effect ~name src Image.YUV420.Effect.sepia)
 
 let () =
+  let return_t = return_t () in
   let name = "video.invert" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
@@ -89,6 +95,7 @@ let () =
       new effect ~name src Image.YUV420.Effect.invert)
 
 let () =
+  let return_t = return_t () in
   let name = "video.hmirror" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
@@ -99,6 +106,7 @@ let () =
       new effect ~name src Image.YUV420.hmirror)
 
 let () =
+  let return_t = return_t () in
   let name = "video.opacity" in
   Lang.add_operator name
     [
@@ -116,6 +124,7 @@ let () =
           Image.YUV420.Effect.Alpha.scale buf (a ())))
 
 let () =
+  let return_t = return_t () in
   let name = "video.alpha.remove" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
@@ -125,6 +134,7 @@ let () =
       new effect ~name src (fun img -> Image.YUV420.fill_alpha img 0xff))
 
 let () =
+  let return_t = return_t () in
   let name = "video.fill" in
   Lang.add_operator name
     [
@@ -147,6 +157,7 @@ let () =
           Image.YUV420.fill_alpha buf 0xff))
 
 let () =
+  let return_t = return_t () in
   let name = "video.persistence" in
   Lang.add_operator name
     [
@@ -172,6 +183,7 @@ let () =
             prev := Image.YUV420.copy buf)))
 
 let () =
+  let return_t = return_t () in
   let name = "video.rectangle" in
   Lang.add_operator name
     [
@@ -210,6 +222,7 @@ let () =
           Video.Canvas.Image.add r buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.alpha.of_color" in
   Lang.add_operator name
     [
@@ -239,6 +252,7 @@ let () =
           Image.YUV420.alpha_of_color buf color prec))
 
 let () =
+  let return_t = return_t () in
   let name = "video.alpha.movement" in
   Lang.add_operator name
     [
@@ -279,6 +293,7 @@ let () =
 *)
 
 let () =
+  let return_t = return_t () in
   let name = "video.lomo" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
@@ -289,6 +304,7 @@ let () =
       new effect ~name src Image.YUV420.Effect.lomo)
 
 let () =
+  let return_t = return_t () in
   let name = "video.rotate" in
   Lang.add_operator name
     [
@@ -308,6 +324,7 @@ let () =
           Image.YUV420.rotate (Image.YUV420.copy buf) x y (a ()) buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.resize" in
   Lang.add_operator name
     [
@@ -357,6 +374,7 @@ let () =
           |> Video.Canvas.Image.translate (ox ()) (oy ())))
 
 let () =
+  let return_t = return_t () in
   let name = "video.opacity.box" in
   Lang.add_operator name
     [
@@ -382,6 +400,7 @@ let () =
             (alpha ())))
 
 let () =
+  let return_t = return_t () in
   let name = "video.translate" in
   Lang.add_operator name
     [
@@ -399,6 +418,7 @@ let () =
           Video.Canvas.Image.translate (dx ()) (dy ()) buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.scale" in
   Lang.add_operator name
     [
@@ -441,6 +461,7 @@ let () =
           Video.Canvas.Image.translate (ox ()) (oy ()) buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.line" in
   Lang.add_operator name
     [
@@ -479,6 +500,7 @@ let () =
           Video.Canvas.Image.add line buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.render" in
   Lang.add_operator name
     [
@@ -499,6 +521,7 @@ let () =
           Video.Canvas.Image.rendered ~transparent buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.viewport" in
   Lang.add_operator name
     [
@@ -539,6 +562,7 @@ let () =
           Video.Canvas.Image.viewport ~x ~y width height buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.crop" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
@@ -551,6 +575,7 @@ let () =
           Video.Canvas.Image.viewport ~x ~y w h buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.align" in
   Lang.add_operator name
     [
@@ -584,6 +609,7 @@ let () =
           Video.Canvas.Image.translate dx dy buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.dimensions" in
   let width = ref 0 in
   let height = ref 0 in
@@ -612,6 +638,7 @@ let () =
           buf))
 
 let () =
+  let return_t = return_t () in
   let name = "video.alpha.to_y" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
@@ -625,6 +652,7 @@ let () =
       new effect ~name s Image.YUV420.alpha_to_y)
 
 let () =
+  let return_t = return_t () in
   let name = "video.bounding_box" in
   let x = ref 0 in
   let y = ref 0 in

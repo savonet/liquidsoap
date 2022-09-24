@@ -264,8 +264,7 @@ let parse_args ~t name p opts =
   List.iter extract args
 
 let register_input is_http =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let args ?t name =
     let t =
       match t with
@@ -351,7 +350,7 @@ let register_input is_http =
              argument" );
         ("", Lang.getter_t Lang.string_t, None, Some "URL to decode.");
       ])
-    ~return_t:k
+    ~return_t
     ~meth:
       Lang.(
         Start_stop.meth ()

@@ -46,15 +46,14 @@ class map source f =
 let to_fun_float f x = Lang.to_float (Lang.apply f [("", Lang.float x)])
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "audio.map"
     [
       ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~descr:"Map a function to all audio samples. This is SLOW!"
-    ~category:`Audio
+    ~return_t:frame_t
+    ~descr:"Map a function to all audio samples. This is SLOW!" ~category:`Audio
     ~flags:[`Experimental] (* It works well but is probably useless. *)
     (fun p ->
       let f = to_fun_float (Lang.assoc "" 1 p) in

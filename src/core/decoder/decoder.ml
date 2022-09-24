@@ -247,47 +247,34 @@ let test_file ?(log = log) ?mimes ?extensions fname =
 let channel_layout audio =
   Lazy.force Content.(Audio.(get_params audio).Content.channel_layout)
 
-let none = Content.None.format
-
 let can_decode_type decoded_type target_type =
-  let can_convert_audio audio =
-    Content.None.is_format audio
-    || Audio_converter.Channel_layout.(
-         try
-           ignore
-             (create
-                (channel_layout (Frame.find_audio decoded_type))
-                (channel_layout audio));
-           true
-         with _ -> false)
+  let map_convertible cur (field, target_field) =
+    let decoded_field = Frame.find_field_opt decoded_type field in
+    match decoded_field with
+      | None -> cur
+      | Some decoded_field when Content.Audio.is_format decoded_field -> (
+          Audio_converter.Channel_layout.(
+            try
+              ignore
+                (create
+                   (channel_layout decoded_field)
+                   (channel_layout target_field));
+              Frame.set_field cur field target_field
+            with _ -> cur))
+      | Some decoded_field -> Frame.set_field cur field decoded_field
   in
-  match target_type with
-    (* Either we can decode straight away. *)
-    | _ when Frame.compatible decoded_type target_type -> true
-    (* Or we can convert audio and/or drop video and midi *)
-    | fields ->
-        let audio = Frame.find_audio fields in
-        let audio =
-          if can_convert_audio audio then audio
-          else Frame.find_audio decoded_type
-        in
-        let video = Frame.find_video fields in
-        let video =
-          if Content.None.is_format video then none
-          else Frame.find_video decoded_type
-        in
-        let midi = Frame.find_midi fields in
-        let midi =
-          if Content.None.is_format midi then none
-          else Frame.find_midi decoded_type
-        in
-        Frame.compatible target_type (Frame.mk_fields ~audio ~video ~midi ())
+  (* Map content that can be converted and drop content that isn't used *)
+  let decoded_type =
+    List.fold_left map_convertible Frame.Fields.empty
+      (Frame.Fields.bindings target_type)
+  in
+  Frame.compatible decoded_type target_type
 
 let decoder_modes ctype =
-  let fields =
-    Frame.map_fields (fun c -> not (Content.None.is_format c)) ctype
-  in
-  match Frame.(find_audio fields, find_video fields, find_midi fields) with
+  let has field = Frame.Fields.exists (fun k _ -> k = field) ctype in
+  match
+    (has Frame.audio_field, has Frame.video_field, has Frame.midi_field)
+  with
     | true, true, false -> [`Audio_video]
     | true, false, false -> [`Audio; `Audio_video]
     | false, true, false -> [`Video; `Audio_video]
@@ -434,11 +421,9 @@ let get_stream_decoder ~ctype mime =
 (** {1 Helpers for defining decoders} *)
 
 let mk_buffer ~ctype generator =
-  let fields =
-    Frame.map_fields (fun c -> not (Content.None.is_format c)) ctype
-  in
+  let has field = Frame.Fields.exists (fun k _ -> k = field) ctype in
   let mode =
-    match Frame.(find_audio fields, find_video fields) with
+    match (has Frame.audio_field, has Frame.video_field) with
       | true, true -> `Both
       | true, false -> `Audio
       | false, true -> `Video
@@ -461,7 +446,7 @@ let mk_buffer ~ctype generator =
       in
 
       let get_channel_converter () =
-        let dst = channel_layout (Frame.find_audio ctype) in
+        let dst = channel_layout (Option.get (Frame.find_audio ctype)) in
         match !current_channel_converter with
           | None -> mk_channel_converter dst
           | Some _ when !current_dst <> Some dst -> mk_channel_converter dst
@@ -481,7 +466,9 @@ let mk_buffer ~ctype generator =
       let video_resample = Decoder_utils.video_resample () in
       let video_scale =
         let width, height =
-          try Content.Video.dimensions_of_format (Frame.find_video ctype)
+          try
+            Content.Video.dimensions_of_format
+              (Option.get (Frame.find_video ctype))
           with Content.Invalid ->
             (* We might have encoded contents *)
             (Lazy.force Frame.video_width, Lazy.force Frame.video_height)

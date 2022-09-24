@@ -28,7 +28,10 @@ type t = Frame.t
 (* Samples of ticks, and vice versa. *)
 let sot = audio_of_main
 let tos = main_of_audio
-let content = Frame.audio
+
+let content b =
+  match Frame.audio b with Some c -> c | None -> raise Content.Invalid
+
 let pcm b = Content.Audio.get_data (content b)
 
 let to_s16le b =

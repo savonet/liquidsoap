@@ -68,15 +68,6 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
   fade
 end
 
-# Scale source during fading.
-# @category Source / Fade
-# @flag hidden
-def fade.scale(~id="fade.scale", x, s)
-  s = amplify(id=id, override=null(), x, s)
-  s = video.opacity(id=id, x, s)
-  s
-end
-
 # Fade the end of tracks.
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
@@ -152,7 +143,7 @@ def fade.out(~id="fade.out",~duration=3.,
 
   delay = fun () -> !duration
   s = if track_sensitive then source.on_end(s, delay=delay, start_fade) else s end
-  fade.scale(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type}}
+  amplify(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type}}
 end
 
 # Fade when the metadata trigger is received and then skip.
@@ -220,7 +211,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
   s = source.on_track(s, reset_overrides)
   s = source.on_metadata(s, update_fade)
   s = source.on_track(s, stop_fade)
-  fade.scale(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type} }
+  amplify(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type} }
 end
 
 # Fade the beginning of tracks.
@@ -278,7 +269,7 @@ def fade.in(~id="fade.in",~duration=3.,
   s = source.on_metadata(s, update_fade)
   s = if track_sensitive then source.on_track(s, start_fade) else start_fade([]); s end
 
-  fade.scale(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type} }
+  amplify(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type} }
 end
 
 # Simple transition for crossfade
@@ -463,7 +454,7 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special)
       fn = !fn
       fn()
     end
-    fade.scale(v,s)
+    amplify(v,s)
   end
 
   special_volume = ref(fun () -> 0.)

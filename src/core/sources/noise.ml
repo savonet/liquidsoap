@@ -46,8 +46,7 @@ class noise duration =
   end
 
 let () =
-  let kind = Lang.internal in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.internal_t () in
   Lang.add_operator "noise" ~category:`Input
     ~descr:"Generate audio white noise."
     [

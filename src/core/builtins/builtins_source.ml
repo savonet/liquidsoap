@@ -179,10 +179,7 @@ let () =
       Lang.unit)
 
 let () =
-  let s_t =
-    let kind = Lang.any in
-    Lang.source_t (Lang.frame_kind_t kind)
-  in
+  let s_t = Lang.source_t (Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty) in
   Lang.add_builtin "source.init"
     ~category:(`Source `Liquidsoap)
     ~descr:

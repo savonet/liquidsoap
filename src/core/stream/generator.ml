@@ -26,6 +26,33 @@ type content = Content.data Frame.Fields.t
 
 let type_of_content = Frame.map_fields Content.format
 
+module NoneContentSpecs = struct
+  type kind = unit
+  type params = unit
+  type data = int
+
+  let make ~length () = length
+  let length l = l
+  let clear _ = ()
+  let blit _ _ _ _ _ = ()
+  let copy l = l
+  let params _ = ()
+  let merge _ _ = ()
+  let compatible _ _ = true
+  let string_of_params _ = ""
+  let parse_param _ _ = None
+  let kind = ()
+  let default_params () = ()
+  let string_of_kind () = "none"
+  let kind_of_string = function "none" -> Some () | _ -> None
+end
+
+module NoneContent = struct
+  include Content.MkContent (NoneContentSpecs)
+
+  let lift_data ~length () = lift_data (make ~length ())
+end
+
 let copy_audio =
   Frame.mapi_fields (fun field c ->
       if field = Frame.audio_field then Content.copy c else c)
@@ -37,11 +64,15 @@ let copy_video =
 let copy_content = Frame.map_fields Content.copy
 
 let content frame =
-  Frame.mk_fields ~audio:(Frame.audio frame) ~video:(Frame.video frame)
-    ~midi:(Frame.midi frame) ()
+  Frame.mk_fields ?audio:(Frame.audio frame) ?video:(Frame.video frame)
+    ?midi:(Frame.midi frame) ()
 
 let fill_content src src_pos dst dst_pos len =
-  let fill src dst = Content.fill src src_pos dst dst_pos len in
+  let fill src dst =
+    match dst with
+      | Some dst -> Content.fill (Option.get src) src_pos dst dst_pos len
+      | _ -> ()
+  in
   fill (Frame.find_audio src) (Frame.find_audio dst);
   fill (Frame.find_video src) (Frame.find_video dst);
   fill (Frame.find_midi src) (Frame.find_midi dst)
@@ -607,7 +638,7 @@ module From_audio_video = struct
       | `Audio ->
           t.current_video_pts <-
             put_frames ~pts ~current_pts:t.current_video_pts t.current_video
-              (Content.None.lift_data ~length:l ())
+              (NoneContent.lift_data ~length:l ())
               0 l
       | `Both -> ()
       | _ -> assert false
@@ -629,7 +660,7 @@ module From_audio_video = struct
       | `Video ->
           t.current_audio_pts <-
             put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio
-              (Content.None.lift_data ~length:l ())
+              (NoneContent.lift_data ~length:l ())
               0 l
       | _ -> ()
     end;
@@ -665,14 +696,14 @@ module From_audio_video = struct
               | `Audio | `Both -> copy_audio content
               | _ -> content
           in
-          put_audio ?pts t (Frame.find_audio content) 0 pos
+          put_audio ?pts t (Option.get (Frame.find_audio content)) 0 pos
       | `Video ->
           let content =
             match copy with
               | `Video | `Both -> copy_video content
               | _ -> content
           in
-          put_video ?pts t (Frame.find_video content) 0 pos
+          put_video ?pts t (Option.get (Frame.find_video content)) 0 pos
       | `Both ->
           let content =
             match copy with
@@ -681,8 +712,8 @@ module From_audio_video = struct
               | `Video -> copy_video content
               | `Both -> copy_content content
           in
-          put_audio ?pts t (Frame.find_audio content) 0 pos;
-          put_video ?pts t (Frame.find_video content) 0 pos
+          put_audio ?pts t (Option.get (Frame.find_audio content)) 0 pos;
+          put_video ?pts t (Option.get (Frame.find_video content)) 0 pos
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)

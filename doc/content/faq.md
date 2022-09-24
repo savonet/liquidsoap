@@ -14,7 +14,7 @@ A type error can also show that you're trying to use a source of a certain conte
 ```
 At ...:
 Error 5: this value has type
-  source(audio=none,...)
+  source(video=canvas(_),...)
 but it should be a subtype of
   source(audio=pcm(_),...)
 ```
@@ -73,7 +73,7 @@ produce a clean script and back it up into a file, independently of
 its output to icecast (which again is sensitive to network lags).
 For more details on those techniques, read about [clocks](clocks.html).
 
-### Unable to decode ``file'' as {audio=pcm;video=none;midi=none}!
+### Unable to decode ``file'' as {audio=pcm}!
 
 This log message informs you that liquidsoap failed to decode a file, not
 necessarily because it cannot handle the file, but also possibly because

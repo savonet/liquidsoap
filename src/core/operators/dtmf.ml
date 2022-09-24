@@ -234,8 +234,10 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
 let () = Lang.add_module "dtmf"
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "dtmf.detect"
     [
       ( "duration",
@@ -265,7 +267,7 @@ let () =
            parameters: band number, band frequency, detected intensity and \
            smoothed intensity." );
       ( "",
-        Lang.source_t k,
+        Lang.source_t frame_t,
         None,
         Some "Source on which DTMF tones should be detected." );
       ( "",
@@ -273,7 +275,7 @@ let () =
         None,
         Some "Function called with detected key as argument." );
     ]
-    ~return_t:k ~category:`Audio ~descr:"Detect DTMF tones."
+    ~return_t:frame_t ~category:`Audio ~descr:"Detect DTMF tones."
     (fun p ->
       let duration = List.assoc "duration" p |> Lang.to_float_getter in
       let bands = List.assoc "bands" p |> Lang.to_int in
@@ -357,8 +359,10 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "sine.detect"
     [
       ( "duration",
@@ -389,7 +393,7 @@ let () =
            smoothed intensity." );
       ("", Lang.list_t Lang.float_t, None, Some "List of frequencies to detect.");
       ( "",
-        Lang.source_t k,
+        Lang.source_t frame_t,
         None,
         Some "Source on which sines should be detected." );
       ( "",
@@ -397,7 +401,7 @@ let () =
         None,
         Some "Function called with detected frequency as argument." );
     ]
-    ~return_t:k ~category:`Audio ~descr:"Detect sine waves."
+    ~return_t:frame_t ~category:`Audio ~descr:"Detect sine waves."
     (fun p ->
       let duration = List.assoc "duration" p |> Lang.to_float_getter in
       let bands = List.assoc "bands" p |> Lang.to_int in

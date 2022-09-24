@@ -115,10 +115,10 @@ class chord metadata_name (source : source) =
 
 let () =
   (* TODO: is this really the type we want to give to it? *)
-  let in_k = Lang.frame_kind_t Lang.any in
-  let out_k =
-    Lang.frame_kind_t
-      (Frame.mk_fields ~audio:`Any ~video:`Any ~midi:(Frame.midi_n 1) ())
+  let in_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let out_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~midi:(Format_type.midi_n 1) ())
   in
   Lang.add_operator "midi.chord"
     [
@@ -126,9 +126,9 @@ let () =
         Lang.string_t,
         Some (Lang.string "chord"),
         Some "Name of the metadata containing the chords." );
-      ("", Lang.source_t in_k, None, None);
+      ("", Lang.source_t in_t, None, None);
     ]
-    ~return_t:out_k ~category:`MIDI ~descr:"Generate a chord."
+    ~return_t:out_t ~category:`MIDI ~descr:"Generate a chord."
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in

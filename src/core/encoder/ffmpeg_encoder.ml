@@ -47,7 +47,8 @@ let () =
                         ~video_size:(fun _ -> None)
                         ~get_stream ~remove_stream ~keyframe_opt
                         ~get_data:(fun frame ->
-                          Ffmpeg_copy_content.Audio.get_data (Frame.audio frame))
+                          Ffmpeg_copy_content.Audio.get_data
+                            (Option.get (Frame.audio frame)))
                 | None | Some (`Internal (Some _)) | Some (`Raw (Some _)) ->
                     Ffmpeg_internal_encoder.mk_audio
                 | Some (`Internal None) ->
@@ -60,7 +61,8 @@ let () =
                 | Some (`Copy keyframe_opt) ->
                     fun ~ffmpeg:_ ~options:_ ->
                       let get_data frame =
-                        Ffmpeg_copy_content.Video.get_data (Frame.video frame)
+                        Ffmpeg_copy_content.Video.get_data
+                          (Option.get (Frame.video frame))
                       in
                       let video_size frame =
                         let { Ffmpeg_content_base.params } = get_data frame in

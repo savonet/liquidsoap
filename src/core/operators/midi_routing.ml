@@ -58,16 +58,16 @@ class remove (source : source) t =
   end
 
 let () =
-  let kind =
-    Frame.mk_fields ~audio:`Any ~video:`Any ~midi:Frame.midi_native ()
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~midi:(Format_type.midi ()) ())
   in
-  let k = Lang.frame_kind_t kind in
   Lang.add_operator "midi.merge_all"
     [
       ("track_out", Lang.int_t, Some (Lang.int 0), Some "Destination track.");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`MIDI ~descr:"Merge all MIDI tracks in one."
+    ~return_t:frame_t ~category:`MIDI ~descr:"Merge all MIDI tracks in one."
     (fun p ->
       let f v = List.assoc v p in
       let out = Lang.to_int (f "track_out") in
@@ -75,16 +75,16 @@ let () =
       new merge src out)
 
 let () =
-  let kind =
-    Frame.mk_fields ~audio:`Any ~video:`Any ~midi:Frame.midi_native ()
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~midi:(Format_type.midi ()) ())
   in
-  let k = Lang.frame_kind_t kind in
   Lang.add_operator "midi.remove"
     [
       ("", Lang.list_t Lang.int_t, None, Some "Tracks to remove.");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`MIDI ~descr:"Remove MIDI tracks."
+    ~return_t:frame_t ~category:`MIDI ~descr:"Remove MIDI tracks."
     (fun p ->
       (* let f v = List.assoc v p in *)
       let t = List.map Lang.to_int (Lang.to_list (Lang.assoc "" 1 p)) in

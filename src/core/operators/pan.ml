@@ -49,8 +49,10 @@ class pan (source : source) phi phi_0 =
   end
 
 let () =
-  let kind = Lang.audio_stereo in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio_stereo ()) ())
+  in
   Lang.add_operator "stereo.pan"
     [
       ( "pan",
@@ -61,9 +63,9 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 90.),
         Some "Field width in degrees (between 0 and 90)." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Pan a stereo sound."
+    ~return_t:frame_t ~category:`Audio ~descr:"Pan a stereo sound."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let phi_0 = Lang.to_float_getter (Lang.assoc "field" 1 p) in

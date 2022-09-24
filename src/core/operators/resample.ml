@@ -32,6 +32,10 @@ class resample ~ratio source_val =
       ~write_frame:(fun frame -> !write_frame_ref frame)
       ~name:"stretch.consumer" ~source:source_val ()
   in
+  let () =
+    Typing.(consumer#frame_type <: source#frame_type);
+    Typing.(source#frame_type <: consumer#frame_type)
+  in
   let generator = Generator.create () in
   object (self)
     inherit operator ~name:"stretch" [(consumer :> Source.source)] as super
@@ -83,11 +87,7 @@ class resample ~ratio source_val =
         in
         let offset = Frame_settings.main_of_audio offset in
         let length = Frame_settings.main_of_audio length in
-        ( Frame.mk_fields
-            ~audio:(Content.Audio.lift_data ~offset ~length pcm)
-            ~video:(Content.None.lift_data ~length ())
-            ~midi:(Content.None.lift_data ~length ())
-            (),
+        ( Frame.mk_fields ~audio:(Content.Audio.lift_data ~offset ~length pcm) (),
           length )
       in
       let convert x = int_of_float (float x *. ratio) in
@@ -109,8 +109,10 @@ class resample ~ratio source_val =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "stretch" (* TODO better name *)
     [
       ( "ratio",

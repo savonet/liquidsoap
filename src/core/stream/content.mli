@@ -43,14 +43,16 @@ exception Invalid
 (* Raised when calling [merge] below. *)
 exception Incompatible_format of Contents.format * Contents.format
 
-type internal_content_type = [ `None | `Audio | `Video | `Midi ]
-
-type audio_params = {
+type audio_params = Content_audio.Specs.params = {
   channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
 }
 
-type video_params = { width : int Lazy.t option; height : int Lazy.t option }
-type midi_params = { channels : int }
+type video_params = Content_video.Specs.params = {
+  width : int Lazy.t option;
+  height : int Lazy.t option;
+}
+
+type midi_params = Content_midi.Specs.params = { channels : int }
 
 module type ContentSpecs = sig
   type kind
@@ -58,8 +60,6 @@ module type ContentSpecs = sig
   type data
 
   (** Data *)
-
-  val internal_content_type : internal_content_type option
 
   (* Length is in main ticks. *)
   val make : length:int -> params -> data
@@ -157,14 +157,6 @@ val kind_of_string : string -> kind
 
 (** Internal content types. *)
 
-(* None content type is abstract and only used
-   via its params and data. *)
-module None : sig
-  val lift_data : length:int -> unit -> Contents.data
-  val format : Contents.format
-  val is_format : Contents.format -> bool
-end
-
 module Audio : sig
   include
     Content
@@ -213,12 +205,6 @@ module TrackMark : sig
   val get_data : Contents.data -> int list
   val set_data : Contents.data -> int list -> unit
 end
-
-val default_audio : unit -> Contents.format
-val default_video : unit -> Contents.format
-val default_midi : unit -> Contents.format
-val is_internal_kind : kind -> bool
-val is_internal_format : format -> bool
 
 (* Some tools *)
 val merge_param : name:string -> 'a option * 'a option -> 'a option

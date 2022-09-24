@@ -34,9 +34,9 @@ type format =
   | External of External_encoder_format.t
   | GStreamer of Gstreamer_format.t
 
-val audio_kind : int -> Frame.kind Frame.Fields.t
-val audio_video_kind : int -> Frame.kind Frame.Fields.t
-val kind_of_format : format -> Frame.kind Frame.Fields.t
+val audio_type : int -> Type.t Frame.Fields.t
+val audio_video_type : int -> Type.t Frame.Fields.t
+val type_of_format : format -> Type.t Frame.Fields.t
 val string_of_format : format -> string
 
 (** ISO Base Media File Format, see RFC 6381 section 3.3. *)

@@ -36,11 +36,10 @@ class on_frame f s =
   end
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "source.on_frame"
     [
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
       ( "",
         Lang.fun_t [] Lang.unit_t,
         None,
@@ -48,7 +47,8 @@ let () =
           "Function called on every frame. It should be fast because it is \
            executed in the main streaming thread." );
     ]
-    ~category:`Track ~descr:"Call a given handler on every frame." ~return_t:k
+    ~category:`Track ~descr:"Call a given handler on every frame."
+    ~return_t:frame_t
     (fun p ->
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
@@ -77,12 +77,11 @@ class frame_op ~name f default s =
 let () = Lang.add_module "source.frame"
 
 let op name descr f_t f default =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ("source.frame." ^ name)
-    [("", Lang.source_t k, None, None)]
+    [("", Lang.source_t frame_t, None, None)]
     ~category:`Track ~descr
-    ~return_t:(Lang.method_t k [("frame_" ^ name, ([], f_t), descr)])
+    ~return_t:(Lang.method_t frame_t [("frame_" ^ name, ([], f_t), descr)])
     ~meth:[("frame_" ^ name, ([], f_t), descr, fun s -> s#value)]
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in

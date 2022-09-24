@@ -261,7 +261,7 @@ def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
     v
   end
 
-  s = fade.scale(id=id,fn,s)
+  s = amplify(id=id,fn,s)
   switch(track_sensitive=false,[({!should_play},s)])
 end
 
@@ -272,7 +272,7 @@ def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
   deprecated("fade.initial", "fade.in")
 
   fn = mkfade(start=0.,stop=1.,type=type,duration=duration,s)
-  fade.scale(id=id,fn,s)
+  amplify(id=id,fn,s)
 end
 
 # Deprecated: use `process.read` instead.

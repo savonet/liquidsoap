@@ -189,21 +189,22 @@ let priority =
     "Priority for the GStreamer decoder" ~d:0
 
 let channels fields =
-  let audio = Frame.find_audio fields in
-  if audio = Content.None.format then 0
-  else Content.Audio.channels_of_format audio
+  match Frame.find_audio fields with
+    | Some format -> Content.Audio.channels_of_format format
+    | None -> 0
 
 let create_file_decoder filename content_type ctype =
   let mode =
     match (Frame.find_video content_type, Frame.find_audio content_type) with
-      | video, _ when video = Content.None.format -> `Audio
-      | _, audio when audio = Content.None.format -> `Video
+      | None, None -> `None
+      | None, Some _ -> `Audio
+      | Some _, None -> `Video
       | _, _ -> `Both
   in
   let channels = channels content_type in
   let decoder, close, bin =
     let width, height =
-      Content.Video.dimensions_of_format (Frame.find_video ctype)
+      Content.Video.dimensions_of_format (Option.get (Frame.find_video ctype))
     in
     create_decoder ~width ~height ~channels ~merge_tracks:true ~mode `File
       filename
@@ -270,20 +271,20 @@ let get_type ~channels filename =
     with Gstreamer.Failed -> 0
   in
   let audio =
-    if audio = 0 then Content.None.format
+    if audio = 0 then None
     else
-      Content.(
-        Audio.lift_params
-          {
-            Content.channel_layout =
-              lazy (Audio_converter.Channel_layout.layout_of_channels audio);
-          })
+      Some
+        Content.(
+          Audio.lift_params
+            {
+              Content.channel_layout =
+                lazy (Audio_converter.Channel_layout.layout_of_channels audio);
+            })
   in
   let video =
-    if video = 0 then Content.None.format
-    else Content.(default_format Video.kind)
+    if video = 0 then None else Some Content.(default_format Video.kind)
   in
-  Frame.mk_fields ~video ~audio ~midi:Content.None.format ()
+  Frame.mk_fields ?video ?audio ()
 
 let file_decoder ~metadata:_ ~ctype filename =
   let channels = channels ctype in

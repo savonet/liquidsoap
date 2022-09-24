@@ -199,8 +199,7 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
   end
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "output.udp"
     ~descr:"Output encoded data to UDP, without any control whatsoever."
     ~category:`Output
@@ -209,10 +208,10 @@ let () =
     @ [
         ("port", Lang.int_t, None, None);
         ("host", Lang.string_t, None, None);
-        ("", Lang.format_t k, None, Some "Encoding format.");
-        ("", Lang.source_t k, None, None);
+        ("", Lang.format_t frame_t, None, Some "Encoding format.");
+        ("", Lang.source_t frame_t, None, None);
       ])
-    ~return_t:k
+    ~return_t:frame_t
     (fun p ->
       (* Generic output parameters *)
       let autostart = Lang.to_bool (List.assoc "start" p) in
@@ -243,8 +242,7 @@ let () =
         :> Source.source))
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "input.udp"
     ~descr:"Input encoded data from UDP, without any control whatsoever."
     ~category:`Input
@@ -262,7 +260,7 @@ let () =
         Some "Log when the source's buffer is overfull." );
       ("", Lang.string_t, None, Some "Mime type.");
     ]
-    ~return_t:k
+    ~return_t:frame_t
     (fun p ->
       (* Specific UDP parameters *)
       let port = Lang.to_int (List.assoc "port" p) in

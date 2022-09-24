@@ -152,9 +152,8 @@ class append ~insert_missing ~merge source f =
     method private unregister a = a#leave (self :> source)
   end
 
-let register =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+let () =
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "append"
     [
       ( "merge",
@@ -165,16 +164,16 @@ let register =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Treat track beginnings without metadata as having empty one." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
       ( "",
-        Lang.fun_t [(false, "", Lang.metadata_t)] (Lang.source_t k),
+        Lang.fun_t [(false, "", Lang.metadata_t)] (Lang.source_t frame_t),
         None,
         Some
           "Given the metadata, build the source producing the track to append. \
            This source is allowed to fail (produce nothing) if no relevant \
            track is to be appended." );
     ]
-    ~return_t:k ~category:`Track
+    ~return_t:frame_t ~category:`Track
     ~descr:
       "Append an extra track to every track. Set the metadata 'liq_append' to \
        'false' to inhibit appending on one track."

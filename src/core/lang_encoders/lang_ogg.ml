@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let kind_of_encoder p =
+let type_of_encoder p =
   let audio = ["vorbis"; "vorbis.cbr"; "vorbis.abr"; "opus"; "speex"; "flac"] in
   let audio =
     List.find_map
@@ -35,8 +35,8 @@ let kind_of_encoder p =
   let video =
     List.exists (function "", `Encoder ("theora", _) -> true | _ -> false) p
   in
-  if not video then Encoder.audio_kind channels
-  else Encoder.audio_video_kind channels
+  if not video then Encoder.audio_type channels
+  else Encoder.audio_video_type channels
 
 let make p =
   let ogg_audio e p =
@@ -66,4 +66,4 @@ let make p =
   in
   Encoder.Ogg { Ogg_format.audio; video }
 
-let () = Lang_encoder.register "ogg" kind_of_encoder make
+let () = Lang_encoder.register "ogg" type_of_encoder make

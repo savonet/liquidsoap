@@ -23,7 +23,7 @@
 open Value
 open Ground
 
-let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
+let type_of_encoder p = Encoder.audio_type (Lang_encoder.channels_of_params p)
 
 let make_cbr params =
   let defaults =
@@ -147,6 +147,6 @@ let () =
   let make_cbr p =
     Encoder.Ogg { Ogg_format.audio = Some (make_cbr p); video = None }
   in
-  Lang_encoder.register "vorbis" kind_of_encoder make;
-  Lang_encoder.register "vorbis.abr" kind_of_encoder make_abr;
-  Lang_encoder.register "vorbis.cbr" kind_of_encoder make_cbr
+  Lang_encoder.register "vorbis" type_of_encoder make;
+  Lang_encoder.register "vorbis.abr" type_of_encoder make_abr;
+  Lang_encoder.register "vorbis.cbr" type_of_encoder make_cbr

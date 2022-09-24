@@ -65,8 +65,10 @@ class still_frame ~name (source : source) =
   end
 
 let () =
-  let k = Lang.video_yuva420p in
-  let return_t = Lang.frame_kind_t k in
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~video:(Format_type.video ()) ())
+  in
   let name = "video.still_frame" in
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]

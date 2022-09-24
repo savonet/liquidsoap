@@ -127,8 +127,10 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "output.oss"
     (Output.proto
     @ [
@@ -140,9 +142,9 @@ let () =
           Lang.string_t,
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
-        ("", Lang.source_t k, None, None);
+        ("", Lang.source_t frame_t, None, None);
       ])
-    ~return_t:k ~category:`Output ~meth:Output.meth
+    ~return_t:frame_t ~category:`Output ~meth:Output.meth
     ~descr:"Output the source's stream to an OSS output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -163,7 +165,9 @@ let () =
          ~start ~on_start ~on_stop ~infallible ~clock_safe device source
         :> Output.output));
 
-  let k = Lang.frame_kind_t Lang.audio_pcm in
+  let return_t =
+    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "input.oss"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
@@ -172,7 +176,7 @@ let () =
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
       ])
-    ~meth:(Start_stop.meth ()) ~return_t:k ~category:`Input
+    ~meth:(Start_stop.meth ()) ~return_t ~category:`Input
     ~descr:"Stream from an OSS input device."
     (fun p ->
       let e f v = f (List.assoc v p) in

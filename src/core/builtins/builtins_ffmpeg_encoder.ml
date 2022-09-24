@@ -28,7 +28,7 @@ module InternalResampler =
 
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
-let encode_audio_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
+let encode_audio_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
     =
   let internal_channel_layout =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
@@ -71,9 +71,11 @@ let encode_audio_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
 
           let params = Some (Avcodec.params encoder) in
           let effective_t =
-            Lang.kind_t (`Format (Ffmpeg_copy_content.Audio.lift_params params))
+            Type.make
+              (Format_type.descr
+                 (`Format (Ffmpeg_copy_content.Audio.lift_params params)))
           in
-          Typing.(effective_t <: kind_t);
+          Typing.(effective_t <: type_t);
 
           let write_packet packet =
             match Ffmpeg_utils.Duration.push duration_converter packet with
@@ -113,9 +115,11 @@ let encode_audio_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
             }
           in
           let effective_t =
-            Lang.kind_t (`Format (Ffmpeg_raw_content.Audio.lift_params params))
+            Type.make
+              (Format_type.descr
+                 (`Format (Ffmpeg_raw_content.Audio.lift_params params)))
           in
-          Typing.(effective_t <: kind_t);
+          Typing.(effective_t <: type_t);
           let duration_converter =
             Ffmpeg_utils.Duration.init ~src:target_time_base
               ~get_ts:Ffmpeg_utils.best_pts
@@ -167,7 +171,7 @@ let encode_audio_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
       encode_ffmpeg_frame frame
   | `Flush -> encode_frame `Flush
 
-let encode_video_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
+let encode_video_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
     =
   let internal_fps = Lazy.force Frame.video_rate in
   let internal_time_base = { Avutil.num = 1; den = internal_fps } in
@@ -239,9 +243,11 @@ let encode_video_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
 
           let params = Some (Avcodec.params encoder) in
           let effective_t =
-            Lang.kind_t (`Format (Ffmpeg_copy_content.Video.lift_params params))
+            Type.make
+              (Format_type.descr
+                 (`Format (Ffmpeg_copy_content.Video.lift_params params)))
           in
-          Typing.(effective_t <: kind_t);
+          Typing.(effective_t <: type_t);
 
           let encoder_time_base = Avcodec.time_base encoder in
 
@@ -294,9 +300,11 @@ let encode_video_frame ~stream_idx ~kind_t ~mode ~opts ?codec ~format generator
           in
 
           let effective_t =
-            Lang.kind_t (`Format (Ffmpeg_raw_content.Video.lift_params params))
+            Type.make
+              (Format_type.descr
+                 (`Format (Ffmpeg_raw_content.Video.lift_params params)))
           in
-          Typing.(effective_t <: kind_t);
+          Typing.(effective_t <: type_t);
 
           let duration_converter =
             Ffmpeg_utils.Duration.init ~src:time_base
@@ -362,82 +370,55 @@ let mk_encoder mode =
   let has_raw_audio = List.mem mode [`Audio_raw; `Both_raw] in
   let has_encoded_video = List.mem mode [`Video_encoded; `Both_encoded] in
   let has_raw_video = List.mem mode [`Video_raw; `Both_raw] in
-  let source_kind =
-    Frame.mk_fields
-      ~audio:(if has_audio then Frame.audio_pcm else Frame.none)
-      ~video:(if has_video then Frame.video_yuva420p else Frame.none)
-      ~midi:Frame.none ()
+  let audio_field_t = if has_audio then Some (Format_type.audio ()) else None in
+  let video_field_t = if has_video then Some (Format_type.video ()) else None in
+  let source_base_t = Lang.univ_t () in
+  let source_frame_t =
+    Lang.frame_t source_base_t
+      (Frame.mk_fields ?audio:audio_field_t ?video:video_field_t ())
   in
-  let source_t = Lang.frame_kind_t source_kind in
-  let source_kind_t = Lang.of_frame_t source_t in
-  let format_kind =
-    Frame.mk_fields
-      ~audio:
-        (match mode with
-          | `Audio_encoded | `Both_encoded -> Frame.find_audio source_kind
-          | `Audio_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Audio.kind
-          | _ -> Frame.none)
-      ~video:
-        (match mode with
-          | `Video_encoded | `Both_encoded -> Frame.find_video source_kind
-          | `Video_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Video.kind
-          | _ -> Frame.none)
-      ~midi:Frame.none ()
+  let format_audio_field_t, return_audio_field_t =
+    match mode with
+      | `Audio_encoded | `Both_encoded ->
+          ( audio_field_t,
+            Some
+              (Type.make
+                 (Format_type.descr (`Kind Ffmpeg_copy_content.Audio.kind))) )
+      | `Audio_raw | `Both_raw ->
+          let t =
+            Some
+              (Type.make
+                 (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind)))
+          in
+          (t, t)
+      | _ -> (None, None)
   in
-  let format_t =
-    Lang.frame_t
-      (Frame.mk_fields
-         ~audio:
-           (match mode with
-             | `Audio_encoded | `Both_encoded -> Frame.find_audio source_kind_t
-             | `Audio_raw | `Both_raw ->
-                 Lang.kind_t (`Kind Ffmpeg_raw_content.Audio.kind)
-             | _ -> Lang.kind_none_t)
-         ~video:
-           (match mode with
-             | `Video_encoded | `Both_encoded -> Frame.find_video source_kind_t
-             | `Video_raw | `Both_raw ->
-                 Lang.kind_t (`Kind Ffmpeg_raw_content.Video.kind)
-             | _ -> Lang.kind_none_t)
-         ~midi:Lang.kind_none_t ())
+  let format_video_field_t, return_video_field_t =
+    match mode with
+      | `Video_encoded | `Both_encoded ->
+          ( video_field_t,
+            Some
+              (Type.make
+                 (Format_type.descr (`Kind Ffmpeg_copy_content.Video.kind))) )
+      | `Video_raw | `Both_raw ->
+          let t =
+            Some
+              (Type.make
+                 (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
+          in
+          (t, t)
+      | _ -> (None, None)
   in
-  let format_kind_t = Lang.of_frame_t format_t in
-  let return_kind =
-    Frame.mk_fields
-      ~audio:
-        (match mode with
-          | `Audio_encoded | `Both_encoded ->
-              `Kind Ffmpeg_copy_content.Audio.kind
-          | `Audio_raw | `Both_raw -> Frame.find_audio format_kind
-          | _ -> Frame.none)
-      ~video:
-        (match mode with
-          | `Video_encoded | `Both_encoded ->
-              `Kind Ffmpeg_copy_content.Video.kind
-          | `Video_raw | `Both_raw -> Frame.find_video format_kind
-          | _ -> Frame.none)
-      ~midi:Frame.none ()
+  let format_frame_t =
+    Lang.frame_t Lang.unit_t
+      (Frame.mk_fields ?audio:format_audio_field_t ?video:format_video_field_t
+         ())
   in
   let return_t =
-    Lang.frame_t
-      (Frame.mk_fields
-         ~audio:
-           (match mode with
-             | `Audio_encoded | `Both_encoded ->
-                 Lang.kind_t (`Kind Ffmpeg_copy_content.Audio.kind)
-             | `Audio_raw | `Both_raw -> Frame.find_audio format_kind_t
-             | _ -> Lang.kind_none_t)
-         ~video:
-           (match mode with
-             | `Video_encoded | `Both_encoded ->
-                 Lang.kind_t (`Kind Ffmpeg_copy_content.Video.kind)
-             | `Video_raw | `Both_raw -> Frame.find_video format_kind_t
-             | _ -> Lang.kind_none_t)
-         ~midi:Lang.kind_none_t ())
+    Lang.frame_t source_base_t
+      (Frame.mk_fields ?audio:return_audio_field_t ?video:return_video_field_t
+         ())
   in
-  let return_kind_t = Lang.of_frame_t return_t in
-  let audio_kind_t = Frame.find_audio return_kind_t in
-  let video_kind_t = Frame.find_video return_kind_t in
   let extension =
     match mode with
       | `Audio_encoded -> "encode.audio"
@@ -450,8 +431,8 @@ let mk_encoder mode =
   let name = "ffmpeg." ^ extension in
   let proto =
     [
-      ("", Lang.format_t format_t, None, Some "Encoding format.");
-      ("", Lang.source_t source_t, None, None);
+      ("", Lang.format_t format_frame_t, None, Some "Encoding format.");
+      ("", Lang.source_t source_frame_t, None, None);
     ]
   in
   Lang.add_operator name proto ~return_t ~category:`Conversion
@@ -492,6 +473,22 @@ let mk_encoder mode =
              (format_val, "Format option is not supported inline encoders"));
 
       let mk_encode_frame () =
+        let audio_t =
+          Option.map
+            (fun t ->
+              let generalized, t = Typing.generalize ~level:(-1) t in
+              Typing.instantiate ~level:(-1) ~generalized t)
+            return_audio_field_t
+        in
+
+        let video_t =
+          Option.map
+            (fun t ->
+              let generalized, t = Typing.generalize ~level:(-1) t in
+              Typing.instantiate ~level:(-1) ~generalized t)
+            return_video_field_t
+        in
+
         let audio_opts = Hashtbl.copy format.Ffmpeg_format.audio_opts in
 
         let video_opts = Hashtbl.copy format.Ffmpeg_format.video_opts in
@@ -517,12 +514,12 @@ let mk_encoder mode =
             match format.Ffmpeg_format.audio_codec with
               | Some (`Raw None) when has_raw_audio ->
                   Some
-                    (encode_audio_frame ~stream_idx ~kind_t:audio_kind_t
+                    (encode_audio_frame ~stream_idx ~type_t:(Option.get audio_t)
                        ~mode:`Raw ~opts:audio_opts ~format generator)
               | Some (`Internal (Some codec)) when has_encoded_audio ->
                   let codec = Avcodec.Audio.find_encoder_by_name codec in
                   Some
-                    (encode_audio_frame ~stream_idx ~kind_t:audio_kind_t
+                    (encode_audio_frame ~stream_idx ~type_t:(Option.get audio_t)
                        ~mode:`Encoded ~opts:audio_opts ~codec ~format generator)
               | _ ->
                   let encoder =
@@ -541,12 +538,12 @@ let mk_encoder mode =
             match format.Ffmpeg_format.video_codec with
               | Some (`Raw None) when has_raw_video ->
                   Some
-                    (encode_video_frame ~stream_idx ~kind_t:video_kind_t
+                    (encode_video_frame ~stream_idx ~type_t:(Option.get video_t)
                        ~mode:`Raw ~opts:video_opts ~format generator)
               | Some (`Internal (Some codec)) when has_encoded_video ->
                   let codec = Avcodec.Video.find_encoder_by_name codec in
                   Some
-                    (encode_video_frame ~stream_idx ~kind_t:video_kind_t
+                    (encode_video_frame ~stream_idx ~type_t:(Option.get video_t)
                        ~mode:`Encoded ~opts:video_opts ~codec ~format generator)
               | _ ->
                   let encoder =
@@ -620,16 +617,19 @@ let mk_encoder mode =
         new Producer_consumer.consumer
           ~write_frame:encode_frame ~name:(id ^ ".consumer") ~source ()
       in
-      Typing.(consumer#frame_type <: Lang.frame_kind_t source_kind);
 
-      let producer =
-        new Producer_consumer.producer
-        (* We are expecting real-rate with a couple of hickups.. *)
-          ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer")
-          generator
+      let generalized, source_frame_t =
+        Typing.generalize ~level:(-1) source_frame_t
       in
-      Typing.(producer#frame_type <: Lang.frame_kind_t return_kind);
-      producer)
+      let source_frame_t =
+        Typing.instantiate ~level:(-1) ~generalized source_frame_t
+      in
+      Typing.(consumer#frame_type <: source_frame_t);
+
+      new Producer_consumer.producer
+      (* We are expecting real-rate with a couple of hickups.. *)
+        ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer")
+        generator)
 
 let () =
   List.iter mk_encoder

@@ -1,14 +1,9 @@
-open Content
 open Frame
 
 let () =
   Frame_settings.lazy_config_eval := true;
 
-  let src =
-    create
-      (Frame.mk_fields ~audio:None.format ~video:None.format ~midi:None.format
-         ())
-  in
+  let src = create (Frame.mk_fields ()) in
   add_break src (Lazy.force size);
   let m = Hashtbl.create 1 in
   Hashtbl.add m "foo" "bar";
@@ -16,22 +11,14 @@ let () =
 
   (* First check that last meta from src is
      set when dst does not have one. *)
-  let dst =
-    create
-      (Frame.mk_fields ~audio:None.format ~video:None.format ~midi:None.format
-         ())
-  in
+  let dst = create (Frame.mk_fields ()) in
   add_break dst 1;
   get_chunk dst src;
   assert (get_all_metadata dst = [(1, m)]);
 
   (* Then check that is not set when it has
      one that is the same. *)
-  let dst =
-    create
-      (Frame.mk_fields ~audio:None.format ~video:None.format ~midi:None.format
-         ())
-  in
+  let dst = create (Frame.mk_fields ()) in
   add_break dst 1;
   let m' = Hashtbl.create 1 in
   Hashtbl.add m' "foo" "bar";
@@ -41,14 +28,17 @@ let () =
 
   (* Then check that it is set when it has one
      but it is different. *)
-  let dst =
-    create
-      (Frame.mk_fields ~audio:None.format ~video:None.format ~midi:None.format
-         ())
-  in
+  let dst = create (Frame.mk_fields ()) in
   add_break dst 1;
   let m' = Hashtbl.create 1 in
   Hashtbl.add m' "gni" "gno";
   set_all_metadata dst [(0, m')];
   get_chunk dst src;
   assert (get_all_metadata dst = [(0, m'); (1, m)])
+
+let () =
+  let pcm_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
+  Typing.(pcm_t <: Lang.univ_t ())

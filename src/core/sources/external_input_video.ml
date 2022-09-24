@@ -77,7 +77,7 @@ class video ~name ~restart ~bufferize ~log_overfull ~restart_on_error ~max
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#severe "%s";
-      if Frame.find_audio self#content_type = Content.None.format then
+      if Frame.find_field_opt self#content_type Frame.audio_field = None then
         Generator.set_mode abg `Video;
       Generator.set_content_type abg self#content_type;
       self#log#debug "Generator mode: %s."
@@ -93,11 +93,11 @@ class video ~name ~restart ~bufferize ~log_overfull ~restart_on_error ~max
 let log = Log.make ["input"; "external"; "video"]
 
 let () =
-  let kind =
-    Frame.mk_fields ~audio:Frame.audio_pcm ~video:Frame.video_yuva420p
-      ~midi:Frame.none ()
+  let return_t =
+    Lang.frame_t Lang.unit_t
+      (Frame.mk_fields ~audio:(Format_type.audio ())
+         ~video:(Format_type.video ()) ())
   in
-  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "input.external.avi" ~category:`Input ~flags:[`Experimental]
     ~meth:
       [
@@ -255,8 +255,9 @@ let () =
 (***** raw video *****)
 
 let () =
-  let kind = Lang.video_yuva420p in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t Lang.unit_t (Frame.mk_fields ~video:(Format_type.video ()) ())
+  in
   Lang.add_operator "input.external.rawvideo" ~category:`Input
     ~flags:[`Experimental]
     ~meth:

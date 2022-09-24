@@ -157,8 +157,7 @@ class biquad (source : source) filter_type freq q gain =
 
 let () =
   Lang.add_module "filter.iir.eq";
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "filter.iir.eq.lowshelf"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
@@ -166,9 +165,9 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some "Shelf slope (dB/octave)" );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Low shelf biquad filter."
+    ~return_t:frame_t ~category:`Audio ~descr:"Low shelf biquad filter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -179,8 +178,7 @@ let () =
       (new biquad src `Low_shelf freq param (fun () -> 0.) :> Source.source))
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "filter.iir.eq.highshelf"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -188,9 +186,9 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some "Shelf slope (in dB/octave)" );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"High shelf biquad filter."
+    ~return_t:frame_t ~category:`Audio ~descr:"High shelf biquad filter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -201,15 +199,14 @@ let () =
       (new biquad src `High_shelf freq param (fun () -> 0.) :> Source.source))
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "filter.iir.eq.low"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), Some "Q");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Low-pass biquad filter."
+    ~return_t:frame_t ~category:`Audio ~descr:"Low-pass biquad filter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -220,15 +217,14 @@ let () =
       (new biquad src `Low_pass freq param (fun () -> 0.) :> Source.source))
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "filter.iir.eq.high"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), Some "Q");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"High-pass biquad filter."
+    ~return_t:frame_t ~category:`Audio ~descr:"High-pass biquad filter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -239,15 +235,14 @@ let () =
       (new biquad src `High_pass freq param (fun () -> 0.) :> Source.source))
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "filter.iir.eq.bandpass"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), Some "Q");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Band-pass biquad filter."
+    ~return_t:frame_t ~category:`Audio ~descr:"Band-pass biquad filter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -258,8 +253,7 @@ let () =
       (new biquad src `Band_pass freq param (fun () -> 0.) :> Source.source))
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "filter.iir.eq.allpass"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -267,9 +261,9 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float (1. /. 3.)),
         Some "Bandwidth (in octaves)" );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"All-pass biquad filter."
+    ~return_t:frame_t ~category:`Audio ~descr:"All-pass biquad filter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -280,15 +274,14 @@ let () =
       (new biquad src `All_pass freq param (fun () -> 0.) :> Source.source))
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "filter.iir.eq.notch"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), Some "Q");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Band-pass biquad filter."
+    ~return_t:frame_t ~category:`Audio ~descr:"Band-pass biquad filter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -299,8 +292,7 @@ let () =
       (new biquad src `Notch freq param (fun () -> 0.) :> Source.source))
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "filter.iir.eq.peak"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
@@ -309,9 +301,9 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some "Gain (in dB)" );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Peak EQ biquad filter."
+    ~return_t:frame_t ~category:`Audio ~descr:"Peak EQ biquad filter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, param, gain, src =

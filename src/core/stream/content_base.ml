@@ -53,14 +53,11 @@ let print_optional l =
 exception Invalid
 exception Incompatible_format of Contents.format * Contents.format
 
-type internal_content_type = [ `None | `Audio | `Video | `Midi ]
-
 module type ContentSpecs = sig
   type kind
   type params
   type data
 
-  val internal_content_type : internal_content_type option
   val make : length:int -> params -> data
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
@@ -428,63 +425,5 @@ module MkContent (C : ContentSpecs) :
       | [{ data }] -> data
       | _ -> assert false
 
-  let () =
-    let entry = { is_kind; is_format } in
-    match C.internal_content_type with
-      | None -> ()
-      | Some `None -> internal_entries.none <- Some entry
-      | Some `Audio -> internal_entries.audio <- Some entry
-      | Some `Video -> internal_entries.video <- Some entry
-      | Some `Midi -> internal_entries.midi <- Some entry
-
   include C
 end
-
-module NoneSpecs = struct
-  type kind = unit
-  type params = unit
-  type data = int
-
-  let internal_content_type = Some `None
-  let make ~length () = length
-  let length l = l
-  let clear _ = ()
-  let blit _ _ _ _ _ = ()
-  let copy l = l
-  let params _ = ()
-  let merge _ _ = ()
-  let compatible _ _ = true
-  let string_of_params _ = ""
-  let parse_param _ _ = None
-  let kind = ()
-  let default_params () = ()
-  let string_of_kind () = "none"
-  let kind_of_string = function "none" -> Some () | _ -> None
-end
-
-module None = struct
-  include MkContent (NoneSpecs)
-
-  let lift_data ~length () = lift_data (make ~length ())
-  let format = lift_params ()
-end
-
-let is_internal_entry_kind f = function
-  | Some { is_kind } -> is_kind f
-  | None -> false
-
-let is_internal_kind f =
-  is_internal_entry_kind f internal_entries.none
-  || is_internal_entry_kind f internal_entries.audio
-  || is_internal_entry_kind f internal_entries.video
-  || is_internal_entry_kind f internal_entries.midi
-
-let is_internal_entry_format f = function
-  | Some { is_format } -> is_format f
-  | None -> false
-
-let is_internal_format f =
-  is_internal_entry_format f internal_entries.none
-  || is_internal_entry_format f internal_entries.audio
-  || is_internal_entry_format f internal_entries.video
-  || is_internal_entry_format f internal_entries.midi

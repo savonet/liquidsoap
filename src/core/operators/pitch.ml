@@ -113,8 +113,7 @@ class pitch every length freq_min freq_max (source : source) =
   end
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "pitch"
     [
       ( "length",
@@ -126,9 +125,9 @@ let () =
         Lang.float_t,
         Some (Lang.float 10000.),
         Some "Maximal frequency" );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Compute the pitch of a sound."
+    ~return_t:frame_t ~category:`Audio ~descr:"Compute the pitch of a sound."
     ~flags:[`Hidden; `Experimental]
     (fun p ->
       let f v = List.assoc v p in

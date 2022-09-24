@@ -157,25 +157,27 @@ class input p =
       AFrame.add_break frame (AFrame.size ())
   end
 
+let proto =
+  [
+    ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);
+    ( "device",
+      Lang.string_t,
+      Some (Lang.string ""),
+      Some "Device to use. Uses default if set to \"\"." );
+    ( "clock_safe",
+      Lang.bool_t,
+      Some (Lang.bool true),
+      Some "Force the use of the dedicated Pulseaudio clock." );
+  ]
+
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
-  let proto =
-    [
-      ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);
-      ( "device",
-        Lang.string_t,
-        Some (Lang.string ""),
-        Some "Device to use. Uses default if set to \"\"." );
-      ( "clock_safe",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Force the use of the dedicated Pulseaudio clock." );
-    ]
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "output.pulseaudio"
-    (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
-    ~return_t:k ~category:`Output ~meth:Output.meth
+    (Output.proto @ proto @ [("", Lang.source_t frame_t, None, None)])
+    ~return_t:frame_t ~category:`Output ~meth:Output.meth
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -188,10 +190,15 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      (new output ~infallible ~on_start ~on_stop ~start p :> Output.output));
+      (new output ~infallible ~on_start ~on_stop ~start p :> Output.output))
+
+let () =
+  let return_t =
+    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "input.pulseaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ proto)
-    ~return_t:k ~category:`Input ~meth:(Start_stop.meth ())
+    ~return_t ~category:`Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
     (fun p -> new input p)

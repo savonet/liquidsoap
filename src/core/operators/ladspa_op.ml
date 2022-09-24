@@ -105,7 +105,7 @@ class ladspa_mono (source : source) plugin descr input output params =
       let i =
         Array.init
           (Content.Audio.channels_of_format
-             (Frame.find_audio self#content_type))
+             (Option.get (Frame.find_audio self#content_type)))
           (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
       in
       Array.iter Descriptor.activate i;
@@ -310,8 +310,10 @@ let register_descr plugin_name descr_n d inputs outputs =
   let no = Array.length outputs in
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_descr d in
-  let input_kind = if mono then Lang.audio_pcm else Lang.audio_n ni in
-  let input_t = Lang.frame_kind_t input_kind in
+  let input_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   let liq_params =
     liq_params
     @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
@@ -319,16 +321,15 @@ let register_descr plugin_name descr_n d inputs outputs =
   let maker = Descriptor.maker d in
   let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
-  let output_kind =
-    if mono then input_kind
-    else Frame.set_audio_field input_kind (Frame.audio_n no)
+  let return_t =
+    if mono then input_t
+    else Frame_type.set_field input_t Frame.audio_field (Format_type.audio_n no)
   in
   let label = Descriptor.label d |> Utils.normalize_parameter_string in
   let label =
     try "lsp_" ^ String.residual label "http:_lsp_plugin_plugins_ladspa_"
     with Not_found -> label
   in
-  let return_t = Lang.frame_kind_t output_kind in
   Lang.add_operator ("ladspa." ^ label) liq_params ~return_t ~category:`Audio
     ~flags:[`Extra] ~descr (fun p ->
       let f v = List.assoc v p in

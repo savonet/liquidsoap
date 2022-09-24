@@ -80,8 +80,10 @@ class filter (source : source) freq wet mode =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "filter.rc"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Cutoff frequency.");
@@ -97,9 +99,9 @@ let () =
         Some
           "How much of the original signal should be added (1. means only \
            filtered and 0. means only original signal)." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"First-order filter (RC filter)."
+    ~return_t:frame_t ~category:`Audio ~descr:"First-order filter (RC filter)."
     (fun p ->
       let f v = List.assoc v p in
       let freq, wet, mode, src =

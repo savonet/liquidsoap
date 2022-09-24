@@ -34,31 +34,27 @@ class drop ?(audio = false) ?(video = false) ?(midi = false) ~name source =
 let () =
   List.iter
     (fun content ->
-      let input = Lang.frame_kind_t Lang.any in
-      let input_kind = Lang.of_frame_t input in
-      let name, descr, output, source =
+      let output = Lang.univ_t () in
+      let name, descr, input, source =
         match content with
           | `Audio ->
               ( "drop_audio",
                 "Drop all audio content of a stream.",
-                Lang.frame_t
-                  (Frame.set_audio_field input_kind (Lang.kind_t Frame.none)),
+                Frame_type.set_field output Frame.audio_field (Lang.univ_t ()),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~audio:true ~name:"drop_audio" source )
           | `Video ->
               ( "drop_video",
                 "Drop all video content of a stream.",
-                Lang.frame_t
-                  (Frame.set_video_field input_kind (Lang.kind_t Frame.none)),
+                Frame_type.set_field output Frame.video_field (Lang.univ_t ()),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~video:true ~name:"drop_video" source )
           | `Midi ->
               ( "drop_midi",
                 "Drop all midi content of a stream.",
-                Lang.frame_t
-                  (Frame.set_midi_field input_kind (Lang.kind_t Frame.none)),
+                Frame_type.set_field output Frame.midi_field (Lang.univ_t ()),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~midi:true ~name:"drop_midi" source )

@@ -37,7 +37,8 @@ let format_handler f =
       (fun _ l f ->
         ignore (get_format f);
         l);
-    repr = (fun _ _ f -> `Constr (Content.string_of_format (get_format f), []));
+    repr =
+      (fun _ _ f -> `Constr (Content_base.string_of_format (get_format f), []));
     subtype = (fun _ f f' -> Content_base.merge (get_format f) (get_format f'));
     sup =
       (fun _ f f' ->
@@ -112,16 +113,63 @@ let rec content_type ~default ty =
 let internal_media =
   {
     Type.t = InternalMedia;
-    constr_descr = "an internal media type (none, pcm, yuva420p or midi)";
+    constr_descr =
+      Printf.sprintf "an internal media type (%s or %s)"
+        (Content_base.string_of_kind Content_audio.kind)
+        (Content_base.string_of_kind Content_video.kind);
     satisfied =
-      (fun ~subtype:_ ~satisfies:_ b ->
-        let b = Type.demeth b in
+      (fun ~subtype:_ ~satisfies b ->
         match (Type.deref b).Type.descr with
-          | Type.Custom { Type.typ = Kind (k, _) }
-            when Content_base.is_internal_kind k ->
+          | Type.Tuple [] -> ()
+          | Type.Constr { params } ->
+              List.iter (fun (_, typ) -> satisfies typ) params
+          | Type.Meth _ ->
+              let meths, base_type = Type.split_meths b in
+              List.iter
+                (fun Type.{ scheme = _, field_type } -> satisfies field_type)
+                meths;
+              satisfies base_type
+          | Type.Custom { Type.typ = Kind (k, _) } when Content_audio.is_kind k
+            ->
               ()
-          | Type.Custom { Type.typ = Format f }
-            when Content_base.is_internal_format f ->
+          | Type.Custom { Type.typ = Kind (k, _) } when Content_video.is_kind k
+            ->
+              ()
+          | Type.Custom { Type.typ = Format f } when Content_audio.is_format f
+            ->
+              ()
+          | Type.Custom { Type.typ = Format f } when Content_video.is_format f
+            ->
               ()
           | _ -> raise Type.Unsatisfied_constraint);
   }
+
+let content_type = content_type ~default:(fun _ -> assert false)
+let audio () = Type.make (descr (`Kind Content.Audio.kind))
+
+let audio_mono () =
+  Type.make
+    (descr
+       (`Format Content.(Audio.lift_params { channel_layout = lazy `Mono })))
+
+let audio_stereo () =
+  Type.make
+    (descr
+       (`Format Content.(Audio.lift_params { channel_layout = lazy `Stereo })))
+
+let audio_n n =
+  Type.make
+    (descr
+       (`Format
+         Content.(
+           Audio.lift_params
+             {
+               channel_layout =
+                 lazy (Audio_converter.Channel_layout.layout_of_channels n);
+             })))
+
+let video () = Type.make (descr (`Kind Content.Video.kind))
+let midi () = Type.make (descr (`Kind Content.Midi.kind))
+
+let midi_n n =
+  Type.make (descr (`Format Content.(Midi.(lift_params { channels = n }))))

@@ -598,16 +598,20 @@ let buffer_args frame =
 let () =
   let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.kind in
   let raw_video_format = `Kind Ffmpeg_raw_content.Video.kind in
-  let audio_frame =
-    Frame.mk_fields ~audio:raw_audio_format ~video:Frame.none ~midi:Frame.none
-      ()
+  let audio_frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields
+         ~audio:(Type.make (Format_type.descr raw_audio_format))
+         ())
   in
-  let video_frame =
-    Frame.mk_fields ~audio:Frame.none ~video:raw_video_format ~midi:Frame.none
-      ()
+  let video_frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields
+         ~video:(Type.make (Format_type.descr raw_video_format))
+         ())
   in
-  let audio_t = Lang.(source_t ~methods:false (frame_kind_t audio_frame)) in
-  let video_t = Lang.(source_t ~methods:false (frame_kind_t video_frame)) in
+  let audio_t = Lang.(source_t ~methods:false audio_frame_t) in
+  let video_t = Lang.(source_t ~methods:false video_frame_t) in
 
   Lang.add_builtin
     ~category:(`Source `FFmpegFilter)
@@ -630,14 +634,17 @@ let () =
       let source_val = Lang.assoc "" 2 p in
 
       let frame_t =
-        Lang.frame_kind_t
+        Lang.frame_t Lang.unit_t
           (Frame.mk_fields
            (* We need to make sure that we are using a format here to
               ensure that its params are properly unified with the underlying source. *)
              ~audio:
-               (`Format
-                 Ffmpeg_raw_content.Audio.(lift_params (default_params `Raw)))
-             ~video:Frame.none ~midi:Frame.none ())
+               (Type.make
+                  (Format_type.descr
+                     (`Format
+                       Ffmpeg_raw_content.Audio.(
+                         lift_params (default_params `Raw)))))
+             ())
       in
       let name = uniq_name "abuffer" in
       let pos = source_val.Lang.pos in
@@ -675,12 +682,12 @@ let () =
 
       Audio.to_value (`Output audio));
 
-  let return_kind =
-    Frame.mk_fields
-      ~audio:(Frame.find_audio audio_frame)
-      ~video:Frame.none ~midi:Frame.none ()
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields
+         ~audio:(Type.make (Format_type.descr raw_audio_format))
+         ())
   in
-  let return_t = Lang.frame_kind_t return_kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:`FFmpegFilter
     ~descr:"Return an audio source from a filter's output" ~return_t
     [
@@ -698,9 +705,14 @@ let () =
       let graph = Graph.of_value graph_v in
 
       let frame_t =
-        Lang.frame_kind_t
-          (Frame.mk_fields ~audio:(`Kind Ffmpeg_raw_content.Audio.kind)
-             ~video:Frame.none ~midi:Frame.none ())
+        Lang.frame_t Lang.unit_t
+          (Frame.mk_fields
+           (* We need to make sure that we are using a format here to
+              ensure that its params are properly unified with the underlying source. *)
+             ~audio:
+               (Type.make
+                  (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind)))
+             ())
       in
       let s =
         new Ffmpeg_filter_io.audio_input
@@ -748,15 +760,17 @@ let () =
       let source_val = Lang.assoc "" 2 p in
 
       let frame_t =
-        Lang.frame_kind_t
+        Lang.frame_t Lang.unit_t
           (Frame.mk_fields
            (* We need to make sure that we are using a format here to
               ensure that its params are properly unified with the underlying source. *)
-             ~audio:Frame.none
              ~video:
-               (`Format
-                 Ffmpeg_raw_content.Video.(lift_params (default_params `Raw)))
-             ~midi:Frame.none ())
+               (Type.make
+                  (Format_type.descr
+                     (`Format
+                       Ffmpeg_raw_content.Video.(
+                         lift_params (default_params `Raw)))))
+             ())
       in
       let name = uniq_name "buffer" in
       let pos = source_val.Lang.pos in
@@ -793,12 +807,12 @@ let () =
 
       Video.to_value (`Output video));
 
-  let return_kind =
-    Frame.mk_fields ~audio:Frame.none
-      ~video:(Frame.find_video video_frame)
-      ~midi:Frame.none ()
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields
+         ~video:(Type.make (Format_type.descr raw_video_format))
+         ())
   in
-  let return_t = Lang.frame_kind_t return_kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:`Video
     ~descr:"Return a video source from a filter's output" ~return_t
     [
@@ -824,9 +838,12 @@ let () =
       let fps = Option.value fps ~default:Frame.video_rate in
 
       let frame_t =
-        Lang.frame_kind_t
-          (Frame.mk_fields ~audio:Frame.none
-             ~video:(`Kind Ffmpeg_raw_content.Video.kind) ~midi:Frame.none ())
+        Lang.frame_t Lang.unit_t
+          (Frame.mk_fields
+             ~video:
+               (Type.make
+                  (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
+             ())
       in
       let s =
         new Ffmpeg_filter_io.video_input

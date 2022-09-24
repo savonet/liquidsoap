@@ -99,8 +99,10 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let return_t = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "gate"
     [
       ( "attack",
@@ -127,9 +129,9 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some "Duration for computing peak (ms)." );
-      ("", Lang.source_t return_t, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t ~category:`Audio
+    ~return_t:frame_t ~category:`Audio
     ~descr:
       "Reduce the volume when the stream is silent (typically in order to \
        avoid low intensity noise)."

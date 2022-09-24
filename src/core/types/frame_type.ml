@@ -20,149 +20,103 @@
 
  *****************************************************************************)
 
-let make ?pos ~audio ~video ~midi () =
-  Type.make ?pos
-    (Type.Constr
-       {
-         Type.constructor = "stream_kind";
-         params = [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
-       })
+module Type = Liquidsoap_lang.Type
 
-let univ ?pos () =
-  make ?pos
-    ~audio:(Liquidsoap_lang.Lang.univ_t ())
-    ~video:(Liquidsoap_lang.Lang.univ_t ())
-    ~midi:(Liquidsoap_lang.Lang.univ_t ())
-    ()
-
-let make_kind ?pos kind =
-  let evar ?(constraints = []) () = Type.var ~constraints ?pos () in
-  match kind with
-    | `Any -> evar ()
-    | `Internal -> evar ~constraints:[Format_type.internal_media] ()
-    | (`Kind _ as v) | (`Format _ as v) -> Type.make ?pos (Format_type.descr v)
-
-let set_audio t audio =
-  match (Type.deref t).Type.descr with
-    | Type.Constr
+let from_fields ?pos ?base_type fields =
+  let base_type = Option.value ~default:(Type.make ?pos Type.unit) base_type in
+  Frame.Fields.fold
+    (fun field field_type typ ->
+      let field = Frame.string_of_field field in
+      let meth =
         {
-          Type.constructor = "stream_kind";
-          params = [(`Covariant, _); (`Covariant, video); (`Covariant, midi)];
-        } ->
-        {
-          t with
-          Type.descr =
-            Type.Constr
-              {
-                Type.constructor = "stream_kind";
-                params =
-                  [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
-              };
+          Type.meth = field;
+          scheme = ([], field_type);
+          doc = "Field " ^ field;
+          json_name = None;
         }
-    | _ -> assert false
+      in
+      Type.make ?pos (Type.Meth (meth, typ)))
+    fields base_type
 
-let set_video t video =
-  match (Type.deref t).Type.descr with
-    | Type.Constr
-        {
-          Type.constructor = "stream_kind";
-          params = [(`Covariant, audio); (`Covariant, _); (`Covariant, midi)];
-        } ->
-        {
-          t with
-          Type.descr =
-            Type.Constr
-              {
-                Type.constructor = "stream_kind";
-                params =
-                  [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
-              };
-        }
-    | _ -> assert false
+let make ?pos ?base_type ?audio ?video ?midi () =
+  let fields =
+    List.fold_left
+      (fun fields -> function
+        | _, None -> fields
+        | field, Some v -> Frame.Fields.add field v fields)
+      Frame.Fields.empty
+      [
+        (Frame.audio_field, audio);
+        (Frame.video_field, video);
+        (Frame.midi_field, midi);
+      ]
+  in
+  from_fields ?pos ?base_type fields
 
-let set_midi t midi =
-  match (Type.deref t).Type.descr with
-    | Type.Constr
-        {
-          Type.constructor = "stream_kind";
-          params = [(`Covariant, audio); (`Covariant, video); (`Covariant, _)];
-        } ->
-        {
-          t with
-          Type.descr =
-            Type.Constr
-              {
-                Type.constructor = "stream_kind";
-                params =
-                  [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
-              };
-        }
-    | _ -> assert false
+let internal ?pos () =
+  Type.var ?pos ~constraints:[Format_type.internal_media] ()
 
-let get_audio t =
-  match (Type.deref t).Type.descr with
-    | Type.Constr
-        {
-          Type.constructor = "stream_kind";
-          params = [(`Covariant, audio); (`Covariant, _); (`Covariant, _)];
-        } ->
-        audio
-    | _ -> assert false
+let set_field frame_type field field_type =
+  let field = Frame.string_of_field field in
+  let meth =
+    {
+      Type.meth = field;
+      scheme = ([], field_type);
+      doc = "Field " ^ field;
+      json_name = None;
+    }
+  in
+  Type.make (Type.Meth (meth, frame_type))
 
-let get_video t =
-  match (Type.deref t).Type.descr with
-    | Type.Constr
-        {
-          Type.constructor = "stream_kind";
-          params = [(`Covariant, _); (`Covariant, video); (`Covariant, _)];
-        } ->
-        video
-    | _ -> assert false
+let get_field frame_type field =
+  let field = Frame.string_of_field field in
+  let fields, _ = Type.split_meths frame_type in
+  match
+    List.find_map
+      (fun Type.{ meth; scheme = _, field_type } ->
+        if meth = field then Some field_type else None)
+      fields
+  with
+    | Some v -> v
+    | None -> raise Not_found
 
-let get_midi t =
-  match (Type.deref t).Type.descr with
-    | Type.Constr
-        {
-          Type.constructor = "stream_kind";
-          params = [(`Covariant, _); (`Covariant, _); (`Covariant, midi)];
-        } ->
-        midi
-    | _ -> assert false
-
-let to_string t = Type.to_string t
-
-let content_type t =
-  match (Type.deref t).Type.descr with
-    | Type.Constr
-        {
-          Type.constructor = "stream_kind";
-          params =
-            [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
-        } ->
-        let audio =
-          Format_type.content_type ~default:Content_internal.default_audio audio
-        in
-        let video =
-          Format_type.content_type ~default:Content_internal.default_video video
-        in
-        let midi =
-          Format_type.content_type ~default:Content_internal.default_midi midi
-        in
-        let ctype = Frame.mk_fields ~audio ~video ~midi () in
-        let mk_format f = Type.make (Format_type.descr (`Format f)) in
-        let t' =
+let content_type frame_type =
+  let frame_type =
+    match (Type.deref frame_type).Type.descr with
+      (* If type is empty we add default formats. *)
+      | Type.Var _ ->
+          let audio =
+            if Frame_settings.conf_audio_channels#get > 0 then
+              Some (Format_type.audio_n Frame_settings.conf_audio_channels#get)
+            else None
+          in
+          let video =
+            if Frame_settings.conf_video_default#get then
+              Some (Format_type.video ())
+            else None
+          in
+          let default_t =
+            from_fields ~base_type:(Type.var ())
+              (Frame.mk_fields ?audio ?video ())
+          in
+          Typing.(frame_type <: default_t);
+          default_t
+      | _ -> frame_type
+  in
+  let meths, _ = Type.split_meths frame_type in
+  let content_type, resolved_frame_type =
+    List.fold_left
+      (fun (content_type, resolved_frame_type)
+           ({ Type.meth = field; scheme = _, ty } as meth) ->
+        let format = Format_type.content_type ty in
+        let format_type = Type.make (Format_type.descr (`Format format)) in
+        ( Frame.set_field content_type (Frame.field_of_string field) format,
           Type.make
-            (Type.Constr
-               {
-                 Type.constructor = "stream_kind";
-                 params =
-                   [
-                     (`Covariant, mk_format audio);
-                     (`Covariant, mk_format video);
-                     (`Covariant, mk_format midi);
-                   ];
-               })
-        in
-        Typing.(t <: t');
-        ctype
-    | _ -> assert false
+            (Type.Meth
+               ( { meth with Type.scheme = ([], format_type) },
+                 resolved_frame_type )) ))
+      (Frame.Fields.empty, Type.make Type.unit)
+      meths
+  in
+  Typing.(frame_type <: resolved_frame_type);
+  content_type

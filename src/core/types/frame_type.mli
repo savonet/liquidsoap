@@ -22,24 +22,19 @@
 
 open Liquidsoap_lang
 
+val from_fields :
+  ?pos:Pos.t -> ?base_type:Type.t -> Type.t Frame.Fields.t -> Type.t
+
 val make :
-  ?pos:Pos.t -> audio:Type.t -> video:Type.t -> midi:Type.t -> unit -> Type.t
-
-val univ : ?pos:Pos.t -> unit -> Type.t
-
-val make_kind :
   ?pos:Pos.t ->
-  [< `Any
-  | `Format of Content_base.format
-  | `Internal
-  | `Kind of Content_base.kind ] ->
+  ?base_type:Type.t ->
+  ?audio:Type.t ->
+  ?video:Type.t ->
+  ?midi:Type.t ->
+  unit ->
   Type.t
 
-val set_audio : Type.t -> Type.t -> Type.t
-val set_video : Type.t -> Type.t -> Type.t
-val set_midi : Type.t -> Type.t -> Type.t
-val get_audio : Type.t -> Type.t
-val get_video : Type.t -> Type.t
-val get_midi : Type.t -> Type.t
-val to_string : Type.t -> string
-val content_type : Type.t -> Content_base.format Frame.Fields.t
+val internal : ?pos:Pos.t -> unit -> Type.t
+val set_field : Type.t -> Frame.field -> Type.t -> Type.t
+val get_field : Type.t -> Frame.field -> Type.t
+val content_type : Type.t -> Content.format Frame.Fields.t
