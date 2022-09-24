@@ -279,7 +279,7 @@ let string.char.ascii.alphabet = [
 # @category String
 let string.char.ascii.number = list.init(10, fun (c) -> c+48)
 
-# Return a random ascii character
+# Return a random ASCII character
 # @category String
 def string.char.ascii.random(range=[...string.char.ascii]) =
   string.char(list.nth(range, random.int(min=0, max=list.length(range)-1)))
