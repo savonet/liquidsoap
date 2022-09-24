@@ -395,7 +395,7 @@ def http.post.file(~name="file", ~content_type=null(), ~headers=[], ~boundary=nu
   end
 
   if null.defined(file) and null.defined(contents) then
-    error.raise(error.http, "Only one of: `content` or `file` must be defined!")
+    error.raise(error.http, "Only one of: `contents` or `file` must be defined!")
   end
 
   # Massage parameters
