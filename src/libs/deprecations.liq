@@ -595,3 +595,10 @@ def getpid() =
   deprecated("getpid", "process.pid")
   process.pid()
 end
+
+# Deprecated: use `file.mime`
+# @flag deprecated
+def get_mime(fname)
+  deprecated("get_mime", "file.mime")
+  file.mime(fname) ?? ""
+end

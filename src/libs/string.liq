@@ -204,3 +204,82 @@ def string.data_uri.decode(s) =
     null()
   end
 end
+
+let string.getter = ()
+
+# Flush all values from a string getter and return
+# the concatenated result. If the getter is constant,
+# return the constant string. Otherwise, call the getter
+# repeatedly until it returns an empty string and return
+# the concatenated result
+# @category String
+def string.getter.flush(~separator="", gen) =
+  if getter.is_constant(gen) then
+    getter.get(gen)
+  else
+    def rec f(data) =
+      chunk = getter.get(gen)
+      if chunk == "" then string.concat(separator=separator, data) else
+        f([...data, chunk])
+      end
+    end
+    f([])
+  end
+end
+
+# Combine a list of string getters `[g1, ...]`
+# and return a single getter `g` such that:
+# `string.getter.flush(separator=s, g) = string.concat(separator=s, list.filter(fun (s) -> s != "", [string.getter.flush(g1), ...]))`
+# @category String
+def string.getter.concat(l) =
+  len = list.length(l)
+  pos = ref(0)
+
+  def rec f() =
+    if !pos == len then "" else
+      gen = list.nth(l, !pos)
+      ret = getter.get(gen)
+
+      if ret == "" or getter.is_constant(gen) then
+        ref.incr(pos)
+      end
+
+      ret == "" ? f () : ret
+    end
+  end
+
+  getter(f)
+end
+
+let string.char.ascii = ()
+
+# All ASCII characters code
+# @category String
+let string.char.ascii = list.init(128, fun (c) -> c)
+
+# All ASCII control character codes
+# @category String
+let string.char.ascii.control = list.init(32, fun (c) -> c)
+
+# All ASCII printable character codes
+# @category String
+let string.char.ascii.printable = list.init(96, fun (c) -> c+32)
+
+# All ASCII alphabet character codes
+# @category String
+let string.char.ascii.alphabet = [
+  # A-Z
+  ...list.init(24, fun (c) -> c+65),
+  # a-z
+  ...list.init(24, fun (c) -> c+97),
+]
+
+# All ASCII number character codes
+# @category String
+let string.char.ascii.number = list.init(10, fun (c) -> c+48)
+
+# Return a random ASCII character
+# @category String
+def string.char.ascii.random(range=[...string.char.ascii]) =
+  string.char(list.nth(range, random.int(min=0, max=list.length(range)-1)))
+end

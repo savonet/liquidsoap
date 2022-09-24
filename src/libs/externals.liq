@@ -90,30 +90,30 @@ def enable_external_mpc_decoder() =
 
   mpcdec = settings.decoder.external.mpcdec.path() 
 
-  def test_mpc(file) =
-    def get_channels(file) =
+  def test_mpc(f) =
+    def get_channels(f) =
       int_of_string(
         list.hd(default="",
-          process.read.lines("#{mpcdec} -i #{process.quote(file)} 2>&1 \
+          process.read.lines("#{mpcdec} -i #{process.quote(f)} 2>&1 \
                              | grep channels | cut -d' ' -f 2")))
     end
     # Get the file's mime
-    mime = get_mime(file)
+    mime = file.mime(f)
     # Test mime
     if list.mem(mime,mpc_mimes) then
-      get_channels(file)
+      get_channels(f)
     else
       # Otherwise test file extension
-      ret = r/\.(?<ext>.+)$/.exec(file)
+      ret = r/\.(?<ext>.+)$/.exec(f)
       if list.length(ret) != 0 then
         ext = ret.groups["ext"]
         if list.mem(ext,mpc_filexts) then
-          get_channels(file)
+          get_channels(f)
         else
           0
         end
       else
-        get_channels(file)
+        get_channels(f)
       end
     end
   end
@@ -230,15 +230,15 @@ def enable_external_faad_decoder() =
 
   # Faad is not very selective so we are checking only file that end with a
   # known extension or mime type
-  def faad_test(file) =
+  def faad_test(f) =
     # Get the file's mime
-    mime = get_mime(file)
+    mime = file.mime(f)
     # Test mime
     if list.mem(mime,aac_mimes) then
       true
     else
       # Otherwise test file extension
-      ret = r/\.(?<ext>.+)$/.exec(file)
+      ret = r/\.(?<ext>.+)$/.exec(f)
       if list.length(ret) != 0 then
         ext = ret.groups["ext"]
         list.mem(ext,aac_filexts)

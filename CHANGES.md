@@ -19,7 +19,8 @@ New:
   - `source.replaygain.compute` to compute replaygain of a source
   - `file.replaygain` to compute the replaygain of a file
 - Added support for ImageLib to decode images.
-- Added `string.char`.
+- Added `string.char`, `string.getter.flush` and `string.getter.concat` 
+- Added `http.post.multipart_form_data` and `http.post.file`.
 
 Changed:
 
@@ -44,6 +45,9 @@ Changed:
 - Add `on_cycle` option to `video.add_text` to register a handler when cycling
   (#2621).
 - Renamed `{get,set}env` into `environment.{get,set}`
+- Deprecated `get_mime`, added `file.mime.libmagic` and `file.mime.cli`, made
+  `file.mime` try `file.mime.libmagic` if present and `file.mime.cli` otherwise,
+  changed eturned value when no mime was found to `null()`.
 
 Fixed:
 
