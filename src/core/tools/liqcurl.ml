@@ -156,12 +156,6 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     connection#set_writefunction (fun s ->
         on_body_data s;
         String.length s);
-    ignore
-      (Option.map
-         (fun headers ->
-           connection#set_httpheader
-             (List.map (fun (k, v) -> Printf.sprintf "%s: %s" k v) headers))
-         headers);
     connection#set_httpversion
       (match http_version with
         | None -> Curl.HTTP_VERSION_NONE
@@ -186,6 +180,12 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
           connection#set_readfunction2 (mk_read get_data)
       | `Head -> connection#set_nobody true
       | `Delete -> connection#set_customrequest "DELETE");
+    ignore
+      (Option.map
+         (fun headers ->
+           connection#set_httpheader
+             (List.map (fun (k, v) -> Printf.sprintf "%s: %s" k v) headers))
+         headers);
     let response_headers = Buffer.create 1024 in
     connection#set_headerfunction (fun s ->
         Buffer.add_string response_headers s;

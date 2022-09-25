@@ -57,11 +57,11 @@ let add_http_request ~stream_body ~descr ~request name =
     else
       [
         ( "data",
-          Lang.getter_t (Lang.nullable_t Lang.string_t),
+          Lang.getter_t Lang.string_t,
           Some (Lang.string ""),
           Some
-            "POST data. Use a `string?` getter to stream data and return \
-             `null` when all data has been passed." );
+            "POST data. Use a `string` getter to stream data and return `\"\"` \
+             when all data has been passed." );
       ]
   in
   let params =
