@@ -10,11 +10,11 @@ def f() =
 
   harbor.http.register("/default", port=3456, handler)
   resp = http.get("http://localhost:3456/default")
- test.equals(resp.status_message, "OK")
- test.equals(resp.status_code, 200)
- test.equals(resp.http_version, "1.1")
- test.equals(resp.headers, [])
- test.equals("#{resp}", "")
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.status_code, 200)
+  test.equals(resp.http_version, "1.1")
+  test.equals(resp.headers, [])
+  test.equals("#{resp}", "")
 
   # Endpoint are executed in the order they are declared
   def handler(_, _) =
@@ -24,11 +24,11 @@ def f() =
   harbor.http.register.regexp(r/default/g, port=3456, handler)
   harbor.http.register("/default", port=3456, handler)
   resp = http.get("http://localhost:3456/default")
- test.equals(resp.status_message, "OK")
- test.equals(resp.status_code, 200)
- test.equals(resp.http_version, "1.1")
- test.equals(resp.headers, [])
- test.equals("#{resp}", "")
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.status_code, 200)
+  test.equals(resp.http_version, "1.1")
+  test.equals(resp.headers, [])
+  test.equals("#{resp}", "")
 
   # String response with matches
   def handler(req, _) =
@@ -41,11 +41,11 @@ def f() =
 
   harbor.http.register("/path/:gni/:bla", port=3456, handler)
   resp = http.get("http://localhost:3456/path/gno/blo")
- test.equals(resp.status_message, "OK")
- test.equals(resp.status_code, 200)
- test.equals(resp.http_version, "1.1")
- test.equals(resp.headers, [])
- test.equals("#{resp}", "")
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.status_code, 200)
+  test.equals(resp.http_version, "1.1")
+  test.equals(resp.headers, [])
+  test.equals("#{resp}", "")
 
   # Full query
   def handler(req, res) =
@@ -85,15 +85,15 @@ def f() =
   harbor.http.register.regexp(r/(?<foo>[^\/]+)\/full\/(?<bla>[^\/]+)/g, method="POST", port=3456, handler)
   resp = http.post(http_version="1.0", data="foobarlol", headers=[("req","header")], "http://localhost:3456/some/path/with/full/in/it?gni=gno&gnu=gno")
 
- test.equals(resp.status_message, "YYR")
- test.equals(resp.status_code, 201)
- test.equals(resp.http_version, "1.0")
- test.equals(resp.headers, [
+  test.equals(resp.status_message, "YYR")
+  test.equals(resp.status_code, 201)
+  test.equals(resp.http_version, "1.0")
+  test.equals(resp.headers, [
     ("some", "value"),
     ("transfer-encoding", "chunked"),
     ("content-type", "liquidsoap/test"),
   ])
- test.equals("#{resp}", "gnignognignognignognigno")
+  test.equals("#{resp}", "gnignognignognignognigno")
 
   # Large non-chunked query
   def handler(req, _) =
@@ -114,11 +114,11 @@ def f() =
   harbor.http.register("/large_non_chunked", method="POST", port=3456, handler)
 
   resp = http.post(data=string.make(10_000), "http://localhost:3456/large_non_chunked")
- test.equals(resp.status_message, "OK")
- test.equals(resp.status_code, 200)
- test.equals(resp.http_version, "1.1")
- test.equals(resp.headers, [])
- test.equals("#{resp}", "")
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.status_code, 200)
+  test.equals(resp.http_version, "1.1")
+  test.equals(resp.headers, [])
+  test.equals("#{resp}", "")
 
   # Chunked query
   def handler(req, res) =
@@ -149,11 +149,11 @@ def f() =
   end
 
   resp = http.post(data=data, "http://localhost:3456/chunked")
- test.equals(resp.status_message, "OK")
- test.equals(resp.status_code, 200)
- test.equals(resp.http_version, "1.1")
- test.equals(resp.headers, [])
- test.equals("#{resp}", "")
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.status_code, 200)
+  test.equals(resp.http_version, "1.1")
+  test.equals(resp.headers, [])
+  test.equals("#{resp}", "")
 
   # Large chunked query
   def handler(req, res) =
@@ -212,23 +212,23 @@ def f() =
   harbor.http.register.simple("/custom", port=3456, handler)
   resp = http.get("http://localhost:3456/custom")
 
- test.equals(resp.status_message, "YYR")
- test.equals(resp.status_code, 201)
- test.equals(resp.http_version, "1.0")
- test.equals(resp.headers, [("foo","bar")])
- test.equals("#{resp}", "")
+  test.equals(resp.status_message, "YYR")
+  test.equals(resp.status_code, 201)
+  test.equals(resp.http_version, "1.0")
+  test.equals(resp.headers, [("foo","bar")])
+  test.equals("#{resp}", "")
 
   # Cors headers
   harbor.http.middleware.register(harbor.http.middleware.cors(origin="foo.com"))
   resp = http.get("http://localhost:3456/default")
- test.equals(resp.status_message, "OK")
- test.equals(resp.http_version, "1.1")
- test.equals(resp.status_code, 200)
- test.equals(resp.headers, [
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.http_version, "1.1")
+  test.equals(resp.status_code, 200)
+  test.equals(resp.headers, [
     ("access-control-allow-origin", "foo.com"),
     ("vary", "Origin")
   ])
- test.equals("#{resp}", "")
+  test.equals("#{resp}", "")
 
   # transport conflict
   transport = http.transport.ssl(certificate="foo", key="bla")
@@ -247,8 +247,8 @@ def f() =
 
   harbor.http.register("/response_ended", port=3456, handler)
   resp = http.get("http://localhost:3456/response_ended")
- test.equals(resp.status_message, "OK")
- test.equals(resp.status_code, 200)
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.status_code, 200)
 
   try
     fn = !read

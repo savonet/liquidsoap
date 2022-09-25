@@ -384,7 +384,7 @@ end
 # @category Interaction
 # @param ~boundary Specify boundary to use for multipart/form-data.
 # @param data data to insert
-def http.post.multipart_form_data(~boundary=null(), data)
+def http.multipart_form_data(~boundary=null(), data)
   def default_boundary()
     range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
     l = list.init(12, fun(_) -> string.char.ascii.random(range))
@@ -425,7 +425,37 @@ def http.post.multipart_form_data(~boundary=null(), data)
   { contents = string.getter.concat(contents), boundary = boundary }
 end
 
+# @flag hidden
 stdlib_file = file
+
+# @flag hidden
+upload_file_fn = fun (~name, ~content_type, ~headers, ~boundary, ~filename, ~file, ~contents, ~timeout, ~redirect, url, fn) -> begin
+  if not null.defined(filename) and not null.defined(file) then
+    error.raise(error.http, "At least one of: `file` or `filename` must be defined!")
+  end
+
+  if null.defined(file) and null.defined(contents) then
+    error.raise(error.http, "Only one of: `contents` or `file` must be defined!")
+  end
+
+  # Massage parameters
+  filename = null.defined(filename) ? null.get(filename) : string(path.basename(null.get(file)))
+  contents = null.defined(contents) ? null.get(contents) : getter(stdlib_file.read(null.get(file)))
+
+  # Create query
+
+  content_type = content_type ?? "application/octet-stream"
+
+  data = http.multipart_form_data(boundary=boundary, [{
+    name=name,
+    attributes=[("filename", filename)],
+    headers=[("Content-Type",content_type)],
+    contents=contents
+  }])
+  headers = ("Content-Type", "multipart/form-data; boundary=#{data.boundary}")::headers
+
+  fn(headers=headers, timeout_ms=timeout, redirect=redirect, data=data.contents, url)
+end
 
 # Send a file via POST request encoded in multipart/form-data. The contents can
 # either be directly specified (with the `contents` argument) or taken from a
@@ -442,36 +472,27 @@ stdlib_file = file
 # @param ~redirect Follow reidrections.
 # @param url URL to post to.
 def http.post.file(~name="file", ~content_type=null(), ~headers=[], ~boundary=null(), ~filename=null(), ~file=null(), ~contents=null(), ~timeout=null(), ~redirect=true, url)
-  if not null.defined(filename) and not null.defined(file) then
-    error.raise(error.http, "At least one of: `file` or `filename` must be defined!")
-  end
+  upload_file_fn(name=name, content_type=content_type, headers=headers, boundary=boundary, filename=filename,
+                 file=file, contents=contents, timeout=timeout, redirect=redirect, url, http.post)
+end
 
-  if null.defined(file) and null.defined(contents) then
-    error.raise(error.http, "Only one of: `contents` or `file` must be defined!")
-  end
-
-  # Massage parameters
-  filename = null.defined(filename) ? null.get(filename) : string(path.basename(null.get(file)))
-  contents = null.defined(contents) ? null.get(contents) : getter(stdlib_file.read(null.get(file)))
-
-  # Create query
-
-  content_type =
-    if null.defined(content_type) then
-      null.get(content_type)
-    else
-      stdlib_file.mime(filename) ?? "application/octet-stream"
-    end
-
-  data = http.post.multipart_form_data(boundary=boundary, [{
-    name=name,
-    attributes=[("filename", filename)],
-    headers=[("Content-Type",content_type)],
-    contents=contents
-  }])
-  headers = ("Content-Type", "multipart/form-data; boundary=#{data.boundary}")::headers
-
-  http.post(headers=headers, timeout_ms=timeout, redirect=redirect, data=data.contents, url)
+# Send a file via PUT request encoded in multipart/form-data. The contents can
+# either be directly specified (with the `contents` argument) or taken from a
+# file (with the `file` argument).
+# @category Interaction
+# @param ~name Name of the field field
+# @param ~content_type Content-type (mime) for the file.
+# @param ~headers Additional headers.
+# @param ~boundary Specify boundary to use for multipart/form-data.
+# @param ~filename File name sent in the request.
+# @param ~file File whose contents is to be sent in the request.
+# @param ~contents Contents of the file sent in the request.
+# @param ~timeout Timeout in ms.
+# @param ~redirect Follow reidrections.
+# @param url URL to put to.
+def http.put.file(~name="file", ~content_type=null(), ~headers=[], ~boundary=null(), ~filename=null(), ~file=null(), ~contents=null(), ~timeout=null(), ~redirect=true, url)
+  upload_file_fn(name=name, content_type=content_type, headers=headers, boundary=boundary, filename=filename,
+                 file=file, contents=contents, timeout=timeout, redirect=redirect, url, http.put)
 end
 
 let harbor.http.request = ()
