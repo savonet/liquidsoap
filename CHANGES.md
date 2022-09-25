@@ -3,7 +3,7 @@
 
 New:
 * Added `string.char`, `string.getter.flush` and `string.getter.concat`.
-* Added `http.post.multipart_form_data` and `http.post.file`.
+* Added `http.multipart_form_data` and `http.{post,put}.file`.
 
 Changed:
 * Allow sub-second values in `sleep()` (#2610)
