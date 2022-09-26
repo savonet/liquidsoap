@@ -55,6 +55,37 @@ Fixed:
   prevent listening socket from being re-created on listener disconnection (#2556)
 
 ---
+2.1.2 (2022-09-26)
+=====
+
+New:
+* Added `string.char`, `string.getter.flush` and `string.getter.concat`.
+* Added `http.multipart_form_data` and `http.{post,put}.file`.
+
+Changed:
+* Allow sub-second values in `sleep()` (#2610)
+* Allowed many new format for `taglib` (#2605)
+* Add `settings.ffmpeg.content.copy.relaxed_compatibility_check.set` settings to  allow relaxed
+  compatibility check for ffmpeg copy content, making it possible to encode
+  streams with various audio samplerate or video size when the container
+  supports it.
+
+Fixed:
+* Stop error loop when opening a listening ssl socket with non-existent certificate. (#2590)
+* Youtube HLS upload for live streams.
+* Fixed `data:...` uri scheme to conform to RFC 2397 (#2491)
+* Fixed multiple issues related to empty `ogg/opus` metadata (#2605)
+* Ensure that `video.add_text` fails when the source does (#2609)
+* Fixed metadata parsing in `server.insert_metadata` (#2619)
+* Fixed `extract_replaygain` path (#2624, @parnikkapore)
+* Fixed crash when terminating the process (#2585)
+* Fixed channels conversion when using `input.rawaudio` (#2602)
+
+Internal Change:
+* `ref()` implementation switched to OCaml's `Atomic` to prevent race conditions,
+  `thread.mutexify` and `mutexify` functions removed. (#2603)
+
+---
 2.1.1 (2022-08-28)
 ======
 
