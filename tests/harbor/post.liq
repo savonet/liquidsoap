@@ -63,7 +63,7 @@ def f() =
    test.equals(req.method, "POST")
    test.equals(req.query, [])
    test.equals(req.headers, [
-      ("host", "localhost:3456"),
+      ("host", "localhost:6543"),
       ("user-agent", http.user_agent),
       ("accept", "*/*"),
       ("transfer-encoding", "chunked"),
@@ -81,9 +81,41 @@ def f() =
        --#{boundary}--\r\n")
   end
 
-  harbor.http.register("/large_non_chunked", method="POST", port=3456, handler)
+  harbor.http.register("/large_non_chunked", method="POST", port=6543, handler)
 
-  resp = http.post.file(file=fname, content_type="text/plain", boundary=boundary, "http://localhost:3456/large_non_chunked")
+  resp = http.post.file(file=fname, content_type="text/plain", boundary=boundary, "http://localhost:6543/large_non_chunked")
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.status_code, 200)
+  test.equals(resp.http_version, "1.1")
+  test.equals(resp.headers, [])
+  test.equals("#{resp}", "")
+
+  # Test JSON post
+  j = json()
+  j.add("foo", random.int())
+  j.add("contents", file.contents("post.liq"))
+  data = json.stringify(j)
+
+  def handler(req, _) =
+   test.equals(req.http_version, "1.1")
+   test.equals(req.method, "POST")
+   test.equals(req.query, [])
+   test.equals(req.headers, [
+      ("host", "localhost:6543"),
+      ("user-agent", http.user_agent),
+      ("content-type", "application/json"),
+      ("accept", "application/json"),
+      ("content-length", "#{string.length(data)}")
+    ])
+   test.equals(req.path, "/json_post")
+   test.equals(
+      harbor.http.request.body(timeout=5.0, req),
+      data)
+  end
+
+  harbor.http.register("/json_post", method="POST", port=6543, handler)
+
+  resp = http.post(headers=[("Content-Type","application/json"),("Accept","application/json")], data=data, "http://localhost:6543/json_post")
   test.equals(resp.status_message, "OK")
   test.equals(resp.status_code, 200)
   test.equals(resp.http_version, "1.1")
