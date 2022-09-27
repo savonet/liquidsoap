@@ -85,11 +85,11 @@ module Value = struct
     | `Extra -> "extra"
 
   let flag_of_string = function
-    | "hidden" -> `Hidden
-    | "deprecated" -> `Deprecated
-    | "experimental" -> `Experimental
-    | "extra" -> `Extra
-    | flag -> failwith ("Unknown flag: " ^ flag)
+    | "hidden" -> Some `Hidden
+    | "deprecated" -> Some `Deprecated
+    | "experimental" -> Some `Experimental
+    | "extra" -> Some `Extra
+    | _ -> None
 
   (** Kind of source. *)
   type source =

@@ -1,5 +1,5 @@
 # VU meter: display the audio volume (RMS in dB) on the standard output.
-# @category Visualization
+# @category Source / Visualization
 # @flag extra
 # @param ~rms_min Minimal volume (dB).
 # @param ~rms_max Maximal volume (dB).
@@ -29,7 +29,7 @@ end
 
 # VU meter: display the audio volume (RMS in dB). This adds a video track to the
 # source.
-# @category Visualization
+# @category Source / Visualization
 # @param ~rms_min Minimal volume (dB).
 # @param ~rms_max Maximal volume (dB).
 # @param ~window Duration in seconds of volume computation.

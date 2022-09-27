@@ -69,7 +69,7 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
 end
 
 # Scale source during fading.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @flag hidden
 def fade.scale(~id="fade.scale", x, s)
   s = amplify(id=id, override=null(), x, s)
@@ -78,7 +78,7 @@ def fade.scale(~id="fade.scale", x, s)
 end
 
 # Fade the end of tracks.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
@@ -156,7 +156,7 @@ def fade.out(~id="fade.out",~duration=3.,
 end
 
 # Fade when the metadata trigger is received and then skip.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
@@ -224,7 +224,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
 end
 
 # Fade the beginning of tracks.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.

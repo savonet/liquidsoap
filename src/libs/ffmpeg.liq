@@ -242,7 +242,7 @@ end
 
 %ifencoder %ffmpeg
 # Output an MPEG-DASH playlist.
-# @category Output
+# @category Source / Output
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~codec Codec to use for audio (following FFmpeg's conventions).

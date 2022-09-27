@@ -420,7 +420,17 @@ let parse_comments tokenizer =
                   (Printf.sprintf "Unknown category: %s (%s)." category
                      (Pos.to_string (startp, endp)))
         in
-        let flags = List.map Doc.Value.flag_of_string flags in
+        let flags =
+          let f f =
+            match Doc.Value.flag_of_string f with
+              | Some f -> f
+              | None ->
+                  failwith
+                    (Printf.sprintf "Unknown flag: %s (%s)." f
+                       (Pos.to_string (startp, endp)))
+          in
+          List.map f flags
+        in
         Some
           Doc.Value.
             {
