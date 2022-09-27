@@ -54,7 +54,7 @@ def f() =
 
   # Test file upload
 
-  fname = "post.liq"
+  fname = "put.liq"
 
   range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
   l = list.init(12, fun(_) -> string.char.ascii.random(range))
@@ -62,17 +62,17 @@ def f() =
 
   def handler(req, _) =
    test.equals(req.http_version, "1.1")
-   test.equals(req.method, "POST")
+   test.equals(req.method, "PUT")
    test.equals(req.query, [])
    test.equals(req.headers, [
-      ("host", "localhost:6543"),
+      ("host", "localhost:5427"),
       ("user-agent", http.user_agent),
       ("accept", "*/*"),
       ("transfer-encoding", "chunked"),
       ("content-type", "multipart/form-data; boundary=#{boundary}"),
       ("expect", "100-continue")
     ])
-   test.equals(req.path, "/file_upload")
+   test.equals(req.path, "/large_non_chunked")
    test.equals(
       harbor.http.request.body(timeout=5.0, req),
       "--#{boundary}\r\n\
@@ -83,9 +83,9 @@ def f() =
        --#{boundary}--\r\n")
   end
 
-  harbor.http.register("/file_upload", method="POST", port=6543, handler)
+  harbor.http.register("/large_non_chunked", method="PUT", port=5427, handler)
 
-  resp = http.post.file(file=fname, content_type="text/plain", boundary=boundary, "http://localhost:6543/file_upload")
+  resp = http.put.file(file=fname, content_type="text/plain", boundary=boundary, "http://localhost:5427/large_non_chunked")
   test.equals(resp.status_message, "OK")
   test.equals(resp.status_code, 200)
   test.equals(resp.http_version, "1.1")
@@ -100,14 +100,15 @@ def f() =
 
   def handler(req, _) =
    test.equals(req.http_version, "1.1")
-   test.equals(req.method, "POST")
+   test.equals(req.method, "PUT")
    test.equals(req.query, [])
    test.equals(req.headers, [
       ("host", "localhost:6543"),
       ("user-agent", http.user_agent),
       ("accept", "*/*"),
+      ("transfer-encoding", "chunked"),
       ("content-type", "multipart/form-data; boundary=#{boundary}"),
-      ("content-length", "138")
+      ("expect", "100-continue")
     ])
    test.equals(req.path, "/in_memory_file_upload")
    test.equals(
@@ -120,41 +121,42 @@ def f() =
        --#{boundary}--\r\n")
   end
 
-  harbor.http.register("/in_memory_file_upload", method="POST", port=6543, handler)
+  harbor.http.register("/in_memory_file_upload", method="PUT", port=6543, handler)
 
-  resp = http.post.file(filename="foo.txt", contents="foobarlol", content_type="text/plain", boundary=boundary, "http://localhost:6543/in_memory_file_upload")
+  resp = http.put.file(filename="foo.txt", contents="foobarlol", content_type="text/plain", boundary=boundary, "http://localhost:6543/in_memory_file_upload")
   test.equals(resp.status_message, "OK")
   test.equals(resp.status_code, 200)
   test.equals(resp.http_version, "1.1")
   test.equals(resp.headers, [])
   test.equals("#{resp}", "")
 
-  # Test JSON post
+  # Test JSON put
   j = json()
   j.add("foo", random.int())
-  j.add("contents", file.contents("post.liq"))
+  j.add("contents", file.contents("put.liq"))
   data = json.stringify(j)
 
   def handler(req, _) =
    test.equals(req.http_version, "1.1")
-   test.equals(req.method, "POST")
+   test.equals(req.method, "PUT")
    test.equals(req.query, [])
    test.equals(req.headers, [
-      ("host", "localhost:6543"),
+      ("host", "localhost:5427"),
       ("user-agent", http.user_agent),
+      ("transfer-encoding", "chunked"),
       ("content-type", "application/json"),
       ("accept", "application/json"),
-      ("content-length", "#{string.length(data)}")
+      ("expect", "100-continue")
     ])
-   test.equals(req.path, "/json_post")
+   test.equals(req.path, "/json_put")
    test.equals(
       harbor.http.request.body(timeout=5.0, req),
       data)
   end
 
-  harbor.http.register("/json_post", method="POST", port=6543, handler)
+  harbor.http.register("/json_put", method="PUT", port=5427, handler)
 
-  resp = http.post(headers=[("Content-Type","application/json"),("Accept","application/json")], data=data, "http://localhost:6543/json_post")
+  resp = http.put(headers=[("Content-Type","application/json"),("Accept","application/json")], data=data, "http://localhost:5427/json_put")
   test.equals(resp.status_message, "OK")
   test.equals(resp.status_code, 200)
   test.equals(resp.http_version, "1.1")
