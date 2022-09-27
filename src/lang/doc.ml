@@ -190,15 +190,13 @@ module Value = struct
   let db = ref []
   let add (name : string) (doc : t Lazy.t) = db := (name, doc) :: !db
   let get name = Lazy.force (List.assoc name !db)
-  let db () = List.sort compare !db
 
   (** Only print function names. *)
   let print_functions print =
-    List.iter
-      (fun (f, _) ->
-        print f;
-        print "\n")
-      (db ())
+    !db |> List.map fst |> List.sort compare
+    |> List.iter (fun f ->
+           print f;
+           print "\n")
 
   let print name print =
     let f = get name in
@@ -259,7 +257,7 @@ module Value = struct
         print "\n\n")
       f.arguments;
     if f.methods <> [] then (
-      print "\nMethods:\n\n";
+      print "Methods:\n\n";
       List.iter
         (fun (l, m) ->
           print (" * " ^ l ^ " : " ^ m.meth_type ^ "\n");
@@ -269,8 +267,9 @@ module Value = struct
 
   let print_functions_md ?(extra = true) print =
     let functions =
-      db ()
+      !db
       |> List.map (fun (f, d) -> (f, Lazy.force d))
+      |> List.sort compare
       |> List.filter (fun (_, d) ->
              not (List.mem `Hidden d.flags || List.mem `Deprecated d.flags))
     in

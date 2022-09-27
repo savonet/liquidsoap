@@ -290,7 +290,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              if !stdlib then load_libs ();
+              load_libs ();
               Lang_string.kprint_string ~pager:true Doc.Plug.print_string),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
@@ -299,14 +299,14 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              if !stdlib then load_libs ();
+              load_libs ();
               Lang_string.kprint_string ~pager:true Doc.Value.print_functions),
           Printf.sprintf "List all functions." );
         ( ["--list-functions-md"],
           Arg.Unit
             (fun () ->
               run_streams := false;
-              if !stdlib then load_libs ();
+              load_libs ();
               Lang_string.kprint_string ~pager:true
                 (Doc.Value.print_functions_md ~extra:false)),
           Printf.sprintf "Documentation of all functions in markdown." );
@@ -314,7 +314,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              if !stdlib then load_libs ();
+              load_libs ();
               Lang_string.kprint_string ~pager:true
                 (Doc.Value.print_functions_md ~extra:true)),
           Printf.sprintf "Documentation of all extra functions in markdown." );
@@ -322,7 +322,7 @@ let options =
           Arg.Unit
             (fun () ->
               run_streams := false;
-              if !stdlib then load_libs ();
+              load_libs ();
               Lang_string.kprint_string ~pager:true Doc.Protocol.print_md),
           Printf.sprintf "Documentation of all protocols in markdown." );
         ( ["--no-stdlib"],

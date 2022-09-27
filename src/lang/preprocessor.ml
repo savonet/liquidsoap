@@ -272,21 +272,12 @@ let parse_comments tokenizer =
                           doc.arguments
                         @ params
                       in
-                      let doc_specials = [] in
-                      (*
                       let doc_specials =
-                        List.fold_left
-                          (fun cur n ->
-                            try
-                              match (doc#get_subsection n)#get_doc with
-                                | "(no doc)" -> cur
-                                | s when n = "_category" -> `Category s :: cur
-                                | s when n = "_flag" -> `Flag s :: cur
-                                | _ -> assert false
-                            with Not_found -> cur)
-                          [] ["_category"; "_flag"]
+                        `Category (Doc.Value.string_of_category doc.category)
+                        :: List.map
+                             (fun f -> `Flag (Doc.Value.string_of_flag f))
+                             doc.flags
                       in
-                      *)
                       parse_doc
                         (main, doc_specials @ special, params, methods)
                         lines
