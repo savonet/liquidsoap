@@ -257,31 +257,40 @@ let parse_comments tokenizer =
                 in
                 let s = Option.get (List.nth sub.Regexp.matches 2) in
                 match Option.get (List.nth sub.Regexp.matches 1) with
-                  | "docof" | "argsof" ->
-                      (* TODO *)
-                      parse_doc (main, special, params, methods) lines
-                  (*
-              | "docof" ->
-                  let doc = Doc.Builtins.get s in
-                  let main =
-                    if main_doc <> "(no doc)" then main_doc :: main else main
-                  in
-                  let params = get_args doc @ params in
-                  let doc_specials =
-                    List.fold_left
-                      (fun cur n ->
-                        try
-                          match (doc#get_subsection n)#get_doc with
-                            | "(no doc)" -> cur
-                            | s when n = "_category" -> `Category s :: cur
-                            | s when n = "_flag" -> `Flag s :: cur
-                            | _ -> assert false
-                        with Not_found -> cur)
-                      [] ["_category"; "_flag"]
-                  in
-                  parse_doc
-                    (main, doc_specials @ special, params, methods)
-                    lines
+                  | "docof" ->
+                      let doc = Doc.Value.get s in
+                      let main =
+                        if doc.description <> "" then doc.description :: main
+                        else main
+                      in
+                      let params =
+                        List.filter_map
+                          (fun (l, a) ->
+                            match a.Doc.Value.arg_description with
+                              | Some d -> Some (l, d)
+                              | None -> None)
+                          doc.arguments
+                        @ params
+                      in
+                      let doc_specials = [] in
+                      (*
+                      let doc_specials =
+                        List.fold_left
+                          (fun cur n ->
+                            try
+                              match (doc#get_subsection n)#get_doc with
+                                | "(no doc)" -> cur
+                                | s when n = "_category" -> `Category s :: cur
+                                | s when n = "_flag" -> `Flag s :: cur
+                                | _ -> assert false
+                            with Not_found -> cur)
+                          [] ["_category"; "_flag"]
+                      in
+                      *)
+                      parse_doc
+                        (main, doc_specials @ special, params, methods)
+                        lines
+                      (*
               | "argsof" ->
                   let s, only, except =
                     try
@@ -325,6 +334,9 @@ let parse_comments tokenizer =
                   in
                   parse_doc (main, special, args @ params, methods) lines
 *)
+                  | "argsof" ->
+                      (* TODO *)
+                      parse_doc (main, special, params, methods) lines
                   | "category" ->
                       parse_doc
                         (main, `Category s :: special, params, methods)
@@ -391,7 +403,7 @@ let parse_comments tokenizer =
                 Doc.Value.
                   {
                     arg_type = "???";
-                    arg_default = Some "???";
+                    arg_default = None;
                     arg_description = Some d;
                   } ))
             (List.rev params)
@@ -409,7 +421,7 @@ let parse_comments tokenizer =
           List.fold_left
             (fun (c, f) s ->
               match s with `Category c -> (c, f) | `Flag flag -> (c, flag :: f))
-            ("Other", []) special
+            ("Uncategorized", []) special
         in
         let category = String.trim category in
         let category =

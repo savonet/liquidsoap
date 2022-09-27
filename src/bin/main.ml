@@ -146,13 +146,11 @@ let load_libs () =
   do_eval ~lib:true;
   load_libs ()
 
-(*
 let lang_doc name =
   run_streams := false;
   load_libs ();
-  try Doc.print_lang (Environment.builtins#get_subsection name)
+  try Lang_string.kprint_string ~pager:true (Doc.Value.print name)
   with Not_found -> Printf.printf "Plugin not found!\n%!"
-*)
 
 let process_request s =
   load_libs ();
@@ -220,12 +218,10 @@ let options =
        ( ["-r"; "--request"],
          Arg.String process_request,
          "Process a file request and print the metadata." );
-       (*
        ( ["-h"],
          Arg.String lang_doc,
          "Get help about a scripting value: source, operator, builtin or \
           library function, etc." );
-       *)
        ( ["-c"; "--check"],
          Arg.Unit (fun () -> run_streams := false),
          "Check and evaluate scripts but do not perform any streaming." );

@@ -114,21 +114,6 @@ module Value = struct
     | `Synthesis
     | `Liquidsoap ]
 
-  (*
-  let string_of_source : source -> string = function
-    | `Input -> "Input"
-    | `Output -> "Output"
-    | `Conversion -> "Conversion"
-    | `FFmpegFilter -> "FFmpeg Filter"
-    | `Track -> "Track Processing"
-    | `Audio -> "Audio Processing"
-    | `Video -> "Video Processing"
-    | `MIDI -> "MIDI Processing"
-    | `Synthesis -> "Sound Synthesis"
-    | `Visualization -> "Visualization"
-    | `Liquidsoap -> "Liquidsoap"
-  *)
-
   type category =
     [ `Source of source
     | `System
@@ -141,7 +126,8 @@ module Value = struct
     | `Control
     | `Interaction
     | `Other
-    | `Filter ]
+    | `Filter
+    | `None ]
 
   let categories : (category * string) list =
     [
@@ -167,6 +153,7 @@ module Value = struct
       (`Interaction, "Interaction");
       (`Other, "Other");
       (`Filter, "Filter");
+      (`None, "Uncategorized");
     ]
 
   let string_of_category c = List.assoc c categories
@@ -202,7 +189,7 @@ module Value = struct
 
   let db = ref []
   let add (name : string) (doc : t Lazy.t) = db := (name, doc) :: !db
-  let get name = List.assoc name !db
+  let get name = Lazy.force (List.assoc name !db)
   let db () = List.sort compare !db
 
   (** Only print function names. *)
@@ -212,6 +199,73 @@ module Value = struct
         print f;
         print "\n")
       (db ())
+
+  let print name print =
+    let f = get name in
+    let reflow ?(indent = 0) ?(cols = 70) s =
+      let buf = Buffer.create 1024 in
+      (* Did we just see a backtick? *)
+      let backtick = ref false in
+      (* Are we allowed to reflow? *)
+      let protected = ref false in
+      (* Length of the current line *)
+      let n = ref 0 in
+      let indent () =
+        for _ = 1 to indent do
+          Buffer.add_char buf ' '
+        done
+      in
+      let newline () =
+        Buffer.add_char buf '\n';
+        indent ();
+        n := 0
+      in
+      let char c =
+        Buffer.add_char buf c;
+        incr n
+      in
+      let space () = if !n >= cols then newline () else char ' ' in
+      indent ();
+      String.iter
+        (fun c ->
+          if c = '`' then (
+            if not !backtick then protected := not !protected;
+            backtick := true)
+          else backtick := false;
+          if (not !protected) && c = ' ' then space ()
+          else if c = '\n' then newline ()
+          else char c)
+        s;
+      Buffer.contents buf
+    in
+    print f.description;
+    print "\n\n";
+    print "Type: ";
+    print f.typ;
+    print "\n\n";
+    print ("Category: " ^ string_of_category f.category ^ "\n\n");
+    List.iter
+      (fun e ->
+        print "Example:\n\n";
+        print e;
+        print "\n\n")
+      f.examples;
+    print "Arguments:\n\n";
+    List.iter
+      (fun (l, a) ->
+        let l = Option.value ~default:"(unlabeled)" l in
+        print (" * " ^ l ^ " : " ^ a.arg_type ^ "\n");
+        Option.iter (fun d -> print (reflow ~indent:5 d)) a.arg_description;
+        print "\n\n")
+      f.arguments;
+    if f.methods <> [] then (
+      print "\nMethods:\n\n";
+      List.iter
+        (fun (l, m) ->
+          print (" * " ^ l ^ " : " ^ m.meth_type ^ "\n");
+          Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
+          print "\n\n")
+        f.methods)
 
   let print_functions_md ?(extra = true) print =
     let functions =
@@ -261,7 +315,7 @@ module Value = struct
                 Printf.ksprintf print "- `%s` (of type `%s`%s)%s\n" l t d s)
               d.arguments;
             if d.methods <> [] then (
-              print "\nMethods:\n\n";
+              print "Methods:\n\n";
               List.iter
                 (fun (l, m) ->
                   let t = m.meth_type in
