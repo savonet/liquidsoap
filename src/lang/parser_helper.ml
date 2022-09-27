@@ -40,7 +40,7 @@ type let_decoration =
 type app_list_elem = (string * Term.t) list
 
 type binding =
-  Term.doc
+  Doc.Value.t Lazy.t option
   * let_decoration
   * Term.pattern
   * arglist option

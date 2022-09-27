@@ -254,6 +254,7 @@ let parse_comments tokenizer =
             in
             let s = Option.get (List.nth sub.Regexp.matches 2) in
             match Option.get (List.nth sub.Regexp.matches 1) with
+              (*
               | "docof" ->
                   let doc = Environment.builtins#get_subsection s in
                   let main_doc = doc#get_doc in
@@ -318,6 +319,7 @@ let parse_comments tokenizer =
                       (get_args doc)
                   in
                   parse_doc (main, special, args @ params, methods) lines
+*)
               | "category" ->
                   parse_doc
                     (main, `Category s :: special, params, methods)
@@ -332,8 +334,8 @@ let parse_comments tokenizer =
                   let descr = Option.get (List.nth sub.Regexp.matches 2) in
                   let label =
                     if label.[0] = '~' then
-                      String.sub label 1 (String.length label - 1)
-                    else ""
+                      Some (String.sub label 1 (String.length label - 1))
+                    else None
                   in
                   let rec parse_descr descr lines =
                     match lines with
@@ -365,7 +367,7 @@ let parse_comments tokenizer =
                   parse_doc
                     (main, special, params, (label, descr) :: methods)
                     lines
-              | _ -> assert false
+              | d -> failwith ("Unknown documentation item: " ^ d)
           with Not_found ->
             parse_doc (line :: main, special, params, methods) lines)
     in
@@ -385,17 +387,18 @@ let parse_comments tokenizer =
     let doc () =
       Doc.Value.
         {
-          typ = "";
+          (* filled in later on *)
+          typ = "???";
           category;
           flags;
           description = main;
-          examples = [];
           (* TODO *)
+          examples = [];
           arguments;
           methods;
         }
     in
-    (Parser.DEF (Lazy.from_fun doc, decoration), (startp, endp))
+    (Parser.DEF (Some (Lazy.from_fun doc), decoration), (startp, endp))
   in
   let comment = ref ([], None) in
   let rec token () =

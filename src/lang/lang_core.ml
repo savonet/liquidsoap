@@ -156,7 +156,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     let arguments =
       List.map
         (fun (l, t, d, doc) ->
-          ( l,
+          ( (if l = "" then None else Some l),
             Doc.Value.
               {
                 arg_type = Repr.string_of_scheme (generalized, t);

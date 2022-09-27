@@ -158,21 +158,21 @@ module Value = struct
     aux dict
 
   type argument = {
-    mutable arg_type : string;
-    mutable arg_default : string option;  (** default value *)
+    arg_type : string;
+    arg_default : string option;  (** default value *)
     arg_description : string option;
   }
 
-  type meth = { mutable meth_type : string; meth_description : string }
+  type meth = { meth_type : string; meth_description : string }
 
   (** Documentation for a function. *)
   type t = {
-    mutable typ : string;
+    typ : string;
     category : category;
     flags : flag list;
     description : string;
     examples : string list;
-    arguments : (string * argument) list;
+    arguments : (string option * argument) list;
     methods : (string * meth) list;
   }
 
