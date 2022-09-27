@@ -234,7 +234,7 @@ module Value = struct
         in
         List.iter
           (fun (f, d) ->
-            print ("### " ^ f ^ "\n\n");
+            print ("### `" ^ f ^ "`\n\n");
             print d.description;
             print "\n\n";
             print "Type:\n\n```\n";

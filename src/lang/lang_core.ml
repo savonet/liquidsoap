@@ -117,10 +117,8 @@ let meth_fun = meth
 let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     name proto return_t f =
   let return_t =
-    if meth = [] then return_t
-    else (
-      let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
-      method_t return_t meth)
+    let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
+    method_t return_t meth
   in
   let f =
     if meth = [] then f
@@ -136,6 +134,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     }
   in
   let doc () =
+    let meth, return_t = Type.split_meths return_t in
     let t = builtin_type proto return_t in
     let generalized = Typing.filter_vars (fun _ -> true) t in
     let examples =
@@ -167,11 +166,15 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     in
     let methods =
       List.map
-        (fun (l, t, d, _) ->
-          ( l,
+        (fun (m : Type.meth) ->
+          let d = m.doc in
+          let d = if d = "" then None else Some d in
+          ( m.meth,
             Doc.Value.
-              { meth_type = Repr.string_of_scheme t; meth_description = Some d }
-          ))
+              {
+                meth_type = Repr.string_of_scheme m.scheme;
+                meth_description = d;
+              } ))
         meth
     in
     Doc.Value.
