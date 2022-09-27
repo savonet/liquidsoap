@@ -52,6 +52,8 @@ def f() =
      --#{data.boundary}--\r\n"
   )
 
+  # Test file upload
+
   fname = "post.liq"
 
   range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
@@ -70,7 +72,7 @@ def f() =
       ("content-type", "multipart/form-data; boundary=#{boundary}"),
       ("expect", "100-continue")
     ])
-   test.equals(req.path, "/large_non_chunked")
+   test.equals(req.path, "/file_upload")
    test.equals(
       harbor.http.request.body(timeout=5.0, req),
       "--#{boundary}\r\n\
@@ -81,9 +83,46 @@ def f() =
        --#{boundary}--\r\n")
   end
 
-  harbor.http.register("/large_non_chunked", method="POST", port=6543, handler)
+  harbor.http.register("/file_upload", method="POST", port=6543, handler)
 
-  resp = http.post.file(file=fname, content_type="text/plain", boundary=boundary, "http://localhost:6543/large_non_chunked")
+  resp = http.post.file(file=fname, content_type="text/plain", boundary=boundary, "http://localhost:6543/file_upload")
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.status_code, 200)
+  test.equals(resp.http_version, "1.1")
+  test.equals(resp.headers, [])
+  test.equals("#{resp}", "")
+
+  # Test in-memory file upload
+
+  range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
+  l = list.init(12, fun(_) -> string.char.ascii.random(range))
+  boundary = string.concat(l)
+
+  def handler(req, _) =
+   test.equals(req.http_version, "1.1")
+   test.equals(req.method, "POST")
+   test.equals(req.query, [])
+   test.equals(req.headers, [
+      ("host", "localhost:6543"),
+      ("user-agent", http.user_agent),
+      ("accept", "*/*"),
+      ("content-type", "multipart/form-data; boundary=#{boundary}"),
+      ("content-length", "138")
+    ])
+   test.equals(req.path, "/in_memory_file_upload")
+   test.equals(
+      harbor.http.request.body(timeout=5.0, req),
+      "--#{boundary}\r\n\
+       Content-Disposition: form-data; name=\"file\"; filename=\"foo.txt\"\r\n\
+       Content-Type: text/plain\r\n\
+       \r\n\
+       foobarlol\r\n\
+       --#{boundary}--\r\n")
+  end
+
+  harbor.http.register("/in_memory_file_upload", method="POST", port=6543, handler)
+
+  resp = http.post.file(filename="foo.txt", contents="foobarlol", content_type="text/plain", boundary=boundary, "http://localhost:6543/in_memory_file_upload")
   test.equals(resp.status_message, "OK")
   test.equals(resp.status_code, 200)
   test.equals(resp.http_version, "1.1")
