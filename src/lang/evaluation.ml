@@ -416,7 +416,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with
-    | Let { doc = comment; gen = generalized; replace; pat; def; body } ->
+    | Let { doc; gen = generalized; replace; pat; def; body } ->
         let def_t, def =
           if not replace then (def.t, eval def)
           else (
@@ -433,7 +433,7 @@ let rec eval_toplevel ?(interactive = false) t =
               | PMeth _ | PList _ | PTuple _ ->
                   failwith "TODO: cannot replace toplevel patterns for now")
         in
-        toplevel_add comment pat ~t:(generalized, def_t) def;
+        toplevel_add doc pat ~t:(generalized, def_t) def;
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (Type.to_string ~generalized def_t);

@@ -28,14 +28,11 @@ val has_builtin : string -> bool
 (** Retrieve a builtin definition. *)
 val get_builtin : string -> (Type.scheme * Value.t) option
 
-(** Documentation for builtins. *)
-val builtins : Doc.item
-
 (** Add a builtin value. *)
 val add_builtin :
   ?override:bool ->
   ?register:bool ->
-  ?doc:Doc.item Lazy.t ->
+  ?doc:Doc.Value.t Lazy.t ->
   string list ->
   Type.scheme * Value.t ->
   unit

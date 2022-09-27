@@ -189,10 +189,10 @@ end
 type t = { mutable t : Type.t; term : in_term }
 
 (** Documentation for declarations: general documentation, parameters, methods. *)
-and doc = Doc.item * (string * string) list * (string * string) list
+and doc = Doc.Value.t
 
 and let_t = {
-  doc : doc;
+  mutable doc : doc option;
   (* name, arguments, methods *)
   replace : bool;
   (* whether the definition replaces a previously existing one (keeping methods) *)

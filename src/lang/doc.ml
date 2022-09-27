@@ -20,6 +20,167 @@
 
  *****************************************************************************)
 
+module StringMap = Map.Make (struct
+  type t = string
+
+  let compare (x : t) (y : t) = compare x y
+end)
+
+(** Documentation for plugs. *)
+module Plug = struct
+  type t = {
+    name : string;
+    description : string;
+    mutable items : string StringMap.t;
+        (** an item with given name and description *)
+  }
+
+  let db = ref []
+
+  let create name description =
+    let d = { name; description; items = StringMap.empty } in
+    db := d :: !db;
+    d
+
+  let add d name description =
+    assert (not (StringMap.mem name d.items));
+    d.items <- StringMap.add name description d.items
+end
+
+(** Documenentation for values. *)
+module Value = struct
+  (** Documentation flags. *)
+  type flag = [ `Hidden | `Deprecated | `Experimental | `Extra ]
+
+  let string_of_flag : flag -> string = function
+    | `Hidden -> "hidden"
+    | `Deprecated -> "deprecated"
+    | `Experimental -> "experimental"
+    | `Extra -> "extra"
+
+  let flag_of_string = function
+    | "hidden" -> `Hidden
+    | "deprecated" -> `Deprecated
+    | "experimental" -> `Experimental
+    | "extra" -> `Extra
+    | flag -> failwith ("Unknown flag: " ^ flag)
+
+  (** Kind of source. *)
+  type source =
+    [ `Input
+    | `Output
+    | `Conversion
+    | `FFmpegFilter
+    | `Track
+    | `Audio
+    | `Video
+    | `MIDI
+    | `Visualization
+    | `Synthesis
+    | `Liquidsoap ]
+
+  (*
+  let string_of_source : source -> string = function
+    | `Input -> "Input"
+    | `Output -> "Output"
+    | `Conversion -> "Conversion"
+    | `FFmpegFilter -> "FFmpeg Filter"
+    | `Track -> "Track Processing"
+    | `Audio -> "Audio Processing"
+    | `Video -> "Video Processing"
+    | `MIDI -> "MIDI Processing"
+    | `Synthesis -> "Sound Synthesis"
+    | `Visualization -> "Visualization"
+    | `Liquidsoap -> "Liquidsoap"
+  *)
+
+  type category =
+    [ `Source of source
+    | `System
+    | `File
+    | `Math
+    | `String
+    | `List
+    | `Bool
+    | `Liquidsoap
+    | `Control
+    | `Interaction
+    | `Other
+    | `Filter ]
+
+  let dict : (category * string) list =
+    [
+      (`Source `Input, "Source / Input");
+      (`Source `Output, "Source / Output");
+      (`Source `Conversion, "Source / Conversion");
+      (`Source `FFmpegFilter, "Source / FFmpeg Filter");
+      (`Source `Track, "Source / Track processing");
+      (`Source `Audio, "Source / Audio processing");
+      (`Source `Video, "Source / Video processing");
+      (`Source `MIDI, "Source / MIDI processing");
+      (`Source `Synthesis, "Source / Sound Synthesis");
+      (`Source `Visualization, "Source / Visualization");
+      (`Source `Liquidsoap, "Source / Liquidsoap");
+      (`System, "System");
+      (`File, "File");
+      (`Math, "Math");
+      (`String, "String");
+      (`List, "List");
+      (`Bool, "Bool");
+      (`Liquidsoap, "Liquidsoap");
+      (`Control, "Control");
+      (`Interaction, "Interaction");
+      (`Other, "Other");
+      (`Filter, "Filter");
+    ]
+
+  let string_of_category c =
+    (* | `Source s -> "Source / " ^ string_of_source s *)
+    (* | `System -> "System" *)
+    (* | `File -> "File" *)
+    (* | `Math -> "Math" *)
+    (* | `String -> "String" *)
+    (* | `List -> "List" *)
+    (* | `Bool -> "Bool" *)
+    (* | `Liquidsoap -> "Liquidsoap" *)
+    (* | `Control -> "Control" *)
+    (* | `Interaction -> "Interaction" *)
+    (* | `Other -> "Other" *)
+    (* | `Filter -> "Filter" *)
+    List.assoc c dict
+
+  let category_of_string s =
+    let rec aux = function
+      | (c, s') :: _ when s = s' -> c
+      | _ :: l -> aux l
+      | [] -> failwith ("Unknown category: " ^ s)
+    in
+    aux dict
+
+  type argument = {
+    mutable arg_type : string;
+    mutable arg_default : string option;  (** default value *)
+    arg_description : string option;
+  }
+
+  type meth = { mutable meth_type : string; meth_description : string }
+
+  (** Documentation for a function. *)
+  type t = {
+    mutable typ : string;
+    category : category;
+    flags : flag list;
+    description : string;
+    examples : string list;
+    arguments : (string * argument) list;
+    methods : (string * meth) list;
+  }
+
+  let db = ref StringMap.empty
+  let add (name : string) (doc : t Lazy.t) = db := StringMap.add name doc !db
+end
+
+(*
 (** Make plugs self-documenting. *)
 
 class item ?(sort = true) (doc : string) =
@@ -46,37 +207,6 @@ let trivial ?sort s = new item ?sort s
 let no_doc = "No documentation available."
 let none ?sort () = trivial ?sort no_doc
 let is_none i = i#get_doc no_doc
-
-(** Two functions which print out an [item], used for liquidsoap to generate
-  * (part of) its own documentation: *)
-
-let xml_escape s =
-  let amp = Str.regexp "&" in
-  let lt = Str.regexp "<" in
-  let gt = Str.regexp ">" in
-  let s = Str.global_replace amp "&amp;" s in
-  let s = Str.global_replace gt "&gt;" s in
-  let s = Str.global_replace lt "&lt;" s in
-  s
-
-let print_xml (doc : item) print_string =
-  let rec print_xml indent doc =
-    let prefix = Bytes.unsafe_to_string (Bytes.make indent ' ') in
-    Printf.ksprintf print_string "%s<info>%s</info>\n" prefix
-      (xml_escape doc#get_doc);
-    List.iter
-      (fun (k, v) ->
-        Printf.ksprintf print_string "%s<section>\n" prefix;
-        Printf.ksprintf print_string " %s<label>%s</label>\n" prefix
-          (xml_escape k);
-        print_xml (indent + 1) v;
-        Printf.ksprintf print_string "%s</section>\n" prefix)
-      doc#get_subsections
-  in
-  print_string "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-  print_string "<all>\n";
-  print_xml 1 doc;
-  print_string "</all>\n"
 
 let rec to_json (doc : item) =
   let ss = doc#get_subsections in
@@ -337,3 +467,4 @@ let print_lang (i : item) =
   Format.fprintf ff "@.";
   Format.pp_print_flush ff ();
   Lang_string.print_string ~pager:true (Buffer.contents b)
+*)

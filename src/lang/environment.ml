@@ -22,27 +22,24 @@
 
 (** {1 Evaluation environment} *)
 
-let builtins : (Type.scheme * Value.t) Plug.plug =
-  Plug.create ~duplicates:false ~doc:"scripting values" "scripting values"
-
 (* Environment for builtins. *)
-let builtins_env : (string * (Type.scheme * Value.t)) list ref = ref []
-let default_environment () = !builtins_env
+let builtins : (string * (Type.scheme * Value.t)) list ref = ref []
+let default_environment () = !builtins
 
 let default_typing_environment () =
-  List.map (fun (x, (t, _)) -> (x, t)) !builtins_env
+  List.map (fun (x, (t, _)) -> (x, t)) !builtins
 
 let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
-  if register then builtins#register ?doc (String.concat "." name) ((g, t), v);
+  if register then Doc.Value.add (String.concat "." name) (Option.get doc);
   match name with
     | [name] ->
         (* Don't allow overriding builtins. *)
-        if (not override) && List.mem_assoc name !builtins_env then
+        if (not override) && List.mem_assoc name !builtins then
           failwith ("Trying to override builtin " ^ name);
-        builtins_env := (name, ((g, t), v)) :: !builtins_env
+        builtins := (name, ((g, t), v)) :: !builtins
     | x :: ll ->
         let (g0, t0), xv =
-          try List.assoc x !builtins_env
+          try List.assoc x !builtins
           with Not_found -> failwith ("Could not find builtin variable " ^ x)
         in
         (* x.l1.l2.l3 = v means
@@ -80,11 +77,11 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
         in
         let (g, t), v = aux [] ll in
         assert (g = []);
-        builtins_env := (x, ((g0, t), v)) :: !builtins_env
+        builtins := (x, ((g0, t), v)) :: !builtins
     | [] -> assert false
 
-let has_builtin name = builtins#is_registered name
-let get_builtin name = builtins#get name
+let has_builtin name = List.mem_assoc name !builtins
+let get_builtin name = List.assoc_opt name !builtins
 
 (** Declare a module. *)
 let add_module name =
@@ -92,14 +89,14 @@ let add_module name =
   (match name with
     | [] -> assert false
     | [x] ->
-        if List.mem_assoc x !builtins_env then
+        if List.mem_assoc x !builtins then
           failwith ("Module " ^ String.concat "." name ^ " already declared")
     | x :: mm -> (
         let mm = List.rev mm in
         let l = List.hd mm in
         let mm = List.rev (List.tl mm) in
         let e =
-          try Value.invokes (snd (List.assoc x !builtins_env)) mm
+          try Value.invokes (snd (List.assoc x !builtins)) mm
           with _ ->
             failwith
               ("Could not find the parent module of " ^ String.concat "." name)
@@ -110,6 +107,3 @@ let add_module name =
         with _ -> ()));
   add_builtin ~register:false name
     (([], Type.make Type.unit), { Value.pos = None; value = Value.unit })
-
-(* Builtins are only used for documentation now. *)
-let builtins = (builtins :> Doc.item)

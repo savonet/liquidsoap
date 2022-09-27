@@ -108,58 +108,9 @@ let val_cst_fun p c =
 
 type proto = (string * t * value option * string option) list
 
-let doc_of_prototype_item ~generalized t d doc =
-  let doc = match doc with None -> "(no doc)" | Some d -> d in
-  let item = new Doc.item doc in
-  item#add_subsection "type"
-    (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
-  item#add_subsection "default"
-    (match d with
-      | None -> Lazy.from_val (Doc.trivial "None")
-      | Some d -> Lazy.from_fun (fun () -> Doc.trivial (Value.to_string d)));
-  item
-
 let builtin_type p t =
   Type.make
     (Type.Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
-
-let to_plugin_doc category flags examples main_doc proto return_t =
-  let item = new Doc.item ~sort:false main_doc in
-  let meths, return_t = Type.split_meths return_t in
-  let t = builtin_type proto return_t in
-  let generalized = Typing.filter_vars (fun _ -> true) t in
-  item#add_subsection "_category"
-    (Lazy.from_fun (fun () ->
-         Doc.trivial (Documentation.string_of_category category)));
-  item#add_subsection "_type"
-    (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
-  List.iter
-    (fun f ->
-      item#add_subsection "_flag"
-        (Lazy.from_fun (fun () -> Doc.trivial (Documentation.string_of_flag f))))
-    flags;
-  if meths <> [] then
-    item#add_subsection "_methods"
-      (Lazy.from_fun (fun () -> Repr.doc_of_meths meths));
-  List.iter
-    (fun e ->
-      let e =
-        if e.[0] = '\n' then String.sub e 1 (String.length e - 1) else e
-      in
-      let e =
-        if e.[String.length e - 1] = '\n' then
-          String.sub e 0 (String.length e - 1)
-        else e
-      in
-      item#add_subsection "_example" (Lazy.from_fun (fun () -> new Doc.item e)))
-    examples;
-  List.iter
-    (fun (l, t, d, doc) ->
-      item#add_subsection
-        (if l = "" then "(unlabeled)" else l)
-        (Lazy.from_fun (fun () -> doc_of_prototype_item ~generalized t d doc)))
-    proto;
-  item
 
 let meth_fun = meth
 
@@ -184,9 +135,58 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
       value = FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, f);
     }
   in
-  let generalized = Typing.filter_vars (fun _ -> true) t in
-  let doc () = to_plugin_doc category flags examples descr proto return_t in
+  let doc () =
+    let t = builtin_type proto return_t in
+    let generalized = Typing.filter_vars (fun _ -> true) t in
+    let examples =
+      List.map
+        (fun e ->
+          (* Remove leading and trailing newline *)
+          let e =
+            if e.[0] = '\n' then String.sub e 1 (String.length e - 1) else e
+          in
+          let e =
+            if e.[String.length e - 1] = '\n' then
+              String.sub e 0 (String.length e - 1)
+            else e
+          in
+          e)
+        examples
+    in
+    let arguments =
+      List.map
+        (fun (l, t, d, doc) ->
+          ( l,
+            Doc.Value.
+              {
+                arg_type = Repr.string_of_scheme (generalized, t);
+                arg_default = Option.map Value.to_string d;
+                arg_description = doc;
+              } ))
+        proto
+    in
+    let methods =
+      List.map
+        (fun (l, t, d, _) ->
+          ( l,
+            Doc.Value.
+              { meth_type = Repr.string_of_scheme t; meth_description = d } ))
+        meth
+    in
+    Doc.Value.
+      {
+        typ = Repr.string_of_scheme (generalized, t);
+        category;
+        flags;
+        description = descr;
+        examples;
+        arguments;
+        methods;
+      }
+    (* to_plugin_doc category flags examples descr proto return_t *)
+  in
   let doc = Lazy.from_fun doc in
+  let generalized = Typing.filter_vars (fun _ -> true) t in
   Environment.add_builtin ~doc
     (String.split_on_char '.' name)
     ((generalized, t), value)
@@ -195,19 +195,16 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let value = { pos = t.Type.pos; value } in
   let generalized = Typing.filter_vars (fun _ -> true) t in
   let doc () =
-    let doc = new Doc.item ~sort:false descr in
-    doc#add_subsection "_category"
-      (Lazy.from_fun (fun () ->
-           Doc.trivial (Documentation.string_of_category category)));
-    doc#add_subsection "_type"
-      (Lazy.from_fun (fun () -> Repr.doc_of_type ~generalized t));
-    List.iter
-      (fun f ->
-        doc#add_subsection "_flag"
-          (Lazy.from_fun (fun () ->
-               Doc.trivial (Documentation.string_of_flag f))))
-      flags;
-    doc
+    Doc.Value.
+      {
+        typ = Repr.string_of_scheme (generalized, t);
+        category;
+        flags;
+        description = descr;
+        examples = [];
+        arguments = [];
+        methods = [];
+      }
   in
   Environment.add_builtin ~doc:(Lazy.from_fun doc)
     (String.split_on_char '.' name)

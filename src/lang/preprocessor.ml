@@ -370,21 +370,32 @@ let parse_comments tokenizer =
             parse_doc (line :: main, special, params, methods) lines)
     in
     let main, special, params, methods = parse_doc ([], [], [], []) doc in
-    let main = List.rev main and params = List.rev params in
+    let main = List.rev main in
+    let params = List.rev params in
     let main = String.concat "\n" main in
     let main = Lang_string.unbreak_md main in
     (* let main = String.concat "\n" main in *)
-    let doc =
-      let sort = false in
-      if main = "" then Doc.none ~sort () else Doc.trivial ~sort main
+    let category, flags =
+      List.fold_left
+        (fun (c, f) s ->
+          match s with `Category c -> (c, f) | `Flag flag -> (c, flag :: f))
+        ("", []) special
     in
-    List.iter
-      (function
-        | `Category c ->
-            doc#add_subsection "_category" (Lazy.from_val (Doc.trivial c))
-        | `Flag c -> doc#add_subsection "_flag" (Lazy.from_val (Doc.trivial c)))
-      special;
-    (Parser.DEF ((doc, params, methods), decoration), (startp, endp))
+    let category = Doc.category_of_string category in
+    let doc () =
+      Doc.Value.
+        {
+          typ = "";
+          category;
+          flags;
+          description = main;
+          examples = [];
+          (* TODO *)
+          arguments;
+          methods;
+        }
+    in
+    (Parser.DEF (Lazy.from_fun doc, decoration), (startp, endp))
   in
   let comment = ref ([], None) in
   let rec token () =
