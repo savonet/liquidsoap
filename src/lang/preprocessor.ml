@@ -281,53 +281,59 @@ let parse_comments tokenizer =
                       parse_doc
                         (main, doc_specials @ special, params, methods)
                         lines
-                      (*
-              | "argsof" ->
-                  let s, only, except =
-                    try
-                      let sub =
-                        Regexp.exec
-                          (Regexp.regexp "^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$")
-                          s
+                  | "argsof" ->
+                      let s, only, except =
+                        try
+                          let sub =
+                            Regexp.exec
+                              (Regexp.regexp
+                                 "^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$")
+                              s
+                          in
+                          let s = Option.get (List.nth sub.Regexp.matches 1) in
+                          let args =
+                            List.filter
+                              (fun s -> s <> "")
+                              (List.map String.trim
+                                 (String.split_on_char ','
+                                    (Option.get (List.nth sub.Regexp.matches 2))))
+                          in
+                          let only, except =
+                            List.fold_left
+                              (fun (only, except) v ->
+                                if String.length v > 0 && v.[0] = '!' then
+                                  ( only,
+                                    String.sub v 1 (String.length v - 1)
+                                    :: except )
+                                else (v :: only, except))
+                              ([], []) args
+                          in
+                          (s, only, except)
+                        with Not_found -> (s, [], [])
                       in
-                      let s = Option.get (List.nth sub.Regexp.matches 1) in
+                      let doc = Doc.Value.get s in
                       let args =
                         List.filter
-                          (fun s -> s <> "")
-                          (List.map String.trim
-                             (String.split_on_char ','
-                                (Option.get (List.nth sub.Regexp.matches 2))))
+                          (fun (n, _) ->
+                            match n with
+                              | None -> false
+                              | Some n -> (
+                                  match (only, except) with
+                                    | [], except -> not (List.mem n except)
+                                    | only, except ->
+                                        List.mem n only
+                                        && not (List.mem n except)))
+                          doc.arguments
                       in
-                      let only, except =
-                        List.fold_left
-                          (fun (only, except) v ->
-                            if String.length v > 0 && v.[0] = '!' then
-                              ( only,
-                                String.sub v 1 (String.length v - 1) :: except
-                              )
-                            else (v :: only, except))
-                          ([], []) args
+                      let args =
+                        List.filter_map
+                          (fun (n, a) ->
+                            Option.map
+                              (fun d -> (n, d))
+                              a.Doc.Value.arg_description)
+                          args
                       in
-                      (s, only, except)
-                    with Not_found -> (s, [], [])
-                  in
-                  let doc = Environment.builtins#get_subsection s in
-                  let args =
-                    List.filter
-                      (fun (n, _) ->
-                        n <> ""
-                        &&
-                        match (only, except) with
-                          | [], except -> not (List.mem n except)
-                          | only, except ->
-                              List.mem n only && not (List.mem n except))
-                      (get_args doc)
-                  in
-                  parse_doc (main, special, args @ params, methods) lines
-*)
-                  | "argsof" ->
-                      (* TODO *)
-                      parse_doc (main, special, params, methods) lines
+                      parse_doc (main, special, args @ params, methods) lines
                   | "category" ->
                       parse_doc
                         (main, `Category s :: special, params, methods)
