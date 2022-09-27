@@ -46,7 +46,7 @@ open Parser_helper
 %token <Parser_helper.lexer_let_decoration> LETLBRA
 %token BEGIN END GETS TILD QUESTION
 (* name, arguments, methods *)
-%token <Doc.Value.t Lazy.t option*Parser_helper.let_decoration> DEF
+%token <Doc.Value.t option*Parser_helper.let_decoration> DEF
 %token REPLACES
 %token COALESCE
 %token TRY CATCH DO

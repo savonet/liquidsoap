@@ -326,106 +326,115 @@ let eval ?env tm =
 (** Add toplevel definitions to [builtins] so they can be looked during the
     evaluation of the next scripts. Also try to generate a structured
     documentation from the source code. *)
-let toplevel_add (doc, params, methods) pat ~t v =
+let toplevel_add ?doc pat ~t v =
   let generalized, t = t in
-  let doc () =
-    (* FIll in types and default values. *)
-    let arguments =
-      (* Type for parameters. *)
-      let rec ptypes t =
-        match (Type.deref t).Type.descr with
-          | Type.Arrow (p, _) -> p
-          | Type.Meth (_, t) -> ptypes t
-          | _ -> []
-      in
-      let ptypes = ref (ptypes t) in
-      (* Default values for parameters. *)
-      let rec pvalues v =
-        match v.Value.value with
-          | Value.Fun (p, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
-          | Value.Meth (_, _, v) -> pvalues v
-          | _ -> []
-      in
-      let pvalues = ref (pvalues v) in
-      let doc_arguments = ref doc.Doc.Value.arguments in
-      let arguments = ref [] in
-      List.iter
-        (fun (_, label, t) ->
-          let label = if label = "" then None else Some label in
-          let description =
-            match List.assoc_opt label !doc_arguments with
-              | Some argument ->
-                  doc_arguments := List.remove_assoc label !doc_arguments;
-                  argument.arg_description
-              | None -> None
-          in
-          let t = Repr.string_of_type ~generalized t in
-          let default =
-            let label = Option.value ~default:"" label in
-            match List.assoc_opt label !pvalues with
-              | Some value ->
-                  pvalues := List.remove_assoc label !pvalues;
-                  value
-              | None -> None
-          in
-          let default = Option.map Value.to_string default in
-          arguments :=
-            ( label,
-              Doc.Value.
-                {
-                  arg_type = t;
-                  arg_default = default;
-                  arg_description = description;
-                } )
-            :: !arguments)
-        !ptypes;
-      List.rev !arguments
-    in
-    let methods, t =
-      let doc_methods = methods in
-      let methods, t =
-        let methods, t = Type.split_meths t in
-        match (Type.deref t).Type.descr with
-          | Type.Arrow (p, a) ->
-              let methods, a = Type.split_meths a in
-              (* Note that in case we have a function, we drop the methods around,
-                 the reason being that we expect that they are registered on their
-                 own in the documentation. For instance, we don't want the field
-                 recurrent to appear in the doc of thread.run: it is registered as
-                 thread.run.recurrent anyways. *)
-              (methods, { t with Type.descr = Type.Arrow (p, a) })
-          | _ -> (methods, t)
-      in
-      let methods =
-        List.map
-          (fun m ->
-            let l = m.Type.meth in
-            (* Override description by the one given in comment if it exists. *)
-            let d =
-              Option.value ~default:m.doc (List.assoc_opt l doc_methods)
+  let doc =
+    match doc with
+      | None -> None
+      | Some doc ->
+          let doc () =
+            (* FIll in types and default values. *)
+            let arguments =
+              (* Type for parameters. *)
+              let rec ptypes t =
+                match (Type.deref t).Type.descr with
+                  | Type.Arrow (p, _) -> p
+                  | Type.Meth (_, t) -> ptypes t
+                  | _ -> []
+              in
+              let ptypes = ref (ptypes t) in
+              (* Default values for parameters. *)
+              let rec pvalues v =
+                match v.Value.value with
+                  | Value.Fun (p, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+                  | Value.Meth (_, _, v) -> pvalues v
+                  | _ -> []
+              in
+              let pvalues = ref (pvalues v) in
+              let doc_arguments = ref doc.Doc.Value.arguments in
+              let arguments = ref [] in
+              List.iter
+                (fun (_, label, t) ->
+                  let label = if label = "" then None else Some label in
+                  let description =
+                    match List.assoc_opt label !doc_arguments with
+                      | Some argument ->
+                          doc_arguments :=
+                            List.remove_assoc label !doc_arguments;
+                          argument.arg_description
+                      | None -> None
+                  in
+                  let t = Repr.string_of_type ~generalized t in
+                  let default =
+                    let label = Option.value ~default:"" label in
+                    match List.assoc_opt label !pvalues with
+                      | Some value ->
+                          pvalues := List.remove_assoc label !pvalues;
+                          value
+                      | None -> None
+                  in
+                  let default = Option.map Value.to_string default in
+                  arguments :=
+                    ( label,
+                      Doc.Value.
+                        {
+                          arg_type = t;
+                          arg_default = default;
+                          arg_description = description;
+                        } )
+                    :: !arguments)
+                !ptypes;
+              (*
+          List.iter
+            (fun (s, _) ->
+               Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
+                 (string_of_pat pat)
+                 (Pos.Option.to_string v.Value.pos))
+            !doc_arguments;
+          *)
+              List.rev !arguments
             in
-            let t = Repr.string_of_scheme m.scheme in
-            (l, Doc.Value.{ meth_type = t; meth_description = d }))
-          methods
-      in
-      (methods, t)
-    in
-    let typ = Repr.string_of_type ~generalized t in
-    { doc with typ; arguments; methods }
+            let methods, t =
+              let methods, t =
+                let methods, t = Type.split_meths t in
+                match (Type.deref t).Type.descr with
+                  | Type.Arrow (p, a) ->
+                      let methods, a = Type.split_meths a in
+                      (* Note that in case we have a function, we drop the methods around,
+                         the reason being that we expect that they are registered on their
+                         own in the documentation. For instance, we don't want the field
+                         recurrent to appear in the doc of thread.run: it is registered as
+                         thread.run.recurrent anyways. *)
+                      (methods, { t with Type.descr = Type.Arrow (p, a) })
+                  | _ -> (methods, t)
+              in
+              let methods =
+                List.map
+                  (fun m ->
+                    let l = m.Type.meth in
+                    (* Override description by the one given in comment if it exists. *)
+                    let d =
+                      match List.assoc_opt l doc.Doc.Value.methods with
+                        | Some m -> m.meth_description
+                        | None -> m.doc
+                    in
+                    let t = Repr.string_of_scheme m.scheme in
+                    (l, Doc.Value.{ meth_type = t; meth_description = d }))
+                  methods
+              in
+              (methods, t)
+            in
+            let typ = Repr.string_of_type ~generalized t in
+            { doc with typ; arguments; methods }
+          in
+          Some (Lazy.from_fun doc)
   in
-  List.iter
-    (fun (s, _) ->
-      Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
-        (string_of_pat pat)
-        (Pos.Option.to_string v.Value.pos))
-    params;
   let env, pa = Typechecking.type_of_pat ~level:max_int ~pos:None pat in
   Typing.(t <: pa);
   List.iter
     (fun (x, v) ->
       let t = List.assoc x env in
-      Environment.add_builtin ~override:true ~doc:(Lazy.from_fun doc) x
-        ((generalized, t), v))
+      Environment.add_builtin ~override:true ?doc x ((generalized, t), v))
     (eval_pat pat v)
 
 let rec eval_toplevel ?(interactive = false) t =
@@ -447,7 +456,7 @@ let rec eval_toplevel ?(interactive = false) t =
               | PMeth _ | PList _ | PTuple _ ->
                   failwith "TODO: cannot replace toplevel patterns for now")
         in
-        toplevel_add doc pat ~t:(generalized, def_t) def;
+        toplevel_add ?doc pat ~t:(generalized, def_t) def;
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (Type.to_string ~generalized def_t);

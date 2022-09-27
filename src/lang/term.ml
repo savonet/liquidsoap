@@ -192,7 +192,7 @@ type t = { mutable t : Type.t; term : in_term }
 and doc = Doc.Value.t
 
 and let_t = {
-  mutable doc : doc option;
+  doc : doc option;
   (* name, arguments, methods *)
   replace : bool;
   (* whether the definition replaces a previously existing one (keeping methods) *)
