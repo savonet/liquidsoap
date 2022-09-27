@@ -416,7 +416,7 @@ let toplevel_add ?doc pat ~t v =
                     let d =
                       match List.assoc_opt l doc.Doc.Value.methods with
                         | Some m -> m.meth_description
-                        | None -> m.doc
+                        | None -> Some m.doc
                     in
                     let t = Repr.string_of_scheme m.scheme in
                     (l, Doc.Value.{ meth_type = t; meth_description = d }))

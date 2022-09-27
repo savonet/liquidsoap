@@ -399,7 +399,7 @@ let parse_comments tokenizer =
         let methods =
           List.map
             (fun (l, d) ->
-              (l, Doc.Value.{ meth_type = "???"; meth_description = d }))
+              (l, Doc.Value.{ meth_type = "???"; meth_description = Some d }))
             (List.rev methods)
         in
         let main = String.concat "\n" main in

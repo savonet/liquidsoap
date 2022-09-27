@@ -170,7 +170,8 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
         (fun (l, t, d, _) ->
           ( l,
             Doc.Value.
-              { meth_type = Repr.string_of_scheme t; meth_description = d } ))
+              { meth_type = Repr.string_of_scheme t; meth_description = Some d }
+          ))
         meth
     in
     Doc.Value.

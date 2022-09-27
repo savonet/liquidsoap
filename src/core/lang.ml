@@ -29,7 +29,7 @@ let midi_n n =
 (** Helpers for defining protocols. *)
 
 let add_protocol ~syntax ~doc ~static name resolver =
-  Doc.Protcol.add ~name ~doc ~syntax ~static;
+  Doc.Protocol.add ~name ~doc ~syntax ~static;
   let spec = { Request.static; resolve = resolver } in
   Plug.register Request.protocols ~doc name spec
 
