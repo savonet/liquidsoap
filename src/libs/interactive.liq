@@ -172,13 +172,13 @@ def interactive.create(~name, ~description="", ~osc="", ~type)
 %ifdef osc
   if osc != "" then
     if type == "float" then
-      stdlib_osc.on_float(osc, interactive.float.set(name))
+      stdlib_osc.on_float(osc, fun(x) -> interactive.float.set(name, x))
     elsif type == "int" then
-      stdlib_osc.on_int(osc, interactive.int.set(name))
+      stdlib_osc.on_int(osc, fun(x) -> interactive.int.set(name, x))
     elsif type == "bool" then
-      stdlib_osc.on_bool(osc, interactive.bool.set(name))
+      stdlib_osc.on_bool(osc, fun(x) -> interactive.bool.set(name, x))
     elsif type == "string" then
-      stdlib_osc.on_string(osc, interactive.string.set(name))
+      stdlib_osc.on_string(osc, fun(x) -> interactive.string.set(name, x))
     elsif type == "unit" then
       () # TODO
     else

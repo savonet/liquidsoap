@@ -324,8 +324,8 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
       else
         mime = content_type(fname)
 
-        if mime != "" then
-          response.content_type(mime)
+        if null.defined(mime) then
+          response.content_type(null.get(mime))
         end
 
         if request.method == "GET" then
@@ -377,8 +377,7 @@ content_type = file.mime
 def replaces harbor.http.static(~transport=http.transport.unix,~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
   # Make the method argument non-optional, see #1018
   serve = fun(~method,uri,handler) -> harbor.http.register(transport=transport,port=port,method=method,uri,handler)
-  failwith("TODO")
-  # harbor.http.static.base(serve,content_type=content_type,basepath=path,browse=browse,headers=headers,directory)
+  harbor.http.static.base(serve,content_type=content_type,basepath=path,browse=browse,headers=headers,directory)
 end
 
 # Prepare a list of data to be sent as multipart form data
