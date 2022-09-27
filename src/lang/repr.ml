@@ -499,28 +499,3 @@ let print_type_error ~formatter error_header
                 Printf.sprintf " the type of the value at %s"
                   (Pos.to_string ~prefix:"" p))
           print b (inferred_pos tb)
-
-(** {1 Documentation} *)
-
-let doc_of_type ~generalized t =
-  let margin = Format.pp_get_margin Format.str_formatter () in
-  Format.pp_set_margin Format.str_formatter 58;
-  Format.fprintf Format.str_formatter "%a@?"
-    (fun f t -> print_scheme f (generalized, t))
-    t;
-  Format.pp_set_margin Format.str_formatter margin;
-  Doc.trivial (Format.flush_str_formatter ())
-
-let doc_of_meths m =
-  let items = new Doc.item "" in
-  List.iter
-    (fun { meth = m; scheme = generalized, t; doc } ->
-      let i () =
-        let i = new Doc.item ~sort:false doc in
-        i#add_subsection "type"
-          (Lazy.from_fun (fun () -> doc_of_type ~generalized t));
-        i
-      in
-      items#add_subsection m (Lazy.from_fun i))
-    m;
-  items

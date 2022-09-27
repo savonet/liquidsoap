@@ -291,8 +291,8 @@ let file_decoder ~metadata:_ ~ctype filename =
   create_file_decoder filename content_type ctype
 
 let () =
-  Decoder.decoders#register "GSTREAMER"
-    ~sdoc:"Decode a file or stream using GStreamer."
+  Plug.register Decoder.decoders "GStreamer"
+    ~doc:"Decode a file or stream using GStreamer."
     {
       Decoder.media_type = `Audio_video;
       priority = (fun () -> priority#get);
@@ -349,4 +349,6 @@ let get_tags file =
     GU.flush ~log bin;
     List.rev !ans
 
-let () = Request.mresolvers#register "GSTREAMER" get_tags
+let () =
+  Plug.register Request.mresolvers "GStreamer" ~doc:"Read tags using GStreamer."
+    get_tags

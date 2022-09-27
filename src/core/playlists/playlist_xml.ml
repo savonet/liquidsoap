@@ -52,7 +52,7 @@ let tracks ?pwd s =
     raise (Xmlplaylist.Error e)
 
 let register mimetype =
-  Playlist_parser.parsers#register mimetype
+  Plug.register Playlist_parser.parsers mimetype ~doc:""
     { Playlist_parser.strict = true; Playlist_parser.parser = tracks }
 
 let () = Lifecycle.on_start (fun () -> List.iter register conf_xml#get)

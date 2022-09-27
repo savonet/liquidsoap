@@ -86,7 +86,7 @@ type plugin = {
 }
 
 (** Parsers are given a string and return a list of metadatas,uri, if possible. *)
-let parsers : plugin Plug.plug =
+let parsers : plugin Plug.t =
   Plug.create ~doc:"Method to parse playlist." "playlist formats"
 
 let get_file ?pwd file =
@@ -108,7 +108,7 @@ exception Exit of (string * playlist)
   * same extension. *)
 let search_valid ?pwd string =
   try
-    let plugins = parsers#get_all in
+    let plugins = Plug.list parsers in
     (* Try strict plugins first *)
     let compare (_, a) (_, b) = compare b.strict a.strict in
     let plugins = List.sort compare plugins in

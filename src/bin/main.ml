@@ -149,7 +149,7 @@ let load_libs () =
 let lang_doc name =
   run_streams := false;
   load_libs ();
-  try Doc.print_lang (Environment.builtins#get_subsection name)
+  try Lang_string.kprint_string ~pager:true (Doc.Value.print name)
   with Not_found -> Printf.printf "Plugin not found!\n%!"
 
 let process_request s =
@@ -286,33 +286,12 @@ let options =
         ( ["-U"; "--disable-unix-socket"],
           Arg.Unit (fun _ -> Server.conf_socket#set false),
           "Disable the unix socket." );
-        ( ["--list-plugins-xml"],
-          Arg.Unit
-            (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.print_xml (Plug.plugs : Doc.item))),
-          Printf.sprintf
-            "List all plugins (builtin scripting values, supported formats and \
-             protocols), output as XML." );
-        ( ["--list-plugins-json"],
-          Arg.Unit
-            (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.print_json (Plug.plugs : Doc.item))),
-          Printf.sprintf
-            "List all plugins (builtin scripting values, supported formats and \
-             protocols), output as JSON." );
         ( ["--list-plugins"],
           Arg.Unit
             (fun () ->
               run_streams := false;
               load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.print (Plug.plugs : Doc.item))),
+              Lang_string.kprint_string ~pager:true Doc.Plug.print_string),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
              protocols)." );
@@ -321,8 +300,7 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.print_functions (Plug.plugs : Doc.item))),
+              Lang_string.kprint_string ~pager:true Doc.Value.print_functions),
           Printf.sprintf "List all functions." );
         ( ["--list-functions-md"],
           Arg.Unit
@@ -330,7 +308,7 @@ let options =
               run_streams := false;
               load_libs ();
               Lang_string.kprint_string ~pager:true
-                (Doc.print_functions_md ~extra:false (Plug.plugs : Doc.item))),
+                (Doc.Value.print_functions_md ~extra:false)),
           Printf.sprintf "Documentation of all functions in markdown." );
         ( ["--list-extra-functions-md"],
           Arg.Unit
@@ -338,15 +316,14 @@ let options =
               run_streams := false;
               load_libs ();
               Lang_string.kprint_string ~pager:true
-                (Doc.print_functions_md ~extra:true (Plug.plugs : Doc.item))),
+                (Doc.Value.print_functions_md ~extra:true)),
           Printf.sprintf "Documentation of all extra functions in markdown." );
         ( ["--list-protocols-md"],
           Arg.Unit
             (fun () ->
               run_streams := false;
               load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.print_protocols_md (Plug.plugs : Doc.item))),
+              Lang_string.kprint_string ~pager:true Doc.Protocol.print_md),
           Printf.sprintf "Documentation of all protocols in markdown." );
         ( ["--no-stdlib"],
           Arg.Clear stdlib,

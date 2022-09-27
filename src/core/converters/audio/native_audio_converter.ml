@@ -55,7 +55,11 @@ let samplerate_converter _ =
       (data, 0, Audio.length data))
 
 let () =
-  Audio_converter.Samplerate.converters#register "native" samplerate_converter
+  Plug.register Audio_converter.Samplerate.converters "native"
+    ~doc:
+      "Native samplerate converter. This is fast but bad quality: you should \
+       avoid using it for now if you are serious about sound."
+    samplerate_converter
 
 let channel_layout_converter src dst =
   assert (src <> dst);
@@ -65,5 +69,5 @@ let channel_layout_converter src dst =
     | _ -> raise Audio_converter.Channel_layout.Unsupported
 
 let () =
-  Audio_converter.Channel_layout.converters#register "native"
-    channel_layout_converter
+  Plug.register Audio_converter.Channel_layout.converters "native"
+    ~doc:"Native channel layout converter." channel_layout_converter

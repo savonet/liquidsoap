@@ -63,4 +63,4 @@ let duration file =
       if samples <= 0. then raise Not_found;
       samples /. float info.Flac.Decoder.sample_rate)
 
-let () = Request.dresolvers#register "OGG/FLAC" duration
+let () = Plug.register Request.dresolvers "ogg/flac" ~doc:"" duration

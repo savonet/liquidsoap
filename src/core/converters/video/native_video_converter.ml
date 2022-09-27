@@ -27,4 +27,7 @@ module Img = Image.Generic
 let formats = [Img.Pixel.RGB Img.Pixel.RGBA32; Img.Pixel.YUV Img.Pixel.YUVJ420]
 let convert src dst = Image.Generic.convert ~proportional:false src dst
 let create () = convert
-let () = video_converters#register "native" (formats, formats, create)
+
+let () =
+  Plug.register video_converters "native" ~doc:"Native image format converter."
+    (formats, formats, create)

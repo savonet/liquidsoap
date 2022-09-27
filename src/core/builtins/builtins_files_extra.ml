@@ -103,8 +103,7 @@ let () =
 
 let () =
   Lifecycle.before_script_parse (fun () ->
-      List.iter
-        (fun (name, decoder) ->
+      Plug.iter Request.mresolvers (fun name decoder ->
           let name = String.lowercase_ascii name in
           Lang.add_builtin ("file.metadata." ^ name) ~category:`File
             [
@@ -121,8 +120,7 @@ let () =
               let m =
                 List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
               in
-              Lang.metadata (Frame.metadata_of_list m)))
-        Request.mresolvers#get_all)
+              Lang.metadata (Frame.metadata_of_list m))))
 
 let () =
   Lang.add_builtin "file.which" ~category:`File

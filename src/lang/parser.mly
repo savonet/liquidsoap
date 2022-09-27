@@ -46,7 +46,7 @@ open Parser_helper
 %token <Parser_helper.lexer_let_decoration> LETLBRA
 %token BEGIN END GETS TILD QUESTION
 (* name, arguments, methods *)
-%token <(Doc.item * (string*string) list * (string*string) list)*Parser_helper.let_decoration> DEF
+%token <Doc.Value.t option*Parser_helper.let_decoration> DEF
 %token REPLACES
 %token COALESCE
 %token TRY CATCH DO
@@ -464,11 +464,11 @@ _let:
         | _ -> raise (Parse_error ($loc, "Invalid let constructor")) }
 
 binding:
-  | optvar GETS expr         { (Doc.none (),[],[]), `None,  PVar [$1], None,    $3, None }
-  | _let pattern GETS expr   { (Doc.none (),[],[]), $1,     $2,        None,    $4, None }
+  | optvar GETS expr         { None, `None,  PVar [$1], None,    $3, None }
+  | _let pattern GETS expr   { None, $1,     $2,        None,    $4, None }
   | _let LPAR pattern COLON ty RPAR GETS expr
-                             { (Doc.none (),[],[]), $1,     $3,        None,    $8, Some $5 }
-  | _let subfield GETS expr  { (Doc.none (),[],[]), $1,     PVar $2,   None,    $4, None }
+                             { None, $1,     $3,        None,    $8, Some $5 }
+  | _let subfield GETS expr  { None, $1,     PVar $2,   None,    $4, None }
   | DEF pattern g exprs END  { fst $1,              snd $1, $2,        None,    $4, None }
   | DEF LPAR pattern COLON ty RPAR g exprs END 
                              { fst $1,              snd $1, $3,        None,    $8, Some $5 }

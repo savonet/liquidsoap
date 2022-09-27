@@ -123,7 +123,7 @@ def video.external.testsrc(~id="video.external.testsrc",~restart=true,~restart_o
 end
 
 # Output to ffmpeg.
-# @category Output
+# @category Source / Output
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
@@ -146,7 +146,7 @@ def output.external.ffmpeg(~id=null(), ~show_command=false, ~flush=false, ~falli
 end
 
 # Output a HLS playlist using ffmpeg
-# @category Output
+# @category Source / Output
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
@@ -174,7 +174,7 @@ end
 let output.file.dash = ()
 
 # Output an MPEG-DASH playlist using ffmpeg
-# @category Output
+# @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -201,7 +201,7 @@ let output.youtube = ()
 let output.youtube.live = ()
 
 # Stream to youtube using RTMP.
-# @category Output
+# @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
@@ -217,7 +217,7 @@ def output.youtube.live.rtmp(~id=null(), ~fallible=false, ~on_start={()}, ~on_st
 end
 
 # Stream to youtube using HLS.
-# @category Output
+# @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
@@ -277,7 +277,7 @@ def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_sto
   )
 end
 
-# @flags hidden
+# @flag hidden
 def add_text_builder(f) =
   def at(~id=null(),~duration=null(),~color=getter(0xffffff),~cycle=true,~font=null(),~metadata=null(),~size=getter(18),~speed=0,~x=getter(10),~y=getter(10),~on_cycle={()},text,s)
     available = s.is_ready

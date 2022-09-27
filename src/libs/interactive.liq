@@ -75,7 +75,7 @@ end
 
 # Remove an interactive variable.
 # @param name Name of the variable.
-# @category Interactive
+# @category Interaction
 # @flag hidden
 def interactive.float.remove(name)
   interactive.remove(name)
@@ -84,7 +84,7 @@ end
 
 # Remove an interactive variable.
 # @param name Name of the variable.
-# @category Interactive
+# @category Interaction
 # @flag hidden
 def interactive.int.remove(name)
   interactive.remove(name)
@@ -93,7 +93,7 @@ end
 
 # Remove an interactive variable.
 # @param name Name of the variable.
-# @category Interactive
+# @category Interaction
 # @flag hidden
 def interactive.bool.remove(name)
   interactive.remove(name)
@@ -102,7 +102,7 @@ end
 
 # Remove an interactive variable.
 # @param name Name of the variable.
-# @category Interactive
+# @category Interaction
 # @flag hidden
 def interactive.string.remove(name)
   interactive.remove(name)
@@ -111,7 +111,7 @@ end
 
 # Remove an interactive variable.
 # @param name Name of the variable.
-# @category Interactive
+# @category Interaction
 # @flag hidden
 def interactive.unit.remove(name)
   interactive.remove(name)
@@ -172,13 +172,13 @@ def interactive.create(~name, ~description="", ~osc="", ~type)
 %ifdef osc
   if osc != "" then
     if type == "float" then
-      stdlib_osc.on_float(osc, interactive.float.set(name))
+      stdlib_osc.on_float(osc, fun(x) -> interactive.float.set(name, x))
     elsif type == "int" then
-      stdlib_osc.on_int(osc, interactive.int.set(name))
+      stdlib_osc.on_int(osc, fun(x) -> interactive.int.set(name, x))
     elsif type == "bool" then
-      stdlib_osc.on_bool(osc, interactive.bool.set(name))
+      stdlib_osc.on_bool(osc, fun(x) -> interactive.bool.set(name, x))
     elsif type == "string" then
-      stdlib_osc.on_string(osc, interactive.string.set(name))
+      stdlib_osc.on_string(osc, fun(x) -> interactive.string.set(name, x))
     elsif type == "unit" then
       () # TODO
     else
@@ -245,7 +245,7 @@ end
 server.register(usage="set <name> = <value>", description="Set the value of a variable.", namespace="var", "set", interactive.set)
 
 # Save the value of all interactive variables in a file.
-# @category Interactive
+# @category Interaction
 # @param fname Name of the file.
 def interactive.save(fname)
   data = json.stringify({
@@ -259,7 +259,7 @@ def interactive.save(fname)
 end
 
 # Load the value of interactive variables from a file.
-# @category Interactive
+# @category Interaction
 # @param fname Name of the file.
 def interactive.load(fname)
   vars = file.contents(fname)
@@ -280,7 +280,7 @@ end
 # given file and stored there whenever updated. This function should be called
 # after all interactive variables have been defined (variables not declared yet
 # will not be loaded).
-# @category Interactive
+# @category Interaction
 # @param fname Name of the file.
 def interactive.persistent(fname)
   if file.exists(fname) then

@@ -168,8 +168,8 @@ let file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder
 
 let () =
-  Decoder.decoders#register "AAC"
-    ~sdoc:
+  Plug.register Decoder.decoders "aac"
+    ~doc:
       "Use libfaad to decode AAC if MIME type or file extension is appropriate."
     {
       Decoder.media_type = `Audio;
@@ -261,8 +261,8 @@ let file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder
 
 let () =
-  Decoder.decoders#register "MP4"
-    ~sdoc:
+  Plug.register Decoder.decoders "mp4"
+    ~doc:
       "Use libfaad to decode MP4 if MIME type or file extension is appropriate."
     {
       Decoder.media_type = `Audio;
@@ -289,4 +289,4 @@ let get_tags file =
       let mp4 = Faad.Mp4.openfile_fd fd in
       Array.to_list (Faad.Mp4.metadata mp4))
 
-let () = Request.mresolvers#register "MP4" get_tags
+let () = Plug.register Request.mresolvers "mp4" ~doc:"MP4 tag decoder." get_tags

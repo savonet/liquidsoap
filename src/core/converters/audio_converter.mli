@@ -36,7 +36,7 @@ module Samplerate : sig
   type t
 
   val samplerate_conf : Dtools.Conf.ut
-  val converters : converter_plug Plug.plug
+  val converters : converter_plug Plug.t
 
   (** [create chan_nb] creates a converter. *)
   val create : int -> t
@@ -64,7 +64,7 @@ module Channel_layout : sig
   val channels_of_layout : layout -> int
   val layout_of_channels : int -> layout
   val channel_layout_conf : Dtools.Conf.ut
-  val converters : converter Plug.plug
+  val converters : converter Plug.t
 
   (** [create src dst] creates a converter. *)
   val create : layout -> layout -> t

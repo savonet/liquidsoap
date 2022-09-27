@@ -40,4 +40,5 @@ let samplerate_converter channels =
     (data, 0, Audio.length data)
 
 let () =
-  Audio_converter.Samplerate.converters#register "ffmpeg" samplerate_converter
+  Plug.register Audio_converter.Samplerate.converters "ffmpeg" ~doc:""
+    samplerate_converter

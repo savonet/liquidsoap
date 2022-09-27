@@ -54,7 +54,7 @@ type converter = Img.t -> Img.t -> unit
 type converter_plug =
   Img.Pixel.format list * Img.Pixel.format list * (unit -> converter)
 
-let video_converters : converter_plug Plug.plug =
+let video_converters : converter_plug Plug.t =
   Plug.create ~doc:"Methods for converting video frames." "video converters"
 
 exception Exit of converter
@@ -63,7 +63,7 @@ exception Exit of converter
 let () =
   Lifecycle.before_start (fun () ->
       let preferred = preferred_converter_conf#get in
-      match video_converters#get preferred with
+      match Plug.get video_converters preferred with
         | None ->
             log#important "Couldn't find preferred video converter: %s."
               preferred
@@ -73,7 +73,7 @@ let find_converter src dst =
   try
     begin
       let preferred = preferred_converter_conf#get in
-      match video_converters#get preferred with
+      match Plug.get video_converters preferred with
         | None -> ()
         | Some (sf, df, f) ->
             if List.mem src sf && List.mem dst df then raise (Exit (f ()))
@@ -83,11 +83,9 @@ let find_converter src dst =
                 (Img.Pixel.string_of_format src)
                 (Img.Pixel.string_of_format dst)
     end;
-    List.iter
-      (fun (name, (sf, df, f)) ->
+    Plug.iter video_converters (fun name (sf, df, f) ->
         log#info "Trying %s video converter..." name;
-        if List.mem src sf && List.mem dst df then raise (Exit (f ())) else ())
-      video_converters#get_all;
+        if List.mem src sf && List.mem dst df then raise (Exit (f ())) else ());
     log#important "Couldn't find a video converter from format %s to format %s."
       (Img.Pixel.string_of_format src)
       (Img.Pixel.string_of_format dst);

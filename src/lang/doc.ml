@@ -20,320 +20,314 @@
 
  *****************************************************************************)
 
-(** Make plugs self-documenting. *)
+(** Documentation for plugs. *)
+module Plug = struct
+  type t = {
+    name : string;
+    description : string;
+    mutable items : (string * string) list;
+        (** an item with given name and description *)
+  }
 
-class item ?(sort = true) (doc : string) =
-  let compare (a, _) (b, _) = compare a b in
-  let sort = if sort then List.stable_sort compare else fun x -> x in
-  object
-    val doc = doc
-    method get_doc = doc
-    val mutable subsections : (string * item Lazy.t) list = []
+  let db = ref []
 
-    method get_subsections =
-      sort subsections |> List.map (fun (k, v) -> (k, Lazy.force v))
+  let create ~doc name =
+    let d = { name; description = doc; items = [] } in
+    db := d :: !db;
+    d
 
-    method get_subsection name = Lazy.force (List.assoc name subsections)
-    method has_subsection name = List.mem_assoc name subsections
+  let add d ~doc name =
+    assert (not (List.mem_assoc name d.items));
+    d.items <- (name, doc) :: d.items
 
-    method add_subsection label item =
-      subsections <- subsections @ [(label, item)]
+  let db () = List.sort compare !db
 
-    method list_subsections = List.map fst (sort subsections)
-  end
-
-let trivial ?sort s = new item ?sort s
-let no_doc = "No documentation available."
-let none ?sort () = trivial ?sort no_doc
-let is_none i = i#get_doc no_doc
-
-(** Two functions which print out an [item], used for liquidsoap to generate
-  * (part of) its own documentation: *)
-
-let xml_escape s =
-  let amp = Str.regexp "&" in
-  let lt = Str.regexp "<" in
-  let gt = Str.regexp ">" in
-  let s = Str.global_replace amp "&amp;" s in
-  let s = Str.global_replace gt "&gt;" s in
-  let s = Str.global_replace lt "&lt;" s in
-  s
-
-let print_xml (doc : item) print_string =
-  let rec print_xml indent doc =
-    let prefix = Bytes.unsafe_to_string (Bytes.make indent ' ') in
-    Printf.ksprintf print_string "%s<info>%s</info>\n" prefix
-      (xml_escape doc#get_doc);
+  let print_md print =
     List.iter
-      (fun (k, v) ->
-        Printf.ksprintf print_string "%s<section>\n" prefix;
-        Printf.ksprintf print_string " %s<label>%s</label>\n" prefix
-          (xml_escape k);
-        print_xml (indent + 1) v;
-        Printf.ksprintf print_string "%s</section>\n" prefix)
-      doc#get_subsections
-  in
-  print_string "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-  print_string "<all>\n";
-  print_xml 1 doc;
-  print_string "</all>\n"
+      (fun p ->
+        Printf.ksprintf print "# %s\n\n%s\n\n" p.name p.description;
+        List.iter
+          (fun (name, description) ->
+            print ("- " ^ name ^ ": " ^ description ^ "\n"))
+          p.items;
+        print "\n")
+      (db ())
 
-let rec to_json (doc : item) =
-  let ss = doc#get_subsections in
-  let sanitize s = s in
-  if ss = [] then `String (sanitize doc#get_doc)
-  else (
-    let ss = List.map (fun (k, v) -> (k, to_json v)) ss in
-    let info = doc#get_doc in
-    let ss =
-      if info = "(no doc)" then ss else ("_info", `String (sanitize info)) :: ss
+  let print_string = print_md
+end
+
+(** Documentation for protocols. *)
+module Protocol = struct
+  type t = {
+    name : string;
+    description : string;
+    syntax : string;
+    static : bool;
+  }
+
+  let db = ref []
+
+  let add ~name ~doc ~syntax ~static =
+    let p = { name; description = doc; syntax; static } in
+    db := p :: !db
+
+  let db () = List.sort compare !db
+
+  let print_md print =
+    List.iter
+      (fun p ->
+        let static = if p.static then " This protocol is static." else "" in
+        Printf.ksprintf print "### %s\n\n%s\n\nThe syntax is `%s`.%s\n\n" p.name
+          p.description p.syntax static)
+      (db ())
+end
+
+(** Documenentation for values. *)
+module Value = struct
+  (** Documentation flags. *)
+  type flag = [ `Hidden | `Deprecated | `Experimental | `Extra ]
+
+  let string_of_flag : flag -> string = function
+    | `Hidden -> "hidden"
+    | `Deprecated -> "deprecated"
+    | `Experimental -> "experimental"
+    | `Extra -> "extra"
+
+  let flag_of_string = function
+    | "hidden" -> Some `Hidden
+    | "deprecated" -> Some `Deprecated
+    | "experimental" -> Some `Experimental
+    | "extra" -> Some `Extra
+    | _ -> None
+
+  (** Kind of source. *)
+  type source =
+    [ `Input
+    | `Output
+    | `Conversion
+    | `FFmpegFilter
+    | `Track
+    | `Audio
+    | `Video
+    | `MIDI
+    | `Visualization
+    | `Synthesis
+    | `Liquidsoap ]
+
+  type category =
+    [ `Source of source
+    | `System
+    | `File
+    | `Math
+    | `String
+    | `List
+    | `Bool
+    | `Liquidsoap
+    | `Control
+    | `Interaction
+    | `Other
+    | `Filter
+    | `None ]
+
+  let categories : (category * string) list =
+    [
+      (`Source `Input, "Source / Input");
+      (`Source `Output, "Source / Output");
+      (`Source `Conversion, "Source / Conversions");
+      (`Source `FFmpegFilter, "Source / FFmpeg filter");
+      (`Source `Track, "Source / Track processing");
+      (`Source `Audio, "Source / Audio processing");
+      (`Source `Video, "Source / Video processing");
+      (`Source `MIDI, "Source / MIDI processing");
+      (`Source `Synthesis, "Source / Sound synthesis");
+      (`Source `Visualization, "Source / Visualization");
+      (`Source `Liquidsoap, "Source / Liquidsoap");
+      (`System, "System");
+      (`File, "File");
+      (`Math, "Math");
+      (`String, "String");
+      (`List, "List");
+      (`Bool, "Bool");
+      (`Liquidsoap, "Liquidsoap");
+      (`Control, "Control");
+      (`Interaction, "Interaction");
+      (`Other, "Other");
+      (`Filter, "Filter");
+      (`None, "Uncategorized");
+    ]
+
+  let string_of_category c = List.assoc c categories
+
+  let category_of_string s =
+    (* TODO: remove lowercase comparison and correct the standard library *)
+    let s = String.lowercase_ascii s in
+    let rec aux = function
+      | (c, s') :: _ when s = String.lowercase_ascii s' -> Some c
+      | _ :: l -> aux l
+      | [] -> None
     in
-    `Assoc ss)
+    aux categories
 
-let print_json (doc : item) print_string =
-  print_string (Json.to_string ~compact:false ~json5:false (to_json doc));
-  print_string "\n"
+  type argument = {
+    arg_type : string;
+    arg_default : string option;  (** default value *)
+    arg_description : string option;
+  }
 
-let print_functions (doc : item) print_string =
-  let doc = to_json doc in
-  let to_assoc = function `Assoc l -> l | _ -> assert false in
-  let doc = List.assoc "scripting values" (to_assoc doc) in
-  let doc = List.tl (to_assoc doc) in
-  let functions = ref [] in
-  let add (f, _) = functions := f :: !functions in
-  List.iter add doc;
-  let functions = List.sort compare !functions in
-  List.iter
-    (fun s ->
-      print_string s;
-      print_string "\n")
-    functions
+  type meth = { meth_type : string; meth_description : string option }
 
-let print_functions_md ~extra (doc : item) print_string =
-  let doc = to_json doc in
-  let to_assoc = function
-    | `Assoc l -> l
-    | `String "" -> []
-    | _ -> assert false
-  in
-  let to_string = function `String s -> s | _ -> assert false in
-  let doc = List.assoc "scripting values" (to_assoc doc) in
-  let doc = List.tl (to_assoc doc) in
-  let by_cat = ref [] in
-  let add (f, desc) =
-    let desc = to_assoc desc in
-    let cat =
-      try to_string (List.assoc "_category" desc) with Not_found -> ""
-    in
-    if not (List.mem_assoc cat !by_cat) then by_cat := (cat, ref []) :: !by_cat;
-    let ff = List.assoc cat !by_cat in
-    ff := (f, desc) :: !ff
-  in
-  List.iter add doc;
-  let by_cat = List.sort (fun (c, _) (c', _) -> compare c c') !by_cat in
-  let by_cat = List.filter (fun (c, _) -> c <> "") by_cat in
-  let should_print l =
-    if List.mem "hidden" l || List.mem "deprecated" l then false
-    else List.mem "extra" l = extra
-  in
-  List.iter
-    (fun (cat, ff) ->
-      Printf.ksprintf print_string "## %s\n\n" cat;
-      let ff = List.sort (fun (f, _) (f', _) -> compare f f') !ff in
-      List.iter
-        (fun (f, desc) ->
-          let flags = List.filter (fun (n, _) -> n = "_flag") desc in
-          let flags = List.map (fun (_, f) -> to_string f) flags in
-          if should_print flags then (
-            Printf.ksprintf print_string "### `%s`\n\n" f;
-            Printf.ksprintf print_string "%s\n\n"
-              (to_string (List.assoc "_info" desc));
-            Printf.ksprintf print_string "Type:\n\n```\n%s\n```\n\n"
-              (to_string (List.assoc "_type" desc));
-            let examples =
-              List.filter_map
-                (function "_example", `String e -> Some e | _ -> None)
-                desc
-            in
-            List.iter
-              (fun e ->
-                print_string "Example:\n\n";
-                Printf.ksprintf print_string "```liquidsoap\n%s\n```\n\n" e)
-              examples;
-            let methods =
-              let methods =
-                try List.assoc "_methods" desc |> to_assoc
-                with Not_found -> []
-              in
-              let methods = List.filter (fun (n, _) -> n <> "_info") methods in
-              List.map
-                (fun (l, m) ->
-                  let m = to_assoc m in
-                  ( l,
-                    List.assoc "_info" m |> to_string,
-                    List.assoc "type" m |> to_string ))
-                methods
-            in
-            let args =
-              List.filter
-                (fun (n, _) ->
-                  not
-                    (List.mem n
-                       [
-                         "_info";
-                         "_category";
-                         "_type";
-                         "_flag";
-                         "_methods";
-                         "_example";
-                       ]))
-                desc
-            in
-            let args =
-              List.map
-                (fun (n, v) ->
-                  let v = to_assoc v in
-                  let s =
-                    try to_string (List.assoc "_info" v) with Not_found -> ""
-                  in
-                  let t = to_string (List.assoc "type" v) in
-                  let d = to_string (List.assoc "default" v) in
-                  (n, s, t, d))
-                args
-            in
-            print_string "Arguments:\n\n";
-            List.iter
-              (fun (n, s, t, d) ->
-                let d =
-                  if d = "None" then "" else ", which defaults to `" ^ d ^ "`"
-                in
-                let s = if s = "" then "" else ": " ^ s in
-                Printf.ksprintf print_string "- `%s` (of type `%s`%s)%s\n" n t d
-                  s)
-              args;
-            if methods <> [] then (
-              print_string "\nMethods:\n\n";
-              List.iter
-                (fun (l, s, t) ->
-                  let s = if s = "" then "" else ": " ^ s in
-                  Printf.ksprintf print_string "- `%s` (of type `%s`)%s\n" l t s)
-                methods);
-            if List.mem "experimental" flags then
-              print_string "\nThis function is experimental.\n";
-            print_string "\n"))
-        ff)
-    by_cat
+  (** Documentation for a function. *)
+  type t = {
+    typ : string;
+    category : category;
+    flags : flag list;
+    description : string;
+    examples : string list;
+    arguments : (string option * argument) list;
+    methods : (string * meth) list;
+  }
 
-let print_protocols_md (doc : item) print_string =
-  let doc = to_json doc in
-  let to_assoc = function `Assoc l -> l | _ -> assert false in
-  let to_string = function `String s -> s | _ -> assert false in
-  let doc = List.assoc "protocols" (to_assoc doc) in
-  let doc = List.tl (to_assoc doc) in
-  List.iter
-    (fun (p, v) ->
-      let v = to_assoc v in
-      let info = to_string (List.assoc "_info" v) in
-      let syntax = to_string (List.assoc "syntax" v) in
-      let static = to_string (List.assoc "static" v) in
-      let static =
-        if static = "true" then " This protocol is static." else ""
+  let db = ref []
+  let add (name : string) (doc : t Lazy.t) = db := (name, doc) :: !db
+  let get name = Lazy.force (List.assoc name !db)
+
+  (** Only print function names. *)
+  let print_functions print =
+    !db |> List.map fst |> List.sort compare
+    |> List.iter (fun f ->
+           print f;
+           print "\n")
+
+  let print name print =
+    let f = get name in
+    let reflow ?(indent = 0) ?(cols = 70) s =
+      let buf = Buffer.create 1024 in
+      (* Did we just see a backtick? *)
+      let backtick = ref false in
+      (* Are we allowed to reflow? *)
+      let protected = ref false in
+      (* Length of the current line *)
+      let n = ref 0 in
+      let indent () =
+        for _ = 1 to indent do
+          Buffer.add_char buf ' '
+        done
       in
-      Printf.ksprintf print_string "### %s\n\n%s\n\nThe syntax is `%s`.%s\n\n" p
-        info syntax static)
-    doc
-
-let print (doc : item) print_string =
-  let rec print indent doc =
-    let prefix = Bytes.unsafe_to_string (Bytes.make indent ' ') in
-    Printf.ksprintf print_string "%s%s\n" prefix doc#get_doc;
-    List.iter
-      (fun (k, v) ->
-        Printf.ksprintf print_string "%s+ %s\n" prefix k;
-        print (indent + 1) v)
-      doc#get_subsections
-  in
-  print 0 doc
-
-let print_lang (i : item) =
-  let b = Buffer.create 1024 in
-  let ff = Format.formatter_of_buffer b in
-  (* Allow breaking on spaces. *)
-  let print_string_split f s =
-    (* Did we just see a backtick? *)
-    let backtick = ref false in
-    (* Are we allowed to reflow? *)
-    let protected = ref false in
-    String.iter
-      (fun c ->
-        if c = '`' then (
-          if not !backtick then protected := not !protected;
-          backtick := true)
-        else backtick := false;
-        if (not !protected) && c = ' ' then Format.pp_print_space f ()
-        else if c = '\n' then Format.pp_print_newline f ()
-        else Format.pp_print_char f c)
-      s
-  in
-  Format.fprintf ff "@.@[%a@]@." print_string_split
-    (Lang_string.unbreak_md i#get_doc);
-  let sub = i#get_subsections in
-  let sub =
-    Format.fprintf ff "@.Type: %s@." (i#get_subsection "_type")#get_doc;
-    List.remove_assoc "_type" sub
-  in
-  let sub =
-    try
-      Format.fprintf ff "@.Category: %s@." (List.assoc "_category" sub)#get_doc;
-      List.remove_assoc "_category" sub
-    with Not_found -> sub
-  in
-  let sub =
-    let examples, sub = List.partition (fun (l, _) -> l = "_example") sub in
-    let examples = List.map snd examples in
-    let examples = List.map (fun e -> e#get_doc) examples in
+      let newline () =
+        Buffer.add_char buf '\n';
+        indent ();
+        n := 0
+      in
+      let char c =
+        Buffer.add_char buf c;
+        incr n
+      in
+      let space () = if !n >= cols then newline () else char ' ' in
+      indent ();
+      String.iter
+        (fun c ->
+          if c = '`' then (
+            if not !backtick then protected := not !protected;
+            backtick := true)
+          else backtick := false;
+          if (not !protected) && c = ' ' then space ()
+          else if c = '\n' then newline ()
+          else char c)
+        s;
+      Buffer.contents buf
+    in
+    print f.description;
+    print "\n\n";
+    print "Type: ";
+    print f.typ;
+    print "\n\n";
+    print ("Category: " ^ string_of_category f.category ^ "\n\n");
     List.iter
       (fun e ->
-        Format.fprintf ff "@.Example:@.@.";
-        Format.fprintf ff "@[<2>%s@]@." e)
-      examples;
-    sub
-  in
-  let meths, sub =
-    try
-      ( (List.assoc "_methods" sub)#get_subsections,
-        List.remove_assoc "_methods" sub )
-    with Not_found -> ([], sub)
-  in
-  let rec print_flags sub =
-    try
-      Format.fprintf ff "Flag: %s@." (List.assoc "_flag" sub)#get_doc;
-      print_flags (List.remove_assoc "_flag" sub)
-    with Not_found -> sub
-  in
-  let sub = print_flags sub in
-  if sub <> [] then (
-    Format.fprintf ff "@.Parameters:@.";
+        print "Example:\n\n";
+        print e;
+        print "\n\n")
+      f.examples;
+    print "Arguments:\n\n";
     List.iter
-      (fun (lbl, i) ->
-        let default = (i#get_subsection "default")#get_doc in
-        let default =
-          if default = "None" then "" else " (default: " ^ default ^ ")"
+      (fun (l, a) ->
+        let l = Option.value ~default:"(unlabeled)" l in
+        print (" * " ^ l ^ " : " ^ a.arg_type ^ "\n");
+        Option.iter (fun d -> print (reflow ~indent:5 d)) a.arg_description;
+        print "\n\n")
+      f.arguments;
+    if f.methods <> [] then (
+      print "Methods:\n\n";
+      List.iter
+        (fun (l, m) ->
+          print (" * " ^ l ^ " : " ^ m.meth_type ^ "\n");
+          Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
+          print "\n\n")
+        f.methods)
+
+  let print_functions_md ?(extra = true) print =
+    let functions =
+      !db
+      |> List.map (fun (f, d) -> (f, Lazy.force d))
+      |> List.sort compare
+      |> List.filter (fun (_, d) ->
+             not (List.mem `Hidden d.flags || List.mem `Deprecated d.flags))
+    in
+    let categories =
+      categories |> List.map (fun (c, s) -> (s, c)) |> List.sort compare
+    in
+    List.iter
+      (fun (category_name, category) ->
+        print ("## " ^ category_name ^ "\n\n");
+        let functions =
+          List.filter
+            (fun (_, d) ->
+              d.category = category && (extra || not (List.mem `Extra d.flags)))
+            functions
         in
-        Format.fprintf ff "@. * %s : %s%s@." lbl
-          (i#get_subsection "type")#get_doc default;
-        if i#get_doc <> "(no doc)" then
-          Format.fprintf ff "@[<5>     %a@]@." print_string_split i#get_doc)
-      sub);
-  if meths <> [] then (
-    Format.fprintf ff "@.Methods:@.";
-    List.iter
-      (fun (l, i) ->
-        Format.fprintf ff "@. * %s : %s@." l (i#get_subsection "type")#get_doc;
-        let doc = i#get_doc in
-        if doc <> "(no doc)" && doc <> "" then
-          Format.fprintf ff "@[<5>     %a@]@." print_string_split doc)
-      meths);
-  Format.fprintf ff "@.";
-  Format.pp_print_flush ff ();
-  Lang_string.print_string ~pager:true (Buffer.contents b)
+        List.iter
+          (fun (f, d) ->
+            print ("### `" ^ f ^ "`\n\n");
+            print d.description;
+            print "\n\n";
+            print "Type:\n\n```\n";
+            print d.typ;
+            print "\n```\n\n";
+            List.iter
+              (fun e ->
+                print "Example:\n\n";
+                Printf.ksprintf print "```liquidsoap\n%s\n```\n\n" e)
+              d.examples;
+            print "Arguments:\n\n";
+            List.iter
+              (fun (l, a) ->
+                let l = Option.value ~default:"(unlabeled)" l in
+                let t = a.arg_type in
+                let d =
+                  match a.arg_default with
+                    | None -> ""
+                    | Some d -> ", which defaults to `" ^ d ^ "`"
+                in
+                let s =
+                  match a.arg_description with None -> "" | Some s -> ": " ^ s
+                in
+                Printf.ksprintf print "- `%s` (of type `%s`%s)%s\n" l t d s)
+              d.arguments;
+            if d.methods <> [] then (
+              print "Methods:\n\n";
+              List.iter
+                (fun (l, m) ->
+                  let t = m.meth_type in
+                  let s =
+                    match m.meth_description with
+                      | None -> ""
+                      | Some s -> ": " ^ s
+                  in
+                  Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
+                d.methods);
+            if List.mem `Experimental d.flags then
+              print "\nThis function is experimental.\n";
+            print "\n")
+          functions)
+      categories
+end

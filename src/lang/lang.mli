@@ -80,9 +80,9 @@ type proto = (string * t * value option * string option) list
 
 (** Add an builtin to the language, high-level version for functions. *)
 val add_builtin :
-  category:Documentation.category ->
+  category:Doc.Value.category ->
   descr:string ->
-  ?flags:Documentation.flag list ->
+  ?flags:Doc.Value.flag list ->
   ?meth:(string * Type.scheme * string * value) list ->
   ?examples:string list ->
   string ->
@@ -93,9 +93,9 @@ val add_builtin :
 
 (** Add an builtin to the language, more rudimentary version. *)
 val add_builtin_base :
-  category:Documentation.category ->
+  category:Doc.Value.category ->
   descr:string ->
-  ?flags:Documentation.flag list ->
+  ?flags:Doc.Value.flag list ->
   string ->
   in_value ->
   t ->

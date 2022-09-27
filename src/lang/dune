@@ -57,7 +57,6 @@
   builtins_ref
   console
   doc
-  documentation
   environment
   error
   evaluation
@@ -76,8 +75,8 @@
   modules
   parser
   parser_helper
-  plug
   pos
+  plug
   preprocessor
   profiler
   repr

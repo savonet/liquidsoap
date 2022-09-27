@@ -40,7 +40,7 @@ type let_decoration =
 type app_list_elem = (string * Term.t) list
 
 type binding =
-  Term.doc
+  Doc.Value.t option
   * let_decoration
   * Term.pattern
   * arglist option
@@ -255,16 +255,7 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
     mk ~pos (App (parser, [("json5", json5); ("type", tty); ("", def)]))
   in
   let def = mk ~pos (Cast (def, ty)) in
-  mk ~pos
-    (Let
-       {
-         doc = (Doc.none (), [], []);
-         replace = false;
-         pat;
-         gen = [];
-         def;
-         body;
-       })
+  mk ~pos (Let { doc = None; replace = false; pat; gen = []; def; body })
 
 let mk_rec_fun ~pos pat args body =
   let name =

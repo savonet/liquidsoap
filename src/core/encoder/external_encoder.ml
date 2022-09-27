@@ -177,6 +177,7 @@ let encoder id ext =
   }
 
 let () =
-  Encoder.plug#register "EXTERNAL" (function
+  Plug.register Encoder.plug "external" ~doc:"Encode using external programs."
+    (function
     | Encoder.External m -> Some (fun s _ -> encoder s m)
     | _ -> None)

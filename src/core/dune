@@ -86,7 +86,7 @@
   decoder_utils
   delay
   delay_line
-  documentation
+  doc
   drop
   dtmf
   dyn_op
@@ -403,7 +403,7 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
- (modules liq_flac_decoder flacduration flac_encoder))
+ (modules liq_flac_decoder flac_encoder))
 
 (library
  (name liquidsoap_ogg_flac)

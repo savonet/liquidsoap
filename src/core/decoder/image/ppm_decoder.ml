@@ -33,7 +33,7 @@ let load_image fname =
   Image.YUV420.of_PPM (Bytes.unsafe_to_string data)
 
 let () =
-  Decoder.image_file_decoders#register "ppm"
-    ~sdoc:"Native decoding of PPM images." (fun filename ->
+  Plug.register Decoder.image_file_decoders "ppm"
+    ~doc:"Native decoding of PPM images." (fun filename ->
       let img = load_image filename in
       Some img)

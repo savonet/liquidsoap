@@ -60,7 +60,7 @@ let decoder file =
   { Decoder.fill; fseek = (fun _ -> 0); close }
 
 let () =
-  Decoder.decoders#register "MIDI"
+  Plug.register Decoder.decoders "midi" ~doc:"Decode midi files."
     {
       Decoder.media_type = `Midi;
       priority = (fun () -> 1);

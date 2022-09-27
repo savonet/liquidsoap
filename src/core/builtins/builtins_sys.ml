@@ -109,7 +109,7 @@ let () =
     (fun p ->
       let process = Lang.to_string (Lang.assoc "" 1 p) in
       let name = Lang.to_string (List.assoc "name" p) in
-      let sdoc = Lang.to_string (List.assoc "description" p) in
+      let doc = Lang.to_string (List.assoc "description" p) in
       let mimes =
         List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
       in
@@ -122,7 +122,7 @@ let () =
       in
       let priority = Lang.to_int (List.assoc "priority" p) in
       let test = List.assoc "test" p in
-      External_decoder.register_stdin ~name ~sdoc ~priority ~mimes
+      External_decoder.register_stdin ~name ~doc ~priority ~mimes
         ~file_extensions ~test:(test_f test) process;
       Lang.unit);
 
@@ -163,7 +163,7 @@ let () =
     (fun p ->
       let f = Lang.assoc "" 1 p in
       let name = Lang.to_string (List.assoc "name" p) in
-      let sdoc = Lang.to_string (List.assoc "description" p) in
+      let doc = Lang.to_string (List.assoc "description" p) in
       let prebuf = Lang.to_float (List.assoc "buffer" p) in
       let process file =
         Lang.to_string (Lang.apply f [("", Lang.string file)])
@@ -180,7 +180,7 @@ let () =
       let file_extensions =
         if file_extensions = [] then None else Some file_extensions
       in
-      External_decoder.register_oblivious ~name ~sdoc ~priority ~mimes
+      External_decoder.register_oblivious ~name ~doc ~priority ~mimes
         ~file_extensions ~test:(test_f test) ~process prebuf;
       Lang.unit)
 
@@ -400,7 +400,7 @@ let () =
           match mime with
             | None -> Playlist_parser.search_valid ~pwd content
             | Some mime -> (
-                match Playlist_parser.parsers#get mime with
+                match Plug.get Playlist_parser.parsers mime with
                   | Some plugin ->
                       (mime, plugin.Playlist_parser.parser ~pwd content)
                   | None ->

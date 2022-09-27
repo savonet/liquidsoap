@@ -281,8 +281,8 @@ let create_file_decoder ~metadata:_ ~ctype filename =
     (create_decoder ~merge_tracks:true `File)
 
 let () =
-  Decoder.decoders#register "OGG"
-    ~sdoc:"Decode a file as OGG provided that libogg accepts it."
+  Plug.register Decoder.decoders "ogg"
+    ~doc:"Decode a file as OGG provided that libogg accepts it."
     {
       Decoder.media_type = `Audio_video;
       priority = (fun () -> priority#get);
@@ -316,4 +316,4 @@ let get_tags file =
       get Ogg_decoder.audio_info tracks.Ogg_decoder.audio_track
       @ get Ogg_decoder.video_info tracks.Ogg_decoder.video_track)
 
-let () = Request.mresolvers#register "OGG" get_tags
+let () = Plug.register Request.mresolvers "ogg" ~doc:"" get_tags

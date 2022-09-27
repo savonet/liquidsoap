@@ -20,7 +20,7 @@ lufs_builtin = lufs
 # some track-based normalization techniques such as those based on
 # ReplayGain. The implementation of Liquidsoap < 2.0 was renamed to
 # `normalize.old`.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param ~id Force the value of the source ID.
 # @param ~gain_max Maximal gain value (dB).
 # @param ~gain_min Minimal gain value (dB).
@@ -78,13 +78,13 @@ end
 
 
 # A limiter. This is a `compress` with tweaked parameters.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 def limit(~attack=getter(50.), ~release=getter(200.), ~ratio=getter(20.), ~threshold=getter(-2.), ~pre_gain=getter(0.), ~gain=getter(0.), s)
   compress(attack=attack, release=release, ratio=ratio, threshold=threshold, pre_gain=pre_gain, gain=gain, s)
 end
 
 # A bandpass filter obtained by chaining a low-pass and a high-pass filter.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param id Force the value of the source ID.
 # @param ~low Lower frequency of the bandpass filter.
 # @param ~high Higher frequency of the bandpass filter.
@@ -104,7 +104,7 @@ let limiter = limit
 # - the compression `ratio`
 # - the `threshold` for compression
 # - the `gain` for the band
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param ~limit Also apply limiting to bands.
 # @param l Parameters for compression bands.
 # @param s Source on which multiband compression should be applied.
@@ -133,7 +133,7 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
 end
 
 # Compress and normalize, producing a more uniform and "full" sound.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @flag extra
 # @param s The input source.
 def nrj(s)
@@ -141,7 +141,7 @@ def nrj(s)
 end
 
 # Multiband-compression.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @flag extra
 # @param s The input source.
 def sky(s)
@@ -166,7 +166,7 @@ def sky(s)
 end
 
 # Add some bass to the sound.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param ~frequency Frequency below which sound is considered as bass.
 # @param ~gain Amount of boosting (dB).
 # @param s Source whose bass should be boosted
@@ -177,7 +177,7 @@ end
 
 %ifdef soundtouch
 # Increases the pitch, making voices sound like on helium.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @flag extra
 # @param s The input source.
 def helium(s)
@@ -186,7 +186,7 @@ end
 %endif
 
 # Remove low frequencies often produced by microphones.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param ~frequency Frequency under which sound should be lowered.
 # @param s The input source.
 def mic_filter(~frequency=200., s)
@@ -200,7 +200,7 @@ end
 # ```
 # and vary `c` to hear the difference between the source without and with
 # the effect.
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param ~power If `true` use constant power mixing.
 # @param wetness Wetness coefficient, from 0 (fully dry) to  1 (fully wet).
 # @param dry Dry source.
@@ -265,7 +265,7 @@ end
 # Mixing table controllable via source methods and optional
 # server/telnet commands.
 # @flag extra
-# @category Source / Sound Processing
+# @category Source / Audio Processing
 # @param ~id Force the value of the source ID.
 # @param ~register_server_commands Register corresponding server commands
 def mix(~id=null(), ~register_server_commands=true, sources) =

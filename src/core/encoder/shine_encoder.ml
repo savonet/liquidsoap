@@ -77,6 +77,7 @@ let encoder shine =
   }
 
 let () =
-  Encoder.plug#register "SHINE" (function
+  Plug.register Encoder.plug "shine" ~doc:"SHINE fixed-point mp3 encoder."
+    (function
     | Encoder.Shine m -> Some (fun _ _ -> encoder m)
     | _ -> None)

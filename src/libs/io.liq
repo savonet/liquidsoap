@@ -17,7 +17,7 @@ let replaces output=output.dummy
 
 # Output a stream using the default operator. The input source does not need to
 # be infallible, blank will just be played during failures.
-# @category Output
+# @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
@@ -48,7 +48,7 @@ let output.video = output.dummy
 
 # Output a video stream using the default operator. The input source does not
 # need to be infallible, blank will just be played during failures.
-# @category Output
+# @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
@@ -62,7 +62,7 @@ end
 # Output a stream with audio and video using the default operator. The input
 # source does not need to be infallible, blank will just be played during
 # failures.
-# @category Output
+# @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
@@ -95,7 +95,7 @@ end
 %endif
 
 # Input an audio stream using the default operator.
-# @category Input
+# @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.

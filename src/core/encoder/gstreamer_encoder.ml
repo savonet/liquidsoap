@@ -201,7 +201,7 @@ let encoder ext =
   { Encoder.insert_metadata; header = Strings.empty; hls; encode; stop }
 
 let () =
-  Encoder.plug#register "GSTREAMER" (function
+  Plug.register Encoder.plug "gstreamer" ~doc:"" (function
     | Encoder.GStreamer params ->
         let f _ m =
           let encoder = encoder params in

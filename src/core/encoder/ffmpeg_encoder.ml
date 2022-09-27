@@ -25,7 +25,7 @@
 open Ffmpeg_encoder_common
 
 let () =
-  Encoder.plug#register "FFMPEG" (function
+  Plug.register Encoder.plug "ffmpeg" ~doc:"" (function
     | Encoder.Ffmpeg m ->
         Some
           (fun _ ->

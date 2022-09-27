@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-(** A [plug] is something where plug-ins plug.
-  We build [plug] on the top of [Doc.item]. *)
+(** A plug is something where plug-ins plug. *)
 
+(*
 class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
   object
     inherit Doc.item doc
@@ -70,16 +70,29 @@ class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
       with Not_found -> (
         try Some (List.assoc plugin aliases) with Not_found -> None)
   end
+*)
 
-(** Every [plug] plugs in [plugs] *)
+(** A plug. *)
+type 'a t = {
+  name : string;
+  doc : Doc.Plug.t;
+  register_hook : string -> 'a -> unit;
+  mutable items : (string * 'a) list;
+}
 
-let plugs = new Doc.item "All the plugs"
+(** Create a plug. *)
+let create ?(register_hook = fun _ _ -> ()) ~doc name =
+  { name; doc = Doc.Plug.create ~doc name; register_hook; items = [] }
 
-let create ?(duplicates = true) ?register_hook ?insensitive ?doc plugname =
-  let insensitive = match insensitive with Some true -> true | _ -> false in
-  let doc = match doc with None -> "(no doc)" | Some d -> d in
-  let plug = new plug ?register_hook doc insensitive duplicates in
-  plugs#add_subsection plugname (Lazy.from_val (plug :> Doc.item));
-  plug
+let register plug name ~doc value =
+  if List.mem_assoc name plug.items then
+    failwith ("Plugin already registered in " ^ plug.name ^ ": " ^ name);
+  Doc.Plug.add plug.doc ~doc name;
+  plug.items <- (name, value) :: plug.items
 
-let list () = plugs#list_subsections
+let get plug name = List.assoc_opt name plug.items
+
+(** List all the plugins. *)
+let list plug = plug.items
+
+let iter plug f = List.iter (fun (k, v) -> f k v) plug.items

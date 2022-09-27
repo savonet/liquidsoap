@@ -39,7 +39,7 @@ def list.init(n, f)
 end
 
 # Create a list with given length, filled with given element.
-# @category List.
+# @category List
 # @param n Number of elements in the list.
 # @param x Element to fill the list with.
 def list.make(n, x)
@@ -247,7 +247,7 @@ end
 # Check that a predicate is satisfied for every element in a list.
 # @category List
 # @param p Predicate.
-# @param l List.
+# @param l List
 def list.for_all(p, l)
   def rec aux(l)
     def f(x, l)
@@ -265,7 +265,7 @@ end
 # Check that a predicate is satisfied for some element in a list.
 # @category List
 # @param p Predicate.
-# @param l List.
+# @param l List
 def list.exists(p, l)
   def rec aux(l)
     def f(x, l)
@@ -285,7 +285,7 @@ end
 # @category List
 # @param ~default Returned value when the predicate is not found.
 # @param p Predicate.
-# @param l List.
+# @param l List
 def list.find(~default=null(), p, l)
   def rec aux(l)
     list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.find")}, fun(x, l) -> if p(x) then x else aux(l) end)
@@ -296,7 +296,7 @@ end
 # First index where a predicate is satisfied.
 # @category List
 # @param p Predicate.
-# @param l List.
+# @param l List
 def list.index(p, l)
   list.ind(l, 0, fun (x, _, r) -> if p(x) then 0 else r+1 end)
 end

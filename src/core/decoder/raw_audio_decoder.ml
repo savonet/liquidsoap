@@ -147,7 +147,7 @@ let parse_mime m =
   with _ -> None
 
 let () =
-  Decoder.decoders#register "raw audio" ~sdoc:"Decode audio/x-raw."
+  Plug.register Decoder.decoders "raw audio" ~doc:"Decode audio/x-raw."
     {
       Decoder.media_type = `Audio;
       priority = (fun () -> 1);

@@ -324,8 +324,8 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
       else
         mime = content_type(fname)
 
-        if mime != "" then
-          response.content_type(mime)
+        if null.defined(mime) then
+          response.content_type(null.get(mime))
         end
 
         if request.method == "GET" then
@@ -355,7 +355,8 @@ end
 
 # @flag hidden
 def get_mime_process(file) =
-  list.hd(default="", process.read.lines("file -b -I #{process.quote(file)}"))
+  mime = list.hd(default="", process.read.lines("file -b -I #{process.quote(file)}"))
+  if mime == "" then null() else mime end
 end
 
 # @flag hidden
@@ -374,7 +375,7 @@ content_type = file.mime
 # @param ~browse List files in directories.
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served.
-def replaces harbor.http.static(~transport=http.transport.unix,~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
+def replaces harbor.http.static(~transport=http.transport.unix,~port=8000,~path="/",~browse=false,~content_type=(content_type:(string)->string?),~headers=[("Access-Control-Allow-Origin","*")],directory) =
   # Make the method argument non-optional, see #1018
   serve = fun(~method,uri,handler) -> harbor.http.register(transport=transport,port=port,method=method,uri,handler)
   harbor.http.static.base(serve,content_type=content_type,basepath=path,browse=browse,headers=headers,directory)

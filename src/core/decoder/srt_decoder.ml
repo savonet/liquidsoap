@@ -40,7 +40,7 @@ let srt_file_extensions =
     "File extensions used for guessing SRT format" ~d:["srt"]
 
 let () =
-  Decoder.decoders#register "SRT" ~sdoc:"Decode srt files."
+  Plug.register Decoder.decoders "srt" ~doc:"Decode srt files."
     {
       Decoder.media_type = `Audio_video;
       priority = (fun () -> srt_priorities#get);
