@@ -83,10 +83,10 @@ let parse s =
     in
     let text =
       let ans = ref [] in
-      while Queue.peek s <> "" do
+      while (not (Queue.is_empty s)) && Queue.peek s <> "" do
         ans := Queue.take s :: !ans
       done;
-      assert (Queue.take s = "");
+      assert (Queue.is_empty s || Queue.take s = "");
       List.rev !ans |> String.concat "\n"
     in
     ans := ((t1, t2), text) :: !ans
