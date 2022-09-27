@@ -37,7 +37,8 @@ let has_builtin name = List.mem_assoc name !flat_builtins
 let get_builtin name = List.assoc_opt name !flat_builtins
 
 let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
-  if register then Doc.Value.add (String.concat "." name) (Option.get doc);
+  if register && doc <> None then
+    Doc.Value.add (String.concat "." name) (Option.get doc);
   flat_builtins := (String.concat "." name, ((g, t), v)) :: !flat_builtins;
   match name with
     | [name] ->
