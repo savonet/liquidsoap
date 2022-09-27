@@ -290,13 +290,13 @@ let parse_cue ?pwd string =
   export_tracks [] sheet.tracks
 
 let () =
-  Playlist_parser.parsers#register "audio/x-scpls"
+  Plug.register Playlist_parser.parsers "audio/x-scpls" ~doc:""
     { Playlist_parser.strict = true; Playlist_parser.parser = parse_scpls };
-  Playlist_parser.parsers#register "application/x-cue"
+  Plug.register Playlist_parser.parsers "application/x-cue" ~doc:""
     { Playlist_parser.strict = true; Playlist_parser.parser = parse_cue };
-  Playlist_parser.parsers#register "audio/x-mpegurl"
+  Plug.register Playlist_parser.parsers "audio/x-mpegurl" ~doc:""
     { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl };
-  Playlist_parser.parsers#register "audio/mpegurl"
+  Plug.register Playlist_parser.parsers "audio/mpegurl" ~doc:""
     { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl };
-  Playlist_parser.parsers#register "application/x-mpegURL"
+  Plug.register Playlist_parser.parsers "application/x-mpegURL" ~doc:""
     { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }

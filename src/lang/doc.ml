@@ -39,6 +39,22 @@ module Plug = struct
   let add d ~doc name =
     assert (not (List.mem_assoc name d.items));
     d.items <- (name, doc) :: d.items
+
+  let to_md () =
+    let db = List.sort compare !db in
+    List.map
+      (fun p ->
+        let items =
+          p.items
+          |> List.map (fun (name, description) ->
+                 "- " ^ name ^ ": " ^ description)
+          |> String.concat "\n"
+        in
+        Printf.sprintf "# %s\n\n%s\n\n%s\n" p.name p.description items)
+      db
+    |> String.concat "\n"
+
+  let to_string = to_md
 end
 
 (** Documentation for protocols. *)

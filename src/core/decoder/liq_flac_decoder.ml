@@ -133,8 +133,8 @@ let file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder
 
 let () =
-  Decoder.decoders#register "FLAC"
-    ~sdoc:
+  Plug.register Decoder.decoders "flac"
+    ~doc:
       "Use libflac to decode any file or stream if its MIME type or file \
        extension is appropriate."
     {
@@ -163,7 +163,7 @@ let get_tags file =
       let h = Flac.Decoder.File.create_from_fd write fd in
       match h.Flac.Decoder.File.comments with Some (_, m) -> m | None -> [])
 
-let () = Request.mresolvers#register "FLAC" get_tags
+let () = Plug.register Request.mresolvers "flac" ~doc:"" get_tags
 
 let check filename =
   match Liqmagic.file_mime filename with
@@ -187,4 +187,4 @@ let duration file =
         | x when x = Int64.zero -> raise Not_found
         | x -> Int64.to_float x /. float info.Flac.Decoder.sample_rate)
 
-let () = Request.dresolvers#register "FLAC" duration
+let () = Plug.register Request.dresolvers "flac" ~doc:"" duration

@@ -81,6 +81,6 @@ let encoder flac meta =
   }
 
 let () =
-  Encoder.plug#register "FLAC" (function
+  Plug.register Encoder.plug "flac" ~doc:"Flac encoder." (function
     | Encoder.Flac m -> Some (fun _ -> encoder m)
     | _ -> None)

@@ -499,7 +499,7 @@ let duration file =
       Option.map (fun d -> Int64.to_float d /. 1000.) duration)
 
 let () =
-  Request.dresolvers#register "FFMPEG" (fun fname ->
+  Plug.register Request.dresolvers "ffmepg" ~doc:"" (fun fname ->
       match duration fname with None -> raise Not_found | Some d -> d)
 
 let tags_substitutions = [("track", "tracknumber")]
@@ -522,7 +522,7 @@ let get_tags file =
           try (List.assoc lbl tags_substitutions, v) with _ -> (lbl, v))
         (audio_tags @ tags))
 
-let () = Request.mresolvers#register "FFMPEG" get_tags
+let () = Plug.register Request.mresolvers "ffmpeg" ~doc:"" get_tags
 
 (* Get the type of an input container. *)
 let get_type ~ctype ~url container =
@@ -875,9 +875,9 @@ let get_file_type ~ctype filename =
           (fun () -> get_type ~ctype ~url:filename container)
 
 let () =
-  Decoder.decoders#register "FFMPEG"
-    ~sdoc:
-      "Use libffmpeg to decode any file or stream if its MIME type or file \
+  Plug.register Decoder.decoders "ffmpeg"
+    ~doc:
+      "Use FFmpeg to decode any file or stream if its MIME type or file \
        extension is appropriate."
     {
       Decoder.media_type = `Audio_video;

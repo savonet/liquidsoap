@@ -28,4 +28,4 @@ let duration file =
     ~k:(fun () -> Unix.close fd)
     (fun _ -> Vorbis.File.Decoder.duration dec (-1))
 
-let () = Request.dresolvers#register "VORBIS" duration
+let () = Plug.register Request.dresolvers "vorbis" ~doc:"" duration

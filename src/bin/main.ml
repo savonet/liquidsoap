@@ -146,11 +146,13 @@ let load_libs () =
   do_eval ~lib:true;
   load_libs ()
 
+(*
 let lang_doc name =
   run_streams := false;
   load_libs ();
   try Doc.print_lang (Environment.builtins#get_subsection name)
   with Not_found -> Printf.printf "Plugin not found!\n%!"
+*)
 
 let process_request s =
   load_libs ();
@@ -218,10 +220,12 @@ let options =
        ( ["-r"; "--request"],
          Arg.String process_request,
          "Process a file request and print the metadata." );
+       (*
        ( ["-h"],
          Arg.String lang_doc,
          "Get help about a scripting value: source, operator, builtin or \
           library function, etc." );
+       *)
        ( ["-c"; "--check"],
          Arg.Unit (fun () -> run_streams := false),
          "Check and evaluate scripts but do not perform any streaming." );
@@ -286,16 +290,7 @@ let options =
         ( ["-U"; "--disable-unix-socket"],
           Arg.Unit (fun _ -> Server.conf_socket#set false),
           "Disable the unix socket." );
-        ( ["--list-plugins-xml"],
-          Arg.Unit
-            (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.print_xml (Plug.plugs : Doc.item))),
-          Printf.sprintf
-            "List all plugins (builtin scripting values, supported formats and \
-             protocols), output as XML." );
+        (*
         ( ["--list-plugins-json"],
           Arg.Unit
             (fun () ->
@@ -306,16 +301,17 @@ let options =
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
              protocols), output as JSON." );
+        *)
         ( ["--list-plugins"],
           Arg.Unit
             (fun () ->
               run_streams := false;
               load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.print (Plug.plugs : Doc.item))),
+              Lang_string.print_string ~pager:true (Doc.Plug.to_string ())),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
              protocols)." );
+        (*
         ( ["--list-functions"],
           Arg.Unit
             (fun () ->
@@ -348,6 +344,7 @@ let options =
               Lang_string.kprint_string ~pager:true
                 (Doc.print_protocols_md (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all protocols in markdown." );
+*)
         ( ["--no-stdlib"],
           Arg.Clear stdlib,
           Printf.sprintf "Do not load stdlib script libraries (i.e., %s/*.liq)."

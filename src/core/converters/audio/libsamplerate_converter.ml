@@ -81,5 +81,6 @@ let samplerate_converter channels =
     (data, 0, Audio.length data)
 
 let () =
-  Audio_converter.Samplerate.converters#register "libsamplerate"
+  Plug.register Audio_converter.Samplerate.converters "libsamplerate"
+    ~doc:"High-quality samplerate conversion using libsamblerate."
     samplerate_converter

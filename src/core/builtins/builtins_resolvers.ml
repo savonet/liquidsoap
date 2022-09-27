@@ -46,7 +46,7 @@ let () =
         in
         ret
       in
-      Request.mresolvers#register format resolver;
+      Plug.register Request.mresolvers format ~doc:"" resolver;
       Lang.unit)
 
 let () =
@@ -89,7 +89,7 @@ let () =
             (Lang.to_metadata_list m, Lang.to_string s))
           ret
       in
-      Playlist_parser.parsers#register format
+      Plug.register Playlist_parser.parsers format ~doc:""
         { Playlist_parser.strict; Playlist_parser.parser = fn };
       Lang.unit)
 
