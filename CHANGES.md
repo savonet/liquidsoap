@@ -1,6 +1,13 @@
 2.1.3 (unreleased)
 =====
 
+Changes:
+* Send data in-memory in `http.{post,put}.file` when input data
+  is already in memory. This allows to use plain `Content-Length`
+  instead of `chunked` transfer encoding in these case, though
+  `libcurl` seems to always prefer `chunked` encoding for `put`
+  requests.
+
 ---
 2.1.2 (2022-09-26)
 =====

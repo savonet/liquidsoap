@@ -266,7 +266,16 @@ def http.multipart_form_data(~boundary=null(), data)
     getter("--#{boundary}--\r\n")
   ]
 
-  { contents = string.getter.concat(contents), boundary = boundary }
+  contents = string.getter.concat(contents)
+
+  contents =
+    if list.for_all(fun (entry) -> getter.is_constant(entry.contents), data) then
+      getter(string.getter.flush(contents))
+    else
+      contents
+    end
+
+  { contents = contents, boundary = boundary }
 end
 
 # @flag hidden
