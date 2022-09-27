@@ -373,7 +373,24 @@ let parse_comments tokenizer =
     in
     let main, special, params, methods = parse_doc ([], [], [], []) doc in
     let main = List.rev main in
-    let params = List.rev params in
+    let params =
+      List.map
+        (fun (l, d) ->
+          ( l,
+            Doc.Value.
+              {
+                arg_type = "???";
+                arg_default = Some "???";
+                arg_description = Some d;
+              } ))
+        (List.rev params)
+    in
+    let methods =
+      List.map
+        (fun (l, d) ->
+          (l, Doc.Value.{ meth_type = "???"; meth_description = d }))
+        (List.rev methods)
+    in
     let main = String.concat "\n" main in
     let main = Lang_string.unbreak_md main in
     (* let main = String.concat "\n" main in *)
@@ -383,8 +400,9 @@ let parse_comments tokenizer =
           match s with `Category c -> (c, f) | `Flag flag -> (c, flag :: f))
         ("", []) special
     in
-    let category = Doc.category_of_string category in
-    let doc () =
+    let category = Doc.Value.category_of_string category in
+    let flags = List.map Doc.Value.flag_of_string flags in
+    let doc =
       Doc.Value.
         {
           (* filled in later on *)
@@ -394,11 +412,11 @@ let parse_comments tokenizer =
           description = main;
           (* TODO *)
           examples = [];
-          arguments;
+          arguments = params;
           methods;
         }
     in
-    (Parser.DEF (Some (Lazy.from_fun doc), decoration), (startp, endp))
+    (Parser.DEF (Some doc, decoration), (startp, endp))
   in
   let comment = ref ([], None) in
   let rec token () =

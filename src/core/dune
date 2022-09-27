@@ -86,7 +86,7 @@
   decoder_utils
   delay
   delay_line
-  documentation
+  doc
   drop
   dtmf
   dyn_op
@@ -195,7 +195,6 @@
   pitch
   playlist_basic
   playlist_parser
-  plug
   pool
   ppm_decoder
   prepend

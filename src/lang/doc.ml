@@ -20,31 +20,25 @@
 
  *****************************************************************************)
 
-module StringMap = Map.Make (struct
-  type t = string
-
-  let compare (x : t) (y : t) = compare x y
-end)
-
 (** Documentation for plugs. *)
 module Plug = struct
   type t = {
     name : string;
     description : string;
-    mutable items : string StringMap.t;
+    mutable items : (string * string) list;
         (** an item with given name and description *)
   }
 
   let db = ref []
 
-  let create name description =
-    let d = { name; description; items = StringMap.empty } in
+  let create ~doc name =
+    let d = { name; description = doc; items = [] } in
     db := d :: !db;
     d
 
   let add d name description =
-    assert (not (StringMap.mem name d.items));
-    d.items <- StringMap.add name description d.items
+    assert (not (List.mem_assoc name d.items));
+    d.items <- (name, description) :: d.items
 end
 
 (** Documenentation for values. *)
@@ -176,8 +170,8 @@ module Value = struct
     methods : (string * meth) list;
   }
 
-  let db = ref StringMap.empty
-  let add (name : string) (doc : t Lazy.t) = db := StringMap.add name doc !db
+  let db = ref []
+  let add (name : string) (doc : t Lazy.t) = db := (name, doc) :: !db
 end
 
 (*
