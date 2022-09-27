@@ -99,4 +99,4 @@ let get_tags fname =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Request.mresolvers#register "TAGLIB" get_tags
+let () = Plug.register Request.mresolvers "taglib" ~doc:"" get_tags
