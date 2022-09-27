@@ -138,13 +138,13 @@ module Value = struct
     [
       (`Source `Input, "Source / Input");
       (`Source `Output, "Source / Output");
-      (`Source `Conversion, "Source / Conversion");
-      (`Source `FFmpegFilter, "Source / FFmpeg Filter");
+      (`Source `Conversion, "Source / Conversions");
+      (`Source `FFmpegFilter, "Source / FFmpeg filter");
       (`Source `Track, "Source / Track processing");
       (`Source `Audio, "Source / Audio processing");
       (`Source `Video, "Source / Video processing");
       (`Source `MIDI, "Source / MIDI processing");
-      (`Source `Synthesis, "Source / Sound Synthesis");
+      (`Source `Synthesis, "Source / Sound synthesis");
       (`Source `Visualization, "Source / Visualization");
       (`Source `Liquidsoap, "Source / Liquidsoap");
       (`System, "System");
@@ -160,26 +160,15 @@ module Value = struct
       (`Filter, "Filter");
     ]
 
-  let string_of_category c =
-    (* | `Source s -> "Source / " ^ string_of_source s *)
-    (* | `System -> "System" *)
-    (* | `File -> "File" *)
-    (* | `Math -> "Math" *)
-    (* | `String -> "String" *)
-    (* | `List -> "List" *)
-    (* | `Bool -> "Bool" *)
-    (* | `Liquidsoap -> "Liquidsoap" *)
-    (* | `Control -> "Control" *)
-    (* | `Interaction -> "Interaction" *)
-    (* | `Other -> "Other" *)
-    (* | `Filter -> "Filter" *)
-    List.assoc c dict
+  let string_of_category c = List.assoc c dict
 
   let category_of_string s =
+    (* TODO: remove lowercase comparison and correct the standard library *)
+    let s = String.lowercase_ascii s in
     let rec aux = function
-      | (c, s') :: _ when s = s' -> c
+      | (c, s') :: _ when s = String.lowercase_ascii s' -> Some c
       | _ :: l -> aux l
-      | [] -> failwith ("Unknown category: " ^ s)
+      | [] -> None
     in
     aux dict
 
@@ -204,6 +193,7 @@ module Value = struct
 
   let db = ref []
   let add (name : string) (doc : t Lazy.t) = db := (name, doc) :: !db
+  let get name = List.assoc name !db
 end
 
 (*

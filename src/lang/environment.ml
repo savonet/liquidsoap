@@ -29,8 +29,16 @@ let default_environment () = !builtins
 let default_typing_environment () =
   List.map (fun (x, (t, _)) -> (x, t)) !builtins
 
+(* Just like builtins but we register a.b under the name "a.b" (instead of
+   adding a field b to a). It is used only for [has_builtins] and
+   [get_builtins]. *)
+let flat_builtins : (string * (Type.scheme * Value.t)) list ref = ref []
+let has_builtin name = List.mem_assoc name !flat_builtins
+let get_builtin name = List.assoc_opt name !flat_builtins
+
 let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
   if register then Doc.Value.add (String.concat "." name) (Option.get doc);
+  flat_builtins := (String.concat "." name, ((g, t), v)) :: !flat_builtins;
   match name with
     | [name] ->
         (* Don't allow overriding builtins. *)
@@ -79,9 +87,6 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
         assert (g = []);
         builtins := (x, ((g0, t), v)) :: !builtins
     | [] -> assert false
-
-let has_builtin name = List.mem_assoc name !builtins
-let get_builtin name = List.assoc_opt name !builtins
 
 (** Declare a module. *)
 let add_module name =

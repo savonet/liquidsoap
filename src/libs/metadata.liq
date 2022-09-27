@@ -148,7 +148,7 @@ let metadata.json = ()
 # Export metadata as JSON object. Cover art, if found, is extracted using
 # `metadata.cover` and exported with key `"cover"` and exported using
 # `string.data_uri.encode`.
-# @category String 
+# @category String
 # @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
 # @param ~compact Output compact text.
 # @param ~json5 Use json5 extended spec.

@@ -231,33 +231,38 @@ let parse_comments tokenizer =
           Regexp.substitute (Regexp.regexp "^\\s*#\\s?") ~subst:(fun _ -> "") x)
         doc
     in
-    let get_args doc =
-      List.map
-        (fun (n, d) ->
-          let n = if n = "(unlabeled)" then "" else n in
-          let d = d#get_doc in
-          let d = if d <> "(no doc)" then d else "" in
-          (n, d))
-        (List.filter
-           (fun (n, _) -> String.length n = 0 || n.[0] <> '_')
-           doc#get_subsections)
-    in
-    let rec parse_doc (main, special, params, methods) = function
-      | [] -> (main, special, params, methods)
-      | line :: lines -> (
-          try
-            let sub =
-              Regexp.exec
-                (Regexp.regexp
-                   "^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$")
-                line
-            in
-            let s = Option.get (List.nth sub.Regexp.matches 2) in
-            match Option.get (List.nth sub.Regexp.matches 1) with
-              (*
+    let doc =
+      if doc = [] then None
+      else (
+        let get_args doc =
+          List.map
+            (fun (n, d) ->
+              let n = if n = "(unlabeled)" then "" else n in
+              let d = d#get_doc in
+              let d = if d <> "(no doc)" then d else "" in
+              (n, d))
+            (List.filter
+               (fun (n, _) -> String.length n = 0 || n.[0] <> '_')
+               doc#get_subsections)
+        in
+        let rec parse_doc (main, special, params, methods) = function
+          | [] -> (main, special, params, methods)
+          | line :: lines -> (
+              try
+                let sub =
+                  Regexp.exec
+                    (Regexp.regexp
+                       "^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$")
+                    line
+                in
+                let s = Option.get (List.nth sub.Regexp.matches 2) in
+                match Option.get (List.nth sub.Regexp.matches 1) with
+                  | "docof" | "argsof" ->
+                      (* TODO *)
+                      parse_doc (main, special, params, methods) lines
+                  (*
               | "docof" ->
-                  let doc = Environment.builtins#get_subsection s in
-                  let main_doc = doc#get_doc in
+                  let doc = Doc.Builtins.get s in
                   let main =
                     if main_doc <> "(no doc)" then main_doc :: main else main
                   in
@@ -320,103 +325,117 @@ let parse_comments tokenizer =
                   in
                   parse_doc (main, special, args @ params, methods) lines
 *)
-              | "category" ->
-                  parse_doc
-                    (main, `Category s :: special, params, methods)
-                    lines
-              | "flag" ->
-                  parse_doc (main, `Flag s :: special, params, methods) lines
-              | "param" ->
-                  let sub =
-                    Regexp.exec (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$") s
-                  in
-                  let label = Option.get (List.nth sub.Regexp.matches 1) in
-                  let descr = Option.get (List.nth sub.Regexp.matches 2) in
-                  let label =
-                    if label.[0] = '~' then
-                      Some (String.sub label 1 (String.length label - 1))
-                    else None
-                  in
-                  let rec parse_descr descr lines =
-                    match lines with
-                      | [] -> raise Not_found
-                      | line :: lines ->
-                          let line =
-                            Regexp.substitute (Regexp.regexp "^ *")
-                              ~subst:(fun _ -> "")
-                              line
-                          in
-                          let n = String.length line - 1 in
-                          if line.[n] = '\\' then (
-                            let descr = String.sub line 0 n :: descr in
-                            parse_descr descr lines)
-                          else (
-                            let descr = List.rev (line :: descr) in
-                            (String.concat "" descr, lines))
-                  in
-                  let descr, lines = parse_descr [] (descr :: lines) in
-                  parse_doc
-                    (main, special, (label, descr) :: params, methods)
-                    lines
-              | "method" ->
-                  let sub =
-                    Regexp.exec (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$") s
-                  in
-                  let label = Option.get (List.nth sub.Regexp.matches 1) in
-                  let descr = Option.get (List.nth sub.Regexp.matches 2) in
-                  parse_doc
-                    (main, special, params, (label, descr) :: methods)
-                    lines
-              | d -> failwith ("Unknown documentation item: " ^ d)
-          with Not_found ->
-            parse_doc (line :: main, special, params, methods) lines)
+                  | "category" ->
+                      parse_doc
+                        (main, `Category s :: special, params, methods)
+                        lines
+                  | "flag" ->
+                      parse_doc
+                        (main, `Flag s :: special, params, methods)
+                        lines
+                  | "param" ->
+                      let sub =
+                        Regexp.exec
+                          (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$")
+                          s
+                      in
+                      let label = Option.get (List.nth sub.Regexp.matches 1) in
+                      let descr = Option.get (List.nth sub.Regexp.matches 2) in
+                      let label =
+                        if label.[0] = '~' then
+                          Some (String.sub label 1 (String.length label - 1))
+                        else None
+                      in
+                      let rec parse_descr descr lines =
+                        match lines with
+                          | [] -> raise Not_found
+                          | line :: lines ->
+                              let line =
+                                Regexp.substitute (Regexp.regexp "^ *")
+                                  ~subst:(fun _ -> "")
+                                  line
+                              in
+                              let n = String.length line - 1 in
+                              if line.[n] = '\\' then (
+                                let descr = String.sub line 0 n :: descr in
+                                parse_descr descr lines)
+                              else (
+                                let descr = List.rev (line :: descr) in
+                                (String.concat "" descr, lines))
+                      in
+                      let descr, lines = parse_descr [] (descr :: lines) in
+                      parse_doc
+                        (main, special, (label, descr) :: params, methods)
+                        lines
+                  | "method" ->
+                      let sub =
+                        Regexp.exec
+                          (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$")
+                          s
+                      in
+                      let label = Option.get (List.nth sub.Regexp.matches 1) in
+                      let descr = Option.get (List.nth sub.Regexp.matches 2) in
+                      parse_doc
+                        (main, special, params, (label, descr) :: methods)
+                        lines
+                  | d -> failwith ("Unknown documentation item: " ^ d)
+              with Not_found ->
+                parse_doc (line :: main, special, params, methods) lines)
+        in
+        let main, special, params, methods = parse_doc ([], [], [], []) doc in
+        let main = List.rev main in
+        let params =
+          List.map
+            (fun (l, d) ->
+              ( l,
+                Doc.Value.
+                  {
+                    arg_type = "???";
+                    arg_default = Some "???";
+                    arg_description = Some d;
+                  } ))
+            (List.rev params)
+        in
+        let methods =
+          List.map
+            (fun (l, d) ->
+              (l, Doc.Value.{ meth_type = "???"; meth_description = d }))
+            (List.rev methods)
+        in
+        let main = String.concat "\n" main in
+        let main = Lang_string.unbreak_md main in
+        (* let main = String.concat "\n" main in *)
+        let category, flags =
+          List.fold_left
+            (fun (c, f) s ->
+              match s with `Category c -> (c, f) | `Flag flag -> (c, flag :: f))
+            ("Other", []) special
+        in
+        let category = String.trim category in
+        let category =
+          match Doc.Value.category_of_string category with
+            | Some c -> c
+            | None ->
+                failwith
+                  (Printf.sprintf "Unknown category: %s (%s)." category
+                     (Pos.to_string (startp, endp)))
+        in
+        let flags = List.map Doc.Value.flag_of_string flags in
+        Some
+          Doc.Value.
+            {
+              (* filled in later on *)
+              typ = "???";
+              category;
+              flags;
+              description = main;
+              (* TODO *)
+              examples = [];
+              arguments = params;
+              methods;
+            })
     in
-    let main, special, params, methods = parse_doc ([], [], [], []) doc in
-    let main = List.rev main in
-    let params =
-      List.map
-        (fun (l, d) ->
-          ( l,
-            Doc.Value.
-              {
-                arg_type = "???";
-                arg_default = Some "???";
-                arg_description = Some d;
-              } ))
-        (List.rev params)
-    in
-    let methods =
-      List.map
-        (fun (l, d) ->
-          (l, Doc.Value.{ meth_type = "???"; meth_description = d }))
-        (List.rev methods)
-    in
-    let main = String.concat "\n" main in
-    let main = Lang_string.unbreak_md main in
-    (* let main = String.concat "\n" main in *)
-    let category, flags =
-      List.fold_left
-        (fun (c, f) s ->
-          match s with `Category c -> (c, f) | `Flag flag -> (c, flag :: f))
-        ("", []) special
-    in
-    let category = Doc.Value.category_of_string category in
-    let flags = List.map Doc.Value.flag_of_string flags in
-    let doc =
-      Doc.Value.
-        {
-          (* filled in later on *)
-          typ = "???";
-          category;
-          flags;
-          description = main;
-          (* TODO *)
-          examples = [];
-          arguments = params;
-          methods;
-        }
-    in
-    (Parser.DEF (Some doc, decoration), (startp, endp))
+    (Parser.DEF (doc, decoration), (startp, endp))
   in
   let comment = ref ([], None) in
   let rec token () =
