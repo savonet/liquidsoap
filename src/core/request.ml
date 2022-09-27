@@ -155,7 +155,8 @@ let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
 (** Length *)
 let dresolvers_doc = "Methods to extract duration from a file."
 
-let dresolvers = Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
+let dresolvers =
+  Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
 
 exception Duration of float
 

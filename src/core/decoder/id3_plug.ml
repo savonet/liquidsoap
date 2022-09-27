@@ -63,13 +63,16 @@ let get_tags parse fname =
         raise Not_found
 
 let () =
-  Plug.register Request.mresolvers "ID3" ~doc:"Native decoder for ID3 tags."
+  Plug.register Request.mresolvers "ID3"
+    ~doc:"Native decoder for ID3 tags."
     (get_tags Metadata.ID3.parse_file)
 
 let () =
-  Plug.register Request.mresolvers "ID3v1" ~doc:"Native decoder for ID3v1 tags."
+  Plug.register Request.mresolvers "ID3v1"
+    ~doc:"Native decoder for ID3v1 tags."
     (get_tags Metadata.ID3v1.parse_file)
 
 let () =
-  Plug.register Request.mresolvers "ID3v2" ~doc:"Native decode for ID3v2 tags."
+  Plug.register Request.mresolvers "ID3v2"
+    ~doc:"Native decode for ID3v2 tags."
     (get_tags Metadata.ID3v2.parse_file)

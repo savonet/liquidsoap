@@ -130,6 +130,8 @@ let encoder avi =
   }
 
 let () =
-  Plug.register Encoder.plug "avi" ~doc:"Native avi encoder." (function
+  Plug.register Encoder.plug "avi"
+    ~doc:"Native avi encoder."
+    (function
     | Encoder.AVI avi -> Some (fun _ _ -> encoder avi)
     | _ -> None)

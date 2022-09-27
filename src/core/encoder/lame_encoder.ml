@@ -189,6 +189,8 @@ let () =
     in
     { insert_metadata; hls; encode; header = Strings.empty; stop }
   in
-  Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder." (function
+  Plug.register Encoder.plug "lame"
+    ~doc:"LAME mp3 encoder."
+    (function
     | Encoder.MP3 mp3 -> Some (fun _ meta -> mp3_encoder mp3 meta)
     | _ -> None)
