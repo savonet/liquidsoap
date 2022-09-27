@@ -74,17 +74,19 @@ class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
 
 (** A plug. *)
 type 'a t = {
-  register_hook : string -> 'a -> unit;
+  name : string;
   doc : Doc.Plug.t;
+  register_hook : string -> 'a -> unit;
   mutable items : (string * 'a) list;
 }
 
 (** Create a plug. *)
 let create ?(register_hook = fun _ _ -> ()) ~doc name =
-  { register_hook; doc = Doc.Plug.create ~doc name; items = [] }
+  { name; doc = Doc.Plug.create ~doc name; register_hook; items = [] }
 
 let register plug name ~doc value =
-  assert (not (List.mem_assoc name plug.items));
+  if List.mem_assoc name plug.items then
+    failwith ("Plugin already registered in " ^ plug.name ^ ": " ^ name);
   Doc.Plug.add plug.doc ~doc name;
   plug.items <- (name, value) :: plug.items
 
