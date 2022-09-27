@@ -57,4 +57,6 @@ let get_tags fname =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Request.mresolvers#register "IMAGEMD" get_tags
+let () =
+  Plug.register Request.mresolvers "image"
+    ~doc:"Native decoder for image metadata." get_tags

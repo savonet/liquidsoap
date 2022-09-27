@@ -30,4 +30,6 @@ let duration file =
       Int64.to_float h.Flac.Decoder.File.info.Flac.Decoder.total_samples
       /. float h.Flac.Decoder.File.info.Flac.Decoder.sample_rate)
 
-let () = Request.dresolvers#register "FLAC" duration
+let () =
+  Plug.register Request.dresolvers "flac"
+    ~doc:"Compute duration of flac fiiles." duration

@@ -57,5 +57,6 @@ let get_tags fname =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Plug.register Request.mresolvers "video-metadata"
+let () =
+  Plug.register Request.mresolvers "video-metadata"
     ~doc:"Native metadata decoder for videos." get_tags

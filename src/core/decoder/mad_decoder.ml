@@ -166,8 +166,8 @@ let create_file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder
 
 let () =
-  Decoder.decoders#register "MAD" ~plugin_aliases:["MP3"; "MP2"; "MP1"]
-    ~sdoc:
+  Plug.register Decoder.decoders "mad"
+    ~doc:
       "Use libmad to decode any file if its MIME type or file extension is \
        appropriate."
     {
@@ -194,4 +194,6 @@ let duration file =
   let ans = Mad.duration file in
   match ans with 0. -> raise Not_found | _ -> ans
 
-let () = Request.dresolvers#register "MAD" duration
+let () =
+  Plug.register Request.dresolvers "mad"
+    ~doc:"Compute duration of mp3 files using MAD library." duration

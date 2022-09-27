@@ -179,7 +179,7 @@ let create_file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype (create ?header:None)
 
 let () =
-  Decoder.decoders#register "WAV" ~sdoc:"Decode file or streams as WAV."
+  Plug.register Decoder.decoders "wav" ~doc:"Decode file or streams as WAV."
     {
       Decoder.media_type = `Audio;
       priority = (fun () -> wav_priority#get);
@@ -207,8 +207,8 @@ let aiff_priorities =
     "Priority for the AIFF decoder" ~d:1
 
 let () =
-  Decoder.decoders#register "AIFF"
-    ~sdoc:"Decode as AIFF any file with a correct header."
+  Plug.register Decoder.decoders "aiff"
+    ~doc:"Decode as AIFF any file with a correct header."
     {
       Decoder.media_type = `Audio;
       priority = (fun () -> aiff_priorities#get);
@@ -226,7 +226,8 @@ let () =
     Wav_aiff.close w;
     ret
   in
-  Request.dresolvers#register "WAV/AIFF" duration
+  Plug.register Request.dresolvers "wav/aiff"
+    ~doc:"Native computation of wav and aiff files duration." duration
 
 let basic_mime_types =
   Dtools.Conf.list
@@ -239,8 +240,8 @@ let basic_priorities =
     "Priority for the PCM/BASIC decoder" ~d:1
 
 let () =
-  Decoder.decoders#register "PCM/BASIC"
-    ~sdoc:"Decode audio/basic as headerless stereo U8 PCM at 8kHz."
+  Plug.register Decoder.decoders "pcm/basic"
+    ~doc:"Decode audio/basic as headerless stereo U8 PCM at 8kHz."
     {
       Decoder.media_type = `Audio;
       priority = (fun () -> basic_priorities#get);

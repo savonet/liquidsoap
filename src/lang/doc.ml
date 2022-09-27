@@ -41,6 +41,22 @@ module Plug = struct
     d.items <- (name, doc) :: d.items
 end
 
+(** Documentation for protocols. *)
+module Protcol = struct
+  type t = {
+    name : string;
+    description : string;
+    syntax : string;
+    static : bool;
+  }
+
+  let db = ref []
+
+  let add ~name ~doc ~syntax ~static =
+    let p = { name; description = doc; syntax; static } in
+    db := p :: !db
+end
+
 (** Documenentation for values. *)
 module Value = struct
   (** Documentation flags. *)

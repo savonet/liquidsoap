@@ -155,8 +155,7 @@ let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
 (** Length *)
 let dresolvers_doc = "Methods to extract duration from a file."
 
-let dresolvers =
-  Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
+let dresolvers = Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
 
 exception Duration of float
 
@@ -264,7 +263,7 @@ let f c v =
 
 let get_decoders conf decoders =
   let f cur name =
-    match decoders#get name with
+    match Plug.get decoders name with
       | Some p -> (name, p) :: cur
       | None ->
           log#severe "Cannot find decoder %s" name;
@@ -277,7 +276,7 @@ let mresolvers_doc = "Methods to extract metadata from a file."
 let mresolvers =
   Plug.create
     ~register_hook:(fun name _ -> f conf_metadata_decoders name)
-    ~doc:mresolvers_doc ~insensitive:true "metadata formats"
+    ~doc:mresolvers_doc "metadata formats"
 
 let conf_override_metadata =
   Dtools.Conf.bool
@@ -574,14 +573,14 @@ type protocol = {
 let protocols_doc =
   "Methods to get a file. They are the first part of URIs: 'protocol:args'."
 
-let protocols = Plug.create ~doc:protocols_doc ~insensitive:true "protocols"
+let protocols = Plug.create ~doc:protocols_doc "protocols"
 
 let is_static s =
   if Sys.file_exists (home_unrelate s) then true
   else (
     match parse_uri s with
       | Some (proto, _) -> (
-          match protocols#get proto with
+          match Plug.get protocols proto with
             | Some handler -> handler.static
             | None -> false)
       | None -> false)
@@ -610,7 +609,7 @@ let resolve ~ctype t timeout =
     else (
       match parse_uri i.string with
         | Some (proto, arg) -> (
-            match protocols#get proto with
+            match Plug.get protocols proto with
               | Some handler ->
                   add_log t
                     (Printf.sprintf "Resolving %s (timeout %.0fs)..."

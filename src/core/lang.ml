@@ -28,18 +28,10 @@ let midi_n n =
 
 (** Helpers for defining protocols. *)
 
-let to_proto_doc ~syntax ~static doc =
-  let item = new Doc.item ~sort:false doc in
-  item#add_subsection "syntax" (Lazy.from_val (Doc.trivial syntax));
-  item#add_subsection "static"
-    (Lazy.from_val (Doc.trivial (string_of_bool static)));
-  item
-
 let add_protocol ~syntax ~doc ~static name resolver =
-  let doc () = to_proto_doc ~syntax ~static doc in
-  let doc = Lazy.from_fun doc in
+  Doc.Protcol.add ~name ~doc ~syntax ~static;
   let spec = { Request.static; resolve = resolver } in
-  Request.protocols#register ~doc name spec
+  Plug.register Request.protocols ~doc name spec
 
 let format_t t = format_t t
 let kind_t k = Frame_type.make_kind k

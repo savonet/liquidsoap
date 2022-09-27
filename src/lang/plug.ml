@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-
 (** A plug is something where plug-ins plug. *)
 
 (*
@@ -74,29 +73,24 @@ class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
 *)
 
 (** A plug. *)
-type 'a t =
-  {
-    register_hook : string -> 'a -> unit;
-    doc : Doc.Plug.t;
-    mutable items : (string * 'a) list
-  }
+type 'a t = {
+  register_hook : string -> 'a -> unit;
+  doc : Doc.Plug.t;
+  mutable items : (string * 'a) list;
+}
 
 (** Create a plug. *)
-let create ?(register_hook=(fun _ _ -> ())) ~doc name =
-  {
-    register_hook;
-    doc = Doc.Plug.create ~doc name;
-    items = []
-  }
+let create ?(register_hook = fun _ _ -> ()) ~doc name =
+  { register_hook; doc = Doc.Plug.create ~doc name; items = [] }
 
 let register plug name ~doc value =
   assert (not (List.mem_assoc name plug.items));
   Doc.Plug.add plug.doc ~doc name;
-  plug.items <- (name,value) :: plug.items
+  plug.items <- (name, value) :: plug.items
 
 let get plug name = List.assoc_opt name plug.items
 
 (** List all the plugins. *)
 let list plug = plug.items
 
-let iter plug f = List.iter (fun (k,v) -> f k v) plug.items
+let iter plug f = List.iter (fun (k, v) -> f k v) plug.items

@@ -126,4 +126,6 @@ let create () =
   in
   convert
 
-let () = video_converters#register "ffmpeg" (formats, formats, create)
+let () =
+  Plug.register video_converters "ffmpeg" ~doc:"FFmpeg image format converter."
+    (formats, formats, create)

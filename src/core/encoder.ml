@@ -265,8 +265,7 @@ type factory = string -> Meta_format.export_metadata -> encoder
 type plugin = format -> factory option
 
 let plug : plugin Plug.t =
-  Plug.create ~doc:"Methods to encode streams."
-    "stream encoding formats"
+  Plug.create ~doc:"Methods to encode streams." "stream encoding formats"
 
 exception Found of factory
 

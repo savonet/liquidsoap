@@ -56,8 +56,9 @@ let samplerate_converter _ =
 
 let () =
   Plug.register Audio_converter.Samplerate.converters "native"
-    ~doc:"Native samplerate converter. This is fast but bad quality: you should \
-          avoid using it for now if you are serious about sound."
+    ~doc:
+      "Native samplerate converter. This is fast but bad quality: you should \
+       avoid using it for now if you are serious about sound."
     samplerate_converter
 
 let channel_layout_converter src dst =
@@ -69,5 +70,4 @@ let channel_layout_converter src dst =
 
 let () =
   Plug.register Audio_converter.Channel_layout.converters "native"
-    ~doc:"Native channel layout converter."
-    channel_layout_converter
+    ~doc:"Native channel layout converter." channel_layout_converter

@@ -67,7 +67,7 @@ module Samplerate = struct
            available.";
         ]
 
-  let converters : converter_plug Plug.plug =
+  let converters : converter_plug Plug.t =
     Plug.create "samplerate converters"
       ~doc:"Methods for converting samplerate."
 
@@ -75,7 +75,7 @@ module Samplerate = struct
     let converter =
       let rec f = function
         | conv :: l -> (
-            match converters#get conv with Some v -> v | None -> f l)
+            match Plug.get converters conv with Some v -> v | None -> f l)
         | [] ->
             (* This should never come up since the native converter is always
                available. *)
@@ -94,7 +94,7 @@ module Samplerate = struct
   let () =
     Lifecycle.before_start (fun () ->
         let rec f = function
-          | conv :: _ when converters#get conv <> None ->
+          | conv :: _ when Plug.get converters conv <> None ->
               log#important "Using samplerate converter: %s." conv
           | _ :: l -> f l
           | [] -> assert false
@@ -130,7 +130,7 @@ module Channel_layout = struct
            available.";
         ]
 
-  let converters : converter Plug.plug =
+  let converters : converter Plug.t =
     Plug.create "channel layout converters"
       ~doc:"Methods for converting channel layouts."
 
@@ -140,7 +140,7 @@ module Channel_layout = struct
       else (
         let rec f = function
           | conv :: l -> (
-              match converters#get conv with Some v -> v | None -> f l)
+              match Plug.get converters conv with Some v -> v | None -> f l)
           | [] ->
               (* This should never come up since the native converter is always
                  available. *)

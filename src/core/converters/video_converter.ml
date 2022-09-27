@@ -83,11 +83,9 @@ let find_converter src dst =
                 (Img.Pixel.string_of_format src)
                 (Img.Pixel.string_of_format dst)
     end;
-    Plug.iter
-      (fun name (sf, df, f) ->
+    Plug.iter video_converters (fun name (sf, df, f) ->
         log#info "Trying %s video converter..." name;
-        if List.mem src sf && List.mem dst df then raise (Exit (f ())) else ())
-      video_converters;
+        if List.mem src sf && List.mem dst df then raise (Exit (f ())) else ());
     log#important "Couldn't find a video converter from format %s to format %s."
       (Img.Pixel.string_of_format src)
       (Img.Pixel.string_of_format dst);

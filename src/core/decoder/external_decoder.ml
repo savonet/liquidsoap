@@ -114,8 +114,8 @@ let test_ctype f filename =
            else audio_n ret)
          ())
 
-let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =
-  Decoder.decoders#register name ~sdoc
+let register_stdin ~name ~doc ~priority ~mimes ~file_extensions ~test process =
+  Plug.register Decoder.decoders name ~doc
     {
       Decoder.media_type = `Audio;
       priority = (fun () -> priority);
@@ -133,7 +133,7 @@ let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =
     in
     duration process
   in
-  Request.dresolvers#register name duration
+  Plug.register Request.dresolvers name ~doc duration
 
 (** Now an external decoder that directly operates
   * on the file. The remaining time in this case
@@ -189,9 +189,9 @@ let external_input_oblivious process filename prebuf =
   in
   { Decoder.fill; fseek = decoder.Decoder.seek; close }
 
-let register_oblivious ~name ~sdoc ~priority ~mimes ~file_extensions ~test
+let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
     ~process prebuf =
-  Decoder.decoders#register name ~sdoc
+  Plug.register Decoder.decoders name ~doc
     {
       Decoder.media_type = `Audio;
       priority = (fun () -> priority);
@@ -206,4 +206,4 @@ let register_oblivious ~name ~sdoc ~priority ~mimes ~file_extensions ~test
     };
 
   let duration filename = duration (process filename) in
-  Request.dresolvers#register name duration
+  Plug.register Request.dresolvers name ~doc duration
