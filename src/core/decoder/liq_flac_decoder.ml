@@ -189,4 +189,4 @@ let duration file =
 
 let () =
   Plug.register Request.dresolvers "flac"
-    ~doc:"Compute duration of flac fiiles." duration
+    ~doc:"Compute duration of flac files." duration
