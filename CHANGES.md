@@ -46,7 +46,8 @@ Changed:
 - Deprecated `get_mime`, added `file.mime.libmagic` and `file.mime.cli`, made
   `file.mime` try `file.mime.libmagic` if present and `file.mime.cli` otherwise,
   changed eturned value when no mime was found to `null()`.
--  Removed `--list-plugins-json` and `--list-plugins-xml` options.
+- Removed `--list-plugins-json` and `--list-plugins-xml` options.
+- Added `--list-functions-json` option.
 
 Fixed:
 

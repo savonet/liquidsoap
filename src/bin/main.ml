@@ -310,6 +310,14 @@ let options =
               Lang_string.kprint_string ~pager:true
                 (Doc.Value.print_functions_md ~extra:false)),
           Printf.sprintf "Documentation of all functions in markdown." );
+        ( ["--list-functions-json"],
+          Arg.Unit
+            (fun () ->
+              run_streams := false;
+              load_libs ();
+              Lang_string.print_string ~pager:true
+                (Json.to_string ~compact:false (Doc.Value.to_json ()))),
+          Printf.sprintf "Documentation of all functions in markdown." );
         ( ["--list-extra-functions-md"],
           Arg.Unit
             (fun () ->

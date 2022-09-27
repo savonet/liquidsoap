@@ -265,6 +265,61 @@ module Value = struct
           print "\n\n")
         f.methods)
 
+  let to_json () : Json.t =
+    let functions =
+      !db |> List.map (fun (f, d) -> (f, Lazy.force d)) |> List.sort compare
+    in
+    let l =
+      List.map
+        (fun (l, f) ->
+          let arguments =
+            List.map
+              (fun (l, a) ->
+                ( Option.value ~default:"" l,
+                  `Assoc
+                    [
+                      ("type", `String a.arg_type);
+                      ( "default",
+                        Option.fold ~none:`Null
+                          ~some:(fun d -> `String d)
+                          a.arg_default );
+                      ( "description",
+                        `String (Option.value ~default:"" a.arg_description) );
+                    ] ))
+              f.arguments
+          in
+          let arguments = `Assoc arguments in
+          let methods =
+            List.map
+              (fun (l, m) ->
+                ( l,
+                  `Assoc
+                    [
+                      ("type", `String m.meth_type);
+                      ( "description",
+                        `String (Option.value ~default:"" m.meth_description) );
+                    ] ))
+              f.methods
+          in
+          let methods = `Assoc methods in
+          ( l,
+            `Assoc
+              [
+                ("type", `String f.typ);
+                ("category", `String (string_of_category f.category));
+                ( "flags",
+                  `Tuple
+                    (List.map string_of_flag f.flags
+                    |> List.map (fun s -> `String s)) );
+                ("description", `String f.description);
+                ("examples", `Tuple (List.map (fun s -> `String s) f.examples));
+                ("arguments", arguments);
+                ("methods", methods);
+              ] ))
+        functions
+    in
+    `Assoc l
+
   let print_functions_md ?(extra = true) print =
     let functions =
       !db
