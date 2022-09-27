@@ -187,6 +187,4 @@ let duration file =
         | x when x = Int64.zero -> raise Not_found
         | x -> Int64.to_float x /. float info.Flac.Decoder.sample_rate)
 
-let () =
-  Plug.register Request.dresolvers "flac"
-    ~doc:"Compute duration of flac fiiles." duration
+let () = Plug.register Request.dresolvers "flac" ~doc:"Compute duration of flac fiiles." duration
