@@ -195,6 +195,7 @@
   pitch
   playlist_basic
   playlist_parser
+  plug
   pool
   ppm_decoder
   prepend

@@ -55,7 +55,7 @@ let load_image filename =
   img
 
 let () =
-  Decoder.image_file_decoders#register "camlimages"
-    ~sdoc:"Use camlimages library to decode images." (fun filename ->
+  Plug.register Decoder.image_file_decoders "camlimages"
+    ~doc:"Use camlimages library to decode images." (fun filename ->
       let img = load_image filename in
       Some img)

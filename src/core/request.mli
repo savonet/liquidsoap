@@ -186,13 +186,13 @@ val get_decoder : t -> Decoder.file_decoder_ops option
 (** {1 Plugs} *)
 
 (** Functions for computing duration. *)
-val dresolvers : (string -> float) Plug.plug
+val dresolvers : (string -> float) Plug.t
 
 (** Functions for resolving metadata. Metadata filling isn't included in Decoder
     because we want it to occur immediately after request resolution. *)
-val mresolvers : (string -> (string * string) list) Plug.plug
+val mresolvers : (string -> (string * string) list) Plug.t
 
 (** Functions for resolving URIs. *)
-val protocols : protocol Plug.plug
+val protocols : protocol Plug.t
 
 module Value : Value.Abstract with type content := t

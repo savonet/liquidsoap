@@ -149,6 +149,6 @@ let encoder { Ogg_format.audio; video } =
     enc
 
 let () =
-  Encoder.plug#register "OGG" (function
+  Plug.register Encoder.plug "ogg" ~doc:"ogg encoder." (function
     | Encoder.Ogg m -> Some (encoder m)
     | _ -> None)

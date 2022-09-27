@@ -264,16 +264,15 @@ type factory = string -> Meta_format.export_metadata -> encoder
     If it accepts it, it gives a function creating suitable encoders. *)
 type plugin = format -> factory option
 
-let plug : plugin Plug.plug =
-  Plug.create ~doc:"Methods to encode streams." ~insensitive:true
-    "stream encoding formats"
+let plug : plugin Plug.t =
+  Plug.create ~doc:"Methods to encode streams." "stream encoding formats"
 
 exception Found of factory
 
 (** Return the first available encoder factory for that format. *)
 let get_factory fmt =
   try
-    plug#iter (fun _ f ->
+    Plug.iter plug (fun _ f ->
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
   with Found factory -> factory

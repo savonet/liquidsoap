@@ -114,7 +114,7 @@ type factory = string -> Meta_format.export_metadata -> encoder
   * If it accepts it, it gives a function creating suitable encoders. *)
 type plugin = format -> factory option
 
-val plug : plugin Plug.plug
+val plug : plugin Plug.t
 
 (** Return the first available encoder factory for that format. *)
 val get_factory : format -> factory

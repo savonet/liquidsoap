@@ -36,9 +36,9 @@ module Plug = struct
     db := d :: !db;
     d
 
-  let add d name description =
+  let add d ~doc name =
     assert (not (List.mem_assoc name d.items));
-    d.items <- (name, description) :: d.items
+    d.items <- (name, doc) :: d.items
 end
 
 (** Documenentation for values. *)

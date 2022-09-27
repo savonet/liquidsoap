@@ -47,8 +47,8 @@ let load_image fname =
     | _ -> None
 
 let () =
-  Decoder.image_file_decoders#register "ffmpeg"
-    ~sdoc:"Decode images using Ffmpeg." (fun filename ->
+  Plug.register Decoder.image_file_decoders "ffmpeg"
+    ~doc:"Decode images using Ffmpeg." (fun filename ->
       let ext = Filename.extension filename in
       if
         List.exists

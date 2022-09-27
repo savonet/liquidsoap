@@ -265,7 +265,7 @@ type 'a operator_method = string * scheme * string * ('a -> value)
   * so we have to force its value within the acceptable range. *)
 let add_operator =
   let _meth = meth in
-  fun ~(category : Documentation.source) ~descr ?(flags = [])
+  fun ~(category : Doc.Value.source) ~descr ?(flags = [])
       ?(meth = ([] : 'a operator_method list)) name proto ~return_t f ->
     let compare (x, _, _, _) (y, _, _, _) =
       match (x, y) with

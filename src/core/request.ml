@@ -155,15 +155,13 @@ let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
 (** Length *)
 let dresolvers_doc = "Methods to extract duration from a file."
 
-let dresolvers =
-  Plug.create ~doc:dresolvers_doc ~insensitive:true
-    "audio file formats (duration)"
+let dresolvers = Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
 
 exception Duration of float
 
 let duration file =
   try
-    dresolvers#iter (fun _ resolver ->
+    Plug.iter dresolvers (fun _ resolver ->
         try
           let ans = resolver file in
           raise (Duration ans)
@@ -277,7 +275,7 @@ let mresolvers_doc = "Methods to extract metadata from a file."
 
 let mresolvers =
   Plug.create
-    ~register_hook:(fun (name, _) -> f conf_metadata_decoders name)
+    ~register_hook:(fun name _ -> f conf_metadata_decoders name)
     ~doc:mresolvers_doc ~insensitive:true "metadata formats"
 
 let conf_override_metadata =

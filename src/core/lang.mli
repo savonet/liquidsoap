@@ -103,9 +103,9 @@ type proto = (string * t * value option * string option) list
 
 (** Add an builtin to the language, high-level version for functions. *)
 val add_builtin :
-  category:Documentation.category ->
+  category:Doc.Value.category ->
   descr:string ->
-  ?flags:Documentation.flag list ->
+  ?flags:Doc.Value.flag list ->
   ?meth:(string * Liquidsoap_lang.Type.scheme * string * value) list ->
   ?examples:string list ->
   string ->
@@ -116,9 +116,9 @@ val add_builtin :
 
 (** Add an builtin to the language, more rudimentary version. *)
 val add_builtin_base :
-  category:Documentation.category ->
+  category:Doc.Value.category ->
   descr:string ->
-  ?flags:Documentation.flag list ->
+  ?flags:Doc.Value.flag list ->
   string ->
   in_value ->
   t ->
@@ -154,9 +154,9 @@ type 'a operator_method = string * scheme * string * ('a -> value)
 
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
-  category:Documentation.source ->
+  category:Doc.Value.source ->
   descr:string ->
-  ?flags:Documentation.flag list ->
+  ?flags:Doc.Value.flag list ->
   ?meth:(< Source.source ; .. > as 'a) operator_method list ->
   string ->
   proto ->

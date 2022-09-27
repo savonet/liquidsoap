@@ -96,7 +96,7 @@ type decoder_specs = {
   stream_decoder : (ctype:Frame.content_type -> string -> stream_decoder) option;
 }
 
-val decoders : decoder_specs Plug.plug
+val decoders : decoder_specs Plug.t
 val conf_decoder : Dtools.Conf.ut
 val conf_mime_types : Dtools.Conf.ut
 val conf_file_extensions : Dtools.Conf.ut
@@ -119,7 +119,7 @@ val get_file_decoder :
 val get_stream_decoder :
   ctype:Frame.content_type -> string -> stream_decoder option
 
-val image_file_decoders : (file -> Video.Image.t option) Plug.plug
+val image_file_decoders : (file -> Video.Image.t option) Plug.t
 val get_image_file_decoder : file -> Video.Image.t option
 
 (* Initialize a decoding buffer *)
