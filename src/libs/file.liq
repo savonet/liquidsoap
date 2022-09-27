@@ -116,6 +116,7 @@ def replaces file.mime(fname) =
   fn = file.mime.cli
 
 %ifdef file.mime.libmagic
+  ignore(fn)
   fn = file.mime.libmagic
 %endif
 
