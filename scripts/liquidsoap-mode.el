@@ -77,7 +77,7 @@
   (set (make-local-variable 'indent-line-function) 'liquidsoap-indent-line)
   (set (make-local-variable 'font-lock-defaults) '(liquidsoap-font-lock-keywords))
   (setq mode-name "Liquidsoap")
-  )
+)
 
 (add-hook 'liquidsoap-mode-hook 'company-mode)
 
