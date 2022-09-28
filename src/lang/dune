@@ -5,6 +5,10 @@
 
 (include_subdirs unqualified)
 
+(generate_sites_module
+ (module sites)
+ (sites liquidsoap-lang))
+
 (menhir
  (modules parser json_parser))
 
@@ -39,7 +43,7 @@
  (library_flags -linkall)
  (preprocess
   (pps sedlex.ppx))
- (libraries str unix menhirLib)
+ (libraries dune-site str unix menhirLib)
  (modules
   build_config
   builtins_bool
@@ -83,6 +87,7 @@
   regexp
   runtime
   runtime_error
+  sites
   term
   type
   type_alias
