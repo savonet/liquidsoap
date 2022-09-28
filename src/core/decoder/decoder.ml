@@ -23,24 +23,24 @@
 open Mm
 
 (** Media decoding infrastructure.
-  *
-  * We treat files and streams.
-  * We separate detection from the actual decoding.
-  * For files, the decoder detection function is passed a filename and
-  * an expected content kind.
-  * For streams, it is passed a MIME type and a content kind.
-  *
-  * In practice, most file decoders will be based on stream decoders,
-  * with a specific (more precise) detection function. Although
-  * we cannot force it at this point, we provide some infrastructure
-  * to help.
-  *
-  * In the short term, the plug infrastructure should provide
-  * a way to ban / prioritize
-  * plugins. For example:
-  *   - choose ogg_demuxer when extension = ogg
-  *   - choose mad when extension = mp3
-  *   - choose mad when mime-type = audio/mp3 *)
+   
+    We treat files and streams.
+    We separate detection from the actual decoding.
+    For files, the decoder detection function is passed a filename and
+    an expected content kind.
+    For streams, it is passed a MIME type and a content kind.
+   
+    In practice, most file decoders will be based on stream decoders,
+    with a specific (more precise) detection function. Although
+    we cannot force it at this point, we provide some infrastructure
+    to help.
+   
+    In the short term, the plug infrastructure should provide
+    a way to ban / prioritize
+    plugins. For example:
+      - choose ogg_demuxer when extension = ogg
+      - choose mad when extension = mp3
+      - choose mad when mime-type = audio/mp3 *)
 
 let log = Log.make ["decoder"]
 
@@ -69,24 +69,24 @@ type buffer = {
 
 type decoder = {
   decode : buffer -> unit;
-  (* [seek x]: Skip [x] main ticks.
-   * Returns the number of ticks atcually skipped. *)
+  (* [seek x]: Skip [x] main ticks. Returns the number of ticks atcually
+     skipped. *)
   seek : int -> int;
 }
 
 type input = {
   read : bytes -> int -> int -> int;
-  (* Seek to an absolute position in bytes. 
-   * Returns the current position after seeking. *)
+  (* Seek to an absolute position in bytes. Returns the current position after
+     seeking. *)
   lseek : (int -> int) option;
   tell : (unit -> int) option;
   length : (unit -> int) option;
 }
 
-(** A decoder is a filling function and a closing function,
-  * called at least when filling fails, i.e. the frame is partial.
-  * The closing function can be called earlier e.g. if the user skips.
-  * In most cases, file decoders are wrapped stream decoders. *)
+(** A decoder is a filling function and a closing function, called at least when
+    filling fails, i.e. the frame is partial. The closing function can be called
+    earlier e.g. if the user skips. In most cases, file decoders are wrapped
+    stream decoders. *)
 type file_decoder_ops = {
   fill : Frame.t -> int;
   (* Return remaining ticks. *)
@@ -101,10 +101,10 @@ type file_decoder =
   string ->
   file_decoder_ops
 
-(** A stream decoder does not "own" any file descriptor,
-  * and is generally assumed to not allocate resources (in the sense
-  * of things that should be explicitly managed, not just garbage collected).
-  * Hence it does not need a close function. *)
+(** A stream decoder does not "own" any file descriptor, and is generally
+    assumed to not allocate resources (in the sense of things that should be
+    explicitly managed, not just garbage collected). Hence it does not need a
+    close function. *)
 type stream_decoder = input -> decoder
 
 type image_decoder = file -> Video.Image.t
@@ -120,8 +120,8 @@ type decoder_specs = {
   stream_decoder : (ctype:Frame.content_type -> string -> stream_decoder) option;
 }
 
-(** Plugins might define various decoders. In order to be accessed,
-  * they should also register methods for choosing decoders. *)
+(** Plugins might define various decoders. In order to be accessed, they should
+    also register methods for choosing decoders. *)
 
 let conf_decoder =
   Dtools.Conf.void ~p:(Configure.conf#plug "decoder") "Decoder settings"
