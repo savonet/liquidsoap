@@ -3,4 +3,5 @@
  (package liquidsoap)
  (files
   (liquidsoap-mode.el as emacs/site-lisp/liquidsoap-mode.el)
+  (liquidsoap-completion.el as emacs/site-lisp/liquidsoap-completion.el)
   (bash-completion as bash_completion/completions/liquidsoap)))

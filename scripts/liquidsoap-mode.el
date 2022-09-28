@@ -1,6 +1,8 @@
 ;; liquidsoap-mode.el -- Liquidsoap major mode
 ;; Copyright (C) 2003-2022 Samuel Mimram
 
+(require 'liquidsoap-completion)
+
 (defvar liquidsoap-font-lock-keywords
  '(
    ("#.*" . 'font-lock-comment-face)
@@ -75,7 +77,9 @@
   (set (make-local-variable 'indent-line-function) 'liquidsoap-indent-line)
   (set (make-local-variable 'font-lock-defaults) '(liquidsoap-font-lock-keywords))
   (setq mode-name "Liquidsoap")
-)
+  )
+
+(add-hook 'liquidsoap-mode-hook 'company-mode)
 
 (provide 'liquidsoap-mode)
 
