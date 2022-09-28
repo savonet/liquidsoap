@@ -59,7 +59,7 @@ cd ~
 cp -rf ${BASE_DIR}/.github/win32 liquidsoap-$BUILD
 cd liquidsoap-$BUILD
 cp ${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap ./liquidsoap.exe
-cp ${OPAM_PREFIX}/windows-sysroot/share/liquidsoap/libs/*.liq libs
+cp ${OPAM_PREFIX}/windows-sysroot/share/liquidsoap-lang/libs/*.liq libs
 cp -rf `ocamlfind -toolchain windows ocamlc -where`/../../share/camomile .
 cd ..
 zip -r liquidsoap-$BUILD.zip liquidsoap-$BUILD
