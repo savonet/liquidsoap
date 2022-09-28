@@ -80,6 +80,7 @@
 )
 
 (add-hook 'liquidsoap-mode-hook 'company-mode)
+(add-hook 'liquidsoap-mode-hook 'init-liquidsoap-completion)
 
 (provide 'liquidsoap-mode)
 

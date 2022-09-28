@@ -30,6 +30,7 @@
     dune-site
     dune-build-info
     liquidsoap-lang
+    liquidsoap-mode
     (ppx_string :build))
   (depopts
     alsa
@@ -135,3 +136,8 @@
   (conflicts
     (liquidsoap (<> :version)))
   (synopsis "Liquidsoap language"))
+
+(package
+   (name liquidsoap-mode)
+   (synopsis "Liquidosap emacs mode")
+)
