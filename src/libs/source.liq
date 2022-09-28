@@ -1,7 +1,7 @@
 # Turn a source into an infaillible source by adding blank when the source is
 # not available.
 # @param s the source to turn infaillible
-# @category Source / Track Processing
+# @category Source / Track processing
 def mksafe(~id="mksafe",s)
   fallback(id=id,track_sensitive=false,[(s:source),blank(id="safe_blank")])
 end
@@ -24,20 +24,20 @@ def add_skip_command(s) =
 end
 
 # Removes all metadata coming from a source.
-# @category Source / Track Processing
+# @category Source / Track processing
 def drop_metadata(s)
   metadata.map(fun(_)->[],update=false,strip=true,insert_missing=false,s)
 end
 
 # Creates a source that plays only one track of the input source.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param s The input source.
 def once(s)
   sequence([(s:source),source.fail()])
 end
 
 # Apply a function to the first track of a source
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param fn The applied function.
 # @param s The input source.
@@ -46,7 +46,7 @@ def map_first_track(~id=null(),fn,s)
 end
 
 # Skip track when detecting a blank.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~threshold Power in decibels under which the stream is considered silent.
 # @param ~max_blank Maximum silence length allowed, in seconds.
@@ -59,7 +59,7 @@ end
 # Same operator as rotate but merges tracks from each sources.
 # For instance, `rotate.merge([intro,main,outro])` creates a source
 # that plays a sequence `[intro,main,outro]` as single track and loops back.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
@@ -90,14 +90,14 @@ def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
 end
 
 # Extract the left channel of a stereo source
-# @category Source / Conversions
+# @category Source / Conversion
 # @param s Source to extract from
 def stereo.left(s)
   mean(stereo.pan(pan=-1., s))
 end
 
 # Extract the right channel of a stereo source
-# @category Source / Conversions
+# @category Source / Conversion
 # @param s Source to extract from
 def stereo.right(s)
   mean(stereo.pan(pan=1., s))
@@ -105,7 +105,7 @@ end
 
 # Rotate between overlapping sources. Next track starts according
 # to 'liq_start_next' offset metadata.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~start_next Metadata field indicating when the next track should start, relative to current track's time.
 # @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.
@@ -179,7 +179,7 @@ def overlap_sources(~id=null(),~normalize=false,
 end
 
 # Append speech-synthesized tracks reading the metadata.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~pattern Pattern to use
 # @param s The source to use
 def source.say_metadata =
@@ -200,7 +200,7 @@ end
 
 # Run a function regularly. This is similar to `thread.run` but based on a
 # source internal time instead of the world's time.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param s Source whose time is taken as reference.
 # @param ~delay Time to wait before the first run (in seconds).
 # @param ~every How often to run the function (in seconds). The function is run once if `null`.
@@ -217,7 +217,7 @@ def source.run(s, ~delay=0., ~every=null(), f)
 end
 
 # Regularly insert track boundaries in a stream (useful for testing tracks).
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~every Duration of a track (in seconds).
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
@@ -237,7 +237,7 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
 end
 
 # Regularly skip tracks from a source (useful for testing skipping).
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~every How often to skip tracks.
 # @param s The stream.
 # @flag extra

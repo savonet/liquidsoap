@@ -3,7 +3,7 @@
 let native = ()
 
 # Create a source that plays only one track of the input source.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @flag extra
 def native.once(s)
   # source.available(track_sensitive=true, s, predicate.first({true}))
@@ -13,7 +13,7 @@ def native.once(s)
 end
 
 # At the beginning of each track, select the first ready child.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.
@@ -30,7 +30,7 @@ end
 
 # Play only one track of every successive source, except for the last one which
 # is played as much as available.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param sources List of sources to play tracks from.
@@ -65,7 +65,7 @@ end
 
 # Select the first source whose predicate is true in a list. If the second
 # argument is a getter, the source will be dynamically created.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.

@@ -9,7 +9,7 @@ def input.v4l2(~id=null(), ~max_buffer=0.5, ~device="/dev/video0")
 end
 
 # A test video source, which generates various patterns.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~pattern Pattern drawn in the video: `"testsrc"`, `"testsrc2"`, `"smptebars"` or `"rgbtestsrc"`.
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~duration Duration of the source.
@@ -40,7 +40,7 @@ let video.add_text.ffmpeg.raw = ()
 # Display a text. Use this operator inside ffmpeg filters with a ffmpeg video input
 # Returns a ffmpeg video output with `on_change` and `on_metadata` methods to be used
 # to update the output text.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
 # @param ~font Path to ttf font file.
@@ -149,7 +149,7 @@ def video.add_text.ffmpeg.raw.filter(
 end
 
 # Display a text. Use this operator inside ffmpeg filters with a input source
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
 # @param ~font Path to ttf font file.
@@ -188,7 +188,7 @@ def replaces video.add_text.ffmpeg.raw(
 end
 
 # Display a text.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.

@@ -38,32 +38,32 @@ def metadata.getter.float(init, m, s)
 end
 
 # Extract filename from metadata.
-# @category Source / Track Processing
+# @category Source / Track processing
 def metadata.filename(m)
   m["filename"]
 end
 
 # Extract title from metadata.
-# @category Source / Track Processing
+# @category Source / Track processing
 def metadata.title(m)
   m["title"]
 end
 
 # Extract artist from metadata.
-# @category Source / Track Processing
+# @category Source / Track processing
 def metadata.artist(m)
   m["artist"]
 end
 
 # Extract comment from metadata.
-# @category Source / Track Processing
+# @category Source / Track processing
 def metadata.comment(m)
   m["comment"]
 end
 
 # Extract cover from metadata. This function implements cover extraction
 # for the following formats: coverart (ogg), apic (flac, mp3) and pic (mp3). 
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param m Metadata from which the cover should be extracted.
 # @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
 # @method mime MIME type for the cover.
@@ -129,7 +129,7 @@ end
 
 # Remove cover metadata. This is mostly useful in order not to flood logs
 # with coverart when logging metadata.
-# @category Source / Track Processing
+# @category Source / Track processing
 def metadata.cover.remove(m)
   list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic" and k != "pic" and k != "cover", m)
 end
@@ -137,7 +137,7 @@ end
 # Cleanup metadata for export. This is used to remove Liquidsoap's internal
 # metadata entries before sending them. List of exported metadata is set using
 # `settings.encoder.metadata.export.set`.
-# @category Source / Track Processing
+# @category Source / Track processing
 def metadata.export(m) =
   exported_keys = settings.encoder.metadata.export()
   list.assoc.filter((fun (k, (_:string)) -> list.mem(k, exported_keys)), m)
@@ -170,15 +170,15 @@ def metadata.json.stringify(~coverart_mime=null(), ~base64=true, ~compact=false,
   json.stringify(json5=json5,compact=compact,data)
 end
 
-# Parse metadata from JSON object
+# Parse metadata from JSON object.
 # @category String
 def metadata.json.parse(s) =
   let json.parse ( m : [(string * string)]? ) = s
   m ?? []
 end
 
-# Remove duplicate metadata in source
-# @category Source / Track Processing
+# Remove duplicate metadata in a source.
+# @category Source / Track processing
 # @param ~id Source id
 # @param s source
 def metadata.deduplicate(~id=null("metadata.deduplicate"), s) =

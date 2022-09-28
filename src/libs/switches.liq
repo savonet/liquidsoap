@@ -1,5 +1,5 @@
 # At the beginning of each track, select the first ready child.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
 # @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
@@ -22,7 +22,7 @@ let stdlib_fallback = fallback
 
 # Special track insensitive fallback that always skips current song before
 # switching.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @flag extra
 # @param s The main source.
 # @param ~fallback The fallback source.
@@ -41,7 +41,7 @@ def fallback.skip(s,~fallback=blank())
 end
 
 # Rotate between sources.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
 # @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
@@ -129,7 +129,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
 end
 
 # At the beginning of every track, select a random ready child.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
 # @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.

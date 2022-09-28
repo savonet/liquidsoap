@@ -13,7 +13,7 @@ def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
 end
 
 # Play a queue of requests (the first added request gets played first).
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~interactive Should the queue be controllable via telnet?
 # @param ~prefetch How many requests should be queued in advance.
@@ -102,7 +102,7 @@ end
 
 # Create a source on which plays immediately requests given with the `play`
 # method.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~simultaneous Allow multiple requests to play simultaneously. If `false` a new request replaces the previous one.
 # @method play Play a request.
 # @method length Number of currently playing requests.

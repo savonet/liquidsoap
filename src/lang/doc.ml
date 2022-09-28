@@ -133,7 +133,7 @@ module Value = struct
     [
       (`Source `Input, "Source / Input");
       (`Source `Output, "Source / Output");
-      (`Source `Conversion, "Source / Conversions");
+      (`Source `Conversion, "Source / Conversion");
       (`Source `FFmpegFilter, "Source / FFmpeg filter");
       (`Source `Track, "Source / Track processing");
       (`Source `Audio, "Source / Audio processing");
@@ -159,10 +159,8 @@ module Value = struct
   let string_of_category c = List.assoc c categories
 
   let category_of_string s =
-    (* TODO: remove lowercase comparison and correct the standard library *)
-    let s = String.lowercase_ascii s in
     let rec aux = function
-      | (c, s') :: _ when s = String.lowercase_ascii s' -> Some c
+      | (c, s') :: _ when s = s' -> Some c
       | _ :: l -> aux l
       | [] -> None
     in
