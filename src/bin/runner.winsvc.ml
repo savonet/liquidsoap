@@ -22,6 +22,8 @@
 
 (** Windows service runner. *)
 
+module Main = Liquidsoap_main.Main
+
 let name = ref "Liquidsoap"
 let display = ref "Liquidsoap Streaming Service"
 let text = ref "Powerful streaming service using Liquidsoap"

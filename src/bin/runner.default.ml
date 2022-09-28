@@ -22,4 +22,6 @@
 
 (** Default runner. *)
 
+module Main = Liquidsoap_main.Main
+
 let run () = Main.start ()
