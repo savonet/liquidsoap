@@ -26,7 +26,7 @@ end
 # Register a server/telnet command to update a source's metadata. Returns a new
 # source, which will receive the updated metadata. The command has the following
 # format: insert key1="val1",key2="val2",...
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id Force the value of the source ID.
 def server.insert_metadata(~id=null(),s) =
   s = insert_metadata(id=id,s)

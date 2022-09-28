@@ -1,7 +1,7 @@
 # Amplify source tracks according to replaygain metadata. This operator does not
 # compute itself the replaygain: you can use either `enable_replaygain_metadata`
 # or the `replaygain:` protocol for this.
-# @category Source / Audio Processing
+# @category Source / Audio processing
 # @param ~id Force the value of the source ID.
 # @param ~ebu_r128 Also amplify according to EBU R128 tags.
 # @param s Source to be amplified.

@@ -249,7 +249,7 @@ end
 # @param ~duration Duration (in seconds) after which songs are forgotten. By default, songs are not forgotten which means that the playlog will contain all the songs ever played.
 # @param ~hash Function to extract an identifier from the metadata. By default, the filename is used but we could return the artist to know when a song from a given artist was last played for instance.
 # @param ~persistency Set a file name where the values are stored and loaded in case the script is restarted.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @method add Record that file with given metadata has been played.
 # @method last How long ago a file was played (in seconds), `infinity` is returned if the song has never been played.
 def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"])

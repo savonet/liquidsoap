@@ -1,23 +1,23 @@
 # Width for all video frames.
-# @category Source / Video Processing
+# @category Source / Video processing
 def video.frame.width =
   settings.frame.video.width
 end
 
 # Height for all video frames.
-# @category Source / Video Processing
+# @category Source / Video processing
 def video.frame.height =
   settings.frame.video.height
 end
 
 # Framerate for all video frames.
-# @category Source / Video Processing
+# @category Source / Video processing
 def video.frame.rate =
   settings.frame.video.framerate
 end
 
 # Generate a source from a static image.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param file Path to the image.
@@ -32,7 +32,7 @@ def image(~id=null(), ~fallible=false, file="")
 end
 
 # Add a static image on the first video channel.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~width Scale to width
 # @param ~height Scale to height
@@ -49,7 +49,7 @@ end
 
 # Generate a video source containing cover-art for current track of input audio
 # source.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param s Audio source whose metadata contain cover-art.
 def video.cover(s)
   video = source.dynamic()
@@ -78,7 +78,7 @@ def video.cover(s)
 end
 
 # Input from ffmpeg.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @flag extra
 # @param ~restart restart on exit.
 # @param ~restart_on_error restart on exit with error.
@@ -110,7 +110,7 @@ end
 # @param ~restart_on_error restart on exit with error.
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @flag extra
 def video.external.testsrc(~id="video.external.testsrc",~restart=true,~restart_on_error=false,~buffer=0.2,~max=10.,~framerate=0)
   framerate = if framerate <= 0 then video.frame.rate() else framerate end
@@ -324,7 +324,7 @@ let video.add_text = ()
 let video.text.available = ref([])
 
 # Add a text to a stream (native implementation).
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
@@ -343,7 +343,7 @@ video.text.available := [("native", video.text.native), ...!video.text.available
 video.text.available := [("gd", video.text.gd), ...!video.text.available]
 
 # Add a text to a stream (GD implementation).
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
@@ -361,7 +361,7 @@ def video.text.gd = add_text_builder(video.text.gd) end
 video.text.available := [("gstreamer", video.text.gstreamer), ...!video.text.available]
 
 # Add a text to a stream (GStreamer implementation).
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
@@ -379,7 +379,7 @@ def video.add_text.gstreamer = add_text_builder(video.text.gstreamer) end
 video.text.available := [("sdl", video.text.sdl), ...!video.text.available]
 
 # Add a text to a stream (SDL implementation).
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
@@ -397,7 +397,7 @@ def video.add_text.sdl = add_text_builder(video.text.sdl) end
 video.text.available := [("camlimages", video.text.camlimages), ...!video.text.available]
 
 # Add a text to a stream (camlimages implementation).
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
@@ -428,7 +428,7 @@ thread.run.recurrent((fun () ->
   end))
 
 # Display a text.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~duration Duration in seconds (`null` means infinite).
@@ -443,7 +443,7 @@ end
 # Add a text to a stream. Uses the first available operator in: camlimages, SDL,
 # FFmpeg, GStreamer, gd or native.
 # Display a text using the first available operator in: SDL, GStreamer, gd or native.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.
@@ -461,7 +461,7 @@ def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=t
 end
 
 # Add subtitle from metadata.
-# @category Source / Video Processing
+# @category Source / Video processing
 # @param ~override Metadata where subtitle to display are located.
 # @param ~offset Offset in pixels.  
 # @param s Source.

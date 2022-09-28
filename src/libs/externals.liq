@@ -314,7 +314,7 @@ end
 # @param ~position Position of the text (top|middle|bottom).
 # @param ~font     Font used (xfontsel is your friend...)
 # @param ~display  Function used to display a metadata packet.
-# @category Source / Track Processing
+# @category Source / Track processing
 def osd_metadata(~color="green",~position="top",
         ~font="-*-courier-*-r-*-*-*-240-*-*-*-*-*-*",
         ~display=string_of_metadata,
@@ -334,7 +334,7 @@ end
 # @param ~time    Timeout in milliseconds.
 # @param ~display Function used to display a metadata packet.
 # @param ~title   Title of the notification message.
-# @category Source / Track Processing
+# @category Source / Track processing
 def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
            ~display=string_of_metadata,
            ~title="Liquidsoap: new track",s)
@@ -344,7 +344,7 @@ def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
 end
 
 %ifdef input.external.wav
-# Stream data from mplayer
+# Stream data from mplayer.
 # @flag extra
 # @category Source / Input
 # @param s data URI.

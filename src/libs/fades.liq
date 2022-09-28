@@ -69,7 +69,7 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
 end
 
 # Scale source during fading.
-# @category Source / Audio Processing
+# @category Source / Audio processing
 # @flag hidden
 def fade.scale(~id="fade.scale", x, s)
   s = amplify(id=id, override=null(), x, s)
@@ -78,7 +78,7 @@ def fade.scale(~id="fade.scale", x, s)
 end
 
 # Fade the end of tracks.
-# @category Source / Audio Processing
+# @category Source / Audio processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
@@ -156,7 +156,7 @@ def fade.out(~id="fade.out",~duration=3.,
 end
 
 # Fade when the metadata trigger is received and then skip.
-# @category Source / Audio Processing
+# @category Source / Audio processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
@@ -224,7 +224,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
 end
 
 # Fade the beginning of tracks.
-# @category Source / Audio Processing
+# @category Source / Audio processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
@@ -282,7 +282,7 @@ def fade.in(~id="fade.in",~duration=3.,
 end
 
 # Simple transition for crossfade
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~fade_in  Fade-in duration, if any.
 # @param ~fade_out Fade-out duration, if any.
 # @param a Ending track
@@ -296,7 +296,7 @@ def cross.simple(~fade_in=3.,~fade_out=3.,a,b)
 end
 
 # Smart transition for crossfade
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~log Default logger
 # @param ~fade_in  Fade-in duration, if any.
 # @param ~fade_out Fade-out duration, if any.
@@ -371,7 +371,7 @@ end
 
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @param ~id           Force the value of the source ID.
 # @param ~duration     Duration (in seconds) of buffered data from each track \
 #                      that is used to compute the transition between tracks.
@@ -448,7 +448,7 @@ end
 # Mixes two streams, with faded transitions between the state when only the
 # normal stream is available and when the special stream gets added on top of
 # it.
-# @category Source / Track Processing
+# @category Source / Track processing
 # @flag extra
 # @param ~duration Duration of the fade in seconds.
 # @param ~p       Portion of amplitude of the normal source in the mix.
