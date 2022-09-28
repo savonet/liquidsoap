@@ -1,10 +1,11 @@
 (rule
- (deps ./liquidsoap-completion-gen ./liquidsoap-completion.el.in)
  (target liquidsoap-completion.el)
+ (deps ../src/bin/liquidsoap.exe ./liquidsoap-completion.el.in)
  (action
-  (run ./liquidsoap-completion-gen)
- )
-)
+  (with-stdout-to %{target}
+   (progn
+    (run ../src/bin/liquidsoap.exe --list-emacs-completions)
+    ( cat ./liquidsoap-completion.el.in)))))
 
 (install
  (section share_root)

@@ -1,3 +1,0 @@
-#!/bin/sh
-dune exec -- ../src/bin/liquidsoap.exe --list-emacs-completions > liquidsoap-completion.el
-cat liquidsoap-completion.el.in >> liquidsoap-completion.el
