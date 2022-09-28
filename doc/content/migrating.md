@@ -32,6 +32,21 @@ The list of concerned metadata is:
 The confusing `let json.stringify` syntax has been removed as it did not provide any feature not already covered by either
 the `json.stringify()` function or the generic `json()` object mapper. Please use either of those now.
 
+## Decoder names
+
+Decoder names have been converted to lowercase. If you were relying on specific settings for decoders priority/ordering, you
+will need to convert them to lowercase, for instance:
+
+```
+settings.decoder.decoders.set(["FFMPEG"])
+```
+
+becomes:
+
+```
+settings.decoder.decoders.set(["ffmpeg"])
+```
+
 From 2.0.x to 2.1.x
 -------------------
 
