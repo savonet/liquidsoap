@@ -326,6 +326,14 @@ let options =
               Lang_string.kprint_string ~pager:true
                 (Doc.Value.print_functions_md ~extra:true)),
           Printf.sprintf "Documentation of all extra functions in markdown." );
+        ( ["--list-emacs-completions"],
+          Arg.Unit
+            (fun () ->
+              run_streams := false;
+              load_libs ();
+              Lang_string.kprint_string ~pager:false
+                Doc.Value.print_emacs_completions),
+          Printf.sprintf "Generate completions for emacs mode." );
         ( ["--list-protocols-md"],
           Arg.Unit
             (fun () ->
