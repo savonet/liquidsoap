@@ -557,8 +557,7 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
- (modules
-  builtins_http_secure_transport))
+ (modules builtins_http_secure_transport))
 
 (library
  (name liquidsoap_portaudio)
@@ -614,8 +613,7 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
- (modules imagelib_decoder)
-)
+ (modules imagelib_decoder))
 
 (library
  (name liquidsoap_shine)
@@ -655,9 +653,7 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
- (modules
-  ssl_base
-  builtins_http_ssl))
+ (modules ssl_base builtins_http_ssl))
 
 (library
  (name liquidsoap_taglib)
