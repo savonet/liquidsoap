@@ -234,17 +234,6 @@ let parse_comments tokenizer =
     let doc =
       if doc = [] then None
       else (
-        let get_args doc =
-          List.map
-            (fun (n, d) ->
-              let n = if n = "(unlabeled)" then "" else n in
-              let d = d#get_doc in
-              let d = if d <> "(no doc)" then d else "" in
-              (n, d))
-            (List.filter
-               (fun (n, _) -> String.length n = 0 || n.[0] <> '_')
-               doc#get_subsections)
-        in
         let rec parse_doc (main, special, params, methods) = function
           | [] -> (main, special, params, methods)
           | line :: lines -> (
