@@ -140,5 +140,7 @@
 (package
    (name liquidsoap-mode)
    (depends (liquidsoap-lang :build))
+   (conflicts
+     (liquidsoap-lang (<> :version)))
    (synopsis "Liquidosap emacs mode")
 )

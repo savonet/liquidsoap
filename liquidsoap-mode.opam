@@ -12,6 +12,9 @@ depends: [
   "liquidsoap-lang" {build}
   "odoc" {with-doc}
 ]
+conflicts: [
+  "liquidsoap-lang" {!= version}
+]
 build: [
   ["dune" "subst"] {dev}
   [
