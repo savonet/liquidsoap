@@ -1,5 +1,5 @@
 log.level.set(4)
-settings.decoder.decoders.set(["FFMPEG"])
+settings.decoder.decoders.set(["ffmpeg"])
 
 test.skip()
 

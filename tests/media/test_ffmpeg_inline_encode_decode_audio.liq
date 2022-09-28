@@ -1,5 +1,5 @@
 log.level.set(5)
-settings.decoder.decoders.set(["FFMPEG"])
+settings.decoder.decoders.set(["ffmpeg"])
 
 out_copy = "test_ffmpeg_inline_encode_decode_audio_copy.mp4"
 

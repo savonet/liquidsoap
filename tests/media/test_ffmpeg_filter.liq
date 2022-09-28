@@ -1,5 +1,5 @@
 log.level.set(4)
-settings.decoder.decoders.set(["FFMPEG"])
+settings.decoder.decoders.set(["ffmpeg"])
 
 fname = argv(default="",1)
 out = "#{fname}+test_ffmpeg_filter.mp4"

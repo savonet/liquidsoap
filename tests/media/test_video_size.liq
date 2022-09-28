@@ -1,7 +1,7 @@
 log.level.set(5)
 audio.samplerate.set(48000)
 video.frame.rate.set(45)
-settings.decoder.decoders.set(["FFMPEG"])
+settings.decoder.decoders.set(["ffmpeg"])
 
 fname = argv(default="@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4",1)
 out = "#{fname}+test_videos_size.avi"

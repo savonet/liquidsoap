@@ -1,7 +1,7 @@
 log.level.set(5)
 audio.samplerate.set(48000)
 video.frame.rate.set(45)
-settings.decoder.decoders.set(["FFMPEG"])
+settings.decoder.decoders.set(["ffmpeg"])
 
 fname = argv(default="",1)
 out = "#{fname}+test_ffmpeg_video_decoder.mp4"
