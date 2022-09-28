@@ -5,13 +5,19 @@
   (with-stdout-to %{target}
    (progn
     (run ../src/bin/liquidsoap.exe --list-emacs-completions)
-    ( cat ./liquidsoap-completion.el.in)))))
+    (cat ./liquidsoap-completion.el.in)
+   )
+  )
+ )
+)
 
 (install
  (section share_root)
  (package liquidsoap)
  (files
-  (bash-completion as bash_completion/completions/liquidsoap)))
+  (bash-completion as bash_completion/completions/liquidsoap)
+ )
+)
 
 (install
   (section share_root)
