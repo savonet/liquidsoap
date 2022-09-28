@@ -1,5 +1,5 @@
 (rule
- (deps liquidsoap-completion-gen liquidsoap-completion.el.in)
+ (deps ./liquidsoap-completion-gen ./liquidsoap-completion.el.in)
  (target liquidsoap-completion.el)
  (action
   (run ./liquidsoap-completion-gen)
