@@ -40,5 +40,5 @@ let load_image fname =
   img
 
 let () =
-  Plug.register Decoder.image_file_decoders "ImageLib"
+  Plug.register Decoder.image_file_decoders "imagelib"
     ~doc:"Use ImageLib to decode images." (fun fname -> Some (load_image fname))

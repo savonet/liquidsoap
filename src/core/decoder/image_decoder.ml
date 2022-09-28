@@ -137,7 +137,7 @@ let create_decoder ~audio ~width ~height ~metadata img =
   { Decoder.fill; fseek = (fun _ -> 0); close }
 
 let () =
-  Plug.register Decoder.decoders "Image" ~doc:"Decoder for static images."
+  Plug.register Decoder.decoders "image" ~doc:"Decoder for static images."
     {
       Decoder.media_type = `Audio_video;
       priority = (fun () -> 1);
