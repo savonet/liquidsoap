@@ -385,4 +385,22 @@ module Value = struct
             print "\n")
           functions)
       categories
+
+  let print_emacs_completions print =
+    let functions =
+      !db
+      |> List.map (fun (f, d) -> (f, Lazy.force d))
+      |> List.sort compare
+      |> List.filter (fun (_, d) ->
+             not (List.mem `Hidden d.flags || List.mem `Deprecated d.flags))
+    in
+    print "(defconst liquidsoap-completions '(\n";
+    List.iter
+      (fun (name, f) ->
+        let t = String.map (fun c -> if c = '\n' then ' ' else c) f.typ in
+        Printf.ksprintf print
+          "#(\"%s\" 0 1 (:type \"%s\" :description \"%s\"))\n" name t
+          (String.escaped f.description))
+      functions;
+    print "))\n\n"
 end

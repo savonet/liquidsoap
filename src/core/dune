@@ -5,10 +5,6 @@
 
 (include_subdirs unqualified)
 
-(generate_sites_module
- (module liquidsoap_sites)
- (sites liquidsoap))
-
 (rule
  (target liquidsoap_paths.ml)
  (action
@@ -16,13 +12,11 @@
 
 (library
  (name liquidsoap_core)
- (public_name liquidsoap)
  (preprocess
   (pps ppx_string))
  (libraries
   mm
   dtools
-  dune-site
   dune-build-info
   duppy
   liquidsoap_lang
@@ -159,7 +153,6 @@
   liq_time
   liqmagic
   liquidsoap_paths
-  liquidsoap_sites
   log
   lufs
   mFrame

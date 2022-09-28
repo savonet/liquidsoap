@@ -2,7 +2,7 @@
 (install
  (section
   (site
-   (liquidsoap libs)))
+   (liquidsoap-lang libs)))
  (package liquidsoap)
  (files
     visualization.liq

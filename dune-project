@@ -27,9 +27,9 @@
     uri
     menhirLib
     metadata
-    dune-site
     dune-build-info
     liquidsoap-lang
+    liquidsoap-mode
     (ppx_string :build))
   (depopts
     alsa
@@ -115,7 +115,6 @@
     (theora (< 0.4.0))
     (vorbis (< 0.8.0))
     (xmlplaylist (< 0.1.3)))
-  (sites (share libs) (share bin) (lib_root lib_root))
   (synopsis "Swiss-army knife for multimedia streaming")
   (description
 "\| Liquidsoap is a powerful and flexible language for describing your
@@ -130,8 +129,18 @@
   (name liquidsoap-lang)
   (depends
     (ocaml (>= 4.12.0))
+    dune-site
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))
   (conflicts
     (liquidsoap (<> :version)))
+  (sites (share libs) (share bin) (lib_root lib_root))
   (synopsis "Liquidsoap language"))
+
+(package
+   (name liquidsoap-mode)
+   (depends (liquidsoap-lang :build))
+   (conflicts
+     (liquidsoap-lang (<> :version)))
+   (synopsis "Liquidosap emacs mode")
+)

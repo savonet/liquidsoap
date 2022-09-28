@@ -28,9 +28,9 @@ depends: [
   "uri"
   "menhirLib"
   "metadata"
-  "dune-site"
   "dune-build-info"
   "liquidsoap-lang"
+  "liquidsoap-mode"
   "ppx_string" {build}
   "odoc" {with-doc}
 ]

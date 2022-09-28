@@ -1,1 +1,1 @@
-let () = Runner.run ()
+let () = Liquidsoap_runtime.Runner.run ()

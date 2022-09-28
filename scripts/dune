@@ -1,6 +1,31 @@
+(executable
+ (name gen_emacs_completion)
+ (link_flags -cclib %{env:LDFLAGS=})
+ (libraries liquidsoap_runtime)
+ (modules gen_emacs_completion))
+
+(rule
+ (target liquidsoap-completion.el)
+ (deps
+  (source_tree ../src/libs)
+  ./gen_emacs_completion.exe
+  ./liquidsoap-completion.el.in)
+ (action
+  (with-stdout-to
+   %{target}
+   (progn
+    (run ./gen_emacs_completion.exe)
+    (cat ./liquidsoap-completion.el.in)))))
+
 (install
  (section share_root)
  (package liquidsoap)
  (files
-  (liquidsoap-mode.el as emacs/site-lisp/liquidsoap-mode.el)
   (bash-completion as bash_completion/completions/liquidsoap)))
+
+(install
+ (section share_root)
+ (package liquidsoap-mode)
+ (files
+  (liquidsoap-mode.el as emacs/site-lisp/liquidsoap-mode.el)
+  (liquidsoap-completion.el as emacs/site-lisp/liquidsoap-completion.el)))
