@@ -155,7 +155,7 @@ def interactive.unit.set(name)
   f()
 end
 
-%ifdef osc
+%ifdef osc.on_float
 let stdlib_osc = osc
 %endif
 
@@ -169,7 +169,7 @@ def interactive.create(~name, ~description="", ~osc="", ~type)
   if list.assoc.mem(name, !variables) then error.raise(interactive.error, "variable already registered") end
   variables := (name, { type=type, description=description }) :: !variables
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
-%ifdef osc
+%ifdef osc.on_float
   if osc != "" then
     if type == "float" then
       stdlib_osc.on_float(osc, fun(x) -> interactive.float.set(name, x))
