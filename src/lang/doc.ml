@@ -397,8 +397,9 @@ module Value = struct
     print "(defconst liquidsoap-completions '(\n";
     List.iter
       (fun (name, f) ->
+        let t = String.map (fun c -> if c = '\n' then ' ' else c) f.typ in
         Printf.ksprintf print
-          "#(\"%s\" 0 1 (:type \"%s\" :description \"%s\"))\n" name f.typ
+          "#(\"%s\" 0 1 (:type \"%s\" :description \"%s\"))\n" name t
           (String.escaped f.description))
       functions;
     print "))\n\n"
