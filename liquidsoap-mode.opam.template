@@ -1,0 +1,9 @@
+post-messages: [
+  "This package requires additional configuration for use in editors. Install package 'user-setup', or manually:
+
+* for Emacs, add these lines to ~/.emacs:
+  (add-to-list 'load-path \"%{share}%/emacs/site-lisp\")
+  (require 'emacs-mode)
+"
+  {success & !user-setup:installed}
+]

@@ -28,3 +28,10 @@ build: [
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
+post-messages: [
+  "This package requires additional configuration for use in editors. For Emacs, add these lines to ~/.emacs:
+  (add-to-list 'load-path \"%{share}%/emacs/site-lisp\")
+  (require 'liquidsoap-mode)
+"
+  {success & !user-setup:installed}
+]
