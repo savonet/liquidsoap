@@ -88,7 +88,8 @@ let register plug name ~doc value =
   if List.mem_assoc name plug.items then
     failwith ("Plugin already registered in " ^ plug.name ^ ": " ^ name);
   Doc.Plug.add plug.doc ~doc name;
-  plug.items <- (name, value) :: plug.items
+  plug.items <- (name, value) :: plug.items;
+  plug.register_hook name value
 
 let get plug name = List.assoc_opt name plug.items
 
