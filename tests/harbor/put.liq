@@ -103,7 +103,7 @@ def f() =
    test.equals(req.method, "PUT")
    test.equals(req.query, [])
    test.equals(req.headers, [
-      ("host", "localhost:6543"),
+      ("host", "localhost:5427"),
       ("user-agent", http.user_agent),
       ("accept", "*/*"),
       ("transfer-encoding", "chunked"),
@@ -123,7 +123,7 @@ def f() =
 
   harbor.http.register("/in_memory_file_upload", method="PUT", port=5427, handler)
 
-  resp = http.put.file(filename="foo.txt", contents="foobarlol", content_type="text/plain", boundary=boundary, "http://localhost:6543/in_memory_file_upload")
+  resp = http.put.file(filename="foo.txt", contents="foobarlol", content_type="text/plain", boundary=boundary, "http://localhost:5427/in_memory_file_upload")
   test.equals(resp.status_message, "OK")
   test.equals(resp.status_code, 200)
   test.equals(resp.http_version, "1.1")
