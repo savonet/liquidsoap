@@ -121,7 +121,7 @@ def f() =
        --#{boundary}--\r\n")
   end
 
-  harbor.http.register("/in_memory_file_upload", method="PUT", port=6543, handler)
+  harbor.http.register("/in_memory_file_upload", method="PUT", port=5427, handler)
 
   resp = http.put.file(filename="foo.txt", contents="foobarlol", content_type="text/plain", boundary=boundary, "http://localhost:6543/in_memory_file_upload")
   test.equals(resp.status_message, "OK")

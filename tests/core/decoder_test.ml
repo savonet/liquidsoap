@@ -1,19 +1,5 @@
-let channel_layout_converter src dst =
-  match (src, dst) with
-    | `Mono, `Mono
-    | `Mono, `Stereo
-    | `Stereo, `Mono
-    | `Stereo, `Stereo
-    | `Five_point_one, `Five_point_one
-    | `Five_point_one, `Stereo
-    | `Five_point_one, `Mono ->
-        fun x -> x
-    | _ -> raise Audio_converter.Channel_layout.Unsupported
-
 let () =
   Frame_settings.lazy_config_eval := true;
-  Audio_converter.Channel_layout.converters#register "native"
-    channel_layout_converter;
   Frame_settings.conf_video_default#set true
 
 let () =
