@@ -20,9 +20,8 @@
 
  *****************************************************************************)
 
-(** Plug for resolving, that is obtaining a file from an URI.
-  * [src/protocols] plugins provide ways
-  * to resolve URIs: fetch, generate, ... *)
+(** Plug for resolving, that is obtaining a file from an URI. [src/protocols]
+    plugins provide ways to resolve URIs: fetch, generate, ... *)
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
@@ -94,29 +93,29 @@ let string_of_log log =
     "" log
 
 (** Requests.
-  * The purpose of a request is to get a valid file. The file can contain media
-  * in which case validity implies finding a working decoder, or can be
-  * something arbitrary, like a playlist.
-  * This file is fetched using protocols. For example the fetching can involve
-  * querying a mysql database, receiving a list of new URIS, using http to
-  * download the first URI, check it, fail, using smb to download the second,
-  * success, have the file played, finish the request, erase the temporary
-  * downloaded file.
-  * This process involve a tree of URIs, represented by a list of lists.
-  * Metadata is attached to every file in the tree, and the view of the
-  * metadata from outside is the merging of all the metadata on the path
-  * from the current active URI to the root.
-  * At the end of the previous example, the tree looks like:
-  * [ [ "/tmp/localfile_from_smb" ] ;
-  *   [
-  *     (* Some http://something was there but was removed without producing
-  *      * anything. *)
-  *     "smb://something" ; (* The successfully downloaded URI *)
-  *     "ftp://another/uri" ;
-  *     (* maybe some more URIs are here, ready in case of more failures *)
-  *   ] ;
-  *   [ "mydb://myrequest" ] (* And this is the initial URI *)
-  * ]
+    The purpose of a request is to get a valid file. The file can contain media
+    in which case validity implies finding a working decoder, or can be
+    something arbitrary, like a playlist.
+    This file is fetched using protocols. For example the fetching can involve
+    querying a mysql database, receiving a list of new URIS, using http to
+    download the first URI, check it, fail, using smb to download the second,
+    success, have the file played, finish the request, erase the temporary
+    downloaded file.
+    This process involve a tree of URIs, represented by a list of lists.
+    Metadata is attached to every file in the tree, and the view of the
+    metadata from outside is the merging of all the metadata on the path
+    from the current active URI to the root.
+    At the end of the previous example, the tree looks like:
+    [ [ "/tmp/localfile_from_smb" ] ;
+      [
+        (* Some http://something was there but was removed without producing
+           anything. *)
+        "smb://something" ; (* The successfully downloaded URI *)
+        "ftp://another/uri" ;
+        (* maybe some more URIs are here, ready in case of more failures *)
+      ] ;
+      [ "mydb://myrequest" ] (* And this is the initial URI *)
+    ]
   *)
 
 type indicator = { string : string; temporary : bool; metadata : metadata }
@@ -128,14 +127,14 @@ type t = {
   mutable ctype : Frame.content_type option;
   (* No kind for raw requests *)
   persistent : bool;
-  (* The status of a request gives partial information of what's being done
-   * with the request. The info is only partial because things can happen
-   * in parallel. For example you can resolve a request in order to get
-   * a new file from it while it is being played. For this reason, the separate
-   * resolving and on_air information is not completely redundant, and do
-   * not necessarily need to be part of the status information.
-   * Actually this need is quite rare, and I'm not sure this is a good
-   * choice. I'm wondering, so I keep the current design. *)
+  (* The status of a request gives partial information of what's being done with
+     the request. The info is only partial because things can happen in
+     parallel. For example you can resolve a request in order to get a new file
+     from it while it is being played. For this reason, the separate resolving
+     and on_air information is not completely redundant, and do not necessarily
+     need to be part of the status information.  Actually this need is quite
+     rare, and I'm not sure this is a good choice. I'm wondering, so I keep the
+     current design. *)
   mutable status : status;
   mutable resolving : float option;
   mutable on_air : float option;
@@ -294,12 +293,11 @@ let conf_duration =
      not recommended: the proper way is to have a script precompute the \
      \"duration\" metadata."
 
-(** Sys.file_exists doesn't make a difference between existing files
-  * and files without enough permissions to list their attributes,
-  * for example when they are in a directory without x permission.
-  * The two following functions allow a more precise diagnostic.
-  * We do not use them everywhere in this file, but only when splitting
-  * existence and readability checks yields better logs. *)
+(** Sys.file_exists doesn't make a difference between existing files and files
+    without enough permissions to list their attributes, for example when they
+    are in a directory without x permission.  The two following functions allow a
+    more precise diagnostic.  We do not use them everywhere in this file, but
+    only when splitting existence and readability checks yields better logs. *)
 
 let file_exists name =
   try
@@ -375,11 +373,11 @@ let push_indicators t l =
     t.indicators <- l :: t.indicators;
     t.decoder <- None;
 
-    (* Performing a local check is quite fast and allows the request
-     * to be instantly available if it is only made of valid local files,
-     * without any need for a resolution process. *)
-    (* TODO sometimes it's not that fast actually, and it'd be nice
-     * to be able to disable this check in some cases, like playlist.safe. *)
+    (* Performing a local check is quite fast and allows the request to be
+       instantly available if it is only made of valid local files, without any
+       need for a resolution process. *)
+    (* TODO: sometimes it's not that fast actually, and it'd be nice to be able
+       to disable this check in some cases, like playlist.safe. *)
     local_check t)
 
 let resolved t =
@@ -602,9 +600,9 @@ let resolve ~ctype t timeout =
   let resolve_step () =
     let i = peek_indicator t in
     log#f 6 "Resolve step %s in %s." i.string (string_of_indicators t);
-    (* If the file is local we only need to check that it's valid,
-     * we'll actually do that in a single local_check for all local indicators
-     * on the top of the stack. *)
+    (* If the file is local we only need to check that it's valid, we'll
+       actually do that in a single local_check for all local indicators on the
+       top of the stack. *)
     if file_exists i.string then local_check t
     else (
       match parse_uri i.string with
