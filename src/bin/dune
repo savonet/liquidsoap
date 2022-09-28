@@ -1,23 +1,7 @@
-(library
- (name liquidsoap_main)
- (preprocess
-  (pps ppx_string))
- (libraries
-  liquidsoap_core
-  liquidsoap_optionals
-  liquidsoap_builtins)
- (modules main build_config))
-
 (executable
  (name liquidsoap)
  (public_name liquidsoap)
  (package liquidsoap)
  (link_flags -cclib %{env:LDFLAGS=})
- (libraries
-  liquidsoap_main
-  (select
-   runner.ml
-   from
-   (winsvc -> runner.winsvc.ml)
-   (-> runner.default.ml)))
- (modules liquidsoap runner))
+ (libraries liquidsoap_runtime)
+ (modules liquidsoap))

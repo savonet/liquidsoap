@@ -16,7 +16,6 @@
 
 (library
  (name liquidsoap_core)
- (public_name liquidsoap)
  (preprocess
   (pps ppx_string))
  (libraries
