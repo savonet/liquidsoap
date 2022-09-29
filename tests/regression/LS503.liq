@@ -17,4 +17,3 @@ end
 p = noise()
 o = output.icecast(%wav,fallible=true,host="nonexistent",
                     mount="test",on_error=on_error,p)
-

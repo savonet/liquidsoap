@@ -10,7 +10,7 @@ let build_config =
   [%string
     {|
  * Liquidsoap version  : %{Build_config.version}
- 
+
  * Compilation options
    - Release build       : %{string_of_bool Build_config.is_release}
    - Git SHA             : %{Option.value ~default:"(none)" Build_config.git_sha}
@@ -25,7 +25,7 @@ let build_config =
    - native_c_compiler   : %{Build_config.native_c_compiler}
    - native_c_libraries  : %{Build_config.native_c_libraries}
 
- * Configured paths  
+ * Configured paths
    - mode              : %{path_mode}
    - standard library  : %{Liquidsoap_paths.liq_libs_dir_descr}
    - scripted binaries : %{Liquidsoap_paths.bin_dir_descr}

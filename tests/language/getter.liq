@@ -53,7 +53,7 @@ def tests() =
     end
   end
 
-  test.equals(string.getter.flush(separator="|", string.getter.concat([getter(""), getter(gen), getter("gno")])), "foobar|foobar|foobar|gno") 
+  test.equals(string.getter.flush(separator="|", string.getter.concat([getter(""), getter(gen), getter("gno")])), "foobar|foobar|foobar|gno")
 
   test.pass()
 end

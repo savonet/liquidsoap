@@ -102,7 +102,7 @@ tarballs for easier builds.
 | ffmpeg              | external I/O, `replay_gain` level computation, .. |
 | youtube-dl          | youtube video and playlist support                |
 
-    
+
 ## Installing via configure
 
 The build processus starts with by invoking the `configure` script:

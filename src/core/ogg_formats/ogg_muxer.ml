@@ -59,8 +59,8 @@ type 'a stream = {
 type track = Audio_track of audio stream | Video_track of video stream
 
 (** You may register new tracks on state Eos or Bos.
-  * You can't register new track on state Streaming. 
-  * You may finalize at any state, provided at least 
+  * You can't register new track on state Streaming.
+  * You may finalize at any state, provided at least
   * single track is registered. However, this is not
   * recommended. *)
 type state = Eos | Streaming | Bos
@@ -292,8 +292,8 @@ let remaining_pages encoder =
   *    that is ahead of the encoder position,
   *    the page is kept as remaining.
   *  + When there is one remaining page per
-  *    track, we take the least of them and 
-  *    add it. The encoder position is then 
+  *    track, we take the least of them and
+  *    add it. The encoder position is then
   *    bumped.
   *  + As soon as the encoder's position is ahead
   *    of a page, then this page can be written *)
@@ -310,7 +310,7 @@ let add_available src encoder =
             set_remaining_of_ogg_track track None);
 
     (* Then, we proceed only if the track
-     * is the only one left, or there is no 
+     * is the only one left, or there is no
      * remaining page. *)
     if Hashtbl.length encoder.tracks <= 1 || src.remaining = None then (
       try
@@ -323,10 +323,10 @@ let add_available src encoder =
           (* Is the new position ahead ? *)
           | Time pos ->
               if pos > encoder.position then
-                (* We don't output the page now 
-                 * since we want to let the possibility 
-                 * for another stream to add pages 
-                 * for a position between the current 
+                (* We don't output the page now
+                 * since we want to let the possibility
+                 * for another stream to add pages
+                 * for a position between the current
                  * position and this new one. *)
                 src.remaining <- Some (pos, p)
               else (

@@ -156,7 +156,7 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
         else
           (current_weight, indexes)
         end
-    
+
       (index+1, current_weight, indexes)
     end
 
@@ -169,7 +169,7 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
       else
         0
       end
-      
+
     def pick_source(picked_index, el) =
       let (lower_bound, upper_bound, index) = el
 
@@ -179,16 +179,16 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
          picked_index
       end
     end
- 
+
     next_index := list.fold(pick_source, -1, weighted_indexes)
   end
 
   def add_condition(index, s) =
     def cond() =
       if !next_index == -1 then pick() end
-      !next_index == index  
+      !next_index == index
     end
-    
+
     (cond, s)
   end
 
@@ -205,6 +205,6 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
   def replaces s =
     fallback(id=id, track_sensitive=true, s::sources)
   end
-  
+
   s
 end

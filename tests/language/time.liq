@@ -15,4 +15,4 @@ def f() =
   test.pass()
 end
 
-test.check(f) 
+test.check(f)

@@ -33,7 +33,7 @@ let bit_at s pos =
 
 type id3v2 = Waiting | Rendered of Strings.t | Done
 
-(* Notation: XYZ; X: copyright bit, Y: original bit, Z: private bit 
+(* Notation: XYZ; X: copyright bit, Y: original bit, Z: private bit
  *           !: negation
  *
  * Coding: 1XY
@@ -51,7 +51,7 @@ type id3v2 = Waiting | Rendered of Strings.t | Done
  *         0ZT
  *         0!Z!T <- Mark end
  *         1UV
- * 
+ *
  * At beginning, previous bit is assumed to be 010 (Lame's default).
  * Thus, initial synchronisation bit is 001.
  *

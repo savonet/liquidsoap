@@ -15,7 +15,7 @@ test.check(fun () ->
       request.create("file2.mp3"),
       request.create("file3.mp3")
     ])
-  
+
     q = r.queue()
 
     if list.length(q) != 2 then

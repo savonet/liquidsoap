@@ -1,6 +1,6 @@
 Encoding formats
 ================
-Encoders are used to define formats into which raw sources should be encoded by 
+Encoders are used to define formats into which raw sources should be encoded by
 an output. Syntax for encoder is: `%encoder(parameters...)` or, if you use
 default parameters, `%encoder`.
 
@@ -25,7 +25,7 @@ output.file(%mp3,"/tmp/foo.mp3",playlist("~/audio"))
 then the playlist source will have to stream stereo audio.
 Thus it will reject mono and video files.
 
-Liquidsoap provides operators that can be used to convert sources 
+Liquidsoap provides operators that can be used to convert sources
 into a format acceptable for a given encoder. For instance, the `mean`
 operator transforms any audio source into a mono source and the `audio_to_stereo`
 operator transforms any audio source into a stereo source.
@@ -52,7 +52,7 @@ Parameters common to each flavor are:
 * `stereo_mode`: One of: `"stereo"`, `"joint_stereo"` or `"default"` (default: `"default"`). Default means that the underlying library (`libmp3lame`) will pick the stereo mode based on compression ration and input channels.
 * `samplerate=44100`: Encoded data samplerate (default: `44100`)
 * `internal_quality=2`: Lame algorithms internal quality. A value between `0` and `9`, `0` being highest quality and `9` the worst (default: `2`).
-* `id3v2=true`: Add an `id3v2` tag to encoded data (default: `false`). This option is only valid if liquidsoap has been compiled with taglib support. 
+* `id3v2=true`: Add an `id3v2` tag to encoded data (default: `false`). This option is only valid if liquidsoap has been compiled with taglib support.
 
 Parameters for `%mp3` are:
 
@@ -81,7 +81,7 @@ Setting it to `""` disables this feature. This is its default value.
 
 Shine
 -----
-Shine is the fixed-point mp3 encoder. It is useful on architectures without a FPU, such as ARM. 
+Shine is the fixed-point mp3 encoder. It is useful on architectures without a FPU, such as ARM.
 It is named `%shine` or `%mp3.fxp` and its parameters are:
 
 ```liquidsoap
@@ -99,8 +99,8 @@ and is used to set the WAV length header.
 
 Because Liquidsoap encodes a possibly infinite stream, there
 is no way to know in advance the duration of encoded data. Since WAV header
-has to be written first, by default its length is set to the maximum possible 
-value. If you know the expected duration of the encoded data and you actually 
+has to be written first, by default its length is set to the maximum possible
+value. If you know the expected duration of the encoded data and you actually
 care about the WAV length header then you should use this parameter.
 
 FFmpeg
@@ -139,7 +139,7 @@ but quality -0.2 is only available with the aotuv implementation of libvorbis.
 
 ### Opus
 
-Opus is a lossy audio compression made especially suitable for interactive real-time applications 
+Opus is a lossy audio compression made especially suitable for interactive real-time applications
 over the Internet. Liquidsoap supports Opus data encapsulated into Ogg streams.
 
 The encoder is named `%opus` and its parameters are as follows. Please refer
@@ -151,7 +151,7 @@ their meanings and values.
 * `complexity`: Integer value between `0` and `10`.
 * `max_bandwidth`: One of `"narrow_band"`, `"medium_band"`, `"wide_band"`, `"super_wide_band"` or `"full_band"`
 * `samplerate`: input samplerate. Must be one of: `8000`, `12000`, `16000`, `24000` or `48000`
-* `frame_size`: encoding frame size, in milliseconds. Must be one of: `2.5`, `5.`, `10.`, `20.`, `40.` or `60.`. 
+* `frame_size`: encoding frame size, in milliseconds. Must be one of: `2.5`, `5.`, `10.`, `20.`, `40.` or `60.`.
 * `bitrate`: encoding bitrate, in `kbps`. Must be a value between `5` and `512`. You can also set it to `"auto"`.
 * `channels`: currently, only `1` or `2` channels are allowed.
 * `mono`, `stereo`: equivalent to `channels=1` and `channels=2`.
@@ -194,9 +194,9 @@ The flac encoding format comes in two flavors:
 The parameters are:
 
 ```liquidsoap
-%flac(samplerate=44100, 
-      channels=2, 
-      compression=5, 
+%flac(samplerate=44100,
+      channels=2,
+      compression=5,
       bits_per_sample=16)
 ```
 
@@ -262,5 +262,3 @@ Only one of `restart_on_metadata` and `restart_after_delay` should
 be passed. The delay is specified in seconds.
 The encoding process is mandatory, and can also be passed directly
 as a string, without `process=`.
-
-

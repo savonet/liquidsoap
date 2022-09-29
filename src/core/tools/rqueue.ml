@@ -17,10 +17,10 @@ exception Not_found
 
 type 'a cell = { content : 'a; mutable next : 'a cell; mutable prev : 'a cell }
 
-(* 
+(*
  *
  *  Realistic queues FIFO & LIFO, thread-safe :
- *  
+ *
  *       TOP [ rqueue ] BOTTOM
  *  unshift> [ rqueue ] >pop
  *    shift< [ rqueue ] <push

@@ -27,5 +27,3 @@ etc.
 For those who are interested, we can go through more advanced examples
 exploring the possibilities of video and midi support in liquidsoap.
 [More...](on2_part3.html)
-
-

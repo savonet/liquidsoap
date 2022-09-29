@@ -21,5 +21,3 @@ We advise users to check their scripts after modification (use
 liquidsoap --check /etc/liquidsoap/script.liq```
 )
 before effectively restarting the daemon.
-
-

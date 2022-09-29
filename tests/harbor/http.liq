@@ -172,7 +172,7 @@ def f() =
 
     def rec f(count) =
       ret = req.data()
-      
+
       if ret != "" then
         f(count + string.length(ret))
       else

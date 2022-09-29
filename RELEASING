@@ -3,7 +3,7 @@
 -----------------------------
 
  [] Run the CI. This should run the tests and prepare all the assets.
- [] Update the versioned dependencies in `liquidsoap.opam`, release 
+ [] Update the versioned dependencies in `liquidsoap.opam`, release
     pending dependent bindings (see below on how to publish to `opam`).
  [] Update copyright years in headers and check that all files have license
      headers.
@@ -46,8 +46,6 @@ Opam packages
 
 Packages can be published to opam using `opam publish`. Make sure to check upstream
 for improvement made on the package files before sending the updates. `opam`
-versioning for version suffix is: `x.y.z~suffix`. It is not compatible with 
+versioning for version suffix is: `x.y.z~suffix`. It is not compatible with
 liquidsoap's `configure` based version detection so make sure to avoid depending
-on version-suffixed packages. 
-
-
+on version-suffixed packages.

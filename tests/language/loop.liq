@@ -6,7 +6,7 @@ def t(x, y)
     success := false
   end
 end
-  
+
 def f() =
   n = ref(1)
   while !n < 10 do
@@ -31,7 +31,7 @@ def f() =
     s := !s ^ i
   end
   t(!s, "abc")
-  
+
   if !success then test.pass() else test.fail() end
 end
 

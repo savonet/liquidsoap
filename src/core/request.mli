@@ -89,7 +89,7 @@ val on_air_requests : unit -> int list
 val resolving_requests : unit -> int list
 
 (** {1 Resolving}
-  
+
     Resolving consists in many steps. Every step consist in rewriting the
     first URI into other URIs. The process ends when the first URI
     is a local filename. For example, the initial URI can be a database query,

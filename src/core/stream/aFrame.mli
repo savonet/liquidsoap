@@ -54,7 +54,7 @@ val set_all_metadata : t -> (int * metadata) list -> unit
 (** Get audio contents. Raises [Not_found] if frame has no audio data. *)
 val content : t -> Content.data
 
-(** Get PCM content. Raises [Content.Invalid] 
+(** Get PCM content. Raises [Content.Invalid]
   * if frame content is not pcm. *)
 val pcm : t -> Content.Audio.data
 

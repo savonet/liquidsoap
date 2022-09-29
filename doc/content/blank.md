@@ -48,5 +48,3 @@ def handler()
 end
 source = blank.detect(handler,source)
 ```
-
-

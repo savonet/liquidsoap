@@ -43,5 +43,3 @@ that project is now dead, a simple hack is now used instead: bubble.
 
 The usual way of sending a request is via an IRC bot, which queries the database
 and sends the chosen URI to liquidsoap.
-
-

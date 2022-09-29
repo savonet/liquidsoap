@@ -1,4 +1,4 @@
-This part is pretty open. We describe below a few advanced features of 
+This part is pretty open. We describe below a few advanced features of
 liquidsoap, including video and midi. We provide some examples
 or simply propose things to do, to give you an idea of what's in
 the near future of liquidsoap and hopefully draw you into
@@ -113,7 +113,7 @@ the script above. For example, the image can be converted to sepia by adding
 ```liquidsoap
 s = video.sepia(s)
 ```
-Common operations include adding a logo (stored in a PPM image file 
+Common operations include adding a logo (stored in a PPM image file
 `image.ppm`):
 ```liquidsoap
 s = video.add_image(width=30, height=30, x=10, y=10, file="image.ppm", s)
@@ -304,5 +304,3 @@ Re-usable tools for radios
 The open-source radio community needs re-usable tools that can be interfaced
 with existing streamers: indexer, database generator, scheduler,
 crossfading editor, etc.
-
-

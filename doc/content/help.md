@@ -3,7 +3,7 @@ Get help
 Liquidsoap is a self-documented application,
 which means that it can provide help about several of its aspects.
 You will learn here how to get help by yourself, by asking liquidsoap.
-If you do not succeed in asking the tool, you can of course get help from 
+If you do not succeed in asking the tool, you can of course get help from
 humans. We maintain the following communication channels:
 
 * Slack: [slack.liquidsoap.info](http://slack.liquidsoap.info/)
@@ -96,19 +96,19 @@ Methods:
      Get a source's time, based on its assigned clock.
 ```
 
-Of course if you do not know what function you need, you'd better go 
+Of course if you do not know what function you need, you'd better go
 through the [API reference](reference.html).
 
 Please note that some functions
-in that list are optional and may not be available with your local `liquidsoap` 
+in that list are optional and may not be available with your local `liquidsoap`
 install unless you install the optional dependency that enables it. The list of
-optional dependecies is listed via `opam info liquidsoap` if you have installed 
-it this way or can in our [build page](build.html). 
+optional dependecies is listed via `opam info liquidsoap` if you have installed
+it this way or can in our [build page](build.html).
 
 Settings
 --------
 Liquidsoap scripts contain expression like `settings.log.stdout.set(true)`.
-These are *settings*, global variables affecting the behaviour of the 
+These are *settings*, global variables affecting the behaviour of the
 application.
 
 Some common settings have shortcut for convenience. These are all shortcuts to their respective `settings` values:
@@ -132,4 +132,3 @@ which you can edit to set the values that you want,
 and load it ([implicitly](script_loading.html) or not) before you other scripts.
 
 You can browse online the [list of available settings](settings.html).
-

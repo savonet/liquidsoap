@@ -1,10 +1,10 @@
-Introduction 
+Introduction
 ------------
-You can use an external program to create a source that will read data coming out 
+You can use an external program to create a source that will read data coming out
 of the standard output (`stdout`) of this program. Contrary to the external file decoders,
 data will be buffered and played when a sufficient amount was accumulated.
 
-The program should output data in signed 16 bits little endian PCM (s16le). Number of 
+The program should output data in signed 16 bits little endian PCM (s16le). Number of
 channels and samplerate can be specified. There is no need of any wav header in the data,
 though it should work too.
 
@@ -46,4 +46,3 @@ def input.mplayer(~id="input.mplayer",
                     2>/dev/null")
 end
 ```
-

@@ -116,7 +116,7 @@ def harbor.http.middleware.cors(
       else
         add_credentials()
         add_allowed_headers()
-        add_vary()        
+        add_vary()
         next(req, res)
       end
     end

@@ -62,5 +62,3 @@ server.register("update",namespace="metadata",
 
 As usual, `liquidsoap -h icy.update_metadata` lists all the arguments
 of the function.
-
-

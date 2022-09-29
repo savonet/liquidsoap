@@ -7,11 +7,11 @@ Simple API
 ----------
 
 The `harbor.http.register.simple` function provides a simple, easy to use registration API for quick
-HTTP response implementation. This function receives a record describing the request and returns 
+HTTP response implementation. This function receives a record describing the request and returns
 the HTTP response.
 
 The request passed to the function contains all expected information from the underlying HTTP
-query. Its `data` method is a _string getter_, that is a function of type: `() -> string` 
+query. Its `data` method is a _string getter_, that is a function of type: `() -> string`
 which returns the empty string `""` when all data has been consumed. The convenience function
 `harbor.http.request.body` can be used to read all the data from the request and return it at
 once.
@@ -42,7 +42,7 @@ where:
 Node/express API
 ----------------
 
-The `harbor.http.register` function offers a higher-level API for advanced HTTP response implementation. 
+The `harbor.http.register` function offers a higher-level API for advanced HTTP response implementation.
 Its API is very similar to the node/express API. Here's an example:
 
 ```liquidsoap
@@ -53,34 +53,34 @@ def handler(request, response) =
 
   # Set response code. Defaults to 200
   response.status_code(201)
-  
+
   # Set response status message. Uses `status_code` if not specified
   response.status_message("Created")
-  
+
   # Replaces response headers
   response.headers(["X-Foo", "bar"])
-  
+
   # Set a single header
   response.header("X-Foo", "bar")
-  
+
   # Set http protocol version
   response.http_version("1.1")
-  
+
   # Same as setting the "Content-Type" header
   response.content_type("application/liquidsoap")
 
   # Set response data. Can be a `string` or a function of type `()->string` returning an empty string
   # when done such as `file.read`
   response.data("foo")
-  
+
   # Advanced wrappers:
 
   # Sets content-type to json and data to `json.stringify({foo = "bla"})`
   response.json({foo = "bla"})
-  
+
   # Sets `status_code` and `Location:` header for a HTTP redirect response. Takes an optional `status_code` argument.
   response.redirect("http://...")
-  
+
   # Sets content-type to html and data to `"<p>It works!</p>"`
   response.html("<p>It works!</p>")
 end
@@ -104,7 +104,7 @@ Middleware _a la_ node/express are also supported and registered via `http.harbo
 Https support
 -------------
 
-`https` is supported using either `libssl` or macos' `SecureTransport`. When compiled with either of them, a `http.transport.ssl` or `http.transport.secure_transport` 
+`https` is supported using either `libssl` or macos' `SecureTransport`. When compiled with either of them, a `http.transport.ssl` or `http.transport.secure_transport`
 is available and can be passed to each `harbor` operator:
 
 ```liquidsoap
@@ -180,8 +180,8 @@ harbor.http.register.regexp(
 
 Get metadata
 ------------
-You can use harbor to register HTTP services to 
-fecth/set the metadata of a source. For instance, 
+You can use harbor to register HTTP services to
+fecth/set the metadata of a source. For instance,
 using the [JSON export function](json.html) `json.stringify`:
 
 ```liquidsoap
@@ -199,7 +199,7 @@ end
 harbor.http.register(port=7000,method="GET","/getmeta",get_meta)
 ```
 
-Once the script is running, 
+Once the script is running,
 a GET request for `/getmeta` at port `7000`
 returns the following:
 
@@ -230,7 +230,7 @@ s = insert_metadata(s)
 def set_meta(request, response) =
   # Filter out unusual metadata
   meta = metadata.export(request.query)
-  
+
   # Grab the returned message
   ret =
     if meta != [] then

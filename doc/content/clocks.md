@@ -65,7 +65,7 @@ into a good representation of what clocks mean.
 One simply needs to add boxes representing clocks:
 a source can belong to only one box,
 and all sources of a box produce streams at the same rate.
-For example, 
+For example,
 ```liquidsoap
 output.icecast(fallback([crossfade(playlist(...)),jingles]))
 ```
@@ -85,7 +85,7 @@ Error messages
 --------------
 Most of the time you won't have to do anything special about clocks:
 operators that have special requirements regarding clocks will do
-what's necessary themselves, and liquidsoap will check that everything is 
+what's necessary themselves, and liquidsoap will check that everything is
 fine. But if the check fails, you'll need to understand the error,
 which is what this section is for.
 
@@ -160,7 +160,7 @@ safe  = rotate([1,10],[playlist("jingles.lst"),
 q = fallback([crossfade(music),safe])
 ```
 
-There is no problem anymore: `music` belongs to 
+There is no problem anymore: `music` belongs to
 `crossfade`'s internal clock, and `crossfade(music)`,
 `safe` and the `fallback` belong to another clock.
 
@@ -301,5 +301,3 @@ end
 one()
 one()
 ```
-
-

@@ -27,11 +27,9 @@ with `id3v2` tags:
  s = cue_cut(s)
 
  # Shove all that to a output.file operator.
- output.file(%mp3(id3v2=true,bitrate=320), 
+ output.file(%mp3(id3v2=true,bitrate=320),
              fallible=true,
              reopen_on_metadata=true,
              "/path/to/$(track) - $(title).mp3",
              s)
 ```
-
-

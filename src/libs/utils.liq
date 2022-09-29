@@ -5,7 +5,7 @@ def environment.get(~default=null(), s) =
   env = environment()
   if not list.assoc.mem(s, env) then
     default
-  else 
+  else
     list.assoc(default=default, s, env)
   end
 end
