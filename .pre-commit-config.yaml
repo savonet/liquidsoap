@@ -18,3 +18,8 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: trailing-whitespace
+
+  - repo: https://github.com/arenadotio/pre-commit-ocamlformat
+    rev: 0439858
+    hooks:
+      - id: ocamlformat
