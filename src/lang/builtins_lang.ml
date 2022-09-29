@@ -206,3 +206,11 @@ let () =
       ("native_c_compiler", Build_config.native_c_compiler);
       ("native_c_libraries", Build_config.native_c_libraries);
     ]
+
+let () =
+  Lang.add_builtin ~category:`Liquidsoap
+    ~descr:"Return any value with a fresh universal type for testing purposes."
+    ~flags:[`Hidden] "💣"
+    [("", Lang.univ_t (), Some Lang.null, None)]
+    (Lang.univ_t ())
+    (fun p -> List.assoc "" p)
