@@ -19,6 +19,14 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
+      - uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.13.x
+          opam-pin: false
+          opam-depext: false
+      - name: Install ocamlformat
+        run: |
+          opam install -y ocamlformat=0.19.0
       - uses: pre-commit/action@v3.0.0
 
   build_details:
