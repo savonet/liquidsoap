@@ -26,6 +26,6 @@ done
 
 cd /home/opam/opam-cross-windows/
 git add . && git commit -m"Add custom opam files"
-opam repository add windows . 
+opam repository add windows .
 
 opam list --short --recursive --external --vars os-distribution=mxe,os-family=mingw --required-by=$OPAM_DEPS > /home/opam/mxe-deps

@@ -23,18 +23,18 @@
 open Mm
 
 (** Media decoding infrastructure.
-   
+
     We treat files and streams.
     We separate detection from the actual decoding.
     For files, the decoder detection function is passed a filename and
     an expected content kind.
     For streams, it is passed a MIME type and a content kind.
-   
+
     In practice, most file decoders will be based on stream decoders,
     with a specific (more precise) detection function. Although
     we cannot force it at this point, we provide some infrastructure
     to help.
-   
+
     In the short term, the plug infrastructure should provide
     a way to ban / prioritize
     plugins. For example:

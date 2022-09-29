@@ -47,10 +47,10 @@ This source takes a custom function for creating its new requests.
 This function, of type `()->request`,
 can for example call an external program.
 
-To create the request, the function will have 
+To create the request, the function will have
 to use the `request.create` function which has type
 `(string,?indicators:[string])`.
-The first string is the initial URI of the request, 
+The first string is the initial URI of the request,
 which is resolved to get an audio file.
 The second argument can be used to directly specify the first row of URIs
 (see the page about [requests](requests.html) for more details),
@@ -61,7 +61,7 @@ until a valid audio file is obtained.
 An example that takes the output of an external script as an URI
 to create a new request can be:
 ```liquidsoap
-def my_request_function() = 
+def my_request_function() =
   # Get the first line of my external process
   result =
     list.hd(default="", process.read.lines("my_script my_params"))
@@ -96,5 +96,3 @@ The two sources are controlled via the [command server](advanced.html).
 They both feature commands for looking up the queues,
 queuing new requests, and the `equeue` operator also allows
 removal and exchange of requests in the secondary queue.
-
-

@@ -188,8 +188,8 @@ let create_decoder ?(merge_tracks = false) source input =
         Ogg_decoder.decode_video decoder track (video_feed track))
     with
       (* We catch [Ogg_decoder.End_of_stream] only if asked to
-       * to merge logical tracks or with a stream source. 
-       * In this case, we try to reset the decoder to see if 
+       * to merge logical tracks or with a stream source.
+       * In this case, we try to reset the decoder to see if
        * there could be another sequentialized logical stream
        * starting. Actual reset is handled in the
        * decoding function since we need the actual

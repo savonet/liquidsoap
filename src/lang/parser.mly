@@ -175,7 +175,7 @@ open Parser_helper
 %%
 
 program:
-  | error { raise (Parse_error ($loc, "Syntax error!")) } 
+  | error { raise (Parse_error ($loc, "Syntax error!")) }
   | EOF { mk ~pos:$loc unit }
   | exprs EOF { $1 }
 interactive:
@@ -303,7 +303,7 @@ record_ty:
   | meth_ty                 { let name, ty, json_name = $1 in
                               Type.meth ~pos:$loc ?json_name name ([], ty) (Type.make ~pos:$loc (Type.Tuple [])) }
   | meth_ty COMMA record_ty { let name, ty, json_name = $1 in
-                              Type.meth ~pos:$loc ?json_name name ([], ty) $3 }  
+                              Type.meth ~pos:$loc ?json_name name ([], ty) $3 }
 
 meth_ty:
   | VAR COLON ty            { $1, $3, None }
@@ -325,7 +325,7 @@ ty_content:
   | VAR DOT VAR                   { $1 ^ "." ^ $3, [] }
   | VAR DOT VAR DOT VAR           { $1 ^ "." ^ $3 ^ "." ^ $5, [] }
   | VARLPAR ty_content_args RPAR  { $1, $2 }
-  | VAR DOT VARLPAR ty_content_args RPAR 
+  | VAR DOT VARLPAR ty_content_args RPAR
                                   { $1 ^ "." ^ $3, $4 }
   | VAR DOT VAR DOT VARLPAR ty_content_args RPAR
                                   { $1 ^ "." ^ $3 ^ "." ^ $5, $6 }
@@ -405,7 +405,7 @@ pattern_list_with_spread:
   | pattern_list                                 { [], None,    $1 }
   | spread COMMA pattern_list                    { [], Some $1, $3 }
   | pattern_list COMMA spread                    { $1, Some $3, [] }
-  | pattern_list COMMA spread COMMA pattern_list { $1, Some $3, $5 } 
+  | pattern_list COMMA spread COMMA pattern_list { $1, Some $3, $5 }
 
 tuple_pattern:
   | LPAR pattern_list RPAR             { PTuple $2 }
@@ -457,7 +457,7 @@ let_opt:
   | let_opt_el COMMA let_opt { $1::$3 }
 
 _let:
-  | LET { Parser_helper.let_decoration_of_lexer_let_decoration $1 } 
+  | LET { Parser_helper.let_decoration_of_lexer_let_decoration $1 }
   | LETLBRA let_opt RBRA {
       match $1 with
         | `Json_parse     -> `Json_parse (Parser_helper.args_of_json_parse ~pos:$loc $2)
@@ -470,7 +470,7 @@ binding:
                              { None, $1,     $3,        None,    $8, Some $5 }
   | _let subfield GETS expr  { None, $1,     PVar $2,   None,    $4, None }
   | DEF pattern g exprs END  { fst $1,              snd $1, $2,        None,    $4, None }
-  | DEF LPAR pattern COLON ty RPAR g exprs END 
+  | DEF LPAR pattern COLON ty RPAR g exprs END
                              { fst $1,              snd $1, $3,        None,    $8, Some $5 }
   | DEF subfield g exprs END { fst $1,              snd $1, PVar $2,   None,    $4, None }
   | DEF varlpar arglist RPAR g exprs END
@@ -540,7 +540,7 @@ record:
   | record COMMA VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($3, $5, $1 ~pos e)) }
 
 annotate:
-  | annotate_metadata COLON { $1 } 
+  | annotate_metadata COLON { $1 }
 
 annotate_metadata:
   | annotate_metadata_entry annotate_metadata { $1::$2 }

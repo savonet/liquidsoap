@@ -22,7 +22,7 @@ The first step in order to use replay gain is to fetch or compute the appropriat
 Replay gain information can be found in various metadata fields depending on the audio format and the replay gain computation tool.
 Liquidsoap provides a script for extracting the replay gain value which requires the `ffmpeg` binary.
 
-There are two ways to use our replain gain script, one that works for _all_ files and one that can be enabled on a 
+There are two ways to use our replain gain script, one that works for _all_ files and one that can be enabled on a
 per-file basis, if you need finer grained control over replay gain.
 
 #### Using the replay gain metadata resolver
@@ -31,7 +31,7 @@ The metadata solution is uniform: without changing anything, *all* your
 files will have a new `replaygain_track_gain` metadata when the computation succeeded.
 
 However, keep in mind that this computation can be costly and will be done each time a remote file is
-downloaded to be prepared for streaming unless it already has the information pre-computed. For this 
+downloaded to be prepared for streaming unless it already has the information pre-computed. For this
 reason, it is recommended to pre-compute replay gain information as much as possible, specially
 if you intent to stream large audio files.
 
@@ -44,12 +44,12 @@ enable_replaygain_metadata()
 
 #### Using the `replaygain:` protocol
 
-The `replaygain:` protocol triggers replay gain retrieval or computation on 
+The `replaygain:` protocol triggers replay gain retrieval or computation on
 a per-file bases. To use it, you prefix your request URIs with it.
 
 For instance, replacing `/path/to/file.mp3` with `replaygain:/path/to/file.mp3`.
 
-When resolving such a request, a call to our script will be issued, 
+When resolving such a request, a call to our script will be issued,
 resulting in your file having the extra `replaygain_track_gain` metadata.
 
 Prepending `replaygain:` is easy if you are using a script
@@ -66,7 +66,7 @@ annotate:foo=\"bar":replaygain:/path/to/file.mp3
 
 After fetching or computing the replay gain information, the next step is to use it to correct the source's volume.
 
-The `amplify()` operator is used for that. This operator can be made to behave according to a given metadata, here the `replaygain` metadata. This is 
+The `amplify()` operator is used for that. This operator can be made to behave according to a given metadata, here the `replaygain` metadata. This is
 done using the `override` parameter.
 
 For replay gain implementation, the `amplify` operator would typically be added immediately on top of the basic tracks source, before transitions or other audio processing operators. Typically:

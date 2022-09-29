@@ -6,7 +6,7 @@
 # becoming unavailable.
 #
 # Pitfalls when cooking up this test:
-#  - Does not work with a track insensitive switch to "instantly kill" the 
+#  - Does not work with a track insensitive switch to "instantly kill" the
 #    source, because the switch makes sure to stay ready until the end of
 #    track.
 #  - Also does not work simply with a sequence underneath a fallible output,

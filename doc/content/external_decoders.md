@@ -1,15 +1,15 @@
 ## Introduction
 
 You can use external programs in liquidsoap to decode audio files. The program must be able to
-output WAV data to its standard output (`stdout`) and, posssibly, read encoded data from its 
+output WAV data to its standard output (`stdout`) and, posssibly, read encoded data from its
 standard input.
 
 Please note that this feature is not available under Windows.
 
 ## Basic operators
 
-External decoders are registered using the `add_decoder` and `add_oblivious_decoder` operators. 
-They are invoked the following way: 
+External decoders are registered using the `add_decoder` and `add_oblivious_decoder` operators.
+They are invoked the following way:
 
 ### `add_decoder`
 
@@ -70,7 +70,7 @@ following way: `add_metadata_resolver(format,resolver)`, where:
 
 ## Wrappers
 
-On top of the basic operators, wrappers have been written for some common decoders. This includes the `flac` and 
+On top of the basic operators, wrappers have been written for some common decoders. This includes the `flac` and
 `faad` decoders, by default. All the operators are defined in `externals.liq`.
 
 ### The FLAC decoder
@@ -134,9 +134,9 @@ end
 
 ### The faad decoder
 
-The faad decoder uses the `faad` program, if found in the `$PATH`. 
+The faad decoder uses the `faad` program, if found in the `$PATH`.
 It can decode AAC and AAC+ audio files. This program does not support
-reading encoded data from its standard input so the decoder is 
+reading encoded data from its standard input so the decoder is
 registered using `add_oblivious_decoder`.
 
 Its code is the following:
@@ -213,5 +213,3 @@ Its code is the following:
     add_metadata_resolver("FAAD",faad_meta)
   end
 ```
-
-

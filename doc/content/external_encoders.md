@@ -1,6 +1,6 @@
 Introduction
 ------------
-You can use any external program that accepts wav or raw PCM data to encode audio data and use the resulting compressed 
+You can use any external program that accepts wav or raw PCM data to encode audio data and use the resulting compressed
 stream as an output, either to a file, a pipe, or even icecast.
 
 When using an external encoding process, uncompressed PCM data will be sent to the process through its standard input (`stdin`), and encoded data will be read through its standard output (`stdout`). When using a process that does only file input or output, `/dev/stdin` and `/dev/stdout` can be used, though this may generate issues if the encoding process expects to be able to go backward/forward in the file.
@@ -12,7 +12,7 @@ The main operators that can be used with external encoders are:
 * `output.file`
 * `output.icecast`
 
-In order to use external encoders with these operators, you have to use the 
+In order to use external encoders with these operators, you have to use the
 `%external` [encoding format](encoding_formats.html).
 Its syntax is:
 
@@ -34,9 +34,9 @@ The available options are:
 
 Only one of `restart_encoder_delay` or `restart_on_new_track` should be used.
 
-The restart mechanism strongly relies on the good behaviour of the encoding process. The restart operation will 
+The restart mechanism strongly relies on the good behaviour of the encoding process. The restart operation will
 close the standard input of the encoding process. The encoding process is then expected to finish its own operations and
-close its standard output. If it does not close its standard output, the encoding task will not finish. 
+close its standard output. If it does not close its standard output, the encoding task will not finish.
 
 If your encoding process has this issue, you should turn the `restart_on_crash` option to `true` and kill the encoding
 process yourself.

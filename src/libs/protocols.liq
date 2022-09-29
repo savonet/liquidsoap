@@ -7,7 +7,7 @@ end
 
 let settings.protocol = settings.make.void(
   "Settings for registered protocols"
-) 
+)
 
 let settings.protocol.replaygain = settings.make.protocol("ReplayGain")
 let settings.protocol.replaygain.tag = settings.make(
@@ -173,7 +173,7 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
   file_writer = file.write.stream(output)
 
   timeout = maxtime - time()
-  
+
   try
     response = http.get.stream(
       on_body_data=file_writer,
@@ -258,7 +258,7 @@ def youtube_pl_protocol(~rlog=_,~maxtime=_,arg)
 end
 add_protocol("youtube-pl", youtube_pl_protocol,
               doc="Resolve a request as a youtube playlist using youtube-dl.",
-              temporary=true,syntax="youtube-pl:uri") 
+              temporary=true,syntax="youtube-pl:uri")
 
 # Register tmp
 # @flag hidden
@@ -381,7 +381,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
       else
         ""
       end
-      
+
 
     args =
       if fade_in != "" then
@@ -598,7 +598,7 @@ def aws_base() =
   end
 end
 
-# Register the s3:// protocol 
+# Register the s3:// protocol
 # @flag hidden
 def s3_protocol(~rlog=_, ~maxtime=_, arg) =
   extname = file.extension(leading_dot=false,dir_sep="/",arg)

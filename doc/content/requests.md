@@ -60,5 +60,3 @@ Currently supported formats
 * WAV
 * AAC
 * and much more through external decoders!
-
-

@@ -11,12 +11,12 @@ From 2.1.x to 2.2.x
 
 The API for registering HTTP server endpoint was completely. It should be more flexible and
 provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](harbor_http.html)
-for more details. 
+for more details.
 
 ### Metadata overrides
 
-Some metadata overrides have been made to reset on track boundaries. Previously, those were permanent even though they 
-were documented as only applying to the current track. If you need to keep the previous behavior, you can used the 
+Some metadata overrides have been made to reset on track boundaries. Previously, those were permanent even though they
+were documented as only applying to the current track. If you need to keep the previous behavior, you can used the
 `persist_overrides` parameters (`persis_override` for `cross`/`crossfade`).
 
 The list of concerned metadata is:
@@ -124,7 +124,7 @@ let eval (x: [int]) = "[1,2,3]"
 
 * The argument `streams_info` of `output.file.hls` is now a record.
 * Deprecated argument `timeout` of `http.*` operators.
-* `source.on_metadata` and `source.on_track` now return a source as this was the case in previous versions, and associated handlers are triggered only when the returned source is pulled 
+* `source.on_metadata` and `source.on_track` now return a source as this was the case in previous versions, and associated handlers are triggered only when the returned source is pulled
 * `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and `quality` arguments and added a single encoder argument to allow stream copy and more.
 * `list.mem_assoc` is replaced by `list.assoc.mem`
 * `timeout` argument in `http.*` operators is replaced by `timeout_ms`.
@@ -135,7 +135,7 @@ From 1.4.x to 2.0.0
 
 ### `audio_to_stereo`
 
-`audio_to_stereo` should not be required in most situations anymore. `liquidsoap` can handle channels conversions transparently now! 
+`audio_to_stereo` should not be required in most situations anymore. `liquidsoap` can handle channels conversions transparently now!
 
 ### `auth` function in `input.harbor`
 
@@ -173,7 +173,7 @@ Error 5: this value has type
     seek : (float) -> float,
     is_active : () -> bool,
     is_up : () -> bool,
-    log : 
+    log :
     {level : (() -> int?).{set : ((int) -> unit)}
     },
     self_sync : () -> bool,
@@ -258,7 +258,7 @@ Likewise, to get a setting's value you can now do:
 current_decoders = settings.decoder.decoders()
 ```
 
-This provides many good features, in particular type-safety. 
+This provides many good features, in particular type-safety.
 
 For convenience, we have added shorter versions of the most used settings. These are all shortcuts to their respective `settings` values:
 
@@ -313,7 +313,7 @@ Queueing for request-based sources has been simplified. The `default_duration` a
 a simpler implementation. You can now pass a `prefetch` parameter which tells the source how many requests should be queued
 in advance.
 
-Should you need more advanced queueing strategy, `request.dynamic.list` and `request.dynamic` now export functions to retrieve 
+Should you need more advanced queueing strategy, `request.dynamic.list` and `request.dynamic` now export functions to retrieve
 and set their own queue of requests.
 
 ### JSON import/export
@@ -333,7 +333,7 @@ Starting with liquidsoap `2.0.0`, output operators return the empty value `()` w
 This helps enforce the fact that outputs should be end-points of your scripting graphs. However, in some cases, this can cause
 issues while migrating old scripts, in particular if the returned value of an output was used in the script.
 
-The way to fix this is to apply your operator to the source directly underneath the output. For instance, the following clock assignment: 
+The way to fix this is to apply your operator to the source directly underneath the output. For instance, the following clock assignment:
 ```liquidsoap
 s = ...
 
@@ -351,7 +351,7 @@ output.icecast(..., s)
 
 ### Deprecated operators
 
-Some operators have been deprecated. For most of them, we provide a backward-compatible support 
+Some operators have been deprecated. For most of them, we provide a backward-compatible support
 but it is good practice to update your script. You should see logs in your script when running
 deprecated operatords. Here's a list of the most important ones:
 
@@ -372,7 +372,7 @@ deprecated operatords. Here's a list of the most important ones:
 * `register_flow`: flow is no longer maintained
 * `empty` is replaced by: `source.fail`
 * `file.unlink` is replaced by: `file.remove`
-* `string.utf8.escape` is replaced by: `string.escape`   
+* `string.utf8.escape` is replaced by: `string.escape`
 * `metadata.map` is replaced by: `metadata.map`
 
 ### Windows build

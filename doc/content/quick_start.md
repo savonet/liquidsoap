@@ -45,7 +45,7 @@ Firstly, because it could contain only invalid files, or at least spend too
 much time on invalid files to be able to prepare a valid one on time.
 Moreover, a playlist could contain remote files, which may not
 be accessible quickly at all times.
-A queue of user requests is another example of fallible source. 
+A queue of user requests is another example of fallible source.
 Also, if `file.ogg` is a valid local file,
 then `single("file.ogg")` is an infallible source.
 
@@ -72,9 +72,9 @@ One-line expressions
 Liquidsoap is a scripting language. Many simple setups can be achieved by evaluating one-line expressions.
 
 ### Playlists
-In the first example we'll play a playlist. Let's put a list of audio files in 
-`playlist.pls`: one filename per line, lines starting with a `#` are 
-ignored. You can also put remote files' URLs, if your liquidsoap has 
+In the first example we'll play a playlist. Let's put a list of audio files in
+`playlist.pls`: one filename per line, lines starting with a `#` are
+ignored. You can also put remote files' URLs, if your liquidsoap has
 [support](help.html#plugins) for the corresponding protocols.
 Then just run:
 
@@ -84,7 +84,7 @@ liquidsoap 'output(playlist("playlist.pls"))'
 
 Other playlist formats are supported, such as M3U and, depending on your
 configuration, XSPF.
-Instead of giving the filename of a playlist, you can also use a directory 
+Instead of giving the filename of a playlist, you can also use a directory
 name, and liquidsoap will recursively look for audio files in it.
 
 Depending on your configuration, the output `output` will use AO, Alsa or OSS, or won't do anything if you do not have support for these libs. In that case, the next example is for you.
@@ -152,7 +152,7 @@ liquidsoap 'output.alsa(bufferize = false,
 ```
 
 ### Other examples
-You can play with many more examples. Here are a few more. To build your own, 
+You can play with many more examples. Here are a few more. To build your own,
 lookup the [API documentation](reference.html) to check what functions are available, and what parameters they accept.
 
 ```liquidsoap
@@ -235,5 +235,3 @@ you might read more about Liquidsoap's [scripting language](language.html).
 For a better understanding of liquidsoap,
 it is also useful to read a bit about the notions of
 [sources](sources.html) and [requests](requests.html).
-
-

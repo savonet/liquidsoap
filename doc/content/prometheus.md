@@ -1,8 +1,8 @@
 Prometheus reporting
 ====================
 
-When compiled with optional support for [mirage/prometheus](https://github.com/mirage/prometheus), 
-`liquidsoap` can export [prometheus](https://prometheus.io/) metrics. 
+When compiled with optional support for [mirage/prometheus](https://github.com/mirage/prometheus),
+`liquidsoap` can export [prometheus](https://prometheus.io/) metrics.
 
 The basic settings to enable exports are:
 
@@ -33,7 +33,7 @@ They share a similar type and API, which is as follows:
  ?subsystem : string,
  labels : [string],
  string) ->
-   (label_values : [string]) -> 
+   (label_values : [string]) ->
      (float) -> unit
 ```
 
@@ -116,7 +116,7 @@ where liquidsoap does not observe latency catch-ups, the overall mean latency `l
 always be near that value.
 
 These metrics can be used to report and track the source of latencies and catch-ups while streaming.
-Typically, if a source starts taking too much time to generate its audio data, this should be reflects in the 
+Typically, if a source starts taking too much time to generate its audio data, this should be reflects in the
 `input` latencies. Likewise for encoding and network output.
 
 Keep in mind, however, that enabling these metrics can have a CPU cost. It is rather small with a couple of sources

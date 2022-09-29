@@ -11,5 +11,3 @@ They look forward to using Liquidsoap even more, and work with the Savonet team
 to make sure this tool can ease the work of webradios :)
 
 They provide an MP3 stream [here](http://streams.frequence3.net/mp3-128.m3u).
-
-

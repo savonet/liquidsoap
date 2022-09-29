@@ -1,5 +1,5 @@
 success = ref(false)
-  
+
 fname = file.temp("liq","test")
 
 def cleanup() =

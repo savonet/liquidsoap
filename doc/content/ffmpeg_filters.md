@@ -2,7 +2,7 @@ FFmpeg filters
 ==============
 
 [FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html) provide audio and video filters that can be used
-to transform content using the ffmpeg library. They are enabled in liquidsoap when compiled with the 
+to transform content using the ffmpeg library. They are enabled in liquidsoap when compiled with the
 optional [ffmpeg-avfilter](https://github.com/savonet/ocaml-ffmpeg).
 
 ## Filter as operators
@@ -76,7 +76,7 @@ end
 This filter receives a video input, creates a `ffmpeg.filter.video.input` with it that can be passed to filters,
 applies a `hflip` filter (flips the video vertically), creates a video output from it and returns it.
 
-FFmpeg filters are very powerful, they can also convert audio to video, for instance displaying information about the 
+FFmpeg filters are very powerful, they can also convert audio to video, for instance displaying information about the
 stream, and they can combined into powerful graph processing filters.
 
 ## Filter commands
@@ -200,4 +200,3 @@ def parallel_flanger_highpass(s) =
   ffmpeg.filter.create(mkfilter)
 end
 ```
-

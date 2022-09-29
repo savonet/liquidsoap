@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-(* A custom implementation of HTTP 
+(* A custom implementation of HTTP
  * requests. *)
 module Liq_http = struct
   type request = Get | Post of string

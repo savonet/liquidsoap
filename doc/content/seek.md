@@ -1,6 +1,6 @@
 Seeking in liquidsoap
 =====================
-Starting with Liquidsoap `1.0.0-beta2`, it is now possible to seek within sources! 
+Starting with Liquidsoap `1.0.0-beta2`, it is now possible to seek within sources!
 Not all sources support seeking though: currently, they are mostly file-based sources
 such as `request.queue`, `playlist`, `request.dynamic.list` etc..
 
@@ -75,12 +75,10 @@ s = cue_cut(s)
 ```
 
 As in the above example, you may use the `annotate` protocol to pass custom cue
-points along with the files passed to Liquidsoap. This is particularly useful 
+points along with the files passed to Liquidsoap. This is particularly useful
 in combination with `request.dymanic` as an external script can build-up
 the appropriate URI, including cue-points, based on information from your
 own scheduling back-end.
 
 Alternatively, you may use `metadata.map` to add those metadata. The operator
 `metadata.map` supports seeking and passes it to its underlying source.
-
-

@@ -116,7 +116,7 @@ def id(~id=null(),s)
  deprecated("id","")
  ignore(id)
  s
-end 
+end
 
 %ifdef http.get
 # Deprecated: flow is no longer maintained
@@ -268,7 +268,7 @@ end
 # needed anymore. Use `fade.in` instead.
 # @flag deprecated
 def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
-  deprecated("fade.initial", "fade.in")  
+  deprecated("fade.initial", "fade.in")
 
   fn = mkfade(start=0.,stop=1.,type=type,duration=duration,s)
   fade.scale(id=id,fn,s)

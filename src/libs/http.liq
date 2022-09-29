@@ -8,7 +8,7 @@
 # @method header Set a single header on the response
 # @method json Set content-type to json and data to `json.stringify` of the argument
 # @method redirect Set `status_code` and `Location:` header for a HTTP redirect response
-# @method html Set content-type to html and data to argument value 
+# @method html Set content-type to html and data to argument value
 # @method http_version Set http protocol version
 # @method status_code Set response status code
 # @method status_message Set response status message
@@ -17,7 +17,7 @@ def http.response(~http_version="1.1",
                   ~status_message=null(),
                   ~headers=[],
                   ~content_type=null(),
-                  ~data=getter("")) = 
+                  ~data=getter("")) =
   status_code = status_code ??
     if http_version == "1.1" and headers["expect"] == "100-continue" and getter.get(data) == "" then
       100
@@ -68,7 +68,7 @@ def http.response(~http_version="1.1",
           ("Content-Length", "#{string.length(data)}")::headers
         else
           headers
-        end 
+        end
       else
         ("Transfer-Encoding", "chunked")::headers
       end
@@ -82,7 +82,7 @@ def http.response(~http_version="1.1",
 
     headers = list.map(fun (v) -> "#{fst(v)}: #{snd(v)}", headers)
     headers = string.concat(separator="\r\n", headers)
-    headers = if headers != "" then "#{headers}\r\n" else "" end 
+    headers = if headers != "" then "#{headers}\r\n" else "" end
 
     "#{headers}\r\n"
   end
@@ -166,7 +166,7 @@ def http.response(~http_version="1.1",
     data = attr_method(data_sent, data),
     send_status = send_status,
     status_sent = {!status_sent}
-  } 
+  }
 end
 
 # @flag hidden
@@ -184,7 +184,7 @@ end
 # for a node/express like alternative API.
 # @category Liquidsoap
 # @argsof harbor.http.register
-def harbor.http.register.simple(%argsof(harbor.http.register), path, handler) = 
+def harbor.http.register.simple(%argsof(harbor.http.register), path, handler) =
   harbor.http.register(%argsof(harbor.http.register), harbor.http.regexp_of_path(path), handler)
 end
 
@@ -205,7 +205,7 @@ let harbor.http.middleware = ref(fun (req, res, next) -> next(req, res))
 def harbor.http.middleware.register(fn) =
   middleware = !harbor.http.middleware
   harbor.http.middleware := fun (req, res, next) -> begin
-    middleware(req, res, fun (res, res) -> 
+    middleware(req, res, fun (res, res) ->
       fn(req, res, next))
   end
 end
@@ -254,7 +254,7 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
 
     response
   end
-    
+
   harbor.http.register(%argsof(harbor.http.register), path, handler)
 end
 
@@ -399,7 +399,7 @@ def http.multipart_form_data(~boundary=null(), data)
     attributes = [("name", entry.name), ...entry.attributes]
     attributes = list.map(fun (v) -> "#{string(fst(v))}=#{string.quote(snd(v))}", attributes)
     attributes = string.concat(separator="; ", attributes)
-    
+
     headers = list.map(fun (v) -> "#{string(fst(v))}: #{string(snd(v))}", entry.headers)
     headers = string.concat(separator="\r\n", headers)
     headers = headers == "" ? "" : "#{headers}\r\n"

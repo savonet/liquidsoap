@@ -1,19 +1,19 @@
 RadioPi
 =======
-[RadioPi](http://www.radiopi.org) is the web radio of the ECP (Ecole Centrale de Paris). RadioPi runs many channels. 
+[RadioPi](http://www.radiopi.org) is the web radio of the ECP (Ecole Centrale de Paris). RadioPi runs many channels.
 There are topical channels (Reggae, Hip-Hop, Jazz, ...). On top of that, they periodically broadcast live shows,
 which are relayed on all channels.
 
-We met a RadioPi manager right after having released Liquidsoap 0.2.0, and he was seduced by the system. They needed 
-quite complex features, which they were at that time fulfilling using dirty tricks, loads of obfuscated scripts. 
+We met a RadioPi manager right after having released Liquidsoap 0.2.0, and he was seduced by the system. They needed
+quite complex features, which they were at that time fulfilling using dirty tricks, loads of obfuscated scripts.
 Using Liquidsoap now allow them to do all they want in an integrated way, but also provided new features.
 
 ### The migration process
 
-Quite easy actually. They used to have many instances Ices2, each of these calling a Perl script to get the next song. 
+Quite easy actually. They used to have many instances Ices2, each of these calling a Perl script to get the next song.
 Other scripts were used for switching channels to live shows.
 
-Now they have this single Liquidsoap script, no more. It calls external scripts to interact with their web-based song 
+Now they have this single Liquidsoap script, no more. It calls external scripts to interact with their web-based song
 scheduling system. And they won new features: blank detection and distributed encoding.
 
 The first machine gets its files from a ftp server opened on the second machine.
@@ -78,7 +78,7 @@ url = "http://radiopi.org"
 
 # A live source, on which we stip blank (make the source
 # unavailable when streaming blank)
-live = 
+live =
   blank.strip(
     input.harbor(id="live", port=8000, password=pass,
                  buffer=8.,max=20.,"live.ogg"),
@@ -91,11 +91,11 @@ output.icecast(%wav, host=stream,
                mount="live.ogg", fallible=true,
                live)
 
-# This source relays the live source to "live.ogg". This 
+# This source relays the live source to "live.ogg". This
 # is used for debugging purposes, to see what is sent
 # to the harbor source.
 output.icecast(%vorbis, host="127.0.0.1",
-               port=8080, password=pass, 
+               port=8080, password=pass,
                mount="live.ogg", fallible=true,
                live)
 
@@ -123,20 +123,20 @@ interlude =
   single("/home/radiopi/fallback.mp3")
 
 # Lastfm submission
-def lastfm (m) = 
+def lastfm (m) =
   if (m["type"] == "chansons") then
     if (m["canal"] == "reggae" or m["canal"] == "Jazz" or m["canal"] == "That70Sound") then
-      canal = 
-        if (m["canal"] == "That70Sound") then 
-       "70sound" 
-    else 
+      canal =
+        if (m["canal"] == "That70Sound") then
+       "70sound"
+    else
        m["canal"]
     end
       user = "radiopi-" ^ canal
       lastfm.submit(user=user,password="xXXxx",m)
     end
   end
-end 
+end
 
 # === Basic sources ===
 
@@ -215,9 +215,9 @@ end
 # Create a radiopilote-driven source
 def channel_radiopilote(~skip=true,name)
   log("Creating canal #{name}")
-  
+
   # Request function
-  def request () = 
+  def request () =
     log("Request for #{name}")
     ret = list.hd(process.read.lines(scripts^"radiopilote-getnext "^quote(name)^sed))
     log("Got answer: #{ret} for #{name}")
@@ -227,17 +227,17 @@ def channel_radiopilote(~skip=true,name)
   # Create the request.dynamic.list source
   # Set conservative to true to queue
   # several songs in advance
-  source = 
+  source =
     request.dynamic.list(conservative=true, length=400.,
-                    id="dyn_"^name,request, 
+                    id="dyn_"^name,request,
                     timeout=60.)
- 
-  # Apply normalization using replaygain 
+
+  # Apply normalization using replaygain
   # information
   source =   amplify(1.,override="replay_gain", source)
 
   # Skip blank when asked to
-  source = 
+  source =
     if skip then
       blank.skip(source, length=10., threshold=-40.)
     else
@@ -246,7 +246,7 @@ def channel_radiopilote(~skip=true,name)
 
   # Submit new tracks on lastfm
   source = on_metadata(lastfm,source)
-  
+
   # Tell the system when a new track
   # is played
   source = on_metadata(fun (meta) ->
@@ -283,19 +283,19 @@ clock.assign_new([jazz,That70Sound,metal,reggae])
 def mklive(source) =
   # Transition function: if transitioning
   # to the live, fade out the old source
-  # if transitioning from live, fade.in 
+  # if transitioning from live, fade.in
   # the new source. NOTE: We cannot
   # skip the current song because
   # reloading new songs for all the
   # sources when live starts costs too much
   # CPU.
   def trans(old,new) =
-    if source.id(new) == source.id(live) then 
+    if source.id(new) == source.id(live) then
       log("Transition to live!")
       add([new,fade.out(old)])
     elsif source.id(old) == source.id(live) then
       log("Transitioning from live!")
-      add([fade.in(new),old])    
+      add([fade.in(new),old])
     else
       log("Dummy transition")
       new
@@ -333,10 +333,8 @@ mkoutput(out=out_aac32,"reggae.aacp32", reggae, "RadioPi - Canal Reggae \
 
 The other machine has a similar configuration except that files are local, but this is exactly the same for liquidsoap !
 
-Using harbor, the live connects directly to liquidsoap, using port `8000` (icecast runs on port `8080`). 
+Using harbor, the live connects directly to liquidsoap, using port `8000` (icecast runs on port `8080`).
 Then, liquidsoap starts a relay to the other encoder, and both switch their channels to the new live.
 
-Additionally, a file output is started upon live connection, in order to backup the stream. You could also add a relay to 
+Additionally, a file output is started upon live connection, in order to backup the stream. You could also add a relay to
 icecast in order to manually check what's received by the harbor.
-
-

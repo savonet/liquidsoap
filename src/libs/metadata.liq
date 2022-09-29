@@ -62,7 +62,7 @@ def metadata.comment(m)
 end
 
 # Extract cover from metadata. This function implements cover extraction
-# for the following formats: coverart (ogg), apic (flac, mp3) and pic (mp3). 
+# for the following formats: coverart (ogg), apic (flac, mp3) and pic (mp3).
 # @category Source / Track processing
 # @param m Metadata from which the cover should be extracted.
 # @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
@@ -107,7 +107,7 @@ def metadata.cover(~coverart_mime=null(), m)
         if pic.format == "JPG" then
           "image/jpeg"
          elsif pic.format == "PNG" then
-           "image/png" 
+           "image/png"
          else
            "application/octet-stream"
          end
