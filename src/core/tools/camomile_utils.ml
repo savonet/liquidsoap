@@ -19,7 +19,7 @@ let conf_tag =
 
 let conf_encoding =
   (* The ["foo";"bla"] may be stripped by configure here.. We avoided it by chance because
-   * the configure script takes conf_tag#plug as the begining of a comment.
+   * the configure script takes conf_tag#plug as the beginning of a comment.
    * Don't forget this when modifying this inclusion later... *)
   Dtools.Conf.list
     ~p:(conf_tag#plug "encodings")

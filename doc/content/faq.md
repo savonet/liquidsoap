@@ -89,7 +89,7 @@ the single audio channel as both left and right channels.
 
 ### Runtime exceptions
 
-Liquidsoap scrips can raise runtime errors of the form:
+Liquidsoap scripts can raise runtime errors of the form:
 
 ```
 At line 3, char 45:

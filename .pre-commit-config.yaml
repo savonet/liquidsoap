@@ -23,3 +23,10 @@ repos:
     rev: v1
     hooks:
       - id: ocamlformat
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.1
+    hooks:
+      - id: codespell
+        args: [--ignore-words=.codespellignore]
+        exclude: ^doc/orig/fosdem2020

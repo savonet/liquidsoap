@@ -76,7 +76,7 @@ url = "http://radiopi.org"
 
 # === Live ===
 
-# A live source, on which we stip blank (make the source
+# A live source, on which we strip blank (make the source
 # unavailable when streaming blank)
 live =
   blank.strip(

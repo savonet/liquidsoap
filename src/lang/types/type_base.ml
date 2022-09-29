@@ -64,7 +64,7 @@ and constructed = { constructor : string; params : (variance * t) list }
 (** A method. *)
 and meth = {
   meth : string;  (** name of the method *)
-  scheme : scheme;  (** type sheme *)
+  scheme : scheme;  (** type scheme *)
   doc : string;  (** documentation *)
   json_name : string option;  (** name when represented as JSON *)
 }
@@ -158,7 +158,7 @@ type custom_handler = {
 type descr +=
   | Custom of custom_handler
   | Constr of constructed
-  | Getter of t  (** a getter: something that is eiter a t or () -> t *)
+  | Getter of t  (** a getter: something that is either a t or () -> t *)
   | List of repr_t
   | Tuple of t list
   | Nullable of t  (** something that is either t or null *)

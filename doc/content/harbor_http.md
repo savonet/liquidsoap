@@ -37,7 +37,7 @@ where:
 
 * `port` is the port where to receive incoming connections
 * `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
-* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Named named framents are passed via `request.query`, for instance: `req.query["cid"]`.
+* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Named named fragments are passed via `request.query`, for instance: `req.query["cid"]`.
 
 Node/express API
 ----------------
@@ -92,7 +92,7 @@ where:
 
 * `port` is the port where to receive incoming connections
 * `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
-* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Matched named framents are passed via `request.query`, for instance: `req.query["cid"]`.
+* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Matched named fragments are passed via `request.query`, for instance: `req.query["cid"]`.
 
 The handler function receives a record containing all the information about the request and fills
 up the details about the response, which is then used to write a proper HTTP response to the client.
@@ -223,7 +223,7 @@ updates the metadata of a given source. For instance:
 ```liquidsoap
 # s = some source
 
-# Create a source equiped with a `insert_metadata` method:
+# Create a source equipped with a `insert_metadata` method:
 s = insert_metadata(s)
 
 # The handler

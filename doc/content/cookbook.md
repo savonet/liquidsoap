@@ -285,7 +285,7 @@ There are two kinds of transitions. Transitions between two different children o
 
 The switch-based operators (`switch`, `fallback` and `random`) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two `source` parameters: the child which is about to be left, and the new selected child. The default transition is `fun (a,b) -> b`, it simply relays the new selected child source.
 
-One limitation of these transitions, however, is that if the transition happen right at the end of a track, which is the detault with `track_sensitive=true`, then there is no more data available for the old source, which makes it impossible to fade it out. If that is what you are expecting, you should look at crossfade-based transitions
+One limitation of these transitions, however, is that if the transition happen right at the end of a track, which is the default with `track_sensitive=true`, then there is no more data available for the old source, which makes it impossible to fade it out. If that is what you are expecting, you should look at crossfade-based transitions
 
 ### Crossfade-based transitions
 

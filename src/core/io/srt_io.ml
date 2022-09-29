@@ -56,13 +56,13 @@ let common_options ~mode =
            Lang.bool_t),
       Some Lang.null,
       Some
-        "Callback used to decide wether to accept new incoming connections. \
+        "Callback used to decide whether to accept new incoming connections. \
          Used in listener mode only." );
     ( "streamid",
       Lang.nullable_t Lang.string_t,
       Some Lang.null,
       Some
-        "Set `streamid`. This value can be retreived by the listener side when \
+        "Set `streamid`. This value can be retrieved by the listener side when \
          connecting to it. Used in caller mode only." );
     ( "passphrase",
       Lang.nullable_t Lang.string_t,

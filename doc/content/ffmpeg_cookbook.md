@@ -36,7 +36,7 @@ as we expect from `encoded_source` or by creating an infallible source using `ff
 On-demand relaying without re-encoding
 --------------------------------------
 
-Anothe refinement on the previous example is the capacity to relay a stream only when listeners are connected to it,
+Another refinement on the previous example is the capacity to relay a stream only when listeners are connected to it,
 all without re-encoding the content.
 
 To make it work, you will need a format that can be handled by `ffmpeg` for that purpose. `mp3` is a good example.

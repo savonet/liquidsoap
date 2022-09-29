@@ -226,7 +226,7 @@ let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
   let fname = Lang_string.home_unrelate filename in
-  (* Don't show infered types for standard library *)
+  (* Don't show inferred types for standard library *)
   let display_types = !Typechecking.display_types in
   if String.ends_with ~suffix:"stdlib.liq" filename then
     Typechecking.display_types := false;

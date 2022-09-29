@@ -113,7 +113,7 @@ let parse_register_args p =
 let () =
   Lang.add_builtin "harbor.http.register" ~category:`Liquidsoap
     ~descr:
-      "Low-level harbor handler registration. Overriden in standard library."
+      "Low-level harbor handler registration. Overridden in standard library."
     register_args Lang.unit_t (fun p ->
       let uri, port, transport, verb, handler = parse_register_args p in
       Harbor.add_http_handler ~transport ~port ~verb ~uri handler;

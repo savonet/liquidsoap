@@ -397,7 +397,7 @@ let mk_video ~ffmpeg ~options output =
       for i = vstart to vstop - 1 do
         let f =
           Video.Canvas.get vbuf i
-          (* TODO: we could scale instead of agressively changing the viewport *)
+          (* TODO: we could scale instead of aggressively changing the viewport *)
           |> Video.Canvas.Image.viewport src_width src_height
           |> Video.Canvas.Image.render ~transparent:false
         in
