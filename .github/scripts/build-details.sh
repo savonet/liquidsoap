@@ -10,9 +10,7 @@ fi
 
 echo "Detected branch: ${BRANCH}"
 
-echo "Debug: ${IS_FORK}"
-
-if [ -z "${AWS_ACCESS_KEY_ID}" ]; then
+if [ -n "${IS_FORK}" ]; then
   echo "Branch is from a fork"
   IS_FORK=true
 else
