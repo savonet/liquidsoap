@@ -82,7 +82,7 @@ let () =
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:`Audio
     ~descr:
-      "Compute the ReplayGain of the source. Data is acumulated until the \
+      "Compute the ReplayGain of the source. Data is accumulated until the \
        `gain` method is called, i.e. the gain is computed _after_ the source \
        has been played.."
     (fun p ->

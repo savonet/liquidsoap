@@ -257,7 +257,7 @@ or not. For instance, the code
 if (1 <= x and x <= 12) or (not 10h-15h) then
   print("The condition is satisfied")
 else
-  print("The condition ain't satisified")
+  print("The condition ain't satisfied")
 end
 ```
 
@@ -965,7 +965,7 @@ will print
 Patterns
 --------
 
-As explained earlier, you can use several contructions to extract data from structured values such
+As explained earlier, you can use several constructions to extract data from structured values such
 as `let [x, y] = l` and etc. These constructions are called _patterns_.
 
 Patterns allows to quickly access values nested deeply inside structured data in a way that remains pretty intuitive when
@@ -1140,7 +1140,7 @@ catch err do
 end
 ```
 
-Specific errors can be catched with the syntax
+Specific errors can be caught with the syntax
 
 ```liquidsoap
 try

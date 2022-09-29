@@ -511,7 +511,7 @@ let () =
       ( "height",
         Lang.nullable_t Lang.int_t,
         Some Lang.null,
-        Some "heigth (default is frame height)." );
+        Some "height (default is frame height)." );
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:`Video ~descr:"Set the viewport for the current video."

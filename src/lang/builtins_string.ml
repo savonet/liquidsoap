@@ -71,7 +71,7 @@ let () =
         Some Lang.null,
         Some
           "Return `true` if the given character (passed as a string) should be \
-           escaped. Defaults to control charaters for `\"utf8\"` and control \
+           escaped. Defaults to control characters for `\"utf8\"` and control \
            characters and any character above `\\x7E` (non-printable \
            characters) for `\"ascii\"`." );
       ( "escape_char",

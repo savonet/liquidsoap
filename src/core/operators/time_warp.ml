@@ -261,7 +261,7 @@ module AdaptativeBuffer = struct
                     done
                   done)
             in
-            (* We scale the reading so that the buffer always approximatively
+            (* We scale the reading so that the buffer always approximately
                contains prebuf data. *)
             let scaling = c.rb_length /. prebuf in
             let scale n = int_of_float (float n *. scaling) in

@@ -1,5 +1,5 @@
 # Stretch (as well as soundtouch) uses the Child_support clock control
-# mechamism. We want to make sure that it properly propagates end-of-tracks
+# mechanism. We want to make sure that it properly propagates end-of-tracks
 # to its underlying outputs/sources.
 
 s = once(blank(duration=10.))

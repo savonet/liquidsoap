@@ -318,7 +318,7 @@ let eval ?env tm =
   in
   let env = List.map (fun (x, (_, v)) -> (x, Lazy.from_val v)) env in
   let v = eval env tm in
-  (* This is used to unify runtime sources types with their infered type. *)
+  (* This is used to unify runtime sources types with their inferred type. *)
   let fn = !Hooks.eval_check in
   fn ~env ~tm v;
   v

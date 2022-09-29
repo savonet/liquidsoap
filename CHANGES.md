@@ -26,7 +26,7 @@ Changed:
 - Switched to `dune` for building the binary and libraries.
 - Changed `cry` to be a required dependency.
 - Added support for a Javascript build an interpreter.
-- Removed support for `%define` variables, superseeded by support for actual
+- Removed support for `%define` variables, superseded by support for actual
   variables in encoders.
 - Reimplemented `harbor` http handler API to be more flexible. Added a new
   node/express-like registration and middleware API (#2599).
@@ -230,7 +230,7 @@ Fixed:
 * Allow crossfade duration override of `0.`
 * Buffer synchronization issues.
 * Drop methods from ffmpeg filter input source
-  types to avoid unecessary conflicts.
+  types to avoid unnecessary conflicts.
 * Fix evaluation of abstract values with methods.
 * Prevent some sources from being consumed when not active,
   namely ffmpeg inline encoders, `soundtouch`, `resample` and all
@@ -275,7 +275,7 @@ Fixed:
 * Fixed `retry_delay` being ignored in some cases in `request.dynamic`.
 * Prevent race condition in external process handler.
 * Fixed A/V sync when streaming encoded data via ffmpeg encoder (#2159)
-* Prevent stopped/iddle sources from being restarted when reseting
+* Prevent stopped/iddle sources from being restarted when resetting
   clock(s) after too much latency (#2278)
 * Fixed registration of `video.add_text.ffmpeg` as possible implementation
   for `video.add_text` (#2302)
@@ -295,7 +295,7 @@ New:
 * Added support for memory debugging using `memtrace`
 * Added `time.{zone,zone.set,make}` (#2178)
 * Added `runtime.gc` module, rename `garbage_collect` as `runtime.gc.full_major`
-  with deprecated compatiblity wrapper, added `runtime.gc.stat`,
+  with deprecated compatibility wrapper, added `runtime.gc.stat`,
   `runtime.gc.quick_stat`, `runtine.gc.print_stat` and `runtime.gc.{get,set}`.
 * Added `runtime.sys.word_size`
 * Added optional support for `runtime.mem_usage`
@@ -1041,7 +1041,7 @@ New:
 - Add peak and peak.stereo operators (#364)
 - Change `track_sensitive` parameter to a boolean getter (fixed value or
   anonymous function).
-- Add SSL support to the varous harbor operators, either via openssl or OSX's
+- Add SSL support to the various harbor operators, either via openssl or OSX's
   SecureTransport.
 - Add optional "dj" and "next" metadata for Shoutcast v2, wrap "dj" value in a
   callback in output.shoutcast (#370, #388)

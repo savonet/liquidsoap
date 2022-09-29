@@ -175,7 +175,7 @@ let () =
 let () =
   Lang.add_module "liquidsoap.build_config";
   Lang.add_builtin_base ~category:`Liquidsoap
-    ~descr:"OCaml verion used to compile liquidspap."
+    ~descr:"OCaml version used to compile liquidspap."
     "liquidsoap.build_config.ocaml_version"
     Lang.(Ground (Ground.String Sys.ocaml_version))
     Lang.string_t;

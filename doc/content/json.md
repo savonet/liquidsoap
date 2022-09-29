@@ -115,7 +115,7 @@ variables can be anything so this does not leave enough information to the typin
 in this case, we default to `null`.
 
 In order to avoid bad surprises like this, it is usually recommended to add **type annotations** to your json parsing call
-to explicitely state what kind of data you are expecting. Let's add one here:
+to explicitly state what kind of data you are expecting. Let's add one here:
 
 ```liquidsoap
 let json.parse ({

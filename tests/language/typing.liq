@@ -101,7 +101,7 @@ def f() =
   #  error. And it's not easy to understand..
   # omega = fun (x) -> x(x)
 
-  # The argument f of the function g is infered as taking a non-optional
+  # The argument f of the function g is inferred as taking a non-optional
   # parameter x, whereas f has an optional parameter x. Subtyping should however
   # accept this now that we have disable partial application.
   g = fun(f) -> f(x=3)

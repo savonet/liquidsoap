@@ -73,7 +73,7 @@ The syntax for the encoder is detailed in the [encoders page](encoding_formats.h
 The main input to take advantage of FFmpeg is `input.ffmpeg`. It should be able to decode pretty much any url and file that the `ffmpeg` command-line
 can take as input. This is, in particular, how `input.rtmp` is defined.
 
-For outputing, one can use the regular outputs but some of them have special features when used with `%ffmpeg`:
+For outputting, one can use the regular outputs but some of them have special features when used with `%ffmpeg`:
 * `output.file` is able to properly close a file after it is done encoding it. This makes it possible to encode in formats that need a proper header after encoding is done, such as `mp4`.
 * `output.url` will only work with the `%ffmpeg` encoder. It delegates data output to FFmpeg and can support any url that the `ffmpeg` command-line supports.
 * `output.file.hls` and `output.harbor.hls` should only be used with `%ffmpeg`. The other encoders do work but `%ffmpeg` is the only encoder able to generate valid `MPEG-TS` and `MP4` data segments for the HLS specifications.

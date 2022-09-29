@@ -276,7 +276,7 @@ TODO:
 TODO:
   - Should be weakDeliminator
   - Explain deliminator
-  - Doesn't seem to be supported in highligh.cpp
+  - Doesn't seem to be supported in highlight.cpp
 -->
 <!ELEMENT keyword EMPTY>
 <!ATTLIST keyword

@@ -168,7 +168,7 @@ class virtual source :
            returns the number of ticks actually skipped.
            By default it always returns 0, refusing to seek at all.
            That method may be called from any thread, concurrently
-           with [#get], so they should not interfer. *)
+           with [#get], so they should not interfere. *)
        method virtual seek : int -> int
 
        (** [is_ready] tells you if [get] can be called. *)

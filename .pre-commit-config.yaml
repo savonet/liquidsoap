@@ -29,3 +29,4 @@ repos:
     hooks:
       - id: codespell
         args: [--ignore-words=.codespellignore]
+        exclude: ^doc/orig/fosdem2020

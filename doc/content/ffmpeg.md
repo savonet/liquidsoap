@@ -49,7 +49,7 @@ Priority for the decoder is set via:
 settings.decoder.priorities.ffmpeg.set(10)
 ```
 
-You can use this setting to adjust wether or not the ffmpeg decoder should be tried first when decoding media files, in particular in
+You can use this setting to adjust whether or not the ffmpeg decoder should be tried first when decoding media files, in particular in
 conjunction with the other `settings.decoder.priorities.*` settings.
 
 For each type of media codec, the `settings.decoder.ffmpeg.codecs.*` settings can be used to tell `ffmpeg` which decoder to use to
@@ -139,7 +139,7 @@ This is a global setting for now and could be refined per-stream in the future i
 
 ### Shared encoders
 
-`liquisoap` provides operators to encode data using `%ffmpeg` and re-use it accross output. This is called _inline encoding_. Here's an example:
+`liquisoap` provides operators to encode data using `%ffmpeg` and re-use it across output. This is called _inline encoding_. Here's an example:
 
 ```liquidsoap
 audio_source = single(audio_url)
@@ -195,7 +195,7 @@ When working with a single encoder such as:
 )
 ```
 
-We are aware when initializing the encoders that it is aimed for a `flv` container so the code implicitely enables the global header for each encoder.
+We are aware when initializing the encoders that it is aimed for a `flv` container so the code implicitly enables the global header for each encoder.
 
 However, when encoding inline, we do not know at the time of encoding the container that will be used to encapsulate the stream, even worst, it can be
 used potentially with different containers with different requirements!
