@@ -23,6 +23,7 @@ jobs:
         with:
           ocaml-compiler: 4.14.x
           opam-pin: false
+          opam-depext: false
       - name: Install ocamlformat
         run: |
           opam install -y ocamlformat=0.19.0
