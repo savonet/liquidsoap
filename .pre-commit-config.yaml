@@ -19,7 +19,7 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
 
-  - repo: https://github.com/arenadotio/pre-commit-ocamlformat
-    rev: 0439858
+  - repo: https://github.com/savonet/pre-commit-ocamlformat
+    rev: v1
     hooks:
       - id: ocamlformat
