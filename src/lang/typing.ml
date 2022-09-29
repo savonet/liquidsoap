@@ -487,7 +487,8 @@ let rec ( <: ) a b =
         -> (
           try bind ~variance:Covariant b a
           with Occur_check _ | Unsatisfied_constraint ->
-            raise (Error (Repr.make a, Repr.make b)))
+            let bt = Printexc.get_raw_backtrace () in
+            Printexc.raise_with_backtrace (Error (Repr.make a, Repr.make b)) bt)
       | _, Nullable t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
       | ( Meth ({ meth = l; scheme = g1, t1; json_name = json_name1 }, u1),
