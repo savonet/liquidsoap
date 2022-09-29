@@ -238,14 +238,14 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}"
       - name: Upload debian packages artifacts
-        if: github.repository_owner == 'savonet' && github.event_name == 'push' && (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
+        if: needs.build_details.outputs.is_release && (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           if-no-files-found: error
       - name: Upload debian armhf packages artifacts
-        if: github.repository_owner == 'savonet' && github.event_name == 'push' && contains(matrix.os, 'debian') && matrix.platform == 'armhf'
+        if: needs.build_details.outputs.is_release && contains(matrix.os, 'debian') && matrix.platform == 'armhf'
         uses: savonet/aws-s3-docker-action@master
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -263,7 +263,7 @@ jobs:
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
       - name: Upload alpine packages artifacts
-        if: github.repository_owner == 'savonet' && github.event_name == 'push' && matrix.os == 'alpine'
+        if: needs.build_details.outputs.is_release && matrix.os == 'alpine'
         uses: savonet/aws-s3-docker-action@master
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -279,7 +279,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build_details, build_posix]
 
-    if: github.repository_owner == 'savonet' && github.event_name == 'push'
+    if: needs.build_details.outputs.is_release
     steps:
       - name: Prepare directory
         run: |
