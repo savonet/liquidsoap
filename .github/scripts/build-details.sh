@@ -10,9 +10,7 @@ fi
 
 echo "Detected branch: ${BRANCH}"
 
-echo "Debug: ${GITHUB_ACTOR}"
-
-if [ "${GITHUB_REPOSITORY_OWNER}" != "savonet" ]; then
+if [ -z "${AWS_ACCESS_KEY_ID}" ]; then
   echo "Branch is from a fork"
   IS_FORK=true
 else
