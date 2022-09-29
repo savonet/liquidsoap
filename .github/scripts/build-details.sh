@@ -10,10 +10,13 @@ fi
 
 echo "Detected branch: ${BRANCH}"
 
+echo "Debug: ${GITHUB_REPOSITORY_OWNER}"
+
 if [ "${GITHUB_REPOSITORY_OWNER}" != "savonet" ]; then
   echo "Branch is from a fork"
   IS_FORK=true
 else
+  echo "Branch is from the savonet organization"
   IS_FORK=
 fi
 
