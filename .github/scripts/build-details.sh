@@ -10,7 +10,7 @@ fi
 
 echo "Detected branch: ${BRANCH}"
 
-echo "Debug: ${GITHUB_REPOSITORY_OWNER}"
+echo "Debug: ${GITHUB_HEAD_REF}"
 
 if [ "${GITHUB_REPOSITORY_OWNER}" != "savonet" ]; then
   echo "Branch is from a fork"
