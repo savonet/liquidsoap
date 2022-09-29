@@ -10,7 +10,14 @@ fi
 
 echo "Detected branch: ${BRANCH}"
 
-if [[ "${BRANCH}" =~ "rolling-release-" ]] || [[ "${BRANCH}" =~ ^v[0-9] ]]; then
+if [ "${GITHUB_REPOSITORY_OWNER}" != "savonet" ]; then
+  echo "Branch is from a fork"
+  IS_FORK=true
+else
+  IS_FORK=
+fi
+
+if [ "${IS_FORK}" != "true" ] && [[ "${BRANCH}" =~ "rolling-release-" ]] || [[ "${BRANCH}" =~ ^v[0-9] ]]; then
   echo "Branch is release branch"
   IS_RELEASE=true
 
@@ -56,3 +63,4 @@ echo "##[set-output name=docker_release;]${DOCKER_RELEASE}"
 echo "##[set-output name=is_rolling_release;]${IS_ROLLING_RELEASE}"
 echo "##[set-output name=sha;]${SHA}"
 echo "##[set-output name=s3-artifact-basepath;]s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
+echo "##[set-output name=is_fork;]${IS_FORK}"
