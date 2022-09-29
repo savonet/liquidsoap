@@ -28,6 +28,7 @@ jobs:
       sha: ${{ steps.build_details.outputs.sha }}
       is_release: ${{ steps.build_details.outputs.is_release }}
       is_rolling_release: ${{ steps.build_details.outputs.is_rolling_release }}
+      is_fork: ${{ steps.build_details.outputs.is_fork }}
       build_os: ${{ steps.build_details.outputs.build_os }}
       build_platform: ${{ steps.build_details.outputs.build_platform }}
       build_include: ${{ steps.build_details.outputs.build_include }}
@@ -38,6 +39,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Get build details
+        env:
+          IS_FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}
         run: .github/scripts/build-details.sh
         id: build_details
 
@@ -245,7 +248,7 @@ jobs:
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           if-no-files-found: error
       - name: Upload debian armhf packages artifacts
-        if: github.repository_owner == 'savonet' && contains(matrix.os, 'debian') && matrix.platform == 'armhf'
+        if: needs.build_details.outputs.is_fork != 'true' && contains(matrix.os, 'debian') && matrix.platform == 'armhf'
         uses: savonet/aws-s3-docker-action@master
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -263,7 +266,7 @@ jobs:
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
       - name: Upload alpine packages artifacts
-        if: github.repository_owner == 'savonet' && matrix.os == 'alpine'
+        if: needs.build_details.outputs.is_fork != 'true' && matrix.os == 'alpine'
         uses: savonet/aws-s3-docker-action@master
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -278,14 +281,13 @@ jobs:
   fetch_s3_artifacts:
     runs-on: ubuntu-latest
     needs: [build_details, build_posix]
-
-    if: github.repository_owner == 'savonet'
     steps:
       - name: Prepare directory
         run: |
           rm -rf ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
           mkdir -p ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
       - name: Fetch S3 artifacts
+        if: needs.build_details.outputs.is_fork != 'true'
         uses: savonet/aws-s3-docker-action@master
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -299,6 +301,7 @@ jobs:
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64 | xargs basename)"
       - name: Upload alpine amd64 package
         uses: actions/upload-artifact@v2
+        if: needs.build_details.outputs.is_fork != 'true'
         with:
           name: ${{ steps.apk_amd64.outputs.name }}
           path: ${{ steps.apk_amd64.outputs.path }}
@@ -310,6 +313,7 @@ jobs:
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64 | xargs basename)"
       - name: Upload alpine amd64 debug package
         uses: actions/upload-artifact@v2
+        if: needs.build_details.outputs.is_fork != 'true'
         with:
           name: ${{ steps.apk_amd64_dbg.outputs.name }}
           path: ${{ steps.apk_amd64_dbg.outputs.path }}
@@ -333,7 +337,7 @@ jobs:
         run: |
           echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64)"
           echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64 | xargs basename)"
-      - name: Upload alpine amd64 debug package
+      - name: Upload alpine arm64 debug package
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
         uses: actions/upload-artifact@v2
         with:
@@ -508,6 +512,7 @@ jobs:
   build_docker:
     runs-on: ${{ matrix.runs-on }}
     needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
+    if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -536,6 +541,7 @@ jobs:
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
     needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
+    if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false
       matrix:
