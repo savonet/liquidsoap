@@ -45,6 +45,12 @@ let rec hide_meth l a =
     | Meth (m, u) -> { a with descr = Meth (m, hide_meth l u) }
     | _ -> a
 
+let rec get_meth l a =
+  match (deref a).descr with
+    | Meth (({ meth = l' } as meth), _) when l = l' -> meth
+    | Meth (_, a) -> get_meth l a
+    | _ -> assert false
+
 (** {1 Type generalization and instantiation}
   *
   * We don't have type schemes per se, but we compute generalizable variables
@@ -321,7 +327,32 @@ let () =
 (** Ensure that a<:b, perform unification if needed. In case of error, generate
     an explanation. We recall that A <: B means that any value of type A can be
     passed where a value of type B can. This relation must be transitive. *)
-let rec ( <: ) a b =
+let rec unify_meth a b l =
+  let { meth = l; scheme = g1, t1; json_name = json_name1 } = get_meth l a in
+  let { scheme = g2, t2; json_name = json_name2 } = get_meth l b in
+  (* Handle explicitly this case in order to avoid #1842. *)
+  (try
+     (* TODO: we should perform proper type scheme subtyping, but this
+           is a good approximation for now... *)
+     instantiate ~level:(-1) ~generalized:g1 t1
+     <: instantiate ~level:(-1) ~generalized:g2 t2
+   with Error (a, b) ->
+     let bt = Printexc.get_raw_backtrace () in
+     Printexc.raise_with_backtrace
+       (Error
+          ( `Meth (l, ([], a), json_name1, `Ellipsis),
+            `Meth (l, ([], b), json_name2, `Ellipsis) ))
+       bt);
+  try hide_meth l a <: hide_meth l a
+  with Error (a, b) ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace
+      (Error
+         ( `Meth (l, ([], `Ellipsis), json_name1, a),
+           `Meth (l, ([], `Ellipsis), json_name2, b) ))
+      bt
+
+and ( <: ) a b =
   if !debug || !debug_subtyping then
     Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
   if a != b then (
@@ -337,9 +368,8 @@ let rec ( <: ) a b =
           (try b' <: b''
            with e ->
              failwith
-               (Printf.sprintf "sup did to increase: %s !< %s (%s)"
-                  (Type.to_string b') (Type.to_string b'')
-                  (Printexc.to_string e)));
+               (Printf.sprintf "invalid sup: %s !< %s (%s)" (Type.to_string b')
+                  (Type.to_string b'') (Printexc.to_string e)));
           if b'' != b' then var := Link (Covariant, b'');
           a <: b''
       | Var ({ contents = Link (Covariant, a') } as var), _ ->
@@ -491,71 +521,28 @@ let rec ( <: ) a b =
             Printexc.raise_with_backtrace (Error (Repr.make a, Repr.make b)) bt)
       | _, Nullable t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
-      | ( Meth ({ meth = l; scheme = g1, t1; json_name = json_name1 }, u1),
-          Meth ({ meth = l'; scheme = g2, t2; json_name = json_name2 }, u2) )
-        when l = l' -> (
-          (* Handle explicitly this case in order to avoid #1842. *)
-          (try
-             (* TODO: we should perform proper type scheme subtyping, but this
-                   is a good approximation for now... *)
-             instantiate ~level:(-1) ~generalized:g1 t1
-             <: instantiate ~level:(-1) ~generalized:g2 t2
-           with Error (a, b) ->
-             let bt = Printexc.get_raw_backtrace () in
-             Printexc.raise_with_backtrace
-               (Error
-                  ( `Meth (l, ([], a), json_name1, `Ellipsis),
-                    `Meth (l, ([], b), json_name2, `Ellipsis) ))
-               bt);
-          try hide_meth l u1 <: hide_meth l u2
-          with Error (a, b) ->
-            let bt = Printexc.get_raw_backtrace () in
-            Printexc.raise_with_backtrace
-              (Error
-                 ( `Meth (l, ([], `Ellipsis), json_name1, a),
-                   `Meth (l, ([], `Ellipsis), json_name2, b) ))
-              bt)
-      | _, Meth ({ meth = l; scheme = g2, t2; json_name }, u2) ->
-          if Type.has_meth a l then (
-            let g1, t1 = invoke a l in
-            (try
-               (* TODO: we should perform proper type scheme subtyping, but this
-                  is a good approximation for now... *)
-               instantiate ~level:(-1) ~generalized:g1 t1
-               <: instantiate ~level:(-1) ~generalized:g2 t2
-             with Error (a, b) ->
-               let bt = Printexc.get_raw_backtrace () in
-               Printexc.raise_with_backtrace
-                 (Error
-                    ( `Meth (l, ([], a), None, `Ellipsis),
-                      `Meth (l, ([], b), json_name, `Ellipsis) ))
-                 bt);
-            try a <: hide_meth l u2
-            with Error (a, b) ->
-              let bt = Printexc.get_raw_backtrace () in
-              Printexc.raise_with_backtrace
-                (Error (a, `Meth (l, ([], `Ellipsis), json_name, b)))
-                bt)
-          else (
-            let a' = demeth a in
-            match a'.descr with
-              | Var { contents = Free _ } ->
-                  a'
-                  <: make
-                       (Meth
-                          ( {
-                              meth = l;
-                              scheme = (g2, t2);
-                              doc = "";
-                              json_name = None;
-                            },
-                            var () ));
-                  a <: b
-              | _ ->
-                  raise
-                    (Error
-                       ( Repr.make a,
-                         `Meth (l, ([], `Ellipsis), json_name, `Ellipsis) )))
+      | Meth ({ meth = l }, _), _ when Type.has_meth b l -> unify_meth a b l
+      | _, Meth ({ meth = l }, _) when Type.has_meth a l -> unify_meth a b l
+      | _, Meth ({ meth = l; scheme = g2, t2; json_name }, _) -> (
+          let a' = demeth a in
+          match a'.descr with
+            | Var { contents = Free _ } ->
+                a'
+                <: make
+                     (Meth
+                        ( {
+                            meth = l;
+                            scheme = (g2, t2);
+                            doc = "";
+                            json_name = None;
+                          },
+                          var () ));
+                a <: b
+            | _ ->
+                raise
+                  (Error
+                     ( Repr.make a,
+                       `Meth (l, ([], `Ellipsis), json_name, `Ellipsis) )))
       | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
       | _, Getter t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
