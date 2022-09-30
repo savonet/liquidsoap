@@ -353,21 +353,25 @@ module Value = struct
                 print "Example:\n\n";
                 Printf.ksprintf print "```liquidsoap\n%s\n```\n\n" e)
               d.examples;
-            print "Arguments:\n\n";
-            List.iter
-              (fun (l, a) ->
-                let l = Option.value ~default:"(unlabeled)" l in
-                let t = a.arg_type in
-                let d =
-                  match a.arg_default with
-                    | None -> ""
-                    | Some d -> ", which defaults to `" ^ d ^ "`"
-                in
-                let s =
-                  match a.arg_description with None -> "" | Some s -> ": " ^ s
-                in
-                Printf.ksprintf print "- `%s` (of type `%s`%s)%s\n" l t d s)
-              d.arguments;
+            if d.arguments <> [] then (
+              print "Arguments:\n\n";
+              List.iter
+                (fun (l, a) ->
+                  let l = Option.value ~default:"(unlabeled)" l in
+                  let t = a.arg_type in
+                  let d =
+                    match a.arg_default with
+                      | None -> ""
+                      | Some d -> ", which defaults to `" ^ d ^ "`"
+                  in
+                  let s =
+                    match a.arg_description with
+                      | None -> ""
+                      | Some s -> ": " ^ s
+                  in
+                  Printf.ksprintf print "- `%s` (of type `%s`%s)%s\n" l t d s)
+                d.arguments;
+              print "\n");
             if d.methods <> [] then (
               print "Methods:\n\n";
               List.iter
@@ -379,10 +383,10 @@ module Value = struct
                       | Some s -> ": " ^ s
                   in
                   Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
-                d.methods);
+                d.methods;
+              print "\n");
             if List.mem `Experimental d.flags then
-              print "\nThis function is experimental.\n";
-            print "\n")
+              print "This function is experimental.\n\n")
           functions)
       categories
 
