@@ -18,7 +18,7 @@ def test_parse_error(name, f, msg) =
 
   try
     print(f ())
-  catch err do
+  catch err: [error.json] do
     if err.kind != "json" then
       print("parse error test #{name} failed: wrong error kind, got: #{err.kind}, expected: json")
       test.fail()
@@ -125,7 +125,7 @@ def f() =
       list : [float],
       nullable_list : [int?],
       object_as_list : [(string * float)] as json.object,
-      "arbitrary object key ✨" as arbitrary_object_key : bool, 
+      "arbitrary object key ✨" as arbitrary_object_key : bool,
       not_present : bool?
     }
   }) = data
@@ -189,7 +189,7 @@ def f() =
     "Parsing error: json value cannot be parsed as type {nested: {tuple: (string,_,_), _}, _}"
   )
 
- 
+
   def nested_tuple () =
     let json.parse ( x : {
       nested : {
@@ -205,7 +205,7 @@ def f() =
   end
 
   test_parse_error(
-    "nested tuple", 
+    "nested tuple",
     nested_tuple,
     "Parsing error: json value cannot be parsed as type {nested: {tuple: (_,_,int,_), _}, _}"
   )
@@ -247,7 +247,7 @@ def f() =
   test_parse_error(
     "nested object",
     nested_object,
-    'Parsing error: json value cannot be parsed as type {nested: {nullable_list: [int], _}, _}' 
+    'Parsing error: json value cannot be parsed as type {nested: {nullable_list: [int], _}, _}'
   )
 
   data = '{"aabbcc": 34, "ddeerr": 54 }'
