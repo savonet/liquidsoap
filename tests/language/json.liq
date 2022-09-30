@@ -14,7 +14,7 @@ def test_parse_error(name, f, msg) =
 
   try
     print(f ())
-  catch err do
+  catch err: [error.json] do
     if err.kind != "json" then
       print("parse error test #{name} failed: wrong error kind, got: #{err.kind}, expected: json")
       test.fail()

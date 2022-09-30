@@ -201,6 +201,30 @@ of pairs `(string * int)` where `string` represents the attribute label and `int
 
 If you are not sure if all the object values are integers you can always use nullable integers: `[(string * int?)] as json.object`
 
+### Parsing errors
+
+When parsing fails, a `error.json` is raised which can be caught at runtime:
+
+```liquidsoap
+try
+   let json.parse ({
+      status,
+      data = {
+        track
+      }
+    } : {
+      status: string,
+      data: {
+        track: string
+      }
+    }) = res
+
+    # Do something on success here..
+catch err: [error.json] do
+  # Do something on parse errors here..
+end
+```
+
 #### Example
 
 Here's a full example. Feel free to refer to `tests/language/json.liq` in the source code for more of them.
