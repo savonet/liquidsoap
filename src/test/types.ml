@@ -47,3 +47,23 @@ let () =
   should_fail m n;
 
   ()
+
+let () =
+  (* 'a *)
+  let ty = Lang.univ_t () in
+
+  (* 'b.{foo:int} *)
+  let t1 = Lang.method_t (Lang.univ_t ()) [("foo", ([], Lang.int_t), "foo")] in
+
+  (* 'c.{gni:string} *)
+  let t2 =
+    Lang.method_t (Lang.univ_t ()) [("gni", ([], Lang.string_t), "gni")]
+  in
+
+  (* (ty:t1) *)
+  Typing.(ty <: t1);
+  Typing.(t1 <: ty);
+
+  (* (ty:t2) *)
+  Typing.(ty <: t2);
+  Typing.(t2 <: ty)

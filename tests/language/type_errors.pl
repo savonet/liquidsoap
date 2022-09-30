@@ -47,7 +47,7 @@ incorrect('(1,1)==(1,"1")');
 incorrect('(1,1)==("1",1)');
 incorrect('1==request.create("")');
 incorrect('fun(x)->x(snd(x))');
-incorrect('{a = 5, b = 3} == {a = 6}');
+correct('{a = 5, b = 3} == {a = 6}');
 
 correct('true ? "foo" : "bar"');
 incorrect('false ? true : "bar"');

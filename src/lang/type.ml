@@ -204,6 +204,13 @@ let rec invoke t l =
     | Meth (_, t) -> invoke t l
     | _ -> raise Not_found
 
+(** Do we have a method with given label? *)
+let has_meth t l =
+  try
+    ignore (invoke t l);
+    true
+  with Not_found -> false
+
 (** Type of a submethod in a type. *)
 let rec invokes t = function
   | l :: ll ->
