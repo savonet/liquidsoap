@@ -1,5 +1,7 @@
-# Default id assignment for playlists
+# Default id assignment for playlists (the identifier is generated from the
+# filename).
 # @category Liquidsoap
+# @flags hidden
 # @param ~default Default name pattern when no useful name can be extracted from `uri`
 # @param uri Playlist uri
 def playlist.id(~default,uri) =
@@ -25,9 +27,8 @@ def playlist.id(~default,uri) =
 end
 
 # Retrieve the list of files contained in a playlist.
-# @category Liquidsoap
-# @param ~mime_type Default MIME type for the playlist. `null` means automatic \
-#  detection.
+# @category File
+# @param ~mime_type Default MIME type for the playlist. `null` means automatic detection.
 # @param ~timeout Timeout for resolving the playlist
 # @param uri Path to the playlist
 def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
