@@ -1,29 +1,29 @@
 # Construct a function returning the value of a getter.
-# @category Liquidsoap
+# @category Getter
 def getter.function(x)
   {getter.get(x)}
 end
 
 # Determine if a getter is a constant.
-# @category Liquidsoap
+# @category Getter
 def getter.is_constant(x)
   getter.case(x, fun (_) -> true, fun (_) -> false)
 end
 
 # Convert an int getter to a float getter.
-# @category Liquidsoap
+# @category Getter
 def getter.float_of_int(x)
   getter.map(float_of_int, x)
 end
 
 # Convert a float getter to a int getter.
-# @category Liquidsoap
+# @category Getter
 def getter.int_of_float(x)
   getter.map(int_of_float, x)
 end
 
 # Execute a function when the value of the getter changes.
-# @category Liquidsoap
+# @category Getter
 def getter.on_change(f, x)
   x = {getter.get(x)}
   old = ref(x())
@@ -35,7 +35,7 @@ def getter.on_change(f, x)
 end
 
 # Detect whether the value of the getter changes.
-# @category Liquidsoap
+# @category Getter
 def getter.changes(x)
   old = ref(getter.get(x))
   fun () -> begin
@@ -46,7 +46,7 @@ def getter.changes(x)
 end
 
 # Give the latest value among two getters.
-# @category Liquidsoap
+# @category Getter
 def getter.merge(x, y)
   v = ref(getter.get(x))
   x = getter.on_change(fun(x) -> v := x, x)

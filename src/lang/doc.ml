@@ -123,6 +123,7 @@ module Value = struct
     | `String
     | `List
     | `Bool
+    | `Getter
     | `Liquidsoap
     | `Programming
     | `Interaction
@@ -150,6 +151,7 @@ module Value = struct
       (`String, "String");
       (`List, "List");
       (`Bool, "Bool");
+      (`Getter, "Getter");
       (`Liquidsoap, "Liquidsoap");
       (`Programming, "Programming");
       (`Interaction, "Interaction");
