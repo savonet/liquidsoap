@@ -111,7 +111,7 @@ let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
   end
 
 let () =
-  Lang.add_builtin "http.transport.ssl" ~category:`Liquidsoap
+  Lang.add_builtin "http.transport.ssl" ~category:`Internet
     ~descr:"Https transport using libssl"
     [
       ( "read_timeout",
