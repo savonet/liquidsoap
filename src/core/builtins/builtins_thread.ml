@@ -41,7 +41,7 @@ let rec error_handler ~bt exn =
         error_handler ~bt exn
 
 let () =
-  Lang.add_builtin "thread.run.recurrent" ~category:`Liquidsoap
+  Lang.add_builtin "thread.run.recurrent" ~category:`Programming
     [
       ( "fast",
         Lang.bool_t,
@@ -100,7 +100,7 @@ let () =
       [(false, "backtrace", Lang.string_t); (false, "", Lang.error_t)]
       Lang.unit_t
   in
-  Lang.add_builtin "thread.on_error" ~category:`Liquidsoap
+  Lang.add_builtin "thread.on_error" ~category:`Programming
     ~descr:
       "Register the function to be called when an error of the given kind is \
        raised in a thread. Catches all errors if first argument is `null`."
