@@ -96,14 +96,14 @@ end
 let () = Lang_core.add_module "error"
 
 let () =
-  Lang_core.add_builtin "error.register" ~category:`Liquidsoap
+  Lang_core.add_builtin "error.register" ~category:`Programming
     ~descr:"Register an error of the given kind"
     [("", Lang_core.string_t, None, Some "Kind of the error")] Error.t (fun p ->
       let kind = Lang_core.to_string (List.assoc "" p) in
       Error.to_value { kind; msg = ""; pos = [] })
 
 let () =
-  Lang_core.add_builtin "error.raise" ~category:`Liquidsoap
+  Lang_core.add_builtin "error.raise" ~category:`Programming
     ~descr:"Raise an error."
     [
       ("", Error.t, None, Some "Error kind.");
@@ -124,7 +124,7 @@ let to_error = Error.of_value
 
 let () =
   let a = Lang_core.univ_t () in
-  Lang_core.add_builtin "error.catch" ~category:`Liquidsoap ~flags:[`Hidden]
+  Lang_core.add_builtin "error.catch" ~category:`Programming ~flags:[`Hidden]
     ~descr:"Execute a function, catching eventual exceptions."
     [
       ( "errors",
