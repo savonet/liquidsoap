@@ -677,7 +677,7 @@ let () =
       ~video:Frame.none ~midi:Frame.none ()
   in
   let return_t = Lang.frame_kind_t return_kind in
-  Lang.add_operator "ffmpeg.filter.audio.output" ~category:`Audio
+  Lang.add_operator "ffmpeg.filter.audio.output" ~category:`FFmpegFilter
     ~descr:"Return an audio source from a filter's output" ~return_t
     [
       ( "pass_metadata",
