@@ -97,6 +97,7 @@ def file.iterator(fname)
 end
 
 # Get a file's mime type by calling the `file` command line binary.
+# @category File
 def file.mime.cli(fname) =
   mime = list.hd(default="",
     process.read.lines(

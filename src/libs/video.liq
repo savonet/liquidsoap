@@ -482,6 +482,7 @@ def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, ~offset=
 end
 
 # Display a slideshow (typically of pictures).
+# @category Source / Video processing
 # @param ~cyclic Go to the first picture after the last.
 # @param ~advance Skip to the next file after this amount of time in seconds (negative means never).
 # @param l List of files to display.
@@ -530,6 +531,7 @@ def video.slideshow(~id=null(), ~cyclic=getter(true), ~advance=getter(-1.), l=[]
 end
 
 # Generate a video filled with given color.
+# @category Source / Video processing
 # @param color Color (in 0xRRGGBB format).
 def video.color(color)
   video.fill(color=color, blank())

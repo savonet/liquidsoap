@@ -254,6 +254,7 @@ def skipper(~every=getter(5.), s) =
 end
 
 # Indicate beats.
+# @cateogry Source / Sound synthesis
 # @param ~frequency Frequency of the sound.
 # @param bpm Number of beats per minute.
 def metronome(~frequency=440., bpm=60.)
