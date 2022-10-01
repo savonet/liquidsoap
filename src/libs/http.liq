@@ -1,5 +1,59 @@
 # Set of HTTP utils.
 
+# Prepare a list of data to be sent as multipart form data
+# @category Internet
+# @param ~boundary Specify boundary to use for multipart/form-data.
+# @param data data to insert
+def http.multipart_form_data(~boundary=null(), data)
+  def default_boundary()
+    range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
+    l = list.init(12, fun(_) -> string.char.ascii.random(range))
+    string.concat(l)
+  end
+  boundary = null.default(boundary, default_boundary)
+
+  def mk_content(contents, entry) =
+    data = entry.contents
+
+    attributes = [("name", entry.name), ...entry.attributes]
+    attributes = list.map(fun (v) -> "#{string(fst(v))}=#{string.quote(snd(v))}", attributes)
+    attributes = string.concat(separator="; ", attributes)
+
+    headers = list.map(fun (v) -> "#{string(fst(v))}: #{string(snd(v))}", entry.headers)
+    headers = string.concat(separator="\r\n", headers)
+    headers = headers == "" ? "" : "#{headers}\r\n"
+
+    # This is for typing purposes
+    (entry:unit)
+
+    [
+      ...contents,
+      getter("--#{boundary}\r\n"),
+      getter("Content-Disposition: form-data; #{attributes}\r\n"),
+      getter(headers),
+      getter("\r\n"),
+      data,
+      getter("\r\n")
+    ]
+  end
+
+  contents = [
+    ...list.fold(mk_content, [], data),
+    getter("--#{boundary}--\r\n")
+  ]
+
+  contents = string.getter.concat(contents)
+
+  contents =
+    if list.for_all(fun (entry) -> getter.is_constant(entry.contents), data) then
+      getter(string.getter.flush(contents))
+    else
+      contents
+    end
+
+  { contents = contents, boundary = boundary }
+end
+
 # Initiate a response handler with pre-filled values.
 # @category Internet
 # @method content_type Set `"Content-Type"` header
@@ -133,16 +187,25 @@ def http.response(~http_version="1.1",
 
   code = status_code
   def redirect(~status_code=301, location) =
+    if !status_sent then
+      error.raise(error.invalid, "HTTP response has already been sent for this value!")
+    end
     code := status_code
     header("Location", location)
   end
 
   def json(v) =
+    if !headers_sent then
+      error.raise(error.invalid, "HTTP response has already been sent for this value!")
+    end
     content_type := "application/json; charset=utf-8"
     data := json.stringify(v)
   end
 
   def html(d) =
+    if !headers_sent then
+      error.raise(error.invalid, "HTTP response has already been sent for this value!")
+    end
     content_type := "text/html"
     data := d
   end
@@ -151,6 +214,17 @@ def http.response(~http_version="1.1",
     if not !status_sent then
       socket.write(mk_status())
     end
+  end
+
+  def multipart_form(~boundary=null(), contents) =
+    if !headers_sent then
+      error.raise(error.invalid, "HTTP response has already been sent for this value!")
+    end
+
+    form_data = http.multipart_form_data(boundary=boundary, contents)
+
+    content_type := "multipart/form-data; boundary=#{form_data.boundary}"
+    data := form_data.contents
   end
 
   response.{
@@ -163,6 +237,7 @@ def http.response(~http_version="1.1",
     json = json,
     html = html,
     content_type = attr_method(headers_sent, content_type),
+    multipart_form = multipart_form,
     data = attr_method(data_sent, data),
     send_status = send_status,
     status_sent = {!status_sent}
@@ -379,60 +454,6 @@ def replaces harbor.http.static(~transport=http.transport.unix,~port=8000,~path=
   # Make the method argument non-optional, see #1018
   serve = fun(~method,uri,handler) -> harbor.http.register(transport=transport,port=port,method=method,uri,handler)
   harbor.http.static.base(serve,content_type=content_type,basepath=path,browse=browse,headers=headers,directory)
-end
-
-# Prepare a list of data to be sent as multipart form data
-# @category Internet
-# @param ~boundary Specify boundary to use for multipart/form-data.
-# @param data data to insert
-def http.multipart_form_data(~boundary=null(), data)
-  def default_boundary()
-    range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
-    l = list.init(12, fun(_) -> string.char.ascii.random(range))
-    string.concat(l)
-  end
-  boundary = null.default(boundary, default_boundary)
-
-  def mk_content(contents, entry) =
-    data = entry.contents
-
-    attributes = [("name", entry.name), ...entry.attributes]
-    attributes = list.map(fun (v) -> "#{string(fst(v))}=#{string.quote(snd(v))}", attributes)
-    attributes = string.concat(separator="; ", attributes)
-
-    headers = list.map(fun (v) -> "#{string(fst(v))}: #{string(snd(v))}", entry.headers)
-    headers = string.concat(separator="\r\n", headers)
-    headers = headers == "" ? "" : "#{headers}\r\n"
-
-    # This is for typing purposes
-    (entry:unit)
-
-    [
-      ...contents,
-      getter("--#{boundary}\r\n"),
-      getter("Content-Disposition: form-data; #{attributes}\r\n"),
-      getter(headers),
-      getter("\r\n"),
-      data,
-      getter("\r\n")
-    ]
-  end
-
-  contents = [
-    ...list.fold(mk_content, [], data),
-    getter("--#{boundary}--\r\n")
-  ]
-
-  contents = string.getter.concat(contents)
-
-  contents =
-    if list.for_all(fun (entry) -> getter.is_constant(entry.contents), data) then
-      getter(string.getter.flush(contents))
-    else
-      contents
-    end
-
-  { contents = contents, boundary = boundary }
 end
 
 # @flag hidden
