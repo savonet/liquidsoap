@@ -1,13 +1,14 @@
 let () =
   Lang.add_builtin "ignore"
-    ~descr:"Convert anything to unit, preventing warnings." ~category:`Control
+    ~descr:"Convert anything to unit, preventing warnings."
+    ~category:`Programming
     [("", Lang.univ_t (), None, None)]
     Lang.unit_t
     (fun _ -> Lang.unit)
 
 let () =
   let t = Lang.univ_t () in
-  Lang.add_builtin "if" ~category:`Control ~descr:"The basic conditional."
+  Lang.add_builtin "if" ~category:`Programming ~descr:"The basic conditional."
     ~flags:[`Hidden]
     [
       ("", Lang.bool_t, None, None);
@@ -65,7 +66,7 @@ let () =
 (** Loops. *)
 
 let () =
-  Lang.add_builtin "while" ~category:`Liquidsoap ~descr:"A while loop."
+  Lang.add_builtin "while" ~category:`Programming ~descr:"A while loop."
     [
       ("", Lang.getter_t Lang.bool_t, None, Some "Condition guarding the loop.");
       ("", Lang.fun_t [] Lang.unit_t, None, Some "Function to execute.");
@@ -81,7 +82,7 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  Lang.add_builtin "for" ~category:`Liquidsoap ~descr:"A for loop."
+  Lang.add_builtin "for" ~category:`Programming ~descr:"A for loop."
     ~flags:[`Hidden]
     [
       ("", Lang.fun_t [] (Lang.nullable_t a), None, Some "Values to iterate on.");
@@ -104,7 +105,7 @@ let () =
       aux ())
 
 let () =
-  Lang.add_builtin "iterator.int" ~category:`Liquidsoap
+  Lang.add_builtin "iterator.int" ~category:`Programming
     ~descr:"Iterator on integers." ~flags:[`Hidden]
     [
       ("", Lang.int_t, None, Some "First value.");
@@ -208,7 +209,7 @@ let () =
     ]
 
 let () =
-  Lang.add_builtin ~category:`Liquidsoap
+  Lang.add_builtin ~category:`Programming
     ~descr:"Return any value with a fresh universal type for testing purposes."
     ~flags:[`Hidden] "💣"
     [("", Lang.univ_t (), Some Lang.null, None)]

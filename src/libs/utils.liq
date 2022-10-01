@@ -41,8 +41,8 @@ def url.split(uri) =
   end
 end
 
-# Memoize the result of a function,
-# making sure it is only executed once.
+# Memoize the result of a function, making sure it is only executed once.
+# @category Programming
 def memoize(fn) =
   cached_result = ref([])
   fun () -> begin

@@ -1,5 +1,5 @@
 # Run a function in a separate thread.
-# @category Control
+# @category Programming
 # @param ~fast Whether the thread is supposed to return quickly or not. Typically, blocking tasks (e.g. fetching data over the internet) should not be considered to be fast. When set to `false` its priority will be lowered below that of request resolutions and fast timeouts. This is only effective if you set a dedicated queue for fast tasks, see the "scheduler" settings for more details.
 # @param ~delay Delay (in seconds) after which the thread should be launched.
 # @param ~every How often (in seconds) the thread should be run. If negative or `null`, run once.
@@ -14,7 +14,7 @@ def replaces thread.run(~fast=true, ~delay=0., ~every=null(), f)
 end
 
 # Execute a given action when a predicate is true.
-# @category System
+# @category Programming
 # @param ~every How often (in sec.) to check for the predicate.
 # @param ~once Execute the function only once.
 # @param ~changed Execute the function only if the predicate was false when last checked.

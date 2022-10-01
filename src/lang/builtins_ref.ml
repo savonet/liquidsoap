@@ -22,7 +22,7 @@
 
 let () =
   let a = Lang.univ_t () in
-  Lang.add_builtin "ref" ~category:`Liquidsoap
+  Lang.add_builtin "ref" ~category:`Programming
     ~descr:"Create a reference, i.e. a value which can be modified."
     [("", a, None, None)] (Lang.ref_t a) (fun p ->
       let x = List.assoc "" p in
@@ -30,7 +30,7 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  Lang.add_builtin "ref.get" ~category:`Liquidsoap
+  Lang.add_builtin "ref.get" ~category:`Programming
     ~descr:"Retrieve the contents of a reference."
     [("", Lang.ref_t a, None, None)]
     a
@@ -40,7 +40,7 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  Lang.add_builtin "ref.set" ~category:`Liquidsoap
+  Lang.add_builtin "ref.set" ~category:`Programming
     ~descr:"Set the value of a reference."
     [("", Lang.ref_t a, None, None); ("", a, None, None)]
     Lang.unit_t
