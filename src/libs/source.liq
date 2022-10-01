@@ -24,7 +24,7 @@ def add_skip_command(s) =
 end
 
 # Removes all metadata coming from a source.
-# @category Source / Track processing
+# @category Metadata
 def drop_metadata(s)
   metadata.map(fun(_)->[],update=false,strip=true,insert_missing=false,s)
 end
@@ -179,7 +179,7 @@ def overlap_sources(~id=null(),~normalize=false,
 end
 
 # Append speech-synthesized tracks reading the metadata.
-# @category Source / Track processing
+# @category Metadata
 # @param ~pattern Pattern to use
 # @param s The source to use
 def source.say_metadata =
@@ -254,7 +254,7 @@ def skipper(~every=getter(5.), s) =
 end
 
 # Indicate beats.
-# @cateogry Source / Sound synthesis
+# @category Source / Sound synthesis
 # @param ~frequency Frequency of the sound.
 # @param bpm Number of beats per minute.
 def metronome(~frequency=440., bpm=60.)

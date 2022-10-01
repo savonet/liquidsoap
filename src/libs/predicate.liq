@@ -22,6 +22,7 @@ def predicate.once(p)
 end
 
 # Limit the number of times a predicate is true is a row.
+# @category Programming
 # @param n Number of times the predicate is allowed to be true.
 # @param p Predicate.
 def predicate.at_most(n, p)

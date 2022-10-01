@@ -80,6 +80,7 @@ end
 
 # Deprecated: this function has been replaced with `playlist`, setting
 # `reload_mode` argument to `"never"` and `loop` to `false`.
+# @flag deprecated
 def playlist.once(~id=null(),~random=false,~reload_mode="",
                   ~prefetch=1,~filter=fun(_)->true,uri)
   deprecated("playlist.once", "playlist")
