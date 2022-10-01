@@ -1,7 +1,6 @@
 fade = ()
 
 # Make a fade function based on a source's clock.
-# @category Math
 # @param ~type Fade shape. One of: "sin", "exp", "log", "lin"
 # @param ~start Start value.
 # @param ~stop Stop value.

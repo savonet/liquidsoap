@@ -1,7 +1,7 @@
 # Set of HTTP utils.
 
 # Initiate a response handler with pre-filled values.
-# @category Liquidsoap
+# @category Internet
 # @method content_type Set `"Content-Type"` header
 # @method data Set response data.
 # @method headers Replace response headers.
@@ -182,7 +182,7 @@ end
 # Register a HTTP handler on the harbor. This function offers a simple API,
 # suitable for quick implementation of HTTP handlers. See `harbor.http.register`
 # for a node/express like alternative API.
-# @category Liquidsoap
+# @category Internet
 # @argsof harbor.http.register
 def harbor.http.register.simple(%argsof(harbor.http.register), path, handler) =
   harbor.http.register(%argsof(harbor.http.register), harbor.http.regexp_of_path(path), handler)
@@ -191,7 +191,7 @@ end
 # Register a HTTP handler on the harbor with a generic regexp `path`. This function offers a simple API,
 # suitable for quick implementation of HTTP handlers. See `harbor.http.register`
 # for a node/express like alternative API.
-# @category Liquidsoap
+# @category Internet
 # @argsof harbor.http.register
 def harbor.http.register.simple.regexp(%argsof(harbor.http.register), path, handler) =
   harbor.http.register(%argsof(harbor.http.register), path, handler)
@@ -201,7 +201,7 @@ end
 let harbor.http.middleware = ref(fun (req, res, next) -> next(req, res))
 
 # Register a new harbor middleware
-# @category Liquidsoap
+# @category Internet
 def harbor.http.middleware.register(fn) =
   middleware = !harbor.http.middleware
   harbor.http.middleware := fun (req, res, next) -> begin
@@ -272,7 +272,7 @@ def replaces harbor.http.middleware = () end
 # handler. Matched fragments are reported as part of the response `query` parameter.
 # The response handler can be used to fill up details about the http response,
 # which will be converted into a plain HTTP response string after the handler returns.
-# @category Liquidsoap
+# @category Internet
 # @argsof harbor.http.register
 def replaces harbor.http.register(%argsof(harbor.http.register), path, handler) =
   harbor.http.register.regexp(%argsof(harbor.http.register), harbor.http.regexp_of_path(path), handler)
@@ -367,7 +367,7 @@ content_type = file.mime
 %endif
 
 # Serve a static path.
-# @category Interaction
+# @category Internet
 # @param ~port Port for incoming harbor (http) connections.
 # @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
 # @param ~path Base path.
@@ -382,7 +382,7 @@ def replaces harbor.http.static(~transport=http.transport.unix,~port=8000,~path=
 end
 
 # Prepare a list of data to be sent as multipart form data
-# @category Interaction
+# @category Internet
 # @param ~boundary Specify boundary to use for multipart/form-data.
 # @param data data to insert
 def http.multipart_form_data(~boundary=null(), data)
@@ -470,7 +470,7 @@ end
 # Send a file via POST request encoded in multipart/form-data. The contents can
 # either be directly specified (with the `contents` argument) or taken from a
 # file (with the `file` argument).
-# @category Interaction
+# @category Internet
 # @param ~name Name of the field field
 # @param ~content_type Content-type (mime) for the file.
 # @param ~headers Additional headers.
@@ -489,7 +489,7 @@ end
 # Send a file via PUT request encoded in multipart/form-data. The contents can
 # either be directly specified (with the `contents` argument) or taken from a
 # file (with the `file` argument).
-# @category Interaction
+# @category Internet
 # @param ~name Name of the field field
 # @param ~content_type Content-type (mime) for the file.
 # @param ~headers Additional headers.
@@ -508,7 +508,7 @@ end
 let harbor.http.request = ()
 
 # Read all data from a HTTP request
-# @category Liquidsoap
+# @category Internet
 # @param ~timeout Read timeout
 # @param req HTTP request
 def harbor.http.request.body(~timeout=10., req) =

@@ -25,12 +25,12 @@ type request = Get | Post | Put | Head | Delete
 let request_with_body = [Get; Post; Put]
 
 let () =
-  Lang.add_builtin_base ~category:`Liquidsoap
-    ~descr:"Http unencrypted transport" "http.transport.unix"
-    (Lang.http_transport Http.unix_transport).Lang.value Lang.http_transport_t
+  Lang.add_builtin_base ~category:`Internet ~descr:"Http unencrypted transport"
+    "http.transport.unix" (Lang.http_transport Http.unix_transport).Lang.value
+    Lang.http_transport_t
 
 let add_http_error kind =
-  Lang.add_builtin_base ~category:`Liquidsoap
+  Lang.add_builtin_base ~category:`Internet
     ~descr:(Printf.sprintf "Base error for %s" kind)
     (Printf.sprintf "%s.error" kind)
     (Lang.error { Runtime_error.kind; msg = ""; pos = [] }).Lang.value
@@ -223,7 +223,7 @@ let () =
     [false; true]
 
 let () =
-  Lang.add_builtin_base ~category:`Liquidsoap ~descr:"Default user-agent"
+  Lang.add_builtin_base ~category:`Internet ~descr:"Default user-agent"
     "http.user_agent"
     Lang.(Ground (Ground.String Http.user_agent))
     Lang.string_t

@@ -127,6 +127,7 @@ module Value = struct
     | `Interaction
     | `Other
     | `Filter
+    | `Internet
     | `None ]
 
   let categories : (category * string) list =
@@ -153,6 +154,7 @@ module Value = struct
       (`Interaction, "Interaction");
       (`Other, "Other");
       (`Filter, "Filter");
+      (`Internet, "Internet");
       (`None, "Uncategorized");
     ]
 

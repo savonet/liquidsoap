@@ -111,7 +111,7 @@ let parse_register_args p =
   (uri, port, transport, verb, handler)
 
 let () =
-  Lang.add_builtin "harbor.http.register" ~category:`Liquidsoap
+  Lang.add_builtin "harbor.http.register" ~category:`Internet
     ~descr:
       "Low-level harbor handler registration. Overridden in standard library."
     register_args Lang.unit_t (fun p ->
@@ -120,7 +120,7 @@ let () =
       Lang.unit)
 
 let () =
-  Lang.add_builtin "harbor.remove" ~category:`Liquidsoap
+  Lang.add_builtin "harbor.remove" ~category:`Internet
     ~descr:(Printf.sprintf "Remove a registered handler on the harbor.")
     [
       ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to serve.");
