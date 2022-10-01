@@ -112,6 +112,7 @@ module Value = struct
     | `MIDI
     | `Visualization
     | `Synthesis
+    | `Fade
     | `Liquidsoap ]
 
   type category =
@@ -142,6 +143,7 @@ module Value = struct
       (`Source `Synthesis, "Source / Sound synthesis");
       (`Source `Visualization, "Source / Visualization");
       (`Source `Liquidsoap, "Source / Liquidsoap");
+      (`Source `Fade, "Source / Fade");
       (`System, "System");
       (`File, "File");
       (`Math, "Math");

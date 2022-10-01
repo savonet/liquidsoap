@@ -494,7 +494,7 @@ let () =
            transition (`power`), and the metadata (`metadata`)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~return_t:k ~category:`Audio
+    ~return_t:k ~category:`Fade
     ~meth:
       [
         ( "cross_duration",
