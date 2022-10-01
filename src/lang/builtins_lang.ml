@@ -28,12 +28,12 @@ let () =
 let () =
   let t1 = Lang.univ_t () in
   let t2 = Lang.univ_t () in
-  Lang.add_builtin "fst" ~category:`Liquidsoap
+  Lang.add_builtin "fst" ~category:`Programming
     ~descr:"Get the first component of a pair."
     [("", Lang.product_t t1 t2, None, None)]
     t1
     (fun p -> fst (Lang.to_product (Lang.assoc "" 1 p)));
-  Lang.add_builtin "snd" ~category:`Liquidsoap
+  Lang.add_builtin "snd" ~category:`Programming
     ~descr:"Get the second component of a pair."
     [("", Lang.product_t t1 t2, None, None)]
     t2
