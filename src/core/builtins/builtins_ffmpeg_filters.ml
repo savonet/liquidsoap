@@ -536,8 +536,9 @@ let () =
           Printf.sprintf "Ffmpeg filter: %s%s" description
             (if explanation <> "" then " " ^ explanation else "")
         in
-        Lang.add_builtin ~category:`Filter ("ffmpeg.filter." ^ name) ~descr
-          ~flags:[`Extra]
+        Lang.add_builtin
+          ~category:(`Source `FFmpegFilter)
+          ("ffmpeg.filter." ^ name) ~descr ~flags:[`Extra]
           (args_t @ List.map (fun (_, lbl, t) -> (lbl, t, None, None)) sources_t)
           output_t
           (fun p ->
@@ -558,7 +559,8 @@ let () =
             let filter = apply_filter ~args_parser ~filter ~sources_t args in
             ignore (Lang.apply (Value.invoke filter "set_input") inputs);
             Value.invoke filter "output");
-        Lang.add_builtin ~category:`Filter
+        Lang.add_builtin
+          ~category:(`Source `FFmpegFilter)
           ("ffmpeg.filter." ^ name ^ ".create")
           ~descr:
             (Printf.sprintf
@@ -607,7 +609,9 @@ let () =
   let audio_t = Lang.(source_t ~methods:false (frame_kind_t audio_frame)) in
   let video_t = Lang.(source_t ~methods:false (frame_kind_t video_frame)) in
 
-  Lang.add_builtin ~category:`Filter "ffmpeg.filter.audio.input"
+  Lang.add_builtin
+    ~category:(`Source `FFmpegFilter)
+    "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
     [
       ( "pass_metadata",
@@ -723,7 +727,9 @@ let () =
 
       (s :> Source.source));
 
-  Lang.add_builtin ~category:`Filter "ffmpeg.filter.video.input"
+  Lang.add_builtin
+    ~category:(`Source `FFmpegFilter)
+    "ffmpeg.filter.video.input"
     ~descr:"Attach a video source to a filter's input"
     [
       ( "pass_metadata",
@@ -865,7 +871,8 @@ let unify_clocks ~clock sources =
 
 let () =
   let univ_t = Lang.univ_t () in
-  Lang.add_builtin "ffmpeg.filter.create" ~category:`Filter
+  Lang.add_builtin "ffmpeg.filter.create"
+    ~category:(`Source `FFmpegFilter)
     ~descr:"Configure and launch a filter graph"
     [("", Lang.fun_t [(false, "", Graph.t)] univ_t, None, None)]
     univ_t
