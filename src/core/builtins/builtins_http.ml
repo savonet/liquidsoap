@@ -97,7 +97,7 @@ let add_http_request ~stream_body ~descr ~request name =
       ]
     else []
   in
-  Lang.add_builtin name ~category:`Interaction ~descr params request_return_t
+  Lang.add_builtin name ~category:`Internet ~descr params request_return_t
     (fun p ->
       let headers = List.assoc "headers" p in
       let headers = Lang.to_list headers in
