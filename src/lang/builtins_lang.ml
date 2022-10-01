@@ -40,7 +40,7 @@ let () =
     (fun p -> snd (Lang.to_product (Lang.assoc "" 1 p)))
 
 let () =
-  Lang.add_builtin "print" ~category:`Interaction
+  Lang.add_builtin "print" ~category:`Programming
     ~descr:"Print on standard output."
     [
       ( "newline",
