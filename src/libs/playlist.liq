@@ -1,7 +1,7 @@
 # Default id assignment for playlists (the identifier is generated from the
 # filename).
 # @category Liquidsoap
-# @flags hidden
+# @flag hidden
 # @param ~default Default name pattern when no useful name can be extracted from `uri`
 # @param uri Playlist uri
 def playlist.id(~default,uri) =
