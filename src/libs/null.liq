@@ -1,12 +1,12 @@
 # Determine whether a nullable value is not null.
-# @category Liquidsoap
+# @category Programming
 def null.defined(x) =
   null.case(x, {false}, fun (_) -> true)
 end
 
 # Get the value of a nullable. Raises `error.not_found` if the value is `null`
 # and no default value was specified.
-# @category Liquidsoap
+# @category Programming
 # @param ~default Returned value when the value is `null`.
 def null.get(~default=null(), x)
   null.case(x,
@@ -16,7 +16,7 @@ end
 
 # Convert a nullable value to a list containing zero or one element depending on
 # whether the value is null or not.
-# @category Liquidsoap
+# @category Programming
 def null.to_list(x)
   null.case(x, {[]}, fun (x) -> [x])
 end
@@ -24,7 +24,7 @@ end
 # Find the first element of a list for which the image of the function is not
 # `null`. Raises `error.not_found` if not element is found and no default value
 # was specified.
-# @category List
+# @category Programming
 # @param ~default Returned value when no element is found.
 # @param f Function.
 # @param l List.
