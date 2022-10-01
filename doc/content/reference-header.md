@@ -15,23 +15,3 @@ Finally, **Track Processing** functions are basically all
 others, often having a behaviour that depends on or affects the extra
 information that liquidsoap puts in streams: track limits and metadata.
 
-* [Source / Conversions](#source-conversions)
-* [Source / Input](#source-input)
-* [Source / Liquidsoap](#source-liquidsoap)
-* [Source / MIDI Processing](#source-midi-processing)
-* [Source / Output](#source-output)
-* [Source / Sound Processing](#source-sound-processing)
-* [Source / Sound Synthesis](#source-sound-synthesis)
-* [Source / Track Processing](#source-track-processing)
-* [Source / Video Processing](#source-video-processing)
-* [Source / Visualization](#source-visualization)
-* [FFmpeg Filter](#ffmpeg-filter)
-* [Bool](#bool)
-* [Control](#control)
-* [Interaction](#interaction)
-* [Liquidsoap](#liquidsoap)
-* [List](#list)
-* [Math](#math)
-* [Pair](#pair)
-* [String](#string)
-* [System](#system)

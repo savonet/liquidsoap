@@ -330,6 +330,16 @@ module Value = struct
       categories |> List.map (fun (c, s) -> (s, c)) |> List.sort compare
     in
     List.iter
+      (fun (category, _) ->
+        let slug s =
+          let s = String.lowercase_ascii s in
+          let r = Str.regexp "[ /]+" in
+          Str.global_replace r "-" s
+        in
+        Printf.ksprintf print "- [%s](#%s)\n" category (slug category))
+      categories;
+    print "\n";
+    List.iter
       (fun (category_name, category) ->
         print ("## " ^ category_name ^ "\n\n");
         let functions =
