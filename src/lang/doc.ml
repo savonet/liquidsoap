@@ -125,6 +125,7 @@ module Value = struct
     | `Bool
     | `Getter
     | `Liquidsoap
+    | `Metadata
     | `Programming
     | `Interaction
     | `Internet
@@ -152,6 +153,7 @@ module Value = struct
       (`Bool, "Bool");
       (`Getter, "Getter");
       (`Liquidsoap, "Liquidsoap");
+      (`Metadata, "Metadata");
       (`Programming, "Programming");
       (`Interaction, "Interaction");
       (`Internet, "Internet");

@@ -94,7 +94,7 @@ let () =
         ("description", ([], Lang.string_t), "Description");
       ]
   in
-  Lang.add_builtin "string.apic.parse" ~category:`File
+  Lang.add_builtin "string.apic.parse" ~category:`Metadata
     [("", Lang.string_t, None, Some "APIC data.")] t
     ~descr:
       "Parse APIC ID3v2 tags (such as those obtained in the APIC tag from \
@@ -120,7 +120,7 @@ let () =
         ("description", ([], Lang.string_t), "Description");
       ]
   in
-  Lang.add_builtin "string.pic.parse" ~category:`File
+  Lang.add_builtin "string.pic.parse" ~category:`Metadata
     [("", Lang.string_t, None, Some "PIC data.")] t
     ~descr:
       "Parse PIC ID3v2 tags (such as those obtained in the PIC tag from \
