@@ -1,7 +1,7 @@
 predicate = ()
 
 # Detect when a predicate becomes true.
-# @category Liquidsoap
+# @category Programming
 # @param ~init Detect at beginning.
 # @param p Predicate.
 def predicate.activates(~init=false, p)
@@ -15,7 +15,7 @@ def predicate.activates(~init=false, p)
 end
 
 # Become true once every time a predicate is true.
-# @category Liquidsoap
+# @category Programming
 # @param p Predicate.
 def predicate.once(p)
   predicate.activates(init=true, p)
@@ -38,7 +38,7 @@ def predicate.at_most(n, p)
 end
 
 # Detect when a predicate changes.
-# @category Liquidsoap
+# @category Programming
 # @param p Predicate.
 def predicate.changes(p)
   last = ref(p())
@@ -51,7 +51,7 @@ def predicate.changes(p)
 end
 
 # First occurrence of a predicate.
-# @category Liquidsoap
+# @category Programming
 # @param p Predicate.
 def predicate.first(p)
   done = ref(false)
@@ -71,7 +71,7 @@ end
 
 # Predicate which is true when a signal is sent. The returned predicate has a
 # method `signal` to send the signal.
-# @category Liquidsoap
+# @category Programming
 # @method signal Send a signal.
 def predicate.signal()
   state = ref(false)
