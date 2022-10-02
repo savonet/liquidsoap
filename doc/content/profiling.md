@@ -1,5 +1,4 @@
-Profiling scripts
-=================
+# Profiling scripts
 
 Sometimes, some functions of your script are taking up time and you would like
 to optimize those. We are not speaking here about the encoding of streams, which

@@ -1,5 +1,4 @@
-Importing JSON values
----------------------
+## Importing JSON values
 
 _Note:_ If you are reading this page for the first time, you might want to skip directly to the
 explicit type annotation below as this is the recommended way of parsing JSON data. The content
@@ -16,6 +15,7 @@ print("We parsed a JSON object and got value " ^ v.foo ^ " for attribute foo!")
 ```
 
 This prints:
+
 ```
 We parsed a JSON object and got value abc for attribute foo!
 ```
@@ -32,6 +32,7 @@ print("We parsed a JSON object and got value " ^ v.foo ^ " for attribute foo!")
 ```
 
 raises the following exception:
+
 ```
 Error 14: Uncaught runtime error:
 type: json,
@@ -39,6 +40,7 @@ message: "Parsing error: json value cannot be parsed as type {foo: string, _}"
 ```
 
 Of course, this all seems pretty trivial presented like that but, let's switch to reading a file instead:
+
 ```liquidsoap
 let json.parse v = file.contents("/path/to/file.json")
 
@@ -47,6 +49,7 @@ print("We parsed a JSON object and got value " ^ v.foo ^ " for attribute foo!")
 
 Now, this is getting somewhere! Let's push it further and parse a whole `package.json` from
 a typical `npm` package:
+
 ```liquidsoap
 # Content of package.json is:
 # {
@@ -66,11 +69,13 @@ print("This is package " ^  name ^ ", version " ^ version ^ " with test script: 
 ```
 
 And we get:
+
 ```
 This is package my_package, version 1.0.0 with test script: echo "Error: no test specified" && exit 1
 ```
 
 This can even be combined with _patterns_:
+
 ```liquidsoap
 let json.parse {
   name,
@@ -85,12 +90,12 @@ print("This is package " ^  name ^ ", version " ^ version ^ " with test script: 
 
 Now, this is looking nice!
 
-Explicit type annotation
-------------------------
+## Explicit type annotation
 
 Explicit type annotation are the recommended way to parse JSON data.
 
 Let's try a slight variation of the previous script now:
+
 ```liquidsoap
 let json.parse {
   name,
@@ -104,6 +109,7 @@ print("This is package #{name}, version #{version} with test script: #{test}")
 ```
 
 This returns:
+
 ```
 This is package null, version null with test script: null
 ```
@@ -136,6 +142,7 @@ print("This is package #{name}, version #{version} with test script: #{test}")
 ```
 
 And we get:
+
 ```
 This is package my_package, version 1.0.0 with test script: echo "Error: no test specified" && exit 1
 ```
@@ -156,6 +163,7 @@ All type annotation can be postfixed with a trailing `?` to denote a _nullable_ 
 the value as the principal type. This is particularly useful when you are not sure of all the types that you are parsing.
 
 For instance, some `npm` packages do not have a `scripts` entry or a `test` entry, so you would parse them as:
+
 ```liquidsoap
 let json.parse ({
   name,
@@ -228,6 +236,7 @@ end
 #### Example
 
 Here's a full example. Feel free to refer to `tests/language/json.liq` in the source code for more of them.
+
 ```liquidsoap
   data = '{
     "foo": 34.24,
@@ -275,14 +284,14 @@ Here's a full example. Feel free to refer to `tests/language/json.liq` in the so
 ### JSON5 extension
 
 Liquidsoap supports the [JSON5](https://json5.org/) extension. Parsing of `json5` values is enabled with the following argument:
+
 ```liquidsoap
 let json.parse[json5=true] x = ...
 ```
 
 If a `json5` variable is in scope, you can also simply use `let json.parse[json5] x = ...`
 
-Exporting JSON values
----------------------
+## Exporting JSON values
 
 Exporting JSON values can be done using the `json.stringify` function:
 
@@ -293,8 +302,7 @@ print(json.stringify(r))
 
 Please note that not all values are exportable as JSON, for instance function. In such cases the function will raise an `error.json` exception.
 
-Generic JSON objects
---------------------
+## Generic JSON objects
 
 Generic `JSON` objects can be manipulated through the `json()` operator. This operator
 returns an opaque json variable with methods to `add` and `remove` attributes:

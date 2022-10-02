@@ -1,5 +1,5 @@
-Script loading
-==============
+# Script loading
+
 When you run liquidsoap for streaming, the command line has the following form:
 
 ```
@@ -15,13 +15,13 @@ in `secret.liq`, and then refer to that variable in your main script
 need to communicate `main.liq` there won't be any risk of divulgating your
 password.
 
-The pervasive script library
-----------------------------
+## The pervasive script library
+
 In fact, liquidsoap also implicitly loads scripts before those that you specify
 on the command-line. These scripts are meant to contain standard utilities.
 Liquidsoap finds them in `LIBDIR/liquidsoap/VERSION` where `LIBDIR` depends on
 your configuration (it is typically `/usr/local/lib` or `/usr/lib`) and
-`VERSION` is the version of liquidsoap (*e.g.* `0.3.8` or `svn`).
+`VERSION` is the version of liquidsoap (_e.g._ `0.3.8` or `svn`).
 
 Currently, liquidsoap loads `stdlib.liq` from the library directory,
 and this file includes some others.

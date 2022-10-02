@@ -1,5 +1,5 @@
-Harbor input
-============
+# Harbor input
+
 Liquidsoap is also able to receive a source using icecast or shoutcast source protocol with
 the `input.harbor` operator. Using this operator, the running liquidsoap will open
 a network socket and wait for an incoming connection.
@@ -17,24 +17,22 @@ SSL support in harbor can be enabled using of of the following `opam` packages: 
 If enabled using `ssl`, `input.harbor.ssl` will be available. If enabled with `osx-secure-transport`, it will be
 `input.harbor.secure_transport`.
 
-Parameters
-----------
+## Parameters
+
 The global parameters for harbor can be retrieved using
 `liquidsoap --list-settings`. They are:
 
-* `harbor.bind_addr`: IP address on which the HTTP stream receiver should listen. The default is `"0.0.0.0"`. You can use this parameter to restrict connections only to your LAN.
-* `harbor.timeout`: Timeout for source connection, in seconds. Defaults to `30.`.
-* `harbor.verbose`: Print password used by source clients in logs, for debugging purposes. Defaults to: `false`
-* `harbor.reverse_dns`: Perform reverse DNS lookup to get the client's hostname from its IP. Defaults to: `true`
-* `harbor.icy_formats`: Content-type (mime) of formats which allow shout (ICY) metadata update. Defaults to: ```
-["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"; "audio/wav"; "audio/wave"]```
-
+- `harbor.bind_addr`: IP address on which the HTTP stream receiver should listen. The default is `"0.0.0.0"`. You can use this parameter to restrict connections only to your LAN.
+- `harbor.timeout`: Timeout for source connection, in seconds. Defaults to `30.`.
+- `harbor.verbose`: Print password used by source clients in logs, for debugging purposes. Defaults to: `false`
+- `harbor.reverse_dns`: Perform reverse DNS lookup to get the client's hostname from its IP. Defaults to: `true`
+- `harbor.icy_formats`: Content-type (mime) of formats which allow shout (ICY) metadata update. Defaults to: ` ["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"; "audio/wav"; "audio/wave"]`
 
 If SSL support was enabled via `ssl`, you will have the following additional settings:
 
-* `harbor.ssl.certificate`: Path to the SSL certificate.
-* `harbor.ssl.private_key`: Path to the SSL private key (openssl only).
-* `harbor.ssl.password`: Optional password to unlock the private key.
+- `harbor.ssl.certificate`: Path to the SSL certificate.
+- `harbor.ssl.private_key`: Path to the SSL private key (openssl only).
+- `harbor.ssl.password`: Optional password to unlock the private key.
 
 Obtaining a proper SSL certificate can be tricky. You may want to start with a self-signed certificate first.
 You can obtain a free, valid certificate at: [https://letsencrypt.org/](https://letsencrypt.org/)
@@ -50,11 +48,11 @@ openssl req -x509 -newkey rsa:4096 -sha256 -nodes -keyout server.key -out server
 You also have per-source parameters. You can retrieve them using the command
 `liquidsoap -h input.harbor`. The most important one are:
 
-* `user`, `password`: set a permanent login and password for this harbor source.
-* `auth`: Authenticate the user according to a specific function.
-* `port`: Use a custom port for this input.
-* `icy`: Enable ICY (shoutcast) source connections.
-* `id`: The mountpoint registered for the source is also the id of the source.
+- `user`, `password`: set a permanent login and password for this harbor source.
+- `auth`: Authenticate the user according to a specific function.
+- `port`: Use a custom port for this input.
+- `icy`: Enable ICY (shoutcast) source connections.
+- `id`: The mountpoint registered for the source is also the id of the source.
 
 When using different ports with different harbor inputs, mountpoints are attributed
 per-port. Hence, there can be a harbor input with mountpoint `"foo"` on port `1356`
@@ -96,8 +94,8 @@ to the `input.harbor` source.
 When using a custom authentication function, in case of a `ICY` (shoutcast) connection,
 the function will receive this value for the username.
 
-Usage
------
+## Usage
+
 When using harbor inputs, you first set the required settings, as described above. Then, you define each source using `input.harbor("mountpoint")`. This source is faillible and will become available when a source client is connected.
 
 The unlabeled parameter is the mount point that the source client may connect

@@ -1,5 +1,5 @@
-Clocks
-======
+# Clocks
+
 In the [quickstart](quick_start.html) and in the introduction to liquidsoap
 [sources](sources.html), we have described a simple world in which sources
 communicate with each other, creating and transforming data that
@@ -10,7 +10,7 @@ a fixed amount of data is produced.
 
 While this simple picture is useful to get a fair idea of what's going on
 in liquidsoap, the full picture is more complex: in fact, a streaming
-system might involve *multiple clocks*, or in other words several
+system might involve _multiple clocks_, or in other words several
 time flows.
 
 It is only in very particular cases that liquidsoap scripts
@@ -28,8 +28,8 @@ regarding clocks.
 Finally, we describe how to explicitly use clocks,
 and show a few striking examples of what can be achieved that way.
 
-Why multiple clocks
--------------------
+## Why multiple clocks
+
 The first reason is **external** to liquidsoap: there is simply
 not a unique notion of time in the real world.
 Your computer has an internal clock which indicates
@@ -66,6 +66,7 @@ One simply needs to add boxes representing clocks:
 a source can belong to only one box,
 and all sources of a box produce streams at the same rate.
 For example,
+
 ```liquidsoap
 output.icecast(fallback([crossfade(playlist(...)),jingles]))
 ```
@@ -81,8 +82,8 @@ risk of inconsistency.
 The other clock is simply a CPU-based clock, so that the main stream
 is produced following the ``real'' time rate.
 
-Error messages
---------------
+## Error messages
+
 Most of the time you won't have to do anything special about clocks:
 operators that have special requirements regarding clocks will do
 what's necessary themselves, and liquidsoap will check that everything is
@@ -90,8 +91,10 @@ fine. But if the check fails, you'll need to understand the error,
 which is what this section is for.
 
 ### Disjoint clocks
+
 On the following example, liquidsoap will issue the fatal error
 `a source cannot belong to two clocks`:
+
 ```liquidsoap
 s = playlist("~/media/audio")
 output.alsa(s) # perhaps for monitoring
@@ -109,8 +112,10 @@ The error expresses this conflict:
 and `crossfade`'s clock.
 
 ### Nested clocks
+
 On the following example, liquidsoap will issue the fatal error
 `cannot unify two nested clocks`:
+
 ```liquidsoap
 jingles = playlist("jingles.lst")
 music = rotate([1,10],[jingles,playlist("remote.lst")])
@@ -152,6 +157,7 @@ nasty situation, which indeed could be turned into a real mess
 by adding just a little more complexity. To obtain the desired effect
 without requiring illegal clock assignments, it suffices to
 create two jingle sources, one for each clock:
+
 ```liquidsoap
 music = rotate([1,10],[playlist("jingles.lst"),
                        playlist("remote.lst")])
@@ -164,8 +170,8 @@ There is no problem anymore: `music` belongs to
 `crossfade`'s internal clock, and `crossfade(music)`,
 `safe` and the `fallback` belong to another clock.
 
-The clock API
--------------
+## The clock API
+
 There are only a couple of operations dealing explicitly with clocks.
 
 The function `clock.assign_new(l)` creates a new clock
@@ -196,6 +202,7 @@ s2 = input.jack(clock_safe=false, ...)
 
 clock.assign_new([s1,s2])
 ```
+
 However, you may need to do it for other operators if they are totally
 unrelated to the first one.
 
@@ -208,7 +215,7 @@ Finally, `get_clock_status` provides information on
 existing clocks and track their respective times:
 it returns a list containing for each clock a pair
 `(name,time)` indicating
-the clock id its current time in *clock cycles* --
+the clock id its current time in _clock cycles_ --
 a cycle corresponds to the duration of a frame,
 which is given in ticks, displayed on startup in the logs.
 The helper function `log_clocks` built
@@ -216,8 +223,8 @@ around `get_clock_status` can be used to directly
 obtain a simple log file, suitable for graphing with gnuplot.
 Those functions are useful to debug latency issues.
 
-External clocks: decoupling latencies
--------------------------------------
+## External clocks: decoupling latencies
+
 The first reason to explicitly assign clocks is to precisely handle
 the various latencies that might occur in your setup.
 
@@ -247,6 +254,7 @@ latencies and glitches, while in theory it could be perfect.
 To fix this you can explicitly separate Icecast (high latency,
 low quality acceptable) from the backup and soundcard input (low latency,
 high quality wanted):
+
 ```liquidsoap
 input = input.oss()
 
@@ -277,8 +285,8 @@ since small lags are absorbed by the buffer and do not create
 a glitch in the OSS capture, so that Icecast listeners won't
 notice the lag at all.
 
-Internal clocks: exploiting multiple cores
-------------------------------------------
+## Internal clocks: exploiting multiple cores
+
 Clocks can also be useful even when external factors are not an issue.
 Indeed, several clocks run in several threads, which creates an opportunity
 to exploit multiple CPU cores.
@@ -292,6 +300,7 @@ you can put each of them in a separate clock.
 For example the following script takes one file and encodes it as MP3
 twice. You should run it as `liquidsoap EXPR -- FILE`
 and observe that it fully exploits two cores:
+
 ```liquidsoap
 def one()
   s = single(argv(1))

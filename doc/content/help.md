@@ -1,20 +1,20 @@
-Get help
-========
+# Get help
+
 Liquidsoap is a self-documented application,
 which means that it can provide help about several of its aspects.
 You will learn here how to get help by yourself, by asking liquidsoap.
 If you do not succeed in asking the tool, you can of course get help from
 humans. We maintain the following communication channels:
 
-* Slack: [slack.liquidsoap.info](http://slack.liquidsoap.info/)
-* IRC: #savonet on [irc.libera.chat](https://libera.chat/) (through a slack bridge)
-* Mailing list: [savonet-users@lists.sourceforge.net](mailto:savonet-users@lists.sourceforge.net)
+- Slack: [slack.liquidsoap.info](http://slack.liquidsoap.info/)
+- IRC: #savonet on [irc.libera.chat](https://libera.chat/) (through a slack bridge)
+- Mailing list: [savonet-users@lists.sourceforge.net](mailto:savonet-users@lists.sourceforge.net)
 
-Scripting API
--------------
-When scripting in liquidsoap, one uses functions that are either *builtin*
-(*e.g.* `input.http` or `output.icecast`)
-or defined in the [script library](script_loading.html) (*e.g* `output`).
+## Scripting API
+
+When scripting in liquidsoap, one uses functions that are either _builtin_
+(_e.g._ `input.http` or `output.icecast`)
+or defined in the [script library](script_loading.html) (_e.g_ `output`).
 All these functions come with a documentation, that you can access by
 executing `liquidsoap -h FUNCTION` on the command-line. For example:
 
@@ -105,10 +105,10 @@ install unless you install the optional dependency that enables it. The list of
 optional dependencies is listed via `opam info liquidsoap` if you have installed
 it this way or can in our [build page](build.html).
 
-Settings
---------
+## Settings
+
 Liquidsoap scripts contain expression like `settings.log.stdout.set(true)`.
-These are *settings*, global variables affecting the behaviour of the
+These are _settings_, global variables affecting the behaviour of the
 application.
 
 Some common settings have shortcut for convenience. These are all shortcuts to their respective `settings` values:

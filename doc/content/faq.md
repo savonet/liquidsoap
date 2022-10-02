@@ -1,13 +1,10 @@
-Frequently Asked Questions
-==========================
+# Frequently Asked Questions
 
-What does this message means?
------------------------------
+## What does this message means?
 
 ### Type error
 
-Liquidsoap might also reject a script with a series of errors of the form ```
-this value has type ... but it should be a subtype of ...```
+Liquidsoap might also reject a script with a series of errors of the form ` this value has type ... but it should be a subtype of ...`
 . Usually the last error tells you what the problem is, but the previous errors might provide a better information as to where the error comes from.
 
 For example, the error might indicate that a value of type `int` has been passed where a float was expected, in which case you should use a conversion, or more likely change an integer value such as `13` into a float `13.`.
@@ -59,11 +56,11 @@ hang, making the clock late.
 
 The first kind of latency is problematic because it tends to accumulate,
 eventually leading to the restarting of outputs:
+
 ```
 Too much latency!
 Resetting active source...
 ```
-
 
 The second kind of latency can often be ignored: if you are streaming to
 an icecast server, there are several buffers between you and your
@@ -116,15 +113,14 @@ Liquidsoap dies with messages such as these by the end of the log:
 
 Those internal errors can be of two sorts:
 
-* **Bug**: Normally, this means that you've found a bug, which you should report on the mailing list or bug tracker.
-* **User error**: In some cases, we let an exception go on user errors, instead of nicely reporting and handling it. By looking at the surrounding log messages, you might realize that liquidsoap crashed for a good reason, that you are responsible for fixing. You can still report a bug: you should not have seen an exception and its backtrace.
+- **Bug**: Normally, this means that you've found a bug, which you should report on the mailing list or bug tracker.
+- **User error**: In some cases, we let an exception go on user errors, instead of nicely reporting and handling it. By looking at the surrounding log messages, you might realize that liquidsoap crashed for a good reason, that you are responsible for fixing. You can still report a bug: you should not have seen an exception and its backtrace.
 
 In any case, once that kind of error happens, there is no way for the
 user to prevent liquidsoap from crashing. Those exceptions cannot be
 caught or handled in any way at the level of liquidsoap scripts.
 
-Troubleshooting
----------------
+## Troubleshooting
 
 ### Pulseaudio
 
@@ -132,14 +128,15 @@ When using ALSA input or output or, more generally any audio input or output
 that is not using pulseaudio, you should disable pulseaudio, which is often installed
 by default. Pulseaudio emulates ALSA but this also generates bugs,
 in particular errors of this form:
+
 ```
 Alsa.Unknown_error(1073697252)!
 ```
 
 There are two things you may do:
 
-* Make sure your alsa input/output does not use pulseaudio
-* Disable pulseaudio on your system
+- Make sure your alsa input/output does not use pulseaudio
+- Disable pulseaudio on your system
 
 In the first case, you should first find out which sound card you want to use,
 with the command `aplay -l`. An example of its output is:

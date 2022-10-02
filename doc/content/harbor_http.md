@@ -1,10 +1,8 @@
-Harbor as HTTP server
-=====================
+# Harbor as HTTP server
 
 The harbor server can be used as a HTTP server. We provide two type of APIs for this:
 
-Simple API
-----------
+## Simple API
 
 The `harbor.http.register.simple` function provides a simple, easy to use registration API for quick
 HTTP response implementation. This function receives a record describing the request and returns
@@ -35,12 +33,11 @@ harbor.http.register.simple(port=8080, method="GET", path, handler)
 
 where:
 
-* `port` is the port where to receive incoming connections
-* `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
-* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Named named fragments are passed via `request.query`, for instance: `req.query["cid"]`.
+- `port` is the port where to receive incoming connections
+- `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
+- `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Named named fragments are passed via `request.query`, for instance: `req.query["cid"]`.
 
-Node/express API
-----------------
+## Node/express API
 
 The `harbor.http.register` function offers a higher-level API for advanced HTTP response implementation.
 Its API is very similar to the node/express API. Here's an example:
@@ -90,9 +87,9 @@ harbor.http.register(port=8080, method="GET", path, handler)
 
 where:
 
-* `port` is the port where to receive incoming connections
-* `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
-* `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Matched named fragments are passed via `request.query`, for instance: `req.query["cid"]`.
+- `port` is the port where to receive incoming connections
+- `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
+- `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Matched named fragments are passed via `request.query`, for instance: `req.query["cid"]`.
 
 The handler function receives a record containing all the information about the request and fills
 up the details about the response, which is then used to write a proper HTTP response to the client.
@@ -101,8 +98,7 @@ Named fragments from the request path are passed to the response `query` list.
 
 Middleware _a la_ node/express are also supported and registered via `http.harbor.middleware.register`. See `http.harbor.middleware.cors` for an example.
 
-Https support
--------------
+## Https support
 
 `https` is supported using either `libssl` or macos' `SecureTransport`. When compiled with either of them, a `http.transport.ssl` or `http.transport.secure_transport`
 is available and can be passed to each `harbor` operator:
@@ -124,8 +120,7 @@ output.harbor(transport=..., port=8000, ...)
 A given port can only support one type of transport at a time and registering handlers, sources or outputs on the same port with different transports
 will raise a `error.http` error.
 
-Advanced usage
---------------
+## Advanced usage
 
 All registration functions have a `.regexp` counter part, e.g. `harbor.http.register.simple.regexp`. These function accept
 a full regular expression for their `path` argument. Named matches on the regular expression are also passed via the request's `query`
@@ -146,15 +141,13 @@ It is also possible to directly interact with the underlying socket using the `s
   harbor.http.register.simple("/custom", port=3456, handler)
 ```
 
-
-Examples
---------
+## Examples
 
 These functions can be used to create your own HTTP interface. Some examples
 are:
 
-Redirect Icecast's pages
-------------------------
+## Redirect Icecast's pages
+
 Some source clients using the harbor may also request pages that
 are served by an icecast server, for instance listeners statistics.
 In this case, you can register the following handler:
@@ -178,8 +171,8 @@ harbor.http.register.regexp(
 )
 ```
 
-Get metadata
-------------
+## Get metadata
+
 You can use harbor to register HTTP services to
 fecth/set the metadata of a source. For instance,
 using the [JSON export function](json.html) `json.stringify`:
@@ -215,8 +208,8 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-Set metadata
-------------
+## Set metadata
+
 Using `insert_metadata`, you can register a GET handler that
 updates the metadata of a given source. For instance:
 

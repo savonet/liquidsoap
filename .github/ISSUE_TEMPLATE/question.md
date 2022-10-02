@@ -1,10 +1,9 @@
 ---
 name: Question
 about: Ask a question about using the software
-title: ''
+title: ""
 labels: usage
-assignees: ''
-
+assignees: ""
 ---
 
 **Thanks for using liquidsoap**

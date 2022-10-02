@@ -1,5 +1,5 @@
-LADSPA plugins in Liquidsoap
-============================
+# LADSPA plugins in Liquidsoap
+
 [LADSPA](http://www.ladspa.org/) is a standard that allows software audio processors and effects to be plugged into a
 wide range of audio synthesis and recording packages.
 
@@ -37,7 +37,6 @@ Parameters:
 ```
 
 For advanced users, it is worth nothing that most of the parameters associated with LADSPA operators
-can take a function, for instance in the above: ```
-max_slowdown : anything that is either float or ()->float```
+can take a function, for instance in the above: ` max_slowdown : anything that is either float or ()->float`
 .
 This means that those parameters may be dynamically changed while running a liquidsoap script.

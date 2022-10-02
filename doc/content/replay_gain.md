@@ -1,15 +1,12 @@
-Normalization and ReplayGain
-============================
+# Normalization and ReplayGain
 
-Normalization
--------------
+## Normalization
 
 If you want to have a constant average volume on an audio stream, you can use the `normalize` operator. However, this operator cannot guess the volume of the whole stream, and can be "surprised" by rapid changes of the volume. This can lead to a volume that is too low, too high, oscillates. In some cases, dynamic normalization also creates saturation.
 
 To tweak the normalization, several parameters are available. These are listed and explained in the [reference](reference.html) and also visible by executing `liquidsoap -h normalize`. However, if the stream you want to normalize consist of audio files, using the replay gain technology might be a better choice.
 
-Replay gain
------------
+## Replay gain
 
 [ReplayGain](https://en.wikipedia.org/wiki/ReplayGain) is a proposed standard that is (more or less) respected by many open-source tools. It provides a way to obtain an overall uniform perceived loudness over a track or a set of tracks. The computation of the loudness is based on how the human ear actually perceives each range of frequency. Having computed the average perceived loudness on a track or an album, it is easy to renormalize the tracks when playing, ensuring a comfortable, consistent listening experience.
 
@@ -27,7 +24,7 @@ per-file basis, if you need finer grained control over replay gain.
 
 #### Using the replay gain metadata resolver
 
-The metadata solution is uniform: without changing anything, *all* your
+The metadata solution is uniform: without changing anything, _all_ your
 files will have a new `replaygain_track_gain` metadata when the computation succeeded.
 
 However, keep in mind that this computation can be costly and will be done each time a remote file is

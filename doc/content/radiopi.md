@@ -1,5 +1,5 @@
-RadioPi
-=======
+# RadioPi
+
 [RadioPi](http://www.radiopi.org) is the web radio of the ECP (Ecole Centrale de Paris). RadioPi runs many channels.
 There are topical channels (Reggae, Hip-Hop, Jazz, ...). On top of that, they periodically broadcast live shows,
 which are relayed on all channels.
@@ -21,6 +21,7 @@ Liquidsoap handles download automatically.
 
 Each file is given by an external script, `radiopilote-getnext`,
 whose answer looks as follows (except that it's on a single line):
+
 ```
 annotate:file_id="3541",length="400.613877551",\
   type="chansons",title="John Holt - Holigan",\
@@ -30,6 +31,7 @@ annotate:file_id="3541",length="400.613877551",\
 ```
 
 Note that we use annotate to pass some variables to liquidsoap...
+
 ```liquidsoap
 #!/usr/bin/liquidsoap
 

@@ -1,5 +1,4 @@
-HLS Output
-==========
+# HLS Output
 
 Starting with liquidsoap `1.4.0`, it is possible to send your streams as [HLS output](https://en.wikipedia.org/wiki/HTTP_Live_Streaming).
 
@@ -52,16 +51,16 @@ output.file.hls(playlist="live.m3u8",
 
 Let's see what's important here:
 
-* `streams` describes the encoded streams. It's a list of: `(stream_name, encoder)`. `stream_name` is used to generate
+- `streams` describes the encoded streams. It's a list of: `(stream_name, encoder)`. `stream_name` is used to generate
   the corresponding media playlists. Encoders can be any encoder supported by liquidsoap. However, the [HLS RFC](https://tools.ietf.org/html/rfc8216)
   limits the list of possible codecs to `mp3` and `aac`. Furthermore, for the best possible compatible, it is recommended
   to send data encapsulated in a `MPEG-TS` stream. Currently, the only encoder capable of doing this in liquidsoap is `%ffmpeg`.
-* `persist_at` is used to allow liquidsoap to restart while keeping the existing segments and playlists. When
+- `persist_at` is used to allow liquidsoap to restart while keeping the existing segments and playlists. When
   shutting down, liquidsoap stores the current configuration at `persist_at` and uses it to restart the HLS stream when
   restarting.
-* `segments` and `segments_overhead` are used to keep track of the generated segments. Each media playlist will contain
+- `segments` and `segments_overhead` are used to keep track of the generated segments. Each media playlist will contain
   a number of segments defined by `segments` and an extra set of segments, defined by `segments_overhead`, is kept past the playlist size for those
-   listeners who are still listening on outdated segments.
+  listeners who are still listening on outdated segments.
 
 There are more useful options, in particular `on_file_change`, which can be used for instance to sync up your segments and playlists
 to a distant storage and hosting service such as S3.
@@ -70,8 +69,7 @@ Liquidsoap also provides a `output.harbor.hls` and `output.harbor.hls.ssl` which
 liquidsoap. Their options should be the same as `output.file.hls`, except for harbor-specifc options `port` and `path`. It is
 not recommended for listener-facing setup but can be useful to sync up with a caching system such as cloudfront.
 
-Mp4 format
-----------
+## Mp4 format
 
 `mp4` container is supported by requires specific parameters. Here's an example that mixes `aac` and `flac` audio, The parameters
 required for `mp4` are `movflags` and `frag_duration`.
