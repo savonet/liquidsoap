@@ -301,7 +301,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
     method id = id
 
     method set_id ?(definitive = true) s =
-      let s = Pcre.substitute ~pat:"[ \t\n]" ~subst:(fun _ -> "_") s in
+      let s = Pcre.substitute ~pat:"[ \t\n.]" ~subst:(fun _ -> "_") s in
       if not definitive_id then (
         id <- s;
         definitive_id <- definitive);
