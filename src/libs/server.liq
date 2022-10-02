@@ -65,7 +65,7 @@ def server.broadcast(x) =
 end
 
 # Start an interface for the "telnet" server over http.
-# @category Liquidsoap
+# @category Internet
 # @flag extra
 # @param ~port Port of the server.
 # @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output

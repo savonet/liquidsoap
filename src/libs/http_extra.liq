@@ -1,5 +1,5 @@
 # Harbor middleware to add CORS headers
-# @category Liquidsoap
+# @category Internet
 # @flag extra
 # @param ~origin Configures the Access-Control-Allow-Origin CORS header
 # @param ~origin_callback Origin callback for advanced uses. If passed, overrides `origin` argument. Takes the request as input and returns the allowed origin. Return `null` to skip all CORS headers.
