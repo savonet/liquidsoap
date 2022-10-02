@@ -22,17 +22,17 @@
 
 (** In this module we define the central streaming concepts: sources, active
     sources and clocks.
-  
+
     Sources can produce a stream, if something pulls it.
     Sources can pull streams from other sources (such non-elementary sources
     are called operators). But who starts pulling?
-  
+
     Some sources have a noticeable effect, for example outputs.
     Some are indirectly needed by outputs.
     Some are useless, they have no direct or indirect observable effect.
     We only want to pull data from sources that have an effect,
     thereby "animating them". Those sources are called active.
-  
+
     Clocks are in charge of animating active sources.
     Each clock "owns" a number of active sources, and indirectly some
     sources owned by those active sources, and controls access to their
@@ -47,19 +47,19 @@
 type source_t = [ `Fallible | `Infallible ]
 
 (** {1 Proto clocks}
-   
+
     Roughly describe what a clock is, and build a notion of clock variable
     on top of that. More concrete clock stuff is done the [Clock] module.
-   
+
     Clocks play two roles:
      (1) making sure that one source belongs to only one time flow,
      (2) giving a handle on how to run a time flow.
-   
+
     Most clocks are passive, i.e. they don't run anything
     directly, but may only tick when something happens to a source.
     The clock is the default, active clock:
     when started, it launches a thread which keeps ticking regularly.
-   
+
     A clock needs to know all the active sources under its control,
     so it can execute them. This might seem surprising in some cases:
       cross(s)       <-- create a clock, assigns it to s
@@ -67,11 +67,11 @@ type source_t = [ `Fallible | `Infallible ]
     In effect, we make it equivalent to
       cross(output.file(s))
     Anyway, it'd be very strange that an output isn't animated at all.
-   
+
     Clock variables can represent an unknown clock, with attached outputs.
     A source gets assigned a clock variable, which might leave it
     a chance to choose that clock (by attempting to unify it).
-   
+
     The idea is that when an output is created it assigns a clock to itself
     according to its sources' clocks. Eventually, all remaining unknown clocks
     are forced to clock.
@@ -110,7 +110,7 @@ class type ['a, 'b] proto_clock =
         e.g. add([s,cross(f,s)]).
     Clock constants are objects of type [proto_clock], but need to also
     maintain the information attached to variables.
-   
+
     The unification algorithm can be described as follows, ignoring
     the active source maintenance.
     X[Y1,Y2,..,Yn] denotes a variable or constant clock with the set Gamma
@@ -371,15 +371,15 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
       Content.Video.dimensions_of_format (Frame.find_video self#content_type)
 
     (** Startup/shutdown.
-     
+
       Get the source ready for streaming on demand, have it release resources
       when it's not used any more, and decide whether the source should run in
       caching mode.
-     
+
       A source may be accessed by several sources, and must switch to caching
       mode when it may be accessed by more than one source, in order to ensure
       consistency of the delivered stream chunk.
-     
+
       Before that a source P accesses another source S it must activate it. The
       activation can be static, or dynamic. A static activation means that
       P may pull data from S at any time. A dynamic activation means that P
@@ -388,15 +388,15 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
       round, which is why S needs to know in advance, since in some cases it
       might have to enter caching mode from the beginning of the round in case
       the dynamic activation occurs.
-     
+
       An activation is identified by the path to the source which required it.
       It is possible that two identical activations are done, and they should
       not be treated as a single one.
-     
+
       In short, a source can avoid caching when: it has only one static
       activation and all its dynamic activations are sub-paths of the static
       one. When there is no static activation, there cannot be any access.
-     
+
       It is assumed that all streaming is done in one thread for a given clock,
       so the activation management API is not thread-safe. *)
 
