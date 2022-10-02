@@ -21,60 +21,61 @@
  *****************************************************************************)
 
 (** In this module we define the central streaming concepts: sources, active
-  * sources and clocks.
-  *
-  * Sources can produce a stream, if something pulls it.
-  * Sources can pull streams from other sources (such non-elementary sources
-  * are called operators). But who starts pulling?
-  *
-  * Some sources have a noticeable effect, for example outputs.
-  * Some are indirectly needed by outputs.
-  * Some are useless, they have no direct or indirect observable effect.
-  * We only want to pull data from sources that have an effect,
-  * thereby "animating them". Those sources are called active.
-  *
-  * Clocks are in charge of animating active sources.
-  * Each clock "owns" a number of active sources, and indirectly some
-  * sources owned by those active sources, and controls access to their
-  * streams. *)
+    sources and clocks.
+  
+    Sources can produce a stream, if something pulls it.
+    Sources can pull streams from other sources (such non-elementary sources
+    are called operators). But who starts pulling?
+  
+    Some sources have a noticeable effect, for example outputs.
+    Some are indirectly needed by outputs.
+    Some are useless, they have no direct or indirect observable effect.
+    We only want to pull data from sources that have an effect,
+    thereby "animating them". Those sources are called active.
+  
+    Clocks are in charge of animating active sources.
+    Each clock "owns" a number of active sources, and indirectly some
+    sources owned by those active sources, and controls access to their
+    streams. *)
 
 (** Fallibility type MUST be defined BEFORE clocks.
-  * Otherwise the module cannot be well-typed since the list of all
-  * clock variables refers to active sources and hence to #stype : source_t.
-  * Don't mess with this, type errors will give you a hard time!
-  * (By the way, there's no problem of scope escaping for class type
-  *  since those are structural, not nominal like a variant type.) *)
+    Otherwise the module cannot be well-typed since the list of all
+    clock variables refers to active sources and hence to #stype : source_t.
+    Don't mess with this, type errors will give you a hard time!
+    (By the way, there's no problem of scope escaping for class type
+    since those are structural, not nominal like a variant type.) *)
 type source_t = [ `Fallible | `Infallible ]
 
 (** {1 Proto clocks}
-  *
-  * Roughly describe what a clock is, and build a notion of clock variable
-  * on top of that. More concrete clock stuff is done the [Clock] module.
-  *
-  * Clocks play two roles:
-  *  (1) making sure that one source belongs to only one time flow,
-  *  (2) giving a handle on how to run a time flow.
-  *
-  * Most clocks are passive, i.e. they don't run anything
-  * directly, but may only tick when something happens to a source.
-  * The clock is the default, active clock:
-  * when started, it launches a thread which keeps ticking regularly.
-  *
-  * A clock needs to know all the active sources under its control,
-  * so it can execute them. This might seem surprising in some cases:
-  *   cross(s)       <-- create a clock, assigns it to s
-  *   output.file(s) <-- also assigns it to the output
-  * In effect, we make it equivalent to
-  *   cross(output.file(s))
-  * Anyway, it'd be very strange that an output isn't animated at all.
-  *
-  * Clock variables can represent an unknown clock, with attached outputs.
-  * A source gets assigned a clock variable, which might leave it
-  * a chance to choose that clock (by attempting to unify it).
-  *
-  * The idea is that when an output is created it assigns a clock to itself
-  * according to its sources' clocks. Eventually, all remaining unknown clocks
-  * are forced to clock. *)
+   
+    Roughly describe what a clock is, and build a notion of clock variable
+    on top of that. More concrete clock stuff is done the [Clock] module.
+   
+    Clocks play two roles:
+     (1) making sure that one source belongs to only one time flow,
+     (2) giving a handle on how to run a time flow.
+   
+    Most clocks are passive, i.e. they don't run anything
+    directly, but may only tick when something happens to a source.
+    The clock is the default, active clock:
+    when started, it launches a thread which keeps ticking regularly.
+   
+    A clock needs to know all the active sources under its control,
+    so it can execute them. This might seem surprising in some cases:
+      cross(s)       <-- create a clock, assigns it to s
+      output.file(s) <-- also assigns it to the output
+    In effect, we make it equivalent to
+      cross(output.file(s))
+    Anyway, it'd be very strange that an output isn't animated at all.
+   
+    Clock variables can represent an unknown clock, with attached outputs.
+    A source gets assigned a clock variable, which might leave it
+    a chance to choose that clock (by attempting to unify it).
+   
+    The idea is that when an output is created it assigns a clock to itself
+    according to its sources' clocks. Eventually, all remaining unknown clocks
+    are forced to clock.
+ *)
 
 type sync = [ `Auto | `CPU | `None ]
 type self_sync = [ `Static | `Dynamic ] * bool
@@ -100,34 +101,34 @@ class type ['a, 'b] proto_clock =
   end
 
 (** {1 Clock variables}
-  * Used to infer what clock a source belongs to.
-  * Each variable comes with
-  *   - a list of active sources belonging to the clock, unused during
-  *     inference/unification, but animated by the clock when running
-  *   - a list of sub-clocks, used during unification's occurs-check
-  *     to avoid cycles which would result in unsound behavior
-  *     e.g. add([s,cross(f,s)]).
-  * Clock constants are objects of type [proto_clock], but need to also
-  * maintain the information attached to variables.
-  *
-  * The unification algorithm can be described as follows, ignoring
-  * the active source maintenance.
-  * X[Y1,Y2,..,Yn] denotes a variable or constant clock with the set Gamma
-  *    of subclocks,
-  *    from a first-order unification perspective it should be thought of
-  *    as a term X(Y1,Y2,..,Yn,...) where the second ... denotes a
-  *    row variable: we don't know if there are more parameters there
-  *    (more subclocks)
-  * We write X[Gamma] with Gamma list of clocks, and X[..Y..] when
-  * Y belongs to the subclocks of X, or the subclocks of the subclocks,
-  * etc.
-  * Unification rules are:
-  *   X[..Y..] = Y[..]    ---> ERROR (occurs-check)
-  *   c1[...]  = c2[...]  ---> ERROR (rigid-rigid)
-  *   X[Gamma] = Y[Delta] ---> X,Y:=Z[Gamma,Delta]
-  *      Here Gamma,Delta denotes an union. It is possible that two
-  *      distinct variables might become unified, in which case we'll
-  *      end up with two occurrences of the same subclock.
+    Used to infer what clock a source belongs to.
+    Each variable comes with
+      - a list of active sources belonging to the clock, unused during
+        inference/unification, but animated by the clock when running
+      - a list of sub-clocks, used during unification's occurs-check
+        to avoid cycles which would result in unsound behavior
+        e.g. add([s,cross(f,s)]).
+    Clock constants are objects of type [proto_clock], but need to also
+    maintain the information attached to variables.
+   
+    The unification algorithm can be described as follows, ignoring
+    the active source maintenance.
+    X[Y1,Y2,..,Yn] denotes a variable or constant clock with the set Gamma
+       of subclocks,
+       from a first-order unification perspective it should be thought of
+       as a term X(Y1,Y2,..,Yn,...) where the second ... denotes a
+       row variable: we don't know if there are more parameters there
+       (more subclocks)
+    We write X[Gamma] with Gamma list of clocks, and X[..Y..] when
+    Y belongs to the subclocks of X, or the subclocks of the subclocks,
+    etc.
+    Unification rules are:
+      X[..Y..] = Y[..]    ---> ERROR (occurs-check)
+      c1[...]  = c2[...]  ---> ERROR (rigid-rigid)
+      X[Gamma] = Y[Delta] ---> X,Y:=Z[Gamma,Delta]
+         Here Gamma,Delta denotes an union. It is possible that two
+         distinct variables might become unified, in which case we'll
+         end up with two occurrences of the same subclock.
   *)
 
 (** Clock variables. *)
@@ -158,8 +159,8 @@ let rec variable_to_string = function
       Printf.sprintf "%s[%s]" c#id
         (String.concat "," (List.map variable_to_string c#sub_clocks))
 
-(** Equality modulo dereferencing, does not identify two variables
-  * with the same sources and clocks. *)
+(** Equality modulo dereferencing, does not identify two variables with the same
+    sources and clocks. *)
 let var_eq a b =
   let a = deref a in
   let b = deref b in
@@ -254,9 +255,9 @@ type watcher = {
 
 let source_log = Log.make ["source"]
 
-(** Has any output been created? This is used by Main to decide if
-  * there's anything "to run". Note that we could get rid of it, since
-  * outputs (active sources) are actually registered to clock variables. *)
+(** Has any output been created? This is used by Main to decide if there's
+    anything "to run". Note that we could get rid of it, since outputs (active
+    sources) are actually registered to clock variables. *)
 let has_outputs = ref false
 
 let add_new_output, iterate_new_outputs =
@@ -305,11 +306,10 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
         id <- s;
         definitive_id <- definitive);
 
-      (* Sometimes the ID is changed during initialization,
-       * in order to make it equal to the server name,
-       * which is only registered at initialization time in order
-       * to avoid bloating from unused sources.
-       * If the ID changes, and [log] has already been initialized, reset it. *)
+      (* Sometimes the ID is changed during initialization, in order to make it
+         equal to the server name, which is only registered at initialization
+         time in order to avoid bloating from unused sources. If the ID
+         changes, and [log] has already been initialized, reset it. *)
       if log != source_log then self#create_log
 
     initializer
@@ -321,8 +321,8 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
     method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b =
       Tutils.mutexify mutex
 
-    (** Is the source infallible, i.e. is it always guaranteed that there
-    * will be always be a next track immediately available. *)
+    (** Is the source infallible, i.e. is it always guaranteed that there will
+        be always be a next track immediately available. *)
     method virtual stype : source_t
 
     (** Is the source active *)
@@ -332,14 +332,14 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
     val mutable sources : operator list = sources
 
     (* Clock setup
-     * Each source starts with an unknown clock.
-     * This clock will be unified with children clocks in most cases.
-     * Once the clock has been set to a concrete clock, it cannot be
-     * changed anymore: a source lives in only one time flow.
-     *
-     * We need a #set_clock method with a default behavior that can
-     * be overridden, and it needs to be called at initialization:
-     * #wake_up is too late since it's the clock who initiates it. *)
+       Each source starts with an unknown clock.
+       This clock will be unified with children clocks in most cases.
+       Once the clock has been set to a concrete clock, it cannot be
+       changed anymore: a source lives in only one time flow.
+
+       We need a #set_clock method with a default behavior that can
+       be overridden, and it needs to be called at initialization:
+       #wake_up is too late since it's the clock who initiates it. *)
     val clock : active_operator var = create_unknown ~sources:[] ~sub_clocks:[]
     method clock = clock
     method virtual self_sync : self_sync
@@ -371,34 +371,34 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
       Content.Video.dimensions_of_format (Frame.find_video self#content_type)
 
     (** Startup/shutdown.
-    *
-    * Get the source ready for streaming on demand, have it release resources
-    * when it's not used any more, and decide whether the source should run in
-    * caching mode.
-    *
-    * A source may be accessed by several sources, and must switch to caching
-    * mode when it may be accessed by more than one source, in order to ensure
-    * consistency of the delivered stream chunk.
-    *
-    * Before that a source P accesses another source S it must activate it. The
-    * activation can be static, or dynamic. A static activation means that
-    * P may pull data from S at any time. A dynamic activation means that P
-    * won't use S directly but may at some point build a source which will
-    * access S. This dynamic creation may occur in the middle of an output
-    * round, which is why S needs to know in advance, since in some cases it
-    * might have to enter caching mode from the beginning of the round in case
-    * the dynamic activation occurs.
-    *
-    * An activation is identified by the path to the source which required it.
-    * It is possible that two identical activations are done, and they should
-    * not be treated as a single one.
-    *
-    * In short, a source can avoid caching when: it has only one static
-    * activation and all its dynamic activations are sub-paths of the static
-    * one. When there is no static activation, there cannot be any access.
-    *
-    * It is assumed that all streaming is done in one thread for a given clock,
-    * so the activation management API is not thread-safe. *)
+     
+      Get the source ready for streaming on demand, have it release resources
+      when it's not used any more, and decide whether the source should run in
+      caching mode.
+     
+      A source may be accessed by several sources, and must switch to caching
+      mode when it may be accessed by more than one source, in order to ensure
+      consistency of the delivered stream chunk.
+     
+      Before that a source P accesses another source S it must activate it. The
+      activation can be static, or dynamic. A static activation means that
+      P may pull data from S at any time. A dynamic activation means that P
+      won't use S directly but may at some point build a source which will
+      access S. This dynamic creation may occur in the middle of an output
+      round, which is why S needs to know in advance, since in some cases it
+      might have to enter caching mode from the beginning of the round in case
+      the dynamic activation occurs.
+     
+      An activation is identified by the path to the source which required it.
+      It is possible that two identical activations are done, and they should
+      not be treated as a single one.
+     
+      In short, a source can avoid caching when: it has only one static
+      activation and all its dynamic activations are sub-paths of the static
+      one. When there is no static activation, there cannot be any access.
+     
+      It is assumed that all streaming is done in one thread for a given clock,
+      so the activation management API is not thread-safe. *)
 
     val mutable caching = false
     val mutable dynamic_activations : operator list list = []
@@ -451,9 +451,9 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
       self#mutexify (fun fn -> on_get_ready <- on_get_ready @ [fn])
 
     (* Ask for initialization.
-     * The current implementation makes it dangerous to call #get_ready from
-     * another thread than the Root one, as interleaving with #get is
-     * forbidden. *)
+       The current implementation makes it dangerous to call #get_ready from
+       another thread than the Root one, as interleaving with #get is
+       forbidden. *)
     method get_ready ?(dynamic = false) (activation : operator list) =
       if log == source_log then self#create_log;
       if static_activations = [] && dynamic_activations = [] then (
@@ -478,9 +478,9 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
     method on_leave = self#mutexify (fun fn -> on_leave <- on_leave @ [fn])
 
     (* Release the source, which will shutdown if possible.
-     * The current implementation makes it dangerous to call #leave from
-     * another thread than the Root one, as interleaving with #get is
-     * forbidden. *)
+       The current implementation makes it dangerous to call #leave from
+       another thread than the Root one, as interleaving with #get is
+       forbidden. *)
     method leave ?(failed_to_start = true) ?(dynamic = false) src =
       let on_leave = self#mutexify (fun () -> on_leave) () in
       List.iter (fun fn -> fn ()) on_leave;
@@ -523,8 +523,8 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
 
     (** Streaming *)
 
-    (* Number of frames left in the current track:
-     * -1 means Infinity, time unit is the frame. *)
+    (* Number of frames left in the current track: -1 means Infinity, time unit
+       is the frame. *)
     method virtual remaining : int
     val mutable elapsed = 0
     method elapsed = elapsed
@@ -535,18 +535,18 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
       if r < 0 || e < 0 then -1 else e + r
 
     (* [self#seek x] skips [x] main ticks.
-     * returns the number of ticks actually skipped.
-     * By default it always returns 0, refusing to seek at all. *)
+       Returns the number of ticks actually skipped.
+       By default it always returns 0, refusing to seek at all. *)
     method virtual seek : int -> int
 
     (* Is there some data available for the next [get]?
-     * Must always be true while playing a track, i.e. all tracks
-     * must be properly ended. *)
+       Must always be true while playing a track, i.e. all tracks
+       must be properly ended. *)
     method virtual is_ready : bool
 
     (* If possible, end the current track.
-     * Typically, that signal is just re-routed, or makes the next file
-     * to be played if there's anything like a file. *)
+       Typically, that signal is just re-routed, or makes the next file
+       to be played if there's anything like a file. *)
     method virtual abort_track : unit
 
     (* In caching mode, remember what has been given during the current
@@ -617,34 +617,34 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
             ~is_partial ~metadata)
 
     (* [#get buf] completes the frame with the next data in the stream.
-     * Depending on whether caching is enabled or not,
-     * it calls [#get_frame] directly or tries to get data from the cache frame,
-     * filling it if needed.
-     * Any source calling [other_source#get should] thus take care of clearing
-     * the cache of the other source ([#advance]) at the end of the output
-     * round ([#after_output]). *)
+       Depending on whether caching is enabled or not,
+       it calls [#get_frame] directly or tries to get data from the cache frame,
+       filling it if needed.
+       Any source calling [other_source#get should] thus take care of clearing
+       the cache of the other source ([#advance]) at the end of the output
+       round ([#after_output]). *)
     method get buf =
       assert (Frame.is_partial buf);
 
       (* In some cases we can't avoid #get being called on a non-ready
-       * source, for example:
-       * - A starts pumping B, stops in the middle of the track
-       * - B finishes its track, becomes unavailable
-       * - A starts streaming again, needs to receive an EOT before
-       *   having to worry about availability.
-       *
-       *   Another important example is crossfade, if e.g. a transition
-       *   returns a failling source.
-       *
-       * So we add special cases where, instead of calling #get_frame, we
-       * call silent_end_track to properly end a track by inserting a break.
-       *
-       * This makes the whole protocol a bit sloppy as it weakens constraints
-       * tying #is_ready and #get, preventing the detection of "bad" calls
-       * of #get without prior check of #is_ready.
-       *
-       * This fix makes it really important to keep #is_ready = true during a
-       * track, otherwise the track will be ended without the source noticing! *)
+         source, for example:
+         - A starts pumping B, stops in the middle of the track
+         - B finishes its track, becomes unavailable
+         - A starts streaming again, needs to receive an EOT before
+           having to worry about availability.
+
+           Another important example is crossfade, if e.g. a transition
+           returns a failling source.
+
+         So we add special cases where, instead of calling #get_frame, we
+         call silent_end_track to properly end a track by inserting a break.
+
+         This makes the whole protocol a bit sloppy as it weakens constraints
+         tying #is_ready and #get, preventing the detection of "bad" calls
+         of #get without prior check of #is_ready.
+
+         This fix makes it really important to keep #is_ready = true during a
+         track, otherwise the track will be ended without the source noticing! *)
       let silent_end_track () = Frame.add_break buf (Frame.position buf) in
       if not caching then
         if not self#is_ready then silent_end_track ()
@@ -676,8 +676,8 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
               else Frame.add_break buf (Frame.position buf)))
 
     (* That's the way the source produces audio data.
-     * It cannot be called directly, but [#get] should be used instead, for
-     * dealing with caching if needed. *)
+       It cannot be called directly, but [#get] should be used instead, for
+       dealing with caching if needed. *)
     method virtual private get_frame : Frame.t -> unit
 
     (* Prepare for output round. *)

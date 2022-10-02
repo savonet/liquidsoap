@@ -37,17 +37,17 @@ let proto =
 
 let meth = Start_stop.meth ()
 
-(** Given abstract start stop and send methods, creates an output.
-  * Takes care of pulling the data out of the source, type checkings,
-  * maintains a queue of last ten metadata and setups standard Server commands,
-  * including start/stop. *)
+(** Given abstract start stop and send methods, creates an output.  Takes care
+    of pulling the data out of the source, type checkings, maintains a queue of
+    last ten metadata and setups standard Server commands, including
+    start/stop. *)
 class virtual output ~output_kind ?(name = "") ~infallible
   ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
     initializer
-    (* This should be done before the active_operator initializer
-     * attaches us to a clock. *)
+    (* This should be done before the active_operator initializer attaches us
+       to a clock. *)
     if infallible && source#stype <> `Infallible then
       raise (Error.Invalid_value (val_source, "That source is fallible"))
 
@@ -109,9 +109,8 @@ class virtual output ~output_kind ?(name = "") ~infallible
 
     (* Operator startup *)
     method private wake_up activation =
-      (* We prefer [name] as an ID over the default,
-       * but do not overwrite user-defined ID.
-       * Our ID will be used for the server interface. *)
+      (* We prefer [name] as an ID over the default, but do not overwrite
+         user-defined ID. Our ID will be used for the server interface. *)
       if name <> "" then self#set_id ~definitive:false name;
 
       self#log#debug "Clock is %s."
@@ -119,8 +118,8 @@ class virtual output ~output_kind ?(name = "") ~infallible
       self#log#info "Content type is %s."
         (Frame.string_of_content_type self#content_type);
 
-      (* Get our source ready.
-       * This can take a while (preparing playlists, etc). *)
+      (* Get our source ready. This can take a while (preparing playlists,
+         etc). *)
       source#get_ready ((self :> operator) :: activation);
       if infallible then
         while not source#is_ready do
@@ -218,8 +217,8 @@ let () =
       let on_stop () = ignore (Lang.apply on_stop []) in
       new dummy ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p))
 
-(** More concrete abstract-class, which takes care of the #send_frame
-  * method for outputs based on encoders. *)
+(** More concrete abstract-class, which takes care of the #send_frame method for
+    outputs based on encoders. *)
 class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
   ~autostart source =
   object (self)
