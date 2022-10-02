@@ -1,5 +1,5 @@
-Blank detection
-===============
+# Blank detection
+
 [Liquidsoap](index.html) has three operators for dealing with blanks.
 
 On GeekRadio, we play many files, some of which include bonus tracks, which

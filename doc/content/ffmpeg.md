@@ -2,21 +2,21 @@
 
 Since the `2.0.x` release cycle, liquidsoap integrates a tight support of ffmpeg. This includes:
 
-* [Decoders](#decoders)
-* [Encoders](#encoders)
-* [Filters](#filters)
-* [Bitstream filters](#bitstream-filters)
-* [Encoded data tweaks](#encoded-data-tweaks)
-* [Examples](#examples)
+- [Decoders](#decoders)
+- [Encoders](#encoders)
+- [Filters](#filters)
+- [Bitstream filters](#bitstream-filters)
+- [Encoded data tweaks](#encoded-data-tweaks)
+- [Examples](#examples)
 
 Ffmpeg support includes 3 types of content:
 
-* **Internal content**, that is content available to all liquidsoap operators: `PCM` audio and `YUV420p` video
-* **Raw content**, that is decoded content but stored as ffmpeg internal frame.
-This type of content is only available to ffmpeg filters and raw encoders. It can be used to avoid data copies back and forth between liquidsoap and ffmpeg.
-* **Copy content**, that is encoded content stored as ffmpeg internal packets.
-This type of content is only available to ffmpeg copy encoder and bitstream filters and requires a fairly good understanding of media codecs and containers.
-Copy contents can be used to avoid transcoding and pass encoded data end-to-end inside liquidsoap scripts.
+- **Internal content**, that is content available to all liquidsoap operators: `PCM` audio and `YUV420p` video
+- **Raw content**, that is decoded content but stored as ffmpeg internal frame.
+  This type of content is only available to ffmpeg filters and raw encoders. It can be used to avoid data copies back and forth between liquidsoap and ffmpeg.
+- **Copy content**, that is encoded content stored as ffmpeg internal packets.
+  This type of content is only available to ffmpeg copy encoder and bitstream filters and requires a fairly good understanding of media codecs and containers.
+  Copy contents can be used to avoid transcoding and pass encoded data end-to-end inside liquidsoap scripts.
 
 ## Enabling ffmpeg support
 
@@ -57,9 +57,8 @@ decode this type of content (there could more than one decoder for a given codec
 
 For instance, for the `aac` codec:
 
-* `settings.decoder.ffmpeg.codecs.aac.available()` returns the list of available decoders, typically `["aac", "aac_fixed"]`.
-* `settings.decoder.ffmpeg.codecs.aac.set` can be used to choose which decoder should be used, typically: `settings.decoder.ffmpeg.codecs.aac.set("aac")`
-
+- `settings.decoder.ffmpeg.codecs.aac.available()` returns the list of available decoders, typically `["aac", "aac_fixed"]`.
+- `settings.decoder.ffmpeg.codecs.aac.set` can be used to choose which decoder should be used, typically: `settings.decoder.ffmpeg.codecs.aac.set("aac")`
 
 When debugging issues with `ffmpeg`, it can be useful to increase the log verbosity.
 
@@ -73,7 +72,6 @@ This settings sets the verbosity of `ffmpeg` logs. Possible values, from less ve
 Please note that, due to a technical limitation, we are not yet able to route `ffmpeg` logs through
 the liquidsoap logging facilities, which means that `ffmpeg` logs are currently only printed to the
 process's standard output and that the `settings.ffmpeg.log.level` is currently not used.
-
 
 ## Encoders
 
@@ -125,7 +123,7 @@ lists some specific cases.
 
 ### Relaxed copy content compatibility check
 
-By default, liquidsoap keeps track  of the content passed in a stream containing ffmpeg encoded content (`ffmpeg.copy`) and only allows file and stream decoders to return strictly compatible
+By default, liquidsoap keeps track of the content passed in a stream containing ffmpeg encoded content (`ffmpeg.copy`) and only allows file and stream decoders to return strictly compatible
 content, e.g. same video resolution or audio samplerate.
 
 Some containers such as `mp4`, however, do allow stream where video resolution or audio samplerate changes between tracks. In this case, you can

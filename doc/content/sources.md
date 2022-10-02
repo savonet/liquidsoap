@@ -1,9 +1,9 @@
-Sources
-=======
+# Sources
+
 Using liquidsoap is about writing a script describing how to build what you
 want. It is about building a stream using elementary streams and stream
 combinators, etc. Actually, it's a bit more than streams, we call them
-*sources*.
+_sources_.
 
 A source is a stream with metadata and track annotations. It is discretized as
 a stream of fixed-length buffers of media samples, the frames. Every frame may
@@ -13,7 +13,7 @@ every instant, a source can be asked to fill a frame of data.
 The liquidsoap API provides plenty of functions for building sources.
 Some of those functions build elementary sources from scratch, others are
 operators that combine sources into more complex ones. An important class of
-sources is that of *active sources*, they are the sources that actively
+sources is that of _active sources_, they are the sources that actively
 trigger the computation of your stream. Typically, active sources are built
 from output functions, because outputting a stream is the only reason why you
 want to compute it.
@@ -21,9 +21,10 @@ want to compute it.
 All sources, operators and outputs are listed in the
 [scripting API reference](reference.html).
 
-How does it work?
------------------
+## How does it work?
+
 To clarify the picture let's study in more details an example:
+
 ```liquidsoap
 radio =
   output.icecast(
@@ -60,15 +61,15 @@ The important point here is that **all of the above steps are local**.
 Everything takes place between one operator and its immediate children source;
 operators do not see beyond that point.
 
-Fallibility
------------
+## Fallibility
+
 By default, liquidsoap outputs are meant to emit a stream without
 discontinuing. Since this stream is provided by the source passed to the
 output operator, it is the source responsibility to never fail.
 Liquidsoap has a mechanism to verify this, which helps you think of
 all possible failures, and prevent them.
-Elementary sources are either *fallible* or *infallible*, and this
-*liveness type* is propagated through operators to finally
+Elementary sources are either _fallible_ or _infallible_, and this
+_liveness type_ is propagated through operators to finally
 compute the type of any source.
 For example,
 a `fallback` or `random` source is infallible
@@ -89,8 +90,8 @@ If you do not care about failures, you can pass the parameter
 will accept a fallible source, and stop whenever the source fails,
 to restart when it is ready to emit a stream again.
 
-Caching mode
-------------
+## Caching mode
+
 In some situations, a source must take care of the consistency of its
 output. If it is asked twice to fill buffers during the same cycle, it
 should fill them with the same data. Suppose for example that a playlist is
@@ -110,9 +111,9 @@ Actually that's a bit more complicated, because of transitions. Obviously the
 sources which use a transition involving some other source must register to
 it, because they may eventually use it. But a jingle used in two transitions
 by the same switching operator doesn't need caching. The solution involves two
-kinds of registering: *dynamic* and *static activations*. Activations are
+kinds of registering: _dynamic_ and _static activations_. Activations are
 associated with a path in the graph of sources' nesting. The dynamic
-activation is a pre-registration allowing a single real *static activation*
+activation is a pre-registration allowing a single real _static activation_
 to come later, possibly in the middle of a cycle.
 Two static activations trigger caching. The other reason for enabling caching
 is when there is one static activation and one dynamic activation which
@@ -120,11 +121,11 @@ doesn't come from a prefix of the static activation's path. It means that the
 dynamic activation can yield at any moment to a static activation and that the
 source will be used by two sources at the same time.
 
-Execution model
----------------
+## Execution model
+
 In your script you define a bunch of sources interacting together. Each
 source belongs to a [clock](clocks.html), but clocks only have direct access
-to *active sources*, which are mostly outputs.
+to _active sources_, which are mostly outputs.
 At every cycle of the clock, active sources are animated: a chunk of stream
 (frame) is computed, and potentially outputted one way or another.
 

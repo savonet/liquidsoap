@@ -1,5 +1,4 @@
-A simple video script
-=====================
+# A simple video script
 
 The other day, I wanted to prepare some videos of my favorite reggae and soul
 tunes for uploading them to YouTube.

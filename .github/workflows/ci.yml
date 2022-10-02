@@ -456,7 +456,17 @@ jobs:
 
   update_release:
     runs-on: ubuntu-latest
-    needs: [build_details, build_minimal, build_js, run_tests, build_opam, build_posix, build_win32, fetch_s3_artifacts]
+    needs:
+      [
+        build_details,
+        build_minimal,
+        build_js,
+        run_tests,
+        build_opam,
+        build_posix,
+        build_win32,
+        fetch_s3_artifacts,
+      ]
     if: needs.build_details.outputs.is_release
     steps:
       - name: Checkout code
@@ -494,7 +504,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ needs.build_details.outputs.branch }}
-          assets: '*'
+          assets: "*"
           fail-if-no-release: false
           fail-if-no-assets: false
       - name: Upload assets to main repo release
@@ -502,7 +512,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
-          files:  ${{ env.RELEASE_ASSETS }}
+          files: ${{ env.RELEASE_ASSETS }}
           prerelease: ${{ needs.build_details.outputs.is_rolling_release }}
           body: "${{ env.RELEASE_NOTES}}\n\n${{ env.CHANGELOG }}"
           draft: ${{ !needs.build_details.outputs.is_rolling_release }}
@@ -511,9 +521,9 @@ jobs:
         with:
           token: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
-          files:  ${{ env.RELEASE_ASSETS }}
+          files: ${{ env.RELEASE_ASSETS }}
           repository: savonet/liquidsoap-release-assets
-          prerelease:  ${{ needs.build_details.outputs.is_rolling_release }}
+          prerelease: ${{ needs.build_details.outputs.is_rolling_release }}
           body_path: doc/content/release-assets.md
           draft: ${{ !needs.build_details.outputs.is_rolling_release }}
 

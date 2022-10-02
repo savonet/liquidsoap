@@ -1,5 +1,5 @@
-Seeking in liquidsoap
-=====================
+# Seeking in liquidsoap
+
 Starting with Liquidsoap `1.0.0-beta2`, it is now possible to seek within sources!
 Not all sources support seeking though: currently, they are mostly file-based sources
 such as `request.queue`, `playlist`, `request.dynamic.list` etc..
@@ -12,18 +12,19 @@ The basic function to seek within a source is `source.seek`. It has the followin
 
 The parameters are:
 
-* The source to seek.
-* The duration in seconds to seek from current position.
+- The source to seek.
+- The duration in seconds to seek from current position.
 
 The function returns the duration actually seeked.
 
-Please note that seeking is done to a position relative to the *current*
+Please note that seeking is done to a position relative to the _current_
 position. For instance, `source.seek(s,3.)` will seek 3 seconds forward in
 source `s` and `source.seek(s,(-4.))` will seek 4 seconds backward.
 
 Since seeking is currently only supported by request-based sources, it is recommended
 to hook the function as close as possible to the original source. Here is an example
 that implements a server/telnet seek function:
+
 ```liquidsoap
 # A playlist source
 s = playlist("/path/to/music")
@@ -44,8 +45,7 @@ server.register(namespace=source.id(s),
                 "seek",seek)
 ```
 
-Cue points
-----------
+## Cue points
 
 Sources that support seeking can also be used to implement cue points.
 The basic operator for this is `cue_cut`. Its has type:
@@ -59,9 +59,9 @@ The basic operator for this is `cue_cut`. Its has type:
 
 Its parameters are:
 
-* `cue_in_metadata`: Metadata for cue in points, default: `"liq_cue_in"`.
-* `cue_out_metadata`: Metadata for cue out points, default: `"liq_cue_out"`.
-* The source to apply cue points to.
+- `cue_in_metadata`: Metadata for cue in points, default: `"liq_cue_in"`.
+- `cue_out_metadata`: Metadata for cue out points, default: `"liq_cue_out"`.
+- The source to apply cue points to.
 
 The values of cue-in and cue-out points are given in absolute
 position through the source's metadata. For instance, the following

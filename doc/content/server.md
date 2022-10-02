@@ -1,8 +1,8 @@
-Interaction with the server
-===========================
+# Interaction with the server
+
 Liquidsoap starts with one or several scripts as its configuration, and then
 streams forever if everything goes well. Once started, you can still interact
-with it by means of the *server*. The server allows you to run commands. Some
+with it by means of the _server_. The server allows you to run commands. Some
 are general and always available, some belong to a specific operator. For
 example the `request.queue()` instances register commands to enqueue new
 requests, the outputs register commands to start or stop the outputting, display
@@ -12,7 +12,7 @@ The protocol of the server is a simple human-readable one. Currently it does not
 have any kind of authentication and permissions. It is currently available via
 two media: TCP and Unix sockets. The TCP socket provides a simple telnet-like
 interface, available only on the local host by default. The Unix socket
-interface (*cf.* the `server.socket` setting) is through some sort of virtual
+interface (_cf._ the `server.socket` setting) is through some sort of virtual
 file. This is more constraining, which allows one to restrict the use of the
 socket to some privileged users.
 
@@ -63,16 +63,18 @@ Another simple way to test the telnet server consists in using the
 ```liquidsoap
 server.harbor()
 ```
+
 server.harbor api: https://www.liquidsoap.info/doc-2.0.0/reference-extras.html#server.harbor
 
 command which will start a web interface accessible at
 <http://localhost:8000/telnet> providing an emulation of a telnet.
 
-Interactive variables
----------------------
+## Interactive variables
+
 Sometimes it is useful to control a variable using telnet. A simple way to
 achieve this is to use the `interactive.float` function. For instance, in order
 to dynamically the volume of a source:
+
 ```liquidsoap
 # Register a telnet variable named volume with 1 as initial value
 v = interactive.float("volume", 1.)
@@ -80,17 +82,23 @@ v = interactive.float("volume", 1.)
 # Change the volume accordingly
 source = amplify(v, source)
 ```
+
 The first line registers the variable volume on the telnet. Its value can be
 changed using the telnet command
+
 ```liquidsoap
 var.set volume = 0.5
 ```
+
 and it can be retrieved using
+
 ```liquidsoap
 var.get volume
 ```
+
 Similarly, we can switch between two tracks using `interactive.bool` and
 `switch` as follows:
+
 ```liquidsoap
 # Activate the telnet server
 settings.server.telnet.set(true)
@@ -119,8 +127,8 @@ A nice web interface can be obtained by running
 ```liquidsoap
 interactive.harbor()
 ```
-interactive.harbor api: https://www.liquidsoap.info/doc-2.0.0/reference.html#interactive.harbor
 
+interactive.harbor api: https://www.liquidsoap.info/doc-2.0.0/reference.html#interactive.harbor
 
 after all interactive variables have been defined. This will start a web server
 accessible at <http://localhost:8000/interactive> on which you can easily change
@@ -140,8 +148,8 @@ values of all the interactive variables in the file `vars.json` (in JSON format)
 whenever you modify them, and reload them next time your run your script. This
 can be very handy for setting parameters for sound effects for instance.
 
-Securing the server
--------------------
+## Securing the server
+
 The command server provided by liquidsoap is very convenient for manipulating a
 running instance of Liquidsoap. However, no authentication mechanism is
 provided. The telnet server has no authentication and listens by default on the
@@ -165,6 +173,7 @@ a SSH access to the command server: we create a SSH user that, when logging
 through SSH, has only access to the command server.
 
 First, we enable the unix socket for the command server in Liquidsoap:
+
 ```liquidsoap
 settings.server.socket.set(true)
 settings.server.socket.path.set("/path/to/socket")
@@ -173,15 +182,16 @@ settings.server.socket.path.set("/path/to/socket")
 When started, liquidsoap will create a socket file `/path/to/socket`
 that can be used to interact with the command server. For instance,
 if your user has read and write rights on the socket file, you can do
+
 ```liquidsoap
 socat /path/to/socket -
 ```
 
 The interface is then exactly the same has for the telnet server.
 
-We define now a new ``shell''. This shell is in fact the invocation of the socat
-command. Thus, we create a `/usr/local/bin/liq_shell` file with the following
+We define now a new ``shell''. This shell is in fact the invocation of the socat command. Thus, we create a `/usr/local/bin/liq_shell` file with the following
 content:
+
 ```bash
 #!/bin/sh
 # We test if the file is a socket, readable and writable.
@@ -197,6 +207,7 @@ fi
 We set this file as executable, and we add it in the list of shells in `/etc/shells`.
 
 Now, we create a user with the `liq_shell` as its shell:
+
 ```
 adduser --shell /usr/local/bin/liq_shell liq-user
 ```
@@ -205,6 +216,7 @@ You also need to make sure that `liq-user` has read and write rights
 on the socket file.
 
 Finally, when logging through ssh with `liq-user`, we get:
+
 ```
 11:27 toots@leonard % ssh liq-user@localhost
 liq-user@localhost's password:

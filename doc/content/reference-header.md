@@ -1,5 +1,4 @@
-Liquidsoap scripting language reference
-=======================================
+# Liquidsoap scripting language reference
 
 The **Source / ...** categories contain all functions that return sources.
 The **Input** functions are those which build elementary sources

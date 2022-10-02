@@ -1,5 +1,5 @@
-Cookbook
-========
+# Cookbook
+
 The recipes show how to build a source with a particular feature. You can try short snippets by wrapping the code in an `output(..)` operator and passing it directly to liquidsoap:
 
 ```liquidsoap
@@ -22,8 +22,8 @@ See the [quickstart guide](quick_start.html) for more information on how to run 
 
 See also the [ffmpeg cookbook](ffmpeg_cookbook.html) for examples specific to the ffmpeg support.
 
-Files
------
+## Files
+
 A source which infinitely repeats the same URI:
 
 ```liquidsoap
@@ -44,8 +44,8 @@ playlist(reload=600,"http://my/playlist.txt")
 
 When building your stream, you'll often need to make it unfallible. Usually, you achieve that using a fallback switch (see below) with a branch made of a safe `single`. Roughly, a single is safe when it is given a valid local audio file.
 
-Transcoding
------------
+## Transcoding
+
 [Liquidsoap](index.html) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. If you want to get the best use of CPUs (multicore, memory footprint etc.) when encoding media with Liquidsoap, we recommend using the `%ffmpeg` encoders.
 
 ```liquidsoap
@@ -71,8 +71,8 @@ output.icecast(
   input)
 ```
 
-Re-encoding a file
-------------------
+## Re-encoding a file
+
 As a simple example using a fallible output, we shall consider
 re-encoding a file.
 We start by building a source that plays our file only once.
@@ -103,8 +103,8 @@ output.file(%vorbis, output,fallible=true,
                      on_stop=shutdown,source)
 ```
 
-Scheduling
-----------
+## Scheduling
+
 ```liquidsoap
 # A fallback switch
 fallback([playlist("http://my/playlist"),
@@ -115,8 +115,8 @@ fallback([playlist("http://my/playlist"),
 switch([ ({0h-7h}, night), ({7h-24h}, day) ])
 ```
 
-Force a file/playlist to be played at least every XX minutes
-------------------------------------------------------------
+## Force a file/playlist to be played at least every XX minutes
+
 It can be useful to have a special playlist that is played at least every 20 minutes for instance (3 times per hour).
 You may think of a promotional playlist for instance.
 Here is the recipe:
@@ -129,8 +129,7 @@ main_source = fallback([timed_promotions,other_source])
 
 Where promotions is a source selecting the file to be promoted.
 
-Play a jingle at a fixed time
------------------------------
+## Play a jingle at a fixed time
 
 Suppose that we have a playlist `jingles` of jingles and we want to play one
 within the 5 first minutes of every hour, without interrupting the current
@@ -148,8 +147,7 @@ when a predicate (here `{ 0m-5m }`) becomes true:
 radio = switch([(predicate.activates({ 0m-5m }), jingles), ({ true }, playlist)])
 ```
 
-Handle special events: mix or switch
-------------------------------------
+## Handle special events: mix or switch
 
 ```liquidsoap
 # Add a jingle to your normal source
@@ -169,8 +167,8 @@ fallback(track_sensitive=false,
 
 Without the `track_sensitive=false` the fallback would wait the end of a track to switch to the live. When using the blank detection operators, make sure to fine-tune their `threshold` and `length` (float) parameters.
 
-Unix interface, dynamic requests
---------------------------------
+## Unix interface, dynamic requests
+
 Liquidsoap can create a source that uses files provided by the result of the execution of any arbitrary function of your own.
 This is explained in the documentation for [request-based sources](request_sources.html).
 
@@ -197,8 +195,7 @@ add_protocol("beets", fun(~rlog,~maxtime,arg) ->
 
 When resolving the URI `beets:David Bowie`, liquidsoap will call the function, which will call `beet random -f '$path' David Bowie` which will output the path to a David Bowie song.
 
-Dynamic input with harbor
--------------------------
+## Dynamic input with harbor
 
 The operator `input.harbor` allows you to receive a source stream directly inside a running liquidsoap.
 
@@ -236,8 +233,8 @@ output.icecast(
 This script, when launched, will start a local server, here bound to "0.0.0.0". This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point "/live" to login.
 Then if you start a source client and tell it to stream to your server, on port 8080, with password "hackme", the live source will become available and the radio will stream it immediately.
 
-Dump a stream into segmented files
-----------------------------------
+## Dump a stream into segmented files
+
 It is sometimes useful (or even legally necessary) to keep a backup of an audio
 stream. Storing all the stream in one file can be very impractical. In order to
 save a file per hour in wav format, the following script can be used:
@@ -276,8 +273,7 @@ thread.when(every=3600., pred={ true },
 )
 ```
 
-Transitions
------------
+## Transitions
 
 There are two kinds of transitions. Transitions between two different children of a switch or fallback and transitions between tracks of the same source.
 
@@ -324,8 +320,8 @@ end
 radio = cross(duration=5., transition, radio)
 ```
 
-Alsa unbuffered output
------------------------
+## Alsa unbuffered output
+
 You can use [Liquidsoap](index.html) to capture and play through alsa with a minimal delay. This particularly useful when you want to run a live show from your computer. You can then directly capture and play audio through external speakers without delay for the DJ !
 
 This configuration is not trivial since it relies on your hardware. Some hardware will allow both recording and playing at the same time, some only one at once, and some none at all.. Those note to configure are what works for us, we don't know if they'll fit all hardware.

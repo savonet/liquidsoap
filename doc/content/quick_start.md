@@ -1,14 +1,14 @@
-Quickstart
-==========
-The Internet radio toolchain
-----------------------------
+# Quickstart
+
+## The Internet radio toolchain
+
 [Liquidsoap](index.html) is a general audio stream generator, but is mainly intended for Internet radios. Before starting with the proper Liquidsoap tutorial let's describe quickly the components of the internet radio toolchain, in case the reader is not familiar with it.
 
 The chain is made of:
 
-* the stream generator (Liquidsoap, [ices](https://www.icecast.org/ices/), or for example a DJ-software running on your local PC) which creates an audio stream (Ogg Vorbis or MP3);
-* the streaming media server ([Icecast](http://www.icecast.org), [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming) (via a HTTP server), ...) which relays several streams from their sources to their listeners;
-* the media player (iTunes, VLC, a web browser, ...) which gets the audio stream from the streaming media server and plays it to the listener's speakers.
+- the stream generator (Liquidsoap, [ices](https://www.icecast.org/ices/), or for example a DJ-software running on your local PC) which creates an audio stream (Ogg Vorbis or MP3);
+- the streaming media server ([Icecast](http://www.icecast.org), [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming) (via a HTTP server), ...) which relays several streams from their sources to their listeners;
+- the media player (iTunes, VLC, a web browser, ...) which gets the audio stream from the streaming media server and plays it to the listener's speakers.
 
 ![Internet radio toolchain](/assets/img/schema-webradio-inkscape.png)
 
@@ -18,8 +18,7 @@ If you use Icecast, you can broadcast more than one audio feed using the same se
 
 Now, let's create an audio stream.
 
-Starting to use Liquidsoap
---------------------------
+## Starting to use Liquidsoap
 
 We assume that you have a fully installed Liquidsoap. In particular the library `stdlib.liq` and its accompanying scripts should have been installed, otherwise Liquidsoap won't know the operators which have been defined there.
 
@@ -35,8 +34,8 @@ Liquidsoap provides many functions for creating sources from scratch (e.g. `play
 
 A couple of things can go wrong in your streaming system.
 In Liquidsoap,
-we say that a source is *infallible* if it is always available.
-Otherwise, it is *fallible*, meaning that something could go wrong and the source would not be available.
+we say that a source is _infallible_ if it is always available.
+Otherwise, it is _fallible_, meaning that something could go wrong and the source would not be available.
 By default, an output requires that its input source is infallible,
 otherwise it complains that "That source is fallible!"
 
@@ -66,12 +65,12 @@ Finally, if you do not care about failures, you can pass the parameter
 will accept a fallible source, and stop whenever the source fails
 and restart when it is ready to produce data again.
 
-One-line expressions
---------------------
+## One-line expressions
 
 Liquidsoap is a scripting language. Many simple setups can be achieved by evaluating one-line expressions.
 
 ### Playlists
+
 In the first example we'll play a playlist. Let's put a list of audio files in
 `playlist.pls`: one filename per line, lines starting with a `#` are
 ignored. You can also put remote files' URLs, if your liquidsoap has
@@ -92,9 +91,10 @@ Depending on your configuration, the output `output` will use AO, Alsa or OSS, o
 ### Streaming out to a server
 
 **Note:** in the following, we assume that you have installed the following optional dependencies:
-* `cry` for icecast output
-* `vorbis` for ogg/vorbis encoding
-* `ffmpeg` for ffmpeg encoding
+
+- `cry` for icecast output
+- `vorbis` for ogg/vorbis encoding
+- `ffmpeg` for ffmpeg encoding
 
 Liquidsoap is capable of playing audio on your speakers, but it can also send audio to a streaming server such as Icecast or Shoutcast.
 One instance of liquidsoap can stream one audio feed in many formats (and even many audio feeds in many formats!).
@@ -131,6 +131,7 @@ Once started, this will place all the files required for HLS stream into the loc
 The HLS output has many interesting options, including callbacks to upload its files and more. See the [HLS Output](hls_output.html) page for more details.
 
 ### Input from another streaming server
+
 Liquidsoap can use another stream as an audio source. This may be useful if you do some live shows.
 
 ```liquidsoap
@@ -152,6 +153,7 @@ liquidsoap 'output.alsa(bufferize = false,
 ```
 
 ### Other examples
+
 You can play with many more examples. Here are a few more. To build your own,
 lookup the [API documentation](reference.html) to check what functions are available, and what parameters they accept.
 
@@ -166,8 +168,8 @@ liquidsoap 'output(crossfade(
               normalize(playlist("playlist_file"))))'
 ```
 
-Script files
-------------
+## Script files
+
 We have seen how to create a very basic stream using one-line expressions. If you need something a little bit more complicated, they will prove uneasy to manage. In order to make your code more readable, you can write it down to a file, named with the extension `.liq` (eg: `myscript.liq`).
 
 To run the script:
@@ -190,13 +192,14 @@ Then you'll be able to run it like this:
 
 Usually, the path of the liquidsoap executable is `/usr/bin/liquidsoap`, and we'll use this in the following.
 
-A simple radio
---------------
+## A simple radio
+
 In this section, we build a basic radio station that plays songs randomly chosen from a playlist, adds a few jingles (more or less one every four songs), and output an Ogg Vorbis stream to an Icecast server.
 
 Before reading the code of the corresponding liquidsoap script, it might be useful to visualize the streaming process with the following tree-like diagram. The idea is that the audio streams flows through this diagram, following the arrows. In this case the nodes (`fallback` and `random`) select one of the incoming streams and relay it. The final node `output.icecast` is an output: it actively pulls the data out of the graph and sends it to the world.
 
 ![Graph for 'basic-radio.liq'](/assets/img/basic-radio-graph.png)
+
 ```liquidsoap
 #!/usr/bin/liquidsoap
 # Log dir
@@ -223,8 +226,8 @@ output.icecast(%vorbis,
   radio)
 ```
 
-What's next?
-------------
+## What's next?
+
 You can first have a look at a [more complex example](complete_case.html). There is also a second tutorial about [advanced techniques](advanced.html).
 
 You should definitely learn [how to get help](help.html).

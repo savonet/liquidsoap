@@ -1,19 +1,20 @@
-A complete case analysis
-========================
+# A complete case analysis
+
 We will develop here a more complex example, according to the following specifications:
 
-* play different playlists during the day;
-* play user requests -- done via the telnet server;
-* insert about 1 jingle every 5 songs;
-* add one special jingle at the beginning of every hour, mixed on top of the normal stream;
-* relay live shows as soon as one is available;
-* and set up several outputs.
+- play different playlists during the day;
+- play user requests -- done via the telnet server;
+- insert about 1 jingle every 5 songs;
+- add one special jingle at the beginning of every hour, mixed on top of the normal stream;
+- relay live shows as soon as one is available;
+- and set up several outputs.
 
 Once you've managed to describe what you want in such a modular way, you're half the way. More precisely, you should think of a diagram such as the following, through which the audio streams flow, following the arrows. The nodes can modify the stream using some basic operators: switching and mixing in our case. The final nodes, the ends of the paths, are outputs: they are in charge of pulling the data out of the graph and send it to the world. In our case, we only have outputs to icecast, using two different formats.
 
 ![Graph for 'radio.liq'](/assets/img/liqgraph.png)
 
 Now here is how to write that in [Liquidsoap](index.html).
+
 ```liquidsoap
 #!/usr/bin/liquidsoap
 

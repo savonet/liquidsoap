@@ -1,11 +1,9 @@
-Liquidsoap's scripting language
-===============================
+# Liquidsoap's scripting language
 
 _The following is adapted from the [Liquidsoap book](book.html). The reader is avised to check out the whole
 chapter in the book for more details about the liquidsoap language_
 
-General features
-----------------
+## General features
 
 Liquidsoap is a novel language which was designed from scratch to handle media stream. It takes some inspiration
 from functional languages such as [OCaml](https://ocaml.org/) but features a syntax that is more intuitive to the
@@ -56,8 +54,7 @@ it is often useful to better grasp the language, learn design patterns and
 tricks, and add functionalities. Its location on your system is indicated in the
 variable `configure.libdir` and can be obtained by typing
 
-Basic values
-------------
+## Basic values
 
 ### Integers and floats
 
@@ -151,24 +148,24 @@ Liquidsoap strings follow the most common lexical conventions from `C` and `java
 
 The following sequences are recognized:
 
-| Escape sequence | Hex value in ASCII | Character represented |
-|-----------------|--------------------|-----------------------|
-| `\a` | `\x07`  | Alert (Beep, Bell) |
-| `\b` | `\x08`  | Backspace |
-| `\e` | `\x1B`  | Escape character |
-| `\f` | `\x0C`  | Formfeed, Page Break |
-| `\n` | `\x0A`  | Newline (Line Feed) |
-| `\r` | `\x0D`  | Carriage Return |
-| `\t` | `\x09`  | Horizontal Tab |
-| `\v` | `\x0B`  | Vertical Tab |
-| `\\` | `\x5C`  | Backslash |
-| `\/` | `\x2f`  | Forward slash |
-| `\'` | `\x27`  | Apostrophe or single quotation mark |
-| `\"` |  `\x22` | Double quotation mark |
-| `\?` | `\x3F`  | Question mark (used to avoid Digraphs and trigraphs) |
-| `\nnn` | any | The byte whose numerical value is given by _nnn_interpreted as an _octal_ number |
-| `\xhh` | any | The byte whose numerical value is given by _hh_ interpreted as a _hexadecimal_ number |
-| `\uhhhh` | none | UTF8-8 code point given by _hhhh_ interpreted as an _hexadecimal_ number |
+| Escape sequence | Hex value in ASCII | Character represented                                                                 |
+| --------------- | ------------------ | ------------------------------------------------------------------------------------- |
+| `\a`            | `\x07`             | Alert (Beep, Bell)                                                                    |
+| `\b`            | `\x08`             | Backspace                                                                             |
+| `\e`            | `\x1B`             | Escape character                                                                      |
+| `\f`            | `\x0C`             | Formfeed, Page Break                                                                  |
+| `\n`            | `\x0A`             | Newline (Line Feed)                                                                   |
+| `\r`            | `\x0D`             | Carriage Return                                                                       |
+| `\t`            | `\x09`             | Horizontal Tab                                                                        |
+| `\v`            | `\x0B`             | Vertical Tab                                                                          |
+| `\\`            | `\x5C`             | Backslash                                                                             |
+| `\/`            | `\x2f`             | Forward slash                                                                         |
+| `\'`            | `\x27`             | Apostrophe or single quotation mark                                                   |
+| `\"`            | `\x22`             | Double quotation mark                                                                 |
+| `\?`            | `\x3F`             | Question mark (used to avoid Digraphs and trigraphs)                                  |
+| `\nnn`          | any                | The byte whose numerical value is given by _nnn_interpreted as an \_octal_ number     |
+| `\xhh`          | any                | The byte whose numerical value is given by _hh_ interpreted as a _hexadecimal_ number |
+| `\uhhhh`        | none               | UTF8-8 code point given by _hhhh_ interpreted as an _hexadecimal_ number              |
 
 This convention has been decided to follow the most common practices. In particular, `\nnn` is an _octal_ escape sequence in most languages
 including C, Ruby, Javascript, Python and more. This differs from OCaml where `\nnn` is considered a _digital_ escape sequence.
@@ -176,6 +173,7 @@ including C, Ruby, Javascript, Python and more. This differs from OCaml where `\
 These lexical conventions are used in the default `string.escape` and `string.unescape`.
 
 Here's an example of an escaped string:
+
 ```
 # "\" \t \045 \x2f \u4f32";;
 - : string = "\" \t % / 2"
@@ -202,17 +200,18 @@ which makes them more easily readable.
 
 Regular expression flags are:
 
-* `i`: perform case-insensitive match
-* `g`: substitute all matched sub-strings, not just the first one
-* `s`: match all characters, including `\n` when using the `.` pattern
-* `m`: `^` and `$` match before/after newlines, not just at the beginning/end of a string
+- `i`: perform case-insensitive match
+- `g`: substitute all matched sub-strings, not just the first one
+- `s`: match all characters, including `\n` when using the `.` pattern
+- `m`: `^` and `$` match before/after newlines, not just at the beginning/end of a string
 
 Regular expressions have the following methods:
 
-* `replace(fn, s)`: replace matched substrings of `s` using function `fn`. If the `g` flag is not passed, only the first match is replaced otherwise, all matches are replaced
-* `split(s)`: split the given string on all substrings matching the regular expression.
-* `test(s)`: returns `true` if the given string matches the regular expression.
-* `exec(s)`: execute the regular expression and return a of list matches of the form: `[(<match index>, <match>), ..]`. Named matches are also supported and returned as property `groups` of type `[string * string]`:
+- `replace(fn, s)`: replace matched substrings of `s` using function `fn`. If the `g` flag is not passed, only the first match is replaced otherwise, all matches are replaced
+- `split(s)`: split the given string on all substrings matching the regular expression.
+- `test(s)`: returns `true` if the given string matches the regular expression.
+- `exec(s)`: execute the regular expression and return a of list matches of the form: `[(<match index>, <match>), ..]`. Named matches are also supported and returned as property `groups` of type `[string * string]`:
+
 ```liquidsoap
 r/(foo)(?<gno>gni)?/g.exec("foogni")
 - : [int * string].{groups : [string * string]} =
@@ -341,15 +340,17 @@ Time predicates are special boolean values such as `{0h-7h}`. These values are
 `true` or `false` depending on the current time. Some examples of time
 predicates are
 
--------------   -------------------------------------
-`{11h15-13h}`   between 11h15 and 13h
-`{12h}`         between 12h00 and 12h59
-`{12h00}`       at 12h00
-`{00m}`         on the first minute of every hour
-`{00m-09m}`     on the first 10 minutes of every hour
-`{2w}`          on Tuesday
-`{6w-7w}`       on weekends
--------------   -------------------------------------
+---
+
+`{11h15-13h}` between 11h15 and 13h
+`{12h}` between 12h00 and 12h59
+`{12h00}` at 12h00
+`{00m}` on the first minute of every hour
+`{00m-09m}` on the first 10 minutes of every hour
+`{2w}` on Tuesday
+`{6w-7w}` on weekends
+
+---
 
 Above, `w` stands for weekday: 1 is Monday, 2 is Tuesday, and so on. Sunday is
 both 0 and 7.
@@ -433,8 +434,7 @@ which indicate that the first element is an integer, the second a float and the
 third a string.
 
 Similarly to lists, there is a special syntax in order to access
-tuple elements. For instance, if `t` is the above tuple `(3, 4.2,
-"hello")`, we can write
+tuple elements. For instance, if `t` is the above tuple `(3, 4.2, "hello")`, we can write
 
 ```liquidsoap
 let (n, x, s) = t
@@ -443,8 +443,7 @@ let (n, x, s) = t
 which will assign the first element to the variable `n`, the second element to
 the variable `x` and the third element to the variable `s`.
 
-Programming primitives
-----------------------
+## Programming primitives
 
 ### Variables
 
@@ -557,8 +556,7 @@ The variable `n` will thus successively take the values `1`, `2`, `4`, `8` and
 `16`, at which point the looping condition `!n < 10` is not satisfied anymore
 and the loop is exited. The printed value is thus `16`.
 
-Functions
----------
+## Functions
 
 Liquidsoap is built around the notion of function: most operations are performed
 by those. For some reason, we sometimes call _operators_ the functions acting on
@@ -684,6 +682,7 @@ following will give the same result:
 ```liquidsoap
 samplerate(duration=2.5, samples=110250.)
 ```
+
 Of course, a function can have both labeled and non-labeled arguments.
 
 ### Optional arguments
@@ -695,6 +694,7 @@ reason we tend to generally measure samples over a period of 2.5 seconds, we can
 make this become the value for the `duration` parameter:
 
 ```{.liquidsoap include="liq/samplerate3.liq" from=0 to=0}
+
 ```
 
 In this way, if we do not specify a value for the duration, its value will
@@ -848,8 +848,7 @@ end
 We do not detail much further this trait since it is unlikely to be used for
 radios, but you can see a few occurrences of it in the standard library.
 
-Records and modules
--------------------
+## Records and modules
 
 ### Records
 
@@ -962,8 +961,7 @@ will print
 
 (note that the string is modified but not the fields `duration` and `bpm`).
 
-Patterns
---------
+## Patterns
 
 As explained earlier, you can use several constructions to extract data from structured values such
 as `let [x, y] = l` and etc. These constructions are called _patterns_.
@@ -991,11 +989,12 @@ can be simply written `...`. See below for an example.
 
 You can use any combination of:
 
-* Forward variable names: these capture the first elements of the list.
-* One spread: this captures any remaining element as a list.
-* Backward variable names: these capture the last elements of a the list.
+- Forward variable names: these capture the first elements of the list.
+- One spread: this captures any remaining element as a list.
+- Backward variable names: these capture the last elements of a the list.
 
 Here are some examples:
+
 ```liquidsoap
 # Forward capture:
 let [x, y, z] = [1, 2, 3]
@@ -1026,6 +1025,7 @@ or variable names with an associated pattern.
 Record patterns are of the form: `{<captured methods>}` while module patterns are of the form: `<variable capture>.{<captured methods>}`
 
 Here are some examples:
+
 ```liquidsoap
 # Record capture
 let {foo, bar} = {foo = 123, bar = "baz", gni = true}
@@ -1048,14 +1048,14 @@ let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
 
 As seen with record and modules, patterns can be combined at will, for instance, these
 are all valid patterns:
+
 ```liquidsoap
 let [{foo}, {gni}, ..., {baz}] = l
 
 let (_.{ bla = [..., z] }, t, _, u) = x
 ```
 
-Advanced values
----------------
+## Advanced values
 
 In this section, we detail some more advanced values than the ones presented in. You are not expected to be understanding
 those in details for basic uses of Liquidsoap.
