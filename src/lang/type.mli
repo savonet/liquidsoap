@@ -30,7 +30,10 @@ type t = Type_base.t = { pos : Pos.Option.t; descr : descr }
 
 and constr_t = Type_base.constr_t = ..
 
-and constr = < t : constr_t ; descr : string ; satisfied : t -> unit >
+and constr =
+  < t : constr_t
+  ; descr : string
+  ; satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit >
 
 and constraints = constr list
 

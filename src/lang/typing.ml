@@ -36,9 +36,6 @@ let forget_arguments = true
 
 type env = (string * scheme) list
 
-(** Do we have a method. *)
-let has_meth a = match (deref a).descr with Meth _ -> true | _ -> false
-
 let rec hide_meth l a =
   match (deref a).descr with
     | Meth ({ meth = l' }, u) when l' = l -> hide_meth l u
@@ -187,31 +184,6 @@ let rec occur_check (a : var) b =
     | Var { contents = Link (_, b) } -> occur_check a b
     | _ -> raise NotImplemented
 
-(** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
-let satisfies_constraint b constr = constr#satisfied b
-
-let satisfies_constraints b c = List.iter (satisfies_constraint b) c
-
-(** Make a variable link to given type. *)
-let bind ?(variance = Invariant) a b =
-  let a0 = a in
-  let v, a =
-    match a.descr with
-      | Var ({ contents = Free a } as v) -> (v, a)
-      | _ -> assert false
-  in
-  if !debug then
-    Printf.printf "\n%s := %s\n%!" (Type.to_string a0) (Type.to_string b);
-  let b = deref b in
-  occur_check a b;
-  (* update_level a.level b; *)
-  satisfies_constraints b a.constraints;
-  let b = if b.pos = None then { b with pos = a0.pos } else b in
-  (* We do not want to check the constraints when we increase the types (for
-     now). *)
-  let variance = if a.constraints <> [] then Invariant else variance in
-  v := Link (variance, b)
-
 (** Lower all type variables to given level. *)
 let update_level level a =
   let x = Type.var ~level () in
@@ -322,10 +294,39 @@ let () =
              (Repr.to_string b))
     | _ -> None)
 
-(** Ensure that a<:b, perform unification if needed. In case of error, generate
-    an explanation. We recall that A <: B means that any value of type A can be
-    passed where a value of type B can. This relation must be transitive. *)
-let rec unify_meth a b l =
+(** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
+let rec satisfies_constraint b c =
+  match (demeth b).descr with
+    | Var { contents = Free v } ->
+        if not (List.exists (fun c' -> c#t = c'#t) v.constraints) then
+          v.constraints <- c :: v.constraints
+    | _ ->
+        c#satisfied ~subtype:( <: )
+          ~satisfies:(fun b -> satisfies_constraint b c)
+          b
+
+and satisfies_constraints b = List.iter (satisfies_constraint b)
+
+(** Make a variable link to given type. *)
+and bind ?(variance = Invariant) a b =
+  let a0 = a in
+  let v, a =
+    match a.descr with
+      | Var ({ contents = Free a } as v) -> (v, a)
+      | _ -> assert false
+  in
+  if !debug then
+    Printf.printf "\n%s := %s\n%!" (Type.to_string a0) (Type.to_string b);
+  let b = deref b in
+  occur_check a b;
+  (* update_level a.level b; *)
+  satisfies_constraints b a.constraints;
+  let b = if b.pos = None then { b with pos = a0.pos } else b in
+  (* We do not want to check the constraints when we increase the types (for
+     now). *)
+  v := Link (variance, b)
+
+and unify_meth a b l =
   let { meth = l; scheme = g1, t1; json_name = json_name1 } = get_meth l a in
   let { scheme = g2, t2; json_name = json_name2 } = get_meth l b in
   (* Handle explicitly this case in order to avoid #1842. *)
@@ -350,6 +351,9 @@ let rec unify_meth a b l =
            `Meth (l, ([], `Ellipsis), json_name2, b) ))
       bt
 
+(** Ensure that a<:b, perform unification if needed. In case of error, generate
+    an explanation. We recall that A <: B means that any value of type A can be
+    passed where a value of type B can. This relation must be transitive. *)
 and ( <: ) a b =
   if !debug || !debug_subtyping then
     Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
@@ -506,11 +510,7 @@ and ( <: ) a b =
             (* Can't do more concise than a full representation, as the problem
                isn't local. *)
             raise (Error (Repr.make a, Repr.make b)))
-      | _, Var { contents = Free v }
-      (* Force dropping the methods when we have constraints (see #1496) unless
-         we are comparing records (see #1930). *)
-        when (not (has_meth a)) || v.constraints = [] || (demeth a).descr = unit
-        -> (
+      | _, Var { contents = Free _ } -> (
           try bind ~variance:Covariant b a
           with Occur_check _ | Unsatisfied_constraint ->
             let bt = Printexc.get_raw_backtrace () in
