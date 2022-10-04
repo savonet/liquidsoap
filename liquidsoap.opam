@@ -30,6 +30,7 @@ depends: [
   "metadata"
   "dune-build-info"
   "liquidsoap-lang"
+  "liquidsoap-libs"
   "liquidsoap-mode"
   "ppx_string" {build}
   "odoc" {with-doc}
