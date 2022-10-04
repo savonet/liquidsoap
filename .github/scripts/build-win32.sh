@@ -9,11 +9,11 @@ IS_ROLLING_RELEASE=$4
 IS_RELEASE=$5
 GITHUB_SHA=$6
 
-OPAM_PREFIX=`opam var prefix`
-VERSION=`opam show -f version ./liquidsoap.opam | cut -d'-' -f 1`
-PWD=`dirname $0`
-BASE_DIR=`cd "${PWD}/../.." && pwd`
-COMMIT_SHORT=`echo "${GITHUB_SHA}" | cut -c-7`
+OPAM_PREFIX=$(opam var prefix)
+VERSION=$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)
+PWD=$(dirname $0)
+BASE_DIR=$(cd "${PWD}/../.." && pwd)
+COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
   TAG=${COMMIT_SHORT}-
@@ -39,11 +39,11 @@ export CC=""
 
 echo "::group::Installing deps"
 
-eval `opam config env`
+eval $(opam config env)
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 cd /home/opam/opam-cross-windows/
-opam remove -y ppx_tools_versioned-windows `echo $OPAM_DEPS | sed -e 's#,# #g'`
-opam upgrade -y `echo $OPAM_DEPS | sed -e 's#,# #g'` ffmpeg-windows ffmpeg-avutil-windows
+opam remove -y ppx_tools_versioned-windows $(echo $OPAM_DEPS | sed -e 's#,# #g')
+opam upgrade -y $(echo $OPAM_DEPS | sed -e 's#,# #g') ffmpeg-windows ffmpeg-avutil-windows
 
 echo "::endgroup::"
 
@@ -60,7 +60,7 @@ cp -rf ${BASE_DIR}/.github/win32 liquidsoap-$BUILD
 cd liquidsoap-$BUILD
 cp ${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap ./liquidsoap.exe
 cp ${OPAM_PREFIX}/windows-sysroot/share/liquidsoap-lang/libs/*.liq libs
-cp -rf `ocamlfind -toolchain windows ocamlc -where`/../../share/camomile .
+cp -rf $(ocamlfind -toolchain windows ocamlc -where)/../../share/camomile .
 cd ..
 zip -r liquidsoap-$BUILD.zip liquidsoap-$BUILD
 

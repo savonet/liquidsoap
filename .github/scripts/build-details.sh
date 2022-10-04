@@ -46,7 +46,7 @@ else
   DOCKER_RELEASE=
 fi
 
-SHA=`git rev-parse --short HEAD`
+SHA=$(git rev-parse --short HEAD)
 
 if [[ "${BRANCH}" =~ "rolling-release-" ]]; then
   echo "Branch is rolling release"

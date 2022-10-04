@@ -1,11 +1,11 @@
 #!/bin/sh
 
 BASEPATH=$0
-BASEDIR=`dirname $0`
-CWD=`cd $BASEDIR && pwd`
+BASEDIR=$(dirname $0)
+CWD=$(cd $BASEDIR && pwd)
 
 FILE=$1
-FORMAT=`echo $FILE | cut -d '.' -f 1 | sed -e "s#@#%#g"`
+FORMAT=$(echo $FILE | cut -d '.' -f 1 | sed -e "s#@#%#g")
 
 MODE=$2
 

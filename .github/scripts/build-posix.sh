@@ -77,7 +77,7 @@ touch liquidsoap/configure
 # Workaround
 rm liquidsoap/configure
 
-export OCAMLPATH=`cat .ocamlpath`
+export OCAMLPATH=$(cat .ocamlpath)
 
 cd /tmp/liquidsoap-full/liquidsoap
 dune build
@@ -85,7 +85,7 @@ dune build
 echo "::endgroup::"
 
 if [ "${PLATFORM}" = "armhf" ]; then
-  exit 0;
+  exit 0
 fi
 
 echo "::group::Print build config"
