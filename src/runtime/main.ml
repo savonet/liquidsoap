@@ -307,7 +307,8 @@ let options =
             (fun () ->
               run_streams := false;
               load_libs ();
-              Lang_string.kprint_string ~pager:true Doc.Value.print_functions_by_category),
+              Lang_string.kprint_string ~pager:true
+                Doc.Value.print_functions_by_category),
           Printf.sprintf "List all functions, sorted by category." );
         ( ["--list-functions-md"],
           Arg.Unit

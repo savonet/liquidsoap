@@ -219,10 +219,12 @@ module Value = struct
     List.iter
       (fun (category_name, category) ->
         print ("# " ^ category_name ^ "\n\n");
-        let functions = List.filter (fun (_, d) -> d.category = category) functions in
+        let functions =
+          List.filter (fun (_, d) -> d.category = category) functions
+        in
         List.iter (fun (f, _) -> print ("- " ^ f ^ "\n")) functions;
-        print "\n"
-      ) categories
+        print "\n")
+      categories
 
   let print name print =
     let f = get name in

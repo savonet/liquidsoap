@@ -191,8 +191,8 @@ let settings_module =
      let init = get_value Dtools.Init.conf in
      let log = get_value Dtools.Log.conf in
      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
-     Lang.add_builtin_base ~category:`Settings "settings"
-       ~descr:"All settings." ~flags:[`Hidden] !settings.Lang.value settings_t)
+     Lang.add_builtin_base ~category:`Settings "settings" ~descr:"All settings."
+       ~flags:[`Hidden] !settings.Lang.value settings_t)
 
 (** Hack to keep track of latest settings at runtime. *)
 let () =
