@@ -7,6 +7,8 @@ Changed:
   instead of `chunked` transfer encoding in these case, though
   `libcurl` seems to always prefer `chunked` encoding for `put`
   requests.
+* Better error message when an encoder is not available on windows
+  (#2665)
 
 Fixed:
 * Enhanced methods typing support (#2659)
@@ -459,7 +461,7 @@ Changed:
 - Use bigarrays for audio buffers (#950).
 - Re-implemented switch-derived operators (`fallback`, `rotate`, `random`) as
   scripted operators, removed `track_sensitive` argument from `rotate` and
-  `random` as it does not have a sound meaning for them. 
+  `random` as it does not have a sound meaning for them.
 - Added optional exit `code` to `shutdown`.
 - Renamed `verb` argument info `method` in `output.icecast`.
 - Simplified `add` behavior, also fixing an clock issue (#668).
@@ -564,7 +566,7 @@ Fixed:
   duration (#1351).
 - Fixed osc server not workin when daemonized (#1365).
 - Fixed glitchy audio when using `input.harbor` (#1944)
-- Fixed `"tracknumber"` and `"year"` returning `0` in taglib (#1901) 
+- Fixed `"tracknumber"` and `"year"` returning `0` in taglib (#1901)
 
 Removed:
 - LiGuidsoap, the old Liquidsoap GUI. 🪦
