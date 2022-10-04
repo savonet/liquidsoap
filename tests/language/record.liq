@@ -83,10 +83,13 @@ def f() =
   # Equality
   t({a = 5} == {a = 5}, true)
   t({a = 5} == {a = 6}, false)
-  #t({a = 5, b = 3} == {a = 6}, false) # Type inference is not smart enough for this one for now
+  t({a = 5, b = 3} == {a = 6}, false)
   t({a = 5} == {a = 6, b = 4}, false)
   t([{a = 5}] == [{a = 5}], true)
   t(({a = 5}) == ({a = 5}), true)
+  # The following is weired but expected
+  t({a = 5} == {a = 5, b = 6}, true)
+  t({a = 5, b = 6} == {a = 5}, true)
 
   if !success then test.pass() else test.fail() end
 end
