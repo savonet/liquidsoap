@@ -156,7 +156,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
           dependency.@]@."
       else
         Format.fprintf formatter
-          "Unsupported format: %s.@ Please not that, on windows, %%mp3, \
+          "Unsupported format: %s.@ Please note that, on windows, %%mp3, \
            %%vorbis and many other encoders are not available. Instead, you \
            should use the %%ffmpeg encoder.@]@.")
         fmt;
