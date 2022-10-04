@@ -150,9 +150,15 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       raise Error
   | Term.Unsupported_format (pos, fmt) ->
       error_header ~formatter 12 pos;
-      Format.fprintf formatter
-        "Unsupported format: %s.@ You must be missing an optional \
-         dependency.@]@."
+      (if Sys.unix then
+       Format.fprintf formatter
+         "Unsupported format: %s.@ You must be missing an optional \
+          dependency.@]@."
+      else
+        Format.fprintf formatter
+          "Unsupported format: %s.@ Please not that, on windows, %%mp3, \
+           %%vorbis and many other encoders are not available. Instead, you \
+           should use the %%ffmpeg encoder.@]@.")
         fmt;
       raise Error
   | Term.Internal_error (pos, e) ->
