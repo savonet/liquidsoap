@@ -1,11 +1,11 @@
-#! /bin/sh
+#!/bin/sh
 # postrm script for liquidsoap
 set -e
 
 if [ "$1" = "purge" ] && [ -d /usr/share/liquidsoap ]; then
-    if ! rmdir /usr/share/liquidsoap; then
-        echo "leaving /usr/share/liquidsoap in place"
-    fi
+  if ! rmdir /usr/share/liquidsoap; then
+    echo "leaving /usr/share/liquidsoap in place"
+  fi
 fi
 
 #DEBHELPER#

@@ -47,3 +47,9 @@ repos:
         language: docker_image
         entry: mvdan/shfmt -i 2 -ci -sr -kp -w
         types: [shell]
+
+      - id: shellcheck
+        name: shellcheck
+        language: docker_image
+        entry: koalaman/shellcheck --color=always
+        types: [shell]

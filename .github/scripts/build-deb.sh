@@ -4,12 +4,12 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 set -e
 
-GITHUB_SHA=$1
-BRANCH=$2
-DOCKER_TAG=$3
-PLATFORM=$4
-IS_ROLLING_RELEASE=$5
-IS_RELEASE=$6
+GITHUB_SHA="$1"
+BRANCH="$2"
+DOCKER_TAG="$3"
+PLATFORM="$4"
+IS_ROLLING_RELEASE="$5"
+IS_RELEASE="$6"
 DEB_RELEASE=1
 
 ARCH=$(dpkg --print-architecture)
@@ -21,11 +21,12 @@ export DEBEMAIL="savonet-users@lists.sourceforge.net"
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-eval $(opam config env)
-export OCAMLPATH=$(cat ../.ocamlpath)
+eval "$(opam config env)"
+OCAMLPATH="$(cat ../.ocamlpath)"
+export OCAMLPATH
 
 LIQ_VERSION=$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)
-LIQ_TAG=$(echo ${DOCKER_TAG} | sed -e 's#_#-#g')
+LIQ_TAG=$(echo "${DOCKER_TAG}" | sed -e 's#_#-#g')
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
   LIQ_PACKAGE="liquidsoap-${COMMIT_SHORT}"
@@ -50,6 +51,6 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 fakeroot debian/rules binary
 
-cp /tmp/liquidsoap-full/*.deb /tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian
+cp /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
 
 echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"

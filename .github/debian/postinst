@@ -1,33 +1,34 @@
-#! /bin/sh
+#!/bin/sh
 # postinst script for liquidsoap
 set -e
 
 case "$1" in
-    configure)
-    ;;
+  configure) ;;
 
-    abort-upgrade|abort-remove|abort-deconfigure)
+  abort-upgrade | abort-remove | abort-deconfigure)
     exit 0
     ;;
 
-    *)
+  *)
     echo "postinst called with unknown argument \`$1'" >&2
     exit 1
     ;;
 esac
 
-[ $(getent group liquidsoap) ] || addgroup --system liquidsoap
+if ! getent group liquidsoap > /dev/null; then
+  addgroup --system liquidsoap
+fi
 
 # Create the new system account
-id liquidsoap >dev/null 2>&1 || (\
+id liquidsoap > dev/null 2>&1 || (
   adduser --system --disabled-password --disabled-login \
-  --home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap && \
-  usermod --append --groups audio liquidsoap\
+    --home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap &&
+    usermod --append --groups audio liquidsoap
 )
 
 # Add again /usr/share/liquidsoap if user was already created
 if ! test -d /usr/share/liquidsoap; then
-    mkdir /usr/share/liquidsoap
+  mkdir /usr/share/liquidsoap
 fi
 
 # Fix directories ownership

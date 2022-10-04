@@ -104,13 +104,13 @@ jobs:
           git fetch origin ${{ github.sha }}
           git checkout ${{ github.sha }}
           mv .git /tmp
-          rm -rf *
+          rm -rf ./*
           mv /tmp/.git .
           git reset --hard
       - name: Build JS
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          eval $(opam config env)
+          eval "$(opam config env)"
           opam install -y js_of_ocaml js_of_ocaml-ppx
           dune build ./src/js/liquidsoap_js.bc.js
 
