@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# BASEPATH="$0"
 BASEDIR=$(dirname "$0")
 CWD=$(cd "$BASEDIR" && pwd)
 
