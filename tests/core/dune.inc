@@ -22,7 +22,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:output_encoded_test output_encoded_test.exe))
  (action (run %{output_encoded_test} )))
 
@@ -50,7 +50,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:version_test version_test.exe))
  (action (run %{version_test} )))
 
@@ -64,7 +64,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:strings_test strings_test.exe))
  (action (run %{strings_test} )))
 
@@ -78,7 +78,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:unifier_test unifier_test.exe))
  (action (run %{unifier_test} )))
 
@@ -92,7 +92,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:taglib_test taglib_test.exe))
  (action (run %{taglib_test} )))
 
@@ -106,7 +106,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:output_test output_test.exe))
  (action (run %{output_test} )))
 
@@ -120,7 +120,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:pool_test pool_test.exe))
  (action (run %{pool_test} )))
 
@@ -134,7 +134,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:timezone timezone.exe))
  (action (run %{timezone} )))
 
@@ -148,7 +148,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:start_stop_test start_stop_test.exe))
  (action (run %{start_stop_test} )))
 
@@ -162,7 +162,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:generator_test generator_test.exe))
  (action (run %{generator_test} )))
 
@@ -176,7 +176,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:decoder_test decoder_test.exe))
  (action (run %{decoder_test} )))
 
@@ -190,7 +190,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:utils_test utils_test.exe))
  (action (run %{utils_test} )))
 
@@ -204,7 +204,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:content_test content_test.exe))
  (action (run %{content_test} )))
 
@@ -218,7 +218,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:is_url is_url.exe))
  (action (run %{is_url} )))
 
@@ -232,7 +232,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:playlist_basic_test playlist_basic_test.exe))
  (action (run %{playlist_basic_test} )))
 
@@ -246,7 +246,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:frame_test frame_test.exe))
  (action (run %{frame_test} )))
 
@@ -260,7 +260,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:types types.exe))
  (action (run %{types} )))
 
@@ -274,7 +274,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:source_test source_test.exe))
  (action (run %{source_test} )))
 
@@ -288,7 +288,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:readavi readavi.exe))
  (action (run %{readavi} )))
 
@@ -302,7 +302,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:string_test string_test.exe))
  (action (run %{string_test} )))
 
@@ -316,7 +316,7 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-
+  
   (:meth meth.exe))
  (action (run %{meth} )))
 
@@ -333,3 +333,4 @@
   (:test_srt ./test.srt)
   (:parsesrt parsesrt.exe))
  (action (run %{parsesrt} %{test_srt})))
+

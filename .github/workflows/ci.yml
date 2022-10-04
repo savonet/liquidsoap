@@ -21,12 +21,13 @@ jobs:
           python-version: "3.x"
       - uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 4.13.x
-          opam-pin: false
-          opam-depext: false
-      - name: Install ocamlformat
+          ocaml-compiler: 4.14.x
+          opam-repositories: |
+            default: https://github.com/ocaml/opam-repository.git
+            liquidsoap-dev-tools: https://github.com/savonet/liquidsoap-dev-tools.git
+      - name: Install liquidsoap
         run: |
-          opam install -y ocamlformat=0.19.0
+          opam install liquidsoap
       - uses: pre-commit/action@v3.0.0
 
   build_details:

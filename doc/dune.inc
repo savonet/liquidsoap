@@ -2,15 +2,15 @@
 (rule
   (alias doc)
   (deps
-
+    
     (:liquidsoap ../src/bin/liquidsoap.exe))
   (target protocols.md)
   (action
     (with-stdout-to protocols.md
-
+      
       (setenv PAGER none
         (run %{liquidsoap} --list-protocols-md)))))
-
+      
 
 (rule
   (alias doc)
@@ -41,15 +41,15 @@
 (rule
   (alias doc)
   (deps
-
+    
     (:liquidsoap ../src/bin/liquidsoap.exe))
   (target settings.md)
   (action
     (with-stdout-to settings.md
-
+      
       (setenv PAGER none
         (run %{liquidsoap} --list-settings)))))
-
+      
 
 (rule
   (alias doc)
@@ -1564,3 +1564,4 @@
 (stream_content.html as html/stream_content.html)
 (video-static.html as html/video-static.html)
 (video.html as html/video.html)))
+  
