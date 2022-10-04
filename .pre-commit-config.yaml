@@ -39,3 +39,11 @@ repos:
       - id: codespell
         args: [--ignore-words=.codespellignore]
         exclude: ^doc/orig/fosdem2020
+
+  - repo: local
+    hooks:
+      - id: shfmt
+        name: shfmt
+        language: docker_image
+        entry: mvdan/shfmt -i 2 -ci -sr -kp -w
+        types: [shell]
