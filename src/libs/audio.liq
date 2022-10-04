@@ -1,11 +1,11 @@
 # Samplerate for audio.
-# @category Liquidsoap
+# @category Settings
 def audio.samplerate =
   settings.frame.audio.samplerate
 end
 
 # Channels for audio.
-# @category Liquidsoap
+# @category Settings
 def audio.channels =
   settings.frame.audio.channels
 end

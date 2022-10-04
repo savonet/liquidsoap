@@ -191,12 +191,12 @@ let settings_module =
      let init = get_value Dtools.Init.conf in
      let log = get_value Dtools.Log.conf in
      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
-     Lang.add_builtin_base ~category:`Liquidsoap "settings"
+     Lang.add_builtin_base ~category:`Settings "settings"
        ~descr:"All settings." ~flags:[`Hidden] !settings.Lang.value settings_t)
 
 (** Hack to keep track of latest settings at runtime. *)
 let () =
-  Lang.add_builtin ~category:`Liquidsoap "set_settings_ref"
+  Lang.add_builtin ~category:`Settings "set_settings_ref"
     ~descr:"Internal use only!" ~flags:[`Hidden]
     [("", Lang.univ_t (), None, None)]
     Lang.unit_t
@@ -301,7 +301,7 @@ let () =
     in
     grab path value
   in
-  Lang.add_builtin ~category:`Liquidsoap "set"
+  Lang.add_builtin ~category:`Settings "set"
     ~descr:
       "Change some setting. Use `liquidsoap --list-settings` on the \
        command-line to get some information about available settings."
@@ -329,7 +329,7 @@ let () =
       Lang.unit);
 
   let univ = Lang.univ_t ~constraints:[dtools_constr] () in
-  Lang.add_builtin "get" ~category:`Liquidsoap ~descr:"Get a setting's value."
+  Lang.add_builtin "get" ~category:`Settings ~descr:"Get a setting's value."
     ~flags:[`Deprecated; `Hidden]
     [("default", univ, None, None); ("", Lang.string_t, None, None)] univ
     (fun p ->

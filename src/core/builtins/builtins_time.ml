@@ -22,7 +22,7 @@
 
 let () =
   let t = ("", Lang.int_t, None, None) in
-  Lang.add_builtin "time_in_mod" ~category:`Liquidsoap ~flags:[`Hidden]
+  Lang.add_builtin "time_in_mod" ~category:`Time ~flags:[`Hidden]
     ~descr:
       ("INTERNAL: time_in_mod(a,b,c) checks that the unix time T "
      ^ "satisfies a <= T mod c < b") [t; t; t] Lang.bool_t (fun p ->
@@ -40,13 +40,13 @@ let () =
         | _ -> assert false)
 
 let () =
-  Lang.add_builtin ~category:`System "time"
+  Lang.add_builtin ~category:`Time "time"
     ~descr:
       "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds." []
     Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()))
 
 let () =
-  Lang.add_builtin ~category:`System "time.up"
+  Lang.add_builtin ~category:`Time "time.up"
     ~descr:"Current time, in seconds, since the script has started." []
     Lang.float_t (fun _ -> Lang.float (Utils.uptime ()))
 
@@ -93,13 +93,13 @@ let () =
        struct`. In particular, \"year\" is: year - 1900, i.e. 117 for 2017!"
       tz
   in
-  Lang.add_builtin ~category:`System "time.local" ~descr:(descr "local")
+  Lang.add_builtin ~category:`Time "time.local" ~descr:(descr "local")
     [("", Lang.nullable_t Lang.float_t, Some Lang.null, None)]
     time_t
     (fun p ->
       let t = nullable_time (List.assoc "" p) in
       return (Unix.localtime t));
-  Lang.add_builtin ~category:`System "time.utc" ~descr:(descr "UTC")
+  Lang.add_builtin ~category:`Time "time.utc" ~descr:(descr "UTC")
     [("", Lang.nullable_t Lang.float_t, Some Lang.null, None)]
     time_t
     (fun p ->
@@ -121,7 +121,7 @@ let () =
           "Daylight time savings in effect." );
       ]
   in
-  Lang.add_builtin ~category:`Liquidsoap "time.make"
+  Lang.add_builtin ~category:`Time "time.make"
     ~descr:
       "Convert a date and time in the local timezone into a time, in seconds, \
        since 00:00:00 GMT, Jan. 1, 1970."
@@ -141,7 +141,7 @@ let () =
       Lang.float (Utils.mktime tm))
 
 let () =
-  Lang.add_builtin ~category:`Liquidsoap "time.predicate"
+  Lang.add_builtin ~category:`Time "time.predicate"
     ~descr:"Parse a string as a time predicate"
     [("", Lang.string_t, None, None)] (Lang.fun_t [] Lang.bool_t) (fun p ->
       let v = List.assoc "" p in
@@ -181,7 +181,7 @@ let () =
           "Difference in seconds between the current timezone and UTC." );
       ]
   in
-  Lang.add_builtin ~category:`Liquidsoap "time.zone"
+  Lang.add_builtin ~category:`Time "time.zone"
     ~descr:"Returns a description of the time zone set for the running process."
     [] tz_t (fun _ ->
       let std, dst = Utils.timezone_by_name () in
@@ -190,7 +190,7 @@ let () =
         [("daylight", Lang.string dst); ("utc_diff", Lang.int tz)])
 
 let () =
-  Lang.add_builtin ~category:`String "time.string"
+  Lang.add_builtin ~category:`Time "time.string"
     ~descr:
       "Obtain a string representation of the current time. It takes a string \
        as argument where special strings are replaced roughly following \

@@ -25,7 +25,7 @@ open Extralib
 let () =
   List.iter
     (fun (name, kind, str) ->
-      Lang.add_builtin_base ~category:`Liquidsoap
+      Lang.add_builtin_base ~category:`Configuration
         ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
         ("configure." ^ name)
         Lang.(Ground (Ground.String str))
@@ -183,14 +183,6 @@ let () =
       External_decoder.register_oblivious ~name ~doc ~priority ~mimes
         ~file_extensions ~test:(test_f test) ~process prebuf;
       Lang.unit)
-
-let () =
-  Lang.add_builtin "metadata.export" ~category:`Liquidsoap
-    ~descr:"Filter-out internal metadata." [("", Lang.metadata_t, None, None)]
-    Lang.metadata_t (fun p ->
-      Lang.metadata
-        (Meta_format.to_metadata
-           (Meta_format.export_metadata (Lang.to_metadata (List.assoc "" p)))))
 
 (** Misc control/system functions. *)
 

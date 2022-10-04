@@ -145,7 +145,7 @@ let () =
       Lang.float (frame_position +. in_frame_position))
 
 let () =
-  Lang.add_builtin "source.on_leave" ~category:`System
+  Lang.add_builtin "source.on_leave" ~category:(`Source `Liquidsoap)
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);
       ("", Lang.fun_t [] Lang.unit_t, None, None);
@@ -162,7 +162,7 @@ let () =
       Lang.unit)
 
 let () =
-  Lang.add_builtin "source.on_shutdown" ~category:`System
+  Lang.add_builtin "source.on_shutdown" ~category:(`Source `Liquidsoap)
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);
       ("", Lang.fun_t [] Lang.unit_t, None, None);

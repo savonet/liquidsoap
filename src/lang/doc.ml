@@ -124,11 +124,14 @@ module Value = struct
     | `List
     | `Bool
     | `Getter
+    | `Time
     | `Liquidsoap
     | `Metadata
     | `Programming
     | `Interaction
     | `Internet
+    | `Configuration
+    | `Settings
     | `None ]
 
   let categories : (category * string) list =
@@ -146,6 +149,8 @@ module Value = struct
       (`Source `Liquidsoap, "Source / Liquidsoap");
       (`Source `Fade, "Source / Fade");
       (`System, "System");
+      (`Configuration, "Configuration");
+      (`Settings, "Settings");
       (`File, "File");
       (`Math, "Math");
       (`String, "String");
@@ -157,6 +162,7 @@ module Value = struct
       (`Programming, "Programming");
       (`Interaction, "Interaction");
       (`Internet, "Internet");
+      (`Time, "Time");
       (`None, "Uncategorized");
     ]
 
@@ -204,6 +210,7 @@ module Value = struct
     let functions =
       !db
       |> List.map (fun (f, d) -> (f, Lazy.force d))
+      |> List.filter (fun (_, d) -> not (List.mem `Hidden d.flags))
       |> List.sort compare
     in
     let categories =

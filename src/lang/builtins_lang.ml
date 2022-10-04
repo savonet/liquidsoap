@@ -146,7 +146,7 @@ let () =
       Lang.unit)
 
 let () =
-  Lang.add_builtin_base ~category:`Liquidsoap
+  Lang.add_builtin_base ~category:`Configuration
     ~descr:"Liquidsoap version string." "liquidsoap.version"
     Lang.(Ground (Ground.String Build_config.version))
     Lang.string_t;
@@ -175,25 +175,25 @@ let () =
 
 let () =
   Lang.add_module "liquidsoap.build_config";
-  Lang.add_builtin_base ~category:`Liquidsoap
+  Lang.add_builtin_base ~category:`Configuration
     ~descr:"OCaml version used to compile liquidspap."
     "liquidsoap.build_config.ocaml_version"
     Lang.(Ground (Ground.String Sys.ocaml_version))
     Lang.string_t;
-  Lang.add_builtin_base ~category:`Liquidsoap
+  Lang.add_builtin_base ~category:`Configuration
     ~descr:"Git sha used to compile liquidsoap."
     "liquidsoap.build_config.git_sha"
     (match Build_config.git_sha with
       | None -> Lang.Null
       | Some sha -> Lang.(Ground (Ground.String sha)))
     Lang.(nullable_t string_t);
-  Lang.add_builtin_base ~category:`Liquidsoap
+  Lang.add_builtin_base ~category:`Configuration
     ~descr:"Is this build a release build?" "liquidsoap.build_config.is_release"
     Lang.(Ground (Ground.Bool Build_config.is_release))
     Lang.bool_t;
   List.iter
     (fun (name, value) ->
-      Lang.add_builtin_base ~category:`Liquidsoap
+      Lang.add_builtin_base ~category:`Configuration
         ~descr:("Build-time configuration value for " ^ name)
         ("liquidsoap.build_config." ^ name)
         Lang.(Ground (Ground.String value))

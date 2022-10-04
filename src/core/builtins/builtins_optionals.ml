@@ -2,7 +2,7 @@ let () =
   Lang.add_module "liquidsoap.build_config.optionals";
   List.iter
     (fun (name, value) ->
-      Lang.add_builtin_base ~category:`Liquidsoap
+      Lang.add_builtin_base ~category:`Configuration
         ~descr:("Build-time configuration for " ^ name)
         ("liquidsoap.build_config.optionals." ^ name)
         Lang.(Ground (Ground.Bool value))

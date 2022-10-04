@@ -34,7 +34,7 @@ end
 # Set the current time zone. This is
 # equivalent to setting the `TZ` environment
 # variable.
-# @category Liquidsoap
+# @category Time
 def time.zone.set(tz) =
   environment.set("TZ", tz)
 end
