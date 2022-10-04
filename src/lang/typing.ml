@@ -257,8 +257,6 @@ let rec sup ~pos a b =
       | Tuple l, Tuple m ->
           if List.length l <> List.length m then raise Incompatible;
           mk (Tuple (List.map2 sup l m))
-      | Custom { typ = Type_alias.(Type { typ }) }, _ -> sup typ b
-      | _, Custom { typ = Type_alias.(Type { typ }) } -> sup a typ
       | Custom c, Custom c' -> (
           try mk (Custom { c with typ = c.sup sup c.typ c'.typ })
           with _ -> raise Incompatible)
@@ -493,8 +491,6 @@ and ( <: ) a b =
               (Error
                  ( `Arrow (l2 @ [ellipsis], `Ellipsis),
                    `Arrow ([ellipsis], `Ellipsis) )))
-      | Custom { typ = Type_alias.Type { Type_alias.typ } }, _ -> typ <: b
-      | _, Custom { typ = Type_alias.Type { Type_alias.typ } } -> a <: typ
       | Custom c, Custom c' -> (
           try c.subtype ( <: ) c.typ c'.typ
           with _ -> raise (Error (Repr.make a, Repr.make b)))

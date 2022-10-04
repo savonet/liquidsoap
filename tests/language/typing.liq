@@ -173,19 +173,6 @@ def f() =
   (():{})
   (():unit.{})
 
-  let type foo = int
-  let x = (123:foo)
-  let y = (x:int)
-  let z = x+y+1
-
-  let type gni = [foo]
-  let x = ([1,2,3]:gni)
-  let y = (x:[int])
-
-  let type gno = { gni: gni, foo: foo}
-  let x = ({gni=[1,2,3], foo=123}:{gni:[int], foo:int})
-  let y = (x:gno)
-
   test.pass()
 end
 

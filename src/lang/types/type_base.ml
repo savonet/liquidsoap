@@ -149,7 +149,6 @@ type custom_handler = {
   occur_check : (var -> t -> unit) -> var -> custom -> unit;
   filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
   repr : (var list -> t -> R.t) -> var list -> custom -> R.t;
-  satisfies_constraint : custom -> constr -> unit;
   subtype : (t -> t -> unit) -> custom -> custom -> unit;
   sup : (t -> t -> t) -> custom -> custom -> custom;
   to_string : custom -> string;
