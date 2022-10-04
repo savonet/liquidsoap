@@ -3,6 +3,8 @@
 set -e
 
 cd /tmp/liquidsoap-full/liquidsoap
-eval $(opam config env)
-export OCAMLPATH=$(cat ../.ocamlpath)
+eval "$(opam config env)"
+OCAMLPATH="$(cat ../.ocamlpath)"
+export OCAMLPATH
+
 dune test

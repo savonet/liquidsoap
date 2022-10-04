@@ -1,3 +1,6 @@
 #!/bin/sh
-export DIR=$(dirname "$0")
-dune exec --root=$DIR src/bin/liquidsoap.exe -- $DIR/src/libs/stdlib.liq "$@"
+
+DIR="$(dirname "$0")"
+export DIR
+
+dune exec --root="$DIR" src/bin/liquidsoap.exe -- "$DIR/src/libs/stdlib.liq" "$@"

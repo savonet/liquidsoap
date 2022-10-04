@@ -3,9 +3,9 @@
 set -e
 
 if [ -n "${GITHUB_HEAD_REF}" ]; then
-  BRANCH=${GITHUB_HEAD_REF}
+  BRANCH="${GITHUB_HEAD_REF}"
 else
-  BRANCH=${GITHUB_REF#refs/heads/}
+  BRANCH="${GITHUB_REF#refs/heads/}"
 fi
 
 echo "Detected branch: ${BRANCH}"

@@ -15,7 +15,7 @@ RUN apt-get -y install libcurl4-gnutls-dev
 USER opam
 
 # This is until the next image rebuild:
-RUN eval $(opam config env) && opam install -y ocurl js_of_ocaml js_of_ocaml-ppx
+RUN eval "$(opam config env)" && opam install -y ocurl js_of_ocaml js_of_ocaml-ppx
 
 WORKDIR /tmp/liquidsoap-full
 
@@ -29,7 +29,7 @@ RUN git remote set-url origin https://github.com/savonet/liquidsoap-full.git && 
     git submodule update ocaml-metadata && \
     make public
 
-RUN eval $(opam config env) && make clean
+RUN eval "$(opam config env)" && make clean
 
 RUN cd ocaml-metadata && opam install -y .
 
@@ -43,16 +43,16 @@ RUN make public && make update
 
 RUN cat PACKAGES.default | grep -v gstreamer > PACKAGES
 
-RUN eval $(opam config env) && \
+RUN eval "$(opam config env)" && \
     export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig && \
     touch liquidsoap/configure && \
     ./configure --enable-graphics && \
     rm liquidsoap/configure && \
-    export OCAMLPATH=`cat .ocamlpath` && \
+    export OCAMLPATH="$(cat .ocamlpath)" && \
     cd liquidsoap && \
     dune build && \
     dune build --release src/js
 
 WORKDIR /tmp/liquidsoap-full/website
 
-RUN eval $(opam config env) && opam install -y odoc && make clean  && git pull && make dist
+RUN eval "$(opam config env)" && opam install -y odoc && make clean  && git pull && make dist

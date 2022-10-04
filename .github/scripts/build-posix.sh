@@ -2,11 +2,12 @@
 
 set -e
 
-export CPU_CORES=$1
+CPU_CORES="$1"
+PLATFORM="$2"
 
-PLATFORM=$2
+export CPU_CORES
 
-eval $(opam config env)
+eval "$(opam config env)"
 
 echo "::group::Preparing bindings"
 
@@ -50,10 +51,10 @@ echo "::group::Checking out CI commit"
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-git fetch origin $GITHUB_SHA
-git checkout $GITHUB_SHA
+git fetch origin "$GITHUB_SHA"
+git checkout "$GITHUB_SHA"
 mv .github /tmp
-rm -rf *
+rm -rf ./*
 mv /tmp/.github .
 git reset --hard
 
@@ -69,15 +70,20 @@ cd /tmp/liquidsoap-full
 # Workaround
 touch liquidsoap/configure
 
-./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
-            --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
-            --with-camomile-data-dir=/usr/share/liquidsoap/camomile \
-            CFLAGS=-g
+./configure --prefix=/usr \
+  --includedir="\${prefix}/include" \
+  --mandir="\${prefix}/share/man" \
+  --infodir="\${prefix}/share/info" \
+  --sysconfdir=/etc \
+  --localstatedir=/var \
+  --with-camomile-data-dir=/usr/share/liquidsoap/camomile \
+  CFLAGS=-g
 
 # Workaround
 rm liquidsoap/configure
 
-export OCAMLPATH=$(cat .ocamlpath)
+OCAMLPATH="$(cat .ocamlpath)"
+export OCAMLPATH
 
 cd /tmp/liquidsoap-full/liquidsoap
 dune build
