@@ -34,7 +34,6 @@ let num_constr : constr =
         | Custom { typ = Ground.Int.Type } | Custom { typ = Ground.Float.Type }
           ->
             ()
-        | Custom { typ; satisfies_constraint } -> satisfies_constraint typ self
         | Var { contents = Free v } ->
             if not (List.exists (fun c -> c#t = Num) v.constraints) then
               v.constraints <- self :: v.constraints
@@ -50,8 +49,7 @@ let ord_constr : constr =
       let rec check b =
         let m, b = split_meths b in
         match b.descr with
-          | Custom { typ; satisfies_constraint } ->
-              satisfies_constraint typ self
+          | Custom c when Ground.is_ground c.typ -> ()
           | Var { contents = Free v } ->
               if not (List.exists (fun c -> c#t = Ord) v.constraints) then
                 v.constraints <- self :: v.constraints

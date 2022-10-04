@@ -201,7 +201,6 @@ let rec token lexbuf =
     | "let", Plus skipped, "json.parse", Star skipped, '[' ->
         LETLBRA `Json_parse
     | "let", Plus skipped, "json.parse", Plus skipped -> LET `Json_parse
-    | "let", Plus skipped, "type", Plus skipped -> TYPEDEF
     | "let" -> LET `None
     | "fun" -> FUN
     | '=' -> GETS

@@ -38,7 +38,6 @@ let format_handler f =
         ignore (get_format f);
         l);
     repr = (fun _ _ _ -> assert false);
-    satisfies_constraint = (fun _ _ -> raise Type.Unsatisfied_constraint);
     subtype = (fun _ f f' -> Content_base.merge (get_format f) (get_format f'));
     sup =
       (fun _ f f' ->
@@ -79,7 +78,6 @@ let kind_handler k =
         let _, ty = get_kind k in
         filter_vars l ty);
     repr = (fun repr l k -> repr_of_kind repr l (get_kind k));
-    satisfies_constraint = (fun _ _ -> raise Type.Unsatisfied_constraint);
     subtype =
       (fun subtype k k' ->
         let k, t = get_kind k in
@@ -125,8 +123,6 @@ let internal_media : Type.constr =
         | Type.Custom { Type.typ = Format f }
           when Content_base.is_internal_format f ->
             ()
-        | Type.Custom { Type.typ; satisfies_constraint } ->
-            satisfies_constraint typ self
         | Type.Var { contents = Type.Free v } ->
             if
               not

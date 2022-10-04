@@ -45,7 +45,6 @@ let dtools_constr =
                    Ground_type.String.Type;
                  ] ->
             ()
-        | Custom { typ; satisfies_constraint } -> satisfies_constraint typ self
         | Tuple [] -> ()
         | List { t = b' } -> (
             match (deref b').descr with
