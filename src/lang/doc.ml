@@ -200,6 +200,23 @@ module Value = struct
            print f;
            print "\n")
 
+  let print_functions_by_category print =
+    let functions =
+      !db
+      |> List.map (fun (f, d) -> (f, Lazy.force d))
+      |> List.sort compare
+    in
+    let categories =
+      categories |> List.map (fun (c, s) -> (s, c)) |> List.sort compare
+    in
+    List.iter
+      (fun (category_name, category) ->
+        print ("# " ^ category_name ^ "\n\n");
+        let functions = List.filter (fun (_, d) -> d.category = category) functions in
+        List.iter (fun (f, _) -> print ("- " ^ f ^ "\n")) functions;
+        print "\n"
+      ) categories
+
   let print name print =
     let f = get name in
     let reflow ?(indent = 0) ?(cols = 70) s =
