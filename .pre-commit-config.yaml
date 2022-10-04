@@ -23,7 +23,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/savonet/pre-commit-ocamlformat
-    rev: d120e7d5a
+    rev: v1.0.0
     hooks:
       - id: ocamlformat
 
