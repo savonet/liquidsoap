@@ -1,3 +1,4 @@
+
 (rule
   (alias doc)
   (deps
@@ -10,6 +11,7 @@
       (setenv PAGER none
         (run %{liquidsoap} --list-protocols-md)))))
 
+
 (rule
   (alias doc)
   (deps
@@ -18,9 +20,7 @@
   (target reference.md)
   (action
     (with-stdout-to reference.md
-     (progn
-      (cat %{header})
-      (echo "\n")
+      (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
         (run %{liquidsoap} --list-functions-md)))))
       )
@@ -33,8 +33,7 @@
   (target reference-extras.md)
   (action
     (with-stdout-to reference-extras.md
-     (progn (cat %{header})
-      (echo "\n")
+      (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
         (run %{liquidsoap} --list-extra-functions-md)))))
       )

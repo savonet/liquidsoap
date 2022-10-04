@@ -64,7 +64,9 @@ let mk_generated_rule (file, option, header) =
     match header with
       | None -> ("", "", "")
       | Some fname ->
-          ([%string {|(:header %{fname})|}], "(progn (cat %{header})", ")")
+          ( [%string {|(:header %{fname})|}],
+            {|(progn (cat %{header}) (echo "\n")|},
+            ")" )
   in
   Printf.printf
     {|
