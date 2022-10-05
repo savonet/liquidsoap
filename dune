@@ -23,6 +23,29 @@
   (alias_rec install)))
 
 (alias
- (name runtest)
+ (name runtest_0)
  (deps
   (alias_rec install)))
+
+(alias
+ (name runtest_1)
+ (deps
+  (alias_rec install)))
+
+(alias
+ (name runtest_2)
+ (deps
+  (alias_rec install)))
+
+(alias
+ (name runtest_3)
+ (deps
+  (alias_rec install)))
+
+(alias
+ (name runtest)
+ (deps
+  (alias_rec runtest_0)
+  (alias_rec runtest_1)
+  (alias_rec runtest_2)
+  (alias_rec runtest_3)))
