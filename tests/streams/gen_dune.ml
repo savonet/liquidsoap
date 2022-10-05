@@ -5,12 +5,12 @@ let () =
       (fun f -> Filename.extension f = ".liq")
       (Array.to_list (Sys.readdir location))
   in
-  List.iter
-    (fun test ->
+  List.iteri
+    (fun pos test ->
       Printf.printf
         {|
 (rule
- (alias runtest)
+ (alias runtest_%d)
  (package liquidsoap)
  (deps
   %s
@@ -32,5 +32,5 @@ let () =
   (:run_test ../run_test.exe))
  (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
   |}
-        test test test)
+        (pos mod 2) test test test)
     tests
