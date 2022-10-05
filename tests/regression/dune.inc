@@ -26,7 +26,7 @@
  (action (run %{run_test} LS460.liq liquidsoap %{test_liq} LS460.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   LS503.liq
@@ -39,7 +39,7 @@
  (action (run %{run_test} LS503.liq liquidsoap %{test_liq} LS503.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   115-1.liq
@@ -78,7 +78,7 @@
  (action (run %{run_test} 123.liq liquidsoap %{test_liq} 123.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   LS354-2.liq
@@ -91,7 +91,7 @@
  (action (run %{run_test} LS354-2.liq liquidsoap %{test_liq} LS354-2.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   GH2585.liq
@@ -130,7 +130,7 @@
  (action (run %{run_test} LS354-1.liq liquidsoap %{test_liq} LS354-1.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   GH1129.liq
@@ -143,7 +143,7 @@
  (action (run %{run_test} GH1129.liq liquidsoap %{test_liq} GH1129.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   metadata_cache.liq
@@ -182,7 +182,7 @@
  (action (run %{run_test} GH1327.liq liquidsoap %{test_liq} GH1327.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   BUG403.liq
@@ -195,7 +195,7 @@
  (action (run %{run_test} BUG403.liq liquidsoap %{test_liq} BUG403.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   GH2602.liq
@@ -234,7 +234,7 @@
  (action (run %{run_test} infallible-shutdown.liq liquidsoap %{test_liq} infallible-shutdown.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   GH-action-919422659.liq
@@ -247,7 +247,7 @@
  (action (run %{run_test} GH-action-919422659.liq liquidsoap %{test_liq} GH-action-919422659.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   GH1151.liq
@@ -286,7 +286,7 @@
  (action (run %{run_test} GH1146.liq liquidsoap %{test_liq} GH1146.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   AC5109.liq
@@ -299,7 +299,7 @@
  (action (run %{run_test} AC5109.liq liquidsoap %{test_liq} AC5109.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   LS268.liq

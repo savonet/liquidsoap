@@ -89,7 +89,7 @@ let mk_encoder source pos format =
   (action
     (with-stdout-to %%{target}
       (run %%{mk_encoder_test} %S %s %S))))|}
-    (pos mod 2) (encoder_script format) (encoder_format format) source
+    (pos mod 4) (encoder_script format) (encoder_format format) source
     (escaped_format format)
 
 let mk_encoded_file pos format =
@@ -108,7 +108,7 @@ let mk_encoded_file pos format =
   (:run_test ../run_test.exe))
  (action
    (run %%{run_test} %%{encoder} liquidsoap %%{test_liq} %%{encoder} -- %S)))|}
-    (pos mod 2) (escaped_format format) (encoder_script format)
+    (pos mod 4) (escaped_format format) (encoder_script format)
     (encoder_format format)
 
 let () =
@@ -142,7 +142,7 @@ let file_test ~pos ~label ~test fname =
   (:run_test ../run_test.exe))
  (action
   (run %%{run_test} %S liquidsoap %%{test_liq} %s -- %S)))|}
-    (pos mod 2) test label test fname
+    (pos mod 4) test label test fname
 
 let () =
   List.iter

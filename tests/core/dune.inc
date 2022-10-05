@@ -33,7 +33,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   (:test_wav ./test.wav) (:test_mp3 ./test.mp3)
@@ -47,7 +47,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
 
@@ -89,7 +89,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
 
@@ -103,7 +103,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
 
@@ -145,7 +145,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
 
@@ -159,7 +159,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
 
@@ -201,7 +201,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
 
@@ -215,7 +215,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
 
@@ -257,7 +257,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
 
@@ -271,7 +271,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
 
@@ -313,7 +313,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
 
@@ -327,7 +327,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   (:test_srt ./test.srt)

@@ -26,7 +26,7 @@
  (action (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   process.liq
@@ -39,7 +39,7 @@
  (action (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   ref.liq
@@ -78,7 +78,7 @@
  (action (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   math.liq
@@ -91,7 +91,7 @@
  (action (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   pp.liq
@@ -130,7 +130,7 @@
  (action (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   stdlib.liq
@@ -143,7 +143,7 @@
  (action (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   argsof.liq
@@ -182,7 +182,7 @@
  (action (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   predicate.liq
@@ -195,7 +195,7 @@
  (action (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   file.liq
@@ -234,7 +234,7 @@
  (action (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   list.liq
@@ -247,7 +247,7 @@
  (action (run %{run_test} list.liq liquidsoap %{test_liq} list.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   mem_usage.liq
@@ -286,7 +286,7 @@
  (action (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   functions.liq
@@ -299,7 +299,7 @@
  (action (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   record.liq
@@ -338,7 +338,7 @@
  (action (run %{run_test} file_protocol.liq liquidsoap %{test_liq} file_protocol.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   eval.liq
@@ -351,7 +351,7 @@
  (action (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   bool.liq
@@ -390,7 +390,7 @@
  (action (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   doc.liq
@@ -403,7 +403,7 @@
  (action (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   typing.liq

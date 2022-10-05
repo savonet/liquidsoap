@@ -46,7 +46,7 @@
  (action (run %{run_test} huge-playlist.liq liquidsoap %{test_liq} huge-playlist.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   playlist-watch.liq
@@ -69,7 +69,7 @@
  (action (run %{run_test} playlist-watch.liq liquidsoap %{test_liq} playlist-watch.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   on_frame.liq
@@ -138,7 +138,7 @@
  (action (run %{run_test} image.liq liquidsoap %{test_liq} image.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   fades-persistent-override.liq
@@ -161,7 +161,7 @@
  (action (run %{run_test} fades-persistent-override.liq liquidsoap %{test_liq} fades-persistent-override.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   srt_passphrase.liq
@@ -230,7 +230,7 @@
  (action (run %{run_test} say.liq liquidsoap %{test_liq} say.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   ctype1.liq
@@ -253,7 +253,7 @@
  (action (run %{run_test} ctype1.liq liquidsoap %{test_liq} ctype1.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   random.liq
@@ -322,7 +322,7 @@
  (action (run %{run_test} request.liq liquidsoap %{test_liq} request.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   radio2.liq
@@ -345,7 +345,7 @@
  (action (run %{run_test} radio2.liq liquidsoap %{test_liq} radio2.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   cross.liq
@@ -414,7 +414,7 @@
  (action (run %{run_test} fades-overrides.liq liquidsoap %{test_liq} fades-overrides.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   rotate.liq
@@ -437,7 +437,7 @@
  (action (run %{run_test} rotate.liq liquidsoap %{test_liq} rotate.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   cross-override.liq
@@ -506,7 +506,7 @@
  (action (run %{run_test} sine.detect.liq liquidsoap %{test_liq} sine.detect.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   on_metadata.liq
@@ -529,7 +529,7 @@
  (action (run %{run_test} on_metadata.liq liquidsoap %{test_liq} on_metadata.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   dtmf.liq
@@ -598,7 +598,7 @@
  (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   on_track.liq
@@ -621,7 +621,7 @@
  (action (run %{run_test} on_track.liq liquidsoap %{test_liq} on_track.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   crossfade.liq
@@ -690,7 +690,7 @@
  (action (run %{run_test} many-playlists.liq liquidsoap %{test_liq} many-playlists.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   autostart.liq
@@ -713,7 +713,7 @@
  (action (run %{run_test} autostart.liq liquidsoap %{test_liq} autostart.liq)))
 
 (rule
- (alias runtest_1)
+ (alias runtest_3)
  (package liquidsoap)
  (deps
   srt_listen_callback.liq

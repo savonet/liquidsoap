@@ -26,7 +26,7 @@
  (action (run %{run_test} put.liq liquidsoap %{test_liq} put.liq)))
 
 (rule
- (alias runtest_0)
+ (alias runtest_2)
  (package liquidsoap)
  (deps
   post.liq

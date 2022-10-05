@@ -32,5 +32,5 @@ let () =
   (:run_test ../run_test.exe))
  (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
   |}
-        (pos mod 2) test test test)
+        (pos mod 4) test test test)
     tests

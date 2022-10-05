@@ -41,7 +41,7 @@ let () =
  (action %s%s%s))
 
 |}
-        test test (pos mod 2) deps test test
+        test test (pos mod 4) deps test test
         (if List.length args > 1 then "(progn " else "")
         (String.concat " "
            (List.map

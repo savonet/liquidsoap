@@ -122,7 +122,7 @@ jobs:
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       matrix:
-        index: [0, 1]
+        index: [0, 1, 2, 3]
     env:
       HOME: /home/opam
     steps:
