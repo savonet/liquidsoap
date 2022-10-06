@@ -31,8 +31,8 @@ def f() =
   # The level checks forbid abusive generalization.
   # id' : ('a)->'a
   def id'(x)
-    # If one isn't careful about levels/scoping, f2 gets the type ('a)->'b
-    # and so does twisted_id.
+    # If one isn't careful about levels/scoping, f2 gets the type ('a)->'b and
+    # so does twisted_id.
     def f2(y)
       x
     end
@@ -40,7 +40,7 @@ def f() =
   end
   ignore(id')
 
-  # Generalization and aliasing (see #941)
+  # Generalization and aliasing (see #941).
   def id (x) = x end
   _ = id(3)
   _ = id("a")
@@ -49,7 +49,7 @@ def f() =
   _ = id'(3)
   _ = id'("a")
 
-  # Testing generalization of recursive functions
+  # Testing generalization of recursive functions.
   def rec recid(x)
     x
   end
@@ -67,8 +67,9 @@ def f() =
   # This is OK, l1 is a list of elements of type f1.
   l1 = [f1,f2]
   list.iter(fun (f) -> log(string_of(f())), l1)
-  # Forbidden. Indeed, f1 doesn't accept any argument -- although f2 does.
-  # Here the error message may even be too detailed since it goes back to the
+
+  # Forbidden. Indeed, f1 doesn't accept any argument -- although f2 does.  Here
+  # the error message may even be too detailed since it goes back to the
   # definition of l1 and requires that f1 has type (int)->int.
   # list.iter(fun (f) -> log(string_of(f(42))), l1)
 
@@ -78,17 +79,16 @@ def f() =
   list.iter(fun (f) -> log(string_of(f(42))), [f2])
 
   # Unlike l1, this is not OK, since we don't leave open subtyping constraints
-  # while inferring types.
-  # I hope we can make the inference smarter in the future, without obfuscating
-  # the error messages too much.
-  # The type error here shows the use of all the displayed positions:
+  # while inferring types. I hope we can make the inference smarter in the
+  # future, without obfuscating the error messages too much. The type error here
+  # shows the use of all the displayed positions:
   #  f1 has type t1, f2 has type t2, t1 should be <: t2
   # l2 = [ f2, f1 ]
 
-  # An error where contravariance flips the roles of both sides..
+  # An error where contravariance flips the roles of both sides.
   # [fun (x) -> x+1, fun (y) -> y^"."]
 
-  # An error without much locations..
+  # An error without much locations.
   # TODO An explanation about the missing label would help a lot here.
   # def f(f)
   #   f(output.icecast.vorbis)
