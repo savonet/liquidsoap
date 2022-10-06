@@ -72,12 +72,10 @@ def f() =
   # definition of l1 and requires that f1 has type (int)->int.
   # list.iter(fun (f) -> log(string_of(f(42))), l1)
 
-  # Actually, this is forbidden too, but the reason is more complex...
-  # The inferred type for the function is ((int)->int)->unit,
-  # and (int)->int is not a subtype of (?int)->int.
-  # There's no most general answer here since (?int)->int is not a
-  # subtype of (int)->int either.
-  # list.iter(fun (f) -> log(string_of(f(42))), [f2])
+  # This used to be forbidden, but is allowed now that we have dropped currying:
+  # we can now subtype a (?int)->int into an (int)->int (which is the type
+  # infered in the iter).
+  list.iter(fun (f) -> log(string_of(f(42))), [f2])
 
   # Unlike l1, this is not OK, since we don't leave open subtyping constraints
   # while inferring types.
