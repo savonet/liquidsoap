@@ -409,7 +409,7 @@ let rec unify_meth a b l =
           ( `Meth (l, ([], a), json_name1, `Ellipsis),
             `Meth (l, ([], b), json_name2, `Ellipsis) ))
        bt);
-  try hide_meth l a <: hide_meth l a
+  try hide_meth l a <: hide_meth l b
   with Error (a, b) ->
     let bt = Printexc.get_raw_backtrace () in
     Printexc.raise_with_backtrace
