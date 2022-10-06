@@ -1,3 +1,5 @@
+#!../../liquidsoap ../test.liq
+
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 
