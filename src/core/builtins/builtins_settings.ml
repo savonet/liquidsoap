@@ -29,11 +29,11 @@ type Type.constr_t += Dtools
 let dtools_constr =
   let open Liquidsoap_lang in
   let open Type in
-  object (self : constr)
+  object
     method t = Dtools
     method descr = "unit, bool, int, float, string or [string]"
 
-    method satisfied b =
+    method satisfied ~subtype ~satisfies:_ b =
       let b = demeth b in
       match b.descr with
         | Custom { typ }
@@ -46,18 +46,7 @@ let dtools_constr =
                  ] ->
             ()
         | Tuple [] -> ()
-        | List { t = b' } -> (
-            match (deref b').descr with
-              | Custom { typ } ->
-                  if typ <> Ground_type.String.Type then
-                    raise Unsatisfied_constraint
-              | Var ({ contents = Free _ } as v) ->
-                  (* TODO: we should check the constraints *)
-                  v := Link (Invariant, make ?pos:b.pos Ground_type.string)
-              | _ -> raise Unsatisfied_constraint)
-        | Var { contents = Free v } ->
-            if not (List.exists (fun c -> c#t = Dtools) v.constraints) then
-              v.constraints <- self :: v.constraints
+        | List { t = b } -> subtype b (make Ground_type.string)
         | _ -> raise Unsatisfied_constraint
   end
 

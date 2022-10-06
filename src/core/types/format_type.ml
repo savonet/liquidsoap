@@ -37,7 +37,7 @@ let format_handler f =
       (fun _ l f ->
         ignore (get_format f);
         l);
-    repr = (fun _ _ _ -> assert false);
+    repr = (fun _ _ f -> `Constr (Content.string_of_format (get_format f), []));
     subtype = (fun _ f f' -> Content_base.merge (get_format f) (get_format f'));
     sup =
       (fun _ f f' ->
@@ -110,11 +110,11 @@ let rec content_type ~default ty =
     | _ -> assert false
 
 let internal_media : Type.constr =
-  object (self)
+  object
     method t = InternalMedia
     method descr = "an internal media type (none, pcm, yuva420p or midi)"
 
-    method satisfied b =
+    method satisfied ~subtype:_ ~satisfies:_ b =
       let b = Type.demeth b in
       match (Type.deref b).Type.descr with
         | Type.Custom { Type.typ = Kind (k, _) }
@@ -123,10 +123,5 @@ let internal_media : Type.constr =
         | Type.Custom { Type.typ = Format f }
           when Content_base.is_internal_format f ->
             ()
-        | Type.Var { contents = Type.Free v } ->
-            if
-              not
-                (List.exists (fun c -> c#t = InternalMedia) v.Type.constraints)
-            then v.Type.constraints <- self :: v.Type.constraints
         | _ -> raise Type.Unsatisfied_constraint
   end

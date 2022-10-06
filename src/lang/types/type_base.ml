@@ -53,7 +53,10 @@ type t = { pos : Pos.Option.t; descr : descr }
 (** Constraint on the types a type variable can be substituted with. *)
 and constr_t = ..
 
-and constr = < t : constr_t ; descr : string ; satisfied : t -> unit >
+and constr =
+  < t : constr_t
+  ; descr : string
+  ; satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit >
 
 (** Constraints on a type variable. *)
 and constraints = constr list
