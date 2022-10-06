@@ -33,7 +33,11 @@ and constr_t = Type_base.constr_t = ..
 and constr =
   < t : constr_t
   ; descr : string
-  ; satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit >
+  ; (* Check that a type satisfies the constraint. Raises [Unsatisfied_constraint] if this is not the case.
+       Labeled argument `subtype` is the function to test subtyping (<:) and `satsifies` is the function to
+       check whether a type satisfies the current constraint. When implementing, this last function should
+       be called instead of performing a recursive call, because it handles variables. *)
+  satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit >
 
 and constraints = constr list
 

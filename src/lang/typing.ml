@@ -322,10 +322,9 @@ and bind ?(variance = Invariant) a b =
   (* update_level a.level b; *)
   satisfies_constraints b a.constraints;
   let b = if b.pos = None then { b with pos = a0.pos } else b in
-  (* We do not want to check the constraints when we increase the types (for
-     now). *)
   v := Link (variance, b)
 
+(** Ensure that the type for the method [l] in [a] is a subtype of the one for the same method in [b]. *)
 and unify_meth a b l =
   let { meth = l; scheme = g1, t1; json_name = json_name1 } = get_meth l a in
   let { scheme = g2, t2; json_name = json_name2 } = get_meth l b in
