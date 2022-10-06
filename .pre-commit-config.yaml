@@ -37,7 +37,7 @@ repos:
     rev: v2.2.1
     hooks:
       - id: codespell
-        args: [--ignore-words=.codespellignore]
+        args: [-w, --ignore-words=.codespellignore]
         exclude: ^doc/orig/fosdem2020
 
   - repo: local
