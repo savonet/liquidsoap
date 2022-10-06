@@ -18,8 +18,8 @@ let () =
         else None)
       (Array.to_list (Sys.readdir location))
   in
-  List.iteri
-    (fun pos test ->
+  List.iter
+    (fun test ->
       let deps, args =
         match List.assoc_opt test test_params with
           | None -> ("", [""])
@@ -33,7 +33,7 @@ let () =
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest_%d)
+ (alias runtest)
  (package liquidsoap)
  (deps
   %s
@@ -41,7 +41,7 @@ let () =
  (action %s%s%s))
 
 |}
-        test test (pos mod 4) deps test test
+        test test deps test test
         (if List.length args > 1 then "(progn " else "")
         (String.concat " "
            (List.map

@@ -76,11 +76,11 @@ let escaped_format =
 let encoder_script format =
   Printf.sprintf "%s_encoder.liq" (escaped_format (encoder_format format))
 
-let mk_encoder source pos format =
+let mk_encoder source format =
   Printf.printf
     {|
 (rule
-  (alias runtest_%d)
+  (alias runtest)
   (package liquidsoap)
   (target %s)
   (deps
@@ -89,14 +89,14 @@ let mk_encoder source pos format =
   (action
     (with-stdout-to %%{target}
       (run %%{mk_encoder_test} %S %s %S))))|}
-    (pos mod 4) (encoder_script format) (encoder_format format) source
+    (encoder_script format) (encoder_format format) source
     (escaped_format format)
 
-let mk_encoded_file pos format =
+let mk_encoded_file format =
   Printf.printf
     {|
 (rule
- (alias runtest_%d)
+ (alias runtest)
  (package liquidsoap)
  (target %s)
  (deps
@@ -108,13 +108,12 @@ let mk_encoded_file pos format =
   (:run_test ../run_test.exe))
  (action
    (run %%{run_test} %%{encoder} liquidsoap %%{test_liq} %%{encoder} -- %S)))|}
-    (pos mod 4) (escaped_format format) (encoder_script format)
-    (encoder_format format)
+    (escaped_format format) (encoder_script format) (encoder_format format)
 
 let () =
-  List.iteri (mk_encoder "sine") audio_formats;
-  List.iteri (mk_encoder "noise") (audio_video_formats @ video_formats);
-  List.iteri mk_encoded_file formats;
+  List.iter (mk_encoder "sine") audio_formats;
+  List.iter (mk_encoder "noise") (audio_video_formats @ video_formats);
+  List.iter mk_encoded_file formats;
   Printf.printf
     {|
 (rule
@@ -126,11 +125,11 @@ let () =
   (action (run touch %%{target})))|}
     (String.concat "\n" (List.map escaped_format formats))
 
-let file_test ~pos ~label ~test fname =
+let file_test ~label ~test fname =
   Printf.printf
     {|
 (rule
- (alias runtest_%d)
+ (alias runtest)
  (package liquidsoap)
  (deps
   all_media_files
@@ -142,15 +141,15 @@ let file_test ~pos ~label ~test fname =
   (:run_test ../run_test.exe))
  (action
   (run %%{run_test} %S liquidsoap %%{test_liq} %s -- %S)))|}
-    (pos mod 4) test label test fname
+    test label test fname
 
 let () =
   List.iter
     (fun format ->
       let fname = escaped_format format in
-      List.iteri
-        (fun pos (name, test) ->
-          file_test ~pos ~label:(name ^ " test for " ^ fname) ~test fname)
+      List.iter
+        (fun (name, test) ->
+          file_test ~label:(name ^ " test for " ^ fname) ~test fname)
         audio_decoding_tests)
     audio_formats
 
@@ -158,9 +157,9 @@ let () =
   List.iter
     (fun format ->
       let fname = escaped_format format in
-      List.iteri
-        (fun pos (name, test) ->
-          file_test ~pos ~label:(name ^ " test for " ^ fname) ~test fname)
+      List.iter
+        (fun (name, test) ->
+          file_test ~label:(name ^ " test for " ^ fname) ~test fname)
         video_decoding_tests)
     (video_formats @ audio_video_formats)
 
@@ -168,13 +167,10 @@ let () =
   List.iter
     (fun format ->
       let fname = escaped_format format in
-      List.iteri
-        (fun pos (name, test) ->
-          file_test ~pos ~label:(name ^ " test for " ^ fname) ~test fname)
+      List.iter
+        (fun (name, test) ->
+          file_test ~label:(name ^ " test for " ^ fname) ~test fname)
         audio_video_decoding_tests)
     audio_video_formats
 
-let () =
-  List.iteri
-    (fun pos test -> file_test ~pos ~label:test ~test "")
-    standalone_tests
+let () = List.iter (fun test -> file_test ~label:test ~test "") standalone_tests
