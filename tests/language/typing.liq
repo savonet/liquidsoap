@@ -75,7 +75,7 @@ def f() =
 
   # This used to be forbidden, but is allowed now that we have dropped currying:
   # we can now subtype a (?int)->int into an (int)->int (which is the type
-  # infered in the iter).
+  # inferred in the iter).
   list.iter(fun (f) -> log(string_of(f(42))), [f2])
 
   # Unlike l1, this is not OK, since we don't leave open subtyping constraints
