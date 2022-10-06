@@ -1,22 +1,26 @@
 #!/usr/bin/env -S dune exec ../../src/bin/liquidsoap.exe -- --no-stdlib -i
 
-# See #2080. Simplified version.
+# See #2080. Simplified version. Here, "float" stands for "source".
 
-s = sine()
+# Our main source.
+s = 3.
 
-def once((s:source))
-  sine()
+def once((s:float))
+  s.{id = "bla"}
 end
 
 # Here, because of once, we infer that f should take as argument a source with
-# many methods (id, seek, etc.). However, we use it with cross below, which
-# takes a function operating on undecorated sources.
+# many methods (id, etc.). However, we use it with cross below, which takes a
+# function operating on undecorated sources.
 def f(a)
-  ignore([a, once(sine())])
+  ignore([once(2.), a])
 end
 
-def cross((f : (source) -> unit), s)
+def cross((f : (float) -> unit), s)
+  ignore(f)
   s
 end
 
 s = cross(f, s)
+
+ignore(s)
