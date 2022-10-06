@@ -1,4 +1,6 @@
-#!../../src/liquidsoap -i ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../liquidsoap ../test.liq
+
+# See #2080.
 
 s = amplify(0.5, sequence([sine(duration=5.), sine(500.)]))
 jingle = playlist("files/jingles")

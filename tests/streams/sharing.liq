@@ -1,8 +1,6 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq
+#!../../liquidsoap ../test.liq
 
-# Test whether modifying one source does not affect a copy of it.
-
-%include "test.liq"
+# Test whether modifying one source does not affect a copy of it. See #2170.
 
 s = sine()
 s = add(normalize=false, [s, amplify(0., s)])
