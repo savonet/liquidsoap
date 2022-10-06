@@ -49,6 +49,19 @@ let () =
   ()
 
 let () =
+  (* 'a.{foo:int} *)
+  let a = Lang.method_t (Lang.univ_t ()) [("foo", ([], Lang.int_t), "foo")] in
+
+  (* {foo:int} *)
+  let b = Lang.method_t Lang.unit_t [("foo", ([], Lang.int_t), "foo")] in
+
+  Typing.(a <: b);
+
+  match (snd (Type.split_meths a)).Type.descr with
+    | Tuple [] -> ()
+    | _ -> assert false
+
+let () =
   (* 'a *)
   let ty = Lang.univ_t () in
 
