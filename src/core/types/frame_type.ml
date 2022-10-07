@@ -25,12 +25,7 @@ let make ?pos ~audio ~video ~midi () =
     (Type.Constr
        {
          Type.constructor = "stream_kind";
-         params =
-           [
-             (Type.Covariant, audio);
-             (Type.Covariant, video);
-             (Type.Covariant, midi);
-           ];
+         params = [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
        })
 
 let univ ?pos () =
@@ -52,12 +47,7 @@ let set_audio t audio =
     | Type.Constr
         {
           Type.constructor = "stream_kind";
-          params =
-            [
-              (Type.Covariant, _);
-              (Type.Covariant, video);
-              (Type.Covariant, midi);
-            ];
+          params = [(`Covariant, _); (`Covariant, video); (`Covariant, midi)];
         } ->
         {
           t with
@@ -66,11 +56,7 @@ let set_audio t audio =
               {
                 Type.constructor = "stream_kind";
                 params =
-                  [
-                    (Type.Covariant, audio);
-                    (Type.Covariant, video);
-                    (Type.Covariant, midi);
-                  ];
+                  [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
               };
         }
     | _ -> assert false
@@ -80,12 +66,7 @@ let set_video t video =
     | Type.Constr
         {
           Type.constructor = "stream_kind";
-          params =
-            [
-              (Type.Covariant, audio);
-              (Type.Covariant, _);
-              (Type.Covariant, midi);
-            ];
+          params = [(`Covariant, audio); (`Covariant, _); (`Covariant, midi)];
         } ->
         {
           t with
@@ -94,11 +75,7 @@ let set_video t video =
               {
                 Type.constructor = "stream_kind";
                 params =
-                  [
-                    (Type.Covariant, audio);
-                    (Type.Covariant, video);
-                    (Type.Covariant, midi);
-                  ];
+                  [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
               };
         }
     | _ -> assert false
@@ -108,12 +85,7 @@ let set_midi t midi =
     | Type.Constr
         {
           Type.constructor = "stream_kind";
-          params =
-            [
-              (Type.Covariant, audio);
-              (Type.Covariant, video);
-              (Type.Covariant, _);
-            ];
+          params = [(`Covariant, audio); (`Covariant, video); (`Covariant, _)];
         } ->
         {
           t with
@@ -122,11 +94,7 @@ let set_midi t midi =
               {
                 Type.constructor = "stream_kind";
                 params =
-                  [
-                    (Type.Covariant, audio);
-                    (Type.Covariant, video);
-                    (Type.Covariant, midi);
-                  ];
+                  [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
               };
         }
     | _ -> assert false
@@ -136,8 +104,7 @@ let get_audio t =
     | Type.Constr
         {
           Type.constructor = "stream_kind";
-          params =
-            [(Type.Covariant, audio); (Type.Covariant, _); (Type.Covariant, _)];
+          params = [(`Covariant, audio); (`Covariant, _); (`Covariant, _)];
         } ->
         audio
     | _ -> assert false
@@ -147,8 +114,7 @@ let get_video t =
     | Type.Constr
         {
           Type.constructor = "stream_kind";
-          params =
-            [(Type.Covariant, _); (Type.Covariant, video); (Type.Covariant, _)];
+          params = [(`Covariant, _); (`Covariant, video); (`Covariant, _)];
         } ->
         video
     | _ -> assert false
@@ -158,8 +124,7 @@ let get_midi t =
     | Type.Constr
         {
           Type.constructor = "stream_kind";
-          params =
-            [(Type.Covariant, _); (Type.Covariant, _); (Type.Covariant, midi)];
+          params = [(`Covariant, _); (`Covariant, _); (`Covariant, midi)];
         } ->
         midi
     | _ -> assert false
@@ -172,11 +137,7 @@ let content_type t =
         {
           Type.constructor = "stream_kind";
           params =
-            [
-              (Type.Covariant, audio);
-              (Type.Covariant, video);
-              (Type.Covariant, midi);
-            ];
+            [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
         } ->
         let audio =
           Format_type.content_type ~default:Content_internal.default_audio audio
@@ -196,9 +157,9 @@ let content_type t =
                  Type.constructor = "stream_kind";
                  params =
                    [
-                     (Type.Covariant, mk_format audio);
-                     (Type.Covariant, mk_format video);
-                     (Type.Covariant, mk_format midi);
+                     (`Covariant, mk_format audio);
+                     (`Covariant, mk_format video);
+                     (`Covariant, mk_format midi);
                    ];
                })
         in

@@ -24,55 +24,46 @@ val debug : bool ref
 val debug_levels : bool ref
 val debug_variance : bool ref
 
-type variance = Type_base.variance = Covariant | Contravariant | Invariant
+(** {2 Types} *)
 
+type variance = [ `Covariant | `Contravariant | `Invariant ]
+type descr = Type_base.descr = ..
 type t = Type_base.t = { pos : Pos.Option.t; descr : descr }
+type constr_t = Type_base.constr_t = ..
+type constr_t += Num | Ord
 
-and constr_t = Type_base.constr_t = ..
+type constr = Type_base.constr = {
+  t : constr_t;
+  constr_descr : string;
+  satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
+}
 
-and constr =
-  < t : constr_t
-  ; descr : string
-  ; (* Check that a type satisfies the constraint. Raises [Unsatisfied_constraint] if this is not the case.
-       Labeled argument `subtype` is the function to test subtyping (<:) and `satsifies` is the function to
-       check whether a type satisfies the current constraint. When implementing, this last function should
-       be called instead of performing a recursive call, because it handles variables. *)
-  satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit >
+module Constraints = Type_base.Constraints
 
-and constraints = constr list
-
-and constructed = Type_base.constructed = {
+type constructed = Type_base.constructed = {
   constructor : string;
   params : (variance * t) list;
 }
 
-and meth = Type_base.meth = {
+type var = Type_base.var = {
+  name : int;
+  mutable level : int;
+  mutable constraints : Constraints.t;
+}
+
+type invar = Free of var | Link of variance * t
+type scheme = var list * t
+
+type meth = Type_base.meth = {
   meth : string;
   scheme : scheme;
   doc : string;
   json_name : string option;
 }
 
-and repr_t = Type_base.repr_t = { t : t; json_repr : [ `Object | `Tuple ] }
-
-and descr = Type_base.descr = ..
-
-and invar = Type_base.invar = Free of var | Link of variance * t
-
-and var = Type_base.var = {
-  name : int;
-  mutable level : int;
-  mutable constraints : constraints;
-}
-
-and scheme = var list * t
-
-module DS = Type_base.DS
+type repr_t = Type_base.repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
 val string_of_constr : constr -> string
-
-type constr_t += Num | Ord
-
 val num_constr : constr
 val ord_constr : constr
 
@@ -125,7 +116,7 @@ val meth :
 
 val meths : ?pos:Pos.t -> string list -> scheme -> t -> t
 val split_meths : t -> meth list * t
-val var : ?constraints:constraints -> ?level:int -> ?pos:Pos.t -> unit -> t
+val var : ?constraints:constr list -> ?level:int -> ?pos:Pos.t -> unit -> t
 val to_string_fun : (?generalized:var list -> t -> string) ref
 val to_string : ?generalized:var list -> t -> string
 val is_fun : t -> bool

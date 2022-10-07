@@ -28,11 +28,7 @@ let frame_t ?pos audio video midi =
        {
          Type.constructor = "stream_kind";
          Type.params =
-           [
-             (Type.Covariant, audio);
-             (Type.Covariant, video);
-             (Type.Covariant, midi);
-           ];
+           [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
        })
 
 let kind_t ?pos kind =
@@ -46,7 +42,7 @@ let kind_t ?pos kind =
           (Type.Constr
              {
                Type.constructor = Content.string_of_kind k;
-               Type.params = [(Type.Covariant, evar ())];
+               Type.params = [(`Covariant, evar ())];
              })
     | `Format f ->
         let k = Content.kind f in
@@ -54,7 +50,7 @@ let kind_t ?pos kind =
           (Type.Constr
              {
                Type.constructor = Content.string_of_kind k;
-               Type.params = [(Type.Covariant, mk_format f)];
+               Type.params = [(`Covariant, mk_format f)];
              })
 
 let of_frame_t t =
@@ -70,7 +66,7 @@ let of_frame_t t =
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
-        var := Type.Link (Type.Invariant, frame_t audio video midi);
+        var := Type.Link (`Invariant, frame_t audio video midi);
         Frame.mk_fields ~audio ~video ~midi ()
     | _ -> assert false
 
@@ -78,13 +74,13 @@ let of_frame_t t =
 let format_t ?pos k =
   Type.make ?pos
     (Type.Constr
-       { Type.constructor = "format"; Type.params = [(Type.Covariant, k)] })
+       { Type.constructor = "format"; Type.params = [(`Covariant, k)] })
 
 (** Type of sources carrying frames of a given kind. *)
 let source_t ?pos k =
   Type.make ?pos
     (Type.Constr
-       { Type.constructor = "source"; Type.params = [(Type.Invariant, k)] })
+       { Type.constructor = "source"; Type.params = [(`Invariant, k)] })
 
 (* Filled in later to avoid dependency cycles. *)
 let source_methods_t = ref (fun () : Type.t -> assert false)

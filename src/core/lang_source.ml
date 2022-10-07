@@ -233,7 +233,7 @@ let source_t ?(methods = false) frame_t =
   let t =
     Type.make
       (Type.Constr
-         { Type.constructor = "source"; params = [(Type.Invariant, frame_t)] })
+         { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
   in
   if methods then
     method_t t

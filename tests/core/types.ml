@@ -91,8 +91,7 @@ let () =
   Typing.(a <: b);
 
   assert (
-    List.exists
-      (fun c -> c#t == Type.Ord)
+    Type.Constraints.mem Type.ord_constr
       (match (demeth b).Type.descr with
         | List { Type.t = { Type.descr = Var { contents = Free v }; _ }; _ } ->
             v.Type.constraints
@@ -115,15 +114,13 @@ let () =
   Typing.(b <: c);
 
   assert (
-    List.exists
-      (fun c -> c#t == Type.Ord)
+    Type.Constraints.mem Type.ord_constr
       (match (demeth b).Type.descr with
         | Var { contents = Free v } -> v.Type.constraints
         | _ -> assert false));
 
   assert (
-    List.exists
-      (fun c -> c#t == Type.Ord)
+    Type.Constraints.mem Type.ord_constr
       (match (demeth a).Type.descr with
         | Var { contents = Free v } -> v.Type.constraints
         | _ -> assert false))
