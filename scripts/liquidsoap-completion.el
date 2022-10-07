@@ -5,6 +5,8 @@
 (require 'cl-lib)
 (require 'company)
 
+(require 'liquidsoap-completions)
+
 (defun liquidsoap-annotation (s)
   (format " : %s" (get-text-property 0 :type s))
 )

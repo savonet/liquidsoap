@@ -5,17 +5,15 @@
  (modules gen_emacs_completion))
 
 (rule
- (target liquidsoap-completion.el)
+ (target liquidsoap-completions.el)
  (deps
   (source_tree ../src/libs)
-  ./gen_emacs_completion.exe
-  ./liquidsoap-completion.el.in)
+  ./gen_emacs_completion.exe)
  (action
   (with-stdout-to
    %{target}
-   (progn
-    (run ./gen_emacs_completion.exe)
-    (cat ./liquidsoap-completion.el.in)))))
+   (run ./gen_emacs_completion.exe)
+  )))
 
 (install
  (section share_root)
@@ -28,4 +26,5 @@
  (package liquidsoap-mode)
  (files
   (liquidsoap-mode.el as emacs/site-lisp/liquidsoap-mode.el)
-  (liquidsoap-completion.el as emacs/site-lisp/liquidsoap-completion.el)))
+  (liquidsoap-completion.el as emacs/site-lisp/liquidsoap-completion.el)
+  (liquidsoap-completions.el as emacs/site-lisp/liquidsoap-completions.el)))

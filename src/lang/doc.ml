@@ -433,5 +433,6 @@ module Value = struct
             "#(\"%s\" 0 1 (:type \"%s\" :description \"%s\"))\n" name t
             (String.escaped f.description)))
       !db;
-    print "))\n\n"
+    print "))\n\n";
+    print "(provide 'liquidsoap-completions)\n"
 end
