@@ -18,7 +18,13 @@
 
   (cl-case command
     (interactive (company-begin-backend 'company-liquidsoap-backend))
-    (prefix (and (eq major-mode 'liquidsoap-mode) (company-grab-symbol)))
+    (prefix
+      (and
+        (eq major-mode 'liquidsoap-mode)
+        ;; we don't use company-grab-symbol here because we want to match dots
+        (company-grab-line "\\(?:^\\| \\)\\([^ ]*\\)" 1)
+      )
+    )
     (candidates
      (cl-remove-if-not
        (lambda (c) (string-prefix-p arg c))
