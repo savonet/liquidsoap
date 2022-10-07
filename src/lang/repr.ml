@@ -362,7 +362,7 @@ let print f t =
         vars
     | `EVar (name, c) | `UVar (name, c) ->
         Format.fprintf f "%s" name;
-        if Constraints.is_empty c then DS.add (name, c) vars else vars
+        if not (Constraints.is_empty c) then DS.add (name, c) vars else vars
     | `Arrow (p, t) ->
         if par then Format.fprintf f "@[<hov 1>("
         else Format.fprintf f "@[<hov 0>";
