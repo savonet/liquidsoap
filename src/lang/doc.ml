@@ -20,6 +20,12 @@
 
  *****************************************************************************)
 
+module Map = Map.Make (struct
+  type t = string
+
+  let compare (x : string) (y : string) = compare x y
+end)
+
 (** Documentation for plugs. *)
 module Plug = struct
   type t = {
@@ -195,34 +201,31 @@ module Value = struct
     methods : (string * meth) list;
   }
 
-  let db = ref []
-  let add (name : string) (doc : t Lazy.t) = db := (name, doc) :: !db
-  let get name = Lazy.force (List.assoc name !db)
+  let db = ref Map.empty
+  let add (name : string) (doc : t Lazy.t) = db := Map.add name doc !db
+  let get name = Lazy.force (Map.find name !db)
 
   (** Only print function names. *)
   let print_functions print =
-    !db |> List.map fst |> List.sort compare
-    |> List.iter (fun f ->
-           print f;
-           print "\n")
+    Map.iter
+      (fun f _ ->
+        print f;
+        print "\n")
+      !db
 
   let print_functions_by_category print =
-    let functions =
-      !db
-      |> List.map (fun (f, d) -> (f, Lazy.force d))
-      |> List.filter (fun (_, d) -> not (List.mem `Hidden d.flags))
-      |> List.sort compare
-    in
     let categories =
       categories |> List.map (fun (c, s) -> (s, c)) |> List.sort compare
     in
     List.iter
       (fun (category_name, category) ->
         print ("# " ^ category_name ^ "\n\n");
-        let functions =
-          List.filter (fun (_, d) -> d.category = category) functions
-        in
-        List.iter (fun (f, _) -> print ("- " ^ f ^ "\n")) functions;
+        Map.iter
+          (fun f d ->
+            let d = Lazy.force d in
+            if d.category = category && not (List.mem `Hidden d.flags) then
+              print ("- " ^ f ^ "\n"))
+          !db;
         print "\n")
       categories
 
@@ -294,68 +297,58 @@ module Value = struct
         f.methods)
 
   let to_json () : Json.t =
-    let functions =
-      !db |> List.map (fun (f, d) -> (f, Lazy.force d)) |> List.sort compare
-    in
-    let l =
-      List.map
-        (fun (l, f) ->
-          let arguments =
-            List.map
-              (fun (l, a) ->
-                ( Option.value ~default:"" l,
-                  `Assoc
-                    [
-                      ("type", `String a.arg_type);
-                      ( "default",
-                        Option.fold ~none:`Null
-                          ~some:(fun d -> `String d)
-                          a.arg_default );
-                      ( "description",
-                        `String (Option.value ~default:"" a.arg_description) );
-                    ] ))
-              f.arguments
-          in
-          let arguments = `Assoc arguments in
-          let methods =
-            List.map
-              (fun (l, m) ->
-                ( l,
-                  `Assoc
-                    [
-                      ("type", `String m.meth_type);
-                      ( "description",
-                        `String (Option.value ~default:"" m.meth_description) );
-                    ] ))
-              f.methods
-          in
-          let methods = `Assoc methods in
-          ( l,
-            `Assoc
-              [
-                ("type", `String f.typ);
-                ("category", `String (string_of_category f.category));
-                ( "flags",
-                  `Tuple
-                    (List.map string_of_flag f.flags
-                    |> List.map (fun s -> `String s)) );
-                ("description", `String f.description);
-                ("examples", `Tuple (List.map (fun s -> `String s) f.examples));
-                ("arguments", arguments);
-                ("methods", methods);
-              ] ))
-        functions
-    in
-    `Assoc l
+    !db |> Map.to_seq
+    |> Seq.map (fun (l, f) ->
+           let f = Lazy.force f in
+           let arguments =
+             List.map
+               (fun (l, a) ->
+                 ( Option.value ~default:"" l,
+                   `Assoc
+                     [
+                       ("type", `String a.arg_type);
+                       ( "default",
+                         Option.fold ~none:`Null
+                           ~some:(fun d -> `String d)
+                           a.arg_default );
+                       ( "description",
+                         `String (Option.value ~default:"" a.arg_description) );
+                     ] ))
+               f.arguments
+           in
+           let arguments = `Assoc arguments in
+           let methods =
+             List.map
+               (fun (l, m) ->
+                 ( l,
+                   `Assoc
+                     [
+                       ("type", `String m.meth_type);
+                       ( "description",
+                         `String (Option.value ~default:"" m.meth_description)
+                       );
+                     ] ))
+               f.methods
+           in
+           let methods = `Assoc methods in
+           ( l,
+             `Assoc
+               [
+                 ("type", `String f.typ);
+                 ("category", `String (string_of_category f.category));
+                 ( "flags",
+                   `Tuple
+                     (List.map string_of_flag f.flags
+                     |> List.map (fun s -> `String s)) );
+                 ("description", `String f.description);
+                 ("examples", `Tuple (List.map (fun s -> `String s) f.examples));
+                 ("arguments", arguments);
+                 ("methods", methods);
+               ] ))
+    |> List.of_seq
+    |> fun l -> `Assoc l
 
   let print_functions_md ?extra print =
-    let functions =
-      !db
-      |> List.map (fun (f, d) -> (f, Lazy.force d))
-      |> List.sort compare
-      |> List.filter (fun (_, d) ->
-             not (List.mem `Hidden d.flags || List.mem `Deprecated d.flags))
-    in
     let categories =
       categories |> List.map (fun (c, s) -> (s, c)) |> List.sort compare
     in
@@ -372,79 +365,73 @@ module Value = struct
     List.iter
       (fun (category_name, category) ->
         print ("## " ^ category_name ^ "\n\n");
-        let functions =
-          List.filter
-            (fun (_, d) ->
-              d.category = category
+        Map.iter
+          (fun f d ->
+            let d = Lazy.force d in
+            if
+              (not (List.mem `Hidden d.flags || List.mem `Deprecated d.flags))
+              && d.category = category
               && ((not (extra = Some true)) || List.mem `Extra d.flags)
-              && ((not (extra = Some false)) || not (List.mem `Extra d.flags)))
-            functions
-        in
-        List.iter
-          (fun (f, d) ->
-            print ("### `" ^ f ^ "`\n\n");
-            print d.description;
-            print "\n\n";
-            print "Type:\n\n```\n";
-            print d.typ;
-            print "\n```\n\n";
-            List.iter
-              (fun e ->
-                print "Example:\n\n";
-                Printf.ksprintf print "```liquidsoap\n%s\n```\n\n" e)
-              d.examples;
-            if d.arguments <> [] then (
-              print "Arguments:\n\n";
+              && ((not (extra = Some false)) || not (List.mem `Extra d.flags))
+            then (
+              print ("### `" ^ f ^ "`\n\n");
+              print d.description;
+              print "\n\n";
+              print "Type:\n\n```\n";
+              print d.typ;
+              print "\n```\n\n";
               List.iter
-                (fun (l, a) ->
-                  let l = Option.value ~default:"(unlabeled)" l in
-                  let t = a.arg_type in
-                  let d =
-                    match a.arg_default with
-                      | None -> ""
-                      | Some d -> ", which defaults to `" ^ d ^ "`"
-                  in
-                  let s =
-                    match a.arg_description with
-                      | None -> ""
-                      | Some s -> ": " ^ s
-                  in
-                  Printf.ksprintf print "- `%s` (of type `%s`%s)%s\n" l t d s)
-                d.arguments;
-              print "\n");
-            if d.methods <> [] then (
-              print "Methods:\n\n";
-              List.iter
-                (fun (l, m) ->
-                  let t = m.meth_type in
-                  let s =
-                    match m.meth_description with
-                      | None -> ""
-                      | Some s -> ": " ^ s
-                  in
-                  Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
-                d.methods;
-              print "\n");
-            if List.mem `Experimental d.flags then
-              print "This function is experimental.\n\n")
-          functions)
+                (fun e ->
+                  print "Example:\n\n";
+                  Printf.ksprintf print "```liquidsoap\n%s\n```\n\n" e)
+                d.examples;
+              if d.arguments <> [] then (
+                print "Arguments:\n\n";
+                List.iter
+                  (fun (l, a) ->
+                    let l = Option.value ~default:"(unlabeled)" l in
+                    let t = a.arg_type in
+                    let d =
+                      match a.arg_default with
+                        | None -> ""
+                        | Some d -> ", which defaults to `" ^ d ^ "`"
+                    in
+                    let s =
+                      match a.arg_description with
+                        | None -> ""
+                        | Some s -> ": " ^ s
+                    in
+                    Printf.ksprintf print "- `%s` (of type `%s`%s)%s\n" l t d s)
+                  d.arguments;
+                print "\n");
+              if d.methods <> [] then (
+                print "Methods:\n\n";
+                List.iter
+                  (fun (l, m) ->
+                    let t = m.meth_type in
+                    let s =
+                      match m.meth_description with
+                        | None -> ""
+                        | Some s -> ": " ^ s
+                    in
+                    Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
+                  d.methods;
+                print "\n");
+              if List.mem `Experimental d.flags then
+                print "This function is experimental.\n\n"))
+          !db)
       categories
 
   let print_emacs_completions print =
-    let functions =
-      !db
-      |> List.map (fun (f, d) -> (f, Lazy.force d))
-      |> List.sort compare
-      |> List.filter (fun (_, d) ->
-             not (List.mem `Hidden d.flags || List.mem `Deprecated d.flags))
-    in
     print "(defconst liquidsoap-completions '(\n";
-    List.iter
-      (fun (name, f) ->
-        let t = String.map (fun c -> if c = '\n' then ' ' else c) f.typ in
-        Printf.ksprintf print
-          "#(\"%s\" 0 1 (:type \"%s\" :description \"%s\"))\n" name t
-          (String.escaped f.description))
-      functions;
+    Map.iter
+      (fun name f ->
+        let f = Lazy.force f in
+        if not (List.mem `Hidden f.flags || List.mem `Deprecated f.flags) then (
+          let t = String.map (fun c -> if c = '\n' then ' ' else c) f.typ in
+          Printf.ksprintf print
+            "#(\"%s\" 0 1 (:type \"%s\" :description \"%s\"))\n" name t
+            (String.escaped f.description)))
+      !db;
     print "))\n\n"
 end
