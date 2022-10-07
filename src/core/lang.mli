@@ -232,7 +232,7 @@ val of_frame_t : t -> t Frame.Fields.t
   * label) and [t] is the type of the argument. *)
 val fun_t : (bool * string * t) list -> t -> t
 
-val univ_t : ?constraints:Liquidsoap_lang.Type.constraints -> unit -> t
+val univ_t : ?constraints:Liquidsoap_lang.Type.constr list -> unit -> t
 
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t

@@ -23,38 +23,38 @@
 include Type_base
 module Ground = Ground_type
 
-let num_constr : constr =
-  object
-    method t = Num
-    method descr = "a number type"
+let num_constr =
+  {
+    t = Num;
+    constr_descr = "a number type";
+    satisfied =
+      (fun ~subtype:_ ~satisfies:_ b ->
+        let b = demeth b in
+        match b.descr with
+          | Custom { typ = Ground.Int.Type }
+          | Custom { typ = Ground.Float.Type } ->
+              ()
+          | _ -> raise Unsatisfied_constraint);
+  }
 
-    method satisfied ~subtype:_ ~satisfies:_ b =
-      let b = demeth b in
-      match b.descr with
-        | Custom { typ = Ground.Int.Type } | Custom { typ = Ground.Float.Type }
-          ->
-            ()
-        | _ -> raise Unsatisfied_constraint
-  end
-
-let ord_constr : constr =
-  object
-    method t = Ord
-    method descr = "an orderable type"
-
-    method satisfied ~subtype:_ ~satisfies b =
-      let m, b = split_meths b in
-      match b.descr with
-        | Custom c when Ground_type.is_ground c.Type_base.typ -> ()
-        | Tuple [] ->
-            (* For records, we want to ensure that all fields are ordered. *)
-            List.iter
-              (fun { scheme = v, a } ->
-                if v <> [] then raise Unsatisfied_constraint;
-                satisfies a)
-              m
-        | Tuple l -> List.iter satisfies l
-        | List { t = b } -> satisfies b
-        | Nullable b -> satisfies b
-        | _ -> raise Unsatisfied_constraint
-  end
+let ord_constr =
+  {
+    t = Ord;
+    constr_descr = "an orderable type";
+    satisfied =
+      (fun ~subtype:_ ~satisfies b ->
+        let m, b = split_meths b in
+        match b.descr with
+          | Custom c when Ground_type.is_ground c.Type_base.typ -> ()
+          | Tuple [] ->
+              (* For records, we want to ensure that all fields are ordered. *)
+              List.iter
+                (fun { scheme = v, a } ->
+                  if v <> [] then raise Unsatisfied_constraint;
+                  satisfies a)
+                m
+          | Tuple l -> List.iter satisfies l
+          | List { t = b } -> satisfies b
+          | Nullable b -> satisfies b
+          | _ -> raise Unsatisfied_constraint);
+  }

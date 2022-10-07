@@ -29,26 +29,26 @@ type Type.constr_t += Dtools
 let dtools_constr =
   let open Liquidsoap_lang in
   let open Type in
-  object
-    method t = Dtools
-    method descr = "unit, bool, int, float, string or [string]"
-
-    method satisfied ~subtype ~satisfies:_ b =
-      let b = demeth b in
-      match b.descr with
-        | Custom { typ }
-          when List.mem typ
-                 [
-                   Ground_type.Bool.Type;
-                   Ground_type.Int.Type;
-                   Ground_type.Float.Type;
-                   Ground_type.String.Type;
-                 ] ->
-            ()
-        | Tuple [] -> ()
-        | List { t = b } -> subtype b (make Ground_type.string)
-        | _ -> raise Unsatisfied_constraint
-  end
+  {
+    t = Dtools;
+    constr_descr = "unit, bool, int, float, string or [string]";
+    satisfied =
+      (fun ~subtype ~satisfies:_ b ->
+        let b = demeth b in
+        match b.descr with
+          | Custom { typ }
+            when List.mem typ
+                   [
+                     Ground_type.Bool.Type;
+                     Ground_type.Int.Type;
+                     Ground_type.Float.Type;
+                     Ground_type.String.Type;
+                   ] ->
+              ()
+          | Tuple [] -> ()
+          | List { t = b } -> subtype b (make Ground_type.string)
+          | _ -> raise Unsatisfied_constraint);
+  }
 
 (* Return a lazy variable, to be executed when all dependent
    OCaml modules have been linked. *)

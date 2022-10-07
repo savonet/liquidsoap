@@ -46,58 +46,66 @@ let debug_variance = ref false
 
 (** {2 Types} *)
 
-type variance = Covariant | Contravariant | Invariant
+type variance = [ `Covariant | `Contravariant | `Invariant ]
 
+(** Type description *)
+type descr = ..
+
+(** A type *)
 type t = { pos : Pos.Option.t; descr : descr }
 
-(** Constraint on the types a type variable can be substituted with. *)
-and constr_t = ..
+(** Constraint type *)
+type constr_t = ..
 
-and constr =
-  < t : constr_t
-  ; descr : string
-  ; satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit >
+type constr_t += Num | Ord
 
-(** Constraints on a type variable. *)
-and constraints = constr list
+type constr = {
+  t : constr_t;
+  constr_descr : string;
+  satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
+}
+
+module Constraints = Set.Make (struct
+  type t = constr
+
+  let compare { t } { t = t' } = Stdlib.compare t t'
+end)
 
 (** A type constructor applied to arguments (e.g. source). *)
-and constructed = { constructor : string; params : (variance * t) list }
+type constructed = { constructor : string; params : (variance * t) list }
+
+(** Contents of a variable. *)
+type var = {
+  name : int;
+  mutable level : int;
+  mutable constraints : Constraints.t;
+}
+
+type invar =
+  | Free of var  (** the variable is free *)
+  | Link of variance * t  (** the variable has bee substituted *)
+
+(** A type scheme (i.e. a type with universally quantified variables). *)
+type scheme = var list * t
 
 (** A method. *)
-and meth = {
+type meth = {
   meth : string;  (** name of the method *)
   scheme : scheme;  (** type scheme *)
   doc : string;  (** documentation *)
   json_name : string option;  (** name when represented as JSON *)
 }
 
-and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
-
-and descr = ..
-
-(** Contents of a variable. *)
-and invar =
-  | Free of var  (** the variable is free *)
-  | Link of variance * t  (** the variable has bee substituted *)
-
-and var = { name : int; mutable level : int; mutable constraints : constraints }
-
-(** A type scheme (i.e. a type with universally quantified variables). *)
-and scheme = var list * t
-
-(** Type constraints *)
-
-type constr_t += Num | Ord
+type repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
 (** Sets of type descriptions. *)
 module DS = Set.Make (struct
-  type t = string * constraints
+  type t = string * Constraints.t
 
   let compare = compare
 end)
 
-let string_of_constr c = c#descr
+let string_of_constr c = c.constr_descr
 
 (** Substitutions. *)
 module Subst = struct
@@ -141,7 +149,7 @@ module R = struct
       string * t * string
       (* add annotations before / after, mostly used for debugging *) ]
 
-  and var = string * constraints
+  and var = string * Constraints.t
 end
 
 type custom = ..
@@ -270,6 +278,7 @@ let var =
       !c
   in
   let f ?(constraints = []) ?(level = max_int) ?pos () =
+    let constraints = Constraints.of_list constraints in
     let name = name () in
     make ?pos (Var (ref (Free { name; level; constraints })))
   in

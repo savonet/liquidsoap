@@ -116,7 +116,9 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
   let uvar g var =
-    let constr_symbols, c = split_constr var.constraints in
+    let constr_symbols, c =
+      split_constr (Constraints.elements var.constraints)
+    in
     let rec index n = function
       | v :: tl ->
           if Var.eq v var then Printf.sprintf "'%s%s" constr_symbols (name n)
@@ -125,7 +127,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    `UVar (v, c)
+    `UVar (v, Constraints.of_list c)
   in
   let counter =
     let c = ref 0 in
@@ -135,7 +137,9 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
   in
   let evars = Hashtbl.create 10 in
   let evar var =
-    let constr_symbols, c = split_constr var.constraints in
+    let constr_symbols, c =
+      split_constr (Constraints.elements var.constraints)
+    in
     if !global_evar_names || !debug then (
       let v =
         Printf.sprintf "'%s%s" constr_symbols (evar_global_name var.name)
@@ -147,7 +151,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
           Printf.sprintf "%s[%s]" v level)
         else v
       in
-      `EVar (v, c))
+      `EVar (v, Constraints.of_list c))
     else (
       let s =
         try Hashtbl.find evars var.name
@@ -156,7 +160,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
           Hashtbl.add evars var.name name;
           name
       in
-      `EVar (Printf.sprintf "'%s%s" constr_symbols s, c))
+      `EVar (Printf.sprintf "'%s%s" constr_symbols s, Constraints.of_list c))
   in
   let rec repr g t =
     if filter_out t then `Ellipsis
@@ -182,10 +186,10 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
                 repr g t )
         | Var { contents = Free var } ->
             if List.exists (Var.eq var) g then uvar g var else evar var
-        | Var { contents = Link (Covariant, t) } when !debug || !debug_variance
+        | Var { contents = Link (`Covariant, t) } when !debug || !debug_variance
           ->
             `Debug ("[>", repr g t, "]")
-        | Var { contents = Link (Contravariant, t) }
+        | Var { contents = Link (`Contravariant, t) }
           when !debug || !debug_variance ->
             `Debug ("[<", repr g t, "]")
         | Var { contents = Link (_, t) } -> repr g t
@@ -358,7 +362,7 @@ let print f t =
         vars
     | `EVar (name, c) | `UVar (name, c) ->
         Format.fprintf f "%s" name;
-        if c <> [] then DS.add (name, c) vars else vars
+        if Constraints.is_empty c then DS.add (name, c) vars else vars
     | `Arrow (p, t) ->
         if par then Format.fprintf f "@[<hov 1>("
         else Format.fprintf f "@[<hov 0>";
@@ -399,12 +403,14 @@ let print f t =
   begin
     match t with
     (* We're only printing a variable: ignore its [repr]esentation. *)
-    | `EVar (_, c) when c <> [] ->
+    | `EVar (_, c) when not (Constraints.is_empty c) ->
         Format.fprintf f "something that is %s"
-          (String.concat " and " (List.map string_of_constr c))
-    | `UVar (_, c) when c <> [] ->
+          (String.concat " and "
+             (List.map string_of_constr (Constraints.elements c)))
+    | `UVar (_, c) when not (Constraints.is_empty c) ->
         Format.fprintf f "anything that is %s"
-          (String.concat " and " (List.map string_of_constr c))
+          (String.concat " and "
+             (List.map string_of_constr (Constraints.elements c)))
     (* Print the full thing, then display constraints *)
     | _ ->
         let constraints = print ~par:false DS.empty t in
@@ -413,7 +419,9 @@ let print f t =
           let constraints =
             List.map
               (fun (name, c) ->
-                (name, String.concat " and " (List.map string_of_constr c)))
+                ( name,
+                  String.concat " and "
+                    (List.map string_of_constr (Constraints.elements c)) ))
               constraints
           in
           let constraints =

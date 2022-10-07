@@ -60,7 +60,7 @@ let repr_of_kind repr l (k, ty) =
   match (Type.deref ty).Type.descr with
     | Type.(Custom { typ = Format f }) ->
         `Constr (Content.string_of_format f, [])
-    | _ -> `Constr (Content_base.string_of_kind k, [(Type.Covariant, repr l ty)])
+    | _ -> `Constr (Content_base.string_of_kind k, [(`Covariant, repr l ty)])
 
 let kind_handler k =
   {
@@ -109,19 +109,19 @@ let rec content_type ~default ty =
     | Type.Var _ -> default ()
     | _ -> assert false
 
-let internal_media : Type.constr =
-  object
-    method t = InternalMedia
-    method descr = "an internal media type (none, pcm, yuva420p or midi)"
-
-    method satisfied ~subtype:_ ~satisfies:_ b =
-      let b = Type.demeth b in
-      match (Type.deref b).Type.descr with
-        | Type.Custom { Type.typ = Kind (k, _) }
-          when Content_base.is_internal_kind k ->
-            ()
-        | Type.Custom { Type.typ = Format f }
-          when Content_base.is_internal_format f ->
-            ()
-        | _ -> raise Type.Unsatisfied_constraint
-  end
+let internal_media =
+  {
+    Type.t = InternalMedia;
+    constr_descr = "an internal media type (none, pcm, yuva420p or midi)";
+    satisfied =
+      (fun ~subtype:_ ~satisfies:_ b ->
+        let b = Type.demeth b in
+        match (Type.deref b).Type.descr with
+          | Type.Custom { Type.typ = Kind (k, _) }
+            when Content_base.is_internal_kind k ->
+              ()
+          | Type.Custom { Type.typ = Format f }
+            when Content_base.is_internal_format f ->
+              ()
+          | _ -> raise Type.Unsatisfied_constraint);
+  }

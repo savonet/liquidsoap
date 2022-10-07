@@ -159,7 +159,7 @@ val error_t : t
   * label) and [t] is the type of the argument. *)
 val fun_t : (bool * string * t) list -> t -> t
 
-val univ_t : ?constraints:Type.constraints -> unit -> t
+val univ_t : ?constraints:Type.constr list -> unit -> t
 
 (** A getter on an arbitrary type. *)
 val getter_t : t -> t

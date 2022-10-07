@@ -135,7 +135,8 @@ let copy_with (subst : Subst.t) t =
 let instantiate ~level ~generalized =
   let subst =
     List.map
-      (fun v -> (v, var ~level ~constraints:v.constraints ()))
+      (fun v ->
+        (v, var ~level ~constraints:(Constraints.elements v.constraints) ()))
       generalized
   in
   let subst = Subst.of_list subst in
@@ -298,17 +299,16 @@ let () =
 let rec satisfies_constraint b c =
   match (demeth b).descr with
     | Var { contents = Free v } ->
-        if not (List.exists (fun c' -> c#t = c'#t) v.constraints) then
-          v.constraints <- c :: v.constraints
+        v.constraints <- Constraints.add c v.constraints
     | _ ->
-        c#satisfied ~subtype:( <: )
+        c.satisfied ~subtype:( <: )
           ~satisfies:(fun b -> satisfies_constraint b c)
           b
 
 and satisfies_constraints b = List.iter (satisfies_constraint b)
 
 (** Make a variable link to given type. *)
-and bind ?(variance = Invariant) a b =
+and bind ?(variance = `Invariant) a b =
   let a0 = a in
   let v, a =
     match a.descr with
@@ -320,7 +320,7 @@ and bind ?(variance = Invariant) a b =
   let b = deref b in
   occur_check a b;
   (* update_level a.level b; *)
-  satisfies_constraints b a.constraints;
+  satisfies_constraints b (Constraints.elements a.constraints);
   let b = if b.pos = None then { b with pos = a0.pos } else b in
   v := Link (variance, b)
 
@@ -361,7 +361,7 @@ and ( <: ) a b =
       | Var { contents = Free v }, Var { contents = Free v' } when Var.eq v v'
         ->
           ()
-      | _, Var ({ contents = Link (Covariant, b') } as var) ->
+      | _, Var ({ contents = Link (`Covariant, b') } as var) ->
           (* When the variable is covariant, we take the opportunity here to correct
              bad choices. For instance, if we took int, but then have a 'a?, we
              change our mind and use int? instead. *)
@@ -371,10 +371,10 @@ and ( <: ) a b =
              failwith
                (Printf.sprintf "invalid sup: %s !< %s (%s)" (Type.to_string b')
                   (Type.to_string b'') (Printexc.to_string e)));
-          if b'' != b' then var := Link (Covariant, b'');
+          if b'' != b' then var := Link (`Covariant, b'');
           a <: b''
-      | Var ({ contents = Link (Covariant, a') } as var), _ ->
-          var := Link (Invariant, a');
+      | Var ({ contents = Link (`Covariant, a') } as var), _ ->
+          var := Link (`Invariant, a');
           a <: b
       | _, Var { contents = Link (_, b) } -> a <: b
       | Var { contents = Link (_, a) }, _ -> a <: b
@@ -384,11 +384,11 @@ and ( <: ) a b =
               | (v1, h1) :: t1, (v2, h2) :: t2 ->
                   begin
                     try
-                      let v = if v1 = v2 then v1 else Invariant in
+                      let v = if v1 = v2 then v1 else `Invariant in
                       match v with
-                        | Covariant -> h1 <: h2
-                        | Contravariant -> h2 <: h1
-                        | Invariant ->
+                        | `Covariant -> h1 <: h2
+                        | `Contravariant -> h2 <: h1
+                        | `Invariant ->
                             h1 <: h2;
                             h2 <: h1
                     with Error (a, b) ->
@@ -510,7 +510,7 @@ and ( <: ) a b =
                isn't local. *)
             raise (Error (Repr.make a, Repr.make b)))
       | _, Var { contents = Free _ } -> (
-          try bind ~variance:Covariant b a
+          try bind ~variance:`Covariant b a
           with Occur_check _ | Unsatisfied_constraint ->
             let bt = Printexc.get_raw_backtrace () in
             Printexc.raise_with_backtrace (Error (Repr.make a, Repr.make b)) bt)
