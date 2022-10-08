@@ -21,12 +21,8 @@
  *****************************************************************************)
 
 class drop ?(audio = false) ?(video = false) ?(midi = false) ~name source =
-  let f x = if x then Some `Any else None in
-  let audio_in = f audio in
-  let video_in = f video in
-  let midi_in = f midi in
   object
-    inherit Source.operator ?audio_in ?video_in ?midi_in [source] ~name
+    inherit Source.operator [source] ~name
 
     inherit
       Conversion.base

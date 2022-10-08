@@ -75,9 +75,6 @@ type watcher = {
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
   ?name:string
-  -> ?audio_in:Frame.kind
-  -> ?video_in:Frame.kind
-  -> ?midi_in:Frame.kind
   -> unit
   -> object
        method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
@@ -213,9 +210,6 @@ class virtual source :
 (* Entry-points sources, which need to actively perform some task. *)
 and virtual active_source :
   ?name:string
-  -> ?audio_in:Frame.kind
-  -> ?video_in:Frame.kind
-  -> ?midi_in:Frame.kind
   -> unit
   -> object
        inherit source
@@ -230,9 +224,6 @@ and virtual active_source :
 (* This is for defining a source which has children *)
 class virtual operator :
   ?name:string
-  -> ?audio_in:Frame.kind
-  -> ?video_in:Frame.kind
-  -> ?midi_in:Frame.kind
   -> source list
   -> object
        inherit source
@@ -242,9 +233,6 @@ class virtual operator :
  * and outputting it. *)
 class virtual active_operator :
   ?name:string
-  -> ?audio_in:Frame.kind
-  -> ?video_in:Frame.kind
-  -> ?midi_in:Frame.kind
   -> source list
   -> object
        inherit active_source
