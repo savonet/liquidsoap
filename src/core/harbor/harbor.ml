@@ -748,6 +748,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           in
           (* Recode tags.. *)
           let f x y m =
+            let x =
+              match x with
+                | "song" -> "title"
+                | "url" -> "metadata_url"
+                | _ -> x
+            in
             let g = Camomile_utils.recode_tag ?in_enc in
             Hashtbl.add m (g x) (g y);
             m
