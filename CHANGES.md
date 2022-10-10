@@ -12,6 +12,8 @@ Changed:
 
 Fixed:
 * Enhanced methods typing support (#2659)
+* Add support for `song` metadata (mapped to `title`) and `url` (mapped to
+  `metadata_url` in `input.harbor` (#2676)
 
 ---
 2.1.2 (2022-09-26)
