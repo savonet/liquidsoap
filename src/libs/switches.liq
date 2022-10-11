@@ -7,15 +7,61 @@
 # @param ~transition_length Maximum transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 def fallback(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
-           ~track_sensitive=true, ~transition_length=5., ~transitions=[],
+           ~track_sensitive=getter(true), ~transition_length=5., ~transitions=[],
            sources) =
-  def add_condition(s) =
-    ({true}, s)
+  def prepare(idx, s) =
+    def f(m) =
+      [...m, ("fallback_index", "#{idx}")]
+    end
+    s = metadata.map(f, s)
+    insert_metadata(s)
   end
 
-  switch(id=id, override=override, replay_metadata=replay_metadata, transitions=transitions,
-         track_sensitive=track_sensitive, transition_length=transition_length,
-         list.map(add_condition, sources))
+  sources = list.mapi(prepare, sources)
+
+  s = fallback(track_sensitive=track_sensitive, sources)
+
+  def default_transition(old, new) =
+    (sequence([old, new]):source)
+  end
+
+  selected = ref(null())
+
+  def transition(old, new) =
+    old_idx = int_of_string(default=-1, old.metadata["fallback_index"])
+    new_idx = int_of_string(default=-1, new.metadata["fallback_index"])
+
+    if replay_metadata and old_idx != new_idx then
+      list.nth(sources, new_idx).insert_metadata(new.metadata)
+    end
+
+    transition = list.nth(default=default_transition, transitions, new_idx)
+
+    s = transition(old.source, new.source)
+
+    selected := s
+
+    s
+  end
+
+  cross(id=id, duration=transition_length, override_duration=override, transition, s).{selected = fun () -> !selected}
+end
+
+# At the beginning of a track, select the first source whose predicate is true.
+# @category Source / Track processing
+# @param ~id Force the value of the source ID.
+# @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
+# @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
+# @param ~track_sensitive Re-select only on end of tracks.
+# @param ~transition_length Maximum transition duration.
+# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
+def switch(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
+           ~track_sensitive=getter(true), ~transition_length=5., ~transitions=[],
+           sources) =
+  sources = list.map(fun(ps) -> source.available(snd(ps), fst(ps)), sources)
+  fallback(id=id, override=override, replay_metadata=replay_metadata,
+           track_sensitive=track_sensitive, transition_length=transition_length,
+           transitions=transitions, sources)
 end
 
 let stdlib_fallback = fallback
