@@ -61,9 +61,9 @@ echo "::group::Bundling executable"
 
 cd ~
 cp -rf "${BASE_DIR}/.github/win32" "liquidsoap-$BUILD"
+cp -rf "${BASE_DIR}/src/libs" "liquidsoap-$BUILD"
 cd "liquidsoap-$BUILD"
 cp "${OPAM_PREFIX}"/windows-sysroot/bin/liquidsoap ./liquidsoap.exe
-cp "${BASE_DIR}/src/libs/*.liq" libs
 cp -rf "$(ocamlfind -toolchain windows ocamlc -where)/../../share/camomile" .
 cd ..
 zip -r "liquidsoap-$BUILD.zip" "liquidsoap-$BUILD"
