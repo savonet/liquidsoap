@@ -21,30 +21,34 @@ def fallback(~id=null(), ~override="liq_transition_length", ~replay_metadata=tru
 
   s = fallback(track_sensitive=track_sensitive, sources)
 
-  def default_transition(old, new) =
-    (sequence([old, new]):source)
-  end
-
-  selected = ref(null())
-
-  def transition(old, new) =
-    old_idx = int_of_string(default=-1, old.metadata["fallback_index"])
-    new_idx = int_of_string(default=-1, new.metadata["fallback_index"])
-
-    if replay_metadata and old_idx != new_idx then
-      list.nth(sources, new_idx).insert_metadata(new.metadata)
+  if list.length(transitions) != 0 then
+    def default_transition(old, new) =
+      (sequence([old, new]):source)
     end
 
-    transition = list.nth(default=default_transition, transitions, new_idx)
+    selected = ref(null())
 
-    s = transition(old.source, new.source)
+    def transition(old, new) =
+      old_idx = int_of_string(default=-1, old.metadata["fallback_index"])
+      new_idx = int_of_string(default=-1, new.metadata["fallback_index"])
 
-    selected := s
+      if replay_metadata and old_idx != new_idx then
+        list.nth(sources, new_idx).insert_metadata(new.metadata)
+      end
 
+      transition = list.nth(default=default_transition, transitions, new_idx)
+
+      s = transition(old.source, new.source)
+
+      selected := s
+
+      s
+    end
+
+    cross(id=id, duration=transition_length, override_duration=override, transition, s).{selected = fun () -> !selected}
+  else
     s
   end
-
-  cross(id=id, duration=transition_length, override_duration=override, transition, s).{selected = fun () -> !selected}
 end
 
 # At the beginning of a track, select the first source whose predicate is true.
