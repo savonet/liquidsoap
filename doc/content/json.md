@@ -170,7 +170,20 @@ let json.parse ({
 }) = file.contents("/path/to/package.json")
 ```
 
-And, later, inspect the returned value to see if it is in fact present.
+And, later, inspect the returned value to see if it is in fact present. You can do it in several ways:
+
+```liquidsoap
+# Check if the value is defined:
+test =
+  if null.defined(scripts) then
+    null.get(scripts.test)
+  else
+    null ()
+  end
+
+# Use the ?? syntax:
+test = (scripts ?? { test = null() }).test
+```
 
 #### Tuple types
 
