@@ -30,7 +30,7 @@ The list of concerned metadata is:
 The confusing `let json.stringify` syntax has been removed as it did not provide any feature not already covered by either
 the `json.stringify()` function or the generic `json()` object mapper. Please use either of those now.
 
-## Decoder names
+### Decoder names
 
 Decoder names have been converted to lowercase. If you were relying on specific settings for decoders priority/ordering, you
 will need to convert them to lowercase, for instance:
@@ -43,6 +43,20 @@ becomes:
 
 ```
 settings.decoder.decoders.set(["ffmpeg"])
+```
+
+### `strftime`
+
+Add file-based operators do not support `strftime` type conversions out of the box anymore. Instead, you should use explicit conversions using `time.string`. This means that this script:
+
+```liquidsoap
+output.file("/path/to/file%H%M%S.wav", ...)
+```
+
+becomes:
+
+```liquidsoap
+output.file({time.string("/path/to/file%H%M%S.wav")}, ...)
 ```
 
 ## From 2.0.x to 2.1.x
