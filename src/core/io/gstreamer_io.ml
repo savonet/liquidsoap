@@ -84,10 +84,10 @@ class virtual ['a, 'b] element_factory ~on_error =
             (fun () ->
               begin
                 match element with
-                | None -> ()
-                | Some el ->
-                    ignore (Element.set_state el.bin Element.State_null);
-                    ignore (Element.get_state el.bin)
+                  | None -> ()
+                  | Some el ->
+                      ignore (Element.set_state el.bin Element.State_null);
+                      ignore (Element.get_state el.bin)
               end;
               let el = self#make_element in
               element <- Some el;

@@ -84,7 +84,9 @@ end)
 let test_t = Lang_core.fun_t [(false, "", Lang_core.string_t)] Lang_core.bool_t
 
 let test_fun rex =
-  Lang_core.val_fun [("", "", None)] (fun p ->
+  Lang_core.val_fun
+    [("", "", None)]
+    (fun p ->
       let string = Lang_core.to_string (List.assoc "" p) in
       Lang_core.bool (Regexp.test rex string))
 
@@ -94,7 +96,9 @@ let split_t =
     (Lang_core.list_t Lang_core.string_t)
 
 let split_fun rex =
-  Lang_core.val_fun [("", "", None)] (fun p ->
+  Lang_core.val_fun
+    [("", "", None)]
+    (fun p ->
       let string = Lang_core.to_string (List.assoc "" p) in
       Lang_core.list (List.map Lang_core.string (Regexp.split rex string)))
 
@@ -114,7 +118,9 @@ let exec_t =
        ])
 
 let exec_fun regexp =
-  Lang_core.val_fun [("", "", None)] (fun p ->
+  Lang_core.val_fun
+    [("", "", None)]
+    (fun p ->
       let string = Lang_core.to_string (List.assoc "" p) in
       try
         let { Regexp.matches; groups } = Regexp.exec regexp string in
@@ -154,7 +160,9 @@ let replace_t =
     Lang_core.string_t
 
 let replace_fun regexp =
-  Lang_core.val_fun [("", "", None); ("", "", None)] (fun p ->
+  Lang_core.val_fun
+    [("", "", None); ("", "", None)]
+    (fun p ->
       let subst = Lang_core.assoc "" 1 p in
       let pos =
         match subst.Lang_core.pos with Some pos -> [pos] | None -> []

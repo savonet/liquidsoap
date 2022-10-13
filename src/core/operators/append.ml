@@ -143,8 +143,8 @@ class append ~insert_missing ~merge source f =
       Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f;
       begin
         match state with
-        | `Replay (Some a) | `Append a -> self#unregister a
-        | _ -> ()
+          | `Replay (Some a) | `Append a -> self#unregister a
+          | _ -> ()
       end;
       state <- `Idle
 

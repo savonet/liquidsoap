@@ -25,7 +25,9 @@ let () =
   let register_op name op =
     Lang.add_builtin name ~category:`Bool
       ~descr:"Comparison of comparable values."
-      [("", t, None, None); ("", t, None, None)] Lang.bool_t (fun p ->
+      [("", t, None, None); ("", t, None, None)]
+      Lang.bool_t
+      (fun p ->
         let a = Lang.assoc "" 1 p in
         let b = Lang.assoc "" 2 p in
         Lang.bool (op (Value.compare a b)))
@@ -64,5 +66,6 @@ let () =
 let () =
   Lang.add_builtin "not" ~category:`Bool
     ~descr:"Returns the negation of its argument."
-    [("", Lang.bool_t, None, None)] Lang.bool_t (fun p ->
-      Lang.bool (not (Lang.to_bool (List.assoc "" p))))
+    [("", Lang.bool_t, None, None)]
+    Lang.bool_t
+    (fun p -> Lang.bool (not (Lang.to_bool (List.assoc "" p))))

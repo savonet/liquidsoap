@@ -364,7 +364,9 @@ let register_input is_http =
               ([], fun_t [(false, "", getter_t string_t)] unit_t),
               "Set the source's url.",
               fun s ->
-                val_fun [("", "", None)] (fun p ->
+                val_fun
+                  [("", "", None)]
+                  (fun p ->
                     s#set_url (to_string_getter (List.assoc "" p));
                     unit) );
             ( "status",

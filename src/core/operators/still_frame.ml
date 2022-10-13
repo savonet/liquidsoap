@@ -80,7 +80,9 @@ let () =
           ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t),
           "Save current image, argument is the file name to save to.",
           fun s ->
-            Lang.val_fun [("", "", None)] (fun p ->
+            Lang.val_fun
+              [("", "", None)]
+              (fun p ->
                 s#save (List.assoc "" p |> Lang.to_string);
                 Lang.unit) );
       ]

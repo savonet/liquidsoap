@@ -28,7 +28,8 @@ let () =
   Lang.add_builtin ~category:`Liquidsoap "_eval_"
     ~descr:"Parse and evaluate a string." ~flags:[`Hidden]
     [("type", Value.RuntimeType.t, None, None); ("", Lang.string_t, None, None)]
-    (Lang.univ_t ()) (fun p ->
+    (Lang.univ_t ())
+    (fun p ->
       try
         let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
         let s = Lang.to_string (List.assoc "" p) in

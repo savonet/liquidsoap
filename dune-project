@@ -131,6 +131,7 @@
   (name liquidsoap-lang)
   (depends
     (ocaml (>= 4.12.0))
+    (ppx_string :build)
     dune-site
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))

@@ -156,20 +156,20 @@ class virtual unqueued ~name =
       Tutils.mutexify plock (fun forced ->
           begin
             match current with
-            | None -> ()
-            | Some cur ->
-                begin
-                  match Request.get_filename cur.req with
-                  | None ->
-                      self#log#severe
-                        "Finished with a non-existent file?! Something may \
-                         have been moved or destroyed during decoding. It is \
-                         VERY dangerous, avoid it!"
-                  | Some f -> self#log#info "Finished with %S." f
-                end;
-                cur.close ();
-                Request.destroy cur.req;
-                must_fail <- forced
+              | None -> ()
+              | Some cur ->
+                  begin
+                    match Request.get_filename cur.req with
+                      | None ->
+                          self#log#severe
+                            "Finished with a non-existent file?! Something may \
+                             have been moved or destroyed during decoding. It \
+                             is VERY dangerous, avoid it!"
+                      | Some f -> self#log#info "Finished with %S." f
+                  end;
+                  cur.close ();
+                  Request.destroy cur.req;
+                  must_fail <- forced
           end;
           current <- None;
           remaining <- 0)

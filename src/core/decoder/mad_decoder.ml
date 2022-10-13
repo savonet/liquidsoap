@@ -31,9 +31,9 @@ let init input =
   (* Skip id3 tags if possible. *)
   begin
     match (input.Decoder.lseek, input.Decoder.tell) with
-    | Some seek, Some tell ->
-        Mad.skip_id3tags ~read:input.Decoder.read ~seek ~tell
-    | _, _ -> ()
+      | Some seek, Some tell ->
+          Mad.skip_id3tags ~read:input.Decoder.read ~seek ~tell
+      | _, _ -> ()
   end;
   let get_index time = Hashtbl.find index time in
   let update_index () =

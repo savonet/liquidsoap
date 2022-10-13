@@ -94,8 +94,8 @@ class virtual switch ~name ~override_meta ~transition_length
       List.iter (fun s -> s.source#after_output) cases;
       begin
         match selected with
-        | None -> ()
-        | Some s -> s.effective_source#after_output
+          | None -> ()
+          | Some s -> s.effective_source#after_output
       end;
       List.iter (fun s -> s#after_output) to_finish;
       to_finish <- [];

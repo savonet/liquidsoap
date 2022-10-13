@@ -226,15 +226,17 @@ let streams_start encoder =
   (* Add skeleton information first. *)
   begin
     match encoder.skeleton with
-    | Some os ->
-        Hashtbl.iter
-          (fun _ x ->
-            let sos = os_of_ogg_track x in
-            let f = fisbone_data_of_ogg_track x in
-            match f sos with Some p -> Ogg.Stream.put_packet os p | None -> ())
-          encoder.tracks;
-        add_flushed_pages ~header:true encoder os
-    | None -> ()
+      | Some os ->
+          Hashtbl.iter
+            (fun _ x ->
+              let sos = os_of_ogg_track x in
+              let f = fisbone_data_of_ogg_track x in
+              match f sos with
+                | Some p -> Ogg.Stream.put_packet os p
+                | None -> ())
+            encoder.tracks;
+          add_flushed_pages ~header:true encoder os
+      | None -> ()
   end;
   Hashtbl.iter
     (fun _ t ->
@@ -247,11 +249,11 @@ let streams_start encoder =
   (* Finish skeleton stream now. *)
   begin
     match encoder.skeleton with
-    | Some os ->
-        Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
-        let p = Ogg.Stream.flush_page os in
-        add_page ~header:true encoder p
-    | None -> ()
+      | Some os ->
+          Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
+          let p = Ogg.Stream.flush_page os in
+          add_page ~header:true encoder p
+      | None -> ()
   end;
   encoder.state <- Streaming
 
@@ -387,8 +389,8 @@ let end_of_track encoder id =
 let flush encoder =
   begin
     match encoder.skeleton with
-    | Some os -> add_flushed_pages encoder os
-    | None -> ()
+      | Some os -> add_flushed_pages encoder os
+      | None -> ()
   end;
   while Hashtbl.length encoder.tracks > 0 do
     Hashtbl.iter (fun id _ -> end_of_track encoder id) encoder.tracks

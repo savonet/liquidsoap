@@ -6,7 +6,7 @@
 # $ pre-commit install
 repos:
   - repo: https://github.com/savonet/liquidsoap-dev-tools
-    rev: v2.0.8
+    rev: v2.0.9
     hooks:
       - id: ocamlformat
       - id: dunegen

@@ -61,8 +61,8 @@ let () =
       else proto
     in
     let tasks = Hashtbl.create 1 in
-    Lang.add_builtin name ~category:`Interaction (* TODO better cat *) ~descr
-      proto Lang.unit_t (fun p ->
+    Lang.add_builtin name ~category:`Interaction (* TODO better cat *)
+      ~descr proto Lang.unit_t (fun p ->
         let user = Lang.to_string (List.assoc "user" p) in
         let password = Lang.to_string (List.assoc "password" p) in
         let metas = Lang.to_metadata (Lang.assoc "" 1 p) in
