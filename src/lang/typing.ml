@@ -149,31 +149,31 @@ exception Occur_check of var * t
 
 (** Check that [a] (a dereferenced type variable) does not occur in [b] and
     prepare the instantiation [a<-b] by adjusting the levels. *)
-let rec occur_check (a : var) b =
-  let constr_check (_, x) = occur_check a x in
-  let arrow_check (_, _, t) = occur_check a t in
-  match b.descr with
-    | Constr c -> List.iter constr_check c.params
-    | Tuple l -> List.iter (occur_check a) l
-    | Getter t -> occur_check a t
-    | List { t } -> occur_check a t
-    | Nullable t -> occur_check a t
-    | Meth ({ scheme = g, t }, u) ->
+let occur_check (a : var) =
+  let rec occur_check = function
+    | { descr = Constr c } -> List.iter (fun (_, x) -> occur_check x) c.params
+    | { descr = Tuple l } -> List.iter occur_check l
+    | { descr = Getter t } -> occur_check t
+    | { descr = List { t } } -> occur_check t
+    | { descr = Nullable t } -> occur_check t
+    | { descr = Meth ({ scheme = g, t }, u) } ->
         (* We assume that a is not a generalized variable of t. *)
         (* TODO: we should not lower the level of bound variables, but this
            complicates the code and has little effect. *)
         assert (not (List.exists (Var.eq a) g));
-        occur_check a t;
-        occur_check a u
-    | Arrow (p, t) ->
-        List.iter arrow_check p;
-        occur_check a t
-    | Custom c -> c.occur_check occur_check a c.typ
-    | Var { contents = Free x } ->
+        occur_check t;
+        occur_check u
+    | { descr = Arrow (p, t) } ->
+        List.iter (fun (_, _, t) -> occur_check t) p;
+        occur_check t
+    | { descr = Custom c } -> c.occur_check occur_check c.typ
+    | { descr = Var { contents = Free x } } as b ->
         if Type.Var.eq a x then raise (Occur_check (a, b));
         x.level <- min a.level x.level
-    | Var { contents = Link (_, b) } -> occur_check a b
+    | { descr = Var { contents = Link (_, b) } } -> occur_check b
     | _ -> raise NotImplemented
+  in
+  occur_check
 
 (** Lower all type variables to given level. *)
 let update_level level a =

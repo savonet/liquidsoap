@@ -44,7 +44,7 @@ module Make (S : Spec) = struct
     {
       Type_base.typ = Type;
       copy_with = (fun _ c -> get c);
-      occur_check = (fun _ _ c -> ignore (get c));
+      occur_check = (fun _ _ -> ());
       filter_vars =
         (fun _ l c ->
           ignore (get c);
