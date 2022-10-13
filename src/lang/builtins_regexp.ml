@@ -167,15 +167,11 @@ let replace_fun regexp =
       let string =
         try Regexp.substitute regexp ~subst string
         with exn ->
-          raise
-            (Term.Runtime_error
-               {
-                 Term.kind = "string";
-                 msg =
-                   Printf.sprintf "string.replace error: %s"
-                     (Printexc.to_string exn);
-                 pos;
-               })
+          Runtime_error.error
+            ~message:
+              (Printf.sprintf "string.replace error: %s"
+                 (Printexc.to_string exn))
+            ~pos "string"
       in
       Lang_core.string string)
 

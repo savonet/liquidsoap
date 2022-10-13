@@ -321,7 +321,7 @@ let raise_error = Runtime_error.error
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with
-    | Term.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
+    | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
     | exn ->
         raise_error ~bt
           ~message:
