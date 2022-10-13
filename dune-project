@@ -29,6 +29,7 @@
     metadata
     dune-build-info
     liquidsoap-lang
+    liquidsoap-libs
     liquidsoap-mode
     (ppx_string :build))
   (depopts
@@ -138,8 +139,15 @@
   (synopsis "Liquidsoap language"))
 
 (package
-   (name liquidsoap-mode)
+   (name liquidsoap-libs)
    (depends (liquidsoap-lang :build))
+   (conflicts
+     (liquidsoap-libs (<> :version)))
+   (synopsis "Liquidosap standard library"))
+
+(package
+   (name liquidsoap-mode)
+   (depends (liquidsoap-lang :build) (liquidsoap-libs :build))
    (conflicts
      (liquidsoap-lang (<> :version)))
    (synopsis "Liquidosap emacs mode")

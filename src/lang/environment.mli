@@ -46,4 +46,4 @@ val add_module : string list -> unit
 val default_typing_environment : unit -> (string * Type.scheme) list
 
 (** Initial environment (with builtins). *)
-val default_environment : unit -> (string * (Type.scheme * Value.t)) list
+val default_environment : unit -> (string * Value.t) list

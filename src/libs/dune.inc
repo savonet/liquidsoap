@@ -3,7 +3,7 @@
  (section
   (site
    (liquidsoap-lang libs)))
- (package liquidsoap)
+ (package liquidsoap-libs)
  (files
     visualization.liq
 resolvers.liq

@@ -22,33 +22,32 @@
 
 (** {1 Evaluation environment} *)
 
-(* Environment for builtins. *)
-let builtins : (string * (Type.scheme * Value.t)) list ref = ref []
-let default_environment () = !builtins
-
-let default_typing_environment () =
-  List.map (fun (x, (t, _)) -> (x, t)) !builtins
+let type_environment : (string * Type.scheme) list ref = ref []
+let value_environment : (string * Value.t) list ref = ref []
+let default_environment () = !value_environment
+let default_typing_environment () = !type_environment
 
 (* Just like builtins but we register a.b under the name "a.b" (instead of
    adding a field b to a). It is used only for [has_builtins] and
    [get_builtins]. *)
-let flat_builtins : (string * (Type.scheme * Value.t)) list ref = ref []
-let has_builtin name = List.mem_assoc name !flat_builtins
-let get_builtin name = List.assoc_opt name !flat_builtins
+let flat_enviroment : (string * (Type.scheme * Value.t)) list ref = ref []
+let has_builtin name = List.mem_assoc name !flat_enviroment
+let get_builtin name = List.assoc_opt name !flat_enviroment
 
 let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
   if register && doc <> None then
     Doc.Value.add (String.concat "." name) (Option.get doc);
-  flat_builtins := (String.concat "." name, ((g, t), v)) :: !flat_builtins;
+  flat_enviroment := (String.concat "." name, ((g, t), v)) :: !flat_enviroment;
   match name with
     | [name] ->
         (* Don't allow overriding builtins. *)
-        if (not override) && List.mem_assoc name !builtins then
+        if (not override) && List.mem_assoc name !type_environment then
           failwith ("Trying to override builtin " ^ name);
-        builtins := (name, ((g, t), v)) :: !builtins
+        type_environment := (name, (g, t)) :: !type_environment;
+        value_environment := (name, v) :: !value_environment
     | x :: ll ->
         let (g0, t0), xv =
-          try List.assoc x !builtins
+          try (List.assoc x !type_environment, List.assoc x !value_environment)
           with Not_found -> failwith ("Could not find builtin variable " ^ x)
         in
         (* x.l1.l2.l3 = v means
@@ -86,7 +85,8 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
         in
         let (g, t), v = aux [] ll in
         assert (g = []);
-        builtins := (x, ((g0, t), v)) :: !builtins
+        type_environment := (x, (g0, t)) :: !type_environment;
+        value_environment := (x, v) :: !value_environment
     | [] -> assert false
 
 (** Declare a module. *)
@@ -95,14 +95,14 @@ let add_module name =
   (match name with
     | [] -> assert false
     | [x] ->
-        if List.mem_assoc x !builtins then
+        if List.mem_assoc x !type_environment then
           failwith ("Module " ^ String.concat "." name ^ " already declared")
     | x :: mm -> (
         let mm = List.rev mm in
         let l = List.hd mm in
         let mm = List.rev (List.tl mm) in
         let e =
-          try Value.invokes (snd (List.assoc x !builtins)) mm
+          try Value.invokes (List.assoc x !value_environment) mm
           with _ ->
             failwith
               ("Could not find the parent module of " ^ String.concat "." name)

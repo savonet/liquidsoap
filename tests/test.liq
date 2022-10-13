@@ -74,6 +74,10 @@ def test.check(f) =
   output.dummy(blank())
 end
 
+def test.raise(fn) =
+  try ignore(fn()) catch _ do () end
+end
+
 def on_error(~backtrace, error) =
   print("Uncaught error while running test: #{error}\n#{backtrace}")
   test.fail()

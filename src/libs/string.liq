@@ -78,7 +78,12 @@ end
 # Test whether a string is a valid integer.
 # @category String
 def string.is_int(s)
-  string.match(pattern="^\\d+$", s)
+  try
+    ignore(int_of_string(s))
+    true
+  catch _ do
+    false
+  end
 end
 
 # Convert a string to a int.

@@ -11,7 +11,7 @@ let () =
  (section
   (site
    (liquidsoap-lang libs)))
- (package liquidsoap)
+ (package liquidsoap-libs)
  (files
     %s))
   |}

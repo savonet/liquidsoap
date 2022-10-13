@@ -12,7 +12,6 @@ New:
 - Added support for unit interactive variables: those call a handler when their
   value is set.
 - Added support for id3v2 `v2.2.0` frames and pictures.
-- Added `time.string`.
 - Added `source.drop` to animate a source as fast as possible..
 - Added in house replaygain computation:
   - `source.replaygain.compute` to compute replaygain of a source
@@ -48,6 +47,10 @@ Changed:
   changed eturned value when no mime was found to `null()`.
 - Removed `--list-plugins-json` and `--list-plugins-xml` options.
 - Added `--list-functions-json` option.
+- Removed built-in use of `strftime` conversions in output filenames, replaced
+  by an explicit call to `time.string` (#2593)
+- Added nullable default to `{int,float,bool}_of_string` conversion functions, raise
+  an exception if conversion fails and no default is given.
 
 Fixed:
 

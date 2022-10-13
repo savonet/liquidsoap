@@ -161,13 +161,7 @@ let pipe_proto frame_t arg_doc =
         Some (Lang.val_cst_fun [] (Lang.bool false)),
         Some "When should the output be re-opened." );
       ("", Lang.format_t frame_t, None, Some "Encoding format.");
-      ( "",
-        Lang.getter_t Lang.string_t,
-        None,
-        Some
-          (arg_doc
-         ^ " Some strftime conversion specifiers are available: `%SMHdmY`. You \
-            can also use `$(..)` interpolation notation for metadata.") );
+      ("", Lang.getter_t Lang.string_t, None, Some arg_doc);
       ("", Lang.source_t frame_t, None, None);
     ]
 
@@ -296,7 +290,6 @@ class virtual ['a] file_output_base p =
 
     method private filename =
       let filename = filename () in
-      let filename = Utils.strftime filename in
       let filename = Lang_string.home_unrelate filename in
       (* Avoid / in metas for filename.. *)
       let subst m = Pcre.substitute ~pat:"/" ~subst:(fun _ -> "-") m in

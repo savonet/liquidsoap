@@ -283,7 +283,12 @@ module Value = struct
     List.iter
       (fun (l, a) ->
         let l = Option.value ~default:"(unlabeled)" l in
-        print (" * " ^ l ^ " : " ^ a.arg_type ^ "\n");
+        let default =
+          match a.arg_default with
+            | Some d -> " (default: " ^ d ^ ")"
+            | None -> ""
+        in
+        print (" * " ^ l ^ " : " ^ a.arg_type ^ default ^ "\n");
         Option.iter (fun d -> print (reflow ~indent:5 d)) a.arg_description;
         print "\n\n")
       f.arguments;

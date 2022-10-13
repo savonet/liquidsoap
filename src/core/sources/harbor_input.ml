@@ -273,7 +273,10 @@ let () =
           "Length of the buffer (in seconds).",
           fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd) );
       ]
-    ~category:`Input ~descr:"input.harbor"
+    ~category:`Input
+    ~descr:
+      "Create a source that receives a http/icecast stream and forwards it as \
+       a stream."
     [
       ( "buffer",
         Lang.float_t,
