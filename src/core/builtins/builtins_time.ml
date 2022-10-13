@@ -198,6 +198,13 @@ let () =
        %H is replaced by the current hour, %M minute, %S second, %A week day \
        (%a week day abbreviated), %d month day, %B month name (%b month name \
        abbreviated), %z timezone."
+    ~examples:
+      [
+        {|s = time.string("Current time is %H:%M.")
+print(s)|};
+        {|# Backup a source naming the file based on time
+output.file({time.string("/path/to/file%H%M%S.wav")}, ...)|};
+      ]
     [
       ( "time",
         Lang.nullable_t Lang.float_t,
