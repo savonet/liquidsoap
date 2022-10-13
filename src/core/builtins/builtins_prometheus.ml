@@ -64,14 +64,18 @@ let add_metric metric_name create register set =
       let m =
         create ~label_names ?registry:None ~help ?namespace ?subsystem name
       in
-      Lang.val_fun [("label_values", "label_values", None)] (fun p ->
+      Lang.val_fun
+        [("label_values", "label_values", None)]
+        (fun p ->
           let labels_v = List.assoc "label_values" p in
           let labels = List.map Lang.to_string (Lang.to_list labels_v) in
           if List.length labels <> List.length label_names then
             raise
               (Error.Invalid_value (labels_v, "Not enough labels provided!"));
           let m = register m labels in
-          Lang.val_fun [("", "", None)] (fun p ->
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
               let v = Lang.to_float (List.assoc "" p) in
               set m v;
               Lang.unit)))
@@ -219,7 +223,8 @@ let () =
       let label_names =
         List.map Lang.to_string (Lang.to_list (List.assoc "labels" p))
       in
-      Lang.val_fun [("label_values", "label_values", None); ("", "", None)]
+      Lang.val_fun
+        [("label_values", "label_values", None); ("", "", None)]
         (fun p ->
           let s = Lang.to_source (List.assoc "" p) in
           let labels_v = List.assoc "label_values" p in

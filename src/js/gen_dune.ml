@@ -3,9 +3,10 @@ let () =
   let location = Filename.concat location ".." in
   let location = Filename.concat location "libs" in
   let libs =
-    List.filter
-      (fun f -> Filename.extension f = ".liq")
-      (Array.to_list (Sys.readdir location))
+    List.sort Stdlib.compare
+      (List.filter
+         (fun f -> Filename.extension f = ".liq")
+         (Array.to_list (Sys.readdir location)))
   in
   Printf.printf
     {|

@@ -45,9 +45,9 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
     method private set_state s =
       begin
         match (state, s) with
-        | `Blank _, `Noise _ | `Noise _, `Blank _ ->
-            self#log#info "Setting state to %s" (self#string_of_state s)
-        | _ -> ()
+          | `Blank _, `Noise _ | `Noise _, `Blank _ ->
+              self#log#info "Setting state to %s" (self#string_of_state s)
+          | _ -> ()
       end;
       state <- s
 

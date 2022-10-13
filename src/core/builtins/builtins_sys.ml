@@ -228,7 +228,9 @@ let () =
       "Immediately stop the application. This should only be used in extreme \
        cases or to specify an exit value. The recommended way of stopping \
        Liquidsoap is to use shutdown."
-    [("", Lang.int_t, None, Some "Exit value.")] Lang.unit_t (fun p ->
+    [("", Lang.int_t, None, Some "Exit value.")]
+    Lang.unit_t
+    (fun p ->
       let n = Lang.to_int (List.assoc "" p) in
       exit n)
 
@@ -237,7 +239,8 @@ let () =
     ~descr:
       "Interrupt execution for a given amount of seconds. This freezes the \
        calling thread and should not be used in the main streaming loop."
-    [("", Lang.float_t, None, Some "Number of seconds of sleep.")] Lang.unit_t
+    [("", Lang.float_t, None, Some "Number of seconds of sleep.")]
+    Lang.unit_t
     (fun p ->
       let t = Lang.to_float (List.assoc "" p) in
       Unix.sleepf t;
@@ -246,7 +249,9 @@ let () =
 let () =
   let reopen name descr f =
     Lang.add_builtin name ~category:`System ~descr
-      [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
+      [("", Lang.string_t, None, None)]
+      Lang.unit_t
+      (fun p ->
         let file = Lang.to_string (List.assoc "" p) in
         f file;
         Lang.unit)
@@ -412,5 +417,7 @@ let () =
 let () =
   Lang.add_builtin "seconds_of_main" ~category:`Liquidsoap
     ~descr:"Convert a number of main ticks in seconds."
-    [("", Lang.int_t, None, None)] Lang.float_t (fun p ->
+    [("", Lang.int_t, None, None)]
+    Lang.float_t
+    (fun p ->
       Lang.float (Frame.seconds_of_main (Lang.to_int (List.assoc "" p))))

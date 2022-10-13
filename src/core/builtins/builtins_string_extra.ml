@@ -25,8 +25,10 @@ let () =
   Lang.add_builtin "string.annotate.parse" ~category:`String
     ~descr:
       "Parse a string of the form `<key>=<value>,...:<uri>` as given by the \
-       `annotate:` protocol" [("", Lang.string_t, None, None)]
-    (Lang.product_t Lang.metadata_t Lang.string_t) (fun p ->
+       `annotate:` protocol"
+    [("", Lang.string_t, None, None)]
+    (Lang.product_t Lang.metadata_t Lang.string_t)
+    (fun p ->
       let v = List.assoc "" p in
       try
         let metadata, uri = Annotate.parse (Lang.to_string v) in
@@ -73,7 +75,8 @@ let () =
        - `$(if $(k2),\"a\",\"b\") into \"a\" if k2 is found in the list, \"b\" \
        otherwise."
     [("", Lang.string_t, None, None); ("", Lang.metadata_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t
+    (fun p ->
       let s = Lang.to_string (Lang.assoc "" 1 p) in
       let l =
         List.map
@@ -95,11 +98,13 @@ let () =
       ]
   in
   Lang.add_builtin "string.apic.parse" ~category:`Metadata
-    [("", Lang.string_t, None, Some "APIC data.")] t
+    [("", Lang.string_t, None, Some "APIC data.")]
+    t
     ~descr:
       "Parse APIC ID3v2 tags (such as those obtained in the APIC tag from \
        `file.metadata.id3v2`). The returned values are: mime, picture type, \
-       description, and picture data." (fun p ->
+       description, and picture data."
+    (fun p ->
       let apic = Lang.to_string (List.assoc "" p) in
       let apic = Metadata.ID3v2.parse_apic apic in
       Lang.meth
@@ -121,11 +126,13 @@ let () =
       ]
   in
   Lang.add_builtin "string.pic.parse" ~category:`Metadata
-    [("", Lang.string_t, None, Some "PIC data.")] t
+    [("", Lang.string_t, None, Some "PIC data.")]
+    t
     ~descr:
       "Parse PIC ID3v2 tags (such as those obtained in the PIC tag from \
        `file.metadata.id3v2`). The returned values are: format, picture type, \
-       description, and picture data." (fun p ->
+       description, and picture data."
+    (fun p ->
       let pic = Lang.to_string (List.assoc "" p) in
       let pic = Metadata.ID3v2.parse_pic pic in
       Lang.meth

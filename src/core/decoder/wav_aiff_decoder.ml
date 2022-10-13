@@ -89,10 +89,12 @@ let create ?header input =
   in
   begin
     match !header with
-    | None -> decoder := fun ~buffer:_ -> read_header ()
-    | Some (format, samplesize, channels, samplerate, datalen) ->
-        let converter = Decoder_utils.from_iff ~format ~samplesize ~channels in
-        decoder := main_decoder ~samplerate datalen converter
+      | None -> decoder := fun ~buffer:_ -> read_header ()
+      | Some (format, samplesize, channels, samplerate, datalen) ->
+          let converter =
+            Decoder_utils.from_iff ~format ~samplesize ~channels
+          in
+          decoder := main_decoder ~samplerate datalen converter
   end;
   let seek ticks =
     match (input.Decoder.lseek, input.Decoder.tell, !header) with

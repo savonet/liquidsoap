@@ -2,14 +2,17 @@ let () =
   Lang.add_builtin "string" ~category:`String
     ~descr:
       "Ensure that we have a string (useful for removing fields from strings)."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string s)
 
 let () =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t
+    (fun p ->
       let s1 = Lang.to_string (Lang.assoc "" 1 p) in
       let s2 = Lang.to_string (Lang.assoc "" 2 p) in
       Lang.string (s1 ^ s2))
@@ -43,7 +46,9 @@ print(c) # should print 99 which is the ascii code for "c"
     [
       ("", Lang.string_t, None, Some "String to look into.");
       ("", Lang.int_t, None, Some "Index of the character.");
-    ] Lang.int_t (fun p ->
+    ]
+    Lang.int_t
+    (fun p ->
       try
         let s = Lang.to_string (Lang.assoc "" 1 p) in
         let n = Lang.to_int (Lang.assoc "" 2 p) in
@@ -55,7 +60,8 @@ print(c) # should print 99 which is the ascii code for "c"
 let () =
   Lang.add_builtin "string.char" ~category:`String
     ~descr:"Create a string with one character."
-    [("", Lang.int_t, None, Some "Code of the character.")] Lang.string_t
+    [("", Lang.int_t, None, Some "Code of the character.")]
+    Lang.string_t
     (fun p ->
       List.assoc "" p |> Lang.to_int |> Char.chr |> String.make 1 |> Lang.string)
 
@@ -206,14 +212,18 @@ let () =
 let () =
   Lang.add_builtin "string.unescape"
     ~descr:"This function is the inverse of `string.escape`." ~category:`String
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string (Lang_string.unescape_string s))
 
 let () =
   Lang.add_builtin "string.length" ~category:`String
-    ~descr:"Get the length of a string." [("", Lang.string_t, None, None)]
-    Lang.int_t (fun p ->
+    ~descr:"Get the length of a string."
+    [("", Lang.string_t, None, None)]
+    Lang.int_t
+    (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.int (String.length string))
 
@@ -233,7 +243,9 @@ let () =
         Lang.int_t,
         None,
         Some "Return a sub string of `length` characters." );
-    ] Lang.string_t (fun p ->
+    ]
+    Lang.string_t
+    (fun p ->
       let start = Lang.to_int (List.assoc "start" p) in
       let len = Lang.to_int (List.assoc "length" p) in
       let string = Lang.to_string (List.assoc "" p) in
@@ -248,7 +260,9 @@ let () =
     [
       ("substring", Lang.string_t, None, Some "Substring to look for.");
       ("", Lang.string_t, None, Some "String in which to look.");
-    ] Lang.int_t (fun p ->
+    ]
+    Lang.int_t
+    (fun p ->
       let t = List.assoc "substring" p |> Lang.to_string in
       let s = List.assoc "" p |> Lang.to_string in
       let ans =
@@ -287,8 +301,9 @@ let () =
 let () =
   Lang.add_builtin "string.trim" ~category:`String
     ~descr:"Return a string without leading and trailing whitespace."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
-      Lang.string (String.trim (Lang.to_string (List.assoc "" p))))
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p -> Lang.string (String.trim (Lang.to_string (List.assoc "" p))))
 
 let () =
   Lang.add_builtin "string.capitalize" ~category:`String
@@ -466,7 +481,9 @@ let () =
 let () =
   Lang.add_builtin "string.id" ~category:`String
     ~descr:"Generate an identifier with given operator name."
-    [("", Lang.string_t, None, Some "Operator name.")] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, Some "Operator name.")]
+    Lang.string_t
+    (fun p ->
       let name = List.assoc "" p |> Lang.to_string in
       Lang.string (Lang_string.generate_id name))
 
@@ -474,8 +491,10 @@ let () = Lang.add_module "string.base64"
 
 let () =
   Lang.add_builtin "string.base64.decode" ~category:`String
-    ~descr:"Decode a Base64 encoded string." [("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    ~descr:"Decode a Base64 encoded string."
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       try Lang.string (Lang_string.decode64 string)
       with _ ->
@@ -483,8 +502,10 @@ let () =
 
 let () =
   Lang.add_builtin "string.base64.encode" ~category:`String
-    ~descr:"Encode a string in Base64." [("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    ~descr:"Encode a string in Base64."
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Lang_string.encode64 string))
 

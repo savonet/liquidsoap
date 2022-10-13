@@ -1,9 +1,10 @@
 let () =
   let location = Sys.getcwd () in
   let tests =
-    List.filter
-      (fun f -> Filename.extension f = ".liq")
-      (Array.to_list (Sys.readdir location))
+    List.sort Stdlib.compare
+      (List.filter
+         (fun f -> Filename.extension f = ".liq")
+         (Array.to_list (Sys.readdir location)))
   in
   List.iter
     (fun test ->

@@ -207,13 +207,13 @@ class clock ?(start = true) ?(sync = `Auto) id =
       in
       begin
         match (self_sync, new_val) with
-        | None, false | Some true, false ->
-            log#important "Delegating synchronisation to CPU clock";
-            t0 <- time ();
-            ticks <- 0L
-        | None, true | Some false, true ->
-            log#important "Delegating synchronisation to active sources"
-        | _ -> ()
+          | None, false | Some true, false ->
+              log#important "Delegating synchronisation to CPU clock";
+              t0 <- time ();
+              ticks <- 0L
+          | None, true | Some false, true ->
+              log#important "Delegating synchronisation to active sources"
+          | _ -> ()
       end;
       self_sync <- Some new_val;
       new_val

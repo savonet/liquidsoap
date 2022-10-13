@@ -255,15 +255,16 @@ let params_of_descr d =
               let bounds = ref " (" in
               begin
                 match min with
-                | Some f -> (
-                    match t with
-                      | Float -> bounds := Printf.sprintf "%s%.6g <= " !bounds f
-                      | Int ->
-                          bounds :=
-                            Printf.sprintf "%s%d <= " !bounds
-                              (int_of_float (ceil f))
-                      | Bool -> ())
-                | None -> ()
+                  | Some f -> (
+                      match t with
+                        | Float ->
+                            bounds := Printf.sprintf "%s%.6g <= " !bounds f
+                        | Int ->
+                            bounds :=
+                              Printf.sprintf "%s%d <= " !bounds
+                                (int_of_float (ceil f))
+                        | Bool -> ())
+                  | None -> ()
               end;
               bounds :=
                 !bounds ^ "`"
@@ -271,14 +272,15 @@ let params_of_descr d =
                 ^ "`";
               begin
                 match max with
-                | Some f -> (
-                    match t with
-                      | Float -> bounds := Printf.sprintf "%s <= %.6g" !bounds f
-                      | Int ->
-                          bounds :=
-                            Printf.sprintf "%s <= %d" !bounds (int_of_float f)
-                      | Bool -> ())
-                | None -> ()
+                  | Some f -> (
+                      match t with
+                        | Float ->
+                            bounds := Printf.sprintf "%s <= %.6g" !bounds f
+                        | Int ->
+                            bounds :=
+                              Printf.sprintf "%s <= %d" !bounds (int_of_float f)
+                        | Bool -> ())
+                  | None -> ()
               end;
               !bounds ^ ")")
           in

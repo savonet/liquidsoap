@@ -3,105 +3,53 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-  rec.liq
+  argsof.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} rec.liq liquidsoap %{test_liq} rec.liq)))
+ (action (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
   
 (rule
  (alias runtest)
  (package liquidsoap)
  (deps
-  loop.liq
+  bool.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
+ (action (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
   
 (rule
  (alias runtest)
  (package liquidsoap)
  (deps
-  process.liq
+  doc.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
+ (action (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
   
 (rule
  (alias runtest)
  (package liquidsoap)
  (deps
-  ref.liq
+  encoders.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} ref.liq liquidsoap %{test_liq} ref.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  regexp.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} regexp.liq liquidsoap %{test_liq} regexp.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  null.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  math.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  pp.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} pp.liq liquidsoap %{test_liq} pp.liq)))
+ (action (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
   
 (rule
  (alias runtest)
@@ -120,79 +68,14 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-  string.liq
+  eval.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  stdlib.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  argsof.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  file.watch.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} file.watch.liq liquidsoap %{test_liq} file.watch.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  interactive.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  predicate.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
+ (action (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
   
 (rule
  (alias runtest)
@@ -211,6 +94,58 @@
  (alias runtest)
  (package liquidsoap)
  (deps
+  file.watch.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} file.watch.liq liquidsoap %{test_liq} file.watch.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  file.watch2.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  file_protocol.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} file_protocol.liq liquidsoap %{test_liq} file_protocol.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  functions.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
   getter.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
@@ -224,14 +159,27 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-  pattern.liq
+  interactive.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
+ (action (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  json.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} json.liq liquidsoap %{test_liq} json.liq)))
   
 (rule
  (alias runtest)
@@ -245,6 +193,32 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} list.liq liquidsoap %{test_liq} list.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  loop.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  math.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
   
 (rule
  (alias runtest)
@@ -276,40 +250,14 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-  file.watch2.liq
+  null.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  functions.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
-  
-(rule
- (alias runtest)
- (package liquidsoap)
- (deps
-  record.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
+ (action (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
   
 (rule
  (alias runtest)
@@ -328,92 +276,131 @@
  (alias runtest)
  (package liquidsoap)
  (deps
-  file_protocol.liq
+  pattern.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file_protocol.liq liquidsoap %{test_liq} file_protocol.liq)))
+ (action (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
   
 (rule
  (alias runtest)
  (package liquidsoap)
  (deps
-  eval.liq
+  pp.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
+ (action (run %{run_test} pp.liq liquidsoap %{test_liq} pp.liq)))
   
 (rule
  (alias runtest)
  (package liquidsoap)
  (deps
-  bool.liq
+  predicate.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
+ (action (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
   
 (rule
  (alias runtest)
  (package liquidsoap)
  (deps
-  json.liq
+  process.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} json.liq liquidsoap %{test_liq} json.liq)))
+ (action (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
   
 (rule
  (alias runtest)
  (package liquidsoap)
  (deps
-  encoders.liq
+  rec.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
+ (action (run %{run_test} rec.liq liquidsoap %{test_liq} rec.liq)))
   
 (rule
  (alias runtest)
  (package liquidsoap)
  (deps
-  doc.liq
+  record.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
+ (action (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
   
 (rule
  (alias runtest)
  (package liquidsoap)
  (deps
-  typing.liq
+  ref.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} typing.liq liquidsoap %{test_liq} typing.liq)))
+ (action (run %{run_test} ref.liq liquidsoap %{test_liq} ref.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  regexp.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} regexp.liq liquidsoap %{test_liq} regexp.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  stdlib.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  string.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
   
 (rule
  (alias runtest)
@@ -427,4 +414,17 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} time.liq liquidsoap %{test_liq} time.liq)))
+  
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  typing.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} typing.liq liquidsoap %{test_liq} typing.liq)))
   

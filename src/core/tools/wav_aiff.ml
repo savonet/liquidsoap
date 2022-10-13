@@ -123,9 +123,9 @@ let read_header read_ops ic =
   (* size of the file *)
   begin
     match read_string ic 4 with
-    | "WAVE" when format = `Wav -> ()
-    | "AIFF" when format = `Aiff -> ()
-    | _ -> raise (Not_a_iff_file "Bad header")
+      | "WAVE" when format = `Wav -> ()
+      | "AIFF" when format = `Aiff -> ()
+      | _ -> raise (Not_a_iff_file "Bad header")
   end;
   let format_chunk = if format = `Wav then "fmt " else "COMM" in
   let seek_chunk ic name =

@@ -1,9 +1,10 @@
 let () =
   let location = Filename.dirname Sys.executable_name in
   let libs =
-    List.filter
-      (fun f -> Filename.extension f = ".liq")
-      (Array.to_list (Sys.readdir location))
+    List.sort Stdlib.compare
+      (List.filter
+         (fun f -> Filename.extension f = ".liq")
+         (Array.to_list (Sys.readdir location)))
   in
   Printf.printf
     {|

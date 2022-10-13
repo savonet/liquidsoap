@@ -25,7 +25,9 @@ let () = Lang.add_module "random"
 let () =
   let add op name descr =
     let t = Lang.float_t in
-    Lang.add_builtin name ~category:`Math ~descr [("", t, None, None)] t
+    Lang.add_builtin name ~category:`Math ~descr
+      [("", t, None, None)]
+      t
       (fun p ->
         let a = Lang.to_float (List.assoc "" p) in
         Lang.float (op a))
@@ -52,7 +54,9 @@ let () =
 let () =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "~-" ~category:`Math
-    ~descr:"Returns the opposite of its argument." [("", t, None, None)] t
+    ~descr:"Returns the opposite of its argument."
+    [("", t, None, None)]
+    t
     (fun p ->
       match Lang.to_num (List.assoc "" p) with
         | `Int i -> Lang.int ~-i
@@ -61,7 +65,9 @@ let () =
 let () =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "abs" ~category:`Math ~descr:"Absolute value."
-    [("", t, None, None)] t (fun p ->
+    [("", t, None, None)]
+    t
+    (fun p ->
       match Lang.to_num (List.assoc "" p) with
         | `Int i -> Lang.int (abs i)
         | `Float i -> Lang.float (abs_float i))
@@ -71,7 +77,9 @@ let () =
   let register_op doc name op_int op_float =
     Lang.add_builtin name ~category:`Math
       ~descr:(Printf.sprintf "%s of numbers." doc)
-      [("", t, None, None); ("", t, None, None)] t (fun p ->
+      [("", t, None, None); ("", t, None, None)]
+      t
+      (fun p ->
         let p = List.map (fun (l, v) -> (l, Lang.demeth v)) p in
         let a = Lang.to_num (Lang.assoc "" 1 p) in
         let b = Lang.to_num (Lang.assoc "" 2 p) in
@@ -92,12 +100,16 @@ let () =
 let () =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "float" ~category:`Math ~descr:"Convert a number to a float."
-    [("", t, None, None)] Lang.float_t (fun p ->
+    [("", t, None, None)]
+    Lang.float_t
+    (fun p ->
       let x = List.assoc "" p |> Lang.to_num in
       let x = match x with `Int x -> float x | `Float x -> x in
       Lang.float x);
   Lang.add_builtin "int" ~category:`Math
-    ~descr:"Convert a number to an integer." [("", t, None, None)] Lang.int_t
+    ~descr:"Convert a number to an integer."
+    [("", t, None, None)]
+    Lang.int_t
     (fun p ->
       let x = List.assoc "" p |> Lang.to_num in
       let x = match x with `Int x -> x | `Float x -> int_of_float x in
@@ -172,7 +184,9 @@ let () =
     [
       ("", Lang.int_t, None, Some "Number to shift.");
       ("", Lang.int_t, None, Some "Number of bits to shift.");
-    ] Lang.int_t (fun p ->
+    ]
+    Lang.int_t
+    (fun p ->
       let n = Lang.to_int (Lang.assoc "" 1 p) in
       let b = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (n lsl b))
@@ -182,7 +196,9 @@ let () =
     [
       ("", Lang.int_t, None, Some "Number to shift.");
       ("", Lang.int_t, None, Some "Number of bits to shift.");
-    ] Lang.int_t (fun p ->
+    ]
+    Lang.int_t
+    (fun p ->
       let n = Lang.to_int (Lang.assoc "" 1 p) in
       let b = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (n lsr b))

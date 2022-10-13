@@ -139,7 +139,9 @@ let () =
     [
       ("", Lang.string_t, None, Some "Variable to be set.");
       ("", Lang.string_t, None, Some "Value to set.");
-    ] Lang.unit_t (fun p ->
+    ]
+    Lang.unit_t
+    (fun p ->
       let label = Lang.to_string (Lang.assoc "" 1 p) in
       let value = Lang.to_string (Lang.assoc "" 2 p) in
       Unix.putenv label value;
@@ -165,7 +167,9 @@ let () =
   Lang.add_builtin ~category:`Liquidsoap
     ~descr:"Ensure that Liquidsoap version is greater or equal to given one."
     "liquidsoap.version.at_least"
-    [("", Lang.string_t, None, Some "Minimal version.")] Lang.bool_t (fun p ->
+    [("", Lang.string_t, None, Some "Minimal version.")]
+    Lang.bool_t
+    (fun p ->
       let v = List.assoc "" p |> Lang.to_string in
       Lang.bool
         (Lang_string.Version.compare

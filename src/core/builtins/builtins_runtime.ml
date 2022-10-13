@@ -174,7 +174,9 @@ let () =
     ~descr:"Return the current values of the GC parameters" [] control_t
     (fun _ -> control (Gc.get ()));
   Lang.add_builtin "runtime.gc.set" ~category:`Liquidsoap
-    ~descr:"Set the GC parameters." [("", control_t, None, None)] Lang.unit_t
+    ~descr:"Set the GC parameters."
+    [("", control_t, None, None)]
+    Lang.unit_t
     (fun p ->
       let c = to_control (List.assoc "" p) in
       Gc.set c;
