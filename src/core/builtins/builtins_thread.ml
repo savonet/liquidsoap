@@ -111,12 +111,12 @@ let () =
       let fn = Lang.assoc "" 2 p in
       let handler ~bt err =
         match (err, on_err) with
-          | Term.(Runtime_error { kind; msg; _ }), None ->
+          | Runtime_error.(Runtime_error { kind; msg; _ }), None ->
               let error = Lang.error { Runtime_error.kind; msg; pos = [] } in
               let bt = Lang.string bt in
               ignore (Lang.apply fn [("backtrace", bt); ("", error)]);
               true
-          | Term.(Runtime_error { kind; msg; _ }), Some err
+          | Runtime_error.(Runtime_error { kind; msg; _ }), Some err
             when kind = err.Runtime_error.kind ->
               let error = Lang.error { Runtime_error.kind; msg; pos = [] } in
               let bt = Lang.string bt in

@@ -369,13 +369,13 @@ let () =
       let f = Lang.to_string (List.assoc "" p) in
       let f = Lang_string.home_unrelate f in
       if not (Sys.file_exists f) then
-        Runtime_error.error
+        Lang.raise_error
           ~message:
             (Printf.sprintf "File %s does not exist!"
                (Lang_string.quote_string f))
           "playlist";
       if Sys.is_directory f then
-        Runtime_error.error
+        Lang.raise_error
           ~message:
             (Printf.sprintf
                "File %s is a directory! A regular file was expected."

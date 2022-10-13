@@ -115,9 +115,7 @@ let () =
              code msg)
     | _ -> None)
 
-let fail msg =
-  raise Runtime_error.(Runtime_error { kind = "http"; msg; pos = [] })
-
+let fail message = Lang.raise_error ~message "http"
 let interrupt = Atomic.make false
 let () = Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true)
 

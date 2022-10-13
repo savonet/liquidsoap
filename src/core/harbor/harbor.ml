@@ -1113,7 +1113,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     try
       let { handler; fds; transport = t } = Hashtbl.find opened_ports port in
       if transport != t then
-        Runtime_error.error
+        Lang.raise_error
           ~message:"Port is already opened with a different transport" "http";
       (* If we have only one socket and icy=true,
        * we need to open a second one. *)
@@ -1139,7 +1139,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let sources =
       let handler = get_handler ~transport ~icy port in
       if Hashtbl.mem handler.sources mountpoint then
-        Runtime_error.error ~message:"Mountpoint is already taken!" "http"
+        Lang.raise_error ~message:"Mountpoint is already taken!" "http"
       else ();
       handler.sources
     in
