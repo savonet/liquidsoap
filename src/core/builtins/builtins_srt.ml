@@ -291,7 +291,9 @@ module SocketValue = struct
           ([], Lang.fun_t [(true, "clear", Lang.nullable_t Lang.bool_t)] stats_t),
           "Socket bstats",
           fun s ->
-            Lang.val_fun [("clear", "clear", Some Lang.null)] (fun p ->
+            Lang.val_fun
+              [("clear", "clear", Some Lang.null)]
+              (fun p ->
                 let clear =
                   Lang.to_valued_option Lang.to_bool (List.assoc "clear" p)
                 in
@@ -312,7 +314,8 @@ module SocketValue = struct
               [
                 ("clear", "clear", Some Lang.null);
                 ("instantaneous", "instantaneous", Some Lang.null);
-              ] (fun p ->
+              ]
+              (fun p ->
                 let clear =
                   Lang.to_valued_option Lang.to_bool (List.assoc "clear" p)
                 in

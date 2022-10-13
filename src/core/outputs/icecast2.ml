@@ -532,8 +532,8 @@ class output p =
       assert (Cry.get_status connection = Cry.Disconnected);
       begin
         match dumpfile with
-        | Some f -> dump <- Some (open_out_bin f)
-        | None -> ()
+          | Some f -> dump <- Some (open_out_bin f)
+          | None -> ()
       end;
       let display_mount =
         match mount with
@@ -592,11 +592,11 @@ class output p =
       encoder <- None;
       begin
         match Cry.get_status connection with
-        | Cry.Disconnected -> ()
-        | Cry.Connected _ ->
-            self#log#important "Closing connection...";
-            Cry.close connection;
-            on_disconnect ()
+          | Cry.Disconnected -> ()
+          | Cry.Connected _ ->
+              self#log#important "Closing connection...";
+              Cry.close connection;
+              on_disconnect ()
       end;
       match dump with Some f -> close_out f | None -> ()
   end

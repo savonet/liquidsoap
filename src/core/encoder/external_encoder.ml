@@ -72,12 +72,12 @@ let encoder id ext =
     | `Status s ->
         begin
           match s with
-          | Unix.WEXITED 0 -> ()
-          | Unix.WEXITED c -> log#important "Process exited with code %d" c
-          | Unix.WSIGNALED s ->
-              log#important "Process was killed by signal %d" s
-          | Unix.WSTOPPED s ->
-              log#important "Process was stopped by signal %d" s
+            | Unix.WEXITED 0 -> ()
+            | Unix.WEXITED c -> log#important "Process exited with code %d" c
+            | Unix.WSIGNALED s ->
+                log#important "Process was killed by signal %d" s
+            | Unix.WSTOPPED s ->
+                log#important "Process was stopped by signal %d" s
         end;
         restart_decision ()
     | `Exception e ->

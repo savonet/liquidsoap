@@ -11,7 +11,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} http.liq liquidsoap %{test_liq} http.liq)))
-
+  
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -24,7 +24,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} put.liq liquidsoap %{test_liq} put.liq)))
-
+  
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -37,3 +37,4 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} post.liq liquidsoap %{test_liq} post.liq)))
+  

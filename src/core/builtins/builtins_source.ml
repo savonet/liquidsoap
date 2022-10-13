@@ -21,8 +21,7 @@
  *****************************************************************************)
 
 let () =
-  Lang.add_builtin "source.set_name"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.set_name" ~category:(`Source `Liquidsoap)
     ~descr:"Set the name of an operator."
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);
@@ -36,8 +35,7 @@ let () =
       Lang.unit)
 
 let () =
-  Lang.add_builtin "source.skip"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.skip" ~category:(`Source `Liquidsoap)
     ~descr:"Skip to the next track."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.unit_t
@@ -46,8 +44,7 @@ let () =
       Lang.unit)
 
 let () =
-  Lang.add_builtin "source.seek"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.seek" ~category:(`Source `Liquidsoap)
     ~descr:
       "Seek forward, in seconds. Returns the amount of time effectively seeked."
     [
@@ -63,24 +60,21 @@ let () =
       Lang.float (Frame.seconds_of_main ret))
 
 let () =
-  Lang.add_builtin "source.id"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.id" ~category:(`Source `Liquidsoap)
     ~descr:"Get the identifier of a source."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.string_t
     (fun p -> Lang.string (Lang.to_source (List.assoc "" p))#id)
 
 let () =
-  Lang.add_builtin "source.fallible"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.fallible" ~category:(`Source `Liquidsoap)
     ~descr:"Indicate if a source may fail, i.e. may not be ready to stream."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
     (fun p -> Lang.bool ((Lang.to_source (List.assoc "" p))#stype == `Fallible))
 
 let () =
-  Lang.add_builtin "source.is_ready"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.is_ready" ~category:(`Source `Liquidsoap)
     ~descr:
       "Indicate if a source is ready to stream (we also say that it is \
        available), or currently streaming."
@@ -95,8 +89,7 @@ let () =
     (fun p -> Lang.bool (Lang.to_source (Lang.assoc "" 1 p))#is_up)
 
 let () =
-  Lang.add_builtin "source.remaining"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.remaining" ~category:(`Source `Liquidsoap)
     ~descr:"Estimation of remaining time in the current track."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.float_t
@@ -106,8 +99,7 @@ let () =
       Lang.float f)
 
 let () =
-  Lang.add_builtin "source.elapsed"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.elapsed" ~category:(`Source `Liquidsoap)
     ~descr:"Elapsed time in the current track."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.float_t
@@ -117,8 +109,7 @@ let () =
       Lang.float f)
 
 let () =
-  Lang.add_builtin "source.duration"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.duration" ~category:(`Source `Liquidsoap)
     ~descr:"Estimation of the duration in the current track."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.float_t
@@ -128,9 +119,8 @@ let () =
       Lang.float f)
 
 let () =
-  Lang.add_builtin
-    ~category:(`Source `Liquidsoap)
-    "source.time" ~descr:"Get a source's time, based on its assigned clock"
+  Lang.add_builtin ~category:(`Source `Liquidsoap) "source.time"
+    ~descr:"Get a source's time, based on its assigned clock"
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.float_t
     (fun p ->
@@ -145,8 +135,7 @@ let () =
       Lang.float (frame_position +. in_frame_position))
 
 let () =
-  Lang.add_builtin "source.on_leave"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.on_leave" ~category:(`Source `Liquidsoap)
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);
       ("", Lang.fun_t [] Lang.unit_t, None, None);
@@ -163,8 +152,7 @@ let () =
       Lang.unit)
 
 let () =
-  Lang.add_builtin "source.on_shutdown"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.on_shutdown" ~category:(`Source `Liquidsoap)
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);
       ("", Lang.fun_t [] Lang.unit_t, None, None);
@@ -183,8 +171,7 @@ let () =
     let kind = Lang.any in
     Lang.source_t (Lang.frame_kind_t kind)
   in
-  Lang.add_builtin "source.init"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.init" ~category:(`Source `Liquidsoap)
     ~descr:
       "Simultaneously initialize sources, return the sublist of sources that \
        failed to initialize."
@@ -206,8 +193,7 @@ let () =
 let () =
   let log = Log.make ["source"; "dump"] in
   let kind = Lang.univ_t () in
-  Lang.add_builtin "source.dump"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.dump" ~category:(`Source `Liquidsoap)
     ~descr:"Immediately encode the whole contents of a source into a file."
     ~flags:[`Experimental]
     [
@@ -237,8 +223,7 @@ let () =
 
 let () =
   let log = Log.make ["source"; "drop"] in
-  Lang.add_builtin "source.drop"
-    ~category:(`Source `Liquidsoap)
+  Lang.add_builtin "source.drop" ~category:(`Source `Liquidsoap)
     ~descr:"Animate the source as fast as possible, dropping its output."
     ~flags:[`Experimental]
     [("", Lang.source_t (Lang.univ_t ()), None, Some "Source to animate.")]

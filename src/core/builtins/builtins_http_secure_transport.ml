@@ -68,12 +68,14 @@ let transport ~password ~certificate ~key:_ () =
       end;
       begin
         match bind_address with
-        | None -> ()
-        | Some s ->
-            let bind_addr_inet = (Unix.gethostbyname s).Unix.h_addr_list.(0) in
-            (* Seems like you need to bind on port 0 *)
-            let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
-            Unix.bind sock bind_addr
+          | None -> ()
+          | Some s ->
+              let bind_addr_inet =
+                (Unix.gethostbyname s).Unix.h_addr_list.(0)
+              in
+              (* Seems like you need to bind on port 0 *)
+              let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
+              Unix.bind sock bind_addr
       end;
       let ctx =
         SecureTransport.init SecureTransport.Client SecureTransport.Stream

@@ -93,7 +93,9 @@ let () =
         Lang.string_t,
         None,
         Some "File from which the metadata should be read." );
-    ] Lang.metadata_t ~descr:"Read metadata from a file." (fun p ->
+    ]
+    Lang.metadata_t ~descr:"Read metadata from a file."
+    (fun p ->
       let uri = Lang.to_string (List.assoc "" p) in
       let r = Request.create uri in
       if Request.resolve ~ctype:None r 30. = Request.Resolved then (
@@ -127,8 +129,10 @@ let () =
     ~descr:
       "`file.which(\"progname\")` looks for an executable named \"progname\" \
        using directories from the PATH environment variable and returns \"\" \
-       if it could not find one." [("", Lang.string_t, None, None)]
-    (Lang.nullable_t Lang.string_t) (fun p ->
+       if it could not find one."
+    [("", Lang.string_t, None, None)]
+    (Lang.nullable_t Lang.string_t)
+    (fun p ->
       let file = Lang.to_string (List.assoc "" p) in
       try Lang.string (Utils.which ~path:(Configure.path ()) file)
       with Not_found -> Lang.null)

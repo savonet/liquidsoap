@@ -24,6 +24,7 @@
     (pcre (>= 7.5.0))
     (ocurl (>= 0.9.2))
     (cry (>= 0.6.5))
+    (ocamlformat (and (= 0.24.1) :dev))
     uri
     menhirLib
     metadata
@@ -130,6 +131,7 @@
   (name liquidsoap-lang)
   (depends
     (ocaml (>= 4.12.0))
+    (ppx_string :build)
     dune-site
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))

@@ -191,8 +191,8 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
         Unix.close socket;
         begin
           match e with
-          | Failure s -> self#log#severe "Feeding stopped: %s." s
-          | e -> self#log#severe "Feeding stopped: %s." (Printexc.to_string e)
+            | Failure s -> self#log#severe "Feeding stopped: %s." s
+            | e -> self#log#severe "Feeding stopped: %s." (Printexc.to_string e)
         end;
         if should_stop () then has_stopped ()
         else self#feed (should_stop, has_stopped)

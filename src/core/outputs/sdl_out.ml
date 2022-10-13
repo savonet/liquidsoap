@@ -121,11 +121,9 @@ let () =
         :> Output.output))
 
 let () =
-  Lang.add_builtin
-    ~category:(`Source `Output)
+  Lang.add_builtin ~category:(`Source `Output)
     ~descr:"Check whether video output is available with SDL."
-    "output.sdl.has_video" [] Lang.bool_t
-    (fun _ ->
+    "output.sdl.has_video" [] Lang.bool_t (fun _ ->
       match Sdl.init Sdl.Init.video with
         | Ok _ -> Lang.bool true
         | Error _ -> Lang.bool false)

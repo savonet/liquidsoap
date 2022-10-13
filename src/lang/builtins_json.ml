@@ -261,7 +261,9 @@ let () =
             Lang.unit_t ),
         "Add or replace a new `key`/`value` pair to the object.",
         fun v ->
-          Lang.val_fun [("", "", None); ("", "", None)] (fun p ->
+          Lang.val_fun
+            [("", "", None); ("", "", None)]
+            (fun p ->
               let key = Lang.to_string (Lang.assoc "" 1 p) in
               let value = Lang.assoc "" 2 p in
               Hashtbl.replace v key value;
@@ -271,7 +273,9 @@ let () =
         "Remove a key from the object. Does not nothing if the key does not \
          exist.",
         fun v ->
-          Lang.val_fun [("", "", None)] (fun p ->
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
               let key = Lang.to_string (List.assoc "" p) in
               Hashtbl.remove v key;
               Lang.unit) );
@@ -428,7 +432,9 @@ let () =
     [
       ("default", t, None, Some "Default value if string cannot be parsed.");
       ("", Lang.string_t, None, None);
-    ] t (fun p ->
+    ]
+    t
+    (fun p ->
       log#important
         "WARNING: \"json.parse\" is deprecated and will be removed in future \
          version. Please use \"let json.parse ...\" instead";

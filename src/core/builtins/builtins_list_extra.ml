@@ -27,5 +27,7 @@ let () =
   Lang.add_builtin "list.shuffle" ~category:`List
     ~descr:
       "Shuffle the content of a list. The function returns a list with the \
-       same elements but in different, random, order." [("", t, None, None)] t
+       same elements but in different, random, order."
+    [("", t, None, None)]
+    t
     (fun p -> List.assoc "" p |> Lang.to_list |> List.shuffle |> Lang.list)
