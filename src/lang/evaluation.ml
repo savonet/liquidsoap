@@ -316,7 +316,7 @@ let eval ?env tm =
       | Some env -> env
       | None -> Environment.default_environment ()
   in
-  let env = List.map (fun (x, (_, v)) -> (x, Lazy.from_val v)) env in
+  let env = List.map (fun (x, v) -> (x, Lazy.from_val v)) env in
   let v = eval env tm in
   (* This is used to unify runtime sources types with their inferred type. *)
   let fn = !Hooks.eval_check in
@@ -447,7 +447,8 @@ let rec eval_toplevel ?(interactive = false) t =
               | PVar [] -> assert false
               | PVar (x :: l) ->
                   let old_t, old =
-                    List.assoc x (Environment.default_environment ())
+                    ( List.assoc x (Environment.default_typing_environment ()),
+                      List.assoc x (Environment.default_environment ()) )
                   in
                   let old_t = snd old_t in
                   let old_t = snd (Type.invokes old_t l) in

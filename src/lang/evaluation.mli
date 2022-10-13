@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Evaluate a term in a given environment. *)
-val eval : ?env:(string * (Type.scheme * Value.t)) list -> Term.t -> Value.t
+val eval : ?env:(string * Value.t) list -> Term.t -> Value.t
 
 (** Evaluate a toplevel term. *)
 val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
