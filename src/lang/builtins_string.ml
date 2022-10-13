@@ -350,40 +350,45 @@ let () =
   (* Register as [name] the function which composes [in_value],[func] and
    * [out_value], and returns [default] in exceptional cases -- which MUST not
    * occur when default is not supplied. *)
-  let register_tt doc name category func ?default in_type in_value out_value
-      out_type =
+  let register_tt doc name category func ~needs_default in_type in_value
+      out_value out_type =
+    let raise_doc =
+      if needs_default then
+        [%string
+          {| Raises `error.failure("%{doc}")` if conversion fails and default is `null`|}]
+      else ""
+    in
     Lang.add_builtin name ~category
-      ~descr:("Convert " ^ doc ^ ".")
-      (let p = [("", in_type, None, None)] in
-       match default with
-         | None -> p
-         | Some d -> ("default", out_type, Some d, None) :: p)
+      ~descr:[%string {|Convert %{doc}.%{raise_doc}|}]
+      ([("", in_type, None, None)]
+      @
+      if needs_default then
+        [("default", Lang.nullable_t out_type, Some Lang.null, None)]
+      else [])
       out_type
       (fun p ->
         try out_value (func (in_value (List.assoc "" p)))
-        with _ -> List.assoc "default" p)
+        with _ -> (
+          try Option.get (Lang.to_option (List.assoc "default" p))
+          with _ -> Runtime_error.error ~message:name "failure"))
   in
-  let register_tts name func ~default out_value out_type =
-    register_tt ("a string to a " ^ name) (name ^ "_of_string") `String func
-      ~default Lang.string_t Lang.to_string out_value out_type
+  let register_tts name func out_value out_type =
+    register_tt ~needs_default:true ("a string to a " ^ name)
+      (name ^ "_of_string") `String func Lang.string_t Lang.to_string out_value
+      out_type
   in
   let register_tti name func out_value out_type =
-    register_tt ("an int to a " ^ name) (name ^ "_of_int") `Math func Lang.int_t
-      Lang.to_int out_value out_type
+    register_tt ~needs_default:false ("an int to a " ^ name) (name ^ "_of_int")
+      `Math func Lang.int_t Lang.to_int out_value out_type
   in
   let register_ttf name func out_value out_type =
-    register_tt ("a float to a " ^ name) (name ^ "_of_float") `Math func
-      Lang.float_t Lang.to_float out_value out_type
+    register_tt ~needs_default:false ("a float to a " ^ name)
+      (name ^ "_of_float") `Math func Lang.float_t Lang.to_float out_value
+      out_type
   in
-  register_tts "int" int_of_string ~default:(Lang.int 0)
-    (fun v -> Lang.int v)
-    Lang.int_t;
-  register_tts "float" float_of_string ~default:(Lang.float 0.)
-    (fun v -> Lang.float v)
-    Lang.float_t;
-  register_tts "bool" bool_of_string ~default:(Lang.bool false)
-    (fun v -> Lang.bool v)
-    Lang.bool_t;
+  register_tts "int" int_of_string (fun v -> Lang.int v) Lang.int_t;
+  register_tts "float" float_of_string (fun v -> Lang.float v) Lang.float_t;
+  register_tts "bool" bool_of_string (fun v -> Lang.bool v) Lang.bool_t;
   register_tti "float" float_of_int (fun v -> Lang.float v) Lang.float_t;
   register_tti "bool" (fun v -> v = 1) (fun v -> Lang.bool v) Lang.bool_t;
   register_ttf "int" int_of_float (fun v -> Lang.int v) Lang.int_t;

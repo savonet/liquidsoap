@@ -326,7 +326,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
      server.register(namespace=source.id(s), description="Set volume for a given source.",
                      usage="volume <source nb> <vol%>", "volume", fun (v) -> begin
                          try
-                           let [i, v] = string.split(separator=" ", v)
+                           let [i, v] = r/\s/.split(v)
                            input = list.nth(inputs, int_of_string(i))
                            input.set_volume(float_of_string(v))
                            status(input)
@@ -337,7 +337,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
      server.register(namespace=source.id(s), description="Enable/disable a source.",
                      usage="select <source nb> <true|false>", "select", fun (arg) -> begin
                          try
-                           let [i, b] = string.split(separator=" ", arg)
+                           let [i, b] = r/\s/.split(arg)
                            input = list.nth(inputs, int_of_string(i))
                            input.set_selected(b == "true")
                            status(input)
@@ -348,7 +348,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
      server.register(namespace=source.id(s), description="Enable/disable automatic stop at the end of track.",
                      usage="single <source nb> <true|false>", "single", fun (arg) -> begin
                          try
-                           let [i, b] = string.split(separator=" ", arg)
+                           let [i, b] = r/\s/.split(arg)
                            input = list.nth(inputs, int_of_string(i))
                            input.set_single(b == "true")
                            status(input)

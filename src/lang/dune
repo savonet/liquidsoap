@@ -42,7 +42,7 @@
  (public_name liquidsoap-lang)
  (library_flags -linkall)
  (preprocess
-  (pps sedlex.ppx))
+  (pps sedlex.ppx ppx_string))
  (libraries dune-site str unix menhirLib)
  (modules
   build_config
