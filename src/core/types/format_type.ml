@@ -32,7 +32,7 @@ let format_handler f =
   {
     Type.typ = Format f;
     copy_with = (fun _ f -> Format (Content_base.duplicate (get_format f)));
-    occur_check = (fun _ _ f -> ignore (get_format f));
+    occur_check = (fun _ _ -> ());
     filter_vars =
       (fun _ l f ->
         ignore (get_format f);
@@ -70,9 +70,9 @@ let kind_handler k =
         let k, ty = get_kind k in
         Kind (k, copy_with ty));
     occur_check =
-      (fun occur_check vars k ->
+      (fun occur_check k ->
         let _, ty = get_kind k in
-        occur_check vars ty);
+        occur_check ty);
     filter_vars =
       (fun filter_vars l k ->
         let _, ty = get_kind k in
