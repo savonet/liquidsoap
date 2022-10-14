@@ -34,8 +34,7 @@ open Mm
 (** Duplicate mono into stereo, drop channels when there are more than two. *)
 class basic source =
   object
-    inherit
-      Source.operator ~audio_in:Frame.audio_pcm [source] ~name:"audio_to_stereo"
+    inherit Source.operator [source] ~name:"audio_to_stereo"
 
     inherit
       Conversion.base

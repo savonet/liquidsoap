@@ -251,6 +251,56 @@ let to_source_list l = List.map to_source (to_list l)
     the currently defined source as argument). *)
 type 'a operator_method = string * scheme * string * ('a -> value)
 
+(** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
+let check_content v t =
+  let checked_values = ref [] in
+  let check t t' =
+    Typing.(
+      t <: t';
+      t' <: t)
+  in
+  let rec check_value v t =
+    if not (List.memq v !checked_values) then (
+      (* We need to avoid checking the same value multiple times, otherwise we
+         get an exponential blowup, see #1247. *)
+      checked_values := v :: !checked_values;
+      match (v.Value.value, (Type.deref t).Type.descr) with
+        | _ when V.is_value v ->
+            let source_t = source_t (V.of_value v)#frame_type in
+            check source_t t
+        | _ when Lang_encoder.V.is_value v ->
+            let kind = Encoder.kind_of_format (Lang_encoder.V.of_value v) in
+            let audio = Frame_type.make_kind (Frame.find_audio kind) in
+            let video = Frame_type.make_kind (Frame.find_video kind) in
+            let midi = Frame_type.make_kind (Frame.find_midi kind) in
+            let encoder_t =
+              Lang_encoder.L.format_t (Frame_type.make ~audio ~video ~midi ())
+            in
+            check encoder_t t
+        | Value.Ground _, _ -> ()
+        | Value.List l, Type.List { Type.t } ->
+            List.iter (fun v -> check_value v t) l
+        | Value.Tuple l, Type.Tuple t -> List.iter2 check_value l t
+        | Value.Null, _ -> ()
+        (* Value can have more methods than the type requires so check from the type here. *)
+        | _, Type.Meth _ ->
+            let meths, v = Value.split_meths v in
+            let meths_t, t = Type.split_meths t in
+            List.iter
+              (fun { Type.meth; scheme = generalized, t } ->
+                let t = Typing.instantiate ~level:(-1) ~generalized t in
+                check_value (List.assoc meth meths) t)
+              meths_t;
+            check_value v t
+        | Ref r, Type.Constr { Type.constructor = "ref"; params = [(_, t)] } ->
+            check_value (Atomic.get r) t
+        (* We don't check functions, assuming anything creating a source is a FFI registered via add_operator
+           so the check will happen there. *)
+        | Fun _, _ | FFI _, _ -> ()
+        | _ -> assert false)
+  in
+  check_value v t
+
 (** An operator is a builtin function that builds a source.
   * It is registered using the wrapper [add_operator].
   * Creating the associated function type (and function) requires some work:
@@ -282,15 +332,44 @@ let add_operator =
       :: List.stable_sort compare proto
     in
     let f env =
+      (* Create a fresh instantiation of the return type and the type of arguments. *)
+      let return_t, proto =
+        let generalized, t =
+          (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
+          Typing.generalize ~level:(-1)
+            (Type.make
+               (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) proto)))
+        in
+        let t = Typing.instantiate ~level:(-1) ~generalized t in
+        match t.Type.descr with
+          | Type.Tuple (return_t :: proto_t) ->
+              ( return_t,
+                List.map2 (fun (name, _, _, _) typ -> (name, typ)) proto proto_t
+              )
+          | _ -> assert false
+      in
+      let proto =
+        List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') proto
+      in
+      (* Negotiate content for all sources and formats in the arguments. *)
+      let () =
+        let env =
+          List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') env
+        in
+        List.iter2
+          (fun (name, typ) (name', v) ->
+            assert (name = name');
+            check_content v typ)
+          proto env
+      in
       let src : < Source.source ; .. > = f env in
       ignore
         (Option.map
            (fun id -> src#set_id id)
            (to_valued_option to_string (List.assoc "id" env)));
+      Typing.(src#frame_type <: return_t);
+      Typing.(return_t <: src#frame_type);
       let v = source (src :> Source.source) in
-      let generalized, return_t = Typing.generalize ~level:0 return_t in
-      let return_t = Typing.instantiate ~level:0 ~generalized return_t in
-      Typing.((V.of_value v)#frame_type <: return_t);
       _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
     in
     let f env =

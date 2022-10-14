@@ -268,19 +268,8 @@ let add_new_output, iterate_new_outputs =
         List.iter f !l;
         l := []) )
 
-class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
-  let out_typ = Frame_type.univ () in
-  let f typ (fn, el) =
-    match el with None -> typ | Some v -> fn typ (Frame_type.make_kind v)
-  in
-  let in_typ =
-    List.fold_left f out_typ
-      [
-        (Frame_type.set_audio, audio_in);
-        (Frame_type.set_video, video_in);
-        (Frame_type.set_midi, midi_in);
-      ]
-  in
+class virtual operator ?(name = "src") sources =
+  let frame_type = Frame_type.univ () in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
@@ -348,8 +337,11 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
       List.iter (fun s -> unify self#clock s#clock) sources
 
     initializer self#set_clock
-    method frame_type = out_typ
-    initializer List.iter (fun s -> Typing.(s#frame_type <: in_typ)) sources
+
+    (* Type describing the contents of the frame: this should be a record
+       whose fields (audio, video, etc.) indicate the kind of contents we
+       have (e.g. {audio : pcm}). *)
+    method frame_type = frame_type
     val mutable ctype = None
 
     (* Content type. *)
@@ -696,9 +688,9 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in sources =
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
-and virtual active_operator ?name ?audio_in ?video_in ?midi_in sources =
+and virtual active_operator ?name sources =
   object (self)
-    inherit operator ?name ?audio_in ?video_in ?midi_in sources
+    inherit operator ?name sources
 
     initializer
     has_outputs := true;
@@ -718,14 +710,14 @@ and virtual active_operator ?name ?audio_in ?video_in ?midi_in sources =
 
 (** Shortcuts for defining sources with no children *)
 
-class virtual source ?name ?audio_in ?video_in ?midi_in () =
+class virtual source ?name () =
   object
-    inherit operator ?name ?audio_in ?video_in ?midi_in []
+    inherit operator ?name []
   end
 
-class virtual active_source ?name ?audio_in ?video_in ?midi_in () =
+class virtual active_source ?name () =
   object
-    inherit active_operator ?name ?audio_in ?video_in ?midi_in []
+    inherit active_operator ?name []
   end
 
 class virtual no_seek =
