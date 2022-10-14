@@ -9,10 +9,11 @@
 - Switch to `dune`
 - Separate standard library (in pure liq)
 
-## Ongoing
+### Ongoing
 
 - support for multi-track audio
 - support for subtitles
+- Switch to immutable content
 - live switch with ffmpeg encoded content
 
 ## Backlog
