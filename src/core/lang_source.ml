@@ -251,6 +251,7 @@ let to_source_list l = List.map to_source (to_list l)
     the currently defined source as argument). *)
 type 'a operator_method = string * scheme * string * ('a -> value)
 
+(** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
 let check_content v t =
   let checked_values = ref [] in
   let check t t' =
@@ -293,7 +294,7 @@ let check_content v t =
             check_value v t
         | Ref r, Type.Constr { Type.constructor = "ref"; params = [(_, t)] } ->
             check_value (Atomic.get r) t
-        (* We don't check function, assuming anything creating a source is a FFI registered via add_operator
+        (* We don't check functions, assuming anything creating a source is a FFI registered via add_operator
            so the check will happen there. *)
         | Fun _, _ | FFI _, _ -> ()
         | _ -> assert false)
@@ -331,8 +332,10 @@ let add_operator =
       :: List.stable_sort compare proto
     in
     let f env =
+      (* Create a fresh instantiation of the return type and the type of arguments. *)
       let return_t, proto =
         let generalized, t =
+          (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
           Typing.generalize ~level:(-1)
             (Type.make
                (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) proto)))
@@ -345,21 +348,19 @@ let add_operator =
               )
           | _ -> assert false
       in
+      let proto =
+        List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') proto
+      in
       (* Negotiate content for all sources and formats in the arguments. *)
       let () =
-        let positions = Hashtbl.create 10 in
-        let position name =
-          let pos = try Hashtbl.find positions name with Not_found -> 1 in
-          Hashtbl.replace positions name (pos + 1);
-          pos
+        let env =
+          List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') env
         in
-        List.iter
-          (fun (name, typ) ->
-            let v =
-              try Some (assoc name (position name) env) with Not_found -> None
-            in
-            match v with None -> () | Some v -> check_content v typ)
-          proto
+        List.iter2
+          (fun (name, typ) (name', v) ->
+            assert (name = name');
+            check_content v typ)
+          proto env
       in
       let src : < Source.source ; .. > = f env in
       ignore

@@ -337,6 +337,10 @@ class virtual operator ?(name = "src") sources =
       List.iter (fun s -> unify self#clock s#clock) sources
 
     initializer self#set_clock
+
+    (* Type describing the contents of the frame: this should be a record
+       whose fields (audio, video, etc.) indicate the kind of contents we
+       have (e.g. {audio : pcm}). *)
     method frame_type = frame_type
     val mutable ctype = None
 
