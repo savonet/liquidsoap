@@ -95,6 +95,7 @@
   external_input_audio
   external_input_video
   extralib
+  fallback
   fdkaac_format
   ffmpeg_format
   file_watcher
@@ -220,7 +221,6 @@
   stringView
   strings
   swap
-  switch
   synth_op
   synthesized
   term
