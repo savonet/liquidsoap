@@ -273,33 +273,36 @@ module Value = struct
     print f.typ;
     print "\n\n";
     print ("Category: " ^ string_of_category f.category ^ "\n\n");
-    List.iter
-      (fun e ->
-        print "Example:\n\n";
-        print e;
-        print "\n\n")
-      f.examples;
-    print "Arguments:\n\n";
-    List.iter
-      (fun (l, a) ->
-        let l = Option.value ~default:"(unlabeled)" l in
-        let default =
-          match a.arg_default with
-            | Some d -> " (default: " ^ d ^ ")"
-            | None -> ""
-        in
-        print (" * " ^ l ^ " : " ^ a.arg_type ^ default ^ "\n");
-        Option.iter (fun d -> print (reflow ~indent:5 d)) a.arg_description;
-        print "\n\n")
-      f.arguments;
-    if f.methods <> [] then (
-      print "Methods:\n\n";
+    if f.flags <> [] then (
+      let flags = f.flags |> List.map string_of_flag |> String.concat "," in
+      print ("Flags: " ^ flags ^ "\n\n");
       List.iter
-        (fun (l, m) ->
-          print (" * " ^ l ^ " : " ^ m.meth_type ^ "\n");
-          Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
+        (fun e ->
+          print "Example:\n\n";
+          print e;
           print "\n\n")
-        f.methods)
+        f.examples;
+      print "Arguments:\n\n";
+      List.iter
+        (fun (l, a) ->
+          let l = Option.value ~default:"(unlabeled)" l in
+          let default =
+            match a.arg_default with
+              | Some d -> " (default: " ^ d ^ ")"
+              | None -> ""
+          in
+          print (" * " ^ l ^ " : " ^ a.arg_type ^ default ^ "\n");
+          Option.iter (fun d -> print (reflow ~indent:5 d)) a.arg_description;
+          print "\n\n")
+        f.arguments;
+      if f.methods <> [] then (
+        print "Methods:\n\n";
+        List.iter
+          (fun (l, m) ->
+            print (" * " ^ l ^ " : " ^ m.meth_type ^ "\n");
+            Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
+            print "\n\n")
+          f.methods))
 
   let to_json () : Json.t =
     !db |> Map.to_seq
