@@ -268,10 +268,11 @@ and apply ?pos f l =
   (* Record error positions. *)
   let f pe =
     try f pe with
-      | Runtime_error err ->
+      | Runtime_error.Runtime_error err ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
-            (Runtime_error { err with pos = Option.to_list pos @ err.pos })
+            (Runtime_error.Runtime_error
+               { err with pos = Option.to_list pos @ err.pos })
             bt
       | Internal_error (poss, e) ->
           let bt = Printexc.get_raw_backtrace () in

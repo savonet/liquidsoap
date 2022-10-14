@@ -165,14 +165,8 @@ let meth :
         fun s ->
           val_fun [] (fun _ ->
               if s#stype = `Infallible then
-                raise
-                  Term.(
-                    Runtime_error
-                      {
-                        kind = "input";
-                        msg = "Source is infallible and cannot be stopped";
-                        pos = [];
-                      });
+                Lang.raise_error
+                  ~message:"Source is infallible and cannot be stopped" "input";
               s#transition_to `Stopped;
               unit) );
       ( "shutdown",

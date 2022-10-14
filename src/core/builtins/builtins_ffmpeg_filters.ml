@@ -416,7 +416,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
             (fun p ->
               let v = List.assoc "" p in
               if !input_set then
-                Runtime_error.error
+                Lang.raise_error
                   ~pos:(match v.Value.pos with None -> [] | Some p -> [p])
                   ~message:"Filter input already set!" "ffmpeg.filter";
               let audio_inputs_c = List.length filter.io.inputs.audio in

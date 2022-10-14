@@ -115,8 +115,8 @@ let () =
     (Lang_core.univ_t ())
     (fun p ->
       let { kind } = Error.of_value (Lang_core.assoc "" 1 p) in
-      let msg = Lang_core.to_string (Lang_core.assoc "" 2 p) in
-      raise (Term.Runtime_error { Term.kind; msg; pos = [] }))
+      let message = Lang_core.to_string (Lang_core.assoc "" 2 p) in
+      Runtime_error.error ~message kind)
 
 let error_t = Error.t
 let error = Error.to_value
@@ -145,7 +145,7 @@ let () =
       let h = Lang_core.to_fun (Lang_core.assoc "" 2 p) in
       try f []
       with
-      | Term.Runtime_error { Term.kind; msg }
+      | Runtime_error.(Runtime_error { kind; msg })
       when errors = None
            || List.exists (fun err -> err.kind = kind) (Option.get errors)
       ->

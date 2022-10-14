@@ -49,7 +49,7 @@ let rec watchdog () =
 
 let watch : watch =
  fun e file f ->
-  if not (Sys.file_exists file) then Runtime_error.error "not_found";
+  if not (Sys.file_exists file) then Lang.raise_error "not_found";
   Tutils.mutexify m
     (fun () ->
       if !fd = None then (

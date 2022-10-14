@@ -22,9 +22,6 @@
 
 (** Terms and values in the Liquidsoap language. *)
 
-(** An error at runtime. *)
-include Runtime_error
-
 (** An internal error. Those should not happen in theory... *)
 exception Internal_error of (Pos.t list * string)
 

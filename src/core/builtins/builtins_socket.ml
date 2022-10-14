@@ -75,7 +75,7 @@ module SocketValue = struct
                         if rem <= 0. then failwith "timeout!";
                         socket#wait_for `Write rem
                       with _ ->
-                        Runtime_error.error
+                        Lang.raise_error
                           ~message:"Timeout while writing to the socket!"
                           "socket")
               in
@@ -116,7 +116,7 @@ module SocketValue = struct
                         if rem <= 0. then failwith "timeout!";
                         socket#wait_for `Read rem
                       with _ ->
-                        Runtime_error.error
+                        Lang.raise_error
                           ~message:"Timeout while reading from the socket!"
                           "socket")
               in
