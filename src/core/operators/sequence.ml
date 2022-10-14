@@ -126,8 +126,7 @@ class merge_tracks source =
   end
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "sequence"
     [
       ( "merge",
@@ -137,26 +136,25 @@ let () =
           "Merge tracks when advancing from one source to the next one. This \
            will NOT merge consecutive tracks from the last source; see \
            merge_tracks() if you need that too." );
-      ("", Lang.list_t (Lang.source_t k), None, None);
+      ("", Lang.list_t (Lang.source_t frame_t), None, None);
     ]
     ~category:`Track
     ~descr:
       "Play only one track of every successive source, except for the last one \
        which is played as much as available."
-    ~return_t:k
+    ~return_t:frame_t
     (fun p ->
       new sequence
         ~merge:(Lang.to_bool (List.assoc "merge" p))
         (Lang.to_source_list (List.assoc "" p)))
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "merge_tracks"
-    [("", Lang.source_t k, None, None)]
+    [("", Lang.source_t frame_t, None, None)]
     ~category:`Track
     ~descr:
       "Merge consecutive tracks from the input source. They will be considered \
        as one big track, so `on_track()` will not trigger for example."
-    ~return_t:k
+    ~return_t:frame_t
     (fun p -> new merge_tracks (Lang.to_source (List.assoc "" p)))

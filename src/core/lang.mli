@@ -127,29 +127,6 @@ val add_builtin_base :
 (** Declare a new module. *)
 val add_module : string -> unit
 
-val empty : Frame.content_kind
-val any : Frame.content_kind
-
-(** Any internal stream type. *)
-val internal : Frame.content_kind
-
-(* Audio (PCM format) *)
-val audio_pcm : Frame.content_kind
-val audio_params : Content.Audio.params -> Frame.content_kind
-val audio_n : int -> Frame.content_kind
-val audio_mono : Frame.content_kind
-val audio_stereo : Frame.content_kind
-
-(* Video *)
-val video_yuva420p : Frame.content_kind
-
-(* Midi *)
-val midi : Frame.content_kind
-val midi_n : int -> Frame.content_kind
-
-(* Conversion to format *)
-val frame_kind_t : Frame.content_kind -> t
-
 type 'a operator_method = string * scheme * string * ('a -> value)
 
 (** Add an operator to the language and to the documentation. *)
@@ -220,10 +197,15 @@ val error_t : t
 val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t
-val kind_t : Frame.kind -> t
-val kind_none_t : t
-val frame_t : t Frame.Fields.t -> t
-val of_frame_t : t -> t Frame.Fields.t
+
+(* [frame_t base_type fields] returns a frame with [base_type] as
+   its base type and [fields] as explicit fields. Equivalent to:
+   [base_type.{fields}] *)
+val frame_t : t -> t Frame.Fields.t -> t
+
+(* Return a generic frame type with the internal media constraint
+   applied. Equivalent to: ['a where 'a is an internal media type] *)
+val internal_t : unit -> t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].

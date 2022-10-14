@@ -172,8 +172,7 @@ class add ~renorm ~power (sources : ((unit -> float) * source) list) video_init
   end
 
 let () =
-  let kind = Lang.internal in
-  let frame_t = Lang.frame_kind_t kind in
+  let frame_t = Lang.internal_t () in
   Lang.add_operator "add" ~category:`Audio
     ~descr:
       "Mix sources, with optional normalization. Only relay metadata from the \
@@ -240,8 +239,10 @@ let tile_pos n =
   horiz (n / 2) (n - (n / 2))
 
 let () =
-  let kind = Lang.video_yuva420p in
-  let frame_t = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~video:(Format_type.video ()) ())
+  in
   Lang.add_operator "video.tile" ~category:`Video
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [

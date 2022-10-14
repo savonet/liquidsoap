@@ -55,11 +55,13 @@ class basic source =
   end
 
 let () =
-  let input_kind = Lang.audio_pcm in
-  let input_type = Lang.frame_kind_t input_kind in
-  let fields = Lang.of_frame_t input_type in
+  let input_type =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   let output_type =
-    Lang.frame_t (Frame.set_audio_field fields (Lang.kind_t Frame.audio_stereo))
+    Frame_type.set_field input_type Frame.audio_field
+      (Format_type.audio_stereo ())
   in
   Lang.add_operator "audio_to_stereo" ~category:`Conversion
     ~descr:"Convert any pcm audio source into a stereo source."

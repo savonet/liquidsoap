@@ -24,32 +24,6 @@ include Frame_settings
 include Frame_base
 open Content
 
-let audio_pcm = `Kind Audio.kind
-
-let audio_n = function
-  | 0 -> none
-  | c ->
-      `Format
-        Audio.(
-          lift_params
-            {
-              Content.channel_layout =
-                lazy (Audio_converter.Channel_layout.layout_of_channels c);
-            })
-
-let audio_mono =
-  `Format Audio.(lift_params { Content.channel_layout = lazy `Mono })
-
-let audio_stereo =
-  `Format Audio.(lift_params { Content.channel_layout = lazy `Stereo })
-
-let video_yuva420p = `Kind Video.kind
-let midi_native = `Kind Midi.kind
-
-let midi_n = function
-  | 0 -> none
-  | c -> `Format Midi.(lift_params { Content.channels = c })
-
 (** Compatibilities between content kinds, types and values.
   * [sub a b] if [a] is more permissive than [b]..
   * TODO this is the other way around... it's correct in Lang, phew! *)
@@ -57,12 +31,6 @@ let midi_n = function
 let map_fields fn = Fields.map fn
 let mapi_fields fn = Fields.mapi fn
 let string_of_format = string_of_format
-
-let string_of_kind = function
-  | `Any -> "any"
-  | `Internal -> "internal"
-  | `Format f -> string_of_format f
-  | `Kind k -> string_of_kind k
 
 let string_of_fields fn fields =
   Printf.sprintf "{%s}"
@@ -72,7 +40,6 @@ let string_of_fields fn fields =
             Printf.sprintf "%s=%s" (string_of_field f) (fn v) :: cur)
           fields []))
 
-let string_of_content_kind = string_of_fields string_of_kind
 let string_of_content_type = string_of_fields string_of_format
 
 module S = Set.Make (struct
@@ -118,27 +85,19 @@ let create_content ctype = map_fields (make ~length:!!size) ctype
 let create ctype =
   { pts = None; breaks = []; metadata = []; content = create_content ctype }
 
-let dummy =
-  let data = Content.None.lift_data ~length:0 () in
-  {
-    pts = None;
-    breaks = [];
-    metadata = [];
-    content = mk_fields ~audio:data ~video:data ~midi:data ();
-  }
-
+let dummy = { pts = None; breaks = []; metadata = []; content = mk_fields () }
 let content_type { content } = map_fields format content
-let audio { content; _ } = Fields.find audio_field content
+let audio { content; _ } = Fields.find_opt audio_field content
 
 let set_audio frame audio =
   frame.content <- Fields.add audio_field audio frame.content
 
-let video { content; _ } = Fields.find video_field content
+let video { content; _ } = Fields.find_opt video_field content
 
 let set_video frame video =
   frame.content <- Fields.add video_field video frame.content
 
-let midi { content; _ } = Fields.find midi_field content
+let midi { content; _ } = Fields.find_opt midi_field content
 
 let set_midi frame midi =
   frame.content <- Fields.add midi_field midi frame.content

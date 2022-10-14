@@ -46,8 +46,7 @@ class map source delay random freeze =
   end
 
 let () =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "sleeper"
     [
       ( "delay",
@@ -66,9 +65,9 @@ let () =
         Some
           "Freeze after given amount of time in seconds (don't freeze if \
            negative)." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k
+    ~return_t:frame_t
     ~descr:"Sleep at each frame. Useful for emulating network delays, etc."
     ~category:`Track ~flags:[`Hidden; `Experimental]
     (fun p ->

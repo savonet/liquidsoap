@@ -54,34 +54,39 @@ let register_field name =
     Hashtbl.replace name_fields name field;
     field
 
-(** High-level description of the content. *)
-type kind =
-  [ `Any
-  | `Internal
-  | `Kind of Content_base.kind
-  | `Format of Content_base.format ]
-
-type content_kind = kind Fields.t
-
 (** Precise description of the channel types for the current track. *)
 type content_type = Content_base.format Fields.t
 
 (** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
 
-let none = `Format Content_base.None.format
 let audio_field = register_field "audio"
 let video_field = register_field "video"
 let midi_field = register_field "midi"
-let find_audio c = Fields.find audio_field c
-let find_video c = Fields.find video_field c
-let find_midi c = Fields.find midi_field c
-let set_audio_field fields value = Fields.add audio_field value fields
-let set_video_field fields value = Fields.add video_field value fields
-let set_midi_field fields value = Fields.add midi_field value fields
 
-let mk_fields ~audio ~video ~midi () =
+let audio_field_n = function
+  | 0 -> audio_field
+  | n -> register_field (Printf.sprintf "audio_%d" n)
+
+let video_field_n = function
+  | 0 -> video_field
+  | n -> register_field (Printf.sprintf "video_%d" n)
+
+let find_field c field = Fields.find field c
+let find_field_opt c field = Fields.find_opt field c
+let find_audio c = find_field_opt c audio_field
+let find_video c = find_field_opt c video_field
+let find_midi c = find_field_opt c midi_field
+let set_field fields field value = Fields.add field value fields
+let set_audio_field fields = set_field fields audio_field
+let set_video_field fields = set_field fields video_field
+let set_midi_field fields = set_field fields midi_field
+let has_field fields field = Fields.mem field fields
+
+let mk_fields ?audio ?video ?midi () =
   List.fold_left
-    (fun fields (field, v) -> Fields.add field v fields)
+    (fun fields -> function
+      | _, None -> fields
+      | field, Some v -> Fields.add field v fields)
     Fields.empty
     [(audio_field, audio); (video_field, video); (midi_field, midi)]

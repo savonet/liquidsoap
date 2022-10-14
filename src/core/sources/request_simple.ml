@@ -24,8 +24,7 @@ open Source
 open Request_source
 
 let () =
-  let kind = Lang.any in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "request.once" ~category:`Input
     ~descr:"Play a request once and become unavailable."
     [
@@ -102,8 +101,7 @@ class queued uri prefetch timeout =
 let log = Log.make ["single"]
 
 let () =
-  let kind = Lang.any in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "single" ~category:`Input
     ~descr:
       "Loop on a request. It never fails if the request is static, meaning \
@@ -127,13 +125,12 @@ let () =
       else (new queued uri l t :> source))
 
 let () =
-  let kind = Lang.any in
-  let t = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "single.infallible" ~category:`Input ~flags:[`Hidden]
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
        WARNING: if used uncarefully, it can crash your application!"
-    [("", Request.Value.t, None, None)] ~return_t:t (fun p ->
+    [("", Request.Value.t, None, None)] ~return_t (fun p ->
       let request = Request.Value.of_value (List.assoc "" p) in
       (new unqueued ~timeout:60. request :> source))
 
@@ -172,9 +169,8 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
   end
 
 let () =
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let log = Log.make ["request"; "dynamic"] in
-  let kind = Lang.any in
-  let t = Lang.frame_kind_t kind in
   Lang.add_operator "request.dynamic" ~category:`Input
     ~descr:"Play request dynamically created by a given function."
     (("", Lang.fun_t [] (Lang.nullable_t Request.Value.t), None, None)
@@ -256,7 +252,7 @@ let () =
                   | None -> Lang.null
                   | Some c -> Request.Value.to_value c.req) );
       ]
-    ~return_t:t
+    ~return_t
     (fun p ->
       let f = List.assoc "" p in
       let available = Lang.to_bool_getter (List.assoc "available" p) in

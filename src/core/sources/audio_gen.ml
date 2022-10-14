@@ -41,8 +41,9 @@ class gen ~seek name g freq duration ampl =
   end
 
 let add name g =
-  let kind = Lang.internal in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator name ~category:`Input
     ~descr:("Generate a " ^ name ^ " wave.")
     ~return_t

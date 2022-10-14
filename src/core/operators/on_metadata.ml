@@ -43,8 +43,7 @@ class on_metadata f s =
   end
 
 let () =
-  let kind = Lang.any in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "source.on_metadata"
     [
       ("", Lang.source_t return_t, None, None);

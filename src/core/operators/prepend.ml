@@ -144,17 +144,16 @@ class prepend ~merge source f =
   end
 
 let register =
-  let kind = Lang.any in
-  let k = Lang.frame_kind_t kind in
+  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "prepend"
     [
       ( "merge",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Merge the track with its appended track." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
       ( "",
-        Lang.fun_t [(false, "", Lang.metadata_t)] (Lang.source_t k),
+        Lang.fun_t [(false, "", Lang.metadata_t)] (Lang.source_t frame_t),
         None,
         Some
           "Given the metadata, build the source producing the track to \
@@ -162,7 +161,7 @@ let register =
            relevant track is to be appended. However, success must be \
            immediate or it will not be taken into account." );
     ]
-    ~return_t:k ~category:`Track
+    ~return_t:frame_t ~category:`Track
     ~descr:
       ("Prepend an extra track before every track. "
      ^ "Set the metadata 'liq_prepend' to 'false' to "

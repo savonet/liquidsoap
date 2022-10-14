@@ -1,4 +1,4 @@
-s = (single("file1.png"):source(audio=none,video=canvas))
+s = (single("file1.png"):source(video=canvas))
 
 output.dummy(fallible=true, s)
 

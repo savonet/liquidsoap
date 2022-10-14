@@ -136,6 +136,16 @@ let create_decoder ~audio ~width ~height ~metadata img =
   in
   { Decoder.fill; fseek = (fun _ -> 0); close }
 
+let is_audio_compatible ctype =
+  match Frame.find_field_opt ctype Frame.audio_field with
+    | None -> true
+    | Some f -> Content.Audio.is_format f
+
+let is_video_compatible ctype =
+  match Frame.find_field_opt ctype Frame.video_field with
+    | None -> false
+    | Some f -> Content.Video.is_format f
+
 let () =
   Plug.register Decoder.decoders "image" ~doc:"Decoder for static images."
     {
@@ -147,23 +157,24 @@ let () =
         (fun ~ctype filename ->
           if
             Decoder.get_image_file_decoder filename <> None
-            && Content.is_internal_format (Frame.find_audio ctype)
-            && Content.Video.is_format (Frame.find_video ctype)
+            && is_audio_compatible ctype && is_video_compatible ctype
           then
             Some
-              (Frame.mk_fields ~audio:(Frame.find_audio ctype)
+              (Frame.mk_fields
+                 ?audio:(Frame.find_field_opt ctype Frame.audio_field)
                  ~video:Content.(default_format Video.kind)
-                 ~midi:Content.None.format ())
+                 ())
           else None);
       file_decoder =
         Some
           (fun ~metadata ~ctype filename ->
             let img = Option.get (Decoder.get_image_file_decoder filename) in
             let width, height =
-              Content.Video.dimensions_of_format (Frame.find_video ctype)
+              Content.Video.dimensions_of_format
+                (Option.get (Frame.find_video ctype))
             in
             create_decoder
-              ~audio:(Content.Audio.is_format (Frame.find_audio ctype))
+              ~audio:(Frame.has_field ctype Frame.audio_field)
               ~width ~height ~metadata img);
       stream_decoder = None;
     }

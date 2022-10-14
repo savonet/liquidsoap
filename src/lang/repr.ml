@@ -205,31 +205,47 @@ let print f t =
    * The [par] params tells whether (..)->.. should be surrounded by
    * parenthesis or not. *)
   let rec print ~par vars : t -> DS.t = function
-    | `Constr ("stream_kind", params) -> (
-        (* Let's assume that stream_kind occurs only inside a source
-         * or format type -- this should be pretty much true with the
-         * current API -- and simplify the printing by labeling its
-         * parameters and omitting the stream_kind(...) to avoid
-         * source(stream_kind(pcm(stereo),none,none)). *)
-        match params with
-          | [(_, a); (_, v); (_, m)] ->
-              let first, has_ellipsis, vars =
-                List.fold_left
-                  (fun (first, has_ellipsis, vars) (lbl, t) ->
-                    if t = `Ellipsis then (false, true, vars)
-                    else (
-                      if not first then Format.fprintf f ",@ ";
-                      Format.fprintf f "%s=" lbl;
-                      let vars = print ~par:false vars t in
-                      (false, has_ellipsis, vars)))
-                  (true, false, vars)
-                  [("audio", a); ("video", v); ("midi", m)]
-              in
-              if not has_ellipsis then vars
+    | `Constr (name, [(_, (`Meth _ as record_type))])
+      when name = "source" || name = "format" ->
+        Format.open_box (1 + String.length name);
+        Format.fprintf f "%s(" name;
+        let rec extract fields = function
+          | `Meth (field, _, _, base_type)
+            when List.mem_assoc (Some field) fields ->
+              extract fields base_type
+          | `Meth (field, (_, ty), _, base_type) ->
+              extract ((Some field, ty) :: fields) base_type
+          | base_type -> (fields, base_type)
+        in
+        let fields, base_type = extract [] record_type in
+        let fields =
+          List.sort (fun (l, _) (l', _) -> Stdlib.compare l l') fields
+        in
+        let fields =
+          match (base_type, fields) with
+            | `Tuple [], _ -> fields
+            | v, _ -> fields @ [(None, v)]
+        in
+        let first, has_ellipsis, vars =
+          List.fold_left
+            (fun (first, has_ellipsis, vars) (lbl, t) ->
+              if t = `Ellipsis then (first, true, vars)
               else (
-                if not first then Format.fprintf f ",@,";
-                print ~par:false vars `Range_Ellipsis)
-          | _ -> assert false)
+                if not first then Format.fprintf f ",@ ";
+                ignore (Option.map (Format.fprintf f "%s=") lbl);
+                let vars = print ~par:false vars t in
+                (false, has_ellipsis, vars)))
+            (true, false, vars) fields
+        in
+        let vars =
+          if not has_ellipsis then vars
+          else (
+            if not first then Format.fprintf f ",@,";
+            print ~par:false vars `Range_Ellipsis)
+        in
+        Format.fprintf f ")";
+        Format.close_box ();
+        vars
     | `Constr (name, []) ->
         Format.fprintf f "%s" name;
         vars

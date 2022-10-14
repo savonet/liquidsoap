@@ -425,12 +425,14 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   let transition_arg =
     Lang.method_t Lang.unit_t
       [
-        ("source", ([], Lang.source_t k), "Source");
+        ("source", ([], Lang.source_t frame_t), "Source");
         ("db_level", ([], Lang.float_t), "dB level of the source.");
         ("metadata", ([], Lang.metadata_t), "Metadata of the source.");
       ]
@@ -485,16 +487,16 @@ let () =
       ( "",
         Lang.fun_t
           [(false, "", transition_arg); (false, "", transition_arg)]
-          (Lang.source_t k),
+          (Lang.source_t frame_t),
         None,
         Some
           "Transition function, composing from the end of a track and the next \
            track. The sources corresponding to the two tracks are decorated \
            with fields indicating the power of the signal before and after the \
            transition (`power`), and the metadata (`metadata`)." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Fade
+    ~return_t:frame_t ~category:`Fade
     ~meth:
       [
         ( "cross_duration",

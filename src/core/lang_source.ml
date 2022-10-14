@@ -240,6 +240,11 @@ let source_t ?(methods = false) frame_t =
       (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
   else t
 
+let of_source_t t =
+  match (Type.demeth t).Type.descr with
+    | Type.Constr { Type.constructor = "source"; params = [(_, t)] } -> t
+    | _ -> assert false
+
 let source s =
   meth (V.to_value s)
     (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
@@ -269,13 +274,11 @@ let check_content v t =
             let source_t = source_t (V.of_value v)#frame_type in
             check source_t t
         | _ when Lang_encoder.V.is_value v ->
-            let kind = Encoder.kind_of_format (Lang_encoder.V.of_value v) in
-            let audio = Frame_type.make_kind (Frame.find_audio kind) in
-            let video = Frame_type.make_kind (Frame.find_video kind) in
-            let midi = Frame_type.make_kind (Frame.find_midi kind) in
-            let encoder_t =
-              Lang_encoder.L.format_t (Frame_type.make ~audio ~video ~midi ())
+            let content_t =
+              Encoder.type_of_format (Lang_encoder.V.of_value v)
             in
+            let frame_t = Frame_type.make unit_t content_t in
+            let encoder_t = Lang_encoder.L.format_t frame_t in
             check encoder_t t
         | Value.Ground _, _ -> ()
         | Value.List l, Type.List { Type.t } ->

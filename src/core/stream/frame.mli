@@ -26,41 +26,43 @@
 
 type field
 
-module Fields : Map.S with type key = field
-
-val audio_field : field
-val video_field : field
-val midi_field : field
-
-(* The following raise [Not_found] when the field does not exist. *)
-val find_audio : 'a Fields.t -> 'a
-val find_video : 'a Fields.t -> 'a
-val find_midi : 'a Fields.t -> 'a
-val set_audio_field : 'a Fields.t -> 'a -> 'a Fields.t
-val set_video_field : 'a Fields.t -> 'a -> 'a Fields.t
-val set_midi_field : 'a Fields.t -> 'a -> 'a Fields.t
-val mk_fields : audio:'a -> video:'a -> midi:'a -> unit -> 'a Fields.t
 val string_of_field : field -> string
 val field_of_string : string -> field
 val register_field : string -> field
+
+module Fields : Map.S with type key = field
+
+(* Default fields *)
+val audio_field : field
+val video_field : field
+val midi_field : field
+val audio_field_n : int -> field
+val video_field_n : int -> field
+
+(* Find fields *)
+
+val find_audio : 'a Fields.t -> 'a option
+val find_video : 'a Fields.t -> 'a option
+val find_midi : 'a Fields.t -> 'a option
+
+(* Generic fields. *)
+
+(* This function raises [Not_found] if field does not exist. *)
+val find_field : 'a Fields.t -> field -> 'a
+val find_field_opt : 'a Fields.t -> field -> 'a option
+val has_field : 'a Fields.t -> field -> bool
+
+(* Set fields *)
+
+val set_audio_field : 'a Fields.t -> 'a -> 'a Fields.t
+val set_video_field : 'a Fields.t -> 'a -> 'a Fields.t
+val set_midi_field : 'a Fields.t -> 'a -> 'a Fields.t
+
+(* Generic fields *)
+val set_field : 'a Fields.t -> field -> 'a -> 'a Fields.t
+val mk_fields : ?audio:'a -> ?video:'a -> ?midi:'a -> unit -> 'a Fields.t
 val map_fields : ('a -> 'b) -> 'a Fields.t -> 'b Fields.t
 val mapi_fields : (field -> 'a -> 'b) -> 'a Fields.t -> 'b Fields.t
-
-(** High-level description of the content. *)
-type kind =
-  [ `Any | `Internal | `Kind of Content.kind | `Format of Content.format ]
-
-(* Some common kind. Audio is PCM, video YUV420p *)
-val none : kind
-val audio_pcm : kind
-val audio_n : int -> kind
-val audio_stereo : kind
-val audio_mono : kind
-val video_yuva420p : kind
-val midi_native : kind
-val midi_n : int -> kind
-
-type content_kind = kind Fields.t
 
 (** Precise description of the channel types for the current track. *)
 type content_type = Content.format Fields.t
@@ -88,19 +90,19 @@ val dummy : t
 val content_type : t -> content_type
 
 (** Get a frame's audio content. *)
-val audio : t -> Content.data
+val audio : t -> Content.data option
 
 (** Set a frame's audio content. *)
 val set_audio : t -> Content.data -> unit
 
 (** Get a frame's video content. *)
-val video : t -> Content.data
+val video : t -> Content.data option
 
 (** Set a frame's video content. *)
 val set_video : t -> Content.data -> unit
 
 (** Get a frame's midi content. *)
-val midi : t -> Content.data
+val midi : t -> Content.data option
 
 (** Set a frame's midi content. *)
 val set_midi : t -> Content.data -> unit
@@ -165,14 +167,6 @@ val set_all_metadata : t -> (int * metadata) list -> unit
 exception No_chunk
 
 val get_chunk : t -> t -> unit
-
-(** {2 Compatibilities between content values, types and kinds} *)
-
-(** Compatibilities between content kinds, types and values: [sub a b] is [true]
-    when [b] is more permissive than [a]. *)
-
-val string_of_kind : kind -> string
-val string_of_content_kind : content_kind -> string
 val string_of_content_type : content_type -> string
 val compatible : content_type -> content_type -> bool
 

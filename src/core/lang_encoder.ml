@@ -79,7 +79,7 @@ let generic_error (l, t) : exn =
 
 (** An encoder. *)
 type encoder = {
-  kind_of_encoder : Term.encoder_params -> Frame.kind Frame.Fields.t;
+  type_of_encoder : Term.encoder_params -> Type.t Frame.Fields.t;
       (** Compute the kind of the encoder. *)
   make : Hooks.encoder_params -> Encoder.format;
       (** Actually create the encoder. *)
@@ -88,8 +88,8 @@ type encoder = {
 let encoders = ref []
 
 (** Register an encoder. *)
-let register name kind_of_encoder make =
-  encoders := (name, { kind_of_encoder; make }) :: !encoders
+let register name type_of_encoder make =
+  encoders := (name, { type_of_encoder; make }) :: !encoders
 
 (** Find an encoder with given name. *)
 let find_encoder name = List.assoc name !encoders
@@ -109,14 +109,12 @@ let channels_of_params ?(default = 2) p =
 
 (** Compute a kind from a non-fully evaluated format. This should give the same
     result than [Encoder.kind_of_format] once evaluated... *)
-let kind_of_encoder ((e, p) : Term.encoder) = (find_encoder e).kind_of_encoder p
+let type_of_encoder ((e, p) : Term.encoder) = (find_encoder e).type_of_encoder p
 
 let type_of_encoder ~pos e =
-  let kind = kind_of_encoder e in
-  let audio = Frame_type.make_kind ?pos (Frame.find_audio kind) in
-  let video = Frame_type.make_kind ?pos (Frame.find_video kind) in
-  let midi = Frame_type.make_kind ?pos (Frame.find_midi kind) in
-  L.format_t ?pos (Frame_type.make ?pos ~audio ~video ~midi ())
+  let fields = type_of_encoder e in
+  let frame_t = Frame_type.make Liquidsoap_lang.Lang.unit_t fields in
+  L.format_t ?pos frame_t
 
 let make_encoder ~pos t ((e, p) : Hooks.encoder) =
   try

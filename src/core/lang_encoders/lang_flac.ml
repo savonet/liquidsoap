@@ -23,7 +23,7 @@
 open Value
 open Ground
 
-let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
+let type_of_encoder p = Encoder.audio_type (Lang_encoder.channels_of_params p)
 let accepted_bits_per_sample = [8; 16; 24; 32]
 
 let flac_gen params =
@@ -65,4 +65,4 @@ let flac_gen params =
 
 let make_ogg params = Ogg_format.Flac (flac_gen params)
 let make params = Encoder.Flac (flac_gen params)
-let () = Lang_encoder.register "flac" kind_of_encoder make
+let () = Lang_encoder.register "flac" type_of_encoder make

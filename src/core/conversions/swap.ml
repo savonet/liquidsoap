@@ -51,11 +51,13 @@ class swap (source : source) =
   end
 
 let () =
-  let kind = Lang.audio_stereo in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio_stereo ()) ())
+  in
   Lang.add_operator "swap"
-    [("", Lang.source_t k, None, None)]
-    ~return_t:k ~category:`Conversion
+    [("", Lang.source_t frame_t, None, None)]
+    ~return_t:frame_t ~category:`Conversion
     ~descr:"Swap two channels of a stereo source."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in

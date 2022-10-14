@@ -142,11 +142,8 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
 
 (** Lang interface *)
 
-let kind = Frame.mk_fields ~audio:`Any ~video:Frame.video_yuva420p ~midi:`Any ()
-let return_t = Lang.frame_kind_t kind
-
 (* TODO: share more with fade.ml *)
-let proto =
+let proto frame_t =
   [
     ( "duration",
       Lang.float_t,
@@ -166,7 +163,7 @@ let proto =
       Some
         "Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or \
          exponential." );
-    ("", Lang.source_t return_t, None, None);
+    ("", Lang.source_t frame_t, None, None);
   ]
 
 let rec transition_of_string p transition =
@@ -276,27 +273,37 @@ let override_doc =
      'duration' parameter for current track."
 
 let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~video:(Format_type.video ()) ())
+  in
   Lang.add_operator "video.fade.in"
     (( "override",
        Lang.string_t,
        Some (Lang.string "liq_video_fade_in"),
        override_doc )
-    :: proto)
-    ~return_t ~category:`Video
+    :: proto frame_t)
+    ~return_t:frame_t ~category:`Video
     ~descr:
       "Fade the beginning of tracks. Metadata 'liq_video_fade_in' can be used \
        to set the duration for a specific track (float in seconds)."
     (fun p ->
       let d, f, t, s = extract p in
       let meta = Lang.to_string (List.assoc "override" p) in
-      new fade_in ~meta d f t s);
+      new fade_in ~meta d f t s)
+
+let () =
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~video:(Format_type.video ()) ())
+  in
   Lang.add_operator "video.fade.out"
     (( "override",
        Lang.string_t,
        Some (Lang.string "liq_video_fade_out"),
        override_doc )
-    :: proto)
-    ~return_t ~category:`Video
+    :: proto frame_t)
+    ~return_t:frame_t ~category:`Video
     ~descr:
       "Fade the end of tracks. Metadata 'liq_video_fade_out' can be used to \
        set the duration for a specific track (float in seconds)."

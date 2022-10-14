@@ -37,6 +37,12 @@ type content = Content.data Frame.Fields.t
 
 val content : Frame.t -> content
 
+module NoneContent : sig
+  include Content.Content
+
+  val lift_data : length:int -> unit -> Content.data
+end
+
 (** Signature for a generator. *)
 module type S = sig
   type t

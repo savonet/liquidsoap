@@ -784,8 +784,7 @@ class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   end
 
 let () =
-  let kind = Lang.any in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "input.srt" ~return_t ~category:`Input
     ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
@@ -1021,8 +1020,7 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
   end
 
 let () =
-  let kind = Lang.any in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let output_meth =
     List.map
       (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))

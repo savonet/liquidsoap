@@ -19,8 +19,9 @@ let () =
   let write = Strings.iter (output_substring out_fd) in
   let format = "application/ffmpeg" in
   let ctype =
-    Frame.mk_fields ~audio:(Content.default_audio ()) ~video:Content.None.format
-      ~midi:Content.None.format ()
+    Frame_type.content_type
+      (Lang.frame_t Lang.unit_t
+         (Frame.mk_fields ~audio:(Format_type.audio ()) ()))
   in
   let frame = Frame.create ctype in
   let create_decoder = Option.get (Decoder.get_stream_decoder ~ctype format) in

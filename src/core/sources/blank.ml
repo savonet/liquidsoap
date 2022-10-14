@@ -25,7 +25,7 @@ open Source
 
 class blank duration =
   let ticks = if duration < 0. then -1 else Frame.main_of_seconds duration in
-  object
+  object (self)
     inherit source ~name:"blank" ()
 
     (** Remaining time, -1 for infinity. *)
@@ -46,17 +46,15 @@ class blank duration =
       in
       let video_pos = Frame.video_of_main position in
       (* Audio *)
-      (try
-         Audio.clear (AFrame.pcm ab)
-           (Frame.audio_of_main position)
-           (Frame.audio_of_main length)
-       with Content.Invalid -> ());
+      if Frame.has_field self#content_type Frame.audio_field then
+        Audio.clear (AFrame.pcm ab)
+          (Frame.audio_of_main position)
+          (Frame.audio_of_main length);
 
       (* Video *)
-      (try
-         Video.Canvas.blank (VFrame.data ab) video_pos
-           (Frame.video_of_main length)
-       with Content.Invalid -> ());
+      if Frame.has_field self#content_type Frame.video_field then
+        Video.Canvas.blank (VFrame.data ab) video_pos
+          (Frame.video_of_main length);
 
       Frame.add_break ab (position + length);
       if Frame.is_partial ab then remaining <- ticks
@@ -64,8 +62,7 @@ class blank duration =
   end
 
 let () =
-  let kind = Lang.internal in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.internal_t () in
   Lang.add_operator "blank" ~category:`Input
     ~descr:"Produce silence and blank images." ~return_t
     [

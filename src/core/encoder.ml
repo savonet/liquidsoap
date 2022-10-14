@@ -34,66 +34,71 @@ type format =
   | External of External_encoder_format.t
   | GStreamer of Gstreamer_format.t
 
-let audio_kind n =
-  let audio =
-    if n = 0 then Frame.none
-    else
-      `Format
-        Content.(
-          Audio.lift_params
-            {
-              Content.channel_layout =
-                lazy (Audio_converter.Channel_layout.layout_of_channels n);
-            })
-  in
-  Frame.mk_fields ~audio ~video:Frame.none ~midi:Frame.none ()
+let audio_type n =
+  Frame.mk_fields
+    ~audio:
+      (Type.make
+         (Format_type.descr
+            (`Format
+              Content.(
+                Audio.lift_params
+                  {
+                    Content.channel_layout =
+                      lazy (Audio_converter.Channel_layout.layout_of_channels n);
+                  }))))
+    ()
 
-let audio_video_kind n =
-  Frame.set_video_field (audio_kind n)
-    (`Format Content.(default_format Video.kind))
+let audio_video_type n =
+  Frame.set_field (audio_type n) Frame.video_field
+    (Type.make
+       (Format_type.descr (`Format Content.(default_format Video.kind))))
 
-let kind_of_format = function
-  | WAV w -> audio_kind w.Wav_format.channels
-  | AVI a -> audio_video_kind a.Avi_format.channels
-  | MP3 m -> audio_kind (if m.Mp3_format.stereo then 2 else 1)
-  | Shine m -> audio_kind m.Shine_format.channels
-  | Flac m -> audio_kind m.Flac_format.channels
+let type_of_format = function
+  | WAV w -> audio_type w.Wav_format.channels
+  | AVI a -> audio_video_type a.Avi_format.channels
+  | MP3 m -> audio_type (if m.Mp3_format.stereo then 2 else 1)
+  | Shine m -> audio_type m.Shine_format.channels
+  | Flac m -> audio_type m.Flac_format.channels
   | Ffmpeg m ->
       let audio =
-        match m.Ffmpeg_format.audio_codec with
-          | None -> Frame.none
-          | Some (`Copy _) ->
-              `Format
-                Content.(default_format (kind_of_string "ffmpeg.audio.copy"))
-          | Some (`Raw _) ->
-              `Format
-                Content.(default_format (kind_of_string "ffmpeg.audio.raw"))
-          | Some (`Internal _) ->
-              let channels = m.Ffmpeg_format.channels in
-              assert (channels > 0);
-              `Format
-                Content.(
-                  Audio.lift_params
-                    {
-                      Content.channel_layout =
-                        lazy
-                          (Audio_converter.Channel_layout.layout_of_channels
-                             channels);
-                    })
+        Option.map
+          (function
+            | `Copy _ ->
+                `Format
+                  Content.(default_format (kind_of_string "ffmpeg.audio.copy"))
+            | `Raw _ ->
+                `Format
+                  Content.(default_format (kind_of_string "ffmpeg.audio.raw"))
+            | `Internal _ ->
+                let channels = m.Ffmpeg_format.channels in
+                assert (channels > 0);
+                `Format
+                  Content.(
+                    Audio.lift_params
+                      {
+                        Content.channel_layout =
+                          lazy
+                            (Audio_converter.Channel_layout.layout_of_channels
+                               channels);
+                      }))
+          m.Ffmpeg_format.audio_codec
       in
+      let audio = Option.map (fun f -> Type.make (Format_type.descr f)) audio in
       let video =
-        match m.Ffmpeg_format.video_codec with
-          | None -> Frame.none
-          | Some (`Copy _) ->
-              `Format
-                Content.(default_format (kind_of_string "ffmpeg.video.copy"))
-          | Some (`Raw _) ->
-              `Format
-                Content.(default_format (kind_of_string "ffmpeg.video.raw"))
-          | Some (`Internal _) -> `Format Content.(default_format Video.kind)
+        Option.map
+          (function
+            | `Copy _ ->
+                `Format
+                  Content.(default_format (kind_of_string "ffmpeg.video.copy"))
+            | `Raw _ ->
+                `Format
+                  Content.(default_format (kind_of_string "ffmpeg.video.raw"))
+            | `Internal _ -> `Format Content.(default_format Video.kind))
+          m.Ffmpeg_format.video_codec
       in
-      Frame.mk_fields ~audio ~video ~midi:Frame.none ()
-  | FdkAacEnc m -> audio_kind m.Fdkaac_format.channels
+      let video = Option.map (fun f -> Type.make (Format_type.descr f)) video in
+      Frame.mk_fields ?audio ?video ()
+  | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
   | Ogg { Ogg_format.audio; video } ->
       let channels =
         match audio with
@@ -105,14 +110,14 @@ let kind_of_format = function
               if stereo then 2 else 1
           | None -> 0
       in
-      if video = None then audio_kind channels else audio_video_kind channels
+      if video = None then audio_type channels else audio_video_type channels
   | External e ->
       let channels = e.External_encoder_format.channels in
-      if e.External_encoder_format.video <> None then audio_video_kind channels
-      else audio_kind channels
+      if e.External_encoder_format.video <> None then audio_video_type channels
+      else audio_type channels
   | GStreamer ({ Gstreamer_format.has_video } as gst) ->
       let channels = Gstreamer_format.audio_channels gst in
-      if has_video then audio_video_kind channels else audio_kind channels
+      if has_video then audio_video_type channels else audio_type channels
 
 let string_of_format = function
   | WAV w -> Wav_format.to_string w

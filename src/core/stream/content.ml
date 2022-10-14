@@ -21,5 +21,19 @@
  *****************************************************************************)
 
 include Content_base
-include Content_internal
 include Content_timed
+
+type audio_params = Content_audio.Specs.params = {
+  channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+}
+
+type video_params = Content_video.Specs.params = {
+  width : int Lazy.t option;
+  height : int Lazy.t option;
+}
+
+type midi_params = Content_midi.Specs.params = { channels : int }
+
+module Audio = Content_audio
+module Video = Content_video
+module Midi = Content_midi

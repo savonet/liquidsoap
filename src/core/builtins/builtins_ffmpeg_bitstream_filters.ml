@@ -169,30 +169,46 @@ let () =
         Lang.add_module ("ffmpeg.filter.bitstream." ^ name);
       List.iter
         (fun mode ->
-          let name, source_kind =
+          let name, source_fields_t =
             match mode with
               | `Audio ->
                   ( name ^ ".audio",
-                    Frame.mk_fields
-                      ~audio:(`Kind Ffmpeg_copy_content.Audio.kind) ~video:`Any
-                      ~midi:Frame.none () )
+                    fun () ->
+                      Frame.mk_fields
+                        ~audio:
+                          (Type.make
+                             (Format_type.descr
+                                (`Kind Ffmpeg_copy_content.Audio.kind)))
+                        () )
               | `Audio_only ->
                   ( name,
-                    Frame.mk_fields
-                      ~audio:(`Kind Ffmpeg_copy_content.Audio.kind) ~video:`Any
-                      ~midi:Frame.none () )
+                    fun () ->
+                      Frame.mk_fields
+                        ~audio:
+                          (Type.make
+                             (Format_type.descr
+                                (`Kind Ffmpeg_copy_content.Audio.kind)))
+                        () )
               | `Video ->
                   ( name ^ ".video",
-                    Frame.mk_fields ~audio:`Any
-                      ~video:(`Kind Ffmpeg_copy_content.Video.kind)
-                      ~midi:Frame.none () )
+                    fun () ->
+                      Frame.mk_fields
+                        ~video:
+                          (Type.make
+                             (Format_type.descr
+                                (`Kind Ffmpeg_copy_content.Video.kind)))
+                        () )
               | `Video_only ->
                   ( name,
-                    Frame.mk_fields ~audio:`Any
-                      ~video:(`Kind Ffmpeg_copy_content.Video.kind)
-                      ~midi:Frame.none () )
+                    fun () ->
+                      Frame.mk_fields
+                        ~video:
+                          (Type.make
+                             (Format_type.descr
+                                (`Kind Ffmpeg_copy_content.Video.kind)))
+                        () )
           in
-          let source_t = Lang.frame_kind_t source_kind in
+          let source_t = Lang.frame_t (Lang.univ_t ()) (source_fields_t ()) in
           let args_t = ("", Lang.source_t source_t, None, None) :: args in
           Lang.add_operator ~category:`FFmpegFilter
             ("ffmpeg.filter.bitstream." ^ name)
@@ -228,11 +244,13 @@ let () =
                           fun frame ->
                             let pos = Frame.position frame in
                             Generator.put_video generator
-                              (Content.copy (Frame.video frame))
+                              (Content.copy (Option.get (Frame.video frame)))
                               0 pos;
                             on_data ~get_handler ~put_data ~lift_data ~generator
                               (Ffmpeg_copy_content.Audio.get_data
-                                 (Content.sub (Frame.audio frame) 0 pos)) )
+                                 (Content.sub
+                                    (Option.get (Frame.audio frame))
+                                    0 pos)) )
                     | `Video | `Video_only ->
                         let put_data = Generator.put_video in
                         let lift_data data =
@@ -251,11 +269,13 @@ let () =
                           fun frame ->
                             let pos = Frame.position frame in
                             Generator.put_audio generator
-                              (Content.copy (Frame.audio frame))
+                              (Content.copy (Option.get (Frame.audio frame)))
                               0 pos;
                             on_data ~get_handler ~put_data ~lift_data ~generator
                               (Ffmpeg_copy_content.Video.get_data
-                                 (Content.sub (Frame.video frame) 0 pos)) )
+                                 (Content.sub
+                                    (Option.get (Frame.video frame))
+                                    0 pos)) )
                 in
                 function
                 | `Frame frame ->
@@ -271,7 +291,9 @@ let () =
                 | `Flush -> flush ()
               in
 
-              let frame_t = Lang.frame_kind_t source_kind in
+              let frame_t =
+                Lang.frame_t (Lang.univ_t ()) (source_fields_t ())
+              in
               let consumer =
                 new Producer_consumer.consumer
                   ~write_frame:encode_frame ~name:(name ^ ".consumer") ~source

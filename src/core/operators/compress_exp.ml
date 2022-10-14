@@ -47,8 +47,10 @@ class compress (source : source) mu =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "compress.exponential" ~category:`Audio
     ~descr:"Exponential compressor."
     [

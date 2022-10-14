@@ -237,20 +237,21 @@ let file_type ~ctype:_ filename =
         (Lang_string.quote_string filename)
         audio video;
       let audio =
-        if audio = 0 then Content.None.format
+        if audio = 0 then None
         else
-          Content.(
-            Audio.lift_params
-              {
-                Content.channel_layout =
-                  lazy (Audio_converter.Channel_layout.layout_of_channels audio);
-              })
+          Some
+            Content.(
+              Audio.lift_params
+                {
+                  Content.channel_layout =
+                    lazy
+                      (Audio_converter.Channel_layout.layout_of_channels audio);
+                })
       in
       let video =
-        if video = 0 then Content.None.format
-        else Content.(default_format Video.kind)
+        if video = 0 then None else Some Content.(default_format Video.kind)
       in
-      Some (Frame.mk_fields ~audio ~video ~midi:Content.None.format ()))
+      Some (Frame.mk_fields ?audio ?video ()))
 
 let mime_types =
   Dtools.Conf.list

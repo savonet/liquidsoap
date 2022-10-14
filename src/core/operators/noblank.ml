@@ -196,10 +196,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
       done
   end
 
-let kind = Lang.any
-let return_t = Lang.frame_kind_t kind
-
-let proto =
+let proto frame_t =
   [
     ( "threshold",
       Lang.float_t,
@@ -221,7 +218,7 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool true),
       Some "Reset blank counter at each track." );
-    ("", Lang.source_t return_t, None, None);
+    ("", Lang.source_t frame_t, None, None);
   ]
 
 let extract p =
@@ -247,6 +244,7 @@ let extract p =
   (start_blank, max_blank, min_noise, threshold, ts, s)
 
 let () =
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "blank.detect" ~return_t ~category:`Track
     ~meth:
       [
@@ -264,7 +262,7 @@ let () =
          Lang.fun_t [] Lang.unit_t,
          Some (Lang.val_cst_fun [] Lang.unit),
          Some "Handler called when noise is detected." )
-    :: proto)
+    :: proto return_t)
     (fun p ->
       let on_blank = Lang.assoc "" 1 p in
       let on_noise = Lang.assoc "on_noise" 1 p in
@@ -274,7 +272,10 @@ let () =
       in
       new detect
         ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive ~on_blank
-        ~on_noise s);
+        ~on_noise s)
+
+let () =
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "blank.strip" ~return_t
     ~meth:
       [
@@ -284,12 +285,16 @@ let () =
           fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
       ]
     ~category:`Track
-    ~descr:"Make the source unavailable when it is streaming blank." proto
+    ~descr:"Make the source unavailable when it is streaming blank."
+    (proto return_t)
     (fun p ->
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      new strip ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s);
+      new strip ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s)
+
+let () =
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "blank.eat" ~return_t ~category:`Track
     ~meth:
       [
@@ -305,7 +310,7 @@ let () =
        Lang.bool_t,
        Some (Lang.bool false),
        Some "Only eat at the beginning of a track." )
-    :: proto)
+    :: proto return_t)
     (fun p ->
       let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =

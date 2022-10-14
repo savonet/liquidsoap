@@ -42,11 +42,13 @@ class clip (source : source) =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "clip"
-    [("", Lang.source_t k, None, None)]
-    ~return_t:k ~category:`Audio
+    [("", Lang.source_t frame_t, None, None)]
+    ~return_t:frame_t ~category:`Audio
     ~descr:
       "Clip samples, i.e. ensure that all values are between -1 and 1: values \
        lower than -1 become -1 and values higher than 1 become 1. `nan` values \

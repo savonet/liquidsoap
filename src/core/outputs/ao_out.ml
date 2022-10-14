@@ -104,8 +104,10 @@ class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "output.ao"
     (Output.proto
     @ [

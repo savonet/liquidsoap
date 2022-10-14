@@ -625,8 +625,7 @@ class output p =
   end
 
 let () =
-  let kind = Lang.any in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ~category:`Output
     ~descr:"Encode and output the stream using the harbor server."
     ~meth:Output.meth "output.harbor" (proto return_t) ~return_t (fun p ->

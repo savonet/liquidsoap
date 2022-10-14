@@ -131,11 +131,12 @@ let register_descr plugin_name descr_n descr outputs =
   let ladspa_descr = Descriptor.ladspa descr in
   let liq_params, params = Ladspa_op.params_of_descr ladspa_descr in
   let chans = Array.length outputs in
-  let kind =
-    Frame.mk_fields ~audio:(Frame.audio_n chans) ~video:`Any
-      ~midi:(Frame.midi_n 1) ()
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields
+         ~audio:(Format_type.audio_n chans)
+         ~midi:(Format_type.midi_n 1) ())
   in
-  let k = Lang.frame_kind_t kind in
   let liq_params = liq_params in
   Lang.add_operator
     ("synth.dssi."
@@ -144,8 +145,8 @@ let register_descr plugin_name descr_n descr outputs =
        ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
      ]
     @ liq_params
-    @ [("", Lang.source_t k, None, None)])
-    ~return_t:k ~category:`Synthesis ~flags:[`Extra]
+    @ [("", Lang.source_t frame_t, None, None)])
+    ~return_t:frame_t ~category:`Synthesis ~flags:[`Extra]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
     (fun p ->
       let f v = List.assoc v p in
@@ -154,16 +155,18 @@ let register_descr plugin_name descr_n descr outputs =
       let params = params p in
       new dssi plugin_name descr_n outputs params ~chan source);
 
-  let kind =
-    Frame.mk_fields ~audio:(Frame.audio_n chans) ~video:`Any
-      ~midi:(Frame.midi_n all_chans) ()
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields
+         ~audio:(Format_type.audio_n chans)
+         ~midi:(Format_type.midi_n all_chans)
+         ())
   in
-  let k = Lang.frame_kind_t kind in
   Lang.add_operator
     ("synth.all.dssi."
     ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
-    (liq_params @ [("", Lang.source_t k, None, None)])
-    ~return_t:k ~category:`Synthesis ~flags:[`Extra]
+    (liq_params @ [("", Lang.source_t frame_t, None, None)])
+    ~return_t:frame_t ~category:`Synthesis ~flags:[`Extra]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
     (fun p ->
       let f v = List.assoc v p in

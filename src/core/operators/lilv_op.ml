@@ -73,7 +73,7 @@ class lilv_mono (source : source) plugin input output params =
       let i =
         Array.init
           (Content.Audio.channels_of_format
-             (Frame.find_audio self#content_type))
+             (Option.get (Frame.find_audio self#content_type)))
           (fun _ ->
             Plugin.instantiate plugin
               (float_of_int (Lazy.force Frame.audio_rate)))

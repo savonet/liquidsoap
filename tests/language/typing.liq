@@ -152,10 +152,10 @@ def f() =
   end
   ignore(sum_eq)
 
-  (noise():source(audio=pcm,video=canvas,midi=none))
+  (noise():source(audio=pcm,video=canvas))
   (noise():source(audio=pcm(mono)))
   (noise():source(audio=pcm("5.1")))
-  (noise():source(audio=none,video=none,midi=none))
+  (noise():source)
 
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.copy,video=ffmpeg.video.copy,midi=midi))
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw,video=ffmpeg.video.raw,midi=midi))

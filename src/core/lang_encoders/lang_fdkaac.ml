@@ -23,7 +23,7 @@
 open Value
 open Ground
 
-let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
+let type_of_encoder p = Encoder.audio_type (Lang_encoder.channels_of_params p)
 
 let make params =
   let valid_samplerates =
@@ -127,4 +127,4 @@ let make params =
       failwith "HE-AAC v2 is only available with 2 channels.";
   Encoder.FdkAacEnc fdkaac
 
-let () = Lang_encoder.register "fdkaac" kind_of_encoder make
+let () = Lang_encoder.register "fdkaac" type_of_encoder make

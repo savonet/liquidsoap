@@ -327,8 +327,10 @@ let () =
   Lang.add_module "input.gstreamer"
 
 let () =
-  let kind = Frame.mk_fields ~audio:Frame.audio_pcm ~video:`Any ~midi:`Any () in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "output.gstreamer.audio"
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:`Output ~meth:Output.meth
@@ -357,8 +359,10 @@ let () =
         :> Output.output))
 
 let () =
-  let kind = Frame.mk_fields ~audio:Frame.audio_pcm ~video:`Any ~midi:`Any () in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "output.gstreamer.video"
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:`Output ~meth:Output.meth
@@ -387,11 +391,11 @@ let () =
         :> Output.output))
 
 let () =
-  let kind =
-    Frame.mk_fields ~audio:Frame.audio_pcm ~video:Frame.video_yuva420p
-      ~midi:`Any ()
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ())
+         ~video:(Format_type.video ()) ())
   in
-  let return_t = Lang.frame_kind_t kind in
   Lang.add_operator "output.gstreamer.audio_video"
     (output_proto ~return_t ~pipeline:""
     @ [
@@ -653,12 +657,13 @@ let input_proto =
   ]
 
 let () =
-  let kind =
-    (* TODO: be more flexible on audio *)
-    Frame.mk_fields ~audio:Frame.audio_stereo ~video:Frame.video_yuva420p
-      ~midi:Frame.none ()
+  (* TODO: be more flexible on audio *)
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields
+         ~audio:(Format_type.audio_stereo ())
+         ~video:(Format_type.video ()) ())
   in
-  let return_t = Lang.frame_kind_t kind in
   let proto =
     input_proto
     @ [
@@ -716,8 +721,9 @@ let () =
         (pipeline, Some audio_pipeline, Some video_pipeline))
 
 let () =
-  let kind = Lang.audio_pcm in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   let proto =
     input_proto
     @ [
@@ -734,8 +740,9 @@ let () =
         :> Source.source))
 
 let () =
-  let kind = Lang.video_yuva420p in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t Lang.unit_t (Frame.mk_fields ~video:(Format_type.video ()) ())
+  in
   let proto =
     input_proto
     @ [

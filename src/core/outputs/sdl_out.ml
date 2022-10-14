@@ -99,11 +99,13 @@ class output ~infallible ~on_start ~on_stop ~autostart source =
   end
 
 let () =
-  let kind = Lang.video_yuva420p in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~video:(Format_type.video ()) ())
+  in
   Lang.add_operator "output.sdl"
-    (Output.proto @ [("", Lang.source_t k, None, None)])
-    ~return_t:k ~category:`Output ~meth:Output.meth
+    (Output.proto @ [("", Lang.source_t frame_t, None, None)])
+    ~return_t:frame_t ~category:`Output ~meth:Output.meth
     ~descr:"Display a video using SDL."
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in

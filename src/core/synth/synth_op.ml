@@ -52,11 +52,10 @@ class synth (synth : Synth.synth) (source : source) chan volume =
   end
 
 let register obj name descr =
-  let kind =
-    Frame.mk_fields ~audio:Frame.audio_mono ~video:`Any ~midi:(Frame.midi_n 1)
-      ()
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~midi:(Format_type.midi_n 1) ())
   in
-  let k = Lang.frame_kind_t kind in
   Lang.add_operator ("synth." ^ name)
     [
       ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
@@ -78,9 +77,9 @@ let register obj name descr =
         Lang.float_t,
         Some (Lang.float 0.05),
         Some "Envelope release (in seconds)." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Synthesis ~descr
+    ~return_t:frame_t ~category:`Synthesis ~descr
     (fun p ->
       let f v = List.assoc v p in
       let chan = Lang.to_int (f "channel") in
@@ -99,11 +98,10 @@ let register obj name descr =
       let src = Lang.to_source (f "") in
       (new synth (obj adsr) src chan volume :> Source.source));
 
-  let kind =
-    Frame.mk_fields ~audio:Frame.audio_mono ~video:`Any ~midi:(Frame.midi_n 16)
-      ()
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~midi:(Format_type.midi_n 16) ())
   in
-  let k = Lang.frame_kind_t kind in
   Lang.add_operator ("synth.all." ^ name)
     [
       ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
@@ -123,9 +121,9 @@ let register obj name descr =
         Lang.float_t,
         Some (Lang.float 0.01),
         Some "Envelope release (in seconds)." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Synthesis
+    ~return_t:frame_t ~category:`Synthesis
     ~descr:(descr ^ " It creates one synthesizer for each channel.")
     (fun p ->
       let f v = List.assoc v p in

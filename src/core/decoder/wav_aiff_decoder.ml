@@ -147,7 +147,7 @@ let file_type ~ctype:_ filename =
               0
       in
       Some
-        (Frame.mk_fields ~video:Content.None.format ~midi:Content.None.format
+        (Frame.mk_fields
            ~audio:
              Content.(
                Audio.lift_params

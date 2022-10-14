@@ -181,7 +181,7 @@ let mk_audio ~ffmpeg ~options output =
     in
     fun frame start len ->
       let frames =
-        Ffmpeg_raw_content.Audio.(get_data (Frame.audio frame))
+        Ffmpeg_raw_content.Audio.(get_data (Option.get (Frame.audio frame)))
           .Ffmpeg_content_base.data
       in
       let frames =
@@ -442,7 +442,7 @@ let mk_video ~ffmpeg ~options output =
     fun frame start len ->
       let stop = start + len in
       let { Ffmpeg_raw_content.VideoSpecs.data } =
-        Ffmpeg_raw_content.Video.get_data (Frame.video frame)
+        Ffmpeg_raw_content.Video.get_data (Option.get (Frame.video frame))
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.time_base; frame; stream_idx }) ->

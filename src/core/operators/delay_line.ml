@@ -73,17 +73,19 @@ class delay (source : source) duration =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "delay_line"
     [
       ( "",
         Lang.getter_t Lang.float_t,
         None,
         Some "Duration of the delay in seconds." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio
+    ~return_t:frame_t ~category:`Audio
     ~descr:"Delay the audio signal by a given amount of time."
     (fun p ->
       let duration = Lang.assoc "" 1 p |> Lang.to_float_getter in

@@ -106,7 +106,7 @@ val conf_priorities : Dtools.Conf.ut
 val test_file :
   ?log:Log.t -> ?mimes:string list -> ?extensions:string list -> string -> bool
 
-(** Test if we can decode for a given kind. This include cases where we
+(** Test if we can decode for a content_type. This include cases where we
     know how to convert channel layout. *)
 val can_decode_type : Frame.content_type -> Frame.content_type -> bool
 

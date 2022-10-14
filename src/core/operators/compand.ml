@@ -48,14 +48,16 @@ class compand (source : source) mu =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "compand"
     [
       ("mu", Lang.float_t, Some (Lang.float 1.), None);
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Compand the signal."
+    ~return_t:frame_t ~category:`Audio ~descr:"Compand the signal."
     (fun p ->
       let f v = List.assoc v p in
       let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in

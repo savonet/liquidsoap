@@ -89,10 +89,10 @@ class window mode duration source =
         done)
   end
 
-let declare mode suffix kind fun_ret_t f_ans =
+let declare mode suffix frame_t fun_ret_t f_ans =
   let name = match mode with RMS -> "rms" | Peak -> "peak" in
   let doc = match mode with RMS -> "RMS volume" | Peak -> "peak volume" in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = frame_t () in
   Lang.add_operator (name ^ suffix) ~category:`Audio
     ~meth:
       [
@@ -131,10 +131,19 @@ let () =
   let stereo value =
     Lang.product (Lang.float value.(0)) (Lang.float value.(1))
   in
-  let kind =
-    Frame.mk_fields ~audio:Frame.audio_stereo ~video:`Any ~midi:`Any ()
+  let pcm_t () =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
   in
-  declare RMS "" Lang.audio_pcm Lang.float_t mean;
-  declare RMS ".stereo" kind (Lang.product_t Lang.float_t Lang.float_t) stereo;
-  declare Peak "" Lang.audio_pcm Lang.float_t mean;
-  declare Peak ".stereo" kind (Lang.product_t Lang.float_t Lang.float_t) stereo
+  let stereo_t () =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio_stereo ()) ())
+  in
+  declare RMS "" pcm_t Lang.float_t mean;
+  declare RMS ".stereo" stereo_t
+    (Lang.product_t Lang.float_t Lang.float_t)
+    stereo;
+  declare Peak "" pcm_t Lang.float_t mean;
+  declare Peak ".stereo" stereo_t
+    (Lang.product_t Lang.float_t Lang.float_t)
+    stereo

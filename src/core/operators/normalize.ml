@@ -108,8 +108,10 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
 let () = Lang.add_module "normalize"
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "normalize.old"
     [
       ( "target",
@@ -150,9 +152,9 @@ let () =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Reset values on every track." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio
+    ~return_t:frame_t ~category:`Audio
     ~descr:
       "Normalize the signal. Dynamic normalization of the signal is sometimes \
        the only option, and can make a listening experience much nicer. \

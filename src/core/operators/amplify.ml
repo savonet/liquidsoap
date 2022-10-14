@@ -64,8 +64,10 @@ class amplify (source : source) override_field coeff =
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "amplify"
     [
       ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");
@@ -79,9 +81,10 @@ let () =
            `0.7`) which are taken as normal/linear multiplicative factors; \
            values can be passed in decibels with the suffix `dB` (e.g. `-8.2 \
            dB`, but the spaces do not matter)." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:k ~category:`Audio ~descr:"Multiply the amplitude of the signal."
+    ~return_t:frame_t ~category:`Audio
+    ~descr:"Multiply the amplitude of the signal."
     (fun p ->
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 2 p) in

@@ -269,7 +269,7 @@ let add_new_output, iterate_new_outputs =
         l := []) )
 
 class virtual operator ?(name = "src") sources =
-  let frame_type = Frame_type.univ () in
+  let frame_type = Type.var () in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
@@ -357,10 +357,12 @@ class virtual operator ?(name = "src") sources =
             ct
 
     method private audio_channels =
-      Content.Audio.channels_of_format (Frame.find_audio self#content_type)
+      Content.Audio.channels_of_format
+        (Option.get (Frame.find_audio self#content_type))
 
     method private video_dimensions =
-      Content.Video.dimensions_of_format (Frame.find_video self#content_type)
+      Content.Video.dimensions_of_format
+        (Option.get (Frame.find_video self#content_type))
 
     (** Startup/shutdown.
 
@@ -449,8 +451,8 @@ class virtual operator ?(name = "src") sources =
     method get_ready ?(dynamic = false) (activation : operator list) =
       if log == source_log then self#create_log;
       if static_activations = [] && dynamic_activations = [] then (
-        source_log#info "Source %s gets up with type: %s." id
-          (Frame_type.to_string self#frame_type);
+        source_log#info "Source %s gets up with content type: %s." id
+          (Frame.string_of_content_type self#content_type);
         self#wake_up activation);
       if dynamic then dynamic_activations <- activation :: dynamic_activations
       else static_activations <- activation :: static_activations;

@@ -28,7 +28,10 @@ let mot = midi_of_main
 let tom = main_of_midi
 let size () = mot (Lazy.force Frame.size)
 let position t = mot (position t)
-let content = Frame.midi
+
+let content b =
+  match Frame.midi b with Some c -> c | None -> raise Content.Invalid
+
 let midi b = Content.Midi.get_data (content b)
 let add_break t i = add_break t (tom i)
 let is_partial = is_partial

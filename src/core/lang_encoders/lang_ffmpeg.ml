@@ -23,17 +23,19 @@
 open Value
 open Ground
 
-let kind_of_encoder p =
+let type_of_encoder p =
   let audio =
     List.fold_left
       (fun audio p ->
         match p with
           | "", `Encoder ("audio.copy", _) ->
-              `Format
-                Content.(default_format (kind_of_string "ffmpeg.audio.copy"))
+              Some
+                (`Format
+                  Content.(default_format (kind_of_string "ffmpeg.audio.copy")))
           | "", `Encoder ("audio.raw", _) ->
-              `Format
-                Content.(default_format (kind_of_string "ffmpeg.audio.raw"))
+              Some
+                (`Format
+                  Content.(default_format (kind_of_string "ffmpeg.audio.raw")))
           | "", `Encoder ("audio", p) ->
               let channels =
                 try
@@ -48,34 +50,39 @@ let kind_of_encoder p =
                   | Not_found -> 2
                   | Exit -> raise Not_found
               in
-              `Format
-                Content.(
-                  Audio.lift_params
-                    {
-                      Content.channel_layout =
-                        lazy
-                          (Audio_converter.Channel_layout.layout_of_channels
-                             channels);
-                    })
+              Some
+                (`Format
+                  Content.(
+                    Audio.lift_params
+                      {
+                        Content.channel_layout =
+                          lazy
+                            (Audio_converter.Channel_layout.layout_of_channels
+                               channels);
+                      }))
           | _ -> audio)
-      Frame.none p
+      None p
   in
+  let audio = Option.map (fun f -> Type.make (Format_type.descr f)) audio in
   let video =
     List.fold_left
-      (fun audio p ->
+      (fun video p ->
         match p with
           | "", `Encoder ("video.copy", _) ->
-              `Format
-                Content.(default_format (kind_of_string "ffmpeg.video.copy"))
+              Some
+                (`Format
+                  Content.(default_format (kind_of_string "ffmpeg.video.copy")))
           | "", `Encoder ("video.raw", _) ->
-              `Format
-                Content.(default_format (kind_of_string "ffmpeg.video.raw"))
+              Some
+                (`Format
+                  Content.(default_format (kind_of_string "ffmpeg.video.raw")))
           | "", `Encoder ("video", _) ->
-              `Format Content.(default_format Video.kind)
-          | _ -> audio)
-      Frame.none p
+              Some (`Format Content.(default_format Video.kind))
+          | _ -> video)
+      None p
   in
-  Frame.mk_fields ~audio ~video ~midi:Frame.none ()
+  let video = Option.map (fun f -> Type.make (Format_type.descr f)) video in
+  Frame.mk_fields ?audio ?video ()
 
 let flag_qscale = ref 0
 let qp2lambda = ref 0
@@ -326,4 +333,4 @@ let make params =
   in
   Encoder.Ffmpeg (ffmpeg_gen params)
 
-let () = Lang_encoder.register "ffmpeg" kind_of_encoder make
+let () = Lang_encoder.register "ffmpeg" type_of_encoder make

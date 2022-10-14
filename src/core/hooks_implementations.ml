@@ -77,13 +77,13 @@ let eval_check ~env:_ ~tm v =
 
 let () = Hooks.eval_check := eval_check
 
-let mk_kind ~pos (kind, params) =
+let mk_field_t ~pos (kind, params) =
   if kind = "any" then Type.var ~pos ()
   else (
     try
       let k = Content.kind_of_string kind in
       match params with
-        | [] -> Lang.kind_t (`Kind k)
+        | [] -> Type.make (Format_type.descr (`Kind k))
         | [("", "any")] -> Type.var ()
         | [("", "internal")] ->
             Type.var ~constraints:[Format_type.internal_media] ()
@@ -92,7 +92,7 @@ let mk_kind ~pos (kind, params) =
             let f = mk_format param in
             List.iter (fun param -> Content.merge f (mk_format param)) params;
             assert (k = Content.kind f);
-            Lang.kind_t (`Format f)
+            Type.make (Format_type.descr (`Format f))
     with _ ->
       let params =
         params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
@@ -104,23 +104,18 @@ let mk_source_ty ~pos name args =
   if name <> "source" then
     raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
 
-  let audio = ref ("any", []) in
-  let video = ref ("any", []) in
-  let midi = ref ("any", []) in
+  match args with
+    | [] -> Lang.source_t (Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty)
+    | args ->
+        let fields =
+          List.fold_left
+            (fun fields (lbl, k) ->
+              Frame.Fields.add
+                (Frame.field_of_string lbl)
+                (mk_field_t ~pos k) fields)
+            Frame.Fields.empty args
+        in
 
-  List.iter
-    (function
-      | "audio", k -> audio := k
-      | "video", k -> video := k
-      | "midi", k -> midi := k
-      | l, _ ->
-          raise (Term.Parse_error (pos, "Unknown type constructor: " ^ l ^ ".")))
-    args;
-
-  let audio = mk_kind ~pos !audio in
-  let video = mk_kind ~pos !video in
-  let midi = mk_kind ~pos !midi in
-
-  Lang.source_t (Frame_type.make ~audio ~video ~midi ())
+        Lang.source_t (Lang.frame_t Lang.unit_t fields)
 
 let () = Hooks.mk_source_ty := mk_source_ty

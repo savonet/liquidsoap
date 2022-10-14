@@ -210,7 +210,7 @@ class audio_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata
         }
       in
       Content.merge
-        (Frame.find_audio self#content_type)
+        (Option.get (Frame.find_audio self#content_type))
         (Ffmpeg_raw_content.Audio.lift_params output_format);
       output <- Some v
 
@@ -294,7 +294,7 @@ class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
         }
       in
       Content.merge
-        (Frame.find_video self#content_type)
+        (Option.get (Frame.find_video self#content_type))
         (Ffmpeg_raw_content.Video.lift_params output_format);
       output <- Some v
 

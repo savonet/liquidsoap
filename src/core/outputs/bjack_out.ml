@@ -109,8 +109,10 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
   end
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "output.jack"
     (Output.proto
     @ [
@@ -126,9 +128,9 @@ let () =
           Lang.string_t,
           Some (Lang.string ""),
           Some "Jack server to connect to." );
-        ("", Lang.source_t k, None, None);
+        ("", Lang.source_t frame_t, None, None);
       ])
-    ~return_t:k ~category:`Output ~meth:Output.meth
+    ~return_t:frame_t ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in

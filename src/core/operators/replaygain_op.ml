@@ -58,8 +58,10 @@ class replaygain (source : source) =
 let () = Lang.add_module "source.replaygain"
 
 let () =
-  let kind = Lang.audio_pcm in
-  let k = Lang.frame_kind_t kind in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "source.replaygain.compute"
     ~meth:
       [
@@ -79,8 +81,8 @@ let () =
           "Suggested gain (in dB).",
           fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain) );
       ]
-    [("", Lang.source_t k, None, None)]
-    ~return_t:k ~category:`Audio
+    [("", Lang.source_t frame_t, None, None)]
+    ~return_t:frame_t ~category:`Audio
     ~descr:
       "Compute the ReplayGain of the source. Data is accumulated until the \
        `gain` method is called, i.e. the gain is computed _after_ the source \

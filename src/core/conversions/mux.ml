@@ -29,11 +29,11 @@ open Producer_consumer
 let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   let g = Generator.create `Both in
   let main_frame_t =
-    Lang.frame_kind_t
+    Lang.frame_t Lang.unit_t
       (Frame.mk_fields
-         ~audio:(if main_content = `Audio then `Any else Frame.none)
-         ~video:(if main_content = `Video then `Any else Frame.none)
-         ~midi:`Any ())
+         ?audio:(if main_content = `Audio then Some (Lang.univ_t ()) else None)
+         ?video:(if main_content = `Video then Some (Lang.univ_t ()) else None)
+         ())
   in
   let main_name =
     match main_content with
@@ -47,12 +47,13 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
       ~name:main_name ~source:main_source ()
   in
   Typing.(main#frame_type <: main_frame_t);
+  Typing.(main_frame_t <: main#frame_type);
   let aux_frame_t =
-    Lang.frame_kind_t
+    Lang.frame_t Lang.unit_t
       (Frame.mk_fields
-         ~audio:(if aux_content = `Audio then `Any else Frame.none)
-         ~video:(if aux_content = `Video then `Any else Frame.none)
-         ~midi:Frame.none ())
+         ?audio:(if aux_content = `Audio then Some (Lang.univ_t ()) else None)
+         ?video:(if aux_content = `Video then Some (Lang.univ_t ()) else None)
+         ())
   in
   let aux_name =
     match aux_content with
@@ -66,35 +67,35 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
       ~name:aux_name ~source:aux_source ()
   in
   Typing.(aux#frame_type <: aux_frame_t);
+  Typing.(aux_frame_t <: aux#frame_type);
   let muxed_frame_t =
-    Frame_type.make
-      ~audio:
-        (if aux_content = `Audio then Frame_type.get_audio aux_frame_t
-        else Frame_type.get_audio main_frame_t)
-      ~video:
-        (if aux_content = `Video then Frame_type.get_video aux_frame_t
-        else Frame_type.get_video main_frame_t)
-      ~midi:(Frame_type.get_midi main_frame_t)
-      ()
+    Lang.frame_t main_frame_t
+      (Frame.mk_fields
+         ?audio:
+           (if aux_content = `Audio then
+            Some (Frame_type.get_field aux_frame_t Frame.audio_field)
+           else None)
+         ?video:
+           (if aux_content = `Video then
+            Some (Frame_type.get_field aux_frame_t Frame.video_field)
+           else None)
+         ())
   in
   let producer =
     new producer (* We are expecting real-rate with a couple of hickups.. *)
       ~check_self_sync:false ~consumers:[main; aux] ~name g
   in
   Typing.(producer#frame_type <: muxed_frame_t);
+  Typing.(muxed_frame_t <: producer#frame_type);
   producer
 
 let () =
-  let kind = Lang.any in
-  let out_t = Lang.frame_kind_t kind in
-  let out_kind = Lang.of_frame_t out_t in
-  let main_t = Lang.frame_t (Frame.set_video_field out_kind Lang.kind_none_t) in
+  let video_type = Lang.univ_t () in
+  let main_t = Lang.univ_t () in
   let aux_t =
-    Lang.frame_t
-      (Frame.mk_fields ~audio:Lang.kind_none_t
-         ~video:(Frame.find_video out_kind)
-         ~midi:Lang.kind_none_t ())
+    Lang.frame_t (Lang.univ_t ()) (Frame.mk_fields ~video:video_type ())
   in
+  let out_t = Frame_type.set_field main_t Frame.video_field video_type in
   Lang.add_operator "mux_video" ~category:`Conversion
     ~descr:
       "Add video channels to a stream. Track marks and metadata are taken from \
@@ -113,16 +114,12 @@ let () =
         ~aux_content ())
 
 let () =
-  let kind = Lang.any in
-  let out_t = Lang.frame_kind_t kind in
-  let out_kind = Lang.of_frame_t out_t in
-  let main_t = Lang.frame_t (Frame.set_audio_field out_kind Lang.kind_none_t) in
+  let audio_type = Lang.univ_t () in
+  let main_t = Lang.univ_t () in
   let aux_t =
-    Lang.frame_t
-      (Frame.mk_fields
-         ~audio:(Frame.find_audio out_kind)
-         ~video:Lang.kind_none_t ~midi:Lang.kind_none_t ())
+    Lang.frame_t (Lang.univ_t ()) (Frame.mk_fields ~audio:audio_type ())
   in
+  let out_t = Frame_type.set_field main_t Frame.audio_field audio_type in
   Lang.add_operator "mux_audio" ~category:`Conversion
     ~descr:
       "Mux an audio stream into an audio-free stream. Track marks and metadata \

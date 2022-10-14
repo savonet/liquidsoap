@@ -51,6 +51,10 @@ class virtual output ~output_kind ?(name = "") ~infallible
     if infallible && source#stype <> `Infallible then
       raise (Error.Invalid_value (val_source, "That source is fallible"))
 
+    initializer
+    Typing.(source#frame_type <: self#frame_type);
+    Typing.(self#frame_type <: self#frame_type)
+
     inherit active_operator ~name:output_kind [source] as super
     inherit Start_stop.base ~on_start ~on_stop as start_stop
     method virtual private start : unit
@@ -201,8 +205,7 @@ class dummy ~infallible ~on_start ~on_stop ~autostart source =
   end
 
 let () =
-  let kind = Lang.any in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "output.dummy"
     (proto @ [("", Lang.source_t return_t, None, None)])
     ~category:`Output

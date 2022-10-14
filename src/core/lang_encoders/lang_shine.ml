@@ -23,7 +23,7 @@
 open Value
 open Ground
 
-let kind_of_encoder p = Encoder.audio_kind (Lang_encoder.channels_of_params p)
+let type_of_encoder p = Encoder.audio_type (Lang_encoder.channels_of_params p)
 
 let make params =
   let defaults =
@@ -56,5 +56,5 @@ let make params =
   Encoder.Shine shine
 
 let () =
-  Lang_encoder.register "shine" kind_of_encoder make;
-  Lang_encoder.register "mp3.fxp" kind_of_encoder make
+  Lang_encoder.register "shine" type_of_encoder make;
+  Lang_encoder.register "mp3.fxp" type_of_encoder make

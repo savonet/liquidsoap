@@ -33,6 +33,10 @@ class soundtouch source_val rate tempo pitch =
       ~write_frame:(fun frame -> !write_frame_ref frame)
       ~name:"soundtouch.consumer" ~source:source_val ()
   in
+  let () =
+    Typing.(consumer#frame_type <: source#frame_type);
+    Typing.(source#frame_type <: consumer#frame_type)
+  in
   object (self)
     inherit operator ~name:"soundtouch" [(consumer :> Source.source)] as super
 
@@ -101,8 +105,10 @@ class soundtouch source_val rate tempo pitch =
 
 let () =
   (* TODO: could we keep the video in some cases? *)
-  let kind = Lang.audio_pcm in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "soundtouch"
     [
       ("rate", Lang.getter_t Lang.float_t, Some (Lang.float 1.0), None);

@@ -288,8 +288,10 @@ let register_plugin fname =
       | Frei0r.Mixer3 -> (3, 1)
   in
   if inputs > 2 then raise Unhandled_number_of_inputs;
-  let kind = Lang.video_yuva420p in
-  let return_t = Lang.frame_kind_t kind in
+  let return_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~video:(Format_type.video ()) ())
+  in
   let liq_params, params = params plugin info in
   let liq_params =
     let inputs =
