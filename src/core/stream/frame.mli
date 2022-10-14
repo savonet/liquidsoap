@@ -41,7 +41,6 @@ val video_field_n : int -> field
 
 (* Find fields *)
 
-(* The following raise [Not_found] when the field does not exist. *)
 val find_audio : 'a Fields.t -> 'a option
 val find_video : 'a Fields.t -> 'a option
 val find_midi : 'a Fields.t -> 'a option

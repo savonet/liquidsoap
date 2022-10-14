@@ -22,8 +22,7 @@
 
 module Type = Liquidsoap_lang.Type
 
-let from_fields ?pos ?base_type fields =
-  let base_type = Option.value ~default:(Type.make ?pos Type.unit) base_type in
+let make ?pos base_type fields =
   Frame.Fields.fold
     (fun field field_type typ ->
       let field = Frame.string_of_field field in
@@ -37,21 +36,6 @@ let from_fields ?pos ?base_type fields =
       in
       Type.make ?pos (Type.Meth (meth, typ)))
     fields base_type
-
-let make ?pos ?base_type ?audio ?video ?midi () =
-  let fields =
-    List.fold_left
-      (fun fields -> function
-        | _, None -> fields
-        | field, Some v -> Frame.Fields.add field v fields)
-      Frame.Fields.empty
-      [
-        (Frame.audio_field, audio);
-        (Frame.video_field, video);
-        (Frame.midi_field, midi);
-      ]
-  in
-  from_fields ?pos ?base_type fields
 
 let internal ?pos () =
   Type.var ?pos ~constraints:[Format_type.internal_media] ()
@@ -96,8 +80,7 @@ let content_type frame_type =
             else None
           in
           let default_t =
-            from_fields ~base_type:(Type.var ())
-              (Frame.mk_fields ?audio ?video ())
+            make (Type.var ()) (Frame.mk_fields ?audio ?video ())
           in
           Typing.(frame_type <: default_t);
           default_t

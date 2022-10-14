@@ -10,7 +10,7 @@ let add_protocol ~syntax ~doc ~static name resolver =
   let spec = { Request.static; resolve = resolver } in
   Plug.register Request.protocols ~doc name spec
 
-let frame_t base_type fields = Frame_type.from_fields ~base_type fields
+let frame_t base_type fields = Frame_type.make base_type fields
 let internal_t () = Frame_type.internal ()
 
 (** Type of audio formats that can encode frame of a given kind. *)

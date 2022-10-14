@@ -29,10 +29,11 @@ open Producer_consumer
 let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   let g = Generator.create `Both in
   let main_frame_t =
-    Frame_type.make
-      ?audio:(if main_content = `Audio then Some (Lang.univ_t ()) else None)
-      ?video:(if main_content = `Video then Some (Lang.univ_t ()) else None)
-      ()
+    Lang.frame_t Lang.unit_t
+      (Frame.mk_fields
+         ?audio:(if main_content = `Audio then Some (Lang.univ_t ()) else None)
+         ?video:(if main_content = `Video then Some (Lang.univ_t ()) else None)
+         ())
   in
   let main_name =
     match main_content with
@@ -48,10 +49,11 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   Typing.(main#frame_type <: main_frame_t);
   Typing.(main_frame_t <: main#frame_type);
   let aux_frame_t =
-    Frame_type.make
-      ?audio:(if aux_content = `Audio then Some (Lang.univ_t ()) else None)
-      ?video:(if aux_content = `Video then Some (Lang.univ_t ()) else None)
-      ()
+    Lang.frame_t Lang.unit_t
+      (Frame.mk_fields
+         ?audio:(if aux_content = `Audio then Some (Lang.univ_t ()) else None)
+         ?video:(if aux_content = `Video then Some (Lang.univ_t ()) else None)
+         ())
   in
   let aux_name =
     match aux_content with
@@ -67,16 +69,17 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   Typing.(aux#frame_type <: aux_frame_t);
   Typing.(aux_frame_t <: aux#frame_type);
   let muxed_frame_t =
-    Frame_type.make ~base_type:main_frame_t
-      ?audio:
-        (if aux_content = `Audio then
-         Some (Frame_type.get_field aux_frame_t Frame.audio_field)
-        else None)
-      ?video:
-        (if aux_content = `Video then
-         Some (Frame_type.get_field aux_frame_t Frame.video_field)
-        else None)
-      ()
+    Lang.frame_t main_frame_t
+      (Frame.mk_fields
+         ?audio:
+           (if aux_content = `Audio then
+            Some (Frame_type.get_field aux_frame_t Frame.audio_field)
+           else None)
+         ?video:
+           (if aux_content = `Video then
+            Some (Frame_type.get_field aux_frame_t Frame.video_field)
+           else None)
+         ())
   in
   let producer =
     new producer (* We are expecting real-rate with a couple of hickups.. *)
@@ -90,7 +93,7 @@ let () =
   let video_type = Lang.univ_t () in
   let main_t = Lang.univ_t () in
   let aux_t =
-    Frame_type.make ~video:video_type ~base_type:(Lang.univ_t ()) ()
+    Lang.frame_t (Lang.univ_t ()) (Frame.mk_fields ~video:video_type ())
   in
   let out_t = Frame_type.set_field main_t Frame.video_field video_type in
   Lang.add_operator "mux_video" ~category:`Conversion
@@ -114,7 +117,7 @@ let () =
   let audio_type = Lang.univ_t () in
   let main_t = Lang.univ_t () in
   let aux_t =
-    Frame_type.make ~audio:audio_type ~base_type:(Lang.univ_t ()) ()
+    Lang.frame_t (Lang.univ_t ()) (Frame.mk_fields ~audio:audio_type ())
   in
   let out_t = Frame_type.set_field main_t Frame.audio_field audio_type in
   Lang.add_operator "mux_audio" ~category:`Conversion

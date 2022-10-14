@@ -113,7 +113,7 @@ let type_of_encoder ((e, p) : Term.encoder) = (find_encoder e).type_of_encoder p
 
 let type_of_encoder ~pos e =
   let fields = type_of_encoder e in
-  let frame_t = Frame_type.from_fields fields in
+  let frame_t = Frame_type.make Liquidsoap_lang.Lang.unit_t fields in
   L.format_t ?pos frame_t
 
 let make_encoder ~pos t ((e, p) : Hooks.encoder) =

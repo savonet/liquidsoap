@@ -197,7 +197,14 @@ val error_t : t
 val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t
+
+(* [frame_t base_type fields] returns a frame with [base_type] as
+   its base type and [fields] as explicit fields. Equivalent to:
+   [base_type.{fields}] *)
 val frame_t : t -> t Frame.Fields.t -> t
+
+(* Return a generic frame type with the internal media constraint
+   applied. Equivalent to: ['a where 'a is an internal media type] *)
 val internal_t : unit -> t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters

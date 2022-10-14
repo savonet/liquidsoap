@@ -277,7 +277,7 @@ let check_content v t =
             let content_t =
               Encoder.type_of_format (Lang_encoder.V.of_value v)
             in
-            let frame_t = Frame_type.from_fields ~base_type:unit_t content_t in
+            let frame_t = Frame_type.make unit_t content_t in
             let encoder_t = Lang_encoder.L.format_t frame_t in
             check encoder_t t
         | Value.Ground _, _ -> ()
