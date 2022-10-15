@@ -406,7 +406,7 @@ let toplevel_add ?doc pat ~t v =
                          own in the documentation. For instance, we don't want the field
                          recurrent to appear in the doc of thread.run: it is registered as
                          thread.run.recurrent anyways. *)
-                      (methods, { t with Type.descr = Type.Arrow (p, a) })
+                      (methods, Type.make ?pos:t.Type.pos (Type.Arrow (p, a)))
                   | _ -> (methods, t)
               in
               let methods =

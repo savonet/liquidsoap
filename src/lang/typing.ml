@@ -39,7 +39,7 @@ type env = (string * scheme) list
 let rec hide_meth l a =
   match (deref a).descr with
     | Meth ({ meth = l' }, u) when l' = l -> hide_meth l u
-    | Meth (m, u) -> { a with descr = Meth (m, hide_meth l u) }
+    | Meth (m, u) -> Type.make ?pos:a.pos (Meth (m, hide_meth l u))
     | _ -> a
 
 let rec get_meth l a =
@@ -124,7 +124,7 @@ let copy_with (subst : Subst.t) t =
             (aux t).descr
         | _ -> raise NotImplemented
     in
-    { t with descr }
+    Type.make ?pos:t.pos descr
   in
   if Subst.is_identity subst then t else aux t
 
@@ -193,7 +193,7 @@ exception Incompatible
 let rec sup ~pos a b =
   (* Printf.printf "  sup: %s \\/ %s\n%!" (Type.to_string a) (Type.to_string b); *)
   let sup = sup ~pos in
-  let mk descr = { pos; descr } in
+  let mk descr = Type.make ?pos descr in
   let scheme_sup t t' =
     match (t, t') with ([], t), ([], t') -> ([], sup t t') | _ -> t'
   in
@@ -311,7 +311,7 @@ and bind ?(variance = `Invariant) a b =
   occur_check a b;
   (* update_level a.level b; *)
   satisfies_constraints b (Constraints.elements a.constraints);
-  let b = if b.pos = None then { b with pos = a0.pos } else b in
+  let b = if b.pos = None then Type.make ?pos:a0.pos b.Type.descr else b in
   v := Link (variance, b)
 
 (** Ensure that the type for the method [l] in [a] is a subtype of the one for the same method in [b]. *)
