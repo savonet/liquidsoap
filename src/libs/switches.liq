@@ -25,8 +25,9 @@ let stdlib_fallback = fallback
 # @category Source / Track processing
 # @flag extra
 # @param s The main source.
-# @param ~fallback The fallback source.
-def fallback.skip(s,~fallback=blank())
+# @param ~fallback The fallback source. Defaults to `blank` if `null`.
+def fallback.skip(s,~fallback=null())
+  fallback = fallback ?? (blank():source)
   avail = ref(true)
   def check()
     old = !avail
