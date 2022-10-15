@@ -256,6 +256,6 @@ def output.file.dash(~id=null(), ~fallible=false,
                      ~on_start={()}, ~on_stop={()}, ~codec="libmp3lame", ~bitrate=128,
                      ~start=true, ~playlist="stream.mpd", ~directory, s)
   enc = %ffmpeg(format="dash", %audio(codec=codec, b="#{bitrate}k"))
-  output.file(id=id, fallible=fallible, on_start=on_start, on_stop=on_stop, start=start, enc, "#{directory}/#{playlist}", s)
+  output.file(id=id, fallible=fallible, on_start=on_start, on_stop=on_stop, start=start, enc, "#{(directory:string)}/#{playlist}", s)
 end
 %endif
