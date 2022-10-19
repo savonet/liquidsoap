@@ -476,16 +476,16 @@ let mk_encoder mode =
         let audio_t =
           Option.map
             (fun t ->
-              let generalized, t = Typing.generalize ~level:(-1) t in
-              Typing.instantiate ~level:(-1) ~generalized t)
+              let s = Typing.generalize ~level:(-1) t in
+              Typing.instantiate ~level:(-1) s)
             return_audio_field_t
         in
 
         let video_t =
           Option.map
             (fun t ->
-              let generalized, t = Typing.generalize ~level:(-1) t in
-              Typing.instantiate ~level:(-1) ~generalized t)
+              let s = Typing.generalize ~level:(-1) t in
+              Typing.instantiate ~level:(-1) s)
             return_video_field_t
         in
 
@@ -617,12 +617,9 @@ let mk_encoder mode =
         new Producer_consumer.consumer
           ~write_frame:encode_frame ~name:(id ^ ".consumer") ~source ()
       in
-
-      let generalized, source_frame_t =
-        Typing.generalize ~level:(-1) source_frame_t
-      in
       let source_frame_t =
-        Typing.instantiate ~level:(-1) ~generalized source_frame_t
+        Typing.instantiate ~level:(-1)
+          (Typing.generalize ~level:(-1) source_frame_t)
       in
       Typing.(consumer#frame_type <: source_frame_t);
 

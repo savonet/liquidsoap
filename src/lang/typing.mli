@@ -34,7 +34,7 @@ val filter_vars : (var -> bool) -> t -> var list
 type env = (string * scheme) list
 
 (** Instantiate a type. *)
-val instantiate : level:int -> generalized:var list -> t -> t
+val instantiate : level:int -> scheme -> t
 
 (** Find all generalizable variables. *)
 val generalize : level:int -> t -> scheme

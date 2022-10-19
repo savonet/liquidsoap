@@ -290,8 +290,8 @@ let check_content v t =
             let meths, v = Value.split_meths v in
             let meths_t, t = Type.split_meths t in
             List.iter
-              (fun { Type.meth; scheme = generalized, t } ->
-                let t = Typing.instantiate ~level:(-1) ~generalized t in
+              (fun { Type.meth; scheme = s } ->
+                let t = Typing.instantiate ~level:(-1) s in
                 check_value (List.assoc meth meths) t)
               meths_t;
             check_value v t
@@ -337,13 +337,13 @@ let add_operator =
     let f env =
       (* Create a fresh instantiation of the return type and the type of arguments. *)
       let return_t, proto =
-        let generalized, t =
+        let s =
           (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
           Typing.generalize ~level:(-1)
             (Type.make
                (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) proto)))
         in
-        let t = Typing.instantiate ~level:(-1) ~generalized t in
+        let t = Typing.instantiate ~level:(-1) s in
         match t.Type.descr with
           | Type.Tuple (return_t :: proto_t) ->
               ( return_t,

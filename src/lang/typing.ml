@@ -132,7 +132,7 @@ let copy_with (subst : Subst.t) t =
     generalized variables. Fresh variables are created with the given (current)
     level, and attached to the appropriate constraints. This erases position
     information, since they usually become irrelevant. *)
-let instantiate ~level ~generalized =
+let instantiate ~level ((generalized, t) : scheme) =
   let subst =
     List.map
       (fun v ->
@@ -140,7 +140,7 @@ let instantiate ~level ~generalized =
       generalized
   in
   let subst = Subst.of_list subst in
-  fun t -> copy_with subst t
+  copy_with subst t
 
 (** {1 Assignation} *)
 
@@ -316,14 +316,13 @@ and bind ?(variance = `Invariant) a b =
 
 (** Ensure that the type for the method [l] in [a] is a subtype of the one for the same method in [b]. *)
 and unify_meth a b l =
-  let { meth = l; scheme = g1, t1; json_name = json_name1 } = get_meth l a in
-  let { scheme = g2, t2; json_name = json_name2 } = get_meth l b in
+  let { meth = l; scheme = s1; json_name = json_name1 } = get_meth l a in
+  let { scheme = s2; json_name = json_name2 } = get_meth l b in
   (* Handle explicitly this case in order to avoid #1842. *)
   (try
      (* TODO: we should perform proper type scheme subtyping, but this
            is a good approximation for now... *)
-     instantiate ~level:(-1) ~generalized:g1 t1
-     <: instantiate ~level:(-1) ~generalized:g2 t2
+     instantiate ~level:(-1) s1 <: instantiate ~level:(-1) s2
    with Error (a, b) ->
      let bt = Printexc.get_raw_backtrace () in
      Printexc.raise_with_backtrace

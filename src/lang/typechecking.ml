@@ -206,9 +206,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~level ~env a;
         let rec aux t =
           match (Type.deref t).Type.descr with
-            | Type.(Meth ({ meth = l'; scheme = generalized, b }, c)) ->
-                if l = l' then Typing.instantiate ~level ~generalized b
-                else aux c
+            | Type.(Meth ({ meth = l'; scheme = s }, c)) ->
+                if l = l' then Typing.instantiate ~level s else aux c
             | _ ->
                 (* We did not find the method, the type we will infer is not the
                    most general one (no generalization), but this is safe and
@@ -298,13 +297,13 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         let env = (x, ([], e.t)) :: env in
         check_fun ~proto ~env e body
     | Var var ->
-        let generalized, orig =
+        let s =
           try List.assoc var env with Not_found -> raise (Unbound (pos, var))
         in
-        e.t >: Typing.instantiate ~level ~generalized orig;
+        e.t >: Typing.instantiate ~level s;
         if Lazy.force Term.debug then
           Printf.eprintf "Instantiate %s : %s becomes %s\n" var
-            (Type.to_string orig) (Type.to_string e.t)
+            (Type.string_of_scheme s) (Type.to_string e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
         check ~level:(level + 1) ~env def;
         let generalized =

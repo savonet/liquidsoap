@@ -529,12 +529,8 @@ let mk_encoder mode =
           ~write_frame:decode_frame ~name:(id ^ ".consumer") ~source ()
       in
 
-      let generalized, input_frame_t =
-        Typing.generalize ~level:(-1) input_frame_t
-      in
-      let input_frame_t =
-        Typing.instantiate ~level:(-1) ~generalized input_frame_t
-      in
+      let input_frame_t = Typing.generalize ~level:(-1) input_frame_t in
+      let input_frame_t = Typing.instantiate ~level:(-1) input_frame_t in
       Typing.(consumer#frame_type <: input_frame_t);
 
       new Producer_consumer.producer
