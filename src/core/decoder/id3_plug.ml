@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 module Metadata = Metadata.Make (struct
-  let convert = Camomile_utils.convert
+  let convert = Charset.convert
 end)
 
 let log = Log.make ["decoder"; "id3"]

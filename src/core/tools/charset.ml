@@ -1,3 +1,35 @@
+(*****************************************************************************
+
+    Liquidsoap, a programmable audio stream generator.
+    Copyright 2003-2022 Savonet team
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details, fully stated in the COPYING
+    file at the root of the liquidsoap distribution.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+
+  *****************************************************************************)
+
+type t = [ `ISO_8859_1 | `UTF_16 | `UTF_16BE | `UTF_16LE | `UTF_8 ]
+
+exception Unknown_encoding of string
+
+let of_string : string -> t = function
+  | "UTF-8" -> `UTF_8
+  | "ISO-8859-1" -> `ISO_8859_1
+  | "UTF-16" -> `UTF_16
+  | e -> raise (Unknown_encoding e)
+
 let camomile_dir = Liquidsoap_paths.camomile_dir
 
 module C = CamomileLibrary.CharEncoding.Configure (struct
@@ -7,10 +39,7 @@ module C = CamomileLibrary.CharEncoding.Configure (struct
   let unimapdir = Filename.concat camomile_dir "mappings"
 end)
 
-exception Unknown_encoding of string
-
-let enc_of_name s =
-  try C.of_name s with Not_found -> raise (Unknown_encoding s)
+let of_name s = try C.of_name s with Not_found -> raise (Unknown_encoding s)
 
 let conf_tag =
   Dtools.Conf.void
@@ -33,7 +62,7 @@ let get_encoding () =
     | Some e -> e
     | None ->
         let encs = conf_encoding#get in
-        let e = C.automatic "LIQ-TAGS" (List.map enc_of_name encs) C.utf8 in
+        let e = C.automatic "LIQ-TAGS" (List.map of_name encs) C.utf8 in
         custom_encoding := Some e;
         e
 
@@ -45,11 +74,11 @@ exception Output_encoding of string
 let recode_tag ?in_enc ?out_enc s =
   try
     let in_enc =
-      try match in_enc with Some e -> enc_of_name e | None -> get_encoding ()
+      try match in_enc with Some e -> of_name e | None -> get_encoding ()
       with Unknown_encoding s -> raise (Input_encoding s)
     in
     let out_enc =
-      try match out_enc with Some e -> enc_of_name e | None -> C.utf8
+      try match out_enc with Some e -> of_name e | None -> C.utf8
       with Unknown_encoding s -> raise (Output_encoding s)
     in
     try C.recode_string ~in_enc ~out_enc s
@@ -87,15 +116,17 @@ let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then fun ?in_enc:_ ?out_enc:_ s -> s
   else recode_tag
 
-let convert e =
-  let in_enc =
-    match e with
-      | `ISO8859 -> C.of_name "ISO-8859-1"
-      | `UTF8 -> C.utf8
-      | `UTF16 -> C.utf16
-      | `UTF16LE -> C.utf16le
-      | `UTF16BE -> C.utf16be
-      | `Auto ->
-          C.automatic "auto" [C.of_name "ISO-8859-1"; C.utf8; C.utf16] C.utf8
-  in
-  C.recode_string ~in_enc ~out_enc:C.utf8
+let enc (e : [< `Auto | t ]) =
+  match e with
+    | `ISO_8859_1 -> C.of_name "ISO-8859-1"
+    | `UTF_8 -> C.utf8
+    | `UTF_16 -> C.utf16
+    | `UTF_16LE -> C.utf16le
+    | `UTF_16BE -> C.utf16be
+    | `Auto ->
+        C.automatic "auto" [C.of_name "ISO-8859-1"; C.utf8; C.utf16] C.utf8
+
+let convert ?(source = `Auto) ?(target = `UTF_8) =
+  let in_enc = enc source in
+  let out_enc = enc target in
+  C.recode_string ~in_enc ~out_enc

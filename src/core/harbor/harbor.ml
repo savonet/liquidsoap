@@ -754,7 +754,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 | "url" -> "metadata_url"
                 | _ -> x
             in
-            let g = Camomile_utils.recode_tag ?in_enc in
+            let g = Charset.recode_tag ?in_enc in
             Hashtbl.add m (g x) (g y);
             m
           in
