@@ -64,12 +64,14 @@ let () =
       let icy_id = Lang.to_int (List.assoc "icy_id" p) in
       let metas = Lang.to_metadata (Lang.assoc "" 1 p) in
       let out_enc =
-        Lang.to_valued_option Lang.to_string (List.assoc "encoding" p)
+        List.assoc "encoding" p
+        |> Lang.to_valued_option Lang.to_string
+        |> Option.map Charset.of_string
       in
       let metas =
         let ret = Hashtbl.create (Hashtbl.length metas) in
         Hashtbl.iter
-          (fun x y -> Hashtbl.add ret x (Camomile_utils.recode_tag ?out_enc y))
+          (fun x y -> Hashtbl.add ret x (Charset.convert ?target:out_enc y))
           metas;
         ret
       in

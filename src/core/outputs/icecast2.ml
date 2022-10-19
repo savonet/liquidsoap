@@ -341,7 +341,7 @@ class output p =
   let out_enc =
     match s_opt "encoding" with
       | None | Some "" -> if protocol = Cry.Icy then `ISO_8859_1 else `UTF_8
-      | Some s -> String.uppercase_ascii s
+      | Some s -> Charset.of_string (String.uppercase_ascii s)
   in
   let source = Lang.assoc "" 2 p in
   let icy_id = Lang.to_int (List.assoc "icy_id" p) in
@@ -379,7 +379,7 @@ class output p =
   in
   let password = s "password" in
   let genre =
-    Option.map (fun s -> Charset.recode_tag ~out_enc s) (s_opt "genre")
+    Option.map (fun s -> Charset.convert ~target:out_enc s) (s_opt "genre")
   in
   let url = s_opt "url" in
   let timeout = e Lang.to_float "timeout" in
@@ -389,7 +389,9 @@ class output p =
   in
   let dumpfile = s_opt "dumpfile" in
   let description =
-    Option.map (fun s -> Charset.recode_tag ~out_enc s) (s_opt "description")
+    Option.map
+      (fun s -> Charset.convert ~target:out_enc s)
+      (s_opt "description")
   in
   let public = e Lang.to_bool "public" in
   let headers =
@@ -469,7 +471,7 @@ class output p =
                        "next";
                      ])))
         in
-        let f = Charset.recode_tag ~out_enc in
+        let f = Charset.convert ~target:out_enc in
         let a = Array.map (fun (x, y) -> (x, f y)) a in
         let m =
           let ret = Hashtbl.create 10 in
@@ -479,7 +481,10 @@ class output p =
         in
         match Cry.get_status connection with
           | Cry.Connected _ -> (
-              try Cry.update_metadata ~charset:out_enc connection m
+              try
+                Cry.update_metadata
+                  ~charset:(Charset.to_string out_enc)
+                  connection m
               with e ->
                 self#log#important
                   "Metadata update may have failed with error: %s"

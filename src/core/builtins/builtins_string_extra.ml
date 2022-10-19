@@ -59,11 +59,15 @@ let () =
     Lang.string_t
     (fun p ->
       let in_enc =
-        Lang.to_valued_option Lang.to_string (List.assoc "in_enc" p)
+        List.assoc "in_enc" p
+        |> Lang.to_valued_option Lang.to_string
+        |> Option.map Charset.of_string
       in
-      let out_enc = Lang.to_string (List.assoc "out_enc" p) in
+      let out_enc =
+        List.assoc "out_enc" p |> Lang.to_string |> Charset.of_string
+      in
       let string = Lang.to_string (List.assoc "" p) in
-      Lang.string (Camomile_utils.recode_tag ?in_enc ~out_enc string))
+      Lang.string (Charset.convert ?source:in_enc ~target:out_enc string))
 
 let () =
   Lang.add_builtin "%" ~category:`String

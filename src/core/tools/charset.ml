@@ -30,6 +30,13 @@ let of_string : string -> t = function
   | "UTF-16" -> `UTF_16
   | e -> raise (Unknown_encoding e)
 
+let to_string : t -> string = function
+  | `UTF_8 -> "UTF-8"
+  | `UTF_16 -> "UTF-16"
+  | `UTF_16BE -> "UTF-16BE"
+  | `UTF_16LE -> "UTF-16LE"
+  | `ISO_8859_1 -> "ISO-8859-1"
+
 let camomile_dir = Liquidsoap_paths.camomile_dir
 
 module C = CamomileLibrary.CharEncoding.Configure (struct
@@ -47,25 +54,23 @@ let conf_tag =
     "Settings related to metadata tags"
 
 let conf_encoding =
-  (* The ["foo";"bla"] may be stripped by configure here.. We avoided it by chance because
-   * the configure script takes conf_tag#plug as the beginning of a comment.
-   * Don't forget this when modifying this inclusion later... *)
   Dtools.Conf.list
     ~p:(conf_tag#plug "encodings")
-    ~d:["UTF-8"; "ISO-8859-1"]
-    "List of encodings to try for automatic encoding detection"
+    ~d:["UTF-8"; "ISO-8859-1"; "UTF-16"]
+    "List of encodings to try for automatic encoding detection."
 
 let custom_encoding = ref None
 
-let get_encoding () =
+let automatic_encoding () =
   match !custom_encoding with
     | Some e -> e
     | None ->
         let encs = conf_encoding#get in
-        let e = C.automatic "LIQ-TAGS" (List.map of_name encs) C.utf8 in
+        let e = C.automatic "auto" (List.map of_name encs) C.utf8 in
         custom_encoding := Some e;
         e
 
+(*
 let camolog = Log.make ["camomile"]
 
 exception Input_encoding of string
@@ -115,18 +120,19 @@ let env_has key =
 let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then fun ?in_enc:_ ?out_enc:_ s -> s
   else recode_tag
+*)
 
-let enc (e : [< `Auto | t ]) =
+let enc (e : t) =
   match e with
     | `ISO_8859_1 -> C.of_name "ISO-8859-1"
     | `UTF_8 -> C.utf8
     | `UTF_16 -> C.utf16
     | `UTF_16LE -> C.utf16le
     | `UTF_16BE -> C.utf16be
-    | `Auto ->
-        C.automatic "auto" [C.of_name "ISO-8859-1"; C.utf8; C.utf16] C.utf8
 
-let convert ?(source = `Auto) ?(target = `UTF_8) =
-  let in_enc = enc source in
+let convert ?source ?(target = `UTF_8) =
+  let in_enc =
+    match source with Some e -> enc e | None -> automatic_encoding ()
+  in
   let out_enc = enc target in
   C.recode_string ~in_enc ~out_enc

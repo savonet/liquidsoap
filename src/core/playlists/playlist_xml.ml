@@ -41,7 +41,7 @@ let conf_xml =
 let tracks ?pwd s =
   try
     let recode_metas m =
-      let f = Camomile_utils.recode_tag in
+      let f = Charset.convert in
       List.map (fun (a, b) -> (f a, f b)) m
     in
     List.map
