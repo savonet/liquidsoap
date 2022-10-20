@@ -9,5 +9,3 @@ let liq_libs_dir () = "/usr/share/liquidsoap/libs"
 let liq_libs_dir_descr = liq_libs_dir ()
 let bin_dir () = "/usr/share/liquidsoap/bin"
 let bin_dir_descr = bin_dir ()
-let camomile_dir = "/usr/share/liquidsoap/camomile"
-let camomile_dir_descr = camomile_dir
