@@ -165,6 +165,10 @@ We noticed that you did not install any ssl support package. Liquidsoap won't
 be able to use any HTTPS feature. You might want to install one of ssl or
 osx-secure-transport package."""
     {success & !ssl-enabled & !secure-transport-enabled}
+  """\
+We noticed that you did not install the camomile package that provides charset
+conversion. Make sure that you only use UTF-8 tags."""
+    {success & !camomile-enabled}
 ]
 depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
