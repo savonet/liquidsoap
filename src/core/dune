@@ -702,6 +702,7 @@
   bjack_option
   builtins_optionals
   camlimages_option
+  camomile_option
   dssi_option
   faad_option
   fdkaac_option
@@ -822,6 +823,11 @@
    from
    (inotify -> inotify_option.enabled.ml)
    (-> inotify_option.disabled.ml))
+  (select
+   camomile_option.ml
+   from
+   (camomile -> camomile_option.enabled.ml)
+   (-> camomile_option.disabled.ml))
   (select
    irc_option.ml
    from
