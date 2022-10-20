@@ -21,7 +21,12 @@
   duppy
   liquidsoap_lang
   menhirLib
-  camomile
+  (select
+    charset.ml
+    from
+    (camomile -> charset.camomile.ml)
+    (-> charset.native.ml)
+  )
   curl
   cry
   uri
@@ -57,8 +62,8 @@
   avi_format
   biquad_filter
   blank
-  charset
   charset_base
+  charset
   child_support
   chord
   clip
