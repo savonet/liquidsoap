@@ -58,6 +58,7 @@
   biquad_filter
   blank
   charset
+  charset_base
   child_support
   chord
   clip

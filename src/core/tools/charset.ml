@@ -20,22 +20,7 @@
 
   *****************************************************************************)
 
-type t = [ `ISO_8859_1 | `UTF_16 | `UTF_16BE | `UTF_16LE | `UTF_8 ]
-
-exception Unknown_encoding of string
-
-let of_string : string -> t = function
-  | "UTF-8" -> `UTF_8
-  | "ISO-8859-1" -> `ISO_8859_1
-  | "UTF-16" -> `UTF_16
-  | e -> raise (Unknown_encoding e)
-
-let to_string : t -> string = function
-  | `UTF_8 -> "UTF-8"
-  | `UTF_16 -> "UTF-16"
-  | `UTF_16BE -> "UTF-16BE"
-  | `UTF_16LE -> "UTF-16LE"
-  | `ISO_8859_1 -> "ISO-8859-1"
+include Charset_base
 
 let camomile_dir = Liquidsoap_paths.camomile_dir
 
@@ -51,7 +36,7 @@ let of_name s = try C.of_name s with Not_found -> raise (Unknown_encoding s)
 let conf_tag =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "tag")
-    "Settings related to metadata tags"
+    "Settings related to metadata tags."
 
 let conf_encoding =
   Dtools.Conf.list
