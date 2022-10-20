@@ -28,7 +28,7 @@ module Metadata = Metadata.Make (struct
     | `UTF_16BE -> `UTF16BE
     | `ISO_8859_1 -> `ISO8859
 
-  let convert ?from:e =
+  let convert ?source:e =
     let e = Option.map enc e in
     let e = Option.value ~default:`Auto e in
     Camomile_utils.convert e
