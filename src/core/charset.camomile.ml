@@ -22,28 +22,32 @@
 
 include Charset_base
 
-let camomile_dir = Liquidsoap_paths.camomile_dir
-
-module C = CamomileLibrary.CharEncoding.Configure (struct
-  let datadir = Filename.concat camomile_dir "database"
-  let localedir = Filename.concat camomile_dir "locales"
-  let charmapdir = Filename.concat camomile_dir "charmaps"
-  let unimapdir = Filename.concat camomile_dir "mappings"
-end)
-
-let of_name s = try C.of_name s with Not_found -> raise (Unknown_encoding s)
-
-let conf_tag =
+let conf_camomile =
   Dtools.Conf.void
-    ~p:(Configure.conf#plug "tag")
-    "Settings related to metadata tags."
+    ~p:(Configure.conf#plug "camomile")
+    "Settings related to camomile library (for charset conversion)."
+
+let conf_path =
+  Dtools.Conf.string
+    ~p:(conf_camomile#plug "path")
+    ~d:CamomileDefaultConfig__.InstallConfig.share_dir
+    "Directory where camomile files are to be found."
 
 let conf_encoding =
   Dtools.Conf.list
-    ~p:(conf_tag#plug "encodings")
+    ~p:(conf_camomile#plug "encodings")
     ~d:["UTF-8"; "ISO-8859-1"; "UTF-16"]
     "List of encodings to try for automatic encoding detection."
 
+module C = CamomileLibrary.CharEncoding.Configure (struct
+  let basedir = conf_path#get
+  let datadir = Filename.concat basedir "database"
+  let localedir = Filename.concat basedir "locales"
+  let charmapdir = Filename.concat basedir "charmaps"
+  let unimapdir = Filename.concat basedir "mappings"
+end)
+
+let of_name s = try C.of_name s with Not_found -> raise (Unknown_encoding s)
 let custom_encoding = ref None
 
 let automatic_encoding () =
