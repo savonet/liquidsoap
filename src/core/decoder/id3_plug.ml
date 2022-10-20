@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 module Metadata = Metadata.Make (struct
-  let convert ?from s = Charset.convert ?source:from s
+  let convert ?source s = Charset.convert ?source s
 end)
 
 let log = Log.make ["decoder"; "id3"]

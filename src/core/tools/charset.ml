@@ -70,26 +70,14 @@ let automatic_encoding () =
         custom_encoding := Some e;
         e
 
-(*
 let camolog = Log.make ["camomile"]
 
-exception Input_encoding of string
-exception Output_encoding of string
-
-let recode_tag ?in_enc ?out_enc s =
+let recode_string ~in_enc ~out_enc s =
   try
-    let in_enc =
-      try match in_enc with Some e -> of_name e | None -> get_encoding ()
-      with Unknown_encoding s -> raise (Input_encoding s)
-    in
-    let out_enc =
-      try match out_enc with Some e -> of_name e | None -> C.utf8
-      with Unknown_encoding s -> raise (Output_encoding s)
-    in
     try C.recode_string ~in_enc ~out_enc s
     with e ->
       let in_enc =
-        if in_enc == get_encoding () then
+        if in_enc == automatic_encoding () then
           Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
         else C.name_of in_enc
       in
@@ -100,27 +88,10 @@ let recode_tag ?in_enc ?out_enc s =
     | Unknown_encoding e ->
         camolog#important "Failed to convert %S: unknown encoding %s" s e;
         s
-    | Input_encoding e ->
-        camolog#important "Failed to convert %S: unknown input encoding %s" s e;
-        s
-    | Output_encoding e ->
-        camolog#important "Failed to convert %S: unknown output encoding %s" s e;
-        s
     | e ->
         camolog#important "Failed to convert %S: unknown error %s" s
           (Printexc.to_string e);
         s
-
-let env_has key =
-  try
-    ignore (Sys.getenv key);
-    true
-  with Not_found -> false
-
-let recode_tag =
-  if env_has "LIQ_DISABLE_CAMOMILE" then fun ?in_enc:_ ?out_enc:_ s -> s
-  else recode_tag
-*)
 
 let enc (e : t) =
   match e with
@@ -135,4 +106,4 @@ let convert ?source ?(target = `UTF_8) =
     match source with Some e -> enc e | None -> automatic_encoding ()
   in
   let out_enc = enc target in
-  C.recode_string ~in_enc ~out_enc
+  recode_string ~in_enc ~out_enc
