@@ -1,7 +1,7 @@
 let liquidsoap.chroot = ()
 
-# Export all the files required to install liquidsoap in a
-# root folder. Useful for packaging and docker images
+# Export all the files required to install liquidsoap in a root folder. Useful
+# for packaging and docker images.
 # @category Liquidsoap
 def liquidsoap.chroot.make(chroot) =
   def chroot(p) =
@@ -19,7 +19,6 @@ def liquidsoap.chroot.make(chroot) =
 
   cp(configure.libdir)
   cp(configure.bindir)
-  cp(configure.camomile_dir)
 
   if file.exists(configure.default_font) then
     cp(configure.default_font)
