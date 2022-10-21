@@ -739,12 +739,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             try
               let enc =
                 match String.uppercase_ascii (Hashtbl.find args "charset") with
-                  | "LATIN1" -> "ISO-8859-1"
-                  | s -> s
+                  | "LATIN1" -> `ISO_8859_1
+                  | s -> Charset.of_string s
               in
               Hashtbl.remove args "charset";
               Some enc
-            with Not_found -> if icy then s#icy_charset else s#meta_charset
+            with Not_found ->
+              (if icy then s#icy_charset else s#meta_charset)
+              |> Option.map Charset.of_string
           in
           (* Recode tags.. *)
           let f x y m =
@@ -754,7 +756,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 | "url" -> "metadata_url"
                 | _ -> x
             in
-            let g = Camomile_utils.recode_tag ?in_enc in
+            let g x = Charset.convert ?source:in_enc x in
             Hashtbl.add m (g x) (g y);
             m
           in

@@ -21,17 +21,7 @@
  *****************************************************************************)
 
 module Metadata = Metadata.Make (struct
-  let enc = function
-    | `UTF_8 -> `UTF8
-    | `UTF_16 -> `UTF16
-    | `UTF_16LE -> `UTF16LE
-    | `UTF_16BE -> `UTF16BE
-    | `ISO_8859_1 -> `ISO8859
-
-  let convert ?source:e =
-    let e = Option.map enc e in
-    let e = Option.value ~default:`Auto e in
-    Camomile_utils.convert e
+  let convert ?source s = Charset.convert ?source s
 end)
 
 let log = Log.make ["decoder"; "id3"]

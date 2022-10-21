@@ -35,7 +35,6 @@ let () =
       ("bindir", "Internal script directory", Configure.bin_dir ());
       ("rundir", "PID file directory", Configure.rundir ());
       ("logdir", "logging directory", Configure.logdir ());
-      ("camomile_dir", "camomile files directory", Camomile_utils.camomile_dir);
       ("default_font", "default font file", Configure.default_font);
     ]
 

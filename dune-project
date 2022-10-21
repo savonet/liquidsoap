@@ -16,8 +16,7 @@
 (package
   (name liquidsoap)
   (depends
-    (ocaml (and (>= 4.12.0) (< 5.0.0)))
-    (camomile (>= 1.0.0))
+    (ocaml (>= 4.12.0))
     (dtools (>= 0.4.4))
     (duppy (>= 0.9.1))
     (mm (>= 0.8.1))
@@ -37,6 +36,7 @@
     ao
     bjack
     camlimages
+    (camomile (>= 1.0.0))
     dssi
     faad
     fdkaac

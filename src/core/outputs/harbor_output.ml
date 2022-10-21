@@ -320,10 +320,10 @@ class output p =
   let recode ~icy m =
     let out_enc =
       match encoding with
-        | "" -> if icy then "ISO-8859-1" else "UTF-8"
-        | s -> String.uppercase_ascii s
+        | "" -> if icy then `ISO_8859_1 else `UTF_8
+        | s -> Charset.of_string (String.uppercase_ascii s)
     in
-    let f = Camomile_utils.recode_tag ~out_enc in
+    let f = Charset.convert ~target:out_enc in
     let meta = Hashtbl.create (Hashtbl.length m) in
     Hashtbl.iter (fun a b -> Hashtbl.add meta a (f b)) m;
     meta
@@ -378,7 +378,7 @@ class output p =
   let login ~socket user password =
     let address = address_resolver socket in
     let user, password =
-      let f = Camomile_utils.recode_tag in
+      let f = Charset.convert in
       (f user, f password)
     in
     match auth_function with

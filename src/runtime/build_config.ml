@@ -29,7 +29,6 @@ let build_config =
    - mode              : %{path_mode}
    - standard library  : %{Liquidsoap_paths.liq_libs_dir_descr}
    - scripted binaries : %{Liquidsoap_paths.bin_dir_descr}
-   - camomile          : %{Liquidsoap_paths.camomile_dir_descr}
    - rundir            : %{Liquidsoap_paths.rundir_descr}
    - logdir            : %{Liquidsoap_paths.logdir_descr}
 
@@ -92,8 +91,9 @@ let build_config =
    - SDL               : %{Sdl_option.detected}
 
  * Additional libraries
-   - FFmpeg filters:   : %{Ffmpeg_option.detected}
+   - FFmpeg filters    : %{Ffmpeg_option.detected}
    - FFmpeg devices    : %{Ffmpeg_option.detected}
+   - camomile          : %{Camomile_option.detected}
    - inotify           : %{Inotify_option.detected}
    - irc               : %{Irc_option.detected}
    - lastfm            : %{Lastfm_option.detected}

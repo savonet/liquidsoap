@@ -17,8 +17,7 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.2"}
-  "ocaml" {>= "4.12.0" & < "5.0.0"}
-  "camomile" {>= "1.0.0"}
+  "ocaml" {>= "4.12.0"}
   "dtools" {>= "0.4.4"}
   "duppy" {>= "0.9.1"}
   "mm" {>= "0.8.1"}
@@ -40,6 +39,7 @@ depopts: [
   "ao"
   "bjack"
   "camlimages"
+  "camomile" {>= "1.0.0"}
   "dssi"
   "faad"
   "fdkaac"
@@ -165,6 +165,10 @@ We noticed that you did not install any ssl support package. Liquidsoap won't
 be able to use any HTTPS feature. You might want to install one of ssl or
 osx-secure-transport package."""
     {success & !ssl-enabled & !secure-transport-enabled}
+  """\
+We noticed that you did not install the camomile package that provides charset
+conversion. Make sure that you only use UTF-8 tags."""
+    {success & !camomile-enabled}
 ]
 depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"

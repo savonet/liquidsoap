@@ -424,7 +424,7 @@ let () =
          *   a charset information, but this refers to
          *   the charset of the HTML content.. *)
         let user, password =
-          let f = Camomile_utils.recode_tag in
+          let f = Charset.convert in
           (f user, f password)
         in
         let default_login =
