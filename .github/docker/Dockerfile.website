@@ -37,9 +37,9 @@ RUN cd liquidsoap && \
     mv .git /tmp && \
     rm -rf * && \
     mv /tmp/.git . && \
-    git reset --hard
-
-RUN make public && make update
+    git reset --hard && \
+    git checkout origin main && \
+    git pull
 
 RUN cat PACKAGES.default | grep -v gstreamer > PACKAGES
 
