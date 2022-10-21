@@ -38,6 +38,7 @@ RUN cd liquidsoap && \
     rm -rf * && \
     mv /tmp/.git . && \
     git reset --hard && \
+    git fetch && \
     git checkout origin main && \
     git pull
 
