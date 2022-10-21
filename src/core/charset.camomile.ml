@@ -28,10 +28,16 @@ let conf_camomile =
     "Settings related to camomile library (for charset conversion)."
 
 let conf_path =
+  let d =
+    match Liquidsoap_paths.mode with
+      | `Default -> CamomileDefaultConfig__.InstallConfig.share_dir
+      | `Posix -> "/usr/share/liquidsoap/camomile"
+      | `Standalone ->
+          Filename.concat (Liquidsoap_paths.rundir ()) "../camomile"
+  in
   Dtools.Conf.string
     ~p:(conf_camomile#plug "path")
-    ~d:CamomileDefaultConfig__.InstallConfig.share_dir
-    "Directory where camomile files are to be found."
+    ~d "Directory where camomile files are to be found."
 
 let conf_encoding =
   Dtools.Conf.list
