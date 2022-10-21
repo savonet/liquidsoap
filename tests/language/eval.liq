@@ -1,8 +1,10 @@
+#!../../liquidsoap ../test.liq
+
 count = ref(1)
 fail = ref(false)
 
 def echo(s)
-  if s != string_of(!count) then
+  if s != string(!count) then
     fail := true
   end
   count := !count + 1
@@ -33,12 +35,12 @@ def f() =
 %endif
 
   echo("1#{1+1}")
-  echo(string_of(int_of_float(float_of_string(default=13.,"blah"))))
+  echo(string(int_of_float(float_of_string(default=13.,"blah"))))
 
   f=fun(x)->x
   # Checking that the following is not recursive:
   f=fun(x)->f(x)
-  echo(string_of(f(14)))
+  echo(string(f(14)))
 
   t("15",{ list.remove(2,[2]) == [] })
 
