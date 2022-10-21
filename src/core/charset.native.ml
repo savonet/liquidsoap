@@ -22,4 +22,7 @@
 
 include Charset_base
 
-let convert ?source:_ ?target:_ s = s
+let convert ?(fail = false) ?(source = `UTF_8) ?(target = `UTF_8) s =
+  if fail && source <> `UTF_8 then raise (Unsupported_encoding source);
+  if fail && target <> `UTF_8 then raise (Unsupported_encoding target);
+  s

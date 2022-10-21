@@ -23,6 +23,9 @@
 (** A character set. *)
 type t = [ `ISO_8859_1 | `UTF_16 | `UTF_16BE | `UTF_16LE | `UTF_8 ]
 
+exception Unknown_encoding of string
+exception Unsupported_encoding of t
+
 (** Charset from string. *)
 val of_string : string -> t
 
@@ -30,5 +33,6 @@ val of_string : string -> t
 val to_string : t -> string
 
 (** Convert between charsets. By default, source charset is automatically
-    detected and target charset is UTF8. *)
-val convert : ?source:t -> ?target:t -> string -> string
+    detected and target charset is UTF8. The function will silently fail unless
+    [fail] is set to [true]. *)
+val convert : ?fail:bool -> ?source:t -> ?target:t -> string -> string

@@ -67,7 +67,7 @@ let automatic_encoding () =
 
 let camolog = Log.make ["camomile"]
 
-let recode_string ~in_enc ~out_enc s =
+let recode_string ~fail ~in_enc ~out_enc s =
   try
     try C.recode_string ~in_enc ~out_enc s
     with e ->
@@ -80,10 +80,10 @@ let recode_string ~in_enc ~out_enc s =
         (C.name_of out_enc) (Printexc.to_string e);
       s
   with
-    | Unknown_encoding e ->
+    | Unknown_encoding e when not fail ->
         camolog#important "Failed to convert %S: unknown encoding %s" s e;
         s
-    | e ->
+    | e when not fail ->
         camolog#important "Failed to convert %S: unknown error %s" s
           (Printexc.to_string e);
         s
@@ -96,9 +96,9 @@ let enc (e : t) =
     | `UTF_16LE -> C.utf16le
     | `UTF_16BE -> C.utf16be
 
-let convert ?source ?(target = `UTF_8) =
+let convert ?(fail = false) ?source ?(target = `UTF_8) =
   let in_enc =
     match source with Some e -> enc e | None -> automatic_encoding ()
   in
   let out_enc = enc target in
-  recode_string ~in_enc ~out_enc
+  recode_string ~fail ~in_enc ~out_enc

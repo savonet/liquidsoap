@@ -23,6 +23,7 @@
 type t = [ `ISO_8859_1 | `UTF_16 | `UTF_16BE | `UTF_16LE | `UTF_8 ]
 
 exception Unknown_encoding of string
+exception Unsupported_encoding of t
 
 let of_string : string -> t = function
   | "UTF-8" -> `UTF_8
