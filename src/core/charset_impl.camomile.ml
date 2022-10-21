@@ -20,7 +20,35 @@
 
   *****************************************************************************)
 
-include Charset_base
+let supported_encodings =
+  [
+    `ISO_8859_1;
+    `ISO_8859_10;
+    `ISO_8859_11;
+    `ISO_8859_13;
+    `ISO_8859_14;
+    `ISO_8859_15;
+    `ISO_8859_16;
+    `ISO_8859_2;
+    `ISO_8859_3;
+    `ISO_8859_4;
+    `ISO_8859_5;
+    `ISO_8859_6;
+    `ISO_8859_7;
+    `ISO_8859_8;
+    `ISO_8859_9;
+    `KOI8_R;
+    `KOI8_U;
+    `UTF_16;
+    `UTF_16BE;
+    `UTF_16LE;
+    `UTF_8;
+  ]
+
+let description = "camomile implementation"
+let can_detect = supported_encodings
+let can_decode = supported_encodings
+let can_encode = supported_encodings
 
 let conf_camomile =
   Dtools.Conf.void
@@ -53,7 +81,9 @@ module C = CamomileLibrary.CharEncoding.Configure (struct
   let unimapdir = Filename.concat basedir "mappings"
 end)
 
-let of_name s = try C.of_name s with Not_found -> raise (Unknown_encoding s)
+let of_name s =
+  try C.of_name s with Not_found -> raise (Charset_base.Unknown_encoding s)
+
 let custom_encoding = ref None
 
 let automatic_encoding () =
@@ -65,36 +95,25 @@ let automatic_encoding () =
         custom_encoding := Some e;
         e
 
-let camolog = Log.make ["camomile"]
-
 let recode_string ~in_enc ~out_enc s =
-  try
-    try C.recode_string ~in_enc ~out_enc s
-    with e ->
-      let in_enc =
-        if in_enc == automatic_encoding () then
-          Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
-        else C.name_of in_enc
-      in
-      camolog#important "Failed to convert %S from %s to %s (%s)!" s in_enc
-        (C.name_of out_enc) (Printexc.to_string e);
-      s
-  with
-    | Unknown_encoding e ->
-        camolog#important "Failed to convert %S: unknown encoding %s" s e;
-        s
-    | e ->
-        camolog#important "Failed to convert %S: unknown error %s" s
-          (Printexc.to_string e);
-        s
+  try C.recode_string ~in_enc ~out_enc s
+  with e ->
+    let in_enc =
+      if in_enc == automatic_encoding () then
+        Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
+      else C.name_of in_enc
+    in
+    Charset_base.log#important "Failed to convert %S from %s to %s (%s)!" s
+      in_enc (C.name_of out_enc) (Printexc.to_string e);
+    s
 
-let enc (e : t) =
+let enc e =
   match e with
-    | `ISO_8859_1 -> C.of_name "ISO-8859-1"
     | `UTF_8 -> C.utf8
     | `UTF_16 -> C.utf16
     | `UTF_16LE -> C.utf16le
     | `UTF_16BE -> C.utf16be
+    | x -> C.of_name (Charset_base.to_string x)
 
 let convert ?source ?(target = `UTF_8) =
   let in_enc =

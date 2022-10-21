@@ -29,6 +29,8 @@ let () =
         {|
 (executable
  (name %s)
+ (preprocess
+  (pps ppx_string))
  (modules %s)
  (libraries liquidsoap_core liquidsoap_optionals))
 

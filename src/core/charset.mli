@@ -21,7 +21,45 @@
   *****************************************************************************)
 
 (** A character set. *)
-type t = [ `ISO_8859_1 | `UTF_16 | `UTF_16BE | `UTF_16LE | `UTF_8 ]
+type t =
+  [ `ISO_8859_1
+  | `ISO_8859_10
+  | `ISO_8859_11
+  | `ISO_8859_13
+  | `ISO_8859_14
+  | `ISO_8859_15
+  | `ISO_8859_16
+  | `ISO_8859_2
+  | `ISO_8859_3
+  | `ISO_8859_4
+  | `ISO_8859_5
+  | `ISO_8859_6
+  | `ISO_8859_7
+  | `ISO_8859_8
+  | `ISO_8859_9
+  | `KOI8_R
+  | `KOI8_U
+  | `UTF_16
+  | `UTF_16BE
+  | `UTF_16LE
+  | `UTF_8
+  | `UTF_7 ]
+
+exception Unknown_encoding of string
+exception Unsupported_encoding of t
+exception Malformed_input of string
+
+(** Description of the implementation. *)
+val description : string
+
+(** List of all available encodings. *)
+val all_encodings : t list
+
+(** Implementation capabilities. *)
+val can_detect : t list
+
+val can_decode : t list
+val can_encode : t list
 
 (** Charset from string. *)
 val of_string : string -> t

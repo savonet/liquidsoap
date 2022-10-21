@@ -23,6 +23,7 @@
     (pcre (>= 7.5.0))
     (ocurl (>= 0.9.2))
     (cry (>= 0.6.5))
+    conf-liquidsoap-charset
     uri
     menhirLib
     metadata
@@ -36,7 +37,6 @@
     ao
     bjack
     camlimages
-    (camomile (>= 1.0.0))
     dssi
     faad
     fdkaac
@@ -152,3 +152,8 @@
      (liquidsoap-lang (<> :version)))
    (synopsis "Liquidosap emacs mode")
 )
+
+(package
+   (name conf-liquidsoap-charset)
+   (allow_empty)
+   (synopsis "Liquidsoap charset dependencies"))

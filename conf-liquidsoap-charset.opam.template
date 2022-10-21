@@ -1,0 +1,4 @@
+build: []
+depends: [
+  ("rosetta" & "ocaml" {>= "4.14.0"}) | "camomile" {>= "1.0.0"}
+]

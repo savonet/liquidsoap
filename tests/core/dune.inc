@@ -1,6 +1,8 @@
 
 (executable
  (name json_test)
+ (preprocess
+  (pps ppx_string))
  (modules json_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -15,6 +17,8 @@
 
 (executable
  (name output_encoded_test)
+ (preprocess
+  (pps ppx_string))
  (modules output_encoded_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -29,6 +33,8 @@
 
 (executable
  (name stream_decoder_test)
+ (preprocess
+  (pps ppx_string))
  (modules stream_decoder_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -43,6 +49,8 @@
 
 (executable
  (name version_test)
+ (preprocess
+  (pps ppx_string))
  (modules version_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -57,6 +65,8 @@
 
 (executable
  (name strings_test)
+ (preprocess
+  (pps ppx_string))
  (modules strings_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -71,6 +81,8 @@
 
 (executable
  (name unifier_test)
+ (preprocess
+  (pps ppx_string))
  (modules unifier_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -85,6 +97,8 @@
 
 (executable
  (name taglib_test)
+ (preprocess
+  (pps ppx_string))
  (modules taglib_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -99,6 +113,8 @@
 
 (executable
  (name output_test)
+ (preprocess
+  (pps ppx_string))
  (modules output_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -113,6 +129,8 @@
 
 (executable
  (name pool_test)
+ (preprocess
+  (pps ppx_string))
  (modules pool_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -127,6 +145,8 @@
 
 (executable
  (name timezone)
+ (preprocess
+  (pps ppx_string))
  (modules timezone)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -141,6 +161,8 @@
 
 (executable
  (name start_stop_test)
+ (preprocess
+  (pps ppx_string))
  (modules start_stop_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -155,6 +177,8 @@
 
 (executable
  (name generator_test)
+ (preprocess
+  (pps ppx_string))
  (modules generator_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -169,6 +193,8 @@
 
 (executable
  (name decoder_test)
+ (preprocess
+  (pps ppx_string))
  (modules decoder_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -183,6 +209,8 @@
 
 (executable
  (name utils_test)
+ (preprocess
+  (pps ppx_string))
  (modules utils_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -197,6 +225,8 @@
 
 (executable
  (name content_test)
+ (preprocess
+  (pps ppx_string))
  (modules content_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -211,6 +241,8 @@
 
 (executable
  (name is_url)
+ (preprocess
+  (pps ppx_string))
  (modules is_url)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -225,6 +257,8 @@
 
 (executable
  (name playlist_basic_test)
+ (preprocess
+  (pps ppx_string))
  (modules playlist_basic_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -239,6 +273,8 @@
 
 (executable
  (name frame_test)
+ (preprocess
+  (pps ppx_string))
  (modules frame_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -252,7 +288,25 @@
 
 
 (executable
+ (name charset_test)
+ (preprocess
+  (pps ppx_string))
+ (modules charset_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+
+  (:charset_test charset_test.exe))
+ (action (run %{charset_test} )))
+
+
+(executable
  (name types)
+ (preprocess
+  (pps ppx_string))
  (modules types)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -267,6 +321,8 @@
 
 (executable
  (name source_test)
+ (preprocess
+  (pps ppx_string))
  (modules source_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -281,6 +337,8 @@
 
 (executable
  (name readavi)
+ (preprocess
+  (pps ppx_string))
  (modules readavi)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -295,6 +353,8 @@
 
 (executable
  (name string_test)
+ (preprocess
+  (pps ppx_string))
  (modules string_test)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -309,6 +369,8 @@
 
 (executable
  (name meth)
+ (preprocess
+  (pps ppx_string))
  (modules meth)
  (libraries liquidsoap_core liquidsoap_optionals))
 
@@ -323,6 +385,8 @@
 
 (executable
  (name parsesrt)
+ (preprocess
+  (pps ppx_string))
  (modules parsesrt)
  (libraries liquidsoap_core liquidsoap_optionals))
 
