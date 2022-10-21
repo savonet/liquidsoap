@@ -196,13 +196,13 @@ try
     t = interactive.type(name)
     if t == "float" then
       r = interactive.float.ref(name)
-      string_of_float(decimal_places=3, !r)
+      string.float(decimal_places=3, !r)
     elsif t == "int" then
       r = interactive.int.ref(name)
-      string_of(!r)
+      string(!r)
     elsif t == "bool" then
       r = interactive.bool.ref(name)
-      string_of(!r)
+      string(!r)
     elsif t == "string" then
       r = interactive.string.ref(name)
       !r
@@ -393,7 +393,7 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
         end
       elsif v.type == "int" then
         v = list.assoc(name, !variables_int)
-        value = string_of(!v.ref)
+        value = string(!v.ref)
         add("<input type='number' #{common} step='1' value='#{value}'>")
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)

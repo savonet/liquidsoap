@@ -52,6 +52,8 @@ Changed:
 - Added nullable default to `{int,float,bool}_of_string` conversion functions, raise
   an exception if conversion fails and no default is given.
 - The camomile library for charset conversion is now optional (#2696).
+- Deprecated `string_of` in favor of `string`.
+- Deprecated `string_of_float` in favor of `string.float`.
 
 Fixed:
 

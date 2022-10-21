@@ -73,7 +73,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
         server.register(namespace=source.id(s), description="Push a new request in the queue.", usage="push <uri>", "push", push)
         def show_queue(_) =
           queue = [...s.queue(), ...(!queue)]
-          string.concat(separator=" ", list.map(fun (r) -> string_of(request.id(r)), queue))
+          string.concat(separator=" ", list.map(fun (r) -> string(request.id(r)), queue))
         end
         server.register(namespace=source.id(s), description="Display current queue content.", usage="queue", "queue", show_queue)
         def skip(_) = s.skip(); "Done." end

@@ -15,7 +15,7 @@ def replaygain(~id=null(), ~ebu_r128=true, s)
         v = int_of_string(v)
         v = v + 5 # normalize to -18 dB as usual replaygain instead of -23 dB
         v = lin_of_dB(float(v) / 256.)
-        ("replaygain_track_gain", string_of_float(v))
+        ("replaygain_track_gain", string.float(v))
       else
         (k, v)
       end

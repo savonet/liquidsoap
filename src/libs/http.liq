@@ -1,6 +1,6 @@
 # Set of HTTP utils.
 
-# Prepare a list of data to be sent as multipart form data
+# Prepare a list of data to be sent as multipart form data.
 # @category Internet
 # @param ~boundary Specify boundary to use for multipart/form-data.
 # @param data data to insert
@@ -419,7 +419,7 @@ end
 # It seems that browsers want a trailing 0 for floats.
 # @flag hidden
 def http.string_of_float(x)
-  s = string_of(x)
+  s = string(x)
   n = string.length(s)
   if string.sub(s, start=n-1, length=1) == "." then
     s ^ "0"
