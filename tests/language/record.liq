@@ -88,6 +88,8 @@ def f() =
   t(({a = 5}) == ({a = 5}), true)
   # The following is weird but expected
   t({a = 5} == {a = 5, b = 6}, true)
+  t("bla".{x = 2} == "bla", true)
+  t("bla" == "bla".{x = 2}, true)
 
   if !success then test.pass() else test.fail() end
 end
