@@ -249,20 +249,20 @@ let params_of_plugin plugin =
               let bounds = ref " (" in
               begin
                 match min with
-                | Some f -> (
-                    match t with
-                      | `Float ->
-                          bounds := Printf.sprintf "%s%.6g <= " !bounds f)
-                | None -> ()
+                  | Some f -> (
+                      match t with
+                        | `Float ->
+                            bounds := Printf.sprintf "%s%.6g <= " !bounds f)
+                  | None -> ()
               end;
               bounds := !bounds ^ "`" ^ Port.symbol p ^ "`";
               begin
                 match max with
-                | Some f -> (
-                    match t with
-                      | `Float ->
-                          bounds := Printf.sprintf "%s <= %.6g" !bounds f)
-                | None -> ()
+                  | Some f -> (
+                      match t with
+                        | `Float ->
+                            bounds := Printf.sprintf "%s <= %.6g" !bounds f)
+                  | None -> ()
               end;
               !bounds ^ ")")
           in

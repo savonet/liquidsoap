@@ -109,8 +109,7 @@ class virtual ['a] input ~nb_blocks =
           (* Wait for the reader to read the block we fancy, or for shutdown. *)
           Mutex.lock wait_m;
           if
-            io_state <> `Tired
-            && read <> write
+            io_state <> `Tired && read <> write
             && write mod nb_blocks = read mod nb_blocks
           then Condition.wait wait_c wait_m;
           Mutex.unlock wait_m;

@@ -47,9 +47,7 @@ module Ground : sig
 end
 
 type value = Value.t = { pos : Pos.Option.t; value : in_value }
-
 and env = (string * value) list
-
 and lazy_env = (string * value Lazy.t) list
 
 and in_value = Value.in_value =

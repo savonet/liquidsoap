@@ -182,11 +182,9 @@ module type S_Asio = sig
   type t
 
   val length : t -> int (* ticks *)
-
   val audio_length : t -> int
   val video_length : t -> int
   val remaining : t -> int (* ticks *)
-
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
   val add_metadata : ?pos:int -> t -> Frame.metadata -> unit

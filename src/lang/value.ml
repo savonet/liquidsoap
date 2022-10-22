@@ -26,7 +26,6 @@
 module Ground = Term.Ground
 
 type t = { pos : Pos.Option.t; value : in_value }
-
 and env = (string * t) list
 
 (* Some values have to be lazy in the environment because of recursive functions. *)

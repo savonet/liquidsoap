@@ -103,8 +103,8 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
     method private get_frame frame =
       begin
         match source with
-        | Some s -> s#get frame
-        | None -> Frame.add_break frame (Frame.position frame)
+          | Some s -> s#get frame
+          | None -> Frame.add_break frame (Frame.position frame)
       end;
       if (not track_sensitive) || Frame.is_partial frame then self#select
 
@@ -163,7 +163,9 @@ let () =
           ([], Lang.fun_t [(false, "", Lang.source_t frame_t)] Lang.unit_t),
           "Set the source.",
           fun s ->
-            Lang.val_fun [("", "x", None)] (fun p ->
+            Lang.val_fun
+              [("", "x", None)]
+              (fun p ->
                 s#propose (List.assoc "x" p |> Lang.to_source);
                 Lang.unit) );
       ]

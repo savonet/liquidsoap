@@ -134,7 +134,9 @@ let settings_module =
              try conv_to (fn conf)#get with _ -> Lang.null)
        in
        let set =
-         Lang.val_fun [("", "", None)] (fun p ->
+         Lang.val_fun
+           [("", "", None)]
+           (fun p ->
              (fn conf)#set (conv_from (List.assoc "" p));
              Lang.unit)
        in
@@ -319,7 +321,8 @@ let () =
   let univ = Lang.univ_t ~constraints:[dtools_constr] () in
   Lang.add_builtin "get" ~category:`Settings ~descr:"Get a setting's value."
     ~flags:[`Deprecated; `Hidden]
-    [("default", univ, None, None); ("", Lang.string_t, None, None)] univ
+    [("default", univ, None, None); ("", Lang.string_t, None, None)]
+    univ
     (fun p ->
       log#severe
         "WARNING: \"get\" is deprecated and will be removed in future version. \

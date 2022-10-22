@@ -135,7 +135,9 @@ let register name osc_t liq_t =
     [
       ("", Lang.string_t, None, Some "OSC path.");
       ("", liq_t, None, Some "Initial value.");
-    ] (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path." (fun p ->
+    ]
+    (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path."
+    (fun p ->
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.assoc "" 2 p in
       let v = ref v in
@@ -162,13 +164,17 @@ let register name osc_t liq_t =
       add_handler path osc_t handle;
       start_server ();
       Lang.unit);
-  Lang.add_builtin ("osc.native.send_" ^ name) ~category:`Interaction
+  Lang.add_builtin
+    ("osc.native.send_" ^ name)
+    ~category:`Interaction
     [
       ("host", Lang.string_t, None, Some "OSC client address.");
       ("port", Lang.int_t, None, Some "OSC client port.");
       ("", Lang.string_t, None, Some "OSC path.");
       ("", liq_t, None, Some "Value to send.");
-    ] Lang.unit_t ~descr:"Send a value to an OSC client." (fun p ->
+    ]
+    Lang.unit_t ~descr:"Send a value to an OSC client."
+    (fun p ->
       let host = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in
       let path = Lang.to_string (Lang.assoc "" 1 p) in
@@ -190,13 +196,11 @@ let register name osc_t liq_t =
 
 let () =
   register "float" [| `Float |] Lang.float_t;
-  register "float_pair"
-    [| `Float; `Float |]
+  register "float_pair" [| `Float; `Float |]
     (Lang.product_t Lang.float_t Lang.float_t);
   register "int" [| `Int |] Lang.int_t;
   register "int_pair" [| `Int; `Int |] (Lang.product_t Lang.int_t Lang.int_t);
   (* register "bool" [| `Bool |] Lang.bool_t; *)
   register "string" [| `String |] Lang.string_t;
-  register "string_pair"
-    [| `String; `String |]
+  register "string_pair" [| `String; `String |]
     (Lang.product_t Lang.string_t Lang.string_t)

@@ -234,8 +234,7 @@ let () =
   List.iter (register_plugin ~log_errors:true) dssi_load
 
 let () =
-  Lang.add_builtin "dssi.register"
-    ~category:(`Source `Synthesis)
+  Lang.add_builtin "dssi.register" ~category:(`Source `Synthesis)
     ~descr:"Register a DSSI plugin."
     [("", Lang.string_t, None, Some "Path of the DSSI plugin file.")]
     Lang.unit_t

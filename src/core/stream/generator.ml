@@ -81,9 +81,7 @@ module type S = sig
   type t
 
   val length : t -> int (* ticks *)
-
   val remaining : t -> int (* ticks *)
-
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
   val remove : t -> int -> unit
@@ -94,11 +92,9 @@ module type S_Asio = sig
   type t
 
   val length : t -> int (* ticks *)
-
   val audio_length : t -> int
   val video_length : t -> int
   val remaining : t -> int (* ticks *)
-
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
   val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
@@ -632,16 +628,16 @@ module From_audio_video = struct
       put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio data o l;
     begin
       match t.mode with
-      (* The buffer's logic is all synchronous so we keep
-         constant empty content for the other type when using
-         the buffer with one single type. *)
-      | `Audio ->
-          t.current_video_pts <-
-            put_frames ~pts ~current_pts:t.current_video_pts t.current_video
-              (NoneContent.lift_data ~length:l ())
-              0 l
-      | `Both -> ()
-      | _ -> assert false
+        (* The buffer's logic is all synchronous so we keep
+           constant empty content for the other type when using
+           the buffer with one single type. *)
+        | `Audio ->
+            t.current_video_pts <-
+              put_frames ~pts ~current_pts:t.current_video_pts t.current_video
+                (NoneContent.lift_data ~length:l ())
+                0 l
+        | `Both -> ()
+        | _ -> assert false
     end;
     sync_content t
 
@@ -654,15 +650,15 @@ module From_audio_video = struct
       put_frames ~pts ~current_pts:t.current_video_pts t.current_video data o l;
     begin
       match t.mode with
-      (* The buffer's logic is all synchronous so we keep
-         constant empty content for the other type when using
-         the buffer with one single type. *)
-      | `Video ->
-          t.current_audio_pts <-
-            put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio
-              (NoneContent.lift_data ~length:l ())
-              0 l
-      | _ -> ()
+        (* The buffer's logic is all synchronous so we keep
+           constant empty content for the other type when using
+           the buffer with one single type. *)
+        | `Video ->
+            t.current_audio_pts <-
+              put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio
+                (NoneContent.lift_data ~length:l ())
+                0 l
+        | _ -> ()
     end;
     sync_content t
 

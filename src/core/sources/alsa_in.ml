@@ -126,8 +126,8 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
       with e ->
         begin
           match e with
-          | Buffer_xrun -> self#log#important "Overrun!"
-          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+            | Buffer_xrun -> self#log#important "Overrun!"
+            | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover..";

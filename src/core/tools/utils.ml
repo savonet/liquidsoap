@@ -418,8 +418,7 @@ let self_sync_type sources =
               | (`Static, None), (`Static, v) -> (`Static, Some v)
               | (`Static, Some v), (`Static, v') when v = v' -> (`Static, Some v)
               | _ -> (`Dynamic, None))
-          (`Static, None)
-          sources))
+          (`Static, None) sources))
 
 let string_of_pcre_error =
   Pcre.(

@@ -39,21 +39,21 @@ class amplify (source : source) override_field coeff =
       source#get buf;
       begin
         match override_field with
-        | Some f ->
-            List.iter
-              (fun (p, m) ->
-                if p >= offset then (
-                  try
-                    let s = Hashtbl.find m f in
-                    let k =
-                      try Scanf.sscanf s " %f dB" Audio.lin_of_dB
-                      with _ -> float_of_string s
-                    in
-                    self#log#info "Overriding amplification: %f." k;
-                    override <- Some k
-                  with _ -> ()))
-              (AFrame.get_all_metadata buf)
-        | None -> ()
+          | Some f ->
+              List.iter
+                (fun (p, m) ->
+                  if p >= offset then (
+                    try
+                      let s = Hashtbl.find m f in
+                      let k =
+                        try Scanf.sscanf s " %f dB" Audio.lin_of_dB
+                        with _ -> float_of_string s
+                      in
+                      self#log#info "Overriding amplification: %f." k;
+                      override <- Some k
+                    with _ -> ()))
+                (AFrame.get_all_metadata buf)
+          | None -> ()
       end;
       let k = match override with Some o -> o | None -> coeff () in
       if k <> 1. then
