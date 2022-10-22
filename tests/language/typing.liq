@@ -66,17 +66,17 @@ def f() =
 
   # This is OK, l1 is a list of elements of type f1.
   l1 = [f1,f2]
-  list.iter(fun (f) -> log(string_of(f())), l1)
+  list.iter(fun (f) -> log(string(f())), l1)
 
   # Forbidden. Indeed, f1 doesn't accept any argument -- although f2 does.  Here
   # the error message may even be too detailed since it goes back to the
   # definition of l1 and requires that f1 has type (int)->int.
-  # list.iter(fun (f) -> log(string_of(f(42))), l1)
+  # list.iter(fun (f) -> log(string(f(42))), l1)
 
   # This used to be forbidden, but is allowed now that we have dropped currying:
   # we can now subtype a (?int)->int into an (int)->int (which is the type
   # inferred in the iter).
-  list.iter(fun (f) -> log(string_of(f(42))), [f2])
+  list.iter(fun (f) -> log(string(f(42))), [f2])
 
   # Unlike l1, this is not OK, since we don't leave open subtyping constraints
   # while inferring types. I hope we can make the inference smarter in the
@@ -110,7 +110,7 @@ def f() =
 
   # Now let's test ad-hoc polymorphism.
 
-  echo = fun(x) -> process.run(process.quote.command("echo", args=[string_of(x)]))
+  echo = fun(x) -> process.run(process.quote.command("echo", args=[(x:string)]))
   ignore(echo)
 
   ignore("bla")

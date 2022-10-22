@@ -22,7 +22,13 @@
 
 include Charset_base
 
+let log = Log.make ["charset"]
+
 let convert ?(fail = false) ?(source = `UTF_8) ?(target = `UTF_8) s =
-  if fail && source <> `UTF_8 then raise (Unsupported_encoding source);
-  if fail && target <> `UTF_8 then raise (Unsupported_encoding target);
+  if source <> `UTF_8 then
+    if fail then raise (Unsupported_encoding source)
+    else log#important "Conversion from %s is not supported." (to_string source);
+  if target <> `UTF_8 then
+    if fail then raise (Unsupported_encoding target)
+    else log#important "Conversion to %s is not supported." (to_string target);
   s

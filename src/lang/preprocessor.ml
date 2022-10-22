@@ -147,7 +147,7 @@ let includer dir tokenizer =
   in
   token
 
-(* The expander turns "bla #{e} bli" into ("bla "^string_of(e)^" bli"). *)
+(* The expander turns "bla #{e} bli" into ("bla "^string(e)^" bli"). *)
 type exp_item =
   | String of string
   | Expr of tokenizer
@@ -206,7 +206,7 @@ let expand_string tokenizer =
             (Parser.LPAR, pos)
         | String_of ->
             pop ();
-            (Parser.VARLPAR "string_of", pos)
+            (Parser.VARLPAR "string", pos)
         | Expr tokenizer -> (
             match tokenizer () with
               | Parser.EOF, _ ->

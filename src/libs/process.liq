@@ -7,7 +7,7 @@
 # @param command Command to run
 def process.read(~timeout=(-1.),~env=[],~inherit_env=true,~log_errors=true,command)
   p = process.run(timeout=timeout, env=env, inherit_env=inherit_env, command)
-  if log_errors and (string(p.status) != "exit" or p.status.code != 0) then
+  if log_errors and (p.status != "exit" or p.status.code != 0) then
     log.important("Failed to execute `#{command}`: #{p.status} (#{p.status.code}) #{p.stdout} #{p.stderr}")
   end
   p.stdout
@@ -33,7 +33,7 @@ end
 # @param command Command to test
 def process.test(~timeout=(-1.),~env=[],~inherit_env=true,command)
   p = process.run(timeout=timeout, env=env, inherit_env=inherit_env, command)
-  string(p.status) == "exit" and p.status.code == 0
+  p.status == "exit" and p.status.code == 0
 end
 
 # Read some value from standard input (console).

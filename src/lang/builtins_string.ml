@@ -1,10 +1,26 @@
 let () =
   Lang.add_builtin "string" ~category:`String
-    ~descr:
-      "Ensure that we have a string (useful for removing fields from strings)."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
-      let s = Lang.to_string (List.assoc "" p) in
-      Lang.string s)
+    ~descr:"Return the representation of a value."
+    [
+      ( "fields",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Show toplevel fields around the value." );
+      ("", Lang.univ_t (), None, None);
+    ]
+    Lang.string_t
+    (fun p ->
+      let show_fields = Lang.to_bool (List.assoc "fields" p) in
+      let v = List.assoc "" p in
+      let dv = Lang.demeth v in
+      (* Always show fields for records. *)
+      let show_fields =
+        if dv.Lang.value = Value.unit then true else show_fields
+      in
+      let v = if show_fields then v else dv in
+      match v with
+        | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
+        | v -> Lang.string (Value.to_string v))
 
 let () =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."
@@ -395,32 +411,8 @@ let () =
   register_ttf "bool" (fun v -> v = 1.) (fun v -> Lang.bool v) Lang.bool_t
 
 let () =
-  Lang.add_builtin "string_of" ~category:`String
-    ~descr:"Return the representation of a value."
-    [
-      ( "fields",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Show toplevel fields around the value." );
-      ("", Lang.univ_t (), None, None);
-    ]
-    Lang.string_t
-    (fun p ->
-      let show_fields = Lang.to_bool (List.assoc "fields" p) in
-      let v = List.assoc "" p in
-      let dv = Lang.demeth v in
-      (* Always show records. *)
-      let show_fields =
-        if dv.Lang.value = Value.unit then true else show_fields
-      in
-      let v = if show_fields then v else dv in
-      match v with
-        | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
-        | v -> Lang.string (Value.to_string v))
-
-let () =
-  Lang.add_builtin "string_of_float" ~category:`String
-    ~descr:"String representation of a float"
+  Lang.add_builtin "string.float" ~category:`String
+    ~descr:"String representation of a float."
     [
       ( "decimal_places",
         Lang.nullable_t Lang.int_t,

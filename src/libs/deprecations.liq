@@ -603,3 +603,17 @@ def get_mime(fname)
   deprecated("get_mime", "file.mime")
   file.mime(fname) ?? ""
 end
+
+# Deprecated: use `string`.
+# @flag deprecated
+def string_of(s)
+  deprecated("string_of", "string")
+  string(s)
+end
+
+# Deprecated: use `string.float`.
+# @flag deprecated
+def string_of_float(x)
+  deprecated("string_of_float", "string.float")
+  string.float(x)
+end
