@@ -65,7 +65,7 @@ let automatic_encoding () =
         custom_encoding := Some e;
         e
 
-let camolog = Log.make ["camomile"]
+let log = Log.make ["camomile"]
 
 let recode_string ~fail ~in_enc ~out_enc s =
   try
@@ -76,15 +76,15 @@ let recode_string ~fail ~in_enc ~out_enc s =
           Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
         else C.name_of in_enc
       in
-      camolog#important "Failed to convert %S from %s to %s (%s)!" s in_enc
+      log#important "Failed to convert %S from %s to %s (%s)!" s in_enc
         (C.name_of out_enc) (Printexc.to_string e);
       s
   with
     | Unknown_encoding e when not fail ->
-        camolog#important "Failed to convert %S: unknown encoding %s" s e;
+        log#important "Failed to convert %S: unknown encoding %s" s e;
         s
     | e when not fail ->
-        camolog#important "Failed to convert %S: unknown error %s" s
+        log#important "Failed to convert %S: unknown error %s" s
           (Printexc.to_string e);
         s
 
