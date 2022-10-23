@@ -23,6 +23,8 @@ Changed:
 
 - Switched to `dune` for building the binary and libraries.
 - Changed `cry` to be a required dependency.
+- Changed default character encoding in `output.harbor`, `output.icecast`
+  `output.shoutcast` to `UTF-8` (#2704)
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.

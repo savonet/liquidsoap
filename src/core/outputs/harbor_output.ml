@@ -100,9 +100,8 @@ let proto frame_t =
       ( "encoding",
         Lang.string_t,
         Some (Lang.string ""),
-        Some
-          "Encoding used to send metadata. If empty, defaults to \
-           \"ISO-8859-1\" for non-ogg formats and \"UTF-8\" otherwise." );
+        Some "Encoding used to send metadata. If empty, defaults to \"UTF-8\""
+      );
       ("url", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ( "metaint",
         Lang.int_t,
@@ -317,10 +316,10 @@ class output p =
   let metaint = Lang.to_int (List.assoc "metaint" p) in
   let data = encoder_data p in
   let encoding = Lang.to_string (List.assoc "encoding" p) in
-  let recode ~icy m =
+  let recode m =
     let out_enc =
       match encoding with
-        | "" -> if icy then `ISO_8859_1 else `UTF_8
+        | "" -> `UTF_8
         | s -> Charset.of_string (String.uppercase_ascii s)
     in
     let f = Charset.convert ~target:out_enc in
@@ -429,7 +428,7 @@ class output p =
 
     method insert_metadata m =
       let m = Meta_format.to_metadata m in
-      let m = recode ~icy:true m in
+      let m = recode m in
       Tutils.mutexify metadata.metadata_m
         (fun () -> metadata.metadata <- Some m)
         ();
