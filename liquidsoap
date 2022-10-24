@@ -3,4 +3,4 @@
 DIR="$(dirname "$0")"
 export DIR
 
-dune exec --root="$DIR" src/bin/liquidsoap.exe -- --no-stdlib "$DIR/src/libs/stdlib.liq" "$@"
+dune exec --no-print-directory --root="$DIR" src/bin/liquidsoap.exe -- --no-stdlib "$DIR/src/libs/stdlib.liq" "$@"
