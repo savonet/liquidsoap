@@ -49,6 +49,29 @@
  (alias runtest)
  (package liquidsoap)
  (deps
+  sharing.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} sharing.liq liquidsoap %{test_liq} sharing.liq)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
   playlist-watch.liq
   ./file1.mp3
   ./file2.mp3
@@ -435,6 +458,29 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} rotate.liq liquidsoap %{test_liq} rotate.liq)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  harbor_metadata.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} harbor_metadata.liq liquidsoap %{test_liq} harbor_metadata.liq)))
 
 (rule
  (alias runtest)
