@@ -131,14 +131,18 @@ module Subst = struct
 end
 
 module R = struct
-  type t =
+  type meth = {
+    name : string;
+    scheme : var list * t;
+    json_name : string option;
+  }
+
+  and t =
     [ `Constr of string * (variance * t) list
     | `List of t * [ `Object | `Tuple ]
     | `Tuple of t list
     | `Nullable of t
-    | `Meth of
-      string * (var list * t) * string option * t
-      (* label, type scheme, JSON name, base type *)
+    | `Meth of meth * t (* label, type scheme, JSON name, base type *)
     | `Arrow of (bool * string * t) list * t
     | `Getter of t
     | `EVar of var (* existential variable *)

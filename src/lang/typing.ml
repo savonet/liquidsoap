@@ -327,16 +327,24 @@ and unify_meth a b l =
      let bt = Printexc.get_raw_backtrace () in
      Printexc.raise_with_backtrace
        (Error
-          ( `Meth (l, ([], a), json_name1, `Ellipsis),
-            `Meth (l, ([], b), json_name2, `Ellipsis) ))
+          ( `Meth
+              ( R.{ name = l; scheme = ([], a); json_name = json_name1 },
+                `Ellipsis ),
+            `Meth
+              ( R.{ name = l; scheme = ([], b); json_name = json_name2 },
+                `Ellipsis ) ))
        bt);
   try hide_meth l a <: hide_meth l b
   with Error (a, b) ->
     let bt = Printexc.get_raw_backtrace () in
     Printexc.raise_with_backtrace
       (Error
-         ( `Meth (l, ([], `Ellipsis), json_name1, a),
-           `Meth (l, ([], `Ellipsis), json_name2, b) ))
+         ( `Meth
+             ( R.{ name = l; scheme = ([], `Ellipsis); json_name = json_name1 },
+               a ),
+           `Meth
+             ( R.{ name = l; scheme = ([], `Ellipsis); json_name = json_name2 },
+               b ) ))
       bt
 
 (** Ensure that a<:b, perform unification if needed. In case of error, generate
@@ -526,7 +534,9 @@ and ( <: ) a b =
                 raise
                   (Error
                      ( Repr.make a,
-                       `Meth (l, ([], `Ellipsis), json_name, `Ellipsis) )))
+                       `Meth
+                         ( R.{ name = l; scheme = ([], `Ellipsis); json_name },
+                           `Ellipsis ) )))
       | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
       | _, Getter t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))

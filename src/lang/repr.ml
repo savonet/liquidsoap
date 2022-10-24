@@ -177,7 +177,9 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
                 (fun v -> match uvar (g' @ g) v with `UVar v -> v)
                 (List.sort_uniq compare g')
             in
-            `Meth (l, (gen, repr (g' @ g) u), json_name, repr g v)
+            `Meth
+              ( R.{ name = l; scheme = (gen, repr (g' @ g) u); json_name },
+                repr g v )
         | Constr { constructor; params } ->
             `Constr (constructor, List.map (fun (l, t) -> (l, repr g t)) params)
         | Arrow (args, t) ->
@@ -210,10 +212,10 @@ let print f t =
         Format.open_box (1 + String.length name);
         Format.fprintf f "%s(" name;
         let rec extract fields = function
-          | `Meth (field, _, _, base_type)
+          | `Meth ({ R.name = field }, base_type)
             when List.mem_assoc (Some field) fields ->
               extract fields base_type
-          | `Meth (field, (_, ty), _, base_type) ->
+          | `Meth (R.{ name = field; scheme = _, ty }, base_type) ->
               extract ((Some field, ty) :: fields) base_type
           | base_type -> (fields, base_type)
         in
@@ -286,11 +288,11 @@ let print f t =
         let vars = print ~par:true vars t in
         Format.fprintf f "?";
         vars
-    | `Meth (l, (_, a), _, b) as t ->
+    | `Meth (R.{ name = l; scheme = _, a }, b) as t ->
         if not !debug then (
           (* Find all methods. *)
           let rec aux = function
-            | `Meth (l, t, json_name, u) ->
+            | `Meth (R.{ name = l; scheme = t; json_name }, u) ->
                 let m, u = aux u in
                 ((l, t, json_name) :: m, u)
             | u -> ([], u)
@@ -502,7 +504,8 @@ let print_type_error ~formatter error_header
     ((flipped, ta, tb, a, b) : explanation) =
   error_header ta.pos;
   match b with
-    | `Meth (l, ([], `Ellipsis), _, `Ellipsis) when not flipped ->
+    | `Meth (R.{ name = l; scheme = [], `Ellipsis }, `Ellipsis) when not flipped
+      ->
         Format.fprintf formatter "this value has no method `%s`@." l
     | _ ->
         let inferred_pos a =
