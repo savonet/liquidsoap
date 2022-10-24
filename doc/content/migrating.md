@@ -30,6 +30,20 @@ The list of concerned metadata is:
 The confusing `let json.stringify` syntax has been removed as it did not provide any feature not already covered by either
 the `json.stringify()` function or the generic `json()` object mapper. Please use either of those now.
 
+### Default character encoding in `output.{harbor,icecast,shoutcast}`
+
+Default encoding for `output.harbor`, `output.icecast` and `output.shoutcast` metadata has been changed to `UTF-8` in all cases.
+
+Legacy systems used to expect `ISO-8859-1` (also known as `latin1`) for metadata inserted into `mp3` streams via the `icy`
+mechanism.
+
+It seems that, nowadays, most software expect `UTF-8` out of the box, including for legacy systems that previously
+assumed other encodings. Therefore, by changing this default value, we expect to match exectations of the largest
+number of users of our software.
+
+If you are using one of these outputs, make sure to test this assumptions with your listners' clients. If needed, the
+characters encoding can be set to a different value using the operator's parameters.
+
 ### Decoder names
 
 Decoder names have been converted to lowercase. If you were relying on specific settings for decoders priority/ordering, you
