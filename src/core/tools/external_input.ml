@@ -47,7 +47,7 @@ class virtual base ~name ~restart ~restart_on_error ~on_data ?read_header
           self#log#info "Header read!";
           header_read <- true;
           ret)
-        else on_data reader
+        else on_data ~buffer:self#buffer reader
       in
       let on_stderr =
         let buf = Bytes.create Utils.pagesize in

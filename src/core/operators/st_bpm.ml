@@ -39,7 +39,8 @@ class bpm (source : source) =
         Some
           (Soundtouch.BPM.make
              (Content.Audio.channels_of_format
-                (Option.get (Frame.find_audio self#content_type)))
+                (Option.get
+                   (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
              (Lazy.force Frame.audio_rate))
 
     method private get_frame buf =
@@ -57,7 +58,7 @@ class bpm (source : source) =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "bpm"
     [("", Lang.source_t frame_t, None, None)]

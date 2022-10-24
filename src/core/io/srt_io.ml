@@ -25,9 +25,6 @@
 exception Done
 exception Not_connected
 
-module G = Generator
-module Generator = Generator.From_audio_video_plus
-
 let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
@@ -627,15 +624,9 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
         ()
   end
 
-class virtual input_base ~max ~log_overfull ~clock_safe ~on_connect
-  ~on_disconnect ~payload_size ~dump ~on_start ~on_stop ~autostart format =
-  let max_ticks = Frame.main_of_seconds max in
-  let log_ref = ref (fun _ -> ()) in
-  let log x = !log_ref x in
-  let generator =
-    Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
-      `Undefined
-  in
+class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
+  ~payload_size ~dump ~on_start ~on_stop ~autostart format =
+  let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit input_networking_agent
     inherit base
@@ -649,7 +640,7 @@ class virtual input_base ~max ~log_overfull ~clock_safe ~on_connect
     val mutable dump_chan = None
 
     initializer
-    log_ref := self#log#info "%s";
+    Generator.set_max_length self#buffer max_length;
     let on_connect_cur = !on_connect in
     (on_connect :=
        fun () ->
@@ -670,7 +661,7 @@ class virtual input_base ~max ~log_overfull ~clock_safe ~on_connect
 
     method seek _ = 0
     method remaining = -1
-    method abort_track = Generator.add_break generator
+    method abort_track = Generator.add_track_mark self#buffer
 
     method is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
@@ -711,17 +702,17 @@ class virtual input_base ~max ~log_overfull ~clock_safe ~on_connect
           match decoder_data with
             | None ->
                 let buffer =
-                  Decoder.mk_buffer ~ctype:self#content_type generator
+                  Decoder.mk_buffer ~ctype:self#content_type self#buffer
                 in
                 let decoder = self#create_decoder socket in
                 decoder_data <- Some (decoder, buffer);
                 (decoder, buffer)
             | Some d -> d
         in
-        while Generator.length generator < Lazy.force Frame.size do
+        while Generator.length self#buffer < Lazy.force Frame.size do
           decoder.Decoder.decode buffer
         done;
-        Generator.fill generator frame
+        Generator.fill self#buffer frame
       with exn ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
@@ -740,14 +731,14 @@ class virtual input_base ~max ~log_overfull ~clock_safe ~on_connect
   end
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-  ~bind_address ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
-  ~dump ~on_start ~on_stop ~autostart format =
+  ~bind_address ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect
+  ~read_timeout ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start
+  ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~log_overfull ~payload_size ~clock_safe ~on_connect ~on_disconnect
-          ~dump ~on_start ~on_stop ~autostart format
+        ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect ~dump
+          ~on_start ~on_stop ~autostart format
 
     inherit
       listener
@@ -764,14 +755,14 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   end
 
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~hostname ~port ~max ~log_overfull ~payload_size ~clock_safe
-  ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout
-  ~messageapi ~dump ~on_start ~on_stop ~autostart format =
+  ~polling_delay ~hostname ~port ~max ~payload_size ~clock_safe ~on_connect
+  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
+  ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~log_overfull ~payload_size ~clock_safe ~on_connect ~on_disconnect
-          ~dump ~on_start ~on_stop ~autostart format
+        ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect ~dump
+          ~on_start ~on_stop ~autostart format
 
     inherit
       caller
@@ -795,10 +786,6 @@ let () =
           Lang.float_t,
           Some (Lang.float 10.),
           Some "Maximum duration of the buffered data." );
-        ( "log_overfull",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Log when the source's buffer is overfull." );
         ( "dump",
           Lang.string_t,
           Some (Lang.string ""),
@@ -840,7 +827,6 @@ let () =
           | s -> Some s
       in
       let max = Lang.to_float (List.assoc "max" p) in
-      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -858,7 +844,7 @@ let () =
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
                ~bind_address ~read_timeout ~write_timeout ~connection_timeout
                ~payload_size ~clock_safe ~on_connect ~on_disconnect ~messageapi
-               ~max ~log_overfull ~dump ~on_start ~on_stop ~autostart format
+               ~max ~dump ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Caller ->
@@ -866,8 +852,8 @@ let () =
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~hostname ~port ~payload_size ~clock_safe
                ~on_connect ~read_timeout ~write_timeout ~connection_timeout
-               ~on_disconnect ~messageapi ~max ~log_overfull ~dump ~on_start
-               ~on_stop ~autostart format
+               ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
+               ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 

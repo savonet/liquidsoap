@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-module Generator = Generator.From_audio_video_plus
-module Generated = Generated.Make (Generator)
-
 let address_resolver s =
   let s = Harbor.file_descr_of_socket s in
   Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
@@ -30,19 +27,12 @@ let address_resolver s =
 
 class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   ~port ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
-  ~on_disconnect ~login ~debug ~log_overfull ~timeout () =
-  let max_ticks = Frame.main_of_seconds max in
-  (* We need a temporary log until
-   * the source has an id *)
-  let log_ref = ref (fun _ -> ()) in
-  let log x = !log_ref x in
-  let abg =
-    Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
-      `Undefined
-  in
+  ~on_disconnect ~login ~debug ~timeout () =
+  let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit Source.active_source ~name:"input.harbor" () as super
-    inherit Generated.source abg ~empty_on_abort:false ~replay_meta ~bufferize
+    inherit Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
+    initializer Generator.set_max_length self#buffer max_length
     val mutable relay_socket = None
 
     (** Function to read on socket. *)
@@ -89,7 +79,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       self#log#important "New metadata chunk %s -- %s."
         (try Hashtbl.find m "artist" with _ -> "?")
         (try Hashtbl.find m "title" with _ -> "?");
-      Generator.add_metadata generator m
+      Generator.add_metadata self#buffer m
 
     method get_mime_type = mime_type
 
@@ -108,7 +98,8 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
                       try
                         let fd = Harbor.file_descr_of_socket socket in
                         (* Wait for `Read event on socket. *)
-                        Tutils.wait_for ~log (`Read fd) timeout;
+                        Tutils.wait_for ~log:(self#log#info "%s") (`Read fd)
+                          timeout;
 
                         (* Now read. *)
                         relay_read socket buf ofs len
@@ -149,7 +140,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         done
       with e ->
         (* Feeding has stopped: adding a break here. *)
-        Generator.add_break ~sync:true generator;
+        Generator.add_track_mark self#buffer;
         self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
         self#disconnect ~lock:true;
         if debug then raise e
@@ -157,10 +148,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     method private wake_up act =
       super#wake_up act;
       Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
-        (self :> Harbor.source);
-
-      (* Now we can create the log function *)
-      log_ref := fun s -> self#log#important "%s" s
+        (self :> Harbor.source)
 
     method private sleep =
       self#disconnect ~lock:true;
@@ -177,7 +165,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         | Some decoder ->
             let decoder args =
               let buffer =
-                Decoder.mk_buffer ~ctype:self#content_type generator
+                Decoder.mk_buffer ~ctype:self#content_type self#buffer
               in
               (decoder args, buffer)
             in
@@ -388,10 +376,6 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Run in debugging mode by not catching some exceptions." );
-      ( "log_overfull",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Log when the source's buffer is overfull." );
       ("", Lang.string_t, None, Some "Mountpoint to look for.");
     ]
     (fun p ->
@@ -403,7 +387,6 @@ let () =
       let default_user = Lang.to_string (List.assoc "user" p) in
       let default_password = Lang.to_string (List.assoc "password" p) in
       let debug = Lang.to_bool (List.assoc "debug" p) in
-      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let icy = Lang.to_bool (List.assoc "icy" p) in
       let icy_charset =
@@ -483,4 +466,4 @@ let () =
       new http_input_server
         ~pos ~transport ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
         ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
-        ~on_disconnect ~debug ~log_overfull ())
+        ~on_disconnect ~debug ())

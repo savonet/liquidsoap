@@ -155,7 +155,7 @@ class keyboard velocity =
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~midi:(Format_type.midi ()) ())
+    Lang.frame_t Lang.unit_t (Frame.Fields.make ~midi:(Format_type.midi ()) ())
   in
   Lang.add_operator "input.keyboard.sdl"
     [

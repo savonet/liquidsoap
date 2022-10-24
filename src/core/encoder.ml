@@ -35,7 +35,7 @@ type format =
   | GStreamer of Gstreamer_format.t
 
 let audio_type n =
-  Frame.mk_fields
+  Frame.Fields.make
     ~audio:
       (Type.make
          (Format_type.descr
@@ -49,9 +49,10 @@ let audio_type n =
     ()
 
 let audio_video_type n =
-  Frame.set_field (audio_type n) Frame.video_field
+  Frame.Fields.add Frame.Fields.video
     (Type.make
        (Format_type.descr (`Format Content.(default_format Video.kind))))
+    (audio_type n)
 
 let type_of_format = function
   | WAV w -> audio_type w.Wav_format.channels
@@ -97,7 +98,7 @@ let type_of_format = function
           m.Ffmpeg_format.video_codec
       in
       let video = Option.map (fun f -> Type.make (Format_type.descr f)) video in
-      Frame.mk_fields ?audio ?video ()
+      Frame.Fields.make ?audio ?video ()
   | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
   | Ogg { Ogg_format.audio; video } ->
       let channels =

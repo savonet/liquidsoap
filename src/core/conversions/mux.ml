@@ -27,63 +27,56 @@
 open Producer_consumer
 
 let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
-  let g = Generator.create `Both in
   let main_frame_t =
     Lang.frame_t Lang.unit_t
-      (Frame.mk_fields
+      (Frame.Fields.make
          ?audio:(if main_content = `Audio then Some (Lang.univ_t ()) else None)
          ?video:(if main_content = `Video then Some (Lang.univ_t ()) else None)
          ())
   in
-  let main_name =
+  let write_audio = write_to_buffer ~fields:[Frame.Fields.audio] in
+  let write_video = write_to_buffer ~fields:[Frame.Fields.video] in
+  let main_name, write_frame =
     match main_content with
-      | `Audio -> "audio_main"
-      | `Video -> "video_main"
+      | `Audio -> ("audio_main", write_audio)
+      | `Video -> ("video_main", write_video)
       | _ -> assert false
   in
-  let main =
-    new consumer
-      ~write_frame:(write_to_buffer ~content:main_content g)
-      ~name:main_name ~source:main_source ()
-  in
+  let main = new consumer ~write_frame ~name:main_name ~source:main_source () in
   Typing.(main#frame_type <: main_frame_t);
   Typing.(main_frame_t <: main#frame_type);
   let aux_frame_t =
     Lang.frame_t Lang.unit_t
-      (Frame.mk_fields
+      (Frame.Fields.make
          ?audio:(if aux_content = `Audio then Some (Lang.univ_t ()) else None)
          ?video:(if aux_content = `Video then Some (Lang.univ_t ()) else None)
          ())
   in
-  let aux_name =
+  let aux_name, write_frame =
     match aux_content with
-      | `Audio -> "audio_aux"
-      | `Video -> "video_aux"
+      | `Audio -> ("audio_aux", write_audio)
+      | `Video -> ("video_aux", write_video)
       | _ -> assert false
   in
-  let aux =
-    new consumer
-      ~write_frame:(write_to_buffer ~content:aux_content g)
-      ~name:aux_name ~source:aux_source ()
-  in
+  let aux = new consumer ~write_frame ~name:aux_name ~source:aux_source () in
   Typing.(aux#frame_type <: aux_frame_t);
   Typing.(aux_frame_t <: aux#frame_type);
   let muxed_frame_t =
     Lang.frame_t main_frame_t
-      (Frame.mk_fields
+      (Frame.Fields.make
          ?audio:
            (if aux_content = `Audio then
-            Some (Frame_type.get_field aux_frame_t Frame.audio_field)
+            Some (Frame_type.get_field aux_frame_t Frame.Fields.audio)
            else None)
          ?video:
            (if aux_content = `Video then
-            Some (Frame_type.get_field aux_frame_t Frame.video_field)
+            Some (Frame_type.get_field aux_frame_t Frame.Fields.video)
            else None)
          ())
   in
   let producer =
     new producer (* We are expecting real-rate with a couple of hickups.. *)
-      ~check_self_sync:false ~consumers:[main; aux] ~name g
+      ~check_self_sync:false ~consumers:[main; aux] ~name ()
   in
   Typing.(producer#frame_type <: muxed_frame_t);
   Typing.(muxed_frame_t <: producer#frame_type);
@@ -93,9 +86,9 @@ let () =
   let video_type = Lang.univ_t () in
   let main_t = Lang.univ_t () in
   let aux_t =
-    Lang.frame_t (Lang.univ_t ()) (Frame.mk_fields ~video:video_type ())
+    Lang.frame_t (Lang.univ_t ()) (Frame.Fields.make ~video:video_type ())
   in
-  let out_t = Frame_type.set_field main_t Frame.video_field video_type in
+  let out_t = Frame_type.set_field main_t Frame.Fields.video video_type in
   Lang.add_operator "mux_video" ~category:`Conversion
     ~descr:
       "Add video channels to a stream. Track marks and metadata are taken from \
@@ -117,9 +110,9 @@ let () =
   let audio_type = Lang.univ_t () in
   let main_t = Lang.univ_t () in
   let aux_t =
-    Lang.frame_t (Lang.univ_t ()) (Frame.mk_fields ~audio:audio_type ())
+    Lang.frame_t (Lang.univ_t ()) (Frame.Fields.make ~audio:audio_type ())
   in
-  let out_t = Frame_type.set_field main_t Frame.audio_field audio_type in
+  let out_t = Frame_type.set_field main_t Frame.Fields.audio audio_type in
   Lang.add_operator "mux_audio" ~category:`Conversion
     ~descr:
       "Mux an audio stream into an audio-free stream. Track marks and metadata \

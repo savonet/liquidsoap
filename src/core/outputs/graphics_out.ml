@@ -54,7 +54,7 @@ class output ~infallible ~autostart ~on_start ~on_stop source =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~video:(Format_type.video ()) ())
+      (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
   Lang.add_operator "output.graphics"
     (Output.proto @ [("", Lang.source_t frame_t, None, None)])

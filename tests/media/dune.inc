@@ -2,6 +2,46 @@
 (rule
   (alias runtest)
   (package liquidsoap)
+  (target @fdkaac[aot='mpeg4_aac_lc',channels=1]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:test_encoder_in ./test_encoder.liq.in))
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%fdkaac(aot=\"mpeg4_aac_lc\",channels=1)" sine "@fdkaac[aot='mpeg4_aac_lc',channels=1].aac"))))
+(rule
+  (alias runtest)
+  (package liquidsoap)
+  (target @fdkaac[channels=2]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:test_encoder_in ./test_encoder.liq.in))
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%fdkaac(channels=2)" sine "@fdkaac[channels=2].aac"))))
+(rule
+  (alias runtest)
+  (package liquidsoap)
+  (target @shine[channels=1]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:test_encoder_in ./test_encoder.liq.in))
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%shine(channels=1)" sine "@shine[channels=1].mp3"))))
+(rule
+  (alias runtest)
+  (package liquidsoap)
+  (target @shine[channels=2]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:test_encoder_in ./test_encoder.liq.in))
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%shine(channels=2)" sine "@shine[channels=2].mp3"))))
+(rule
+  (alias runtest)
+  (package liquidsoap)
   (target @flac[stereo]_encoder.liq)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
@@ -159,6 +199,58 @@
   (action
     (with-stdout-to %{target}
       (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio.none,%video(codec=\"libx264\"))" noise "@ffmpeg[format='mp4',@audio.none,@video[codec='libx264']].mp4"))))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (target @fdkaac[aot='mpeg4_aac_lc',channels=1].aac)
+ (deps
+  (:encoder @fdkaac[aot='mpeg4_aac_lc',channels=1]_encoder.liq)
+  (source_tree ../../src/libs)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%fdkaac(aot=\"mpeg4_aac_lc\",channels=1)")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (target @fdkaac[channels=2].aac)
+ (deps
+  (:encoder @fdkaac[channels=2]_encoder.liq)
+  (source_tree ../../src/libs)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%fdkaac(channels=2)")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (target @shine[channels=1].mp3)
+ (deps
+  (:encoder @shine[channels=1]_encoder.liq)
+  (source_tree ../../src/libs)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%shine(channels=1)")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (target @shine[channels=2].mp3)
+ (deps
+  (:encoder @shine[channels=2]_encoder.liq)
+  (source_tree ../../src/libs)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%shine(channels=2)")))
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -372,7 +464,11 @@
   (package liquidsoap)
   (target all_media_files)
   (deps
-    @flac[stereo].flac
+    @fdkaac[aot='mpeg4_aac_lc',channels=1].aac
+@fdkaac[channels=2].aac
+@shine[channels=1].mp3
+@shine[channels=2].mp3
+@flac[stereo].flac
 @flac[mono].flac
 @wav[stereo].wav
 @wav[mono].wav
@@ -389,6 +485,162 @@
 @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
 @ffmpeg[format='mp4',@audio.none,@video[codec='libx264']].mp4)
   (action (run touch %{target})))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_mono.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Mono decoding test for @fdkaac[aot='mpeg4_aac_lc',channels=1].aac" liquidsoap %{test_liq} test_mono.liq -- "@fdkaac[aot='mpeg4_aac_lc',channels=1].aac")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_stereo.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Stereo decoding test for @fdkaac[aot='mpeg4_aac_lc',channels=1].aac" liquidsoap %{test_liq} test_stereo.liq -- "@fdkaac[aot='mpeg4_aac_lc',channels=1].aac")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_audio_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg audio decoder test for @fdkaac[aot='mpeg4_aac_lc',channels=1].aac" liquidsoap %{test_liq} test_ffmpeg_audio_decoder.liq -- "@fdkaac[aot='mpeg4_aac_lc',channels=1].aac")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_mono.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Mono decoding test for @fdkaac[channels=2].aac" liquidsoap %{test_liq} test_mono.liq -- "@fdkaac[channels=2].aac")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_stereo.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Stereo decoding test for @fdkaac[channels=2].aac" liquidsoap %{test_liq} test_stereo.liq -- "@fdkaac[channels=2].aac")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_audio_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg audio decoder test for @fdkaac[channels=2].aac" liquidsoap %{test_liq} test_ffmpeg_audio_decoder.liq -- "@fdkaac[channels=2].aac")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_mono.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Mono decoding test for @shine[channels=1].mp3" liquidsoap %{test_liq} test_mono.liq -- "@shine[channels=1].mp3")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_stereo.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Stereo decoding test for @shine[channels=1].mp3" liquidsoap %{test_liq} test_stereo.liq -- "@shine[channels=1].mp3")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_audio_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg audio decoder test for @shine[channels=1].mp3" liquidsoap %{test_liq} test_ffmpeg_audio_decoder.liq -- "@shine[channels=1].mp3")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_mono.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Mono decoding test for @shine[channels=2].mp3" liquidsoap %{test_liq} test_mono.liq -- "@shine[channels=2].mp3")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_stereo.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Stereo decoding test for @shine[channels=2].mp3" liquidsoap %{test_liq} test_stereo.liq -- "@shine[channels=2].mp3")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_audio_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg audio decoder test for @shine[channels=2].mp3" liquidsoap %{test_liq} test_ffmpeg_audio_decoder.liq -- "@shine[channels=2].mp3")))
 (rule
  (alias runtest)
  (package liquidsoap)

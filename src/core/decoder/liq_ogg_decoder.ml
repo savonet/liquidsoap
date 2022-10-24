@@ -96,6 +96,17 @@ let create_decoder ?(merge_tracks = false) source input =
   let started = ref false in
   let tracks = Ogg_decoder.get_standard_tracks decoder in
   let first_meta = ref true in
+  let mode buffer =
+    let content_type = Generator.content_type buffer.Decoder.generator in
+    match
+      ( Frame.Fields.mem Frame.Fields.audio content_type,
+        Frame.Fields.mem Frame.Fields.video content_type )
+    with
+      | true, false -> `Audio
+      | false, true -> `Video
+      | true, true -> `Both
+      | _ -> assert false
+  in
   let init ~reset buffer =
     if reset then (
       Ogg_decoder.reset decoder;
@@ -103,8 +114,7 @@ let create_decoder ?(merge_tracks = false) source input =
 
       (* We enforce that all contents end together, otherwise there will
        * be a lag between different content types in the next track. *)
-      if not merge_tracks then
-        Decoder.G.add_break ~sync:true buffer.Decoder.generator);
+      if not merge_tracks then Generator.add_track_mark buffer.Decoder.generator);
     let add_meta f t =
       (* Initial metadata in files is handled separately. *)
       if source = `Stream || (merge_tracks && not !first_meta) then (
@@ -114,7 +124,7 @@ let create_decoder ?(merge_tracks = false) source input =
           (fun (x, y) -> Hashtbl.add metas (String.lowercase_ascii x) y)
           m;
         Hashtbl.add metas "vendor" v;
-        Decoder.G.add_metadata buffer.Decoder.generator metas);
+        Generator.add_metadata buffer.Decoder.generator metas);
       first_meta := false
     in
     let drop_track d t =
@@ -126,7 +136,7 @@ let create_decoder ?(merge_tracks = false) source input =
     match
       ( tracks.Ogg_decoder.audio_track,
         tracks.Ogg_decoder.video_track,
-        Decoder.G.mode buffer.Decoder.generator )
+        mode buffer )
     with
       | Some audio, Some video, `Both ->
           add_meta Ogg_decoder.audio_info audio;
@@ -141,7 +151,7 @@ let create_decoder ?(merge_tracks = false) source input =
   in
   let decode buffer =
     let decode_audio, decode_video =
-      match Decoder.G.mode buffer.Decoder.generator with
+      match mode buffer with
         | `Both -> (true, true)
         | `Audio -> (true, false)
         | `Video -> (false, true)
@@ -174,8 +184,8 @@ let create_decoder ?(merge_tracks = false) source input =
           (* Only decode the one which is late, so that we don't have memory
              problems. *)
           if
-            Decoder.G.audio_length buffer.Decoder.generator
-            < Decoder.G.video_length buffer.Decoder.generator
+            Generator.field_length buffer.Decoder.generator Frame.Fields.audio
+            < Generator.field_length buffer.Decoder.generator Frame.Fields.video
           then (true, false)
           else (false, true)
         else (decode_audio, decode_video)
@@ -251,7 +261,7 @@ let file_type ~ctype:_ filename =
       let video =
         if video = 0 then None else Some Content.(default_format Video.kind)
       in
-      Some (Frame.mk_fields ?audio ?video ()))
+      Some (Frame.Fields.make ?audio ?video ()))
 
 let mime_types =
   Dtools.Conf.list

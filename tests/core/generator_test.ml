@@ -1,183 +1,106 @@
-module G = Generator.From_audio_video
+let () = Frame_settings.lazy_config_eval := true
+let audio = Content.Audio.format_of_channels 2
+let video = Content.default_format Content.Video.kind
 
 let () =
-  Frame_settings.lazy_config_eval := true;
-  let frame_size = Lazy.force Frame.size in
-  let gen = G.create `Both in
-  let data = Generator.NoneContent.lift_data ~length:0 () in
-  (* Set this:
-     0----1----2--> audio
-     0----1----2----3----4----> video *)
-  G.put_audio ~pts:0L gen data 0 frame_size;
-  G.put_audio ~pts:1L gen data 0 frame_size;
-  G.put_audio ~pts:2L gen data 0 (frame_size / 2);
-  assert (G.video_length gen = 0);
-  assert (G.audio_length gen = (2 * frame_size) + (frame_size / 2));
-  assert (G.length gen = 0);
+  let buffer =
+    Generator.create ~max_length:1000 (Frame.Fields.make ~audio ~video ())
+  in
+  Generator.put buffer Frame.Fields.audio (Content.make ~length:500 audio);
+  assert (Generator.length buffer = 0);
+  assert (Generator.buffered_length buffer = 500);
+  Generator.put buffer Frame.Fields.video (Content.make ~length:250 video);
+  assert (Generator.length buffer = 250);
+  assert (Generator.buffered_length buffer = 500);
+  let m = Frame.metadata_of_list [("foo", "bla")] in
 
-  G.put_video ~pts:0L gen data 0 frame_size;
-  G.put_video ~pts:1L gen data 0 frame_size;
-  G.put_video ~pts:2L gen data 0 frame_size;
-  G.put_video ~pts:3L gen data 0 (2 * frame_size);
-  assert (G.video_length gen = 5 * frame_size);
-  assert (G.audio_length gen = (2 * frame_size) + (frame_size / 2));
-  assert (G.length gen = 2 * frame_size);
+  Generator.add_metadata buffer m;
+  Generator.add_track_mark buffer;
 
-  (* Add 2--(3)----(4)-- audio *)
-  G.put_audio ~pts:2L gen data 0 (2 * frame_size);
-  (* Get:
-     0----1----2----3----4--> audio
-     0----1----2----3----4----> video *)
-  assert (G.video_length gen = 5 * frame_size);
-  assert (G.audio_length gen = (4 * frame_size) + (frame_size / 2));
-  assert (G.length gen = 4 * frame_size);
+  Generator.put buffer Frame.Fields.video (Content.make ~length:1 video);
+  let c = Generator.get buffer in
 
-  (* Add 1---- video (non-monotonic PTS) *)
-  G.put_video ~pts:1L gen data 0 frame_size;
-  (* Get:
-     0----1----2----3----4--> audio
-     0----1----2----3----4----> video *)
-  assert (G.video_length gen = 5 * frame_size);
-  assert (G.audio_length gen = (4 * frame_size) + (frame_size / 2));
-  assert (G.length gen = 4 * frame_size);
+  assert (
+    Content.Metadata.get_data (Frame.Fields.find Frame.Fields.metadata c)
+    = [(250, m)]);
+  assert (
+    Content.Track_marks.get_data (Frame.Fields.find Frame.Fields.track_marks c)
+    = [250]);
 
-  (* Add 4--(5)-- audio *)
-  G.put_audio ~pts:4L gen data 0 frame_size;
-  (* Get:
-     0----1----2----3----4----5--> audio
-     0----1----2----3----4----> video *)
-  assert (G.video_length gen = 5 * frame_size);
-  assert (G.audio_length gen = (5 * frame_size) + (frame_size / 2));
-  assert (G.length gen = 5 * frame_size);
+  Generator.put buffer Frame.Fields.video (Content.make ~length:50 video);
+  assert (Generator.length buffer = 50);
 
-  (* Add 6---- video (discontinuity) *)
-  G.put_video ~pts:6L gen data 0 frame_size;
-  (* Get:
-     0----1----2----3----4----> audio
-     0----1----2----3----4----6----> video *)
-  assert (G.video_length gen = 6 * frame_size);
-  assert (G.audio_length gen = 5 * frame_size);
-  assert (G.length gen = 5 * frame_size);
+  (* Last position for length [n] is [n-1], same as with arrays.. *)
+  Generator.add_metadata ~pos:23 buffer m;
+  Generator.add_track_mark ~pos:23 buffer;
 
-  (* Add 5----(6)-- audio (partial out-of-sync) *)
-  G.put_audio ~pts:5L gen data 0 (3 * frame_size / 2);
-  (* Get:
-     0----1----2----3----4----6--> audio
-     0----1----2----3----4----6----> video *)
-  assert (G.video_length gen = 6 * frame_size);
-  assert (G.audio_length gen = (5 * frame_size) + (frame_size / 2));
-  assert (G.length gen = 5 * frame_size);
+  let c = Generator.get ~length:23 buffer in
 
-  (* Add 7----(8)-- audio *)
-  G.put_audio ~pts:7L gen data 0 (3 * frame_size / 2);
-  (* Get:
-     0----1----2----3----4----7----8--> audio
-     0----1----2----3----4----> video *)
-  assert (G.video_length gen = 5 * frame_size);
-  assert (G.audio_length gen = (6 * frame_size) + (frame_size / 2));
-  assert (G.length gen = 5 * frame_size);
+  assert (
+    Content.Metadata.get_data (Frame.Fields.find Frame.Fields.metadata c) = []);
+  assert (
+    Content.Track_marks.get_data (Frame.Fields.find Frame.Fields.track_marks c)
+    = []);
 
-  (* Add 9-- audio (discontinuity) *)
-  G.put_audio ~pts:9L gen data 0 (frame_size / 2);
-  (* Get:
-       0----1----2----3----4----7----8--9--> audio
-       0----1----2----3----4----> video
-     Partial audio frame will be removed in a future cleanup. *)
-  assert (G.video_length gen = 5 * frame_size);
-  assert (G.audio_length gen = 7 * frame_size);
-  assert (G.length gen = 5 * frame_size);
+  assert (Generator.length buffer = 27);
+  let c = Generator.get ~length:1 buffer in
 
-  (* Add 5----6----7----8----9---- video *)
-  G.put_video ~pts:5L gen data 0 (5 * frame_size);
-  (* Get:
-       0----1----2----3----4----7----9--> audio
-       0----1----2----3----4----7----9----> video
-     Partial audio frame will be removed in a future cleanup. *)
-  assert (G.video_length gen = 7 * frame_size);
-  assert (G.audio_length gen = (6 * frame_size) + (frame_size / 2));
-  assert (G.length gen = 6 * frame_size);
+  assert (
+    Content.Metadata.get_data (Frame.Fields.find Frame.Fields.metadata c)
+    = [(0, m)]);
 
-  (* Add 10-- audio (partial out-of-sync) *)
-  G.put_audio ~pts:10L gen data 0 (frame_size / 2);
-  (* Get:
-     0----1----2----3----4----7----10--> audio
-     0----1----2----3----4----7----> video *)
-  assert (G.video_length gen = 6 * frame_size);
-  assert (G.audio_length gen = (6 * frame_size) + (frame_size / 2));
-
-  (* Remove frame_size from all data *)
-  G.remove_buffered gen frame_size;
-  (* Get:
-     0----1----2----3----4----7--> audio
-     0----1----2----3----4----7--> video *)
-  assert (G.video_length gen = (5 * frame_size) + (frame_size / 2));
-  assert (G.audio_length gen = (5 * frame_size) + (frame_size / 2));
-
-  (* Add 11----audio *)
-  G.put_audio ~pts:11L gen data 0 frame_size;
-  (* Get:
-     0----1----2----3----4----7--11----> audio
-     0----1----2----3----4----7--> video *)
-  assert (G.video_length gen = (5 * frame_size) + (frame_size / 2));
-  assert (G.audio_length gen = (6 * frame_size) + (frame_size / 2));
-
-  (* Remove frame_size / 2 from all data *)
-  G.remove_buffered gen (frame_size / 2);
-  (* Get:
-     0----1----2----3----4----7--11--> audio
-     0----1----2----3----4----7--> video *)
-  assert (G.video_length gen = (5 * frame_size) + (frame_size / 2));
-  assert (G.audio_length gen = 6 * frame_size);
-
-  (* Add 11---- video *)
-  G.put_video ~pts:11L gen data 0 frame_size;
-  (* Get:
-     0----1----2----3----4----7--11--> audio
-     0----1----2----3----4----7--11----> video *)
-  assert (G.video_length gen = (6 * frame_size) + (frame_size / 2));
-  assert (G.audio_length gen = 6 * frame_size);
-
-  (* Remove frame_size / 2 from all data *)
-  G.remove_buffered gen (frame_size / 2);
-  (* Get:
-     0----1----2----3----4----7--11--> audio
-     0----1----2----3----4----7--11--> video *)
-  assert (G.video_length gen = 6 * frame_size);
-  assert (G.audio_length gen = 6 * frame_size);
-
-  (* Remove frame_size / 2 from sync data *)
-  G.remove gen (frame_size / 2);
-  (* Get:
-     0----1----2----3----4----> audio
-     0----1----2----3----4----> video *)
-  assert (G.video_length gen = 5 * frame_size);
-  assert (G.audio_length gen = 5 * frame_size)
+  assert (
+    Content.Track_marks.get_data (Frame.Fields.find Frame.Fields.track_marks c)
+    = [0])
 
 let () =
-  let frame_size = Lazy.force Frame.size in
-  let gen = G.create `Both in
-  let data = Generator.NoneContent.lift_data ~length:0 () in
-  (* Put this:
-     2----3----4--> audio
-     ?----?----?----?----?----> video *)
-  G.put_audio ~pts:2L gen data 0 frame_size;
-  G.put_audio ~pts:3L gen data 0 frame_size;
-  G.put_audio ~pts:4L gen data 0 (frame_size / 2);
-  G.put_video gen data 0 (5 * frame_size);
+  let buffer =
+    Generator.create ~max_length:1000 (Frame.Fields.make ~audio ())
+  in
+  Generator.put buffer Frame.Fields.audio (Content.make ~length:500 audio);
+  assert (Generator.length buffer = 500);
+  assert (Generator.buffered_length buffer = 500);
 
-  (* Get this:
-     2----3----4--> audio
-     ?----?----?----?----?----> video *)
-  assert (G.audio_length gen = (2 * frame_size) + (frame_size / 2));
-  assert (G.video_length gen = 5 * frame_size);
-  assert (G.length gen = 2 * frame_size);
+  let c = Generator.peek buffer in
 
-  (* Add 5---->6--> audio *)
-  G.put_audio ~pts:5L gen data 0 (frame_size + (frame_size / 2));
+  let m = Frame.Fields.find Frame.Fields.metadata c in
+  assert (Content.length m = max_int);
+  let slice = Content.sub m 34 234 in
+  assert (Content.length slice = 234);
+  let rem = Content.truncate m 23 in
+  assert (Content.length rem = max_int);
 
-  (* Get this:
-     2----3----5----6--> audio
-     ?----?----?----?----> video *)
-  assert (G.audio_length gen = (3 * frame_size) + (frame_size / 2));
-  assert (G.video_length gen = 4 * frame_size);
-  assert (G.length gen = 3 * frame_size)
+  let m = Frame.Fields.find Frame.Fields.track_marks c in
+  assert (Content.length m = max_int);
+  let slice = Content.sub m 34 234 in
+  assert (Content.length slice = 234);
+  let rem = Content.truncate m 23 in
+  assert (Content.length rem = max_int);
+
+  Generator.truncate buffer 50;
+
+  assert (Generator.length buffer = 450);
+  assert (Generator.buffered_length buffer = 450);
+
+  let c = Generator.peek buffer in
+
+  let m = Frame.Fields.find Frame.Fields.metadata c in
+  assert (Content.length m = max_int);
+
+  let m = Frame.Fields.find Frame.Fields.track_marks c in
+  assert (Content.length m = max_int);
+
+  let c = Generator.get ~length:100 buffer in
+
+  Frame.Fields.iter (fun _ c -> assert (Content.length c = 100)) c;
+  assert (Generator.length buffer = 350);
+  assert (Generator.buffered_length buffer = 350);
+
+  (try
+     Generator.put buffer Frame.Fields.video (Content.make ~length:250 video);
+     assert false
+   with Not_found -> ());
+  try
+    Generator.put buffer Frame.Fields.audio (Content.make ~length:250 video);
+    assert false
+  with Content.Invalid -> ()

@@ -105,7 +105,8 @@ class ladspa_mono (source : source) plugin descr input output params =
       let i =
         Array.init
           (Content.Audio.channels_of_format
-             (Option.get (Frame.find_audio self#content_type)))
+             (Option.get
+                (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
           (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
       in
       Array.iter Descriptor.activate i;
@@ -314,7 +315,7 @@ let register_descr plugin_name descr_n d inputs outputs =
   let liq_params, params = params_of_descr d in
   let input_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   let liq_params =
     liq_params
@@ -325,7 +326,8 @@ let register_descr plugin_name descr_n d inputs outputs =
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
   let return_t =
     if mono then input_t
-    else Frame_type.set_field input_t Frame.audio_field (Format_type.audio_n no)
+    else
+      Frame_type.set_field input_t Frame.Fields.audio (Format_type.audio_n no)
   in
   let label = Descriptor.label d |> Utils.normalize_parameter_string in
   let label =

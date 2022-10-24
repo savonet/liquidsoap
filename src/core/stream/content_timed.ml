@@ -22,13 +22,22 @@
 
 let compare (x : int) (y : int) = x - y [@@inline always]
 
+type length = Finite of int | Infinite
+
 (** Generic content spec for timed list contents. *)
 module Specs = struct
   type params = unit
-  type 'a content = { mutable length : int; mutable data : (int * 'a) list }
+  type 'a content = { length : length; mutable data : (int * 'a) list }
 
-  let make ~length () = { length; data = [] }
-  let length { length } = length
+  let make ?length () =
+    let length =
+      match length with None -> Infinite | Some len -> Finite len
+    in
+    { length; data = [] }
+
+  let length { length } =
+    match length with Finite len -> len | Infinite -> max_int
+
   let clear d = d.data <- []
   let is_empty { data } = data = []
 
@@ -51,7 +60,12 @@ module Specs = struct
     let middle =
       List.map (fun (pos, x) -> (dst_pos + pos, x)) (sub src src_pos len).data
     in
-    let tail = (sub dst (dst_pos + len) (dst.length - len - dst_pos)).data in
+    let tail_length =
+      match dst.length with
+        | Infinite -> max_int
+        | Finite dst_len -> dst_len - len - dst_pos
+    in
+    let tail = (sub dst (dst_pos + len) tail_length).data in
     dst.data <- sort (head @ middle @ tail)
 
   let copy ~copy d =
@@ -60,7 +74,7 @@ module Specs = struct
   let params _ = ()
 end
 
-module MetadataSpecs = struct
+module Metadata_specs = struct
   include Specs
 
   type kind = [ `Metadata ]
@@ -80,7 +94,7 @@ module MetadataSpecs = struct
 end
 
 module Metadata = struct
-  include Content_base.MkContent (MetadataSpecs)
+  include Content_base.MkContent (Metadata_specs)
 
   let format = lift_params ()
 
@@ -90,21 +104,22 @@ module Metadata = struct
 
   let get_data d =
     let { Specs.length; data } = get_data d in
+    let length = match length with Infinite -> max_int | Finite len -> len in
     List.filter
-      (fun (p, _) -> p < length)
+      (fun (p, _) -> 0 <= p && p < length)
       (List.sort (fun (p, _) (p', _) -> compare p p') data)
 end
 
-module TrackMarkSpecs = struct
+module Track_marks_specs = struct
   include Specs
 
-  type kind = [ `TrackMark ]
+  type kind = [ `Track_marks ]
   type data = unit content
 
   let internal_content_type = None
-  let kind = `TrackMark
+  let kind = `Track_marks
   let string_of_kind _ = "track_mark"
-  let kind_of_string = function "track_mark" -> Some `TrackMark | _ -> None
+  let kind_of_string = function "track_mark" -> Some `Track_marks | _ -> None
   let string_of_params () = "track_mark"
   let compatible _ _ = true
   let default_params _ = ()
@@ -113,8 +128,8 @@ module TrackMarkSpecs = struct
   let copy = copy ~copy:(fun () -> ())
 end
 
-module TrackMark = struct
-  include Content_base.MkContent (TrackMarkSpecs)
+module Track_marks = struct
+  include Content_base.MkContent (Track_marks_specs)
 
   let format = lift_params ()
 
@@ -124,5 +139,8 @@ module TrackMark = struct
 
   let get_data d =
     let { Specs.length; data } = get_data d in
-    List.filter (fun p -> p < length) (List.sort compare (List.map fst data))
+    let length = match length with Infinite -> max_int | Finite len -> len in
+    List.filter
+      (fun p -> 0 <= p && p < length)
+      (List.sort compare (List.map fst data))
 end

@@ -81,7 +81,7 @@ class add ~renorm ~power (sources : ((unit -> float) * source) list) video_init
      * wanted, even if they end a track -- this is quite needed. There is an
      * exception when there is only one active source, then the end of tracks
      * are not hidden anymore, which is useful for transitions, for example. *)
-    val mutable tmp = Frame.dummy
+    val mutable tmp = Frame.dummy ()
 
     method wake_up a =
       super#wake_up a;
@@ -241,7 +241,7 @@ let tile_pos n =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~video:(Format_type.video ()) ())
+      (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
   Lang.add_operator "video.tile" ~category:`Video
     ~descr:"Tile sources (same as add but produces tiles of videos)."

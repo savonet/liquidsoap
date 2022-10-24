@@ -133,11 +133,11 @@ let () =
   in
   let pcm_t () =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   let stereo_t () =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio_stereo ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
   declare RMS "" pcm_t Lang.float_t mean;
   declare RMS ".stereo" stereo_t

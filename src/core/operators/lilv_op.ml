@@ -73,7 +73,8 @@ class lilv_mono (source : source) plugin input output params =
       let i =
         Array.init
           (Content.Audio.channels_of_format
-             (Option.get (Frame.find_audio self#content_type)))
+             (Option.get
+                (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
           (fun _ ->
             Plugin.instantiate plugin
               (float_of_int (Lazy.force Frame.audio_rate)))
@@ -324,7 +325,7 @@ let register_plugin plugin =
   let return_t =
     let input_kind = Lang.of_frame_t input_t in
     Lang.frame_t
-      (Frame.set_audio_field input_kind (Lang.kind_t (Frame.audio_n no)))
+      (Frame.set_Fields.audio input_kind (Lang.kind_t (Frame.audio_n no)))
   in
   Lang.add_operator
     ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))

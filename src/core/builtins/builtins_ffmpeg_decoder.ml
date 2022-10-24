@@ -35,45 +35,21 @@ let decode_audio_frame ~mode generator =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
   in
   let internal_samplerate = Lazy.force Frame.audio_rate in
-  let liq_frame_time_base = Ffmpeg_utils.liq_frame_time_base () in
-  let pts_offset = ref None in
 
-  let mk_converter ~in_sample_format ~time_base ~channel_layout ~samplerate =
+  let mk_converter ~in_sample_format ~channel_layout ~samplerate =
     let converter =
       InternalResampler.create ~in_sample_format channel_layout samplerate
         internal_channel_layout internal_samplerate
     in
-    let last_pts = ref None in
 
     fun data ->
-      let pts, data =
+      let data =
         match data with
-          | `Frame data ->
-              let pts =
-                match (Ffmpeg_utils.best_pts data, !pts_offset) with
-                  | Some pts, Some offset ->
-                      Some
-                        (Int64.add
-                           (Ffmpeg_utils.convert_time_base ~src:time_base
-                              ~dst:liq_frame_time_base pts)
-                           offset)
-                  | Some pts, None ->
-                      Some
-                        (Ffmpeg_utils.convert_time_base ~src:time_base
-                           ~dst:liq_frame_time_base pts)
-                  | None, Some offset -> Some offset
-                  | None, None -> None
-              in
-              last_pts := pts;
-              (pts, InternalResampler.convert converter data)
-          | `Flush ->
-              pts_offset := !last_pts;
-              (!last_pts, InternalResampler.flush converter)
+          | `Frame data -> InternalResampler.convert converter data
+          | `Flush -> InternalResampler.flush converter
       in
-      let len = Audio.length data in
       let data = Content.Audio.lift_data data in
-      Producer_consumer.(
-        Generator.put_audio generator ?pts data 0 (Frame.main_of_audio len))
+      Generator.put generator Frame.Fields.audio data
   in
 
   let mk_copy_decoder () =
@@ -93,7 +69,7 @@ let decode_audio_frame ~mode generator =
 
       let in_sample_format = Avcodec.Audio.sample_format decoder in
       let converter =
-        mk_converter ~time_base ~channel_layout ~samplerate ~in_sample_format
+        mk_converter ~channel_layout ~samplerate ~in_sample_format
       in
 
       current_converter := Some (converter, decoder);
@@ -157,7 +133,7 @@ let decode_audio_frame ~mode generator =
       let samplerate = Option.get sample_rate in
       let in_sample_format = Option.get sample_format in
       let converter =
-        mk_converter ~channel_layout ~samplerate ~time_base ~in_sample_format
+        mk_converter ~channel_layout ~samplerate ~in_sample_format
       in
       current_converter := Some (converter, time_base, stream_idx);
       converter
@@ -196,7 +172,7 @@ let decode_audio_frame ~mode generator =
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
-        let frame = Option.get (Frame.audio frame) in
+        let frame = Frame.audio frame in
         let { Ffmpeg_content_base.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush
@@ -235,9 +211,6 @@ let decode_video_frame ~mode generator =
       converter := Some (scaler, fps_converter);
       (scaler, fps_converter)
     in
-    let pts_offset = ref None in
-    let last_pts = ref None in
-    let liq_frame_time_base = Ffmpeg_utils.liq_frame_time_base () in
 
     let get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
         ~stream_idx () =
@@ -255,7 +228,6 @@ let decode_video_frame ~mode generator =
                       pixel_aspect,
                       stream_idx ) ->
             log#info "Video frame format change detected..";
-            pts_offset := !last_pts;
             mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
               ~stream_idx ()
         | Some v -> v
@@ -270,24 +242,7 @@ let decode_video_frame ~mode generator =
         get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
           ~stream_idx ()
       in
-      let fps_time_base = Ffmpeg_avfilter_utils.Fps.time_base fps_converter in
       Ffmpeg_avfilter_utils.Fps.convert fps_converter frame (fun data ->
-          let pts =
-            match (Ffmpeg_utils.best_pts data, !pts_offset) with
-              | Some pts, Some offset ->
-                  Some
-                    (Int64.add
-                       (Ffmpeg_utils.convert_time_base ~src:fps_time_base
-                          ~dst:liq_frame_time_base pts)
-                       offset)
-              | Some pts, None ->
-                  Some
-                    (Ffmpeg_utils.convert_time_base ~src:fps_time_base
-                       ~dst:liq_frame_time_base pts)
-              | None, Some offset -> Some offset
-              | None, None -> None
-          in
-          last_pts := pts;
           let img =
             Ffmpeg_utils.unpack_image ~width:internal_width
               ~height:internal_height
@@ -295,8 +250,7 @@ let decode_video_frame ~mode generator =
           in
           let data = Video.Canvas.single_image img in
           let data = Content.Video.lift_data data in
-          Producer_consumer.(
-            Generator.put_video generator ?pts data 0 (Frame.main_of_video 1)))
+          Generator.put generator Frame.Fields.video data)
   in
 
   let mk_copy_decoder () =
@@ -391,7 +345,7 @@ let decode_video_frame ~mode generator =
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
-        let frame = Option.get (Frame.video frame) in
+        let frame = Frame.video frame in
         let { Ffmpeg_content_base.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush
@@ -421,7 +375,7 @@ let mk_encoder mode =
   let source_base_t = Lang.univ_t () in
   let input_frame_t =
     Lang.frame_t source_base_t
-      (Frame.mk_fields
+      (Frame.Fields.make
          ?audio:
            (match mode with
              | `Audio_encoded | `Both_encoded ->
@@ -448,7 +402,7 @@ let mk_encoder mode =
   in
   let output_frame_t =
     Lang.frame_t source_base_t
-      (Frame.mk_fields
+      (Frame.Fields.make
          ?audio:(if has_audio then Some (Format_type.audio ()) else None)
          ?video:(if has_video then Some (Format_type.video ()) else None)
          ())
@@ -470,15 +424,8 @@ let mk_encoder mode =
         Lang.to_default_option ~default:name Lang.to_string (List.assoc "id" p)
       in
       let source = List.assoc "" p in
-      let content =
-        match mode with
-          | `Audio_raw | `Audio_encoded -> `Audio
-          | `Video_raw | `Video_encoded -> `Video
-          | `Both_raw | `Both_encoded -> `Both
-      in
-      let generator = Producer_consumer.Generator.create content in
 
-      let mk_decode_frame () =
+      let mk_decode_frame generator =
         let decode_audio_frame =
           if has_audio then (
             let mode = if has_encoded_audio then `Decode else `Raw in
@@ -496,12 +443,10 @@ let mk_encoder mode =
         let decode_frame = function
           | `Frame frame ->
               List.iter
-                (fun (pos, m) ->
-                  Producer_consumer.Generator.add_metadata ~pos generator m)
+                (fun (pos, m) -> Generator.add_metadata ~pos generator m)
                 (Frame.get_all_metadata frame);
               List.iter
-                (fun pos ->
-                  Producer_consumer.Generator.add_break ~pos generator)
+                (fun pos -> Generator.add_track_mark ~pos generator)
                 (List.filter (fun x -> x < size) (Frame.breaks frame));
               ignore
                 (Option.map (fun fn -> fn (`Frame frame)) decode_video_frame);
@@ -515,13 +460,24 @@ let mk_encoder mode =
         decode_frame
       in
 
-      let decode_frame_ref = ref (mk_decode_frame ()) in
+      let decode_frame_ref = ref None in
 
-      let decode_frame = function
-        | `Frame frame -> !decode_frame_ref (`Frame frame)
-        | `Flush ->
-            !decode_frame_ref `Flush;
-            decode_frame_ref := mk_decode_frame ()
+      let get_decode_frame generator =
+        match !decode_frame_ref with
+          | None ->
+              let fn = mk_decode_frame generator in
+              decode_frame_ref := Some fn;
+              fn
+          | Some fn -> fn
+      in
+
+      let decode_frame generator frame =
+        let decode_frame = get_decode_frame generator in
+        match frame with
+          | `Frame frame -> decode_frame (`Frame frame)
+          | `Flush ->
+              decode_frame `Flush;
+              decode_frame_ref := None
       in
 
       let consumer =
@@ -535,8 +491,7 @@ let mk_encoder mode =
 
       new Producer_consumer.producer
       (* We are expecting real-rate with a couple of hickups.. *)
-        ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer")
-        generator)
+        ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer") ())
 
 let () =
   List.iter mk_encoder

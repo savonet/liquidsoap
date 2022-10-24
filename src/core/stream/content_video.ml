@@ -33,7 +33,7 @@ module Specs = struct
   let internal_content_type = Some `Video
   let string_of_kind = function `Canvas -> "canvas"
 
-  let make ~length (p : params) : data =
+  let make ?(length = 0) (p : params) : data =
     let width = !!(Option.value ~default:video_width p.width) in
     let height = !!(Option.value ~default:video_height p.height) in
     Video.Canvas.make (video_of_main length) (width, height)

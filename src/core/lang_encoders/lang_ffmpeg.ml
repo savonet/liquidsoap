@@ -82,7 +82,7 @@ let type_of_encoder p =
       None p
   in
   let video = Option.map (fun f -> Type.make (Format_type.descr f)) video in
-  Frame.mk_fields ?audio ?video ()
+  Frame.Fields.make ?audio ?video ()
 
 let flag_qscale = ref 0
 let qp2lambda = ref 0

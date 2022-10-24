@@ -275,7 +275,7 @@ let override_doc =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~video:(Format_type.video ()) ())
+      (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
   Lang.add_operator "video.fade.in"
     (( "override",
@@ -295,7 +295,7 @@ let () =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~video:(Format_type.video ()) ())
+      (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
   Lang.add_operator "video.fade.out"
     (( "override",

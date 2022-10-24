@@ -67,6 +67,22 @@ let source_methods =
        source is currently streaming, just that its resources are all properly \
        initialized.",
       fun s -> val_fun [] (fun _ -> bool s#is_ready) );
+    ( "buffered",
+      ([], fun_t [] (list_t (product_t string_t float_t))),
+      "Length of buffered data.",
+      fun s ->
+        val_fun [] (fun _ ->
+            let l =
+              Frame.Fields.fold
+                (fun field _ l ->
+                  ( Frame.Fields.string_of_field field,
+                    Frame.seconds_of_main
+                      (Generator.field_length s#buffer field) )
+                  :: l)
+                s#content_type []
+            in
+            list (List.map (fun (lbl, v) -> product (string lbl) (float v)) l))
+    );
     ( "last_metadata",
       ([], fun_t [] (nullable_t metadata_t)),
       "Return the last metadata from the source.",

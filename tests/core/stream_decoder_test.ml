@@ -1,7 +1,5 @@
 (* Test a stream decoder. ffmpeg/audio only for now. *)
 
-module G = Generator.From_audio_video_plus
-
 let () =
   if Array.length Sys.argv < 3 then (
     Printf.printf "Usage: stream_decoder_test <in file> <out file>\n%!";
@@ -21,7 +19,7 @@ let () =
   let ctype =
     Frame_type.content_type
       (Lang.frame_t Lang.unit_t
-         (Frame.mk_fields ~audio:(Format_type.audio ()) ()))
+         (Frame.Fields.make ~audio:(Format_type.audio ()) ()))
   in
   let frame = Frame.create ctype in
   let create_decoder = Option.get (Decoder.get_stream_decoder ~ctype format) in
@@ -29,7 +27,7 @@ let () =
     create_decoder { Decoder.read; tell = None; length = None; lseek = None }
   in
   let log = Printf.printf "Generator log: %s" in
-  let generator = G.create ~log ~log_overfull:false `Audio in
+  let generator = Generator.create ~log ctype in
   let buffer = Decoder.mk_buffer ~ctype generator in
   let mp3_format = Lang_mp3.mp3_base_defaults () in
   let create_encoder = Encoder.get_factory (Encoder.MP3 mp3_format) in
@@ -38,10 +36,10 @@ let () =
   try
     while true do
       try
-        while G.length generator < Lazy.force Frame.size do
+        while Generator.length generator < Lazy.force Frame.size do
           decoder.Decoder.decode buffer
         done;
-        G.fill generator frame;
+        Generator.fill generator frame;
         write (encoder.Encoder.encode frame 0 (Frame.position frame));
         Frame.clear frame
       with Avutil.Error `Invalid_data -> ()

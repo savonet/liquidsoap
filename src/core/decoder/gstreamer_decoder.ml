@@ -97,8 +97,7 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
     if reset then
       (* We enforce that all contents end together, otherwise there will
        * be a lag between different content types in the next track. *)
-      if not merge_tracks then
-        Decoder.G.add_break ~sync:true buffer.Decoder.generator;
+      if not merge_tracks then Generator.add_track_mark buffer.Decoder.generator;
     ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_playing)
   in
   let decode buffer =
@@ -108,8 +107,10 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
     let decode_audio, decode_video =
       if decode_audio && decode_video then (
         let gen = buffer.Decoder.generator in
-        if Decoder.G.audio_length gen < Decoder.G.video_length gen then
-          (true, false)
+        if
+          Generator.field_length gen Frame.Fields.audio
+          < Generator.field_length gen Frame.Fields.video
+        then (true, false)
         else (false, true))
       else (decode_audio, decode_video)
     in
@@ -189,13 +190,16 @@ let priority =
     "Priority for the GStreamer decoder" ~d:0
 
 let channels fields =
-  match Frame.find_audio fields with
+  match Frame.Fields.find_opt Frame.Fields.audio fields with
     | Some format -> Content.Audio.channels_of_format format
     | None -> 0
 
 let create_file_decoder filename content_type ctype =
   let mode =
-    match (Frame.find_video content_type, Frame.find_audio content_type) with
+    match
+      ( Frame.Fields.find_opt Frame.Fields.video content_type,
+        Frame.Fields.find_opt Frame.Fields.audio content_type )
+    with
       | None, None -> `None
       | None, Some _ -> `Audio
       | Some _, None -> `Video
@@ -204,7 +208,8 @@ let create_file_decoder filename content_type ctype =
   let channels = channels content_type in
   let decoder, close, bin =
     let width, height =
-      Content.Video.dimensions_of_format (Option.get (Frame.find_video ctype))
+      Content.Video.dimensions_of_format
+        (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
     in
     create_decoder ~width ~height ~channels ~merge_tracks:true ~mode `File
       filename
@@ -284,7 +289,7 @@ let get_type ~channels filename =
   let video =
     if video = 0 then None else Some Content.(default_format Video.kind)
   in
-  Frame.mk_fields ?video ?audio ()
+  Frame.Fields.make ?video ?audio ()
 
 let file_decoder ~metadata:_ ~ctype filename =
   let channels = channels ctype in

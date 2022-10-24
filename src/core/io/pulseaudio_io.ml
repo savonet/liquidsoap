@@ -173,7 +173,7 @@ let proto =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "output.pulseaudio"
     (Output.proto @ proto @ [("", Lang.source_t frame_t, None, None)])
@@ -194,7 +194,8 @@ let () =
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "input.pulseaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)

@@ -50,8 +50,6 @@ type file = string
 (** A stream is identified by a MIME type. *)
 type stream = string
 
-module G = Generator.From_audio_video_plus
-
 type fps = Decoder_utils.fps = { num : int; den : int }
 
 (* Buffer passed to decoder. This wraps around
@@ -62,9 +60,9 @@ type fps = Decoder_utils.fps = { num : int; den : int }
     - Implicit fps conversion
     - Implicit content drop *)
 type buffer = {
-  generator : G.t;
-  put_pcm : ?pts:Int64.t -> samplerate:int -> Content.Audio.data -> unit;
-  put_yuva420p : ?pts:Int64.t -> fps:fps -> Content.Video.data -> unit;
+  generator : Generator.t;
+  put_pcm : samplerate:int -> Content.Audio.data -> unit;
+  put_yuva420p : fps:fps -> Content.Video.data -> unit;
 }
 
 type decoder = {
@@ -249,7 +247,7 @@ let channel_layout audio =
 
 let can_decode_type decoded_type target_type =
   let map_convertible cur (field, target_field) =
-    let decoded_field = Frame.find_field_opt decoded_type field in
+    let decoded_field = Frame.Fields.find_opt field decoded_type in
     match decoded_field with
       | None -> cur
       | Some decoded_field when Content.Audio.is_format decoded_field -> (
@@ -259,9 +257,9 @@ let can_decode_type decoded_type target_type =
                 (create
                    (channel_layout decoded_field)
                    (channel_layout target_field));
-              Frame.set_field cur field target_field
+              Frame.Fields.add field target_field cur
             with _ -> cur))
-      | Some decoded_field -> Frame.set_field cur field decoded_field
+      | Some decoded_field -> Frame.Fields.add field decoded_field cur
   in
   (* Map content that can be converted and drop content that isn't used *)
   let decoded_type =
@@ -273,7 +271,7 @@ let can_decode_type decoded_type target_type =
 let decoder_modes ctype =
   let has field = Frame.Fields.exists (fun k _ -> k = field) ctype in
   match
-    (has Frame.audio_field, has Frame.video_field, has Frame.midi_field)
+    (has Frame.Fields.audio, has Frame.Fields.video, has Frame.Fields.midi)
   with
     | true, true, false -> [`Audio_video]
     | true, false, false -> [`Audio; `Audio_video]
@@ -421,19 +419,11 @@ let get_stream_decoder ~ctype mime =
 (** {1 Helpers for defining decoders} *)
 
 let mk_buffer ~ctype generator =
-  let has field = Frame.Fields.exists (fun k _ -> k = field) ctype in
-  let mode =
-    match (has Frame.audio_field, has Frame.video_field) with
-      | true, true -> `Both
-      | true, false -> `Audio
-      | false, true -> `Video
-      | _ -> failwith "Invalid type for buffer!"
-  in
-
-  G.set_mode generator mode;
+  let has_audio = Frame.Fields.mem Frame.Fields.audio ctype in
+  let has_video = Frame.Fields.mem Frame.Fields.video ctype in
 
   let put_pcm =
-    if mode <> `Video then (
+    if has_audio then (
       let resampler = Decoder_utils.samplerate_converter () in
       let current_channel_converter = ref None in
       let current_dst = ref None in
@@ -446,29 +436,28 @@ let mk_buffer ~ctype generator =
       in
 
       let get_channel_converter () =
-        let dst = channel_layout (Option.get (Frame.find_audio ctype)) in
+        let dst = channel_layout (Frame.Fields.find Frame.Fields.audio ctype) in
         match !current_channel_converter with
           | None -> mk_channel_converter dst
           | Some _ when !current_dst <> Some dst -> mk_channel_converter dst
           | Some c -> c
       in
-      fun ?pts ~samplerate data ->
+      fun ~samplerate data ->
         let data, _, _ = resampler ~samplerate data 0 (Audio.length data) in
         let data = (get_channel_converter ()) data in
-        let len = Audio.length data in
         let data = Content.Audio.lift_data data in
-        G.put_audio ?pts generator data 0 (Frame.main_of_audio len))
-    else fun ?pts:_ ~samplerate:_ _ -> ()
+        Generator.put generator Frame.Fields.audio data)
+    else fun ~samplerate:_ _ -> ()
   in
 
   let put_yuva420p =
-    if mode <> `Audio then (
+    if has_video then (
       let video_resample = Decoder_utils.video_resample () in
       let video_scale =
         let width, height =
           try
             Content.Video.dimensions_of_format
-              (Option.get (Frame.find_video ctype))
+              (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
           with Content.Invalid ->
             (* We might have encoded contents *)
             (Lazy.force Frame.video_width, Lazy.force Frame.video_height)
@@ -478,7 +467,7 @@ let mk_buffer ~ctype generator =
       let out_freq =
         Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
       in
-      fun ?pts ~fps (data : Content.Video.data) ->
+      fun ~fps (data : Content.Video.data) ->
         let data = Array.map video_scale data in
         let data = video_resample ~in_freq:fps ~out_freq data in
         let len = Video.Canvas.length data in
@@ -487,8 +476,8 @@ let mk_buffer ~ctype generator =
             ~length:(Frame_settings.main_of_video len)
             data
         in
-        G.put_video ?pts generator data 0 (Frame.main_of_video len))
-    else fun ?pts:_ ~fps:_ _ -> ()
+        Generator.put generator Frame.Fields.video data)
+    else fun ~fps:_ _ -> ()
   in
 
   { generator; put_pcm; put_yuva420p }
@@ -498,13 +487,15 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
   let decoding_done = ref false in
 
   let remaining frame offset =
-    remaining () + G.length buffer.generator + Frame.position frame - offset
+    remaining ()
+    + Generator.length buffer.generator
+    + Frame.position frame - offset
   in
 
   let fill frame =
     if not !decoding_done then (
       try
-        while G.length buffer.generator < prebuf do
+        while Generator.length buffer.generator < prebuf do
           decoder.decode buffer
         done
       with e ->
@@ -517,7 +508,7 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
         if conf_debug#get then raise e);
 
     let offset = Frame.position frame in
-    G.fill buffer.generator frame;
+    Generator.fill buffer.generator frame;
 
     try remaining frame offset
     with e ->
@@ -528,21 +519,19 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
   in
 
   let fseek len =
-    let gen_len = G.length buffer.generator in
+    let gen_len = Generator.length buffer.generator in
     if len < 0 || len > gen_len then (
-      G.clear buffer.generator;
+      Generator.clear buffer.generator;
       gen_len + decoder.seek (len - gen_len))
     else (
       (* Seek within the pre-buffered data if possible *)
-      G.remove buffer.generator len;
+      Generator.truncate buffer.generator len;
       len)
   in
   { fill; fseek; close }
 
 let file_decoder ~filename ~close ~remaining ~ctype decoder =
-  let generator =
-    G.create ~log_overfull:false ~log:(log#info "%s") `Undefined
-  in
+  let generator = Generator.create ~log:(log#info "%s") ctype in
   let buffer = mk_buffer ~ctype generator in
   mk_decoder ~filename ~close ~remaining ~buffer decoder
 
@@ -567,17 +556,15 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
     { read; tell = Some tell; length = Some length; lseek = Some lseek }
   in
 
-  let generator =
-    G.create ~log:(log#info "%s") ~log_overfull:false `Undefined
-  in
+  let generator = Generator.create ~log:(log#info "%s") ctype in
   let buffer = mk_buffer ~ctype generator in
   let decoder = create_decoder input in
 
   let out_ticks = ref 0 in
   let decode buffer =
-    let start = G.length buffer.generator in
+    let start = Generator.length buffer.generator in
     decoder.decode buffer;
-    let stop = G.length buffer.generator in
+    let stop = Generator.length buffer.generator in
     out_ticks := !out_ticks + stop - start
   in
 

@@ -22,21 +22,19 @@
 
 open Mm
 open Source
-module Generator = Generator.From_frames
 
 class resample ~ratio source_val =
   let source = Lang.to_source source_val in
   let write_frame_ref = ref (fun _ -> ()) in
   let consumer =
     new Producer_consumer.consumer
-      ~write_frame:(fun frame -> !write_frame_ref frame)
+      ~write_frame:(fun _ frame -> !write_frame_ref frame)
       ~name:"stretch.consumer" ~source:source_val ()
   in
   let () =
     Typing.(consumer#frame_type <: source#frame_type);
     Typing.(source#frame_type <: consumer#frame_type)
   in
-  let generator = Generator.create () in
   object (self)
     inherit operator ~name:"stretch" [(consumer :> Source.source)] as super
 
@@ -47,14 +45,14 @@ class resample ~ratio source_val =
     method stype = source#stype
 
     method seek len =
-      let glen = min (Generator.length generator) len in
-      Generator.remove generator glen;
+      let glen = min (Generator.length self#buffer) len in
+      Generator.truncate self#buffer glen;
       (if glen < len then source#seek (len - glen) else 0) + glen
 
     method remaining =
       let rem = source#remaining in
       if rem = -1 then rem
-      else int_of_float (float (rem + Generator.length generator) *. ratio ())
+      else int_of_float (float (rem + Generator.length self#buffer) *. ratio ())
 
     method abort_track = source#abort_track
     method is_ready = source#is_ready
@@ -78,40 +76,38 @@ class resample ~ratio source_val =
 
     method private process_frame frame =
       let ratio = ratio () in
-      let content, len =
-        let content = AFrame.pcm frame in
-        let converter = Option.get converter in
-        let pcm, offset, length =
-          Audio_converter.Samplerate.resample converter ratio content 0
-            (Audio.length content)
-        in
-        let offset = Frame_settings.main_of_audio offset in
-        let length = Frame_settings.main_of_audio length in
-        ( Frame.mk_fields ~audio:(Content.Audio.lift_data ~offset ~length pcm) (),
-          length )
+      let content = AFrame.pcm frame in
+      let converter = Option.get converter in
+      let pcm, offset, length =
+        Audio_converter.Samplerate.resample converter ratio content 0
+          (Audio.length content)
       in
+      let offset = Frame_settings.main_of_audio offset in
+      let length = Frame_settings.main_of_audio length in
+      Generator.put self#buffer Frame.Fields.audio
+        (Content.Audio.lift_data ~offset ~length pcm);
       let convert x = int_of_float (float x *. ratio) in
-      let metadata =
-        List.map (fun (i, m) -> (convert i, m)) (Frame.get_all_metadata frame)
-      in
-      Generator.feed generator ~metadata ~copy:`None content 0 len;
-      if Frame.is_partial frame then Generator.add_break generator
+      List.iter
+        (fun (pos, m) ->
+          Generator.add_metadata ~pos:(convert pos) self#buffer m)
+        (Frame.get_all_metadata frame);
+      if Frame.is_partial frame then Generator.add_track_mark self#buffer
 
     method private get_frame frame =
       consumer#set_output_enabled true;
       while
-        Generator.length generator < Lazy.force Frame.size && source#is_ready
+        Generator.length self#buffer < Lazy.force Frame.size && source#is_ready
       do
         self#child_tick
       done;
       consumer#set_output_enabled false;
-      Generator.fill generator frame
+      Generator.fill self#buffer frame
   end
 
 let () =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "stretch" (* TODO better name *)
     [

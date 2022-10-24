@@ -20,16 +20,17 @@
 
  *****************************************************************************)
 
-open Mm
-module G = Generator.Generator
-
 let create_encoder ~opus ~comments () =
   let samplerate = opus.Opus_format.samplerate in
   let channels = opus.Opus_format.channels in
   let frame_size =
     int_of_float (opus.Opus_format.frame_size *. float samplerate /. 1000.)
   in
-  let gen = G.create () in
+  let frame_size_in_main = Frame.main_of_audio frame_size in
+  let gen =
+    Generator.create
+      (Frame.Fields.make ~audio:(Content.Audio.format_of_channels channels) ())
+  in
   let application =
     match opus.Opus_format.application with None -> `Audio | Some a -> a
   in
@@ -80,21 +81,19 @@ let create_encoder ~opus ~comments () =
   let data_encoder { Ogg_muxer.data; offset; length } os _ =
     started := true;
     let enc = get_enc os in
-    G.put gen data offset length;
-    while G.length gen >= frame_size do
-      let d, ofs, len =
-        match G.get gen frame_size with
-          | [(d, ofs, _, len)] -> (d, ofs, len)
-          | (d, ofs, _, len) :: l ->
-              List.fold_left
-                (fun (chunk, ofs1, len1) (d, ofs2, _, len2) ->
-                  (Audio.append chunk ofs1 len1 d ofs2 len1, 0, len1 + len2))
-                (d, ofs, len) l
-          | [] -> assert false
+    let content = Content.Audio.lift_data data in
+    let offset = Frame.main_of_audio offset in
+    let length = Frame.main_of_audio length in
+    Generator.put gen Frame.Fields.audio (Content.sub content offset length);
+    while Generator.length gen >= frame_size_in_main do
+      let content =
+        Frame.Fields.find Frame.Fields.audio
+          (Generator.get ~length:frame_size_in_main gen)
       in
+      let pcm = Content.Audio.get_data content in
       let ret =
-        Opus.Encoder.encode_float ~frame_size:opus.Opus_format.frame_size enc d
-          ofs len
+        Opus.Encoder.encode_float ~frame_size:opus.Opus_format.frame_size enc
+          pcm 0 frame_size
       in
       assert (ret = frame_size)
     done

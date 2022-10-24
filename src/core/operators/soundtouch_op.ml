@@ -22,15 +22,13 @@
 
 open Mm
 open Source
-module Generator = Generator.From_audio_video
 
 class soundtouch source_val rate tempo pitch =
-  let abg = Generator.create `Audio in
   let source = Lang.to_source source_val in
   let write_frame_ref = ref (fun _ -> ()) in
   let consumer =
     new Producer_consumer.consumer
-      ~write_frame:(fun frame -> !write_frame_ref frame)
+      ~write_frame:(fun _ frame -> !write_frame_ref frame)
       ~name:"soundtouch.consumer" ~source:source_val ()
   in
   let () =
@@ -51,7 +49,7 @@ class soundtouch source_val rate tempo pitch =
     method remaining = -1
 
     method abort_track =
-      Generator.add_break abg;
+      Generator.add_track_mark self#buffer;
       source#abort_track
 
     method private write_frame =
@@ -68,23 +66,25 @@ class soundtouch source_val rate tempo pitch =
       if available > 0 then (
         let buf = Audio.create self#audio_channels available in
         ignore (Soundtouch.get_samples_ni st buf 0 available);
-        let duration = Frame.main_of_audio available in
-        Generator.put_audio abg (Content.Audio.lift_data buf) 0 duration);
-      if AFrame.is_partial databuf then Generator.add_break abg;
+        Generator.put self#buffer Frame.Fields.audio
+          (Content.Audio.lift_data buf));
+      if AFrame.is_partial databuf then Generator.add_track_mark self#buffer;
 
       (* It's almost impossible to know where to add metadata,
        * b/c of tempo so we add then right here. *)
       List.iter
-        (fun (_, m) -> Generator.add_metadata abg m)
+        (fun (_, m) -> Generator.add_metadata self#buffer m)
         (AFrame.get_all_metadata databuf)
 
     method private get_frame buf =
       consumer#set_output_enabled true;
-      while Generator.length abg < Lazy.force Frame.size && source#is_ready do
+      while
+        Generator.length self#buffer < Lazy.force Frame.size && source#is_ready
+      do
         self#child_tick
       done;
       consumer#set_output_enabled false;
-      Generator.fill abg buf
+      Generator.fill self#buffer buf
 
     method wake_up a =
       super#wake_up a;
@@ -107,7 +107,7 @@ let () =
   (* TODO: could we keep the video in some cases? *)
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "soundtouch"
     [

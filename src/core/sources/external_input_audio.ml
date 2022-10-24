@@ -22,53 +22,33 @@
 
 open Extralib
 open Mm
-module Generator = Generator.From_audio_video_plus
-module Generated = Generated.From_audio_video_plus
 
 (* {1 External Input handling} *)
 
 exception Finished of string * bool
 
-class external_input ~name ~restart ~bufferize ~log_overfull ~restart_on_error
-  ~max ~converter ?read_header command =
+class external_input ~name ~restart ~bufferize ~restart_on_error ~max ~converter
+  ?read_header command =
   let abg_max_len = Frame.audio_of_seconds max in
-  (* We need a temporary log until the source has an id *)
-  let log_ref = ref (fun _ -> ()) in
-  let log x = !log_ref x in
-  let abg = Generator.create ~log ~log_overfull `Audio in
   let buflen = Utils.pagesize in
   let buf = Bytes.create buflen in
-  let channel_converter =
-    Decoder_utils.channels_converter
-      (Audio_converter.Channel_layout.layout_of_channels
-         (Lazy.force Frame.audio_channels))
-  in
-  let on_data reader =
+  let on_data ~buffer reader =
     let ret = reader buf 0 buflen in
-    let data, ofs, len = converter buf 0 ret in
-    let data = channel_converter (Audio.sub data ofs len) in
-    let buffered = Generator.length abg in
-    let duration = Frame.main_of_audio (Audio.length data) in
-    Generator.put_audio abg
-      (Content.Audio.lift_data ~offset:0 ~length:duration data)
-      0 duration;
-    if abg_max_len < buffered + len then
-      `Delay (Frame.seconds_of_audio (buffered + len - (3 * abg_max_len / 4)))
+    let data, offset, length = converter buf 0 ret in
+    let buffered = Generator.length buffer in
+    Generator.put buffer Frame.Fields.audio
+      (Content.Audio.lift_data ~offset ~length data);
+    if abg_max_len < buffered + length then
+      `Delay
+        (Frame.seconds_of_audio (buffered + length - (3 * abg_max_len / 4)))
     else `Continue
   in
-  object (self)
+  object
     inherit
       External_input.base
-        ~name ?read_header ~restart ~restart_on_error ~on_data command as base
+        ~name ?read_header ~restart ~restart_on_error ~on_data command
 
-    inherit Generated.source abg ~empty_on_abort:false ~bufferize
-
-    method wake_up x =
-      (* Now we can create the log function *)
-      log_ref := self#log#important "%s";
-      base#wake_up x
-
-    method buffer_length = Frame.seconds_of_audio (Generator.length abg)
+    inherit Generated.source ~empty_on_abort:false ~bufferize ()
   end
 
 let proto =
@@ -81,10 +61,6 @@ let proto =
       Lang.float_t,
       Some (Lang.float 10.),
       Some "Maximum duration of the buffered data." );
-    ( "log_overfull",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some "Log when the source's buffer is overfull." );
     ( "restart",
       Lang.bool_t,
       Some (Lang.bool true),
@@ -98,7 +74,8 @@ let proto =
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "input.external.rawaudio" ~category:`Input
     ~descr:
@@ -110,17 +87,9 @@ let () =
         ("samplerate", Lang.int_t, Some (Lang.int 44100), Some "Samplerate.");
       ])
     ~return_t
-    ~meth:
-      [
-        ( "buffer_length",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Length of the buffer (in seconds).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length) );
-      ]
     (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let channels_v = List.assoc "channels" p in
       let channels = Lang.to_int channels_v in
       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
@@ -136,26 +105,19 @@ let () =
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       new external_input
-        ~restart ~bufferize ~log_overfull ~restart_on_error ~max
+        ~restart ~bufferize ~restart_on_error ~max
         ~name:"input.external.rawaudio" ~converter command)
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "input.external.wav" ~category:`Input
     ~descr:"Stream WAV data from an external application." proto ~return_t
-    ~meth:
-      [
-        ( "buffer_length",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Length of the buffer (in seconds).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length) );
-      ]
     (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let converter_ref = ref (fun _ _ _ -> assert false) in
       let converter data ofs len = !converter_ref data ofs len in
       let read_header read =
@@ -178,5 +140,5 @@ let () =
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       new external_input
-        ~restart ~bufferize ~log_overfull ~read_header ~restart_on_error ~max
+        ~restart ~bufferize ~read_header ~restart_on_error ~max
         ~name:"input.external.wav" ~converter command)

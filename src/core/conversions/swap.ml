@@ -53,7 +53,7 @@ class swap (source : source) =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio_stereo ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
   Lang.add_operator "swap"
     [("", Lang.source_t frame_t, None, None)]

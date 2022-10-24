@@ -329,7 +329,7 @@ let () =
 let () =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "output.gstreamer.audio"
     (output_proto ~return_t ~pipeline:"autoaudiosink")
@@ -361,7 +361,7 @@ let () =
 let () =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "output.gstreamer.video"
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
@@ -393,7 +393,7 @@ let () =
 let () =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ())
+      (Frame.Fields.make ~audio:(Format_type.audio ())
          ~video:(Format_type.video ()) ())
   in
   Lang.add_operator "output.gstreamer.audio_video"
@@ -446,13 +446,10 @@ let () =
 
 (* Audio + video. *)
 
-module Generator = Generator.From_audio_video_plus
-
 type 'a sink = { pending : unit -> int; pull : unit -> 'a }
 
 class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
   let max = Lang.to_float (List.assoc "max" p) in
-  let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
   let max_ticks = Frame.main_of_seconds max in
   let on_error = List.assoc "on_error" p in
   let on_error error =
@@ -460,16 +457,15 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     Lang.to_float (Lang.apply on_error [("", Lang.string msg)])
   in
   let restart = Lang.to_bool (List.assoc "restart" p) in
-  let content, has_audio, has_video =
+  let has_audio, has_video =
     match (audio_pipeline, video_pipeline) with
-      | Some _, Some _ -> (`Both, true, true)
-      | None, Some _ -> (`Video, false, true)
-      | Some _, None -> (`Audio, true, false)
+      | Some _, Some _ -> (true, true)
+      | None, Some _ -> (false, true)
+      | Some _, None -> (true, false)
       | None, None ->
           failwith "There should be at least one audio or video pipeline!"
   in
   let rlog = ref (fun _ -> ()) in
-  let gen = Generator.create ~log_overfull ~log:(fun x -> !rlog x) content in
   object (self)
     inherit Source.source ~name:"input.gstreamer.audio_video" () as super
     inherit Source.no_seek
@@ -492,7 +488,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
       in
       try
         ready
-        && (Generator.length gen > 0
+        && (Generator.length self#buffer > 0
            || pending self#get_element.audio
            || pending self#get_element.video)
       with e ->
@@ -579,7 +575,8 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
       in
       { bin; audio = audio_sink; video = video_sink }
 
-    method private is_generator_at_max = Generator.length gen >= max_ticks
+    method private is_generator_at_max =
+      Generator.length self#buffer >= max_ticks
 
     method private fill_audio audio =
       while audio.pending () > 0 && not self#is_generator_at_max do
@@ -587,8 +584,8 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
         let len = String.length b / (2 * self#audio_channels) in
         let buf = Audio.create self#audio_channels len in
         Audio.S16LE.to_audio b 0 buf 0 len;
-        let duration = Frame.main_of_audio len in
-        Generator.put_audio gen (Content.Audio.lift_data buf) 0 duration
+        Generator.put self#buffer Frame.Fields.audio
+          (Content.Audio.lift_data buf)
       done
 
     method private fill_video video =
@@ -600,8 +597,8 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
             (Image.Data.round 4 (width / 2))
         in
         let stream = Video.Canvas.single_image img in
-        let duration = Frame.main_of_video (Video.Canvas.length stream) in
-        Generator.put_video gen (Content.Video.lift_data stream) 0 duration
+        Generator.put self#buffer Frame.Fields.video
+          (Content.Video.lift_data stream)
       done
 
     method get_frame frame =
@@ -613,7 +610,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
       try
         conditional_fill self#fill_audio el.audio;
         conditional_fill self#fill_video el.video;
-        Generator.fill gen frame;
+        Generator.fill self#buffer frame;
         GU.flush ~log:self#log
           ~on_error:(fun err -> raise (Flushing_error err))
           el.bin
@@ -650,17 +647,13 @@ let input_proto =
       Lang.float_t,
       Some (Lang.float 10.),
       Some "Maximum duration of the buffered data." );
-    ( "log_overfull",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some "Log when the source's buffer is overfull." );
   ]
 
 let () =
   (* TODO: be more flexible on audio *)
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields
+      (Frame.Fields.make
          ~audio:(Format_type.audio_stereo ())
          ~video:(Format_type.video ()) ())
   in
@@ -722,7 +715,8 @@ let () =
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   let proto =
     input_proto
@@ -741,7 +735,8 @@ let () =
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~video:(Format_type.video ()) ())
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
   let proto =
     input_proto

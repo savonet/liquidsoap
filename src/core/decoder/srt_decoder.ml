@@ -50,8 +50,10 @@ let () =
         (fun ~ctype fname ->
           if Srt_parser.check_file fname then
             Some
-              (Frame.mk_fields ?audio:(Frame.find_audio ctype)
-                 ?video:(Frame.find_video ctype) ())
+              (Frame.Fields.make
+                 ?audio:(Frame.Fields.find_opt Frame.Fields.audio ctype)
+                 ?video:(Frame.Fields.find_opt Frame.Fields.video ctype)
+                 ())
           else None);
       file_decoder =
         Some

@@ -31,7 +31,7 @@ let conf_ffmpeg_content =
     ~p:(Ffmpeg_utils.conf_ffmpeg#plug "content")
     "FFmpeg content configuration"
 
-let make ~length params = { length; params; data = [] }
+let make ?(length = 0) params = { length; params; data = [] }
 let length { length } = length
 let clear d = d.data <- []
 let stream_idx = ref 0L
