@@ -254,9 +254,15 @@ let () =
       let pattern =
         pattern
         |> Option.map (fun s ->
-               Regexp.substitute (Regexp.regexp "\\.") ~subst:(fun _ -> "\\.") s)
+               Regexp.substitute
+                 (Regexp.regexp ~flags:[`g] "\\.")
+                 ~subst:(fun _ -> "\\.")
+                 s)
         |> Option.map (fun s ->
-               Regexp.substitute (Regexp.regexp "\\*") ~subst:(fun _ -> ".*") s)
+               Regexp.substitute
+                 (Regexp.regexp ~flags:[`g] "\\*")
+                 ~subst:(fun _ -> ".*")
+                 s)
         |> Option.map (fun s -> "^" ^ s ^ "$")
         |> Option.value ~default:""
       in

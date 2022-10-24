@@ -199,8 +199,8 @@ let () =
         exec_fun );
       ( "replace",
         ([], replace_t),
-        "Replace all substrings matched by a pattern by another string \
-         returned by a function.",
+        "Replace substrings matched by the regexp by another string returned \
+         by a function.",
         replace_fun );
     ]
   in

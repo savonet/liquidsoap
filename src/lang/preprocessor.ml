@@ -228,7 +228,10 @@ let parse_comments tokenizer =
     let doc =
       List.map
         (fun x ->
-          Regexp.substitute (Regexp.regexp "^\\s*#\\s?") ~subst:(fun _ -> "") x)
+          Regexp.substitute
+            (Regexp.regexp ~flags:[`g] "^\\s*#\\s?")
+            ~subst:(fun _ -> "")
+            x)
         doc
     in
     let doc =
@@ -349,7 +352,8 @@ let parse_comments tokenizer =
                           | [] -> raise Not_found
                           | line :: lines ->
                               let line =
-                                Regexp.substitute (Regexp.regexp "^ *")
+                                Regexp.substitute
+                                  (Regexp.regexp ~flags:[`g] "^ *")
                                   ~subst:(fun _ -> "")
                                   line
                               in

@@ -509,7 +509,7 @@ let to_hex2 =
 
 let url_encode ?(plus = true) s =
   Regexp.substitute
-    (Regexp.regexp "[^A-Za-z0-9_.!*-]")
+    (Regexp.regexp ~flags:[`g] "[^A-Za-z0-9_.!*-]")
     ~subst:(fun x ->
       if plus && x = " " then "+"
       else (
@@ -526,7 +526,7 @@ let of_hex1 c =
 
 let url_decode ?(plus = true) s =
   Regexp.substitute
-    (Regexp.regexp "\\+|%..|%.|%")
+    (Regexp.regexp ~flags:[`g] "\\+|%..|%.|%")
     (* TODO why do we match %. and % and seem to exclude them below ? *)
     ~subst:(fun s ->
       if s = "+" then if plus then " " else "+"
