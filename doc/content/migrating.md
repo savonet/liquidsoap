@@ -38,7 +38,7 @@ Legacy systems used to expect `ISO-8859-1` (also known as `latin1`) for metadata
 mechanism.
 
 It seems that, nowadays, most software expect `UTF-8` out of the box, including for legacy systems that previously
-assumed other encodings. Therefore, by changing this default value, we expect to match exectations of the largest
+assumed other encodings. Therefore, by changing this default value, we try to match exectations of the largest
 number of users of our software.
 
 If you are using one of these outputs, make sure to test this assumptions with your listners' clients. If needed, the
