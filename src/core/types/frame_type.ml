@@ -29,6 +29,7 @@ let make ?pos base_type fields =
       let meth =
         {
           Type.meth = field;
+          optional = false;
           scheme = ([], field_type);
           doc = "Field " ^ field;
           json_name = None;
@@ -45,6 +46,7 @@ let set_field frame_type field field_type =
   let meth =
     {
       Type.meth = field;
+      optional = false;
       scheme = ([], field_type);
       doc = "Field " ^ field;
       json_name = None;

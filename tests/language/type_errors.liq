@@ -202,6 +202,14 @@ def f() =
   incorrect('crossfade(sequence([input.http("http://foo.bar"), input.http(self_sync=true,"http://foo.bar")]))');
   incorrect('crossfade(add([input.http("http://foo.bar"), input.http(self_sync=true,"http://foo.bar")]))');
 
+  section("OPTIONAL METHODS")
+  incorrect("(({}:{foo?:int}):{foo:int?})")
+  incorrect("fun (x) -> x?.foo.gni.gna + 1")
+  correct("(({}:{foo?:int}):{foo?:int?})")
+  correct("fun (x) -> x?.foo.gni.gna ?? 1")
+  correct("fun (x) -> x.foo.gni?.bla(1,2,3).blo")
+  correct("fun (x) -> x?.foo(123).gni ?? null()")
+
   test.pass()
 end
 

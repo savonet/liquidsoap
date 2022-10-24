@@ -169,13 +169,17 @@ and eval (env : Env.t) tm =
     | Cast (e, _) ->
         let e = eval env e in
         mk e.Value.value
-    | Meth ({ name = l; meth_t = u }, v) ->
+    | Meth ({ name = l; meth_value = u }, v) ->
         mk (Value.Meth (l, eval env u, eval env v))
-    | Invoke { invoked = t; meth = l } ->
+    | Invoke { invoked = t; default; meth = l } ->
         let rec aux t =
-          match t.Value.value with
-            | Value.Meth (l', t, _) when l = l' -> t
-            | Value.Meth (_, _, t) -> aux t
+          match (t.Value.value, default) with
+            | Value.Meth (l', t, _), None when l = l' -> t
+            (* A method returning `null` is overridden by the default value *)
+            | Value.Meth (l', t, _), Some tm when l = l' -> (
+                match t.Value.value with Value.Null -> eval env tm | _ -> t)
+            | Value.Meth (_, _, t), _ -> aux t
+            | _, Some tm -> eval env tm
             | _ ->
                 raise
                   (Internal_error

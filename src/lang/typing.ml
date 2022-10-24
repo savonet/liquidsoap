@@ -42,6 +42,13 @@ let rec hide_meth l a =
     | Meth (m, u) -> Type.make ?pos:a.pos (Meth (m, hide_meth l u))
     | _ -> a
 
+let rec opt_meth l a =
+  match (deref a).descr with
+    | Meth (({ meth = l' } as m), u) when l' = l ->
+        Type.make ?pos:a.pos (Meth ({ m with optional = true }, u))
+    | Meth (m, u) -> Type.make ?pos:a.pos (Meth (m, opt_meth l u))
+    | _ -> a
+
 let rec get_meth l a =
   match (deref a).descr with
     | Meth (({ meth = l' } as meth), _) when l = l' -> meth
@@ -199,10 +206,28 @@ let rec sup ~pos a b =
   in
   let rec meth_type l a =
     match (deref a).descr with
-      | Meth ({ meth = l'; scheme = t }, _) when l = l' -> Some t
+      | Meth ({ meth = l'; optional; scheme = t }, _) when l = l' ->
+          Some (t, optional)
       | Meth (_, a) -> meth_type l a
-      | Var { contents = Free _ } -> Some ([], var ?pos ())
       | _ -> None
+  in
+  let meth_sup m a b =
+    let a = hide_meth m.meth a in
+    let mb = meth_type m.meth b in
+    let b = hide_meth m.meth b in
+    match mb with
+      | Some (t', optional) -> (
+          try
+            mk
+              (Meth
+                 ( {
+                     m with
+                     optional = m.optional || optional;
+                     scheme = scheme_sup t' m.scheme;
+                   },
+                   sup a b ))
+          with Incompatible -> sup a b)
+      | None -> mk (Meth ({ m with optional = true }, sup a b))
   in
   if a == b then a
   else (
@@ -223,28 +248,8 @@ let rec sup ~pos a b =
       | Custom c, Custom c' -> (
           try mk (Custom { c with typ = c.sup sup c.typ c'.typ })
           with _ -> raise Incompatible)
-      | Meth (m, a), _ -> (
-          let a = hide_meth m.meth a in
-          let mb = meth_type m.meth b in
-          let b = hide_meth m.meth b in
-          match mb with
-            | Some t' -> (
-                try
-                  mk
-                    (Meth ({ m with scheme = scheme_sup t' m.scheme }, sup a b))
-                with Incompatible -> sup a b)
-            | None -> sup a b)
-      | _, Meth (m, b) -> (
-          let b = hide_meth m.meth b in
-          let ma = meth_type m.meth a in
-          let a = hide_meth m.meth a in
-          match ma with
-            | Some t' -> (
-                try
-                  mk
-                    (Meth ({ m with scheme = scheme_sup t' m.scheme }, sup a b))
-                with Incompatible -> sup a b)
-            | None -> sup a b)
+      | Meth (m, a), _ -> meth_sup m a b
+      | _, Meth (m, b) -> meth_sup m b a
       | ( Constr { constructor = c; params = a },
           Constr { constructor = d; params = b } ) ->
           if c <> d || List.length a <> List.length b then raise Incompatible;
@@ -316,10 +321,33 @@ and bind ?(variance = `Invariant) a b =
 
 (** Ensure that the type for the method [l] in [a] is a subtype of the one for the same method in [b]. *)
 and unify_meth a b l =
-  let { meth = l; scheme = s1; json_name = json_name1 } = get_meth l a in
-  let { scheme = s2; json_name = json_name2 } = get_meth l b in
+  let {
+    optional = optional1;
+    meth = meth1;
+    scheme = s1;
+    json_name = json_name1;
+  } =
+    get_meth l a
+  in
+  let {
+    optional = optional2;
+    meth = meth2;
+    scheme = s2;
+    json_name = json_name2;
+  } =
+    get_meth l b
+  in
+  assert (meth1 = l && meth2 = l);
   (* Handle explicitly this case in order to avoid #1842. *)
   (try
+     (* We want to allow: {foo:int?} <: {foo?:int} and {foo?:int?} <: {foo?:int} and
+        prohibit {foo?:int} <: {foo:int?} *)
+     let s1 =
+       match (optional1, optional2, (deref (snd s1)).descr) with
+         | _, true, Nullable t -> (fst s1, t)
+         | true, false, _ -> raise (Error (Repr.make a, Repr.make b))
+         | _ -> s1
+     in
      (* TODO: we should perform proper type scheme subtyping, but this
            is a good approximation for now... *)
      instantiate ~level:(-1) s1 <: instantiate ~level:(-1) s2
@@ -328,10 +356,22 @@ and unify_meth a b l =
      Printexc.raise_with_backtrace
        (Error
           ( `Meth
-              ( R.{ name = l; scheme = ([], a); json_name = json_name1 },
+              ( R.
+                  {
+                    name = l;
+                    optional = optional1;
+                    scheme = ([], a);
+                    json_name = json_name1;
+                  },
                 `Ellipsis ),
             `Meth
-              ( R.{ name = l; scheme = ([], b); json_name = json_name2 },
+              ( R.
+                  {
+                    name = l;
+                    optional = optional2;
+                    scheme = ([], b);
+                    json_name = json_name2;
+                  },
                 `Ellipsis ) ))
        bt);
   try hide_meth l a <: hide_meth l b
@@ -340,10 +380,22 @@ and unify_meth a b l =
     Printexc.raise_with_backtrace
       (Error
          ( `Meth
-             ( R.{ name = l; scheme = ([], `Ellipsis); json_name = json_name1 },
+             ( R.
+                 {
+                   name = l;
+                   optional = optional1;
+                   scheme = ([], `Ellipsis);
+                   json_name = json_name1;
+                 },
                a ),
            `Meth
-             ( R.{ name = l; scheme = ([], `Ellipsis); json_name = json_name2 },
+             ( R.
+                 {
+                   name = l;
+                   optional = optional2;
+                   scheme = ([], `Ellipsis);
+                   json_name = json_name2;
+                 },
                b ) ))
       bt
 
@@ -515,29 +567,42 @@ and ( <: ) a b =
           try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
       | Meth ({ meth = l }, _), _ when Type.has_meth b l -> unify_meth a b l
       | _, Meth ({ meth = l }, _) when Type.has_meth a l -> unify_meth a b l
-      | _, Meth ({ meth = l; scheme = g2, t2; json_name }, _) -> (
+      | _, Meth ({ meth = l; optional; scheme = g2, t2; json_name }, _) -> (
           let a' = demeth a in
           match a'.descr with
             | Var { contents = Free _ } ->
+                let optional, t2 =
+                  match (deref t2).descr with
+                    | Type.(Nullable t) -> (true, t)
+                    | _ -> (false, t2)
+                in
                 a'
                 <: make
                      (Meth
                         ( {
                             meth = l;
+                            optional;
                             scheme = (g2, t2);
                             doc = "";
                             json_name = None;
                           },
                           var () ));
                 a <: b
+            | _ when optional -> ()
             | _ ->
                 raise
                   (Error
                      ( Repr.make a,
                        `Meth
-                         ( R.{ name = l; scheme = ([], `Ellipsis); json_name },
+                         ( R.
+                             {
+                               name = l;
+                               optional;
+                               scheme = ([], `Ellipsis);
+                               json_name;
+                             },
                            `Ellipsis ) )))
-      | Meth (m, u1), _ -> hide_meth m.meth u1 <: b
+      | Meth (m, u1), _ -> opt_meth m.meth u1 <: b
       | _, Getter t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
       | _, _ ->

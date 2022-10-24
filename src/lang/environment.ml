@@ -72,6 +72,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                     Meth
                       ( {
                           meth = l;
+                          optional = false;
                           scheme = (lvg, lvt);
                           doc = "";
                           json_name = None;

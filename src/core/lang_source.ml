@@ -431,7 +431,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
       | Term.Tuple l -> List.iter (iter_term env) l
       | Term.Null -> ()
       | Term.Cast (a, _) -> iter_term env a
-      | Term.Meth ({ Term.meth_t = a }, b) ->
+      | Term.Meth ({ Term.meth_value = a }, b) ->
           iter_term env a;
           iter_term env b
       | Term.Invoke { Term.invoked = a } -> iter_term env a

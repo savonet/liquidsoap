@@ -40,7 +40,7 @@ def enable_external_ffmpeg_decoder() =
 
     let json.parse ( parsed : {
       streams : [{
-        channels : int?
+        channels? : int
       }]
     }?) = j
 
@@ -49,8 +49,8 @@ def enable_external_ffmpeg_decoder() =
 
       streams = parsed.streams
       stream = list.find(
-        default={channels = null(0)},
-        (fun (x) -> null.defined(x.channels)),
+        default={},
+        (fun (x) -> null.defined(x?.channels)),
         streams
       )
 

@@ -62,6 +62,13 @@ type ty_content = string * ty_content_args
 type varlist = [ `List of Term.t list | `App of Term.t ]
 type meth_pattern_el = string * Term.pattern option
 
+type meth_ty_opt = {
+  meth_ty_name : string;
+  meth_ty_typ : Type.t;
+  meth_ty_optional : bool;
+  meth_ty_json_name : string option;
+}
+
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
   | `Eval -> `Eval
@@ -165,14 +172,14 @@ let args_of, app_of =
     in
     let get_meth_type name t =
       let meths, t = Type.split_meths t in
-      let { Type.scheme = _, meth_t } =
+      let { Type.scheme = _, meth_value } =
         List.find (fun { Type.meth } -> meth = name) meths
       in
       let meths = List.filter (fun { Type.meth } -> meth <> name) meths in
       let t =
         List.fold_left (fun t m -> Type.make (Type.Meth (m, t))) t meths
       in
-      (meth_t, t)
+      (meth_value, t)
     in
     let term =
       match value with
@@ -186,9 +193,9 @@ let args_of, app_of =
                  l)
         | Value.Null -> Term.Null
         | Value.Meth (name, v, v') ->
-            let meth_t, t = get_meth_type name t in
+            let meth_value, t = get_meth_type name t in
             Term.Meth
-              ( { name; meth_t = term_of_value ~pos meth_t v },
+              ( { name; meth_value = term_of_value ~pos meth_value v },
                 term_of_value ~pos t v' )
         | Value.Fun (args, [], body) ->
             let body =
@@ -216,15 +223,21 @@ let append_list ~pos x v =
     | `Expr x, `List l -> `List (x :: l)
     | `Expr x, `App v ->
         let list = mk ~pos (Var "list") in
-        let op = mk ~pos (Invoke { invoked = list; meth = "add" }) in
+        let op =
+          mk ~pos (Invoke { invoked = list; default = None; meth = "add" })
+        in
         `App (mk ~pos (App (op, [("", x); ("", v)])))
     | `Ellipsis x, `App v ->
         let list = mk ~pos (Var "list") in
-        let op = mk ~pos (Invoke { invoked = list; meth = "append" }) in
+        let op =
+          mk ~pos (Invoke { invoked = list; default = None; meth = "append" })
+        in
         `App (mk ~pos (App (op, [("", x); ("", v)])))
     | `Ellipsis x, `List l ->
         let list = mk ~pos (Var "list") in
-        let op = mk ~pos (Invoke { invoked = list; meth = "append" }) in
+        let op =
+          mk ~pos (Invoke { invoked = list; default = None; meth = "append" })
+        in
         let l = mk ~pos (List l) in
         `App (mk ~pos (App (op, [("", x); ("", l)])))
 
@@ -242,6 +255,114 @@ let mk_fun ~pos args body =
   in
   let fv = Term.Vars.union fv (Term.free_vars ~bound body) in
   mk ~pos (Fun (fv, args, body))
+
+(** When doing chained calls, we want to update all nested defaults so that, e.g.
+    in:
+      `x?.foo.gni.bla(123)?.gno.gni`,
+    the default for `x.foo` becomes:
+      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null() }}}}}`
+    we also need to keep track of which methods are optional in the default value's type
+    to make sure it doesn't force optional methods to be mandatory during type checking. *)
+let mk_app_invoke_default ~pos ~args body =
+  let app_args =
+    List.map (fun (name, _) -> (name, name, Type.var (), None)) args
+  in
+  mk_fun ~pos app_args body
+
+let mk_any ~pos () =
+  (* This is the obj.magic from the standard library. *)
+  let op = mk ~pos (Var "💣") in
+  mk ~pos (App (op, [("", mk ~pos (Tuple []))]))
+
+let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
+    =
+  let t =
+    Type.meth ~pos ~optional name ([], Type.var ~pos ()) (Type.var ~pos ())
+  in
+  let value =
+    mk ~pos ~t (Meth ({ name; meth_value = value }, mk_any ~pos ()))
+  in
+  ( value,
+    update_invoke_default ~pos ~optional:(default <> None) invoked meth value )
+
+and update_invoke_default ~pos ~optional expr name value =
+  match expr.term with
+    | Invoke ({ meth; default } as invoked) ->
+        let value, invoked =
+          mk_invoke_default ~pos ~name ~optional value invoked
+        in
+        {
+          expr with
+          term =
+            Invoke
+              { invoked; meth; default = Option.map (fun _ -> value) default };
+        }
+    | App ({ term = Invoke ({ meth; default } as invoked) }, args) ->
+        let value, invoked =
+          let default =
+            match default with
+              | Some { term = Fun (_, _, body) } -> Some body
+              | None -> Some (mk_any ~pos ())
+              | _ -> assert false
+          in
+          mk_invoke_default ~pos ~name ~optional value { invoked with default }
+        in
+        {
+          expr with
+          term =
+            App
+              ( mk ~pos
+                  (Invoke
+                     {
+                       invoked;
+                       meth;
+                       default =
+                         Option.map
+                           (fun _ -> mk_app_invoke_default ~pos ~args value)
+                           default;
+                     }),
+                args );
+        }
+    | _ -> expr
+
+let mk_invoke ?default ~pos expr v =
+  let optional, value =
+    match default with Some v -> (true, v) | None -> (false, mk ~pos Null)
+  in
+  match v with
+    | `String meth ->
+        let expr = update_invoke_default ~pos ~optional expr meth value in
+        mk ~pos
+          (Invoke
+             {
+               invoked = expr;
+               default = Option.map (fun _ -> value) default;
+               meth;
+             })
+    | `App (meth, args) ->
+        let value = mk_app_invoke_default ~pos ~args value in
+        let expr = update_invoke_default ~pos ~optional expr meth value in
+        mk ~pos
+          (App
+             ( mk ~pos
+                 (Invoke
+                    {
+                      invoked = expr;
+                      default = Option.map (fun _ -> value) default;
+                      meth;
+                    }),
+               args ))
+
+let mk_coalesce ~pos ~default computed =
+  match computed.term with
+    | Invoke { invoked; meth } -> mk_invoke ~pos ~default invoked (`String meth)
+    | _ ->
+        let null = mk ~pos (Var "null") in
+        let op =
+          mk ~pos (Invoke { invoked = null; default = None; meth = "default" })
+        in
+        let handler = mk_fun ~pos [] default in
+        mk ~pos (App (op, [("", computed); ("", handler)]))
 
 let mk_let_json_parse ~pos (args, pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in

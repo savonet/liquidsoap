@@ -91,6 +91,7 @@ type scheme = var list * t
 (** A method. *)
 type meth = {
   meth : string;  (** name of the method *)
+  optional : bool;  (** is the method optional? *)
   scheme : scheme;  (** type scheme *)
   doc : string;  (** documentation *)
   json_name : string option;  (** name when represented as JSON *)
@@ -133,6 +134,7 @@ end
 module R = struct
   type meth = {
     name : string;
+    optional : bool;
     scheme : var list * t;
     json_name : string option;
   }
@@ -247,8 +249,8 @@ let rec invokes t = function
   | [] -> ([], t)
 
 (** Add a method to a type. *)
-let meth ?pos ?json_name meth scheme ?(doc = "") t =
-  make ?pos (Meth ({ meth; scheme; doc; json_name }, t))
+let meth ?pos ?json_name ?(optional = false) meth scheme ?(doc = "") t =
+  make ?pos (Meth ({ meth; optional; scheme; doc; json_name }, t))
 
 (** Add a submethod to a type. *)
 let rec meths ?pos l v t =
