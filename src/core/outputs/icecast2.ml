@@ -219,8 +219,7 @@ let proto frame_t =
         Some Lang.null,
         Some
           "Encoding used to send metadata and stream info (name, genre and \
-           description). If null, defaults to \"UTF-8\" for \"http(s)\" \
-           protocol and \"ISO-8859-1\" for \"icy\" protocol." );
+           description). If null, defaults to \"UTF-8\"." );
       ("genre", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ( "protocol",
         Lang.string_t,
@@ -340,7 +339,7 @@ class output p =
   in
   let out_enc =
     match s_opt "encoding" with
-      | None | Some "" -> if protocol = Cry.Icy then `ISO_8859_1 else `UTF_8
+      | None | Some "" -> `UTF_8
       | Some s -> Charset.of_string (String.uppercase_ascii s)
   in
   let source = Lang.assoc "" 2 p in
