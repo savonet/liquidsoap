@@ -35,7 +35,7 @@ let rec value_restriction t =
     | RFun _ -> true
     | Null -> true
     | List l | Tuple l -> List.for_all value_restriction l
-    | Meth (_, t, u) -> value_restriction t && value_restriction u
+    | Meth ({ meth_t = t }, u) -> value_restriction t && value_restriction u
     | Ground _ -> true
     | Let l -> value_restriction l.def && value_restriction l.body
     | Cast (t, _) -> value_restriction t
@@ -189,7 +189,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~level ~env a;
         a.t <: t;
         e.t >: t
-    | Meth (l, a, b) ->
+    | Meth ({ name = l; meth_t = a }, b) ->
         check ~level ~env a;
         check ~level ~env b;
         e.t
@@ -202,7 +202,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                     json_name = None;
                   },
                   b.t ))
-    | Invoke (a, l) ->
+    | Invoke { invoked = a; meth = l } ->
         check ~level ~env a;
         let rec aux t =
           match (Type.deref t).Type.descr with

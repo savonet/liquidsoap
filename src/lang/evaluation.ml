@@ -167,8 +167,9 @@ and eval (env : Env.t) tm =
     | Cast (e, _) ->
         let e = eval env e in
         mk e.Value.value
-    | Meth (l, u, v) -> mk (Value.Meth (l, eval env u, eval env v))
-    | Invoke (t, l) ->
+    | Meth ({ name = l; meth_t = u }, v) ->
+        mk (Value.Meth (l, eval env u, eval env v))
+    | Invoke { invoked = t; meth = l } ->
         let rec aux t =
           match t.Value.value with
             | Value.Meth (l', t, _) when l = l' -> t

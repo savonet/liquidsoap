@@ -211,29 +211,29 @@ expr:
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | varlist                          { mk_list ~pos:$loc $1 }
-  | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke (mk ~pos:$loc($1) (Var "ref"), "get")), ["", $2])) }
-  | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($1) (Var "ref"), "set")), ["", $1; "", $3])) }
+  | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke ({invoked = mk ~pos:$loc($1) (Var "ref"); meth = "get"})), ["", $2])) }
+  | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke ({invoked = mk ~pos:$loc($1) (Var "ref"); meth =  "set"})), ["", $1; "", $3])) }
   | ENCODER encoder_opt              { mk_encoder ~pos:$loc $1 $2 }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | expr DOT LCUR record RCUR        { $4 ~pos:$loc $1 }
   | LCUR record RCUR                 { $2 ~pos:$loc (mk ~pos:$loc (Tuple [])) }
   | LCUR RCUR                        { mk ~pos:$loc (Tuple []) }
-  | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
-  | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)), $4)) }
+  | expr DOT VAR                     { mk ~pos:$loc (Invoke ({invoked = $1; meth = $3})) }
+  | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke ({invoked = $1; meth = $3})), $4)) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | expr COLONCOLON expr             { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var "_::_"), ["", $1; "", $3])) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:$loc($1) (Var $1); "", $2])) }
-  | expr DOT VARLBRA expr RBRA       { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)); "", $4])) }
+  | expr DOT VARLBRA expr RBRA       { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:($startpos($1),$endpos($3)) (Invoke ({invoked = $1; meth =  $3})); "", $4])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | WHILE expr DO exprs END          { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "while"), ["", mk_fun ~pos:$loc($2) [] $2; "", mk_fun ~pos:$loc($4) [] $4])) }
   | FOR optvar GETS expr DO exprs END
                                      { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, Type.var ~pos:$loc($2) (), None] $6])) }
-  | expr TO expr                     { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($2) (Var "iterator"), "int")), ["", $1; "", $3])) }
+  | expr TO expr                     { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke ({invoked = mk ~pos:$loc($2) (Var "iterator"); meth = "int"})), ["", $1; "", $3])) }
   | expr COALESCE expr               { let null = mk ~pos:$loc($1) (Var "null") in
-                                       let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
+                                       let op =  mk ~pos:$loc($1) (Invoke ({invoked = null; meth = "default"})) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
                                        mk ~pos:$loc (App (op, ["",$1;"",handler])) }
   | TRY exprs CATCH optvar COLON varlist DO exprs END
@@ -242,14 +242,14 @@ expr:
                                        let errors = mk_list ~pos:$loc $6 in
                                        let handler =  mk_fun ~pos:$loc($8) err_arg $8 in
                                        let error_module = mk ~pos:$loc($1) (Var "error") in
-                                       let op = mk ~pos:$loc($1) (Invoke (error_module, "catch")) in
+                                       let op = mk ~pos:$loc($1) (Invoke ({invoked = error_module; meth =  "catch"})) in
                                        mk ~pos:$loc (App (op, ["errors", errors; "", fn; "", handler])) }
   | TRY exprs CATCH optvar DO exprs END { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, Type.var ~pos:$loc($4) (), None] in
                                        let handler = mk_fun ~pos:$loc($6) err_arg $6 in
                                        let errors = mk ~pos:$loc Null in
                                        let error_module = mk ~pos:$loc($1) (Var "error") in
-                                       let op = mk ~pos:$loc($1) (Invoke (error_module, "catch")) in
+                                       let op = mk ~pos:$loc($1) (Invoke ({invoked = error_module; meth = "catch"})) in
                                        mk ~pos:$loc (App (op, ["errors", errors; "", fn; "", handler])) }
   | IF exprs THEN exprs if_elsif END { let cond = $2 in
                                        let then_b = mk_fun ~pos:($startpos($3),$endpos($4)) [] $4 in
@@ -533,8 +533,8 @@ encoder_params:
   | encoder_param COMMA encoder_params { $1::$3 }
 
 record:
-  | VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($1, $3, e)) }
-  | record COMMA VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($3, $5, $1 ~pos e)) }
+  | VAR GETS expr { fun ~pos e -> mk ~pos (Meth ({name = $1; meth_t = $3}, e)) }
+  | record COMMA VAR GETS expr { fun ~pos e -> mk ~pos (Meth ({name = $3; meth_t =  $5}, $1 ~pos e)) }
 
 annotate:
   | annotate_metadata COLON { $1 }

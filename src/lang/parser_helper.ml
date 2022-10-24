@@ -188,7 +188,8 @@ let args_of, app_of =
         | Value.Meth (name, v, v') ->
             let meth_t, t = get_meth_type name t in
             Term.Meth
-              (name, term_of_value ~pos meth_t v, term_of_value ~pos t v')
+              ( { name; meth_t = term_of_value ~pos meth_t v },
+                term_of_value ~pos t v' )
         | Value.Fun (args, [], body) ->
             let body =
               Term.{ body with t = Type.make ~pos body.t.Type.descr }
@@ -215,15 +216,15 @@ let append_list ~pos x v =
     | `Expr x, `List l -> `List (x :: l)
     | `Expr x, `App v ->
         let list = mk ~pos (Var "list") in
-        let op = mk ~pos (Invoke (list, "add")) in
+        let op = mk ~pos (Invoke { invoked = list; meth = "add" }) in
         `App (mk ~pos (App (op, [("", x); ("", v)])))
     | `Ellipsis x, `App v ->
         let list = mk ~pos (Var "list") in
-        let op = mk ~pos (Invoke (list, "append")) in
+        let op = mk ~pos (Invoke { invoked = list; meth = "append" }) in
         `App (mk ~pos (App (op, [("", x); ("", v)])))
     | `Ellipsis x, `List l ->
         let list = mk ~pos (Var "list") in
-        let op = mk ~pos (Invoke (list, "append")) in
+        let op = mk ~pos (Invoke { invoked = list; meth = "append" }) in
         let l = mk ~pos (List l) in
         `App (mk ~pos (App (op, [("", x); ("", l)])))
 

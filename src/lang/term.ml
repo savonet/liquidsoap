@@ -204,6 +204,9 @@ and encoder_params = (string * [ `Term of t | `Encoder of encoder ]) list
 (** A formal encoder. *)
 and encoder = string * encoder_params
 
+and invoke = { invoked : t; meth : string }
+and meth = { name : string; meth_t : t }
+
 and in_term =
   | Ground of Ground.t
   | Encoder of encoder
@@ -211,8 +214,8 @@ and in_term =
   | Tuple of t list
   | Null
   | Cast of t * Type.t
-  | Meth of string * t * t
-  | Invoke of t * string
+  | Meth of meth * t
+  | Invoke of invoke
   | Open of t * t
   | Let of let_t
   | Var of string
@@ -288,8 +291,9 @@ let rec to_string v =
     | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
     | Null -> "null"
     | Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Repr.string_of_type t ^ ")"
-    | Meth (l, v, e) -> to_string e ^ ".{" ^ l ^ " = " ^ to_string v ^ "}"
-    | Invoke (e, l) -> to_string e ^ "." ^ l
+    | Meth ({ name = l; meth_t = v }, e) ->
+        to_string e ^ ".{" ^ l ^ " = " ^ to_string v ^ "}"
+    | Invoke { invoked = e; meth = l } -> to_string e ^ "." ^ l
     | Open (m, e) -> "open " ^ to_string m ^ " " ^ to_string e
     | Fun (_, [], v) when is_ground v -> "{" ^ to_string v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
@@ -377,8 +381,8 @@ let rec free_vars tm =
         enc e
     | Cast (e, _) -> free_vars e
     | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
-    | Meth (_, v, e) -> Vars.union (free_vars v) (free_vars e)
-    | Invoke (e, _) -> free_vars e
+    | Meth ({ meth_t = v }, e) -> Vars.union (free_vars v) (free_vars e)
+    | Invoke { invoked = e } -> free_vars e
     | Open (a, b) -> Vars.union (free_vars a) (free_vars b)
     | List l ->
         List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
@@ -432,8 +436,8 @@ let check_unused ~throw ~lib tm =
       | Tuple l -> List.fold_left (fun a -> check a) v l
       | Null -> v
       | Cast (e, _) -> check v e
-      | Meth (_, f, e) -> check (check v e) f
-      | Invoke (e, _) -> check v e
+      | Meth ({ meth_t = f }, e) -> check (check v e) f
+      | Invoke { invoked = e } -> check v e
       | Open (a, b) -> check (check v a) b
       | Seq (a, b) -> check ~toplevel (check v a) b
       | List l -> List.fold_left (fun x y -> check x y) v l
