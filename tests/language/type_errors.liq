@@ -1,3 +1,5 @@
+#!../../liquidsoap ../test.liq
+
 def section(name) =
   print("\n*** #{name} ***\n\n")
 end
