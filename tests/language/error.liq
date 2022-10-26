@@ -18,7 +18,6 @@ def f() =
   t(ret, 4)
 
   e = error.register("foo")
-  t(e, error.register("foo"))
 
   # Works as expected with no errors
   ret = try
@@ -100,6 +99,23 @@ def f() =
       "gni"
     end
   t(ret, "blo")
+
+  on_error = ref(error.register("dummy"))
+  error.on_error(fun (e) -> on_error := e)
+
+  try
+    error.raise(e, "On done callback")
+  catch _ : [e] do
+    ()
+  end
+
+  if (!on_error).kind != e.kind then
+    test.fail()
+  end
+
+  if (!on_error).message != "On done callback" then
+    test.fail()
+  end
 
   def on_done() =
     if !success then

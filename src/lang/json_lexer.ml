@@ -74,13 +74,9 @@ let rec json_token lexbuf =
              (Buffer.create 17) lexbuf)
     | eof -> EOF
     | _ ->
-        raise
-          (Runtime_error
-             {
-               kind = "json";
-               msg = "Parse error";
-               pos = [Sedlexing.lexing_positions lexbuf];
-             })
+        Runtime_error.raise ~message:"Parse error"
+          ~pos:[Sedlexing.lexing_positions lexbuf]
+          "json"
 
 and read_string pos buf lexbuf =
   (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
@@ -113,24 +109,14 @@ and read_string pos buf lexbuf =
         read_string pos buf lexbuf
     | '"' -> Buffer.contents buf
     | eof ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "json";
-                msg = "String is not terminated";
-                pos = [(pos, snd (Sedlexing.lexing_positions lexbuf))];
-              })
+        Runtime_error.raise ~message:"String is not terminated"
+          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
+          "json"
     | _ ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "json";
-                msg =
-                  "Illegal string character: " ^ Sedlexing.Utf8.lexeme lexbuf;
-                pos = [(pos, snd (Sedlexing.lexing_positions lexbuf))];
-              })
+        Runtime_error.raise
+          ~message:("Illegal string character: " ^ Sedlexing.Utf8.lexeme lexbuf)
+          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
+          "json"
 
 (* Json 5 extension *)
 
@@ -221,48 +207,31 @@ let rec json5_token lexbuf =
              (Buffer.create 17) lexbuf)
     | eof -> EOF
     | _ ->
-        raise
-          (Runtime_error
-             {
-               kind = "json";
-               msg = "Parse error";
-               pos = [Sedlexing.lexing_positions lexbuf];
-             })
+        Runtime_error.raise ~message:"Parse error"
+          ~pos:[Sedlexing.lexing_positions lexbuf]
+          "json"
 
 and read_single_line_comment pos lexbuf =
   match%sedlex lexbuf with
     | eof | line_terminator_sequence -> ()
     | Plus (Compl line_terminator) -> read_single_line_comment pos lexbuf
     | _ ->
-        raise
-          (Runtime_error
-             {
-               kind = "json";
-               msg = "Parse error";
-               pos = [(pos, snd (Sedlexing.lexing_positions lexbuf))];
-             })
+        Runtime_error.raise ~message:"Parse error"
+          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
+          "json"
 
 and read_multiline_comment pos lexbuf =
   match%sedlex lexbuf with
     | Plus '*', '/' -> ()
     | '*', Compl '/' | Plus (Compl '*') -> read_multiline_comment pos lexbuf
     | eof ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "json";
-                msg = "Comment is not terminated";
-                pos = [(pos, snd (Sedlexing.lexing_positions lexbuf))];
-              })
+        Runtime_error.raise ~message:"Comment is not terminated"
+          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
+          "json"
     | _ ->
-        raise
-          (Runtime_error
-             {
-               kind = "json";
-               msg = "Parse error";
-               pos = [(pos, snd (Sedlexing.lexing_positions lexbuf))];
-             })
+        Runtime_error.raise ~message:"Parse error"
+          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
+          "json"
 
 and read_json5_string sep pos buf lexbuf =
   (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
@@ -314,19 +283,10 @@ and read_json5_string sep pos buf lexbuf =
           Buffer.add_string buf m;
           read_json5_string sep pos buf lexbuf)
     | eof ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "json";
-                msg = "String is not terminated";
-                pos = [(pos, snd (Sedlexing.lexing_positions lexbuf))];
-              })
+        Runtime_error.raise ~message:"String is not terminated"
+          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
+          "json"
     | _ ->
-        raise
-          (Runtime_error
-             {
-               kind = "json";
-               msg = "Parse error";
-               pos = [Sedlexing.lexing_positions lexbuf];
-             })
+        Runtime_error.raise ~message:"Parse error"
+          ~pos:[Sedlexing.lexing_positions lexbuf]
+          "json"

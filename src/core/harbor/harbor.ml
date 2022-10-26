@@ -136,6 +136,7 @@ module type T = sig
   val custom : unit -> ('a, reply) Duppy.Monad.t
 
   val add_http_handler :
+    pos:Liquidsoap_lang.Pos.t list ->
     transport:Http.transport ->
     port:int ->
     verb:http_verb ->
@@ -179,6 +180,7 @@ module type T = sig
   val relayed : string -> (unit -> unit) -> ('a, reply) Duppy.Monad.t
 
   val add_source :
+    pos:Liquidsoap_lang.Pos.t list ->
     transport:Http.transport ->
     port:int ->
     mountpoint:string ->
@@ -1111,11 +1113,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   (* This, contrary to the find_xx functions
    * creates the handlers when they are missing. *)
-  let get_handler ~transport ~icy port =
+  let get_handler ~pos ~transport ~icy port =
     try
       let { handler; fds; transport = t } = Hashtbl.find opened_ports port in
       if transport != t then
-        Lang.raise_error
+        Lang.raise_error ~pos
           ~message:"Port is already opened with a different transport" "http";
       (* If we have only one socket and icy=true,
        * we need to open a second one. *)
@@ -1137,11 +1139,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   (* Add sources... This is tied up to sources lifecycle so
      no need to prevent early start *)
-  let add_source ~transport ~port ~mountpoint ~icy source =
+  let add_source ~pos ~transport ~port ~mountpoint ~icy source =
     let sources =
-      let handler = get_handler ~transport ~icy port in
+      let handler = get_handler ~pos ~transport ~icy port in
       if Hashtbl.mem handler.sources mountpoint then
-        Lang.raise_error ~message:"Mountpoint is already taken!" "http"
+        Lang.raise_error ~pos ~message:"Mountpoint is already taken!" "http"
       else ();
       handler.sources
     in
@@ -1168,9 +1170,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     else ()
 
   (* Add http_handler... *)
-  let add_http_handler ~transport ~port ~verb ~uri h =
+  let add_http_handler ~pos ~transport ~port ~verb ~uri h =
     let exec () =
-      let handler = get_handler ~transport ~icy:false port in
+      let handler = get_handler ~pos ~transport ~icy:false port in
       let suri = Lang.descr_of_regexp uri in
       log#important "Adding handler for '%s %s' on port %i"
         (string_of_verb verb) suri port;

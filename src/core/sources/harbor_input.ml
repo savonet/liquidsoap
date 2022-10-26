@@ -28,9 +28,9 @@ let address_resolver s =
   Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
     (Unix.getpeername s)
 
-class http_input_server ~transport ~dumpfile ~logfile ~bufferize ~max ~icy ~port
-  ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect ~on_disconnect
-  ~login ~debug ~log_overfull ~timeout () =
+class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
+  ~port ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
+  ~on_disconnect ~login ~debug ~log_overfull ~timeout () =
   let max_ticks = Frame.main_of_seconds max in
   (* We need a temporary log until
    * the source has an id *)
@@ -156,7 +156,7 @@ class http_input_server ~transport ~dumpfile ~logfile ~bufferize ~max ~icy ~port
 
     method private wake_up act =
       super#wake_up act;
-      Harbor.add_source ~transport ~port ~mountpoint ~icy
+      Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
         (self :> Harbor.source);
 
       (* Now we can create the log function *)
@@ -471,7 +471,8 @@ let () =
       let on_disconnect () =
         ignore (Lang.apply (List.assoc "on_disconnect" p) [])
       in
+      let pos = Lang.pos p in
       new http_input_server
-        ~transport ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
+        ~pos ~transport ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
         ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
         ~on_disconnect ~debug ~log_overfull ())

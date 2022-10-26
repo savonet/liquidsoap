@@ -39,7 +39,7 @@ module Ground : sig
 
   type content = Liquidsoap_lang.Term.Ground.content = {
     descr : t -> string;
-    to_json : t -> Json.t;
+    to_json : pos:Liquidsoap_lang.Pos.t list -> t -> Json.t;
     compare : t -> t -> int;
     typ : (module Liquidsoap_lang.Type.Ground.Custom);
   }
@@ -250,14 +250,17 @@ val val_fun : (string * string * value option) list -> (env -> value) -> value
   * when the constant is ground. *)
 val val_cst_fun : (string * value option) list -> value -> value
 
+(** Extract position from the environment. Used inside function execution. *)
+val pos : env -> Liquidsoap_lang.Pos.t list
+
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value
 
 (** Raise an error. *)
 val raise_error :
   ?bt:Printexc.raw_backtrace ->
-  ?pos:Liquidsoap_lang.Pos.List.t ->
   ?message:string ->
+  pos:Liquidsoap_lang.Pos.List.t ->
   string ->
   'a
 

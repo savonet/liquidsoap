@@ -25,15 +25,9 @@ module HttpTransport = struct
 
     let name = "http_transport"
 
-    let to_json _ =
-      raise
-        Runtime_error.(
-          Runtime_error
-            {
-              kind = "json";
-              msg = "Http transport cannot be represented as json";
-              pos = [];
-            })
+    let to_json ~pos _ =
+      Runtime_error.raise ~pos
+        ~message:"Http transport cannot be represented as json" "json"
 
     let descr transport = Printf.sprintf "<%s_transport>" transport#name
     let compare = Stdlib.compare

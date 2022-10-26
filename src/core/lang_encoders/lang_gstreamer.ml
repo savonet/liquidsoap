@@ -71,7 +71,7 @@ let make ?pos params =
             { f with Gstreamer_format.log = i }
         | "pipeline", `Value { value = Ground (String s); _ } ->
             { f with Gstreamer_format.pipeline = perhaps s }
-        | t -> raise (Lang_encoder.generic_error t))
+        | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
   if
@@ -79,18 +79,16 @@ let make ?pos params =
     && gstreamer.Gstreamer_format.audio <> None
     && gstreamer.Gstreamer_format.channels = 0
   then
-    raise
-      (Lang_encoder.error ~pos
-         "must have at least one audio channel when passing an audio pipeline");
+    Lang_encoder.raise_error ~pos
+      "must have at least one audio channel when passing an audio pipeline";
   if
     gstreamer.Gstreamer_format.pipeline = None
     && gstreamer.Gstreamer_format.video <> None
     && gstreamer.Gstreamer_format.audio <> None
     && gstreamer.Gstreamer_format.muxer = None
   then
-    raise
-      (Lang_encoder.error ~pos
-         "must have a muxer when passing an audio and a video pipeline");
+    Lang_encoder.raise_error ~pos
+      "must have a muxer when passing an audio and a video pipeline";
   Encoder.GStreamer gstreamer
 
 let () = Lang_encoder.register "gstreamer" type_of_encoder (make ?pos:None)

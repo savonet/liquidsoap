@@ -27,7 +27,12 @@ type event = [ `Modify ]
 type unwatch = unit -> unit
 
 (** Type for watching function. *)
-type watch = event list -> string -> (unit -> unit) -> unwatch
+type watch =
+  pos:Liquidsoap_lang.Pos.t list ->
+  event list ->
+  string ->
+  (unit -> unit) ->
+  unwatch
 
 type watched_files = {
   file : string;
@@ -60,8 +65,8 @@ let rec handler _ =
     ()
 
 let watch : watch =
- fun e file callback ->
-  if not (Sys.file_exists file) then Lang.raise_error "not_found";
+ fun ~pos e file callback ->
+  if not (Sys.file_exists file) then Lang.raise_error ~pos "not_found";
   if List.mem `Modify e then
     Tutils.mutexify m
       (fun () ->

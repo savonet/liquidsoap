@@ -264,9 +264,9 @@ class virtual ['a] chan_output p =
       try
         self#output_substring chan b ofs len;
         if flush then self#flush chan
-      with Sys_error e ->
+      with Sys_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_error ~bt ~message:e "system"
+        Lang.raise_as_runtime ~bt ~kind:"system" exn
 
     method close_pipe =
       self#close_chan (Option.get chan);
@@ -308,9 +308,9 @@ class virtual ['a] file_output_base p =
         let fd = self#open_out_gen mode perm filename in
         current_filename <- Some filename;
         fd
-      with Sys_error e ->
+      with Sys_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_error ~bt ~message:e "system"
+        Lang.raise_as_runtime ~bt ~kind:"system" exn
 
     method virtual close_out : 'a -> unit
 
@@ -319,9 +319,9 @@ class virtual ['a] file_output_base p =
         self#close_out fd;
         self#on_close (Option.get current_filename);
         current_filename <- None
-      with Sys_error e ->
+      with Sys_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_error ~bt ~message:e "system"
+        Lang.raise_as_runtime ~bt ~kind:"system" exn
 
     method private on_close = on_close
   end

@@ -296,6 +296,7 @@ let client_task c =
 (** Sending encoded data to a shout-compatible server.
     * It directly takes the Lang param list and extracts stuff from it. *)
 class output p =
+  let pos = Lang.pos p in
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
   let on_connect = List.assoc "on_connect" p in
@@ -593,7 +594,7 @@ class output p =
       let handler ~protocol ~meth:_ ~data:_ ~headers ~query ~socket uri =
         self#add_client ~protocol ~headers ~uri ~query socket
       in
-      Harbor.add_http_handler ~transport ~port ~verb:`Get ~uri handler;
+      Harbor.add_http_handler ~pos ~transport ~port ~verb:`Get ~uri handler;
       match dumpfile with Some f -> dump <- Some (open_out_bin f) | None -> ()
 
     method stop =

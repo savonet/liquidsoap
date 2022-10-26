@@ -77,7 +77,7 @@ let () =
       let fname = Lang_string.home_unrelate fname in
       let f = Extralib.List.assoc_nth "" 1 p in
       let f () = ignore (Lang.apply f []) in
-      let unwatch = File_watcher.watch [`Modify] fname f in
+      let unwatch = File_watcher.watch ~pos:(Lang.pos p) [`Modify] fname f in
       Lang.meth Lang.unit
         [
           ( "unwatch",

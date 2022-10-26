@@ -50,7 +50,7 @@ let make params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Shine_format.channels = 2 }
-        | t -> raise (Lang_encoder.generic_error t))
+        | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
   Encoder.Shine shine

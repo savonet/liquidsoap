@@ -24,7 +24,7 @@ include Runtime_error
 
 exception Encoder_error of (Pos.Option.t * string)
 
-type error = Runtime_error.runtime_error = {
+type error = Runtime_error.runtime_error = private {
   kind : string;
   msg : string;
   pos : Pos.List.t;
@@ -48,15 +48,9 @@ module ErrorDef = struct
       (Lang_string.quote_string msg)
       pos
 
-  let to_json _ =
-    raise
-      Runtime_error.(
-        Runtime_error
-          {
-            kind = "json";
-            msg = "Error cannot be represented as json";
-            pos = [];
-          })
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos ~message:"Error cannot be represented as json"
+      "json"
 
   let compare = Stdlib.compare
 end
@@ -102,7 +96,7 @@ let () =
     Error.t
     (fun p ->
       let kind = Lang_core.to_string (List.assoc "" p) in
-      Error.to_value { kind; msg = ""; pos = [] })
+      Error.to_value (Runtime_error.make ~pos:(Lang_core.pos p) kind))
 
 let () =
   Lang_core.add_builtin "error.raise" ~category:`Programming
@@ -118,7 +112,21 @@ let () =
     (fun p ->
       let { kind } = Error.of_value (Lang_core.assoc "" 1 p) in
       let message = Lang_core.to_string (Lang_core.assoc "" 2 p) in
-      Runtime_error.error ~message kind)
+      Runtime_error.raise ~pos:(Lang_core.pos p) ~message kind)
+
+let () =
+  Lang_core.add_builtin "error.on_error" ~category:`Programming
+    ~descr:
+      "Register a callback to monitor errors raised during the execution of \
+       the program. The callback is allow to re-raise a different error if \
+       needed."
+    [("", Lang_core.fun_t [(false, "", Error.t)] Lang_core.unit_t, None, None)]
+    Lang_core.unit_t
+    (fun p ->
+      let fn = List.assoc "" p in
+      let fn err = ignore (Lang_core.apply fn [("", Error.to_value err)]) in
+      Runtime_error.on_error fn;
+      Lang_core.unit)
 
 let error_t = Error.t
 let error = Error.to_value
@@ -151,4 +159,9 @@ let () =
       when errors = None
            || List.exists (fun err -> err.kind = kind) (Option.get errors)
       ->
-        h [("", Error.to_value { kind; msg; pos = [] })])
+        h
+          [
+            ( "",
+              Error.to_value
+                (Runtime_error.make ~pos:(Lang_core.pos p) ~message:msg kind) );
+          ])

@@ -163,9 +163,9 @@ let meth :
         ([], fun_t [] unit_t),
         "Ask the source or output to stop.",
         fun s ->
-          val_fun [] (fun _ ->
+          val_fun [] (fun p ->
               if s#stype = `Infallible then
-                Lang.raise_error
+                Lang.raise_error ~pos:(Lang.pos p)
                   ~message:"Source is infallible and cannot be stopped" "input";
               s#transition_to `Stopped;
               unit) );
