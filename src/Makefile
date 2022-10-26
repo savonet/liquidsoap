@@ -273,8 +273,8 @@ liquidsoap_sources += \
 	lang/profiler.ml lang/term.ml lang/value.ml \
 	lang/lang_encoder.ml $(lang_encoders) \
 	lang/environment.ml lang/typechecking.ml \
-	lang/evaluation.ml lang/error.ml \
-        lang/documentation.ml lang/lang_core.ml \
+	lang/documentation.ml lang/lang_core.ml \
+        lang/evaluation.ml lang/error.ml \
 	lang/lang_error.ml lang/lang_source.ml \
         lang/lang.ml lang/modules.ml \
 	lang/parser_helper.ml lang/parser.ml lang/lexer.ml \

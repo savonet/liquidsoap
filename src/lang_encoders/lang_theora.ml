@@ -52,37 +52,33 @@ let make params =
           (* According to the doc, this should be a value between
            * 0 and 63. *)
           if i < 0 || i > 63 then
-            raise (Lang_encoder.error ~pos "Theora quality should be in 0..63");
+            Lang_encoder.raise_error ~pos "Theora quality should be in 0..63";
           { f with Theora_format.bitrate_control = Theora_format.Quality i }
       | "bitrate", `Value { value = Ground (Int i); _ } ->
           { f with Theora_format.bitrate_control = Theora_format.Bitrate i }
       | "width", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must be a multiple of 16, and less than 1048576. *)
           if i mod 16 <> 0 || i >= 1048576 then
-            raise
-              (Lang_encoder.error ~pos
-                 "invalid frame width value (should be a multiple of 16)");
+            Lang_encoder.raise_error ~pos
+              "invalid frame width value (should be a multiple of 16)";
           { f with Theora_format.width = lazy i; picture_width = lazy i }
       | "height", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must be a multiple of 16, and less than 1048576. *)
           if i mod 16 <> 0 || i >= 1048576 then
-            raise
-              (Lang_encoder.error ~pos
-                 "invalid frame height value (should be a multiple of 16)");
+            Lang_encoder.raise_error ~pos
+              "invalid frame height value (should be a multiple of 16)";
           { f with Theora_format.height = lazy i; picture_height = lazy i }
       | "picture_width", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must not be larger than width. *)
           if i > Lazy.force f.Theora_format.width then
-            raise
-              (Lang_encoder.error ~pos
-                 "picture width must not be larger than width");
+            Lang_encoder.raise_error ~pos
+              "picture width must not be larger than width";
           { f with Theora_format.picture_width = lazy i }
       | "picture_height", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must not be larger than height. *)
           if i > Lazy.force f.Theora_format.height then
-            raise
-              (Lang_encoder.error ~pos
-                 "picture height must not be larger than height");
+            Lang_encoder.raise_error ~pos
+              "picture height must not be larger than height";
           { f with Theora_format.picture_height = lazy i }
       | "picture_x", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must be no larger than width-picture_width
@@ -94,10 +90,9 @@ let make params =
                 - Lazy.force f.Theora_format.picture_width)
                 255
           then
-            raise
-              (Lang_encoder.error ~pos
-                 "picture x must not be larger than width - picture width or \
-                  255, whichever is smaller");
+            Lang_encoder.raise_error ~pos
+              "picture x must not be larger than width - picture width or 255, \
+               whichever is smaller";
           { f with Theora_format.picture_x = i }
       | "picture_y", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must be no larger than width-picture_width
@@ -107,13 +102,11 @@ let make params =
             > Lazy.force f.Theora_format.height
               - Lazy.force f.Theora_format.picture_height
           then
-            raise
-              (Lang_encoder.error ~pos
-                 "picture y must not be larger than height - picture height");
+            Lang_encoder.raise_error ~pos
+              "picture y must not be larger than height - picture height";
           if Lazy.force f.Theora_format.picture_height - i > 255 then
-            raise
-              (Lang_encoder.error ~pos
-                 "picture height - picture y must not be larger than 255");
+            Lang_encoder.raise_error ~pos
+              "picture height - picture y must not be larger than 255";
           { f with Theora_format.picture_y = i }
       | "aspect_numerator", `Value { value = Ground (Int i); _ } ->
           { f with Theora_format.aspect_numerator = i }
@@ -131,7 +124,7 @@ let make params =
           { f with Theora_format.speed = Some i }
       | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
           { f with Theora_format.fill = Some i }
-      | t -> raise (Lang_encoder.generic_error t))
+      | t -> Lang_encoder.raise_generic_error t)
     defaults params
 
 let () =

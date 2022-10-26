@@ -23,29 +23,24 @@
 let log_deprecated = Log.make ["deprecated"]
 let log = Log.make ["lang"; "json"]
 
-let rec json_of_value v : Json.t =
+let rec json_of_value ~pos v : Json.t =
   match v.Value.value with
     | Value.Null -> `Null
-    | Value.Ground g -> Term.Ground.to_json g
-    | Value.List l -> `Tuple (List.map json_of_value l)
-    | Value.Tuple l -> `Tuple (List.map json_of_value l)
+    | Value.Ground g -> Term.Ground.to_json ~pos g
+    | Value.List l -> `Tuple (List.map (json_of_value ~pos) l)
+    | Value.Tuple l -> `Tuple (List.map (json_of_value ~pos) l)
     | Value.Meth _ -> (
         let m, v = Value.split_meths v in
         match v.Value.value with
           | Value.Tuple [] ->
-              `Assoc (List.map (fun (l, v) -> (l, json_of_value v)) m)
-          | _ -> json_of_value v)
+              `Assoc (List.map (fun (l, v) -> (l, json_of_value ~pos v)) m)
+          | _ -> json_of_value ~pos v)
     | _ ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "json";
-                msg =
-                  Printf.sprintf "Value %s cannot be represented as json"
-                    (Value.to_string v);
-                pos = (match v.Value.pos with Some p -> [p] | None -> []);
-              })
+        Runtime_error.raise ~pos
+          ~message:
+            (Printf.sprintf "Value %s cannot be represented as json"
+               (Value.to_string v))
+          "json"
 
 let rec type_of_json = function
   | `Assoc l ->
@@ -67,7 +62,9 @@ let rec json_of_typed_value ~ty v : Json.t =
     match (v.Value.value, _ty.Type.descr) with
       | Value.Null, Type.Nullable _ -> `Null
       | Value.Ground g, Type.Ground g' when Term.Ground.to_type g = g' ->
-          Term.Ground.to_json g
+          Term.Ground.to_json
+            ~pos:(match v.Value.pos with None -> [] | Some p -> [p])
+            g
       | Value.List l, Type.(List { t = ty; json_repr = `Tuple }) ->
           `Tuple (List.map (json_of_typed_value ~ty) l)
       | ( Value.List l,
@@ -103,24 +100,23 @@ let rec json_of_typed_value ~ty v : Json.t =
                      tm)
             | _ -> json_of_typed_value ~ty v)
       | _, Type.Var _ ->
-          let j = json_of_value v in
+          let j =
+            json_of_value
+              ~pos:(match ty.Type.pos with None -> [] | Some p -> [p])
+              v
+          in
           Typing.(_ty <: type_of_json j);
           j
       | _ -> assert false
   with
     | _ when nullable -> `Null
     | _ ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "json";
-                msg =
-                  Printf.sprintf
-                    "Value %s of type %s cannot be represented as json"
-                    (Value.to_string v) (Type.to_string ty);
-                pos = (match v.Value.pos with Some p -> [p] | None -> []);
-              })
+        Runtime_error.raise
+          ~pos:(match v.Value.pos with Some p -> [p] | None -> [])
+          ~message:
+            (Printf.sprintf "Value %s of type %s cannot be represented as json"
+               (Value.to_string v) (Type.to_string ty))
+          "json"
 
 type json_ellipsis_base =
   [ `Assoc of (string * string option * json_ellipsis) list
@@ -259,29 +255,21 @@ let rec value_of_typed_json ~ty json =
 let value_of_typed_json ~ty json =
   try value_of_typed_json ~ty json with
     | Failed v ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "json";
-                msg =
-                  Printf.sprintf
-                    "Parsing error: json value cannot be parsed as type %s"
-                    (string_of_json_ellipsis v);
-                pos = (match ty.Type.pos with Some p -> [p] | None -> []);
-              })
+        Runtime_error.raise
+          ~pos:(match ty.Type.pos with Some p -> [p] | None -> [])
+          ~message:
+            (Printf.sprintf
+               "Parsing error: json value cannot be parsed as type %s"
+               (string_of_json_ellipsis v))
+          "json"
     | _ ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "json";
-                msg =
-                  Printf.sprintf
-                    "Parsing error: json value cannot be parsed as type %s"
-                    (Type.to_string ty);
-                pos = (match ty.Type.pos with Some p -> [p] | None -> []);
-              })
+        Runtime_error.raise
+          ~pos:(match ty.Type.pos with Some p -> [p] | None -> [])
+          ~message:
+            (Printf.sprintf
+               "Parsing error: json value cannot be parsed as type %s"
+               (Type.to_string ty))
+          "json"
 
 module JsonSpecs = struct
   type content = (string, Lang.value) Hashtbl.t
@@ -289,8 +277,8 @@ module JsonSpecs = struct
   let name = "json"
   let descr _ = "json"
 
-  let to_json v =
-    `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value v) :: l) v [])
+  let to_json ~pos v =
+    `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value ~pos v) :: l) v [])
 
   let compare = Stdlib.compare
 end
@@ -346,8 +334,9 @@ let () =
             (fun p ->
               let compact = Lang.to_bool (List.assoc "compact" p) in
               let json5 = Lang.to_bool (List.assoc "json5" p) in
-              Lang.string (Json.to_string ~compact ~json5 (JsonSpecs.to_json v)))
-      );
+              Lang.string
+                (Json.to_string ~compact ~json5
+                   (JsonSpecs.to_json ~pos:(Lang.pos p) v))) );
     ]
   in
   let t =
@@ -386,7 +375,7 @@ let () =
         try
           let json =
             match ty.Type.descr with
-              | Type.Var _ -> json_of_value v
+              | Type.Var _ -> json_of_value ~pos:(Lang.pos p) v
               | _ -> json_of_typed_value ~ty v
           in
           Json.to_string ~compact ~json5 json
@@ -413,23 +402,16 @@ let () =
       try
         let json = Json.from_string ~json5 s in
         value_of_typed_json ~ty json
-      with exn ->
+      with exn -> (
         let bt = Printexc.get_raw_backtrace () in
-        let exn =
-          match exn with
-            | Runtime_error.Runtime_error _ -> exn
-            | _ ->
-                Runtime_error.(
-                  Runtime_error
-                    {
-                      kind = "json";
-                      msg =
-                        Printf.sprintf "Parse error: %s"
-                          (Printexc.to_string exn);
-                      pos = [];
-                    })
-        in
-        Printexc.raise_with_backtrace exn bt)
+        match exn with
+          | Runtime_error.Runtime_error _ ->
+              Printexc.raise_with_backtrace exn bt
+          | _ ->
+              Runtime_error.raise ~pos:(Lang.pos p)
+                ~message:
+                  (Printf.sprintf "Parse error: %s" (Printexc.to_string exn))
+                "json"))
 
 exception DeprecatedFailed
 

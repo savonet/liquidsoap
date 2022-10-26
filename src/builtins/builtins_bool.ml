@@ -48,9 +48,9 @@ let () =
     ]
     Lang.bool_t
     (fun p ->
-      match List.map (fun (_, x) -> Lang.to_bool_getter x) p with
-        | [a; b] -> Lang.bool (if a () then b () else false)
-        | _ -> assert false);
+      let f pos = Lang.to_bool_getter (Lang.assoc "" pos p) in
+      let a, b = (f 1, f 2) in
+      Lang.bool (if a () then b () else false));
   Lang.add_builtin "or" ~category:`Bool
     ~descr:"Return the disjunction of its arguments"
     [
@@ -59,9 +59,9 @@ let () =
     ]
     Lang.bool_t
     (fun p ->
-      match List.map (fun (_, x) -> Lang.to_bool_getter x) p with
-        | [a; b] -> Lang.bool (if a () then true else b ())
-        | _ -> assert false)
+      let f pos = Lang.to_bool_getter (Lang.assoc "" pos p) in
+      let a, b = (f 1, f 2) in
+      Lang.bool (if a () then true else b ()))
 
 let () =
   Lang.add_builtin "not" ~category:`Bool

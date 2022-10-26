@@ -35,7 +35,7 @@ let remove_first filter =
   in
   aux []
 
-let rec eval_pat pat v =
+let rec eval_pat ~pos pat v =
   let rec aux env pat v =
     match (pat, v) with
       | PVar x, v -> (x, v) :: env
@@ -48,7 +48,7 @@ let rec eval_pat pat v =
           let ln' = List.length l' in
           let lvn = List.length lv in
           if lvn < ln + ln' then
-            Runtime_error.error
+            Runtime_error.raise ~pos
               ~message:
                 "List value does not have enough elements to fit the \
                  extraction pattern!"
@@ -86,7 +86,7 @@ let rec eval_pat pat v =
           List.fold_left
             (fun env (lbl, pat) ->
               let v = List.assoc lbl m in
-              (match pat with None -> [] | Some pat -> eval_pat pat v)
+              (match pat with None -> [] | Some pat -> eval_pat ~pos pat v)
               @ [([lbl], v)]
               @ env)
             env l
@@ -268,7 +268,9 @@ and eval (env : Env.t) tm =
                       meths ll v t
                     in
                     (l, Lazy.from_fun v))
-            (eval_pat pat v)
+            (eval_pat pat
+               ~pos:(match tm.t.Type.pos with None -> [] | Some p -> [p])
+               v)
         in
         let env = Env.adds_lazy env penv in
         eval env b
@@ -313,11 +315,11 @@ and apply ?pos f l =
   (* Record error positions. *)
   let f pe =
     try f pe with
-      | Runtime_error err ->
+      | Runtime_error.Runtime_error err ->
           let bt = Printexc.get_raw_backtrace () in
-          Printexc.raise_with_backtrace
-            (Runtime_error { err with pos = Option.to_list pos @ err.pos })
-            bt
+          Runtime_error.raise ~bt
+            ~pos:(Option.to_list pos @ err.Runtime_error.pos)
+            ~message:err.Runtime_error.msg err.Runtime_error.kind
       | Internal_error (poss, e) ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
@@ -347,6 +349,15 @@ and apply ?pos f l =
           { v with Value.pos } )
         :: pe)
       pe p
+  in
+  (* Add position *)
+  let pe =
+    pe
+    @ [
+        ( Lang_core.pos_var,
+          Lang_core.Position.to_value
+            (match pos with None -> [] | Some p -> [p]) );
+      ]
   in
   let v = f pe in
   (* Similarly here, the result of an FFI call should have some position
@@ -453,7 +464,7 @@ let toplevel_add (doc, params, methods) pat ~t v =
       let t = List.assoc x env in
       Environment.add_builtin ~override:true ~doc:(Lazy.from_val doc) x
         ((generalized, t), v))
-    (eval_pat pat v)
+    (eval_pat ~pos:(match t.Type.pos with None -> [] | Some p -> [p]) pat v)
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with

@@ -56,7 +56,7 @@ module Liq_http = struct
       let url = Printf.sprintf "http://%s:%d%s" host port url in
       let data = Buffer.create 1024 in
       let x, code, y, _ =
-        Liqcurl.http_request ?headers ~follow_redirect:true
+        Liqcurl.http_request ?headers ~pos:[] ~follow_redirect:true
           ~on_body_data:(Buffer.add_string data)
           ~timeout:(Some (int_of_float (timeout *. 1000.)))
           ~url ~request ()

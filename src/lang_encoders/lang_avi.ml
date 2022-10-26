@@ -45,7 +45,7 @@ let make params =
             { f with Avi_format.width = Lazy.from_val i }
         | "height", `Value { value = Ground (Int i); _ } ->
             { f with Avi_format.height = Lazy.from_val i }
-        | t -> raise (Lang_encoder.generic_error t))
+        | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
   Encoder.AVI avi

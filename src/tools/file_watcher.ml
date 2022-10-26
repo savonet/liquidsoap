@@ -27,4 +27,4 @@ type event = [ `Modify ]
 type unwatch = unit -> unit
 
 (** Type for watching function. *)
-type watch = event list -> string -> (unit -> unit) -> unwatch
+type watch = pos:Pos.t list -> event list -> string -> (unit -> unit) -> unwatch

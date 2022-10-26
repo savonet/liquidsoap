@@ -25,8 +25,9 @@ module Value = Value.MkAbstract (struct
 
   let name = "request"
 
-  let to_json _ =
-    Runtime_error.error ~message:"Requests cannot be represented as json" "json"
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos ~message:"Requests cannot be represented as json"
+      "json"
 
   let descr r = Printf.sprintf "<request(id=%d)>" (Request.get_id r)
   let compare = Stdlib.compare

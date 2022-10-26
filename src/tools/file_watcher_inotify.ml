@@ -41,8 +41,8 @@ let rec watchdog () =
   { Duppy.Task.priority = `Maybe_blocking; events = [`Read fd]; handler }
 
 let watch : File_watcher.watch =
- fun e file f ->
-  if not (Sys.file_exists file) then Runtime_error.error "not_found";
+ fun ~pos e file f ->
+  if not (Sys.file_exists file) then Runtime_error.raise ~pos "not_found";
   Tutils.mutexify m
     (fun () ->
       if !fd = None then (

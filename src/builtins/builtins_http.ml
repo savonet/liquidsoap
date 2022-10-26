@@ -24,13 +24,6 @@ type request = Get | Post | Put | Head | Delete
 
 let request_with_body = [Get; Post; Put]
 
-let add_http_error kind =
-  Lang.add_builtin_base ~category:`Liquidsoap
-    ~descr:(Printf.sprintf "Base error for %s" kind)
-    (Printf.sprintf "%s.error" kind)
-    (Lang.error { Runtime_error.kind; msg = ""; pos = [] }).Lang.value
-    Lang.error_t
-
 let add_http_request ~stream_body ~descr ~request name =
   let name = Printf.sprintf "http.%s" name in
   let name = if stream_body then Printf.sprintf "%s.stream" name else name in
@@ -160,8 +153,8 @@ let add_http_request ~stream_body ~descr ~request name =
               | Delete -> `Delete
           in
           let ans =
-            Liqcurl.http_request ~follow_redirect:redirect ~timeout ~headers
-              ~url
+            Liqcurl.http_request ~pos:(Lang.pos p) ~follow_redirect:redirect
+              ~timeout ~headers ~url
               ~on_body_data:(fun s -> on_body_data (Some s))
               ~request ?http_version ()
           in
@@ -207,7 +200,6 @@ let add_http_request ~stream_body ~descr ~request name =
         ])
 
 let () =
-  add_http_error "http";
   List.iter
     (fun stream_body ->
       add_http_request ~descr:"Perform a full Http GET request." ~request:Get

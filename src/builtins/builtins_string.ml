@@ -77,8 +77,8 @@ print(c) # should print "c"
         let n = Lang.to_int (Lang.assoc "" 2 p) in
         Lang.int (int_of_char s.[n])
       with _ ->
-        Runtime_error.error ~message:"string.nth: character not found!"
-          "not_found")
+        Runtime_error.raise ~pos:(Lang.pos p)
+          ~message:"string.nth: character not found!" "not_found")
 
 let () =
   Lang.add_builtin "string.char" ~category:`String
@@ -160,7 +160,7 @@ let () =
              s)
       with _ ->
         let bt = Printexc.get_raw_backtrace () in
-        Runtime_error.error ~bt
+        Runtime_error.raise ~bt ~pos:(Lang.pos p)
           ~message:
             (Printf.sprintf "Error while escaping %s string.%s"
                (match encoding with `Utf8 -> "utf8" | `Ascii -> "ascii")
@@ -255,13 +255,7 @@ let () =
           (Lang.metadata (Utils.hashtbl_of_list metadata))
           (Lang.string uri)
       with Annotate.Error err ->
-        raise
-          (Runtime_error.Runtime_error
-             {
-               Runtime_error.kind = "string";
-               msg = err;
-               pos = (match v.Value.pos with None -> [] | Some p -> [p]);
-             }))
+        Runtime_error.raise ~pos:(Lang.pos p) ~message:err "string")
 
 let () =
   Lang.add_builtin "string.recode" ~category:`String
@@ -385,7 +379,8 @@ let () =
       let string = Lang.to_string (List.assoc "" p) in
       try Lang.string (Utils.decode64 string)
       with _ ->
-        Runtime_error.error ~message:"Invalid base64 string!" "invalid")
+        Runtime_error.raise ~pos:(Lang.pos p) ~message:"Invalid base64 string!"
+          "invalid")
 
 let () =
   Lang.add_builtin "string.base64.encode" ~category:`String
@@ -585,11 +580,13 @@ let () =
     (fun p ->
       let n = Lang.to_int (List.assoc "" p) in
       if n < 0 then
-        Runtime_error.error ~message:"Invalid string length!" "invalid";
+        Runtime_error.raise ~pos:(Lang.pos p) ~message:"Invalid string length!"
+          "invalid";
       let c =
         try Char.chr (Lang.to_int (List.assoc "char_code" p))
         with _ ->
-          Runtime_error.error ~message:"Invalid character code!" "invalid"
+          Runtime_error.raise ~pos:(Lang.pos p)
+            ~message:"Invalid character code!" "invalid"
       in
       Lang.string (String.make n c))
 

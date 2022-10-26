@@ -51,13 +51,8 @@ class fail_init ~kind =
     inherit fail ~kind "source.fail.init"
 
     method wake_up _ =
-      raise
-        (Runtime_error.Runtime_error
-           {
-             Runtime_error.kind = "debug";
-             msg = "Source's initialization failed";
-             pos = [];
-           })
+      Runtime_error.raise ~pos:[] ~message:"Source's initialization failed"
+        "debug"
   end
 
 let () =
