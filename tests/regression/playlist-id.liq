@@ -11,7 +11,7 @@ def t(file, expected) =
 end
 
 def f() =
-  t("bla", "bla") 
+  t("bla", "bla")
   t("bla/gni.pls", "gni.pls")
   t("./gni.pls", "gni.pls")
   t(".", "foo_0")

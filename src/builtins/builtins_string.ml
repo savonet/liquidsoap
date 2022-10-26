@@ -24,7 +24,9 @@ let () =
   Lang.add_builtin "string" ~category:`String
     ~descr:
       "Ensure that we have a string (useful for removing fields from strings)."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string s)
 
@@ -35,7 +37,8 @@ let () =
 let () =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t
+    (fun p ->
       let s1 = Lang.to_string (Lang.assoc "" 1 p) in
       let s2 = Lang.to_string (Lang.assoc "" 2 p) in
       Lang.string (s1 ^ s2))
@@ -66,7 +69,9 @@ print(c) # should print "c"
     [
       ("", Lang.string_t, None, Some "String to look into.");
       ("", Lang.int_t, None, Some "Index of the character.");
-    ] Lang.int_t (fun p ->
+    ]
+    Lang.int_t
+    (fun p ->
       try
         let s = Lang.to_string (Lang.assoc "" 1 p) in
         let n = Lang.to_int (Lang.assoc "" 2 p) in
@@ -78,7 +83,8 @@ print(c) # should print "c"
 let () =
   Lang.add_builtin "string.char" ~category:`String
     ~descr:"Create a string with one character."
-    [("", Lang.int_t, None, Some "Code of the character.")] Lang.string_t
+    [("", Lang.int_t, None, Some "Code of the character.")]
+    Lang.string_t
     (fun p ->
       List.assoc "" p |> Lang.to_int |> Char.chr |> String.make 1 |> Lang.string)
 
@@ -227,7 +233,9 @@ let () =
 let () =
   Lang.add_builtin "string.unescape"
     ~descr:"This function is the inverse of `string.escape`." ~category:`String
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.unescape_string s))
 
@@ -236,8 +244,10 @@ let () =
   Lang.add_builtin "string.annotate.parse" ~category:`String
     ~descr:
       "Parse a string of the form `<key>=<value>,...:<uri>` as given by the \
-       `annotate:` protocol" [("", Lang.string_t, None, None)]
-    (Lang.product_t Lang.metadata_t Lang.string_t) (fun p ->
+       `annotate:` protocol"
+    [("", Lang.string_t, None, None)]
+    (Lang.product_t Lang.metadata_t Lang.string_t)
+    (fun p ->
       let v = List.assoc "" p in
       try
         let metadata, uri = Annotate.parse (Lang.to_string v) in
@@ -278,8 +288,10 @@ let () =
 
 let () =
   Lang.add_builtin "string.length" ~category:`String
-    ~descr:"Get the length of a string." [("", Lang.string_t, None, None)]
-    Lang.int_t (fun p ->
+    ~descr:"Get the length of a string."
+    [("", Lang.string_t, None, None)]
+    Lang.int_t
+    (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.int (String.length string))
 
@@ -299,7 +311,9 @@ let () =
         Lang.int_t,
         None,
         Some "Return a sub string of `length` characters." );
-    ] Lang.string_t (fun p ->
+    ]
+    Lang.string_t
+    (fun p ->
       let start = Lang.to_int (List.assoc "start" p) in
       let len = Lang.to_int (List.assoc "length" p) in
       let string = Lang.to_string (List.assoc "" p) in
@@ -327,8 +341,9 @@ let () =
 let () =
   Lang.add_builtin "string.trim" ~category:`String
     ~descr:"Return a string without leading and trailing whitespace."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
-      Lang.string (String.trim (Lang.to_string (List.assoc "" p))))
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p -> Lang.string (String.trim (Lang.to_string (List.assoc "" p))))
 
 let () =
   Lang.add_builtin "string.capitalize" ~category:`String
@@ -363,8 +378,10 @@ let () =
 
 let () =
   Lang.add_builtin "string.base64.decode" ~category:`String
-    ~descr:"Decode a Base64 encoded string." [("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    ~descr:"Decode a Base64 encoded string."
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       try Lang.string (Utils.decode64 string)
       with _ ->
@@ -372,8 +389,10 @@ let () =
 
 let () =
   Lang.add_builtin "string.base64.encode" ~category:`String
-    ~descr:"Encode a string in Base64." [("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    ~descr:"Encode a string in Base64."
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.encode64 string))
 
@@ -411,7 +430,8 @@ let () =
        - `$(if $(k2),\"a\",\"b\") into \"a\" if k2 is found in the list, \"b\" \
        otherwise."
     [("", Lang.string_t, None, None); ("", Lang.metadata_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t
+    (fun p ->
       let s = Lang.to_string (Lang.assoc "" 1 p) in
       let l =
         List.map
@@ -545,7 +565,9 @@ let () =
 let () =
   Lang.add_builtin "string.id" ~category:`String
     ~descr:"Generate an identifier with given operator name."
-    [("", Lang.string_t, None, Some "Operator name.")] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, Some "Operator name.")]
+    Lang.string_t
+    (fun p ->
       let name = List.assoc "" p |> Lang.to_string in
       Lang.string (Source.generate_id name))
 
@@ -582,11 +604,13 @@ let () =
       ]
   in
   Lang.add_builtin "string.apic.parse" ~category:`File
-    [("", Lang.string_t, None, Some "APIC data.")] t
+    [("", Lang.string_t, None, Some "APIC data.")]
+    t
     ~descr:
       "Parse APIC ID3v2 tags (such as those obtained in the APIC tag from \
        `file.metadata.id3v2`). The returned values are: mime, picture type, \
-       description, and picture data." (fun p ->
+       description, and picture data."
+    (fun p ->
       let apic = Lang.to_string (List.assoc "" p) in
       let apic = Metadata.ID3v2.parse_apic apic in
       Lang.meth

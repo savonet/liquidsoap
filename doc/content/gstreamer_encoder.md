@@ -1,7 +1,7 @@
 The Gstreamer encoder
 =====================
 The `%gstreamer` encoder can be used to encode streams using the `gstreamer` multimedia framework.
-This encoder extends liquidsoap with all available GStreamer formats (provided they are 
+This encoder extends liquidsoap with all available GStreamer formats (provided they are
 compatible with liquidsoap's model of streams, see Caveats section below), which includes a
 huge array of encoders.
 
@@ -39,7 +39,7 @@ An MP3 encoder that expects sources of type `audio=2, video=0, midi=0`:
                                      video="",
                                      log=3),...)'
 (...)
-2012/12/13 19:16:23 [encoder.gstreamer:3] Gstreamer encoder pipeline: appsrc 
+2012/12/13 19:16:23 [encoder.gstreamer:3] Gstreamer encoder pipeline: appsrc
   name="audio_src" block=true caps="audio/x-raw,format=S16LE,layout=interleaved,
   channels=2,rate=44100" format=time ! queue ! audioconvert ! audioresample !
   lamemp3enc ! appsink name=sink sync=false emit-signals=true
@@ -56,7 +56,7 @@ A x264 encoder that expects sources of type `audio=0, video=1, midi=0`:
 2012/12/13 19:14:43 [encoder.gstreamer:3] Gstreamer encoder pipeline:  appsrc
   name="video_src" block=true caps="video/x-raw,format=RGBA,width=320,height=240,
   framerate=25/1,pixel-aspect-ratio=1/1" format=time blocksize=307200 ! queue !
-  videoconvert ! videoscale add-borders=true ! videorate ! x264enc ! 
+  videoconvert ! videoscale add-borders=true ! videorate ! x264enc !
   mpegtsmux name=muxer ! appsink name=sink sync=false emit-signals=true
 ```
 
@@ -70,11 +70,11 @@ An MPEG TS encoder that expects sources of type `audio=2, video=1, midi=0`:
 (...)
 2012/12/13 19:18:09 [encoder.gstreamer:3] Gstreamer encoder pipeline: appsrc
   name="audio_src" block=true caps="audio/x-raw,format=S16LE,
-  layout=interleaved,channels=2,rate=44100" format=time ! queue ! audioconvert 
+  layout=interleaved,channels=2,rate=44100" format=time ! queue ! audioconvert
   ! audioresample ! lamemp3enc ! muxer. appsrc name="video_src" block=true
   caps="video/x-raw,format=RGBA,width=320,height=240,framerate=25/1,
   pixel-aspect-ratio=1/1" format=time blocksize=307200 ! queue ! videoconvert
-  ! videoscale add-borders=true ! videorate ! x264enc ! muxer. mpegtsmux 
+  ! videoscale add-borders=true ! videorate ! x264enc ! muxer. mpegtsmux
   name=muxer ! appsink name=sink sync=false emit-signals=true
 ```
 
@@ -93,7 +93,7 @@ An ogg/vorbis+theora encoder that expects source of type `audio=1, video=1, midi
   vorbisenc ! muxer. appsrc name="video_src" block=true caps="video/x-raw,
   format=RGBA,width=320,height=240,framerate=25/1,pixel-aspect-ratio=1/1"
   format=time blocksize=307200 ! queue ! videoconvert ! videoscale add-borders=true
-  ! videorate ! theoraenc ! muxer. oggmux name=muxer ! appsink name=sink 
+  ! videorate ! theoraenc ! muxer. oggmux name=muxer ! appsink name=sink
   sync=false emit-signals=true
 ```
 
@@ -152,5 +152,3 @@ When using the `%gstreamer` encoder, one must think of it as an encoder for an i
 means that not all containers (muxers) will work. For instance, the AVI and MP4 containers need to write in their
 header information that are only known with finite streams, such as the stream total's time and etc.. These containers
 are usually not fit for streaming, which is liquidsoap's main functionality.
-
-

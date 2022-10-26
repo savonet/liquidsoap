@@ -21,5 +21,3 @@ they will stop streaming and will be destroyed.
 
 The full liquidsoap instance
 can be shutdown using the `shutdown()` command.
-
-

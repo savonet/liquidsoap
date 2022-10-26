@@ -167,9 +167,8 @@ if test "$enable_pic" != no; then
                 ;;
             esac
         fi
-    fi 
+    fi
     AC_MSG_RESULT([$PIC_FLAGS])
 fi
 AC_SUBST([PIC_FLAGS])
 ])dnl PIC_FLAGS
-

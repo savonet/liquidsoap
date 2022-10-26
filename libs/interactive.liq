@@ -238,7 +238,7 @@ def interactive.load(fname)
     float : [(string * float)],
     int : [(string * int)],
     bool : [(string * bool)],
-    string : [(string * string)] 
+    string : [(string * string)]
   } ) = vars
 
   list.iter(fun (nv) -> try interactive.float.set (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, vars.float )

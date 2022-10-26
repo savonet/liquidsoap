@@ -259,7 +259,7 @@ end
 # @method length Length of the of the playlist (the number of songs it contains).
 # @method remaining_files Songs remaining to be played.
 def replaces playlist(
-  ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true, 
+  ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
   ~mime_type=null(), ~mode="randomize", ~native=false, ~on_reload=(fun (_) -> ()),
   ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri) =
   id = id ?? playlist.id(default="playlist", uri)
@@ -324,7 +324,7 @@ def replaces playlist(
     watcher_reload = !watcher_reload_ref
     watcher_reload(uri)
     on_reload(uri)
-  end 
+  end
 
   s = playlist.list(
     id=id, check_next=check_next, prefetch=prefetch, loop=loop, mode=mode,
@@ -365,7 +365,7 @@ def replaces playlist(
     def watcher_reload(uri) =
       if uri != !watched_uri then
         w = !watcher
-          
+
         if null.defined(w) then
           null.get(w).unwatch()
         end

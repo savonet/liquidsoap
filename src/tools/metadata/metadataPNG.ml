@@ -13,7 +13,7 @@ let parse f : metadata =
   [
     "width", string_of_int width;
     "height", string_of_int height;
-    "bit_depth", string_of_int bit_depth;    
+    "bit_depth", string_of_int bit_depth;
   ]
 
 let parse_file = R.with_file parse

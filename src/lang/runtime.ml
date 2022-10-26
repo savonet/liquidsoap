@@ -206,9 +206,7 @@ let mk_expr ?fname ~pwd processor lexbuf =
 let from_lexbuf ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
     lexbuf =
   begin
-    match ns with
-    | Some ns -> Sedlexing.set_filename lexbuf ns
-    | None -> ()
+    match ns with Some ns -> Sedlexing.set_filename lexbuf ns | None -> ()
   end;
   try
     report lexbuf (fun ~throw () ->

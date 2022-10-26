@@ -96,5 +96,3 @@ end
 ```
 
 You can use it directly in your script, or use this code to define yours!
-
-

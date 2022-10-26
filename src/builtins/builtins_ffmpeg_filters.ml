@@ -45,8 +45,8 @@
   *    look at latency control like we do for crossfades.
   * -> When receiving its first frame, the liquidsoap input will then initialize the
   *    corresponding ffmpeg graph input with full format info.
-  * -> When all inputs have been initialized, which is know by checking if all of 
-  *    the graph's lazy values for input pads have been forced (executed), 
+  * -> When all inputs have been initialized, which is know by checking if all of
+  *    the graph's lazy values for input pads have been forced (executed),
   *    the whole graph is initialized, outputs connected and data can start to flow!
   *    This is captured by the call to `initialized` below.
   *

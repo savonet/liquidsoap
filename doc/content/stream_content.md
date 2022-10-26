@@ -166,5 +166,3 @@ used. They are given by the setting
 `frame.audio/video/midi.channels` (whose defaults are respectively
 `2`, `0` and `0`). In our example,
 stereo audio would be chosen.
-
-

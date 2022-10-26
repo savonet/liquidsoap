@@ -18,7 +18,7 @@ def f() =
   if m["year"] == "0" then
     test.fail()
   end
-  
+
   test.pass()
 end
 

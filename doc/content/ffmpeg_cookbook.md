@@ -176,7 +176,7 @@ Live switch between encoded content
 Starting with liquidsoap `2.1.x`, it is gradually becoming possible to do proper live switches on encoded content and send the
 result to different outputs.
 
-Please note that this requires a solid knowledge of media codecs, containers and ffmpeg bitstream filters. Different input and output 
+Please note that this requires a solid knowledge of media codecs, containers and ffmpeg bitstream filters. Different input and output
 containers store codec binary data in different ways and those are not always compatible. This requires the use of bitstream filters
 to adapt the binary data and, it's possible some new filters will need to be written to support more combinations of input/output and codecs.
 

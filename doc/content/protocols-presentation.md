@@ -56,5 +56,3 @@ When defining custom protocols, you should pay attention to two variables:
 
 * `rlog` is the logging function. Messages passed to this function will be registered with the request and can be used to debug any issue
 * `maxtime` is the maximum time (in UNIX epoch) that the requests should run. After that time, it should return and be considered timed out. You may want to read from `protocols.liq` to see how to enforce this when calling external processes.
-
-

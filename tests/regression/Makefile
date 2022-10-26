@@ -3,7 +3,7 @@
 LIQ = $(sort $(wildcard *.liq))
 TESTS = $(filter-out test, $(basename $(LIQ)))
 
-test: server_port $(TESTS) 
+test: server_port $(TESTS)
 
 %: %.liq
 	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" regression/$<

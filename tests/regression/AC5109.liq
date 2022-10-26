@@ -27,7 +27,7 @@ def check(m) =
   end
 end
 
-s.on_metadata(check) 
+s.on_metadata(check)
 
 clock.assign_new(sync="none",[s])
 

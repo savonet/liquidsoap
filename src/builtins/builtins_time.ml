@@ -125,7 +125,9 @@ let () =
     ~descr:
       "Convert a date and time in the local timezone into a time, in seconds, \
        since 00:00:00 GMT, Jan. 1, 1970."
-    [("", time_t, None, None)] Lang.float_t (fun p ->
+    [("", time_t, None, None)]
+    Lang.float_t
+    (fun p ->
       let tm = List.assoc "" p in
       let tm =
         {
@@ -143,7 +145,9 @@ let () =
 let () =
   Lang.add_builtin ~category:`Liquidsoap "time.predicate"
     ~descr:"Parse a string as a time predicate"
-    [("", Lang.string_t, None, None)] (Lang.fun_t [] Lang.bool_t) (fun p ->
+    [("", Lang.string_t, None, None)]
+    (Lang.fun_t [] Lang.bool_t)
+    (fun p ->
       let v = List.assoc "" p in
       let predicate = Lang.to_string v in
       let lexbuf = Sedlexing.Utf8.from_string predicate in

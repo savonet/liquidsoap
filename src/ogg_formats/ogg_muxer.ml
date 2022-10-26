@@ -59,8 +59,8 @@ type 'a stream = {
 type track = Audio_track of audio stream | Video_track of video stream
 
 (** You may register new tracks on state Eos or Bos.
-  * You can't register new track on state Streaming. 
-  * You may finalize at any state, provided at least 
+  * You can't register new track on state Streaming.
+  * You may finalize at any state, provided at least
   * single track is registered. However, this is not
   * recommended. *)
 type state = Eos | Streaming | Bos
@@ -226,15 +226,17 @@ let streams_start encoder =
   (* Add skeleton information first. *)
   begin
     match encoder.skeleton with
-    | Some os ->
-        Hashtbl.iter
-          (fun _ x ->
-            let sos = os_of_ogg_track x in
-            let f = fisbone_data_of_ogg_track x in
-            match f sos with Some p -> Ogg.Stream.put_packet os p | None -> ())
-          encoder.tracks;
-        add_flushed_pages ~header:true encoder os
-    | None -> ()
+      | Some os ->
+          Hashtbl.iter
+            (fun _ x ->
+              let sos = os_of_ogg_track x in
+              let f = fisbone_data_of_ogg_track x in
+              match f sos with
+                | Some p -> Ogg.Stream.put_packet os p
+                | None -> ())
+            encoder.tracks;
+          add_flushed_pages ~header:true encoder os
+      | None -> ()
   end;
   Hashtbl.iter
     (fun _ t ->
@@ -247,11 +249,11 @@ let streams_start encoder =
   (* Finish skeleton stream now. *)
   begin
     match encoder.skeleton with
-    | Some os ->
-        Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
-        let p = Ogg.Stream.flush_page os in
-        add_page ~header:true encoder p
-    | None -> ()
+      | Some os ->
+          Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
+          let p = Ogg.Stream.flush_page os in
+          add_page ~header:true encoder p
+      | None -> ()
   end;
   encoder.state <- Streaming
 
@@ -292,8 +294,8 @@ let remaining_pages encoder =
   *    that is ahead of the encoder position,
   *    the page is kept as remaining.
   *  + When there is one remaining page per
-  *    track, we take the least of them and 
-  *    add it. The encoder position is then 
+  *    track, we take the least of them and
+  *    add it. The encoder position is then
   *    bumped.
   *  + As soon as the encoder's position is ahead
   *    of a page, then this page can be written *)
@@ -310,7 +312,7 @@ let add_available src encoder =
             set_remaining_of_ogg_track track None);
 
     (* Then, we proceed only if the track
-     * is the only one left, or there is no 
+     * is the only one left, or there is no
      * remaining page. *)
     if Hashtbl.length encoder.tracks <= 1 || src.remaining = None then (
       try
@@ -323,10 +325,10 @@ let add_available src encoder =
           (* Is the new position ahead ? *)
           | Time pos ->
               if pos > encoder.position then
-                (* We don't output the page now 
-                 * since we want to let the possibility 
-                 * for another stream to add pages 
-                 * for a position between the current 
+                (* We don't output the page now
+                 * since we want to let the possibility
+                 * for another stream to add pages
+                 * for a position between the current
                  * position and this new one. *)
                 src.remaining <- Some (pos, p)
               else (
@@ -387,8 +389,8 @@ let end_of_track encoder id =
 let flush encoder =
   begin
     match encoder.skeleton with
-    | Some os -> add_flushed_pages encoder os
-    | None -> ()
+      | Some os -> add_flushed_pages encoder os
+      | None -> ()
   end;
   while Hashtbl.length encoder.tracks > 0 do
     Hashtbl.iter (fun id _ -> end_of_track encoder id) encoder.tracks

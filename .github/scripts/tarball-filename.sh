@@ -9,4 +9,3 @@ cd /tmp/liquidsoap-full/liquidsoap
 FILENAME=`make print-tarball-filename`
 
 echo "##[set-output name=filename;]${FILENAME}"
-

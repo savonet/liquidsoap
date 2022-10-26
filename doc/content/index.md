@@ -7,12 +7,12 @@ provides elementary source constructors and source compositions
 from which you can build the stream generator you want.
 This design makes liquidsoap flexible and easily extensible.
 
-We believe that liquidsoap is easy to use. For basic purposes, the scripts 
+We believe that liquidsoap is easy to use. For basic purposes, the scripts
 consist of the definition of a tree of sources.
 You will quickly [learn](quick_start.html)
 how natural it is to use liquidsoap in such cases. The good thing is that
 when you will want to make your stream more complex,
-you will be able to stay in the same framework and keep a maintainable 
+you will be able to stay in the same framework and keep a maintainable
 configuration.
 Of course, using some complex features might require a deeper
 understanding of the concepts of [source](sources.html) and
@@ -57,8 +57,6 @@ Non-Features
 ------------
 Liquidsoap is a flexible tool for processing audio and video streams, that's all. We have used it for several internet radio projects, and we know that this flexibility is useful. However, an internet radio usually requires more than just an audio stream, and the other components cannot easily be built from basic primitives as we do in liquidsoap for streams. We don't have any magic solution for these, although we sometimes have some nice tools which could be adapted to various uses.
 
-Liquidsoap itself doesn't have a nice GUI or any graphical programming environment. You'll have to write the script by hand, and the only possible interaction with a running liquidsoap is the telnet server. 
+Liquidsoap itself doesn't have a nice GUI or any graphical programming environment. You'll have to write the script by hand, and the only possible interaction with a running liquidsoap is the telnet server.
 
 Liquidsoap doesn't do any database or website stuff. It won't index your audio files, it won't allow your users to score songs on the web, etc. However, liquidsoap makes the interfacing with other tools easy, since it can call an external application (reading from the database) to get audio tracks, another one (updating last-played information) to notify that some file has been successfully played. An example of this is [Beets](beets.html), RadioPi also has a more complex system of its own along these lines.
-
-

@@ -7,7 +7,7 @@ arch="all"
 license="GPL-2.0-only"
 install="@APK_PACKAGE@.pre-install"
 options="!check !strip textrels"
-depends="sdl2 sdl2_image sdl2_ttf" 
+depends="sdl2 sdl2_image sdl2_ttf"
 
 package() {
 	eval $(opam env)

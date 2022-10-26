@@ -32,7 +32,7 @@
 %token EOF
 
 %start json
-%type <Json_base.t> json 
+%type <Json_base.t> json
 
 %type <Json_base.t> json_value
 %type <string * Json_base.t> json_object_entry

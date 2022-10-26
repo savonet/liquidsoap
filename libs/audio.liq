@@ -345,7 +345,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
      def status(input) =
        "ready=#{source.is_ready(input.source)} selected=#{input.selected()} single=#{input.single()} volume=#{int_of_float(input.volume() * 100.)}% remaining=#{source.remaining(input.source)}"
      end
-       
+
      server.register(namespace=source.id(s), description="Skip current track on all enabled sources.",
                       "skip", fun (_) -> begin
                          list.iter(fun (input) -> if input.selected() then source.skip(input.source) end, inputs)

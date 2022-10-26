@@ -1,6 +1,6 @@
 dnl Taken an modified from:
 dnl pkg.m4 - Macros to locate and utilise pkg-config.            -*- Autoconf -*-
-dnl 
+dnl
 dnl Copyright © 2004 Scott James Remnant <scott@netsplit.com>.
 dnl
 dnl This program is free software; you can redistribute it and/or modify
@@ -40,7 +40,7 @@ if test -n "$PKG_CONFIG"; then
     AC_MSG_ERROR([no])
     PKG_CONFIG=""
   fi
-    
+
 fi[]dnl
 ])dnl PKG_PROG_PKG_CONFIG
 

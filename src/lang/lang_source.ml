@@ -46,7 +46,9 @@ let source_methods =
       ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
       "Call a given handler on metadata packets.",
       fun s ->
-        val_fun [("", "", None)] (fun p ->
+        val_fun
+          [("", "", None)]
+          (fun p ->
             let f = assoc "" 1 p in
             s#on_metadata (fun m -> ignore (apply f [("", metadata m)]));
             unit) );
@@ -55,7 +57,9 @@ let source_methods =
       "Register a function to be called after the source is asked to get \
        ready. This is when, for instance, the source's final ID is set.",
       fun s ->
-        val_fun [("", "", None)] (fun p ->
+        val_fun
+          [("", "", None)]
+          (fun p ->
             let f = assoc "" 1 p in
             s#on_get_ready (fun () -> ignore (apply f []));
             unit) );
@@ -63,7 +67,9 @@ let source_methods =
       ([], fun_t [(false, "", fun_t [] unit_t)] unit_t),
       "Register a function to be called when source shuts down.",
       fun s ->
-        val_fun [("", "", None)] (fun p ->
+        val_fun
+          [("", "", None)]
+          (fun p ->
             let f = assoc "" 1 p in
             s#on_shutdown (fun () -> ignore (apply f []));
             unit) );
@@ -72,7 +78,9 @@ let source_methods =
       "Register a function to be called when source is not used anymore by \
        another source.",
       fun s ->
-        val_fun [("", "", None)] (fun p ->
+        val_fun
+          [("", "", None)]
+          (fun p ->
             let f = assoc "" 1 p in
             s#on_leave (fun () -> ignore (apply f []));
             unit) );
@@ -80,7 +88,9 @@ let source_methods =
       ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
       "Call a given handler on new tracks.",
       fun s ->
-        val_fun [("", "", None)] (fun p ->
+        val_fun
+          [("", "", None)]
+          (fun p ->
             let f = assoc "" 1 p in
             s#on_track (fun m -> ignore (apply f [("", metadata m)]));
             unit) );
@@ -135,7 +145,9 @@ let source_methods =
                      match s#log#level with Some lvl -> int lvl | None -> null))
                 [
                   ( "set",
-                    val_fun [("", "", None)] (fun p ->
+                    val_fun
+                      [("", "", None)]
+                      (fun p ->
                         let lvl = min 5 (max 1 (to_int (List.assoc "" p))) in
                         s#log#set_level lvl;
                         unit) );
@@ -158,7 +170,9 @@ let source_methods =
       "Seek forward, in seconds (returns the amount of time effectively \
        seeked).",
       fun s ->
-        val_fun [("", "", None)] (fun p ->
+        val_fun
+          [("", "", None)]
+          (fun p ->
             float
               (Frame.seconds_of_main
                  (s#seek (Frame.main_of_seconds (to_float (List.assoc "" p))))))

@@ -1,7 +1,7 @@
 #!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 
 %include "test.liq"
-  
+
 success = ref(true)
 
 def t(x, y)
@@ -10,7 +10,7 @@ def t(x, y)
     success := false
   end
 end
-  
+
 def f() =
   t(1::2::[3,4], [1,2,3,4])
   t(list.hd(default=0,[]), 0)
@@ -97,12 +97,12 @@ def f() =
     test.fail()
   catch err : [error.not_found] do
     t(err.kind, "not_found")
-    t(err.message, "List should have at least 23 elemments")    
+    t(err.message, "List should have at least 23 elemments")
   end
 
   # Test huge lists, see #2162.
   # l = list.init(100000, fun(i) -> i)
-  
+
   if !success then test.pass() else test.fail() end
 end
 

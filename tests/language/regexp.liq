@@ -17,7 +17,7 @@ def f() =
 
   # Test equality
   t(r/bla/igsm, r/bla/mgis)
-  
+
   # Test test
   t(r/^foo[\d]+bar$/.test("foo1234bar"), true)
   t(r/^foo[\d]+BaR$/i.test("foo1234bar"), true)
@@ -31,10 +31,9 @@ def f() =
   # Test replace
   t(r/gni/.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnibla")
   t(r/gni/g.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnobla")
-  
+
 
   test.pass()
 end
 
 test.check(f)
-

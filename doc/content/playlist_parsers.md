@@ -25,12 +25,12 @@ All formats are identified by their *mime-type* or *content-type*. Supported for
 
 Usage
 -----
-Playlist files are parsed automatically when used in a `playlist` or `input.http` operator. Each of 
+Playlist files are parsed automatically when used in a `playlist` or `input.http` operator. Each of
 these two operators has specific options to specify how to pick up a track from the playlist, *e.g.*
 pick a random track, the first one etc.
 
 Additionally, you can also manually parse and process a playlist using `request.create` and `request.resolve`
-and some programming magic. You can check the code source for `playlist.reloadable` in our standard library 
+and some programming magic. You can check the code source for `playlist.reloadable` in our standard library
 for a detailed example.
 
 Special case: CUE format

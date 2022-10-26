@@ -27,7 +27,7 @@ Reference
 ---------
 * [Script language](language.html): A more detailed presentation.
 * [Core API](reference.html): The core liquidsoap API
-* [Extra API](reference-extra.html): Extra functions and libraries. 
+* [Extra API](reference-extra.html): Extra functions and libraries.
 * [Protocols](protocols.html): List of protocols supported by liquidsoap.
 * [Settings](settings.html): The list of available settings for liquidsoap.
 * [Encoding formats](encoding_formats.html): The available formats for encoding outputs.
@@ -86,5 +86,3 @@ Behind the curtains
 * [OCaml libraries](../modules.html) used in Liquidsoap, that can be reused in other projects
 * [Documentation of some internals](../modules/liquidsoap/index.html) of Liquidsoap
 * [Documentation for previous versions](../previously.html)
-
-

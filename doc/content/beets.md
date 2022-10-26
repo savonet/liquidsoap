@@ -18,7 +18,7 @@ The following examples may also inspire you to integrate another library or your
 After installing Beets,
 enable the `random` plug-in
 (see [Beets documentation on plug-ins](https://beets.readthedocs.io/en/stable/plugins/index.html#using-plugins)).
-To enable gain normalization, install and configure the 
+To enable gain normalization, install and configure the
 [`replaygain`](https://beets.readthedocs.io/en/stable/plugins/replaygain.html) plug-in.
 To easily add single tracks to you library,
 you might also be interested in the
@@ -61,7 +61,7 @@ Beets also holds internal meta-data, like `added`:
 the date and time when you imported each song.
 You can use it to query tracks inserted over the past month with `added:-1m..`.
 Or you can query track imported more than a year ago with `added:..-1y`.
-Beets also lets you 
+Beets also lets you
 [set your own tags](https://beets.readthedocs.io/en/stable/guides/advanced.html#store-any-data-you-like).
 
 You can use the `info` plug-in to see everything Beets knows about title(s) matching a query
@@ -89,7 +89,7 @@ def beets(id, query) =
         )
       )
     })
-  (beets_src:source) 
+  (beets_src:source)
 end
 
 all_music = beets("all_music", "")
@@ -173,7 +173,7 @@ add_protocol("beets", beets_protocol,
 Once this is done,
 you can push a beets query from [the telnet server](server.html):
 if you created `request.queue(id="userrequested")`,
-the server command 
+the server command
 `userrequested.push beets:All along the watchtower`
 will push the Jimi Hendrix's song.
 
@@ -181,7 +181,7 @@ With this method, you can benefit from replay gain metadata too, by wrapping
 the recipient queue in an `amplify` operator, like
 
 ```liquidsoap
-userrequested = amplify(override="replaygain_track_gain", 1.0, 
+userrequested = amplify(override="replaygain_track_gain", 1.0,
   request.queue(id="userrequested")
 )
 ```

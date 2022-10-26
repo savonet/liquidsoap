@@ -49,7 +49,9 @@ let () =
 
 let () =
   Lang.add_builtin "file.remove" ~category:`File ~descr:"Remove a file."
-    [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
+    [("", Lang.string_t, None, None)]
+    Lang.unit_t
+    (fun p ->
       try
         Unix.unlink (Lang.to_string (List.assoc "" p));
         Lang.unit
@@ -57,7 +59,9 @@ let () =
 
 let () =
   Lang.add_builtin "file.size" ~category:`File ~descr:"File size in bytes."
-    [("", Lang.string_t, None, None)] Lang.int_t (fun p ->
+    [("", Lang.string_t, None, None)]
+    Lang.int_t
+    (fun p ->
       try
         let ic = open_in_bin (Lang.to_string (List.assoc "" p)) in
         let ret = in_channel_length ic in
@@ -86,7 +90,9 @@ let () =
 let () =
   Lang.add_builtin "file.rmdir" ~category:`File
     ~descr:"Remove a directory and its content."
-    [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
+    [("", Lang.string_t, None, None)]
+    Lang.unit_t
+    (fun p ->
       try
         Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p));
         Lang.unit
@@ -100,7 +106,9 @@ let () =
     [
       ("", Lang.string_t, None, Some "File prefix");
       ("", Lang.string_t, None, Some "File suffix");
-    ] Lang.string_t (fun p ->
+    ]
+    Lang.string_t
+    (fun p ->
       try
         Lang.string
           (Filename.temp_file
@@ -119,7 +127,9 @@ let () =
     [
       ("", Lang.string_t, None, Some "Directory prefix");
       ("", Lang.string_t, None, Some "Directory suffix");
-    ] Lang.string_t (fun p ->
+    ]
+    Lang.string_t
+    (fun p ->
       try
         Lang.string
           (Extralib.Filename.mk_temp_dir
@@ -132,7 +142,8 @@ let () =
 let () =
   Lang.add_builtin "file.exists" ~category:`File
     [("", Lang.string_t, None, None)]
-    Lang.bool_t ~descr:"Returns true if the file or directory exists." (fun p ->
+    Lang.bool_t ~descr:"Returns true if the file or directory exists."
+    (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       let f = Utils.home_unrelate f in
       Lang.bool (Sys.file_exists f))
@@ -314,7 +325,9 @@ let () =
         Lang.string_t,
         None,
         Some "File from which the metadata should be read." );
-    ] Lang.metadata_t ~descr:"Read metadata from a file." (fun p ->
+    ]
+    Lang.metadata_t ~descr:"Read metadata from a file."
+    (fun p ->
       let uri = Lang.to_string (List.assoc "" p) in
       let r = Request.create uri in
       if Request.resolve ~ctype:None r 30. = Request.Resolved then (
@@ -360,14 +373,16 @@ let () =
 let () =
   Lang.add_builtin "path.basename" ~category:`File
     [("", Lang.string_t, None, None)]
-    Lang.string_t ~descr:"Get the base name of a path." (fun p ->
+    Lang.string_t ~descr:"Get the base name of a path."
+    (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.basename f))
 
 let () =
   Lang.add_builtin "path.dirname" ~category:`File
     [("", Lang.string_t, None, None)]
-    Lang.string_t ~descr:"Get the directory name of a path." (fun p ->
+    Lang.string_t ~descr:"Get the directory name of a path."
+    (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.dirname f))
 
@@ -384,7 +399,8 @@ let () =
 let () =
   Lang.add_builtin "path.remove_extension" ~category:`File
     [("", Lang.string_t, None, None)]
-    Lang.string_t ~descr:"Remove the file extension from a path." (fun p ->
+    Lang.string_t ~descr:"Remove the file extension from a path."
+    (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.remove_extension f))
 
@@ -395,8 +411,10 @@ let () =
     ~descr:
       "`file.which(\"progname\")` looks for an executable named \"progname\" \
        using directories from the PATH environment variable and returns \"\" \
-       if it could not find one." [("", Lang.string_t, None, None)]
-    (Lang.nullable_t Lang.string_t) (fun p ->
+       if it could not find one."
+    [("", Lang.string_t, None, None)]
+    (Lang.nullable_t Lang.string_t)
+    (fun p ->
       let file = Lang.to_string (List.assoc "" p) in
       try Lang.string (Utils.which ~path:Configure.path file)
       with Not_found -> Lang.null)
@@ -404,7 +422,9 @@ let () =
 let () =
   Lang.add_builtin "file.digest" ~category:`File
     ~descr:"Return an MD5 digest for the given file."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
       let file = Lang.to_string (List.assoc "" p) in
       if Sys.file_exists file then
         Lang.string (Digest.to_hex (Digest.file file))

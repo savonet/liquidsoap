@@ -35,7 +35,7 @@ In the following, configuration variables may refer to either absolute or relati
 a relative path, the path is resolved relatively to the directory where the `liquidsoap` binary
 is located at.
 
-In order to tell liquidsoap where its custom path is located, you need to set the 
+In order to tell liquidsoap where its custom path is located, you need to set the
 `LIQUIDSOAP_BASE_DIR`.
 
 Another important variable is `MAGIC`. It tells liquidsoap where to load the libmagic's
@@ -44,7 +44,7 @@ require to use `magic/magic.mime` instead.
 
 Full example
 ============
-For a fully-functional example, you can check our [heroku buildpack](https://github.com/savonet/heroku-buildpack-liquidsoap). 
+For a fully-functional example, you can check our [heroku buildpack](https://github.com/savonet/heroku-buildpack-liquidsoap).
 Its layout is:
 
 ```
@@ -75,5 +75,3 @@ MAGIC=../magic/magic.mime
 ```
 
 As you can see, we use an old version of `libmagic` so we need to load `magic.mime` instead of `magic.mgc`.
-
-

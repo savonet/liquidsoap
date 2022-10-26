@@ -93,7 +93,7 @@ def f() =
   c(gni, "gnu")
   c(bla, 4.24)
 
-  let ({foo = [{foo}, {gni}, ..._, {bla}]}, z) = ({foo = l}, "the letter z") 
+  let ({foo = [{foo}, {gni}, ..._, {bla}]}, z) = ({foo = l}, "the letter z")
   c(foo, 123)
   c(gni, "gnu")
   c(bla, 4.24)

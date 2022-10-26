@@ -12,11 +12,11 @@
 def http.response(~protocol="HTTP/1.1",
                   ~code=200,~headers=[],
                   ~content_type="",
-                  ~data="") = 
+                  ~data="") =
   status = http.codes[code]
   # Set content-length and connection: close
-  headers = 
-    list.append(headers, 
+  headers =
+    list.append(headers,
                 [("Content-Length", "#{string.length(data)}"),
                  ("Connection", "close")])
   headers =
@@ -242,7 +242,7 @@ def http.multipart_form_data(~boundary=null(), data)
     attributes = [("name", entry.name), ...entry.attributes]
     attributes = list.map(fun (v) -> "#{string(fst(v))}=#{string.quote(snd(v))}", attributes)
     attributes = string.concat(separator="; ", attributes)
-    
+
     headers = list.map(fun (v) -> "#{string(fst(v))}: #{string(snd(v))}", entry.headers)
     headers = string.concat(separator="\r\n", headers)
     headers = headers == "" ? "" : "#{headers}\r\n"

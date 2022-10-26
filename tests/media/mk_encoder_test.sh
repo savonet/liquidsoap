@@ -13,4 +13,3 @@ PREFIX=$3
 mkdir -p "${CWD}/files/${PREFIX}"
 
 cat "${CWD}/test_encoder.liq.in" | sed -e "s#@FORMAT@#${FORMAT}#g" | sed -e "s#@SOURCE@#${SOURCE}#g" >| "${CWD}/files/${PREFIX}/test_encoder.liq"
-

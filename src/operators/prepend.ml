@@ -72,8 +72,8 @@ class prepend ~kind ~merge source f =
             done;
             begin
               match AFrame.get_metadata peek peekpos with
-              | Some m -> AFrame.set_metadata buf p m
-              | None -> ()
+                | Some m -> AFrame.set_metadata buf p m
+                | None -> ()
             end;
             state <- `Replay;
             AFrame.add_break buf (p + 1);
@@ -133,9 +133,7 @@ class prepend ~kind ~merge source f =
       source#leave (self :> source);
       Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f;
       begin
-        match state with
-        | `Prepend (p, _) -> self#unregister p
-        | _ -> ()
+        match state with `Prepend (p, _) -> self#unregister p | _ -> ()
       end;
       state <- `Idle
 

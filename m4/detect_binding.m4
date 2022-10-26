@@ -138,5 +138,3 @@ else
     w_[]BINDING()=yes
     b_[]BINDING()=true
 fi])
-
-

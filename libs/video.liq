@@ -134,7 +134,7 @@ end
 # @param ~reopen_on_metadata Re-open on every new metadata information.
 # @param ~reopen_when When should the output be re-opened.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
-def output.external.ffmpeg(~id=null(), ~show_command=false, ~flush=false, ~fallible=false, 
+def output.external.ffmpeg(~id=null(), ~show_command=false, ~flush=false, ~fallible=false,
                            ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
                            ~reopen_on_metadata=false, ~reopen_when={false},
                            ~start=true, outputopts, s)
@@ -256,7 +256,7 @@ def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_sto
   end
 
   tmpdir = file.temp_dir("hls","")
- 
+
   on_shutdown({file.rmdir(tmpdir)})
 
   output.file.hls(
@@ -463,7 +463,7 @@ end
 # Add subtitle from metadata.
 # @category Source / Video Processing
 # @param ~override Metadata where subtitle to display are located.
-# @param ~offset Offset in pixels.  
+# @param ~offset Offset in pixels.
 # @param s Source.
 def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, ~offset=20, s)
   subtitle = ref("")

@@ -217,17 +217,17 @@ let with_url_output encoder file =
     | _ -> failwith "No file output!"
 
 (** An encoder, once initialized, is something that consumes
-    frames, insert metadata and that you eventually close 
-    (triggers flushing). 
+    frames, insert metadata and that you eventually close
+    (triggers flushing).
     Insert metadata is really meant for inline metadata, i.e.
     in most cases, stream sources. Otherwise, metadata are
-    passed when creating the encoder. For instance, the mp3 
-    encoder may accept metadata initially and write them as 
-    id3 tags but does not support inline metadata. 
+    passed when creating the encoder. For instance, the mp3
+    encoder may accept metadata initially and write them as
+    id3 tags but does not support inline metadata.
     Also, the ogg encoder supports inline metadata but restarts
-    its stream. This is ok, though, because the ogg container/streams 
-    is meant to be sequentialized but not the mp3 format. 
-    header contains data that should be sent first to streaming 
+    its stream. This is ok, though, because the ogg container/streams
+    is meant to be sequentialized but not the mp3 format.
+    header contains data that should be sent first to streaming
     client. *)
 
 type split_result =

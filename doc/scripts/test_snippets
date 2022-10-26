@@ -6,13 +6,13 @@ BYPASS=""
 
 OLDIR="`pwd`"
 
-while read i; do 
+while read i; do
   BASENAME="`basename $i`"
   DIRNAME="`dirname $i`"
   echo -en "Testing \033[1m$BASENAME\033[0m... ";
   if `echo $BYPASS | grep -q "$BASENAME"`; then
     echo -e "\033[1;33m[skipped]\033[0m"
   else
-    ($COMMAND "$i" > /dev/null 2> /dev/null && echo -e "\033[0;32m[ok]\033[0m") || echo -e "\033[0;31m[failed]\033[0m"; 
+    ($COMMAND "$i" > /dev/null 2> /dev/null && echo -e "\033[0;32m[ok]\033[0m") || echo -e "\033[0;31m[failed]\033[0m";
   fi
 done

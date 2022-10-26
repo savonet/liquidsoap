@@ -72,7 +72,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
     (** Don't call #select directly but use #cached_select
     * to ensure consistency during one time tick between #is_ready and
     * #get_frame. We want to make sure that when a source is selected
-    * during a #is_ready call, the same selection is returned during the 
+    * during a #is_ready call, the same selection is returned during the
     * next #get_frame call. *)
     val mutable cached_selected = None
 
@@ -94,8 +94,8 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
       List.iter (fun s -> s.source#after_output) cases;
       begin
         match selected with
-        | None -> ()
-        | Some s -> s.effective_source#after_output
+          | None -> ()
+          | Some s -> s.effective_source#after_output
       end;
       List.iter (fun s -> s#after_output) to_finish;
       to_finish <- [];
@@ -236,7 +236,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                     selected <- None
                 | None -> ())
       in
-      (* #select is called only when selected=None, and the cache is cleared	
+      (* #select is called only when selected=None, and the cache is cleared
        * as soon as the new selection is set. *)
       assert (selected = None || cached_selected = None);
       if need_eot then (

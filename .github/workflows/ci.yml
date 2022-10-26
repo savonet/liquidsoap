@@ -162,7 +162,7 @@ jobs:
   build_opam:
     runs-on: ubuntu-latest
     needs: build_details
-    if: needs.build_details.outputs.build_opam 
+    if: needs.build_details.outputs.build_opam
     strategy:
       fail-fast: false
       matrix:
@@ -388,7 +388,7 @@ jobs:
           cd /tmp/${{ github.run_number }}/win32/liquidsoap
           git init
           git remote add origin https://github.com/${{ github.repository }}.git
-          git fetch origin ${{ github.sha }} 
+          git fetch origin ${{ github.sha }}
           git checkout ${{ github.sha }}
           chown -R opam /tmp/${{ github.run_number }}/win32
       - name: Add local packages

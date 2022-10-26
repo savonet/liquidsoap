@@ -15,7 +15,7 @@ end
 digests = [
   ("files/@wav(mono).wav", "64ffd09001bee5fc98e0dbaf0aff983f"),
   ("files/@wav(stereo).wav", "64ffd09001bee5fc98e0dbaf0aff983f")
-] 
+]
 
 s = single(fname)
 

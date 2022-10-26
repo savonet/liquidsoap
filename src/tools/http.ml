@@ -25,12 +25,12 @@ struct
     let socket = Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_STREAM 0 in
     begin
       match bind_address with
-      | None -> ()
-      | Some s ->
-          let bind_addr_inet = (Unix.gethostbyname s).Unix.h_addr_list.(0) in
-          (* Seems like you need to bind on port 0 *)
-          let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
-          Unix.bind socket bind_addr
+        | None -> ()
+        | Some s ->
+            let bind_addr_inet = (Unix.gethostbyname s).Unix.h_addr_list.(0) in
+            (* Seems like you need to bind on port 0 *)
+            let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
+            Unix.bind socket bind_addr
     end;
     try
       Unix.connect socket
@@ -190,8 +190,7 @@ module Make (Transport : Transport_t) = struct
 
   let url_decode ?(plus = true) s =
     Pcre.substitute
-      ~pat:
-        "\\+|%..|%.|%"
+      ~pat:"\\+|%..|%.|%"
         (* TODO why do we match %. and % and seem to exclude them below ? *)
       ~subst:(fun s ->
         if s = "+" then if plus then " " else "+"
@@ -291,7 +290,7 @@ module Make (Transport : Transport_t) = struct
      * The maximal length is a security but it may
      * be lifted.. *)
     while !count_n < count && !n < max && not !stop do
-      (* This is quite ridiculous but we have 
+      (* This is quite ridiculous but we have
        * no way to know how much data is available
        * in the socket.. *)
       Transport.wait_for ~log (`Read socket) timeout;

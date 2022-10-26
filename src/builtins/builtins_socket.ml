@@ -46,7 +46,9 @@ module SocketValue = struct
         ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t),
         "Write data to a socket",
         fun fd ->
-          Lang.val_fun [("", "", None)] (fun p ->
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
               let data = Lang.to_string (List.assoc "" p) in
               let data = Bytes.of_string data in
               let len = Bytes.length data in

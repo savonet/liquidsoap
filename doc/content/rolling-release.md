@@ -8,5 +8,3 @@ Rolling releases can also be useful for us to quickly detect and report bugs bef
 Assets in this release will be deleted. If you are looking for permanent links to release assets, please head over to https://github.com/savonet/liquidsoap-release-assets/releases
 
 For more details about our release process, please checkout https://github.com/savonet/liquidsoap#release-details
-
-

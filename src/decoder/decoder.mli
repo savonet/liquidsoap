@@ -86,7 +86,7 @@ type decoder_specs = {
    * so a file with mime-type foo/bar; bla
    * matches mime-type foo/bar. Furthermore,
    * for streams, a stream with mime foo/bar<whatever>
-   * matches mime-type foo/bar. 
+   * matches mime-type foo/bar.
    * None means accept all mime-types. *)
   mime_types : unit -> string list option;
   (* None means no decodable content for that file. *)

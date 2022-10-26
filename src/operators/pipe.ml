@@ -127,13 +127,13 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         in
         begin
           match to_replay with
-          | -1, _ -> ()
-          | _, `Break_and_metadata m ->
-              Generator.add_metadata abg m;
-              Generator.add_break abg
-          | _, `Metadata m -> Generator.add_metadata abg m
-          | _, `Break -> Generator.add_break abg
-          | _ -> ()
+            | -1, _ -> ()
+            | _, `Break_and_metadata m ->
+                Generator.add_metadata abg m;
+                Generator.add_break abg
+            | _, `Metadata m -> Generator.add_metadata abg m
+            | _, `Break -> Generator.add_break abg
+            | _ -> ()
         end;
         if abg_max_len < buffered + len then
           `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))

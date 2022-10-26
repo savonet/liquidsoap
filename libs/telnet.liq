@@ -10,7 +10,7 @@ def replaces request.dynamic(%argsof(request.dynamic), fn) =
                       "Done."
                     catch err do
                       "Error while flushing and skipping source: #{err}"
-                    end) 
+                    end)
   }))
 
   s

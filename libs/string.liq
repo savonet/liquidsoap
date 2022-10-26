@@ -186,7 +186,7 @@ def string.data_uri.decode(s) =
         string.base64.decode(data)
       else
         data
-      end 
+      end
     data.{mime=mime}
   else
     null()

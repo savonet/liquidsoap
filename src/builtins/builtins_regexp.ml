@@ -94,7 +94,9 @@ end)
 let test_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t
 
 let test_fun ~flags:_ rex =
-  Lang.val_fun [("", "", None)] (fun p ->
+  Lang.val_fun
+    [("", "", None)]
+    (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.bool (Pcre.pmatch ~rex string))
 
@@ -102,7 +104,9 @@ let split_t =
   Lang.fun_t [(false, "", Lang.string_t)] (Lang.list_t Lang.string_t)
 
 let split_fun ~flags:_ rex =
-  Lang.val_fun [("", "", None)] (fun p ->
+  Lang.val_fun
+    [("", "", None)]
+    (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.list (List.map Lang.string (Pcre.split ~rex string)))
 
@@ -112,7 +116,9 @@ let exec_t =
     (Lang.list_t (Lang.product_t Lang.int_t Lang.string_t))
 
 let exec_fun ~flags:_ regexp =
-  Lang.val_fun [("", "", None)] (fun p ->
+  Lang.val_fun
+    [("", "", None)]
+    (fun p ->
       let string = Lang.to_string (List.assoc "" p) in
       try
         let sub = Pcre.exec ~rex:regexp string in
@@ -137,7 +143,9 @@ let replace_t =
     Lang.string_t
 
 let replace_fun ~flags regexp =
-  Lang.val_fun [("", "", None); ("", "", None)] (fun p ->
+  Lang.val_fun
+    [("", "", None); ("", "", None)]
+    (fun p ->
       let subst = Lang.assoc "" 1 p in
       let pos = match subst.Lang.pos with Some pos -> [pos] | None -> [] in
       let subst s =

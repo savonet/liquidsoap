@@ -107,7 +107,7 @@ let output.harbor.hls = ()
 def output.harbor.hls.base(
   %argsof(output.file.hls[!segment_name]),
   ~segment_name,~tmpdir,~port,~path,serve,formats,s) =
-  tmpdir = tmpdir ?? file.temp_dir("hls","") 
+  tmpdir = tmpdir ?? file.temp_dir("hls","")
 
   def content_type(fname) =
     ext = file.extension(fname)

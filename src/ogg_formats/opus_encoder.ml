@@ -45,10 +45,10 @@ let create_encoder ~opus ~comments () =
           Opus.Encoder.apply_control (`Set_bitrate opus.Opus_format.bitrate) x;
           begin
             match opus.Opus_format.mode with
-            | Opus_format.CBR -> Opus.Encoder.apply_control (`Set_vbr false) x
-            | Opus_format.VBR b ->
-                Opus.Encoder.apply_control (`Set_vbr true) x;
-                Opus.Encoder.apply_control (`Set_vbr_constraint b) x
+              | Opus_format.CBR -> Opus.Encoder.apply_control (`Set_vbr false) x
+              | Opus_format.VBR b ->
+                  Opus.Encoder.apply_control (`Set_vbr true) x;
+                  Opus.Encoder.apply_control (`Set_vbr_constraint b) x
           end;
           let maybe name value =
             ignore

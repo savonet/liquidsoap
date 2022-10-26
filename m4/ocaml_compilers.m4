@@ -23,7 +23,7 @@ AC_PROG_FINDLIB()
 
 AC_CHECK_OCAML_STDLIB()
 
-# Check if caml/threads.h is present 
+# Check if caml/threads.h is present
 old_CFLAGS=$CFLAGS
 CFLAGS="$CFLAGS -I${OCAML_STDLIB}"
 AC_CHECK_HEADER([caml/threads.h],[CAML_THREADS=yes],[],[#include <caml/misc.h>])

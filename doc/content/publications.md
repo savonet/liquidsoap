@@ -27,5 +27,3 @@ variant of the typed &lambda;-calculus with labels and optional arguments. The
 article describes the typing inference algorithm as well as some properties of
 the language (confluence) and of typing (subject reduction, admissible rules,
 termination of typed terms).
-
-

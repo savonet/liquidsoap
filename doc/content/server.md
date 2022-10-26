@@ -244,10 +244,10 @@ END
 Connection to localhost closed.
 ```
 
-This is an example of how you can use an existing secure access to 
+This is an example of how you can use an existing secure access to
 secure the access to liquidsoap's command server. This way, you make sure
 that you are using a mainstream secure application, here SSH.
 
-This example may be adapted similarly to use an online HTTP login 
+This example may be adapted similarly to use an online HTTP login
 mechanism, which is probably the most comment type of mechanism
 intended for the command line server.

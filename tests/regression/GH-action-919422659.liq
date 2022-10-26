@@ -3,7 +3,7 @@
 # In https://github.com/savonet/liquidsoap/runs/919422659,
 # GH1159.liq started failing. Further investigation revealed
 # that GH1159.liq was originally intended to use with the FLAC
-# decoder so it was set back to only use it. This test is a 
+# decoder so it was set back to only use it. This test is a
 # copy of it with decoder forced to FFMPEG, the one originally
 # failing in the github action run & serves as regresstion test
 # for this case.

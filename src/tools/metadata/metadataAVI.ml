@@ -50,5 +50,5 @@ let parse f : metadata =
     done;
     assert false
   with _ -> List.rev !ans
-  
+
 let parse_file = R.with_file parse

@@ -10,7 +10,7 @@ def t(x, y)
     success := false
   end
 end
-  
+
 def f() =
   %ifdef sine
     x = 0

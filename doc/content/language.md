@@ -7,7 +7,7 @@ chapter in the book for more details about the liquidsoap language_
 General features
 ----------------
 
-Liquidsoap is a novel language which was designed from scratch to handle media stream. It takes some inspiration 
+Liquidsoap is a novel language which was designed from scratch to handle media stream. It takes some inspiration
 from functional languages such as [OCaml](https://ocaml.org/) but features a syntax that is more intuitive to the
 general purpose programmer, similar to Ruby or Javascript.
 
@@ -147,7 +147,7 @@ tried).
 #### Escaping strings
 
 Liquidsoap strings follow the most common lexical conventions from `C` and `javascript` and `JSON`, in particular,
-`string.unescape` recognizes the same escape sequences as `C` (except for `UTF-16` characters) and javascript. 
+`string.unescape` recognizes the same escape sequences as `C` (except for `UTF-16` characters) and javascript.
 
 The following sequences are recognized:
 
@@ -324,7 +324,7 @@ y = (x<3)?"A":"B"
 
 #### Time predicates
 
-Time predicates are special boolean values such as `{0h-7h}`. These values are 
+Time predicates are special boolean values such as `{0h-7h}`. These values are
 `true` or `false` depending on the current time. Some examples of time
 predicates are
 
@@ -973,7 +973,7 @@ let (x, y, _, z) = (123, "aabbcc", true, 3.14)
 ### List patterns
 
 List patterns are composed of variable placeholders, etc. and spreads of the form:
-`...<variable placeholder>` such as: `...z`. The spread `..._` 
+`...<variable placeholder>` such as: `...z`. The spread `..._`
 can be simply written `...`. See below for an example.
 
 You can use any combination of:
@@ -994,7 +994,7 @@ let [x, y, ...z] = [1, 2, 3, 4]
 
 # Forward capture with ignored values:
 let [_, x, ...z] = [1, 2, 3, 4]
-# x = 2, z = [3, 4] 
+# x = 2, z = [3, 4]
 
 # Full capture:
 let [x, y, ...z, t, u, v] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -1204,7 +1204,7 @@ explicit type annotation:
 
 ```liquidsoap
 let eval (x: {foo: int, bla: string}) = "{foo = 123, bla = \"gni\"}"
-print("x.foo = #{x.foo}, x.bla = #{x.bla}") 
+print("x.foo = #{x.foo}, x.bla = #{x.bla}")
 ```
 
 ### Including other files

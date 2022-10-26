@@ -32,7 +32,9 @@ let () =
         Some
           "Process to start. The function takes the format and filename as \
            argument and returns a list of (name,value) fields." );
-    ] Lang.unit_t (fun p ->
+    ]
+    Lang.unit_t
+    (fun p ->
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let resolver name =
@@ -68,7 +70,9 @@ let () =
         None,
         Some "True if playlist format can be detected unambiguously." );
       ("", parser_t, None, Some "Playlist parser");
-    ] Lang.unit_t (fun p ->
+    ]
+    Lang.unit_t
+    (fun p ->
       let format = Lang.to_string (List.assoc "format" p) in
       let strict = Lang.to_bool (List.assoc "strict" p) in
       let fn = List.assoc "" p in

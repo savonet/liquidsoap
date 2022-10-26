@@ -130,7 +130,9 @@ let () =
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
        WARNING: if used uncarefully, it can crash your application!"
-    [("", Builtins_request.Value.t, None, None)] ~return_t:t (fun p ->
+    [("", Builtins_request.Value.t, None, None)]
+    ~return_t:t
+    (fun p ->
       let request = Builtins_request.Value.of_value (List.assoc "" p) in
       let kind = Kind.of_kind kind in
       (new unqueued ~kind ~timeout:60. request :> source))
@@ -223,7 +225,9 @@ let () =
           "Add a request to the queue. Requests are resolved before being \
            added. Returns `true` if the request was successfully added.",
           fun s ->
-            Lang.val_fun [("", "", None)] (fun p ->
+            Lang.val_fun
+              [("", "", None)]
+              (fun p ->
                 Lang.bool
                   (s#add
                      {
@@ -240,7 +244,9 @@ let () =
            to the queue. You are responsible for destroying the requests \
            currently in the queue.",
           fun s ->
-            Lang.val_fun [("", "", None)] (fun p ->
+            Lang.val_fun
+              [("", "", None)]
+              (fun p ->
                 let l =
                   List.map Builtins_request.Value.of_value
                     (Lang.to_list (List.assoc "" p))

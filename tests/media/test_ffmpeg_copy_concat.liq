@@ -1,7 +1,7 @@
 #!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
-out = "files/ffmpeg_copy_concat/concat.mp4" 
+out = "files/ffmpeg_copy_concat/concat.mp4"
 
 s1 = single("files/ffmpeg_copy_concat/first-concat.mp4")
 s2 = single("files/ffmpeg_copy_concat/second-concat.mp4")

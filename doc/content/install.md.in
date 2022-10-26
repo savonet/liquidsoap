@@ -86,7 +86,7 @@ Docker
 We provide production-ready docker images via [Docker hub](https://hub.docker.com/r/savonet/liquidsoap).
 These images contain a minimal `debian/testing` image with the liquidsoap debian package installed.
 Installed packages are those generated during our CI process, not the official debian package! Images are tagged
-by the branch that was used to generate them. 
+by the branch that was used to generate them.
 
 Windows
 -------

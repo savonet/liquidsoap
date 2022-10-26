@@ -16,7 +16,7 @@ def f() =
   file.watch(fname, {success := true})
   file.write(data="xxx", fname)
   sleep(1.)
-  
+
   if !success then test.pass() else test.fail() end
 end
 

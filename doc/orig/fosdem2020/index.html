@@ -18,7 +18,7 @@
       .cols {
         display: flex;
       }
-  
+
       .fifty {
         flex: 46%;
         padding-right: 2%;
@@ -295,7 +295,7 @@ Parameters:
 --
   * Harbor (icecast) input
 --
-  * ffmpeg, gstreamer 
+  * ffmpeg, gstreamer
 --
   * Youtube, via RTMP & ffmpeg!
 
@@ -494,8 +494,8 @@ Smart crossfade
 ```ruby
   def transition(a,b,ma,mb,sa,sb)
     if
-      a <= medium and 
-      b <= medium and 
+      a <= medium and
+      b <= medium and
       abs(a - b) <= margin
     then
       log("Transition: crossed, fade-in, fade-out.")

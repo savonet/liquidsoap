@@ -57,15 +57,15 @@ full =
             radio])
 
 # Output the full stream in OGG and MP3
-output.icecast(%mp3, 
+output.icecast(%mp3,
   host="localhost",port=8000,password="hackme",
   mount="radio",full)
-output.icecast(%vorbis, 
+output.icecast(%vorbis,
   host="localhost",port=8000,password="hackme",
   mount="radio.ogg",full)
 
 # Output the stream without live in OGG
-output.icecast(%vorbis, 
+output.icecast(%vorbis,
   host="localhost",port=8000,password="hackme",
   mount="radio_nolive.ogg",radio)
 ```
@@ -75,8 +75,6 @@ To try this example you need to edit the file names. In order to witness the swi
 To try the transition to a live show you need to start a new stream on the `live.ogg` mount of your server. You can send a playlist to it using examples from the [quickstart](quick_start.html). To start a real live show from soundcard input you can use `darkice`, or simply liquidsoap if you have a working ALSA input, with:
 
 ```liquidsoap
-liquidsoap 'output.icecast(%vorbis, \ 
+liquidsoap 'output.icecast(%vorbis, \
   mount="live.ogg",host="...",password="...",input.alsa())'
 ```
-
-

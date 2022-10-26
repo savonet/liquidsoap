@@ -63,7 +63,7 @@ output.icecast(
 
 # Second transcoder : MP3 128 kbps using %ffmpeg
 output.icecast(
-  %ffmpeg(format="mp3", %audio(codec="libmp3lame", b="128k")), 
+  %ffmpeg(format="mp3", %audio(codec="libmp3lame", b="128k")),
   mount="/your-stream-128.mp3",
   host="streaming.example.com", port=8000, password="xxx",
   input)
@@ -131,7 +131,7 @@ output.icecast(
 
 We cannot use `mksafe` here because the content is not plain `pcm` samples, which this operator is designed to produce. There
 are several ways to make the source infallible, however, either by providing a `single(...)` source with the same encoded content
-as we expect from `encoded_source` or by creating an infallible source using `ffmpeg.encode.audio`.   
+as we expect from `encoded_source` or by creating an infallible source using `ffmpeg.encode.audio`.
 
 On-demand relaying without re-encoding
 --------------------------------------
@@ -182,7 +182,7 @@ output.harbor(
 Shared encoding
 ---------------
 
-Liquidsoap can also encode in one place and share the encoded with data with multiple outputs, making it possible to 
+Liquidsoap can also encode in one place and share the encoded with data with multiple outputs, making it possible to
 minimize CPU resources. Here's an example adapted from the previous one:
 
 ```liquidsoap
@@ -320,7 +320,7 @@ add([normal,switch([({0m0s},jingle)])])
 Switch to a live show as soon as one is available. Make the show unavailable when it is silent, and skip tracks from the normal source if they contain too much silence.
 
 ```liquidsoap
-stripped_stream = 
+stripped_stream =
   blank.strip(input.http("http://myicecast:8080/live.ogg"))
 
 fallback(track_sensitive=false,
@@ -443,7 +443,7 @@ There are two kinds of transitions. Transitions between two different children o
 
 ### Switch-based transitions
 
-The switch-based operators (`switch`, `fallback` and `random`) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two `source` parameters: the child which is about to be left, and the new selected child. The default transition is `fun (a,b) -> b`, it simply relays the new selected child source. 
+The switch-based operators (`switch`, `fallback` and `random`) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two `source` parameters: the child which is about to be left, and the new selected child. The default transition is `fun (a,b) -> b`, it simply relays the new selected child source.
 
 One limitation of these transitions, however, is that if the transition happen right at the end of a track, which is the detault with `track_sensitive=true`, then there is no more data available for the old source, which makes it impossible to fade it out. If that is what you are expecting, you should look at crossfade-based transitions
 
@@ -484,7 +484,7 @@ end
 radio = cross(duration=5., transition, radio)
 ```
 
-Alsa unbuffered output 
+Alsa unbuffered output
 -----------------------
 You can use [Liquidsoap](index.html) to capture and play through alsa with a minimal delay. This particularly useful when you want to run a live show from your computer. You can then directly capture and play audio through external speakers without delay for the DJ !
 
@@ -526,5 +526,3 @@ Targeting 'frame.audio.size': 2048 audio samples = 2048 ticks.
 If everything goes right, you may hear on your output the captured sound without any delay! If you want to test the difference, just run the same script with `bufferize=true`.
 
 If you experience problems it might be a good idea to double the value of the frame size. This increases stability, but also latency.
-
-

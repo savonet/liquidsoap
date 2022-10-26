@@ -37,5 +37,3 @@ Seeing the logs of the socket application:
 ```
 heroku logs -t --app savonet-flows-socket
 ```
-
-

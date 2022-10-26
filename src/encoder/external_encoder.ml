@@ -72,12 +72,12 @@ let encoder id ext =
     | `Status s ->
         begin
           match s with
-          | Unix.WEXITED 0 -> ()
-          | Unix.WEXITED c -> log#important "Process exited with code %d" c
-          | Unix.WSIGNALED s ->
-              log#important "Process was killed by signal %d" s
-          | Unix.WSTOPPED s ->
-              log#important "Process was stopped by signal %d" s
+            | Unix.WEXITED 0 -> ()
+            | Unix.WEXITED c -> log#important "Process exited with code %d" c
+            | Unix.WSIGNALED s ->
+                log#important "Process was killed by signal %d" s
+            | Unix.WSTOPPED s ->
+                log#important "Process was stopped by signal %d" s
         end;
         restart_decision ()
     | `Exception e ->
@@ -167,7 +167,7 @@ let encoder id ext =
   in
   {
     Encoder.insert_metadata;
-    (* External encoders do not support 
+    (* External encoders do not support
      * headers for now. They will probably
      * never do.. *)
     header = Strings.empty;

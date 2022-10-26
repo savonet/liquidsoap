@@ -142,8 +142,8 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         let bt = Printexc.get_raw_backtrace () in
         begin
           match e with
-          | Buffer_xrun -> self#log#severe "Underrun!"
-          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+            | Buffer_xrun -> self#log#severe "Underrun!"
+            | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover.";

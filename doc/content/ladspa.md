@@ -1,10 +1,10 @@
 LADSPA plugins in Liquidsoap
 ============================
-[LADSPA](http://www.ladspa.org/) is a standard that allows software audio processors and effects to be plugged into a 
+[LADSPA](http://www.ladspa.org/) is a standard that allows software audio processors and effects to be plugged into a
 wide range of audio synthesis and recording packages.
 
 If enabled, Liquidsoap supports LADSPA plugins. In this case,
-installed plugins are detected at run-time and are all available in Liquidsoap under a name 
+installed plugins are detected at run-time and are all available in Liquidsoap under a name
 of the form: `ladspa.plugin`, for instance `ladspa.karaoke`, `ladspa.flanger` etc..
 
 The full list of those operators can be found using `liquidsoap --list-plugins`.
@@ -12,7 +12,7 @@ Also, as usual, `liquidsoap -h ladspa.plugin` returns a detailed description of 
 For instance:
 
 ```
-./liquidsoap -h ladspa.flanger           
+./liquidsoap -h ladspa.flanger
 *** One entry in scripting values:
 Flanger by Steve Harris <steve@plugin.org.uk>.
 Category: Source / Sound Processing
@@ -41,5 +41,3 @@ can take a function, for instance in the above: ```
 max_slowdown : anything that is either float or ()->float```
 .
 This means that those parameters may be dynamically changed while running a liquidsoap script.
-
-

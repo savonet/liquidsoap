@@ -50,7 +50,7 @@ output.dummy(s)
 
 def on_done () =
   s = list.rev(!selected)
-  if list.nth(default="",s,0) == "s1" and 
+  if list.nth(default="",s,0) == "s1" and
      list.nth(default="",s,1) == "s1" and
      list.nth(default="",s,2) == "s2" and
      list.nth(default="",s,3) == "s1" and

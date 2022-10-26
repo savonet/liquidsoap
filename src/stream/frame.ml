@@ -220,7 +220,7 @@ let get_chunk ab from =
      * copy the one from [from] to [p] in [ab].
      * NOTE (toots): This mechanism is super weird. See last test
        in src/test/frame_test.ml. I suspect that it is here b/c we
-       have gotten into the habit of caching the last metadata at 
+       have gotten into the habit of caching the last metadata at
        position -1 and that this is meant to surface it at position 0
        of the next chunk. I sure hope that we can revisit this mechanism
        at some point in the future.. *)

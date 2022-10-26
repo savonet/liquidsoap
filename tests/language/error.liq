@@ -10,7 +10,7 @@ def t(x, y)
     success := false
   end
 end
-  
+
 def f() =
   # Works as expected with no errors
   ret = try
@@ -39,7 +39,7 @@ def f() =
     "bla"
   catch err do
     err.kind
-  end 
+  end
   t(ret, "foo")
 
   # Can report empty message
@@ -110,7 +110,7 @@ def f() =
       test.pass()
     else
       test.fail()
-    end 
+    end
   end
 
   # Catches error

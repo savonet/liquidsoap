@@ -13,7 +13,7 @@ def f() =
   t(p.status.code, 2)
   p = process.run(timeout=0.5, "sleep 1")
   t(string(p.status), "timeout")
-  t(process.quote.command(stdin="bla", stdout="blo", stderr="blo", "foo", args=["gni", 'gno"gna']), "'foo' 'gni' 'gno\"gna' <'bla' >'blo' 2>&1") 
+  t(process.quote.command(stdin="bla", stdout="blo", stderr="blo", "foo", args=["gni", 'gno"gna']), "'foo' 'gni' 'gno\"gna' <'bla' >'blo' 2>&1")
 
   test.pass()
 end

@@ -8,7 +8,7 @@ lastfm = ()
 # @flag extra
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intended for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
-def librefm.submit(~user,~password,~source="broadcast",~length=false,m) = 
+def librefm.submit(~user,~password,~source="broadcast",~length=false,m) =
   audioscrobbler.submit(user=user,password=password,
                 source=source,length=length,
                 host="turtle.libre.fm",port=80,
@@ -57,13 +57,13 @@ let source_on_metadata = source.on_metadata
 # @flag extra
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intended for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
-# @param ~delay Submit song when there is only this delay left, in seconds. 
+# @param ~delay Submit song when there is only this delay left, in seconds.
 # @param ~force If remaining time is null, the song will be assumed to be skipped or cut, and not submitted. Set to zero to disable this behaviour.
 def audioscrobbler.submit.full(
      ~user,~password,
      ~host="post.audioscrobbler.com",~port=80,
      ~source="broadcast",~length=false,
-     ~delay=10.,~force=false,s) = 
+     ~delay=10.,~force=false,s) =
   def f(m)
     audioscrobbler.nowplaying(
         user=user,password=password,

@@ -29,15 +29,15 @@ aac_hifi = %ffmpeg(format="mpegts",
                      b="192k"
                    ))
 
-streams = [("aac_lofi",aac_lofi), 
-           ("aac_midfi", aac_midfi), 
+streams = [("aac_lofi",aac_lofi),
+           ("aac_midfi", aac_midfi),
            ("aac_hifi", aac_hifi)]
-                
+
 def segment_name(~position,~extname,stream_name) =
   timestamp = int_of_float(gettimeofday())
   duration = 2
   "#{stream_name}_#{duration}_#{timestamp}_#{position}.#{extname}"
-end             
+end
 
 output.file.hls(playlist="live.m3u8",
                 segment_duration=2.0,
@@ -62,14 +62,14 @@ Let's see what's important here:
 * `segments` and `segments_overhead` are used to keep track of the generated segments. Each media playlist will contain
   a number of segments defined by `segments` and an extra set of segments, defined by `segments_overhead`, is kept past the playlist size for those
    listeners who are still listening on outdated segments.
-   
+
 There are more useful options, in particular `on_file_change`, which can be used for instance to sync up your segments and playlists
 to a distant storage and hosting service such as S3.
 
 Liquidsoap also provides a `output.harbor.hls` and `output.harbor.hls.ssl` which allow to serve HLS streams directly from
-liquidsoap. Their options should be the same as `output.file.hls`, except for harbor-specifc options `port` and `path`. It is 
+liquidsoap. Their options should be the same as `output.file.hls`, except for harbor-specifc options `port` and `path`. It is
 not recommended for listener-facing setup but can be useful to sync up with a caching system such as cloudfront.
-   
+
 Mp4 format
 ----------
 

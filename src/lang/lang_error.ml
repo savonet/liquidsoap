@@ -94,7 +94,9 @@ let () = Lang_core.add_module "error"
 let () =
   Lang_core.add_builtin "error.register" ~category:`Liquidsoap
     ~descr:"Register an error of the given kind"
-    [("", Lang_core.string_t, None, Some "Kind of the error")] Error.t (fun p ->
+    [("", Lang_core.string_t, None, Some "Kind of the error")]
+    Error.t
+    (fun p ->
       let kind = Lang_core.to_string (List.assoc "" p) in
       Error.to_value { kind; msg = ""; pos = [] })
 

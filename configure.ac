@@ -44,9 +44,9 @@ AC_PROG_INSTALL
 # Check which make is GNU's
 AC_MSG_CHECKING(for GNU make)
 make_command=""
-for a in "$MAKE" make gmake gnumake 
+for a in "$MAKE" make gmake gnumake
   do test -z "$a" && continue
-     if  ( sh -c "$a --version" 2>/dev/null | grep GNU >/dev/null ) 
+     if  ( sh -c "$a --version" 2>/dev/null | grep GNU >/dev/null )
        then make_command=$a ; break;
      fi
   done
@@ -55,7 +55,7 @@ if test $make_command != ""
   MAKE=$make_command
   AC_SUBST(MAKE)
   AC_MSG_RESULT($MAKE)
- else 
+ else
   AC_MSG_ERROR(not found)
 fi
 
@@ -222,7 +222,7 @@ FINDLIB_PATH="`$OCAMLFIND printconf path | tr \\\\n \\; | sed -e 's#;$##' | sed 
 if test -n "${FINDLIB_PATH}"; then
   FINDLIB_PATH="\"${FINDLIB_PATH}\""
 fi
-# Add -I`ocamlc -where` to CFLAGS for 
+# Add -I`ocamlc -where` to CFLAGS for
 # user with locally installed headers.
 CFLAGS="$CFLAGS -I${OCAML_WHERE}"
 cat >> src/configure.ml <<__BLAH__
@@ -251,7 +251,7 @@ if test "$enable_debugging" \!= "no" ; then
   liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
 fi
 # Disable nativecode if ocamlopt is not present
-if test "$OCAMLOPT" = "no"; then 
+if test "$OCAMLOPT" = "no"; then
   enable_nativecode="no"
 fi
 if test "$enable_nativecode" \!= "no" ; then
@@ -322,7 +322,7 @@ if test "$OS_TYPE" = "Win32" -o "x$enable_custom_path" = "xyes"; then
   W_CUSTOM_PATH="yes"
   w_CUSTOM_PATH="ok"
 cat >> src/configure.ml <<__BLAH__
-let get_dir d = 
+let get_dir d =
   let dir =
     Utils.resolve_path (Filename.dirname Sys.executable_name)
   in
@@ -330,7 +330,7 @@ let get_dir d =
     match Sys.getenv_opt "LIQUIDSOAP_BASE_DIR" with
       | None      -> dir
       | Some path -> Utils.resolve_path ~cwd:dir path
-  in 
+  in
   Utils.resolve_path ~cwd d
 __BLAH__
 else
@@ -681,7 +681,7 @@ EOCONF
     cat >> src/configure.ml <<EOCONF
 let magic_file  =
   let cwd = Filename.dirname Sys.executable_name in
-  let magic = 
+  let magic =
     Utils.getenv ~default:(get_dir "magic/magic.mgc") "MAGIC"
   in
   Utils.resolve_path ~cwd magic
@@ -780,7 +780,7 @@ let recode_tag ?in_enc ?out_enc s =
        match in_enc with
          | Some e -> enc_of_name e
          | None -> get_encoding ()
-      with Unknown_encoding s -> 
+      with Unknown_encoding s ->
              raise (Input_encoding s)
     in
     let out_enc =
@@ -805,10 +805,10 @@ let recode_tag ?in_enc ?out_enc s =
     | Unknown_encoding e ->
           camolog#important "Failed to convert %S: unknown encoding %s"
               s e ; s
-    | Input_encoding e -> 
+    | Input_encoding e ->
           camolog#important "Failed to convert %S: unknown input encoding %s"
               s e ; s
-    | Output_encoding e ->        
+    | Output_encoding e ->
           camolog#important "Failed to convert %S: unknown output encoding %s"
               s e ; s
     | e ->
@@ -1107,7 +1107,7 @@ if test "$INSTALL_DAEMON" != "yes" ; then
  do not exist, so I won't install log and PID directories.
 
  For a fully functional liquidsoap installation, please configure again
- with existing user/group. You may use --with-user=<user> --with-group=<group> 
+ with existing user/group. You may use --with-user=<user> --with-group=<group>
  to override the default.
 
 </WARNING>
@@ -1120,7 +1120,7 @@ if ! test -f $DEFAULT_FONT ; then
 <WARNING>
 
   The specified default font does not exist. If it is not installed before
-  running liquidsoap, the video.add_text*() operators won't work with their 
+  running liquidsoap, the video.add_text*() operators won't work with their
   default setting.
 
   The current value is $DEFAULT_FONT.

@@ -52,7 +52,7 @@ settings.decoder.priorities.ffmpeg.set(10)
 You can use this setting to adjust wether or not the ffmpeg decoder should be tried first when decoding media files, in particular in
 conjunction with the other `settings.decoder.priorities.*` settings.
 
-For each type of media codec, the `settings.decoder.ffmpeg.codecs.*` settings can be used to tell `ffmpeg` which decoder to use to 
+For each type of media codec, the `settings.decoder.ffmpeg.codecs.*` settings can be used to tell `ffmpeg` which decoder to use to
 decode this type of content (there could more than one decoder for a given codec).
 
 For instance, for the `aac` codec:
@@ -61,7 +61,7 @@ For instance, for the `aac` codec:
 * `settings.decoder.ffmpeg.codecs.aac.set` can be used to choose which decoder should be used, typically: `settings.decoder.ffmpeg.codecs.aac.set("aac")`
 
 
-When debugging issues with `ffmpeg`, it can be useful to increase the log verbosity. 
+When debugging issues with `ffmpeg`, it can be useful to increase the log verbosity.
 
 ```liquidsoap
 settings.ffmpeg.log.verbosity.set("warning")
@@ -70,8 +70,8 @@ settings.ffmpeg.log.verbosity.set("warning")
 This settings sets the verbosity of `ffmpeg` logs. Possible values, from less verbose to more verbose are:
 `"quiet"`, `"panic"`, `"fatal"`, `"error"`, `"warning"`, `"info"`, `"verbose"` or `"debug"`
 
-Please note that, due to a technical limitation, we are not yet able to route `ffmpeg` logs through 
-the liquidsoap logging facilities, which means that `ffmpeg` logs are currently only printed to the 
+Please note that, due to a technical limitation, we are not yet able to route `ffmpeg` logs through
+the liquidsoap logging facilities, which means that `ffmpeg` logs are currently only printed to the
 process's standard output and that the `settings.ffmpeg.log.level` is currently not used.
 
 
@@ -128,7 +128,7 @@ lists some specific cases.
 By default, liquidsoap keeps track  of the content passed in a stream containing ffmpeg encoded content (`ffmpeg.copy`) and only allows file and stream decoders to return strictly compatible
 content, e.g. same video resolution or audio samplerate.
 
-Some containers such as `mp4`, however, do allow stream where video resolution or audio samplerate changes between tracks. In this case, you can 
+Some containers such as `mp4`, however, do allow stream where video resolution or audio samplerate changes between tracks. In this case, you can
 relax those compatibility checks using the following setting:
 
 ```liquidsoap
@@ -178,7 +178,7 @@ mpegts = %ffmpeg(
 output.file.hls(
   ["mpegts", mpegts],
   stream,
-  ... 
+  ...
 )
 ```
 

@@ -26,14 +26,14 @@
   *  - Provide callbacks for reading and writing to the process' standard outputs.
   *    These callbacks are executed when [Unix.select] returns their respective
   *    file descriptors as available for writing/reading. Thus, read and write
-  *    inside these callbacks should not be blocking although [Unix.select] 
+  *    inside these callbacks should not be blocking although [Unix.select]
   *    documentation stipulates that "large" writes may still be blocking.
   *  - Use direct, blocking, read/write on the process' standard output.
   *    in this case, reading and writing may be blocking, following the
   *    usual [Unix.write] and [Unix.read] semantics.
   * The API abstracts the file descriptors and provides writing/reading
   * callbacks instead. Please note that there is no way to detect when the
-  * process has exited unless reaching a zero-length read in its standard 
+  * process has exited unless reaching a zero-length read in its standard
   * output or error. Also, the default [on_stdout] and [on_stderr] callbacks
   * do not read from these. Therefore it is important to read all data coming
   * from at least one of these two outputs in order to make sure that the module

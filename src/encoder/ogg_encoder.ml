@@ -112,7 +112,7 @@ let encoder { Ogg_format.audio; video } =
       Ogg_muxer.streams_start ogg_enc;
       enc.Encoder.header <- Ogg_muxer.get_header ogg_enc
     and encode frame start len =
-      (* We do a lazy start, to 
+      (* We do a lazy start, to
        * avoid empty streams at beginning.. *)
       if Ogg_muxer.state ogg_enc <> Ogg_muxer.Streaming then (
         streams_start ();

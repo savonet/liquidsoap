@@ -35,7 +35,7 @@ clock.assign_new(sync="none",[s])
 
 enc = %ffmpeg(%audio.raw(codec="aac"))
 
-filename = file.temp("tmp",".aac") 
+filename = file.temp("tmp",".aac")
 
 on_shutdown({file.remove(filename)})
 

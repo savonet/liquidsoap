@@ -135,17 +135,17 @@ module Make (Harbor : T) = struct
           in
           begin
             match dump with
-            | Some b ->
-                output_string b (Bytes.sub_string buf 0 input);
-                flush b
-            | None -> ()
+              | Some b ->
+                  output_string b (Bytes.sub_string buf 0 input);
+                  flush b
+              | None -> ()
           end;
           begin
             match logf with
-            | Some b ->
-                let time = (Unix.gettimeofday () -. t0) /. 60. in
-                Printf.fprintf b "%f %d\n%!" time self#length
-            | None -> ()
+              | Some b ->
+                  let time = (Unix.gettimeofday () -. t0) /. 60. in
+                  Printf.fprintf b "%f %d\n%!" time self#length
+              | None -> ()
           end;
           input
         in
@@ -220,21 +220,21 @@ module Make (Harbor : T) = struct
         on_connect headers;
         begin
           match dumpfile with
-          | Some f -> (
-              try dump <- Some (open_out_bin (Utils.home_unrelate f))
-              with e ->
-                self#log#severe "Could not open dump file: %s"
-                  (Printexc.to_string e))
-          | None -> ()
+            | Some f -> (
+                try dump <- Some (open_out_bin (Utils.home_unrelate f))
+                with e ->
+                  self#log#severe "Could not open dump file: %s"
+                    (Printexc.to_string e))
+            | None -> ()
         end;
         begin
           match logfile with
-          | Some f -> (
-              try logf <- Some (open_out_bin (Utils.home_unrelate f))
-              with e ->
-                self#log#severe "Could not open log file: %s"
-                  (Printexc.to_string e))
-          | None -> ()
+            | Some f -> (
+                try logf <- Some (open_out_bin (Utils.home_unrelate f))
+                with e ->
+                  self#log#severe "Could not open log file: %s"
+                    (Printexc.to_string e))
+            | None -> ()
         end;
         ignore (Tutils.create (fun () -> self#feed) () "harbor source feeding")
 
@@ -248,17 +248,17 @@ module Make (Harbor : T) = struct
       method private after_disconnect =
         begin
           match dump with
-          | Some f ->
-              close_out f;
-              dump <- None
-          | None -> ()
+            | Some f ->
+                close_out f;
+                dump <- None
+            | None -> ()
         end;
         begin
           match logf with
-          | Some f ->
-              close_out f;
-              logf <- None
-          | None -> ()
+            | Some f ->
+                close_out f;
+                logf <- None
+            | None -> ()
         end;
         on_disconnect ()
 

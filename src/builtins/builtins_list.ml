@@ -125,7 +125,10 @@ let () =
 let () =
   let t = Lang.list_t (Lang.univ_t ()) in
   Lang.add_builtin "list.randomize" ~category:`List
-    ~descr:"Shuffle the content of a list." [("", t, None, None)] t (fun p ->
+    ~descr:"Shuffle the content of a list."
+    [("", t, None, None)]
+    t
+    (fun p ->
       let l = Array.of_list (Lang.to_list (List.assoc "" p)) in
       Utils.randomize l;
       Lang.list (Array.to_list l))

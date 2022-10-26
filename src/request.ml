@@ -404,28 +404,26 @@ let update_metadata t =
       | (h :: _) :: _ -> if h.temporary then "true" else "false"
       | _ -> "false");
   begin
-    match get_filename t with
-    | Some f -> replace "filename" f
-    | None -> ()
+    match get_filename t with Some f -> replace "filename" f | None -> ()
   end;
 
   (* STATUS *)
   begin
     match t.resolving with
-    | Some d -> replace "resolving" (pretty_date (Unix.localtime d))
-    | None -> ()
+      | Some d -> replace "resolving" (pretty_date (Unix.localtime d))
+      | None -> ()
   end;
   begin
     match t.on_air with
-    | Some d ->
-        replace "on_air" (pretty_date (Unix.localtime d));
-        replace "on_air_timestamp" (Printf.sprintf "%.02f" d)
-    | None -> ()
+      | Some d ->
+          replace "on_air" (pretty_date (Unix.localtime d));
+          replace "on_air_timestamp" (Printf.sprintf "%.02f" d)
+      | None -> ()
   end;
   begin
     match t.ctype with
-    | None -> ()
-    | Some ct -> replace "kind" (Frame.string_of_content_type ct)
+      | None -> ()
+      | Some ct -> replace "kind" (Frame.string_of_content_type ct)
   end;
   replace "status"
     (match t.status with

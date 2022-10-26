@@ -109,7 +109,8 @@ let () =
 let () =
   Lang.add_builtin "request.read_metadata" ~category:`Liquidsoap
     [("", Value.t, None, None)]
-    Lang.unit_t ~descr:"Force reading the metadata of a request." (fun p ->
+    Lang.unit_t ~descr:"Force reading the metadata of a request."
+    (fun p ->
       let r = Value.of_value (List.assoc "" p) in
       Request.read_metadata r;
       Lang.unit)
@@ -117,14 +118,16 @@ let () =
 let () =
   Lang.add_builtin "request.metadata" ~category:`Liquidsoap
     [("", Value.t, None, None)]
-    Lang.metadata_t ~descr:"Get the metadata associated to a request." (fun p ->
+    Lang.metadata_t ~descr:"Get the metadata associated to a request."
+    (fun p ->
       let r = Value.of_value (List.assoc "" p) in
       Lang.metadata (Request.get_all_metadata r))
 
 let () =
   Lang.add_builtin "request.log" ~category:`Liquidsoap
     [("", Value.t, None, None)]
-    Lang.string_t ~descr:"Get log data associated to a request." (fun p ->
+    Lang.string_t ~descr:"Get log data associated to a request."
+    (fun p ->
       let r = Value.of_value (List.assoc "" p) in
       Lang.string (Request.string_of_log (Request.get_log r)))
 
@@ -132,13 +135,18 @@ let () =
   Lang.add_builtin "request.resolved" ~category:`Liquidsoap
     ~descr:
       "Check if a request is resolved, i.e. is associated to a valid local \
-       file." [("", Value.t, None, None)] Lang.bool_t (fun p ->
+       file."
+    [("", Value.t, None, None)]
+    Lang.bool_t
+    (fun p ->
       let e = Value.of_value (List.assoc "" p) in
       Lang.bool (Request.resolved e))
 
 let () =
   Lang.add_builtin "request.uri" ~category:`Liquidsoap
-    ~descr:"Initial URI of a request." [("", Value.t, None, None)] Lang.string_t
+    ~descr:"Initial URI of a request."
+    [("", Value.t, None, None)]
+    Lang.string_t
     (fun p ->
       let r = Value.of_value (List.assoc "" p) in
       Lang.string (Request.initial_uri r))
@@ -147,7 +155,10 @@ let () =
   Lang.add_builtin "request.filename" ~category:`Liquidsoap
     ~descr:
       "Return a valid local filename if the request is ready, and the empty \
-       string otherwise." [("", Value.t, None, None)] Lang.string_t (fun p ->
+       string otherwise."
+    [("", Value.t, None, None)]
+    Lang.string_t
+    (fun p ->
       let r = Value.of_value (List.assoc "" p) in
       Lang.string (match Request.get_filename r with Some f -> f | None -> ""))
 
@@ -173,17 +184,21 @@ let () =
 
 let () =
   Lang.add_builtin "request.duration" ~category:`Liquidsoap
-    [("", Lang.string_t, None, None)] Lang.float_t
+    [("", Lang.string_t, None, None)]
+    Lang.float_t
     ~descr:
       "Compute the duration in seconds of audio data contained in a request. \
        The computation may be expensive. Returns -1. if computation failed, \
-       typically if the file was not recognized as valid audio." (fun p ->
+       typically if the file was not recognized as valid audio."
+    (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.float (try Request.duration f with Not_found -> -1.))
 
 let () =
   Lang.add_builtin "request.id" ~category:`Liquidsoap
-    ~descr:"Identifier of a request." [("", Value.t, None, None)] Lang.int_t
+    ~descr:"Identifier of a request."
+    [("", Value.t, None, None)]
+    Lang.int_t
     (fun p ->
       let r = Value.of_value (List.assoc "" p) in
       Lang.int (Request.get_id r))
@@ -192,7 +207,10 @@ let () =
   Lang.add_builtin "request.status" ~category:`Liquidsoap
     ~descr:
       "Current status of a request. Can be idle, resolving, ready, playing or \
-       destroyed." [("", Value.t, None, None)] Lang.string_t (fun p ->
+       destroyed."
+    [("", Value.t, None, None)]
+    Lang.string_t
+    (fun p ->
       let r = Value.of_value (List.assoc "" p) in
       let s =
         match Request.status r with

@@ -1,7 +1,7 @@
 A simple video script
 =====================
 
-The other day, I wanted to prepare some videos of my favorite reggae and soul 
+The other day, I wanted to prepare some videos of my favorite reggae and soul
 tunes for uploading them to YouTube.
 My goal was very simple: prepare a video with the music,
 and a static image.
@@ -27,7 +27,7 @@ clock.assign_new(sync='none',[source])
 # Encode video and copy audio:
 encoder = %ffmpeg(format="mp4",
                   %audio.copy,
-                  %video(codec="libx264")) 
+                  %video(codec="libx264"))
 
  # Output to a theora file, shutdown on stop
  output.file(fallible=true,on_stop=shutdown,

@@ -38,7 +38,7 @@ Indeed, `fallback` expects a source, but `mux_audio(x)` is still a function expe
 
 ### That source is fallible!
 
-See the [quickstart](quick_start.html), or read more about 
+See the [quickstart](quick_start.html), or read more about
 [sources](sources.html).
 
 ### Clock error
@@ -78,7 +78,7 @@ For more details on those techniques, read about [clocks](clocks.html).
 
 ### Unable to decode ``file'' as {audio=pcm;video=none;midi=none}!
 
-This log message informs you that liquidsoap failed to decode a file, not 
+This log message informs you that liquidsoap failed to decode a file, not
 necessarily because it cannot handle the file, but also possibly because
 the file does not contain the expected media type. For example, if audio and video
 is expected, an audio file with no video will be rejected.
@@ -98,7 +98,7 @@ type: not_found, message: "File not found!"
 ```
 
 These are errors that the script programmer can catch and decide what to do when they
-occur. Such errors will typically occur when trying to read a file that does not 
+occur. Such errors will typically occur when trying to read a file that does not
 exist and etc.
 
 The [language page](language.html) has more details about errors, how to raise them
@@ -128,9 +128,9 @@ Troubleshooting
 
 ### Pulseaudio
 
-When using ALSA input or output or, more generally any audio input or output 
+When using ALSA input or output or, more generally any audio input or output
 that is not using pulseaudio, you should disable pulseaudio, which is often installed
-by default. Pulseaudio emulates ALSA but this also generates bugs, 
+by default. Pulseaudio emulates ALSA but this also generates bugs,
 in particular errors of this form:
 ```
 Alsa.Unknown_error(1073697252)!
@@ -219,11 +219,9 @@ also achieve various effects using synthesis sources such as
 
 ### Temporary files
 
-Liquidsoap relies on OCaml's `Filename.tmp_dir_name` variable to store temporary 
+Liquidsoap relies on OCaml's `Filename.tmp_dir_name` variable to store temporary
 files. It is documented as follows:
 
-The name of the temporary directory: Under Unix, the value of the `TMPDIR` environment 
-variable, or `"/tmp"` if the variable is not set. Under Windows, the value of the `TEMP` 
+The name of the temporary directory: Under Unix, the value of the `TMPDIR` environment
+variable, or `"/tmp"` if the variable is not set. Under Windows, the value of the `TEMP`
 environment variable, or `"."` if the variable is not set.
-
-

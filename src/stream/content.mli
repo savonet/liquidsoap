@@ -53,7 +53,7 @@ module type ContentSpecs = sig
   (* Size is in main ticks. *)
   val make : size:int -> params -> data
 
-  (* [blit src src_pos dst dst_pos len] copies data from [src] 
+  (* [blit src src_pos dst dst_pos len] copies data from [src]
    * into [dst]. *)
   val blit : data -> int -> data -> int -> int -> unit
 

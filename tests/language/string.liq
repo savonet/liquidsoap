@@ -12,7 +12,7 @@ def t(x, y)
     success := false
   end
 end
-  
+
 def f() =
   t(string.length(""), 0)
   t(string.length("abc"), 3)
@@ -65,7 +65,7 @@ def f() =
 
   t(string.data_uri.decode("data:foo/bar;base64,4pyo"), null("✨".{mime = "foo/bar"}))
   t(string.data_uri.decode("data:foo/bar,✨"), null("✨".{mime = "foo/bar"}))
-  
+
   if !success then test.pass() else test.fail() end
 end
 
