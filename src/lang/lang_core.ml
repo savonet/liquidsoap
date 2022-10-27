@@ -359,22 +359,17 @@ module Single_position = struct
         ("line_number", int pos_lnum);
         ("character_offset", int (pos_cnum - pos_bol));
       ]
+
+  let of_value v =
+    {
+      Lexing.pos_fname = to_string (invoke v "filename");
+      pos_lnum = to_int (invoke v "line_number");
+      pos_bol = 0;
+      pos_cnum = to_int (invoke v "character_offset");
+    }
 end
 
 module Position = struct
-  include Value.MkAbstract (struct
-    type content = Pos.t
-
-    let name = "position"
-    let descr _ = "position"
-
-    let to_json ~pos _ =
-      Runtime_error.raise ~pos
-        ~message:"Positions cannot be represented as json" "json"
-
-    let compare = Stdlib.compare
-  end)
-
   let t =
     method_t unit_t
       [
@@ -386,8 +381,7 @@ module Position = struct
       ]
 
   let to_value (start, _end) =
-    let v = to_value (start, _end) in
-    meth v
+    meth unit
       [
         ("position_start", Single_position.to_value start);
         ("position_end", Single_position.to_value _end);
@@ -400,8 +394,8 @@ module Position = struct
       ]
 
   let of_value v =
-    let v = demeth v in
-    of_value v
+    ( Single_position.of_value (invoke v "position_start"),
+      Single_position.of_value (invoke v "position_end") )
 end
 
 module Stacktrace = struct
