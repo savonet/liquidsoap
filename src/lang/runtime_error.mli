@@ -22,28 +22,16 @@
 
 (** An error at runtime. *)
 
-type runtime_error = { kind : string; msg : string; pos : Pos.t list }
+type runtime_error = private { kind : string; msg : string; pos : Pos.t list }
 
 exception Runtime_error of runtime_error
 
-let () =
-  Printexc.register_printer (function
-    | Runtime_error { kind; msg; pos } ->
-        Some
-          (Printf.sprintf "Lang.Runtime_error { kind: %s, msg: %s, pos: [%s] }"
-             (Lang_string.quote_string kind)
-             (Lang_string.quote_string msg)
-             (String.concat ", " (List.map (fun pos -> Pos.to_string pos) pos)))
-    | _ -> None)
+val on_error : (runtime_error -> unit) -> unit
+val make : ?message:string -> pos:Pos.t list -> string -> runtime_error
 
-let listeners = Atomic.make []
-let on_error fn = Atomic.set listeners (fn :: Atomic.get listeners)
-let make ?(message = "") ~pos kind = { kind; msg = message; pos }
-
-let raise ?bt ?(message = "") ~pos kind =
-  let err = { kind; msg = message; pos } in
-  List.iter (fun fn -> fn err) (Atomic.get listeners);
-  let e = Runtime_error err in
-  match bt with
-    | None -> raise e
-    | Some bt -> Printexc.raise_with_backtrace e bt
+val raise :
+  ?bt:Printexc.raw_backtrace ->
+  ?message:string ->
+  pos:Pos.t list ->
+  string ->
+  'a

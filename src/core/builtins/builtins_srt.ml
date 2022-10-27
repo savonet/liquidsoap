@@ -247,15 +247,9 @@ module SocketValue = struct
 
     let name = "srt_socket"
 
-    let to_json _ =
-      raise
-        Runtime_error.(
-          Runtime_error
-            {
-              kind = "json";
-              msg = "SRT socket cannot be represented as json";
-              pos = [];
-            })
+    let to_json ~pos _ =
+      Runtime_error.raise ~pos
+        ~message:"SRT socket cannot be represented as json" "json"
 
     let descr _ = "<srt_socket>"
     let compare = Stdlib.compare

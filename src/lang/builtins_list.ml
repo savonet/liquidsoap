@@ -61,11 +61,7 @@ let () =
     ]
     b
     (fun p ->
-      let l, e, f =
-        match p with
-          | [("", l); ("", e); ("", f)] -> (l, e, f)
-          | _ -> assert false
-      in
+      let l, e, f = (Lang.assoc "" 1 p, Lang.assoc "" 2 p, Lang.assoc "" 3 p) in
       match Lang.to_list l with
         | [] -> e
         | x :: l -> Lang.apply f [("", x); ("", Lang.list l)])
@@ -92,11 +88,7 @@ let () =
     ]
     b
     (fun p ->
-      let l, e, f =
-        match p with
-          | [("", l); ("", e); ("", f)] -> (l, e, f)
-          | _ -> assert false
-      in
+      let l, e, f = (Lang.assoc "" 1 p, Lang.assoc "" 2 p, Lang.assoc "" 3 p) in
       let rec aux k = function
         | [] -> k e
         | x :: l ->
@@ -115,9 +107,7 @@ let () =
         [("", a, None, None); ("", Lang.list_t a, None, None)]
         (Lang.list_t a)
         (fun p ->
-          let x, l =
-            match p with [("", x); ("", l)] -> (x, l) | _ -> assert false
-          in
+          let x, l = (Lang.assoc "" 1 p, Lang.assoc "" 2 p) in
           let l = Lang.to_list l in
           Lang.list (x :: l)))
     ["list.add"; "_::_"]

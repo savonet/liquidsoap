@@ -36,13 +36,7 @@ let () =
           (Lang.metadata (Utils.hashtbl_of_list metadata))
           (Lang.string uri)
       with Annotate.Error err ->
-        raise
-          (Runtime_error.Runtime_error
-             {
-               Runtime_error.kind = "string";
-               msg = err;
-               pos = (match v.Value.pos with None -> [] | Some p -> [p]);
-             }))
+        Lang.raise_error ~message:err ~pos:(Lang.pos p) "string")
 
 let () =
   Lang.add_builtin "string.recode" ~category:`String

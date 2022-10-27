@@ -26,18 +26,17 @@ let () =
     ~descr:
       ("INTERNAL: time_in_mod(a,b,c) checks that the unix time T "
      ^ "satisfies a <= T mod c < b") [t; t; t] Lang.bool_t (fun p ->
-      match List.map (fun (_, x) -> Lang.to_int x) p with
-        | [a; b; c] ->
-            let t = Unix.localtime (Unix.time ()) in
-            let t =
-              t.Unix.tm_sec + (t.Unix.tm_min * 60)
-              + (t.Unix.tm_hour * 60 * 60)
-              + (t.Unix.tm_wday * 24 * 60 * 60)
-            in
-            let t = t mod c in
-            if a <= b then Lang.bool (a <= t && t < b)
-            else Lang.bool (not (b <= t && t < a))
-        | _ -> assert false)
+      let g pos = Lang.to_int (Lang.assoc "" pos p) in
+      let a, b, c = (g 1, g 2, g 3) in
+      let t = Unix.localtime (Unix.time ()) in
+      let t =
+        t.Unix.tm_sec + (t.Unix.tm_min * 60)
+        + (t.Unix.tm_hour * 60 * 60)
+        + (t.Unix.tm_wday * 24 * 60 * 60)
+      in
+      let t = t mod c in
+      if a <= b then Lang.bool (a <= t && t < b)
+      else Lang.bool (not (b <= t && t < a)))
 
 let () =
   Lang.add_builtin ~category:`Time "time"
@@ -162,18 +161,10 @@ let () =
         let predicate = processor tokenizer in
         Lang.val_fun [] (fun _ -> Liquidsoap_lang.Evaluation.eval predicate)
       with _ ->
-        raise
-          Runtime_error.(
-            Runtime_error
-              {
-                kind = "string";
-                msg =
-                  Printf.sprintf "Failed to parse %s as time predicate"
-                    predicate;
-                pos =
-                  Option.value ~default:[]
-                    (Option.map (fun v -> [v]) v.Value.pos);
-              }))
+        Lang.raise_error
+          ~message:
+            (Printf.sprintf "Failed to parse %s as time predicate" predicate)
+          ~pos:(Lang.pos p) "string")
 
 let () =
   let tz_t =

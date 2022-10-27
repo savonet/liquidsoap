@@ -47,15 +47,10 @@ module V = MkAbstract (struct
   let name = "source"
   let descr s = Printf.sprintf "<source#%s>" s#id
 
-  let to_json _ =
-    raise
-      Runtime_error.(
-        Runtime_error
-          {
-            kind = "json";
-            msg = Printf.sprintf "Sources cannot be represented as json";
-            pos = [];
-          })
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos
+      ~message:(Printf.sprintf "Sources cannot be represented as json")
+      "json"
 
   let compare s1 s2 = Stdlib.compare s1#id s2#id
 end)
@@ -371,7 +366,11 @@ let add_operator =
       (* Negotiate content for all sources and formats in the arguments. *)
       let () =
         let env =
-          List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') env
+          List.stable_sort
+            (fun (l, _) (l', _) -> Stdlib.compare l l')
+            (List.filter
+               (fun (lbl, _) -> lbl <> Liquidsoap_lang.Lang_core.pos_var)
+               env)
         in
         List.iter2
           (fun (name, typ) (name', v) ->

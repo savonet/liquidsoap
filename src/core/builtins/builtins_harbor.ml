@@ -116,7 +116,8 @@ let () =
       "Low-level harbor handler registration. Overridden in standard library."
     register_args Lang.unit_t (fun p ->
       let uri, port, transport, verb, handler = parse_register_args p in
-      Harbor.add_http_handler ~transport ~port ~verb ~uri handler;
+      Harbor.add_http_handler ~pos:(Lang.pos p) ~transport ~port ~verb ~uri
+        handler;
       Lang.unit)
 
 let () =

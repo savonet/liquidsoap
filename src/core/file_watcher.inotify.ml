@@ -27,7 +27,12 @@ type event = [ `Modify ]
 type unwatch = unit -> unit
 
 (** Type for watching function. *)
-type watch = event list -> string -> (unit -> unit) -> unwatch
+type watch =
+  pos:Liquidsoap_lang.Pos.t list ->
+  event list ->
+  string ->
+  (unit -> unit) ->
+  unwatch
 
 let fd = ref (None : Unix.file_descr option)
 let handlers = ref []
@@ -48,8 +53,8 @@ let rec watchdog () =
   { Duppy.Task.priority = `Maybe_blocking; events = [`Read fd]; handler }
 
 let watch : watch =
- fun e file f ->
-  if not (Sys.file_exists file) then Lang.raise_error "not_found";
+ fun ~pos e file f ->
+  if not (Sys.file_exists file) then Lang.raise_error ~pos "not_found";
   Tutils.mutexify m
     (fun () ->
       if !fd = None then (

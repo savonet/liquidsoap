@@ -317,13 +317,13 @@ let rec assoc label n = function
       if l = label then if n = 1 then e else assoc label (n - 1) tl
       else assoc label n tl
 
-let raise_error = Runtime_error.error
+let raise_error = Runtime_error.raise
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with
     | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
     | exn ->
-        raise_error ~bt
+        raise_error ~bt ~pos:[]
           ~message:
             (Printf.sprintf "%s\nBacktrace:\n%s" (Printexc.to_string exn)
                (Printexc.raw_backtrace_to_string bt))
@@ -341,3 +341,68 @@ let environment () =
   in
   let l = Array.to_list l in
   List.map split l
+
+(* This is used to pass position in application environment. *)
+module Single_position = struct
+  let t =
+    method_t unit_t
+      [
+        ("filename", ([], string_t), "filename");
+        ("line_number", ([], int_t), "line number");
+        ("character_offset", ([], int_t), "character offset");
+      ]
+
+  let to_value { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } =
+    meth unit
+      [
+        ("filename", string pos_fname);
+        ("line_number", int pos_lnum);
+        ("character_offset", int (pos_cnum - pos_bol));
+      ]
+
+  let of_value v =
+    {
+      Lexing.pos_fname = to_string (invoke v "filename");
+      pos_lnum = to_int (invoke v "line_number");
+      pos_bol = 0;
+      pos_cnum = to_int (invoke v "character_offset");
+    }
+end
+
+module Position = struct
+  let t =
+    method_t unit_t
+      [
+        ("position_start", ([], Single_position.t), "Starting position");
+        ("position_end", ([], Single_position.t), "Ending position");
+        ( "to_string",
+          ([], fun_t [(true, "prefix", string_t)] string_t),
+          "Render as string" );
+      ]
+
+  let to_value (start, _end) =
+    meth unit
+      [
+        ("position_start", Single_position.to_value start);
+        ("position_end", Single_position.to_value _end);
+        ( "to_string",
+          val_fun
+            [("prefix", "prefix", Some (string "At "))]
+            (fun p ->
+              let prefix = to_string (List.assoc "prefix" p) in
+              string (Pos.to_string ~prefix (start, _end))) );
+      ]
+
+  let of_value v =
+    ( Single_position.of_value (invoke v "position_start"),
+      Single_position.of_value (invoke v "position_end") )
+end
+
+module Stacktrace = struct
+  let t = list_t Position.t
+  let to_value l = list (List.map Position.to_value l)
+  let of_value v = List.map Position.of_value (to_list v)
+end
+
+let pos_var = "_pos_"
+let pos env = Stacktrace.of_value (List.assoc pos_var env)

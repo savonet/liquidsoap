@@ -7,6 +7,13 @@ let () =
     (fun _ -> Lang.unit)
 
 let () =
+  Lang.add_builtin "position" ~descr:"Return the current position in the script"
+    ~category:`Programming [] Lang_core.Single_position.t (fun p ->
+      match Lang.pos p with
+        | [] -> Lang.raise_error ~pos:[] ~message:"Unknown position" "eval"
+        | (p, _) :: _ -> Lang_core.Single_position.to_value p)
+
+let () =
   let t = Lang.univ_t () in
   Lang.add_builtin "if" ~category:`Programming ~descr:"The basic conditional."
     ~flags:[`Hidden]

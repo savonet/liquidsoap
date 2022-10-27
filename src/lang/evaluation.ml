@@ -42,13 +42,15 @@ let rec eval_pat pat v =
       | PTuple pl, { Value.value = Value.Tuple l } ->
           List.fold_left2 aux env pl l
       (* The parser parses [x,y,z] as PList ([], None, l) *)
-      | PList (([] as l'), (None as spread), l), { Value.value = Value.List lv }
-      | PList (l, spread, l'), { Value.value = Value.List lv } ->
+      | ( PList (([] as l'), (None as spread), l),
+          { Value.value = Value.List lv; pos } )
+      | PList (l, spread, l'), { Value.value = Value.List lv; pos } ->
           let ln = List.length l in
           let ln' = List.length l' in
           let lvn = List.length lv in
           if lvn < ln + ln' then
-            Runtime_error.error
+            Runtime_error.raise
+              ~pos:(match pos with None -> [] | Some p -> [p])
               ~message:
                 "List value does not have enough elements to fit the \
                  extraction pattern!"
@@ -271,10 +273,9 @@ and apply ?pos f l =
     try f pe with
       | Runtime_error.Runtime_error err ->
           let bt = Printexc.get_raw_backtrace () in
-          Printexc.raise_with_backtrace
-            (Runtime_error.Runtime_error
-               { err with pos = Option.to_list pos @ err.pos })
-            bt
+          Runtime_error.raise ~bt
+            ~pos:(Option.to_list pos @ err.pos)
+            ~message:err.Runtime_error.msg err.Runtime_error.kind
       | Internal_error (poss, e) ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
@@ -304,6 +305,15 @@ and apply ?pos f l =
           { v with Value.pos } )
         :: pe)
       pe p
+  in
+  (* Add position *)
+  let pe =
+    pe
+    @ [
+        ( Lang_core.pos_var,
+          Lang_core.Stacktrace.to_value
+            (match pos with None -> [] | Some p -> [p]) );
+      ]
   in
   let v = f pe in
   (* Similarly here, the result of an FFI call should have some position

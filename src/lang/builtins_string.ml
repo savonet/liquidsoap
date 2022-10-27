@@ -68,8 +68,8 @@ print(c) # should print 99 which is the ascii code for "c"
         let n = Lang.to_int (Lang.assoc "" 2 p) in
         Lang.int (int_of_char s.[n])
       with _ ->
-        Runtime_error.error ~message:"string.nth: character not found!"
-          "not_found")
+        Runtime_error.raise ~pos:(Lang.pos p)
+          ~message:"string.nth: character not found!" "not_found")
 
 let () =
   Lang.add_builtin "string.char" ~category:`String
@@ -151,7 +151,7 @@ let () =
              s)
       with _ ->
         let bt = Printexc.get_raw_backtrace () in
-        Runtime_error.error ~bt
+        Runtime_error.raise ~bt ~pos:(Lang.pos p)
           ~message:
             (Printf.sprintf "Error while escaping %s string.%s"
                (match encoding with `Utf8 -> "utf8" | `Ascii -> "ascii")
@@ -399,7 +399,8 @@ let () =
         try out_value (func (in_value (List.assoc "" p)))
         with _ -> (
           try Option.get (Lang.to_option (List.assoc "default" p))
-          with _ -> Runtime_error.error ~message:name "failure"))
+          with _ ->
+            Runtime_error.raise ~pos:(Lang.pos p) ~message:name "failure"))
   in
   let register_tts name func out_value out_type =
     register_tt ~needs_default:true ("a string to a " ^ name)
@@ -465,11 +466,13 @@ let () =
     (fun p ->
       let n = Lang.to_int (List.assoc "" p) in
       if n < 0 then
-        Runtime_error.error ~message:"Invalid string length!" "invalid";
+        Runtime_error.raise ~pos:(Lang.pos p) ~message:"Invalid string length!"
+          "invalid";
       let c =
         try Char.chr (Lang.to_int (List.assoc "char_code" p))
         with _ ->
-          Runtime_error.error ~message:"Invalid character code!" "invalid"
+          Runtime_error.raise ~pos:(Lang.pos p)
+            ~message:"Invalid character code!" "invalid"
       in
       Lang.string (String.make n c))
 
@@ -493,7 +496,8 @@ let () =
       let string = Lang.to_string (List.assoc "" p) in
       try Lang.string (Lang_string.decode64 string)
       with _ ->
-        Runtime_error.error ~message:"Invalid base64 string!" "invalid")
+        Runtime_error.raise ~pos:(Lang.pos p) ~message:"Invalid base64 string!"
+          "invalid")
 
 let () =
   Lang.add_builtin "string.base64.encode" ~category:`String

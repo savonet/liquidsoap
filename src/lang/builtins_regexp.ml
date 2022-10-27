@@ -65,15 +65,9 @@ module RegExp = Value.MkAbstract (struct
   let name = "regexp"
   let descr = string_of_regexp
 
-  let to_json _ =
-    raise
-      Runtime_error.(
-        Runtime_error
-          {
-            kind = "json";
-            msg = "Regexp cannot be represented as json";
-            pos = [];
-          })
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos ~message:"Regexp cannot be represented as json"
+      "json"
 
   let compare r r' =
     Stdlib.compare
@@ -175,7 +169,7 @@ let replace_fun regexp =
       let string =
         try Regexp.substitute regexp ~subst string
         with exn ->
-          Runtime_error.error
+          Runtime_error.raise
             ~message:
               (Printf.sprintf "string.replace error: %s"
                  (Printexc.to_string exn))

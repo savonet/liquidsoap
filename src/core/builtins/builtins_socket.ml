@@ -26,15 +26,9 @@ module SocketValue = struct
 
     let name = "socket"
 
-    let to_json _ =
-      raise
-        Runtime_error.(
-          Runtime_error
-            {
-              kind = "json";
-              msg = "Socket cannot be represented as json";
-              pos = [];
-            })
+    let to_json ~pos _ =
+      Lang.raise_error ~pos ~message:"Socket cannot be represented as json"
+        "json"
 
     let descr s = Printf.sprintf "<%s socket>" s#typ
     let compare = Stdlib.compare
@@ -75,7 +69,7 @@ module SocketValue = struct
                         if rem <= 0. then failwith "timeout!";
                         socket#wait_for `Write rem
                       with _ ->
-                        Lang.raise_error
+                        Lang.raise_error ~pos:(Lang.pos p)
                           ~message:"Timeout while writing to the socket!"
                           "socket")
               in
@@ -116,7 +110,7 @@ module SocketValue = struct
                         if rem <= 0. then failwith "timeout!";
                         socket#wait_for `Read rem
                       with _ ->
-                        Lang.raise_error
+                        Lang.raise_error ~pos:(Lang.pos p)
                           ~message:"Timeout while reading from the socket!"
                           "socket")
               in

@@ -53,7 +53,7 @@ let make_cbr params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | t -> raise (Lang_encoder.generic_error t))
+        | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
   Ogg_format.Vorbis vorbis
@@ -96,7 +96,7 @@ let make_abr params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | t -> raise (Lang_encoder.generic_error t))
+        | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
   Ogg_format.Vorbis vorbis
@@ -117,11 +117,11 @@ let make params =
             { f with Vorbis_format.samplerate = Lazy.from_val i }
         | "quality", `Value { value = Ground (Float q); pos } ->
             if q < -0.2 || q > 1. then
-              raise (Lang_encoder.error ~pos "quality should be in [(-0.2)..1]");
+              Lang_encoder.raise_error ~pos "quality should be in [(-0.2)..1]";
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
         | "quality", `Value { value = Ground (Int i); pos } ->
             if i <> 0 && i <> 1 then
-              raise (Lang_encoder.error ~pos "quality should be in [-(0.2)..1]");
+              Lang_encoder.raise_error ~pos "quality should be in [-(0.2)..1]";
             let q = float i in
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
         | "channels", `Value { value = Ground (Int i); _ } ->
@@ -134,7 +134,7 @@ let make params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | t -> raise (Lang_encoder.generic_error t))
+        | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
   Ogg_format.Vorbis vorbis

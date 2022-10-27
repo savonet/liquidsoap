@@ -76,7 +76,7 @@ module Ground = struct
 
   type content = {
     descr : t -> string;
-    to_json : t -> Json.t;
+    to_json : pos:Pos.t list -> t -> Json.t;
     compare : t -> t -> int;
     typ : (module Type.Ground.Custom);
   }
@@ -116,7 +116,7 @@ module Ground = struct
     let compare conv v v' = Stdlib.compare (conv v) (conv v') in
     let to_bool = function Bool b -> b | _ -> assert false in
     let to_string b = string_of_bool (to_bool b) in
-    let to_json b = `Bool (to_bool b) in
+    let to_json ~pos:_ b = `Bool (to_bool b) in
     register
       (function Bool _ -> true | _ -> false)
       {
@@ -127,7 +127,7 @@ module Ground = struct
       };
     let to_int = function Int i -> i | _ -> assert false in
     let to_string i = string_of_int (to_int i) in
-    let to_json i = `Int (to_int i) in
+    let to_json ~pos:_ i = `Int (to_int i) in
     register
       (function Int _ -> true | _ -> false)
       {
@@ -140,7 +140,7 @@ module Ground = struct
       | String s -> Lang_string.quote_string s
       | _ -> assert false
     in
-    let to_json = function String s -> `String s | _ -> assert false in
+    let to_json ~pos:_ = function String s -> `String s | _ -> assert false in
     register
       (function String _ -> true | _ -> false)
       {
@@ -150,7 +150,7 @@ module Ground = struct
         typ = (module Type.Ground.String : Type.Ground.Custom);
       };
     let to_float = function Float f -> f | _ -> assert false in
-    let to_json f = `Float (to_float f) in
+    let to_json ~pos:_ f = `Float (to_float f) in
     register
       (function Float _ -> true | _ -> false)
       {
@@ -165,7 +165,7 @@ module type GroundDef = sig
   type content
 
   val descr : content -> string
-  val to_json : content -> Json.t
+  val to_json : pos:Pos.t list -> content -> Json.t
   val compare : content -> content -> int
   val typ : (module Type.Ground.Custom)
 end
@@ -175,7 +175,7 @@ module MkGround (D : GroundDef) = struct
 
   let () =
     let to_ground = function Ground g -> g | _ -> assert false in
-    let to_json v = D.to_json (to_ground v) in
+    let to_json ~pos v = D.to_json ~pos (to_ground v) in
     let compare v v' = D.compare (to_ground v) (to_ground v') in
     let descr v = D.descr (to_ground v) in
     Ground.register
@@ -520,7 +520,7 @@ module type AbstractDef = sig
   type content
 
   val name : string
-  val to_json : content -> Json.t
+  val to_json : pos:Pos.t list -> content -> Json.t
   val descr : content -> string
   val compare : content -> content -> int
 end
@@ -538,7 +538,7 @@ module MkAbstract (Def : AbstractDef) = struct
     let to_value = function Value v -> v | _ -> assert false in
     let compare v v' = Def.compare (to_value v) (to_value v') in
     let descr v = Def.descr (to_value v) in
-    let to_json v = Def.to_json (to_value v) in
+    let to_json ~pos v = Def.to_json ~pos (to_value v) in
     Ground.register
       (function Value _ -> true | _ -> false)
       { Ground.descr; to_json; compare; typ = (module T : Type.Ground.Custom) }
