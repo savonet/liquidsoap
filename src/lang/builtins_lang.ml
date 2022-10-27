@@ -47,16 +47,30 @@ let () =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "If true, a newline is added after displaying the value." );
+      ( "position",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Print the position of the call, mostly useful for debugging \
+           purposes." );
       ("", Lang.univ_t (), None, None);
     ]
     Lang.unit_t
     (fun p ->
       let nl = Lang.to_bool (List.assoc "newline" p) in
+      let position = Lang.to_bool (List.assoc "position" p) in
       let v = List.assoc "" p in
       let v =
         match v.Lang.value with
           | Lang.(Ground (Ground.String s)) -> s
           | _ -> Value.to_string v
+      in
+      let v =
+        if position then
+          Printf.sprintf "%s: %s"
+            (Pos.List.to_string ~prefix:"At " (Lang.pos p))
+            v
+        else v
       in
       let v = if nl then v ^ "\n" else v in
       print_string v;
