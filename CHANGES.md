@@ -3,6 +3,8 @@
 
 Added:
 * Added `time.string`.
+* Added `error.on_error` to report any error raised during the
+  script's execution. Enhanced reported error positions (#2712)
 
 Changed:
 * Send data in-memory in `http.{post,put}.file` when input data

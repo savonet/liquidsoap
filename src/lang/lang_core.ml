@@ -497,14 +497,33 @@ let rec assoc label n = function
       if l = label then if n = 1 then e else assoc label (n - 1) tl
       else assoc label n tl
 
-let raise_error = Runtime_error.error
+let raise_error = Runtime_error.raise
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with
-    | Term.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
+    | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
     | exn ->
-        raise_error ~bt
+        raise_error ~bt ~pos:[]
           ~message:
             (Printf.sprintf "%s\nBacktrace:\n%s" (Printexc.to_string exn)
                (Printexc.raw_backtrace_to_string bt))
           kind
+
+(* This is used to pass position in application environment. *)
+module Position = Value.MkAbstract (struct
+  type content = Pos.t list
+
+  let name = "position"
+
+  let descr pos =
+    Printf.sprintf "position<%s>" (Pos.List.to_string ~newlines:false pos)
+
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos ~message:"Positions cannot be represented as json"
+      "json"
+
+  let compare = Stdlib.compare
+end)
+
+let pos_var = "_pos_"
+let pos env = Position.of_value (List.assoc pos_var env)

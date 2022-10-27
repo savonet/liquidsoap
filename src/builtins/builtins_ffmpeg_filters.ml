@@ -113,16 +113,9 @@ module Graph = Value.MkAbstract (struct
   let name = "ffmpeg.filter.graph"
   let descr _ = name
 
-  let to_json _ =
-    raise
-      Runtime_error.(
-        Runtime_error
-          {
-            kind = "json";
-            msg =
-              Printf.sprintf "Ffmpeg filter graph cannot be represented as json";
-            pos = [];
-          })
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos
+      ~message:"Ffmpeg filter graph cannot be represented as json" "json"
 
   let compare = Stdlib.compare
 end)
@@ -136,15 +129,9 @@ module Audio = Value.MkAbstract (struct
   let name = "ffmpeg.filter.audio"
   let descr _ = name
 
-  let to_json _ =
-    raise
-      Runtime_error.(
-        Runtime_error
-          {
-            kind = "json";
-            msg = "Ffmpeg filter audio input cannot be represented as json";
-            pos = [];
-          })
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos
+      ~message:"Ffmpeg filter audio input cannot be represented as json" "json"
 
   let compare = Stdlib.compare
 end)
@@ -158,15 +145,9 @@ module Video = Value.MkAbstract (struct
   let name = "ffmpeg.filter.video"
   let descr _ = name
 
-  let to_json _ =
-    raise
-      Runtime_error.(
-        Runtime_error
-          {
-            kind = "json";
-            msg = "Ffmpeg filter video input cannot be represented as json";
-            pos = [];
-          })
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos
+      ~message:"Ffmpeg filter video input cannot be represented as json" "json"
 
   let compare = Stdlib.compare
 end)
@@ -414,7 +395,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
             (fun p ->
               let v = List.assoc "" p in
               if !input_set then
-                Runtime_error.error
+                Runtime_error.raise
                   ~pos:(match v.Value.pos with None -> [] | Some p -> [p])
                   ~message:"Filter input already set!" "ffmpeg.filter";
               let audio_inputs_c = List.length filter.io.inputs.audio in

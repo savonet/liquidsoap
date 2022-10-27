@@ -91,7 +91,7 @@ let make params =
             { f with External_encoder_format.process = s }
         | "", `Value { value = Ground (String s); _ } ->
             { f with External_encoder_format.process = s }
-        | t -> raise (Lang_encoder.generic_error t))
+        | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
   if ext.External_encoder_format.process = "" then

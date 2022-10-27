@@ -46,11 +46,11 @@ let flac_gen params =
           { f with Flac_format.samplerate = Lazy.from_val i }
       | "compression", `Value { value = Ground (Int i); pos } ->
           if i < 0 || i > 8 then
-            raise (Lang_encoder.error ~pos "invalid compression value");
+            Lang_encoder.raise_error ~pos "invalid compression value";
           { f with Flac_format.compression = i }
       | "bits_per_sample", `Value { value = Ground (Int i); pos } ->
           if not (List.mem i accepted_bits_per_sample) then
-            raise (Lang_encoder.error ~pos "invalid bits_per_sample value");
+            Lang_encoder.raise_error ~pos "invalid bits_per_sample value";
           { f with Flac_format.bits_per_sample = i }
       | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
           { f with Flac_format.fill = Some i }
@@ -60,7 +60,7 @@ let flac_gen params =
       | "", `Value { value = Ground (String s); _ }
         when String.lowercase_ascii s = "stereo" ->
           { f with Flac_format.channels = 2 }
-      | t -> raise (Lang_encoder.generic_error t))
+      | t -> Lang_encoder.raise_generic_error t)
     defaults params
 
 let make_ogg params = Ogg_format.Flac (flac_gen params)

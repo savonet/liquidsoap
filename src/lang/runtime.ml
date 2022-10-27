@@ -160,7 +160,7 @@ let throw print_error = function
       let pos = Pos.List.to_string ~newlines:true pos in
       Format.printf "Internal error: %s,@ stack:\n%s\n@]@." e pos;
       raise Error
-  | Term.Runtime_error { Term.kind; msg; pos } ->
+  | Runtime_error.Runtime_error { Runtime_error.kind; msg; pos } ->
       error_header 14 (try Some (Pos.List.to_pos pos) with _ -> None);
       let pos = Pos.List.to_string ~newlines:true pos in
       Format.printf

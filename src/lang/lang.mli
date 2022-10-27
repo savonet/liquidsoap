@@ -38,7 +38,7 @@ module Ground : sig
 
   type content = Term.Ground.content = {
     descr : t -> string;
-    to_json : t -> Json.t;
+    to_json : pos:Pos.t list -> t -> Json.t;
     compare : t -> t -> int;
     typ : Type.ground;
   }
@@ -256,14 +256,17 @@ val val_fun : (string * string * value option) list -> (env -> value) -> value
   * when the constant is ground. *)
 val val_cst_fun : (string * value option) list -> value -> value
 
+(** Extract position from the environment. Used inside function execution. *)
+val pos : env -> Pos.t list
+
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value
 
 (** Raise an error. *)
 val raise_error :
   ?bt:Printexc.raw_backtrace ->
-  ?pos:Pos.List.t ->
   ?message:string ->
+  pos:Pos.List.t ->
   string ->
   'a
 

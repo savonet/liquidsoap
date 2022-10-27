@@ -53,7 +53,7 @@ let make params =
         | "quality", `Value { value = Ground (Int q); pos } ->
             (* Doc say this should be from 0 to 10. *)
             if q < 0 || q > 10 then
-              raise (Lang_encoder.error ~pos "Speex quality should be in 0..10");
+              Lang_encoder.raise_error ~pos "Speex quality should be in 0..10";
             { f with Speex_format.bitrate_control = Speex_format.Quality q }
         | "vbr", `Value { value = Ground (Int q); _ } ->
             { f with Speex_format.bitrate_control = Speex_format.Vbr q }
@@ -71,8 +71,8 @@ let make params =
         | "complexity", `Value { value = Ground (Int i); pos } ->
             (* Doc says this should be between 1 and 10. *)
             if i < 1 || i > 10 then
-              raise
-                (Lang_encoder.error ~pos "Speex complexity should be in 1..10");
+              Lang_encoder.raise_error ~pos
+                "Speex complexity should be in 1..10";
             { f with Speex_format.complexity = Some i }
         | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
             { f with Speex_format.fill = Some i }
@@ -86,7 +86,7 @@ let make params =
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Speex_format.stereo = true }
-        | t -> raise (Lang_encoder.generic_error t))
+        | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
   Ogg_format.Speex speex

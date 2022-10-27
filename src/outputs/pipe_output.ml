@@ -273,7 +273,7 @@ class virtual ['a] chan_output p =
         if flush then self#flush chan
       with Sys_error e ->
         let bt = Printexc.get_raw_backtrace () in
-        Runtime_error.error ~bt ~message:e "system"
+        Runtime_error.raise ~pos:(Lang.pos p) ~bt ~message:e "system"
 
     method close_pipe =
       self#close_chan (Option.get chan);
@@ -318,7 +318,7 @@ class virtual ['a] file_output_base p =
         fd
       with Sys_error e ->
         let bt = Printexc.get_raw_backtrace () in
-        Runtime_error.error ~bt ~message:e "system"
+        Runtime_error.raise ~pos:(Lang.pos p) ~bt ~message:e "system"
 
     method virtual close_out : 'a -> unit
 
@@ -329,7 +329,7 @@ class virtual ['a] file_output_base p =
         current_filename <- None
       with Sys_error e ->
         let bt = Printexc.get_raw_backtrace () in
-        Runtime_error.error ~bt ~message:e "system"
+        Runtime_error.raise ~pos:(Lang.pos p) ~bt ~message:e "system"
 
     method private on_close = on_close
   end

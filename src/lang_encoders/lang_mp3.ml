@@ -37,7 +37,7 @@ let check_samplerate ~pos i =
        [8000; 11025; 12000; 16000; 22050; 24000; 32000; 44100; 48000]
      in
      if not (List.mem i allowed) then
-       raise (Lang_encoder.error ~pos "invalid samplerate value");
+       Lang_encoder.raise_error ~pos "invalid samplerate value";
      i)
 
 let mp3_base_defaults () =
@@ -63,14 +63,13 @@ let mp3_base f = function
           | "default" -> Mp3_format.Default
           | "joint_stereo" -> Mp3_format.Joint_stereo
           | "stereo" -> Mp3_format.Stereo
-          | _ -> raise (Lang_encoder.error ~pos "invalid stereo mode")
+          | _ -> Lang_encoder.raise_error ~pos "invalid stereo mode"
       in
       { f with Mp3_format.stereo_mode = mode }
   | "internal_quality", `Value { value = Ground (Int q); pos } ->
       if q < 0 || q > 9 then
-        raise
-          (Lang_encoder.error ~pos
-             "internal quality must be a value between 0 and 9");
+        Lang_encoder.raise_error ~pos
+          "internal quality must be a value between 0 and 9";
       { f with Mp3_format.internal_quality = q }
   | "msg_interval", `Value { value = Ground (Float i); _ } ->
       { f with Mp3_format.msg_interval = i }
@@ -81,9 +80,8 @@ let mp3_base f = function
   | "id3v2", `Value { value = Ground (Bool true); pos } -> (
       match !Mp3_format.id3v2_export with
         | None ->
-            raise
-              (Lang_encoder.error ~pos
-                 "no id3v2 support available for the mp3 encoder")
+            Lang_encoder.raise_error ~pos
+              "no id3v2 support available for the mp3 encoder"
         | Some g -> { f with Mp3_format.id3v2 = Some g })
   | "id3v2", `Value { value = Ground (Bool false); _ } ->
       { f with Mp3_format.id3v2 = None }
@@ -93,7 +91,7 @@ let mp3_base f = function
   | "", `Value { value = Ground (String s); _ }
     when String.lowercase_ascii s = "stereo" ->
       { f with Mp3_format.stereo = true }
-  | t -> raise (Lang_encoder.generic_error t)
+  | t -> Lang_encoder.raise_generic_error t
 
 let make_cbr params =
   let defaults =
@@ -113,7 +111,7 @@ let make_cbr params =
       (fun f -> function
         | "bitrate", `Value { value = Ground (Int i); pos } ->
             if not (List.mem i allowed_bitrates) then
-              raise (Lang_encoder.error ~pos "invalid bitrate value");
+              Lang_encoder.raise_error ~pos "invalid bitrate value";
             set_bitrate f i
         | x -> mp3_base f x)
       defaults params
@@ -205,21 +203,21 @@ let make_abr_vbr ~default params =
       (fun f -> function
         | "quality", `Value { value = Ground (Int q); pos } when is_vbr f ->
             if q < 0 || q > 9 then
-              raise (Lang_encoder.error ~pos "quality should be in [0..9]");
+              Lang_encoder.raise_error ~pos "quality should be in [0..9]";
             set_quality f (Some q)
         | "hard_min", `Value { value = Ground (Bool b); _ } ->
             set_hard_min f (Some b)
         | "bitrate", `Value { value = Ground (Int i); pos } ->
             if not (List.mem i allowed_bitrates) then
-              raise (Lang_encoder.error ~pos "invalid bitrate value");
+              Lang_encoder.raise_error ~pos "invalid bitrate value";
             set_mean_bitrate f (Some i)
         | "min_bitrate", `Value { value = Ground (Int i); pos } ->
             if not (List.mem i allowed_bitrates) then
-              raise (Lang_encoder.error ~pos "invalid bitrate value");
+              Lang_encoder.raise_error ~pos "invalid bitrate value";
             set_min_bitrate f (Some i)
         | "max_bitrate", `Value { value = Ground (Int i); pos } ->
             if not (List.mem i allowed_bitrates) then
-              raise (Lang_encoder.error ~pos "invalid bitrate value");
+              Lang_encoder.raise_error ~pos "invalid bitrate value";
             set_max_bitrate f (Some i)
         | x -> mp3_base f x)
       default params

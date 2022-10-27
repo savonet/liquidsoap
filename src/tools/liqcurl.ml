@@ -115,14 +115,22 @@ let () =
              code msg)
     | _ -> None)
 
-let fail msg =
-  raise Runtime_error.(Runtime_error { kind = "http"; msg; pos = [] })
+let fail ~pos message = Runtime_error.raise ~pos ~message "http"
+let interrupt = Atomic.make false
+let () = Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true)
 
-let parse_http_answer s =
+let mk_read =
+  let interrupt = Atomic.make false in
+  Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true);
+  fun fn len ->
+    if Atomic.get interrupt then Curl.Abort
+    else (try Curl.Proceed (fn len) with _ -> Curl.Abort)
+
+let parse_http_answer ~pos s =
   let f v c s = (v, c, s) in
   try Scanf.sscanf s "HTTP/%s %i %[^\r^\n]" f with
-    | Scanf.Scan_failure s -> fail s
-    | _ -> fail "Unknown error"
+    | Scanf.Scan_failure s -> fail ~pos s
+    | _ -> fail ~pos "Unknown error"
 
 let should_stop =
   let should_stop = ref false in
@@ -135,7 +143,7 @@ let should_stop =
   fun _ _ _ _ -> should_stop ()
 
 let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
-    ~request ~on_body_data () =
+    ~request ~on_body_data ~pos () =
   let connection = new Curl.handle in
   try
     (* Check url correctness, fix fixable mistakes.
@@ -152,7 +160,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
         | Some "1.0" -> Curl.HTTP_VERSION_1_0
         | Some "1.1" -> Curl.HTTP_VERSION_1_1
         | Some "2.0" -> Curl.HTTP_VERSION_2
-        | Some v -> fail (Printf.sprintf "Unsupported http version %s" v));
+        | Some v -> fail ~pos (Printf.sprintf "Unsupported http version %s" v));
     ignore (Option.map connection#set_timeoutms timeout);
     (match request with
       | `Get -> connection#set_httpget true
@@ -161,13 +169,13 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
           (match len with
             | Some len -> connection#set_postfieldsizelarge len
             | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
-          connection#set_readfunction get_data
+          connection#set_readfunction2 (mk_read get_data)
       | `Put (len, get_data) ->
           connection#set_put true;
           (match len with
             | Some len -> connection#set_postfieldsizelarge len
             | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
-          connection#set_readfunction get_data
+          connection#set_readfunction2 (mk_read get_data)
       | `Head -> connection#set_nobody true
       | `Delete -> connection#set_customrequest "DELETE");
     ignore
@@ -187,14 +195,14 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
       | url when url <> "" && follow_redirect ->
           connection#cleanup;
           http_request ?headers ?http_version ~follow_redirect ~timeout ~url
-            ~request ~on_body_data ()
+            ~request ~on_body_data ~pos ()
       | _ ->
           let response_headers =
             Pcre.split ~rex:(Pcre.regexp "[\r]?\n")
               (Buffer.contents response_headers)
           in
-          let protocol_version, status_code, status_message =
-            parse_http_answer (List.hd response_headers)
+          let http_version, status_code, status_message =
+            parse_http_answer ~pos (List.hd response_headers)
           in
           let response_headers =
             List.fold_left
@@ -210,7 +218,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
               [] (List.tl response_headers)
           in
           connection#cleanup;
-          (protocol_version, status_code, status_message, response_headers)
+          (http_version, status_code, status_message, response_headers)
   with exn ->
     let bt = Printexc.get_raw_backtrace () in
     connection#cleanup;

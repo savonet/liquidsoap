@@ -237,7 +237,7 @@ let () =
       let f = List.assoc_nth "" 1 p in
       let f () = ignore (Lang.apply f []) in
       let watch = !Configure.file_watcher in
-      let unwatch = watch [`Modify] fname f in
+      let unwatch = watch ~pos:(Lang.pos p) [`Modify] fname f in
       Lang.meth Lang.unit
         [
           ( "unwatch",
@@ -430,4 +430,4 @@ let () =
         Lang.string (Digest.to_hex (Digest.file file))
       else (
         let message = Printf.sprintf "The file %s does not exist." file in
-        Lang.raise_error ~message "file"))
+        Lang.raise_error ~pos:(Lang.pos p) ~message "file"))

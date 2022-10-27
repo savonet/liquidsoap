@@ -120,30 +120,29 @@ let ffmpeg_gen params =
       | Ground (Int i) -> i
       | Ground (String s) -> int_of_string s
       | Ground (Float f) -> int_of_float f
-      | _ -> raise (Lang_encoder.error ~pos:t.pos "integer expected")
+      | _ -> Lang_encoder.raise_error ~pos:t.pos "integer expected"
   in
   let to_string t =
     match t.value with
       | Ground (Int i) -> Printf.sprintf "%i" i
       | Ground (String s) -> s
       | Ground (Float f) -> Printf.sprintf "%f" f
-      | _ -> raise (Lang_encoder.error ~pos:t.pos "string expected")
+      | _ -> Lang_encoder.raise_error ~pos:t.pos "string expected"
   in
   let to_float t =
     match t.value with
       | Ground (Int i) -> float i
       | Ground (String s) -> float_of_string s
       | Ground (Float f) -> f
-      | _ -> raise (Lang_encoder.error ~pos:t.pos "float expected")
+      | _ -> Lang_encoder.raise_error ~pos:t.pos "float expected"
   in
   let to_copy_opt t =
     match t.value with
       | Ground (String "wait_for_keyframe") -> `Wait_for_keyframe
       | Ground (String "ignore_keyframe") -> `Ignore_keyframe
       | _ ->
-          raise
-            (Lang_encoder.error ~pos:t.pos
-               ("Invalid value for copy encoder parameter: " ^ Value.to_string t))
+          Lang_encoder.raise_error ~pos:t.pos
+            ("Invalid value for copy encoder parameter: " ^ Value.to_string t)
   in
   let rec parse_args ~format ~mode f = function
     | [] -> f
@@ -249,7 +248,7 @@ let ffmpeg_gen params =
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Float fl)
           | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Float fl));
         parse_args ~format ~mode f l
-    | (_, t) :: _ -> raise (Lang_encoder.error ~pos:t.pos "unexpected option")
+    | (_, t) :: _ -> Lang_encoder.raise_error ~pos:t.pos "unexpected option"
   in
   List.fold_left
     (fun f -> function
@@ -292,14 +291,13 @@ let ffmpeg_gen params =
       | `Option (k, { value = Ground (Float i); _ }) ->
           Hashtbl.add f.Ffmpeg_format.other_opts k (`Float i);
           f
-      | `Option (l, v) -> raise (Lang_encoder.generic_error (l, `Value v)))
+      | `Option (l, v) -> Lang_encoder.raise_generic_error (l, `Value v))
     defaults params
 
 let copy_param = function
   | [] -> None
   | [("", t)] -> Some t
-  | [(l, v)] | _ :: (l, v) :: _ ->
-      raise (Lang_encoder.generic_error (l, `Value v))
+  | [(l, v)] | _ :: (l, v) :: _ -> Lang_encoder.raise_generic_error (l, `Value v)
 
 let make params =
   let params =

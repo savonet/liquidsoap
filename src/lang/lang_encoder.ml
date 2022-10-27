@@ -28,26 +28,22 @@ exception Encoder_error of (Pos.Option.t * string)
 let has_started = ref false
 let () = Lifecycle.before_start (fun () -> has_started := true)
 
-let error ~pos msg =
+let raise_error ~pos msg =
   match !has_started with
-    | false -> Encoder_error (pos, msg)
+    | false -> raise (Encoder_error (pos, msg))
     | true ->
-        Runtime_error.(
-          Runtime_error
-            {
-              kind = "encoder";
-              msg;
-              pos = (match pos with None -> [] | Some pos -> [pos]);
-            })
+        Runtime_error.raise
+          ~pos:(match pos with None -> [] | Some pos -> [pos])
+          ~message:msg "encoder"
 
-let generic_error (l, t) : exn =
+let raise_generic_error (l, t) =
   match t with
     | `Value v ->
-        error ~pos:v.Value.pos
+        raise_error ~pos:v.Value.pos
           (Printf.sprintf
              "unknown parameter name (%s) or invalid parameter value (%s)" l
              (Value.to_string v))
-    | `Encoder _ -> error ~pos:None "unexpected subencoder"
+    | `Encoder _ -> raise_error ~pos:None "unexpected subencoder"
 
 (** An encoder. *)
 type encoder = {
@@ -96,5 +92,5 @@ let make_encoder ~pos t ((e, p) : Value.encoder) =
     let (_ : Encoder.factory) = Encoder.get_factory e in
     e
   with Not_found ->
-    raise
-      (error ~pos (Printf.sprintf "unsupported format: %s" (Term.to_string t)))
+    raise_error ~pos
+      (Printf.sprintf "unsupported format: %s" (Term.to_string t))

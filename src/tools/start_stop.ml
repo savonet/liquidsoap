@@ -163,16 +163,10 @@ let meth :
         ([], fun_t [] unit_t),
         "Ask the source or output to stop.",
         fun s ->
-          val_fun [] (fun _ ->
+          val_fun [] (fun p ->
               if s#stype = `Infallible then
-                raise
-                  Term.(
-                    Runtime_error
-                      {
-                        kind = "input";
-                        msg = "Source is infallible and cannot be stopped";
-                        pos = [];
-                      });
+                Runtime_error.raise ~pos:(Lang.pos p)
+                  ~message:"Source is infallible and cannot be stopped" "input";
               s#transition_to `Stopped;
               unit) );
       ( "shutdown",

@@ -16,10 +16,7 @@ let from_string ?(pos = []) ?(json5 = false) s =
     | Runtime_error.Runtime_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
         Printexc.raise_with_backtrace exn bt
-    | _ ->
-        raise
-          Runtime_error.(
-            Runtime_error { kind = "json"; msg = "Parse error"; pos })
+    | _ -> Runtime_error.raise ~message:"Parse error" ~pos "json"
 
 (* Special version of utf8 quoting that uses [Uchar.rep]
    when a character cannot be escaped. *)
@@ -53,17 +50,11 @@ let rec to_string_compact ~json5 = function
         | FP_infinite when json5 -> if f < 0. then "-Infinity" else "Infinity"
         | FP_nan when json5 -> if f < 0. then "-NaN" else "NaN"
         | FP_infinite | FP_nan ->
-            raise
-              Runtime_error.(
-                Runtime_error
-                  {
-                    kind = "json";
-                    msg =
-                      "Infinite or Nan number cannot be represented in JSON. \
-                       You might want to consider using the `json5` \
-                       representation.";
-                    pos = [];
-                  })
+            Runtime_error.raise ~pos:[]
+              ~message:
+                "Infinite or Nan number cannot be represented in JSON. You \
+                 might want to consider using the `json5` representation."
+              "json"
         | _ ->
             let s = string_of_float f in
             let s = Printf.sprintf "%s" s in
