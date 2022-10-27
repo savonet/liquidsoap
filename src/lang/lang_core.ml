@@ -343,6 +343,24 @@ let environment () =
   List.map split l
 
 (* This is used to pass position in application environment. *)
+module Single_position = struct
+  let t =
+    method_t unit_t
+      [
+        ("filename", ([], string_t), "filename");
+        ("line_number", ([], int_t), "line number");
+        ("character_offset", ([], int_t), "character offset");
+      ]
+
+  let to_value { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } =
+    meth unit
+      [
+        ("filename", string pos_fname);
+        ("line_number", int pos_lnum);
+        ("character_offset", int (pos_cnum - pos_bol));
+      ]
+end
+
 module Position = struct
   include Value.MkAbstract (struct
     type content = Pos.t
@@ -358,18 +376,10 @@ module Position = struct
   end)
 
   let t =
-    let pos_t =
-      method_t unit_t
-        [
-          ("filename", ([], string_t), "filename");
-          ("line_number", ([], int_t), "line number");
-          ("character_offset", ([], int_t), "character offset");
-        ]
-    in
-    method_t t
+    method_t unit_t
       [
-        ("position_start", ([], pos_t), "Starting position");
-        ("position_end", ([], pos_t), "Ending position");
+        ("position_start", ([], Single_position.t), "Starting position");
+        ("position_end", ([], Single_position.t), "Ending position");
         ( "to_string",
           ([], fun_t [(true, "prefix", string_t)] string_t),
           "Render as string" );
@@ -377,18 +387,10 @@ module Position = struct
 
   let to_value (start, _end) =
     let v = to_value (start, _end) in
-    let to_pos { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } =
-      meth unit
-        [
-          ("filename", string pos_fname);
-          ("line_number", int pos_lnum);
-          ("character_offset", int (pos_cnum - pos_bol));
-        ]
-    in
     meth v
       [
-        ("position_start", to_pos start);
-        ("position_end", to_pos _end);
+        ("position_start", Single_position.to_value start);
+        ("position_end", Single_position.to_value _end);
         ( "to_string",
           val_fun
             [("prefix", "prefix", Some (string "At "))]
