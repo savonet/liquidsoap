@@ -68,12 +68,10 @@ module Error = struct
         ([], Lang_core.string_t),
         "Error message.",
         fun { msg } -> Lang_core.string msg );
-      ( "positions",
-        ([], Lang_core.(list_t string_t)),
-        "Error positions.",
-        fun { pos } ->
-          Lang_core.list
-            (List.map (fun pos -> Lang_core.string (Pos.to_string pos)) pos) );
+      ( "trace",
+        ([], Lang_core.Stacktrace.t),
+        "Error stacktrace.",
+        fun { pos } -> Lang_core.Stacktrace.to_value pos );
     ]
 
   let t =
@@ -96,7 +94,7 @@ let () =
     Error.t
     (fun p ->
       let kind = Lang_core.to_string (List.assoc "" p) in
-      Error.to_value (Runtime_error.make ~pos:(Lang_core.pos p) kind))
+      Error.to_value (Runtime_error.make ~pos:[] kind))
 
 let () =
   Lang_core.add_builtin "error.raise" ~category:`Programming

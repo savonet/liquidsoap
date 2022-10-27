@@ -28,6 +28,9 @@ Changed:
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.
+- Errors now report proper stack trace via their `trace` method, making it
+  possible to programmatically point to file, line and character offsets
+  of each step in the error call trace (#2712)
 - Reimplemented `harbor` http handler API to be more flexible. Added a new
   node/express-like registration and middleware API (#2599).
 - Switched default persistence for cross and fade-related overrides

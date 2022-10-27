@@ -343,20 +343,70 @@ let environment () =
   List.map split l
 
 (* This is used to pass position in application environment. *)
-module Position = Value.MkAbstract (struct
-  type content = Pos.t list
+module Position = struct
+  include Value.MkAbstract (struct
+    type content = Pos.t
 
-  let name = "position"
+    let name = "position"
+    let descr _ = "position"
 
-  let descr pos =
-    Printf.sprintf "position<%s>" (Pos.List.to_string ~newlines:false pos)
+    let to_json ~pos _ =
+      Runtime_error.raise ~pos
+        ~message:"Positions cannot be represented as json" "json"
 
-  let to_json ~pos _ =
-    Runtime_error.raise ~pos ~message:"Positions cannot be represented as json"
-      "json"
+    let compare = Stdlib.compare
+  end)
 
-  let compare = Stdlib.compare
-end)
+  let t =
+    let pos_t =
+      method_t unit_t
+        [
+          ("filename", ([], string_t), "filename");
+          ("line_number", ([], int_t), "line number");
+          ("character_offset", ([], int_t), "character offset");
+        ]
+    in
+    method_t t
+      [
+        ("position_start", ([], pos_t), "Starting position");
+        ("position_end", ([], pos_t), "Ending position");
+        ( "to_string",
+          ([], fun_t [(true, "prefix", string_t)] string_t),
+          "Render as string" );
+      ]
+
+  let to_value (start, _end) =
+    let v = to_value (start, _end) in
+    let to_pos { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } =
+      meth unit
+        [
+          ("filename", string pos_fname);
+          ("line_number", int pos_lnum);
+          ("character_offset", int (pos_cnum - pos_bol));
+        ]
+    in
+    meth v
+      [
+        ("position_start", to_pos start);
+        ("position_end", to_pos _end);
+        ( "to_string",
+          val_fun
+            [("prefix", "prefix", Some (string "At "))]
+            (fun p ->
+              let prefix = to_string (List.assoc "prefix" p) in
+              string (Pos.to_string ~prefix (start, _end))) );
+      ]
+
+  let of_value v =
+    let v = demeth v in
+    of_value v
+end
+
+module Stacktrace = struct
+  let t = list_t Position.t
+  let to_value l = list (List.map Position.to_value l)
+  let of_value v = List.map Position.of_value (to_list v)
+end
 
 let pos_var = "_pos_"
-let pos env = Position.of_value (List.assoc pos_var env)
+let pos env = Stacktrace.of_value (List.assoc pos_var env)

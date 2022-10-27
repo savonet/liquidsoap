@@ -311,7 +311,7 @@ and apply ?pos f l =
     pe
     @ [
         ( Lang_core.pos_var,
-          Lang_core.Position.to_value
+          Lang_core.Stacktrace.to_value
             (match pos with None -> [] | Some p -> [p]) );
       ]
   in
