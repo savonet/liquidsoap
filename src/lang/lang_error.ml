@@ -108,9 +108,9 @@ let () =
     ]
     (Lang_core.univ_t ())
     (fun p ->
-      let { kind } = Error.of_value (Lang_core.assoc "" 1 p) in
+      let { kind; pos } = Error.of_value (Lang_core.assoc "" 1 p) in
       let message = Lang_core.to_string (Lang_core.assoc "" 2 p) in
-      Runtime_error.raise ~pos:(Lang_core.pos p) ~message kind)
+      Runtime_error.raise ~pos:(Lang_core.pos p @ pos) ~message kind)
 
 let () =
   Lang_core.add_builtin "error.on_error" ~category:`Programming
