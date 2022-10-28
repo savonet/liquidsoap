@@ -304,12 +304,16 @@ let check_content v t =
                 check_value (List.assoc meth meths) t)
               meths_t;
             check_value v t
+        (* The type says that we should drop the method. *)
+        | Value.Meth (_, _, v), _ -> check_value v t
         | Ref r, Type.Constr { Type.constructor = "ref"; params = [(_, t)] } ->
             check_value (Atomic.get r) t
-        (* We don't check functions, assuming anything creating a source is a FFI registered via add_operator
-           so the check will happen there. *)
+        (* We don't check functions, assuming anything creating a source is a
+           FFI registered via add_operator so the check will happen there. *)
         | Fun _, _ | FFI _, _ -> ()
-        | _ -> assert false)
+        | _ ->
+            failwith
+              ("Unhandled value in check_content: " ^ Value.to_string v ^ "."))
   in
   check_value v t
 
