@@ -79,6 +79,7 @@ let deprecated = ref true
 
 (* Shall we start an interactive interpreter (REPL) *)
 let interactive = ref false
+let log = Log.make ["main"]
 
 (** [load_libs] should be called before loading a script or looking up the
     documentation, to make sure that pervasive libraries have been loaded,
@@ -91,8 +92,11 @@ let load_libs =
   fun () ->
     if !stdlib && not !loaded then (
       try
+        let t = Sys.time () in
         Runtime.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
           ~parse_only:!parse_only ();
+        log#important "Standard library loaded in %.02f seconds."
+          (Sys.time () -. t);
         loaded := true
       with Liquidsoap_lang.Runtime.Error ->
         flush_all ();
@@ -206,8 +210,6 @@ let format_doc s =
       | [] -> []
   in
   String.concat "\n" s
-
-let log = Log.make ["main"]
 
 let options =
   ref
@@ -430,7 +432,7 @@ let () =
         (Some "<sysrundir>/<script>.pid");
 
       log#important "Liquidsoap %s" Configure.version;
-      log#important "Using:%s" (Configure.libs_versions ());
+      log#important "Using: %s" (Configure.libs_versions ());
       if Configure.git_snapshot then
         List.iter (log#important "%s")
           ({|
