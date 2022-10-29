@@ -179,7 +179,16 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     | List l ->
         List.iter (fun x -> check ~level ~env x) l;
         let t = Type.var ~level ?pos () in
-        List.iter (fun e -> e.t <: t) l;
+        let vars, other =
+          List.partition
+            (fun e ->
+              match Type.deref e.t with
+                | Type.{ descr = Var _ } -> true
+                | _ -> false)
+            l
+        in
+        List.iter (fun e -> e.t <: t) vars;
+        List.iter (fun e -> e.t <: t) other;
         e.t >: mk Type.(List { t; json_repr = `Tuple })
     | Tuple l ->
         List.iter (fun a -> check ~level ~env a) l;
