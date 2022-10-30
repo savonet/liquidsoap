@@ -29,7 +29,7 @@ test.check(fun () ->
 
     r = request.dynamic(prefetch=1, next)
 
-    output.dummy(fallible=true, r)
+    o = output.dummy(fallible=true, r)
 
     thread.run.recurrent(fun () ->
      if not r.is_ready() then
@@ -48,6 +48,7 @@ test.check(fun () ->
         test.fail()
       end
 
+      o.stop()
       test.pass()
 
       (-1.)

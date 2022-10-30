@@ -8,7 +8,7 @@ def fn() =
 
 
  output.srt(%wav,blank(),mode="listener",listen_callback=listen_callback)
- output.dummy(mksafe(input.srt(mode="caller",streamid="foobar")))
+ thread.run(delay=1., {output.dummy(mksafe(input.srt(mode="caller",streamid="foobar")))})
 end
 
 test.check(fn)
