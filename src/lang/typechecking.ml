@@ -158,6 +158,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     e.t >: mk (Type.Arrow (proto_t, body.t))
   in
   match e.term with
+    | Any -> ()
     | Ground g -> e.t >: mkg (Ground.to_descr g)
     | Encoder f ->
         (* Ensure that we only use well-formed terms. *)

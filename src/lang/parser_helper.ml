@@ -269,9 +269,7 @@ let mk_app_invoke_default ~pos ~args body =
   in
   mk_fun ~pos app_args body
 
-let mk_any ~pos () =
-  let op = mk ~pos (Var "💣") in
-  mk ~pos (App (op, []))
+let mk_any ~pos () = mk ~pos Any
 
 let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
     =

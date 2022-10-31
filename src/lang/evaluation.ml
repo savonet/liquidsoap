@@ -152,6 +152,7 @@ let rec prepare_fun fv p env =
 and eval (env : Env.t) tm =
   let mk v = { Value.pos = tm.t.Type.pos; Value.value = v } in
   match tm.term with
+    | Any -> mk Value.Null
     | Ground g -> mk (Value.Ground g)
     | Encoder (e, p) ->
         let pos = tm.t.Type.pos in
