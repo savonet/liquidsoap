@@ -103,8 +103,11 @@ module Env = struct
   let lookup (env : t) var =
     try Lazy.force (List.assoc var env)
     with Not_found ->
-      failwith
-        (Printf.sprintf "Internal error: variable %s not in environment." var)
+      let bt = Printexc.get_raw_backtrace () in
+      Printexc.raise_with_backtrace
+        (Failure
+           (Printf.sprintf "Internal error: variable %s not in environment." var))
+        bt
 
   (** Restrict an environment to a given set of variables. *)
   let restrict (env : t) vars =
