@@ -987,7 +987,7 @@ The type of this function is:
 f : (int, 'a.{add? : int}) -> int = <fun>
 ```
 
-Which denotes that the `options` argument can be any value that may or may not have
+which denotes that the `options` argument can be any value that may or may not have
 a `add` field. However, if this field is present, it must be of type `int`.
 
 2. Using the `x?.foo` syntax
@@ -998,7 +998,7 @@ otherwise.
 The `?.` syntax can be chained and works with functions, which make it a very convenient
 way to drill deep inside nested records:
 
-```ruby
+```liquidsoap
 x?.fn(123, "aabb")?.field
 ```
 

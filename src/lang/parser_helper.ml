@@ -275,7 +275,7 @@ let mk_any =
       Lang_core.unit);
   fun ~pos () ->
     let op = mk ~pos (Var "_invoke_any_") in
-    mk ~pos (App (op, [("", mk ~pos (Tuple []))]))
+    mk ~pos (App (op, []))
 
 let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
     =
