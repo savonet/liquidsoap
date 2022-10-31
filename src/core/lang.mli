@@ -70,6 +70,7 @@ and in_value = Liquidsoap_lang.Value.in_value =
   | FFI of (string * string * value option) list * (env -> value)
 
 val demeth : value -> value
+val split_meths : value -> (string * value) list * value
 
 (** Iter a function over all sources contained in a value. This only applies to
     statically referenced objects, i.e. it does not explore inside reference
@@ -187,7 +188,9 @@ val of_product_t : t -> t * t
 val tuple_t : t list -> t
 val of_tuple_t : t -> t list
 val record_t : (string * t) list -> t
+val optional_record_t : (string * t) list -> t
 val method_t : t -> (string * scheme * string) list -> t
+val optional_method_t : t -> (string * scheme * string) list -> t
 val list_t : t -> t
 val of_list_t : t -> t
 val nullable_t : t -> t
