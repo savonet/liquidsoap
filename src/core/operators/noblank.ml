@@ -244,7 +244,10 @@ let extract p =
   (start_blank, max_blank, min_noise, threshold, ts, s)
 
 let () =
-  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "blank.detect" ~return_t ~category:`Track
     ~meth:
       [
@@ -275,7 +278,10 @@ let () =
         ~on_noise s)
 
 let () =
-  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "blank.strip" ~return_t
     ~meth:
       [
@@ -294,7 +300,10 @@ let () =
       new strip ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s)
 
 let () =
-  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let frame_t =
+    Lang.frame_t (Lang.univ_t ())
+      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+  in
   Lang.add_operator "blank.eat" ~return_t ~category:`Track
     ~meth:
       [
