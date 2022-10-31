@@ -231,6 +231,7 @@ let () =
     Lang.unit_t
     (fun p ->
       let n = Lang.to_int (List.assoc "" p) in
+      flush_all ();
       exit n)
 
 let () =
