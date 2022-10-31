@@ -42,4 +42,4 @@ abuild
 mv "/home/opam/packages/tmp/${ALPINE_ARCH}/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk" "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 mv "/home/opam/packages/tmp/${ALPINE_ARCH}/${APK_PACKAGE}-dbg-${APK_VERSION}-r${APK_RELEASE}.apk" "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 
-echo "basename=${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk" >> $GITHUB_OUTPUT
+echo "##[set-output name=basename;]${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk"
