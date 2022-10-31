@@ -248,7 +248,7 @@ let () =
     Lang.frame_t (Lang.univ_t ())
       (Frame.mk_fields ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "blank.detect" ~return_t ~category:`Track
+  Lang.add_operator "blank.detect" ~return_t:frame_t ~category:`Track
     ~meth:
       [
         ( "is_blank",
@@ -265,7 +265,7 @@ let () =
          Lang.fun_t [] Lang.unit_t,
          Some (Lang.val_cst_fun [] Lang.unit),
          Some "Handler called when noise is detected." )
-    :: proto return_t)
+    :: proto frame_t)
     (fun p ->
       let on_blank = Lang.assoc "" 1 p in
       let on_noise = Lang.assoc "on_noise" 1 p in
@@ -282,7 +282,7 @@ let () =
     Lang.frame_t (Lang.univ_t ())
       (Frame.mk_fields ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "blank.strip" ~return_t
+  Lang.add_operator "blank.strip" ~return_t:frame_t
     ~meth:
       [
         ( "is_blank",
@@ -292,7 +292,7 @@ let () =
       ]
     ~category:`Track
     ~descr:"Make the source unavailable when it is streaming blank."
-    (proto return_t)
+    (proto frame_t)
     (fun p ->
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
@@ -304,7 +304,7 @@ let () =
     Lang.frame_t (Lang.univ_t ())
       (Frame.mk_fields ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "blank.eat" ~return_t ~category:`Track
+  Lang.add_operator "blank.eat" ~return_t:frame_t ~category:`Track
     ~meth:
       [
         ( "is_blank",
@@ -319,7 +319,7 @@ let () =
        Lang.bool_t,
        Some (Lang.bool false),
        Some "Only eat at the beginning of a track." )
-    :: proto return_t)
+    :: proto frame_t)
     (fun p ->
       let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
