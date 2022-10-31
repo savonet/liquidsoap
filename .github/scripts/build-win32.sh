@@ -70,6 +70,6 @@ zip -r "liquidsoap-$BUILD.zip" "liquidsoap-$BUILD"
 
 mv "liquidsoap-$BUILD.zip" "/tmp/${GITHUB_RUN_NUMBER}/win32/dist"
 
-echo "##[set-output name=basename;]liquidsoap-${BUILD}"
+echo "basename=liquidsoap-${BUILD}" >> $GITHUB_OUTPUT
 
 echo "::endgroup::"
