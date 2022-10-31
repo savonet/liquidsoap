@@ -269,13 +269,14 @@ let mk_app_invoke_default ~pos ~args body =
   in
   mk_fun ~pos app_args body
 
-let mk_any =
+let () =
   Lang_core.add_builtin ~category:`Programming ~descr:"Internal"
     ~flags:[`Hidden] "_invoke_any_" [] (Lang_core.univ_t ()) (fun _ ->
-      Lang_core.unit);
-  fun ~pos () ->
-    let op = mk ~pos (Var "_invoke_any_") in
-    mk ~pos (App (op, []))
+      Lang_core.unit)
+
+let mk_any ~pos () =
+  let op = mk ~pos (Var "_invoke_any_") in
+  mk ~pos (App (op, []))
 
 let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
     =
