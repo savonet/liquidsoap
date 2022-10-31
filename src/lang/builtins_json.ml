@@ -121,17 +121,19 @@ let rec value_of_typed_json ~ty json =
           Typing.(ty <: Lang.unit_t);
           let meth =
             List.map
-              (fun Type.{ meth; json_name; scheme = _, ty } ->
+              (fun Type.{ meth; optional; json_name; scheme = _, ty } ->
                 let ty = Type.deref ty in
                 let lbl = Option.value ~default:meth json_name in
-                let nullable_meth, _ = nullable_deref ty in
+                let nullable_meth = optional || fst (nullable_deref ty) in
                 let v =
                   match List.assoc_opt lbl l with
                     | Some v -> (
-                        try value_of_typed_json ~ty v
-                        with Failed v ->
-                          raise
-                            (Failed (nullable, `Assoc [(meth, json_name, v)])))
+                        try value_of_typed_json ~ty v with
+                          | _ when nullable_meth -> Lang.null
+                          | Failed v ->
+                              raise
+                                (Failed (nullable, `Assoc [(meth, json_name, v)]))
+                        )
                     | None when nullable_meth -> Lang.null
                     | _ ->
                         raise

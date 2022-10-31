@@ -56,6 +56,7 @@ type scheme = var list * t
 
 type meth = Type_base.meth = {
   meth : string;
+  optional : bool;
   scheme : scheme;
   doc : string;
   json_name : string option;
@@ -112,7 +113,14 @@ val has_meth : t -> string -> bool
 val invokes : t -> string list -> var list * t
 
 val meth :
-  ?pos:Pos.t -> ?json_name:string -> string -> scheme -> ?doc:string -> t -> t
+  ?pos:Pos.t ->
+  ?json_name:string ->
+  ?optional:bool ->
+  string ->
+  scheme ->
+  ?doc:string ->
+  t ->
+  t
 
 val meths : ?pos:Pos.t -> string list -> scheme -> t -> t
 val split_meths : t -> meth list * t

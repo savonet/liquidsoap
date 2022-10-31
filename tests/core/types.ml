@@ -27,7 +27,15 @@ let () =
     (List { t = make Ground.int; json_repr = `Tuple });
 
   let mk_meth meth ty t =
-    Meth ({ meth; scheme = ([], make ty); doc = ""; json_name = None }, make t)
+    Meth
+      ( {
+          meth;
+          optional = false;
+          scheme = ([], make ty);
+          doc = "";
+          json_name = None;
+        },
+        make t )
   in
 
   let m = mk_meth "aa" Ground.int Ground.bool in

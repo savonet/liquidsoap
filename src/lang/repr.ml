@@ -171,14 +171,20 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | List { t; json_repr } -> `List (repr g t, json_repr)
         | Tuple l -> `Tuple (List.map (repr g) l)
         | Nullable t -> `Nullable (repr g t)
-        | Meth ({ meth = l; scheme = g', u; json_name }, v) ->
+        | Meth ({ meth = l; optional; scheme = g', u; json_name }, v) ->
             let gen =
               List.map
                 (fun v -> match uvar (g' @ g) v with `UVar v -> v)
                 (List.sort_uniq compare g')
             in
             `Meth
-              ( R.{ name = l; scheme = (gen, repr (g' @ g) u); json_name },
+              ( R.
+                  {
+                    name = l;
+                    optional;
+                    scheme = (gen, repr (g' @ g) u);
+                    json_name;
+                  },
                 repr g v )
         | Constr { constructor; params } ->
             `Constr (constructor, List.map (fun (l, t) -> (l, repr g t)) params)
@@ -292,24 +298,26 @@ let print f t =
         if not !debug then (
           (* Find all methods. *)
           let rec aux = function
-            | `Meth (R.{ name = l; scheme = t; json_name }, u) ->
+            | `Meth (R.{ name = l; optional; scheme = t; json_name }, u) ->
                 let m, u = aux u in
-                ((l, t, json_name) :: m, u)
+                ((l, optional, t, json_name) :: m, u)
             | u -> ([], u)
           in
           let m, t = aux t in
           (* Filter out duplicates. *)
           let rec aux = function
-            | (l, t, json_name) :: m ->
-                (l, t, json_name)
-                :: aux (List.filter (fun (l', _, _) -> l <> l') m)
+            | (l, o, t, json_name) :: m ->
+                (l, o, t, json_name)
+                :: aux (List.filter (fun (l', _, _, _) -> l <> l') m)
             | [] -> []
           in
           let m = aux m in
           (* Put latest addition last. *)
           (* let m = List.rev m in *)
           (* Sort methods according to label. *)
-          let m = List.sort (fun (l, _, _) (l', _, _) -> compare l l') m in
+          let m =
+            List.sort (fun (l, _, _, _) (l', _, _, _) -> compare l l') m
+          in
           (* First print the main value. *)
           let vars =
             if t = `Tuple [] then (
@@ -331,23 +339,27 @@ let print f t =
                 if !show_record_schemes then gen (List.sort compare g) else ""
               in
               let rec aux vars = function
-                | [(l, (g, t), Some json_name)] ->
-                    Format.fprintf f "%s as %s : %s"
+                | [(l, optional, (g, t), Some json_name)] ->
+                    let optional = if optional then "?" else "" in
+                    Format.fprintf f "%s%s as %s%s : %s"
                       (Lang_string.quote_utf8_string json_name)
-                      l (gen g);
+                      optional l optional (gen g);
                     print ~par:true vars t
-                | [(l, (g, t), None)] ->
-                    Format.fprintf f "%s : %s" l (gen g);
+                | [(l, optional, (g, t), None)] ->
+                    let optional = if optional then "?" else "" in
+                    Format.fprintf f "%s%s : %s" l optional (gen g);
                     print ~par:false vars t
-                | (l, (g, t), Some json_name) :: m ->
-                    Format.fprintf f "%s as %s : %s"
+                | (l, optional, (g, t), Some json_name) :: m ->
+                    let optional = if optional then "?" else "" in
+                    Format.fprintf f "%s%s as %s%s : %s"
                       (Lang_string.quote_utf8_string json_name)
-                      l (gen g);
+                      optional l optional (gen g);
                     let vars = print ~par:false vars t in
                     Format.fprintf f ",@ ";
                     aux vars m
-                | (l, (g, t), None) :: m ->
-                    Format.fprintf f "%s : %s" l (gen g);
+                | (l, optional, (g, t), None) :: m ->
+                    let optional = if optional then "?" else "" in
+                    Format.fprintf f "%s%s : %s" l optional (gen g);
                     let vars = print ~par:false vars t in
                     Format.fprintf f ",@ ";
                     aux vars m

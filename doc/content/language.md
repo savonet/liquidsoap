@@ -961,6 +961,47 @@ will print
 
 (note that the string is modified but not the fields `duration` and `bpm`).
 
+### Optional fields
+
+During the execution of your script, it can be useful to allow functions
+to receive records that may or may not have a specific field. This can
+be used, for instance, to model optional arguments.
+
+This can be achieved in two ways:
+
+1. Using the `x.foo ?? default` syntax
+
+Here's an example:
+
+```liquidsoap
+# This functions adds 1 to x unless options has a
+# add field in which case it adds this value
+def f(x, options) =
+  x + (options.add ?? 1)
+end
+```
+
+The type of this function is:
+
+```liquidsoap
+f : (int, 'a.{add? : int}) -> int = <fun>
+```
+
+which denotes that the `options` argument can be any value that may or may not have
+a `add` field. However, if this field is present, it must be of type `int`.
+
+2. Using the `x?.foo` syntax
+
+Given a variable `x`, `x?.foo` returns the field value `foo`, if present, or `null`
+otherwise.
+
+The `?.` syntax can be chained and works with functions, which make it a very convenient
+way to drill deep inside nested records:
+
+```liquidsoap
+x?.fn(123, "aabb")?.field
+```
+
 ## Patterns
 
 As explained earlier, you can use several constructions to extract data from structured values such

@@ -204,14 +204,15 @@ and encoder_params = (string * [ `Term of t | `Encoder of encoder ]) list
 (** A formal encoder. *)
 and encoder = string * encoder_params
 
-and invoke = { invoked : t; meth : string }
-and meth = { name : string; meth_t : t }
+and invoke = { invoked : t; default : t option; meth : string }
+and meth = { name : string; meth_value : t }
 
 and in_term =
   | Ground of Ground.t
   | Encoder of encoder
   | List of t list
   | Tuple of t list
+  | Any
   | Null
   | Cast of t * Type.t
   | Meth of meth * t
@@ -289,11 +290,15 @@ let rec to_string v =
         aux e
     | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
+    | Any -> "any"
     | Null -> "null"
     | Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Repr.string_of_type t ^ ")"
-    | Meth ({ name = l; meth_t = v }, e) ->
+    | Meth ({ name = l; meth_value = v }, e) ->
         to_string e ^ ".{" ^ l ^ " = " ^ to_string v ^ "}"
-    | Invoke { invoked = e; meth = l } -> to_string e ^ "." ^ l
+    | Invoke { invoked = e; meth = l; default } -> (
+        match default with
+          | None -> to_string e ^ "." ^ l
+          | Some v -> "(" ^ to_string e ^ "." ^ l ^ " ?? " ^ to_string v ^ ")")
     | Open (m, e) -> "open " ^ to_string m ^ " " ^ to_string e
     | Fun (_, [], v) when is_ground v -> "{" ^ to_string v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
@@ -368,7 +373,7 @@ let rec free_vars tm =
     | Var x -> Vars.singleton x
     | Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
-    | Null -> Vars.empty
+    | Any | Null -> Vars.empty
     | Encoder e ->
         let rec enc (_, p) =
           List.fold_left
@@ -381,7 +386,7 @@ let rec free_vars tm =
         enc e
     | Cast (e, _) -> free_vars e
     | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
-    | Meth ({ meth_t = v }, e) -> Vars.union (free_vars v) (free_vars e)
+    | Meth ({ meth_value = v }, e) -> Vars.union (free_vars v) (free_vars e)
     | Invoke { invoked = e } -> free_vars e
     | Open (a, b) -> Vars.union (free_vars a) (free_vars b)
     | List l ->
@@ -434,9 +439,9 @@ let check_unused ~throw ~lib tm =
       | Var s -> Vars.remove s v
       | Ground _ -> v
       | Tuple l -> List.fold_left (fun a -> check a) v l
-      | Null -> v
+      | Any | Null -> v
       | Cast (e, _) -> check v e
-      | Meth ({ meth_t = f }, e) -> check (check v e) f
+      | Meth ({ meth_value = f }, e) -> check (check v e) f
       | Invoke { invoked = e } -> check v e
       | Open (a, b) -> check (check v a) b
       | Seq (a, b) -> check ~toplevel (check v a) b

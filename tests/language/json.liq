@@ -1,14 +1,5 @@
 # We test some ground values for json import/export.
 
-success = ref(true)
-
-def t(x,y) =
-  if x != y then
-    print("Failure: #{x} instead of #{y}")
-    success := false
-  end
-end
-
 def test_parse_error(name, f, msg) =
   error_caught = ref(false)
 
@@ -33,16 +24,16 @@ def test_parse_error(name, f, msg) =
 end
 
 def f() =
-  t(json.stringify(()), '[]')
-  t(json.stringify("aa'bb"), "\"aa'bb\"")
-  t(json.stringify("a"), '"a"')
-  t(json.stringify("©"), '"©"')
-  t(json.stringify('"'), '"\\""')
-  t(json.stringify('\\'), '"\\\\"')
+  test.equals(json.stringify(()), '[]')
+  test.equals(json.stringify("aa'bb"), "\"aa'bb\"")
+  test.equals(json.stringify("a"), '"a"')
+  test.equals(json.stringify("©"), '"©"')
+  test.equals(json.stringify('"'), '"\\""')
+  test.equals(json.stringify('\\'), '"\\\\"')
 
-  t(json.stringify(json5=true, infinity), 'Infinity')
-  t(json.stringify(json5=true, (0.-infinity)), '-Infinity')
-  t(json.stringify(json5=true,nan), 'NaN')
+  test.equals(json.stringify(json5=true, infinity), 'Infinity')
+  test.equals(json.stringify(json5=true, (0.-infinity)), '-Infinity')
+  test.equals(json.stringify(json5=true,nan), 'NaN')
 
   let b = json()
   b.add("b", 1)
@@ -50,11 +41,11 @@ def f() =
      a = null({a=1}),
      b = null(b)
   })
-  t(s, "{ \"b\": { \"b\": 1 }, \"a\": { \"a\": 1 } }")
+  test.equals(s, "{ \"b\": { \"b\": 1 }, \"a\": { \"a\": 1 } }")
 
   data = "123"
   let json.parse ( x : int ) = data
-  t(x, 123)
+  test.equals(x, 123)
 
   data = '{
     "foo": 34.24,
@@ -86,7 +77,7 @@ def f() =
     }
   }) = data
 
-  t(x, {
+  test.equals(x, {
     foo = 34.24,
     gni_gno = true,
     nested = {
@@ -107,12 +98,12 @@ def f() =
       nullable_list = [l1, ...tl]
     }
   } = data
-  t(foo, 34.24)
-  t(t1, 123)
-  t(t2, 3.14)
-  t(t3, false)
-  t(l1, null())
-  t(tl, [23, null()])
+  test.equals(foo, 34.24)
+  test.equals(t1, 123)
+  test.equals(t2, 3.14)
+  test.equals(t3, false)
+  test.equals(l1, null())
+  test.equals(tl, [23, null()])
 
   let json.parse x = data
   ignore(x.foo + 1.0)
@@ -208,25 +199,45 @@ def f() =
 
   data = '{"aabbcc": 34, "ddeerr": 54 }'
   let json.parse (x : [(string * int)] as json.object) = data
-  t(list.assoc("aabbcc", x), 34)
-  t(list.assoc("ddeerr", x), 54)
+  test.equals(list.assoc("aabbcc", x), 34)
+  test.equals(list.assoc("ddeerr", x), 54)
 
   data = '{ "foo": 123 }'
   let json.parse ( x : {
     foo : string
   }?) = data
-  t(x, null())
+  test.equals(x, null())
 
   data = '[ "gni", 123 ]'
   let json.parse ( x : [int]? ) = data
-  t(x, null())
+  test.equals(x, null())
 
   let json.parse ( x : (string * int * bool)? ) = data
-  t(x, null())
+  test.equals(x, null())
 
   data = '[ "gni", 123, "gno" ]'
   let json.parse ( x : (string * int) ) = data
-  t(x, ("gni",123))
+  test.equals(x, ("gni",123))
+
+  data = '{
+    "foo": {
+      "gni": {
+        "bla": 123
+      }
+    }
+  }'
+  let json.parse x = data
+  test.equals(x?.foo.gni?.bla, null(123))
+
+  data = '{
+    "foo": {}
+  }'
+  let json.parse x = data
+  test.equals(x?.foo.gni?.bla, null())
+
+  data = '{}'
+  let json.parse x = data
+  test.equals(x?.foo?.gni?.bla, null())
 
   j = json()
   j.add("foo", 1)
@@ -236,7 +247,7 @@ def f() =
   j.add("record", { a = 1, b = "ert"})
   j.remove("foo")
   j = json.stringify(j)
-  t(j, '{
+  test.equals(j, '{
   "record": { "b": "ert", "a": 1 },
   "key_with_methods": "value",
   "bla": "bar",
@@ -254,13 +265,9 @@ def f() =
   end
 
   f(infinity)
-  if not null.defined(!e) then success := false end
+  if not null.defined(!e) then test.fail() end
 
-  if !success then
-    test.pass()
-  else
-    test.fail()
-  end
+  test.pass()
 end
 
 test.check(f)

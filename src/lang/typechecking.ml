@@ -35,7 +35,7 @@ let rec value_restriction t =
     | RFun _ -> true
     | Null -> true
     | List l | Tuple l -> List.for_all value_restriction l
-    | Meth ({ meth_t = t }, u) -> value_restriction t && value_restriction u
+    | Meth ({ meth_value = v }, u) -> value_restriction v && value_restriction u
     | Ground _ -> true
     | Let l -> value_restriction l.def && value_restriction l.body
     | Cast (t, _) -> value_restriction t
@@ -110,6 +110,7 @@ let rec type_of_pat ~level ~pos = function
                   Meth
                     ( {
                         meth = lbl;
+                        optional = false;
                         scheme = ([], a);
                         doc = "";
                         json_name = None;
@@ -157,6 +158,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     e.t >: mk (Type.Arrow (proto_t, body.t))
   in
   match e.term with
+    | Any -> ()
     | Ground g -> e.t >: mkg (Ground.to_descr g)
     | Encoder f ->
         (* Ensure that we only use well-formed terms. *)
@@ -189,7 +191,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~level ~env a;
         a.t <: t;
         e.t >: t
-    | Meth ({ name = l; meth_t = a }, b) ->
+    | Meth ({ name = l; meth_value = a }, b) ->
         check ~level ~env a;
         check ~level ~env b;
         e.t
@@ -197,17 +199,19 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
              (Type.Meth
                 ( {
                     Type.meth = l;
+                    optional = false;
                     scheme = Typing.generalize ~level a.t;
                     doc = "";
                     json_name = None;
                   },
                   b.t ))
-    | Invoke { invoked = a; meth = l } ->
+    | Invoke { invoked = a; default; meth = l } ->
         check ~level ~env a;
         let rec aux t =
           match (Type.deref t).Type.descr with
-            | Type.(Meth ({ meth = l'; scheme = s }, c)) ->
-                if l = l' then Typing.instantiate ~level s else aux c
+            | Type.(Meth ({ meth = l'; scheme = s }, _)) when l = l' ->
+                (fst s, Typing.instantiate ~level s)
+            | Type.(Meth (_, c)) -> aux c
             | _ ->
                 (* We did not find the method, the type we will infer is not the
                    most general one (no generalization), but this is safe and
@@ -220,14 +224,30 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                        Meth
                          ( {
                              meth = l;
+                             optional = default <> None;
                              scheme = ([], x);
                              doc = "";
                              json_name = None;
                            },
                            y ));
-                x
+                ([], x)
         in
-        e.t >: aux a.t
+        let vars, typ = aux a.t in
+        let typ =
+          match default with
+            | None -> typ
+            | Some v ->
+                check ~level ~env v;
+                (* We want to make sure that: x?.foo types as: { foo?: 'a } *)
+                let typ =
+                  match (Type.deref v.t).descr with
+                    | Type.Nullable _ -> mk Type.(Nullable typ)
+                    | _ -> typ
+                in
+                Typing.instantiate ~level (vars, v.t) <: typ;
+                typ
+        in
+        e.t >: typ
     | Open (a, b) ->
         check ~level ~env a;
         a.t <: mk Type.unit;
