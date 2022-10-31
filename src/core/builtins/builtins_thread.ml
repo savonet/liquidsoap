@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Liquidsoap_lang
-
 let () =
   Lang.add_module "thread";
   Lang.add_module "thread.run"
