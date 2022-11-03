@@ -19,6 +19,7 @@ fades.liq
 profiler.liq
 null.liq
 math.liq
+socket.liq
 error.liq
 request.liq
 string.liq

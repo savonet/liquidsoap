@@ -120,6 +120,19 @@
  (alias runtest)
  (package liquidsoap)
  (deps
+  socket.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} socket.liq liquidsoap %{test_liq} socket.liq)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
   pp.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe

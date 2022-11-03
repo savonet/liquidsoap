@@ -25,7 +25,7 @@ let () =
         Some "Default file rights if created. Default: `0o644`" );
       ("", Lang.string_t, None, None);
     ]
-    Builtins_socket.SocketValue.t ~descr:"Open a file."
+    Builtins_socket.Socket_value.t ~descr:"Open a file."
     (fun p ->
       let write = Lang.to_bool (List.assoc "write" p) in
       let access_flag = if write then Unix.O_RDWR else Unix.O_RDONLY in
@@ -51,8 +51,8 @@ let () =
       let file_perms = Lang.to_int (List.assoc "perms" p) in
       let path = Lang_string.home_unrelate (Lang.to_string (List.assoc "" p)) in
       try
-        Builtins_socket.SocketValue.(
-          to_value (of_unix_file_descr (Unix.openfile path flags file_perms)))
+        Builtins_socket.Socket_value.(
+          to_value (Http.unix_socket (Unix.openfile path flags file_perms)))
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)
