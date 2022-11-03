@@ -107,7 +107,7 @@ let hls_proto frame_t =
           "Callback executed when a file changes. `state` is one of: \
            `\"opened\"`, `\"closed\"` or `\"deleted\"`, second argument is \
            file path. Typical use: upload files to a CDN when done writing \
-           (`\"close\"` state and remove when `\"deleted\"`." );
+           (`\"close\"` state and remove when `\"deleted\"`)." );
       ( "persist_at",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
