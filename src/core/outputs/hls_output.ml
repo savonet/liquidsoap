@@ -50,16 +50,16 @@ let hls_proto frame_t =
         Lang.string (Printf.sprintf "%s_%d.%s" sname position extname))
   in
   let stream_info_t =
-    let info_t =
-      Lang.record_t
-        [
-          ("bandwidth", Lang.int_t);
-          ("codecs", Lang.string_t);
-          ("extname", Lang.string_t);
-          ("video_size", Lang.nullable_t (Lang.product_t Lang.int_t Lang.int_t));
-        ]
-    in
-    Lang.product_t Lang.string_t info_t
+    Lang.product_t Lang.string_t
+      (Lang.optional_method_t (Lang.format_t frame_t)
+         [
+           ("bandwidth", ([], Lang.int_t), "Bandwidth");
+           ("codecs", ([], Lang.string_t), "Codec");
+           ("extname", ([], Lang.string_t), "Filename extension");
+           ( "video_size",
+             ([], Lang.product_t Lang.int_t Lang.int_t),
+             "Video size" );
+         ])
   in
   Output.proto
   @ [
@@ -107,15 +107,7 @@ let hls_proto frame_t =
           "Callback executed when a file changes. `state` is one of: \
            `\"opened\"`, `\"closed\"` or `\"deleted\"`, second argument is \
            file path. Typical use: upload files to a CDN when done writing \
-           (`\"close\"` state and remove when `\"deleted\"`." );
-      ( "streams_info",
-        Lang.list_t stream_info_t,
-        Some (Lang.list []),
-        Some
-          "Additional information about the streams. Should be a list of the \
-           form: `[(stream_name, (bandwidth, codecs, extname, (width, \
-           height)?)]`. See RFC 6381 for info about codecs. Stream info are \
-           required when they cannot be inferred from the encoder." );
+           (`\"close\"` state and remove when `\"deleted\"`)." );
       ( "persist_at",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
@@ -129,7 +121,7 @@ let hls_proto frame_t =
         Some "Fail if an invalid saved state exists." );
       ("", Lang.string_t, None, Some "Directory for generated files.");
       ( "",
-        Lang.list_t (Lang.product_t Lang.string_t (Lang.format_t frame_t)),
+        Lang.list_t stream_info_t,
         None,
         Some "List of specifications for each stream: (name, format)." );
       ("", Lang.source_t frame_t, None, None);
@@ -298,28 +290,6 @@ class hls_output p =
               ("", Lang.string sname);
             ])
   in
-  let streams_info =
-    let streams_info = List.assoc "streams_info" p in
-    let l = Lang.to_list streams_info in
-    List.map
-      (fun el ->
-        let name, specs = Lang.to_product el in
-        let bandwidth = Value.invoke specs "bandwidth" in
-        let codecs = Value.invoke specs "codecs" in
-        let extname = Value.invoke specs "extname" in
-        let video_size = Value.invoke specs "video_size" in
-        ( Lang.to_string name,
-          ( lazy (Lang.to_int bandwidth),
-            lazy (Lang.to_string codecs),
-            Lang.to_string extname,
-            lazy
-              (Option.map
-                 (fun v ->
-                   let w, h = Lang.to_product v in
-                   (Lang.to_int w, Lang.to_int h))
-                 (Lang.to_option video_size)) ) ))
-      l
-  in
   let streams =
     let streams = Lang.assoc "" 2 p in
     let l = Lang.to_list streams in
@@ -331,6 +301,7 @@ class hls_output p =
   let mk_streams, streams =
     let f s =
       let name, fmt = Lang.to_product s in
+      let stream_info, fmt = Lang.split_meths fmt in
       let name = Lang.to_string name in
       let format = Lang.to_format fmt in
       let encoder_factory =
@@ -340,54 +311,70 @@ class hls_output p =
       in
       let encoder = encoder_factory name Meta_format.empty_metadata in
       let bandwidth, codecs, extname, video_size =
-        try List.assoc name streams_info
-        with Not_found ->
-          let bandwidth =
-            lazy
-              (match Encoder.(encoder.hls.bitrate ()) with
-                | Some b -> b + (b / 10)
-                | None -> (
-                    try Encoder.bitrate format
-                    with Not_found ->
-                      raise
-                        (Error.Invalid_value
-                           ( fmt,
-                             "Bandwidth cannot be inferred from codec, please \
-                              specify it in `streams_info`" ))))
-          in
-          let codecs =
-            lazy
-              (match Encoder.(encoder.hls.codec_attrs ()) with
-                | Some attrs -> attrs
-                | None -> (
-                    try Encoder.iso_base_file_media_file_format format
-                    with Not_found ->
-                      raise
-                        (Error.Invalid_value
-                           ( fmt,
-                             Printf.sprintf
-                               "Stream info for stream %S cannot be inferred \
-                                from codec, please specify it in \
-                                `streams_info`"
-                               name ))))
-          in
-          let extname =
+        let bandwidth =
+          lazy
+            (try Lang.to_int (List.assoc "bandwidth" stream_info)
+             with Not_found -> (
+               match Encoder.(encoder.hls.bitrate ()) with
+                 | Some b -> b + (b / 10)
+                 | None -> (
+                     try Encoder.bitrate format
+                     with Not_found ->
+                       raise
+                         (Error.Invalid_value
+                            ( fmt,
+                              Printf.sprintf
+                                "Bandwidth for stream %S cannot be inferred \
+                                 from codec, please specify it with: \
+                                 `%%encoder(...).{bandwidth = <number>, ...}`"
+                                name )))))
+        in
+        let codecs =
+          lazy
+            (try Lang.to_string (List.assoc "codecs" stream_info)
+             with Not_found -> (
+               match Encoder.(encoder.hls.codec_attrs ()) with
+                 | Some attrs -> attrs
+                 | None -> (
+                     try Encoder.iso_base_file_media_file_format format
+                     with Not_found ->
+                       raise
+                         (Error.Invalid_value
+                            ( fmt,
+                              Printf.sprintf
+                                "Stream info for stream %S cannot be inferred \
+                                 from codec, please specify it with: \
+                                 `%%encoder(...).{codecs = \"...\", ...}`"
+                                name )))))
+        in
+        let extname =
+          try Lang.to_string (List.assoc "extname" stream_info)
+          with Not_found -> (
             try Encoder.extension format
             with Not_found ->
               raise
                 (Error.Invalid_value
                    ( fmt,
-                     "File extension cannot be inferred from codec, please \
-                      specify it in `streams_info`" ))
-          in
-          let extname = if extname = "mp4" then "m4s" else extname in
-          let video_size =
-            lazy
-              (match Encoder.(encoder.hls.video_size ()) with
-                | Some s -> Some s
-                | None -> Encoder.video_size format)
-          in
-          (bandwidth, codecs, extname, video_size)
+                     Printf.sprintf
+                       "File extension for stream %S cannot be inferred from \
+                        codec, please specify it with: \
+                        `%%encoder(...).{extname = \"...\", ...}`"
+                       name )))
+        in
+        let extname = if extname = "mp4" then "m4s" else extname in
+        let video_size =
+          lazy
+            (try
+               let w, h =
+                 Lang.to_product (List.assoc "video_size" stream_info)
+               in
+               Some (Lang.to_int w, Lang.to_int h)
+             with Not_found -> (
+               match Encoder.(encoder.hls.video_size ()) with
+                 | Some s -> Some s
+                 | None -> Encoder.video_size format))
+        in
+        (bandwidth, codecs, extname, video_size)
       in
       {
         name;

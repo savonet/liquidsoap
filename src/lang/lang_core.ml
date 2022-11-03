@@ -42,9 +42,18 @@ let rec record_t = function
   | [] -> unit_t
   | (l, t) :: r -> Type.meth l ([], t) (record_t r)
 
+let rec optional_record_t = function
+  | [] -> unit_t
+  | (l, t) :: r -> Type.meth ~optional:true l ([], t) (optional_record_t r)
+
 let rec method_t t0 = function
   | [] -> t0
   | (l, t, doc) :: r -> Type.meth l t ~doc (method_t t0 r)
+
+let rec optional_method_t t0 = function
+  | [] -> t0
+  | (l, t, doc) :: r ->
+      Type.meth l t ~doc ~optional:true (optional_method_t t0 r)
 
 let of_tuple_t t =
   match (Type.deref t).Type.descr with Type.Tuple l -> l | _ -> assert false

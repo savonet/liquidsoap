@@ -223,7 +223,6 @@ end
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
-# @param ~stream_info Information about the stream (see `output.file.hls` for details).
 # @param ~segment_duration Segment duration (in seconds).
 # @param ~segments Number of segments per playlist.
 # @param ~segments_overhead Number of segments to keep after they have been featured in the live playlist.
@@ -231,11 +230,10 @@ end
 # @param ~encoder Encoder to use (most likely a `%ffmpeg` encoder)
 # @param ~key Your secret youtube key
 def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_stop={()},
-                            ~stream_info=null(),~segment_duration=2.0,~segments=4,~segments_overhead=4,
+                            ~segment_duration=2.0,~segments=4,~segments_overhead=4,
                             ~start=true, ~url="https://a.upload.youtube.com/http_upload_hls",
                             ~(key:string), ~encoder, s)
   id = string.id.default(default="output.youtube.live.hls", id)
-  streams_info = if null.defined(stream_info) then [null.get(stream_info)] else [] end
 
   def file_url(fname) =
     "#{url}?cid=#{key}&copy=0&file=#{fname}"
@@ -269,7 +267,6 @@ def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_sto
     segment_duration=segment_duration,
     segments=segments,
     segments_overhead=segments_overhead,
-    streams_info=streams_info,
     on_file_change=on_file_change,
     tmpdir,
     [("live", encoder)],
