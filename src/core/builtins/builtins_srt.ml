@@ -30,7 +30,7 @@ exception Not_connected
 module G = Generator
 module Generator = Generator.From_audio_video_plus
 
-module SocketValue = struct
+module Socket_value = struct
   let socket_options_specs =
     [
       ("connection_timeout", `Int Srt.conntimeo);

@@ -51,7 +51,7 @@ let common_options ~mode =
              (false, "hs_version", Lang.int_t);
              (false, "peeraddr", Lang.string_t);
              (false, "streamid", Lang.nullable_t Lang.string_t);
-             (false, "", Builtins_srt.SocketValue.t);
+             (false, "", Builtins_srt.Socket_value.t);
            ]
            Lang.bool_t),
       Some Lang.null,
@@ -142,7 +142,7 @@ let meth () =
       ( [],
         Lang.fun_t []
           (Lang.list_t
-             (Lang.product_t Lang.string_t Builtins_srt.SocketValue.t)) ),
+             (Lang.product_t Lang.string_t Builtins_srt.Socket_value.t)) ),
       "List of `(connected_address, connected_socket)`",
       fun s ->
         Lang.val_fun [] (fun _ ->
@@ -151,7 +151,7 @@ let meth () =
                  (fun (origin, s) ->
                    Lang.product
                      (Lang.string (Utils.name_of_sockaddr origin))
-                     (Builtins_srt.SocketValue.to_value s))
+                     (Builtins_srt.Socket_value.to_value s))
                  s#get_sockets)) );
   ]
 
@@ -208,7 +208,7 @@ let parse_common_options p =
                  match streamid with
                    | None -> Lang.null
                    | Some s -> Lang.string s );
-               ("", Builtins_srt.SocketValue.to_value socket);
+               ("", Builtins_srt.Socket_value.to_value socket);
              ]))
       (Lang.to_option fn)
   in

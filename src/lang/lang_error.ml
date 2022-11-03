@@ -38,9 +38,8 @@ module ErrorDef = struct
   let descr { kind; msg; pos } =
     let pos =
       if pos <> [] then
-        Lang_string.quote_string
-          (Printf.sprintf ",positions=%s"
-             (Pos.List.to_string ~newlines:false pos))
+        Printf.sprintf ",positions=%s"
+          (Lang_string.quote_string (Pos.List.to_string ~newlines:false pos))
       else ""
     in
     Printf.sprintf "error(kind=%s,message=%s%s)"

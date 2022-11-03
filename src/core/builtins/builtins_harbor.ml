@@ -31,7 +31,7 @@ let request_t =
       ("data", Lang.fun_t [(true, "timeout", Lang.float_t)] Lang.string_t);
       ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("query", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
-      ("socket", Builtins_socket.SocketValue.t);
+      ("socket", Builtins_socket.Socket_value.t);
       ("path", Lang.string_t);
     ]
 
@@ -79,8 +79,8 @@ let parse_register_args p =
     in
     let query = Lang.list query in
     let socket =
-      Builtins_socket.SocketValue.to_value
-        (socket :> Builtins_socket.SocketValue.content)
+      Builtins_socket.Socket_value.to_value
+        (socket :> Builtins_socket.Socket_value.content)
     in
     let request =
       Lang.record

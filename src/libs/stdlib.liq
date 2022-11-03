@@ -10,6 +10,7 @@
 %include "thread.liq"
 %include "process.liq"
 %include "string.liq"
+%include "socket.liq"
 %include "file.liq"
 %include "switches.liq"
 %include "utils.liq"
