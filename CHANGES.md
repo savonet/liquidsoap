@@ -14,6 +14,8 @@ Changed:
   requests.
 * Better error message when an encoder is not available on windows
   (#2665)
+* Create output directory in HLS outputs when it does not exist
+  using newly introduced `perms` permission argument (#2725)
 
 Fixed:
 * Enhanced methods typing support (#2659)

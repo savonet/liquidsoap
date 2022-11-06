@@ -123,6 +123,10 @@ let hls_proto kind =
           "Location of the configuration file used to restart the output. \
            Relative paths are assumed to be with regard to the directory for \
            generated file." );
+      ( "perms",
+        Lang.int_t,
+        Some (Lang.int 0o755),
+        Some "Default directory rights if created. Default: `0o755`" );
       ( "strict_persist",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -252,10 +256,12 @@ class hls_output p =
   let directory = Lang.to_string (Lang.assoc "" 1 p) in
   let () =
     if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
-    then
-      raise
-        (Error.Invalid_value
-           (Lang.assoc "" 1 p, "The target directory does not exist"))
+    then (
+      let perms = Lang.to_int (List.assoc "perm" p) in
+      try Sys.mkdir directory perms
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"file" exn)
   in
   let persist_at =
     Option.map
