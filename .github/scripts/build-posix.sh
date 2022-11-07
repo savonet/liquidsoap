@@ -42,7 +42,9 @@ echo "\n### Setting up specific dependencies\n"
 
 opam update
 # See: https://github.com/whitequark/ocaml-inotify/pull/20
-opam install -y uri inotify.2.3
+git clone https://github.com/whitequark/ocaml-inotify.git
+cd ocaml-inotify && opam pin -n .
+opam install -y uri inotify
 
 cd /tmp/liquidsoap-full
 
