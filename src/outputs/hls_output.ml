@@ -257,8 +257,8 @@ class hls_output p =
   let () =
     if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
     then (
-      let perms = Lang.to_int (List.assoc "perm" p) in
-      try Sys.mkdir directory perms
+      let perm = Lang.to_int (List.assoc "perm" p) in
+      try Utils.mkdir ~perm directory
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)
