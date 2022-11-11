@@ -499,15 +499,24 @@ let rec assoc label n = function
 
 let raise_error = Runtime_error.raise
 
-let raise_as_runtime ~bt ~kind exn =
+let runtime_error_of_exception ~bt ~kind exn =
   match exn with
-    | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
-    | exn ->
-        raise_error ~bt ~pos:[]
+    | Runtime_error.Runtime_error error -> error
+    | _ ->
+        Runtime_error.make ~pos:[]
           ~message:
             (Printf.sprintf "%s\nBacktrace:\n%s" (Printexc.to_string exn)
                (Printexc.raw_backtrace_to_string bt))
           kind
+
+let raise_as_runtime ~bt ~kind exn =
+  match exn with
+    | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
+    | _ ->
+        Printexc.raise_with_backtrace
+          (Runtime_error.Runtime_error
+             (runtime_error_of_exception ~bt ~kind exn))
+          bt
 
 (* This is used to pass position in application environment. *)
 module Position = Value.MkAbstract (struct

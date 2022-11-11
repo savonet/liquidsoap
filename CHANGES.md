@@ -16,6 +16,9 @@ Changed:
   (#2665)
 * Create output directory in HLS outputs when it does not exist
   using newly introduced `perms` permission argument (#2725)
+* Removed `restart_on_error` argument on `output.url` and added
+  `restart_delay` which implements a delayed restart. Added
+  `on_error` argument to be notified of errors (#2731)
 
 Fixed:
 * Enhanced methods typing support (#2659)

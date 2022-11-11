@@ -270,5 +270,9 @@ val raise_error :
   string ->
   'a
 
+(** Convert an exception into a runtime error. *)
+val runtime_error_of_exception :
+  bt:Printexc.raw_backtrace -> kind:string -> exn -> Runtime_error.runtime_error
+
 (** Re-raise an error as a runtime error. *)
 val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
