@@ -7,7 +7,7 @@ AC_INIT([liquidsoap],
         [https://github.com/savonet/liquidsoap])
 git_snapshot=true
 version="$PACKAGE_VERSION"
-min_ocaml_version=`cat liquidsoap.opam | grep \"ocaml\" | sed 's/[ ]*"ocaml" {>= "\([^"]*\)"}/\1/' | tr -d '\r\n'`
+min_ocaml_version=4.12.0
 git_commit=`git rev-parse --short HEAD || true`
 
 if test $git_snapshot != "false"; then
