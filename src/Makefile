@@ -190,7 +190,7 @@ tools = \
 	tools/log.ml tools/pos.ml \
 	tools/extralib.ml tools/lifecycle.ml \
 	tools/stringView.ml tools/strings.ml tools/utils.ml \
-	tools/runtime_error.ml \
+	tools/runtime_error.ml tools/extra_args.ml \
 	tools/json_base.ml tools/json_parser.ml tools/json_lexer.ml tools/json.ml \
         tools/doc.ml tools/plug.ml \
 	tools/rqueue.ml tools/unifier.ml \

@@ -1,10 +1,14 @@
 2.1.3 (unreleased)
 =====
 
-Added:
+New:
 * Added `time.string`.
 * Added `error.on_error` to report any error raised during the
   script's execution. Enhanced reported error positions (#2712)
+* Added `device_id` and `latency` options to `input.portaudio`
+  and `output.portaudio` to be able to choose the requested 
+  device. Use `liquidsoap --list-portaudio-devices` to see the
+  list of devices (#2733)
 
 Changed:
 * Send data in-memory in `http.{post,put}.file` when input data
