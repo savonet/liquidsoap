@@ -103,6 +103,7 @@
   external_input_audio
   external_input_video
   extralib
+  extra_args
   fdkaac_format
   ffmpeg_format
   file_watcher

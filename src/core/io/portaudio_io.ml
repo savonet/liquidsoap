@@ -27,6 +27,53 @@ let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "portaudio")
 
 let initialized = ref false
 
+let () =
+  Extra_args.add
+    ( ["--list-portaudio-devices"],
+      Arg.Unit
+        (fun () ->
+          Portaudio.init ();
+          let c = Portaudio.get_device_count () in
+          Printf.printf "Portaudio has %d devices:\n%!" c;
+          let rec f p =
+            if p < c then (
+              let {
+                Portaudio.d_name;
+                d_host_api;
+                d_max_input_channels;
+                d_max_output_channels;
+                d_default_low_input_latency;
+                d_default_low_output_latency;
+                d_default_high_input_latency;
+                d_default_high_output_latency;
+                d_default_sample_rate;
+              } =
+                Portaudio.get_device_info p
+              in
+              Printf.printf
+                {|
+Device ID %d:
+- name: %s
+- host API: %d
+- max input channels: %d
+- max output channels: %d
+- default low input latency: %.02f
+- default low output latency: %.02f
+- default high input latency: %.02f
+- default high output latency: %.02f
+- default sample rate: %.02f
+|}
+                p d_name d_host_api d_max_input_channels d_max_output_channels
+                d_default_low_input_latency d_default_low_output_latency
+                d_default_high_input_latency d_default_high_output_latency
+                d_default_sample_rate;
+              f (p + 1))
+          in
+          f 0;
+          Portaudio.terminate ();
+          exit 0),
+      "List all available portaudio devices" )
+
 class virtual base =
   object (self)
     inherit Source.no_seek
@@ -42,9 +89,13 @@ class virtual base =
     method handle lbl f =
       try f () with
         | Portaudio.Error n ->
-            failwith
-              (Printf.sprintf "Portaudio error in %s: %s" lbl
-                 (Portaudio.string_of_error n))
+            let bt = Printexc.get_raw_backtrace () in
+            let exn =
+              Failure
+                (Printf.sprintf "Portaudio error in %s: %s" lbl
+                   (Portaudio.string_of_error n))
+            in
+            Printexc.raise_with_backtrace exn bt
         | Portaudio.Unanticipated_host_error ->
             let n, s = Portaudio.get_last_host_error () in
             if n = 0 then
@@ -55,9 +106,50 @@ class virtual base =
                 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
   end
 
-class output ~clock_safe ~start ~on_start ~on_stop ~infallible buflen val_source
-  =
+let open_device ~mode ~latency ~channels ~buflen device_id =
   let samples_per_second = Lazy.force Frame.audio_rate in
+  match device_id with
+    | None ->
+        Portaudio.open_default_stream ~format:Portaudio.format_float32 0
+          channels samples_per_second buflen
+    | Some device ->
+        let device_info = Portaudio.get_device_info device in
+        let inparams, outparams =
+          match mode with
+            | `Input ->
+                let latency =
+                  Option.value
+                    ~default:device_info.Portaudio.d_default_high_output_latency
+                    latency
+                in
+                ( Some
+                    {
+                      Portaudio.channels;
+                      device;
+                      sample_format = Portaudio.format_float32;
+                      latency;
+                    },
+                  None )
+            | `Output ->
+                let latency =
+                  Option.value
+                    ~default:device_info.Portaudio.d_default_high_input_latency
+                    latency
+                in
+                ( None,
+                  Some
+                    {
+                      Portaudio.channels;
+                      device;
+                      sample_format = Portaudio.format_float32;
+                      latency;
+                    } )
+        in
+        Portaudio.open_stream inparams outparams (float samples_per_second)
+          buflen []
+
+class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~device_id
+  ~latency buflen val_source =
   object (self)
     inherit base
 
@@ -76,11 +168,11 @@ class output ~clock_safe ~start ~on_start ~on_stop ~infallible buflen val_source
     method self_sync = (`Dynamic, stream <> None)
 
     method private open_device =
-      self#handle "open_default_stream" (fun () ->
+      self#handle "open_device" (fun () ->
           stream <-
             Some
-              (Portaudio.open_default_stream 0 self#audio_channels
-                 samples_per_second buflen));
+              (open_device ~mode:`Output ~latency ~channels:self#audio_channels
+                 ~buflen device_id));
       self#handle "start_stream" (fun () ->
           Portaudio.start_stream (Option.get stream))
 
@@ -106,15 +198,15 @@ class output ~clock_safe ~start ~on_start ~on_stop ~infallible buflen val_source
           Portaudio.write_stream stream buf 0 len)
   end
 
-class input ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
+  buflen =
   object (self)
     inherit base
 
     inherit
       Start_stop.active_source
-        ~get_clock ~clock_safe ~name:"portaudio_in" ~on_start ~on_stop ~fallible
-          ~autostart:start ()
+        ~get_clock ~clock_safe ~name:"input.portaudio" ~on_start ~on_stop
+          ~fallible ~autostart:start ()
 
     method private start = self#open_device
     method private stop = self#close_device
@@ -124,11 +216,11 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
     method remaining = -1
 
     method private open_device =
-      self#handle "open_default_stream" (fun () ->
+      self#handle "open_device" (fun () ->
           stream <-
             Some
-              (Portaudio.open_default_stream self#audio_channels 0
-                 samples_per_second buflen));
+              (open_device ~mode:`Input ~latency ~channels:self#audio_channels
+                 ~buflen device_id));
       self#handle "start_stream" (fun () ->
           Portaudio.start_stream (Option.get stream))
 
@@ -161,6 +253,14 @@ let () =
           Lang.int_t,
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
+        ( "device_id",
+          Lang.nullable_t Lang.int_t,
+          Some Lang.null,
+          Some "Device ID. Uses default device if `null`." );
+        ( "latency",
+          Lang.nullable_t Lang.float_t,
+          Some Lang.null,
+          Some "Device latency. Only used when specifying device ID." );
         ("", Lang.source_t frame_t, None, None);
       ])
     ~return_t:frame_t ~category:`Output ~meth:Output.meth
@@ -168,6 +268,12 @@ let () =
     (fun p ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
+      let device_id =
+        Lang.to_valued_option Lang.to_int (List.assoc "device_id" p)
+      in
+      let latency =
+        Lang.to_valued_option Lang.to_float (List.assoc "latency" p)
+      in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
@@ -181,7 +287,8 @@ let () =
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       (new output
-         ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
+         ~start ~on_start ~on_stop ~infallible ~clock_safe ~device_id ~latency
+         buflen source
         :> Output.output))
 
 let () =
@@ -195,12 +302,26 @@ let () =
           Lang.int_t,
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
+        ( "device_id",
+          Lang.nullable_t Lang.int_t,
+          Some Lang.null,
+          Some "Device ID. Uses default device if `null`." );
+        ( "latency",
+          Lang.nullable_t Lang.float_t,
+          Some Lang.null,
+          Some "Device latency. Only used when specifying device ID." );
       ])
     ~return_t ~category:`Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
+      let device_id =
+        Lang.to_valued_option Lang.to_int (List.assoc "device_id" p)
+      in
+      let latency =
+        Lang.to_valued_option Lang.to_float (List.assoc "latency" p)
+      in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
@@ -212,4 +333,6 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      new input ~clock_safe ~start ~on_start ~on_stop ~fallible buflen)
+      new input
+        ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
+        buflen)

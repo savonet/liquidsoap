@@ -276,7 +276,7 @@ let options =
           warnings in some cases. Currently: unused variables and ignored \
           expressions. " );
      ]
-    @ Dtools.Init.args
+    @ Dtools.Init.args @ Extra_args.args ()
     @ [
         ( ["-t"; "--enable-telnet"],
           Arg.Unit (fun _ -> Server.conf_telnet#set true),
