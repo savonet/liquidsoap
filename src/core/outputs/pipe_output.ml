@@ -80,10 +80,14 @@ let url_proto frame_t =
   Output.proto
   @ [
       ("url", Lang.string_t, None, Some "Url to output to.");
-      ( "restart_on_error",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Restart output on errors" );
+      ( "restart_delay",
+        Lang.nullable_t Lang.float_t,
+        Some (Lang.float 2.),
+        Some "If not `null`, restart output on errors after the given delay." );
+      ( "on_error",
+        Lang.fun_t [(false, "", Lang.error_t)] Lang.unit_t,
+        Some (Lang.val_fun [("", "", None)] (fun _ -> Lang.unit)),
+        Some "Callback executed when an error occurs." );
       ( "self_sync",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -106,23 +110,47 @@ class url_output p =
   in
   let format = Encoder.with_url_output format url in
   let source = Lang.assoc "" 2 p in
-  let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
+  let restart_delay =
+    Lang.to_valued_option Lang.to_float (List.assoc "restart_delay" p)
+  in
+  let on_error = List.assoc "on_error" p in
+  let on_error ~bt exn =
+    let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
+    ignore (Lang.apply on_error [("", Lang.error error)])
+  in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let name = "output.url" in
   object (self)
     inherit base p ~source ~name as super
     method private encoder_factory = encoder_factory ~format format_val
+    val mutable restart_time = 0.
 
-    method encode frame ofs len =
-      try super#encode frame ofs len
-      with e when restart_on_error ->
-        let bt = Printexc.get_backtrace () in
-        Utils.log_exception ~log:self#log ~bt
-          (Printf.sprintf "Error when encoding data: %s" (Printexc.to_string e));
-        self#stop;
-        self#start;
-        self#encode frame ofs len
+    method private restartify : 'a. default:'a -> (unit -> 'a) -> 'a =
+      fun ~default fn ->
+        try
+          match encoder with
+            | None when restart_time <= Unix.gettimeofday () ->
+                super#start;
+                fn ()
+            | None -> default
+            | Some _ -> fn ()
+        with exn -> (
+          let bt = Printexc.get_raw_backtrace () in
+          Utils.log_exception ~log:self#log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Error while streaming: %s" (Printexc.to_string exn));
+          on_error ~bt exn;
+          match restart_delay with
+            | None -> Printexc.raise_with_backtrace exn bt
+            | Some delay ->
+                super#stop;
+                restart_time <- Unix.gettimeofday () +. delay;
+                self#log#important "Will try to reconnect in %.02f seconds."
+                  delay;
+                default)
 
+    method start = self#restartify ~default:() (fun () -> super#start)
+    method output = self#restartify ~default:() (fun () -> super#output)
     method write_pipe _ _ _ = ()
     method self_sync = (`Static, self_sync)
   end
