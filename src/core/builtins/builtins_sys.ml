@@ -63,6 +63,7 @@ let () =
       try Lang.string (Encoder.extension f) with _ -> Lang.string "")
 
 let () =
+  Lang.add_module "decoder";
   (* The type of the test function for external decoders.
    * Return is one of:
    * . 0: no audio
@@ -80,7 +81,7 @@ let () =
          decodable audio channels." )
   in
   let test_f f file = Lang.to_int (Lang.apply f [("", Lang.string file)]) in
-  Lang.add_builtin "add_decoder" ~category:`Liquidsoap
+  Lang.add_builtin "decoder.add" ~category:`Liquidsoap
     ~descr:
       "Register an external decoder. The encoder should output in WAV format \
        to his standard output (stdout) and read data from its standard input \
@@ -125,14 +126,15 @@ let () =
         ~file_extensions ~test:(test_f test) process;
       Lang.unit);
 
+  Lang.add_module "decoder.oblivious";
   let process_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t in
-  Lang.add_builtin "add_oblivious_decoder" ~category:`Liquidsoap
+  Lang.add_builtin "decoder.oblivious.add" ~category:`Liquidsoap
     ~descr:
       "Register an external file decoder. The encoder should output in WAV \
        format to his standard output (stdout) and read data from the file it \
        receives. The estimated remaining duration for this decoder will be \
        unknown until the `buffer` last seconds of the file. If possible, it is \
-       recommended to decode from stdin and use `add_decoder`."
+       recommended to decode from stdin and use `decoder.add`."
     [
       ("name", Lang.string_t, None, Some "Format/decoder's name.");
       ("description", Lang.string_t, None, Some "Description of the decoder.");

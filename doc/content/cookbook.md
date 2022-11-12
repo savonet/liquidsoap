@@ -183,10 +183,10 @@ request.dynamic.list(
 
 Of course a more interesting behaviour is obtained with a more interesting program than `cat`, see [Beets](beet.html) for example.
 
-Another way of using an external program is to define a new protocol which uses it to resolve URIs. `add_protocol` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program ; it is another way to integrate [Beets](beet.html), for example:
+Another way of using an external program is to define a new protocol which uses it to resolve URIs. `protocol.add` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program ; it is another way to integrate [Beets](beet.html), for example:
 
 ```liquidsoap
-add_protocol("beets", fun(~rlog,~maxtime,arg) ->
+protocol.add("beets", fun(~rlog,~maxtime,arg) ->
   process.read.lines(
     "/home/me/path/to/beet random -f '$path' #{arg}"
   )

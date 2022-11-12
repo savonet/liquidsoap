@@ -8,20 +8,20 @@ Please note that this feature is not available under Windows.
 
 ## Basic operators
 
-External decoders are registered using the `add_decoder` and `add_oblivious_decoder` operators.
+External decoders are registered using the `decoder.add` and `decoder.oblivious.add` operators.
 They are invoked the following way:
 
-### `add_decoder`
+### `decoder.add`
 
 ```liquidsoap
-add_decoder(name="my_decoder",description="My custom decoder",
+decoder.add(name="my_decoder",description="My custom decoder",
             test,decoder)
 ```
 
-`add_decoder` is used for external decoders that can read the encoded data from their standard
+`decoder.add` is used for external decoders that can read the encoded data from their standard
 input (stdin) and write the decoded data as WAV to their standard output (stdout). This operator
 is recommended because its estimation of the remaining time is better than the estimation done
-by the decoders registered using `add_oblivious_decoder`. The important parameters are:
+by the decoders registered using `decoder.oblivious.add`. The important parameters are:
 
 - `test` is a function used to determine if the file should be decoded by the decoder. Returned values are:
 
@@ -31,23 +31,23 @@ by the decoders registered using `add_oblivious_decoder`. The important paramete
 
 - `decoder` is the string containing the shell command to run to execute the decoding process.
 
-### `add_oblivious_decoder`
+### `decoder.oblivious.add`
 
-`add_oblivious_decoder` is very similar to `add_decoder`. The main difference is that the
+`decoder.oblivious.add` is very similar to `decoder.add`. The main difference is that the
 decoding program reads encoded data directly from the local files and not its standard input.
 Decoders registered using this operator do not have a reliable estimation of the remaining
-time. You should use `add_oblivious_decoder` only if your decoding program is not able
+time. You should use `decoder.oblivious.add` only if your decoding program is not able
 to read the encoded data from its standard input.
 
 ```liquidsoap
-add_oblivious_decoder(name="my_decoder",description="My custom decoder",
+decoder.oblivious.add(name="my_decoder",description="My custom decoder",
                       buffer=5., test,decoder)
 ```
 
-`add_decoder` is used for external decoders that can read the encoded data from their standard
+`decoder.add` is used for external decoders that can read the encoded data from their standard
 input (stdin) and write the decoded data as WAV to their standard output (stdout). This operator
 is recommended because its estimation of the remaining time is better than the estimation done
-by the decoders registered using `add_oblivious_decoder`. The important parameters are:
+by the decoders registered using `decoder.oblivious.add`. The important parameters are:
 
 - `test` is a function used to determine if the file should be decoded by the decoder. Returned values are:
 
@@ -57,10 +57,10 @@ by the decoders registered using `add_oblivious_decoder`. The important paramete
 
 - `decoder` is a function that receives the name of the file that should be decoded and returns a string containing the shell command to run to execute the decoding process.
 
-### `add_metadata_resolver`
+### `decoder.metadata.add`
 
-You may also register new metadata resolvers using the `add_metadata_resolver` operator. It is invoked the
-following way: `add_metadata_resolver(format,resolver)`, where:
+You may also register new metadata resolvers using the `decoder.metadata.add` operator. It is invoked the
+following way: `decoder.metadata.add(format,resolver)`, where:
 
 - `format` is the name of the resolved format. It is only informative.
 - `resolver` is a function `f` that returns a list of metadata of the form: `(label, value)`. It is invoked the following way: `f(format=name,file)`, where:
@@ -100,7 +100,7 @@ Its code is the following:
       end
     end
   end
-  add_decoder(name="FLAC",description="Decode files using the flac \
+  decoder.add(name="FLAC",description="Decode files using the flac \
               decoder binary.", test=test_flac,flac_p)
 ```
 
@@ -128,7 +128,7 @@ if process.test("which metaflac") then
     end
   list.fold(f,[],ret)
   end
-  add_metadata_resolver("FLAC",flac_meta)
+  decoder.metadata.add("FLAC",flac_meta)
 end
 ```
 
@@ -137,7 +137,7 @@ end
 The faad decoder uses the `faad` program, if found in the `$PATH`.
 It can decode AAC and AAC+ audio files. This program does not support
 reading encoded data from its standard input so the decoder is
-registered using `add_oblivious_decoder`.
+registered using `decoder.oblivious.add`.
 
 Its code is the following:
 
@@ -190,7 +190,7 @@ Its code is the following:
         0
       end
     end
-    add_oblivious_decoder(name="FAAD",description="Decode files using \
+    decoder.oblivious.add(name="FAAD",description="Decode files using \
                           the faad binary.", test=test_faad, faad_p)
     def faad_meta(file) =
       if faad_test(file) then
@@ -210,6 +210,6 @@ Its code is the following:
         []
       end
     end
-    add_metadata_resolver("FAAD",faad_meta)
+    decoder.metadata.add("FAAD",faad_meta)
   end
 ```

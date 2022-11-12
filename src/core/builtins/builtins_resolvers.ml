@@ -23,8 +23,9 @@
 open Builtins_sys
 
 let () =
+  Lang.add_module "decoder.metadata";
   let resolver_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.metadata_t in
-  Lang.add_builtin "add_metadata_resolver" ~category:`Liquidsoap
+  Lang.add_builtin "decoder.metadata.add" ~category:`Liquidsoap
     ~descr:"Register an external file metadata decoder."
     [
       ("", Lang.string_t, None, Some "Format/resolver's name.");
@@ -98,6 +99,7 @@ let () =
       Lang.unit)
 
 let () =
+  Lang.add_module "protocol";
   let log_p = [("", "", None)] in
   let log_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t in
   let protocol_t =
@@ -109,7 +111,7 @@ let () =
       ]
       (Lang.list_t Lang.string_t)
   in
-  Lang.add_builtin "add_protocol" ~category:`Liquidsoap
+  Lang.add_builtin "protocol.add" ~category:`Liquidsoap
     ~descr:"Register a new protocol."
     [
       ( "temporary",

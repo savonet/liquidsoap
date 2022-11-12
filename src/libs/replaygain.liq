@@ -59,5 +59,5 @@ def enable_replaygain_metadata()
       []
     end
   end
-  add_metadata_resolver("replaygain_track_gain", replaygain_metadata)
+  decoder.metadata.add("replaygain_track_gain", replaygain_metadata)
 end

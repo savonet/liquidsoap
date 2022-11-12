@@ -157,7 +157,7 @@ def beets_protocol(~rlog,~maxtime,arg) =
     []
   end
 end
-add_protocol("beets", beets_protocol,
+protocol.add("beets", beets_protocol,
   syntax = "same arguments as beet's random module, see https://beets.readthedocs.io/en/stable/reference/query.html"
 )
 ```

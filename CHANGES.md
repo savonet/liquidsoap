@@ -48,6 +48,8 @@ Changed:
 - Add `on_cycle` option to `video.add_text` to register a handler when cycling
   (#2621).
 - Renamed `{get,set}env` into `environment.{get,set}`
+- Renamed `add_decoder`, `add_oblivious_decoder` and `add_metadata_resolver`
+  into, respectively, `decoder.add`, `decoder.oblivious.add`, `decoder.metadata.add`
 - Deprecated `get_mime`, added `file.mime.libmagic` and `file.mime.cli`, made
   `file.mime` try `file.mime.libmagic` if present and `file.mime.cli` otherwise,
   changed eturned value when no mime was found to `null()`.
@@ -1082,7 +1084,7 @@ New:
 - Added `run_process` to run a process with optional environment and return
   (`stdout`,`stderr`,`exit_status`)
 - Added `add_playlist_parser` to register new playlist parsers
-- Added optional static parameter to `add_protocol`
+- Added optional static parameter to `protocol.add`
 - Added file.temp to create fresh temporary filename
 - Added process: protocol
 - Reimplemented curl-based fetch process using process:

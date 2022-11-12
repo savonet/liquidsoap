@@ -6,7 +6,7 @@ def mksafe(~id="mksafe",s)
   fallback(id=id,track_sensitive=false,[(s:source),blank(id="safe_blank")])
 end
 
-# Add a skip function to a source when it does not have one by default.
+# Add a skip telnet command to a source when it does not have one by default.
 # @category Interaction
 # @flag extra
 # @param s The source to attach the command to.

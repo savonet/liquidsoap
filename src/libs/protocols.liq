@@ -26,7 +26,7 @@ def replaygain_protocol(~rlog=_,~maxtime=_,arg)
     [arg]
   end
 end
-add_protocol("replaygain", replaygain_protocol,
+protocol.add("replaygain", replaygain_protocol,
              syntax="replaygain:uri",
              doc="Compute ReplayGain value. \
                   Adds returned value as `\"replaygain_track_gain\"` metadata")
@@ -103,7 +103,7 @@ def process_protocol(~rlog=_,~maxtime,arg)
     end
   end
 end
-add_protocol(temporary=true, "process", process_protocol,
+protocol.add(temporary=true, "process", process_protocol,
              doc="Resolve a request using an arbitrary process. \
                   `<cmd>` is interpolated with: \
                   `[(\"input\",<input>),(\"output\",<output>),\
@@ -197,7 +197,7 @@ end
 # @flag hidden
 def add_http_protocol(proto) =
   def http_protocol(~rlog,~maxtime,arg) = http_protocol(proto,rlog=rlog,maxtime=maxtime,arg) end
-  add_protocol(temporary=true,syntax="#{proto}://...",doc="Download http URLs using curl",proto,http_protocol)
+  protocol.add(temporary=true,syntax="#{proto}://...",doc="Download http URLs using curl",proto,http_protocol)
 end
 list.iter(add_http_protocol,["http","https"])
 %endif
@@ -244,7 +244,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
     [cmd]
   end
 end
-add_protocol("youtube-dl", youtube_dl_protocol,
+protocol.add("youtube-dl", youtube_dl_protocol,
               doc="Resolve a request using youtube-dl.",
               syntax="youtube-dl:uri")
 
@@ -256,7 +256,7 @@ def youtube_pl_protocol(~rlog=_,~maxtime=_,arg)
   file.write(data="youtube-pl:#{arg}",tmp)
   [tmp]
 end
-add_protocol("youtube-pl", youtube_pl_protocol,
+protocol.add("youtube-pl", youtube_pl_protocol,
               doc="Resolve a request as a youtube playlist using youtube-dl.",
               temporary=true,syntax="youtube-pl:uri")
 
@@ -265,7 +265,7 @@ add_protocol("youtube-pl", youtube_pl_protocol,
 def tmp_protocol(~rlog=_, ~maxtime=_, arg) =
   [arg]
 end
-add_protocol("tmp",tmp_protocol,
+protocol.add("tmp",tmp_protocol,
              doc="Mark the given uri as temporary. Useful when chaining protocols",
              temporary=true,syntax="tmp:uri")
 
@@ -467,7 +467,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     []
   end
 end
-add_protocol("ffmpeg",ffmpeg_protocol,
+protocol.add("ffmpeg",ffmpeg_protocol,
              doc="Decode any file to wave using ffmpeg",
              syntax="ffmpeg:uri")
 
@@ -487,7 +487,7 @@ def stereo_protocol(~rlog=_, ~maxtime=_, arg)
     [file]
   end
 end
-add_protocol(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
+protocol.add(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
 
 let settings.protocol.text2wave = settings.make.protocol("text2wave")
 
@@ -502,7 +502,7 @@ def text2wave_protocol(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.text2wave.path()
   [process_uri(extname="wav", "echo #{process.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
-add_protocol(static=true,"text2wave",text2wave_protocol,
+protocol.add(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
              syntax="text2wave:Text to read")
 
@@ -519,7 +519,7 @@ def gtts_protocol(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.gtts.path()
   [process_uri(extname="mp3", "#{binary} -o $(output) #{process.quote(arg)}")]
 end
-add_protocol(static=true,"gtts",gtts_protocol,
+protocol.add(static=true,"gtts",gtts_protocol,
              doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
              syntax="gtts:Text to read")
 
@@ -528,7 +528,7 @@ add_protocol(static=true,"gtts",gtts_protocol,
 def say_protocol(~rlog=_, ~maxtime=_, arg) =
   ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
 end
-add_protocol(static=true,"say",say_protocol,
+protocol.add(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave. Result is always stereo.",
              syntax="say:Text to read")
 
@@ -605,7 +605,7 @@ def s3_protocol(~rlog=_, ~maxtime=_, arg) =
   arg = process.quote("s3:#{arg}")
   [process_uri(extname=extname,"#{aws_base()} s3 cp #{arg} $(output)")]
 end
-add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
+protocol.add("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
              syntax="s3://uri")
 
 # Register the polly: protocol using AWS Polly
@@ -633,7 +633,7 @@ def polly_protocol(~rlog=_, ~maxtime=_, text) =
 
   [process_uri(extname=extname,cmd)]
 end
-add_protocol(static=true,"polly",polly_protocol,
+protocol.add(static=true,"polly",polly_protocol,
              doc="Generate speech synthesis using AWS polly service. \
                   Result might be mono, needs aws binary in the path.",
              syntax="polly:Text to read")
@@ -679,7 +679,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
   end
 end
 
-add_protocol(static=true, temporary=true, "synth", synth_protocol,
+protocol.add(static=true, temporary=true, "synth", synth_protocol,
 doc="Syntesize audio. Parameters are optional.",
 syntax="synth:shape=sine,frequency=440.,duration=10.")
 
@@ -702,6 +702,6 @@ def file_protocol(~rlog=_, ~maxtime=_, arg) =
   [url.decode(string.concat(separator="/",segments))]
 end
 
-add_protocol(static=true, temporary=false, "file", file_protocol,
+protocol.add(static=true, temporary=false, "file", file_protocol,
              doc="File protocol. Only local files are supported",
              syntax="file:///path/to/file")

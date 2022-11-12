@@ -14,7 +14,7 @@ def s3_protocol(~rlog,~maxtime,arg) =
   extname = file.extension(leading_dot=false,dir_sep="/",arg)
   [process_uri(extname=extname,"aws s3 cp s3:#{arg} $(output)")]
 end
-add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
+protocol.add("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
              syntax="s3://uri")
 ```
 
@@ -29,7 +29,7 @@ This makes it possible to create your own custom resolution chain, including for
 def cue_protocol(~rlog,~maxtime,arg) =
   [process_uri(extname="wav",uri=uri,"ffmpeg -y -i $(input) -af -ss 10 -t 30 $(output)")]
 end
-add_protocol("cue_cut",cue_protocol)
+protocol.add("cue_cut",cue_protocol)
 ```
 
 This protocol returns 30s of data from the input file, stating at the 10s mark.
@@ -41,7 +41,7 @@ def normalization_protocol(~rlog,~maxtime,arg) =
   # "normalize" command here is just an example..
   [process_uri(extname="wav",uri=arg,"normalize $(inpuit)")]
 end
-add_protocol("normalize",normalization_protoco)
+protocol.add("normalize",normalization_protoco)
 ```
 
 Now, you can push requests of the form:

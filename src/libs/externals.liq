@@ -62,7 +62,7 @@ def enable_external_ffmpeg_decoder() =
 
   if file.which(ffmpeg) != null() and file.which (ffprobe) != null() then
    log(label="external.decoder","Enabling FFMPEG decoder")
-    add_decoder(
+    decoder.add(
       name="FFMPEG",
       description="Decode files using the ffmpeg decoder binary",
       mimes=mime_types,
@@ -121,7 +121,7 @@ def enable_external_mpc_decoder() =
   if file.which(mpcdec) != null() then
     log(label="external.decoder","Enabling MPCDEC external decoder.")
     mpcdec_p = fun(f) -> "#{mpcdec} #{process.quote(f)} -"
-    add_oblivious_decoder(name="MPCDEC",description="Decode files using the mpcdec \
+    decoder.oblivious.add(name="MPCDEC",description="Decode files using the mpcdec \
                 musepack decoder binary",test=test_mpc,mpcdec_p)
   else
     log(label="external.decoder","Could not find mpcdec binary, please adjust using the \"decoder.external.mpcdec.path\" setting.")
@@ -171,7 +171,7 @@ def enable_external_flac_decoder() =
         end
       end
     end
-    add_decoder(name="EXTERNAL_FLAC",description="Decode files using the flac \
+    decoder.add(name="EXTERNAL_FLAC",description="Decode files using the flac \
                 decoder binary.", mimes=["audio/flac", "audio/x-flac"], test=test_flac,flac_p)
   else
     log(label="decoder.external","Did not find flac binary, please adjust using the \"decoder.external.flac.path\" setting.")
@@ -198,7 +198,7 @@ def enable_external_flac_decoder() =
       end
       list.fold(f,[],ret)
     end
-    add_metadata_resolver("EXTERNAL_FLAC",flac_meta)
+    decoder.metadata.add("EXTERNAL_FLAC",flac_meta)
   else
     log(label="decoder.external","Did not find metaflac binary. Please adjust using the \"decoder.external.metaflac.path\" setting.")
   end
@@ -271,7 +271,7 @@ def enable_external_faad_decoder() =
         0
       end
     end
-    add_oblivious_decoder(name="EXTERNAL_FAAD",description="Decode files using \
+    decoder.oblivious.add(name="EXTERNAL_FAAD",description="Decode files using \
                           the faad binary.", test=test_faad, faad_p)
     def faad_meta(file) =
       if faad_test(file) then
@@ -290,7 +290,7 @@ def enable_external_faad_decoder() =
         []
       end
     end
-    add_metadata_resolver("EXTERNAL_FAAD",faad_meta)
+    decoder.metadata.add("EXTERNAL_FAAD",faad_meta)
   else
     log(label="external.decoder","Did not find faad binary. Please adjust using the \"decoder.external.faad.path\" setting.")
   end
