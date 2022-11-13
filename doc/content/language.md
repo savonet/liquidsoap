@@ -879,6 +879,26 @@ the duration with
 print("The duration of the song is #{song.duration} seconds")
 ```
 
+Records can be re-used using _spreads_:
+
+```liquidsoap
+song = { filename = "song.mp3", duration = 257., bpm = 132. }
+
+# This is a fresh value with all the fields from `song` and
+# a new `id` field:
+song_with_id = { id = 1234, ...song }
+```
+
+Alternatively, you can also extend a record using the explicit `v.{...}` syntax:
+
+```liquidsoap
+song = { filename = "song.mp3", duration = 257., bpm = 132. }
+
+# This is a fresh value with all the fields from `song` and
+# a new `id` field:
+song_with_id = song.{id = 1234}
+```
+
 ### Modules
 
 Records are heavily used in Liquidsoap in order to structure the functions of
@@ -1071,6 +1091,10 @@ Here are some examples:
 # Record capture
 let {foo, bar} = {foo = 123, bar = "baz", gni = true}
 # foo = 123, bar = "baz"
+
+# Record capture with spread
+let {foo, bar, ...x} = {foo = 123, bar = "baz", gni = true}
+# foo = 123, bar = "baz", x = {gni = true}
 
 # Module capture
 let v.{foo, bar} = "aabbcc".{foo = 123, bar = "baz", gni = true}
