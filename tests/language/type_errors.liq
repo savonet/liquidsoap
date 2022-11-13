@@ -210,6 +210,14 @@ def f() =
   correct("fun (x) -> x.foo.gni?.bla(1,2,3).blo")
   correct("fun (x) -> x?.foo(123).gni ?? null()")
 
+  section("PATTERNS")
+  incorrect("
+  def f(x) =
+    let y.{foo} = x
+    y.foo + 1
+    end
+  ")
+
   test.pass()
 end
 

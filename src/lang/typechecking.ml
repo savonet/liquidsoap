@@ -96,6 +96,14 @@ let rec type_of_pat ~level ~pos = function
           | None -> ([], Type.make ?pos (Type.Tuple []))
           | Some pat -> type_of_pat ~level ~pos pat
       in
+      Typing.(
+        ty
+        <: List.fold_left
+             (fun ty (label, _) ->
+               Type.meth ~optional:true label
+                 ([], Type.make ?pos Ground_type.never)
+                 ty)
+             (Type.var ~level ?pos ()) l);
       let env, ty =
         List.fold_left
           (fun (env, ty) (lbl, p) ->

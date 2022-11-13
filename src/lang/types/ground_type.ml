@@ -94,5 +94,5 @@ module Never = Make (struct
   let name = "never"
 end)
 
-let never = Bool.descr
+let never = Never.descr
 let is_ground v = List.mem v !types
