@@ -21,8 +21,6 @@
  *****************************************************************************)
 
 module type Spec = sig
-  type t
-
   val name : string
 end
 
@@ -69,34 +67,32 @@ module Make (S : Spec) = struct
 end
 
 module Int = Make (struct
-  type t = int
-
   let name = "int"
 end)
 
 let int = Int.descr
 
 module Float = Make (struct
-  type t = float
-
   let name = "float"
 end)
 
 let float = Float.descr
 
 module String = Make (struct
-  type t = string
-
   let name = "string"
 end)
 
 let string = String.descr
 
 module Bool = Make (struct
-  type t = bool
-
   let name = "bool"
 end)
 
 let bool = Bool.descr
+
+module Never = Make (struct
+  let name = "never"
+end)
+
+let never = Bool.descr
 let is_ground v = List.mem v !types

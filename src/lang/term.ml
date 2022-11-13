@@ -532,8 +532,6 @@ end
 
 module MkAbstract (Def : AbstractDef) = struct
   module T = Type.Ground.Make (struct
-    type t
-
     let name = Def.name
   end)
 
