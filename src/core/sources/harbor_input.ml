@@ -255,6 +255,14 @@ let () =
             Lang.val_fun [] (fun _ ->
                 s#stop_cmd;
                 Lang.unit) );
+        ( "disconnect",
+          ([], Lang.fun_t [] Lang.unit_t),
+          "Disconnect the client currently connected to the harbor. Does \
+           nothing if no client is connected.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#disconnect ~lock:true;
+                Lang.unit) );
         ( "connected_client",
           ([], Lang.fun_t [] (Lang.nullable_t Lang.string_t)),
           "Returns the address of the client currently connected, if there is \
