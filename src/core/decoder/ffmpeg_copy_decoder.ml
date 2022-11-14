@@ -29,7 +29,7 @@ let log = Log.make ["ffmpeg"; "decoder"; "copy"]
 exception Corrupt
 exception Empty
 
-let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~put_data params =
+let mk_decoder ~stream_idx ~stream_time_base ~mk_packet ~put_data params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~src:stream_time_base ~get_ts:Packet.get_dts
   in
@@ -47,39 +47,35 @@ let mk_decoder ~stream_idx ~stream_time_base ~lift_data ~put_data params =
           (fun (pos, packet) ->
             ( pos,
               {
-                Ffmpeg_copy_content.packet;
+                Ffmpeg_copy_content.packet = mk_packet packet;
                 time_base = stream_time_base;
                 stream_idx;
               } ))
           packets
       in
       let data = { Ffmpeg_content_base.params = Some params; data; length } in
-      let data = lift_data data in
+      let data = Ffmpeg_copy_content.lift_data data in
       put_data buffer.Decoder.generator data
     with Empty | Corrupt (* Might want to change that later. *) -> ()
 
-let mk_audio_decoder ~stream_idx ~format container =
-  let idx, stream, params = Av.find_best_audio_stream container in
+let mk_audio_decoder ~stream_idx ~format ~field ~stream params =
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;
-  ignore
-    (Content.merge format Ffmpeg_copy_content.(Audio.lift_params (Some params)));
+  let params = `Audio params in
+  ignore (Content.merge format (Ffmpeg_copy_content.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
-  let lift_data data = Ffmpeg_copy_content.Audio.lift_data data in
-  ( idx,
-    stream,
-    mk_decoder ~stream_idx ~lift_data ~stream_time_base
-      ~put_data:(fun g c -> Generator.put g Frame.Fields.audio c)
-      params )
+  mk_decoder ~stream_idx
+    ~mk_packet:(fun p -> `Audio p)
+    ~stream_time_base
+    ~put_data:(fun g c -> Generator.put g field c)
+    params
 
-let mk_video_decoder ~stream_idx ~format container =
-  let idx, stream, params = Av.find_best_video_stream container in
+let mk_video_decoder ~stream_idx ~format ~stream ~field params =
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
-  ignore
-    (Content.merge format Ffmpeg_copy_content.(Video.lift_params (Some params)));
+  let params = `Video params in
+  ignore (Content.merge format (Ffmpeg_copy_content.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
-  let lift_data data = Ffmpeg_copy_content.Video.lift_data data in
-  ( idx,
-    stream,
-    mk_decoder ~stream_idx ~lift_data ~stream_time_base
-      ~put_data:(fun g c -> Generator.put g Frame.Fields.video c)
-      params )
+  mk_decoder ~stream_idx
+    ~mk_packet:(fun p -> `Video p)
+    ~stream_time_base
+    ~put_data:(fun g c -> Generator.put g field c)
+    params

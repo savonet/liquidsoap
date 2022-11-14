@@ -30,8 +30,7 @@ module ConverterInput = Swresample.Make (Swresample.Frame)
 module Converter = ConverterInput (Swresample.PlanarFloatArray)
 module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 
-let mk_audio_decoder ~channels container =
-  let idx, stream, codec = Av.find_best_audio_stream container in
+let mk_audio_decoder ~channels ~stream ~field codec =
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;
   let in_sample_rate = ref (Avcodec.Audio.get_sample_rate codec) in
   let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
@@ -43,35 +42,31 @@ let mk_audio_decoder ~channels container =
       !in_sample_rate target_channel_layout target_sample_rate
   in
   let converter = ref (mk_converter ()) in
-  ( idx,
-    stream,
-    fun ~buffer frame ->
-      let frame_in_sample_rate = Avutil.Audio.frame_get_sample_rate frame in
-      let frame_in_channel_layout =
-        Avutil.Channel_layout.get_default
-          (Avutil.Audio.frame_get_channels frame)
-      in
-      let frame_in_sample_format = Avutil.Audio.frame_get_sample_format frame in
-      if
-        !in_sample_rate <> frame_in_sample_rate
-        || !in_channel_layout <> frame_in_channel_layout
-        || !in_sample_format <> frame_in_sample_format
-      then (
-        log#important "Frame format change detected!";
-        in_sample_rate := frame_in_sample_rate;
-        in_channel_layout := frame_in_channel_layout;
-        in_sample_format := frame_in_sample_format;
-        converter := mk_converter ());
-      let content = Converter.convert !converter frame in
-      buffer.Decoder.put_pcm ~samplerate:target_sample_rate content;
-      let metadata = Avutil.Frame.metadata frame in
-      if metadata <> [] then (
-        let m = Hashtbl.create (List.length metadata) in
-        List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
-        Generator.add_metadata buffer.Decoder.generator m) )
+  fun ~buffer frame ->
+    let frame_in_sample_rate = Avutil.Audio.frame_get_sample_rate frame in
+    let frame_in_channel_layout =
+      Avutil.Channel_layout.get_default (Avutil.Audio.frame_get_channels frame)
+    in
+    let frame_in_sample_format = Avutil.Audio.frame_get_sample_format frame in
+    if
+      !in_sample_rate <> frame_in_sample_rate
+      || !in_channel_layout <> frame_in_channel_layout
+      || !in_sample_format <> frame_in_sample_format
+    then (
+      log#important "Frame format change detected!";
+      in_sample_rate := frame_in_sample_rate;
+      in_channel_layout := frame_in_channel_layout;
+      in_sample_format := frame_in_sample_format;
+      converter := mk_converter ());
+    let content = Converter.convert !converter frame in
+    buffer.Decoder.put_pcm ~field ~samplerate:target_sample_rate content;
+    let metadata = Avutil.Frame.metadata frame in
+    if metadata <> [] then (
+      let m = Hashtbl.create (List.length metadata) in
+      List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
+      Generator.add_metadata buffer.Decoder.generator m)
 
-let mk_video_decoder ~width ~height container =
-  let idx, stream, codec = Av.find_best_video_stream container in
+let mk_video_decoder ~width ~height ~stream ~field codec =
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
   let pixel_format =
     match Avcodec.Video.get_pixel_format codec with
@@ -111,7 +106,7 @@ let mk_video_decoder ~width ~height container =
   let cb ~buffer frame =
     let img = scale frame in
     let content = Video.Canvas.single img in
-    buffer.Decoder.put_yuva420p
+    buffer.Decoder.put_yuva420p ~field
       ~fps:{ Decoder.num = target_fps; den = 1 }
       content;
     let metadata = Avutil.Frame.metadata frame in
@@ -124,7 +119,5 @@ let mk_video_decoder ~width ~height container =
     Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format ~time_base
       ?pixel_aspect ~target_fps ()
   in
-  ( idx,
-    stream,
-    fun ~buffer frame ->
-      Ffmpeg_avfilter_utils.Fps.convert converter frame (cb ~buffer) )
+  fun ~buffer frame ->
+    Ffmpeg_avfilter_utils.Fps.convert converter frame (cb ~buffer)

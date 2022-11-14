@@ -96,8 +96,8 @@ our [extra API reference](reference-extras.html). Here's one such filter:
 FFmpeg h264_mp4toannexb bitstream filter. See ffmpeg documentation for more
 details.
 
-Type: (?id : string?, source(video=ffmpeg.video.copy('a), 'b)) ->
-source(video=ffmpeg.video.copy('a), 'b)
+Type: (?id : string?, source(video=ffmpeg.copy('a), 'b)) ->
+source(video=ffmpeg.copy('a), 'b)
 
 Category: Source / FFmpeg filter
 
@@ -106,7 +106,7 @@ Arguments:
  * id : string?
      Force the value of the source ID.
 
- * (unlabeled) : source(video=ffmpeg.video.copy('a), 'b)
+ * (unlabeled) : source(video=ffmpeg.copy('a), 'b)
 
 Methods:
 ...

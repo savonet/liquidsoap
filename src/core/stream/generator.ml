@@ -195,6 +195,7 @@ let _get ?length gen =
 
 let get ?length gen = Tutils.mutexify gen.lock (fun () -> _get ?length gen) ()
 let peek gen = Tutils.mutexify gen.lock (fun () -> gen.content) ()
+let peek_media gen = Tutils.mutexify gen.lock (fun () -> _media_content gen) ()
 
 (* The following is frame-specific and should hopefully go away when
    we switch to immutable content. *)

@@ -27,8 +27,7 @@ open Ffmpeg_encoder_common
 
 let log = Log.make ["ffmpeg"; "copy"; "encoder"]
 
-let mk_stream_copy ~video_size ~get_stream ~remove_stream ~keyframe_opt
-    ~get_data output =
+let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
   let stream = ref None in
   let video_size_ref = ref None in
   let codec_attr = ref None in
@@ -40,16 +39,25 @@ let mk_stream_copy ~video_size ~get_stream ~remove_stream ~keyframe_opt
   let intra_only = ref true in
 
   let mk_stream frame =
-    let { Ffmpeg_content_base.params } = get_data frame in
-    let params = Option.get params in
-    video_size_ref := video_size frame;
-    let s = Av.new_stream_copy ~params output in
-    codec_attr := Av.codec_attr s;
-    bitrate := Av.bitrate s;
-    (match Avcodec.descriptor params with
-      | None -> ()
-      | Some { properties } -> intra_only := List.mem `Intra_only properties);
-    stream := Some s
+    let { Ffmpeg_content_base.params } =
+      Ffmpeg_copy_content.get_data (Generator.get_field frame field)
+    in
+    let mk_stream params =
+      let s = Av.new_stream_copy ~params output in
+      codec_attr := Av.codec_attr s;
+      bitrate := Av.bitrate s;
+      (match Avcodec.descriptor params with
+        | None -> ()
+        | Some { properties } -> intra_only := List.mem `Intra_only properties);
+      s
+    in
+    match Option.get params with
+      | `Audio params -> stream := Some (`Audio (mk_stream params))
+      | `Video params ->
+          let width = Avcodec.Video.get_width params in
+          let height = Avcodec.Video.get_height params in
+          video_size_ref := Some (width, height);
+          stream := Some (`Video (mk_stream params))
   in
 
   let codec_attr () = !codec_attr in
@@ -148,18 +156,27 @@ let mk_stream_copy ~video_size ~get_stream ~remove_stream ~keyframe_opt
       Av.write_packet stream main_time_base packet)
   in
 
+  let process ~packet ~stream_idx ~time_base stream =
+    if check_stream ~packet stream_idx then
+      push ~time_base ~stream ~idx:stream_idx packet
+  in
+
   let encode frame start len =
-    let stop = start + len in
-    let data = (get_data frame).Ffmpeg_content_base.data in
+    let content = Content.sub (Generator.get_field frame field) start len in
+    let data =
+      (Ffmpeg_copy_content.get_data content).Ffmpeg_content_base.data
+    in
 
     was_keyframe := false;
 
     List.iter
-      (fun (pos, { Ffmpeg_copy_content.packet; time_base; stream_idx }) ->
-        let stream = Option.get !stream in
-        if start <= pos && pos < stop then
-          if check_stream ~packet stream_idx then
-            push ~time_base ~stream ~idx:stream_idx packet)
+      (fun (_, { Ffmpeg_copy_content.packet; time_base; stream_idx }) ->
+        match (packet, !stream) with
+          | `Audio packet, Some (`Audio stream) ->
+              process ~packet ~stream_idx ~time_base stream
+          | `Video packet, Some (`Video stream) ->
+              process ~packet ~stream_idx ~time_base stream
+          | _ -> assert false)
       data
   in
 

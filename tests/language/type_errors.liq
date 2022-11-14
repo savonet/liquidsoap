@@ -12,7 +12,7 @@ def incorrect(expr)
     try
       let eval _ = expr
       test.fail()
-    catch _ : [error.eval] do
+    catch _ do
       ()
     end
   end
@@ -194,6 +194,19 @@ def f() =
         %video.copy)');
   correct('%ffmpeg(%audio.copy(ignore_keyframe), %video.copy(ignore_keyframe))');
   correct('%ffmpeg(%audio.copy(wait_for_keyframe), %video.copy(wait_for_keyframe))');
+
+  # Conventions for content type in %ffmpeg encoder:
+  correct('%ffmpeg(%foo_audio, %bla_video_gni)')
+  correct('%ffmpeg(%foo(audio_content), %bla(video_content))')
+  incorrect('%ffmpeg(%foo, %bla_gni)')
+
+  correct('%ffmpeg(%foo_audio.raw, %bla_video_gni.raw)')
+  correct('%ffmpeg(%foo.raw(audio_content), %bla.raw(video_content))')
+  incorrect('%ffmpeg(%foo.raw, %bla_gni.raw)')
+
+  correct('%ffmpeg(%foo_audio.copy, %bla_video_gni.copy)')
+  incorrect('%ffmpeg(%foo.copy(audio_content), %bla.copy(video_content))')
+  correct('%ffmpeg(%foo.copy, %bla_gni.copy)')
 
   # The following is not technically checking on type errors but runtime invalid values.
   section("INVALID VALUES");

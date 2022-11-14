@@ -27,7 +27,7 @@ let _ =
     ~descr:"Register a function to be called when Liquidsoap shuts down."
     (fun p ->
       let f = List.assoc "" p in
-      Lifecycle.before_core_shutdown (fun () -> ignore (Lang.apply f []));
+      Lifecycle.after_core_shutdown (fun () -> ignore (Lang.apply f []));
       Lang.unit)
 
 let _ =

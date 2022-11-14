@@ -23,12 +23,6 @@
 open Avutil
 open Avcodec
 
-type 'a packet = {
-  stream_idx : Int64.t;
-  time_base : Avutil.rational;
-  packet : 'a Packet.t;
-}
-
 let conf_ffmpeg_copy =
   Dtools.Conf.void
     ~p:(Ffmpeg_content_base.conf_ffmpeg_content#plug "copy")
@@ -41,126 +35,73 @@ let conf_ffmpeg_copy_relaxed =
     "If `true`, relax content compatibility, e.g. allow audio tracks with \
      different samplerate or video tracks with different resolution."
 
-module BaseSpecs = struct
+type packet = [ `Audio of audio Packet.t | `Video of video Packet.t ]
+
+type params_payload =
+  [ `Audio of audio Avcodec.params | `Video of video Avcodec.params ]
+
+type packet_payload = {
+  stream_idx : Int64.t;
+  time_base : Avutil.rational;
+  packet : packet;
+}
+
+module Specs = struct
   include Ffmpeg_content_base
 
   type kind = [ `Copy ]
+  type params = params_payload option
+  type data = (params, packet_payload) content
 
   let kind = `Copy
   let parse_param _ _ = None
   let internal_content_type = None
-
-  let merge ~compatible p p' =
-    match (p, p') with
-      | None, p | p, None -> p
-      | p, p' when compatible p p' -> p
-      | _ -> failwith "Incompatible format!"
-
-  let copy_packet p = { p with packet = Avcodec.Packet.dup p.packet }
-
-  let blit :
-        'a 'b.
-        ('a, 'b packet) content ->
-        int ->
-        ('a, 'b packet) content ->
-        int ->
-        int ->
-        unit =
-   fun src src_pos dst dst_pos len ->
-    blit ~copy:copy_packet src src_pos dst dst_pos len
-
-  let copy : 'a 'b. ('a, 'b packet) content -> ('a, 'b packet) content =
-   fun src -> copy ~copy:copy_packet src
-end
-
-module AudioSpecs = struct
-  include BaseSpecs
-
-  let string_of_kind = function `Copy -> "ffmpeg.audio.copy"
-  let kind_of_string = function "ffmpeg.audio.copy" -> Some `Copy | _ -> None
-
-  type params = audio Avcodec.params option
-  type data = (params, audio packet) content
+  let string_of_kind = function `Copy -> "ffmpeg.copy"
+  let kind_of_string = function "ffmpeg.copy" -> Some `Copy | _ -> None
 
   let string_of_params params =
-    Content.print_optional
-      [
-        ( "codec",
-          Option.map
-            (fun p ->
-              Printf.sprintf "%S" (Audio.string_of_id (Audio.get_params_id p)))
-            params );
-        ( "channel_layout",
-          Option.map
-            (fun p ->
-              Printf.sprintf "%S"
-                (Channel_layout.get_description (Audio.get_channel_layout p)))
-            params );
-        ( "sample_format",
-          Option.map
-            (fun p ->
-              Printf.sprintf "%s"
-                (match Sample_format.get_name (Audio.get_sample_format p) with
-                  | None -> "none"
-                  | Some p -> p))
-            params );
-        ( "sample_rate",
-          Option.map (fun p -> string_of_int (Audio.get_sample_rate p)) params
-        );
-      ]
-
-  let compatible p p' =
-    match (p, p') with
-      | None, _ | _, None -> true
-      | Some p, Some p' ->
-          Audio.get_params_id p = Audio.get_params_id p'
-          && (conf_ffmpeg_copy_relaxed#get
-             || Audio.get_channel_layout p = Audio.get_channel_layout p'
-                && Audio.get_sample_format p = Audio.get_sample_format p'
-                && Audio.get_sample_rate p = Audio.get_sample_rate p')
-
-  let merge = merge ~compatible
-  let default_params _ = None
-end
-
-module Audio = struct
-  include Content.MkContent (AudioSpecs)
-
-  let kind = lift_kind `Copy
-end
-
-module VideoSpecs = struct
-  include BaseSpecs
-
-  let string_of_kind = function `Copy -> "ffmpeg.video.copy"
-  let kind_of_string = function "ffmpeg.video.copy" -> Some `Copy | _ -> None
-
-  type params = video Avcodec.params option
-  type data = (params, video packet) content
-
-  let string_of_params params =
-    Content.print_optional
-      [
-        ( "codec",
-          Option.map
-            (fun p ->
-              Printf.sprintf "%S" (Video.string_of_id (Video.get_params_id p)))
-            params );
-        ("width", Option.map (fun p -> string_of_int (Video.get_width p)) params);
-        ( "height",
-          Option.map (fun p -> string_of_int (Video.get_height p)) params );
-        ( "aspect_ratio",
-          Option.map
-            (fun p -> string_of_rational (Video.get_sample_aspect_ratio p))
-            params );
-        ( "pixel_format",
-          Option.bind params (fun p ->
-              Option.bind (Video.get_pixel_format p) (fun p ->
-                  Some
-                    (match Pixel_format.to_string p with
-                      | None -> "none"
-                      | Some p -> p))) );
-      ]
+    String.concat ","
+      (List.map
+         (fun (k, v) -> Printf.sprintf "%s=%s" k v)
+         (match params with
+           | None -> []
+           | Some (`Audio params) ->
+               [
+                 ( "codec",
+                   Printf.sprintf "%S"
+                     (Audio.string_of_id (Audio.get_params_id params)) );
+                 ( "channel_layout",
+                   Printf.sprintf "%S"
+                     (Channel_layout.get_description
+                        (Audio.get_channel_layout params)) );
+                 ( "sample_format",
+                   Printf.sprintf "%s"
+                     (match
+                        Sample_format.get_name (Audio.get_sample_format params)
+                      with
+                       | None -> "none"
+                       | Some p -> p) );
+                 ("sample_rate", string_of_int (Audio.get_sample_rate params));
+               ]
+           | Some (`Video params) -> (
+               [
+                 ( "codec",
+                   Printf.sprintf "%S"
+                     (Video.string_of_id (Video.get_params_id params)) );
+                 ("width", string_of_int (Video.get_width params));
+                 ("height", string_of_int (Video.get_height params));
+                 ( "aspect_ratio",
+                   string_of_rational (Video.get_sample_aspect_ratio params) );
+               ]
+               @
+               match Video.get_pixel_format params with
+                 | None -> []
+                 | Some p ->
+                     [
+                       ( "pixel_format",
+                         Option.value ~default:"none" (Pixel_format.to_string p)
+                       );
+                     ])))
 
   let compatible_aspect_radio p p' =
     match (p, p') with
@@ -174,7 +115,13 @@ module VideoSpecs = struct
   let compatible p p' =
     match (p, p') with
       | None, _ | _, None -> true
-      | Some p, Some p' ->
+      | Some (`Audio p), Some (`Audio p') ->
+          Audio.get_params_id p = Audio.get_params_id p'
+          && (conf_ffmpeg_copy_relaxed#get
+             || Audio.get_channel_layout p = Audio.get_channel_layout p'
+                && Audio.get_sample_format p = Audio.get_sample_format p'
+                && Audio.get_sample_rate p = Audio.get_sample_rate p')
+      | Some (`Video p), Some (`Video p') ->
           Video.get_params_id p = Video.get_params_id p'
           && (conf_ffmpeg_copy_relaxed#get
              || Video.get_width p = Video.get_width p'
@@ -183,13 +130,28 @@ module VideoSpecs = struct
                      (Video.get_sample_aspect_ratio p)
                      (Video.get_sample_aspect_ratio p')
                 && Video.get_pixel_format p = Video.get_pixel_format p')
+      | _ -> false
 
-  let merge = merge ~compatible
+  let merge p p' =
+    match (p, p') with
+      | None, p | p, None -> p
+      | p, p' when compatible p p' -> p
+      | _ -> failwith "Incompatible format!"
+
+  let copy_packet (p : packet_payload) =
+    {
+      p with
+      packet =
+        (match p.packet with
+          | `Audio p -> `Audio (Avcodec.Packet.dup p)
+          | `Video p -> `Video (Avcodec.Packet.dup p));
+    }
+
+  let blit = blit ~copy:copy_packet
+  let copy = copy ~copy:copy_packet
   let default_params _ = None
 end
 
-module Video = struct
-  include Content.MkContent (VideoSpecs)
+include Content.MkContent (Specs)
 
-  let kind = lift_kind `Copy
-end
+let kind = lift_kind `Copy

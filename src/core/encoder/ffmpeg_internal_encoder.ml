@@ -95,26 +95,22 @@ let write_audio_frame ~time_base ~sample_rate ~channel_layout ~sample_format
           add_filter_frame_pts frame;
           Avfilter.Utils.convert_audio converter write_frame frame
 
-let mk_audio ~ffmpeg ~options output =
+let mk_audio ~mode ~codec ~params ~options ~field output =
   let codec =
-    match ffmpeg.Ffmpeg_format.audio_codec with
-      | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) -> (
-          try Avcodec.Audio.find_encoder_by_name codec
-          with e ->
-            log#severe "Cannot find encoder %s: %s." codec
-              (Printexc.to_string e);
-            raise e)
-      | _ -> assert false
+    try Avcodec.Audio.find_encoder_by_name codec
+    with e ->
+      log#severe "Cannot find encoder %s: %s." codec (Printexc.to_string e);
+      raise e
   in
 
-  let target_samplerate = Lazy.force ffmpeg.Ffmpeg_format.samplerate in
+  let target_samplerate = Lazy.force params.Ffmpeg_format.samplerate in
   let target_liq_audio_sample_time_base =
     { Avutil.num = 1; den = target_samplerate }
   in
-  let target_channels = ffmpeg.Ffmpeg_format.channels in
+  let target_channels = params.Ffmpeg_format.channels in
   let target_channel_layout = get_channel_layout target_channels in
   let target_sample_format =
-    match ffmpeg.Ffmpeg_format.sample_format with
+    match params.Ffmpeg_format.sample_format with
       | Some format -> Avutil.Sample_format.find format
       | None -> `Dbl
   in
@@ -122,14 +118,10 @@ let mk_audio ~ffmpeg ~options output =
     Avcodec.Audio.find_best_sample_format codec target_sample_format
   in
 
-  let opts = Hashtbl.create 10 in
-  Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.audio_opts;
-  Hashtbl.iter (Hashtbl.add opts) options;
-
   let internal_converter () =
     let src_samplerate = Lazy.force Frame.audio_rate in
     (* The typing system ensures that this is the number of channels in the frame. *)
-    let src_channels = ffmpeg.Ffmpeg_format.channels in
+    let src_channels = params.Ffmpeg_format.channels in
     let src_channel_layout = get_channel_layout src_channels in
 
     let resampler =
@@ -140,9 +132,10 @@ let mk_audio ~ffmpeg ~options output =
     fun frame start len ->
       let astart = Frame.audio_of_main start in
       let alen = Frame.audio_of_main len in
+      let content = Generator.get_field frame field in
       [
         InternalResampler.convert ~length:alen ~offset:astart resampler
-          (AFrame.pcm frame);
+          (Content.Audio.get_data content);
       ]
   in
 
@@ -181,7 +174,7 @@ let mk_audio ~ffmpeg ~options output =
     in
     fun frame start len ->
       let frames =
-        Ffmpeg_raw_content.Audio.(get_data (Frame.audio frame))
+        Ffmpeg_raw_content.Audio.(get_data (Generator.get_field frame field))
           .Ffmpeg_content_base.data
       in
       let frames =
@@ -191,11 +184,13 @@ let mk_audio ~ffmpeg ~options output =
   in
 
   let converter =
-    match ffmpeg.Ffmpeg_format.audio_codec with
-      | Some (`Internal _) -> internal_converter ()
-      | Some (`Raw _) -> raw_converter
+    match mode with
+      | `Internal -> internal_converter ()
+      | `Raw -> raw_converter
       | _ -> assert false
   in
+
+  let opts = Hashtbl.copy options in
 
   let stream =
     try
@@ -217,26 +212,22 @@ let mk_audio ~ffmpeg ~options output =
       raise e
   in
 
+  let options = Hashtbl.copy options in
+
+  Hashtbl.filter_map_inplace
+    (fun l v -> if Hashtbl.mem opts l then Some v else None)
+    options;
+
+  if Hashtbl.length options > 0 then
+    failwith
+      (Printf.sprintf "Unrecognized options: %s"
+         (Ffmpeg_format.string_of_options options));
+
   let codec_attr () = Av.codec_attr stream in
 
   let bitrate () = Av.bitrate stream in
 
   let video_size () = None in
-
-  let audio_opts = Hashtbl.copy ffmpeg.Ffmpeg_format.audio_opts in
-
-  Hashtbl.filter_map_inplace
-    (fun l v -> if Hashtbl.mem opts l then Some v else None)
-    audio_opts;
-
-  if Hashtbl.length audio_opts > 0 then
-    failwith
-      (Printf.sprintf "Unrecognized options: %s"
-         (Ffmpeg_format.string_of_options audio_opts));
-
-  Hashtbl.filter_map_inplace
-    (fun l v -> if Hashtbl.mem opts l then Some v else None)
-    options;
 
   let frame_size =
     if List.mem `Variable_frame_size (Avcodec.capabilities codec) then None
@@ -266,25 +257,21 @@ let mk_audio ~ffmpeg ~options output =
     video_size;
   }
 
-let mk_video ~ffmpeg ~options output =
+let mk_video ~mode ~codec ~params ~options ~field output =
   let codec =
-    match ffmpeg.Ffmpeg_format.video_codec with
-      | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) -> (
-          try Avcodec.Video.find_encoder_by_name codec
-          with e ->
-            log#severe "Cannot find encoder %s: %s." codec
-              (Printexc.to_string e);
-            raise e)
-      | _ -> assert false
+    try Avcodec.Video.find_encoder_by_name codec
+    with e ->
+      log#severe "Cannot find encoder %s: %s." codec (Printexc.to_string e);
+      raise e
   in
   let pixel_aspect = { Avutil.num = 1; den = 1 } in
 
-  let target_fps = Lazy.force ffmpeg.Ffmpeg_format.framerate in
+  let target_fps = Lazy.force params.Ffmpeg_format.framerate in
   let target_video_frame_time_base = { Avutil.num = 1; den = target_fps } in
-  let target_width = Lazy.force ffmpeg.Ffmpeg_format.width in
-  let target_height = Lazy.force ffmpeg.Ffmpeg_format.height in
+  let target_width = Lazy.force params.Ffmpeg_format.width in
+  let target_height = Lazy.force params.Ffmpeg_format.height in
   let target_pixel_format =
-    Ffmpeg_utils.pixel_format codec ffmpeg.Ffmpeg_format.pixel_format
+    Ffmpeg_utils.pixel_format codec params.Ffmpeg_format.pixel_format
   in
 
   let flag =
@@ -295,12 +282,10 @@ let mk_video ~ffmpeg ~options output =
       | _ -> failwith "Invalid value set for ffmpeg scaling algorithm!"
   in
 
-  let opts = Hashtbl.create 10 in
-  Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.video_opts;
-  Hashtbl.iter (Hashtbl.add opts) options;
+  let opts = Hashtbl.copy options in
 
-  let hwaccel = ffmpeg.Ffmpeg_format.hwaccel in
-  let hwaccel_device = ffmpeg.Ffmpeg_format.hwaccel_device in
+  let hwaccel = params.Ffmpeg_format.hwaccel in
+  let hwaccel_device = params.Ffmpeg_format.hwaccel_device in
 
   let hardware_context, target_pixel_format =
     Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_device ~opts
@@ -314,6 +299,16 @@ let mk_video ~ffmpeg ~options output =
       ~width:target_width ~height:target_height ~opts ~codec output
   in
 
+  let options = Hashtbl.copy options in
+  Hashtbl.filter_map_inplace
+    (fun l v -> if Hashtbl.mem opts l then Some v else None)
+    options;
+
+  if Hashtbl.length options > 0 then
+    failwith
+      (Printf.sprintf "Unrecognized options: %s"
+         (Ffmpeg_format.string_of_options options));
+
   let codec_attr () = Av.codec_attr stream in
 
   let bitrate () = Av.bitrate stream in
@@ -322,20 +317,6 @@ let mk_video ~ffmpeg ~options output =
     let p = Av.get_codec_params stream in
     Some (Avcodec.Video.get_width p, Avcodec.Video.get_height p)
   in
-
-  let video_opts = Hashtbl.copy ffmpeg.Ffmpeg_format.video_opts in
-  Hashtbl.filter_map_inplace
-    (fun l v -> if Hashtbl.mem opts l then Some v else None)
-    video_opts;
-
-  if Hashtbl.length video_opts > 0 then
-    failwith
-      (Printf.sprintf "Unrecognized options: %s"
-         (Ffmpeg_format.string_of_options video_opts));
-
-  Hashtbl.filter_map_inplace
-    (fun l v -> if Hashtbl.mem opts l then Some v else None)
-    options;
 
   let converter = ref None in
 
@@ -393,7 +374,8 @@ let mk_video ~ffmpeg ~options output =
     fun frame start len ->
       let vstart = Frame.video_of_main start in
       let vstop = Frame.video_of_main (start + len) in
-      let vbuf = VFrame.data frame in
+      let content = Generator.get_field frame field in
+      let vbuf = Content.Video.get_data content in
       for i = vstart to vstop - 1 do
         let f =
           Video.Canvas.get vbuf i
@@ -442,7 +424,7 @@ let mk_video ~ffmpeg ~options output =
     fun frame start len ->
       let stop = start + len in
       let { Ffmpeg_raw_content.VideoSpecs.data } =
-        Ffmpeg_raw_content.Video.get_data (Frame.video frame)
+        Ffmpeg_raw_content.Video.get_data (Generator.get_field frame field)
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.time_base; frame; stream_idx }) ->
@@ -452,10 +434,7 @@ let mk_video ~ffmpeg ~options output =
   in
 
   let converter =
-    match ffmpeg.Ffmpeg_format.video_codec with
-      | Some (`Internal _) -> internal_converter
-      | Some (`Raw _) -> raw_converter
-      | _ -> assert false
+    match mode with `Internal -> internal_converter | `Raw -> raw_converter
   in
 
   let encode = converter fps_converter in
