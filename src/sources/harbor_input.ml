@@ -287,6 +287,14 @@ module Make (Harbor : T) = struct
                   match s#connected_client with
                     | Some c -> Lang.string c
                     | None -> Lang.null) );
+          ( "disconnect",
+            ([], Lang.fun_t [] Lang.unit_t),
+            "Disconnect the client currently connected to the harbor. Does \
+             nothing if no client is connected.",
+            fun s ->
+              Lang.val_fun [] (fun _ ->
+                  s#disconnect ~lock:true;
+                  Lang.unit) );
           ( "status",
             ([], Lang.fun_t [] Lang.string_t),
             "Current status of the input.",
