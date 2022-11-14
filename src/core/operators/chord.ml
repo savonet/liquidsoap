@@ -118,7 +118,7 @@ let () =
   let in_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let out_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~midi:(Format_type.midi_n 1) ())
+      (Frame.Fields.make ~midi:(Format_type.midi_n 1) ())
   in
   Lang.add_operator "midi.chord"
     [

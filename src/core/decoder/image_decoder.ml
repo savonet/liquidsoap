@@ -137,12 +137,12 @@ let create_decoder ~audio ~width ~height ~metadata img =
   { Decoder.fill; fseek = (fun _ -> 0); close }
 
 let is_audio_compatible ctype =
-  match Frame.find_field_opt ctype Frame.audio_field with
+  match Frame.Fields.find_opt Frame.Fields.audio ctype with
     | None -> true
     | Some f -> Content.Audio.is_format f
 
 let is_video_compatible ctype =
-  match Frame.find_field_opt ctype Frame.video_field with
+  match Frame.Fields.find_opt Frame.Fields.video ctype with
     | None -> false
     | Some f -> Content.Video.is_format f
 
@@ -160,8 +160,8 @@ let () =
             && is_audio_compatible ctype && is_video_compatible ctype
           then
             Some
-              (Frame.mk_fields
-                 ?audio:(Frame.find_field_opt ctype Frame.audio_field)
+              (Frame.Fields.make
+                 ?audio:(Frame.Fields.find_opt Frame.Fields.audio ctype)
                  ~video:Content.(default_format Video.kind)
                  ())
           else None);
@@ -171,10 +171,10 @@ let () =
             let img = Option.get (Decoder.get_image_file_decoder filename) in
             let width, height =
               Content.Video.dimensions_of_format
-                (Option.get (Frame.find_video ctype))
+                (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
             in
             create_decoder
-              ~audio:(Frame.has_field ctype Frame.audio_field)
+              ~audio:(Frame.Fields.mem Frame.Fields.audio ctype)
               ~width ~height ~metadata img);
       stream_decoder = None;
     }

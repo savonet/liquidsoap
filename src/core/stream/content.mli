@@ -27,7 +27,7 @@ open Mm
 type 'a chunk = 'a Content_base.chunk = {
   data : 'a;
   offset : int;
-  length : int;
+  length : int option;
 }
 
 type ('a, 'b) chunks = ('a, 'b) Content_base.chunks = {
@@ -62,7 +62,7 @@ module type ContentSpecs = sig
   (** Data *)
 
   (* Length is in main ticks. *)
-  val make : length:int -> params -> data
+  val make : ?length:int -> params -> data
   val length : data -> int
 
   (* TODO: This will be removed when reworking
@@ -127,10 +127,11 @@ type data = Contents.data
 
 (** Data *)
 
-val make : length:int -> format -> data
+val make : ?length:int -> format -> data
 val blit : data -> int -> data -> int -> int -> unit
 val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
+val truncate : data -> int -> data
 val copy : data -> data
 val clear : data -> unit
 val length : data -> int
@@ -198,8 +199,8 @@ module Metadata : sig
   val set_data : Contents.data -> (int * Frame_base.metadata) list -> unit
 end
 
-module TrackMark : sig
-  include Content with type kind = [ `TrackMark ] and type params = unit
+module Track_marks : sig
+  include Content with type kind = [ `Track_marks ] and type params = unit
 
   val format : format
   val get_data : Contents.data -> int list

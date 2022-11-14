@@ -54,7 +54,7 @@ class synth (synth : Synth.synth) (source : source) chan volume =
 let register obj name descr =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~midi:(Format_type.midi_n 1) ())
+      (Frame.Fields.make ~midi:(Format_type.midi_n 1) ())
   in
   Lang.add_operator ("synth." ^ name)
     [
@@ -100,7 +100,7 @@ let register obj name descr =
 
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~midi:(Format_type.midi_n 16) ())
+      (Frame.Fields.make ~midi:(Format_type.midi_n 16) ())
   in
   Lang.add_operator ("synth.all." ^ name)
     [

@@ -236,7 +236,7 @@ let () = Lang.add_module "dtmf"
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "dtmf.detect"
     [
@@ -361,7 +361,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "sine.detect"
     [

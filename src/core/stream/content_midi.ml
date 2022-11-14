@@ -50,7 +50,7 @@ module Specs = struct
   let default_params _ = { channels = Lazy.force Frame_settings.midi_channels }
   let clear _ = ()
 
-  let make ~length { channels } =
+  let make ?(length = 0) { channels } =
     MIDI.Multitrack.create channels (midi_of_main length)
 
   let length d = main_of_midi (MIDI.Multitrack.duration d)

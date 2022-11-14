@@ -158,7 +158,7 @@ let file_type filename =
          channels)."
         filename layer (f.Mad.bitrate / 1000) f.Mad.samplerate f.Mad.channels;
       Some
-        (Frame.mk_fields
+        (Frame.Fields.make
            ~audio:(Content.Audio.format_of_channels f.Mad.channels)
            ()))
 

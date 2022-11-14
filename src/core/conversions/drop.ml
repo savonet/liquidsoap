@@ -40,21 +40,21 @@ let () =
           | `Audio ->
               ( "drop_audio",
                 "Drop all audio content of a stream.",
-                Frame_type.set_field output Frame.audio_field (Lang.univ_t ()),
+                Frame_type.set_field output Frame.Fields.audio (Lang.univ_t ()),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~audio:true ~name:"drop_audio" source )
           | `Video ->
               ( "drop_video",
                 "Drop all video content of a stream.",
-                Frame_type.set_field output Frame.video_field (Lang.univ_t ()),
+                Frame_type.set_field output Frame.Fields.video (Lang.univ_t ()),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~video:true ~name:"drop_video" source )
           | `Midi ->
               ( "drop_midi",
                 "Drop all midi content of a stream.",
-                Frame_type.set_field output Frame.midi_field (Lang.univ_t ()),
+                Frame_type.set_field output Frame.Fields.midi (Lang.univ_t ()),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~midi:true ~name:"drop_midi" source )

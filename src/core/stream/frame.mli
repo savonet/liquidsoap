@@ -24,45 +24,25 @@
 
 (** {2 Frame definitions} *)
 
-type field
+module Fields : sig
+  type field = Frame_base.Fields.field
 
-val string_of_field : field -> string
-val field_of_string : string -> field
-val register_field : string -> field
+  include Map.S with type key := field and type 'a t = 'a Frame_base.Fields.t
 
-module Fields : Map.S with type key = field
+  val metadata : field
+  val track_marks : field
+  val audio : field
+  val audio_n : int -> field
+  val video : field
+  val video_n : int -> field
+  val midi : field
+  val register : string -> field
+  val make : ?audio:'a -> ?video:'a -> ?midi:'a -> unit -> 'a t
+  val string_of_field : field -> string
+  val field_of_string : string -> field
+end
 
-(* Default fields *)
-val audio_field : field
-val video_field : field
-val midi_field : field
-val audio_field_n : int -> field
-val video_field_n : int -> field
-
-(* Find fields *)
-
-val find_audio : 'a Fields.t -> 'a option
-val find_video : 'a Fields.t -> 'a option
-val find_midi : 'a Fields.t -> 'a option
-
-(* Generic fields. *)
-
-(* This function raises [Not_found] if field does not exist. *)
-val find_field : 'a Fields.t -> field -> 'a
-val find_field_opt : 'a Fields.t -> field -> 'a option
-val has_field : 'a Fields.t -> field -> bool
-
-(* Set fields *)
-
-val set_audio_field : 'a Fields.t -> 'a -> 'a Fields.t
-val set_video_field : 'a Fields.t -> 'a -> 'a Fields.t
-val set_midi_field : 'a Fields.t -> 'a -> 'a Fields.t
-
-(* Generic fields *)
-val set_field : 'a Fields.t -> field -> 'a -> 'a Fields.t
-val mk_fields : ?audio:'a -> ?video:'a -> ?midi:'a -> unit -> 'a Fields.t
-val map_fields : ('a -> 'b) -> 'a Fields.t -> 'b Fields.t
-val mapi_fields : (field -> 'a -> 'b) -> 'a Fields.t -> 'b Fields.t
+type field = Fields.field
 
 (** Precise description of the channel types for the current track. *)
 type content_type = Content.format Fields.t
@@ -71,9 +51,10 @@ type content_type = Content.format Fields.t
 type metadata = (string, string) Hashtbl.t
 
 val metadata_of_list : (string * string) list -> metadata
+val list_of_metadata : metadata -> (string * string) list
 
 (** A frame. *)
-type t
+type t = Generator.t
 
 (** {2 Content-independent frame operations} *)
 
@@ -84,25 +65,31 @@ val create : content_type -> t
 
 (** A dummy frame which should never written to or read from. This is however
     useful as a placeholder before initialization of references. *)
-val dummy : t
+val dummy : unit -> t
 
 (** Get a frame's content type. *)
 val content_type : t -> content_type
 
+(** Get a frame's content. *)
+val get : t -> field -> Content.data
+
+(** Set a frame's content. *)
+val set : t -> field -> Content.data -> unit
+
 (** Get a frame's audio content. *)
-val audio : t -> Content.data option
+val audio : t -> Content.data
 
 (** Set a frame's audio content. *)
 val set_audio : t -> Content.data -> unit
 
 (** Get a frame's video content. *)
-val video : t -> Content.data option
+val video : t -> Content.data
 
 (** Set a frame's video content. *)
 val set_video : t -> Content.data -> unit
 
 (** Get a frame's midi content. *)
-val midi : t -> Content.data option
+val midi : t -> Content.data
 
 (** Set a frame's midi content. *)
 val set_midi : t -> Content.data -> unit
@@ -111,23 +98,15 @@ val set_midi : t -> Content.data -> unit
     end of the frame). *)
 val position : t -> int
 
+(** Remaining data length in the frame. *)
+val remaining : t -> int
+
 (** Is the frame partially filled, i.e. is its end [position] strictly before
     its size? *)
 val is_partial : t -> bool
 
 (** Make the frame empty. *)
 val clear : t -> unit
-
-(** Same as [clear] from a given position. *)
-val clear_from : t -> int -> unit
-
-(** {3 Presentation time} *)
-
-(** Frame presentation time, in multiple of a frame's size. *)
-val pts : t -> int64 option
-
-(** Set presentation time. *)
-val set_pts : t -> int64 option -> unit
 
 (** {3 Breaks} *)
 

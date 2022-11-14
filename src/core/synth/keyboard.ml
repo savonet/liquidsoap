@@ -133,7 +133,7 @@ class keyboard =
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~midi:(Format_type.midi_n 1) ())
+    Lang.frame_t Lang.unit_t (Frame.Fields.make ~midi:(Format_type.midi_n 1) ())
   in
   Lang.add_operator "input.keyboard" [] ~return_t ~category:`Input
     ~flags:[`Hidden; `Experimental] ~descr:"Play notes from the keyboard."

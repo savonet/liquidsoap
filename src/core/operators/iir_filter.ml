@@ -451,7 +451,7 @@ let () =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "filter.iir.butterworth.high"
     [
@@ -472,7 +472,7 @@ let () =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "filter.iir.butterworth.low"
     [
@@ -493,7 +493,7 @@ let () =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "filter.iir.butterworth.bandpass"
     [
@@ -516,7 +516,7 @@ let () =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "filter.iir.butterworth.bandstop"
     [
@@ -539,7 +539,7 @@ let () =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "filter.iir.resonator.bandpass"
     [
@@ -560,7 +560,7 @@ let () =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "filter.iir.resonator.bandstop"
     [
@@ -581,7 +581,7 @@ let () =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "filter.iir.resonator.allpass"
     [

@@ -155,6 +155,9 @@ class virtual source :
        (** Retrieve the frame currently being filled. *)
        method memo : Frame.t
 
+       (** A buffer that can be used by the source. *)
+       method buffer : Generator.t
+
        (** Number of frames left in the current track. Defaults to -1=infinity. *)
        method virtual remaining : int
 

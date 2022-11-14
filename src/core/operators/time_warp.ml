@@ -22,6 +22,78 @@
 
 open Mm
 
+module MG = struct
+  type t = {
+    mutable metadata : (int * Frame.metadata) list;
+    mutable breaks : int list;
+    mutable length : int;
+  }
+
+  let create () = { metadata = []; breaks = []; length = 0 }
+
+  let clear g =
+    g.metadata <- [];
+    g.breaks <- [];
+    g.length <- 0
+
+  let advance g len =
+    g.metadata <- List.map (fun (t, m) -> (t - len, m)) g.metadata;
+    g.metadata <- List.filter (fun (t, _) -> t >= 0) g.metadata;
+    g.breaks <- List.map (fun t -> t - len) g.breaks;
+    g.breaks <- List.filter (fun t -> t >= 0) g.breaks;
+    g.length <- g.length - len;
+    assert (g.length >= 0)
+
+  let length g = g.length
+  let remaining g = match g.breaks with a :: _ -> a | _ -> -1
+  let metadata g len = List.filter (fun (t, _) -> t < len) g.metadata
+
+  let feed_from_frame g frame =
+    let size = Lazy.force Frame.size in
+    let length = length g in
+    g.metadata <-
+      g.metadata
+      @ List.map (fun (t, m) -> (length + t, m)) (Frame.get_all_metadata frame);
+    g.breaks <-
+      g.breaks
+      @ List.map
+          (fun t -> length + t)
+          (* Filter out the last break, which only marks the end of frame, not a
+           * track limit (doesn't mean is_partial). *)
+          (List.filter (fun x -> x < size) (Frame.breaks frame));
+    let frame_length =
+      let rec aux = function [t] -> t | _ :: tl -> aux tl | [] -> size in
+      aux (Frame.breaks frame)
+    in
+    g.length <- g.length + frame_length
+
+  let drop_initial_break g =
+    match g.breaks with
+      | 0 :: tl -> g.breaks <- tl
+      | [] -> () (* end of stream / underrun... *)
+      | _ -> assert false
+
+  let fill g frame =
+    let offset = Frame.position frame in
+    let needed =
+      let size = Lazy.force Frame.size in
+      let remaining = remaining g in
+      let remaining = if remaining = -1 then length g else remaining in
+      min (size - offset) remaining
+    in
+    List.iter
+      (fun (p, m) -> if p < needed then Frame.set_metadata frame (offset + p) m)
+      g.metadata;
+    advance g needed;
+
+    (* Mark the end of this filling. If the frame is partial it must be because
+     * of a break in the generator, or because the generator is emptying.
+     * Conversely, each break in the generator must cause a partial frame, so
+     * don't remove any if it isn't partial. *)
+    Frame.add_break frame (offset + needed);
+    if Frame.is_partial frame then drop_initial_break g
+end
+
 (** Create a buffer between two clocks.
   *
   * This creates an active operator in the inner clock (the action consists
@@ -35,8 +107,6 @@ open Mm
   * in which the buffer-consumer will still behave OK (except obviously
   * that the buffer will empty). *)
 module Buffer = struct
-  module Generator = Generator.From_frames
-
   (* The kind of value shared by a producer and a consumer. *)
   type control = {
     lock : Mutex.t;
@@ -58,7 +128,7 @@ module Buffer = struct
 
       method seek len =
         let len = min (Generator.length c.generator) len in
-        Generator.remove c.generator len;
+        Generator.truncate c.generator len;
         len
 
       method private get_frame frame =
@@ -91,11 +161,11 @@ module Buffer = struct
             if c.abort then (
               c.abort <- false;
               source#abort_track);
-            Generator.feed_from_frame c.generator frame;
+            Generator.feed c.generator frame;
             if Generator.length c.generator > prebuf then (
               c.buffering <- false;
               if Generator.length c.generator > maxbuf then
-                Generator.remove c.generator
+                Generator.truncate c.generator
                   (Generator.length c.generator - maxbuf)))
     end
 
@@ -103,7 +173,7 @@ module Buffer = struct
       ~max_buffer source_val =
     let control =
       {
-        generator = Generator.create ();
+        generator = Generator.create (Lang.to_source source_val)#content_type;
         lock = Mutex.create ();
         buffering = true;
         abort = false;
@@ -181,8 +251,6 @@ module AdaptativeBuffer = struct
             r.rb <- Some (RB.create (Audio.channels buf) r.size);
             write r buf
   end
-
-  module MG = Generator.Metadata
 
   (* The kind of value shared by a producer and a consumer. *)
   (* TODO: also have breaks and metadata as in generators. *)
@@ -351,7 +419,7 @@ end
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "buffer.adaptative"
     (Output.proto

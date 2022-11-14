@@ -24,8 +24,6 @@ open Mm
 
 (** Decode media using ffmpeg. *)
 
-module Generator = Decoder.G
-
 let log = Log.make ["decoder"; "ffmpeg"; "internal"]
 
 module ConverterInput = Swresample.Make (Swresample.Frame)
@@ -65,7 +63,7 @@ let mk_audio_decoder ~channels container =
         in_sample_format := frame_in_sample_format;
         converter := mk_converter ());
       let content = Converter.convert !converter frame in
-      buffer.Decoder.put_pcm ?pts:None ~samplerate:target_sample_rate content;
+      buffer.Decoder.put_pcm ~samplerate:target_sample_rate content;
       let metadata = Avutil.Frame.metadata frame in
       if metadata <> [] then (
         let m = Hashtbl.create (List.length metadata) in
@@ -113,7 +111,7 @@ let mk_video_decoder ~width ~height container =
   let cb ~buffer frame =
     let img = scale frame in
     let content = Video.Canvas.single img in
-    buffer.Decoder.put_yuva420p ?pts:None
+    buffer.Decoder.put_yuva420p
       ~fps:{ Decoder.num = target_fps; den = 1 }
       content;
     let metadata = Avutil.Frame.metadata frame in

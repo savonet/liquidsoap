@@ -358,11 +358,13 @@ class virtual operator ?(name = "src") sources =
 
     method private audio_channels =
       Content.Audio.channels_of_format
-        (Option.get (Frame.find_audio self#content_type))
+        (Option.get
+           (Frame.Fields.find_opt Frame.Fields.audio self#content_type))
 
     method private video_dimensions =
       Content.Video.dimensions_of_format
-        (Option.get (Frame.find_video self#content_type))
+        (Option.get
+           (Frame.Fields.find_opt Frame.Fields.video self#content_type))
 
     (** Startup/shutdown.
 
@@ -555,6 +557,18 @@ class virtual operator ?(name = "src") sources =
             let m = Frame.create self#content_type in
             memo <- Some m;
             m
+
+    val mutable buffer = None
+
+    method buffer =
+      match buffer with
+        | Some buffer -> buffer
+        | None ->
+            let buf =
+              Generator.create ~log:(self#log#info "%s") self#content_type
+            in
+            buffer <- Some buf;
+            buf
 
     val mutable last_metadata = None
     method last_metadata = self#mutexify (fun () -> last_metadata) ()

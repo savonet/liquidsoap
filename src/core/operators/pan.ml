@@ -51,7 +51,7 @@ class pan (source : source) phi phi_0 =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio_stereo ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
   Lang.add_operator "stereo.pan"
     [

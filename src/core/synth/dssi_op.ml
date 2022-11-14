@@ -133,7 +133,7 @@ let register_descr plugin_name descr_n descr outputs =
   let chans = Array.length outputs in
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields
+      (Frame.Fields.make
          ~audio:(Format_type.audio_n chans)
          ~midi:(Format_type.midi_n 1) ())
   in
@@ -157,7 +157,7 @@ let register_descr plugin_name descr_n descr outputs =
 
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields
+      (Frame.Fields.make
          ~audio:(Format_type.audio_n chans)
          ~midi:(Format_type.midi_n all_chans)
          ())

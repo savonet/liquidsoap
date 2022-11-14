@@ -149,7 +149,7 @@ let file_type ~ctype:_ filename =
               0
       in
       Some
-        (Frame.mk_fields
+        (Frame.Fields.make
            ~audio:
              Content.(
                Audio.lift_params

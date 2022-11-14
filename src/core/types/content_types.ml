@@ -61,13 +61,13 @@ let of_frame_t t =
           Type.constructor = "stream_kind";
           Type.params = [(_, audio); (_, video); (_, midi)];
         } ->
-        Frame.mk_fields ~audio ~video ~midi ()
+        Frame.Fields.make ~audio ~video ~midi ()
     | Type.Var ({ contents = Type.Free _ } as var) ->
         let audio = kind_t `Any in
         let video = kind_t `Any in
         let midi = kind_t `Any in
         var := Type.Link (`Invariant, frame_t audio video midi);
-        Frame.mk_fields ~audio ~video ~midi ()
+        Frame.Fields.make ~audio ~video ~midi ()
     | _ -> assert false
 
 (** Type of audio formats that can encode frame of a given kind. *)

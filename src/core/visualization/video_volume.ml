@@ -79,7 +79,7 @@ class visu source =
         let vFrame =
           Frame.(
             create
-              (Frame.mk_fields ~video:Content.(default_format Video.kind) ()))
+              (Frame.Fields.make ~video:Content.(default_format Video.kind) ()))
         in
         Frame.set_video frame (VFrame.content vFrame);
 
@@ -141,7 +141,7 @@ class visu source =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "video.volume"
     [("", Lang.source_t frame_t, None, None)]

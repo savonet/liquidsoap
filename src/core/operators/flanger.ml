@@ -74,7 +74,7 @@ class flanger (source : source) delay freq feedback phase =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "flanger"
     [

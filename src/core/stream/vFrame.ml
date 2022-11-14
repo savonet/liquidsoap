@@ -31,9 +31,7 @@ let vot ?round x =
     | None | Some `Down -> Frame.video_of_main x
     | Some `Up -> Frame.video_of_main (x + Lazy.force Frame.video_rate - 1)
 
-let content b =
-  match Frame.video b with Some c -> c | None -> raise Content.Invalid
-
+let content b = try Frame.video b with Not_found -> raise Content.Invalid
 let data b = Content.Video.get_data (content b)
 let size _ = vot (Lazy.force size)
 let next_sample_position t = vot ~round:`Up (Frame.position t)

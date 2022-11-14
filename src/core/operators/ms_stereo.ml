@@ -61,7 +61,7 @@ let () =
   Lang.add_module "stereo.ms";
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio_stereo ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
   Lang.add_operator "stereo.ms.encode"
     [("", Lang.source_t return_t, None, None)]
@@ -72,7 +72,7 @@ let () =
       new msstereo s Encode 0.);
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio_stereo ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
   Lang.add_operator "stereo.ms.decode"
     [
@@ -124,7 +124,7 @@ class spatializer ~width (source : source) =
 let () =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio_stereo ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
   Lang.add_operator "stereo.width"
     [

@@ -38,8 +38,6 @@ type input = {
   length : (unit -> int) option;
 }
 
-module G = Generator.From_audio_video_plus
-
 type fps = { num : int; den : int }
 
 (* Buffer passed to decoder. This wraps around
@@ -50,9 +48,9 @@ type fps = { num : int; den : int }
     - Implicit fps conversion
     - Implicit content drop *)
 type buffer = {
-  generator : G.t;
-  put_pcm : ?pts:Int64.t -> samplerate:int -> Content.Audio.data -> unit;
-  put_yuva420p : ?pts:Int64.t -> fps:fps -> Content.Video.data -> unit;
+  generator : Generator.t;
+  put_pcm : samplerate:int -> Content.Audio.data -> unit;
+  put_yuva420p : fps:fps -> Content.Video.data -> unit;
 }
 
 type decoder = {
@@ -123,7 +121,7 @@ val image_file_decoders : (file -> Video.Image.t option) Plug.t
 val get_image_file_decoder : file -> Video.Image.t option
 
 (* Initialize a decoding buffer *)
-val mk_buffer : ctype:Frame.content_type -> G.t -> buffer
+val mk_buffer : ctype:Frame.content_type -> Generator.t -> buffer
 
 (* Create a file decoder when remaining time is known. *)
 val file_decoder :

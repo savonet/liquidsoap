@@ -125,7 +125,9 @@ let file_type filename =
         (Lang_string.quote_string filename)
         rate channels;
       Some
-        (Frame.mk_fields ~audio:(Content.Audio.format_of_channels channels) ()))
+        (Frame.Fields.make
+           ~audio:(Content.Audio.format_of_channels channels)
+           ()))
 
 let file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder
