@@ -32,6 +32,7 @@ Fixed:
 * Add support for `song` metadata (mapped to `title`) and `url` (mapped to
   `metadata_url`) in `input.harbor` (#2676)
 * Fixed `blank.*` operator types.
+* Fixed request metadata escaping (#2732)
 
 ---
 2.1.2 (2022-09-26)

@@ -58,10 +58,10 @@ let string_of_metadata metadata =
     (fun k v ->
       if !first then (
         first := false;
-        try Format.fprintf f "%s=\"%s\"" k (Utils.escape_utf8_string v)
+        try Format.fprintf f "%s=%s" k (Utils.quote_utf8_string v)
         with _ -> ())
       else (
-        try Format.fprintf f "\n%s=\"%s\"" k (Utils.escape_utf8_string v)
+        try Format.fprintf f "\n%s=%s" k (Utils.quote_utf8_string v)
         with _ -> ()))
     metadata;
   Format.pp_print_flush f ();
