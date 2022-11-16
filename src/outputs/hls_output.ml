@@ -254,10 +254,10 @@ class hls_output p =
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let prefix = Lang.to_string (List.assoc "prefix" p) in
   let directory = Lang.to_string (Lang.assoc "" 1 p) in
+  let perm = Lang.to_int (List.assoc "perm" p) in
   let () =
     if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
     then (
-      let perm = Lang.to_int (List.assoc "perm" p) in
       try Utils.mkdir ~perm directory
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
@@ -506,6 +506,15 @@ class hls_output p =
       self#log#debug "Opening segment %d for stream %s." s.position s.name;
       let filename =
         segment_name ~position:s.position ~extname:s.extname s.name
+      in
+      let directory = Filename.dirname filename in
+      let () =
+        if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
+        then (
+          try Utils.mkdir ~perm directory
+          with exn ->
+            let bt = Printexc.get_raw_backtrace () in
+            Lang.raise_as_runtime ~bt ~kind:"file" exn)
       in
       let out_channel = self#open_out filename in
       Strings.iter (output_substring out_channel) s.encoder.Encoder.header;
