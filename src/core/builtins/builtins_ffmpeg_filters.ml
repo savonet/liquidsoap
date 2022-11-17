@@ -579,13 +579,13 @@ let () =
   let raw_video_format = `Kind Ffmpeg_raw_content.Video.kind in
   let audio_frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields
+      (Frame.Fields.make
          ~audio:(Type.make (Format_type.descr raw_audio_format))
          ())
   in
   let video_frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields
+      (Frame.Fields.make
          ~video:(Type.make (Format_type.descr raw_video_format))
          ())
   in
@@ -612,7 +612,7 @@ let () =
 
       let frame_t =
         Lang.frame_t Lang.unit_t
-          (Frame.mk_fields
+          (Frame.Fields.make
            (* We need to make sure that we are using a format here to
               ensure that its params are properly unified with the underlying source. *)
              ~audio:
@@ -661,7 +661,7 @@ let () =
 
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields
+      (Frame.Fields.make
          ~audio:(Type.make (Format_type.descr raw_audio_format))
          ())
   in
@@ -683,7 +683,7 @@ let () =
 
       let frame_t =
         Lang.frame_t Lang.unit_t
-          (Frame.mk_fields
+          (Frame.Fields.make
            (* We need to make sure that we are using a format here to
               ensure that its params are properly unified with the underlying source. *)
              ~audio:
@@ -736,7 +736,7 @@ let () =
 
       let frame_t =
         Lang.frame_t Lang.unit_t
-          (Frame.mk_fields
+          (Frame.Fields.make
            (* We need to make sure that we are using a format here to
               ensure that its params are properly unified with the underlying source. *)
              ~video:
@@ -784,7 +784,7 @@ let () =
 
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields
+      (Frame.Fields.make
          ~video:(Type.make (Format_type.descr raw_video_format))
          ())
   in
@@ -814,7 +814,7 @@ let () =
 
       let frame_t =
         Lang.frame_t Lang.unit_t
-          (Frame.mk_fields
+          (Frame.Fields.make
              ~video:
                (Type.make
                   (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))

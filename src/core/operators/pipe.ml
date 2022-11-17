@@ -22,8 +22,6 @@
 
 open Mm
 open Source
-module Generator = Generator.From_audio_video_plus
-module Generated = Generated.From_audio_video_plus
 
 type next_stop =
   [ `Metadata of Frame.metadata
@@ -39,8 +37,8 @@ type chunk = {
   mutable len : int;
 }
 
-class pipe ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
-  ~restart ~restart_on_error source_val =
+class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
+  ~restart_on_error source_val =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -49,7 +47,6 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   let replay_delay = Frame.audio_of_seconds replay_delay in
   let resampler = Decoder_utils.samplerate_converter () in
   let len = match data_len with x when x < 0 -> None | l -> Some l in
-  let abg = Generator.create ~log ~log_overfull `Audio in
   let mutex = Mutex.create () in
   let replay_pending = ref [] in
   let next_stop = ref `Nothing in
@@ -63,7 +60,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
     inherit
       Child_support.base ~check_self_sync:false [source_val] as child_support
 
-    inherit Generated.source abg ~empty_on_abort:false ~bufferize
+    inherit Generated.source ~empty_on_abort:false ~bufferize ()
     val mutable samplesize = 16
     val mutable samplerate = Frame.audio_of_seconds 1.
 
@@ -99,12 +96,11 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let len = pull bytes 0 Utils.pagesize in
         let data = converter bytes 0 len in
         let data, ofs, len = resampler ~samplerate data 0 (Audio.length data) in
-        let buffered = Generator.length abg in
+        let buffered = Generator.length self#buffer in
         let duration = Frame.main_of_audio len in
         let offset = Frame.main_of_audio ofs in
-        Generator.put_audio abg
-          (Content.Audio.lift_data ~offset ~length:duration data)
-          (Frame.main_of_audio ofs) duration;
+        Generator.put self#buffer Frame.Fields.audio
+          (Content.Audio.lift_data ~offset ~length:duration data);
         let to_replay =
           Tutils.mutexify mutex
             (fun () ->
@@ -131,10 +127,10 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
           match to_replay with
             | -1, _ -> ()
             | _, `Break_and_metadata m ->
-                Generator.add_metadata abg m;
-                Generator.add_break abg
-            | _, `Metadata m -> Generator.add_metadata abg m
-            | _, `Break -> Generator.add_break abg
+                Generator.add_metadata self#buffer m;
+                Generator.add_track_mark self#buffer
+            | _, `Metadata m -> Generator.add_metadata self#buffer m
+            | _, `Break -> Generator.add_track_mark self#buffer
             | _ -> ()
         end;
         if abg_max_len < buffered + len then
@@ -240,14 +236,14 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
             | false, _ -> false
             | _, `Sleep -> false
             | _, `Break_and_metadata m ->
-                Generator.add_metadata abg m;
-                Generator.add_break abg;
+                Generator.add_metadata self#buffer m;
+                Generator.add_track_mark self#buffer;
                 true
             | _, `Metadata m ->
-                Generator.add_metadata abg m;
+                Generator.add_metadata self#buffer m;
                 true
             | _, `Break ->
-                Generator.add_break abg;
+                Generator.add_track_mark self#buffer;
                 true
             | _, `Nothing -> restart)
 
@@ -293,7 +289,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 let () =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "pipe"
     [
@@ -323,10 +319,6 @@ let () =
         Lang.float_t,
         Some (Lang.float 10.),
         Some "Maximum duration of the buffered data." );
-      ( "log_overfull",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Log when the source's buffer is overfull." );
       ( "restart",
         Lang.bool_t,
         Some (Lang.bool true),
@@ -346,7 +338,6 @@ let () =
             data_len,
             bufferize,
             max,
-            log_overfull,
             restart,
             restart_on_error,
             src ) =
@@ -355,7 +346,6 @@ let () =
           Lang.to_option (f "data_length"),
           Lang.to_float (f "buffer"),
           Lang.to_float (f "max"),
-          Lang.to_bool (f "log_overfull"),
           Lang.to_bool (f "restart"),
           Lang.to_bool (f "restart_on_error"),
           f "" )
@@ -367,6 +357,6 @@ let () =
         match data_len with None -> -1 | Some v -> Lang.to_int v
       in
       (new pipe
-         ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
-         ~restart_on_error ~process src
+         ~replay_delay ~data_len ~bufferize ~max ~restart ~restart_on_error
+         ~process src
         :> source))

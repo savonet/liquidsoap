@@ -89,7 +89,10 @@ def replaces input.external.avi(%argsof(input.external.avi), s) =
   s.on_get_ready(memoize({
     server.register(namespace=source.id(s), description="Show internal buffer length (in seconds).",
                     "buffer_length", fun (_) -> begin
-                      let (audio, video, total) = s.buffer_length()
+                      buffered = s.buffered()
+                      audio = list.assoc(default=0., "audio", buffered)
+                      video = list.assoc(default=0., "video", buffered)
+                      total = min(audio, video)
                       "audio buffer length: #{audio}\nvideo buffer length: #{video}\ntotal buffer length: #{total}"
                     end)
   }))

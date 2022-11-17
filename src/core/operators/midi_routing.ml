@@ -60,7 +60,7 @@ class remove (source : source) t =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~midi:(Format_type.midi ()) ())
+      (Frame.Fields.make ~midi:(Format_type.midi ()) ())
   in
   Lang.add_operator "midi.merge_all"
     [
@@ -77,7 +77,7 @@ let () =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~midi:(Format_type.midi ()) ())
+      (Frame.Fields.make ~midi:(Format_type.midi ()) ())
   in
   Lang.add_operator "midi.remove"
     [

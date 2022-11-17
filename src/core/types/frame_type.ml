@@ -25,7 +25,7 @@ module Type = Liquidsoap_lang.Type
 let make ?pos base_type fields =
   Frame.Fields.fold
     (fun field field_type typ ->
-      let field = Frame.string_of_field field in
+      let field = Frame.Fields.string_of_field field in
       let meth =
         {
           Type.meth = field;
@@ -42,7 +42,7 @@ let internal ?pos () =
   Type.var ?pos ~constraints:[Format_type.internal_media] ()
 
 let set_field frame_type field field_type =
-  let field = Frame.string_of_field field in
+  let field = Frame.Fields.string_of_field field in
   let meth =
     {
       Type.meth = field;
@@ -55,7 +55,7 @@ let set_field frame_type field field_type =
   Type.make (Type.Meth (meth, frame_type))
 
 let get_field frame_type field =
-  let field = Frame.string_of_field field in
+  let field = Frame.Fields.string_of_field field in
   let fields, _ = Type.split_meths frame_type in
   match
     List.find_map
@@ -82,7 +82,7 @@ let content_type frame_type =
             else None
           in
           let default_t =
-            make (Type.var ()) (Frame.mk_fields ?audio ?video ())
+            make (Type.var ()) (Frame.Fields.make ?audio ?video ())
           in
           Typing.(frame_type <: default_t);
           default_t
@@ -95,7 +95,9 @@ let content_type frame_type =
            ({ Type.meth = field; scheme = _, ty } as meth) ->
         let format = Format_type.content_type ty in
         let format_type = Type.make (Format_type.descr (`Format format)) in
-        ( Frame.set_field content_type (Frame.field_of_string field) format,
+        ( Frame.Fields.add
+            (Frame.Fields.field_of_string field)
+            format content_type,
           Type.make
             (Type.Meth
                ( { meth with Type.scheme = ([], format_type) },

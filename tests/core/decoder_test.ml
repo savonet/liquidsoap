@@ -17,39 +17,39 @@ let () =
   let midi = Content.(Midi.lift_params { Content.channels = 1 }) in
   assert (
     Decoder.can_decode_type
-      (Frame.mk_fields ~audio:stereo ())
-      (Frame.mk_fields ~audio:stereo ()));
+      (Frame.Fields.make ~audio:stereo ())
+      (Frame.Fields.make ~audio:stereo ()));
   assert (
     Decoder.can_decode_type
-      (Frame.mk_fields ~audio:mono ())
-      (Frame.mk_fields ~audio:stereo ()));
+      (Frame.Fields.make ~audio:mono ())
+      (Frame.Fields.make ~audio:stereo ()));
   assert (
     Decoder.can_decode_type
-      (Frame.mk_fields ~audio:five_point_one ())
-      (Frame.mk_fields ~audio:stereo ()));
+      (Frame.Fields.make ~audio:five_point_one ())
+      (Frame.Fields.make ~audio:stereo ()));
   assert (
     not
       (Decoder.can_decode_type
-         (Frame.mk_fields ~audio:mono ())
-         (Frame.mk_fields ~audio:stereo ~video:canvas ())));
+         (Frame.Fields.make ~audio:mono ())
+         (Frame.Fields.make ~audio:stereo ~video:canvas ())));
   assert (
     Decoder.can_decode_type
-      (Frame.mk_fields ~audio:mono ~video:canvas ())
-      (Frame.mk_fields ~audio:stereo ~video:canvas ()));
+      (Frame.Fields.make ~audio:mono ~video:canvas ())
+      (Frame.Fields.make ~audio:stereo ~video:canvas ()));
   assert (
     not
       (Decoder.can_decode_type
-         (Frame.mk_fields ~audio:mono ())
-         (Frame.mk_fields ~audio:stereo ~midi ())));
+         (Frame.Fields.make ~audio:mono ())
+         (Frame.Fields.make ~audio:stereo ~midi ())));
   assert (
     Decoder.can_decode_type
-      (Frame.mk_fields ~audio:stereo ~video:canvas ~midi ())
-      (Frame.mk_fields ~audio:stereo ~midi ()));
+      (Frame.Fields.make ~audio:stereo ~video:canvas ~midi ())
+      (Frame.Fields.make ~audio:stereo ~midi ()));
   assert (
     Decoder.can_decode_type
-      (Frame.mk_fields ~audio:stereo ~video:canvas ~midi ())
-      (Frame.mk_fields ~audio:stereo ~video:canvas ~midi ()));
+      (Frame.Fields.make ~audio:stereo ~video:canvas ~midi ())
+      (Frame.Fields.make ~audio:stereo ~video:canvas ~midi ()));
   assert (
     Decoder.can_decode_type
-      (Frame.mk_fields ~audio:stereo ~video:canvas ~midi ())
-      (Frame.mk_fields ~video:canvas ~midi ()))
+      (Frame.Fields.make ~audio:stereo ~video:canvas ~midi ())
+      (Frame.Fields.make ~video:canvas ~midi ()))

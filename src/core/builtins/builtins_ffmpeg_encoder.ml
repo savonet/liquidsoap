@@ -28,10 +28,12 @@ module InternalResampler =
 
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
-let encode_audio_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
-    =
+let encode_audio_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format
+    ~content_type generator =
   let internal_channel_layout =
-    Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
+    Avutil.Channel_layout.get_default
+      (Content.Audio.channels_of_format
+         (Frame.Fields.find Frame.Fields.audio content_type))
   in
   let internal_samplerate = Lazy.force Frame.audio_rate in
   let target_channels = format.Ffmpeg_format.channels in
@@ -93,8 +95,7 @@ let encode_audio_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
                   in
                   let data = { Ffmpeg_content_base.params; data; length } in
                   let data = Ffmpeg_copy_content.Audio.lift_data data in
-                  Producer_consumer.(
-                    Generator.put_audio generator data 0 length)
+                  Generator.put generator Frame.Fields.audio data
               | None -> ()
           in
 
@@ -143,8 +144,7 @@ let encode_audio_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
                       in
                       let data = { Ffmpeg_content_base.params; data; length } in
                       let data = Ffmpeg_raw_content.Audio.lift_data data in
-                      Producer_consumer.(
-                        Generator.put_audio generator data 0 length)
+                      Generator.put generator Frame.Fields.audio data
                   | None -> ())
             | `Flush -> () ))
   in
@@ -272,8 +272,7 @@ let encode_video_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
                   in
                   let data = { Ffmpeg_content_base.params; data; length } in
                   let data = Ffmpeg_copy_content.Video.lift_data data in
-                  Producer_consumer.(
-                    Generator.put_video generator data 0 length)
+                  Generator.put generator Frame.Fields.video data
               | None -> ()
           in
 
@@ -325,8 +324,7 @@ let encode_video_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
                     in
                     let data = { Ffmpeg_content_base.params; data; length } in
                     let data = Ffmpeg_raw_content.Video.lift_data data in
-                    Producer_consumer.(
-                      Generator.put_video generator data 0 length)
+                    Generator.put generator Frame.Fields.video data
                 | None -> ())
           | `Flush -> ())
   in
@@ -375,7 +373,7 @@ let mk_encoder mode =
   let source_base_t = Lang.univ_t () in
   let source_frame_t =
     Lang.frame_t source_base_t
-      (Frame.mk_fields ?audio:audio_field_t ?video:video_field_t ())
+      (Frame.Fields.make ?audio:audio_field_t ?video:video_field_t ())
   in
   let format_audio_field_t, return_audio_field_t =
     match mode with
@@ -411,12 +409,12 @@ let mk_encoder mode =
   in
   let format_frame_t =
     Lang.frame_t Lang.unit_t
-      (Frame.mk_fields ?audio:format_audio_field_t ?video:format_video_field_t
+      (Frame.Fields.make ?audio:format_audio_field_t ?video:format_video_field_t
          ())
   in
   let return_t =
     Lang.frame_t source_base_t
-      (Frame.mk_fields ?audio:return_audio_field_t ?video:return_video_field_t
+      (Frame.Fields.make ?audio:return_audio_field_t ?video:return_video_field_t
          ())
   in
   let extension =
@@ -442,6 +440,7 @@ let mk_encoder mode =
       in
       let format_val = Lang.assoc "" 1 p in
       let source = Lang.assoc "" 2 p in
+      let source_content_type = (Lang.to_source source)#content_type in
       let format =
         match Lang.to_format format_val with
           | Encoder.Ffmpeg ffmpeg -> ffmpeg
@@ -450,13 +449,6 @@ let mk_encoder mode =
                 (Error.Invalid_value
                    (format_val, "Only %ffmpeg encoder is currently supported!"))
       in
-      let content =
-        match mode with
-          | `Audio_raw | `Audio_encoded -> `Audio
-          | `Video_raw | `Video_encoded -> `Video
-          | `Both_raw | `Both_encoded -> `Both
-      in
-      let generator = Producer_consumer.Generator.create content in
 
       if Hashtbl.length format.Ffmpeg_format.other_opts > 0 then
         raise
@@ -472,7 +464,7 @@ let mk_encoder mode =
           (Error.Invalid_value
              (format_val, "Format option is not supported inline encoders"));
 
-      let mk_encode_frame () =
+      let mk_encode_frame generator =
         let audio_t =
           Option.map
             (fun t ->
@@ -515,12 +507,14 @@ let mk_encoder mode =
               | Some (`Raw None) when has_raw_audio ->
                   Some
                     (encode_audio_frame ~stream_idx ~type_t:(Option.get audio_t)
-                       ~mode:`Raw ~opts:audio_opts ~format generator)
+                       ~mode:`Raw ~opts:audio_opts ~format
+                       ~content_type:source_content_type generator)
               | Some (`Internal (Some codec)) when has_encoded_audio ->
                   let codec = Avcodec.Audio.find_encoder_by_name codec in
                   Some
                     (encode_audio_frame ~stream_idx ~type_t:(Option.get audio_t)
-                       ~mode:`Encoded ~opts:audio_opts ~codec ~format generator)
+                       ~mode:`Encoded ~opts:audio_opts ~codec ~format
+                       ~content_type:source_content_type generator)
               | _ ->
                   let encoder =
                     if has_encoded_audio then "%audio(codec=..., ...)"
@@ -561,12 +555,10 @@ let mk_encoder mode =
         let encode_frame = function
           | `Frame frame ->
               List.iter
-                (fun (pos, m) ->
-                  Producer_consumer.Generator.add_metadata ~pos generator m)
+                (fun (pos, m) -> Generator.add_metadata ~pos generator m)
                 (Frame.get_all_metadata frame);
               List.iter
-                (fun pos ->
-                  Producer_consumer.Generator.add_break ~pos generator)
+                (fun pos -> Generator.add_track_mark ~pos generator)
                 (List.filter (fun x -> x < size) (Frame.breaks frame));
               ignore
                 (Option.map (fun fn -> fn (`Frame frame)) encode_video_frame);
@@ -604,13 +596,24 @@ let mk_encoder mode =
         encode_frame
       in
 
-      let encode_frame_ref = ref (mk_encode_frame ()) in
+      let encode_frame_ref = ref None in
 
-      let encode_frame = function
-        | `Frame frame -> !encode_frame_ref (`Frame frame)
-        | `Flush ->
-            !encode_frame_ref `Flush;
-            encode_frame_ref := mk_encode_frame ()
+      let get_encode_frame generator =
+        match !encode_frame_ref with
+          | None ->
+              let fn = mk_encode_frame generator in
+              encode_frame_ref := Some fn;
+              fn
+          | Some fn -> fn
+      in
+
+      let encode_frame generator frame =
+        let encode_frame = get_encode_frame generator in
+        match frame with
+          | `Frame frame -> encode_frame (`Frame frame)
+          | `Flush ->
+              encode_frame `Flush;
+              encode_frame_ref := None
       in
 
       let consumer =
@@ -625,8 +628,7 @@ let mk_encoder mode =
 
       new Producer_consumer.producer
       (* We are expecting real-rate with a couple of hickups.. *)
-        ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer")
-        generator)
+        ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer") ())
 
 let () =
   List.iter mk_encoder

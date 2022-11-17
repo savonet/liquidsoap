@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-module Generator = Generator.From_audio_video
 open Builtins_ffmpeg_base
 
 let log = Log.make ["ffmpeg"; "filter"; "bitstream"]
@@ -81,7 +80,7 @@ let process (type a) ~put_data ~(lift_data : a lift_data) ~generator
   in
   let data = { Ffmpeg_content_base.params = Some params; data; length } in
   let data = lift_data data in
-  put_data ?pts:None generator data 0 length
+  put_data generator data
 
 let flush_filter ~generator ~put_data ~lift_data handler =
   let rec f () =
@@ -174,7 +173,7 @@ let () =
               | `Audio ->
                   ( name ^ ".audio",
                     fun () ->
-                      Frame.mk_fields
+                      Frame.Fields.make
                         ~audio:
                           (Type.make
                              (Format_type.descr
@@ -183,7 +182,7 @@ let () =
               | `Audio_only ->
                   ( name,
                     fun () ->
-                      Frame.mk_fields
+                      Frame.Fields.make
                         ~audio:
                           (Type.make
                              (Format_type.descr
@@ -192,7 +191,7 @@ let () =
               | `Video ->
                   ( name ^ ".video",
                     fun () ->
-                      Frame.mk_fields
+                      Frame.Fields.make
                         ~video:
                           (Type.make
                              (Format_type.descr
@@ -201,7 +200,7 @@ let () =
               | `Video_only ->
                   ( name,
                     fun () ->
-                      Frame.mk_fields
+                      Frame.Fields.make
                         ~video:
                           (Type.make
                              (Format_type.descr
@@ -219,15 +218,13 @@ let () =
             (fun p ->
               let source = List.assoc "" p in
 
-              let generator = Generator.create `Both in
-
               let filter_opts = args_of_args (args_parser p []) in
 
-              let encode_frame =
+              let encode_frame generator =
                 let flush, process =
                   match mode with
                     | `Audio | `Audio_only ->
-                        let put_data = Generator.put_audio in
+                        let put_data g = Generator.put g Frame.Fields.audio in
                         let lift_data data =
                           Ffmpeg_copy_content.Audio.lift_data data
                         in
@@ -243,16 +240,13 @@ let () =
                         ( flush,
                           fun frame ->
                             let pos = Frame.position frame in
-                            Generator.put_video generator
-                              (Content.copy (Option.get (Frame.video frame)))
-                              0 pos;
+                            Generator.put generator Frame.Fields.video
+                              (Content.copy (Frame.video frame));
                             on_data ~get_handler ~put_data ~lift_data ~generator
                               (Ffmpeg_copy_content.Audio.get_data
-                                 (Content.sub
-                                    (Option.get (Frame.audio frame))
-                                    0 pos)) )
+                                 (Content.sub (Frame.audio frame) 0 pos)) )
                     | `Video | `Video_only ->
-                        let put_data = Generator.put_video in
+                        let put_data g = Generator.put g Frame.Fields.video in
                         let lift_data data =
                           Ffmpeg_copy_content.Video.lift_data data
                         in
@@ -268,14 +262,11 @@ let () =
                         ( flush,
                           fun frame ->
                             let pos = Frame.position frame in
-                            Generator.put_audio generator
-                              (Content.copy (Option.get (Frame.audio frame)))
-                              0 pos;
+                            Generator.put generator Frame.Fields.audio
+                              (Content.copy (Frame.audio frame));
                             on_data ~get_handler ~put_data ~lift_data ~generator
                               (Ffmpeg_copy_content.Video.get_data
-                                 (Content.sub
-                                    (Option.get (Frame.video frame))
-                                    0 pos)) )
+                                 (Content.sub (Frame.video frame) 0 pos)) )
                 in
                 function
                 | `Frame frame ->
@@ -283,7 +274,7 @@ let () =
                       (fun (pos, m) -> Generator.add_metadata ~pos generator m)
                       (Frame.get_all_metadata frame);
                     List.iter
-                      (fun pos -> Generator.add_break ~pos generator)
+                      (fun pos -> Generator.add_track_mark ~pos generator)
                       (List.filter
                          (fun x -> x < Lazy.force Frame.size)
                          (Frame.breaks frame));
@@ -304,7 +295,7 @@ let () =
               let producer =
                 new Producer_consumer.producer
                   ~check_self_sync:false ~consumers:[consumer]
-                  ~name:(name ^ ".producer") generator
+                  ~name:(name ^ ".producer") ()
               in
               Typing.(producer#frame_type <: frame_t);
               producer))

@@ -57,7 +57,7 @@ class effect_map ~name (source : source) effect =
 
 let return_t () =
   Lang.frame_t (Lang.univ_t ())
-    (Frame.mk_fields ~video:(Format_type.video ()) ())
+    (Frame.Fields.make ~video:(Format_type.video ()) ())
 
 let () = Lang.add_module "video.alpha"
 

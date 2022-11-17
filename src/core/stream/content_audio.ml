@@ -80,7 +80,7 @@ module Specs = struct
 
   let clear _ = ()
 
-  let make ~length { channel_layout } =
+  let make ?(length = 0) { channel_layout } =
     let channels =
       match !!channel_layout with
         | `Mono -> 1

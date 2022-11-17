@@ -111,7 +111,7 @@ let mk_source_ty ~pos name args =
           List.fold_left
             (fun fields (lbl, k) ->
               Frame.Fields.add
-                (Frame.field_of_string lbl)
+                (Frame.Fields.field_of_string lbl)
                 (mk_field_t ~pos k) fields)
             Frame.Fields.empty args
         in

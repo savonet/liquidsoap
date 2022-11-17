@@ -22,9 +22,6 @@
 
 open Mm
 open Source
-module G = Generator
-module Generator = Generator.From_frames
-module Generated = Generated.Make (Generator)
 
 let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
@@ -73,7 +70,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
      * of samples, maintain the sum of squares, and the number of samples in that
      * sum. The sliding window is necessary because of possibly inaccurate
      * remaining time estimaton. *)
-    val mutable gen_before = Generator.create ()
+    val mutable gen_before = Generator.create Frame.Fields.empty
     val mutable rms_before = 0.
     val mutable rmsi_before = 0
     val mutable mem_before = Array.make rms_width 0.
@@ -81,7 +78,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     val mutable before_metadata = None
 
     (* Same for the new track. No need for a sliding window here. *)
-    val mutable gen_after = Generator.create ()
+    val mutable gen_after = Generator.create Frame.Fields.empty
     val mutable rms_after = 0.
     val mutable rmsi_after = 0
     val mutable after_metadata = None
@@ -89,11 +86,19 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     (* An audio frame for intermediate computations. It is used to buffer the
        end and beginnings of tracks. Its past metadata should mimic that of the
        main stream in order to avoid metadata duplication. *)
-    val mutable buf_frame = Frame.dummy
+    val mutable buf_frame = None
+
+    method private buf_frame =
+      match buf_frame with
+        | Some frame -> frame
+        | None ->
+            let f = Frame.create self#content_type in
+            buf_frame <- Some f;
+            f
 
     method private reset_analysis =
-      gen_before <- Generator.create ();
-      gen_after <- Generator.create ();
+      gen_before <- Generator.create self#content_type;
+      gen_after <- Generator.create self#content_type;
       rms_before <- 0.;
       rmsi_before <- 0;
       mem_i <- 0;
@@ -103,6 +108,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       before_metadata <- after_metadata;
       after_metadata <- None
 
+    initializer self#reset_analysis
+
     (* The played source. We _need_ exclusive control on that source,
      * since we are going to pull data from it at a higher rate around
      * track limits. *)
@@ -110,7 +117,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     (* Give a default value for the transition source. *)
     val mutable transition_source = None
-    val mutable pending_after = Generator.create ()
+    val mutable pending_after = Generator.create Frame.Fields.empty
 
     method private prepare_transition_source s =
       let s = (s :> source) in
@@ -127,7 +134,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private wake_up a =
       super#wake_up a;
-      buf_frame <- Frame.create self#content_type;
       source#get_ready ~dynamic:true [(self :> source)];
       source#get_ready [(self :> source)];
       Lang.iter_sources
@@ -156,7 +162,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private child_tick =
       child_support#child_tick;
-      Frame.clear buf_frame;
+      Frame.clear self#buf_frame;
       last_child_tick <- (Clock.get self#clock)#get_tick
 
     method before_output =
@@ -203,6 +209,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       self#set_cross_length
 
     method private get_frame frame =
+      let buf_frame = self#buf_frame in
       match status with
         | `Idle ->
             let rem = source#remaining in
@@ -268,6 +275,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
      * where [d=AFrame.size-1]. *)
     method private buffering n =
+      let buf_frame = self#buf_frame in
       (* For the first call, the position is the old position in the main
        * frame. After that it'll always be 0. *)
       if not (Frame.is_partial buf_frame) then self#child_tick;
@@ -278,11 +286,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       in
       self#save_last_metadata `Before buf_frame;
       self#update_cross_length buf_frame start;
-      Generator.feed gen_before
-        ~metadata:(Frame.get_all_metadata buf_frame)
-        (G.content buf_frame)
-        (Frame.main_of_audio start)
-        (Frame.main_of_audio (stop - start));
+      Generator.feed
+        ~offset:(Frame.main_of_audio start)
+        ~length:(Frame.main_of_audio (stop - start))
+        gen_before buf_frame;
 
       (* Analyze them *)
       let pcm = AFrame.pcm buf_frame in
@@ -295,12 +302,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
       (* Should we buffer more or are we done ? *)
       if AFrame.is_partial buf_frame then (
-        Generator.add_break gen_before;
+        Generator.add_track_mark gen_before;
         status <- `Limit)
       else if n > 0 then self#buffering (n - stop + start)
 
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
+      let buf_frame = self#buf_frame in
       let before_len = Generator.length gen_before in
       let rec f () =
         let start = AFrame.position buf_frame in
@@ -308,11 +316,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
           source#get buf_frame;
           AFrame.position buf_frame
         in
-        Generator.feed gen_after
-          ~metadata:(Frame.get_all_metadata buf_frame)
-          (G.content buf_frame)
-          (Frame.main_of_audio start)
-          (Frame.main_of_audio (stop - start));
+        Generator.feed
+          ~offset:(Frame.main_of_audio start)
+          ~length:(Frame.main_of_audio (stop - start))
+          gen_after buf_frame;
         let after_len = Generator.length gen_after in
         if after_len <= rms_width then (
           let pcm = AFrame.pcm buf_frame in
@@ -323,7 +330,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         self#save_last_metadata `After buf_frame;
         self#update_cross_length buf_frame start;
         if AFrame.is_partial buf_frame && not source#is_ready then
-          Generator.add_break gen_after
+          Generator.add_track_mark gen_after
         else (
           self#child_tick;
           if after_len < before_len then f ())
@@ -427,7 +434,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   let transition_arg =
     Lang.method_t Lang.unit_t

@@ -28,14 +28,14 @@ class virtual ['a] base ~nb_blocks =
       failwith "Buffered I/O requires a non-zero buffer length."
   in
   object
-    val mutable buffer = None
+    val mutable io_buffer = None
 
-    method buffer =
-      match buffer with Some buffer -> buffer | None -> assert false
+    method io_buffer =
+      match io_buffer with Some buffer -> buffer | None -> assert false
 
     method init (blank : unit -> 'a) =
-      assert (buffer = None);
-      buffer <- Some (Array.init nb_blocks (fun _ -> blank ()))
+      assert (io_buffer = None);
+      io_buffer <- Some (Array.init nb_blocks (fun _ -> blank ()))
 
     val mutable read = 0
     val mutable write = 0
@@ -118,7 +118,7 @@ class virtual ['a] input ~nb_blocks =
           if io_state = `Tired then raise Exit;
 
           (* ...write a block. *)
-          self#pull_block self#buffer.(write mod nb_blocks);
+          self#pull_block self#io_buffer.(write mod nb_blocks);
           Mutex.lock wait_m;
           write <- (write + 1) mod (2 * nb_blocks);
           Mutex.unlock wait_m;
@@ -153,7 +153,7 @@ class virtual ['a] input ~nb_blocks =
       (* Check that the writer still has an advance. *)
       Mutex.lock wait_m;
       if write = read && io_state <> `Crashed then Condition.wait wait_c wait_m;
-      let b = self#buffer.(read mod nb_blocks) in
+      let b = self#io_buffer.(read mod nb_blocks) in
       read <- (read + 1) mod (2 * nb_blocks);
       Mutex.unlock wait_m;
       Condition.signal wait_c;
@@ -187,7 +187,7 @@ class virtual ['a] output ~nb_blocks =
           if io_state = `Tired then raise Exit;
 
           (* ...read a block. *)
-          self#push_block self#buffer.(read mod nb_blocks);
+          self#push_block self#io_buffer.(read mod nb_blocks);
           Mutex.lock wait_m;
           read <- (read + 1) mod (2 * nb_blocks);
           Mutex.unlock wait_m;
@@ -225,7 +225,7 @@ class virtual ['a] output ~nb_blocks =
         && io_state <> `Crashed
       then Condition.wait wait_c wait_m;
       Mutex.unlock wait_m;
-      f self#buffer.(write mod nb_blocks);
+      f self#io_buffer.(write mod nb_blocks);
       Mutex.lock wait_m;
       write <- (write + 1) mod (2 * nb_blocks);
       Mutex.unlock wait_m;

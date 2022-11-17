@@ -116,7 +116,8 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "input.jack"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)

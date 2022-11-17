@@ -440,6 +440,29 @@
  (alias runtest)
  (package liquidsoap)
  (deps
+  harbor_kick_client.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} harbor_kick_client.liq liquidsoap %{test_liq} harbor_kick_client.liq)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
   rotate.liq
   ./file1.mp3
   ./file2.mp3

@@ -34,6 +34,10 @@ let standalone_tests =
 
 let audio_formats =
   [
+    {|%fdkaac(aot="mpeg4_aac_lc",channels=1).aac|};
+    "%fdkaac(channels=2).aac";
+    "%shine(channels=1).mp3";
+    "%shine(channels=2).mp3";
     "%flac(stereo).flac";
     "%flac(mono).flac";
     "%wav(stereo).wav";

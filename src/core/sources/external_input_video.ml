@@ -25,67 +25,24 @@ open Extralib
 
 (* Video-only input. Ideally this should be merged with previous one. *)
 
-module Generator = Generator.From_audio_video_plus
-module Generated = Generated.From_audio_video_plus
-
 exception Finished of string * bool
 
-class video ~name ~restart ~bufferize ~log_overfull ~restart_on_error ~max
-  ~on_data ?read_header command =
+class video ~name ~restart ~bufferize ~restart_on_error ~max ~on_data
+  ?read_header command =
   let abg_max_len = Frame.main_of_seconds max in
-  (* We need a temporary log until the source has an id *)
-  let log_ref = ref (fun _ -> ()) in
-  let log_error = ref (fun _ -> ()) in
-  let log x = !log_ref x in
-  let abg = Generator.create ~log ~log_overfull `Both in
-  (* Maximal difference between audio and video in seconds before a warning. *)
-  let vadiff = 10. in
-  let last_vadiff_warning = ref 0. in
-  let on_data reader =
-    on_data abg reader;
-
-    (* Check that audio and video roughly get filled as the same speed. *)
-    let lv = Frame.seconds_of_main (Generator.video_length abg) in
-    let la = Frame.seconds_of_main (Generator.audio_length abg) in
-    let d = abs_float (lv -. la) in
-    if d > vadiff && d -. !last_vadiff_warning >= vadiff then (
-      last_vadiff_warning := d;
-      let v, a = if lv >= la then ("video", "audio") else ("audio", "video") in
-      !log_error
-        (Printf.sprintf
-           "Got %f seconds more of %s than of %s. Are you sure that you are \
-            producing the correct kind of data?"
-           d v a));
-    let buffered = Generator.length abg in
+  let on_data ~buffer reader =
+    on_data ~buffer reader;
+    let buffered = Generator.length buffer in
     if abg_max_len < buffered then
       `Delay (Frame.seconds_of_audio (buffered - (3 * abg_max_len / 4)))
     else `Continue
   in
-  object (self)
+  object
     inherit
       External_input.base
-        ~name ?read_header ~restart ~restart_on_error ~on_data command as base
+        ~name ?read_header ~restart ~restart_on_error ~on_data command
 
-    inherit Generated.source abg ~empty_on_abort:false ~bufferize
-
-    method buffer_length_cmd =
-      ( Frame.seconds_of_main (Generator.audio_length abg),
-        Frame.seconds_of_main (Generator.video_length abg),
-        Frame.seconds_of_main (Generator.length abg) )
-
-    method wake_up x =
-      (* Now we can create the log function *)
-      log_ref := self#log#info "%s";
-      log_error := self#log#severe "%s";
-      if Frame.find_field_opt self#content_type Frame.audio_field = None then
-        Generator.set_mode abg `Video;
-      Generator.set_content_type abg self#content_type;
-      self#log#debug "Generator mode: %s."
-        (match Generator.mode abg with
-          | `Video -> "video"
-          | `Both -> "both"
-          | _ -> "???");
-      base#wake_up x
+    inherit Generated.source ~empty_on_abort:false ~bufferize ()
   end
 
 (***** AVI *****)
@@ -95,22 +52,10 @@ let log = Log.make ["input"; "external"; "video"]
 let () =
   let return_t =
     Lang.frame_t Lang.unit_t
-      (Frame.mk_fields ~audio:(Format_type.audio ())
+      (Frame.Fields.make ~audio:(Format_type.audio ())
          ~video:(Format_type.video ()) ())
   in
   Lang.add_operator "input.external.avi" ~category:`Input ~flags:[`Experimental]
-    ~meth:
-      [
-        ( "buffer_length",
-          ( [],
-            Lang.fun_t []
-              (Lang.tuple_t [Lang.float_t; Lang.float_t; Lang.float_t]) ),
-          "Length of the buffer (in seconds, for audio, video and both).",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                let x, y, z = s#buffer_length_cmd in
-                Lang.tuple [Lang.float x; Lang.float y; Lang.float z]) );
-      ]
     ~descr:"Stream data from an external application."
     [
       ( "buffer",
@@ -121,10 +66,6 @@ let () =
         Lang.float_t,
         Some (Lang.float 10.),
         Some "Maximum duration of the buffered data." );
-      ( "log_overfull",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Log when the source's buffer is overfull." );
       ( "restart",
         Lang.bool_t,
         Some (Lang.bool true),
@@ -209,7 +150,7 @@ let () =
         List.iter check h;
         `Continue
       in
-      let on_data abg reader =
+      let on_data ~buffer reader =
         match Avi.Read.chunk reader with
           | `Frame (_, _, data) when String.length data = 0 -> ()
           | `Frame (`Video, _, data) ->
@@ -227,10 +168,8 @@ let () =
                      (String.length data)
                      (width * height * 3));
               let data = (Option.get !video_converter) data in
-              let duration = Frame.main_of_video 1 in
-              Generator.put_video abg
+              Generator.put buffer Frame.Fields.video
                 (Content.Video.lift_data (Video.Canvas.single data))
-                0 duration
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
               let data, ofs, len =
@@ -238,41 +177,27 @@ let () =
               in
               let duration = Frame.main_of_audio len in
               let offset = Frame.main_of_audio ofs in
-              Generator.put_audio abg
+              Generator.put buffer Frame.Fields.audio
                 (Content.Audio.lift_data ~offset ~length:duration data)
-                0 duration
           | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       new video
-        ~name:"input.external.avi" ~restart ~bufferize ~log_overfull
-        ~restart_on_error ~max ~read_header ~on_data command)
+        ~name:"input.external.avi" ~restart ~bufferize ~restart_on_error ~max
+        ~read_header ~on_data command)
 
 (***** raw video *****)
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~video:(Format_type.video ()) ())
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
   Lang.add_operator "input.external.rawvideo" ~category:`Input
-    ~flags:[`Experimental]
-    ~meth:
-      [
-        ( "buffer_length",
-          ( [],
-            Lang.fun_t []
-              (Lang.tuple_t [Lang.float_t; Lang.float_t; Lang.float_t]) ),
-          "Length of the buffer (in seconds, for audio, video and both).",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                let x, y, z = s#buffer_length_cmd in
-                Lang.tuple [Lang.float x; Lang.float y; Lang.float z]) );
-      ]
-    ~descr:"Stream data from an external application."
+    ~flags:[`Experimental] ~descr:"Stream data from an external application."
     [
       ( "buffer",
         Lang.float_t,
@@ -282,10 +207,6 @@ let () =
         Lang.float_t,
         Some (Lang.float 10.),
         Some "Maximum duration of the buffered data." );
-      ( "log_overfull",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Log when the source's buffer is overfull." );
       ( "restart",
         Lang.bool_t,
         Some (Lang.bool true),
@@ -303,7 +224,7 @@ let () =
       let height = Lazy.force Frame.video_height in
       let buflen = width * height * 3 in
       let buf = Bytes.create buflen in
-      let on_data abg reader =
+      let on_data ~buffer reader =
         let ret = reader buf 0 buflen in
         let data =
           Image.YUV420.of_YUV420_string
@@ -312,17 +233,14 @@ let () =
         in
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
-        let duration = Frame.main_of_video 1 in
-        Generator.put_video abg
+        Generator.put buffer Frame.Fields.video
           (Content.Video.lift_data
              (Video.Canvas.single (Video.Canvas.Image.make data)))
-          0 duration
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       new video
-        ~name:"input.external.rawvideo" ~restart ~bufferize ~log_overfull
-        ~restart_on_error ~max ~on_data command)
+        ~name:"input.external.rawvideo" ~restart ~bufferize ~restart_on_error
+        ~max ~on_data command)

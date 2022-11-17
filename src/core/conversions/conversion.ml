@@ -48,17 +48,14 @@ class base ?(audio = false) ?(video = false) ?(midi = false) ~converter
             frame
 
     method private copy_frame src dst =
-      Frame.set_pts dst (Frame.pts src);
       Frame.set_breaks dst (Frame.breaks src);
       Frame.set_all_metadata dst (Frame.get_all_metadata src);
-      if not audio then
-        ignore
-          (Option.map (fun src -> Frame.set_audio dst src) (Frame.audio src));
-      if not video then
-        ignore
-          (Option.map (fun src -> Frame.set_video dst src) (Frame.video src));
-      if not midi then
-        ignore (Option.map (fun src -> Frame.set_midi dst src) (Frame.midi src))
+      if not audio then (
+        try Frame.set_audio dst (Frame.audio src) with Not_found -> ());
+      if not video then (
+        try Frame.set_video dst (Frame.video src) with Not_found -> ());
+      if not midi then (
+        try Frame.set_video dst (Frame.midi src) with Not_found -> ())
 
     method private get_frame frame =
       let tmp_frame = self#tmp_frame in

@@ -69,7 +69,7 @@ let () =
       file_type =
         (fun ~ctype:_ _ ->
           Some
-            (Frame.mk_fields
+            (Frame.Fields.make
                ~midi:Content.(Midi.lift_params { Content.channels = 16 })
                ()));
       file_decoder =

@@ -46,13 +46,13 @@ class blank duration =
       in
       let video_pos = Frame.video_of_main position in
       (* Audio *)
-      if Frame.has_field self#content_type Frame.audio_field then
+      if Frame.Fields.mem Frame.Fields.audio self#content_type then
         Audio.clear (AFrame.pcm ab)
           (Frame.audio_of_main position)
           (Frame.audio_of_main length);
 
       (* Video *)
-      if Frame.has_field self#content_type Frame.video_field then
+      if Frame.Fields.mem Frame.Fields.video self#content_type then
         Video.Canvas.blank (VFrame.data ab) video_pos
           (Frame.video_of_main length);
 

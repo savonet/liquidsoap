@@ -23,8 +23,6 @@
 (** Fixed-point MP3 encoder *)
 
 open Shine_format
-open Mm
-module G = Generator.Generator
 
 let create_encoder ~samplerate ~bitrate ~channels =
   Shine.create { Shine.channels; samplerate; bitrate }
@@ -37,9 +35,11 @@ let encoder shine =
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   (* Shine accepts data of a fixed length.. *)
-  let samples = Shine.samples_per_pass enc in
-  let data = Audio.create channels samples in
-  let buf = G.create () in
+  let samples = Frame.main_of_audio (Shine.samples_per_pass enc) in
+  let buf =
+    Generator.create
+      (Frame.Fields.make ~audio:(Content.Audio.format_of_channels channels) ())
+  in
   let encoded = Strings.Mutable.empty () in
   let encode frame start len =
     let b = AFrame.pcm frame in
@@ -49,12 +49,17 @@ let encoder shine =
       Audio_converter.Samplerate.resample samplerate_converter
         (dst_freq /. src_freq) b start len
     in
-    G.put buf b start len;
-    while G.length buf > samples do
-      let l = G.get buf samples in
-      let f (b, o, o', l) = Audio.blit b o data o' l in
-      List.iter f l;
-      Strings.Mutable.add encoded (Shine.encode_buffer enc data)
+    let start = Frame.main_of_audio start in
+    let len = Frame.main_of_audio len in
+    Generator.put buf Frame.Fields.audio
+      (Content.sub (Content.Audio.lift_data b) start len);
+    while Generator.length buf > samples do
+      let pcm =
+        Content.Audio.get_data
+          (Frame.Fields.find Frame.Fields.audio
+             (Generator.get ~length:samples buf))
+      in
+      Strings.Mutable.add encoded (Shine.encode_buffer enc pcm)
     done;
     Strings.Mutable.flush encoded
   in

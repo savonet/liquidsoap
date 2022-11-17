@@ -105,7 +105,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
       source2#abort_track
 
     val mutable t = 0.
-    val mutable tmp = Frame.dummy
+    val mutable tmp = Frame.dummy ()
 
     method private wake_up a =
       super#wake_up a;
@@ -290,7 +290,7 @@ let register_plugin fname =
   if inputs > 2 then raise Unhandled_number_of_inputs;
   let return_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~video:(Format_type.video ()) ())
+      (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
   let liq_params, params = params plugin info in
   let liq_params =

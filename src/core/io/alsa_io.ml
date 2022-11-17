@@ -272,7 +272,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 let () =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
-      (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "output.alsa"
     (Output.proto
@@ -320,7 +320,8 @@ let () =
 
 let () =
   let return_t =
-    Lang.frame_t Lang.unit_t (Frame.mk_fields ~audio:(Format_type.audio ()) ())
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator "input.alsa"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
