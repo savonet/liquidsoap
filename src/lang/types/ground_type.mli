@@ -21,8 +21,6 @@
  *****************************************************************************)
 
 module type Spec = sig
-  type t
-
   val name : string
 end
 
@@ -48,4 +46,8 @@ val string : Type_base.descr
 module Bool : Custom
 
 val bool : Type_base.descr
+
+module Never : Custom
+
+val never : Type_base.descr
 val is_ground : Type_base.custom -> bool

@@ -173,6 +173,43 @@ def f() =
   test.equals(f({ foo = (fun (_) -> { gni = 2 } ) }), 2)
   test.equals(f(456.{ foo = (fun (_) -> true.{ gni = 2 } ) }), 2)
 
+  # Spread patterns:
+  x = { foo = 123, gni = "aabb" }
+  let { foo, ...y } = x
+  test.equals(foo, 123)
+  test.equals(y.gni, "aabb")
+  test.equals(y, ())
+  test.equals(y?.foo, null())
+
+  x = 1.{ foo = 123, gni = "aabb" }
+  let { foo, ...y } = x
+  test.equals(foo, 123)
+  test.equals(y.gni, "aabb")
+  test.equals(y, 1)
+  test.equals(y?.foo, null())
+
+  x = 1.{ foo = 123, gni = "aabb" }
+  let y.{ foo } = x
+  test.equals(foo, 123)
+  test.equals(y.gni, "aabb")
+  test.equals(y, 1)
+  test.equals(y?.foo, null())
+
+  x = {foo = 3.14}.{ foo = 123, gni = "aabb" }
+  let { foo, ...y } = x
+  test.equals(foo, 123)
+  test.equals(y.gni, "aabb")
+  test.equals(y, ())
+  test.equals(y?.foo, null())
+
+  x = { foo = 123, gni = "aabb" }
+  y = { bla = 3.14, ...x }
+  test.equals(y, { foo = 123, gni = "aabb", bla = 3.14 })
+
+  x = 1.{ foo = 123, gni = "aabb" }
+  y = { bla = 3.14, ...x }
+  test.equals(y, 1.{ foo = 123, gni = "aabb", bla = 3.14 })
+
   test.pass()
 end
 

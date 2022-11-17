@@ -84,6 +84,14 @@ let rec eval_pat pat v =
           @ env
       | PMeth (pat, l), _ ->
           let m, v = Value.split_meths v in
+          let fields = List.map fst l in
+          let v =
+            List.fold_left
+              (fun v (l, m) ->
+                if List.mem l fields then v
+                else { v with Value.value = Meth (l, m, v) })
+              v m
+          in
           let env = match pat with None -> env | Some pat -> aux env pat v in
           List.fold_left
             (fun env (lbl, pat) ->

@@ -217,6 +217,9 @@ expr:
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | expr DOT LCUR record RCUR        { $4 ~pos:$loc $1 }
+  | LCUR DOTDOTDOT expr RCUR         { $3 }
+  | LCUR record COMMA DOTDOTDOT expr RCUR
+                                     { $2 ~pos:$loc $5 }
   | LCUR record RCUR                 { $2 ~pos:$loc (mk ~pos:$loc (Tuple [])) }
   | LCUR RCUR                        { mk ~pos:$loc (Tuple []) }
   | expr QUESTION DOT invoke         { mk_invoke ~pos:$loc ~default:(mk ~pos:$loc Null) $1 $4 }
@@ -428,7 +431,15 @@ meth_pattern_list:
 record_pattern:
   | LCUR meth_pattern_list RCUR { $2 }
 
+meth_spread_list:
+  | DOTDOTDOT VAR                          { Some (PVar [$2]), [] }
+  | meth_pattern_el COMMA meth_spread_list { fst $3, $1::(snd $3) }
+
+record_spread_pattern:
+  | LCUR meth_spread_list RCUR { $2 }
+
 meth_pattern:
+  | record_spread_pattern            { PMeth $1                      }
   | record_pattern                   { PMeth (None,              $1) }
   | VAR DOT record_pattern           { PMeth (Some (PVar [$1]),  $3) }
   | UNDERSCORE DOT record_pattern    { PMeth (Some (PVar ["_"]), $3) }
