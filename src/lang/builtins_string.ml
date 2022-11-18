@@ -87,7 +87,10 @@ let () =
        javascript specification."
     [
       ( "special_char",
-        Lang.nullable_t (Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t),
+        Lang.nullable_t
+          (Lang.fun_t
+             [(false, "encoding", Lang.string_t); (false, "", Lang.string_t)]
+             Lang.bool_t),
         Some Lang.null,
         Some
           "Return `true` if the given character (passed as a string) should be \
@@ -95,71 +98,93 @@ let () =
            characters and any character above `\\x7E` (non-printable \
            characters) for `\"ascii\"`." );
       ( "escape_char",
-        Lang.nullable_t (Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t),
+        Lang.nullable_t
+          (Lang.fun_t
+             [(false, "encoding", Lang.string_t); (false, "", Lang.string_t)]
+             Lang.string_t),
         Some Lang.null,
         Some
           "Function used to escape a character. Defaults to `\\xxx` octal \
            notation for `\"ascii\"` and `\\uxxxx` hexadecimal notation for \
            `\"utf8\"`." );
       ( "encoding",
-        Lang.string_t,
-        Some (Lang.string "utf8"),
-        Some "One of: `\"ascii\"` or `\"utf8\"`." );
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some
+          "One of: `\"ascii\"` or `\"utf8\"`. If `null`, `utf8` is tried first \
+           and `ascii` is used as a fallback if this fails." );
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
     (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       let encoding = List.assoc "encoding" p in
-      let encoding : [ `Ascii | `Utf8 ] =
-        match Lang.to_string encoding with
-          | "ascii" -> `Ascii
-          | "utf8" -> `Utf8
-          | _ ->
+      let encoding : [ `Default | `Ascii | `Utf8 ] =
+        match Lang.to_valued_option Lang.to_string encoding with
+          | None -> `Default
+          | Some "ascii" -> `Ascii
+          | Some "utf8" -> `Utf8
+          | Some _ ->
               raise
                 (Error.Invalid_value
                    ( encoding,
                      "Encoding should be one of: \"ascii\" or \"utf8\"." ))
       in
-      let special_char =
-        match (Lang.to_option (List.assoc "special_char" p), encoding) with
-          | Some f, _ ->
-              fun s ofs len ->
-                Lang.to_bool
-                  (Lang.apply f [("", Lang.string (String.sub s ofs len))])
-          | None, `Ascii -> Lang_string.ascii_special_char
-          | None, `Utf8 -> Lang_string.utf8_special_char
+      let exec encoding =
+        let encoding_string =
+          match encoding with `Utf8 -> "utf8" | `Ascii -> "ascii"
+        in
+        let special_char =
+          match (Lang.to_option (List.assoc "special_char" p), encoding) with
+            | Some f, _ ->
+                fun s ofs len ->
+                  Lang.to_bool
+                    (Lang.apply f
+                       [
+                         ("encoding", Lang.string encoding_string);
+                         ("", Lang.string (String.sub s ofs len));
+                       ])
+            | None, `Ascii -> Lang_string.ascii_special_char
+            | None, `Utf8 -> Lang_string.utf8_special_char
+        in
+        let escape_char =
+          match (Lang.to_option (List.assoc "escape_char" p), encoding) with
+            | Some f, _ ->
+                fun s ofs len ->
+                  Lang.to_string
+                    (Lang.apply f
+                       [
+                         ("encoding", Lang.string encoding_string);
+                         ("", Lang.string (String.sub s ofs len));
+                       ])
+            | None, `Ascii -> Lang_string.escape_hex_char
+            | None, `Utf8 -> Lang_string.escape_utf8_char
+        in
+        let next =
+          match encoding with
+            | `Ascii -> Lang_string.ascii_next
+            | `Utf8 -> Lang_string.utf8_next
+        in
+        try
+          Lang.string
+            (Lang_string.escape_string
+               (Lang_string.escape ~special_char ~escape_char ~next)
+               s)
+        with _ ->
+          let bt = Printexc.get_raw_backtrace () in
+          Runtime_error.raise ~bt ~pos:(Lang.pos p)
+            ~message:
+              (Printf.sprintf "Error while escaping %s string.%s"
+                 (match encoding with `Utf8 -> "utf8" | `Ascii -> "ascii")
+                 (if encoding <> `Ascii then
+                  " If you are not sure about the string's encoding, you \
+                   should use `\"ascii\"` as this encoding never fails."
+                 else ""))
+            "string"
       in
-      let escape_char =
-        match (Lang.to_option (List.assoc "escape_char" p), encoding) with
-          | Some f, _ ->
-              fun s ofs len ->
-                Lang.to_string
-                  (Lang.apply f [("", Lang.string (String.sub s ofs len))])
-          | None, `Ascii -> Lang_string.escape_hex_char
-          | None, `Utf8 -> Lang_string.escape_utf8_char
-      in
-      let next =
-        match encoding with
-          | `Ascii -> Lang_string.ascii_next
-          | `Utf8 -> Lang_string.utf8_next
-      in
-      try
-        Lang.string
-          (Lang_string.escape_string
-             (Lang_string.escape ~special_char ~escape_char ~next)
-             s)
-      with _ ->
-        let bt = Printexc.get_raw_backtrace () in
-        Runtime_error.raise ~bt ~pos:(Lang.pos p)
-          ~message:
-            (Printf.sprintf "Error while escaping %s string.%s"
-               (match encoding with `Utf8 -> "utf8" | `Ascii -> "ascii")
-               (if encoding <> `Ascii then
-                " If you are not sure about the string's encoding, you should \
-                 use `\"ascii\"` as this encoding never fails."
-               else ""))
-          "string")
+      match encoding with
+        | `Default -> ( try exec `Utf8 with _ -> exec `Ascii)
+        | (`Ascii | `Utf8) as encoding -> exec encoding)
 
 let () =
   Lang.add_builtin "string.escape.all"

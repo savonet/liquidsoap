@@ -50,6 +50,18 @@ def f() =
   test.equals(string.index(substring="e", "abcde"), 4)
   test.equals(string.index(substring="xx", "abcde"), -1)
 
+  # Test that we revert to ascii on invalid utf8 strings when encoding is not specified:
+  invalid_utf8_string = "\xfc\xa1\xa1\xa1\xa1\xa1"
+  test.equals(string.quote(invalid_utf8_string), string.quote(encoding="ascii", invalid_utf8_string))
+
+  # But raise an exception when encoding is specified:
+  try
+    ignore(string.quote(encoding="utf8", invalid_utf8_string))
+    test.fail()
+  catch _ : [error.string] do
+    ()
+  end
+
   test.equals(string.annotate.parse("foo=bla,\"foo\"=\"✨✅\",\"gni:gno\"=\"bla\\\"blu:\":😈uri"),
     ([("foo", "bla"), ("foo", "✨✅"), ("gni:gno", "bla\"blu:")], "😈uri"))
 
