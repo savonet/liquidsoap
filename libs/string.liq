@@ -148,9 +148,9 @@ end
 # By default, the string is assumed to be `"utf8"` encoded and is escaped
 # following JSON and javascript specification.
 # @category String
-# @param ~encoding One of: `"ascii"` or `"utf8"`.
-def string.quote(~encoding="utf8", s) =
-  def special_char(~encoding=encoding, s)
+# @param ~encoding One of: `"ascii"` or `"utf8"`. If `null`, `utf8` is tried first and `ascii` is used as a fallback if this fails.
+def string.quote(~encoding=null(), s) =
+  def special_char(~encoding, s)
     if s == "'" then
       false
     else

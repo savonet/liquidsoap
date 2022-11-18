@@ -26,6 +26,11 @@ Changed:
 * Removed `restart_on_error` argument on `output.url` and added
   `restart_delay` which implements a delayed restart. Added
   `on_error` argument to be notified of errors (#2731)
+* Changed default `encoding` parameter in `string.{quote, escape}`
+  to be `null`. Fallback to `"ascii"` encoding when no encoding is
+  specified and `"utf8"` fails. This prevents unexpected script
+  failures but might not be backward-compatible if you used a
+  custom `escape_char` or `special_char` function (#2738)
 
 Fixed:
 * Enhanced methods typing support (#2659)
