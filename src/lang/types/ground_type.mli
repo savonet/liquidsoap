@@ -30,7 +30,7 @@ module type Custom = sig
   val descr : Type_base.descr
 end
 
-module Make (S : Spec) : Custom
+module Make (_ : Spec) : Custom
 module Int : Custom
 
 val int : Type_base.descr
