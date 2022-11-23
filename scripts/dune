@@ -12,8 +12,7 @@
  (action
   (with-stdout-to
    %{target}
-   (run ./gen_emacs_completion.exe)
-  )))
+   (run ./gen_emacs_completion.exe))))
 
 (install
  (section share_root)

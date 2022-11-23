@@ -22,11 +22,10 @@
   liquidsoap_lang
   menhirLib
   (select
-    charset.ml
-    from
-    (camomile -> charset.camomile.ml)
-    (-> charset.native.ml)
-  )
+   charset.ml
+   from
+   (camomile -> charset.camomile.ml)
+   (-> charset.native.ml))
   curl
   cry
   uri

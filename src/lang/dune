@@ -10,7 +10,44 @@
  (sites liquidsoap-lang))
 
 (menhir
- (modules parser json_parser))
+ (modules parser json_parser)
+ (flags
+  --unused-token
+  DOTVAR
+  --unused-token
+  PP_COMMENT
+  --unused-token
+  PP_DEF
+  --unused-token
+  PP_DEFINE
+  --unused-token
+  PP_ELSE
+  --unused-token
+  PP_ENDIF
+  --unused-token
+  PP_ENDL
+  --unused-token
+  PP_IFDEF
+  --unused-token
+  PP_IFENCODER
+  --unused-token
+  PP_IFNDEF
+  --unused-token
+  PP_IFNENCODER
+  --unused-token
+  PP_IFVERSION
+  --unused-token
+  PP_INCLUDE
+  --unused-token
+  PP_INT_DOT_LCUR
+  --unused-token
+  PP_REGEXP
+  --unused-token
+  PP_STRING
+  --unused-token
+  REPLACES
+  --unused-token
+  SLASH))
 
 (rule
  (target build_config.ml)
