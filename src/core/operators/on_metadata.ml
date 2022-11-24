@@ -42,9 +42,9 @@ class on_metadata f s =
         (Frame.get_all_metadata ab)
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "source.on_metadata"
+  Lang.add_operator ~base:Modules.source "on_metadata"
     [
       ("", Lang.source_t return_t, None, None);
       ( "",

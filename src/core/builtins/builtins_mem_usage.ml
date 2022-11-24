@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let () =
+let _ =
   let mem_usage_t =
     Lang.record_t
       [
@@ -51,10 +51,14 @@ let () =
         ("process_physical_memory", Lang.int process_physical_memory);
       ]
   in
-  Lang.add_builtin "runtime.mem_usage" ~category:`Liquidsoap ~flags:[`Hidden]
-    ~descr:"Return stats about the system and process memory." [] mem_usage_t
-    (fun _ -> mem_usage (Mem_usage.info ()));
-  Lang.add_builtin "runtime.mem_usage.prettify_bytes" ~category:`Liquidsoap
+  let runtime_mem_usage =
+    Lang.add_builtin ~base:Modules.runtime "mem_usage" ~category:`Liquidsoap
+      ~flags:[`Hidden]
+      ~descr:"Return stats about the system and process memory." [] mem_usage_t
+      (fun _ -> mem_usage (Mem_usage.info ()))
+  in
+  Lang.add_builtin ~base:runtime_mem_usage "prettify_bytes"
+    ~category:`Liquidsoap
     ~descr:"Returns a human-redable description of an amount of bytes."
     [
       ( "float_printer",

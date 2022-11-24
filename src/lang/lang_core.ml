@@ -25,6 +25,7 @@ module Ground = Term.Ground
 open Ground
 
 type t = Type.t
+type module_name = string
 type scheme = Type.scheme
 type value = Value.t = { pos : Pos.Option.t; value : in_value }
 
@@ -123,8 +124,14 @@ let builtin_type p t =
 
 let meth_fun = meth
 
+let mk_module_name ?base name =
+  if String.index_opt name '.' <> None then
+    failwith ("module name " ^ name ^ " has a dot in it!");
+  match base with None -> name | Some b -> b ^ "." ^ name
+
 let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
-    name proto return_t f =
+    ?base name proto return_t f =
+  let name = mk_module_name ?base name in
   let return_t =
     let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
     method_t return_t meth
@@ -202,9 +209,11 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
   let generalized = Typing.filter_vars (fun _ -> true) t in
   Environment.add_builtin ~doc
     (String.split_on_char '.' name)
-    ((generalized, t), value)
+    ((generalized, t), value);
+  name
 
-let add_builtin_base ~category ~descr ?(flags = []) name value t =
+let add_builtin_base ~category ~descr ?(flags = []) ?base name value t =
+  let name = mk_module_name ?base name in
   let value = { pos = t.Type.pos; value } in
   let generalized = Typing.filter_vars (fun _ -> true) t in
   let doc () =
@@ -221,9 +230,15 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   in
   Environment.add_builtin ~doc:(Lazy.from_fun doc)
     (String.split_on_char '.' name)
-    ((generalized, t), value)
+    ((generalized, t), value);
+  name
 
-let add_module name = Environment.add_module (String.split_on_char '.' name)
+let add_module ?base name =
+  let name = mk_module_name ?base name in
+  Environment.add_module (String.split_on_char '.' name);
+  name
+
+let module_name name = name
 
 (* Delay this function in order not to have Lang depend on Evaluation. *)
 let apply_fun : (?pos:Pos.t -> value -> env -> value) ref =

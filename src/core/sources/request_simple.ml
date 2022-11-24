@@ -23,9 +23,9 @@
 open Source
 open Request_source
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "request.once" ~category:`Input
+  Lang.add_operator ~base:Modules.request "once" ~category:`Input
     ~descr:"Play a request once and become unavailable."
     [
       ( "timeout",
@@ -100,7 +100,7 @@ class queued uri prefetch timeout =
 
 let log = Log.make ["single"]
 
-let () =
+let single =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "single" ~category:`Input
     ~descr:
@@ -124,9 +124,9 @@ let () =
         (new unqueued ~timeout:t request :> source))
       else (new queued uri l t :> source))
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "single.infallible" ~category:`Input ~flags:[`Hidden]
+  Lang.add_operator ~base:single "infallible" ~category:`Input ~flags:[`Hidden]
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
        WARNING: if used uncarefully, it can crash your application!"
@@ -170,10 +170,10 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
         raise e
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let log = Log.make ["request"; "dynamic"] in
-  Lang.add_operator "request.dynamic" ~category:`Input
+  Lang.add_operator ~base:Modules.request "dynamic" ~category:`Input
     ~descr:"Play request dynamically created by a given function."
     (("", Lang.fun_t [] (Lang.nullable_t Request.Value.t), None, None)
     :: ( "retry_delay",

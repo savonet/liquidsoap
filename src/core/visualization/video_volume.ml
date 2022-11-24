@@ -22,7 +22,6 @@
 
 open Mm
 open Source
-open Liquidsoap_lang.Modules
 
 (* TODO: share code with visu.volume. *)
 
@@ -138,12 +137,12 @@ class visu source =
         done)
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "video.volume"
+  Lang.add_operator ~base:Modules.video "volume"
     [("", Lang.source_t frame_t, None, None)]
     ~return_t:frame_t ~category:`Visualization
     ~descr:"Graphical visualization of the sound."

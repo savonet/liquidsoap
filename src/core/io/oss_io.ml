@@ -126,50 +126,51 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       AFrame.add_break frame (AFrame.size ())
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "output.oss"
-    (Output.proto
-    @ [
-        ( "clock_safe",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Force the use of the dedicated OSS clock." );
-        ( "device",
-          Lang.string_t,
-          Some (Lang.string "/dev/dsp"),
-          Some "OSS device to use." );
-        ("", Lang.source_t frame_t, None, None);
-      ])
-    ~return_t:frame_t ~category:`Output ~meth:Output.meth
-    ~descr:"Output the source's stream to an OSS output device."
-    (fun p ->
-      let e f v = f (List.assoc v p) in
-      let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-      let start = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let clock_safe = e Lang.to_bool "clock_safe" in
-      let device = e Lang.to_string "device" in
-      let source = List.assoc "" p in
-      (new output
-         ~start ~on_start ~on_stop ~infallible ~clock_safe device source
-        :> Output.output));
+  ignore
+    (Lang.add_operator ~base:Modules.output "oss"
+       (Output.proto
+       @ [
+           ( "clock_safe",
+             Lang.bool_t,
+             Some (Lang.bool true),
+             Some "Force the use of the dedicated OSS clock." );
+           ( "device",
+             Lang.string_t,
+             Some (Lang.string "/dev/dsp"),
+             Some "OSS device to use." );
+           ("", Lang.source_t frame_t, None, None);
+         ])
+       ~return_t:frame_t ~category:`Output ~meth:Output.meth
+       ~descr:"Output the source's stream to an OSS output device."
+       (fun p ->
+         let e f v = f (List.assoc v p) in
+         let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+         let start = Lang.to_bool (List.assoc "start" p) in
+         let on_start =
+           let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+         in
+         let on_stop =
+           let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+         in
+         let clock_safe = e Lang.to_bool "clock_safe" in
+         let device = e Lang.to_string "device" in
+         let source = List.assoc "" p in
+         (new output
+            ~start ~on_start ~on_stop ~infallible ~clock_safe device source
+           :> Output.output)));
 
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "input.oss"
+  Lang.add_operator ~base:Modules.input "oss"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
         ( "device",

@@ -54,12 +54,12 @@ class rms ~tau source =
       done
   end
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "rms.smooth" ~category:`Visualization
+  Lang.add_operator ~base:Window_op.rms "smooth" ~category:`Visualization
     ~meth:
       [
         ( "rms",

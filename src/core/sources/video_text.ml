@@ -22,7 +22,7 @@
 
 open Mm
 
-let () = Lang.add_module "video.text"
+let video_text = Lang.add_module ~base:Modules.video "text"
 
 class text init render_text ttf ttf_size color duration text =
   let () = init () in
@@ -89,7 +89,7 @@ let register name init render_text =
       Lang.frame_t (Lang.univ_t ())
         (Frame.Fields.make ~video:(Format_type.video ()) ())
     in
-    Lang.add_operator op
+    Lang.add_operator ~base:video_text op
       [
         ( "font",
           Lang.nullable_t (Lang.getter_t Lang.string_t),
@@ -124,4 +124,4 @@ let register name init render_text =
         (new text init render_text ttf ttf_size color duration text
           :> Source.source))
   in
-  add_operator ("video.text." ^ name)
+  ignore (add_operator name)

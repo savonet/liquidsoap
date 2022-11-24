@@ -99,7 +99,7 @@ class accelerate ~ratio ~randomize source_val =
       child_support#after_output
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "accelerate"
     [

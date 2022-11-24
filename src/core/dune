@@ -1,7 +1,7 @@
 (env
  (dev
   (flags
-   (:standard -w -7-9-11 -warn-error -33))))
+   (:standard -w -7-9-11))))
 
 (include_subdirs unqualified)
 
@@ -172,6 +172,7 @@
   midi_decoder
   midi_routing
   midimeter
+  modules
   mp3_format
   mpd
   ms_stereo
@@ -272,7 +273,6 @@
   builtins_files_extra
   builtins_harbor
   builtins_http
-  builtins_list_extra
   builtins_process
   builtins_request
   builtins_resolvers

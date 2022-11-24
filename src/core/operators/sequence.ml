@@ -125,7 +125,7 @@ class merge_tracks source =
             | _ -> assert false))
   end
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "sequence"
     [
@@ -148,7 +148,7 @@ let () =
         ~merge:(Lang.to_bool (List.assoc "merge" p))
         (Lang.to_source_list (List.assoc "" p)))
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "merge_tracks"
     [("", Lang.source_t frame_t, None, None)]

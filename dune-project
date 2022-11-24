@@ -131,6 +131,7 @@
   (depends
     (ocaml (>= 4.12.0))
     dune-site
+    (ppx_string :build)
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))
   (conflicts

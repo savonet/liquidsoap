@@ -20,12 +20,11 @@
 
  *****************************************************************************)
 
-open Builtins_sys
+let decoder_metadata = Lang.add_module ~base:Modules.decoder "metadata"
 
-let () =
-  Lang.add_module "decoder.metadata";
+let _ =
   let resolver_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.metadata_t in
-  Lang.add_builtin "decoder.metadata.add" ~category:`Liquidsoap
+  Lang.add_builtin ~base:decoder_metadata "add" ~category:`Liquidsoap
     ~descr:"Register an external file metadata decoder."
     [
       ("", Lang.string_t, None, Some "Format/resolver's name.");
@@ -52,14 +51,15 @@ let () =
       Plug.register Request.mresolvers format ~doc:"" resolver;
       Lang.unit)
 
-let () =
+let _ =
   let playlist_t = Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t) in
   let parser_t =
     Lang.fun_t
       [(true, "pwd", Lang.string_t); (false, "", Lang.string_t)]
       playlist_t
   in
-  Lang.add_builtin "playlist.parse.register" ~category:`Liquidsoap
+  Lang.add_builtin ~base:Builtins_sys.playlist_parse "register"
+    ~category:`Liquidsoap
     ~descr:
       "Register a new playlist parser. An empty playlist is considered as a \
        failure to resolve."
@@ -98,8 +98,7 @@ let () =
         { Playlist_parser.strict; Playlist_parser.parser = fn };
       Lang.unit)
 
-let () =
-  Lang.add_module "protocol";
+let _ =
   let log_p = [("", "", None)] in
   let log_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t in
   let protocol_t =
@@ -111,7 +110,7 @@ let () =
       ]
       (Lang.list_t Lang.string_t)
   in
-  Lang.add_builtin "protocol.add" ~category:`Liquidsoap
+  Lang.add_builtin ~base:Modules.protocol "add" ~category:`Liquidsoap
     ~descr:"Register a new protocol."
     [
       ( "temporary",

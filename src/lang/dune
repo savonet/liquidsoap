@@ -1,7 +1,7 @@
 (env
  (dev
   (flags
-   (:standard -w -7-9 -warn-error -26-27-33))))
+   (:standard -w -7-9 -warn-error -26-27))))
 
 (include_subdirs unqualified)
 
@@ -101,6 +101,7 @@
   environment
   error
   evaluation
+  extralib
   ground_type
   hooks
   json_base

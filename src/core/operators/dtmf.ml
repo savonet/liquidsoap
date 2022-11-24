@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Source
-open Audio_gen
 
 (* See
    https://en.wikipedia.org/wiki/Goertzel_algorithm
@@ -231,14 +230,14 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
       done
   end
 
-let () = Lang.add_module "dtmf"
+let dtmf = Lang.add_module "dtmf"
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "dtmf.detect"
+  Lang.add_operator ~base:dtmf "detect"
     [
       ( "duration",
         Lang.getter_t Lang.float_t,
@@ -358,12 +357,12 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
       done
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "sine.detect"
+  Lang.add_operator ~base:Audio_gen.sine "detect"
     [
       ( "duration",
         Lang.getter_t Lang.float_t,

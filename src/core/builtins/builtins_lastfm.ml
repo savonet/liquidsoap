@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let () = Lang.add_module "audioscrobbler"
+let audioscrobbler = Lang.add_module "audioscrobbler"
 let log = Log.make ["lastfm"; "submit"]
 
 let () =
@@ -61,47 +61,50 @@ let () =
       else proto
     in
     let tasks = Hashtbl.create 1 in
-    Lang.add_builtin name ~category:`Interaction (* TODO better cat *)
-      ~descr proto Lang.unit_t (fun p ->
-        let user = Lang.to_string (List.assoc "user" p) in
-        let password = Lang.to_string (List.assoc "password" p) in
-        let metas = Lang.to_metadata (Lang.assoc "" 1 p) in
-        let host = Lang.to_string (List.assoc "host" p) in
-        let port = Lang.to_int (List.assoc "port" p) in
-        let host = (host, port) in
-        let mode =
-          if stype = Liqfm.Played then (
-            match Lang.to_string (List.assoc "source" p) with
-              | "broadcast" -> Liqfm.Broadcast
-              | "user" -> Liqfm.User
-              | "recommendation" -> Liqfm.Recommendation
-              | "unknown" -> Liqfm.Unknown
-              | _ ->
-                  raise
-                    (Error.Invalid_value
-                       (List.assoc "source" p, "unknown lastfm submission mode")))
-          else Liqfm.Unknown
-        in
-        let length = Lang.to_bool (List.assoc "length" p) in
-        let length =
-          if length = false && mode = Liqfm.User then (
-            log#severe
-              "length information is required for \"user\" sources, setting to \
-               true.";
-            true)
-          else length
-        in
-        let task =
-          try Hashtbl.find tasks host
-          with Not_found ->
-            let t = Liqfm.init host in
-            Hashtbl.add tasks host t;
-            t
-        in
-        Liqfm.submit (user, password) task length mode stype [metas];
-        Lang.unit)
+    ignore
+      (Lang.add_builtin ~base:audioscrobbler name
+         ~category:`Interaction (* TODO better cat *) ~descr proto Lang.unit_t
+         (fun p ->
+           let user = Lang.to_string (List.assoc "user" p) in
+           let password = Lang.to_string (List.assoc "password" p) in
+           let metas = Lang.to_metadata (Lang.assoc "" 1 p) in
+           let host = Lang.to_string (List.assoc "host" p) in
+           let port = Lang.to_int (List.assoc "port" p) in
+           let host = (host, port) in
+           let mode =
+             if stype = Liqfm.Played then (
+               match Lang.to_string (List.assoc "source" p) with
+                 | "broadcast" -> Liqfm.Broadcast
+                 | "user" -> Liqfm.User
+                 | "recommendation" -> Liqfm.Recommendation
+                 | "unknown" -> Liqfm.Unknown
+                 | _ ->
+                     raise
+                       (Error.Invalid_value
+                          ( List.assoc "source" p,
+                            "unknown lastfm submission mode" )))
+             else Liqfm.Unknown
+           in
+           let length = Lang.to_bool (List.assoc "length" p) in
+           let length =
+             if length = false && mode = Liqfm.User then (
+               log#severe
+                 "length information is required for \"user\" sources, setting \
+                  to true.";
+               true)
+             else length
+           in
+           let task =
+             try Hashtbl.find tasks host
+             with Not_found ->
+               let t = Liqfm.init host in
+               Hashtbl.add tasks host t;
+               t
+           in
+           Liqfm.submit (user, password) task length mode stype [metas];
+           Lang.unit))
   in
-  f "audioscrobbler.submit" Liqfm.Played
+  f "submit" Liqfm.Played
     "Submit a played song using the audioscrobbler protocol.";
-  f "audioscrobbler.nowplaying" Liqfm.NowPlaying
+  f "nowplaying" Liqfm.NowPlaying
     "Submit a now playing song using the audioscrobbler protocol."

@@ -22,6 +22,8 @@
 
 (** base class *)
 
+let output = Modules.output
+
 let encoder_factory ?format format_val =
   let format =
     match format with Some f -> f | None -> Lang.to_format format_val
@@ -155,9 +157,9 @@ class url_output p =
     method self_sync = (`Static, self_sync)
   end
 
-let () =
+let _ =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.url" (url_proto return_t) ~return_t
+  Lang.add_operator ~base:output "url" (url_proto return_t) ~return_t
     ~category:`Output ~meth:Output.meth
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
@@ -434,9 +436,9 @@ let new_file_output p =
     (new file_output_using_encoder ~format_val p :> piped_output)
   else (new file_output ~format_val p :> piped_output)
 
-let () =
+let output_file =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.file" (file_proto return_t) ~return_t
+  Lang.add_operator ~base:output "file" (file_proto return_t) ~return_t
     ~category:`Output ~meth:Output.meth
     ~descr:"Output the source stream to a file." (fun p ->
       (new_file_output p :> Output.output))
@@ -477,14 +479,14 @@ let pipe_proto frame_t descr =
   )
   :: chan_proto frame_t descr
 
-let () =
+let _ =
   let return_t = Lang.univ_t () in
   let meth =
     List.map
       (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
       Output.meth
   in
-  Lang.add_operator "output.external"
+  Lang.add_operator ~base:output "external"
     (pipe_proto return_t "Process to pipe data to.")
     ~return_t ~category:`Output
     ~meth:

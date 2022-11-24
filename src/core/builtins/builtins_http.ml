@@ -23,15 +23,15 @@
 type request = Get | Post | Put | Head | Delete
 
 let request_with_body = [Get; Post; Put]
+let http = Modules.http
+let http_transport = Modules.http_transport
 
-let () =
+let _ =
   Lang.add_builtin_base ~category:`Internet ~descr:"Http unencrypted transport"
-    "http.transport.unix" (Lang.http_transport Http.unix_transport).Lang.value
-    Lang.http_transport_t
+    ~base:http_transport "unix"
+    (Lang.http_transport Http.unix_transport).Lang.value Lang.http_transport_t
 
-let add_http_request ~stream_body ~descr ~request name =
-  let name = Printf.sprintf "http.%s" name in
-  let name = if stream_body then Printf.sprintf "%s.stream" name else name in
+let add_http_request ~base ~stream_body ~descr ~request name =
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
   let has_body = List.mem request request_with_body in
@@ -90,7 +90,7 @@ let add_http_request ~stream_body ~descr ~request name =
       ]
     else []
   in
-  Lang.add_builtin name ~category:`Internet ~descr params request_return_t
+  Lang.add_builtin name ~base ~category:`Internet ~descr params request_return_t
     (fun p ->
       let headers = List.assoc "headers" p in
       let headers = Lang.to_list headers in
@@ -201,21 +201,28 @@ let add_http_request ~stream_body ~descr ~request name =
 
 let () =
   List.iter
-    (fun stream_body ->
-      add_http_request ~descr:"Perform a full http GET request." ~request:Get
-        ~stream_body "get";
-      add_http_request ~descr:"Perform a full http POST request." ~request:Post
-        ~stream_body "post";
-      add_http_request ~descr:"Perform a full http PUT request." ~request:Put
-        ~stream_body "put";
-      add_http_request ~descr:"Perform a full http HEAD request." ~request:Head
-        ~stream_body "head";
-      add_http_request ~descr:"Perform a full http DELETE request."
-        ~request:Delete ~stream_body "delete")
-    [false; true]
+    (fun (request, name) ->
+      let base =
+        add_http_request ~base:http
+          ~descr:
+            ("Perform a full http " ^ String.uppercase_ascii name ^ " request.")
+          ~request ~stream_body:false name
+      in
+      ignore
+        (add_http_request ~base
+           ~descr:
+             ("Perform a full http " ^ String.uppercase_ascii name ^ " request.")
+           ~request ~stream_body:true "stream"))
+    [
+      (Get, "get");
+      (Post, "post");
+      (Put, "put");
+      (Head, "head");
+      (Delete, "delete");
+    ]
 
-let () =
+let _ =
   Lang.add_builtin_base ~category:`Internet ~descr:"Default user-agent"
-    "http.user_agent"
+    ~base:http "user_agent"
     Lang.(Ground (Ground.String Http.user_agent))
     Lang.string_t

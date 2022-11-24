@@ -23,14 +23,15 @@
 let () =
   let t = Lang.univ_t ~constraints:[Type.ord_constr] () in
   let register_op name op =
-    Lang.add_builtin name ~category:`Bool
-      ~descr:"Comparison of comparable values."
-      [("", t, None, None); ("", t, None, None)]
-      Lang.bool_t
-      (fun p ->
-        let a = Lang.assoc "" 1 p in
-        let b = Lang.assoc "" 2 p in
-        Lang.bool (op (Value.compare a b)))
+    ignore
+      (Lang.add_builtin name ~category:`Bool
+         ~descr:"Comparison of comparable values."
+         [("", t, None, None); ("", t, None, None)]
+         Lang.bool_t
+         (fun p ->
+           let a = Lang.assoc "" 1 p in
+           let b = Lang.assoc "" 2 p in
+           Lang.bool (op (Value.compare a b))))
   in
   register_op "==" (fun c -> c = 0);
   register_op "!=" (fun c -> c <> 0);
@@ -39,7 +40,7 @@ let () =
   register_op ">=" (fun c -> c <> -1);
   register_op ">" (fun c -> c = 1)
 
-let () =
+let _ =
   Lang.add_builtin "and" ~category:`Bool
     ~descr:"Return the conjunction of its arguments"
     [
@@ -50,7 +51,9 @@ let () =
     (fun p ->
       let a = Lang.to_bool_getter (Lang.assoc "" 1 p) in
       let b = Lang.to_bool_getter (Lang.assoc "" 2 p) in
-      Lang.bool (if a () then b () else false));
+      Lang.bool (if a () then b () else false))
+
+let _ =
   Lang.add_builtin "or" ~category:`Bool
     ~descr:"Return the disjunction of its arguments"
     [
@@ -63,7 +66,7 @@ let () =
       let b = Lang.to_bool_getter (Lang.assoc "" 2 p) in
       Lang.bool (if a () then true else b ()))
 
-let () =
+let _ =
   Lang.add_builtin "not" ~category:`Bool
     ~descr:"Returns the negation of its argument."
     [("", Lang.bool_t, None, None)]

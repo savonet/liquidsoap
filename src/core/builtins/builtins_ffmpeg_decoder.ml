@@ -23,6 +23,9 @@
 open Mm
 open Builtins_ffmpeg_base
 
+let ffmpeg_decode = Lang.add_module ~base:ffmpeg "decode"
+let ffmpeg_raw_decode = Lang.add_module ~base:ffmpeg_raw "decode"
+
 module InternalResampler =
   Swresample.Make (Swresample.Frame) (Swresample.PlanarFloatArray)
 
@@ -359,10 +362,6 @@ let decode_video_frame ~mode generator =
         convert ~get_data:Ffmpeg_raw_content.Video.get_data
           ~decoder:(mk_raw_decoder ())
 
-let () =
-  Lang.add_module "ffmpeg.decode";
-  Lang.add_module "ffmpeg.raw.decode"
-
 let mk_encoder mode =
   let has_audio =
     List.mem mode [`Audio_encoded; `Audio_raw; `Both_encoded; `Both_raw]
@@ -407,91 +406,93 @@ let mk_encoder mode =
          ?video:(if has_video then Some (Format_type.video ()) else None)
          ())
   in
-  let extension =
+  let base, name =
     match mode with
-      | `Audio_encoded -> "decode.audio"
-      | `Audio_raw -> "raw.decode.audio"
-      | `Video_encoded -> "decode.video"
-      | `Video_raw -> "raw.decode.video"
-      | `Both_encoded -> "decode.audio_video"
-      | `Both_raw -> "raw.decode.audio_video"
+      | `Audio_encoded -> (ffmpeg_decode, "audio")
+      | `Audio_raw -> (ffmpeg_raw_decode, "audio")
+      | `Video_encoded -> (ffmpeg_decode, "video")
+      | `Video_raw -> (ffmpeg_raw_decode, "video")
+      | `Both_encoded -> (ffmpeg_decode, "audio_video")
+      | `Both_raw -> (ffmpeg_raw_decode, "audio_video")
   in
-  let name = "ffmpeg." ^ extension in
   let proto = [("", Lang.source_t input_frame_t, None, None)] in
-  Lang.add_operator ("ffmpeg." ^ extension) proto ~return_t:output_frame_t
-    ~category:`Conversion ~descr:"Convert a source's content" (fun p ->
-      let id =
-        Lang.to_default_option ~default:name Lang.to_string (List.assoc "id" p)
-      in
-      let source = List.assoc "" p in
+  ignore
+    (Lang.add_operator name proto ~base ~return_t:output_frame_t
+       ~category:`Conversion ~descr:"Convert a source's content" (fun p ->
+         let id =
+           Lang.to_default_option ~default:name Lang.to_string
+             (List.assoc "id" p)
+         in
+         let source = List.assoc "" p in
 
-      let mk_decode_frame generator =
-        let decode_audio_frame =
-          if has_audio then (
-            let mode = if has_encoded_audio then `Decode else `Raw in
-            Some (decode_audio_frame ~mode generator))
-          else None
-        in
-        let decode_video_frame =
-          if has_video then (
-            let mode = if has_encoded_video then `Decode else `Raw in
-            Some (decode_video_frame ~mode generator))
-          else None
-        in
-        let size = Lazy.force Frame.size in
+         let mk_decode_frame generator =
+           let decode_audio_frame =
+             if has_audio then (
+               let mode = if has_encoded_audio then `Decode else `Raw in
+               Some (decode_audio_frame ~mode generator))
+             else None
+           in
+           let decode_video_frame =
+             if has_video then (
+               let mode = if has_encoded_video then `Decode else `Raw in
+               Some (decode_video_frame ~mode generator))
+             else None
+           in
+           let size = Lazy.force Frame.size in
 
-        let decode_frame = function
-          | `Frame frame ->
-              List.iter
-                (fun (pos, m) -> Generator.add_metadata ~pos generator m)
-                (Frame.get_all_metadata frame);
-              List.iter
-                (fun pos -> Generator.add_track_mark ~pos generator)
-                (List.filter (fun x -> x < size) (Frame.breaks frame));
-              ignore
-                (Option.map (fun fn -> fn (`Frame frame)) decode_video_frame);
-              ignore
-                (Option.map (fun fn -> fn (`Frame frame)) decode_audio_frame)
-          | `Flush ->
-              ignore (Option.map (fun fn -> fn `Flush) decode_video_frame);
-              ignore (Option.map (fun fn -> fn `Flush) decode_audio_frame)
-        in
+           let decode_frame = function
+             | `Frame frame ->
+                 List.iter
+                   (fun (pos, m) -> Generator.add_metadata ~pos generator m)
+                   (Frame.get_all_metadata frame);
+                 List.iter
+                   (fun pos -> Generator.add_track_mark ~pos generator)
+                   (List.filter (fun x -> x < size) (Frame.breaks frame));
+                 ignore
+                   (Option.map (fun fn -> fn (`Frame frame)) decode_video_frame);
+                 ignore
+                   (Option.map (fun fn -> fn (`Frame frame)) decode_audio_frame)
+             | `Flush ->
+                 ignore (Option.map (fun fn -> fn `Flush) decode_video_frame);
+                 ignore (Option.map (fun fn -> fn `Flush) decode_audio_frame)
+           in
 
-        decode_frame
-      in
+           decode_frame
+         in
 
-      let decode_frame_ref = ref None in
+         let decode_frame_ref = ref None in
 
-      let get_decode_frame generator =
-        match !decode_frame_ref with
-          | None ->
-              let fn = mk_decode_frame generator in
-              decode_frame_ref := Some fn;
-              fn
-          | Some fn -> fn
-      in
+         let get_decode_frame generator =
+           match !decode_frame_ref with
+             | None ->
+                 let fn = mk_decode_frame generator in
+                 decode_frame_ref := Some fn;
+                 fn
+             | Some fn -> fn
+         in
 
-      let decode_frame generator frame =
-        let decode_frame = get_decode_frame generator in
-        match frame with
-          | `Frame frame -> decode_frame (`Frame frame)
-          | `Flush ->
-              decode_frame `Flush;
-              decode_frame_ref := None
-      in
+         let decode_frame generator frame =
+           let decode_frame = get_decode_frame generator in
+           match frame with
+             | `Frame frame -> decode_frame (`Frame frame)
+             | `Flush ->
+                 decode_frame `Flush;
+                 decode_frame_ref := None
+         in
 
-      let consumer =
-        new Producer_consumer.consumer
-          ~write_frame:decode_frame ~name:(id ^ ".consumer") ~source ()
-      in
+         let consumer =
+           new Producer_consumer.consumer
+             ~write_frame:decode_frame ~name:(id ^ ".consumer") ~source ()
+         in
 
-      let input_frame_t = Typing.generalize ~level:(-1) input_frame_t in
-      let input_frame_t = Typing.instantiate ~level:(-1) input_frame_t in
-      Typing.(consumer#frame_type <: input_frame_t);
+         let input_frame_t = Typing.generalize ~level:(-1) input_frame_t in
+         let input_frame_t = Typing.instantiate ~level:(-1) input_frame_t in
+         Typing.(consumer#frame_type <: input_frame_t);
 
-      new Producer_consumer.producer
-      (* We are expecting real-rate with a couple of hickups.. *)
-        ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer") ())
+         new Producer_consumer.producer
+         (* We are expecting real-rate with a couple of hickups.. *)
+           ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer")
+           ()))
 
 let () =
   List.iter mk_encoder

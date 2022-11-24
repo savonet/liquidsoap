@@ -177,7 +177,7 @@ let replace_fun regexp =
       in
       Lang_core.string string)
 
-let () =
+let _ =
   let meth =
     [
       ("test", ([], test_t), "Match a string with the expressionn.", test_fun);

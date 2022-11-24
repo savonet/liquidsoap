@@ -98,12 +98,12 @@ class output ~infallible ~on_start ~on_stop ~autostart source =
       Sdl_utils.check Sdl.update_window_surface window
   end
 
-let () =
+let output_sdl =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator "output.sdl"
+  Lang.add_operator ~base:Modules.output "sdl"
     (Output.proto @ [("", Lang.source_t frame_t, None, None)])
     ~return_t:frame_t ~category:`Output ~meth:Output.meth
     ~descr:"Display a video using SDL."
@@ -122,10 +122,10 @@ let () =
       (new output ~infallible ~autostart ~on_start ~on_stop source
         :> Output.output))
 
-let () =
+let _ =
   Lang.add_builtin ~category:(`Source `Output)
-    ~descr:"Check whether video output is available with SDL."
-    "output.sdl.has_video" [] Lang.bool_t (fun _ ->
+    ~descr:"Check whether video output is available with SDL." ~base:output_sdl
+    "has_video" [] Lang.bool_t (fun _ ->
       match Sdl.init Sdl.Init.video with
         | Ok _ -> Lang.bool true
         | Error _ -> Lang.bool false)

@@ -784,10 +784,10 @@ class hls_output p =
     method insert_metadata _ = ()
   end
 
-let () =
+let _ =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.file.hls" (hls_proto return_t) ~return_t
-    ~category:`Output ~meth:Output.meth
+  Lang.add_operator ~base:Pipe_output.output_file "hls" (hls_proto return_t)
+    ~return_t ~category:`Output ~meth:Output.meth
     ~descr:
       "Output the source stream to an HTTP live stream served from a local \
        directory." (fun p -> (new hls_output p :> Output.output))

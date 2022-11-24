@@ -23,6 +23,8 @@
 open Extralib
 module S = Lo.Server
 
+let osc = Modules.osc
+
 let conf_osc =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "osc")
@@ -119,64 +121,67 @@ let register name osc_t liq_t =
       | 2 -> Lang.product vv.(0) vv.(1)
       | _ -> assert false
   in
-  Lang.add_builtin ("osc." ^ name) ~category:`Interaction
-    [
-      ("", Lang.string_t, None, Some "OSC path.");
-      ("", liq_t, None, Some "Initial value.");
-    ]
-    (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path."
-    (fun p ->
-      let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let v = Lang.assoc "" 2 p in
-      let v = ref v in
-      let handle vv = v := val_array vv in
-      add_handler path osc_t handle;
-      start_server ();
-      Lang.val_fun [] (fun _ -> !v));
-  Lang.add_builtin ("osc.on_" ^ name) ~category:`Interaction
-    [
-      ("", Lang.string_t, None, Some "OSC path.");
-      ( "",
-        Lang.fun_t [(false, "", liq_t)] Lang.unit_t,
-        None,
-        Some "Callback function." );
-    ]
-    Lang.unit_t ~descr:"Register a callback on OSC messages."
-    (fun p ->
-      let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let f = Lang.assoc "" 2 p in
-      let handle v =
-        let v = val_array v in
-        ignore (Lang.apply f [("", v)])
-      in
-      add_handler path osc_t handle;
-      start_server ();
-      Lang.unit);
-  Lang.add_builtin ("osc.send_" ^ name) ~category:`Interaction
-    [
-      ("host", Lang.string_t, None, Some "OSC client address.");
-      ("port", Lang.int_t, None, Some "OSC client port.");
-      ("", Lang.string_t, None, Some "OSC path.");
-      ("", liq_t, None, Some "Value to send.");
-    ]
-    Lang.unit_t ~descr:"Send a value to an OSC client."
-    (fun p ->
-      let host = Lang.to_string (List.assoc "host" p) in
-      let port = Lang.to_int (List.assoc "port" p) in
-      let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let v = Lang.assoc "" 2 p in
-      let address = Lo.Address.create host port in
-      let osc_val v =
-        match v.Lang.value with
-          | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
-          | Lang.(Ground (Ground.String s)) -> [`String s]
-          | Lang.(Ground (Ground.Float x)) -> [`Float x]
-          | _ -> failwith "Unhandled value."
-      in
-      (* There was a bug in early versions of lo bindings and anyway we don't
-         really want errors to show up here... *)
-      (try Lo.send address path (osc_val v) with _ -> ());
-      Lang.unit)
+  ignore
+    (Lang.add_builtin ~base:osc name ~category:`Interaction
+       [
+         ("", Lang.string_t, None, Some "OSC path.");
+         ("", liq_t, None, Some "Initial value.");
+       ]
+       (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path."
+       (fun p ->
+         let path = Lang.to_string (Lang.assoc "" 1 p) in
+         let v = Lang.assoc "" 2 p in
+         let v = ref v in
+         let handle vv = v := val_array vv in
+         add_handler path osc_t handle;
+         start_server ();
+         Lang.val_fun [] (fun _ -> !v)));
+  ignore
+    (Lang.add_builtin ~base:osc ("on_" ^ name) ~category:`Interaction
+       [
+         ("", Lang.string_t, None, Some "OSC path.");
+         ( "",
+           Lang.fun_t [(false, "", liq_t)] Lang.unit_t,
+           None,
+           Some "Callback function." );
+       ]
+       Lang.unit_t ~descr:"Register a callback on OSC messages."
+       (fun p ->
+         let path = Lang.to_string (Lang.assoc "" 1 p) in
+         let f = Lang.assoc "" 2 p in
+         let handle v =
+           let v = val_array v in
+           ignore (Lang.apply f [("", v)])
+         in
+         add_handler path osc_t handle;
+         start_server ();
+         Lang.unit));
+  ignore
+    (Lang.add_builtin ~base:osc ("send_" ^ name) ~category:`Interaction
+       [
+         ("host", Lang.string_t, None, Some "OSC client address.");
+         ("port", Lang.int_t, None, Some "OSC client port.");
+         ("", Lang.string_t, None, Some "OSC path.");
+         ("", liq_t, None, Some "Value to send.");
+       ]
+       Lang.unit_t ~descr:"Send a value to an OSC client."
+       (fun p ->
+         let host = Lang.to_string (List.assoc "host" p) in
+         let port = Lang.to_int (List.assoc "port" p) in
+         let path = Lang.to_string (Lang.assoc "" 1 p) in
+         let v = Lang.assoc "" 2 p in
+         let address = Lo.Address.create host port in
+         let osc_val v =
+           match v.Lang.value with
+             | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
+             | Lang.(Ground (Ground.String s)) -> [`String s]
+             | Lang.(Ground (Ground.Float x)) -> [`Float x]
+             | _ -> failwith "Unhandled value."
+         in
+         (* There was a bug in early versions of lo bindings and anyway we don't
+            really want errors to show up here... *)
+         (try Lo.send address path (osc_val v) with _ -> ());
+         Lang.unit))
 
 let () =
   register "float" [| `Float |] Lang.float_t;

@@ -35,9 +35,9 @@ class on_frame f s =
       ignore (Lang.apply f [])
   end
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "source.on_frame"
+  Lang.add_operator ~base:Modules.source "on_frame"
     [
       ("", Lang.source_t frame_t, None, None);
       ( "",
@@ -74,18 +74,19 @@ class frame_op ~name f default s =
       value <- f buf off (pos - off)
   end
 
-let () = Lang.add_module "source.frame"
+let source_frame = Lang.add_module ~base:Modules.source "frame"
 
 let op name descr f_t f default =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ("source.frame." ^ name)
-    [("", Lang.source_t frame_t, None, None)]
-    ~category:`Track ~descr
-    ~return_t:(Lang.method_t frame_t [("frame_" ^ name, ([], f_t), descr)])
-    ~meth:[("frame_" ^ name, ([], f_t), descr, fun s -> s#value)]
-    (fun p ->
-      let s = List.assoc "" p |> Lang.to_source in
-      new frame_op ~name f default s)
+  ignore
+    (Lang.add_operator ~base:source_frame name
+       [("", Lang.source_t frame_t, None, None)]
+       ~category:`Track ~descr
+       ~return_t:(Lang.method_t frame_t [("frame_" ^ name, ([], f_t), descr)])
+       ~meth:[("frame_" ^ name, ([], f_t), descr, fun s -> s#value)]
+       (fun p ->
+         let s = List.assoc "" p |> Lang.to_source in
+         new frame_op ~name f default s))
 
 let () =
   op "duration" "Compute the duration of the last frame." Lang.float_t

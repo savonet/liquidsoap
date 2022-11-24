@@ -24,7 +24,7 @@ open Mm
 open Source
 open Extralib
 
-let () = Lang.add_module "video.frei0r"
+let video_frei0r = Lang.add_module ~base:Modules.video "frei0r"
 
 type t = Float | Int | Bool
 
@@ -314,24 +314,25 @@ let register_plugin fname =
     a
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in
-  Lang.add_operator ("video.frei0r." ^ name) liq_params ~return_t
-    ~category:`Video ~flags:[`Extra] ~descr (fun p ->
-      let instance =
-        let width = Lazy.force Frame.video_width in
-        let height = Lazy.force Frame.video_height in
-        Frei0r.create plugin width height
-      in
-      let f v = List.assoc v p in
-      let params = params instance p in
-      if inputs = 1 then (
-        let source = Lang.to_source (f "") in
-        new frei0r_filter ~name bgra instance params source)
-      else if inputs = 2 then (
-        let source = Lang.to_source (f "") in
-        let source' = Lang.to_source (Lang.assoc "" 2 p) in
-        new frei0r_mixer ~name bgra instance params source source')
-      else if inputs = 0 then new frei0r_source ~name bgra instance params
-      else assert false)
+  ignore
+    (Lang.add_operator ~base:video_frei0r name liq_params ~return_t
+       ~category:`Video ~flags:[`Extra] ~descr (fun p ->
+         let instance =
+           let width = Lazy.force Frame.video_width in
+           let height = Lazy.force Frame.video_height in
+           Frei0r.create plugin width height
+         in
+         let f v = List.assoc v p in
+         let params = params instance p in
+         if inputs = 1 then (
+           let source = Lang.to_source (f "") in
+           new frei0r_filter ~name bgra instance params source)
+         else if inputs = 2 then (
+           let source = Lang.to_source (f "") in
+           let source' = Lang.to_source (Lang.assoc "" 2 p) in
+           new frei0r_mixer ~name bgra instance params source source')
+         else if inputs = 0 then new frei0r_source ~name bgra instance params
+         else assert false))
 
 let register_plugin plugin =
   try register_plugin plugin with

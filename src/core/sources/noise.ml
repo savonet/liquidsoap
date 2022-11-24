@@ -45,7 +45,7 @@ class noise duration =
       with Content.Invalid -> ()
   end
 
-let () =
+let _ =
   let return_t = Lang.internal_t () in
   Lang.add_operator "noise" ~category:`Input
     ~descr:"Generate audio white noise."

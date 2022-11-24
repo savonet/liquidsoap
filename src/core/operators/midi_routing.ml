@@ -57,12 +57,12 @@ class remove (source : source) t =
       List.iter (fun c -> if c < Array.length m then MIDI.clear_all m.(c)) t
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~midi:(Format_type.midi ()) ())
   in
-  Lang.add_operator "midi.merge_all"
+  Lang.add_operator ~base:Modules.midi "merge_all"
     [
       ("track_out", Lang.int_t, Some (Lang.int 0), Some "Destination track.");
       ("", Lang.source_t frame_t, None, None);
@@ -74,12 +74,12 @@ let () =
       let src = Lang.to_source (f "") in
       new merge src out)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~midi:(Format_type.midi ()) ())
   in
-  Lang.add_operator "midi.remove"
+  Lang.add_operator ~base:Modules.midi "remove"
     [
       ("", Lang.list_t Lang.int_t, None, Some "Tracks to remove.");
       ("", Lang.source_t frame_t, None, None);

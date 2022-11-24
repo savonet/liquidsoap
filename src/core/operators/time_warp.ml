@@ -188,7 +188,7 @@ module Buffer = struct
     new producer ~id:(Printf.sprintf "%s.producer" id) control
 end
 
-let () =
+let buffer =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "buffer"
     ([
@@ -416,12 +416,12 @@ module AdaptativeBuffer = struct
     new producer ~pre_buffer ~averaging ~limit control
 end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "buffer.adaptative"
+  Lang.add_operator ~base:buffer "adaptative"
     (Output.proto
     @ [
         ( "buffer",

@@ -22,7 +22,6 @@
 
 open Mm
 open Source
-open Compress
 
 (** See http://www.musicdsp.org/archive.php?classid=4#169 *)
 
@@ -116,18 +115,20 @@ let compress p =
     threshold ratio knee rmsw
     (fun () -> Audio.lin_of_dB (gain ()))
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "compress.old"
+  Lang.add_operator ~base:Compress.compress "old"
     (( "ratio",
        Lang.getter_t Lang.float_t,
        Some (Lang.float 2.),
        Some "Gain reduction ratio (n:1)." )
     :: proto frame_t)
-    ~return_t:frame_t ~category:`Audio ~descr:"Compress the signal." compress;
+    ~return_t:frame_t ~category:`Audio ~descr:"Compress the signal." compress
+
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())

@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let () =
+let null =
   let a = Lang.univ_t () in
   Lang.add_builtin "null" ~category:`Programming
     ~descr:"Create a nullable value."
@@ -31,10 +31,10 @@ let () =
         | Some x -> x
         | None -> Lang.null)
 
-let () =
+let _ =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  Lang.add_builtin "null.case" ~category:`Programming
+  Lang.add_builtin ~base:null "case" ~category:`Programming
     ~descr:"Return a result dending on whether a value is nothing or not."
     [
       ("", Lang.nullable_t a, None, Some "Value to reason by case analysis on.");
@@ -54,9 +54,9 @@ let () =
       let f = Lang.to_fun (Lang.assoc "" 3 p) in
       match Lang.to_option x with None -> d [] | Some x -> f [("", x)])
 
-let () =
+let _ =
   let a = Lang.univ_t () in
-  Lang.add_builtin "null.default" ~category:`Programming
+  Lang.add_builtin ~base:null "default" ~category:`Programming
     ~descr:"Return a result dending on whether a value is nothing or not."
     [
       ("", Lang.nullable_t a, None, Some "Value to reason by case analysis on.");

@@ -63,7 +63,7 @@ class amplify (source : source) override_field coeff =
         override <- None)
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())

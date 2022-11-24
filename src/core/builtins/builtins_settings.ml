@@ -181,11 +181,13 @@ let settings_module =
      let init = get_value Dtools.Init.conf in
      let log = get_value Dtools.Log.conf in
      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
-     Lang.add_builtin_base ~category:`Settings "settings" ~descr:"All settings."
-       ~flags:[`Hidden] !settings.Lang.value settings_t)
+     ignore
+       (Lang.add_builtin_base ~category:`Settings "settings"
+          ~descr:"All settings." ~flags:[`Hidden] !settings.Lang.value
+          settings_t))
 
 (** Hack to keep track of latest settings at runtime. *)
-let () =
+let _ =
   Lang.add_builtin ~category:`Settings "set_settings_ref"
     ~descr:"Internal use only!" ~flags:[`Hidden]
     [("", Lang.univ_t (), None, None)]
@@ -279,7 +281,7 @@ let print_settings () =
 
 let log = Lang.log
 
-let () =
+let _ =
   let grab path value =
     let path = String.split_on_char '.' path in
     let rec grab links v =
@@ -291,32 +293,34 @@ let () =
     in
     grab path value
   in
-  Lang.add_builtin ~category:`Settings "set"
-    ~descr:
-      "Change some setting. Use `liquidsoap --list-settings` on the \
-       command-line to get some information about available settings."
-    ~flags:[`Deprecated; `Hidden]
-    [
-      ("", Lang.string_t, None, None);
-      ("", Lang.univ_t ~constraints:[dtools_constr] (), None, None);
-    ]
-    Lang.unit_t
-    (fun p ->
-      log#severe
-        "WARNING: \"set\" is deprecated and will be removed in future version. \
-         Please use `settings.path.to.key.set(value)`";
-      let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let value = Lang.assoc "" 2 p in
-      (try
-         let set = grab (path ^ ".set") !settings in
-         try ignore (Lang.apply (Lang.demeth set) [("", value)])
-         with _ ->
-           log#severe
-             "WARNING: Error while setting value %s for setting %S. Is that \
-              the right type for it?"
-             (Value.to_string value) path
-       with Not_found -> log#severe "WARNING: setting %S does not exist!" path);
-      Lang.unit);
+  ignore
+    (Lang.add_builtin ~category:`Settings "set"
+       ~descr:
+         "Change some setting. Use `liquidsoap --list-settings` on the \
+          command-line to get some information about available settings."
+       ~flags:[`Deprecated; `Hidden]
+       [
+         ("", Lang.string_t, None, None);
+         ("", Lang.univ_t ~constraints:[dtools_constr] (), None, None);
+       ]
+       Lang.unit_t
+       (fun p ->
+         log#severe
+           "WARNING: \"set\" is deprecated and will be removed in future \
+            version. Please use `settings.path.to.key.set(value)`";
+         let path = Lang.to_string (Lang.assoc "" 1 p) in
+         let value = Lang.assoc "" 2 p in
+         (try
+            let set = grab (path ^ ".set") !settings in
+            try ignore (Lang.apply (Lang.demeth set) [("", value)])
+            with _ ->
+              log#severe
+                "WARNING: Error while setting value %s for setting %S. Is that \
+                 the right type for it?"
+                (Value.to_string value) path
+          with Not_found ->
+            log#severe "WARNING: setting %S does not exist!" path);
+         Lang.unit));
 
   let univ = Lang.univ_t ~constraints:[dtools_constr] () in
   Lang.add_builtin "get" ~category:`Settings ~descr:"Get a setting's value."

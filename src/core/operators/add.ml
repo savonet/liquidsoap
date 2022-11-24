@@ -171,7 +171,7 @@ class add ~renorm ~power (sources : ((unit -> float) * source) list) video_init
         | _ -> ()
   end
 
-let () =
+let _ =
   let frame_t = Lang.internal_t () in
   Lang.add_operator "add" ~category:`Audio
     ~descr:
@@ -238,12 +238,12 @@ let tile_pos n =
   in
   horiz (n / 2) (n - (n / 2))
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator "video.tile" ~category:`Video
+  Lang.add_operator ~base:Modules.video "tile" ~category:`Video
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [
       ("normalize", Lang.getter_t Lang.bool_t, Some (Lang.bool true), None);

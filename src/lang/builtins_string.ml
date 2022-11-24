@@ -1,4 +1,4 @@
-let () =
+let string =
   Lang.add_builtin "string" ~category:`String
     ~descr:"Return the representation of a value."
     [
@@ -22,7 +22,7 @@ let () =
         | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
         | v -> Lang.string (Value.to_string v))
 
-let () =
+let _ =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
     Lang.string_t
@@ -31,8 +31,8 @@ let () =
       let s2 = Lang.to_string (Lang.assoc "" 2 p) in
       Lang.string (s1 ^ s2))
 
-let () =
-  Lang.add_builtin "string.concat" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "concat" ~category:`String
     ~descr:"Concatenate strings."
     [
       ("separator", Lang.string_t, Some (Lang.string ""), None);
@@ -45,8 +45,8 @@ let () =
       let l = List.map Lang.to_string l in
       Lang.string (String.concat sep l))
 
-let () =
-  Lang.add_builtin "string.nth" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "nth" ~category:`String
     ~descr:
       "Retrieve a character in a string. Raises `error.not_found` if character \
        does not exist."
@@ -71,16 +71,16 @@ print(c) # should print 99 which is the ascii code for "c"
         Runtime_error.raise ~pos:(Lang.pos p)
           ~message:"string.nth: character not found!" "not_found")
 
-let () =
-  Lang.add_builtin "string.char" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "char" ~category:`String
     ~descr:"Create a string with one character."
     [("", Lang.int_t, None, Some "Code of the character.")]
     Lang.string_t
     (fun p ->
       List.assoc "" p |> Lang.to_int |> Char.chr |> String.make 1 |> Lang.string)
 
-let () =
-  Lang.add_builtin "string.escape" ~category:`String
+let string_escape =
+  Lang.add_builtin ~base:string "escape" ~category:`String
     ~descr:
       "Escape special characters in an string. By default, the string is \
        assumed to be `\"utf8\"` encoded and is escaped following JSON and \
@@ -186,8 +186,8 @@ let () =
         | `Default -> ( try exec `Utf8 with _ -> exec `Ascii)
         | (`Ascii | `Utf8) as encoding -> exec encoding)
 
-let () =
-  Lang.add_builtin "string.escape.all"
+let _ =
+  Lang.add_builtin ~base:string_escape "all"
     ~descr:
       "Escape each character in the given string using a specific escape \
        sequence."
@@ -222,8 +222,8 @@ let () =
               ~escape_char ~next)
            s))
 
-let () =
-  Lang.add_builtin "string.escape.special_char"
+let _ =
+  Lang.add_builtin ~base:string_escape "special_char"
     ~descr:
       "Default function to detect characters to escape. See `string.escape` \
        for more details."
@@ -248,8 +248,8 @@ let () =
               (Error.Invalid_value
                  (encoding, "Encoding should be one of: \"ascii\" or \"utf8\".")))
 
-let () =
-  Lang.add_builtin "string.unescape"
+let _ =
+  Lang.add_builtin ~base:string "unescape"
     ~descr:"This function is the inverse of `string.escape`." ~category:`String
     [("", Lang.string_t, None, None)]
     Lang.string_t
@@ -257,8 +257,8 @@ let () =
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string (Lang_string.unescape_string s))
 
-let () =
-  Lang.add_builtin "string.length" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "length" ~category:`String
     ~descr:"Get the length of a string."
     [("", Lang.string_t, None, None)]
     Lang.int_t
@@ -266,8 +266,8 @@ let () =
       let string = Lang.to_string (List.assoc "" p) in
       Lang.int (String.length string))
 
-let () =
-  Lang.add_builtin "string.sub" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "sub" ~category:`String
     ~descr:
       "Get a substring of a string. Returns \"\" if no such substring exists."
     [
@@ -291,8 +291,8 @@ let () =
       Lang.string
         (try String.sub string start len with Invalid_argument _ -> ""))
 
-let () =
-  Lang.add_builtin "string.index" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "index" ~category:`String
     ~descr:
       "Index where a substring occurs in a string. The function returns `-1` \
        if the substring is not present"
@@ -319,8 +319,8 @@ let () =
       in
       Lang.int ans)
 
-let () =
-  Lang.add_builtin "string.case" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "case" ~category:`String
     ~descr:"Convert a string to lower or upper case."
     [
       ( "lower",
@@ -337,15 +337,15 @@ let () =
         (if lower then String.lowercase_ascii string
         else String.uppercase_ascii string))
 
-let () =
-  Lang.add_builtin "string.trim" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "trim" ~category:`String
     ~descr:"Return a string without leading and trailing whitespace."
     [("", Lang.string_t, None, None)]
     Lang.string_t
     (fun p -> Lang.string (String.trim (Lang.to_string (List.assoc "" p))))
 
-let () =
-  Lang.add_builtin "string.capitalize" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "capitalize" ~category:`String
     ~descr:
       "Return a string with the first character set to upper case \
        (capitalize), or to lower case (uncapitalize)."
@@ -375,8 +375,8 @@ let () =
          String.concat " " l)
         else f string))
 
-let () =
-  Lang.add_builtin "string.hex_of_int" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "hex_of_int" ~category:`String
     ~descr:"Hexadecimal representation of an integer."
     [
       ( "pad",
@@ -412,20 +412,21 @@ let () =
           {| Raises `error.failure("%{doc}")` if conversion fails and default is `null`|}]
       else ""
     in
-    Lang.add_builtin name ~category
-      ~descr:[%string {|Convert %{doc}.%{raise_doc}|}]
-      ([("", in_type, None, None)]
-      @
-      if needs_default then
-        [("default", Lang.nullable_t out_type, Some Lang.null, None)]
-      else [])
-      out_type
-      (fun p ->
-        try out_value (func (in_value (List.assoc "" p)))
-        with _ -> (
-          try Option.get (Lang.to_option (List.assoc "default" p))
-          with _ ->
-            Runtime_error.raise ~pos:(Lang.pos p) ~message:name "failure"))
+    ignore
+      (Lang.add_builtin name ~category
+         ~descr:[%string {|Convert %{doc}.%{raise_doc}|}]
+         ([("", in_type, None, None)]
+         @
+         if needs_default then
+           [("default", Lang.nullable_t out_type, Some Lang.null, None)]
+         else [])
+         out_type
+         (fun p ->
+           try out_value (func (in_value (List.assoc "" p)))
+           with _ -> (
+             try Option.get (Lang.to_option (List.assoc "default" p))
+             with _ ->
+               Runtime_error.raise ~pos:(Lang.pos p) ~message:name "failure")))
   in
   let register_tts name func out_value out_type =
     register_tt ~needs_default:true ("a string to a " ^ name)
@@ -449,8 +450,8 @@ let () =
   register_ttf "int" int_of_float (fun v -> Lang.int v) Lang.int_t;
   register_ttf "bool" (fun v -> v = 1.) (fun v -> Lang.bool v) Lang.bool_t
 
-let () =
-  Lang.add_builtin "string.float" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "float" ~category:`String
     ~descr:"String representation of a float."
     [
       ( "decimal_places",
@@ -477,8 +478,8 @@ let () =
       in
       Lang.string s)
 
-let () =
-  Lang.add_builtin "string.make" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "make" ~category:`String
     ~descr:"Create a string of a given length using the given character."
     [
       ( "char_code",
@@ -501,8 +502,8 @@ let () =
       in
       Lang.string (String.make n c))
 
-let () =
-  Lang.add_builtin "string.id" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "id" ~category:`String
     ~descr:"Generate an identifier with given operator name."
     [("", Lang.string_t, None, Some "Operator name.")]
     Lang.string_t
@@ -510,10 +511,10 @@ let () =
       let name = List.assoc "" p |> Lang.to_string in
       Lang.string (Lang_string.generate_id name))
 
-let () = Lang.add_module "string.base64"
+let string_base64 = Lang.add_module ~base:string "base64"
 
-let () =
-  Lang.add_builtin "string.base64.decode" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string_base64 "decode" ~category:`String
     ~descr:"Decode a Base64 encoded string."
     [("", Lang.string_t, None, None)]
     Lang.string_t
@@ -524,8 +525,8 @@ let () =
         Runtime_error.raise ~pos:(Lang.pos p) ~message:"Invalid base64 string!"
           "invalid")
 
-let () =
-  Lang.add_builtin "string.base64.encode" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string_base64 "encode" ~category:`String
     ~descr:"Encode a string in Base64."
     [("", Lang.string_t, None, None)]
     Lang.string_t
@@ -533,10 +534,10 @@ let () =
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Lang_string.encode64 string))
 
-let () = Lang.add_module "url"
+let url = Modules.url
 
-let () =
-  Lang.add_builtin "url.decode" ~category:`String
+let _ =
+  Lang.add_builtin ~base:url "decode" ~category:`String
     ~descr:"Decode an encoded url (e.g. \"%20\" becomes \" \")."
     [
       ("plus", Lang.bool_t, Some (Lang.bool true), None);
@@ -548,8 +549,8 @@ let () =
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Lang_string.url_decode ~plus string))
 
-let () =
-  Lang.add_builtin "url.encode" ~category:`String
+let _ =
+  Lang.add_builtin ~base:url "encode" ~category:`String
     ~descr:"Encode an url (e.g. \" \" becomes \"%20\")."
     [
       ("plus", Lang.bool_t, Some (Lang.bool true), None);

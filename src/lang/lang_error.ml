@@ -24,6 +24,8 @@ include Runtime_error
 
 exception Encoder_error of (Pos.Option.t * string)
 
+let error_module = Lang_core.add_module "error"
+
 type error = Runtime_error.runtime_error = private {
   kind : string;
   msg : string;
@@ -84,10 +86,8 @@ module Error = struct
   let of_value err = of_value (Lang_core.demeth err)
 end
 
-let () = Lang_core.add_module "error"
-
-let () =
-  Lang_core.add_builtin "error.register" ~category:`Programming
+let _ =
+  Lang_core.add_builtin ~base:error_module "register" ~category:`Programming
     ~descr:"Register an error of the given kind"
     [("", Lang_core.string_t, None, Some "Kind of the error")]
     Error.t
@@ -95,8 +95,8 @@ let () =
       let kind = Lang_core.to_string (List.assoc "" p) in
       Error.to_value (Runtime_error.make ~pos:[] kind))
 
-let () =
-  Lang_core.add_builtin "error.raise" ~category:`Programming
+let _ =
+  Lang_core.add_builtin ~base:error_module "raise" ~category:`Programming
     ~descr:"Raise an error."
     [
       ("", Error.t, None, Some "Error kind.");
@@ -111,8 +111,8 @@ let () =
       let message = Lang_core.to_string (Lang_core.assoc "" 2 p) in
       Runtime_error.raise ~pos:(Lang_core.pos p @ pos) ~message kind)
 
-let () =
-  Lang_core.add_builtin "error.on_error" ~category:`Programming
+let _ =
+  Lang_core.add_builtin ~base:error_module "on_error" ~category:`Programming
     ~descr:
       "Register a callback to monitor errors raised during the execution of \
        the program. The callback is allow to re-raise a different error if \
@@ -129,10 +129,10 @@ let error_t = Error.t
 let error = Error.to_value
 let to_error = Error.of_value
 
-let () =
+let _ =
   let a = Lang_core.univ_t () in
-  Lang_core.add_builtin "error.catch" ~category:`Programming ~flags:[`Hidden]
-    ~descr:"Execute a function, catching eventual exceptions."
+  Lang_core.add_builtin ~base:error_module "catch" ~category:`Programming
+    ~flags:[`Hidden] ~descr:"Execute a function, catching eventual exceptions."
     [
       ( "errors",
         Lang_core.nullable_t (Lang_core.list_t Error.t),

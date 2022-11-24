@@ -22,14 +22,17 @@
 
 open Extralib
 
+let configure = Modules.configure
+
 let () =
   List.iter
     (fun (name, kind, str) ->
-      Lang.add_builtin_base ~category:`Configuration
-        ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
-        ("configure." ^ name)
-        Lang.(Ground (Ground.String str))
-        Lang.string_t)
+      ignore
+        (Lang.add_builtin_base ~category:`Configuration
+           ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
+           ~base:configure name
+           Lang.(Ground (Ground.String str))
+           Lang.string_t))
     [
       ("libdir", "library directory", Configure.liq_libs_dir ());
       ("bindir", "Internal script directory", Configure.bin_dir ());
@@ -41,10 +44,11 @@ let () =
 (** Liquidsoap stuff *)
 
 let log = Lang.log
+let encoder = Modules.encoder
 
-let () =
+let _ =
   let kind = Lang.univ_t () in
-  Lang.add_builtin ~category:`Liquidsoap "encoder.content_type"
+  Lang.add_builtin ~category:`Liquidsoap ~base:encoder "content_type"
     ~descr:"Return the content-type (mime) of an encoder, if known."
     [("", Lang.format_t kind, None, None)]
     Lang.string_t
@@ -52,9 +56,9 @@ let () =
       let f = Lang.to_format (List.assoc "" p) in
       try Lang.string (Encoder.mime f) with _ -> Lang.string "")
 
-let () =
+let _ =
   let kind = Lang.univ_t () in
-  Lang.add_builtin ~category:`Liquidsoap "encoder.extension"
+  Lang.add_builtin ~category:`Liquidsoap ~base:encoder "extension"
     ~descr:"Return the file extension of an encoder, if known."
     [("", Lang.format_t kind, None, None)]
     Lang.string_t
@@ -62,8 +66,10 @@ let () =
       let f = Lang.to_format (List.assoc "" p) in
       try Lang.string (Encoder.extension f) with _ -> Lang.string "")
 
-let () =
-  Lang.add_module "decoder";
+let decoder = Modules.decoder
+let decoder_oblivious = Lang.add_module ~base:decoder "oblivious"
+
+let _ =
   (* The type of the test function for external decoders.
    * Return is one of:
    * . 0: no audio
@@ -81,54 +87,54 @@ let () =
          decodable audio channels." )
   in
   let test_f f file = Lang.to_int (Lang.apply f [("", Lang.string file)]) in
-  Lang.add_builtin "decoder.add" ~category:`Liquidsoap
-    ~descr:
-      "Register an external decoder. The encoder should output in WAV format \
-       to his standard output (stdout) and read data from its standard input \
-       (stdin)."
-    [
-      ("name", Lang.string_t, None, Some "Format/decoder's name.");
-      ("description", Lang.string_t, None, Some "Description of the decoder.");
-      ( "mimes",
-        Lang.list_t Lang.string_t,
-        Some (Lang.list []),
-        Some
-          "List of mime types supported by this decoder. Empty means any mime \
-           type should be accepted." );
-      ( "file_extensions",
-        Lang.list_t Lang.string_t,
-        Some (Lang.list []),
-        Some
-          "List of file extensions. Empty means any file extension should be \
-           accepted." );
-      ("priority", Lang.int_t, Some (Lang.int 1), Some "Decoder priority");
-      test_arg;
-      ("", Lang.string_t, None, Some "Process to start.");
-    ]
-    Lang.unit_t
-    (fun p ->
-      let process = Lang.to_string (Lang.assoc "" 1 p) in
-      let name = Lang.to_string (List.assoc "name" p) in
-      let doc = Lang.to_string (List.assoc "description" p) in
-      let mimes =
-        List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
-      in
-      let mimes = if mimes = [] then None else Some mimes in
-      let file_extensions =
-        List.map Lang.to_string (Lang.to_list (List.assoc "file_extensions" p))
-      in
-      let file_extensions =
-        if file_extensions = [] then None else Some file_extensions
-      in
-      let priority = Lang.to_int (List.assoc "priority" p) in
-      let test = List.assoc "test" p in
-      External_decoder.register_stdin ~name ~doc ~priority ~mimes
-        ~file_extensions ~test:(test_f test) process;
-      Lang.unit);
-
-  Lang.add_module "decoder.oblivious";
+  ignore
+    (Lang.add_builtin ~base:decoder "add" ~category:`Liquidsoap
+       ~descr:
+         "Register an external decoder. The encoder should output in WAV \
+          format to his standard output (stdout) and read data from its \
+          standard input (stdin)."
+       [
+         ("name", Lang.string_t, None, Some "Format/decoder's name.");
+         ("description", Lang.string_t, None, Some "Description of the decoder.");
+         ( "mimes",
+           Lang.list_t Lang.string_t,
+           Some (Lang.list []),
+           Some
+             "List of mime types supported by this decoder. Empty means any \
+              mime type should be accepted." );
+         ( "file_extensions",
+           Lang.list_t Lang.string_t,
+           Some (Lang.list []),
+           Some
+             "List of file extensions. Empty means any file extension should \
+              be accepted." );
+         ("priority", Lang.int_t, Some (Lang.int 1), Some "Decoder priority");
+         test_arg;
+         ("", Lang.string_t, None, Some "Process to start.");
+       ]
+       Lang.unit_t
+       (fun p ->
+         let process = Lang.to_string (Lang.assoc "" 1 p) in
+         let name = Lang.to_string (List.assoc "name" p) in
+         let doc = Lang.to_string (List.assoc "description" p) in
+         let mimes =
+           List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
+         in
+         let mimes = if mimes = [] then None else Some mimes in
+         let file_extensions =
+           List.map Lang.to_string
+             (Lang.to_list (List.assoc "file_extensions" p))
+         in
+         let file_extensions =
+           if file_extensions = [] then None else Some file_extensions
+         in
+         let priority = Lang.to_int (List.assoc "priority" p) in
+         let test = List.assoc "test" p in
+         External_decoder.register_stdin ~name ~doc ~priority ~mimes
+           ~file_extensions ~test:(test_f test) process;
+         Lang.unit));
   let process_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t in
-  Lang.add_builtin "decoder.oblivious.add" ~category:`Liquidsoap
+  Lang.add_builtin ~base:decoder_oblivious "add" ~category:`Liquidsoap
     ~descr:
       "Register an external file decoder. The encoder should output in WAV \
        format to his standard output (stdout) and read data from the file it \
@@ -187,7 +193,7 @@ let () =
 
 (** Misc control/system functions. *)
 
-let () =
+let _ =
   let descr = "Execute a liquidsoap server command." in
   let category = `Liquidsoap in
   let params =
@@ -207,9 +213,10 @@ let () =
     let r = try Server.exec s with Not_found -> "Command not found!" in
     Lang.list (List.map Lang.string (Pcre.split ~pat:"\r?\n" r))
   in
-  Lang.add_builtin "server.execute" ~category ~descr params return_t execute
+  Lang.add_builtin ~base:Modules.server "execute" ~category ~descr params
+    return_t execute
 
-let () =
+let _ =
   Lang.add_builtin "shutdown" ~category:`System
     ~descr:"Shutdown the application."
     [("code", Lang.int_t, Some (Lang.int 0), Some "Exit code. Default: `0`")]
@@ -218,12 +225,16 @@ let () =
       Configure.restart := false;
       let code = Lang.to_int (List.assoc "code" p) in
       Tutils.shutdown code;
-      Lang.unit);
+      Lang.unit)
+
+let _ =
   Lang.add_builtin "restart" ~category:`System ~descr:"Restart the application."
     [] Lang.unit_t (fun _ ->
       Configure.restart := true;
       Tutils.shutdown 0;
-      Lang.unit);
+      Lang.unit)
+
+let _ =
   Lang.add_builtin "exit" ~category:`System
     ~descr:
       "Immediately stop the application. This should only be used in extreme \
@@ -236,7 +247,7 @@ let () =
       flush_all ();
       exit n)
 
-let () =
+let _ =
   Lang.add_builtin "sleep" ~category:`System
     ~descr:
       "Interrupt execution for a given amount of seconds. This freezes the \
@@ -248,28 +259,31 @@ let () =
       Unix.sleepf t;
       Lang.unit)
 
+let reopen = Lang.add_module "reopen"
+
 let () =
   let reopen name descr f =
-    Lang.add_builtin name ~category:`System ~descr
-      [("", Lang.string_t, None, None)]
-      Lang.unit_t
-      (fun p ->
-        let file = Lang.to_string (List.assoc "" p) in
-        f file;
-        Lang.unit)
+    ignore
+      (Lang.add_builtin ~base:reopen name ~category:`System ~descr
+         [("", Lang.string_t, None, None)]
+         Lang.unit_t
+         (fun p ->
+           let file = Lang.to_string (List.assoc "" p) in
+           f file;
+           Lang.unit))
   in
-  reopen "reopen.stdin" "Reopen standard input on the given file"
+  reopen "stdin" "Reopen standard input on the given file"
     (Utils.reopen_in stdin);
-  reopen "reopen.stdout" "Reopen standard output on the given file"
+  reopen "stdout" "Reopen standard output on the given file"
     (Utils.reopen_out stdout);
-  reopen "reopen.stderr" "Reopen standard error on the given file"
+  reopen "stderr" "Reopen standard error on the given file"
     (Utils.reopen_out stderr)
 
-let () =
-  Lang.add_builtin "process.pid" ~category:`System [] Lang.int_t
+let _ =
+  Lang.add_builtin ~base:Modules.process "pid" ~category:`System [] Lang.int_t
     ~descr:"Get the process' pid." (fun _ -> Lang.int (Unix.getpid ()))
 
-let () =
+let _ =
   Lang.add_builtin "log" ~category:`Liquidsoap ~descr:"Log a message."
     [
       ("label", Lang.string_t, Some (Lang.string "lang"), None);
@@ -284,7 +298,7 @@ let () =
       (Log.make [label])#f level "%s" msg;
       Lang.unit)
 
-let () =
+let _ =
   (* Cheap implementation of "getopt" which does not really deserve its name
    * since it has little to do with the standards that getopt(3) implements.
    * A complete rework of argv() and getopt() should eventually be done. *)
@@ -299,41 +313,41 @@ let () =
   let opts =
     ref (Array.to_list (Array.sub argv offset (Array.length argv - offset)))
   in
-  Lang.add_builtin "getopt" ~category:`System
-    [
-      ("default", Lang.string_t, Some (Lang.string ""), None);
-      ("", Lang.string_t, None, None);
-    ]
-    Lang.string_t
-    ~descr:
-      "Parse command line options:\n\
-       `getopt(\"-o\")` returns \"1\" if \"-o\" was passed without any \
-       parameter, \"0\" otherwise.\n\
-       `getopt(default=\"X\",\"-o\")` returns \"Y\" if \"-o Y\" was passed, \
-       \"X\" otherwise.\n\
-       The result is removed from the list of arguments, affecting subsequent\n\
-       calls to `argv()` and `getopt()`."
-    (fun p ->
-      let default = Lang.to_string (List.assoc "default" p) in
-      let name = Lang.to_string (List.assoc "" p) in
-      let argv = !opts in
-      if default = "" then (
-        try
-          ignore (List.find (fun x -> x = name) argv);
-          opts := List.filter (fun x -> x <> name) argv;
-          Lang.string "1"
-        with Not_found -> Lang.string "0")
-      else (
-        let rec find l l' =
-          match l with
-            | [] -> (default, List.rev l')
-            | e :: v :: l when e = name -> (v, List.rev_append l' l)
-            | e :: l -> find l (e :: l')
-        in
-        let v, l = find argv [] in
-        opts := l;
-        Lang.string v));
-
+  ignore
+    (Lang.add_builtin "getopt" ~category:`System
+       [
+         ("default", Lang.string_t, Some (Lang.string ""), None);
+         ("", Lang.string_t, None, None);
+       ]
+       Lang.string_t
+       ~descr:
+         "Parse command line options:\n\
+          `getopt(\"-o\")` returns \"1\" if \"-o\" was passed without any \
+          parameter, \"0\" otherwise.\n\
+          `getopt(default=\"X\",\"-o\")` returns \"Y\" if \"-o Y\" was passed, \
+          \"X\" otherwise.\n\
+          The result is removed from the list of arguments, affecting subsequent\n\
+          calls to `argv()` and `getopt()`."
+       (fun p ->
+         let default = Lang.to_string (List.assoc "default" p) in
+         let name = Lang.to_string (List.assoc "" p) in
+         let argv = !opts in
+         if default = "" then (
+           try
+             ignore (List.find (fun x -> x = name) argv);
+             opts := List.filter (fun x -> x <> name) argv;
+             Lang.string "1"
+           with Not_found -> Lang.string "0")
+         else (
+           let rec find l l' =
+             match l with
+               | [] -> (default, List.rev l')
+               | e :: v :: l when e = name -> (v, List.rev_append l' l)
+               | e :: l -> find l (e :: l')
+           in
+           let v, l = find argv [] in
+           opts := l;
+           Lang.string v)));
   Lang.add_builtin "argv" ~category:`System
     ~descr:
       "Get command-line parameters. The parameters are numbered starting from \
@@ -355,8 +369,8 @@ let () =
       else if i < List.length opts then Lang.string (List.nth opts i)
       else Lang.string default)
 
-let () =
-  Lang.add_builtin "playlist.parse" ~category:`Liquidsoap
+let playlist_parse =
+  Lang.add_builtin ~base:Modules.playlist "parse" ~category:`Liquidsoap
     [
       ( "path",
         Lang.string_t,
@@ -416,7 +430,7 @@ let () =
 
 (** Sound utils. *)
 
-let () =
+let _ =
   Lang.add_builtin "seconds_of_main" ~category:`Liquidsoap
     ~descr:"Convert a number of main ticks in seconds."
     [("", Lang.int_t, None, None)]

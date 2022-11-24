@@ -184,7 +184,7 @@ class lufs window source =
       ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks
   end
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())

@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let () =
+let getter =
   let a = Lang.univ_t () in
   Lang.add_builtin ~category:`Getter "getter" ~descr:"Create a getter."
     [
@@ -32,10 +32,10 @@ let () =
     (Lang.getter_t a)
     (fun p -> List.assoc "" p)
 
-let () =
+let _ =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  Lang.add_builtin ~category:`Getter "getter.case"
+  Lang.add_builtin ~category:`Getter ~base:getter "case"
     ~descr:"Return a value depending on whether the getter is constant or not."
     [
       ("", Lang.getter_t a, None, Some "Getter to inspect.");
@@ -51,9 +51,9 @@ let () =
         | Lang.Fun ([], _, _) | Lang.FFI ([], _) -> Lang.apply g [("", x)]
         | _ -> Lang.apply f [("", x)])
 
-let () =
+let _ =
   let a = Lang.univ_t () in
-  Lang.add_builtin ~category:`Getter "getter.get"
+  Lang.add_builtin ~category:`Getter ~base:getter "get"
     ~descr:"Get the value of a getter."
     [("", Lang.getter_t a, None, None)]
     a
@@ -61,10 +61,10 @@ let () =
       let x = List.assoc "" p |> Lang.to_getter in
       x ())
 
-let () =
+let getter_map =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  Lang.add_builtin ~category:`Getter "getter.map"
+  Lang.add_builtin ~category:`Getter ~base:getter "map"
     ~descr:"Apply a function on a getter."
     [
       ("", Lang.fun_t [(false, "", a)] b, None, Some "Function to apply.");
@@ -79,10 +79,10 @@ let () =
             Lang.val_fun [] (fun _ -> Lang.apply f [("", Lang.apply x [])])
         | _ -> Lang.apply f [("", x)])
 
-let () =
+let _ =
   let a = Lang.univ_t ~constraints:[Type.ord_constr] () in
   let b = Lang.univ_t () in
-  Lang.add_builtin ~category:`Getter "getter.map.memoize"
+  Lang.add_builtin ~category:`Getter ~base:getter_map "memoize"
     ~descr:
       "Apply a function on a getter. If the input value has not changed \
        compared to last call, the previous result is returned without \

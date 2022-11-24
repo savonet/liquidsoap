@@ -204,9 +204,9 @@ class dummy ~infallible ~on_start ~on_stop ~autostart source =
     method private send_frame _ = ()
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "output.dummy"
+  Lang.add_operator ~base:Modules.output "dummy"
     (proto @ [("", Lang.source_t return_t, None, None)])
     ~category:`Output
     ~descr:"Dummy output: computes the stream, without actually using it." ~meth

@@ -22,7 +22,6 @@
 
 open Source
 open Complex
-open Filter
 
 type filter_type = Band_stop | Band_pass | High_pass | Low_pass | All_pass
 type filter_family = Butterworth | Resonator
@@ -443,17 +442,16 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
       done
   end
 
-let () =
-  Lang.add_module "filter.iir";
-  Lang.add_module "filter.iir.butterworth";
-  Lang.add_module "filter.iir.resonator"
+let filter_iir = Lang.add_module ~base:Filter.filter "iir"
+let filter_iir_butterworth = Lang.add_module ~base:filter_iir "butterworth"
+let filter_iir_resonator = Lang.add_module ~base:filter_iir "resonator"
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "filter.iir.butterworth.high"
+  Lang.add_operator ~base:filter_iir_butterworth "high"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
@@ -469,12 +467,12 @@ let () =
       in
       new iir src Butterworth High_pass order freq 0. 0.)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "filter.iir.butterworth.low"
+  Lang.add_operator ~base:filter_iir_butterworth "low"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("order", Lang.int_t, Some (Lang.int 4), Some "Filter order");
@@ -490,12 +488,12 @@ let () =
       in
       new iir src Butterworth Low_pass order freq 0. 0.)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "filter.iir.butterworth.bandpass"
+  Lang.add_operator ~base:filter_iir_butterworth "bandpass"
     [
       ("frequency1", Lang.float_t, None, Some "First corner frequency");
       ("frequency2", Lang.float_t, None, Some "Second corner frequency");
@@ -513,12 +511,12 @@ let () =
       in
       new iir src Butterworth Band_pass order freq1 freq2 0.)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "filter.iir.butterworth.bandstop"
+  Lang.add_operator ~base:filter_iir_butterworth "bandstop"
     [
       ("frequency1", Lang.float_t, None, Some "First corner frequency");
       ("frequency2", Lang.float_t, None, Some "Second corner frequency");
@@ -536,12 +534,12 @@ let () =
       in
       new iir src Butterworth Band_stop order freq1 freq2 0.)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "filter.iir.resonator.bandpass"
+  Lang.add_operator ~base:filter_iir_resonator "bandpass"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.float_t, Some (Lang.float 60.), Some "Quality factor");
@@ -557,12 +555,12 @@ let () =
       in
       new iir src Resonator Band_pass 0 freq 0. q)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "filter.iir.resonator.bandstop"
+  Lang.add_operator ~base:filter_iir_resonator "bandstop"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.float_t, Some (Lang.float 60.), Some "Quality factor");
@@ -578,12 +576,12 @@ let () =
       in
       new iir src Resonator Band_pass 0 freq 0. q)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "filter.iir.resonator.allpass"
+  Lang.add_operator ~base:filter_iir_resonator "allpass"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.float_t, Some (Lang.float 60.), Some "Quality factor");

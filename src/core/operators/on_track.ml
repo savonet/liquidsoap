@@ -46,9 +46,9 @@ class on_track f s =
       if Frame.is_partial ab then called <- false
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "source.on_track"
+  Lang.add_operator ~base:Modules.source "on_track"
     [
       ("", Lang.source_t return_t, None, None);
       ( "",

@@ -603,9 +603,9 @@ class output p =
       match dump with Some f -> close_out f | None -> ()
   end
 
-let () =
+let _ =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.icecast" ~category:`Output
+  Lang.add_operator ~base:Modules.output "icecast" ~category:`Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
     ~meth:Output.meth (proto return_t) ~return_t (fun p ->
       (new output p :> Output.output))

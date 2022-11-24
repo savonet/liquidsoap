@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-let () =
-  Lang.add_builtin "file.mime.libmagic" ~category:`File
+let _ =
+  Lang.add_builtin ~base:Modules.file_mime "libmagic" ~category:`File
     ~descr:"Get the MIME type of a file, according to libmagic."
     [("", Lang.string_t, None, None)]
     (Lang.nullable_t Lang.string_t)

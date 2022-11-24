@@ -112,7 +112,7 @@ class pitch every length freq_min freq_max (source : source) =
           (string_of_note (note_of_freq f)))
   end
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "pitch"
     [

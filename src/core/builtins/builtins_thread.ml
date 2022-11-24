@@ -20,10 +20,8 @@
 
  *****************************************************************************)
 
-let () =
-  Lang.add_module "thread";
-  Lang.add_module "thread.run"
-
+let thread = Modules.thread
+let thread_run = Lang.add_module ~base:thread "run"
 let error_handlers = Stack.create ()
 
 exception Error_processed
@@ -40,8 +38,8 @@ let rec error_handler ~bt exn =
         let bt = Printexc.get_backtrace () in
         error_handler ~bt exn
 
-let () =
-  Lang.add_builtin "thread.run.recurrent" ~category:`Programming
+let _ =
+  Lang.add_builtin ~base:thread_run "recurrent" ~category:`Programming
     [
       ( "fast",
         Lang.bool_t,
@@ -94,13 +92,13 @@ let () =
       Duppy.Task.add Tutils.scheduler (task delay);
       Lang.unit)
 
-let () =
+let _ =
   let fun_t =
     Lang.fun_t
       [(false, "backtrace", Lang.string_t); (false, "", Lang.error_t)]
       Lang.unit_t
   in
-  Lang.add_builtin "thread.on_error" ~category:`Programming
+  Lang.add_builtin ~base:thread "on_error" ~category:`Programming
     ~descr:
       "Register the function to be called when an error of the given kind is \
        raised in a thread. Catches all errors if first argument is `null`."

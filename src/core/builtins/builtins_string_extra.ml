@@ -20,9 +20,11 @@
 
  *****************************************************************************)
 
-let () =
-  Lang.add_module "string.annotate";
-  Lang.add_builtin "string.annotate.parse" ~category:`String
+let string = Liquidsoap_lang.Builtins_string.string
+let string_annotate = Lang.add_module ~base:string "annotate"
+
+let _ =
+  Lang.add_builtin ~base:string_annotate "parse" ~category:`String
     ~descr:
       "Parse a string of the form `<key>=<value>,...:<uri>` as given by the \
        `annotate:` protocol"
@@ -38,8 +40,8 @@ let () =
       with Annotate.Error err ->
         Lang.raise_error ~message:err ~pos:(Lang.pos p) "string")
 
-let () =
-  Lang.add_builtin "string.recode" ~category:`String
+let _ =
+  Lang.add_builtin ~base:string "recode" ~category:`String
     ~descr:"Convert a string. Effective only if Camomile is enabled."
     [
       ( "in_enc",
@@ -65,7 +67,7 @@ let () =
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Charset.convert ?source:in_enc ~target:out_enc string))
 
-let () =
+let _ =
   Lang.add_builtin "%" ~category:`String
     ~descr:
       "`pattern % [...,(k,v),...]` changes in the pattern occurrences of:\n\n\
@@ -85,8 +87,9 @@ let () =
       in
       Lang.string (Utils.interpolate (fun k -> List.assoc k l) s))
 
-let () =
-  Lang.add_module "string.apic";
+let string_apic = Lang.add_module ~base:string "apic"
+
+let _ =
   let t =
     Lang.method_t Lang.string_t
       [
@@ -95,7 +98,7 @@ let () =
         ("description", ([], Lang.string_t), "Description");
       ]
   in
-  Lang.add_builtin "string.apic.parse" ~category:`Metadata
+  Lang.add_builtin ~base:string_apic "parse" ~category:`Metadata
     [("", Lang.string_t, None, Some "APIC data.")]
     t
     ~descr:
@@ -113,8 +116,9 @@ let () =
           ("description", Lang.string apic.Metadata.ID3v2.description);
         ])
 
-let () =
-  Lang.add_module "string.pic";
+let string_pic = Lang.add_module ~base:string "pic"
+
+let _ =
   let t =
     Lang.method_t Lang.string_t
       [
@@ -123,7 +127,7 @@ let () =
         ("description", ([], Lang.string_t), "Description");
       ]
   in
-  Lang.add_builtin "string.pic.parse" ~category:`Metadata
+  Lang.add_builtin ~base:string_pic "parse" ~category:`Metadata
     [("", Lang.string_t, None, Some "PIC data.")]
     t
     ~descr:

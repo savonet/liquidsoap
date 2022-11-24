@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let () =
+let ref =
   let a = Lang.univ_t () in
   Lang.add_builtin "ref" ~category:`Programming
     ~descr:"Create a reference, i.e. a value which can be modified."
@@ -30,9 +30,9 @@ let () =
       let x = List.assoc "" p in
       Lang.reference (Atomic.make x))
 
-let () =
+let _ =
   let a = Lang.univ_t () in
-  Lang.add_builtin "ref.get" ~category:`Programming
+  Lang.add_builtin ~base:ref "get" ~category:`Programming
     ~descr:"Retrieve the contents of a reference."
     [("", Lang.ref_t a, None, None)]
     a
@@ -40,9 +40,9 @@ let () =
       let r = Lang.to_ref (List.assoc "" p) in
       Atomic.get r)
 
-let () =
+let _ =
   let a = Lang.univ_t () in
-  Lang.add_builtin "ref.set" ~category:`Programming
+  Lang.add_builtin ~base:ref "set" ~category:`Programming
     ~descr:"Set the value of a reference."
     [("", Lang.ref_t a, None, None); ("", a, None, None)]
     Lang.unit_t

@@ -20,17 +20,16 @@
 
  *****************************************************************************)
 
-let () = Lang.add_module "random"
-
 let () =
   let add op name descr =
     let t = Lang.float_t in
-    Lang.add_builtin name ~category:`Math ~descr
-      [("", t, None, None)]
-      t
-      (fun p ->
-        let a = Lang.to_float (List.assoc "" p) in
-        Lang.float (op a))
+    ignore
+      (Lang.add_builtin name ~category:`Math ~descr
+         [("", t, None, None)]
+         t
+         (fun p ->
+           let a = Lang.to_float (List.assoc "" p) in
+           Lang.float (op a)))
   in
   add sqrt "sqrt" "Square root.";
   add exp "exp" "Exponential.";
@@ -51,7 +50,7 @@ let () =
   add sinh "sinh" "Hyperbolic sine. Argument is in radians.";
   add tanh "tanh" "Hyperbolic tangent. Argument is in radians."
 
-let () =
+let _ =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "~-" ~category:`Math
     ~descr:"Returns the opposite of its argument."
@@ -62,7 +61,7 @@ let () =
         | `Int i -> Lang.int ~-i
         | `Float i -> Lang.float ~-.i)
 
-let () =
+let _ =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "abs" ~category:`Math ~descr:"Absolute value."
     [("", t, None, None)]
@@ -73,20 +72,21 @@ let () =
         | `Float i -> Lang.float (abs_float i))
 
 let () =
-  let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   let register_op doc name op_int op_float =
-    Lang.add_builtin name ~category:`Math
-      ~descr:(Printf.sprintf "%s of numbers." doc)
-      [("", t, None, None); ("", t, None, None)]
-      t
-      (fun p ->
-        let p = List.map (fun (l, v) -> (l, Lang.demeth v)) p in
-        let a = Lang.to_num (Lang.assoc "" 1 p) in
-        let b = Lang.to_num (Lang.assoc "" 2 p) in
-        match (a, b) with
-          | `Int a, `Int b -> Lang.int (op_int a b)
-          | `Float a, `Float b -> Lang.float (op_float a b)
-          | _ -> assert false)
+    let t = Lang.univ_t ~constraints:[Type.num_constr] () in
+    ignore
+      (Lang.add_builtin name ~category:`Math
+         ~descr:(Printf.sprintf "%s of numbers." doc)
+         [("", t, None, None); ("", t, None, None)]
+         t
+         (fun p ->
+           let p = List.map (fun (l, v) -> (l, Lang.demeth v)) p in
+           let a = Lang.to_num (Lang.assoc "" 1 p) in
+           let b = Lang.to_num (Lang.assoc "" 2 p) in
+           match (a, b) with
+             | `Int a, `Int b -> Lang.int (op_int a b)
+             | `Float a, `Float b -> Lang.float (op_float a b)
+             | _ -> assert false))
   in
   register_op "Multiplication" "*" ( * ) ( *. );
   register_op "Division" "/" ( / ) ( /. );
@@ -97,7 +97,7 @@ let () =
     ( ** );
   register_op "Remainder of division" "mod" ( mod ) mod_float
 
-let () =
+let _ =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "float" ~category:`Math ~descr:"Convert a number to a float."
     [("", t, None, None)]
@@ -105,7 +105,10 @@ let () =
     (fun p ->
       let x = List.assoc "" p |> Lang.to_num in
       let x = match x with `Int x -> float x | `Float x -> x in
-      Lang.float x);
+      Lang.float x)
+
+let _ =
+  let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "int" ~category:`Math
     ~descr:"Convert a number to an integer."
     [("", t, None, None)]
@@ -115,8 +118,8 @@ let () =
       let x = match x with `Int x -> x | `Float x -> int_of_float x in
       Lang.int x)
 
-let () =
-  Lang.add_builtin "random.float" ~category:`Math
+let _ =
+  Lang.add_builtin ~base:Modules.random "float" ~category:`Math
     ~descr:
       "Generate a random value between `min` (included) and `max` (excluded)."
     [
@@ -129,8 +132,8 @@ let () =
       let max = Lang.to_float (List.assoc "max" p) in
       Lang.float (Random.float (max -. min) +. min))
 
-let () =
-  Lang.add_builtin "random.int" ~category:`Math
+let _ =
+  Lang.add_builtin ~base:Modules.random "int" ~category:`Math
     ~descr:
       "Generate a random value between `min` (included) and `max` (excluded)."
     [
@@ -143,30 +146,30 @@ let () =
       let max = Lang.to_int (List.assoc "max" p) in
       Lang.int (Random.int (max - min) + min))
 
-let () =
-  Lang.add_builtin "random.bool" ~category:`Bool
+let _ =
+  Lang.add_builtin ~base:Modules.random "bool" ~category:`Bool
     ~descr:"Generate a random boolean." [] Lang.bool_t (fun _ ->
       Lang.bool (Random.bool ()))
 
-let () =
+let _ =
   Lang.add_builtin_base ~category:`Math ~descr:"Maximal representable integer."
     "max_int"
     Lang.(Ground (Ground.Int max_int))
     Lang.int_t
 
-let () =
+let _ =
   Lang.add_builtin_base ~category:`Math ~descr:"Minimal representable integer."
     "min_int"
     Lang.(Ground (Ground.Int min_int))
     Lang.int_t
 
-let () =
+let _ =
   Lang.add_builtin_base ~category:`Math
     ~descr:"Float representation of infinity." "infinity"
     Lang.(Ground (Ground.Float infinity))
     Lang.float_t
 
-let () =
+let _ =
   Lang.add_builtin_base ~category:`Math
     ~descr:
       "A special floating-point value denoting the result of an undefined \
@@ -179,7 +182,7 @@ let () =
     Lang.(Ground (Ground.Float nan))
     Lang.float_t
 
-let () =
+let _ =
   Lang.add_builtin "lsl" ~category:`Math ~descr:"Logical shift left."
     [
       ("", Lang.int_t, None, Some "Number to shift.");
@@ -191,7 +194,7 @@ let () =
       let b = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (n lsl b))
 
-let () =
+let _ =
   Lang.add_builtin "lsr" ~category:`Math ~descr:"Logical shift right."
     [
       ("", Lang.int_t, None, Some "Number to shift.");

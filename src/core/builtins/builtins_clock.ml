@@ -20,7 +20,9 @@
 
  *****************************************************************************)
 
-let () =
+let clock = Modules.clock
+
+let _ =
   let proto =
     [
       ( "id",
@@ -66,7 +68,7 @@ let () =
             sources;
           Lang.unit
   in
-  Lang.add_builtin "clock.assign_new" ~category:`Liquidsoap
+  Lang.add_builtin ~base:clock "assign_new" ~category:`Liquidsoap
     ~descr:"Create a new clock and assign it to a list of sources."
     (proto
     @ [
@@ -82,8 +84,8 @@ let () =
       let l = Lang.to_list (List.assoc "" p) in
       assign id sync l)
 
-let () =
-  Lang.add_builtin "clock.unify" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:clock "unify" ~category:`Liquidsoap
     ~descr:"Enforce that a list of sources all belong to the same clock."
     [("", Lang.list_t (Lang.source_t (Lang.univ_t ())), None, None)]
     Lang.unit_t
@@ -101,9 +103,9 @@ let () =
         | Source.Clock_loop (a, b) ->
             raise (Error.Clock_loop (l.Lang.pos, a, b)))
 
-let () =
+let _ =
   let t = Lang.product_t Lang.string_t Lang.int_t in
-  Lang.add_builtin "clock.status" ~category:`Liquidsoap
+  Lang.add_builtin ~base:clock "status" ~category:`Liquidsoap
     ~descr:"Get the current time (in clock ticks) for all allocated clocks." []
     (Lang.list_t t) (fun _ ->
       let l =

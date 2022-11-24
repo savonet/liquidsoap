@@ -1,12 +1,16 @@
+let liquidsoap_build_config_optionals =
+  Lang.add_module ~base:Liquidsoap_lang.Builtins_lang.liquidsoap_build_config
+    "optionals"
+
 let () =
-  Lang.add_module "liquidsoap.build_config.optionals";
   List.iter
     (fun (name, value) ->
-      Lang.add_builtin_base ~category:`Configuration
-        ~descr:("Build-time configuration for " ^ name)
-        ("liquidsoap.build_config.optionals." ^ name)
-        Lang.(Ground (Ground.Bool value))
-        Lang.bool_t)
+      ignore
+        (Lang.add_builtin_base ~category:`Configuration
+           ~descr:("Build-time configuration for " ^ name)
+           ~base:liquidsoap_build_config_optionals name
+           Lang.(Ground (Ground.Bool value))
+           Lang.bool_t))
     [
       ("alsa", Alsa_option.enabled);
       ("ao", Ao_option.enabled);

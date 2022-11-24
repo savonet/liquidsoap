@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let () =
+let _ =
   Lang.add_builtin "on_shutdown" ~category:`System
     [("", Lang.fun_t [] Lang.unit_t, None, None)]
     Lang.unit_t
@@ -30,7 +30,7 @@ let () =
       Lifecycle.before_core_shutdown (fun () -> ignore (Lang.apply f []));
       Lang.unit)
 
-let () =
+let _ =
   Lang.add_builtin "on_start" ~category:`System
     [("", Lang.fun_t [] Lang.unit_t, None, None)]
     Lang.unit_t

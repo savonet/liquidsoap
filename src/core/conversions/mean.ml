@@ -46,7 +46,7 @@ class mean ~normalize source =
           Frame.set_audio frame (Content.Audio.lift_data content))
   end
 
-let () =
+let _ =
   let in_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())

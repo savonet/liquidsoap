@@ -155,10 +155,11 @@ class biquad (source : source) filter_type freq q gain =
       done
   end
 
-let () =
-  Lang.add_module "filter.iir.eq";
+let filter_iir_eq = Lang.add_module ~base:Iir_filter.filter_iir "eq"
+
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "filter.iir.eq.lowshelf"
+  Lang.add_operator ~base:filter_iir_eq "lowshelf"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
       ( "slope",
@@ -177,9 +178,9 @@ let () =
       in
       (new biquad src `Low_shelf freq param (fun () -> 0.) :> Source.source))
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "filter.iir.eq.highshelf"
+  Lang.add_operator ~base:filter_iir_eq "highshelf"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
       ( "slope",
@@ -198,9 +199,9 @@ let () =
       in
       (new biquad src `High_shelf freq param (fun () -> 0.) :> Source.source))
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "filter.iir.eq.low"
+  Lang.add_operator ~base:filter_iir_eq "low"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), Some "Q");
@@ -216,9 +217,9 @@ let () =
       in
       (new biquad src `Low_pass freq param (fun () -> 0.) :> Source.source))
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "filter.iir.eq.high"
+  Lang.add_operator ~base:filter_iir_eq "high"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), Some "Q");
@@ -234,9 +235,9 @@ let () =
       in
       (new biquad src `High_pass freq param (fun () -> 0.) :> Source.source))
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "filter.iir.eq.bandpass"
+  Lang.add_operator ~base:filter_iir_eq "bandpass"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), Some "Q");
@@ -252,9 +253,9 @@ let () =
       in
       (new biquad src `Band_pass freq param (fun () -> 0.) :> Source.source))
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "filter.iir.eq.allpass"
+  Lang.add_operator ~base:filter_iir_eq "allpass"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
       ( "bandwidth",
@@ -273,9 +274,9 @@ let () =
       in
       (new biquad src `All_pass freq param (fun () -> 0.) :> Source.source))
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "filter.iir.eq.notch"
+  Lang.add_operator ~base:filter_iir_eq "notch"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), Some "Q");
@@ -291,9 +292,9 @@ let () =
       in
       (new biquad src `Notch freq param (fun () -> 0.) :> Source.source))
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "filter.iir.eq.peak"
+  Lang.add_operator ~base:filter_iir_eq "peak"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Center frequency");
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), Some "Q");

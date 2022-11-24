@@ -48,12 +48,12 @@ class pan (source : source) phi phi_0 =
       Audio.Mono.amplify gain_right buffer.(1) offset len
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
-  Lang.add_operator "stereo.pan"
+  Lang.add_operator ~base:Modules.stereo "pan"
     [
       ( "pan",
         Lang.getter_t Lang.float_t,

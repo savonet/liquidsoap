@@ -37,10 +37,10 @@ module List = struct
     | x :: l -> x :: heads (n - 1) l
 end
 
-let () = Lang.add_module "irc"
+let irc = Lang.add_module "irc"
 
-let () =
-  Lang.add_builtin "irc.channel" ~category:`String
+let _ =
+  Lang.add_builtin ~base:irc "channel" ~category:`String
     ~descr:"Contents of an IRC channel."
     ~examples:
       [

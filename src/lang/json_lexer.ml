@@ -22,7 +22,6 @@
 
 open Json_parser
 open Lang_string
-open Runtime_error
 
 (* Json specs *)
 

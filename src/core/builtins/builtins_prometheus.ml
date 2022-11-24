@@ -22,7 +22,7 @@
 
 open Prometheus
 
-let () = Lang.add_module "prometheus"
+let prometheus = Lang.add_module "prometheus"
 let log = Log.make ["prometheus"]
 
 let metric_proto =
@@ -46,39 +46,40 @@ let register_t =
   Lang.fun_t [(false, "label_values", Lang.list_t Lang.string_t)] set_t
 
 let add_metric metric_name create register set =
-  Lang.add_builtin ("prometheus." ^ metric_name) ~category:`Interaction
-    ~descr:("Register a prometheus " ^ metric_name) metric_proto register_t
-    (fun p ->
-      let help = Lang.to_string (List.assoc "help" p) in
-      let label_names =
-        List.map Lang.to_string (Lang.to_list (List.assoc "labels" p))
-      in
-      let opt_v n =
-        match Lang.to_string (List.assoc n p) with
-          | s when s = "" -> None
-          | v -> Some v
-      in
-      let namespace = opt_v "namespace" in
-      let subsystem = opt_v "subsystem" in
-      let name = Lang.to_string (List.assoc "" p) in
-      let m =
-        create ~label_names ?registry:None ~help ?namespace ?subsystem name
-      in
-      Lang.val_fun
-        [("label_values", "label_values", None)]
-        (fun p ->
-          let labels_v = List.assoc "label_values" p in
-          let labels = List.map Lang.to_string (Lang.to_list labels_v) in
-          if List.length labels <> List.length label_names then
-            raise
-              (Error.Invalid_value (labels_v, "Not enough labels provided!"));
-          let m = register m labels in
-          Lang.val_fun
-            [("", "", None)]
-            (fun p ->
-              let v = Lang.to_float (List.assoc "" p) in
-              set m v;
-              Lang.unit)))
+  ignore
+    (Lang.add_builtin ~base:prometheus metric_name ~category:`Interaction
+       ~descr:("Register a prometheus " ^ metric_name) metric_proto register_t
+       (fun p ->
+         let help = Lang.to_string (List.assoc "help" p) in
+         let label_names =
+           List.map Lang.to_string (Lang.to_list (List.assoc "labels" p))
+         in
+         let opt_v n =
+           match Lang.to_string (List.assoc n p) with
+             | s when s = "" -> None
+             | v -> Some v
+         in
+         let namespace = opt_v "namespace" in
+         let subsystem = opt_v "subsystem" in
+         let name = Lang.to_string (List.assoc "" p) in
+         let m =
+           create ~label_names ?registry:None ~help ?namespace ?subsystem name
+         in
+         Lang.val_fun
+           [("label_values", "label_values", None)]
+           (fun p ->
+             let labels_v = List.assoc "label_values" p in
+             let labels = List.map Lang.to_string (Lang.to_list labels_v) in
+             if List.length labels <> List.length label_names then
+               raise
+                 (Error.Invalid_value (labels_v, "Not enough labels provided!"));
+             let m = register m labels in
+             Lang.val_fun
+               [("", "", None)]
+               (fun p ->
+                 let v = Lang.to_float (List.assoc "" p) in
+                 set m v;
+                 Lang.unit))))
 
 let () =
   add_metric "counter" Counter.v_labels Counter.labels Counter.inc;
@@ -194,7 +195,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   in
   s#add_watcher watcher
 
-let () =
+let _ =
   let source_monitor_register_t =
     Lang.fun_t
       [
@@ -203,7 +204,7 @@ let () =
       ]
       Lang.unit_t
   in
-  Lang.add_builtin "prometheus.latency"
+  Lang.add_builtin ~base:prometheus "latency"
     [
       ( "window",
         Lang.float_t,

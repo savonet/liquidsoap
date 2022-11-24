@@ -54,7 +54,7 @@ class basic source =
           Frame.set_audio frame (Content.Audio.lift_data audio))
   end
 
-let () =
+let _ =
   let input_type =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())

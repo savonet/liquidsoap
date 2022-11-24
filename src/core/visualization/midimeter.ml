@@ -55,9 +55,9 @@ class midimeter source =
       done
   end
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "midi.inspect"
+  Lang.add_operator ~base:Modules.midi "inspect"
     [("", Lang.source_t frame_t, None, None)]
     ~return_t:frame_t ~category:`Visualization
     ~descr:"Display midi events on standard output."

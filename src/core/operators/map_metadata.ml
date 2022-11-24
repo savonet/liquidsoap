@@ -68,7 +68,7 @@ class map_metadata source rewrite_f insert_missing update strip =
 
 let register =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "metadata.map"
+  Lang.add_operator ~base:Modules.metadata "map"
     [
       ( "",
         Lang.fun_t

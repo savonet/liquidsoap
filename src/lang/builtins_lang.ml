@@ -1,4 +1,4 @@
-let () =
+let _ =
   Lang.add_builtin "ignore"
     ~descr:"Convert anything to unit, preventing warnings."
     ~category:`Programming
@@ -6,14 +6,14 @@ let () =
     Lang.unit_t
     (fun _ -> Lang.unit)
 
-let () =
+let _ =
   Lang.add_builtin "position" ~descr:"Return the current position in the script"
     ~category:`Programming [] Lang_core.Single_position.t (fun p ->
       match Lang.pos p with
         | [] -> Lang.raise_error ~pos:[] ~message:"Unknown position" "eval"
         | (p, _) :: _ -> Lang_core.Single_position.to_value p)
 
-let () =
+let _ =
   let t = Lang.univ_t () in
   Lang.add_builtin "if" ~category:`Programming ~descr:"The basic conditional."
     ~flags:[`Hidden]
@@ -32,21 +32,25 @@ let () =
 
 (** Operations on products. *)
 
-let () =
+let _ =
   let t1 = Lang.univ_t () in
   let t2 = Lang.univ_t () in
   Lang.add_builtin "fst" ~category:`Programming
     ~descr:"Get the first component of a pair."
     [("", Lang.product_t t1 t2, None, None)]
     t1
-    (fun p -> fst (Lang.to_product (Lang.assoc "" 1 p)));
+    (fun p -> fst (Lang.to_product (Lang.assoc "" 1 p)))
+
+let _ =
+  let t1 = Lang.univ_t () in
+  let t2 = Lang.univ_t () in
   Lang.add_builtin "snd" ~category:`Programming
     ~descr:"Get the second component of a pair."
     [("", Lang.product_t t1 t2, None, None)]
     t2
     (fun p -> snd (Lang.to_product (Lang.assoc "" 1 p)))
 
-let () =
+let _ =
   Lang.add_builtin "print" ~category:`Programming
     ~descr:"Print on standard output."
     [
@@ -72,7 +76,7 @@ let () =
 
 (** Loops. *)
 
-let () =
+let _ =
   Lang.add_builtin "while" ~category:`Programming ~descr:"A while loop."
     [
       ("", Lang.getter_t Lang.bool_t, None, Some "Condition guarding the loop.");
@@ -87,7 +91,7 @@ let () =
       done;
       Lang.unit)
 
-let () =
+let _ =
   let a = Lang.univ_t () in
   Lang.add_builtin "for" ~category:`Programming ~descr:"A for loop."
     ~flags:[`Hidden]
@@ -111,8 +115,8 @@ let () =
       in
       aux ())
 
-let () =
-  Lang.add_builtin "iterator.int" ~category:`Programming
+let _ =
+  Lang.add_builtin ~base:Modules.iterator "int" ~category:`Programming
     ~descr:"Iterator on integers." ~flags:[`Hidden]
     [
       ("", Lang.int_t, None, Some "First value.");
@@ -130,7 +134,7 @@ let () =
       in
       Lang.val_fun [] f)
 
-let () =
+let environment =
   let ss = Lang.product_t Lang.string_t Lang.string_t in
   let ret_t = Lang.list_t ss in
   Lang.add_builtin "environment" ~category:`System
@@ -140,8 +144,8 @@ let () =
       let l = List.map (fun (x, y) -> Lang.product x y) l in
       Lang.list l)
 
-let () =
-  Lang.add_builtin "environment.set" ~category:`System
+let _ =
+  Lang.add_builtin ~base:environment "set" ~category:`System
     ~descr:"Set the value associated to a variable in the process environment."
     [
       ("", Lang.string_t, None, Some "Variable to be set.");
@@ -154,26 +158,38 @@ let () =
       Unix.putenv label value;
       Lang.unit)
 
-let () =
+let liquidsoap = Modules.liquidsoap
+
+let _ =
   Lang.add_builtin_base ~category:`Configuration
-    ~descr:"Liquidsoap version string." "liquidsoap.version"
+    ~descr:"Liquidsoap version string." ~base:liquidsoap "version"
     Lang.(Ground (Ground.String Build_config.version))
-    Lang.string_t;
-  Lang.add_builtin_base "liquidsoap.executable" ~category:`Liquidsoap
+    Lang.string_t
+
+let _ =
+  Lang.add_builtin_base ~base:liquidsoap "executable" ~category:`Liquidsoap
     ~descr:"Path to the Liquidsoap executable."
     Lang.(Ground (Ground.String Sys.executable_name))
-    Lang.string_t;
+    Lang.string_t
+
+let _ =
   Lang.add_builtin_base ~category:`System
-    ~descr:"Type of OS running liquidsoap." "os.type"
+    ~descr:"Type of OS running liquidsoap." ~base:Modules.os "type"
     Lang.(Ground (Ground.String Sys.os_type))
-    Lang.string_t;
+    Lang.string_t
+
+let _ =
   Lang.add_builtin_base ~category:`System ~descr:"Executable file extension."
     "exe_ext"
     Lang.(Ground (Ground.String Build_config.ext_exe))
-    Lang.string_t;
+    Lang.string_t
+
+let liquidsoap_version = Lang.add_module ~base:liquidsoap "version"
+
+let _ =
   Lang.add_builtin ~category:`Liquidsoap
     ~descr:"Ensure that Liquidsoap version is greater or equal to given one."
-    "liquidsoap.version.at_least"
+    ~base:liquidsoap_version "at_least"
     [("", Lang.string_t, None, Some "Minimal version.")]
     Lang.bool_t
     (fun p ->
@@ -184,31 +200,40 @@ let () =
            (Lang_string.Version.of_string Build_config.version)
         <= 0))
 
-let () =
-  Lang.add_module "liquidsoap.build_config";
+let liquidsoap_build_config = Lang.add_module ~base:liquidsoap "build_config"
+
+let _ =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"OCaml version used to compile liquidspap."
-    "liquidsoap.build_config.ocaml_version"
+    ~base:liquidsoap_build_config "ocaml_version"
     Lang.(Ground (Ground.String Sys.ocaml_version))
-    Lang.string_t;
+    Lang.string_t
+
+let _ =
   Lang.add_builtin_base ~category:`Configuration
-    ~descr:"Git sha used to compile liquidsoap."
-    "liquidsoap.build_config.git_sha"
+    ~descr:"Git sha used to compile liquidsoap." ~base:liquidsoap_build_config
+    "git_sha"
     (match Build_config.git_sha with
       | None -> Lang.Null
       | Some sha -> Lang.(Ground (Ground.String sha)))
-    Lang.(nullable_t string_t);
+    Lang.(nullable_t string_t)
+
+let _ =
   Lang.add_builtin_base ~category:`Configuration
-    ~descr:"Is this build a release build?" "liquidsoap.build_config.is_release"
+    ~descr:"Is this build a release build?" ~base:liquidsoap_build_config
+    "is_release"
     Lang.(Ground (Ground.Bool Build_config.is_release))
-    Lang.bool_t;
+    Lang.bool_t
+
+let () =
   List.iter
     (fun (name, value) ->
-      Lang.add_builtin_base ~category:`Configuration
-        ~descr:("Build-time configuration value for " ^ name)
-        ("liquidsoap.build_config." ^ name)
-        Lang.(Ground (Ground.String value))
-        Lang.string_t)
+      ignore
+        (Lang.add_builtin_base ~category:`Configuration
+           ~descr:("Build-time configuration value for " ^ name)
+           ~base:liquidsoap_build_config name
+           Lang.(Ground (Ground.String value))
+           Lang.string_t))
     [
       ("architecture", Build_config.architecture);
       ("host", Build_config.host);
@@ -219,7 +244,7 @@ let () =
       ("native_c_libraries", Build_config.native_c_libraries);
     ]
 
-let () =
+let _ =
   Lang.add_builtin ~category:`Programming
     ~descr:"Return any value with a fresh universal type for testing purposes."
     ~flags:[`Hidden] "💣"

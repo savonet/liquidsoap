@@ -152,7 +152,7 @@ class append ~insert_missing ~merge source f =
     method private unregister a = a#leave (self :> source)
   end
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "append"
     [

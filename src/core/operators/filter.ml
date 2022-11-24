@@ -85,7 +85,7 @@ class filter (source : source) freq q wet mode =
       done
   end
 
-let () =
+let filter =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())

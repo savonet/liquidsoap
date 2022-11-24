@@ -21,7 +21,8 @@
   *****************************************************************************)
 
 let resp_t = Lang.nullable_t (Lang.getter_t Lang.string_t)
-let () = Lang.add_module "harbor.http"
+let harbor = Modules.harbor
+let harbor_http = Lang.add_module ~base:harbor "http"
 
 let request_t =
   Lang.record_t
@@ -110,8 +111,8 @@ let parse_register_args p =
   in
   (uri, port, transport, verb, handler)
 
-let () =
-  Lang.add_builtin "harbor.http.register" ~category:`Internet
+let _ =
+  Lang.add_builtin ~base:harbor_http "register" ~category:`Internet
     ~descr:
       "Low-level harbor handler registration. Overridden in standard library."
     register_args Lang.unit_t (fun p ->
@@ -120,8 +121,8 @@ let () =
         handler;
       Lang.unit)
 
-let () =
-  Lang.add_builtin "harbor.remove" ~category:`Internet
+let _ =
+  Lang.add_builtin ~base:harbor "remove" ~category:`Internet
     ~descr:(Printf.sprintf "Remove a registered handler on the harbor.")
     [
       ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to serve.");

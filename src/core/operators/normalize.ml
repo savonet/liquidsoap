@@ -105,14 +105,14 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
       if track_sensitive && AFrame.is_partial buf then self#init
   end
 
-let () = Lang.add_module "normalize"
+let normalize = Lang.add_module "normalize"
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "normalize.old"
+  Lang.add_operator ~base:normalize "old"
     [
       ( "target",
         Lang.getter_t Lang.float_t,

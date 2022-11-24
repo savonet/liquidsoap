@@ -20,8 +20,10 @@
 
  *****************************************************************************)
 
-let () =
-  Lang.add_builtin "request.create" ~category:`Liquidsoap
+let request = Modules.request
+
+let _ =
+  Lang.add_builtin ~base:request "create" ~category:`Liquidsoap
     ~descr:"Create a request from an URI."
     [
       ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
@@ -60,8 +62,8 @@ let () =
       in
       Request.Value.to_value (Request.create ~persistent ~indicators initial))
 
-let () =
-  Lang.add_builtin "request.resolve" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap
     [
       ( "content_type",
         Lang.nullable_t (Lang.source_t (Lang.univ_t ())),
@@ -94,8 +96,8 @@ let () =
         (try Request.Resolved = Request.resolve ~ctype r timeout
          with _ -> false))
 
-let () =
-  Lang.add_builtin "request.read_metadata" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "read_metadata" ~category:`Liquidsoap
     [("", Request.Value.t, None, None)]
     Lang.unit_t ~descr:"Force reading the metadata of a request."
     (fun p ->
@@ -103,24 +105,24 @@ let () =
       Request.read_metadata r;
       Lang.unit)
 
-let () =
-  Lang.add_builtin "request.metadata" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "metadata" ~category:`Liquidsoap
     [("", Request.Value.t, None, None)]
     Lang.metadata_t ~descr:"Get the metadata associated to a request."
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
       Lang.metadata (Request.get_all_metadata r))
 
-let () =
-  Lang.add_builtin "request.log" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "log" ~category:`Liquidsoap
     [("", Request.Value.t, None, None)]
     Lang.string_t ~descr:"Get log data associated to a request."
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
       Lang.string (Request.string_of_log (Request.get_log r)))
 
-let () =
-  Lang.add_builtin "request.resolved" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "resolved" ~category:`Liquidsoap
     ~descr:
       "Check if a request is resolved, i.e. is associated to a valid local \
        file."
@@ -130,8 +132,8 @@ let () =
       let e = Request.Value.of_value (List.assoc "" p) in
       Lang.bool (Request.resolved e))
 
-let () =
-  Lang.add_builtin "request.uri" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "uri" ~category:`Liquidsoap
     ~descr:"Initial URI of a request."
     [("", Request.Value.t, None, None)]
     Lang.string_t
@@ -139,8 +141,8 @@ let () =
       let r = Request.Value.of_value (List.assoc "" p) in
       Lang.string (Request.initial_uri r))
 
-let () =
-  Lang.add_builtin "request.filename" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "filename" ~category:`Liquidsoap
     ~descr:
       "Return a valid local filename if the request is ready, and the empty \
        string otherwise."
@@ -150,8 +152,8 @@ let () =
       let r = Request.Value.of_value (List.assoc "" p) in
       Lang.string (match Request.get_filename r with Some f -> f | None -> ""))
 
-let () =
-  Lang.add_builtin "request.destroy" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "destroy" ~category:`Liquidsoap
     ~descr:
       "Destroying a request causes any temporary associated file to be \
        deleted, and releases its RID. Persistent requests resist to \
@@ -170,8 +172,8 @@ let () =
       Request.destroy ~force e;
       Lang.unit)
 
-let () =
-  Lang.add_builtin "request.duration" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "duration" ~category:`Liquidsoap
     [("", Lang.string_t, None, None)]
     Lang.float_t
     ~descr:
@@ -182,8 +184,8 @@ let () =
       let f = Lang.to_string (List.assoc "" p) in
       Lang.float (try Request.duration f with Not_found -> -1.))
 
-let () =
-  Lang.add_builtin "request.id" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "id" ~category:`Liquidsoap
     ~descr:"Identifier of a request."
     [("", Request.Value.t, None, None)]
     Lang.int_t
@@ -191,8 +193,8 @@ let () =
       let r = Request.Value.of_value (List.assoc "" p) in
       Lang.int (Request.get_id r))
 
-let () =
-  Lang.add_builtin "request.status" ~category:`Liquidsoap
+let _ =
+  Lang.add_builtin ~base:request "status" ~category:`Liquidsoap
     ~descr:
       "Current status of a request. Can be idle, resolving, ready, playing or \
        destroyed."

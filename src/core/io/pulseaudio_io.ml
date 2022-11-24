@@ -170,12 +170,12 @@ let proto =
       Some "Force the use of the dedicated Pulseaudio clock." );
   ]
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "output.pulseaudio"
+  Lang.add_operator ~base:Modules.output "pulseaudio"
     (Output.proto @ proto @ [("", Lang.source_t frame_t, None, None)])
     ~return_t:frame_t ~category:`Output ~meth:Output.meth
     ~descr:"Output the source's stream to a portaudio output device."
@@ -192,12 +192,12 @@ let () =
       in
       (new output ~infallible ~on_start ~on_stop ~start p :> Output.output))
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "input.pulseaudio"
+  Lang.add_operator ~base:Modules.input "pulseaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ proto)
     ~return_t ~category:`Input ~meth:(Start_stop.meth ())

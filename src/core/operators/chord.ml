@@ -113,14 +113,14 @@ class chord metadata_name (source : source) =
         chords
   end
 
-let () =
+let _ =
   (* TODO: is this really the type we want to give to it? *)
   let in_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let out_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~midi:(Format_type.midi_n 1) ())
   in
-  Lang.add_operator "midi.chord"
+  Lang.add_operator ~base:Modules.midi "chord"
     [
       ( "metadata",
         Lang.string_t,

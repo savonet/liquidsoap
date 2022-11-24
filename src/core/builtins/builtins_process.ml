@@ -21,8 +21,9 @@
  *****************************************************************************)
 
 let log = Log.make ["process"]
+let process = Modules.process
 
-let () =
+let _ =
   let ret_t =
     Lang.method_t Lang.unit_t
       [
@@ -54,7 +55,7 @@ let () =
   in
   let env_t = Lang.product_t Lang.string_t Lang.string_t in
   let path_t = Lang.list_t Lang.string_t in
-  Lang.add_builtin "process.run" ~category:`System
+  Lang.add_builtin ~base:process "run" ~category:`System
     ~descr:
       "Run a process in a shell environment. Returns the standard output, as \
        well as standard error and status as methods. The status can be \
@@ -249,8 +250,8 @@ let () =
         (if 0. <= timeout && tutils_started then asynchronous ()
         else synchronous ()))
 
-let () =
-  Lang.add_builtin "process.quote" ~category:`System
+let process_quote =
+  Lang.add_builtin ~base:process "quote" ~category:`System
     ~descr:
       "Return a quoted copy of the given string, suitable for use as one \
        argument in a command line, escaping all meta-characters. Warning: \
@@ -260,8 +261,8 @@ let () =
     Lang.string_t
     (fun p -> Lang.string (Filename.quote (Lang.to_string (List.assoc "" p))))
 
-let () =
-  Lang.add_builtin "process.quote.command" ~category:`System
+let _ =
+  Lang.add_builtin ~base:process_quote "command" ~category:`System
     ~descr:
       "Return a quoted command line, suitable for use as an argument to \
        `process.run`.\n\n\

@@ -240,7 +240,7 @@ end
 
 module JsonValue = Value.MkAbstract (JsonSpecs)
 
-let () =
+let json =
   let val_t = Lang.univ_t () in
   let var =
     match val_t.Type.descr with
@@ -304,8 +304,8 @@ let () =
       let meth = List.map (fun (name, _, _, fn) -> (name, fn v)) meth in
       Lang.meth (JsonValue.to_value v) meth)
 
-let () =
-  Lang.add_builtin "json.stringify" ~category:`String
+let _ =
+  Lang.add_builtin ~base:json "stringify" ~category:`String
     ~descr:
       "Convert a value to JSON. If the value cannot be represented as JSON \
        (for instance a function), a `error.json` exception is raised."
@@ -328,7 +328,7 @@ let () =
       let v = Json.to_string ~compact ~json5 (json_of_value v) in
       Lang.string v)
 
-let () =
+let _ =
   Lang.add_builtin "_internal_json_parser_" ~category:`String ~flags:[`Hidden]
     ~descr:"Internal json parser"
     [
@@ -414,10 +414,10 @@ let rec deprecated_of_json d j =
       | Tuple [], `Assoc _ -> unit
       | _ -> raise DeprecatedFailed)
 
-let () =
+let _ =
   let t = Lang.univ_t () in
   Lang.add_builtin ~category:`String ~flags:[`Deprecated; `Hidden]
-    ~descr:"Deprecated: use `let json.parse ..`" "json.parse"
+    ~descr:"Deprecated: use `let json.parse ..`" ~base:json "parse"
     [
       ("default", t, None, Some "Default value if string cannot be parsed.");
       ("", Lang.string_t, None, None);

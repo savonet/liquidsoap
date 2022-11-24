@@ -322,16 +322,15 @@ let output_proto ~return_t ~pipeline =
       ("", Lang.source_t return_t, None, None);
     ]
 
-let () =
-  Lang.add_module "output.gstreamer";
-  Lang.add_module "input.gstreamer"
+let output_gstreamer = Lang.add_module ~base:Modules.output "gstreamer"
+let input_gstreamer = Lang.add_module ~base:Modules.input "gstreamer"
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "output.gstreamer.audio"
+  Lang.add_operator ~base:output_gstreamer "audio"
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to a GStreamer pipeline." ~return_t (fun p ->
@@ -358,12 +357,12 @@ let () =
          ("", Some pipeline, None)
         :> Output.output))
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "output.gstreamer.video"
+  Lang.add_operator ~base:output_gstreamer "video"
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to a GStreamer pipeline." ~return_t (fun p ->
@@ -390,13 +389,13 @@ let () =
          ("", None, Some pipeline)
         :> Output.output))
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ())
          ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator "output.gstreamer.audio_video"
+  Lang.add_operator ~base:output_gstreamer "audio_video"
     (output_proto ~return_t ~pipeline:""
     @ [
         ( "audio_pipeline",
@@ -649,7 +648,7 @@ let input_proto =
       Some "Maximum duration of the buffered data." );
   ]
 
-let () =
+let _ =
   (* TODO: be more flexible on audio *)
   let return_t =
     Lang.frame_t (Lang.univ_t ())
@@ -674,7 +673,7 @@ let () =
           Some "Video pipeline to input from." );
       ]
   in
-  Lang.add_operator "input.gstreamer.audio_video" proto ~return_t
+  Lang.add_operator ~base:input_gstreamer "audio_video" proto ~return_t
     ~category:`Input ~flags:[]
     ~meth:
       [
@@ -713,7 +712,7 @@ let () =
         p
         (pipeline, Some audio_pipeline, Some video_pipeline))
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
@@ -727,13 +726,14 @@ let () =
           Some "GStreamer pipeline to input from." );
       ]
   in
-  Lang.add_operator "input.gstreamer.audio" proto ~return_t ~category:`Input
-    ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p ->
+  Lang.add_operator ~base:input_gstreamer "audio" proto ~return_t
+    ~category:`Input ~flags:[] ~descr:"Stream audio from a GStreamer pipeline."
+    (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       (new audio_video_input p ((fun () -> ""), Some pipeline, None)
         :> Source.source))
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~video:(Format_type.video ()) ())
@@ -747,8 +747,9 @@ let () =
           Some "GStreamer pipeline to input from." );
       ]
   in
-  Lang.add_operator "input.gstreamer.video" proto ~return_t ~category:`Input
-    ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p ->
+  Lang.add_operator ~base:input_gstreamer "video" proto ~return_t
+    ~category:`Input ~flags:[] ~descr:"Stream video from a GStreamer pipeline."
+    (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       (new audio_video_input p ((fun () -> ""), None, Some pipeline)
         :> Source.source))
