@@ -38,10 +38,12 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
   let abg = Generator.create ~log ~log_overfull `Audio in
   let buflen = Utils.pagesize in
   let buf = Bytes.create buflen in
+  let channels =
+    Content.Audio.channels_of_format (Kind.content_type kind).Frame.audio
+  in
   let channel_converter =
     Decoder_utils.channels_converter
-      (Audio_converter.Channel_layout.layout_of_channels
-         (Lazy.force Frame.audio_channels))
+      (Audio_converter.Channel_layout.layout_of_channels channels)
   in
   let on_data reader =
     let ret = reader buf 0 buflen in

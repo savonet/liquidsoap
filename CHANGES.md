@@ -38,6 +38,7 @@ Fixed:
   `metadata_url`) in `input.harbor` (#2676)
 * Fixed `blank.*` operator types.
 * Fixed request metadata escaping (#2732)
+* Fixed `input.external.rawadudio` mono input (#2742)
 
 ---
 2.1.2 (2022-09-26)
