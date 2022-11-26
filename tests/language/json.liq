@@ -239,6 +239,10 @@ def f() =
   let json.parse x = data
   test.equals(x?.foo?.gni?.bla, null())
 
+  # Test escaping of invalid utf8 strings.
+  s = "S\x00e\x00k\x00e\x00r\x00n\x00u\x00p\x00 \x00K\x00i\x00n\x00g\x00e\x00r\x00p\x00\xE2\x00"
+  test.equals(json.stringify(s), "\"S\\u0000e\\u0000k\\u0000e\\u0000r\\u0000n\\u0000u\\u0000p\\u0000 \\u0000K\\u0000i\\u0000n\\u0000g\\u0000e\\u0000r\\u0000p\\u0000\\uFFFD\\u0000\"")
+
   j = json()
   j.add("foo", 1)
   j.add("bla", "bar")

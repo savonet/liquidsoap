@@ -22,8 +22,9 @@ let from_string ?(pos = []) ?(json5 = false) s =
     | _ -> Runtime_error.raise ~message:"Parse error" ~pos "json"
 
 (* Special version of utf8 quoting that uses [Uchar.rep]
-   when a character cannot be escaped. *)
-let quote_utf8_string =
+   when a character cannot be escaped and fallback to
+   ascii escaping with json escaping patterns.. *)
+let quote_string =
   let escape_char =
     let utf8_char_code s pos len =
       try Lang_string.utf8_char_code s pos len
@@ -32,22 +33,26 @@ let quote_utf8_string =
     Lang_string.escape_char ~escape_fun:(fun s pos len ->
         Printf.sprintf "\\u%04X" (utf8_char_code s pos len))
   in
-  let next s i =
-    try Lang_string.utf8_next s i with _ -> max (String.length s) (i + 1)
-  in
-  let escape_utf8_formatter =
+  let escape_formatter ~next special_char =
     Lang_string.escape
       ~special_char:(fun s pos len ->
-        if s.[pos] = '\'' && len = 1 then false
-        else Lang_string.utf8_special_char s pos len)
+        if s.[pos] = '\'' && len = 1 then false else special_char s pos len)
       ~escape_char ~next
   in
+  let escape_utf8_formatter =
+    escape_formatter ~next:Lang_string.utf8_next Lang_string.utf8_special_char
+  in
+  let escape_ascii_formatter =
+    escape_formatter ~next:Lang_string.ascii_next Lang_string.ascii_special_char
+  in
   fun s ->
-    Printf.sprintf "\"%s\"" (Lang_string.escape_string escape_utf8_formatter s)
+    Printf.sprintf "\"%s\""
+      (try Lang_string.escape_string escape_utf8_formatter s
+       with _ -> Lang_string.escape_string escape_ascii_formatter s)
 
 let rec to_string_compact ~json5 = function
   | `Null -> "null"
-  | `String s -> quote_utf8_string s
+  | `String s -> quote_string s
   | `Bool b -> string_of_bool b
   | `Int i -> string_of_int i
   | `Float f -> (
