@@ -24,7 +24,7 @@ open Mm
 open Source
 open Lilv
 
-let () = Lang.add_module "lv2"
+let lv2 = Lang.add_module "lv2"
 let log = Log.make ["Lilv LV2"]
 
 let lilv_enabled =
@@ -302,8 +302,10 @@ let register_plugin plugin =
   ignore (Audio_converter.Channel_layout.layout_of_channels no);
   let liq_params, params = params_of_plugin plugin in
   let mono = ni = 1 && no = 1 in
-  let input_kind = Lang.audio_n ni in
-  let input_t = Lang.frame_kind_t input_kind in
+  let input_t =
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~audio:(Format_type.audio_n ni) ())
+  in
   let liq_params =
     liq_params
     @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
@@ -323,28 +325,31 @@ let register_plugin plugin =
   in
   let descr = descr ^ " See <" ^ Plugin.uri plugin ^ ">." in
   let return_t =
-    let input_kind = Lang.of_frame_t input_t in
-    Lang.frame_t
-      (Frame.set_Fields.audio input_kind (Lang.kind_t (Frame.audio_n no)))
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~audio:(Format_type.audio_n no) ())
   in
-  Lang.add_operator
-    ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))
-    liq_params ~return_t ~category:`Audio ~flags:[`Extra] ~descr
-    (fun p ->
-      let f v = List.assoc v p in
-      let source = try Some (Lang.to_source (f "")) with Not_found -> None in
-      let params = params p in
-      if ni = 0 then new lilv_nosource plugin outputs params
-      else if no = 0 then
-        (* TODO: can we really use such a type? *)
-        (new lilv_noout (Option.get source) plugin inputs params
-          :> Source.source)
-      else if mono then
-        (new lilv_mono (Option.get source) plugin inputs.(0) outputs.(0) params
-          :> Source.source)
-      else
-        (new lilv (Option.get source) plugin inputs outputs params
-          :> Source.source))
+  ignore
+    (Lang.add_operator
+       ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))
+       liq_params ~return_t ~category:`Audio ~flags:[`Extra] ~descr
+       (fun p ->
+         let f v = List.assoc v p in
+         let source =
+           try Some (Lang.to_source (f "")) with Not_found -> None
+         in
+         let params = params p in
+         if ni = 0 then new lilv_nosource plugin outputs params
+         else if no = 0 then
+           (* TODO: can we really use such a type? *)
+           (new lilv_noout (Option.get source) plugin inputs params
+             :> Source.source)
+         else if mono then
+           (new lilv_mono
+              (Option.get source) plugin inputs.(0) outputs.(0) params
+             :> Source.source)
+         else
+           (new lilv (Option.get source) plugin inputs outputs params
+             :> Source.source)))
 
 let register_plugin plugin =
   try register_plugin plugin
