@@ -104,9 +104,17 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      new external_input
-        ~restart ~bufferize ~restart_on_error ~max
-        ~name:"input.external.rawaudio" ~converter command)
+      let s =
+        new external_input
+          ~restart ~bufferize ~restart_on_error ~max
+          ~name:"input.external.rawaudio" ~converter command
+      in
+      let frame_t =
+        Lang.frame_t Lang.unit_t
+          (Frame.Fields.make ~audio:(Format_type.audio_n channels) ())
+      in
+      Typing.(s#frame_type <: frame_t);
+      s)
 
 let () =
   let return_t =
