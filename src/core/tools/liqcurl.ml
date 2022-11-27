@@ -151,9 +151,6 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     let url = Uri.(to_string (of_string url)) in
     connection#set_url url;
     connection#set_useragent Http.user_agent;
-    connection#set_writefunction (fun s ->
-        on_body_data s;
-        String.length s);
     connection#set_httpversion
       (match http_version with
         | None -> Curl.HTTP_VERSION_NONE
@@ -189,14 +186,32 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
         Buffer.add_string response_headers s;
         String.length s);
     connection#set_xferinfofunction should_stop;
+    let accepted = ref false in
+    let accepted_m = Mutex.create () in
+    let pending = Buffer.create 1024 in
+    connection#set_writefunction (fun s ->
+        Tutils.mutexify accepted_m
+          (fun () ->
+            if !accepted then on_body_data s else Buffer.add_string pending s)
+          ();
+        String.length s);
     connection#set_noprogress false;
     connection#perform;
     match connection#get_redirecturl with
       | url when url <> "" && follow_redirect ->
           connection#cleanup;
+          Tutils.mutexify accepted_m (fun () -> Buffer.clear pending) ();
           http_request ?headers ?http_version ~follow_redirect ~timeout ~url
             ~request ~on_body_data ~pos ()
       | _ ->
+          Tutils.mutexify accepted_m
+            (fun () ->
+              begin
+                on_body_data (Buffer.contents pending);
+                Buffer.clear pending;
+                accepted := true
+              end)
+            ();
           let response_headers =
             Pcre.split ~rex:(Pcre.regexp "[\r]?\n")
               (Buffer.contents response_headers)
