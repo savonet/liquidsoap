@@ -46,12 +46,12 @@ class compress (source : source) mu =
       done
   end
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "compress.exponential" ~category:`Audio
+  Lang.add_operator ~base:Compress.compress "exponential" ~category:`Audio
     ~descr:"Exponential compressor."
     [
       ( "mu",

@@ -79,12 +79,12 @@ class filter (source : source) freq wet mode =
             done
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "filter.rc"
+  Lang.add_operator ~base:Filter.filter "rc"
     [
       ("frequency", Lang.getter_t Lang.float_t, None, Some "Cutoff frequency.");
       ( "mode",

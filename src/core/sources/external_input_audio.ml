@@ -72,12 +72,12 @@ let proto =
     ("", Lang.string_t, None, Some "Command to execute.");
   ]
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "input.external.rawaudio" ~category:`Input
+  Lang.add_operator ~base:Modules.input_external "rawaudio" ~category:`Input
     ~descr:
       "Stream raw PCM data (interleaved signed 16 bits little endian integers) \
        from an external application."
@@ -116,12 +116,12 @@ let () =
       Typing.(s#frame_type <: frame_t);
       s)
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "input.external.wav" ~category:`Input
+  Lang.add_operator ~base:Modules.input_external "wav" ~category:`Input
     ~descr:"Stream WAV data from an external application." proto ~return_t
     (fun p ->
       let command = Lang.to_string (List.assoc "" p) in

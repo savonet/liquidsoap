@@ -255,179 +255,183 @@ let register_input is_http =
     (name ^ "_args", Lang.list_t t, Some (Lang.list []), None)
   in
   let name, descr =
-    if is_http then ("input.http", "Create a http stream using ffmpeg")
-    else ("input.ffmpeg", "Create a stream using ffmpeg")
+    if is_http then ("http", "Create a http stream using ffmpeg")
+    else ("ffmpeg", "Create a stream using ffmpeg")
   in
-  Lang.add_operator name ~descr ~category:`Input
-    (Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
-    @ (if is_http then
-       [
-         ( "user_agent",
-           Lang.string_t,
-           Some (Lang.string Http.user_agent),
-           Some "User agent." );
-         ( "timeout",
-           Lang.float_t,
-           Some (Lang.float 10.),
-           Some "Timeout for source connection." );
-       ]
-      else [])
-    @ (if is_http then
-       [
-         ( "on_connect",
-           Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
-           Some (Lang.val_cst_fun [("", None)] Lang.unit),
-           Some
-             "Function to execute when a source is connected. Its receives the \
-              list of ICY-specific headers, if available." );
-       ]
-      else
-        [
-          ( "on_connect",
-            Lang.fun_t [] Lang.unit_t,
-            Some (Lang.val_cst_fun [] Lang.unit),
-            Some "Function to execute when a source is connected." );
-        ])
-    @ [
-        args ~t:Lang.int_t "int";
-        args ~t:Lang.float_t "float";
-        args ~t:Lang.string_t "string";
-        ( "new_track_on_metadata",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Treat new metadata as new track." );
-        ( "on_disconnect",
-          Lang.fun_t [] Lang.unit_t,
-          Some (Lang.val_cst_fun [] Lang.unit),
-          Some "Function to execute when a source is disconnected" );
-        ( "max_buffer",
-          Lang.float_t,
-          Some (Lang.float 5.),
-          Some "Maximum uration of buffered data" );
-        ( "self_sync",
-          Lang.bool_t,
-          Some (Lang.bool false),
-          Some
-            "Should the source control its own timing? Set to `true` if you \
-             are having synchronization issues. Should be `false` for most \
-             typical cases." );
-        ( "debug",
-          Lang.bool_t,
-          Some (Lang.bool false),
-          Some "Run in debugging mode, not catching some exceptions." );
-        ( "poll_delay",
-          Lang.float_t,
-          Some (Lang.float 2.),
-          Some "Polling delay when trying to connect to the stream." );
-        ( "format",
-          Lang.nullable_t Lang.string_t,
-          Some Lang.null,
-          Some
-            "Force a specific input format. Autodetected when passed a null \
-             argument" );
-        ("", Lang.getter_t Lang.string_t, None, Some "URL to decode.");
-      ])
-    ~return_t
-    ~meth:
-      Lang.(
-        Start_stop.meth ()
-        @ [
-            ( "url",
-              ([], fun_t [] string_t),
-              "Return the source's current url.",
-              fun s -> val_fun [] (fun _ -> string s#url) );
-            ( "set_url",
-              ([], fun_t [(false, "", getter_t string_t)] unit_t),
-              "Set the source's url.",
-              fun s ->
-                val_fun
-                  [("", "", None)]
-                  (fun p ->
-                    s#set_url (to_string_getter (List.assoc "" p));
-                    unit) );
-            ( "status",
-              ([], fun_t [] string_t),
-              "Return the current status of the source, either \"stopped\" \
-               (the source isn't trying to relay the HTTP stream), \"polling\" \
-               (attempting to connect to the HTTP stream) or \"connected \
-               <url>\" (connected to <url>, buffering or playing back the \
-               stream).",
-              fun s ->
-                val_fun [] (fun _ ->
-                    string
-                      (match s#source_status with
-                        | `Stopped -> "stopped"
-                        | `Polling -> "polling"
-                        | `Connected url -> Printf.sprintf "connected %s" url))
-            );
-            ( "buffer_length",
-              ([], fun_t [] float_t),
-              "Get the buffer's length in seconds.",
-              fun s -> val_fun [] (fun _ -> float s#buffer_length) );
-          ])
-    (fun p ->
-      let format = Lang.to_option (List.assoc "format" p) in
-      let format =
-        Option.map
-          (fun format ->
-            let format = Lang.to_string format in
-            match Av.Format.find_input_format format with
-              | Some f -> f
-              | None ->
-                  raise
-                    (Error.Invalid_value
-                       ( Lang.string format,
-                         "Could not find ffmpeg input format with that name" )))
-          format
-      in
-      let opts = Hashtbl.create 10 in
-      parse_args ~t:`Int "int" p opts;
-      parse_args ~t:`Float "float" p opts;
-      parse_args ~t:`String "string" p opts;
-      let max_buffer = Lang.to_float (List.assoc "max_buffer" p) in
-      let debug = Lang.to_bool (List.assoc "debug" p) in
-      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
-      let autostart = Lang.to_bool (List.assoc "start" p) in
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun _ -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_disconnect () =
-        ignore (Lang.apply (List.assoc "on_disconnect" p) [])
-      in
-      let new_track_on_metadata =
-        Lang.to_bool (List.assoc "new_track_on_metadata" p)
-      in
-      let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
-      let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
-      if is_http then (
-        let timeout = Lang.to_float (List.assoc "timeout" p) in
-        let user_agent = Lang.to_string (List.assoc "user_agent" p) in
-        let on_connect l =
-          let l =
-            List.map
-              (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
-              l
-          in
-          let arg = Lang.list l in
-          ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
-        in
-        (new http_input
-           ~debug ~autostart ~self_sync ~clock_safe ~poll_delay ~on_connect
-           ~on_disconnect ~user_agent ~new_track_on_metadata ~max_buffer ?format
-           ~opts ~timeout ~on_start ~on_stop url
-          :> input))
-      else (
-        let on_connect _ = ignore (Lang.apply (List.assoc "on_connect" p) []) in
-        new input
-          ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_start
-          ~on_stop ~on_connect ~on_disconnect ~max_buffer ?format ~opts
-          ~new_track_on_metadata url))
+  ignore
+    (Lang.add_operator ~base:Modules.input name ~descr ~category:`Input
+       (Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
+       @ (if is_http then
+          [
+            ( "user_agent",
+              Lang.string_t,
+              Some (Lang.string Http.user_agent),
+              Some "User agent." );
+            ( "timeout",
+              Lang.float_t,
+              Some (Lang.float 10.),
+              Some "Timeout for source connection." );
+          ]
+         else [])
+       @ (if is_http then
+          [
+            ( "on_connect",
+              Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
+              Some (Lang.val_cst_fun [("", None)] Lang.unit),
+              Some
+                "Function to execute when a source is connected. Its receives \
+                 the list of ICY-specific headers, if available." );
+          ]
+         else
+           [
+             ( "on_connect",
+               Lang.fun_t [] Lang.unit_t,
+               Some (Lang.val_cst_fun [] Lang.unit),
+               Some "Function to execute when a source is connected." );
+           ])
+       @ [
+           args ~t:Lang.int_t "int";
+           args ~t:Lang.float_t "float";
+           args ~t:Lang.string_t "string";
+           ( "new_track_on_metadata",
+             Lang.bool_t,
+             Some (Lang.bool true),
+             Some "Treat new metadata as new track." );
+           ( "on_disconnect",
+             Lang.fun_t [] Lang.unit_t,
+             Some (Lang.val_cst_fun [] Lang.unit),
+             Some "Function to execute when a source is disconnected" );
+           ( "max_buffer",
+             Lang.float_t,
+             Some (Lang.float 5.),
+             Some "Maximum uration of buffered data" );
+           ( "self_sync",
+             Lang.bool_t,
+             Some (Lang.bool false),
+             Some
+               "Should the source control its own timing? Set to `true` if you \
+                are having synchronization issues. Should be `false` for most \
+                typical cases." );
+           ( "debug",
+             Lang.bool_t,
+             Some (Lang.bool false),
+             Some "Run in debugging mode, not catching some exceptions." );
+           ( "poll_delay",
+             Lang.float_t,
+             Some (Lang.float 2.),
+             Some "Polling delay when trying to connect to the stream." );
+           ( "format",
+             Lang.nullable_t Lang.string_t,
+             Some Lang.null,
+             Some
+               "Force a specific input format. Autodetected when passed a null \
+                argument" );
+           ("", Lang.getter_t Lang.string_t, None, Some "URL to decode.");
+         ])
+       ~return_t
+       ~meth:
+         Lang.(
+           Start_stop.meth ()
+           @ [
+               ( "url",
+                 ([], fun_t [] string_t),
+                 "Return the source's current url.",
+                 fun s -> val_fun [] (fun _ -> string s#url) );
+               ( "set_url",
+                 ([], fun_t [(false, "", getter_t string_t)] unit_t),
+                 "Set the source's url.",
+                 fun s ->
+                   val_fun
+                     [("", "", None)]
+                     (fun p ->
+                       s#set_url (to_string_getter (List.assoc "" p));
+                       unit) );
+               ( "status",
+                 ([], fun_t [] string_t),
+                 "Return the current status of the source, either \"stopped\" \
+                  (the source isn't trying to relay the HTTP stream), \
+                  \"polling\" (attempting to connect to the HTTP stream) or \
+                  \"connected <url>\" (connected to <url>, buffering or \
+                  playing back the stream).",
+                 fun s ->
+                   val_fun [] (fun _ ->
+                       string
+                         (match s#source_status with
+                           | `Stopped -> "stopped"
+                           | `Polling -> "polling"
+                           | `Connected url -> Printf.sprintf "connected %s" url))
+               );
+               ( "buffer_length",
+                 ([], fun_t [] float_t),
+                 "Get the buffer's length in seconds.",
+                 fun s -> val_fun [] (fun _ -> float s#buffer_length) );
+             ])
+       (fun p ->
+         let format = Lang.to_option (List.assoc "format" p) in
+         let format =
+           Option.map
+             (fun format ->
+               let format = Lang.to_string format in
+               match Av.Format.find_input_format format with
+                 | Some f -> f
+                 | None ->
+                     raise
+                       (Error.Invalid_value
+                          ( Lang.string format,
+                            "Could not find ffmpeg input format with that name"
+                          )))
+             format
+         in
+         let opts = Hashtbl.create 10 in
+         parse_args ~t:`Int "int" p opts;
+         parse_args ~t:`Float "float" p opts;
+         parse_args ~t:`String "string" p opts;
+         let max_buffer = Lang.to_float (List.assoc "max_buffer" p) in
+         let debug = Lang.to_bool (List.assoc "debug" p) in
+         let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
+         let autostart = Lang.to_bool (List.assoc "start" p) in
+         let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+         let on_start =
+           let f = List.assoc "on_start" p in
+           fun _ -> ignore (Lang.apply f [])
+         in
+         let on_stop =
+           let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+         in
+         let on_disconnect () =
+           ignore (Lang.apply (List.assoc "on_disconnect" p) [])
+         in
+         let new_track_on_metadata =
+           Lang.to_bool (List.assoc "new_track_on_metadata" p)
+         in
+         let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
+         let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
+         if is_http then (
+           let timeout = Lang.to_float (List.assoc "timeout" p) in
+           let user_agent = Lang.to_string (List.assoc "user_agent" p) in
+           let on_connect l =
+             let l =
+               List.map
+                 (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
+                 l
+             in
+             let arg = Lang.list l in
+             ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
+           in
+           (new http_input
+              ~debug ~autostart ~self_sync ~clock_safe ~poll_delay ~on_connect
+              ~on_disconnect ~user_agent ~new_track_on_metadata ~max_buffer
+              ?format ~opts ~timeout ~on_start ~on_stop url
+             :> input))
+         else (
+           let on_connect _ =
+             ignore (Lang.apply (List.assoc "on_connect" p) [])
+           in
+           new input
+             ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_start
+             ~on_stop ~on_connect ~on_disconnect ~max_buffer ?format ~opts
+             ~new_track_on_metadata url)))
 
 let () =
   register_input true;

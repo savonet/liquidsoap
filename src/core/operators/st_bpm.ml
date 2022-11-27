@@ -55,7 +55,7 @@ class bpm (source : source) =
       match bpm with Some bpm -> Soundtouch.BPM.get_bpm bpm | None -> 0.
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())

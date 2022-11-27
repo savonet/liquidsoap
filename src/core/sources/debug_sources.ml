@@ -35,9 +35,9 @@ class fail name =
 let fail () = (new fail "fail" :> Source.source)
 let empty = fail
 
-let () =
+let fail =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "source.fail" ~category:`Input
+  Lang.add_operator ~base:Modules.source "fail" ~category:`Input
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
     ~return_t [] (fun _ -> (new fail "source.fail" :> Source.source))
@@ -50,9 +50,9 @@ class fail_init =
       Lang.raise_error ~pos:[] ~message:"Source's initialization failed" "debug"
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "source.fail.init" ~category:`Input
+  Lang.add_operator ~base:fail "init" ~category:`Input
     ~descr:
       "A source that errors during its initialization phase, used for testing \
        and debugging." ~flags:[`Experimental] ~return_t [] (fun _ ->

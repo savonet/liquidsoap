@@ -187,9 +187,9 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
         else self#feed (should_stop, has_stopped)
   end
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "output.udp"
+  Lang.add_operator ~base:Modules.output "udp"
     ~descr:"Output encoded data to UDP, without any control whatsoever."
     ~category:`Output
     ~flags:[`Hidden; `Deprecated; `Experimental]
@@ -230,9 +230,9 @@ let () =
          ~encoder_factory:fmt source
         :> Source.source))
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "input.udp"
+  Lang.add_operator ~base:Modules.input "udp"
     ~descr:"Input encoded data from UDP, without any control whatsoever."
     ~category:`Input
     ~flags:[`Hidden; `Deprecated; `Experimental]

@@ -20,8 +20,8 @@
 
   *****************************************************************************)
 
-let () =
-  Lang.add_builtin "server.register" ~category:`Interaction
+let _ =
+  Lang.add_builtin ~base:Modules.server "register" ~category:`Interaction
     ~descr:
       "Register a command. You can then execute this function through the \
        server, either telnet or socket."

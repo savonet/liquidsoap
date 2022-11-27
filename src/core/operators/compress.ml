@@ -166,7 +166,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       if partial && track_sensitive then self#reset
   end
 
-let () =
+let compress =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())

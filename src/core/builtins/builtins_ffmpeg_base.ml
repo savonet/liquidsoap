@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-let () =
-  Lang.add_module "ffmpeg";
-  Lang.add_module "ffmpeg.filter";
-  Lang.add_module "ffmpeg.raw"
+let ffmpeg = Lang.add_module "ffmpeg"
+let ffmpeg_filter = Lang.add_module ~base:ffmpeg "filter"
+let ffmpeg_raw = Lang.add_module ~base:ffmpeg "raw"

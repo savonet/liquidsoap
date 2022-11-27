@@ -57,24 +57,27 @@ class msstereo (source : source) mode width =
       done
   end
 
-let () =
-  Lang.add_module "stereo.ms";
+let stereo_ms = Lang.add_module ~base:Modules.stereo "ms"
+
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
-  Lang.add_operator "stereo.ms.encode"
+  Lang.add_operator ~base:stereo_ms "encode"
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:`Audio
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
-      new msstereo s Encode 0.);
+      new msstereo s Encode 0.)
+
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
-  Lang.add_operator "stereo.ms.decode"
+  Lang.add_operator ~base:stereo_ms "decode"
     [
       ( "width",
         Lang.float_t,
@@ -121,12 +124,12 @@ class spatializer ~width (source : source) =
       done
   end
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
-  Lang.add_operator "stereo.width"
+  Lang.add_operator ~base:Modules.stereo "width"
     [
       ( "",
         Lang.getter_t Lang.float_t,

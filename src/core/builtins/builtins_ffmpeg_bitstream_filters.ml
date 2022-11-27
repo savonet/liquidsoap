@@ -23,7 +23,7 @@
 open Builtins_ffmpeg_base
 
 let log = Log.make ["ffmpeg"; "filter"; "bitstream"]
-let () = Lang.add_module "ffmpeg.filter.bitstream"
+let ffmpeg_filter_bitstream = Lang.add_module ~base:ffmpeg_filter "bitstream"
 
 type 'a handler = {
   stream_idx : int64;
@@ -164,14 +164,17 @@ let () =
     (fun ({ Avcodec.BitstreamFilter.name; codecs; options } as filter) ->
       let args, args_parser = Builtins_ffmpeg_filters.mk_options options in
       let modes = modes name codecs in
-      if List.length modes > 1 then
-        Lang.add_module ("ffmpeg.filter.bitstream." ^ name);
+      let base, module_name =
+        if List.length modes > 1 then
+          (Lang.add_module ~base:ffmpeg_filter_bitstream name, [name])
+        else (ffmpeg_filter_bitstream, [])
+      in
       List.iter
         (fun mode ->
           let name, source_fields_t =
             match mode with
               | `Audio ->
-                  ( name ^ ".audio",
+                  ( "audio",
                     fun () ->
                       Frame.Fields.make
                         ~audio:
@@ -189,7 +192,7 @@ let () =
                                 (`Kind Ffmpeg_copy_content.Audio.kind)))
                         () )
               | `Video ->
-                  ( name ^ ".video",
+                  ( "video",
                     fun () ->
                       Frame.Fields.make
                         ~video:
@@ -209,95 +212,104 @@ let () =
           in
           let source_t = Lang.frame_t (Lang.univ_t ()) (source_fields_t ()) in
           let args_t = ("", Lang.source_t source_t, None, None) :: args in
-          Lang.add_operator ~category:`FFmpegFilter
-            ("ffmpeg.filter.bitstream." ^ name)
-            ~descr:
-              ("FFmpeg " ^ name
-             ^ " bitstream filter. See ffmpeg documentation for more details.")
-            ~flags:[`Extra] args_t ~return_t:source_t
-            (fun p ->
-              let source = List.assoc "" p in
+          ignore
+            (Lang.add_operator ~category:`FFmpegFilter name ~base
+               ~descr:
+                 ("FFmpeg "
+                 ^ String.concat "." (module_name @ [name])
+                 ^ " bitstream filter. See ffmpeg documentation for more \
+                    details.")
+               ~flags:[`Extra] args_t ~return_t:source_t
+               (fun p ->
+                 let source = List.assoc "" p in
 
-              let filter_opts = args_of_args (args_parser p []) in
+                 let filter_opts = args_of_args (args_parser p []) in
 
-              let encode_frame generator =
-                let flush, process =
-                  match mode with
-                    | `Audio | `Audio_only ->
-                        let put_data g = Generator.put g Frame.Fields.audio in
-                        let lift_data data =
-                          Ffmpeg_copy_content.Audio.lift_data data
-                        in
-                        let current_handler, get_handler, clear_handler =
-                          handler_getters ~lift_data ~put_data ~generator
-                            ~filter ~filter_opts
-                        in
-                        let flush () =
-                          flush ~lift_data ~put_data ~generator
-                            (current_handler ());
-                          clear_handler ()
-                        in
-                        ( flush,
-                          fun frame ->
-                            let pos = Frame.position frame in
-                            Generator.put generator Frame.Fields.video
-                              (Content.copy (Frame.video frame));
-                            on_data ~get_handler ~put_data ~lift_data ~generator
-                              (Ffmpeg_copy_content.Audio.get_data
-                                 (Content.sub (Frame.audio frame) 0 pos)) )
-                    | `Video | `Video_only ->
-                        let put_data g = Generator.put g Frame.Fields.video in
-                        let lift_data data =
-                          Ffmpeg_copy_content.Video.lift_data data
-                        in
-                        let current_handler, get_handler, clear_handler =
-                          handler_getters ~lift_data ~put_data ~generator
-                            ~filter ~filter_opts
-                        in
-                        let flush () =
-                          flush ~lift_data ~put_data ~generator
-                            (current_handler ());
-                          clear_handler ()
-                        in
-                        ( flush,
-                          fun frame ->
-                            let pos = Frame.position frame in
-                            Generator.put generator Frame.Fields.audio
-                              (Content.copy (Frame.audio frame));
-                            on_data ~get_handler ~put_data ~lift_data ~generator
-                              (Ffmpeg_copy_content.Video.get_data
-                                 (Content.sub (Frame.video frame) 0 pos)) )
-                in
-                function
-                | `Frame frame ->
-                    List.iter
-                      (fun (pos, m) -> Generator.add_metadata ~pos generator m)
-                      (Frame.get_all_metadata frame);
-                    List.iter
-                      (fun pos -> Generator.add_track_mark ~pos generator)
-                      (List.filter
-                         (fun x -> x < Lazy.force Frame.size)
-                         (Frame.breaks frame));
-                    process frame
-                | `Flush -> flush ()
-              in
+                 let encode_frame generator =
+                   let flush, process =
+                     match mode with
+                       | `Audio | `Audio_only ->
+                           let put_data g =
+                             Generator.put g Frame.Fields.audio
+                           in
+                           let lift_data data =
+                             Ffmpeg_copy_content.Audio.lift_data data
+                           in
+                           let current_handler, get_handler, clear_handler =
+                             handler_getters ~lift_data ~put_data ~generator
+                               ~filter ~filter_opts
+                           in
+                           let flush () =
+                             flush ~lift_data ~put_data ~generator
+                               (current_handler ());
+                             clear_handler ()
+                           in
+                           ( flush,
+                             fun frame ->
+                               let pos = Frame.position frame in
+                               Generator.put generator Frame.Fields.video
+                                 (Content.copy (Frame.video frame));
+                               on_data ~get_handler ~put_data ~lift_data
+                                 ~generator
+                                 (Ffmpeg_copy_content.Audio.get_data
+                                    (Content.sub (Frame.audio frame) 0 pos)) )
+                       | `Video | `Video_only ->
+                           let put_data g =
+                             Generator.put g Frame.Fields.video
+                           in
+                           let lift_data data =
+                             Ffmpeg_copy_content.Video.lift_data data
+                           in
+                           let current_handler, get_handler, clear_handler =
+                             handler_getters ~lift_data ~put_data ~generator
+                               ~filter ~filter_opts
+                           in
+                           let flush () =
+                             flush ~lift_data ~put_data ~generator
+                               (current_handler ());
+                             clear_handler ()
+                           in
+                           ( flush,
+                             fun frame ->
+                               let pos = Frame.position frame in
+                               Generator.put generator Frame.Fields.audio
+                                 (Content.copy (Frame.audio frame));
+                               on_data ~get_handler ~put_data ~lift_data
+                                 ~generator
+                                 (Ffmpeg_copy_content.Video.get_data
+                                    (Content.sub (Frame.video frame) 0 pos)) )
+                   in
+                   function
+                   | `Frame frame ->
+                       List.iter
+                         (fun (pos, m) ->
+                           Generator.add_metadata ~pos generator m)
+                         (Frame.get_all_metadata frame);
+                       List.iter
+                         (fun pos -> Generator.add_track_mark ~pos generator)
+                         (List.filter
+                            (fun x -> x < Lazy.force Frame.size)
+                            (Frame.breaks frame));
+                       process frame
+                   | `Flush -> flush ()
+                 in
 
-              let frame_t =
-                Lang.frame_t (Lang.univ_t ()) (source_fields_t ())
-              in
-              let consumer =
-                new Producer_consumer.consumer
-                  ~write_frame:encode_frame ~name:(name ^ ".consumer") ~source
-                  ()
-              in
-              Typing.(consumer#frame_type <: frame_t);
+                 let frame_t =
+                   Lang.frame_t (Lang.univ_t ()) (source_fields_t ())
+                 in
+                 let consumer =
+                   new Producer_consumer.consumer
+                     ~write_frame:encode_frame ~name:(name ^ ".consumer")
+                     ~source ()
+                 in
+                 Typing.(consumer#frame_type <: frame_t);
 
-              let producer =
-                new Producer_consumer.producer
-                  ~check_self_sync:false ~consumers:[consumer]
-                  ~name:(name ^ ".producer") ()
-              in
-              Typing.(producer#frame_type <: frame_t);
-              producer))
+                 let producer =
+                   new Producer_consumer.producer
+                     ~check_self_sync:false ~consumers:[consumer]
+                     ~name:(name ^ ".producer") ()
+                 in
+                 Typing.(producer#frame_type <: frame_t);
+                 producer)))
         modes)
     Avcodec.BitstreamFilter.filters

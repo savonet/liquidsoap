@@ -774,9 +774,9 @@ class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
       match self#get_socket with s -> [s] | exception Not_found -> []
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "input.srt" ~return_t ~category:`Input
+  Lang.add_operator ~base:Modules.input "srt" ~return_t ~category:`Input
     ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
     (common_options ~mode:`Listener
@@ -1005,14 +1005,14 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
         ()
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let output_meth =
     List.map
       (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
       Output.meth
   in
-  Lang.add_operator "output.srt" ~return_t ~category:`Output
+  Lang.add_operator ~base:Modules.output "srt" ~return_t ~category:`Output
     ~meth:(meth () @ output_meth)
     ~descr:"Send a SRT stream to a distant agent."
     (Output.proto

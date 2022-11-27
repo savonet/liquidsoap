@@ -75,7 +75,7 @@ class insert_metadata source =
         self#add_metadata buf p)
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
 
   Lang.add_operator "insert_metadata" ~category:`Track

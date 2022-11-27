@@ -103,12 +103,12 @@ class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
     method reset = ()
   end
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "output.ao"
+  Lang.add_operator ~base:Modules.output "ao"
     (Output.proto
     @ [
         ( "clock_safe",

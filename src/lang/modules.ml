@@ -22,44 +22,14 @@
 
 (* Declare general modules. *)
 
-let () =
-  List.iter Lang_core.add_module
-    [
-      "audio";
-      "clock";
-      "configure";
-      "debug";
-      "encoder";
-      "file";
-      "file.mime";
-      "harbor";
-      "http";
-      "http.transport";
-      "input";
-      "input.external";
-      "liquidsoap";
-      "iterator";
-      "metadata";
-      "midi";
-      "output";
-      "os";
-      "osc";
-      "playlist";
-      "process";
-      "reopen";
-      "request";
-      "request.dynamic";
-      "runtime";
-      "runtime.gc";
-      "runtime.sys";
-      "server";
-      "source";
-      "stereo";
-      "synth";
-      "synth.all";
-      "video";
-      "video.external";
-      "video.frame";
-      "video.testsrc";
-      "visu";
-    ]
+let debug = Lang.add_module "debug"
+let file = Lang.add_module "file"
+let file_mime = Lang.add_module ~base:file "mime"
+let list = Lang.add_module "list"
+let liquidsoap = Lang.add_module "liquidsoap"
+let iterator = Lang.add_module "iterator"
+let os = Lang.add_module "os"
+let profiler = Lang.add_module "profiler"
+let profiler_stats = Lang.add_module ~base:profiler "stats"
+let random = Lang.add_module "random"
+let url = Lang.add_module "url"

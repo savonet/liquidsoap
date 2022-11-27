@@ -23,6 +23,9 @@
 open Mm
 open Builtins_ffmpeg_base
 
+let ffmpeg_encode = Lang.add_module ~base:ffmpeg "encode"
+let ffmpeg_raw_encode = Lang.add_module ~base:ffmpeg_raw "encode"
+
 module InternalResampler =
   Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)
 
@@ -353,10 +356,6 @@ let encode_video_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
       done
   | `Flush -> encode_frame `Flush
 
-let () =
-  Lang.add_module "ffmpeg.encode";
-  Lang.add_module "ffmpeg.raw.encode"
-
 let mk_encoder mode =
   let has_audio =
     List.mem mode [`Audio_encoded; `Audio_raw; `Both_encoded; `Both_raw]
@@ -417,218 +416,225 @@ let mk_encoder mode =
       (Frame.Fields.make ?audio:return_audio_field_t ?video:return_video_field_t
          ())
   in
-  let extension =
+  let base, name =
     match mode with
-      | `Audio_encoded -> "encode.audio"
-      | `Audio_raw -> "raw.encode.audio"
-      | `Video_encoded -> "encode.video"
-      | `Video_raw -> "raw.encode.video"
-      | `Both_encoded -> "encode.audio_video"
-      | `Both_raw -> "raw.encode.audio_video"
+      | `Audio_encoded -> (ffmpeg_encode, "audio")
+      | `Audio_raw -> (ffmpeg_raw_encode, "audio")
+      | `Video_encoded -> (ffmpeg_encode, "video")
+      | `Video_raw -> (ffmpeg_raw_encode, "video")
+      | `Both_encoded -> (ffmpeg_encode, "audio_video")
+      | `Both_raw -> (ffmpeg_raw_encode, "audio_video")
   in
-  let name = "ffmpeg." ^ extension in
   let proto =
     [
       ("", Lang.format_t format_frame_t, None, Some "Encoding format.");
       ("", Lang.source_t source_frame_t, None, None);
     ]
   in
-  Lang.add_operator name proto ~return_t ~category:`Conversion
-    ~descr:"Convert a source's content" (fun p ->
-      let id =
-        Lang.to_default_option ~default:name Lang.to_string (List.assoc "id" p)
-      in
-      let format_val = Lang.assoc "" 1 p in
-      let source = Lang.assoc "" 2 p in
-      let source_content_type = (Lang.to_source source)#content_type in
-      let format =
-        match Lang.to_format format_val with
-          | Encoder.Ffmpeg ffmpeg -> ffmpeg
-          | _ ->
-              raise
-                (Error.Invalid_value
-                   (format_val, "Only %ffmpeg encoder is currently supported!"))
-      in
+  ignore
+    (Lang.add_operator name proto ~base ~return_t ~category:`Conversion
+       ~descr:"Convert a source's content" (fun p ->
+         let id =
+           Lang.to_default_option ~default:name Lang.to_string
+             (List.assoc "id" p)
+         in
+         let format_val = Lang.assoc "" 1 p in
+         let source = Lang.assoc "" 2 p in
+         let source_content_type = (Lang.to_source source)#content_type in
+         let format =
+           match Lang.to_format format_val with
+             | Encoder.Ffmpeg ffmpeg -> ffmpeg
+             | _ ->
+                 raise
+                   (Error.Invalid_value
+                      ( format_val,
+                        "Only %ffmpeg encoder is currently supported!" ))
+         in
 
-      if Hashtbl.length format.Ffmpeg_format.other_opts > 0 then
-        raise
-          (Error.Invalid_value
-             ( format_val,
-               Printf.sprintf
-                 "Muxer options are not supported for inline encoders: %s"
-                 (Ffmpeg_format.string_of_options
-                    format.Ffmpeg_format.other_opts) ));
+         if Hashtbl.length format.Ffmpeg_format.other_opts > 0 then
+           raise
+             (Error.Invalid_value
+                ( format_val,
+                  Printf.sprintf
+                    "Muxer options are not supported for inline encoders: %s"
+                    (Ffmpeg_format.string_of_options
+                       format.Ffmpeg_format.other_opts) ));
 
-      if format.Ffmpeg_format.format <> None then
-        raise
-          (Error.Invalid_value
-             (format_val, "Format option is not supported inline encoders"));
+         if format.Ffmpeg_format.format <> None then
+           raise
+             (Error.Invalid_value
+                (format_val, "Format option is not supported inline encoders"));
 
-      let mk_encode_frame generator =
-        let audio_t =
-          Option.map
-            (fun t ->
-              let s = Typing.generalize ~level:(-1) t in
-              Typing.instantiate ~level:(-1) s)
-            return_audio_field_t
-        in
+         let mk_encode_frame generator =
+           let audio_t =
+             Option.map
+               (fun t ->
+                 let s = Typing.generalize ~level:(-1) t in
+                 Typing.instantiate ~level:(-1) s)
+               return_audio_field_t
+           in
 
-        let video_t =
-          Option.map
-            (fun t ->
-              let s = Typing.generalize ~level:(-1) t in
-              Typing.instantiate ~level:(-1) s)
-            return_video_field_t
-        in
+           let video_t =
+             Option.map
+               (fun t ->
+                 let s = Typing.generalize ~level:(-1) t in
+                 Typing.instantiate ~level:(-1) s)
+               return_video_field_t
+           in
 
-        let audio_opts = Hashtbl.copy format.Ffmpeg_format.audio_opts in
+           let audio_opts = Hashtbl.copy format.Ffmpeg_format.audio_opts in
 
-        let video_opts = Hashtbl.copy format.Ffmpeg_format.video_opts in
+           let video_opts = Hashtbl.copy format.Ffmpeg_format.video_opts in
 
-        let original_opts = Hashtbl.create 10 in
+           let original_opts = Hashtbl.create 10 in
 
-        let stream_idx = Ffmpeg_content_base.new_stream_idx () in
+           let stream_idx = Ffmpeg_content_base.new_stream_idx () in
 
-        if has_audio then
-          Hashtbl.iter
-            (fun name value ->
-              Hashtbl.add original_opts ("audio: " ^ name) value)
-            format.Ffmpeg_format.audio_opts;
+           if has_audio then
+             Hashtbl.iter
+               (fun name value ->
+                 Hashtbl.add original_opts ("audio: " ^ name) value)
+               format.Ffmpeg_format.audio_opts;
 
-        if has_video then
-          Hashtbl.iter
-            (fun name value ->
-              Hashtbl.add original_opts ("video: " ^ name) value)
-            format.Ffmpeg_format.video_opts;
+           if has_video then
+             Hashtbl.iter
+               (fun name value ->
+                 Hashtbl.add original_opts ("video: " ^ name) value)
+               format.Ffmpeg_format.video_opts;
 
-        let encode_audio_frame =
-          if has_audio then (
-            match format.Ffmpeg_format.audio_codec with
-              | Some (`Raw None) when has_raw_audio ->
-                  Some
-                    (encode_audio_frame ~stream_idx ~type_t:(Option.get audio_t)
-                       ~mode:`Raw ~opts:audio_opts ~format
-                       ~content_type:source_content_type generator)
-              | Some (`Internal (Some codec)) when has_encoded_audio ->
-                  let codec = Avcodec.Audio.find_encoder_by_name codec in
-                  Some
-                    (encode_audio_frame ~stream_idx ~type_t:(Option.get audio_t)
-                       ~mode:`Encoded ~opts:audio_opts ~codec ~format
-                       ~content_type:source_content_type generator)
-              | _ ->
-                  let encoder =
-                    if has_encoded_audio then "%audio(codec=..., ...)"
-                    else "%audio.raw"
-                  in
-                  raise
-                    (Error.Invalid_value
-                       ( format_val,
-                         "Operator expects an encoder of the form: " ^ encoder
-                       )))
-          else None
-        in
-        let encode_video_frame =
-          if has_video then (
-            match format.Ffmpeg_format.video_codec with
-              | Some (`Raw None) when has_raw_video ->
-                  Some
-                    (encode_video_frame ~stream_idx ~type_t:(Option.get video_t)
-                       ~mode:`Raw ~opts:video_opts ~format generator)
-              | Some (`Internal (Some codec)) when has_encoded_video ->
-                  let codec = Avcodec.Video.find_encoder_by_name codec in
-                  Some
-                    (encode_video_frame ~stream_idx ~type_t:(Option.get video_t)
-                       ~mode:`Encoded ~opts:video_opts ~codec ~format generator)
-              | _ ->
-                  let encoder =
-                    if has_encoded_video then "%video" else "%video.raw"
-                  in
-                  raise
-                    (Error.Invalid_value
-                       ( format_val,
-                         "Operator expects an encoder of the form: " ^ encoder
-                       )))
-          else None
-        in
-        let size = Lazy.force Frame.size in
+           let encode_audio_frame =
+             if has_audio then (
+               match format.Ffmpeg_format.audio_codec with
+                 | Some (`Raw None) when has_raw_audio ->
+                     Some
+                       (encode_audio_frame ~stream_idx
+                          ~type_t:(Option.get audio_t) ~mode:`Raw
+                          ~opts:audio_opts ~format
+                          ~content_type:source_content_type generator)
+                 | Some (`Internal (Some codec)) when has_encoded_audio ->
+                     let codec = Avcodec.Audio.find_encoder_by_name codec in
+                     Some
+                       (encode_audio_frame ~stream_idx
+                          ~type_t:(Option.get audio_t) ~mode:`Encoded
+                          ~opts:audio_opts ~codec ~format
+                          ~content_type:source_content_type generator)
+                 | _ ->
+                     let encoder =
+                       if has_encoded_audio then "%audio(codec=..., ...)"
+                       else "%audio.raw"
+                     in
+                     raise
+                       (Error.Invalid_value
+                          ( format_val,
+                            "Operator expects an encoder of the form: "
+                            ^ encoder )))
+             else None
+           in
+           let encode_video_frame =
+             if has_video then (
+               match format.Ffmpeg_format.video_codec with
+                 | Some (`Raw None) when has_raw_video ->
+                     Some
+                       (encode_video_frame ~stream_idx
+                          ~type_t:(Option.get video_t) ~mode:`Raw
+                          ~opts:video_opts ~format generator)
+                 | Some (`Internal (Some codec)) when has_encoded_video ->
+                     let codec = Avcodec.Video.find_encoder_by_name codec in
+                     Some
+                       (encode_video_frame ~stream_idx
+                          ~type_t:(Option.get video_t) ~mode:`Encoded
+                          ~opts:video_opts ~codec ~format generator)
+                 | _ ->
+                     let encoder =
+                       if has_encoded_video then "%video" else "%video.raw"
+                     in
+                     raise
+                       (Error.Invalid_value
+                          ( format_val,
+                            "Operator expects an encoder of the form: "
+                            ^ encoder )))
+             else None
+           in
+           let size = Lazy.force Frame.size in
 
-        let encode_frame = function
-          | `Frame frame ->
-              List.iter
-                (fun (pos, m) -> Generator.add_metadata ~pos generator m)
-                (Frame.get_all_metadata frame);
-              List.iter
-                (fun pos -> Generator.add_track_mark ~pos generator)
-                (List.filter (fun x -> x < size) (Frame.breaks frame));
-              ignore
-                (Option.map (fun fn -> fn (`Frame frame)) encode_video_frame);
-              ignore
-                (Option.map (fun fn -> fn (`Frame frame)) encode_audio_frame)
-          | `Flush ->
-              ignore (Option.map (fun fn -> fn `Flush) encode_video_frame);
-              ignore (Option.map (fun fn -> fn `Flush) encode_audio_frame)
-        in
+           let encode_frame = function
+             | `Frame frame ->
+                 List.iter
+                   (fun (pos, m) -> Generator.add_metadata ~pos generator m)
+                   (Frame.get_all_metadata frame);
+                 List.iter
+                   (fun pos -> Generator.add_track_mark ~pos generator)
+                   (List.filter (fun x -> x < size) (Frame.breaks frame));
+                 ignore
+                   (Option.map (fun fn -> fn (`Frame frame)) encode_video_frame);
+                 ignore
+                   (Option.map (fun fn -> fn (`Frame frame)) encode_audio_frame)
+             | `Flush ->
+                 ignore (Option.map (fun fn -> fn `Flush) encode_video_frame);
+                 ignore (Option.map (fun fn -> fn `Flush) encode_audio_frame)
+           in
 
-        let left_over_opts = Hashtbl.create 10 in
-        if has_audio then
-          Hashtbl.iter
-            (fun name value ->
-              Hashtbl.add left_over_opts ("audio: " ^ name) value)
-            audio_opts;
+           let left_over_opts = Hashtbl.create 10 in
+           if has_audio then
+             Hashtbl.iter
+               (fun name value ->
+                 Hashtbl.add left_over_opts ("audio: " ^ name) value)
+               audio_opts;
 
-        if has_video then
-          Hashtbl.iter
-            (fun name value ->
-              Hashtbl.add left_over_opts ("video: " ^ name) value)
-            video_opts;
+           if has_video then
+             Hashtbl.iter
+               (fun name value ->
+                 Hashtbl.add left_over_opts ("video: " ^ name) value)
+               video_opts;
 
-        Hashtbl.filter_map_inplace
-          (fun l v -> if Hashtbl.mem left_over_opts l then Some v else None)
-          original_opts;
+           Hashtbl.filter_map_inplace
+             (fun l v -> if Hashtbl.mem left_over_opts l then Some v else None)
+             original_opts;
 
-        if Hashtbl.length original_opts > 0 then
-          raise
-            (Error.Invalid_value
-               ( format_val,
-                 Printf.sprintf "Unrecognized options: %s"
-                   (Ffmpeg_format.string_of_options original_opts) ));
+           if Hashtbl.length original_opts > 0 then
+             raise
+               (Error.Invalid_value
+                  ( format_val,
+                    Printf.sprintf "Unrecognized options: %s"
+                      (Ffmpeg_format.string_of_options original_opts) ));
 
-        encode_frame
-      in
+           encode_frame
+         in
 
-      let encode_frame_ref = ref None in
+         let encode_frame_ref = ref None in
 
-      let get_encode_frame generator =
-        match !encode_frame_ref with
-          | None ->
-              let fn = mk_encode_frame generator in
-              encode_frame_ref := Some fn;
-              fn
-          | Some fn -> fn
-      in
+         let get_encode_frame generator =
+           match !encode_frame_ref with
+             | None ->
+                 let fn = mk_encode_frame generator in
+                 encode_frame_ref := Some fn;
+                 fn
+             | Some fn -> fn
+         in
 
-      let encode_frame generator frame =
-        let encode_frame = get_encode_frame generator in
-        match frame with
-          | `Frame frame -> encode_frame (`Frame frame)
-          | `Flush ->
-              encode_frame `Flush;
-              encode_frame_ref := None
-      in
+         let encode_frame generator frame =
+           let encode_frame = get_encode_frame generator in
+           match frame with
+             | `Frame frame -> encode_frame (`Frame frame)
+             | `Flush ->
+                 encode_frame `Flush;
+                 encode_frame_ref := None
+         in
 
-      let consumer =
-        new Producer_consumer.consumer
-          ~write_frame:encode_frame ~name:(id ^ ".consumer") ~source ()
-      in
-      let source_frame_t =
-        Typing.instantiate ~level:(-1)
-          (Typing.generalize ~level:(-1) source_frame_t)
-      in
-      Typing.(consumer#frame_type <: source_frame_t);
+         let consumer =
+           new Producer_consumer.consumer
+             ~write_frame:encode_frame ~name:(id ^ ".consumer") ~source ()
+         in
+         let source_frame_t =
+           Typing.instantiate ~level:(-1)
+             (Typing.generalize ~level:(-1) source_frame_t)
+         in
+         Typing.(consumer#frame_type <: source_frame_t);
 
-      new Producer_consumer.producer
-      (* We are expecting real-rate with a couple of hickups.. *)
-        ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer") ())
+         new Producer_consumer.producer
+         (* We are expecting real-rate with a couple of hickups.. *)
+           ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer")
+           ()))
 
 let () =
   List.iter mk_encoder

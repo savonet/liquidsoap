@@ -82,7 +82,8 @@ let saw f =
   new Audio.Generator.of_mono
     (new Audio.Mono.Generator.saw (Lazy.force Frame.audio_rate) f)
 
+let sine = add "sine" sine
+
 let () =
-  add "sine" sine;
-  add "square" square;
-  add "saw" saw
+  ignore (add "square" square);
+  ignore (add "saw" saw)

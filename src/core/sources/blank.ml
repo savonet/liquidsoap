@@ -61,7 +61,7 @@ class blank duration =
       else if remaining > 0 then remaining <- remaining - length
   end
 
-let () =
+let blank =
   let return_t = Lang.internal_t () in
   Lang.add_operator "blank" ~category:`Input
     ~descr:"Produce silence and blank images." ~return_t

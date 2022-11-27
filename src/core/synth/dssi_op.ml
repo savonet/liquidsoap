@@ -122,10 +122,9 @@ class dssi ?chan plugin descr outputs params source =
         Audio.copy_from_ba ba b offset len
   end
 
-let () =
-  Lang.add_module "dssi";
-  Lang.add_module "synth.dssi";
-  Lang.add_module "synth.all.dssi"
+let dssi = Lang.add_module "dssi"
+let synth_dssi = Lang.add_module ~base:Modules.synth "dssi"
+let synth_all_dssi = Lang.add_module ~base:Modules.synth_all "dssi"
 
 let register_descr plugin_name descr_n descr outputs =
   let ladspa_descr = Descriptor.ladspa descr in
@@ -138,22 +137,25 @@ let register_descr plugin_name descr_n descr outputs =
          ~midi:(Format_type.midi_n 1) ())
   in
   let liq_params = liq_params in
-  Lang.add_operator
-    ("synth.dssi."
-    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
-    ([
-       ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
-     ]
-    @ liq_params
-    @ [("", Lang.source_t frame_t, None, None)])
-    ~return_t:frame_t ~category:`Synthesis ~flags:[`Extra]
-    ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
-    (fun p ->
-      let f v = List.assoc v p in
-      let chan = Lang.to_int (f "channel") in
-      let source = Lang.to_source (f "") in
-      let params = params p in
-      new dssi plugin_name descr_n outputs params ~chan source);
+  ignore
+    (Lang.add_operator ~base:synth_dssi
+       (Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
+       ([
+          ( "channel",
+            Lang.int_t,
+            Some (Lang.int 0),
+            Some "MIDI channel to handle." );
+        ]
+       @ liq_params
+       @ [("", Lang.source_t frame_t, None, None)])
+       ~return_t:frame_t ~category:`Synthesis ~flags:[`Extra]
+       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
+       (fun p ->
+         let f v = List.assoc v p in
+         let chan = Lang.to_int (f "channel") in
+         let source = Lang.to_source (f "") in
+         let params = params p in
+         new dssi plugin_name descr_n outputs params ~chan source));
 
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
@@ -162,17 +164,17 @@ let register_descr plugin_name descr_n descr outputs =
          ~midi:(Format_type.midi_n all_chans)
          ())
   in
-  Lang.add_operator
-    ("synth.all.dssi."
-    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
-    (liq_params @ [("", Lang.source_t frame_t, None, None)])
-    ~return_t:frame_t ~category:`Synthesis ~flags:[`Extra]
-    ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
-    (fun p ->
-      let f v = List.assoc v p in
-      let source = Lang.to_source (f "") in
-      let params = params p in
-      new dssi plugin_name descr_n outputs params source)
+  ignore
+    (Lang.add_operator ~base:synth_all_dssi
+       (Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
+       (liq_params @ [("", Lang.source_t frame_t, None, None)])
+       ~return_t:frame_t ~category:`Synthesis ~flags:[`Extra]
+       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
+       (fun p ->
+         let f v = List.assoc v p in
+         let source = Lang.to_source (f "") in
+         let params = params p in
+         new dssi plugin_name descr_n outputs params source))
 
 let register_plugin ?(log_errors = false) pname =
   try
@@ -233,8 +235,8 @@ let () =
     register_plugins ());
   List.iter (register_plugin ~log_errors:true) dssi_load
 
-let () =
-  Lang.add_builtin "dssi.register" ~category:(`Source `Synthesis)
+let _ =
+  Lang.add_builtin ~base:dssi "register" ~category:(`Source `Synthesis)
     ~descr:"Register a DSSI plugin."
     [("", Lang.string_t, None, Some "Path of the DSSI plugin file.")]
     Lang.unit_t

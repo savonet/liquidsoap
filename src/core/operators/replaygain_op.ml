@@ -55,14 +55,14 @@ class replaygain (source : source) =
     method gain = Audio.Analyze.ReplayGain.gain self#state
   end
 
-let () = Lang.add_module "source.replaygain"
+let source_replaygain = Lang.add_module ~base:Modules.source "replaygain"
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "source.replaygain.compute"
+  Lang.add_operator ~base:source_replaygain "compute"
     ~meth:
       [
         ( "reset",

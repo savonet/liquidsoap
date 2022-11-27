@@ -50,7 +50,7 @@ class swap (source : source) =
         done
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())

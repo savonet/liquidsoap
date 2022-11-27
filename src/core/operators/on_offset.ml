@@ -79,7 +79,7 @@ class on_offset ~force ~offset ~override f s =
         elapsed <- 0L)
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "on_offset"
     [

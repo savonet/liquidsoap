@@ -193,7 +193,7 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
             track_state <- `Cue_out (elapsed + length, cue_out)
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "cue_cut" ~return_t ~category:`Track
     ~descr:

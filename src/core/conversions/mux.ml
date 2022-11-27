@@ -82,7 +82,7 @@ let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
   Typing.(muxed_frame_t <: producer#frame_type);
   producer
 
-let () =
+let _ =
   let video_type = Lang.univ_t () in
   let main_t = Lang.univ_t () in
   let aux_t =
@@ -106,7 +106,7 @@ let () =
       create ~name:"mux_video" ~main_source ~main_content ~aux_source
         ~aux_content ())
 
-let () =
+let _ =
   let audio_type = Lang.univ_t () in
   let main_t = Lang.univ_t () in
   let aux_t =

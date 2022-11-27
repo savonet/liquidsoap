@@ -24,7 +24,7 @@ let raise exn =
   let bt = Printexc.get_raw_backtrace () in
   Lang.raise_as_runtime ~bt ~kind:"eval" exn
 
-let () =
+let _ =
   Lang.add_builtin ~category:`Liquidsoap "_eval_"
     ~descr:"Parse and evaluate a string." ~flags:[`Hidden]
     [("type", Value.RuntimeType.t, None, None); ("", Lang.string_t, None, None)]

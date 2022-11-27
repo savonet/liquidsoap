@@ -22,7 +22,6 @@
 
 open Mm
 open Source
-open Blank
 
 (** Below, lengths are in audio samples, thresholds in RMS (in [0.;1.]). *)
 
@@ -243,12 +242,13 @@ let extract p =
   let ts = Lang.to_bool (f "track_sensitive") in
   (start_blank, max_blank, min_noise, threshold, ts, s)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "blank.detect" ~return_t:frame_t ~category:`Track
+  Lang.add_operator ~base:Blank.blank "detect" ~return_t:frame_t
+    ~category:`Track
     ~meth:
       [
         ( "is_blank",
@@ -277,12 +277,12 @@ let () =
         ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive ~on_blank
         ~on_noise s)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "blank.strip" ~return_t:frame_t
+  Lang.add_operator ~base:Blank.blank "strip" ~return_t:frame_t
     ~meth:
       [
         ( "is_blank",
@@ -299,12 +299,12 @@ let () =
       in
       new strip ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "blank.eat" ~return_t:frame_t ~category:`Track
+  Lang.add_operator ~base:Blank.blank "eat" ~return_t:frame_t ~category:`Track
     ~meth:
       [
         ( "is_blank",

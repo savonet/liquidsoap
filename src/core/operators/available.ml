@@ -41,9 +41,9 @@ class available ~track_sensitive ~override p (source : source) =
       if track_sensitive () && Frame.is_partial buf then ready <- p ()
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "source.available"
+  Lang.add_operator ~base:Modules.source "available"
     [
       ( "track_sensitive",
         Lang.getter_t Lang.bool_t,

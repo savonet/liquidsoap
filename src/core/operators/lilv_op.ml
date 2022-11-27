@@ -329,8 +329,8 @@ let register_plugin plugin =
       (Frame.Fields.make ~audio:(Format_type.audio_n no) ())
   in
   ignore
-    (Lang.add_operator
-       ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))
+    (Lang.add_operator ~base:lv2
+       (Utils.normalize_parameter_string (Plugin.name plugin))
        liq_params ~return_t ~category:`Audio ~flags:[`Extra] ~descr
        (fun p ->
          let f v = List.assoc v p in

@@ -45,7 +45,7 @@ class map source delay random freeze =
         done
   end
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "sleeper"
     [

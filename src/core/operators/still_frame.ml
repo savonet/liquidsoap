@@ -64,13 +64,12 @@ class still_frame ~name (source : source) =
               | None -> ())
   end
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
-  let name = "video.still_frame" in
-  Lang.add_operator name
+  Lang.add_operator ~base:Modules.video "still_frame"
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:`Video
     ~descr:
@@ -90,4 +89,4 @@ let () =
       ]
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
-      new still_frame ~name s)
+      new still_frame ~name:"video.still_frame" s)

@@ -35,7 +35,7 @@ module String = struct
     else raise Not_found
 end
 
-let () = Lang.add_module "ladspa"
+let ladspa = Lang.add_module "ladspa"
 
 type t = Float | Int | Bool
 
@@ -334,20 +334,24 @@ let register_descr plugin_name descr_n d inputs outputs =
     try "lsp_" ^ String.residual label "http:_lsp_plugin_plugins_ladspa_"
     with Not_found -> label
   in
-  Lang.add_operator ("ladspa." ^ label) liq_params ~return_t ~category:`Audio
-    ~flags:[`Extra] ~descr (fun p ->
-      let f v = List.assoc v p in
-      let source = try Some (Lang.to_source (f "")) with Not_found -> None in
-      let params = params p in
-      if ni = 0 then new ladspa_nosource plugin_name descr_n outputs params
-      else if mono then
-        (new ladspa_mono
-           (Option.get source) plugin_name descr_n inputs.(0) outputs.(0) params
-          :> Source.source)
-      else
-        (new ladspa
-           (Option.get source) plugin_name descr_n inputs outputs params
-          :> Source.source))
+  ignore
+    (Lang.add_operator ~base:ladspa label liq_params ~return_t ~category:`Audio
+       ~flags:[`Extra] ~descr (fun p ->
+         let f v = List.assoc v p in
+         let source =
+           try Some (Lang.to_source (f "")) with Not_found -> None
+         in
+         let params = params p in
+         if ni = 0 then new ladspa_nosource plugin_name descr_n outputs params
+         else if mono then
+           (new ladspa_mono
+              (Option.get source) plugin_name descr_n inputs.(0) outputs.(0)
+              params
+             :> Source.source)
+         else
+           (new ladspa
+              (Option.get source) plugin_name descr_n inputs outputs params
+             :> Source.source)))
 
 let register_descr plugin_name descr_n d inputs outputs =
   (* We do not register plugins without outputs for now. *)

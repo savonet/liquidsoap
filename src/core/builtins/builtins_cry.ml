@@ -20,14 +20,14 @@
 
  *****************************************************************************)
 
-let () = Lang.add_module "icy"
+let icy = Lang.add_module "icy"
 let log = Log.make ["icy"; "update_metadata"]
 
-let () =
+let _ =
   let user_agent =
     Lang.product (Lang.string "User-Agent") (Lang.string Http.user_agent)
   in
-  Lang.add_builtin "icy.update_metadata" ~category:`Interaction
+  Lang.add_builtin ~base:icy "update_metadata" ~category:`Interaction
     ~descr:"Update metata on an icecast mountpoint using the ICY protocol."
     [
       ("host", Lang.string_t, Some (Lang.string "localhost"), None);

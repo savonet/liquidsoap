@@ -151,12 +151,12 @@ class fir (source : source) freq beta numcoeffs =
       done
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "filter.fir"
+  Lang.add_operator ~base:Filter.filter "fir"
     [
       ( "frequency",
         Lang.float_t,

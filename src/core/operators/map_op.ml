@@ -45,9 +45,9 @@ class map source f =
 
 let to_fun_float f x = Lang.to_float (Lang.apply f [("", Lang.float x)])
 
-let () =
+let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "audio.map"
+  Lang.add_operator ~base:Modules.audio "map"
     [
       ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);
       ("", Lang.source_t frame_t, None, None);

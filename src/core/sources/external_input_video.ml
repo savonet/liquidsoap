@@ -49,14 +49,14 @@ class video ~name ~restart ~bufferize ~restart_on_error ~max ~on_data
 
 let log = Log.make ["input"; "external"; "video"]
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ())
          ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator "input.external.avi" ~category:`Input ~flags:[`Experimental]
-    ~descr:"Stream data from an external application."
+  Lang.add_operator ~base:Modules.input_external "avi" ~category:`Input
+    ~flags:[`Experimental] ~descr:"Stream data from an external application."
     [
       ( "buffer",
         Lang.float_t,
@@ -191,12 +191,12 @@ let () =
 
 (***** raw video *****)
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator "input.external.rawvideo" ~category:`Input
+  Lang.add_operator ~base:Modules.input_external "rawvideo" ~category:`Input
     ~flags:[`Experimental] ~descr:"Stream data from an external application."
     [
       ( "buffer",

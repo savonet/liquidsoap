@@ -57,7 +57,7 @@ class delay ~initial (source : source) delay =
       if Frame.is_partial buf then self#end_track
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "delay"
     [

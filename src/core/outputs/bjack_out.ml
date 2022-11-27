@@ -108,12 +108,12 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
     method reset = ()
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "output.jack"
+  Lang.add_operator ~base:Modules.output "jack"
     (Output.proto
     @ [
         ( "clock_safe",

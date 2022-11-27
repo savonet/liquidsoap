@@ -99,9 +99,9 @@ let transport ~password ~certificate ~key:_ () =
       (secure_transport_socket self sock ctx, caller)
   end
 
-let () =
-  Lang.add_builtin "http.transport.secure_transport" ~category:`Liquidsoap
-    ~descr:"Https transport using macos' SecureTransport"
+let _ =
+  Lang.add_builtin ~base:Modules.http_transport "secure_transport"
+    ~category:`Liquidsoap ~descr:"Https transport using macos' SecureTransport"
     [
       ( "password",
         Lang.nullable_t Lang.string_t,

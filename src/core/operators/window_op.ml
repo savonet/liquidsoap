@@ -89,14 +89,17 @@ class window mode duration source =
         done)
   end
 
-let declare mode suffix frame_t fun_ret_t f_ans =
-  let name = match mode with RMS -> "rms" | Peak -> "peak" in
-  let doc = match mode with RMS -> "RMS volume" | Peak -> "peak volume" in
+let declare ?base mode name frame_t fun_ret_t f_ans =
+  let meth, doc =
+    match mode with
+      | RMS -> ("rms", "RMS volume")
+      | Peak -> ("peak", "peak volume")
+  in
   let return_t = frame_t () in
-  Lang.add_operator (name ^ suffix) ~category:`Audio
+  Lang.add_operator ?base name ~category:`Audio
     ~meth:
       [
-        ( name,
+        ( meth,
           ([], Lang.fun_t [] fun_ret_t),
           "Current value for the " ^ doc ^ ".",
           fun s -> Lang.val_fun [] (fun _ -> f_ans s#value) );
@@ -104,7 +107,7 @@ let declare mode suffix frame_t fun_ret_t f_ans =
     ~return_t
     ~descr:
       ("Get current " ^ doc
-     ^ " of the source. Returns the source with a method `" ^ name
+     ^ " of the source. Returns the source with a method `" ^ meth
      ^ "` to compute the current " ^ doc ^ " of the source, with `0.0 <= " ^ doc
      ^ " <= 1.0`.")
     [
@@ -122,7 +125,7 @@ let declare mode suffix frame_t fun_ret_t f_ans =
       let duration = Lang.to_float_getter (f "duration") in
       new window mode duration src)
 
-let () =
+let rms, peak =
   let mean value =
     let x = Array.fold_left ( +. ) 0. value in
     let x = x /. float (Array.length value) in
@@ -139,11 +142,16 @@ let () =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
   in
-  declare RMS "" pcm_t Lang.float_t mean;
-  declare RMS ".stereo" stereo_t
+  let rms = declare RMS "rms" pcm_t Lang.float_t mean in
+  let peak = declare Peak "peak" pcm_t Lang.float_t mean in
+  let declare mode suffix frame_t fun_ret_t f_ans =
+    let base = match mode with RMS -> rms | Peak -> peak in
+    ignore (declare ~base mode suffix frame_t fun_ret_t f_ans)
+  in
+  declare RMS "stereo" stereo_t
     (Lang.product_t Lang.float_t Lang.float_t)
     stereo;
-  declare Peak "" pcm_t Lang.float_t mean;
-  declare Peak ".stereo" stereo_t
+  declare Peak "stereo" stereo_t
     (Lang.product_t Lang.float_t Lang.float_t)
-    stereo
+    stereo;
+  (rms, peak)

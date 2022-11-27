@@ -49,9 +49,9 @@ class on_end ~delay f s =
         executed <- false)
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "source.on_end"
+  Lang.add_operator ~base:Modules.source "on_end"
     [
       ( "delay",
         Lang.getter_t Lang.float_t,

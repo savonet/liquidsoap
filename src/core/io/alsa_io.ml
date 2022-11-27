@@ -269,12 +269,12 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         else raise e
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "output.alsa"
+  Lang.add_operator ~base:Modules.output "alsa"
     (Output.proto
     @ [
         ( "bufferize",
@@ -318,12 +318,12 @@ let () =
            ~clock_safe ~infallible ~start ~on_start ~on_stop device source
           :> Output.output))
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "input.alsa"
+  Lang.add_operator ~base:Modules.input "alsa"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
         ("bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input");

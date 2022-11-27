@@ -76,7 +76,7 @@ class max_duration ~override_meta ~duration source =
         s#get_ready [(self :> Source.source)])
   end
 
-let () =
+let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "max_duration"
     [

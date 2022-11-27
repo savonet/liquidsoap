@@ -112,8 +112,8 @@ let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
       (ssl_socket self ssl_s, caller)
   end
 
-let () =
-  Lang.add_builtin "http.transport.ssl" ~category:`Internet
+let _ =
+  Lang.add_builtin ~base:Modules.http_transport "ssl" ~category:`Internet
     ~descr:"Https transport using libssl"
     [
       ( "read_timeout",

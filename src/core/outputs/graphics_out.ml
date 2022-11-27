@@ -51,12 +51,12 @@ class output ~infallible ~autostart ~on_start ~on_stop source =
     method reset = ()
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator "output.graphics"
+  Lang.add_operator ~base:Modules.output "graphics"
     (Output.proto @ [("", Lang.source_t frame_t, None, None)])
     ~return_t:frame_t ~category:`Output ~meth:Output.meth
     ~descr:"Display video stream using the Graphics library."

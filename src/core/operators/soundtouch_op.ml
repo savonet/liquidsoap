@@ -103,7 +103,7 @@ class soundtouch source_val rate tempo pitch =
       child_support#after_output
   end
 
-let () =
+let _ =
   (* TODO: could we keep the video in some cases? *)
   let return_t =
     Lang.frame_t (Lang.univ_t ())

@@ -25,6 +25,7 @@
 (** The type of a value. *)
 type t = Type.t
 
+type module_name
 type scheme = Type.scheme
 type regexp
 
@@ -84,24 +85,28 @@ val add_builtin :
   ?flags:Doc.Value.flag list ->
   ?meth:(string * Type.scheme * string * value) list ->
   ?examples:string list ->
+  ?base:module_name ->
   string ->
   proto ->
   t ->
   (env -> value) ->
-  unit
+  module_name
 
 (** Add an builtin to the language, more rudimentary version. *)
 val add_builtin_base :
   category:Doc.Value.category ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
+  ?base:module_name ->
   string ->
   in_value ->
   t ->
-  unit
+  module_name
 
 (** Declare a new module. *)
-val add_module : string -> unit
+val add_module : ?base:module_name -> string -> module_name
+
+val module_name : module_name -> string
 
 (** {2 Manipulation of values} *)
 

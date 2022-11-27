@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-let () = Lang.add_module "list"
+let list = Modules.list
 
-let () =
+let _ =
   let a = Lang.univ_t ~constraints:[Type.ord_constr] () in
   Lang.add_builtin "_[_]" ~category:`List
     ~descr:
@@ -44,10 +44,10 @@ let () =
       in
       Lang.string ans)
 
-let () =
+let _ =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  Lang.add_builtin "list.case" ~category:`List
+  Lang.add_builtin ~base:list "case" ~category:`List
     ~descr:
       "Define a function by case analysis, depending on whether a list is \
        empty or not."
@@ -66,10 +66,10 @@ let () =
         | [] -> e
         | x :: l -> Lang.apply f [("", x); ("", Lang.list l)])
 
-let () =
+let _ =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  Lang.add_builtin "list.ind" ~category:`List
+  Lang.add_builtin ~base:list "ind" ~category:`List
     ~descr:
       "Define a function by induction on a list. This is slightly more \
        efficient than defining a recursive function. The list is scanned from \
@@ -98,23 +98,24 @@ let () =
       in
       aux (fun r -> r) (Lang.to_list l))
 
-let () =
+let _ =
   let a = Lang.univ_t () in
   List.iter
-    (fun name ->
-      Lang.add_builtin name ~category:`List
-        ~descr:"Add an element at the top of a list."
-        [("", a, None, None); ("", Lang.list_t a, None, None)]
-        (Lang.list_t a)
-        (fun p ->
-          let x, l = (Lang.assoc "" 1 p, Lang.assoc "" 2 p) in
-          let l = Lang.to_list l in
-          Lang.list (x :: l)))
-    ["list.add"; "_::_"]
+    (fun (base, name) ->
+      ignore
+        (Lang.add_builtin ?base name ~category:`List
+           ~descr:"Add an element at the top of a list."
+           [("", a, None, None); ("", Lang.list_t a, None, None)]
+           (Lang.list_t a)
+           (fun p ->
+             let x, l = (Lang.assoc "" 1 p, Lang.assoc "" 2 p) in
+             let l = Lang.to_list l in
+             Lang.list (x :: l))))
+    [(Some list, "add"); (None, "_::_")]
 
-let () =
+let _ =
   let a = Lang.univ_t () in
-  Lang.add_builtin "list.sort" ~category:`List
+  Lang.add_builtin ~base:list "sort" ~category:`List
     ~descr:"Sort a list according to a comparison function."
     [
       ( "",
@@ -131,3 +132,14 @@ let () =
       let sort x y = Lang.to_int (Lang.apply f [("", x); ("", y)]) in
       let l = Lang.assoc "" 2 p in
       Lang.list (List.sort sort (Lang.to_list l)))
+
+let _ =
+  let t = Lang.list_t (Lang.univ_t ()) in
+  Lang.add_builtin ~base:list "shuffle" ~category:`List
+    ~descr:
+      "Shuffle the content of a list. The function returns a list with the \
+       same elements but in different, random, order."
+    [("", t, None, None)]
+    t
+    (fun p ->
+      List.assoc "" p |> Lang.to_list |> Extralib.List.shuffle |> Lang.list)

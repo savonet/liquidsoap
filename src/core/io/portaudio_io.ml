@@ -237,12 +237,12 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
       AFrame.add_break frame (AFrame.size ())
   end
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "output.portaudio"
+  Lang.add_operator ~base:Modules.output "portaudio"
     (Output.proto
     @ [
         ( "clock_safe",
@@ -291,12 +291,12 @@ let () =
          buflen source
         :> Output.output))
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator "input.portaudio"
+  Lang.add_operator ~base:Modules.input "portaudio"
     (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
         ( "buflen",

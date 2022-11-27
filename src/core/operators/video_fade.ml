@@ -23,7 +23,7 @@
 open Mm
 open Source
 
-let () = Lang.add_module "video.fade"
+let video_fade = Lang.add_module ~base:Modules.video "fade"
 
 (** Fade-in at the beginning of every track.
   * The [duration] is in seconds. *)
@@ -272,12 +272,12 @@ let override_doc =
     "Metadata field which, if present and containing a float, overrides the \
      'duration' parameter for current track."
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator "video.fade.in"
+  Lang.add_operator ~base:video_fade "in"
     (( "override",
        Lang.string_t,
        Some (Lang.string "liq_video_fade_in"),
@@ -292,12 +292,12 @@ let () =
       let meta = Lang.to_string (List.assoc "override" p) in
       new fade_in ~meta d f t s)
 
-let () =
+let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator "video.fade.out"
+  Lang.add_operator ~base:video_fade "out"
     (( "override",
        Lang.string_t,
        Some (Lang.string "liq_video_fade_out"),

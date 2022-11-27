@@ -422,9 +422,10 @@ module Socket_value = struct
       ]
 end
 
-let () =
-  Lang.add_module "socket";
-  Lang.add_builtin "socket.unix" ~category:`Internet
+let socket = Lang.add_module "socket"
+
+let _ =
+  Lang.add_builtin ~base:socket "unix" ~category:`Internet
     [
       ("domain", Socket_domain.t, Some Socket_domain.inet, Some "Socket domain.");
       ("type", Socket_type.t, Some Socket_type.stream, Some "Socket type");
@@ -440,9 +441,10 @@ let () =
       let domain = Socket_domain.of_value (List.assoc "domain" p) in
       let typ = Socket_type.of_value (List.assoc "type" p) in
       let protocol = Lang.to_int (List.assoc "protocol" p) in
-      Socket_value.to_unix_value (Unix.socket ~cloexec:true domain typ protocol));
+      Socket_value.to_unix_value (Unix.socket ~cloexec:true domain typ protocol))
 
-  Lang.add_builtin "socket.pair" ~category:`Internet
+let _ =
+  Lang.add_builtin ~base:socket "pair" ~category:`Internet
     [
       ("domain", Socket_domain.t, Some Socket_domain.inet, Some "Socket domain.");
       ("type", Socket_type.t, Some Socket_type.stream, Some "Socket type");
@@ -461,64 +463,72 @@ let () =
       let s, s' = Unix.socketpair ~cloexec:true domain typ protocol in
       Lang.product
         (Socket_value.to_unix_value s)
-        (Socket_value.to_unix_value s'));
+        (Socket_value.to_unix_value s'))
 
-  Lang.add_module "socket.domain";
-  Lang.add_module "socket.type";
-  let add ~t ~name ~descr value =
-    Lang.add_builtin_base ~category:`Internet ~descr ("socket." ^ name) value t
-  in
-  add ~t:Socket_domain.t ~name:"domain.unix" ~descr:"Unix socket domain"
-    Socket_domain.unix.Value.value;
-  add ~t:Socket_domain.t ~name:"domain.inet" ~descr:"Inet socket domain"
-    Socket_domain.inet.Value.value;
-  add ~t:Socket_domain.t ~name:"domain.inet6" ~descr:"Inet6 socket domain"
-    Socket_domain.inet6.Value.value;
-  add ~t:Socket_type.t ~name:"type.stream" ~descr:"Stream socket type"
-    Socket_type.stream.Value.value;
-  add ~t:Socket_type.t ~name:"type.dgram" ~descr:"Dgram socket type"
-    Socket_type.dgram.Value.value;
-  add ~t:Socket_type.t ~name:"type.raw" ~descr:"Raw socket type"
-    Socket_type.raw.Value.value;
+let socket_domain = Lang.add_module ~base:socket "domain"
+let socket_type = Lang.add_module ~base:socket "type"
 
-  Lang.add_builtin "socket.internet_address" ~category:`Internet
+let add ~t ~name ~descr ~base value =
+  ignore (Lang.add_builtin_base ~category:`Internet ~descr ~base name value t)
+
+let () =
+  add ~t:Socket_domain.t ~base:socket_domain ~name:"unix"
+    ~descr:"Unix socket domain" Socket_domain.unix.Value.value;
+  add ~t:Socket_domain.t ~base:socket_domain ~name:"inet"
+    ~descr:"Inet socket domain" Socket_domain.inet.Value.value;
+  add ~t:Socket_domain.t ~base:socket_domain ~name:"inet6"
+    ~descr:"Inet6 socket domain" Socket_domain.inet6.Value.value;
+  add ~t:Socket_type.t ~base:socket_type ~name:"stream"
+    ~descr:"Stream socket type" Socket_type.stream.Value.value;
+  add ~t:Socket_type.t ~base:socket_type ~name:"dgram"
+    ~descr:"Dgram socket type" Socket_type.dgram.Value.value;
+  add ~t:Socket_type.t ~base:socket_type ~name:"raw" ~descr:"Raw socket type"
+    Socket_type.raw.Value.value
+
+let socket_internet_address =
+  Lang.add_builtin ~base:socket "internet_address" ~category:`Internet
     [("", Lang.string_t, None, Some "Socket internet address.")]
     Inet_addr.t
     ~descr:"Return an internet address from its string representation."
     (fun p ->
       Inet_addr.to_value
-        (Unix.inet_addr_of_string (Lang.to_string (List.assoc "" p))));
+        (Unix.inet_addr_of_string (Lang.to_string (List.assoc "" p))))
 
-  add ~t:Inet_addr.t ~name:"internet_address.any"
+let () =
+  add ~t:Inet_addr.t ~base:socket_internet_address ~name:"any"
     ~descr:
       "A special IPv4 address, for use only with `socket.bind`, representing \
        all the Internet addresses that the host machine possesses."
     Inet_addr.any.Value.value;
-  add ~t:Inet_addr.t ~name:"internet_address.loopback"
+  add ~t:Inet_addr.t ~base:socket_internet_address ~name:"loopback"
     ~descr:"A special IPv4 address representing the host machine (`127.0.0.1`)."
-    Inet_addr.loopback.Value.value;
+    Inet_addr.loopback.Value.value
 
-  Lang.add_module "socket.internet_address.ipv6";
+let socket_internet_address_ipv6 =
+  Lang.add_module ~base:socket_internet_address "ipv6"
 
-  add ~t:Inet_addr.t ~name:"internet_address.ipv6.any"
+let () =
+  add ~t:Inet_addr.t ~base:socket_internet_address_ipv6 ~name:"any"
     ~descr:
       "A special IPv6 address, for use only with `socket.bind`, representing \
        all the Internet addresses that the host machine possesses."
     Inet_addr.ipv6_any.Value.value;
-  add ~t:Inet_addr.t ~name:"internet_address.ipv6.loopback"
+  add ~t:Inet_addr.t ~base:socket_internet_address_ipv6 ~name:"loopback"
     ~descr:"A special IPv6 address representing the host machine (`::1`)."
-    Inet_addr.ipv6_loopback.Value.value;
+    Inet_addr.ipv6_loopback.Value.value
 
-  Lang.add_module "socket.address";
+let socket_address = Lang.add_module ~base:socket "address"
 
-  Lang.add_builtin "socket.address.unix" ~category:`Internet
+let socket_address_unix =
+  Lang.add_builtin ~base:socket_address "unix" ~category:`Internet
     [("", Lang.string_t, None, Some "Unix socket path")]
     Socket_addr.unix_t ~descr:"Create a socket address for a unix file socket."
     (fun p ->
       Socket_addr.to_unix_value
-        (Unix.ADDR_UNIX (Lang.to_string (List.assoc "" p))));
+        (Unix.ADDR_UNIX (Lang.to_string (List.assoc "" p))))
 
-  Lang.add_builtin "socket.address.internet_address" ~category:`Internet
+let _ =
+  Lang.add_builtin ~base:socket_address "internet_address" ~category:`Internet
     [
       ("", Inet_addr.t, None, Some "Internet address.");
       ("", Lang.int_t, None, Some "port");
@@ -548,19 +558,20 @@ let to_host_value { Unix.h_name; h_aliases; h_addrtype; h_addr_list } =
         Lang.list (List.map Inet_addr.to_value (Array.to_list h_addr_list)) );
     ]
 
-let () =
-  Lang.add_module "host";
+let host = Lang.add_module "host"
 
-  Lang.add_builtin "host.of_name" ~category:`Internet
+let _ =
+  Lang.add_builtin ~base:host "of_name" ~category:`Internet
     ~descr:"Find a host by name"
     [("", Lang.string_t, None, Some "hostname")]
     (Lang.nullable_t host_t)
     (fun p ->
       let hostname = Lang.to_string (List.assoc "" p) in
       try to_host_value (Unix.gethostbyname hostname)
-      with Not_found -> Lang.null);
+      with Not_found -> Lang.null)
 
-  Lang.add_builtin "host.of_internet_address" ~category:`Internet
+let _ =
+  Lang.add_builtin ~base:host "of_internet_address" ~category:`Internet
     ~descr:"Find a host by internet address"
     [("", Inet_addr.base_t, None, None)]
     (Lang.nullable_t host_t)

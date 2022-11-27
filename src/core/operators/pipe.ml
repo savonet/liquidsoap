@@ -286,7 +286,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       if handler = None then child_support#after_output
   end
 
-let () =
+let _ =
   let return_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())

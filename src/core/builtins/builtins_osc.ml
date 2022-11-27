@@ -122,7 +122,7 @@ let client =
           c := Some c';
           c'
 
-let () = Lang.add_module "osc.native"
+let osc_native = Lang.add_module ~base:Modules.osc "native"
 
 let register name osc_t liq_t =
   let val_array vv =
@@ -131,68 +131,69 @@ let register name osc_t liq_t =
       | 2 -> Lang.product vv.(0) vv.(1)
       | _ -> assert false
   in
-  Lang.add_builtin ("osc.native." ^ name) ~category:`Interaction
-    [
-      ("", Lang.string_t, None, Some "OSC path.");
-      ("", liq_t, None, Some "Initial value.");
-    ]
-    (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path."
-    (fun p ->
-      let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let v = Lang.assoc "" 2 p in
-      let v = ref v in
-      let handle vv = v := val_array vv in
-      add_handler path osc_t handle;
-      start_server ();
-      Lang.val_fun [] (fun _ -> !v));
-  Lang.add_builtin ("osc.native.on_" ^ name) ~category:`Interaction
-    [
-      ("", Lang.string_t, None, Some "OSC path.");
-      ( "",
-        Lang.fun_t [(false, "", liq_t)] Lang.unit_t,
-        None,
-        Some "Callback function." );
-    ]
-    Lang.unit_t ~descr:"Register a callback on OSC messages."
-    (fun p ->
-      let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let f = Lang.assoc "" 2 p in
-      let handle v =
-        let v = val_array v in
-        ignore (Lang.apply f [("", v)])
-      in
-      add_handler path osc_t handle;
-      start_server ();
-      Lang.unit);
-  Lang.add_builtin
-    ("osc.native.send_" ^ name)
-    ~category:`Interaction
-    [
-      ("host", Lang.string_t, None, Some "OSC client address.");
-      ("port", Lang.int_t, None, Some "OSC client port.");
-      ("", Lang.string_t, None, Some "OSC path.");
-      ("", liq_t, None, Some "Value to send.");
-    ]
-    Lang.unit_t ~descr:"Send a value to an OSC client."
-    (fun p ->
-      let host = Lang.to_string (List.assoc "host" p) in
-      let port = Lang.to_int (List.assoc "port" p) in
-      let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let v = Lang.assoc "" 2 p in
-      let address =
-        Unix.ADDR_INET ((Unix.gethostbyname host).h_addr_list.(0), port)
-      in
-      let osc_val v =
-        match v.Lang.value with
-          | Lang.(Ground (Ground.String s)) -> [Osc.Types.String s]
-          | Lang.(Ground (Ground.Float x)) -> [Osc.Types.Float32 x]
-          | _ -> failwith "Unhandled value."
-      in
-      let packet =
-        Osc.Types.Message { address = path; arguments = osc_val v }
-      in
-      Osc_unix.Udp.Client.send (client ()) address packet;
-      Lang.unit)
+  ignore
+    (Lang.add_builtin ~base:osc_native name ~category:`Interaction
+       [
+         ("", Lang.string_t, None, Some "OSC path.");
+         ("", liq_t, None, Some "Initial value.");
+       ]
+       (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path."
+       (fun p ->
+         let path = Lang.to_string (Lang.assoc "" 1 p) in
+         let v = Lang.assoc "" 2 p in
+         let v = ref v in
+         let handle vv = v := val_array vv in
+         add_handler path osc_t handle;
+         start_server ();
+         Lang.val_fun [] (fun _ -> !v)));
+  ignore
+    (Lang.add_builtin ~base:osc_native ("on_" ^ name) ~category:`Interaction
+       [
+         ("", Lang.string_t, None, Some "OSC path.");
+         ( "",
+           Lang.fun_t [(false, "", liq_t)] Lang.unit_t,
+           None,
+           Some "Callback function." );
+       ]
+       Lang.unit_t ~descr:"Register a callback on OSC messages."
+       (fun p ->
+         let path = Lang.to_string (Lang.assoc "" 1 p) in
+         let f = Lang.assoc "" 2 p in
+         let handle v =
+           let v = val_array v in
+           ignore (Lang.apply f [("", v)])
+         in
+         add_handler path osc_t handle;
+         start_server ();
+         Lang.unit));
+  ignore
+    (Lang.add_builtin ~base:osc_native ("send_" ^ name) ~category:`Interaction
+       [
+         ("host", Lang.string_t, None, Some "OSC client address.");
+         ("port", Lang.int_t, None, Some "OSC client port.");
+         ("", Lang.string_t, None, Some "OSC path.");
+         ("", liq_t, None, Some "Value to send.");
+       ]
+       Lang.unit_t ~descr:"Send a value to an OSC client."
+       (fun p ->
+         let host = Lang.to_string (List.assoc "host" p) in
+         let port = Lang.to_int (List.assoc "port" p) in
+         let path = Lang.to_string (Lang.assoc "" 1 p) in
+         let v = Lang.assoc "" 2 p in
+         let address =
+           Unix.ADDR_INET ((Unix.gethostbyname host).h_addr_list.(0), port)
+         in
+         let osc_val v =
+           match v.Lang.value with
+             | Lang.(Ground (Ground.String s)) -> [Osc.Types.String s]
+             | Lang.(Ground (Ground.Float x)) -> [Osc.Types.Float32 x]
+             | _ -> failwith "Unhandled value."
+         in
+         let packet =
+           Osc.Types.Message { address = path; arguments = osc_val v }
+         in
+         Osc_unix.Udp.Client.send (client ()) address packet;
+         Lang.unit))
 
 let () =
   register "float" [| `Float |] Lang.float_t;

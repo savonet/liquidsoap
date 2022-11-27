@@ -1,5 +1,7 @@
-let () =
-  Lang.add_builtin "file.open" ~category:`File
+let file = Modules.file
+
+let _ =
+  Lang.add_builtin ~base:file "open" ~category:`File
     [
       ( "write",
         Lang.bool_t,
@@ -57,8 +59,8 @@ let () =
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)
 
-let () =
-  Lang.add_builtin "file.watch" ~category:`File
+let _ =
+  Lang.add_builtin ~base:file "watch" ~category:`File
     [
       ("", Lang.string_t, None, Some "File to watch.");
       ("", Lang.fun_t [] Lang.unit_t, None, Some "Handler function.");
@@ -86,8 +88,8 @@ let () =
                 Lang.unit) );
         ])
 
-let () =
-  Lang.add_builtin "file.metadata" ~category:`File
+let file_metadata =
+  Lang.add_builtin ~base:file "metadata" ~category:`File
     [
       ( "",
         Lang.string_t,
@@ -107,25 +109,27 @@ let () =
   Lifecycle.before_script_parse (fun () ->
       Plug.iter Request.mresolvers (fun name decoder ->
           let name = String.lowercase_ascii name in
-          Lang.add_builtin ("file.metadata." ^ name) ~category:`File
-            [
-              ( "",
-                Lang.string_t,
-                None,
-                Some "File from which the metadata should be read." );
-            ]
-            Lang.metadata_t
-            ~descr:("Read metadata from a file using the " ^ name ^ " decoder.")
-            (fun p ->
-              let uri = Lang.to_string (List.assoc "" p) in
-              let m = try decoder uri with _ -> [] in
-              let m =
-                List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
-              in
-              Lang.metadata (Frame.metadata_of_list m))))
+          ignore
+            (Lang.add_builtin ~base:file_metadata name ~category:`File
+               [
+                 ( "",
+                   Lang.string_t,
+                   None,
+                   Some "File from which the metadata should be read." );
+               ]
+               Lang.metadata_t
+               ~descr:
+                 ("Read metadata from a file using the " ^ name ^ " decoder.")
+               (fun p ->
+                 let uri = Lang.to_string (List.assoc "" p) in
+                 let m = try decoder uri with _ -> [] in
+                 let m =
+                   List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
+                 in
+                 Lang.metadata (Frame.metadata_of_list m)))))
 
-let () =
-  Lang.add_builtin "file.which" ~category:`File
+let _ =
+  Lang.add_builtin ~base:file "which" ~category:`File
     ~descr:
       "`file.which(\"progname\")` looks for an executable named \"progname\" \
        using directories from the PATH environment variable and returns \"\" \

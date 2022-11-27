@@ -56,10 +56,8 @@ open Builtins_ffmpeg_base
   * outputs only pulling when _all_ inputs are available, to avoid running
   * into endless pulling loops. *)
 
-let () =
-  Lang.add_module "ffmpeg.filter.audio";
-  Lang.add_module "ffmpeg.filter.video"
-
+let ffmpeg_filter_audio = Lang.add_module ~base:ffmpeg_filter "audio"
+let ffmpeg_filter_video = Lang.add_module ~base:ffmpeg_filter "video"
 let log = Log.make ["ffmpeg"; "filter"]
 
 type 'a input = 'a Avfilter.input
@@ -517,38 +515,42 @@ let () =
           Printf.sprintf "Ffmpeg filter: %s%s" description
             (if explanation <> "" then " " ^ explanation else "")
         in
-        Lang.add_builtin ~category:(`Source `FFmpegFilter)
-          ("ffmpeg.filter." ^ name) ~descr ~flags:[`Extra]
-          (args_t @ List.map (fun (_, lbl, t) -> (lbl, t, None, None)) sources_t)
-          output_t
-          (fun p ->
-            let named_args = List.filter (fun (lbl, _) -> lbl <> "") p in
-            let unnamed_args = List.filter (fun (lbl, _) -> lbl = "") p in
-            (* Unnamed args are ordered. The last [n] ones are from [sources_t] *)
-            let n_sources = List.length sources_t in
-            let n_args = List.length unnamed_args in
-            let unnamed_args, inputs =
-              List.fold_left
-                (fun (args, inputs) el ->
-                  if List.length args < n_args - n_sources then
-                    (args @ [el], inputs)
-                  else (args, inputs @ [el]))
-                ([], []) unnamed_args
-            in
-            let args = named_args @ unnamed_args in
-            let filter = apply_filter ~args_parser ~filter ~sources_t args in
-            ignore (Lang.apply (Value.invoke filter "set_input") inputs);
-            Value.invoke filter "output");
-        Lang.add_builtin ~category:(`Source `FFmpegFilter)
-          ("ffmpeg.filter." ^ name ^ ".create")
-          ~descr:
-            (Printf.sprintf
-               "%s. Use this operator to initiate the filter independently of \
-                its inputs, to be able to send commands to the filter \
-                instance."
-               descr)
-          ~flags:[`Extra] args_t return_t
-          (apply_filter ~args_parser ~filter ~sources_t))
+        let base_filter =
+          Lang.add_builtin ~category:(`Source `FFmpegFilter) name
+            ~base:ffmpeg_filter ~descr ~flags:[`Extra]
+            (args_t
+            @ List.map (fun (_, lbl, t) -> (lbl, t, None, None)) sources_t)
+            output_t
+            (fun p ->
+              let named_args = List.filter (fun (lbl, _) -> lbl <> "") p in
+              let unnamed_args = List.filter (fun (lbl, _) -> lbl = "") p in
+              (* Unnamed args are ordered. The last [n] ones are from [sources_t] *)
+              let n_sources = List.length sources_t in
+              let n_args = List.length unnamed_args in
+              let unnamed_args, inputs =
+                List.fold_left
+                  (fun (args, inputs) el ->
+                    if List.length args < n_args - n_sources then
+                      (args @ [el], inputs)
+                    else (args, inputs @ [el]))
+                  ([], []) unnamed_args
+              in
+              let args = named_args @ unnamed_args in
+              let filter = apply_filter ~args_parser ~filter ~sources_t args in
+              ignore (Lang.apply (Value.invoke filter "set_input") inputs);
+              Value.invoke filter "output")
+        in
+        ignore
+          (Lang.add_builtin ~category:(`Source `FFmpegFilter) ~base:base_filter
+             "create"
+             ~descr:
+               (Printf.sprintf
+                  "%s. Use this operator to initiate the filter independently \
+                   of its inputs, to be able to send commands to the filter \
+                   instance."
+                  descr)
+             ~flags:[`Extra] args_t return_t
+             (apply_filter ~args_parser ~filter ~sources_t)))
       filters)
 
 let abuffer_args frame =
@@ -574,7 +576,7 @@ let buffer_args frame =
     `Pair ("pix_fmt", `Int Avutil.Pixel_format.(get_id pixel_format));
   ]
 
-let () =
+let _ =
   let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.kind in
   let raw_video_format = `Kind Ffmpeg_raw_content.Video.kind in
   let audio_frame_t =
@@ -592,72 +594,74 @@ let () =
   let audio_t = Lang.(source_t ~methods:false audio_frame_t) in
   let video_t = Lang.(source_t ~methods:false video_frame_t) in
 
-  Lang.add_builtin ~category:(`Source `FFmpegFilter) "ffmpeg.filter.audio.input"
-    ~descr:"Attach an audio source to a filter's input"
-    [
-      ( "pass_metadata",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Pass liquidsoap's metadata to this stream" );
-      ("", Graph.t, None, None);
-      ("", audio_t, None, None);
-    ]
-    Audio.t
-    (fun p ->
-      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
-      let graph_v = Lang.assoc "" 1 p in
-      let config = get_config graph_v in
-      let graph = Graph.of_value graph_v in
-      let source_val = Lang.assoc "" 2 p in
+  ignore
+    (Lang.add_builtin ~category:(`Source `FFmpegFilter)
+       ~base:ffmpeg_filter_audio "input"
+       ~descr:"Attach an audio source to a filter's input"
+       [
+         ( "pass_metadata",
+           Lang.bool_t,
+           Some (Lang.bool true),
+           Some "Pass liquidsoap's metadata to this stream" );
+         ("", Graph.t, None, None);
+         ("", audio_t, None, None);
+       ]
+       Audio.t
+       (fun p ->
+         let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
+         let graph_v = Lang.assoc "" 1 p in
+         let config = get_config graph_v in
+         let graph = Graph.of_value graph_v in
+         let source_val = Lang.assoc "" 2 p in
 
-      let frame_t =
-        Lang.frame_t Lang.unit_t
-          (Frame.Fields.make
-           (* We need to make sure that we are using a format here to
-              ensure that its params are properly unified with the underlying source. *)
-             ~audio:
-               (Type.make
-                  (Format_type.descr
-                     (`Format
-                       Ffmpeg_raw_content.Audio.(
-                         lift_params (default_params `Raw)))))
-             ())
-      in
-      let name = uniq_name "abuffer" in
-      let pos = source_val.Lang.pos in
-      let s =
-        try
-          Ffmpeg_filter_io.(
-            new audio_output ~pass_metadata ~name ~frame_t source_val)
-        with
-          | Source.Clock_conflict (a, b) ->
-              raise (Error.Clock_conflict (pos, a, b))
-          | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-      in
-      Queue.add (s :> Source.source) graph.graph_inputs;
+         let frame_t =
+           Lang.frame_t Lang.unit_t
+             (Frame.Fields.make
+              (* We need to make sure that we are using a format here to
+                 ensure that its params are properly unified with the underlying source. *)
+                ~audio:
+                  (Type.make
+                     (Format_type.descr
+                        (`Format
+                          Ffmpeg_raw_content.Audio.(
+                            lift_params (default_params `Raw)))))
+                ())
+         in
+         let name = uniq_name "abuffer" in
+         let pos = source_val.Lang.pos in
+         let s =
+           try
+             Ffmpeg_filter_io.(
+               new audio_output ~pass_metadata ~name ~frame_t source_val)
+           with
+             | Source.Clock_conflict (a, b) ->
+                 raise (Error.Clock_conflict (pos, a, b))
+             | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+         in
+         Queue.add (s :> Source.source) graph.graph_inputs;
 
-      let args = ref None in
+         let args = ref None in
 
-      let audio =
-        lazy
-          (let _abuffer =
-             Avfilter.attach ~args:(Option.get !args) ~name Avfilter.abuffer
-               config
-           in
-           Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
-           init_graph graph;
-           List.hd Avfilter.(_abuffer.io.outputs.audio))
-      in
+         let audio =
+           lazy
+             (let _abuffer =
+                Avfilter.attach ~args:(Option.get !args) ~name Avfilter.abuffer
+                  config
+              in
+              Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
+              init_graph graph;
+              List.hd Avfilter.(_abuffer.io.outputs.audio))
+         in
 
-      Queue.add (fun () -> Lazy.is_val audio) graph.input_inits;
+         Queue.add (fun () -> Lazy.is_val audio) graph.input_inits;
 
-      s#set_init (fun frame ->
-          if !args = None then (
-            args := Some (abuffer_args frame);
-            ignore (Lazy.force audio);
-            init_graph graph));
+         s#set_init (fun frame ->
+             if !args = None then (
+               args := Some (abuffer_args frame);
+               ignore (Lazy.force audio);
+               init_graph graph));
 
-      Audio.to_value (`Output audio));
+         Audio.to_value (`Output audio)));
 
   let return_t =
     Lang.frame_t (Lang.univ_t ())
@@ -665,122 +669,129 @@ let () =
          ~audio:(Type.make (Format_type.descr raw_audio_format))
          ())
   in
-  Lang.add_operator "ffmpeg.filter.audio.output" ~category:`FFmpegFilter
-    ~descr:"Return an audio source from a filter's output" ~return_t
-    [
-      ( "pass_metadata",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Pass ffmpeg stream metadata to liquidsoap" );
-      ("", Graph.t, None, None);
-      ("", Audio.t, None, None);
-    ]
-    (fun p ->
-      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
-      let graph_v = Lang.assoc "" 1 p in
-      let config = get_config graph_v in
-      let graph = Graph.of_value graph_v in
+  ignore
+    (Lang.add_operator ~base:ffmpeg_filter_audio "output"
+       ~category:`FFmpegFilter
+       ~descr:"Return an audio source from a filter's output" ~return_t
+       [
+         ( "pass_metadata",
+           Lang.bool_t,
+           Some (Lang.bool true),
+           Some "Pass ffmpeg stream metadata to liquidsoap" );
+         ("", Graph.t, None, None);
+         ("", Audio.t, None, None);
+       ]
+       (fun p ->
+         let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
+         let graph_v = Lang.assoc "" 1 p in
+         let config = get_config graph_v in
+         let graph = Graph.of_value graph_v in
 
-      let frame_t =
-        Lang.frame_t Lang.unit_t
-          (Frame.Fields.make
-           (* We need to make sure that we are using a format here to
-              ensure that its params are properly unified with the underlying source. *)
-             ~audio:
-               (Type.make
-                  (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind)))
-             ())
-      in
-      let s =
-        new Ffmpeg_filter_io.audio_input
-          ~pull:(fun () -> pull graph)
-          ~is_ready:(fun () -> is_ready graph)
-          ~self_sync:(fun () -> self_sync graph)
-          ~self_sync_type:(self_sync_type graph) ~pass_metadata frame_t
-      in
-      Queue.add (s :> Source.source) graph.graph_outputs;
+         let frame_t =
+           Lang.frame_t Lang.unit_t
+             (Frame.Fields.make
+              (* We need to make sure that we are using a format here to
+                 ensure that its params are properly unified with the underlying source. *)
+                ~audio:
+                  (Type.make
+                     (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind)))
+                ())
+         in
+         let s =
+           new Ffmpeg_filter_io.audio_input
+             ~pull:(fun () -> pull graph)
+             ~is_ready:(fun () -> is_ready graph)
+             ~self_sync:(fun () -> self_sync graph)
+             ~self_sync_type:(self_sync_type graph) ~pass_metadata frame_t
+         in
+         Queue.add (s :> Source.source) graph.graph_outputs;
 
-      let pad = Audio.of_value (Lang.assoc "" 2 p) in
-      Queue.add
-        (lazy
-          (let pad =
-             match pad with `Output pad -> Lazy.force pad | _ -> assert false
-           in
-           let name = uniq_name "abuffersink" in
-           let _abuffersink =
-             Avfilter.attach ~name Avfilter.abuffersink config
-           in
-           Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
-           Avfilter.(Hashtbl.add graph.entries.outputs.audio name s#set_output)))
-        graph.init;
+         let pad = Audio.of_value (Lang.assoc "" 2 p) in
+         Queue.add
+           (lazy
+             (let pad =
+                match pad with
+                  | `Output pad -> Lazy.force pad
+                  | _ -> assert false
+              in
+              let name = uniq_name "abuffersink" in
+              let _abuffersink =
+                Avfilter.attach ~name Avfilter.abuffersink config
+              in
+              Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
+              Avfilter.(
+                Hashtbl.add graph.entries.outputs.audio name s#set_output)))
+           graph.init;
 
-      (s :> Source.source));
+         (s :> Source.source)));
 
-  Lang.add_builtin ~category:(`Source `FFmpegFilter) "ffmpeg.filter.video.input"
-    ~descr:"Attach a video source to a filter's input"
-    [
-      ( "pass_metadata",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Pass liquidsoap's metadata to this stream" );
-      ("", Graph.t, None, None);
-      ("", video_t, None, None);
-    ]
-    Video.t
-    (fun p ->
-      let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
-      let graph_v = Lang.assoc "" 1 p in
-      let config = get_config graph_v in
-      let graph = Graph.of_value graph_v in
-      let source_val = Lang.assoc "" 2 p in
+  ignore
+    (Lang.add_builtin ~category:(`Source `FFmpegFilter)
+       ~base:ffmpeg_filter_video "input"
+       ~descr:"Attach a video source to a filter's input"
+       [
+         ( "pass_metadata",
+           Lang.bool_t,
+           Some (Lang.bool false),
+           Some "Pass liquidsoap's metadata to this stream" );
+         ("", Graph.t, None, None);
+         ("", video_t, None, None);
+       ]
+       Video.t
+       (fun p ->
+         let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
+         let graph_v = Lang.assoc "" 1 p in
+         let config = get_config graph_v in
+         let graph = Graph.of_value graph_v in
+         let source_val = Lang.assoc "" 2 p in
 
-      let frame_t =
-        Lang.frame_t Lang.unit_t
-          (Frame.Fields.make
-           (* We need to make sure that we are using a format here to
-              ensure that its params are properly unified with the underlying source. *)
-             ~video:
-               (Type.make
-                  (Format_type.descr
-                     (`Format
-                       Ffmpeg_raw_content.Video.(
-                         lift_params (default_params `Raw)))))
-             ())
-      in
-      let name = uniq_name "buffer" in
-      let pos = source_val.Lang.pos in
-      let s =
-        try
-          Ffmpeg_filter_io.(
-            new video_output ~pass_metadata ~name ~frame_t source_val)
-        with
-          | Source.Clock_conflict (a, b) ->
-              raise (Error.Clock_conflict (pos, a, b))
-          | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-      in
-      Queue.add (s :> Source.source) graph.graph_inputs;
+         let frame_t =
+           Lang.frame_t Lang.unit_t
+             (Frame.Fields.make
+              (* We need to make sure that we are using a format here to
+                 ensure that its params are properly unified with the underlying source. *)
+                ~video:
+                  (Type.make
+                     (Format_type.descr
+                        (`Format
+                          Ffmpeg_raw_content.Video.(
+                            lift_params (default_params `Raw)))))
+                ())
+         in
+         let name = uniq_name "buffer" in
+         let pos = source_val.Lang.pos in
+         let s =
+           try
+             Ffmpeg_filter_io.(
+               new video_output ~pass_metadata ~name ~frame_t source_val)
+           with
+             | Source.Clock_conflict (a, b) ->
+                 raise (Error.Clock_conflict (pos, a, b))
+             | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+         in
+         Queue.add (s :> Source.source) graph.graph_inputs;
 
-      let args = ref None in
+         let args = ref None in
 
-      let video =
-        lazy
-          (let _buffer =
-             Avfilter.attach ~args:(Option.get !args) ~name Avfilter.buffer
-               config
-           in
-           Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
-           List.hd Avfilter.(_buffer.io.outputs.video))
-      in
+         let video =
+           lazy
+             (let _buffer =
+                Avfilter.attach ~args:(Option.get !args) ~name Avfilter.buffer
+                  config
+              in
+              Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
+              List.hd Avfilter.(_buffer.io.outputs.video))
+         in
 
-      Queue.add (fun () -> Lazy.is_val video) graph.input_inits;
+         Queue.add (fun () -> Lazy.is_val video) graph.input_inits;
 
-      s#set_init (fun frame ->
-          if !args = None then (
-            args := Some (buffer_args frame);
-            ignore (Lazy.force video);
-            init_graph graph));
+         s#set_init (fun frame ->
+             if !args = None then (
+               args := Some (buffer_args frame);
+               ignore (Lazy.force video);
+               init_graph graph));
 
-      Video.to_value (`Output video));
+         Video.to_value (`Output video)));
 
   let return_t =
     Lang.frame_t (Lang.univ_t ())
@@ -788,7 +799,7 @@ let () =
          ~video:(Type.make (Format_type.descr raw_video_format))
          ())
   in
-  Lang.add_operator "ffmpeg.filter.video.output" ~category:`Video
+  Lang.add_operator ~base:ffmpeg_filter_video "output" ~category:`Video
     ~descr:"Return a video source from a filter's output" ~return_t
     [
       ( "pass_metadata",
@@ -861,9 +872,10 @@ let () =
 let unify_clocks ~clock sources =
   Queue.iter (fun s -> Clock.unify clock s#clock) sources
 
-let () =
+let _ =
   let univ_t = Lang.univ_t () in
-  Lang.add_builtin "ffmpeg.filter.create" ~category:(`Source `FFmpegFilter)
+  Lang.add_builtin ~base:ffmpeg_filter "create"
+    ~category:(`Source `FFmpegFilter)
     ~descr:"Configure and launch a filter graph"
     [("", Lang.fun_t [(false, "", Graph.t)] univ_t, None, None)]
     univ_t

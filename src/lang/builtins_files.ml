@@ -72,8 +72,10 @@ let file_extension ?(leading_dot = true) ?(dir_sep = Filename.dir_sep) name =
       | _ -> s
   with Invalid_argument _ -> s
 
-let () =
-  Lang.add_builtin "file.extension" ~category:`File
+let file = Modules.file
+
+let _ =
+  Lang.add_builtin ~base:file "extension" ~category:`File
     ~descr:"Returns a file's extension."
     [
       ( "dir_sep",
@@ -94,8 +96,8 @@ let () =
         (file_extension ~dir_sep ~leading_dot
            (Lang.to_string (List.assoc "" p))))
 
-let () =
-  Lang.add_builtin "file.remove" ~category:`File ~descr:"Remove a file."
+let _ =
+  Lang.add_builtin ~base:file "remove" ~category:`File ~descr:"Remove a file."
     [("", Lang.string_t, None, None)]
     Lang.unit_t
     (fun p ->
@@ -104,8 +106,9 @@ let () =
         Lang.unit
       with _ -> Lang.unit)
 
-let () =
-  Lang.add_builtin "file.size" ~category:`File ~descr:"File size in bytes."
+let _ =
+  Lang.add_builtin ~base:file "size" ~category:`File
+    ~descr:"File size in bytes."
     [("", Lang.string_t, None, None)]
     Lang.int_t
     (fun p ->
@@ -116,8 +119,9 @@ let () =
         Lang.int ret
       with _ -> Lang.int 0)
 
-let () =
-  Lang.add_builtin "file.mkdir" ~category:`File ~descr:"Create a directory."
+let _ =
+  Lang.add_builtin ~base:file "mkdir" ~category:`File
+    ~descr:"Create a directory."
     [
       ( "perms",
         Lang.int_t,
@@ -153,8 +157,8 @@ let rm_dir dir =
   finddepth zap [| dir |];
   Unix.rmdir dir
 
-let () =
-  Lang.add_builtin "file.rmdir" ~category:`File
+let _ =
+  Lang.add_builtin ~base:file "rmdir" ~category:`File
     ~descr:"Remove a directory and its content."
     [("", Lang.string_t, None, None)]
     Lang.unit_t
@@ -164,8 +168,8 @@ let () =
         Lang.unit
       with _ -> Lang.unit)
 
-let () =
-  Lang.add_builtin "file.temp" ~category:`File
+let _ =
+  Lang.add_builtin ~base:file "temp" ~category:`File
     ~descr:
       "Return a fresh temporary filename. The temporary file is created empty, \
        with permissions 0o600 (readable and writable only by the file owner)."
@@ -184,8 +188,8 @@ let () =
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)
 
-let () =
-  Lang.add_builtin "file.temp_dir" ~category:`File
+let _ =
+  Lang.add_builtin ~base:file "temp_dir" ~category:`File
     ~descr:
       "Return a fresh temporary directory name. The temporary directory is \
        created empty, in the default tmp directory, with permissions 0o700 \
@@ -204,8 +208,8 @@ let () =
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)
 
-let () =
-  Lang.add_builtin "file.exists" ~category:`File
+let _ =
+  Lang.add_builtin ~base:file "exists" ~category:`File
     [("", Lang.string_t, None, None)]
     Lang.bool_t ~descr:"Returns true if the file or directory exists."
     (fun p ->
@@ -213,8 +217,8 @@ let () =
       let f = Lang_string.home_unrelate f in
       Lang.bool (Sys.file_exists f))
 
-let () =
-  Lang.add_builtin "file.is_directory" ~category:`File
+let _ =
+  Lang.add_builtin ~base:file "is_directory" ~category:`File
     [("", Lang.string_t, None, None)]
     Lang.bool_t ~descr:"Returns true if the file exists and is a directory."
     (fun p ->
@@ -222,8 +226,8 @@ let () =
       let f = Lang_string.home_unrelate f in
       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
-let () =
-  Lang.add_builtin "file.ls" ~category:`File
+let _ =
+  Lang.add_builtin ~base:file "ls" ~category:`File
     [
       ( "absolute",
         Lang.bool_t,
@@ -310,12 +314,11 @@ let () =
 
 (************** Paths ********************)
 
-let () =
-  Lang.add_module "path";
-  Lang.add_module "path.home"
+let path = Lang.add_module "path"
+let path_home = Lang.add_module ~base:path "home"
 
-let () =
-  Lang.add_builtin "path.home.unrelate" ~category:`File
+let _ =
+  Lang.add_builtin ~base:path_home "unrelate" ~category:`File
     [("", Lang.string_t, None, None)]
     Lang.string_t
     ~descr:"Expand path that start with '~' with the current home directory."
@@ -323,24 +326,24 @@ let () =
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Lang_string.home_unrelate f))
 
-let () =
-  Lang.add_builtin "path.basename" ~category:`File
+let _ =
+  Lang.add_builtin ~base:path "basename" ~category:`File
     [("", Lang.string_t, None, None)]
     Lang.string_t ~descr:"Get the base name of a path."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.basename f))
 
-let () =
-  Lang.add_builtin "path.dirname" ~category:`File
+let _ =
+  Lang.add_builtin ~base:path "dirname" ~category:`File
     [("", Lang.string_t, None, None)]
     Lang.string_t ~descr:"Get the directory name of a path."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.dirname f))
 
-let () =
-  Lang.add_builtin "path.concat" ~category:`File
+let _ =
+  Lang.add_builtin ~base:path "concat" ~category:`File
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
     Lang.string_t
     ~descr:"Concatenate two paths, using the appropriate directory separator."
@@ -349,16 +352,16 @@ let () =
       let s = Lang.to_string (Lang.assoc "" 2 p) in
       Lang.string (Filename.concat f s))
 
-let () =
-  Lang.add_builtin "path.remove_extension" ~category:`File
+let _ =
+  Lang.add_builtin ~base:path "remove_extension" ~category:`File
     [("", Lang.string_t, None, None)]
     Lang.string_t ~descr:"Remove the file extension from a path."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.remove_extension f))
 
-let () =
-  Lang.add_builtin "file.digest" ~category:`File
+let _ =
+  Lang.add_builtin ~base:file "digest" ~category:`File
     ~descr:"Return an MD5 digest for the given file."
     [("", Lang.string_t, None, None)]
     Lang.string_t

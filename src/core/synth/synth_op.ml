@@ -56,101 +56,108 @@ let register obj name descr =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~midi:(Format_type.midi_n 1) ())
   in
-  Lang.add_operator ("synth." ^ name)
-    [
-      ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
-      ("volume", Lang.float_t, Some (Lang.float 0.3), Some "Initial volume.");
-      ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
-      ( "attack",
-        Lang.float_t,
-        Some (Lang.float 0.02),
-        Some "Envelope attack (in seconds)." );
-      ( "decay",
-        Lang.float_t,
-        Some (Lang.float 0.01),
-        Some "Envelope decay (in seconds)." );
-      ( "sustain",
-        Lang.float_t,
-        Some (Lang.float 0.9),
-        Some "Envelope sustain level." );
-      ( "release",
-        Lang.float_t,
-        Some (Lang.float 0.05),
-        Some "Envelope release (in seconds)." );
-      ("", Lang.source_t frame_t, None, None);
-    ]
-    ~return_t:frame_t ~category:`Synthesis ~descr
-    (fun p ->
-      let f v = List.assoc v p in
-      let chan = Lang.to_int (f "channel") in
-      let volume = Lang.to_float (f "volume") in
-      let adsr =
-        ( Lang.to_float (f "attack"),
-          Lang.to_float (f "decay"),
-          Lang.to_float (f "sustain"),
-          Lang.to_float (f "release") )
-      in
-      let adsr =
-        if Lang.to_bool (f "envelope") then
-          Some (Audio.Mono.Effect.ADSR.make (Lazy.force Frame.audio_rate) adsr)
-        else None
-      in
-      let src = Lang.to_source (f "") in
-      (new synth (obj adsr) src chan volume :> Source.source));
+  ignore
+    (Lang.add_operator ~base:Modules.synth name
+       [
+         ( "channel",
+           Lang.int_t,
+           Some (Lang.int 0),
+           Some "MIDI channel to handle." );
+         ("volume", Lang.float_t, Some (Lang.float 0.3), Some "Initial volume.");
+         ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
+         ( "attack",
+           Lang.float_t,
+           Some (Lang.float 0.02),
+           Some "Envelope attack (in seconds)." );
+         ( "decay",
+           Lang.float_t,
+           Some (Lang.float 0.01),
+           Some "Envelope decay (in seconds)." );
+         ( "sustain",
+           Lang.float_t,
+           Some (Lang.float 0.9),
+           Some "Envelope sustain level." );
+         ( "release",
+           Lang.float_t,
+           Some (Lang.float 0.05),
+           Some "Envelope release (in seconds)." );
+         ("", Lang.source_t frame_t, None, None);
+       ]
+       ~return_t:frame_t ~category:`Synthesis ~descr
+       (fun p ->
+         let f v = List.assoc v p in
+         let chan = Lang.to_int (f "channel") in
+         let volume = Lang.to_float (f "volume") in
+         let adsr =
+           ( Lang.to_float (f "attack"),
+             Lang.to_float (f "decay"),
+             Lang.to_float (f "sustain"),
+             Lang.to_float (f "release") )
+         in
+         let adsr =
+           if Lang.to_bool (f "envelope") then
+             Some
+               (Audio.Mono.Effect.ADSR.make (Lazy.force Frame.audio_rate) adsr)
+           else None
+         in
+         let src = Lang.to_source (f "") in
+         (new synth (obj adsr) src chan volume :> Source.source)));
 
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~midi:(Format_type.midi_n 16) ())
   in
-  Lang.add_operator ("synth.all." ^ name)
-    [
-      ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
-      ( "attack",
-        Lang.float_t,
-        Some (Lang.float 0.02),
-        Some "Envelope attack (in seconds)." );
-      ( "decay",
-        Lang.float_t,
-        Some (Lang.float 0.01),
-        Some "Envelope decay (in seconds)." );
-      ( "sustain",
-        Lang.float_t,
-        Some (Lang.float 0.9),
-        Some "Envelope sustain level." );
-      ( "release",
-        Lang.float_t,
-        Some (Lang.float 0.01),
-        Some "Envelope release (in seconds)." );
-      ("", Lang.source_t frame_t, None, None);
-    ]
-    ~return_t:frame_t ~category:`Synthesis
-    ~descr:(descr ^ " It creates one synthesizer for each channel.")
-    (fun p ->
-      let f v = List.assoc v p in
-      let src = Lang.to_source (f "") in
-      let adsr =
-        ( Lang.to_float (f "attack"),
-          Lang.to_float (f "decay"),
-          Lang.to_float (f "sustain"),
-          Lang.to_float (f "release") )
-      in
-      let adsr =
-        if Lang.to_bool (f "envelope") then
-          Some (Audio.Mono.Effect.ADSR.make (Lazy.force Frame.audio_rate) adsr)
-        else None
-      in
-      let synths =
-        Array.init (Lazy.force Frame.midi_channels) (fun c ->
-            ((fun () -> 1.), new synth (obj adsr) src c 1.))
-      in
-      let synths = Array.to_list synths in
-      (new Add.add
-         ~renorm:(fun () -> false)
-         ~power:(fun () -> false)
-         synths
-         (fun _ -> ())
-         (fun _ tmp buf -> Video.Canvas.Image.add tmp buf)
-        :> Source.source))
+  ignore
+    (Lang.add_operator ~base:Modules.synth_all name
+       [
+         ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
+         ( "attack",
+           Lang.float_t,
+           Some (Lang.float 0.02),
+           Some "Envelope attack (in seconds)." );
+         ( "decay",
+           Lang.float_t,
+           Some (Lang.float 0.01),
+           Some "Envelope decay (in seconds)." );
+         ( "sustain",
+           Lang.float_t,
+           Some (Lang.float 0.9),
+           Some "Envelope sustain level." );
+         ( "release",
+           Lang.float_t,
+           Some (Lang.float 0.01),
+           Some "Envelope release (in seconds)." );
+         ("", Lang.source_t frame_t, None, None);
+       ]
+       ~return_t:frame_t ~category:`Synthesis
+       ~descr:(descr ^ " It creates one synthesizer for each channel.")
+       (fun p ->
+         let f v = List.assoc v p in
+         let src = Lang.to_source (f "") in
+         let adsr =
+           ( Lang.to_float (f "attack"),
+             Lang.to_float (f "decay"),
+             Lang.to_float (f "sustain"),
+             Lang.to_float (f "release") )
+         in
+         let adsr =
+           if Lang.to_bool (f "envelope") then
+             Some
+               (Audio.Mono.Effect.ADSR.make (Lazy.force Frame.audio_rate) adsr)
+           else None
+         in
+         let synths =
+           Array.init (Lazy.force Frame.midi_channels) (fun c ->
+               ((fun () -> 1.), new synth (obj adsr) src c 1.))
+         in
+         let synths = Array.to_list synths in
+         (new Add.add
+            ~renorm:(fun () -> false)
+            ~power:(fun () -> false)
+            synths
+            (fun _ -> ())
+            (fun _ tmp buf -> Video.Canvas.Image.add tmp buf)
+           :> Source.source)))
 
 let () =
   register

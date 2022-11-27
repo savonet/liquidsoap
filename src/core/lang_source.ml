@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Liquidsoap_lang.Lang_core
+open Liquidsoap_lang.Lang
 
 let log = Log.make ["lang"]
 let metadata_t = list_t (product_t string_t string_t)
@@ -41,7 +41,7 @@ let to_metadata t =
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 
-module V = MkAbstract (struct
+module V = Liquidsoap_lang.Lang_core.MkAbstract (struct
   type content = Source.source
 
   let name = "source"
@@ -348,7 +348,7 @@ let check_content v t =
 let add_operator =
   let _meth = meth in
   fun ~(category : Doc.Value.source) ~descr ?(flags = [])
-      ?(meth = ([] : 'a operator_method list)) name proto ~return_t f ->
+      ?(meth = ([] : 'a operator_method list)) ?base name proto ~return_t f ->
     let compare (x, _, _, _) (y, _, _, _) =
       match (x, y) with
         | "", "" -> 0
@@ -436,7 +436,7 @@ let add_operator =
       else return_t
     in
     let category = `Source category in
-    add_builtin ~category ~descr ~flags name proto return_t f
+    add_builtin ~category ~descr ~flags ?base name proto return_t f
 
 let iter_sources ?on_reference ~static_analysis_failed f v =
   let itered_values = ref [] in

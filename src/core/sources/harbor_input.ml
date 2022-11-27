@@ -232,8 +232,8 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       self#after_disconnect
   end
 
-let () =
-  Lang.add_operator "input.harbor" ~return_t:(Lang.univ_t ())
+let _ =
+  Lang.add_operator ~base:Modules.input "harbor" ~return_t:(Lang.univ_t ())
     ~meth:
       [
         ( "stop",
