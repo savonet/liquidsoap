@@ -154,7 +154,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
   let nbands = bands in
   let size = float nbands in
   object (self)
-    inherit operator ~name:"dtmf" [source] as super
+    inherit operator ~name:"dtmf" [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -168,7 +168,6 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
 
     val mutable n = nbands
     val mutable state = `None
-    method wake_up a = super#wake_up a
 
     method private get_frame buf =
       let offset = AFrame.position buf in
@@ -292,7 +291,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
   let nbands = bands in
   let size = float nbands in
   object (self)
-    inherit operator ~name:"sine.detect" [source] as super
+    inherit operator ~name:"sine.detect" [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
@@ -303,7 +302,6 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
     val mutable n = nbands
     val mutable detected = []
     val mutable signaled = []
-    method wake_up a = super#wake_up a
 
     initializer
     self#log#info "Listening on the following bands: %s"

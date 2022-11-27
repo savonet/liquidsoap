@@ -37,7 +37,7 @@ class fir (source : source) freq beta numcoeffs =
     val mutable gain = 0.
     val mutable xv = [||]
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       xv <- Array.make_matrix self#audio_channels numcoeffs 0.
 

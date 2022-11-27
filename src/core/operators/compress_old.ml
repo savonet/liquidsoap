@@ -32,7 +32,7 @@ class compress (source : source) attack release threshold ratio knee rms_window
     inherit operator ~name:"compress" [source] as super
     val mutable effect = None
 
-    method private wake_up a =
+    method! private wake_up a =
       super#wake_up a;
       effect <-
         Some

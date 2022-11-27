@@ -1,7 +1,7 @@
 (env
  (dev
   (flags
-   (:standard -w -7-9-11))))
+   (:standard -w -9))))
 
 (include_subdirs unqualified)
 

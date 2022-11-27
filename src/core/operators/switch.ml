@@ -83,7 +83,7 @@ class virtual switch ~name ~override_meta ~transition_length
             cached_selected <- self#select;
             cached_selected
 
-    method after_output =
+    method! after_output =
       (* Advance the memo frame. *)
       self#advance;
 
@@ -107,7 +107,7 @@ class virtual switch ~name ~override_meta ~transition_length
 
     val mutable activation = []
 
-    method private wake_up activator =
+    method! private wake_up activator =
       activation <- (self :> source) :: activator;
       List.iter
         (fun { transition; source = s; _ } ->
@@ -117,7 +117,7 @@ class virtual switch ~name ~override_meta ~transition_length
             transition)
         cases
 
-    method private sleep =
+    method! private sleep =
       List.iter
         (fun { transition; source = s; _ } ->
           s#leave ~dynamic:true (self :> source);

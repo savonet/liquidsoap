@@ -112,7 +112,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
     method seek len = source#seek len
 
     (* Operator startup *)
-    method private wake_up activation =
+    method! private wake_up activation =
       (* We prefer [name] as an ID over the default, but do not overwrite
          user-defined ID. Our ID will be used for the server interface. *)
       if name <> "" then self#set_id ~definitive:false name;
@@ -136,7 +136,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
 
       self#register_telnet
 
-    method private sleep =
+    method! private sleep =
       start_stop#transition_to `Stopped;
       source#leave (self :> operator)
 
@@ -180,7 +180,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
           self#log#important "Source failed (no more tracks) stopping output...";
           self#transition_to `Idle))
 
-    method after_output =
+    method! after_output =
       (* Let [memo] be cleared and signal propagated *)
       super#after_output;
 
@@ -198,7 +198,7 @@ class dummy ~infallible ~on_start ~on_stop ~autostart source =
         source autostart ~name:"dummy" ~output_kind:"output.dummy" ~infallible
           ~on_start ~on_stop
 
-    method private reset = ()
+    method! private reset = ()
     method private start = ()
     method private stop = ()
     method private send_frame _ = ()

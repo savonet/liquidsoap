@@ -179,9 +179,9 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
     val mutable started = false
-    method self_sync = (`Dynamic, started)
+    method! self_sync = (`Dynamic, started)
 
-    method private set_clock =
+    method! private set_clock =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
@@ -297,7 +297,7 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
              (Printexc.to_string e));
         self#on_error e
 
-    method reset = ()
+    method! reset = ()
   end
 
 let output_proto ~return_t ~pipeline =
@@ -498,7 +498,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     method self_sync = (`Dynamic, self#is_ready)
     method abort_track = ()
 
-    method wake_up activations =
+    method! wake_up activations =
       super#wake_up activations;
       try
         self#register_task ~priority:`Blocking Tutils.scheduler;
@@ -509,7 +509,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           (Printexc.to_string exn);
         self#on_error exn
 
-    method sleep =
+    method! sleep =
       self#stop_task;
       let todo =
         Tutils.mutexify element_m

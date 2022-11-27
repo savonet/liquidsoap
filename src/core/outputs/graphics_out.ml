@@ -48,7 +48,7 @@ class output ~infallible ~autostart ~on_start ~on_stop source =
       in
       Graphics.draw_image img 0 0
 
-    method reset = ()
+    method! reset = ()
   end
 
 let _ =

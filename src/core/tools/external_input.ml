@@ -40,7 +40,7 @@ class virtual base ~name ~restart ~restart_on_error ~on_data ?read_header
 
     method stype = `Fallible
 
-    method wake_up _ =
+    method! wake_up _ =
       let on_stdout reader =
         if not (no_header || header_read) then (
           let ret = read_header reader in
@@ -68,7 +68,7 @@ class virtual base ~name ~restart ~restart_on_error ~on_data ?read_header
           (Process_handler.run ~priority:`Blocking ~on_stop ~on_stdout
              ~on_stderr ~log command)
 
-    method sleep =
+    method! sleep =
       match process with
         | Some h ->
             Process_handler.kill h;

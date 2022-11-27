@@ -48,7 +48,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
 
-    method is_ready =
+    method! is_ready =
       super#is_ready && self#mutexify (fun () -> container <> None) ()
 
     method self_sync =

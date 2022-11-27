@@ -132,5 +132,5 @@ class consumer buffer =
     inherit Source.source ~name:"buffer" ()
     inherit source ~bufferize:0. ~empty_on_abort:true ()
     method stype = `Fallible
-    method buffer = buffer
+    method! buffer = buffer
   end

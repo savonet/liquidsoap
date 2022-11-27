@@ -164,9 +164,9 @@ class output ~clock_safe ~start ~infallible ~on_stop ~on_start dev val_source =
         ~infallible ~on_stop ~on_start ~name ~output_kind:"output.alsa"
           val_source start as super
 
-    inherit base dev [Pcm.Playback]
+    inherit! base dev [Pcm.Playback]
 
-    method private set_clock =
+    method! private set_clock =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
@@ -227,7 +227,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   object (self)
     inherit base dev [Pcm.Capture]
 
-    inherit
+    inherit!
       Start_stop.active_source
         ~get_clock:Alsa_settings.get_clock
         ~name:(Printf.sprintf "alsa_in(%s)" dev)

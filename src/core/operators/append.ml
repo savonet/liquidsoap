@@ -132,13 +132,13 @@ class append ~insert_missing ~merge source f =
     (* Finally, the administrative bit *)
     val mutable activation = []
 
-    method private wake_up activator =
+    method! private wake_up activator =
       assert (state = `Idle);
       activation <- (self :> source) :: activator;
       source#get_ready activation;
       Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f
 
-    method private sleep =
+    method! private sleep =
       source#leave (self :> source);
       Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f;
       begin

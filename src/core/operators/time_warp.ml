@@ -151,7 +151,7 @@ module Buffer = struct
         Output.output
           ~output_kind:id ~infallible ~on_start ~on_stop source_val autostart
 
-      method reset = ()
+      method! reset = ()
       method start = ()
       method stop = ()
       val source = Lang.to_source source_val
@@ -371,7 +371,7 @@ module AdaptativeBuffer = struct
           ~output_kind:"buffer" ~infallible ~on_start ~on_stop source_val
             autostart
 
-      method reset = ()
+      method! reset = ()
       method start = ()
       method stop = ()
       val source = Lang.to_source source_val

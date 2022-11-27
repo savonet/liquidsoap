@@ -437,8 +437,10 @@ let string_of_pcre_error =
          recursion is reached during matching."
     | RecursionLimit -> "Maximum allowed number of recursion reached"
     | InternalError msg -> Printf.sprintf "Internal error: %s" msg
-    | WorkspaceSize -> "Provided workspace array is too small"
-    | _ -> "Unknown error")
+    (* This is a hack to be extensible here and enable warning 11 *)
+    | exn ->
+        if exn == WorkspaceSize then "Provided workspace array is too small"
+        else "Unknown error")
 
 let () =
   Printexc.register_printer

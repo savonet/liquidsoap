@@ -40,12 +40,12 @@ class sequence ?(merge = false) sources =
     method stype =
       match List.rev sources with hd :: _ -> hd#stype | [] -> `Fallible
 
-    method private wake_up activation =
+    method! private wake_up activation =
       List.iter
         (fun s -> (s :> source)#get_ready ((self :> source) :: activation))
         sources
 
-    method private sleep =
+    method! private sleep =
       List.iter (fun s -> (s :> source)#leave (self :> source)) sources
 
     (** When head_ready is true, it must be that:

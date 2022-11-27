@@ -83,7 +83,7 @@ class add ~renorm ~power (sources : ((unit -> float) * source) list) video_init
      * are not hidden anymore, which is useful for transitions, for example. *)
     val mutable tmp = Frame.dummy ()
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       tmp <- Frame.create self#content_type
 

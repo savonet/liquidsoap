@@ -34,7 +34,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
   object (self)
     inherit operator ~name:"compress" [source] as super
     val mutable effect = None
-    method private wake_up a = super#wake_up a
+    method! private wake_up a = super#wake_up a
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek

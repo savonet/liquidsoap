@@ -45,7 +45,7 @@ class window mode duration source =
     (** Last computed value (rms or peak). *)
     val mutable value = [||]
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       let channels = self#audio_channels in
       acc <- Array.make channels 0.;

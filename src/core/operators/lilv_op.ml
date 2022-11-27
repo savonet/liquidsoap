@@ -39,7 +39,7 @@ class virtual base source =
     inherit Source.no_seek
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
+    method! seek = source#seek
     method is_ready = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
@@ -65,10 +65,9 @@ let constant_data len x =
 class lilv_mono (source : source) plugin input output params =
   object (self)
     inherit base source as super
-    method self_sync = source#self_sync
     val mutable inst = None
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       let i =
         Array.init
@@ -107,7 +106,6 @@ class lilv_mono (source : source) plugin input output params =
 class lilv (source : source) plugin inputs outputs params =
   object
     inherit base source
-    method self_sync = source#self_sync
 
     val inst =
       Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))

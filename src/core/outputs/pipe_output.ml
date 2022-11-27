@@ -65,7 +65,7 @@ class virtual base ~source ~name p =
       encoder <- Some (enc meta)
 
     method stop = encoder <- None
-    method reset = ()
+    method! reset = ()
 
     method encode frame ofs len =
       let enc = Option.get encoder in
@@ -151,10 +151,10 @@ class url_output p =
                   delay;
                 default)
 
-    method start = self#restartify ~default:() (fun () -> super#start)
-    method output = self#restartify ~default:() (fun () -> super#output)
+    method! start = self#restartify ~default:() (fun () -> super#start)
+    method! output = self#restartify ~default:() (fun () -> super#output)
     method write_pipe _ _ _ = ()
-    method self_sync = (`Static, self_sync)
+    method! self_sync = (`Static, self_sync)
   end
 
 let _ =
@@ -226,7 +226,7 @@ class virtual piped_output p =
       self#open_pipe;
       open_date <- Unix.gettimeofday ()
 
-    method stop =
+    method! stop =
       if self#is_open then (
         let flush = (Option.get encoder).Encoder.stop () in
         self#send flush;
@@ -248,7 +248,7 @@ class virtual piped_output p =
           need_reset <- false)
         ()
 
-    method send b =
+    method! send b =
       if not self#is_open then self#prepare_pipe;
       (try super#send b
        with e when reload_on_error ->
@@ -261,7 +261,7 @@ class virtual piped_output p =
              && Lang.to_bool (Lang.apply reload_predicate [])
         then self#reopen
 
-    method insert_metadata m =
+    method! insert_metadata m =
       if reload_on_metadata then (
         current_metadata <- Some m;
         need_reset <- true)
@@ -453,7 +453,7 @@ class external_output p =
     inherit piped_output p
     inherit [out_channel] chan_output p
     method encoder_factory = encoder_factory format_val
-    method self_sync = (`Static, self_sync)
+    method! self_sync = (`Static, self_sync)
 
     method open_chan =
       let process = process () in

@@ -37,7 +37,7 @@ class flanger (source : source) delay freq feedback phase =
     method abort_track = source#abort_track
     val mutable past = Audio.make 0 0 0.
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       past <- Audio.make self#audio_channels past_len 0.
 

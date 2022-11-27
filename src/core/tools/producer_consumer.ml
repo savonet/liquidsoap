@@ -50,10 +50,10 @@ class consumer ~write_frame ~name ~source () =
     val mutable producer_buffer = Generator.create Frame.Fields.empty
     method set_producer_buffer b = producer_buffer <- b
     method set_output_enabled v = output_enabled <- v
-    method reset = ()
+    method! reset = ()
     method start = ()
     method stop = write_frame producer_buffer `Flush
-    method output = if output_enabled then super#output
+    method! output = if output_enabled then super#output
     method private send_frame frame = write_frame producer_buffer (`Frame frame)
   end
 
@@ -66,7 +66,7 @@ class producer ~check_self_sync ~consumers ~name () =
   object (self)
     inherit Source.source ~name () as super
 
-    inherit
+    inherit!
       Child_support.base
         ~check_self_sync
         (List.map (fun s -> Lang.source (s :> Source.source)) consumers) as child_support
@@ -89,7 +89,7 @@ class producer ~check_self_sync ~consumers ~name () =
 
     method is_ready = List.for_all (fun c -> c#is_ready) consumers
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       List.iter
         (fun c ->
@@ -97,7 +97,7 @@ class producer ~check_self_sync ~consumers ~name () =
           c#get_ready ?dynamic:None [(self :> Source.source)])
         consumers
 
-    method sleep =
+    method! sleep =
       super#sleep;
       List.iter
         (fun c ->
@@ -119,11 +119,11 @@ class producer ~check_self_sync ~consumers ~name () =
         let cur_pos = Frame.position buf in
         Frame.set_breaks buf (b @ [cur_pos]))
 
-    method before_output =
+    method! before_output =
       super#before_output;
       child_support#before_output
 
-    method after_output =
+    method! after_output =
       super#after_output;
       child_support#after_output
 

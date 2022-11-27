@@ -153,19 +153,19 @@ class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~device_id
   object (self)
     inherit base
 
-    inherit
+    inherit!
       Output.output
         ~infallible ~on_stop ~on_start ~name:"output.portaudio"
           ~output_kind:"output.portaudio" val_source start as super
 
-    method private set_clock =
+    method! private set_clock =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
 
     val mutable stream = None
-    method self_sync = (`Dynamic, stream <> None)
+    method! self_sync = (`Dynamic, stream <> None)
 
     method private open_device =
       self#handle "open_device" (fun () ->
@@ -186,7 +186,7 @@ class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~device_id
     method start = self#open_device
     method stop = self#close_device
 
-    method reset =
+    method! reset =
       self#close_device;
       self#open_device
 

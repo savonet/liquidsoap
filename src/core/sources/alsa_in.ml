@@ -41,16 +41,16 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
           ~clock_safe ~get_clock:Alsa_settings.get_clock () as active_source
 
     inherit Source.no_seek
-    inherit [Content.Audio.data] IoRing.input ~nb_blocks as ioring
+    inherit! [Content.Audio.data] IoRing.input ~nb_blocks as ioring
     val mutable initialized = false
     method self_sync = (`Static, true)
 
-    method private wake_up l =
+    method! private wake_up l =
       active_source#wake_up l;
       let blank () = Audio.make self#audio_channels buffer_length 0. in
       ioring#init blank
 
-    method private sleep =
+    method! private sleep =
       active_source#sleep;
       ioring#sleep
 
@@ -141,7 +141,7 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
       Audio.blit buffer 0 fbuf 0 buffer_length;
       AFrame.add_break buf buffer_length
 
-    method reset = ()
+    method! reset = ()
   end
 
 (* This source is registered in Alsa_io. *)

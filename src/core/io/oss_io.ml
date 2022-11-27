@@ -45,16 +45,16 @@ class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
         ~infallible ~on_stop ~on_start ~name ~output_kind:"output.oss"
           val_source start as super
 
-    inherit Source.no_seek
+    inherit! Source.no_seek
 
-    method private set_clock =
+    method! private set_clock =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
 
     val mutable fd = None
-    method self_sync = (`Dynamic, fd <> None)
+    method! self_sync = (`Dynamic, fd <> None)
 
     method open_device =
       let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in

@@ -36,7 +36,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
   object (self)
     inherit source ~name:"cross" () as super
 
-    inherit
+    inherit!
       Child_support.base ~check_self_sync:true [val_source] as child_support
 
     initializer Typing.(s#frame_type <: self#frame_type)
@@ -132,7 +132,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             s#leave ~dynamic:true (self :> source);
             transition_source <- None
 
-    method private wake_up a =
+    method! private wake_up a =
       super#wake_up a;
       source#get_ready ~dynamic:true [(self :> source)];
       source#get_ready [(self :> source)];
@@ -140,7 +140,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         (fun s -> s#get_ready ~dynamic:true [(self :> source)])
         transition
 
-    method private sleep =
+    method! private sleep =
       source#leave (self :> source);
       s#leave ~dynamic:true (self :> source);
       Lang.iter_sources
@@ -148,7 +148,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         transition;
       self#cleanup_transition_source
 
-    method private set_clock =
+    method! private set_clock =
       child_support#set_clock;
       Lang.iter_sources
         (fun s -> Clock.unify self#child_clock s#clock)
@@ -160,16 +160,16 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     (* in main time *)
     val mutable status = `Idle
 
-    method private child_tick =
+    method! private child_tick =
       child_support#child_tick;
       Frame.clear self#buf_frame;
       last_child_tick <- (Clock.get self#clock)#get_tick
 
-    method before_output =
+    method! before_output =
       super#before_output;
       child_support#before_output
 
-    method after_output =
+    method! after_output =
       super#after_output;
       child_support#after_output;
       let main_clock = Clock.get self#clock in

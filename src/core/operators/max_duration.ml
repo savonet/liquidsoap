@@ -30,13 +30,13 @@ class max_duration ~override_meta ~duration source =
     val mutable remaining = duration
     val mutable s : Source.source = source
     method self_sync = source#self_sync
-    method private set_clock = Clock.unify self#clock s#clock
+    method! private set_clock = Clock.unify self#clock s#clock
 
-    method private wake_up activation =
+    method! private wake_up activation =
       let activation = (self :> Source.operator) :: activation in
       s#get_ready activation
 
-    method private sleep = s#leave (self :> Source.operator)
+    method! private sleep = s#leave (self :> Source.operator)
     method stype = `Fallible
     method is_ready = remaining > 0 && s#is_ready
     method abort_track = s#abort_track

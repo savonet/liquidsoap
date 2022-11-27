@@ -48,7 +48,7 @@ class visu source =
     val mutable cur_rms = [||]
     val mutable group = 0
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       vol <- Array.init self#audio_channels (fun _ -> Array.make backpoints 0.);
       cur_rms <- Array.make self#audio_channels 0.

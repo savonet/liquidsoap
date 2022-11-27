@@ -27,7 +27,7 @@ class accelerate ~ratio ~randomize source_val =
   object (self)
     inherit operator ~name:"accelerate" [source] as super
 
-    inherit
+    inherit!
       Child_support.base ~check_self_sync:true [source_val] as child_support
 
     method self_sync = source#self_sync
@@ -43,12 +43,12 @@ class accelerate ~ratio ~randomize source_val =
     (** Frame used for dropping samples. *)
     val mutable null = Frame.dummy ()
 
-    method private wake_up x =
+    method! private wake_up x =
       super#wake_up x;
       null <- Frame.create self#content_type;
       source#get_ready [(self :> source)]
 
-    method private sleep = source#leave (self :> source)
+    method! private sleep = source#leave (self :> source)
     method is_ready = source#is_ready
 
     (** Filled ticks. *)
@@ -90,11 +90,11 @@ class accelerate ~ratio ~randomize source_val =
       filled <- filled + (after - before);
       self#child_tick
 
-    method before_output =
+    method! before_output =
       super#before_output;
       child_support#before_output
 
-    method after_output =
+    method! after_output =
       super#after_output;
       child_support#after_output
   end

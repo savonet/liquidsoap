@@ -63,7 +63,7 @@ class virtual base source =
     inherit Source.no_seek
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
+    method! seek = source#seek
     method is_ready = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
@@ -98,7 +98,7 @@ class ladspa_mono (source : source) plugin descr input output params =
     inherit base source as super
     val mutable inst = None
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       let p = Plugin.load plugin in
       let d = Descriptor.descriptor p descr in

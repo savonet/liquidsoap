@@ -32,7 +32,7 @@ class rms ~tau source =
     method seek = source#seek
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-    method wake_up a = super#wake_up a
+    method! wake_up a = super#wake_up a
     val mutable rms = 0.
     method rms = sqrt rms
 

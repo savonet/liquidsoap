@@ -41,7 +41,7 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
   object (self)
     inherit operator ~name:"cue_cut" [source] as super
 
-    inherit
+    inherit!
       Child_support.base ~check_self_sync:true [source_val] as child_support
 
     val mutable track_state : state = `Idle
@@ -60,11 +60,11 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
             if source_remaining = -1 then target
             else min source#remaining target
 
-    method before_output =
+    method! before_output =
       super#before_output;
       child_support#before_output
 
-    method after_output =
+    method! after_output =
       super#after_output;
       child_support#after_output
 

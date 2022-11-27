@@ -619,7 +619,7 @@ class output p =
         ();
       match dump with Some f -> close_out f | None -> ()
 
-    method reset =
+    method! reset =
       self#stop;
       self#start
   end

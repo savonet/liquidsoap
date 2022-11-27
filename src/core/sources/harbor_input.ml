@@ -145,12 +145,12 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         self#disconnect ~lock:true;
         if debug then raise e
 
-    method private wake_up act =
+    method! private wake_up act =
       super#wake_up act;
       Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
         (self :> Harbor.source)
 
-    method private sleep =
+    method! private sleep =
       self#disconnect ~lock:true;
       Harbor.remove_source ~port ~mountpoint ()
 

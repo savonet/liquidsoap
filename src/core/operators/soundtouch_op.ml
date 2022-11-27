@@ -38,7 +38,7 @@ class soundtouch source_val rate tempo pitch =
   object (self)
     inherit operator ~name:"soundtouch" [(consumer :> Source.source)] as super
 
-    inherit
+    inherit!
       Child_support.base ~check_self_sync:true [source_val] as child_support
 
     val mutable st = None
@@ -86,7 +86,7 @@ class soundtouch source_val rate tempo pitch =
       consumer#set_output_enabled false;
       Generator.fill self#buffer buf
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       st <-
         Some (Soundtouch.make self#audio_channels (Lazy.force Frame.audio_rate));
@@ -94,11 +94,11 @@ class soundtouch source_val rate tempo pitch =
         (Soundtouch.get_version_string (Option.get st));
       write_frame_ref := self#write_frame
 
-    method before_output =
+    method! before_output =
       super#before_output;
       child_support#before_output
 
-    method private after_output =
+    method! private after_output =
       super#after_output;
       child_support#after_output
   end
