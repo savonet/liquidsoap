@@ -218,7 +218,6 @@ and in_term =
   | Encoder of encoder
   | List of t list
   | Tuple of t list
-  | Any
   | Null
   | Cast of t * Type.t
   | Invoke of invoke
@@ -299,7 +298,6 @@ let rec to_string v =
           aux e
       | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
-      | Any -> "any"
       | Null -> "null"
       | Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Repr.string_of_type t ^ ")"
       | Invoke { invoked = e; meth = l; default } -> (
@@ -391,7 +389,7 @@ let rec free_vars tm =
     | Var x -> Vars.singleton x
     | Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
-    | Any | Null -> Vars.empty
+    | Null -> Vars.empty
     | Encoder e ->
         let rec enc (_, p) =
           List.fold_left
@@ -470,7 +468,7 @@ let check_unused ~throw ~lib tm =
       | Var s -> Vars.remove s v
       | Ground _ -> v
       | Tuple l -> List.fold_left (fun a -> check a) v l
-      | Any | Null -> v
+      | Null -> v
       | Cast (e, _) -> check v e
       | Invoke { invoked = e } -> check v e
       | Open (a, b) -> check (check v a) b

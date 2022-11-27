@@ -179,7 +179,6 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let base_type = Type.var () in
   let () =
     match e.term with
-      | Any -> ()
       | Ground g -> base_type >: mk (Ground.to_descr g)
       | Encoder f ->
           (* Ensure that we only use well-formed terms. *)
