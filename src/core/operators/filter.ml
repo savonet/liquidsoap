@@ -39,7 +39,7 @@ class filter (source : source) freq q wet mode =
     val mutable band = [||]
     val mutable notch = [||]
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       let channels = self#audio_channels in
       low <- Array.make channels 0.;

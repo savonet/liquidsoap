@@ -33,7 +33,7 @@ class bpm (source : source) =
     method abort_track = source#abort_track
     val mutable bpm = None
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       bpm <-
         Some

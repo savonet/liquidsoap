@@ -48,7 +48,7 @@ class output ~infallible ~on_start ~on_stop ~autostart source =
       self#log#info "Initialized SDL video surface."
 
     (** We don't care about latency. *)
-    method reset = ()
+    method! reset = ()
 
     (** Stop SDL. We have to assume that there's only one SDL output anyway. *)
     method stop = Sdl.quit ()

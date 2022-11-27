@@ -39,7 +39,7 @@ class audio_output ~pass_metadata ~name ~frame_t source_val =
         ~infallible:false ~on_stop:noop ~on_start:noop ~name
           ~output_kind:"ffmpeg.filter.input" source_val true
 
-    inherit Source.no_seek
+    inherit! Source.no_seek
 
     initializer
     Typing.(
@@ -52,7 +52,7 @@ class audio_output ~pass_metadata ~name ~frame_t source_val =
     method set_init v = init <- v
     method start = ()
     method stop = ()
-    method reset = ()
+    method! reset = ()
 
     method send_frame memo =
       let frames =
@@ -103,7 +103,7 @@ class video_output ~pass_metadata ~name ~frame_t source_val =
     method set_init v = init <- v
     method start = ()
     method stop = ()
-    method reset = ()
+    method! reset = ()
 
     method send_frame memo =
       let frames =

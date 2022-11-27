@@ -57,7 +57,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
     inherit source ~name:"pipe" () as super
 
     (* We are expecting real-rate with a couple of hickups.. *)
-    inherit
+    inherit!
       Child_support.base ~check_self_sync:false [source_val] as child_support
 
     inherit Generated.source ~empty_on_abort:false ~bufferize ()
@@ -66,7 +66,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 
     (* Filled in by wake_up. *)
     val mutable converter = fun _ _ _ -> assert false
-    method self_sync = source#self_sync
+    method! self_sync = source#self_sync
 
     method private header =
       Bytes.unsafe_of_string
@@ -247,7 +247,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
                 true
             | _, `Nothing -> restart)
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       converter <-
         Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
@@ -263,9 +263,9 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
              ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
              ~priority:`Blocking ~on_stderr:self#on_stderr ~log process)
 
-    method abort_track = source#abort_track
+    method! abort_track = source#abort_track
 
-    method sleep =
+    method! sleep =
       Tutils.mutexify mutex
         (fun () ->
           try
@@ -276,11 +276,11 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
           with Process_handler.Finished -> ())
         ()
 
-    method before_output =
+    method! before_output =
       super#before_output;
       child_support#before_output
 
-    method after_output =
+    method! after_output =
       super#after_output;
       (* As long as we have a process, we let it drive the child source entirely. *)
       if handler = None then child_support#after_output

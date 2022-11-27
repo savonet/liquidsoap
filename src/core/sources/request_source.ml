@@ -62,7 +62,7 @@ class once ~name ~timeout request =
       Request.resolve ~ctype:(Some self#content_type) request timeout
       = Request.Resolved
 
-    method private wake_up activation =
+    method! private wake_up activation =
       super#wake_up activation;
       if not over then (
         (* Ensure that the request is resolved. *)
@@ -124,7 +124,7 @@ class once ~name ~timeout request =
       decoder.Decoder.fseek len
 
     method abort_track = self#end_track true
-    method private sleep = self#end_track false
+    method! private sleep = self#end_track false
   end
 
 (** Class [unqueued] plays the file given by method [get_next_file] as a request
@@ -256,7 +256,7 @@ class virtual unqueued ~name =
 
     method seek x = match current with None -> 0 | Some cur -> cur.seek x
     method abort_track = self#end_track true
-    method private sleep = self#end_track false
+    method! private sleep = self#end_track false
   end
 
 type queue_item = {
@@ -327,7 +327,7 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
     val state_cond = Condition.create ()
     val mutable task = None
 
-    method private wake_up activation =
+    method! private wake_up activation =
       (* Not for unqueued#wake_up but source#wake_up performs some logging. *)
       super#wake_up activation;
       assert (task = None);
@@ -340,7 +340,7 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
           state <- `Running)
         ()
 
-    method private sleep =
+    method! private sleep =
       (* We need to be sure that the feeding task stopped filling the queue
          before we destroy all requests from that queue.  Async.stop only
          promises us that on the next round the task will stop but won't tell us
@@ -514,7 +514,7 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
         (* Notify in any case, notifying twice never hurts. *)
         self#notify_new_request)
 
-    method private get_frame ab =
+    method! private get_frame ab =
       super#get_frame ab;
 
       (* At an end of track, we always have unqueued#remaining=0, so there's

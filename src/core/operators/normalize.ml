@@ -57,7 +57,7 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
       v <- 1.;
       vold <- 1.
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       self#init
 

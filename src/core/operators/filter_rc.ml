@@ -38,7 +38,7 @@ class filter (source : source) freq wet mode =
     val mutable prev = [||]
     val mutable prev_in = [||]
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       prev <- Array.make self#audio_channels 0.;
       prev_in <- Array.make self#audio_channels 0.

@@ -126,7 +126,7 @@ class lufs window source =
     (** Last 100ms blocks. *)
     val mutable ms_blocks = []
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       let channels = self#channels in
       let samplerate = self#samplerate in

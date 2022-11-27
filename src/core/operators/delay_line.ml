@@ -50,7 +50,7 @@ class delay (source : source) duration =
         buffer <- Audio.create self#audio_channels n;
         buffer_length <- n)
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       self#prepare (length ())
 

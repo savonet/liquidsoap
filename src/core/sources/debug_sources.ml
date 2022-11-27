@@ -46,7 +46,7 @@ class fail_init =
   object
     inherit fail "source.fail.init"
 
-    method wake_up _ =
+    method! wake_up _ =
       Lang.raise_error ~pos:[] ~message:"Source's initialization failed" "debug"
   end
 

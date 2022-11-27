@@ -663,7 +663,7 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
 
-    method is_ready =
+    method! is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
 
     method self_sync = (`Dynamic, self#is_connected)
@@ -926,7 +926,7 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
       self#mutexify (fun () -> should_stop <- false) ();
       self#connect
 
-    method private reset =
+    method! private reset =
       self#start;
       self#stop
 

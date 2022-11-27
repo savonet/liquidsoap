@@ -78,7 +78,6 @@ open Parser_helper
 
 %nonassoc YIELDS       (* fun x -> (x+x) *)
 %nonassoc COALESCE     (* (x ?? y) == z *)
-%right GETS
 %right SET             (* expr := (expr + expr), expr := (expr := expr) *)
 %nonassoc TO
 %nonassoc QUESTION     (* x ? y : z *)
@@ -96,9 +95,6 @@ open Parser_helper
 (* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg *)
 %nonassoc no_app
 %nonassoc LPAR
-
-%nonassoc RBRA
-%nonassoc VAR
 
 %start program
 %type <Term.t> program

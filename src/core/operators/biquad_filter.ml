@@ -125,7 +125,7 @@ class biquad (source : source) filter_type freq q gain =
     method is_ready = source#is_ready
     method abort_track = source#abort_track
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       self#init
 

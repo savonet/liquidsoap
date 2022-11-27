@@ -660,7 +660,7 @@ class hls_output p =
             self#cleanup_streams;
             self#cleanup_playlists
 
-    method reset = self#toggle_state `Restart
+    method! reset = self#toggle_state `Restart
 
     method private write_state persist_at =
       self#log#info "Reading state file at %s.."

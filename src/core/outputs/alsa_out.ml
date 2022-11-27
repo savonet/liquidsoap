@@ -42,19 +42,19 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~start dev source =
     inherit [Content.Audio.data] IoRing.output ~nb_blocks as ioring
     val mutable initialized = false
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       let blank () = Audio.make self#audio_channels buffer_length 0. in
       ioring#init blank
 
-    method private set_clock =
+    method! private set_clock =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (Alsa_settings.get_clock () :> Clock.clock))
 
     val mutable device = None
-    method self_sync = (`Dynamic, device <> None)
+    method! self_sync = (`Dynamic, device <> None)
     val mutable alsa_rate = samples_per_second
     val mutable samplerate_converter = None
 
@@ -159,7 +159,7 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~start dev source =
       let f data = Audio.blit buf ofs data 0 len in
       ioring#put_block f
 
-    method reset =
+    method! reset =
       self#close;
       ignore self#get_device
   end

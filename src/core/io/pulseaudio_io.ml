@@ -56,12 +56,12 @@ class output ~infallible ~start ~on_start ~on_stop p =
   object (self)
     inherit base ~client ~device
 
-    inherit
+    inherit!
       Output.output
         ~infallible ~on_stop ~on_start ~name ~output_kind:"output.pulseaudio"
           val_source start as super
 
-    method private set_clock =
+    method! private set_clock =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
@@ -92,7 +92,7 @@ class output ~infallible ~start ~on_start ~on_stop p =
     method start = self#open_device
     method stop = self#close_device
 
-    method reset =
+    method! reset =
       self#close_device;
       self#open_device
 

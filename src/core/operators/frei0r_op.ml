@@ -107,7 +107,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
     val mutable t = 0.
     val mutable tmp = Frame.dummy ()
 
-    method private wake_up a =
+    method! private wake_up a =
       super#wake_up a;
       tmp <- Frame.create self#content_type
 

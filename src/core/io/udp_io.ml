@@ -85,7 +85,7 @@ class output ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
             f 0);
       encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
 
-    method private reset =
+    method! private reset =
       self#start;
       self#stop
 
@@ -109,7 +109,7 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
   object (self)
     inherit Generated.source ~empty_on_abort:false ~bufferize ()
 
-    inherit
+    inherit!
       Start_stop.active_source
         ~name:"input.udp" ~clock_safe:false ~fallible:true ~on_start:ignore
           ~on_stop:ignore ~autostart:true ()

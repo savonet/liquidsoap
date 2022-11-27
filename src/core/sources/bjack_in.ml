@@ -39,9 +39,9 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
           () as active_source
 
     inherit Source.no_seek
-    inherit [Bytes.t] IoRing.input ~nb_blocks as ioring
+    inherit! [Bytes.t] IoRing.input ~nb_blocks as ioring
 
-    method private wake_up l =
+    method! private wake_up l =
       active_source#wake_up l;
       (* We need to know the number of channels to initialize the ioring. We
            defer this until the kind is known. *)
@@ -52,7 +52,7 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
       in
       ioring#init blank
 
-    method private sleep =
+    method! private sleep =
       active_source#sleep;
       ioring#sleep
 
@@ -111,7 +111,7 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
         0 fbuf 0 samples_per_frame;
       AFrame.add_break buf samples_per_frame
 
-    method reset = ()
+    method! reset = ()
   end
 
 let _ =

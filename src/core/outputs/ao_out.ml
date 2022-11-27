@@ -43,7 +43,7 @@ class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
 
-    method wake_up a =
+    method! wake_up a =
       super#wake_up a;
       let blank () =
         Bytes.make
@@ -52,14 +52,14 @@ class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
       in
       ioring#init blank
 
-    method private set_clock =
+    method! private set_clock =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
 
     val mutable device = None
-    method self_sync = (`Dynamic, device <> None)
+    method! self_sync = (`Dynamic, device <> None)
 
     method get_device =
       match device with
@@ -100,7 +100,7 @@ class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
         in
         ioring#put_block push)
 
-    method reset = ()
+    method! reset = ()
   end
 
 let _ =

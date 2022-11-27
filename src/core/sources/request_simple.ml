@@ -62,7 +62,7 @@ class unqueued ~timeout request =
   object (self)
     inherit Request_source.unqueued ~name:"single" as super
 
-    method wake_up x =
+    method! wake_up x =
       let uri = Request.initial_uri request in
       self#log#important "%s is static, resolving once for all..."
         (Lang_string.quote_string uri);
@@ -85,7 +85,7 @@ class queued uri prefetch timeout =
   object (self)
     inherit Request_source.queued ~name:"single" ~prefetch ~timeout () as super
 
-    method wake_up x =
+    method! wake_up x =
       if String.length uri < 15 then self#set_id uri;
       super#wake_up x
 
@@ -143,7 +143,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
     val mutable retry_status = None
 
-    method is_ready =
+    method! is_ready =
       match (super#is_ready, retry_status) with
         | true, _ -> true
         | false, Some d when Unix.gettimeofday () < d -> false

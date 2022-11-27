@@ -715,7 +715,7 @@ and virtual active_operator ?name sources =
       (unify self#clock
          (create_unknown ~sources:[(self :> active_operator)] ~sub_clocks:[]))
 
-    method is_active = true
+    method! is_active = true
 
     (** Start a new output round, may trigger the computation of a frame. *)
     method virtual output : unit

@@ -85,7 +85,7 @@ class keyboard =
     val mutable run_id = 0
     val lock = Mutex.create ()
 
-    method private wake_up _ =
+    method! private wake_up _ =
       let id = run_id in
       let rec task _ =
         if run_id <> id then []
@@ -116,7 +116,7 @@ class keyboard =
           events = [`Read Unix.stdin];
         }
 
-    method private sleep =
+    method! private sleep =
       Tutils.mutexify lock (fun () -> run_id <- run_id + 1) ()
 
     method reset = ()

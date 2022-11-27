@@ -77,12 +77,12 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
 
     (* Source methods: attempt to #select as soon as it could be useful for the
        selection function to change the source. *)
-    method private wake_up ancestors =
+    method! private wake_up ancestors =
       activation <- (self :> Source.source) :: ancestors;
       Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f;
       self#select
 
-    method private sleep =
+    method! private sleep =
       Lang.iter_sources
         (fun s -> s#leave ~dynamic:true (self :> Source.source))
         f;
