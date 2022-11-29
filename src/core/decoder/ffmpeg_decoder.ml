@@ -27,6 +27,12 @@ exception No_stream
 
 let log = Log.make ["decoder"; "ffmpeg"]
 
+module Streams = Map.Make (struct
+  type t = int
+
+  let compare = Stdlib.compare
+end)
+
 (** Configuration keys for ffmpeg. *)
 let mime_types =
   Dtools.Conf.list
@@ -524,90 +530,110 @@ let () = Plug.register Request.mresolvers "ffmpeg" ~doc:"" get_tags
 
 (* Get the type of an input container. *)
 let get_type ~ctype ~url container =
-  let audio_params, descr =
-    try
-      let _, _, params = Av.find_best_audio_stream container in
-      let channels = Avcodec.Audio.get_nb_channels params in
-      let samplerate = Avcodec.Audio.get_sample_rate params in
-      let codec_name =
-        Avcodec.Audio.string_of_id (Avcodec.Audio.get_params_id params)
-      in
-      ( Some params,
-        [
-          Printf.sprintf "audio: {codec: %s, %dHz, %d channel(s)}" codec_name
-            samplerate channels;
-        ] )
-    with Avutil.Error _ -> (None, [])
+  let audio_streams, descriptions =
+    List.fold_left
+      (fun (audio_streams, descriptions) (_, _, params) ->
+        try
+          let field = Frame.Fields.audio_n (List.length audio_streams) in
+          let channels = Avcodec.Audio.get_nb_channels params in
+          let samplerate = Avcodec.Audio.get_sample_rate params in
+          let codec_name =
+            Avcodec.Audio.string_of_id (Avcodec.Audio.get_params_id params)
+          in
+          let description =
+            Printf.sprintf "%s: {codec: %s, %dHz, %d channel(s)}"
+              (Frame.Fields.string_of_field field)
+              codec_name samplerate channels
+          in
+          ((field, params) :: audio_streams, description :: descriptions)
+        with Avutil.Error _ -> (audio_streams, descriptions))
+      ([], [])
+      (Av.get_audio_streams container)
   in
-  let video_params, descr =
-    try
-      let _, _, params = Av.find_best_video_stream container in
-      let width = Avcodec.Video.get_width params in
-      let height = Avcodec.Video.get_height params in
-      let pixel_format =
-        match Avcodec.Video.get_pixel_format params with
-          | None -> "unknown"
-          | Some f -> (
-              match Avutil.Pixel_format.to_string f with
-                | None -> "none"
-                | Some s -> s)
-      in
-      let codec_name =
-        Avcodec.Video.string_of_id (Avcodec.Video.get_params_id params)
-      in
-      ( Some params,
-        Printf.sprintf "video: {codec: %s, %dx%d, %s}" codec_name width height
-          pixel_format
-        :: descr )
-    with Avutil.Error _ -> (None, descr)
+  let video_streams, descriptions =
+    List.fold_left
+      (fun (video_streams, descriptions) (_, _, params) ->
+        try
+          let field = Frame.Fields.video_n (List.length video_streams) in
+          let width = Avcodec.Video.get_width params in
+          let height = Avcodec.Video.get_height params in
+          let pixel_format =
+            match Avcodec.Video.get_pixel_format params with
+              | None -> "unknown"
+              | Some f -> (
+                  match Avutil.Pixel_format.to_string f with
+                    | None -> "none"
+                    | Some s -> s)
+          in
+          let codec_name =
+            Avcodec.Video.string_of_id (Avcodec.Video.get_params_id params)
+          in
+          let description =
+            Printf.sprintf "%s: {codec: %s, %dx%d, %s}"
+              (Frame.Fields.string_of_field field)
+              codec_name width height pixel_format
+          in
+          (video_streams @ [(field, params)], descriptions @ [description])
+        with Avutil.Error _ -> (video_streams, descriptions))
+      ([], descriptions)
+      (Av.get_video_streams container)
   in
-  if audio_params = None && video_params = None then
+  if audio_streams = [] && video_streams = [] then
     failwith "No valid stream found in file.";
-  let audio =
-    match (audio_params, Frame.Fields.find_opt Frame.Fields.audio ctype) with
-      | None, _ -> None
-      | Some p, Some format when Ffmpeg_copy_content.Audio.is_format format ->
-          ignore
-            (Content.merge format
-               Ffmpeg_copy_content.(Audio.lift_params (Some p)));
-          Some format
-      | Some p, Some format when Ffmpeg_raw_content.Audio.is_format format ->
-          ignore
-            (Content.merge format
-               Ffmpeg_raw_content.(Audio.lift_params (AudioSpecs.mk_params p)));
-          Some format
-      | Some p, _ ->
-          Some
-            Content.(
-              Audio.lift_params
-                {
-                  Content.channel_layout =
-                    lazy
-                      (Audio_converter.Channel_layout.layout_of_channels
-                         (Avcodec.Audio.get_nb_channels p));
-                })
+  let content_type =
+    List.fold_left
+      (fun content_type (field, params) ->
+        match (params, Frame.Fields.find_opt field ctype) with
+          | p, Some format when Ffmpeg_copy_content.is_format format ->
+              ignore
+                (Content.merge format
+                   (Ffmpeg_copy_content.lift_params (Some (`Audio p))));
+              Frame.Fields.add field format content_type
+          | p, Some format when Ffmpeg_raw_content.Audio.is_format format ->
+              ignore
+                (Content.merge format
+                   Ffmpeg_raw_content.(
+                     Audio.lift_params (AudioSpecs.mk_params p)));
+              Frame.Fields.add field format content_type
+          | p, _ ->
+              Frame.Fields.add field
+                Content.(
+                  Audio.lift_params
+                    {
+                      Content.channel_layout =
+                        lazy
+                          (Audio_converter.Channel_layout.layout_of_channels
+                             (Avcodec.Audio.get_nb_channels p));
+                    })
+                content_type)
+      Frame.Fields.empty audio_streams
   in
-  let video =
-    match (video_params, Frame.Fields.find_opt Frame.Fields.video ctype) with
-      | None, _ -> None
-      | Some p, Some format when Ffmpeg_copy_content.Video.is_format format ->
-          ignore
-            (Content.merge format
-               Ffmpeg_copy_content.(Video.lift_params (Some p)));
-          Some format
-      | Some p, Some format when Ffmpeg_raw_content.Video.is_format format ->
-          ignore
-            (Content.merge format
-               Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params p)));
-          Some format
-      | _ -> Some Content.(default_format Video.kind)
+  let content_type =
+    List.fold_left
+      (fun content_type (field, params) ->
+        match (params, Frame.Fields.find_opt field ctype) with
+          | p, Some format when Ffmpeg_copy_content.is_format format ->
+              ignore
+                (Content.merge format
+                   (Ffmpeg_copy_content.lift_params (Some (`Video p))));
+              Frame.Fields.add field format content_type
+          | p, Some format when Ffmpeg_raw_content.Video.is_format format ->
+              ignore
+                (Content.merge format
+                   Ffmpeg_raw_content.(
+                     Video.lift_params (VideoSpecs.mk_params p)));
+              Frame.Fields.add field format content_type
+          | _ ->
+              Frame.Fields.add field
+                Content.(default_format Video.kind)
+                content_type)
+      content_type video_streams
   in
-  let ctype = Frame.Fields.make ?audio ?video () in
   log#info "ffmpeg recognizes %s as: %s and content-type: %s."
     (Lang_string.quote_string url)
-    (String.concat ", " (List.rev descr))
-    (Frame.string_of_content_type ctype);
-  ctype
+    (String.concat ", " (List.rev descriptions))
+    (Frame.string_of_content_type content_type);
+  content_type
 
 let seek ~target_position ~container ticks =
   let tpos = Frame.seconds_of_main ticks in
@@ -620,39 +646,7 @@ let seek ~target_position ~container ticks =
   Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
   ticks
 
-let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
-  let check_metadata (_, stream, _) =
-    let is_first = ref true in
-    let latest_metadata = ref None in
-    fun buffer ->
-      let m = Av.get_metadata stream in
-      if
-        ((not !is_first) || decode_first_metadata) && Some m <> !latest_metadata
-      then (
-        is_first := false;
-        latest_metadata := Some m;
-        Generator.add_metadata buffer.Decoder.generator
-          (Frame.metadata_of_list m))
-  in
-  let no_metadata _ = () in
-  let no_decoder = (-1, [], fun ~buffer:_ _ -> assert false) in
-  let pack (idx, stream, decoder) = (idx, [stream], decoder) in
-  let ( (audio_frame_idx, audio_frame, audio_frame_decoder),
-        (audio_packet_idx, audio_packet, audio_packet_decoder),
-        check_audio_metadata ) =
-    match audio with
-      | None -> (no_decoder, no_decoder, no_metadata)
-      | Some (`Packet packet) -> (no_decoder, pack packet, check_metadata packet)
-      | Some (`Frame frame) -> (pack frame, no_decoder, check_metadata frame)
-  in
-  let ( (video_frame_idx, video_frame, video_frame_decoder),
-        (video_packet_idx, video_packet, video_packet_decoder),
-        check_video_metadata ) =
-    match video with
-      | None -> (no_decoder, no_decoder, no_metadata)
-      | Some (`Packet packet) -> (no_decoder, pack packet, check_metadata packet)
-      | Some (`Frame frame) -> (pack frame, no_decoder, check_metadata frame)
-  in
+let mk_decoder ~streams ~target_position container =
   let check_pts stream pts =
     match (pts, !target_position) with
       | Some pts, Some target_position ->
@@ -661,6 +655,28 @@ let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
           target_position <= position
       | _ -> true
   in
+  let audio_frame =
+    Streams.fold
+      (fun _ v cur -> match v with `Audio_frame (s, _) -> s :: cur | _ -> cur)
+      streams []
+  in
+  let audio_packet =
+    Streams.fold
+      (fun _ v cur ->
+        match v with `Audio_packet (s, _) -> s :: cur | _ -> cur)
+      streams []
+  in
+  let video_frame =
+    Streams.fold
+      (fun _ v cur -> match v with `Video_frame (s, _) -> s :: cur | _ -> cur)
+      streams []
+  in
+  let video_packet =
+    Streams.fold
+      (fun _ v cur ->
+        match v with `Video_packet (s, _) -> s :: cur | _ -> cur)
+      streams []
+  in
   fun buffer ->
     let rec f () =
       try
@@ -668,27 +684,39 @@ let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
           Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
             container
         in
-        check_audio_metadata buffer;
-        check_video_metadata buffer;
         match data with
-          | `Audio_frame (i, frame) when i = audio_frame_idx ->
-              if check_pts (List.hd audio_frame) (Ffmpeg_utils.best_pts frame)
-              then audio_frame_decoder ~buffer frame
-              else f ()
-          | `Audio_packet (i, packet) when i = audio_packet_idx ->
-              if
-                check_pts (List.hd audio_packet) (Avcodec.Packet.get_pts packet)
-              then audio_packet_decoder ~buffer packet
-              else f ()
-          | `Video_frame (i, frame) when i = video_frame_idx ->
-              if check_pts (List.hd video_frame) (Ffmpeg_utils.best_pts frame)
-              then video_frame_decoder ~buffer frame
-              else f ()
-          | `Video_packet (i, packet) when i = video_packet_idx ->
-              if
-                check_pts (List.hd video_packet) (Avcodec.Packet.get_pts packet)
-              then video_packet_decoder ~buffer packet
-              else f ()
+          | `Audio_frame (i, frame) -> (
+              match Streams.find_opt i streams with
+                | Some (`Audio_frame (_, decode)) ->
+                    if
+                      check_pts (List.hd audio_frame)
+                        (Ffmpeg_utils.best_pts frame)
+                    then decode ~buffer frame
+                | _ -> f ())
+          | `Audio_packet (i, packet) -> (
+              match Streams.find_opt i streams with
+                | Some (`Audio_packet (_, decode)) ->
+                    if
+                      check_pts (List.hd audio_packet)
+                        (Avcodec.Packet.get_pts packet)
+                    then decode ~buffer packet
+                | _ -> f ())
+          | `Video_frame (i, frame) -> (
+              match Streams.find_opt i streams with
+                | Some (`Video_frame (_, decode)) ->
+                    if
+                      check_pts (List.hd video_frame)
+                        (Ffmpeg_utils.best_pts frame)
+                    then decode ~buffer frame
+                | _ -> f ())
+          | `Video_packet (i, packet) -> (
+              match Streams.find_opt i streams with
+                | Some (`Video_packet (_, decode)) ->
+                    if
+                      check_pts (List.hd video_packet)
+                        (Avcodec.Packet.get_pts packet)
+                    then decode ~buffer packet
+                | _ -> f ())
           | _ -> ()
       with
         | Avutil.Error `Invalid_data -> f ()
@@ -702,52 +730,115 @@ let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
     in
     f ()
 
-let mk_streams ~ctype container =
+let mk_streams ~ctype ~decode_first_metadata container =
+  let check_metadata stream fn =
+    let is_first = ref true in
+    let latest_metadata = ref None in
+    fun ~buffer data ->
+      let m = Av.get_metadata stream in
+      if
+        ((not !is_first) || decode_first_metadata) && Some m <> !latest_metadata
+      then (
+        is_first := false;
+        latest_metadata := Some m;
+        Generator.add_metadata buffer.Decoder.generator
+          (Frame.metadata_of_list m));
+      fn ~buffer data
+  in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
-  let audio =
-    try
-      match Frame.Fields.find_opt Frame.Fields.audio ctype with
-        | None -> None
-        | Some f when Ffmpeg_copy_content.Audio.is_format f ->
-            Some
-              (`Packet
-                (Ffmpeg_copy_decoder.mk_audio_decoder ~stream_idx ~format:f
-                   container))
-        | Some f when Ffmpeg_raw_content.Audio.is_format f ->
-            Some
-              (`Frame
-                (Ffmpeg_raw_decoder.mk_audio_decoder ~stream_idx ~format:f
-                   container))
-        | Some f ->
-            let channels = Content.Audio.channels_of_format f in
-            Some
-              (`Frame
-                (Ffmpeg_internal_decoder.mk_audio_decoder ~channels container))
-    with Avutil.Error _ -> None
+  let streams, _ =
+    List.fold_left
+      (fun (streams, pos) (idx, stream, params) ->
+        let field = Frame.Fields.audio_n pos in
+        match Frame.Fields.find_opt field ctype with
+          | Some format when Ffmpeg_copy_content.is_format format ->
+              ( Streams.add idx
+                  (`Audio_packet
+                    ( stream,
+                      check_metadata stream
+                        (Ffmpeg_copy_decoder.mk_audio_decoder ~stream_idx
+                           ~format ~field ~stream params) ))
+                  streams,
+                pos + 1 )
+          | _ -> (streams, pos + 1))
+      (Streams.empty, 0)
+      (Av.get_audio_streams container)
   in
-  let video =
-    try
-      match Frame.Fields.find_opt Frame.Fields.video ctype with
-        | None -> None
-        | Some f when Ffmpeg_copy_content.Video.is_format f ->
-            Some
-              (`Packet
-                (Ffmpeg_copy_decoder.mk_video_decoder ~stream_idx ~format:f
-                   container))
-        | Some f when Ffmpeg_raw_content.Video.is_format f ->
-            Some
-              (`Frame
-                (Ffmpeg_raw_decoder.mk_video_decoder ~stream_idx ~format:f
-                   container))
-        | Some f ->
-            let width, height = Content.Video.dimensions_of_format f in
-            Some
-              (`Frame
-                (Ffmpeg_internal_decoder.mk_video_decoder ~width ~height
-                   container))
-    with Avutil.Error _ -> None
+  let streams, _ =
+    List.fold_left
+      (fun (streams, pos) (idx, stream, params) ->
+        let field = Frame.Fields.audio_n pos in
+        match Frame.Fields.find_opt field ctype with
+          | Some format when Ffmpeg_raw_content.Audio.is_format format ->
+              ( Streams.add idx
+                  (`Audio_frame
+                    ( stream,
+                      check_metadata stream
+                        (Ffmpeg_raw_decoder.mk_audio_decoder ~stream_idx ~format
+                           ~stream ~field params) ))
+                  streams,
+                pos + 1 )
+          | Some format when Content.Audio.is_format format ->
+              let channels = Content.Audio.channels_of_format format in
+              ( Streams.add idx
+                  (`Audio_frame
+                    ( stream,
+                      check_metadata stream
+                        (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
+                           ~stream ~field params) ))
+                  streams,
+                pos + 1 )
+          | _ -> (streams, pos + 1))
+      (streams, 0)
+      (Av.get_audio_streams container)
   in
-  (audio, video)
+  let streams, _ =
+    List.fold_left
+      (fun (streams, pos) (idx, stream, params) ->
+        let field = Frame.Fields.video_n pos in
+        match Frame.Fields.find_opt field ctype with
+          | Some format when Ffmpeg_copy_content.is_format format ->
+              ( Streams.add idx
+                  (`Video_packet
+                    ( stream,
+                      check_metadata stream
+                        (Ffmpeg_copy_decoder.mk_video_decoder ~stream_idx
+                           ~format ~field ~stream params) ))
+                  streams,
+                pos + 1 )
+          | _ -> (streams, pos + 1))
+      (streams, 0)
+      (Av.get_video_streams container)
+  in
+  let streams, _ =
+    List.fold_left
+      (fun (streams, pos) (idx, stream, params) ->
+        let field = Frame.Fields.video_n pos in
+        match Frame.Fields.find_opt field ctype with
+          | Some format when Ffmpeg_raw_content.Video.is_format format ->
+              ( Streams.add idx
+                  (`Video_frame
+                    ( stream,
+                      check_metadata stream
+                        (Ffmpeg_raw_decoder.mk_video_decoder ~stream_idx ~format
+                           ~stream ~field params) ))
+                  streams,
+                pos + 1 )
+          | Some format when Content.Video.is_format format ->
+              let width, height = Content.Video.dimensions_of_format format in
+              ( Streams.add idx
+                  (`Video_frame
+                    ( stream,
+                      check_metadata stream
+                        (Ffmpeg_internal_decoder.mk_video_decoder ~width ~height
+                           ~stream ~field params) ))
+                  streams,
+                pos + 1 )
+          | _ -> (streams, pos + 1))
+      (streams, 0)
+      (Av.get_video_streams container)
+  in
+  streams
 
 let create_decoder ~ctype fname =
   let duration = duration fname in
@@ -778,38 +869,35 @@ let create_decoder ~ctype fname =
     Hashtbl.add opts "loop" (`Int 1);
     Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)));
   let container = Av.open_input ~opts fname in
-  let audio, video = mk_streams ~ctype container in
-  let audio =
-    match audio with
-      | Some (`Packet (idx, stream, decoder)) ->
-          let decoder ~buffer packet =
-            set_remaining stream (Avcodec.Packet.get_pts packet);
-            decoder ~buffer packet
-          in
-          Some (`Packet (idx, stream, decoder))
-      | Some (`Frame (idx, stream, decoder)) ->
-          let decoder ~buffer frame =
-            set_remaining stream (Ffmpeg_utils.best_pts frame);
-            decoder ~buffer frame
-          in
-          Some (`Frame (idx, stream, decoder))
-      | None -> None
-  in
-  let video =
-    match video with
-      | Some (`Packet (idx, stream, decoder)) ->
-          let decoder ~buffer packet =
-            set_remaining stream (Avcodec.Packet.get_pts packet);
-            decoder ~buffer packet
-          in
-          Some (`Packet (idx, stream, decoder))
-      | Some (`Frame (idx, stream, decoder)) ->
-          let decoder ~buffer frame =
-            set_remaining stream (Ffmpeg_utils.best_pts frame);
-            decoder ~buffer frame
-          in
-          Some (`Frame (idx, stream, decoder))
-      | None -> None
+  let streams = mk_streams ~ctype ~decode_first_metadata:false container in
+  let streams =
+    Streams.map
+      (function
+        | `Audio_packet (stream, decoder) ->
+            let decoder ~buffer packet =
+              set_remaining stream (Avcodec.Packet.get_pts packet);
+              decoder ~buffer packet
+            in
+            `Audio_packet (stream, decoder)
+        | `Audio_frame (stream, decoder) ->
+            let decoder ~buffer frame =
+              set_remaining stream (Ffmpeg_utils.best_pts frame);
+              decoder ~buffer frame
+            in
+            `Audio_frame (stream, decoder)
+        | `Video_packet (stream, decoder) ->
+            let decoder ~buffer packet =
+              set_remaining stream (Avcodec.Packet.get_pts packet);
+              decoder ~buffer packet
+            in
+            `Video_packet (stream, decoder)
+        | `Video_frame (stream, decoder) ->
+            let decoder ~buffer frame =
+              set_remaining stream (Ffmpeg_utils.best_pts frame);
+              decoder ~buffer frame
+            in
+            `Video_frame (stream, decoder))
+      streams
   in
   let close () = Av.close container in
   let target_position = ref None in
@@ -825,9 +913,7 @@ let create_decoder ~ctype fname =
                 match seek ~target_position ~container target with
                   | 0 -> 0
                   | _ -> ticks));
-      decode =
-        mk_decoder ?audio ?video ~decode_first_metadata:false ~target_position
-          container;
+      decode = mk_decoder ~streams ~target_position container;
     },
     close,
     get_remaining )
@@ -849,13 +935,11 @@ let create_stream_decoder ~ctype mime input =
   let container =
     Av.open_input_stream ?seek:seek_input ~opts input.Decoder.read
   in
-  let audio, video = mk_streams ~ctype container in
+  let streams = mk_streams ~ctype ~decode_first_metadata:true container in
   let target_position = ref None in
   {
     Decoder.seek = seek ~target_position ~container;
-    decode =
-      mk_decoder ?audio ?video ~decode_first_metadata:true ~target_position
-        container;
+    decode = mk_decoder ~streams ~target_position container;
   }
 
 let get_file_type ~ctype filename =

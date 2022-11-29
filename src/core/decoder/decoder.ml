@@ -61,8 +61,8 @@ type fps = Decoder_utils.fps = { num : int; den : int }
     - Implicit content drop *)
 type buffer = {
   generator : Generator.t;
-  put_pcm : samplerate:int -> Content.Audio.data -> unit;
-  put_yuva420p : fps:fps -> Content.Video.data -> unit;
+  put_pcm : ?field:Frame.field -> samplerate:int -> Content.Audio.data -> unit;
+  put_yuva420p : ?field:Frame.field -> fps:fps -> Content.Video.data -> unit;
 }
 
 type decoder = {
@@ -419,65 +419,87 @@ let get_stream_decoder ~ctype mime =
 (** {1 Helpers for defining decoders} *)
 
 let mk_buffer ~ctype generator =
-  let has_audio = Frame.Fields.mem Frame.Fields.audio ctype in
-  let has_video = Frame.Fields.mem Frame.Fields.video ctype in
+  let audio_handlers = Hashtbl.create 0 in
+  let video_handlers = Hashtbl.create 0 in
 
-  let put_pcm =
-    if has_audio then (
-      let resampler = Decoder_utils.samplerate_converter () in
-      let current_channel_converter = ref None in
-      let current_dst = ref None in
+  let get_audio_handler ~field =
+    try Hashtbl.find audio_handlers field
+    with Not_found ->
+      let handler =
+        if Frame.Fields.mem field ctype then (
+          let resampler = Decoder_utils.samplerate_converter () in
+          let current_channel_converter = ref None in
+          let current_dst = ref None in
 
-      let mk_channel_converter dst =
-        let c = Decoder_utils.channels_converter dst in
-        current_dst := Some dst;
-        current_channel_converter := Some c;
-        c
+          let mk_channel_converter dst =
+            let c = Decoder_utils.channels_converter dst in
+            current_dst := Some dst;
+            current_channel_converter := Some c;
+            c
+          in
+
+          let get_channel_converter () =
+            let dst =
+              channel_layout (Frame.Fields.find Frame.Fields.audio ctype)
+            in
+            match !current_channel_converter with
+              | None -> mk_channel_converter dst
+              | Some _ when !current_dst <> Some dst -> mk_channel_converter dst
+              | Some c -> c
+          in
+          fun ~samplerate data ->
+            let data, _, _ = resampler ~samplerate data 0 (Audio.length data) in
+            let data = (get_channel_converter ()) data in
+            let data = Content.Audio.lift_data data in
+            Generator.put generator field data)
+        else fun ~samplerate:_ _ -> ()
       in
-
-      let get_channel_converter () =
-        let dst = channel_layout (Frame.Fields.find Frame.Fields.audio ctype) in
-        match !current_channel_converter with
-          | None -> mk_channel_converter dst
-          | Some _ when !current_dst <> Some dst -> mk_channel_converter dst
-          | Some c -> c
-      in
-      fun ~samplerate data ->
-        let data, _, _ = resampler ~samplerate data 0 (Audio.length data) in
-        let data = (get_channel_converter ()) data in
-        let data = Content.Audio.lift_data data in
-        Generator.put generator Frame.Fields.audio data)
-    else fun ~samplerate:_ _ -> ()
+      Hashtbl.add audio_handlers field handler;
+      handler
   in
 
-  let put_yuva420p =
-    if has_video then (
-      let video_resample = Decoder_utils.video_resample () in
-      let video_scale =
-        let width, height =
-          try
-            Content.Video.dimensions_of_format
-              (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
-          with Content.Invalid ->
-            (* We might have encoded contents *)
-            (Lazy.force Frame.video_width, Lazy.force Frame.video_height)
-        in
-        Decoder_utils.video_scale ~width ~height ()
+  let get_video_handler ~field =
+    try Hashtbl.find video_handlers field
+    with Not_found ->
+      let handler =
+        if Frame.Fields.mem field ctype then (
+          let video_resample = Decoder_utils.video_resample () in
+          let video_scale =
+            let width, height =
+              try
+                Content.Video.dimensions_of_format
+                  (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
+              with Content.Invalid ->
+                (* We might have encoded contents *)
+                (Lazy.force Frame.video_width, Lazy.force Frame.video_height)
+            in
+            Decoder_utils.video_scale ~width ~height ()
+          in
+          let out_freq =
+            Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
+          in
+          fun ~fps (data : Content.Video.data) ->
+            let data = Array.map video_scale data in
+            let data = video_resample ~in_freq:fps ~out_freq data in
+            let len = Video.Canvas.length data in
+            let data =
+              Content.Video.lift_data
+                ~length:(Frame_settings.main_of_video len)
+                data
+            in
+            Generator.put generator field data)
+        else fun ~fps:_ _ -> ()
       in
-      let out_freq =
-        Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
-      in
-      fun ~fps (data : Content.Video.data) ->
-        let data = Array.map video_scale data in
-        let data = video_resample ~in_freq:fps ~out_freq data in
-        let len = Video.Canvas.length data in
-        let data =
-          Content.Video.lift_data
-            ~length:(Frame_settings.main_of_video len)
-            data
-        in
-        Generator.put generator Frame.Fields.video data)
-    else fun ~fps:_ _ -> ()
+      Hashtbl.add video_handlers field handler;
+      handler
+  in
+
+  let put_pcm ?(field = Frame.Fields.audio) ~samplerate data =
+    get_audio_handler ~field ~samplerate data
+  in
+
+  let put_yuva420p ?(field = Frame.Fields.video) ~fps data =
+    get_video_handler ~field ~fps data
   in
 
   { generator; put_pcm; put_yuva420p }

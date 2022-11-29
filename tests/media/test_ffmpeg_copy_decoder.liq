@@ -20,28 +20,34 @@ def on_done () =
 
   let json.parse ( iparsed : {
     streams: [{
+      index: int,
       channel_layout: string?,
       sample_rate: string?,
       sample_fmt: string?,
-      codec_name: string?,
+      codec_type: string,
       pix_fmt: string?
     }]
   }) = ijson
 
   let json.parse ( oparsed : {
     streams: [{
+      index: int,
       channel_layout: string?,
       sample_rate: string?,
       sample_fmt: string?,
-      codec_name: string?,
+      codec_type: string,
       pix_fmt: string?
     }]
   }) = ojson
 
-  filter = fun(l) -> list.filter(fun (s) -> null.defined(s.codec_name), l)
-  sort = fun (l) -> list.sort(fun (s1, s2) -> if s1.codec_name < s2.codec_name then -1 else 1 end, l)
-  let [iaudio, ivideo] = sort(filter(iparsed.streams))
-  let [oaudio, ovideo] = sort(filter(oparsed.streams))
+  filter = fun(type, l) -> list.filter(fun (s) -> s.codec_type == type, l)
+  sort = fun (l) -> list.sort(fun (s1, s2) -> if s1.index < s2.index then -1 else 1 end, l)
+
+  let [{index, ...iaudio}] = sort(filter("audio", iparsed.streams))
+  let [{index, ...ivideo}] = sort(filter("video", iparsed.streams))
+
+  let [{index, ...oaudio}] = sort(filter("audio", oparsed.streams))
+  let [{index, ...ovideo}] = sort(filter("video", oparsed.streams))
 
   if iaudio == oaudio and ivideo == ovideo then
     test.pass()

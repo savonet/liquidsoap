@@ -35,8 +35,7 @@ type encoder = {
 
 type handler = {
   output : Avutil.output Avutil.container;
-  audio_stream : encoder option;
-  video_stream : encoder option;
+  streams : encoder Frame.Fields.t;
   mutable started : bool;
 }
 
@@ -93,16 +92,10 @@ let mk_format ffmpeg =
     | _ -> None
 
 let encode ~encoder frame start len =
-  if not encoder.started then (
-    ignore
-      (Option.map (fun { mk_stream } -> mk_stream frame) encoder.audio_stream);
-    ignore
-      (Option.map (fun { mk_stream } -> mk_stream frame) encoder.video_stream));
+  if not encoder.started then
+    Frame.Fields.iter (fun _ { mk_stream } -> mk_stream frame) encoder.streams;
   encoder.started <- true;
-  ignore
-    (Option.map (fun { encode } -> encode frame start len) encoder.audio_stream);
-  ignore
-    (Option.map (fun { encode } -> encode frame start len) encoder.video_stream)
+  Frame.Fields.iter (fun _ { encode } -> encode frame start len) encoder.streams
 
 (* Convert ffmpeg-specific options. *)
 let convert_options opts =
@@ -118,10 +111,10 @@ let convert_options opts =
     | `String layout -> `Int64 Avutil.Channel_layout.(get_id (find layout))
     | _ -> assert false)
 
-let encoder ~mk_audio ~mk_video ffmpeg meta =
+let encoder ~mk_streams ffmpeg meta =
   let buf = Strings.Mutable.empty () in
   let make () =
-    let options = Hashtbl.copy ffmpeg.Ffmpeg_format.other_opts in
+    let options = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
     convert_options options;
     let write str ofs len =
       Strings.Mutable.add_subbytes buf str ofs len;
@@ -141,64 +134,59 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
             Av.open_output_stream ~opts:options write (Option.get format)
         | `Url url -> Av.open_output ?format ~opts:options url
     in
-    let audio_stream =
-      Option.map
-        (fun _ -> mk_audio ~ffmpeg ~options output)
-        ffmpeg.Ffmpeg_format.audio_codec
-    in
-    let video_stream =
-      Option.map
-        (fun _ -> mk_video ~ffmpeg ~options output)
-        ffmpeg.Ffmpeg_format.video_codec
-    in
+    let streams = mk_streams output in
     if Hashtbl.length options > 0 then
       failwith
         (Printf.sprintf "Unrecognized options: %s"
            (Ffmpeg_format.string_of_options options));
-    { output; audio_stream; video_stream; started = false }
+    { output; streams; started = false }
   in
   let encoder = ref (make ()) in
   let codec_attrs () =
     let encoder = !encoder in
-    match (encoder.video_stream, encoder.audio_stream) with
-      | Some v, Some a -> (
-          match (v.codec_attr (), a.codec_attr ()) with
-            | Some v, Some a -> Some (Printf.sprintf "%s,%s" v a)
-            | _ -> None)
-      | None, Some s | Some s, None -> s.codec_attr ()
-      | None, None -> None
+    match
+      Frame.Fields.fold
+        (fun _ c cur ->
+          match c.codec_attr () with Some c -> c :: cur | None -> cur)
+        encoder.streams []
+    with
+      | [] -> None
+      | l -> Some (String.concat "," l)
   in
   let bitrate () =
     let encoder = !encoder in
     Some
-      (List.fold_left
-         (fun cur -> function
-           | None -> cur
-           | Some s -> (
-               match s.bitrate () with Some b -> cur + b | None -> cur))
-         0
-         [encoder.video_stream; encoder.audio_stream])
+      (Frame.Fields.fold
+         (fun _ c cur -> cur + Option.value ~default:0 (c.bitrate ()))
+         encoder.streams 0)
   in
   let video_size () =
     let encoder = !encoder in
-    match encoder.video_stream with Some s -> s.video_size () | None -> None
+    match
+      Frame.Fields.fold
+        (fun _ stream cur ->
+          match stream.video_size () with
+            | Some (width, height) -> (width, height) :: cur
+            | _ -> cur)
+        encoder.streams []
+    with
+      | (width, height) :: [] -> Some (width, height)
+      | _ -> None
   in
-  let audio_sent = ref false in
-  let video_sent = ref false in
+  let sent = Frame.Fields.map (fun _ -> ref false) !encoder.streams in
   let init_encode frame start len =
     let encoder = !encoder in
     match ffmpeg.Ffmpeg_format.format with
       | Some "mp4" ->
           encode ~encoder frame start len;
-          if encoder.video_stream <> None then (
-            let d = Content.sub (Frame.video frame) start len in
-            video_sent := !video_sent || not (Content.is_empty d))
-          else video_sent := true;
-          if encoder.audio_stream <> None then (
-            let d = Content.sub (Frame.audio frame) start len in
-            audio_sent := !audio_sent || not (Content.is_empty d))
-          else audio_sent := true;
-          if not (!audio_sent && !video_sent) then raise Encoder.Not_enough_data;
+          Frame.Fields.iter
+            (fun field c ->
+              let sent = Frame.Fields.find field sent in
+              let d = Content.sub c start len in
+              sent := !sent || not (Content.is_empty d))
+            (Generator.peek_media frame);
+          if Frame.Fields.exists (fun _ c -> not !c) sent then
+            raise Encoder.Not_enough_data;
           Av.flush encoder.output;
           let init = Strings.Mutable.flush buf in
           (Some init, Strings.empty)
@@ -217,10 +205,9 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
     let flushed = Strings.Mutable.flush buf in
     encode ~encoder frame start len;
     let encoded = Strings.Mutable.flush buf in
-    match encoder.video_stream with
-      | Some s when s.can_split () -> `Ok (flushed, encoded)
-      | None -> `Ok (flushed, encoded)
-      | _ -> `Nope (Strings.append flushed encoded)
+    if Frame.Fields.exists (fun _ c -> not (c.can_split ())) encoder.streams
+    then `Nope (Strings.append flushed encoded)
+    else `Ok (flushed, encoded)
   in
   let encode frame start len =
     encode ~encoder:!encoder frame start len;

@@ -50,16 +50,17 @@ let audio_formats =
     "%ogg(%flac(stereo)).ogg";
     "%ogg(%opus(mono)).ogg";
     "%ogg(%opus(stereo)).ogg";
-    {|%ffmpeg(format="mp4",%audio(codec="aac"),%video.none).mp4|};
+    {|%ffmpeg(format="mp4",%audio(codec="aac")).mp4|};
   ]
 
-let video_formats =
-  [{|%ffmpeg(format="mp4",%audio.none,%video(codec="libx264")).mp4|}]
+let video_formats = [{|%ffmpeg(format="mp4",%video(codec="libx264")).mp4|}]
 
 let audio_video_formats =
   [
     {|%ffmpeg(format="mp4",%audio(codec="aac",channels=1),%video(codec="libx264")).mp4|};
     {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%video(codec="libx264")).mp4|};
+    {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%audio_2(codec="aac",channels=1),%video(codec="libx264"),%video_2(codec="libx264")).mp4|};
+    {|%ffmpeg(format="mp4",%gno(audio_content,codec="aac",channels=2),%gni(audio_content,codec="aac",channels=1),%bar(video_content,codec="libx264"),%foo(video_content,codec="libx264")).mp4|};
   ]
 
 let formats = audio_formats @ audio_video_formats @ video_formats

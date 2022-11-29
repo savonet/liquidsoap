@@ -33,10 +33,11 @@ let string_of_format = string_of_format
 let string_of_fields fn fields =
   Printf.sprintf "{%s}"
     (String.concat ","
-       (Fields.fold
-          (fun f v cur ->
-            Printf.sprintf "%s=%s" (Fields.string_of_field f) (fn v) :: cur)
-          fields []))
+       (List.sort Stdlib.compare
+          (Fields.fold
+             (fun f v cur ->
+               Printf.sprintf "%s=%s" (Fields.string_of_field f) (fn v) :: cur)
+             fields [])))
 
 let string_of_content_type = string_of_fields string_of_format
 

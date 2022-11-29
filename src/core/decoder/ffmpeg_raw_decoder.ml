@@ -49,8 +49,7 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~lift_data ~put_data
           put_data buffer.Decoder.generator data
       | None -> ()
 
-let mk_audio_decoder ~stream_idx ~format container =
-  let idx, stream, params = Av.find_best_audio_stream container in
+let mk_audio_decoder ~stream_idx ~format ~stream ~field params =
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;
   ignore
     (Content.merge format
@@ -58,14 +57,11 @@ let mk_audio_decoder ~stream_idx ~format container =
   let stream_time_base = Av.get_time_base stream in
   let lift_data data = Ffmpeg_raw_content.Audio.lift_data data in
   let mk_params = Ffmpeg_raw_content.AudioSpecs.mk_params in
-  ( idx,
-    stream,
-    mk_decoder ~stream_idx ~lift_data ~mk_params ~stream_time_base
-      ~put_data:(fun g c -> Generator.put g Frame.Fields.audio c)
-      params )
+  mk_decoder ~stream_idx ~lift_data ~mk_params ~stream_time_base
+    ~put_data:(fun g c -> Generator.put g field c)
+    params
 
-let mk_video_decoder ~stream_idx ~format container =
-  let idx, stream, params = Av.find_best_video_stream container in
+let mk_video_decoder ~stream_idx ~format ~stream ~field params =
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
   ignore
     (Content.merge format
@@ -73,8 +69,6 @@ let mk_video_decoder ~stream_idx ~format container =
   let stream_time_base = Av.get_time_base stream in
   let lift_data data = Ffmpeg_raw_content.Video.lift_data data in
   let mk_params = Ffmpeg_raw_content.VideoSpecs.mk_params in
-  ( idx,
-    stream,
-    mk_decoder ~stream_idx ~mk_params ~lift_data ~stream_time_base
-      ~put_data:(fun g c -> Generator.put g Frame.Fields.video c)
-      params )
+  mk_decoder ~stream_idx ~mk_params ~lift_data ~stream_time_base
+    ~put_data:(fun g c -> Generator.put g field c)
+    params

@@ -61,44 +61,39 @@ let type_of_format = function
   | Shine m -> audio_type m.Shine_format.channels
   | Flac m -> audio_type m.Flac_format.channels
   | Ffmpeg m ->
-      let audio =
-        Option.map
-          (function
-            | `Copy _ ->
-                `Format
-                  Content.(default_format (kind_of_string "ffmpeg.audio.copy"))
-            | `Raw _ ->
-                `Format
-                  Content.(default_format (kind_of_string "ffmpeg.audio.raw"))
-            | `Internal _ ->
-                let channels = m.Ffmpeg_format.channels in
-                assert (channels > 0);
-                `Format
-                  Content.(
-                    Audio.lift_params
-                      {
-                        Content.channel_layout =
-                          lazy
-                            (Audio_converter.Channel_layout.layout_of_channels
-                               channels);
-                      }))
-          m.Ffmpeg_format.audio_codec
-      in
-      let audio = Option.map (fun f -> Type.make (Format_type.descr f)) audio in
-      let video =
-        Option.map
-          (function
-            | `Copy _ ->
-                `Format
-                  Content.(default_format (kind_of_string "ffmpeg.video.copy"))
-            | `Raw _ ->
-                `Format
-                  Content.(default_format (kind_of_string "ffmpeg.video.raw"))
-            | `Internal _ -> `Format Content.(default_format Video.kind))
-          m.Ffmpeg_format.video_codec
-      in
-      let video = Option.map (fun f -> Type.make (Format_type.descr f)) video in
-      Frame.Fields.make ?audio ?video ()
+      Frame.Fields.map
+        (fun c ->
+          Type.make
+            (Format_type.descr
+               (match c with
+                 | `Copy _ ->
+                     `Format
+                       Content.(default_format (kind_of_string "ffmpeg.copy"))
+                 | `Encode { Ffmpeg_format.mode = `Raw; options = `Audio _ } ->
+                     `Format
+                       Content.(
+                         default_format (kind_of_string "ffmpeg.audio.raw"))
+                 | `Encode { Ffmpeg_format.mode = `Raw; options = `Video _ } ->
+                     `Format
+                       Content.(
+                         default_format (kind_of_string "ffmpeg.video.raw"))
+                 | `Encode
+                     Ffmpeg_format.
+                       { mode = `Internal; options = `Audio { channels } } ->
+                     assert (channels > 0);
+                     `Format
+                       Content.(
+                         Audio.lift_params
+                           {
+                             Content.channel_layout =
+                               lazy
+                                 (Audio_converter.Channel_layout
+                                  .layout_of_channels channels);
+                           })
+                 | `Encode
+                     { Ffmpeg_format.mode = `Internal; options = `Video _ } ->
+                     `Format Content.(default_format Video.kind))))
+        m.streams
   | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
   | Ogg { Ogg_format.audio; video } ->
       let channels =
@@ -133,9 +128,20 @@ let string_of_format = function
   | GStreamer w -> Gstreamer_format.to_string w
 
 let video_size = function
-  | Ogg { Ogg_format.video = Some { Theora_format.width; height } }
-  | Ffmpeg { Ffmpeg_format.video_codec = Some _; width; height } ->
+  | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
       Some (Lazy.force width, Lazy.force height)
+  | Ffmpeg m -> (
+      match
+        Frame.Fields.fold
+          (fun _ stream cur ->
+            match stream with
+              | `Encode Ffmpeg_format.{ options = `Video { width; height } } ->
+                  (width, height) :: cur
+              | _ -> cur)
+          m.Ffmpeg_format.streams []
+      with
+        | (width, height) :: [] -> Some (Lazy.force width, Lazy.force height)
+        | _ -> None)
   | _ -> None
 
 (** ISO Base Media File Format, see RFC 6381 section 3.3. *)
@@ -203,7 +209,7 @@ let file_output = function Ffmpeg _ -> true | _ -> false
 let with_file_output ?(append = false) encoder file =
   match encoder with
     | Ffmpeg opts ->
-        Hashtbl.replace opts.Ffmpeg_format.other_opts "truncate"
+        Hashtbl.replace opts.Ffmpeg_format.opts "truncate"
           (`Int (if append then 0 else 1));
         Ffmpeg
           {

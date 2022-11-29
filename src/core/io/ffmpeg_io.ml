@@ -86,26 +86,27 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           failwith
             (Printf.sprintf "url %S cannot produce content of type %s" url
                (Frame.string_of_content_type self#content_type));
-        let audio, video =
-          Ffmpeg_decoder.mk_streams ~ctype:self#content_type input
+        let streams =
+          Ffmpeg_decoder.mk_streams ~ctype:self#content_type
+            ~decode_first_metadata:true input
         in
         let decoder =
-          Ffmpeg_decoder.mk_decoder ?audio ?video ~decode_first_metadata:true
-            ~target_position:(ref None) input
+          Ffmpeg_decoder.mk_decoder ~streams ~target_position:(ref None) input
         in
         let buffer = Decoder.mk_buffer ~ctype:self#content_type self#buffer in
         let get_metadata () =
           normalize_metadata
-            (Av.get_input_metadata input
-            @ (match audio with
-                | Some (`Packet (_, stream, _)) -> Av.get_metadata stream
-                | Some (`Frame (_, stream, _)) -> Av.get_metadata stream
-                | None -> [])
-            @
-            match video with
-              | Some (`Packet (_, stream, _)) -> Av.get_metadata stream
-              | Some (`Frame (_, stream, _)) -> Av.get_metadata stream
-              | None -> [])
+            (Ffmpeg_decoder.Streams.fold
+               (fun _ stream m ->
+                 m
+                 @
+                 match stream with
+                   | `Audio_frame (stream, _) -> Av.get_metadata stream
+                   | `Audio_packet (stream, _) -> Av.get_metadata stream
+                   | `Video_frame (stream, _) -> Av.get_metadata stream
+                   | `Video_packet (stream, _) -> Av.get_metadata stream)
+               streams
+               (Av.get_input_metadata input))
         in
         container <- Some (input, decoder, buffer, get_metadata);
         source_status <- `Connected url;

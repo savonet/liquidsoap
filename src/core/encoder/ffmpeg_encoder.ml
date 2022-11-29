@@ -30,54 +30,43 @@ let () =
         Some
           (fun _ ->
             let copy_count =
-              (match m.Ffmpeg_format.audio_codec with
-                | Some (`Copy _) -> 1
-                | _ -> 0)
-              +
-              match m.Ffmpeg_format.video_codec with
-                | Some (`Copy _) -> 1
-                | _ -> 0
+              Frame.Fields.fold
+                (fun _ c cur -> match c with `Copy _ -> cur + 1 | _ -> cur)
+                m.streams 0
             in
             let get_stream, remove_stream = mk_stream_store copy_count in
-            let mk_audio =
-              match m.Ffmpeg_format.audio_codec with
-                | Some (`Copy keyframe_opt) ->
-                    fun ~ffmpeg:_ ~options:_ ->
-                      Ffmpeg_copy_encoder.mk_stream_copy
-                        ~video_size:(fun _ -> None)
-                        ~get_stream ~remove_stream ~keyframe_opt
-                        ~get_data:(fun frame ->
-                          Ffmpeg_copy_content.Audio.get_data (Frame.audio frame))
-                | None | Some (`Internal (Some _)) | Some (`Raw (Some _)) ->
-                    Ffmpeg_internal_encoder.mk_audio
-                | Some (`Internal None) ->
-                    failwith "%audio encoder expects a codec variable!"
-                | Some (`Raw None) ->
-                    failwith "%audio.raw encoder expects a codec variable!"
+            let mk_streams output =
+              Frame.Fields.mapi
+                (fun field -> function
+                  | `Copy keyframe_opt ->
+                      Ffmpeg_copy_encoder.mk_stream_copy ~get_stream
+                        ~remove_stream ~keyframe_opt ~field output
+                  | `Encode Ffmpeg_format.{ codec = None } ->
+                      Lang_encoder.raise_error ~pos:None
+                        (Printf.sprintf
+                           "Codec unspecified for %%ffmpeg stream %%%s!"
+                           (Frame.Fields.string_of_field field))
+                  | `Encode
+                      Ffmpeg_format.
+                        {
+                          mode;
+                          codec = Some codec;
+                          options = `Audio params;
+                          opts = options;
+                        } ->
+                      Ffmpeg_internal_encoder.mk_audio ~mode ~params ~options
+                        ~codec ~field output
+                  | `Encode
+                      Ffmpeg_format.
+                        {
+                          mode;
+                          codec = Some codec;
+                          options = `Video params;
+                          opts = options;
+                        } ->
+                      Ffmpeg_internal_encoder.mk_video ~mode ~params ~options
+                        ~codec ~field output)
+                m.streams
             in
-            let mk_video =
-              match m.Ffmpeg_format.video_codec with
-                | Some (`Copy keyframe_opt) ->
-                    fun ~ffmpeg:_ ~options:_ ->
-                      let get_data frame =
-                        Ffmpeg_copy_content.Video.get_data (Frame.video frame)
-                      in
-                      let video_size frame =
-                        let { Ffmpeg_content_base.params } = get_data frame in
-                        Option.map
-                          (fun params ->
-                            ( Avcodec.Video.get_width params,
-                              Avcodec.Video.get_height params ))
-                          params
-                      in
-                      Ffmpeg_copy_encoder.mk_stream_copy ~video_size ~get_stream
-                        ~remove_stream ~get_data ~keyframe_opt
-                | None | Some (`Internal (Some _)) | Some (`Raw (Some _)) ->
-                    Ffmpeg_internal_encoder.mk_video
-                | Some (`Internal None) ->
-                    failwith "%video encoder expects a codec variable!"
-                | Some (`Raw None) ->
-                    failwith "%video.raw encoder expects a codec variable!"
-            in
-            encoder ~mk_audio ~mk_video m)
+            encoder ~mk_streams m)
     | _ -> None)

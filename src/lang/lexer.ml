@@ -105,7 +105,7 @@ let var_lit =
     | Star '_', var_char, Star (var_char | decimal_digit | '_' | '\'') )]
 
 let var = [%sedlex.regexp? var_lit | so | math | other_math]
-let encoder = [%sedlex.regexp? '%', Plus (var_char | decimal_digit | '.')]
+let encoder = [%sedlex.regexp? '%', Plus (var_char | decimal_digit | '.' | '_')]
 
 let time =
   [%sedlex.regexp?

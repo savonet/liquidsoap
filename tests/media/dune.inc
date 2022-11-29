@@ -162,13 +162,13 @@
 (rule
   (alias runtest)
   (package liquidsoap)
-  (target @ffmpeg[format='mp4',@audio[codec='aac'],@video.none]_encoder.liq)
+  (target @ffmpeg[format='mp4',@audio[codec='aac']]_encoder.liq)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
     (:test_encoder_in ./test_encoder.liq.in))
   (action
     (with-stdout-to %{target}
-      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"),%video.none)" sine "@ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4"))))
+      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"))" sine "@ffmpeg[format='mp4',@audio[codec='aac']].mp4"))))
 (rule
   (alias runtest)
   (package liquidsoap)
@@ -192,13 +192,33 @@
 (rule
   (alias runtest)
   (package liquidsoap)
-  (target @ffmpeg[format='mp4',@audio.none,@video[codec='libx264']]_encoder.liq)
+  (target @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']]_encoder.liq)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
     (:test_encoder_in ./test_encoder.liq.in))
   (action
     (with-stdout-to %{target}
-      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio.none,%video(codec=\"libx264\"))" noise "@ffmpeg[format='mp4',@audio.none,@video[codec='libx264']].mp4"))))
+      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%audio_2(codec=\"aac\",channels=1),%video(codec=\"libx264\"),%video_2(codec=\"libx264\"))" noise "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4"))))
+(rule
+  (alias runtest)
+  (package liquidsoap)
+  (target @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:test_encoder_in ./test_encoder.liq.in))
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%gno(audio_content,codec=\"aac\",channels=2),%gni(audio_content,codec=\"aac\",channels=1),%bar(video_content,codec=\"libx264\"),%foo(video_content,codec=\"libx264\"))" noise "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4"))))
+(rule
+  (alias runtest)
+  (package liquidsoap)
+  (target @ffmpeg[format='mp4',@video[codec='libx264']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:test_encoder_in ./test_encoder.liq.in))
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%video(codec=\"libx264\"))" noise "@ffmpeg[format='mp4',@video[codec='libx264']].mp4"))))
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -410,16 +430,16 @@
 (rule
  (alias runtest)
  (package liquidsoap)
- (target @ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4)
+ (target @ffmpeg[format='mp4',@audio[codec='aac']].mp4)
  (deps
-  (:encoder @ffmpeg[format='mp4',@audio[codec='aac'],@video.none]_encoder.liq)
+  (:encoder @ffmpeg[format='mp4',@audio[codec='aac']]_encoder.liq)
   (source_tree ../../src/libs)
   ../../src/bin/liquidsoap.exe
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"),%video.none)")))
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"))")))
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -449,16 +469,42 @@
 (rule
  (alias runtest)
  (package liquidsoap)
- (target @ffmpeg[format='mp4',@audio.none,@video[codec='libx264']].mp4)
+ (target @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4)
  (deps
-  (:encoder @ffmpeg[format='mp4',@audio.none,@video[codec='libx264']]_encoder.liq)
+  (:encoder @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']]_encoder.liq)
   (source_tree ../../src/libs)
   ../../src/bin/liquidsoap.exe
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio.none,%video(codec=\"libx264\"))")))
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%audio_2(codec=\"aac\",channels=1),%video(codec=\"libx264\"),%video_2(codec=\"libx264\"))")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (target @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4)
+ (deps
+  (:encoder @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']]_encoder.liq)
+  (source_tree ../../src/libs)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%gno(audio_content,codec=\"aac\",channels=2),%gni(audio_content,codec=\"aac\",channels=1),%bar(video_content,codec=\"libx264\"),%foo(video_content,codec=\"libx264\"))")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (target @ffmpeg[format='mp4',@video[codec='libx264']].mp4)
+ (deps
+  (:encoder @ffmpeg[format='mp4',@video[codec='libx264']]_encoder.liq)
+  (source_tree ../../src/libs)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%video(codec=\"libx264\"))")))
 (rule
   (alias runtest)
   (package liquidsoap)
@@ -480,10 +526,12 @@
 @ogg[@flac[stereo]].ogg
 @ogg[@opus[mono]].ogg
 @ogg[@opus[stereo]].ogg
-@ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4
+@ffmpeg[format='mp4',@audio[codec='aac']].mp4
 @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4
 @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
-@ffmpeg[format='mp4',@audio.none,@video[codec='libx264']].mp4)
+@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4
+@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4
+@ffmpeg[format='mp4',@video[codec='libx264']].mp4)
   (action (run touch %{target})))
 (rule
  (alias runtest)
@@ -1121,7 +1169,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} "Mono decoding test for @ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4" liquidsoap %{test_liq} test_mono.liq -- "@ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4")))
+  (run %{run_test} "Mono decoding test for @ffmpeg[format='mp4',@audio[codec='aac']].mp4" liquidsoap %{test_liq} test_mono.liq -- "@ffmpeg[format='mp4',@audio[codec='aac']].mp4")))
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -1134,7 +1182,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} "Stereo decoding test for @ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4" liquidsoap %{test_liq} test_stereo.liq -- "@ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4")))
+  (run %{run_test} "Stereo decoding test for @ffmpeg[format='mp4',@audio[codec='aac']].mp4" liquidsoap %{test_liq} test_stereo.liq -- "@ffmpeg[format='mp4',@audio[codec='aac']].mp4")))
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -1147,7 +1195,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} "FFmpeg audio decoder test for @ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4" liquidsoap %{test_liq} test_ffmpeg_audio_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac'],@video.none].mp4")))
+  (run %{run_test} "FFmpeg audio decoder test for @ffmpeg[format='mp4',@audio[codec='aac']].mp4" liquidsoap %{test_liq} test_ffmpeg_audio_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac']].mp4")))
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -1160,7 +1208,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} "FFmpeg video decoder test for @ffmpeg[format='mp4',@audio.none,@video[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_video_decoder.liq -- "@ffmpeg[format='mp4',@audio.none,@video[codec='libx264']].mp4")))
+  (run %{run_test} "FFmpeg video decoder test for @ffmpeg[format='mp4',@video[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_video_decoder.liq -- "@ffmpeg[format='mp4',@video[codec='libx264']].mp4")))
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -1173,7 +1221,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} "FFmpeg video size test for @ffmpeg[format='mp4',@audio.none,@video[codec='libx264']].mp4" liquidsoap %{test_liq} test_video_size.liq -- "@ffmpeg[format='mp4',@audio.none,@video[codec='libx264']].mp4")))
+  (run %{run_test} "FFmpeg video size test for @ffmpeg[format='mp4',@video[codec='libx264']].mp4" liquidsoap %{test_liq} test_video_size.liq -- "@ffmpeg[format='mp4',@video[codec='libx264']].mp4")))
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -1226,6 +1274,58 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} "FFmpeg video size test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4" liquidsoap %{test_liq} test_video_size.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_video_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg video decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_video_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_video_size.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg video size test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4" liquidsoap %{test_liq} test_video_size.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_video_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg video decoder test for @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_video_decoder.liq -- "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_video_size.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg video size test for @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4" liquidsoap %{test_liq} test_video_size.liq -- "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4")))
 (rule
  (alias runtest)
  (package liquidsoap)
@@ -1408,6 +1508,188 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} "FFmpeg raw+copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_raw_and_copy_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_add_text.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg add text filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_add_text.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_copy_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_copy_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_copy_and_encode_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg copy+encode decode test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_copy_and_encode_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_filter.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_filter.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_raw_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg raw decoder test test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_raw_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_raw_and_encode_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg raw+encode decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_raw_and_encode_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_raw_and_copy_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg raw+copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_raw_and_copy_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_add_text.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg add text filter test for @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_add_text.liq -- "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_copy_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg copy decoder test for @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_copy_decoder.liq -- "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_copy_and_encode_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg copy+encode decode test for @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_copy_and_encode_decoder.liq -- "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_filter.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg filter test for @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_filter.liq -- "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_raw_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg raw decoder test test for @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_raw_decoder.liq -- "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_raw_and_encode_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg raw+encode decoder test for @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_raw_and_encode_decoder.liq -- "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_raw_and_copy_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg raw+copy decoder test for @ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4" liquidsoap %{test_liq} test_ffmpeg_raw_and_copy_decoder.liq -- "@ffmpeg[format='mp4',@gno[audio_content,codec='aac',channels=2],@gni[audio_content,codec='aac',channels=1],@bar[video_content,codec='libx264'],@foo[video_content,codec='libx264']].mp4")))
 (rule
  (alias runtest)
  (package liquidsoap)

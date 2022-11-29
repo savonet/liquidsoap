@@ -74,11 +74,11 @@ let encode_audio_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format
               ~get_ts:Avcodec.Packet.get_dts
           in
 
-          let params = Some (Avcodec.params encoder) in
+          let params = Some (`Audio (Avcodec.params encoder)) in
           let effective_t =
             Type.make
               (Format_type.descr
-                 (`Format (Ffmpeg_copy_content.Audio.lift_params params)))
+                 (`Format (Ffmpeg_copy_content.lift_params params)))
           in
           Typing.(effective_t <: type_t);
 
@@ -90,14 +90,14 @@ let encode_audio_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format
                       (fun (pos, packet) ->
                         ( pos,
                           {
-                            Ffmpeg_copy_content.packet;
+                            Ffmpeg_copy_content.packet = `Audio packet;
                             time_base = encoder_time_base;
                             stream_idx;
                           } ))
                       packets
                   in
                   let data = { Ffmpeg_content_base.params; data; length } in
-                  let data = Ffmpeg_copy_content.Audio.lift_data data in
+                  let data = Ffmpeg_copy_content.lift_data data in
                   Generator.put generator Frame.Fields.audio data
               | None -> ()
           in
@@ -244,11 +244,11 @@ let encode_video_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
               ~width:target_width ~height:target_height ~time_base codec
           in
 
-          let params = Some (Avcodec.params encoder) in
+          let params = Some (`Video (Avcodec.params encoder)) in
           let effective_t =
             Type.make
               (Format_type.descr
-                 (`Format (Ffmpeg_copy_content.Video.lift_params params)))
+                 (`Format (Ffmpeg_copy_content.lift_params params)))
           in
           Typing.(effective_t <: type_t);
 
@@ -267,14 +267,14 @@ let encode_video_frame ~stream_idx ~type_t ~mode ~opts ?codec ~format generator
                       (fun (pos, packet) ->
                         ( pos,
                           {
-                            Ffmpeg_copy_content.packet;
+                            Ffmpeg_copy_content.packet = `Video packet;
                             time_base = encoder_time_base;
                             stream_idx;
                           } ))
                       packets
                   in
                   let data = { Ffmpeg_content_base.params; data; length } in
-                  let data = Ffmpeg_copy_content.Video.lift_data data in
+                  let data = Ffmpeg_copy_content.lift_data data in
                   Generator.put generator Frame.Fields.video data
               | None -> ()
           in
@@ -379,8 +379,8 @@ let mk_encoder mode =
       | `Audio_encoded | `Both_encoded ->
           ( audio_field_t,
             Some
-              (Type.make
-                 (Format_type.descr (`Kind Ffmpeg_copy_content.Audio.kind))) )
+              (Type.make (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
+          )
       | `Audio_raw | `Both_raw ->
           let t =
             Some
@@ -395,8 +395,8 @@ let mk_encoder mode =
       | `Video_encoded | `Both_encoded ->
           ( video_field_t,
             Some
-              (Type.make
-                 (Format_type.descr (`Kind Ffmpeg_copy_content.Video.kind))) )
+              (Type.make (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
+          )
       | `Video_raw | `Both_raw ->
           let t =
             Some
@@ -451,14 +451,14 @@ let mk_encoder mode =
                         "Only %ffmpeg encoder is currently supported!" ))
          in
 
-         if Hashtbl.length format.Ffmpeg_format.other_opts > 0 then
+         if Hashtbl.length format.Ffmpeg_format.opts > 0 then
            raise
              (Error.Invalid_value
                 ( format_val,
                   Printf.sprintf
                     "Muxer options are not supported for inline encoders: %s"
-                    (Ffmpeg_format.string_of_options
-                       format.Ffmpeg_format.other_opts) ));
+                    (Ffmpeg_format.string_of_options format.Ffmpeg_format.opts)
+                ));
 
          if format.Ffmpeg_format.format <> None then
            raise
@@ -482,9 +482,27 @@ let mk_encoder mode =
                return_video_field_t
            in
 
-           let audio_opts = Hashtbl.copy format.Ffmpeg_format.audio_opts in
+           let audio_stream =
+             Frame.Fields.find_opt Frame.Fields.audio
+               format.Ffmpeg_format.streams
+           in
 
-           let video_opts = Hashtbl.copy format.Ffmpeg_format.video_opts in
+           let audio_opts =
+             match audio_stream with
+               | Some (`Encode { Ffmpeg_format.opts }) -> opts
+               | _ -> Hashtbl.create 0
+           in
+
+           let video_stream =
+             Frame.Fields.find_opt Frame.Fields.video
+               format.Ffmpeg_format.streams
+           in
+
+           let video_opts =
+             match video_stream with
+               | Some (`Encode { Ffmpeg_format.opts }) -> opts
+               | _ -> Hashtbl.create 0
+           in
 
            let original_opts = Hashtbl.create 10 in
 
@@ -494,24 +512,32 @@ let mk_encoder mode =
              Hashtbl.iter
                (fun name value ->
                  Hashtbl.add original_opts ("audio: " ^ name) value)
-               format.Ffmpeg_format.audio_opts;
+               audio_opts;
 
            if has_video then
              Hashtbl.iter
                (fun name value ->
                  Hashtbl.add original_opts ("video: " ^ name) value)
-               format.Ffmpeg_format.video_opts;
+               video_opts;
 
            let encode_audio_frame =
              if has_audio then (
-               match format.Ffmpeg_format.audio_codec with
-                 | Some (`Raw None) when has_raw_audio ->
+               match audio_stream with
+                 | Some (`Encode { mode = `Raw; options = `Audio format })
+                   when has_raw_audio ->
                      Some
                        (encode_audio_frame ~stream_idx
                           ~type_t:(Option.get audio_t) ~mode:`Raw
                           ~opts:audio_opts ~format
                           ~content_type:source_content_type generator)
-                 | Some (`Internal (Some codec)) when has_encoded_audio ->
+                 | Some
+                     (`Encode
+                       {
+                         mode = `Internal;
+                         codec = Some codec;
+                         options = `Audio format;
+                       })
+                   when has_encoded_audio ->
                      let codec = Avcodec.Audio.find_encoder_by_name codec in
                      Some
                        (encode_audio_frame ~stream_idx
@@ -532,13 +558,21 @@ let mk_encoder mode =
            in
            let encode_video_frame =
              if has_video then (
-               match format.Ffmpeg_format.video_codec with
-                 | Some (`Raw None) when has_raw_video ->
+               match video_stream with
+                 | Some (`Encode { mode = `Raw; options = `Video format })
+                   when has_raw_video ->
                      Some
                        (encode_video_frame ~stream_idx
                           ~type_t:(Option.get video_t) ~mode:`Raw
                           ~opts:video_opts ~format generator)
-                 | Some (`Internal (Some codec)) when has_encoded_video ->
+                 | Some
+                     (`Encode
+                       {
+                         mode = `Internal;
+                         codec = Some codec;
+                         options = `Video format;
+                       })
+                   when has_encoded_video ->
                      let codec = Avcodec.Video.find_encoder_by_name codec in
                      Some
                        (encode_video_frame ~stream_idx
@@ -546,7 +580,8 @@ let mk_encoder mode =
                           ~opts:video_opts ~codec ~format generator)
                  | _ ->
                      let encoder =
-                       if has_encoded_video then "%video" else "%video.raw"
+                       if has_encoded_video then "%video(codec=..., ...)"
+                       else "%video.raw"
                      in
                      raise
                        (Error.Invalid_value

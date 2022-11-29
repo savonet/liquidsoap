@@ -61,7 +61,6 @@ let decode_audio_frame ~mode generator =
     let current_params = ref None in
 
     let mk_decoder ~time_base ~stream_idx params =
-      let params = Option.get params in
       let channels = Avcodec.Audio.get_nb_channels params in
       let channel_layout = Avutil.Channel_layout.get_default channels in
       let samplerate = Avcodec.Audio.get_sample_rate params in
@@ -95,27 +94,38 @@ let decode_audio_frame ~mode generator =
 
     function
     | `Frame frame ->
-        let { Ffmpeg_content_base.data; params } =
-          Ffmpeg_copy_content.Audio.get_data frame
+        let data, params =
+          match Ffmpeg_copy_content.get_data frame with
+            | { Ffmpeg_content_base.data; params = Some (`Audio params) } ->
+                (data, params)
+            | _ -> assert false
         in
         let data =
           List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
         in
         List.iter
-          (fun (_, { Ffmpeg_copy_content.packet; stream_idx; time_base }) ->
-            let converter, decoder =
-              get_converter ~time_base ~stream_idx params
-            in
-            Avcodec.decode decoder
-              (fun frame -> converter (`Frame frame))
-              packet)
+          (function
+            | ( _,
+                {
+                  Ffmpeg_copy_content.packet = `Audio packet;
+                  stream_idx;
+                  time_base;
+                } ) ->
+                let converter, decoder =
+                  get_converter ~time_base ~stream_idx params
+                in
+                Avcodec.decode decoder
+                  (fun frame -> converter (`Frame frame))
+                  packet
+            | _ -> assert false)
           data
     | `Flush ->
         ignore
           (Option.map
              (fun (stream_idx, time_base) ->
                let converter, decoder =
-                 get_converter ~time_base ~stream_idx !current_params
+                 get_converter ~time_base ~stream_idx
+                   (Option.get !current_params)
                in
                Avcodec.flush_decoder decoder (fun frame ->
                    converter (`Frame frame));
@@ -183,7 +193,7 @@ let decode_audio_frame ~mode generator =
 
   match mode with
     | `Decode ->
-        convert ~get_data:Ffmpeg_copy_content.Audio.get_data
+        convert ~get_data:Ffmpeg_copy_content.get_data
           ~decoder:(mk_copy_decoder ())
     | `Raw ->
         convert ~get_data:Ffmpeg_raw_content.Audio.get_data
@@ -265,7 +275,6 @@ let decode_video_frame ~mode generator =
     let current_decoder = ref None in
 
     let mk_decoder ~params ~stream_idx ~time_base =
-      let params = Option.get params in
       let codec_id = Avcodec.Video.get_params_id params in
       let codec = Avcodec.Video.find_decoder codec_id in
       let decoder = Avcodec.Video.create_decoder ~params codec in
@@ -296,23 +305,34 @@ let decode_video_frame ~mode generator =
     in
     function
     | `Frame frame ->
-        let { Ffmpeg_content_base.data; params } =
-          Ffmpeg_copy_content.Video.get_data frame
+        let data, params =
+          match Ffmpeg_copy_content.get_data frame with
+            | { Ffmpeg_content_base.data; params = Some (`Video params) } ->
+                (data, params)
+            | _ -> assert false
         in
         let data =
           List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
         in
         List.iter
-          (fun (_, { Ffmpeg_copy_content.packet; stream_idx; time_base }) ->
-            let decoder = get_decoder ~params ~time_base ~stream_idx in
-            Avcodec.decode decoder (convert ~time_base ~stream_idx) packet)
+          (function
+            | ( _,
+                {
+                  Ffmpeg_copy_content.packet = `Video packet;
+                  stream_idx;
+                  time_base;
+                } ) ->
+                let decoder = get_decoder ~params ~time_base ~stream_idx in
+                Avcodec.decode decoder (convert ~time_base ~stream_idx) packet
+            | _ -> assert false)
           data
     | `Flush ->
         ignore
           (Option.map
              (fun stream_idx ->
                let decoder =
-                 get_decoder ~params:!current_params
+                 get_decoder
+                   ~params:(Option.get !current_params)
                    ~time_base:(Option.get !current_time_base)
                    ~stream_idx:(Option.get !current_stream_idx)
                in
@@ -356,7 +376,7 @@ let decode_video_frame ~mode generator =
 
   match mode with
     | `Decode ->
-        convert ~get_data:Ffmpeg_copy_content.Video.get_data
+        convert ~get_data:Ffmpeg_copy_content.get_data
           ~decoder:(mk_copy_decoder ())
     | `Raw ->
         convert ~get_data:Ffmpeg_raw_content.Video.get_data
@@ -380,7 +400,7 @@ let mk_encoder mode =
              | `Audio_encoded | `Both_encoded ->
                  Some
                    (Type.make
-                      (Format_type.descr (`Kind Ffmpeg_copy_content.Audio.kind)))
+                      (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
              | `Audio_raw | `Both_raw ->
                  Some
                    (Type.make
@@ -391,7 +411,7 @@ let mk_encoder mode =
              | `Video_encoded | `Both_encoded ->
                  Some
                    (Type.make
-                      (Format_type.descr (`Kind Ffmpeg_copy_content.Video.kind)))
+                      (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
              | `Video_raw | `Both_raw ->
                  Some
                    (Type.make

@@ -142,7 +142,6 @@
   lang_encoder
   lang_external_encoder
   lang_fdkaac
-  lang_ffmpeg
   lang_flac
   lang_gstreamer
   lang_mp3
@@ -396,7 +395,8 @@
   ffmpeg_raw_content
   ffmpeg_raw_decoder
   ffmpeg_utils
-  ffmpeg_video_converter))
+  ffmpeg_video_converter
+  lang_ffmpeg))
 
 (library
  (name liquidsoap_flac)
