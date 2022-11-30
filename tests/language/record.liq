@@ -210,6 +210,15 @@ def f() =
   y = { bla = 3.14, ...x }
   test.equals(y, 1.{ foo = 123, gni = "aabb", bla = 3.14 })
 
+  # Make sure that a function that takes a record of the
+  # type { foo?: int} can take a record of the type: {foo?: never}
+  def f(x) =
+    (x?.foo ?? 1) + 2
+  end
+  x = {foo = 123}
+  let {foo = _, ...y} = x
+  test.equals(f(y), 3)
+
   test.pass()
 end
 

@@ -28,6 +28,7 @@ module type Custom = sig
   type Type_base.custom += Type
 
   val descr : Type_base.descr
+  val is_descr : Type_base.descr -> bool
 end
 
 module Make (S : Spec) : Custom
