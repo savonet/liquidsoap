@@ -37,7 +37,7 @@ class on_frame f s =
 
 let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.source "on_frame"
+  Lang.add_operator ~base:Muxer.source "on_frame"
     [
       ("", Lang.source_t frame_t, None, None);
       ( "",
@@ -74,7 +74,7 @@ class frame_op ~name f default s =
       value <- f buf off (pos - off)
   end
 
-let source_frame = Lang.add_module ~base:Modules.source "frame"
+let source_frame = Lang.add_module ~base:Muxer.source "frame"
 
 let op name descr f_t f default =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in

@@ -51,7 +51,7 @@ let log name =
     method debug = self#f 5
   end
 
-let eval_check = ref (fun ~env:_ ~tm:_ _ -> assert false)
+let eval_check = ref (fun ~env:_ ~tm:_ _ -> ())
 let mk_source_ty = ref (fun ~pos:_ _ _ -> assert false)
 let source_methods_t = ref (fun _ -> assert false)
 let getpwnam = Lang_string.getpwnam

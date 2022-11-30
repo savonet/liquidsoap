@@ -21,9 +21,9 @@ def logo_overlay(background, logo) =
   ffmpeg.filter.create(mkfilter)
 end
 
-video = logo_overlay(background, logo)
+video = logo_overlay(source.tracks(background).video, source.tracks(logo).video)
 
-s = mux_video(video=video, playlist)
+s = source({audio = source.tracks(playlist).audio, video=video})
 
 s = max_duration(3., s)
 

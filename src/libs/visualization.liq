@@ -36,7 +36,7 @@ end
 # @param ~color Color of the display (0xRRGGBB).
 # @param ~persistence Persistence of the display (s).
 def video.vumeter(~rms_min=-35., ~rms_max=0., ~window=0.1, ~color=0xff0000, ~persistence=0., s)
-  s = mux_video(video=blank(), s)
+  s = source(s.{video = source.tracks(blank()).video})
   s = rms(duration=window, s)
   height = video.frame.height()
   width = ref(0)

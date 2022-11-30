@@ -55,7 +55,6 @@
   append
   audio_converter
   audio_gen
-  audio_to_stereo
   available
   avi
   avi_encoder
@@ -89,7 +88,6 @@
   delay
   delay_line
   doc
-  drop
   dtmf
   dyn_op
   echo
@@ -176,7 +174,7 @@
   mp3_format
   mpd
   ms_stereo
-  mux
+  muxer
   native_audio_converter
   native_video_converter
   noblank
@@ -225,6 +223,7 @@
   srt_decoder
   srt_parser
   start_stop
+  stereo
   still_frame
   stringView
   strings
@@ -235,6 +234,7 @@
   term
   theora_format
   time_warp
+  track
   tutils
   type
   typing

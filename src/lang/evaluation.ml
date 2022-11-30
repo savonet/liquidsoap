@@ -157,7 +157,7 @@ let rec prepare_fun fv p env =
   let env = Env.restrict env fv in
   (p, env)
 
-and eval (env : Env.t) tm =
+and eval_term (env : Env.t) tm =
   let mk v = { Value.pos = tm.t.Type.pos; Value.value = v } in
   match tm.term with
     | Any -> mk Value.Null
@@ -272,6 +272,13 @@ and eval (env : Env.t) tm =
             | _ -> ans ())
         else ans ()
 
+and eval env tm =
+  (* This is used to unify runtime sources types with their inferred type. *)
+  let fn = !Hooks.eval_check in
+  let v = eval_term env tm in
+  fn ~env ~tm v;
+  v
+
 and apply ?pos f l =
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
@@ -338,6 +345,8 @@ and apply ?pos f l =
      FFI-made value and a position is needed. *)
   { v with Value.pos }
 
+let apply ?pos t p = apply ?pos t p
+
 let eval ?env tm =
   let env =
     match env with
@@ -345,11 +354,7 @@ let eval ?env tm =
       | None -> Environment.default_environment ()
   in
   let env = List.map (fun (x, v) -> (x, Lazy.from_val v)) env in
-  let v = eval env tm in
-  (* This is used to unify runtime sources types with their inferred type. *)
-  let fn = !Hooks.eval_check in
-  fn ~env ~tm v;
-  v
+  eval env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
     evaluation of the next scripts. Also try to generate a structured

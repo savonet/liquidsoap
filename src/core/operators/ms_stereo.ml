@@ -24,7 +24,7 @@ open Source
 
 type mode = Encode | Decode
 
-class msstereo (source : source) mode width =
+class msstereo ~field (source : source) mode width =
   object
     inherit operator ~name:"stereo.ms.encode" [source]
     method stype = source#stype
@@ -37,7 +37,7 @@ class msstereo (source : source) mode width =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let buffer = AFrame.pcm buf in
+      let buffer = Content.Audio.get_data (Frame.get buf field) in
       for i = offset to AFrame.position buf - 1 do
         match mode with
           | Encode ->
@@ -57,42 +57,36 @@ class msstereo (source : source) mode width =
       done
   end
 
-let stereo_ms = Lang.add_module ~base:Modules.stereo "ms"
+let stereo_ms = Lang.add_module ~base:Stereo.stereo "ms"
 
 let _ =
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
-  in
-  Lang.add_operator ~base:stereo_ms "encode"
-    [("", Lang.source_t return_t, None, None)]
+  let return_t = Format_type.audio_stereo () in
+  Lang.add_track_operator ~base:stereo_ms "encode"
+    [("", return_t, None, None)]
     ~return_t ~category:`Audio
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
     (fun p ->
-      let s = Lang.to_source (Lang.assoc "" 1 p) in
-      new msstereo s Encode 0.)
+      let field, s = Lang.to_track (Lang.assoc "" 1 p) in
+      (field, new msstereo ~field s Encode 0.))
 
 let _ =
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
-  in
-  Lang.add_operator ~base:stereo_ms "decode"
+  let return_t = Format_type.audio_stereo () in
+  Lang.add_track_operator ~base:stereo_ms "decode"
     [
       ( "width",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Width of the stereo field." );
-      ("", Lang.source_t return_t, None, None);
+      ("", return_t, None, None);
     ]
     ~return_t ~category:`Audio
     ~descr:"Decode mid+side stereo (M/S) to left+right stereo."
     (fun p ->
-      let s = Lang.to_source (Lang.assoc "" 1 p) in
+      let field, s = Lang.to_track (Lang.assoc "" 1 p) in
       let w = Lang.to_float (Lang.assoc "width" 1 p) in
-      new msstereo s Decode w)
+      (field, new msstereo ~field s Decode w))
 
-class spatializer ~width (source : source) =
+class spatializer ~field ~width (source : source) =
   object
     inherit operator ~name:"stereo.width" [source]
     method stype = source#stype
@@ -106,7 +100,7 @@ class spatializer ~width (source : source) =
       let offset = AFrame.position buf in
       source#get buf;
       let position = AFrame.position buf in
-      let buf = AFrame.pcm buf in
+      let buf = Content.Audio.get_data (Frame.get buf field) in
       let width = width () in
       let width = (width +. 1.) /. 2. in
       let a =
@@ -125,21 +119,18 @@ class spatializer ~width (source : source) =
   end
 
 let _ =
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
-  in
-  Lang.add_operator ~base:Modules.stereo "width"
+  let return_t = Format_type.audio_stereo () in
+  Lang.add_track_operator ~base:Stereo.stereo "width"
     [
       ( "",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 0.),
         Some "Width of the signal (-1: mono, 0.: original, 1.: wide stereo)." );
-      ("", Lang.source_t return_t, None, None);
+      ("", return_t, None, None);
     ]
     ~return_t ~category:`Audio
     ~descr:"Spacializer which allows controlling the width of the signal."
     (fun p ->
       let width = Lang.assoc "" 1 p |> Lang.to_float_getter in
-      let s = Lang.assoc "" 2 p |> Lang.to_source in
-      new spatializer ~width s)
+      let field, s = Lang.assoc "" 2 p |> Lang.to_track in
+      (field, new spatializer ~field ~width s))

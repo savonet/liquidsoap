@@ -51,10 +51,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
     if infallible && source#stype <> `Infallible then
       raise (Error.Invalid_value (val_source, "That source is fallible"))
 
-    initializer
-    Typing.(source#frame_type <: self#frame_type);
-    Typing.(self#frame_type <: self#frame_type)
-
+    initializer Typing.(source#frame_type <: self#frame_type)
     inherit active_operator ~name:output_kind [source] as super
     inherit Start_stop.base ~on_start ~on_stop as start_stop
     method virtual private start : unit

@@ -1695,6 +1695,19 @@
  (package liquidsoap)
  (deps
   all_media_files
+  multitrack.liq
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "multitrack.liq" liquidsoap %{test_liq} multitrack.liq -- "")))
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  all_media_files
   test_ffmpeg_inline_encode_decode.liq
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)

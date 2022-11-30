@@ -83,9 +83,14 @@ class producer ~check_self_sync ~consumers ~name () =
       len
 
     method remaining =
-      match List.fold_left (fun r p -> min r p#remaining) (-1) consumers with
-        | -1 -> -1
-        | r -> Generator.remaining self#buffer + r
+      match
+        ( Generator.remaining self#buffer,
+          List.fold_left
+            (fun r s -> if r = -1 then s#remaining else min r s#remaining)
+            (-1) consumers )
+      with
+        | -1, r -> r
+        | r, _ -> r
 
     method is_ready = List.for_all (fun c -> c#is_ready) consumers
 

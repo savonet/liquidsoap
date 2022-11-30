@@ -12,7 +12,7 @@ end
 
 s = (single(fname) : source(video=canvas(width=47, height=52)))
 s = once(s)
-s = mux_audio(audio=blank(), s)
+s = source({audio=source.tracks(blank()).audio, video=source.tracks(s).video})
 
 clock.assign_new(sync='none',[s])
 

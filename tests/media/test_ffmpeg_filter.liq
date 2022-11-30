@@ -9,17 +9,18 @@ if file.exists(out) then
 end
 
 def f(s) =
+  tracks = source.tracks(s)
   def mkfilter(graph) =
-    a = ffmpeg.filter.audio.input(graph, drop_video(s))
+    a = ffmpeg.filter.audio.input(graph, tracks.audio)
     a = ffmpeg.filter.flanger(graph, a, delay=10.)
     a = ffmpeg.filter.highpass(graph, a, frequency=4000.)
     a = ffmpeg.filter.audio.output(graph, a)
 
-    v = ffmpeg.filter.video.input(graph, drop_audio(s))
+    v = ffmpeg.filter.video.input(graph, tracks.video)
     v = ffmpeg.filter.hflip(graph, v)
     v = ffmpeg.filter.video.output(graph, v)
 
-    mux_audio(id="mux_audio", audio=a, v)
+    source({audio=a, video=v})
   end
 
   ffmpeg.filter.create(mkfilter)

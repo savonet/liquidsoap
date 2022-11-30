@@ -176,20 +176,3 @@ def metadata.json.parse(s) =
   let json.parse ( m : [(string * string)]? ) = s
   m ?? []
 end
-
-# Remove duplicate metadata in a source.
-# @category Metadata
-# @param ~id Source id
-# @param s source
-def metadata.deduplicate(~id=null("metadata.deduplicate"), s) =
-  last_meta = ref([])
-  def f(m) =
-    if m == !last_meta then
-      []
-    else
-      last_meta := m
-      m
-    end
-  end
-  metadata.map(id=id, insert_missing=false, update=false, strip=true, f, s)
-end

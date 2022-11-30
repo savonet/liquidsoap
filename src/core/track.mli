@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2022 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -16,25 +16,12 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
-type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
+type content = Frame.field * Source.source
 
-val descr : descr -> Type.descr
-val internal_media : Type.constr
-val media : strict:bool -> unit -> Type.constr
-val content_type : Type.t -> Content_base.format
-
-(** Some common types *)
-val audio : unit -> Type.t
-
-val audio_mono : unit -> Type.t
-val audio_stereo : unit -> Type.t
-val audio_n : int -> Type.t
-val video : unit -> Type.t
-val midi : unit -> Type.t
-val midi_n : int -> Type.t
-val track_marks : Type.t
-val metadata : Type.t
+val to_value : content -> Value.t
+val of_value : Value.t -> content
+val is_value : Value.t -> bool

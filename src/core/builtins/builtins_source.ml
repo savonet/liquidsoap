@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let source = Modules.source
+let source = Muxer.source
 
 let _ =
   Lang.add_builtin ~base:source "set_name" ~category:(`Source `Liquidsoap)

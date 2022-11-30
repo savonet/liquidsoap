@@ -100,7 +100,9 @@ let set_all_metadata frame data =
   let data = List.sort_uniq (fun (p, _) (p', _) -> Stdlib.compare p p') data in
   Content.Metadata.set_data (get frame Fields.metadata) data
 
-let set_metadata b t m = set_all_metadata b ((t, m) :: get_all_metadata b)
+let set_metadata b t m =
+  set_all_metadata b
+    ((t, m) :: List.filter (fun (p, _) -> p <> t) (get_all_metadata b))
 
 let get_metadata b t =
   try Some (List.assoc t (get_all_metadata b)) with Not_found -> None

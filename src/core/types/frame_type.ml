@@ -54,6 +54,10 @@ let set_field frame_type field field_type =
   in
   Type.make (Type.Meth (meth, frame_type))
 
+let get_fields frame_type =
+  let fields, _ = Type.split_meths frame_type in
+  List.map (fun Type.{ meth } -> Frame.Fields.register meth) fields
+
 let get_field frame_type field =
   let field = Frame.Fields.string_of_field field in
   let fields, _ = Type.split_meths frame_type in

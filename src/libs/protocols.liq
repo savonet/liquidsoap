@@ -482,8 +482,8 @@ def stereo_protocol(~rlog=_, ~maxtime=_, arg)
     []
   else
     # TODO: the following sometimes hangs, so we resolve twice...
-    # source.dump(%wav, file, audio_to_stereo(once(request.queue(queue=[r]))))
-    source.dump(%wav, file, audio_to_stereo(once(single(arg))))
+    # source.dump(%wav, file, source.stereo(once(request.queue(queue=[r]))))
+    source.dump(%wav, file, stereo(once(single(arg))))
     [file]
   end
 end

@@ -147,14 +147,3 @@ let _ =
       new sequence
         ~merge:(Lang.to_bool (List.assoc "merge" p))
         (Lang.to_source_list (List.assoc "" p)))
-
-let _ =
-  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator "merge_tracks"
-    [("", Lang.source_t frame_t, None, None)]
-    ~category:`Track
-    ~descr:
-      "Merge consecutive tracks from the input source. They will be considered \
-       as one big track, so `on_track()` will not trigger for example."
-    ~return_t:frame_t
-    (fun p -> new merge_tracks (Lang.to_source (List.assoc "" p)))

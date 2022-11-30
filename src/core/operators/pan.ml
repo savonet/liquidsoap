@@ -23,7 +23,7 @@
 open Mm
 open Source
 
-class pan (source : source) phi phi_0 =
+class pan ~field (source : source) phi phi_0 =
   object
     inherit operator ~name:"pan" [source]
     method stype = source#stype
@@ -36,7 +36,7 @@ class pan (source : source) phi phi_0 =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let buffer = AFrame.pcm buf in
+      let buffer = Content.Audio.get_data (Frame.get buf field) in
       (* Degrees to radians + half field. *)
       let phi_0 = phi_0 () *. Float.pi /. 360. in
       (* Map -1 / 1 to radians. *)
@@ -49,11 +49,8 @@ class pan (source : source) phi phi_0 =
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
-  in
-  Lang.add_operator ~base:Modules.stereo "pan"
+  let track_t = Format_type.audio_stereo () in
+  Lang.add_track_operator ~base:Stereo.stereo "pan"
     [
       ( "pan",
         Lang.getter_t Lang.float_t,
@@ -63,11 +60,11 @@ let _ =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 90.),
         Some "Field width in degrees (between 0 and 90)." );
-      ("", Lang.source_t frame_t, None, None);
+      ("", track_t, None, None);
     ]
-    ~return_t:frame_t ~category:`Audio ~descr:"Pan a stereo sound."
+    ~return_t:track_t ~category:`Audio ~descr:"Pan a stereo sound."
     (fun p ->
-      let s = Lang.to_source (Lang.assoc "" 1 p) in
+      let field, s = Lang.to_track (Lang.assoc "" 1 p) in
       let phi_0 = Lang.to_float_getter (Lang.assoc "field" 1 p) in
       let phi = Lang.to_float_getter (Lang.assoc "pan" 1 p) in
-      new pan s phi phi_0)
+      (field, new pan ~field s phi phi_0))

@@ -41,19 +41,24 @@ let to_metadata t =
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 
-module V = Liquidsoap_lang.Lang_core.MkAbstract (struct
-  type content = Source.source
+module Source_val = struct
+  include Liquidsoap_lang.Lang_core.MkAbstract (struct
+    type content = Source.source
 
-  let name = "source"
-  let descr s = Printf.sprintf "<source#%s>" s#id
+    let name = "source"
+    let descr s = Printf.sprintf "<source#%s>" s#id
 
-  let to_json ~pos _ =
-    Runtime_error.raise ~pos
-      ~message:(Printf.sprintf "Sources cannot be represented as json")
-      "json"
+    let to_json ~pos _ =
+      Runtime_error.raise ~pos
+        ~message:(Printf.sprintf "Sources cannot be represented as json")
+        "json"
 
-  let compare s1 s2 = Stdlib.compare s1#id s2#id
-end)
+    let compare s1 s2 = Stdlib.compare s1#id s2#id
+  end)
+
+  let is_value v = is_value (demeth v)
+  let of_value v = of_value (demeth v)
+end
 
 let source_methods =
   [
@@ -254,86 +259,50 @@ let source_methods =
             float (frame_position +. in_frame_position)) );
   ]
 
+let source_methods_t t =
+  method_t t (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
+
 let source_t ?(methods = false) frame_t =
   let t =
     Type.make
       (Type.Constr
          { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
   in
-  if methods then
-    method_t t
-      (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
-  else t
+  if methods then source_methods_t t else t
 
 let of_source_t t =
   match (Type.demeth t).Type.descr with
     | Type.Constr { Type.constructor = "source"; params = [(_, t)] } -> t
     | _ -> assert false
 
-let source s =
-  meth (V.to_value s)
-    (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
+let source_tracks_t frame_t =
+  Type.meth "track_marks"
+    ([], Format_type.track_marks)
+    (Type.meth "metadata" ([], Format_type.metadata) frame_t)
 
-let to_source = V.of_value
+let source_tracks s =
+  meth unit
+    (( Frame.Fields.string_of_field Frame.Fields.metadata,
+       Track.to_value (Frame.Fields.metadata, s) )
+    :: ( Frame.Fields.string_of_field Frame.Fields.track_marks,
+         Track.to_value (Frame.Fields.track_marks, s) )
+    :: List.map
+         (fun (field, _) ->
+           (Frame.Fields.string_of_field field, Track.to_value (field, s)))
+         (Frame.Fields.bindings s#content_type))
+
+let source_methods ~base s =
+  meth base (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
+
+let source s = source_methods ~base:(Source_val.to_value s) s
+let track = Track.to_value
+let to_source = Source_val.of_value
 let to_source_list l = List.map to_source (to_list l)
+let to_track = Track.of_value
 
 (** A method: name, type scheme, documentation and implementation (which takes
     the currently defined source as argument). *)
 type 'a operator_method = string * scheme * string * ('a -> value)
-
-(** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
-let check_content v t =
-  let checked_values = ref [] in
-  let check t t' =
-    Typing.(
-      t <: t';
-      t' <: t)
-  in
-  let rec check_value v t =
-    if not (List.memq v !checked_values) then (
-      (* We need to avoid checking the same value multiple times, otherwise we
-         get an exponential blowup, see #1247. *)
-      checked_values := v :: !checked_values;
-      match (v.Value.value, (Type.deref t).Type.descr) with
-        | _, Type.Var _ -> ()
-        | _ when V.is_value v ->
-            let source_t = source_t (V.of_value v)#frame_type in
-            check source_t t
-        | _ when Lang_encoder.V.is_value v ->
-            let content_t =
-              Encoder.type_of_format (Lang_encoder.V.of_value v)
-            in
-            let frame_t = Frame_type.make unit_t content_t in
-            let encoder_t = Lang_encoder.L.format_t frame_t in
-            check encoder_t t
-        | Value.Ground _, _ -> ()
-        | Value.List l, Type.List { Type.t } ->
-            List.iter (fun v -> check_value v t) l
-        | Value.Tuple l, Type.Tuple t -> List.iter2 check_value l t
-        | Value.Null, _ -> ()
-        (* Value can have more methods than the type requires so check from the type here. *)
-        | _, Type.Meth _ ->
-            let meths, v = Value.split_meths v in
-            let meths_t, t = Type.split_meths t in
-            List.iter
-              (fun { Type.meth; optional; scheme = s } ->
-                let t = Typing.instantiate ~level:(-1) s in
-                try check_value (List.assoc meth meths) t
-                with Not_found when optional -> ())
-              meths_t;
-            check_value v t
-        (* The type says that we should drop the method. *)
-        | Value.Meth (_, _, v), _ -> check_value v t
-        | Ref r, Type.Constr { Type.constructor = "ref"; params = [(_, t)] } ->
-            check_value (Atomic.get r) t
-        (* We don't check functions, assuming anything creating a source is a
-           FFI registered via add_operator so the check will happen there. *)
-        | Fun _, _ | FFI _, _ -> ()
-        | _ ->
-            failwith
-              ("Unhandled value in check_content: " ^ Value.to_string v ^ "."))
-  in
-  check_value v t
 
 (** An operator is a builtin function that builds a source.
   * It is registered using the wrapper [add_operator].
@@ -347,98 +316,71 @@ let check_content v t =
   * Once the type has been inferred, the function might be executed,
   * and at this point the type might still not be known completely
   * so we have to force its value within the acceptable range. *)
+
 let add_operator =
   let _meth = meth in
   fun ~(category : Doc.Value.source) ~descr ?(flags = [])
-      ?(meth = ([] : 'a operator_method list)) ?base name proto ~return_t f ->
-    let compare (x, _, _, _) (y, _, _, _) =
-      match (x, y) with
-        | "", "" -> 0
-        | _, "" -> -1
-        | "", _ -> 1
-        | x, y -> Stdlib.compare x y
-    in
-    let proto =
+      ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f ->
+    let arguments =
       ( "id",
         nullable_t string_t,
         Some null,
         Some "Force the value of the source ID." )
-      :: List.stable_sort compare proto
+      :: arguments
     in
     let f env =
-      (* Create a fresh instantiation of the return type and the type of arguments. *)
-      let return_t, proto =
-        let s =
-          (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
-          Typing.generalize ~level:(-1)
-            (Type.make
-               (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) proto)))
-        in
-        let t = Typing.instantiate ~level:(-1) s in
-        match t.Type.descr with
-          | Type.Tuple (return_t :: proto_t) ->
-              ( return_t,
-                List.map2 (fun (name, _, _, _) typ -> (name, typ)) proto proto_t
-              )
-          | _ -> assert false
+      let pos =
+        match Liquidsoap_lang.Lang_core.pos env with
+          | [] -> None
+          | p :: _ -> Some p
       in
-      let proto =
-        List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') proto
-      in
-      (* Negotiate content for all sources and formats in the arguments. *)
-      let () =
-        let env =
-          List.stable_sort
-            (fun (l, _) (l', _) -> Stdlib.compare l l')
-            (List.filter
-               (fun (lbl, _) -> lbl <> Liquidsoap_lang.Lang_core.pos_var)
-               env)
-        in
-        List.iter2
-          (fun (name, typ) (name', v) ->
-            assert (name = name');
-            check_content v typ)
-          proto env
-      in
-      let src : < Source.source ; .. > = f env in
-      ignore
-        (Option.map
-           (fun id -> src#set_id id)
-           (to_valued_option to_string (List.assoc "id" env)));
-      Typing.(src#frame_type <: return_t);
-      Typing.(return_t <: src#frame_type);
-      let v = source (src :> Source.source) in
-      _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
-    in
-    let f env =
-      let pos = None in
       try
-        let ret = f env in
-        if category = `Output then (
-          let m, _ = Value.split_meths ret in
-          _meth unit m)
-        else ret
+        let src : < Source.source ; .. > = f env in
+        ignore
+          (Option.map
+             (fun id -> src#set_id id)
+             (to_valued_option to_string (List.assoc "id" env)));
+        let v =
+          let src = (src :> Source.source) in
+          if category = `Output then source_methods ~base:unit src
+          else source src
+        in
+        _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
       with
         | Source.Clock_conflict (a, b) ->
             raise (Error.Clock_conflict (pos, a, b))
         | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
     in
-    let return_t = source_t ~methods:true return_t in
+    let base_t =
+      if category = `Output then unit_t else source_t ~methods:false return_t
+    in
+    let return_t = source_methods_t base_t in
     let return_t =
       method_t return_t
         (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
     in
-    let return_t =
-      if category = `Output then (
-        let m, _ = Type.split_meths return_t in
-        let m =
-          List.map (fun Type.{ meth = x; scheme = y; doc = z } -> (x, y, z)) m
-        in
-        method_t unit_t m)
-      else return_t
-    in
     let category = `Source category in
-    add_builtin ~category ~descr ~flags ?base name proto return_t f
+    add_builtin ~category ~descr ~flags ?base name arguments return_t f
+
+let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = []) ?base
+    name arguments ~return_t f =
+  let arguments =
+    ( "id",
+      nullable_t string_t,
+      Some null,
+      Some "Force the value of the track ID." )
+    :: arguments
+  in
+  let f env =
+    let field, (src : < Source.source ; .. >) = f env in
+    ignore
+      (Option.map
+         (fun id -> src#set_id id)
+         (to_valued_option to_string (List.assoc "id" env)));
+    Track.to_value (field, src)
+  in
+  let category = `Source category in
+  add_builtin ~category ~descr ~flags ?base name arguments return_t f
 
 let iter_sources ?on_reference ~static_analysis_failed f v =
   let itered_values = ref [] in
@@ -485,7 +427,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
          get an exponential blowup, see #1247. *)
       itered_values := v :: !itered_values;
       match v.value with
-        | _ when V.is_value v -> f (V.of_value v)
+        | _ when Source_val.is_value v -> f (Source_val.of_value v)
         | Ground _ -> ()
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
@@ -513,7 +455,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
               let may_have_source =
                 let rec aux v =
                   match v.value with
-                    | _ when V.is_value v -> true
+                    | _ when Source_val.is_value v -> true
                     | Ground _ | Null -> false
                     | List l -> List.exists aux l
                     | Tuple l -> List.exists aux l

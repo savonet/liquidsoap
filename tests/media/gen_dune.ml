@@ -24,6 +24,7 @@ let audio_video_decoding_tests =
 
 let standalone_tests =
   [
+    "multitrack.liq";
     "test_ffmpeg_inline_encode_decode.liq";
     "test_ffmpeg_inline_encode_decode_audio.liq";
     "test_ffmpeg_inline_encode_decode_video.liq";

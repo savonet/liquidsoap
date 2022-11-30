@@ -147,6 +147,18 @@ val add_operator :
   (env -> 'a) ->
   module_name
 
+(** Add a track operator to the language and to the documentation. *)
+val add_track_operator :
+  category:Doc.Value.source ->
+  descr:string ->
+  ?flags:Doc.Value.flag list ->
+  ?base:module_name ->
+  string ->
+  proto ->
+  return_t:t ->
+  (env -> Frame.field * Source.source) ->
+  module_name
+
 (** {2 Manipulation of values} *)
 
 val to_unit : value -> unit
@@ -160,6 +172,7 @@ val to_float_getter : value -> unit -> float
 val to_error : value -> Runtime_error.runtime_error
 val to_source : value -> Source.source
 val to_format : value -> Encoder.format
+val to_track : value -> Frame.field * Source.source
 val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_num : value -> [ `Int of int | `Float of float ]
@@ -243,6 +256,7 @@ val list : value list -> value
 val null : value
 val error : Runtime_error.runtime_error -> value
 val source : Source.source -> value
+val track : Frame.field * Source.source -> value
 val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value

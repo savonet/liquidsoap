@@ -1,3 +1,57 @@
+# Create an audio source from the given track, with
+# metadata and track marks from that same track.
+# @category Source / Track processing
+def source.audio(~id=null(), audio) =
+  source(id=id,{
+    audio=audio,
+    metadata=track.metadata(audio),
+    track_marks=track.track_marks(audio)
+  })
+end
+
+# Create a video source from the given track, with
+# metadata and track marks from that same track.
+# @category Source / Track processing
+def source.video(~id=null(), video) =
+  source(id=id,{
+    video=video,
+    metadata=track.metadata(video),
+    track_marks=track.track_marks(video)
+  })
+end
+
+# Remove duplicate metadata in a track.
+# @category Metadata
+def track.metadata.deduplicate(t) =
+  last_meta = ref([])
+  def f(m) =
+    if m == !last_meta then
+      []
+    else
+      last_meta := m
+      m
+    end
+  end
+  track.metadata.map(insert_missing=false, update=false, strip=true, f, t)
+end
+
+# Remove duplicate metadata in a track.
+# @category Metadata
+# @param ~id Source id
+# @param s source
+def metadata.deduplicate(~id=null("metadata.deduplicate"), s) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{metadata = track.metadata.deduplicate(tracks.metadata)})
+end
+
+# Rewrite metadata on the fly using a function.
+# @category Source / Track processing
+# @argsof track.metadata.map
+def metadata.map(%argsof(track.metadata.map), f, (s:source)) =
+  tracks = source.tracks(s)
+  source(tracks.{metadata = track.metadata.map(%argsof(track.metadata.map), f, tracks.metadata)})
+end
+
 # Turn a source into an infaillible source by adding blank when the source is
 # not available.
 # @param s the source to turn infaillible
@@ -21,12 +75,6 @@ def add_skip_command(s) =
                   usage="skip",
                   description="Skip the current song.",
                   "skip",skip)
-end
-
-# Removes all metadata coming from a source.
-# @category Metadata
-def drop_metadata(s)
-  metadata.map(fun(_)->[],update=false,strip=true,insert_missing=false,s)
 end
 
 # Creates a source that plays only one track of the input source.
@@ -83,24 +131,11 @@ def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
       else t end), transitions)
   end
 
-  source = rotate(transitions=transitions,weights=weights,sources)
-  source = merge_tracks(source)
+  s = rotate(transitions=transitions,weights=weights,sources)
+  let {track_marks=_, ...tracks} = source.tracks(s)
+  s = source(tracks)
 
-  switch(id=id,replay_metadata=false,track_sensitive=false,[({!ready}, source), ({(not !ready)}, source)])
-end
-
-# Extract the left channel of a stereo source
-# @category Source / Conversion
-# @param s Source to extract from
-def stereo.left(s)
-  mean(stereo.pan(pan=-1., s))
-end
-
-# Extract the right channel of a stereo source
-# @category Source / Conversion
-# @param s Source to extract from
-def stereo.right(s)
-  mean(stereo.pan(pan=1., s))
+  switch(id=id,replay_metadata=false,track_sensitive=false,[({!ready}, s), ({(not !ready)}, s)])
 end
 
 # Rotate between overlapping sources. Next track starts according
@@ -155,6 +190,11 @@ def overlap_sources(~id=null(),~normalize=false,
     fn(m)
   end
   list.iter(fun (s) -> s.on_metadata(relay_metadata),sources)
+
+  def drop_metadata(s) =
+    let {metadata=_, ...tracks} = source.tracks(s)
+    source(tracks)
+  end
 
   # Now drop all metadata
   sources = list.map(drop_metadata,sources)

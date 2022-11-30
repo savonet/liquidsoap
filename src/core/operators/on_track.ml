@@ -48,7 +48,7 @@ class on_track f s =
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.source "on_track"
+  Lang.add_operator ~base:Muxer.source "on_track"
     [
       ("", Lang.source_t return_t, None, None);
       ( "",

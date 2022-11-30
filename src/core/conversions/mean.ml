@@ -22,7 +22,7 @@
 
 open Source
 
-class mean ~normalize source =
+class mean ~field ~normalize source =
   object
     inherit operator [source] ~name:"mean"
 
@@ -33,7 +33,7 @@ class mean ~normalize source =
           (* Compute the mean of audio channels *)
           let start = Frame.position frame in
           let len = Frame.position tmp_frame - start in
-          let content = AFrame.pcm frame in
+          let content = Content.Audio.get_data (Frame.get frame field) in
           let tmp_content = AFrame.pcm tmp_frame in
           let amp =
             if normalize then 1. /. float (Array.length tmp_content) else 1.
@@ -43,31 +43,23 @@ class mean ~normalize source =
             content.(0).(i) <-
               Array.fold_left (fun m b -> m +. b.(i)) 0. tmp_content *. amp
           done;
-          Frame.set_audio frame (Content.Audio.lift_data content))
+          Frame.set frame field (Content.Audio.lift_data content))
   end
 
 let _ =
-  let in_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  let out_t =
-    Frame_type.set_field in_t Frame.Fields.audio (Format_type.audio_mono ())
-  in
-  Lang.add_operator "mean"
+  let in_t = Format_type.audio () in
+  let out_t = Format_type.audio_mono () in
+  Lang.add_track_operator ~base:Modules.audio "mean"
     [
       ( "normalize",
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Divide the output volume by the number of channels." );
-      ( "",
-        Lang.source_t in_t,
-        None,
-        Some "Source whose mean should be computed." );
+      ("", in_t, None, Some "Track whose mean should be computed.");
     ]
     ~return_t:out_t ~category:`Conversion
     ~descr:"Produce mono audio by taking the mean of all audio channels."
     (fun p ->
       let normalize = Lang.to_bool (List.assoc "normalize" p) in
-      let s = Lang.to_source (Lang.assoc "" 1 p) in
-      (new mean ~normalize s :> Source.source))
+      let field, s = Lang.to_track (Lang.assoc "" 1 p) in
+      (field, new mean ~field ~normalize s))

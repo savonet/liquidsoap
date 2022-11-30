@@ -26,7 +26,7 @@ let noop () = ()
 
 (** From the script perspective, the operator sending data to a filter graph
   * is an output. *)
-class audio_output ~pass_metadata ~name ~frame_t source_val =
+class audio_output ~pass_metadata ~name ~frame_t ~field source =
   let convert_frame_pts =
     lazy
       Ffmpeg_utils.(
@@ -37,14 +37,14 @@ class audio_output ~pass_metadata ~name ~frame_t source_val =
     inherit
       Output.output
         ~infallible:false ~on_stop:noop ~on_start:noop ~name
-          ~output_kind:"ffmpeg.filter.input" source_val true
+          ~output_kind:"ffmpeg.filter.input" (Lang.source source) true
 
     inherit! Source.no_seek
 
     initializer
     Typing.(
       self#frame_type <: frame_t;
-      (Lang.to_source source_val)#frame_type <: self#frame_type)
+      source#frame_type <: self#frame_type)
 
     val mutable input = fun _ -> ()
     method set_input fn = input <- fn
@@ -55,9 +55,9 @@ class audio_output ~pass_metadata ~name ~frame_t source_val =
     method! reset = ()
 
     method send_frame memo =
+      let content = Frame.get memo field in
       let frames =
-        Ffmpeg_raw_content.(
-          (Audio.get_data (AFrame.content memo)).AudioSpecs.data)
+        Ffmpeg_raw_content.((Audio.get_data content).AudioSpecs.data)
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->
@@ -79,7 +79,7 @@ class audio_output ~pass_metadata ~name ~frame_t source_val =
         frames
   end
 
-class video_output ~pass_metadata ~name ~frame_t source_val =
+class video_output ~pass_metadata ~name ~frame_t ~field source =
   let convert_frame_pts =
     lazy
       Ffmpeg_utils.(
@@ -90,12 +90,12 @@ class video_output ~pass_metadata ~name ~frame_t source_val =
     inherit
       Output.output
         ~infallible:false ~on_stop:noop ~on_start:noop ~name
-          ~output_kind:"ffmpeg.filter.input" source_val true
+          ~output_kind:"ffmpeg.filter.input" (Lang.source source) true
 
     initializer
     Typing.(
       self#frame_type <: frame_t;
-      (Lang.to_source source_val)#frame_type <: self#frame_type)
+      source#frame_type <: self#frame_type)
 
     val mutable input : Swscale.Frame.t -> unit = fun _ -> ()
     method set_input fn = input <- fn
@@ -106,9 +106,9 @@ class video_output ~pass_metadata ~name ~frame_t source_val =
     method! reset = ()
 
     method send_frame memo =
+      let content = Frame.get memo field in
       let frames =
-        Ffmpeg_raw_content.(
-          (Video.get_data (VFrame.content memo)).VideoSpecs.data)
+        Ffmpeg_raw_content.((Video.get_data content).VideoSpecs.data)
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.frame }) ->

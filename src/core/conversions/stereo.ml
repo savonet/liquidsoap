@@ -32,9 +32,9 @@ open Mm
   * it as mono. *)
 
 (** Duplicate mono into stereo, drop channels when there are more than two. *)
-class basic source =
+class basic ~field source =
   object
-    inherit Source.operator [source] ~name:"audio_to_stereo"
+    inherit Source.operator [source] ~name:"stereo"
 
     inherit
       Conversion.base
@@ -42,7 +42,7 @@ class basic source =
         ~converter:(fun ~frame tmp_frame ->
           (* Set audio layer. *)
           let audio =
-            match AFrame.pcm tmp_frame with
+            match Content.Audio.get_data (Frame.get tmp_frame field) with
               | [||] ->
                   let len = AFrame.size () in
                   let buf = Audio.Mono.create len in
@@ -51,20 +51,16 @@ class basic source =
               | [| chan |] -> [| chan; chan |]
               | audio -> Array.sub audio 0 2
           in
-          Frame.set_audio frame (Content.Audio.lift_data audio))
+          Frame.set frame field (Content.Audio.lift_data audio))
   end
 
-let _ =
-  let input_type =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  let output_type =
-    Frame_type.set_field input_type Frame.Fields.audio
-      (Format_type.audio_stereo ())
-  in
-  Lang.add_operator "audio_to_stereo" ~category:`Conversion
-    ~descr:"Convert any pcm audio source into a stereo source."
+let stereo =
+  let input_type = Format_type.audio () in
+  let output_type = Format_type.audio_stereo () in
+  Lang.add_track_operator ~base:Modules.audio "stereo" ~category:`Conversion
+    ~descr:"Convert any pcm audio track into a stereo track."
     ~return_t:output_type
-    [("", Lang.source_t input_type, None, None)]
-    (fun p -> new basic (Lang.to_source (List.assoc "" p)))
+    [("", input_type, None, None)]
+    (fun p ->
+      let field, s = Lang.to_track (List.assoc "" p) in
+      (field, new basic ~field s))

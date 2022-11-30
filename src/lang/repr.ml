@@ -221,8 +221,10 @@ let print f t =
           | `Meth ({ R.name = field }, base_type)
             when List.mem_assoc (Some field) fields ->
               extract fields base_type
-          | `Meth (R.{ name = field; scheme = _, ty }, base_type) ->
-              extract ((Some field, ty) :: fields) base_type
+          | `Meth ({ R.scheme = _, `Constr ("never", _) }, base_type) ->
+              extract fields base_type
+          | `Meth (R.{ name = field; optional; scheme = _, ty }, base_type) ->
+              extract ((Some field, (optional, ty)) :: fields) base_type
           | base_type -> (fields, base_type)
         in
         let fields, base_type = extract [] record_type in
@@ -232,15 +234,18 @@ let print f t =
         let fields =
           match (base_type, fields) with
             | `Tuple [], _ -> fields
-            | v, _ -> fields @ [(None, v)]
+            | v, _ -> fields @ [(None, (false, v))]
         in
         let first, has_ellipsis, vars =
           List.fold_left
-            (fun (first, has_ellipsis, vars) (lbl, t) ->
+            (fun (first, has_ellipsis, vars) (lbl, (optional, t)) ->
               if t = `Ellipsis then (first, true, vars)
               else (
                 if not first then Format.fprintf f ",@ ";
-                ignore (Option.map (Format.fprintf f "%s=") lbl);
+                ignore
+                  (Option.map
+                     (Format.fprintf f "%s%s=" (if optional then "?" else ""))
+                     lbl);
                 let vars = print ~par:false vars t in
                 (false, has_ellipsis, vars)))
             (true, false, vars) fields
