@@ -295,6 +295,7 @@ let check_content v t =
          get an exponential blowup, see #1247. *)
       checked_values := v :: !checked_values;
       match (v.Value.value, (Type.deref t).Type.descr) with
+        | _, Type.Var _ -> ()
         | _ when V.is_value v ->
             let source_t = source_t (V.of_value v)#frame_type in
             check source_t t
@@ -315,9 +316,10 @@ let check_content v t =
             let meths, v = Value.split_meths v in
             let meths_t, t = Type.split_meths t in
             List.iter
-              (fun { Type.meth; scheme = s } ->
+              (fun { Type.meth; optional; scheme = s } ->
                 let t = Typing.instantiate ~level:(-1) s in
-                check_value (List.assoc meth meths) t)
+                try check_value (List.assoc meth meths) t
+                with Not_found when optional -> ())
               meths_t;
             check_value v t
         (* The type says that we should drop the method. *)

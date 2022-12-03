@@ -28,6 +28,7 @@ module type Custom = sig
   type Type_base.custom += Type
 
   val descr : Type_base.descr
+  val is_descr : Type_base.descr -> bool
 end
 
 let types = ref []
@@ -37,6 +38,10 @@ module Make (S : Spec) = struct
 
   let () = types := Type :: !types
   let get = function Type -> Type | _ -> assert false
+
+  let is_descr = function
+    | Type_base.Custom { Type_base.typ = Type } -> true
+    | _ -> false
 
   let handler =
     {
