@@ -24,6 +24,7 @@
     (ocurl (>= 0.9.2))
     (cry (>= 0.6.5))
     uri
+    fileutils
     menhirLib
     metadata
     dune-build-info

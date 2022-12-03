@@ -85,7 +85,6 @@
   build_config
   builtins_bool
   builtins_eval
-  builtins_files
   builtins_getter
   builtins_json
   builtins_lang

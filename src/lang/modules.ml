@@ -23,8 +23,6 @@
 (* Declare general modules. *)
 
 let debug = Lang.add_module "debug"
-let file = Lang.add_module "file"
-let file_mime = Lang.add_module ~base:file "mime"
 let list = Lang.add_module "list"
 let liquidsoap = Lang.add_module "liquidsoap"
 let iterator = Lang.add_module "iterator"
