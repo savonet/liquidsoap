@@ -235,6 +235,7 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam opam install -y irc-client-unix osc-unix
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }} ${{ matrix.platform }}
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')

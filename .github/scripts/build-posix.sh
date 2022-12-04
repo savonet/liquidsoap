@@ -33,7 +33,7 @@ echo "::group::Setting up specific dependencies"
 
 # TODO: Add those to docker CI images.
 cd ocaml-metadata && opam install -y .
-opam install -y irc-client-unix osc-unix
+opam install -y fileutils
 
 cd /tmp/liquidsoap-full/liquidsoap
 
