@@ -1,25 +1,3 @@
-(*****************************************************************************
-
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
-
- *****************************************************************************)
-
 module Filename = struct
   include Filename
 
@@ -258,25 +236,21 @@ let _ =
       let pattern =
         pattern
         |> Option.map (fun s ->
-               Regexp.substitute
-                 (Regexp.regexp ~flags:[`g] "\\.")
+               Pcre.substitute ~rex:(Pcre.regexp "\\.")
                  ~subst:(fun _ -> "\\.")
                  s)
         |> Option.map (fun s ->
-               Regexp.substitute
-                 (Regexp.regexp ~flags:[`g] "\\*")
-                 ~subst:(fun _ -> ".*")
-                 s)
+               Pcre.substitute ~rex:(Pcre.regexp "\\*") ~subst:(fun _ -> ".*") s)
         |> Option.map (fun s -> "^" ^ s ^ "$")
         |> Option.value ~default:""
       in
       let sorted = List.assoc "sorted" p |> Lang.to_bool in
-      let rex = Regexp.regexp pattern in
+      let rex = Pcre.regexp pattern in
       let dir = Lang.to_string (List.assoc "" p) in
       let dir = Lang_string.home_unrelate dir in
       let readdir dir =
         Array.to_list (Sys.readdir dir)
-        |> List.filter (fun s -> Regexp.test rex s)
+        |> List.filter (fun s -> Pcre.pmatch ~rex s)
       in
       let files =
         if not recursive then readdir dir
@@ -371,4 +345,216 @@ let _ =
         Lang.string (Digest.to_hex (Digest.file file))
       else (
         let message = Printf.sprintf "The file %s does not exist." file in
-        Lang.raise_error ~pos:(Lang_core.pos p) ~message "file"))
+        Lang.raise_error ~pos:(Lang.pos p) ~message "file"))
+
+let _ =
+  Lang.add_builtin ~base:file "open" ~category:`File
+    [
+      ( "write",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Open file for writing" );
+      ( "create",
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
+        Some
+          "Create if nonexistent. Default: `false` in read-only mode, `true` \
+           when writing." );
+      ( "append",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Append data if file exists." );
+      ( "non_blocking",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Open in non-blocking mode." );
+      ( "perms",
+        Lang.int_t,
+        Some (Lang.int 0o644),
+        Some "Default file rights if created. Default: `0o644`" );
+      ("", Lang.string_t, None, None);
+    ]
+    Builtins_socket.Socket_value.t ~descr:"Open a file."
+    (fun p ->
+      let write = Lang.to_bool (List.assoc "write" p) in
+      let access_flag = if write then Unix.O_RDWR else Unix.O_RDONLY in
+      let create = Lang.to_valued_option Lang.to_bool (List.assoc "create" p) in
+      let create_flags =
+        Option.value
+          ~default:(if write then [Unix.O_CREAT] else [])
+          (Option.map (fun x -> if x then [Unix.O_CREAT] else []) create)
+      in
+      let data_flags =
+        match (write, Lang.to_bool (List.assoc "append" p)) with
+          | true, true -> [Unix.O_APPEND]
+          | true, false -> [Unix.O_TRUNC]
+          | false, _ -> []
+      in
+      let non_blocking_flags =
+        if Lang.to_bool (List.assoc "non_blocking" p) then [Unix.O_NONBLOCK]
+        else []
+      in
+      let flags =
+        [access_flag] @ create_flags @ data_flags @ non_blocking_flags
+      in
+      let file_perms = Lang.to_int (List.assoc "perms" p) in
+      let path = Lang_string.home_unrelate (Lang.to_string (List.assoc "" p)) in
+      try
+        Builtins_socket.Socket_value.(
+          to_value (Http.unix_socket (Unix.openfile path flags file_perms)))
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"file" exn)
+
+let _ =
+  Lang.add_builtin ~base:file "watch" ~category:`File
+    [
+      ("", Lang.string_t, None, Some "File to watch.");
+      ("", Lang.fun_t [] Lang.unit_t, None, Some "Handler function.");
+    ]
+    (Lang.method_t Lang.unit_t
+       [
+         ( "unwatch",
+           ([], Lang.fun_t [] Lang.unit_t),
+           "Function to remove the watch on the file." );
+       ])
+    ~descr:
+      "Call a function when a file is modified. Returns unwatch function in \
+       `unwatch` method."
+    (fun p ->
+      let fname = Lang.to_string (Extralib.List.assoc_nth "" 0 p) in
+      let fname = Lang_string.home_unrelate fname in
+      let f = Extralib.List.assoc_nth "" 1 p in
+      let f () = ignore (Lang.apply f []) in
+      let unwatch = File_watcher.watch ~pos:(Lang.pos p) [`Modify] fname f in
+      Lang.meth Lang.unit
+        [
+          ( "unwatch",
+            Lang.val_fun [] (fun _ ->
+                unwatch ();
+                Lang.unit) );
+        ])
+
+let file_metadata =
+  Lang.add_builtin ~base:file "metadata" ~category:`File
+    [
+      ( "",
+        Lang.string_t,
+        None,
+        Some "File from which the metadata should be read." );
+    ]
+    Lang.metadata_t ~descr:"Read metadata from a file."
+    (fun p ->
+      let uri = Lang.to_string (List.assoc "" p) in
+      let r = Request.create uri in
+      if Request.resolve ~ctype:None r 30. = Request.Resolved then (
+        Request.read_metadata r;
+        Lang.metadata (Request.get_all_metadata r))
+      else Lang.metadata (Hashtbl.create 0))
+
+let () =
+  Lifecycle.before_script_parse (fun () ->
+      Plug.iter Request.mresolvers (fun name decoder ->
+          let name = String.lowercase_ascii name in
+          ignore
+            (Lang.add_builtin ~base:file_metadata name ~category:`File
+               [
+                 ( "",
+                   Lang.string_t,
+                   None,
+                   Some "File from which the metadata should be read." );
+               ]
+               Lang.metadata_t
+               ~descr:
+                 ("Read metadata from a file using the " ^ name ^ " decoder.")
+               (fun p ->
+                 let uri = Lang.to_string (List.assoc "" p) in
+                 let m = try decoder uri with _ -> [] in
+                 let m =
+                   List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
+                 in
+                 Lang.metadata (Frame.metadata_of_list m)))))
+
+let _ =
+  Lang.add_builtin ~base:file "which" ~category:`File
+    ~descr:
+      "`file.which(\"progname\")` looks for an executable named \"progname\" \
+       using directories from the PATH environment variable and returns \"\" \
+       if it could not find one."
+    [("", Lang.string_t, None, None)]
+    (Lang.nullable_t Lang.string_t)
+    (fun p ->
+      let file = Lang.to_string (List.assoc "" p) in
+      try Lang.string (Utils.which ~path:(Configure.path ()) file)
+      with Not_found -> Lang.null)
+
+let _ =
+  Lang.add_builtin ~base:file "copy" ~category:`File
+    ~descr:
+      "Copy a file. Arguments and implementation follows the POSIX `cp` \
+       command line specifications."
+    [
+      ( "recursive",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Copy file hierarchies." );
+      ( "force",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "If a file descriptor for a destination file cannot be obtained \
+           attempt to unlink the destination file and proceed." );
+      ( "preserve",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Duplicate source files attributes in the destination file." );
+      ("", Lang.string_t, None, Some "Source");
+      ("", Lang.string_t, None, Some "Destination");
+    ]
+    Lang.unit_t
+    (fun p ->
+      let recurse = Lang.to_bool (List.assoc "recursive" p) in
+      let force =
+        if Lang.to_bool (List.assoc "force" p) then FileUtil.Force
+        else FileUtil.Ask (fun _ -> false)
+      in
+      let preserve = Lang.to_bool (List.assoc "preserve" p) in
+      let src = Lang.to_string (Lang.assoc "" 1 p) in
+      let dst = Lang.to_string (Lang.assoc "" 2 p) in
+      let error message _ =
+        Runtime_error.raise ~pos:(Lang.pos p) ~message "file"
+      in
+      try
+        FileUtil.cp ~recurse ~force ~preserve ~error [src] dst;
+        Lang.unit
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"file" exn)
+
+let _ =
+  Lang.add_builtin ~base:file "move" ~category:`File ~descr:"Move a file"
+    [
+      ( "force",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Do not prompt for confirmation if the destination path exists." );
+      ("", Lang.string_t, None, Some "Source");
+      ("", Lang.string_t, None, Some "Destination");
+    ]
+    Lang.unit_t
+    (fun p ->
+      let force =
+        if Lang.to_bool (List.assoc "force" p) then FileUtil.Force
+        else FileUtil.Ask (fun _ -> false)
+      in
+      let src = Lang.to_string (Lang.assoc "" 1 p) in
+      let dst = Lang.to_string (Lang.assoc "" 2 p) in
+      let error message _ =
+        Runtime_error.raise ~pos:(Lang.pos p) ~message "file"
+      in
+      try
+        FileUtil.mv ~force ~error src dst;
+        Lang.unit
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"file" exn)

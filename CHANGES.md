@@ -20,6 +20,7 @@ New:
 - Added support for completion in emacs based on company (#2652).
 - Added syntactic sugar for record spread: `let {foo, gni, ..y} = x`
   and `y = { foo = 123, gni = "aabb", ...x}` (#2737)
+- Added `file.{copy, move}` (#2771)
 
 Changed:
 

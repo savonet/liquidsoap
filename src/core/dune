@@ -19,6 +19,7 @@
   dtools
   dune-build-info
   duppy
+  fileutils
   liquidsoap_lang
   menhirLib
   (select
@@ -269,7 +270,7 @@
   builtins_callbacks
   builtins_clock
   builtins_cry
-  builtins_files_extra
+  builtins_files
   builtins_harbor
   builtins_http
   builtins_process
