@@ -116,8 +116,8 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
     in
     match (dts, !last_dts) with
       | None, _ ->
-          log#important "Dropping packet with no dts!";
-          false
+          log#important "Packet has no dts!";
+          true
       | Some d, Some d' when Int64.add offset d <= d' ->
           log#important "Dropping packet with non-monotomic dts!";
           false
