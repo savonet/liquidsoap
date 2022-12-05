@@ -404,7 +404,7 @@ let rec deprecated_of_json d j =
           in
           list l
       (* Parse records. *)
-      | Meth (l, x, d), `Assoc a -> (
+      | Meth (`Value (l, x), d), `Assoc a -> (
           try
             let y = List.assoc l a in
             let v = deprecated_of_json x y in

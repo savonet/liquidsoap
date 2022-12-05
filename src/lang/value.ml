@@ -27,6 +27,7 @@ module Ground = Term.Ground
 
 type t = { pos : Pos.Option.t; value : in_value }
 and env = (string * t) list
+and meth_value = [ `Value of string * t | `Lazy of string -> t ]
 
 (* Some values have to be lazy in the environment because of recursive functions. *)
 and lazy_env = (string * t Lazy.t) list
@@ -39,7 +40,7 @@ and in_value =
   (* TODO: It would be better to have a list of methods associated to each
      value than a constructor here. However, I am keeping as is for now because
      implementation is safer this way. *)
-  | Meth of string * t * t
+  | Meth of meth_value * t
   | Ref of t Atomic.t
   (* Function with given list of argument name, argument variable and default
      value, the (relevant part of the) closure, and the body. *)
@@ -61,14 +62,15 @@ let rec to_string v =
     | Ref a -> Printf.sprintf "ref(%s)" (to_string (Atomic.get a))
     | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
     | Null -> "null"
-    | Meth (l, v, e) when Lazy.force Term.debug ->
+    | Meth (`Value (l, v), e) when Lazy.force Term.debug ->
         to_string e ^ ".{" ^ l ^ "=" ^ to_string v ^ "}"
     | Meth _ ->
         let rec split e =
           match e.value with
-            | Meth (l, v, e) ->
+            | Meth (`Value (l, v), e) ->
                 let m, e = split e in
                 ((l, v) :: m, e)
+            | Meth (_, e) -> split e
             | _ -> ([], e)
         in
         let m, e = split v in
@@ -96,8 +98,9 @@ let rec to_string v =
 (** Find a method in a value. *)
 let rec invoke x l =
   match x.value with
-    | Meth (l', y, _) when l' = l -> y
-    | Meth (_, _, x) -> invoke x l
+    | Meth (`Value (l', y), _) when l' = l -> y
+    | Meth (`Lazy fn, _) -> fn l
+    | Meth (_, x) -> invoke x l
     | _ -> failwith ("Could not find method " ^ l ^ " of " ^ to_string x)
 
 (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
@@ -106,7 +109,7 @@ let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 let split_meths e =
   let rec aux hide e =
     match e.value with
-      | Meth (l, v, e) ->
+      | Meth (`Value (l, v), e) ->
           if List.mem l hide then aux hide e
           else (
             let m, e = aux (l :: hide) e in
@@ -115,11 +118,11 @@ let split_meths e =
   in
   aux [] e
 
-let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
+let rec demeth v = match v.value with Meth (_, v) -> demeth v | _ -> v
 
 let rec remeth t u =
   match t.value with
-    | Meth (l, v, t) -> { t with value = Meth (l, v, remeth t u) }
+    | Meth (v, t) -> { t with value = Meth (v, remeth t u) }
     | _ -> u
 
 let compare a b =

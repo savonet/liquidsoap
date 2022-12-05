@@ -55,12 +55,11 @@ module V = Liquidsoap_lang.Lang_core.MkAbstract (struct
   let compare s1 s2 = Stdlib.compare s1#id s2#id
 end)
 
+let source_lazy_methods =
+  [("id", ([], string_t), "Identifier of the source.", fun s -> string s#id)]
+
 let source_methods =
   [
-    ( "id",
-      ([], fun_t [] string_t),
-      "Identifier of the source.",
-      fun s -> val_fun [] (fun _ -> string s#id) );
     ( "is_ready",
       ([], fun_t [] bool_t),
       "Indicate if a source is ready to stream. This does not mean that the \
@@ -262,7 +261,9 @@ let source_t ?(methods = false) frame_t =
   in
   if methods then
     method_t t
-      (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
+      (List.map
+         (fun (name, t, doc, _) -> (name, t, doc))
+         (source_lazy_methods @ source_methods))
   else t
 
 let of_source_t t =
@@ -270,10 +271,17 @@ let of_source_t t =
     | Type.Constr { Type.constructor = "source"; params = [(_, t)] } -> t
     | _ -> assert false
 
-let source s =
-  meth (V.to_value s)
-    (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
+let source_methods ~base s =
+  let v =
+    lazy_meth base (fun name ->
+        let _, _, _, fn =
+          List.find (fun (lbl, _, _, _) -> lbl = name) source_lazy_methods
+        in
+        fn s)
+  in
+  meth v (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
 
+let source s = source_methods ~base:(V.to_value s) s
 let to_source = V.of_value
 let to_source_list l = List.map to_source (to_list l)
 
@@ -323,7 +331,7 @@ let check_content v t =
               meths_t;
             check_value v t
         (* The type says that we should drop the method. *)
-        | Value.Meth (_, _, v), _ -> check_value v t
+        | Value.Meth (_, v), _ -> check_value v t
         | Ref r, Type.Constr { Type.constructor = "ref"; params = [(_, t)] } ->
             check_value (Atomic.get r) t
         (* We don't check functions, assuming anything creating a source is a
@@ -407,18 +415,16 @@ let add_operator =
            (to_valued_option to_string (List.assoc "id" env)));
       Typing.(src#frame_type <: return_t);
       Typing.(return_t <: src#frame_type);
-      let v = source (src :> Source.source) in
+      let v =
+        if category = `Output then
+          source_methods ~base:unit (src :> Source.source)
+        else source (src :> Source.source)
+      in
       _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
     in
     let f env =
       let pos = None in
-      try
-        let ret = f env in
-        if category = `Output then (
-          let m, _ = Value.split_meths ret in
-          _meth unit m)
-        else ret
-      with
+      try f env with
         | Source.Clock_conflict (a, b) ->
             raise (Error.Clock_conflict (pos, a, b))
         | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
@@ -490,9 +496,10 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
         | Null -> ()
-        | Meth (_, a, b) ->
+        | Meth (`Value (_, a), b) ->
             iter_value a;
             iter_value b
+        | Meth (_, b) -> iter_value b
         | Fun (proto, env, body) ->
             (* The following is necessarily imprecise: we might see sources that
                will be unused in the execution of the function. *)
@@ -519,7 +526,8 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
                     | Tuple l -> List.exists aux l
                     | Ref r -> aux (Atomic.get r)
                     | Fun _ | FFI _ -> true
-                    | Meth (_, v, t) -> aux v || aux t
+                    | Meth (`Value (_, v), t) -> aux v || aux t
+                    | Meth (_, t) -> aux t
                 in
                 aux v
               in

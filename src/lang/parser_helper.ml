@@ -192,7 +192,7 @@ let args_of, app_of =
                  (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
                  l)
         | Value.Null -> Term.Null
-        | Value.Meth (name, v, v') ->
+        | Value.Meth (`Value (name, v), v') ->
             let meth_value, t = get_meth_type name t in
             Term.Meth
               ( { name; meth_value = term_of_value ~pos meth_value v },

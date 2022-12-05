@@ -80,7 +80,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                         vt ))
               in
               (* Update value for x.l1...li. *)
-              let value = Value.Meth (l, lv, v) in
+              let value = Value.Meth (`Value (l, lv), v) in
               ((vg, t), { Value.pos = v.Value.pos; value })
           | [] -> ((g, t), v)
         in

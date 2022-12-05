@@ -56,13 +56,14 @@ type value = Liquidsoap_lang.Value.t = {
 
 and env = (string * value) list
 and lazy_env = (string * value Lazy.t) list
+and meth_value = [ `Value of string * value | `Lazy of string -> value ]
 
 and in_value = Liquidsoap_lang.Value.in_value =
   | Ground of Ground.t
   | List of value list
   | Tuple of value list
   | Null
-  | Meth of string * value * value
+  | Meth of meth_value * value
   | Ref of value Atomic.t
   | Fun of
       (string * string * value option) list * lazy_env * Liquidsoap_lang.Term.t
@@ -246,6 +247,7 @@ val source : Source.source -> value
 val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
+val lazy_meth : value -> (string -> value) -> value
 val record : (string * value) list -> value
 val reference : value Atomic.t -> value
 val http_transport : Http.transport -> value

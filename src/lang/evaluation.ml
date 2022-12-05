@@ -89,7 +89,7 @@ let rec eval_pat pat v =
             List.fold_left
               (fun v (l, m) ->
                 if List.mem l fields then v
-                else { v with Value.value = Meth (l, m, v) })
+                else { v with Value.value = Meth (`Value (l, m), v) })
               v m
           in
           let env = match pat with None -> env | Some pat -> aux env pat v in
@@ -182,15 +182,19 @@ and eval (env : Env.t) tm =
         let e = eval env e in
         mk e.Value.value
     | Meth ({ name = l; meth_value = u }, v) ->
-        mk (Value.Meth (l, eval env u, eval env v))
+        mk (Value.Meth (`Value (l, eval env u), eval env v))
     | Invoke { invoked = t; default; meth = l } ->
         let rec aux t =
           match (t.Value.value, default) with
-            | Value.Meth (l', t, _), None when l = l' -> t
+            | Value.Meth (`Value (l', t), _), None when l = l' -> t
             (* A method returning `null` is overridden by the default value *)
-            | Value.Meth (l', t, _), Some tm when l = l' -> (
+            | Value.Meth (`Value (l', t), _), Some tm when l = l' -> (
                 match t.Value.value with Value.Null -> eval env tm | _ -> t)
-            | Value.Meth (_, _, t), _ -> aux t
+            | Value.Meth (`Lazy fn, _), None -> fn l
+            | Value.Meth (`Lazy fn, _), Some tm -> (
+                let t = fn l in
+                match t.Value.value with Value.Null -> eval env tm | _ -> t)
+            | Value.Meth (_, t), _ -> aux t
             | _, Some tm -> eval env tm
             | _ ->
                 raise
@@ -203,7 +207,7 @@ and eval (env : Env.t) tm =
         let t = eval env t in
         let rec aux env t =
           match t.Value.value with
-            | Value.Meth (l, v, t) -> aux (Env.add env l v) t
+            | Value.Meth (`Value (l, v), t) -> aux (Env.add env l v) t
             | Value.Tuple [] -> env
             | _ -> assert false
         in
@@ -227,10 +231,13 @@ and eval (env : Env.t) tm =
                       let mk ~pos value = { Value.pos; value } in
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk ~pos:tm.t.Type.pos (Value.Meth (l, v, t))
+                        | [l] ->
+                            mk ~pos:tm.t.Type.pos
+                              (Value.Meth (`Value (l, v), t))
                         | l :: ll ->
                             mk ~pos:t.Value.pos
-                              (Value.Meth (l, meths ll v (Value.invoke t l), t))
+                              (Value.Meth
+                                 (`Value (l, meths ll v (Value.invoke t l)), t))
                     in
                     let v () =
                       let t = Env.lookup env l in
@@ -375,7 +382,7 @@ let toplevel_add ?doc pat ~t v =
               let rec pvalues v =
                 match v.Value.value with
                   | Value.Fun (p, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
-                  | Value.Meth (_, _, v) -> pvalues v
+                  | Value.Meth (_, v) -> pvalues v
                   | _ -> []
               in
               let pvalues = ref (pvalues v) in

@@ -83,7 +83,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
   end
 
   def add(r) =
-    log.severe(label=s.id(), "Please use #{s.id()}.push instead of #{s.id()}.add()")
+    log.severe(label=s.id, "Please use #{s.id}.push instead of #{s.id}.add()")
     s.add(r)
   end
 

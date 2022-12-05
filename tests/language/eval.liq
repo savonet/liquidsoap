@@ -54,7 +54,7 @@ def f() =
 
   # Eval with sources!
   let eval x = "output.dummy(id='bla', blank())"
-  t("20", { x.id() == "bla"})
+  t("20", { x.id == "bla"})
 
   # Eval with patterns
   let eval {foo, gni = [x, y]} = "{foo = 123, gni = [1,2]}"

@@ -90,8 +90,9 @@ let null = mk Null
 
 let rec meth v0 = function
   | [] -> v0
-  | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
+  | (l, v) :: r -> mk (Meth (`Value (l, v), meth v0 r))
 
+let lazy_meth v fn = mk (Meth (`Lazy fn, v))
 let record = meth unit
 let reference x = mk (Ref x)
 let val_fun p f = mk (FFI (p, f))

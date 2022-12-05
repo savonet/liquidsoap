@@ -50,13 +50,14 @@ end
 type value = Value.t = { pos : Pos.Option.t; value : in_value }
 and env = (string * value) list
 and lazy_env = (string * value Lazy.t) list
+and meth_value = [ `Value of string * value | `Lazy of string -> value ]
 
 and in_value = Value.in_value =
   | Ground of Ground.t
   | List of value list
   | Tuple of value list
   | Null
-  | Meth of string * value * value
+  | Meth of meth_value * value
   | Ref of value Atomic.t
   | Fun of (string * string * value option) list * lazy_env * Term.t
   (* A function with given arguments (argument label, argument variable, default
@@ -182,6 +183,7 @@ val error : Runtime_error.runtime_error -> value
 val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
+val lazy_meth : value -> (string -> value) -> value
 val record : (string * value) list -> value
 val reference : value Atomic.t -> value
 

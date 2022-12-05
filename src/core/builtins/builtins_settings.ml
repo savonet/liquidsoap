@@ -207,14 +207,14 @@ let filtered_settings = ["subordinate log level"]
 
 let print_settings () =
   let rec grab_descr cur = function
-    | Value.Meth ("description", d, v) ->
+    | Value.Meth (`Value ("description", d), v) ->
         grab_descr { cur with description = Lang.to_string d } v.Lang.value
-    | Value.Meth ("comments", c, v) ->
+    | Value.Meth (`Value ("comments", c), v) ->
         grab_descr { cur with comments = Lang.to_string c } v.Lang.value
-    | Value.Meth ("set", _, v) -> grab_descr cur v.Lang.value
-    | Value.Meth (key, _, v) when List.mem_assoc key cur.children ->
+    | Value.Meth (`Value ("set", _), v) -> grab_descr cur v.Lang.value
+    | Value.Meth (`Value (key, _), v) when List.mem_assoc key cur.children ->
         grab_descr cur v.Lang.value
-    | Value.Meth (key, c, v) ->
+    | Value.Meth (`Value (key, c), v) ->
         let descr =
           {
             description = "";
@@ -287,8 +287,9 @@ let _ =
     let rec grab links v =
       match (links, v.Value.value) with
         | [], _ -> v
-        | link :: links, Value.Meth (key, v, _) when key = link -> grab links v
-        | _, Value.Meth (_, _, v) -> grab links v
+        | link :: links, Value.Meth (`Value (key, v), _) when key = link ->
+            grab links v
+        | _, Value.Meth (_, v) -> grab links v
         | _ -> raise Not_found
     in
     grab path value

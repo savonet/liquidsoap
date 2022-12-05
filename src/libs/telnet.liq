@@ -72,7 +72,7 @@ def replaces output.external(%argsof(output.external), f, p, s) =
   s = output.external(%argsof(output.external), f, p, s)
 
   s.on_get_ready(memoize({
-    server.register(namespace=s.id(), description="Re-open the output.",
+    server.register(namespace=s.id, description="Re-open the output.",
                     "reopen", fun (_) -> begin
                       s.reopen()
                       "Done."
