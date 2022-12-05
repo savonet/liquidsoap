@@ -56,22 +56,22 @@ let rec get_meth l a =
     | _ -> assert false
 
 (** {1 Type generalization and instantiation}
-  *
-  * We don't have type schemes per se, but we compute generalizable variables
-  * and keep track of them in the AST.
-  * This is simple and useful because in any case we need to distinguish
-  * two 'a variables bound at different places. Indeed, we might instantiate
-  * one in a term where the second is bound, and we don't want to
-  * merge the two when going under the binder.
-  *
-  * When generalizing we need to know what can be generalized in the outermost
-  * type but also in the inner types of the term forming a let-definition.
-  * Indeed those variables will have to be instantiated by fresh ones for
-  * every instance.
-  *
-  * If the value restriction applies, then we have some (fun (...) -> ...)
-  * and any type variable of higher level can be generalized, whether it's
-  * in the outermost type or not. *)
+
+    We don't have type schemes per se, but we compute generalizable variables
+    and keep track of them in the AST.  This is simple and useful because in any
+    case we need to distinguish two 'a variables bound at different
+    places. Indeed, we might instantiate one in a term where the second is
+    bound, and we don't want to merge the two when going under the binder.
+
+    When generalizing we need to know what can be generalized in the outermost
+    type but also in the inner types of the term forming a let-definition.
+    Indeed those variables will have to be instantiated by fresh ones for every
+    instance.
+
+    If the value restriction applies, then we have some (fun (...) -> ...)  and
+    any type variable of higher level can be generalized, whether it's in the
+    outermost type or not.
+*)
 
 (** Find all the free variables satisfying a predicate. *)
 let filter_vars f t =
@@ -94,10 +94,10 @@ let filter_vars f t =
   in
   aux [] t
 
-(** Return a list of generalizable variables in a type.
-  * This is performed after type inference on the left-hand side
-  * of a let-in, with [level] being the level of that let-in.
-  * Uses the simple method of ML, to be associated with a value restriction. *)
+(** Return a list of generalizable variables in a type. This is performed after
+    type inference on the left-hand side of a let-in, with [level] being the
+    level of that let-in. Uses the simple method of ML, to be associated with a
+    value restriction. *)
 let generalizable ~level t = filter_vars (fun v -> v.level > level) t
 
 let generalize ~level t : scheme = (generalizable ~level t, t)
