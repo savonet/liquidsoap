@@ -140,7 +140,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     let constr_symbols, c =
       split_constr (Constraints.elements var.constraints)
     in
-    if !global_evar_names || !debug then (
+    if !global_evar_names || !debug || !debug_levels then (
       let v =
         Printf.sprintf "'%s%s" constr_symbols (evar_global_name var.name)
       in

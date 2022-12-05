@@ -269,6 +269,9 @@ let options =
              Type.debug := true;
              Configure.conf_debug#set true),
          "Debug language implementation." );
+       ( ["--debug-levels"],
+         Arg.Unit (fun () -> Type.debug_levels := true),
+         "Debug typing levels." );
        (["--profile"], Arg.Set Term.profile, "Profile execution.");
        ( ["--strict"],
          Arg.Set Runtime.strict,
