@@ -112,7 +112,7 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           eval "$(opam config env)"
           opam install -y js_of_ocaml js_of_ocaml-ppx
-          dune build ./src/js/liquidsoap_js.bc.js
+          dune build --profile release ./src/js/interactive_js.bc.js
 
   run_tests:
     runs-on: ubuntu-latest

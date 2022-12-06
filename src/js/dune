@@ -28,12 +28,26 @@
  (action
   (diff dune.inc dune.inc.gen)))
 
-(executable
+(library
  (name liquidsoap_js)
+ (public_name liquidsoap-js)
+ (optional)
+ (modules init_js regexp_js)
+ (preprocess
+  (pps js_of_ocaml-ppx))
+ (libraries liquidsoap_lang))
+
+(install
+ (files filesystem.js)
+ (section share)
+ (package liquidsoap-js))
+
+(executable
+ (name interactive_js)
  (modes js)
- (modules liquidsoap_js regexp_js)
+ (modules interactive_js)
  (js_of_ocaml
   (javascript_files filesystem.js))
  (preprocess
   (pps ppx_string js_of_ocaml-ppx))
- (libraries liquidsoap_lang))
+ (libraries liquidsoap_lang liquidsoap_js))

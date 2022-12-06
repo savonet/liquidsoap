@@ -141,6 +141,16 @@
   (synopsis "Liquidsoap language"))
 
 (package
+  (name liquidsoap-js)
+  (depends
+    (ocaml (>= 4.12.0))
+    liquidsoap-lang
+    js_of_ocaml)
+  (conflicts
+    (liquidsoap (<> :version)))
+  (synopsis "Liquidsoap language - javascript wrapper"))
+
+(package
    (name liquidsoap-libs)
    (depends (liquidsoap-lang :build))
    (conflicts
