@@ -61,3 +61,5 @@ val interactive : unit -> unit
 
 (** Evaluate a string. The result is checked to have the given type. *)
 val eval : ignored:bool -> ty:Type.t -> string -> Value.t
+
+val error_header : formatter:Format.formatter -> int -> Pos.Option.t -> unit
