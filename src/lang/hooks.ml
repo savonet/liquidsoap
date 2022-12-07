@@ -54,3 +54,4 @@ let log name =
 let eval_check = ref (fun ~env:_ ~tm:_ _ -> assert false)
 let mk_source_ty = ref (fun ~pos:_ _ _ -> assert false)
 let source_methods_t = ref (fun _ -> assert false)
+let getpwnam = Lang_string.getpwnam

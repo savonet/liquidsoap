@@ -38,3 +38,4 @@ val mk_source_ty :
   ref
 
 val source_methods_t : (unit -> Type.t) ref
+val getpwnam : (string -> Unix.passwd_entry) ref

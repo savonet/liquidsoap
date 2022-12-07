@@ -1,3 +1,5 @@
+let getpwnam = ref (fun _ -> raise Not_found)
+
 (* Generic escaping function. Returns a list of escaping substitutions. *)
 let escape ~special_char ~next ~escape_char s =
   let orig_len = String.length s in
@@ -393,7 +395,7 @@ let home_unrelate =
             let index = try String.index s '/' with Not_found -> len in
             let user = String.sub s 1 (index - 1) in
             try
-              let home = (Unix.getpwnam user).Unix.pw_dir in
+              let home = (!getpwnam user).Unix.pw_dir in
               Filename.concat home (String.sub s index (len - index))
             with Not_found -> s)
         | _ -> s)

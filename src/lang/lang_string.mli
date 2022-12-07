@@ -1,3 +1,5 @@
+val getpwnam : (string -> Unix.passwd_entry) ref
+
 val escape :
   special_char:(string -> int -> int -> bool) ->
   next:(string -> int -> int) ->

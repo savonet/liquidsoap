@@ -119,3 +119,4 @@ let mk_source_ty ~pos name args =
         Lang.source_t (Lang.frame_t Lang.unit_t fields)
 
 let () = Hooks.mk_source_ty := mk_source_ty
+let () = Hooks.getpwnam := Unix.getpwnam
