@@ -423,7 +423,7 @@ let parse argv l f msg =
         exit 0
 
 let absolute s =
-  if String.length s > 0 && s.[0] <> '/' then Unix.getcwd () ^ "/" ^ s else s
+  if String.length s > 0 && s.[0] <> '/' then Sys.getcwd () ^ "/" ^ s else s
 
 let () =
   (* Startup *)

@@ -214,7 +214,7 @@ let mk_expr ?fname ~pwd processor lexbuf =
   let tokenizer = Preprocessor.mk_tokenizer ?fname ~pwd lexbuf in
   processor tokenizer
 
-let from_lexbuf ?fname ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
+let from_lexbuf ?fname ?(dir = Sys.getcwd ()) ?(parse_only = false) ~ns ~lib
     lexbuf =
   begin
     match ns with Some ns -> Sedlexing.set_filename lexbuf ns | None -> ()
@@ -260,7 +260,7 @@ let from_string ?parse_only ~lib expr =
 
 let eval ~ignored ~ty s =
   let lexbuf = Sedlexing.Utf8.from_string s in
-  let expr = mk_expr ~pwd:(Unix.getcwd ()) Parser.program lexbuf in
+  let expr = mk_expr ~pwd:(Sys.getcwd ()) Parser.program lexbuf in
   let expr = Term.(make (Cast (expr, ty))) in
   !Hooks.collect_after (fun () ->
       report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
@@ -312,9 +312,7 @@ let interactive () =
     if
       try
         report lexbuf (fun ~throw () ->
-            let expr =
-              mk_expr ~pwd:(Unix.getcwd ()) Parser.interactive lexbuf
-            in
+            let expr = mk_expr ~pwd:(Sys.getcwd ()) Parser.interactive lexbuf in
             Typechecking.check ~throw ~ignored:false expr;
             Term.check_unused ~throw ~lib:true expr;
             ignore
