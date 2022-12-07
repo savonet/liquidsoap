@@ -1180,14 +1180,14 @@ x =
 ```
 
 The name and message associated to an error can respectively be retrieved using
-the functions `error.kind` and `error.message`, e.g. we can write
+the error `kind` and `message` attributes, e.g. we can write
 
 ```liquidsoap
 try
   ...
 catch err do
-  print("the error #{error.kind(err)} was raised")
-  print("the error message is #{error.message(err)}")
+  print("the error #{err.kind} was raised")
+  print("the error message is #{err.message}")
 end
 ```
 
