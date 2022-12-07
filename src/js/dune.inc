@@ -1,6 +1,12 @@
 
 (rule
+  (target filesystem.js)
+  (enabled_if (not %{bin-available:js_of_ocaml}))
+  (action (write-file %{target} "console.log(\"no js_of_ocaml available!\")")))
+
+(rule
  (target filesystem.js)
+ (enabled_if %{bin-available:js_of_ocaml})
  (deps
   (:stdlib_js ./stdlib_js.liq)
   (source_tree ../libs))
