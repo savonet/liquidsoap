@@ -1,3 +1,4 @@
+%ifdef environment
 # Get the value associated to a variable in the process environment.
 # Returns `default` if the variable is not set.
 # @category System
@@ -9,6 +10,7 @@ def environment.get(~default=null(), s) =
     list.assoc(default=default, s, env)
   end
 end
+%endif
 
 # Split the arguments of an url of the form `arg=bar&arg2=bar2` into
 # `[("arg","bar"),("arg2","bar2")]`. The returned strings are decoded (see
