@@ -145,6 +145,7 @@
   (depends
     (ocaml (>= 4.12.0))
     liquidsoap-lang
+    js_of_ocaml-ppx
     js_of_ocaml)
   (conflicts
     (liquidsoap (<> :version)))
