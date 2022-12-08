@@ -311,7 +311,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           (* Printf.printf "generalize at %d: %B\n\n!" level (value_restriction def); *)
           if value_restriction def then fst (generalize ~level def.t) else []
         in
-        let penv, pa = type_of_pat ~level:(level + 1) ~pos pat in
+        let penv, pa = type_of_pat ~level ~pos pat in
         def.t <: pa;
         let penv =
           List.map

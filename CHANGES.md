@@ -1,4 +1,12 @@
-2.1.3 (unreleased)
+2.1.4 (unreleased)
+=====
+
+Fixed:
+* Fixed type generalization on variable and pattern bindings
+  (#2782)
+
+---
+2.1.3 (2022-11-04)
 =====
 
 New:
