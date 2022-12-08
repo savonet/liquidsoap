@@ -231,6 +231,23 @@ def f() =
     end
   ")
 
+  incorrect('
+  def g() =
+    s = single("foo")
+
+    s = s
+
+    enc = %ffmpeg(
+      format="mkv",
+      %audio(codec="aac"),
+      %video(codec="aac")
+    )
+
+    output.file(fallible=true, enc, "/tmp/bla.mkv", s)
+
+    ignore(ffmpeg.decode.audio(s))
+  end')
+
   test.pass()
 end
 
