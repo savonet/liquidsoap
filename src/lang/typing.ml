@@ -572,7 +572,7 @@ and ( <: ) a b =
           try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
       | Meth ({ meth = l }, _), _ when Type.has_meth b l -> unify_meth a b l
       | _, Meth ({ meth = l }, _) when Type.has_meth a l -> unify_meth a b l
-      | _, Meth ({ meth = l; optional; scheme = g2, t2; json_name }, _) -> (
+      | _, Meth ({ meth = l; optional; scheme = g2, t2; json_name }, c) -> (
           let a' = demeth a in
           match a'.descr with
             | Var { contents = Free _ } ->
@@ -593,7 +593,7 @@ and ( <: ) a b =
                           },
                           var () ));
                 a <: b
-            | _ when optional -> ()
+            | _ when optional -> a <: hide_meth l c
             | _ ->
                 raise
                   (Error
