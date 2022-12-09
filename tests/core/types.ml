@@ -170,3 +170,37 @@ let () =
     Typing.(a_meth <: Lang.string_t);
     assert false
   with Liquidsoap_lang.Repr.Type_error _ -> ()
+
+let () =
+  (* {gni:int} *)
+  let a_meth = Type.meth "gni" ([], Lang.int_t) Lang.unit_t in
+
+  (* 'a *)
+  let b = Lang.univ_t () in
+
+  (* 'a.{foo?:int} *)
+  let b_meth = Type.meth ~optional:true "foo" ([], Lang.int_t) b in
+
+  (* {gni:int} <: 'a.{foo?:int} *)
+  Typing.(a_meth <: b_meth);
+
+  (* b_meth becomes {gni:int, foo?:int} *)
+  let meths, u = Type.split_meths b_meth in
+  assert (u.Type.descr = Type.Tuple []);
+  assert (List.length meths = 2);
+  let foo = List.find (fun Type.{ meth; _ } -> meth = "foo") meths in
+  assert (foo.Type.optional = true);
+
+  let gni = List.find (fun Type.{ meth; _ } -> meth = "gni") meths in
+  assert (gni.Type.optional = false)
+
+let () =
+  (* {gni:int} *)
+  let a_meth = Type.meth "gni" ([], Lang.int_t) Lang.unit_t in
+
+  (* {foo:float}.{foo?:int} *)
+  let b_meth = Type.meth ~optional:false "foo" ([], Lang.float_t) Lang.unit_t in
+  let b_meth = Type.meth ~optional:true "foo" ([], Lang.int_t) b_meth in
+
+  (* This should work: {gni:int} <: {foo: float}.{foo?:int} *)
+  Typing.(a_meth <: b_meth)

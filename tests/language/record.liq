@@ -105,8 +105,8 @@ def f() =
   def f(x) =
     [x, {foo = 123}]
   end
-  ignore(f(())?.foo)
-  (f({foo = 345}):{foo?:int})
+  ignore(list.hd(f(()))?.foo)
+  ignore((f({foo = 345}):[{foo?:int}]))
 
   x = { }
   ignore(x.foo ?? 123)
