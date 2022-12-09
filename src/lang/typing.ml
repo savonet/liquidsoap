@@ -199,7 +199,14 @@ exception Incompatible
     function so that it should always be followed by a subtyping. *)
 let rec sup ~pos a b =
   (* Printf.printf "  sup: %s \\/ %s\n%!" (Type.to_string a) (Type.to_string b); *)
-  let sup = sup ~pos in
+  let sup a b =
+    let s = sup ~pos a b in
+    match (demeth s).descr with
+      | Var _ ->
+          let v = Type.var () in
+          remeth s v
+      | _ -> s
+  in
   let mk descr = Type.make ?pos descr in
   let scheme_sup t t' =
     match (t, t') with ([], t), ([], t') -> ([], sup t t') | _ -> t'

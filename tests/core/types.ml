@@ -204,3 +204,19 @@ let () =
 
   (* This should work: {gni:int} <: {foo: float}.{foo?:int} *)
   Typing.(a_meth <: b_meth)
+
+let () =
+  (* 'a *)
+  let a_base = Lang.univ_t () in
+
+  (* 'a.{gni:int} *)
+  let a = Type.meth "gni" ([], Lang.int_t) a_base in
+
+  (* 'a.{gni:int, foo?:int} *)
+  let b = Type.meth ~optional:false "gni" ([], Lang.int_t) a_base in
+  let b = Type.meth ~optional:true "foo" ([], Lang.int_t) b in
+
+  (* sup 'a.{gni:int} 'a.{gni:int, foo?:int} *)
+  let s = Typing.sup ~pos:a.Type.pos a b in
+  Typing.(a <: s);
+  Typing.(b <: s)
