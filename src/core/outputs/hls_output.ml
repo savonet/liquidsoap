@@ -596,10 +596,10 @@ class hls_output p =
 
       self#close_out ~filename oc
 
-    val mutable main_playlist_writen = false
+    val mutable main_playlist_written = false
 
     method private write_main_playlist =
-      if not main_playlist_writen then (
+      if not main_playlist_written then (
         self#log#debug "Writing playlist %s.." main_playlist_filename;
         let oc = self#open_out main_playlist_filename in
         output_string oc "#EXTM3U\r\n";
@@ -619,7 +619,7 @@ class hls_output p =
             output_string oc (Printf.sprintf "%s%s.m3u8\r\n" prefix s.name))
           streams;
         self#close_out ~filename:main_playlist_filename oc);
-      main_playlist_writen <- true
+      main_playlist_written <- true
 
     method private cleanup_playlists =
       List.iter (fun s -> self#unlink (self#playlist_name s)) streams;
