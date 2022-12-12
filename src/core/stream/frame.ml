@@ -97,6 +97,7 @@ let get_all_metadata frame =
   Content.Metadata.get_data (get frame Fields.metadata)
 
 let set_all_metadata frame data =
+  let data = List.sort_uniq (fun (p, _) (p', _) -> Stdlib.compare p p') data in
   Content.Metadata.set_data (get frame Fields.metadata) data
 
 let set_metadata b t m = set_all_metadata b ((t, m) :: get_all_metadata b)
