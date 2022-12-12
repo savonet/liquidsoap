@@ -221,8 +221,8 @@ server.register(namespace="var", description="Get the value of a variable.", "ge
 def interactive.set(arg)
   try
     arg = r/=/.split(arg)
-    name = list.nth(arg, 0)
-    value = list.nth(arg, 1)
+    name = string.trim(list.nth(arg, 0))
+    value = string.trim(list.nth(arg, 1))
     t = interactive.type(name)
     if t == "float" then
       interactive.float.set(name, float_of_string(value))
