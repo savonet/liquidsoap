@@ -4,6 +4,7 @@
 Fixed:
 * Fixed type generalization on variable and pattern bindings
   (#2782)
+* Space trim in interactive variables set on telnet (#2785)
 
 ---
 2.1.3 (2022-11-04)
