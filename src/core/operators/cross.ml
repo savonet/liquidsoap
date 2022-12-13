@@ -172,6 +172,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     method! after_output =
       super#after_output;
       child_support#after_output;
+      ignore (Option.map (fun s -> s#after_output) transition_source);
       let main_clock = Clock.get self#clock in
       (* Is it really a new tick? *)
       if main_time <> main_clock#get_tick then (
