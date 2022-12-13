@@ -263,7 +263,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 self#get_frame frame;
                 Frame.set_breaks frame
                   (match Frame.breaks frame with
-                    | b :: _ :: l -> b :: l
+                    | _ :: b :: l -> b :: l
                     | _ -> assert false)))
         | `After ->
             (* Here, transition source went down so we switch back to main source.
