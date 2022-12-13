@@ -5,6 +5,7 @@ Fixed:
 * Fixed type generalization on variable and pattern bindings
   (#2782)
 * Space trim in interactive variables set on telnet (#2785)
+* Fixed internal streaming logic in `max_duration` and `crossfade`.
 
 ---
 2.1.3 (2022-11-04)
