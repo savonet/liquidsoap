@@ -169,7 +169,10 @@ let set_pts frame pts = frame.pts <- pts
 
 exception No_metadata
 
-let set_metadata b t m = b.metadata <- (t, m) :: b.metadata
+let set_all_metadata b l =
+  b.metadata <- List.sort_uniq (fun (x, _) (y, _) -> compare x y) l
+
+let set_metadata b t m = set_all_metadata b ((t, m) :: b.metadata)
 
 let get_metadata b t =
   try Some (List.assoc t b.metadata) with Not_found -> None
@@ -178,7 +181,7 @@ let free_metadata b t =
   b.metadata <- List.filter (fun (tt, _) -> t <> tt) b.metadata
 
 let free_all_metadata b = b.metadata <- []
-let get_all_metadata b = List.sort (fun (x, _) (y, _) -> compare x y) b.metadata
+let get_all_metadata b = b.metadata
 let set_all_metadata b l = b.metadata <- l
 
 let fill_content src src_pos dst dst_pos len =
