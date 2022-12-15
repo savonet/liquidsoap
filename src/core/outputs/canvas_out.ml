@@ -47,10 +47,7 @@ class output ~infallible ~autostart ~on_start ~on_stop source =
               let img = ImageData.create (width, height) in
               for j = 0 to height - 1 do
                 for i = 0 to width - 1 do
-                  let c = img'.(j).(i) in
-                  let r = (c lsr 16) land 0xff in
-                  let g = (c lsr 8) land 0xff in
-                  let b = c land 0xff in
+                  let r, g, b, _ = Image.YUV420.get_pixel_rgba img' i j in
                   ImageData.putPixel img (i, j) (Color.of_rgb r g b)
                 done
               done;
@@ -63,8 +60,8 @@ class output ~infallible ~autostart ~on_start ~on_stop source =
     method start =
       let width, height = self#video_dimensions in
       let c =
-        Canvas.createOnscreen ~autocommit:true ~resizable:false
-          ~title:"Liquidsoap" ~size:(width, height) ()
+        Canvas.createOnscreen ~autocommit:true ~title:"Liquidsoap"
+          ~size:(width, height) ()
       in
       canvas <- Some c;
       Canvas.show c;
@@ -77,7 +74,6 @@ class output ~infallible ~autostart ~on_start ~on_stop source =
         Video.Canvas.get (VFrame.data buf) 0
         |> Video.Canvas.Image.viewport width height
         |> Video.Canvas.Image.render ~transparent:false
-        |> Image.YUV420.to_int_image
       in
       img <- Some i
 

@@ -21,7 +21,7 @@ New:
 - Added syntactic sugar for record spread: `let {foo, gni, ..y} = x`
   and `y = { foo = 123, gni = "aabb", ...x}` (#2737)
 - Added `file.{copy, move}` (#2771)
-- Add support for canvas video output.
+- Add support for canvas video output (#2789).
 
 Changed:
 
