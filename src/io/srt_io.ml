@@ -625,26 +625,6 @@ class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
       if self#should_stop then -1. else stats_interval
 
     method stats = self#mutexify (fun () -> stats) ()
-
-    initializer
-    let current_on_connect = !on_connect in
-    (on_connect :=
-       fun () ->
-         if stats_interval > 0. then (
-           let t =
-             Duppy.Async.add ~priority:`Non_blocking Tutils.scheduler
-               self#collect_stats
-           in
-           stats_task <- Some t;
-           Duppy.Async.wake_up t);
-         current_on_connect ());
-
-    let current_on_disconnect = !on_disconnect in
-    on_disconnect :=
-      fun () ->
-        (try ignore (Option.map Duppy.Async.stop stats_task) with _ -> ());
-        stats <- None;
-        current_on_disconnect ()
   end
 
 class virtual caller ~payload_size ~messageapi ~hostname ~port
