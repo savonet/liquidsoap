@@ -73,6 +73,10 @@ becomes:
 output.file({time.string("/path/to/file%H%M%S.wav")}, ...)
 ```
 
+### Other breaking changes
+
+- `request.duration` now returns a `nullable` float, `null` being value returned when the request duration could not be computed.
+
 ## From 2.0.x to 2.1.x
 
 ### Regular expressions

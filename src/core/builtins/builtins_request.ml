@@ -175,14 +175,14 @@ let _ =
 let _ =
   Lang.add_builtin ~base:request "duration" ~category:`Liquidsoap
     [("", Lang.string_t, None, None)]
-    Lang.float_t
+    (Lang.nullable_t Lang.float_t)
     ~descr:
       "Compute the duration in seconds of audio data contained in a request. \
-       The computation may be expensive. Returns -1. if computation failed, \
+       The computation may be expensive. Returns `null` if computation failed, \
        typically if the file was not recognized as valid audio."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
-      Lang.float (try Request.duration f with Not_found -> -1.))
+      try Lang.float (Request.duration f) with _ -> Lang.null)
 
 let _ =
   Lang.add_builtin ~base:request "id" ~category:`Liquidsoap

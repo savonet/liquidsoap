@@ -408,7 +408,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
           if cue_out != "" then
             float_of_string(default=0.,cue_out)
           else
-            request.duration(request.filename(r))
+            null.get(request.duration(request.filename(r)))
           end
         if fade_out > 0. then
           list.append(args,["afade=out:st=#{end_time-fade_out}:d=#{fade_out}#{curve}"])
