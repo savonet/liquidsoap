@@ -218,5 +218,7 @@ let () =
 
   (* sup 'a.{gni:int} 'a.{gni:int, foo?:int} *)
   let s = Typing.sup ~pos:a.Type.pos a b in
+  Printf.printf "The sup of %s and %s is %s.\n\n%!" (to_string a) (to_string b)
+    (to_string s);
   Typing.(a <: s);
   Typing.(b <: s)
