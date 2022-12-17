@@ -134,9 +134,17 @@ let time =
 let rec token lexbuf =
   match%sedlex lexbuf with
     | skipped -> token lexbuf
-    | Plus ('#', Star (Compl '\n'), '\n') ->
-        let doc = Sedlexing.Utf8.lexeme lexbuf in
-        let doc = Regexp.split (Regexp.regexp "\n") doc in
+    | '#', Plus '-', Opt '#' ->
+        let buf = Buffer.create 1024 in
+        let pos = Sedlexing.lexing_positions lexbuf in
+        read_comment ~multiline:true pos buf lexbuf;
+        let doc = Regexp.split (Regexp.regexp "\n") (Buffer.contents buf) in
+        PP_COMMENT doc
+    | "#", Star white_space ->
+        let buf = Buffer.create 1024 in
+        let pos = Sedlexing.lexing_positions lexbuf in
+        read_comment ~multiline:false pos buf lexbuf;
+        let doc = Regexp.split (Regexp.regexp "\n") (Buffer.contents buf) in
         PP_COMMENT doc
     | '\n' -> PP_ENDL
     | "%ifdef", Plus ' ', var, Star ("" | '.', var) ->
@@ -323,6 +331,33 @@ and read_regexp_flags flags lexbuf =
     | _ ->
         Sedlexing.rollback lexbuf;
         flags
+
+and read_comment ~multiline pos buf lexbuf =
+  match%sedlex lexbuf with
+    | Opt '#', Plus '-', '#' ->
+        if not multiline then (
+          Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
+          read_comment ~multiline pos buf lexbuf)
+    | '-' ->
+        Buffer.add_char buf '-';
+        read_comment ~multiline pos buf lexbuf
+    | '\n', Star white_space, '#', Star white_space ->
+        Buffer.add_char buf '\n';
+        read_comment ~multiline pos buf lexbuf
+    | '\n' ->
+        if multiline then (
+          Buffer.add_char buf '\n';
+          read_comment ~multiline pos buf lexbuf)
+    | Plus (Compl ('-' | '\n')) ->
+        Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
+        read_comment ~multiline pos buf lexbuf
+    | eof ->
+        if multiline then
+          raise (Term.Parse_error (pos, "Multiline comment not terminated!"))
+    | _ ->
+        raise
+          (Term.Parse_error
+             (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
 
 and read_string c pos buf lexbuf =
   (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
