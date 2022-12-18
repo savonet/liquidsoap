@@ -1,27 +1,5 @@
-#-
-# This is
-a
-multiline
-comment -#
-
-#-this is another -
-multiline -
-comment
--#
-
-#- this is also
-a multiline
-comment -#
-
-#-
-Maybe the
-more standard form
-of multiline
-comment?
--#
-
 #------#
-and this is also
+This is
 a multiline comment
 #------#
 
@@ -30,14 +8,34 @@ a multiline comment
 # form of multiline comment
 #----------------#
 
-#-
-Multiline comment
-# leading dash
-  # and leading dash with spaces around them
-are trimmed
--#
+   #-----#
+multiline comment can start and end
+in the middle of a line
+   #----#
+
+#-----#
+Anything following them
+is executed
+#----#x = 1
+
+#-----#y = x + 2.
+Anything after the mark
+is comment
+#----#
 
 def f() =
+  test.equals(x, 1)
+
+  try
+    let eval _ = "#----#
+This comment is not terminated"
+    test.fail()
+  catch _ do
+    ()
+  end
+
+  let eval _ = "# single line comment can be followed by EOF"
+
   test.pass()
 end
 
