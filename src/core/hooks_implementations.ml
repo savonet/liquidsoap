@@ -70,10 +70,31 @@ let () =
         true
       with _ -> false
 
+(* For source eval check there are cases of:
+     source('a) <: (source('a).{ source methods })?
+   b/c of source.dynamic so we want to dig deeper
+   than the regular demeth. *)
+let rec demeth_source t =
+  match Type.demeth t with
+    | Type.{ descr = Nullable t } -> demeth_source t
+    | t -> t
+
 let eval_check ~env:_ ~tm v =
-  let open Liquidsoap_lang.Term in
-  if Lang_source.V.is_value v then
-    Typing.(tm.t <: Lang.source_t (Lang_source.V.of_value v)#frame_type)
+  if Lang_source.Source_val.is_value v then (
+    let s = Lang_source.Source_val.of_value v in
+    Typing.(
+      Lang.source_t ~methods:false s#frame_type <: demeth_source tm.Term.t))
+  else if Track.is_value v then (
+    let field, source = Track.of_value v in
+    match field with
+      | _ when field = Frame.Fields.metadata -> ()
+      | _ when field = Frame.Fields.track_marks -> ()
+      | _ ->
+          let frame_t =
+            Lang.frame_t (Lang.univ_t ())
+              (Frame.Fields.add field tm.Term.t Frame.Fields.empty)
+          in
+          Typing.(source#frame_type <: frame_t))
 
 let () = Hooks.eval_check := eval_check
 
@@ -120,3 +141,7 @@ let mk_source_ty ~pos name args =
 
 let () = Hooks.mk_source_ty := mk_source_ty
 let () = Hooks.getpwnam := Unix.getpwnam
+
+let () =
+  Hooks.source_methods_t :=
+    fun () -> Lang.source_t ~methods:true (Lang.univ_t ())

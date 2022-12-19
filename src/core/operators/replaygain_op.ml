@@ -55,7 +55,7 @@ class replaygain (source : source) =
     method gain = Audio.Analyze.ReplayGain.gain self#state
   end
 
-let source_replaygain = Lang.add_module ~base:Modules.source "replaygain"
+let source_replaygain = Lang.add_module ~base:Muxer.source "replaygain"
 
 let _ =
   let frame_t =

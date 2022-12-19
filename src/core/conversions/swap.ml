@@ -22,7 +22,7 @@
 
 open Source
 
-class swap (source : source) =
+class swap ~field (source : source) =
   object
     inherit operator [source] ~name:"swap"
     method stype = source#stype
@@ -36,7 +36,7 @@ class swap (source : source) =
       let offset = AFrame.position buf in
       let buffer =
         source#get buf;
-        AFrame.pcm buf
+        Content.Audio.get_data (Frame.get buf field)
       in
       if offset = 0 then (
         let tmp = buffer.(1) in
@@ -51,14 +51,11 @@ class swap (source : source) =
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ())
-  in
-  Lang.add_operator "swap"
-    [("", Lang.source_t frame_t, None, None)]
-    ~return_t:frame_t ~category:`Conversion
-    ~descr:"Swap two channels of a stereo source."
+  let track_t = Format_type.audio_stereo () in
+  Lang.add_track_operator ~base:Modules.audio "swap"
+    [("", track_t, None, None)]
+    ~return_t:track_t ~category:`Conversion
+    ~descr:"Swap two channels of a stereo track."
     (fun p ->
-      let s = Lang.to_source (Lang.assoc "" 1 p) in
-      new swap s)
+      let field, s = Lang.to_track (Lang.assoc "" 1 p) in
+      (field, new swap ~field s))

@@ -79,13 +79,14 @@ def input.hls.native(~id=null(),~reload=10.,uri)
   end
   find_stream ()
 
-  source = request.dynamic(id=id,prefetch=10,next)
+  s = request.dynamic(id=id,prefetch=10,next)
 
-  source = merge_tracks(source)
+  let {track_marks=_, ...tracks} = source.tracks(s)
+  s = source(tracks)
 
   thread.run(every=reload, load_playlist)
 
-  source
+  s
 end
 
 let replaces input.hls = input.hls.native

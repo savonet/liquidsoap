@@ -579,32 +579,20 @@ let buffer_args frame =
 let _ =
   let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.kind in
   let raw_video_format = `Kind Ffmpeg_raw_content.Video.kind in
-  let audio_frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make
-         ~audio:(Type.make (Format_type.descr raw_audio_format))
-         ())
-  in
-  let video_frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make
-         ~video:(Type.make (Format_type.descr raw_video_format))
-         ())
-  in
-  let audio_t = Lang.(source_t ~methods:false audio_frame_t) in
-  let video_t = Lang.(source_t ~methods:false video_frame_t) in
+  let audio_frame_t = Type.make (Format_type.descr raw_audio_format) in
+  let video_frame_t = Type.make (Format_type.descr raw_video_format) in
 
   ignore
     (Lang.add_builtin ~category:(`Source `FFmpegFilter)
        ~base:ffmpeg_filter_audio "input"
-       ~descr:"Attach an audio source to a filter's input"
+       ~descr:"Attach an audio track to a filter's input"
        [
          ( "pass_metadata",
            Lang.bool_t,
            Some (Lang.bool true),
            Some "Pass liquidsoap's metadata to this stream" );
          ("", Graph.t, None, None);
-         ("", audio_t, None, None);
+         ("", audio_frame_t, None, None);
        ]
        Audio.t
        (fun p ->
@@ -612,7 +600,8 @@ let _ =
          let graph_v = Lang.assoc "" 1 p in
          let config = get_config graph_v in
          let graph = Graph.of_value graph_v in
-         let source_val = Lang.assoc "" 2 p in
+         let track_val = Lang.assoc "" 2 p in
+         let field, source = Lang.to_track track_val in
 
          let frame_t =
            Lang.frame_t Lang.unit_t
@@ -628,11 +617,11 @@ let _ =
                 ())
          in
          let name = uniq_name "abuffer" in
-         let pos = source_val.Lang.pos in
+         let pos = track_val.Lang.pos in
          let s =
            try
              Ffmpeg_filter_io.(
-               new audio_output ~pass_metadata ~name ~frame_t source_val)
+               new audio_output ~pass_metadata ~name ~frame_t ~field source)
            with
              | Source.Clock_conflict (a, b) ->
                  raise (Error.Clock_conflict (pos, a, b))
@@ -663,16 +652,11 @@ let _ =
 
          Audio.to_value (`Output audio)));
 
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make
-         ~audio:(Type.make (Format_type.descr raw_audio_format))
-         ())
-  in
+  let return_t = Type.make (Format_type.descr raw_audio_format) in
   ignore
-    (Lang.add_operator ~base:ffmpeg_filter_audio "output"
+    (Lang.add_track_operator ~base:ffmpeg_filter_audio "output"
        ~category:`FFmpegFilter
-       ~descr:"Return an audio source from a filter's output" ~return_t
+       ~descr:"Return an audio track from a filter's output" ~return_t
        [
          ( "pass_metadata",
            Lang.bool_t,
@@ -723,19 +707,19 @@ let _ =
                 Hashtbl.add graph.entries.outputs.audio name s#set_output)))
            graph.init;
 
-         (s :> Source.source)));
+         (Frame.Fields.audio, (s :> Source.source))));
 
   ignore
     (Lang.add_builtin ~category:(`Source `FFmpegFilter)
        ~base:ffmpeg_filter_video "input"
-       ~descr:"Attach a video source to a filter's input"
+       ~descr:"Attach a video track to a filter's input"
        [
          ( "pass_metadata",
            Lang.bool_t,
            Some (Lang.bool false),
            Some "Pass liquidsoap's metadata to this stream" );
          ("", Graph.t, None, None);
-         ("", video_t, None, None);
+         ("", video_frame_t, None, None);
        ]
        Video.t
        (fun p ->
@@ -743,7 +727,8 @@ let _ =
          let graph_v = Lang.assoc "" 1 p in
          let config = get_config graph_v in
          let graph = Graph.of_value graph_v in
-         let source_val = Lang.assoc "" 2 p in
+         let track_val = Lang.assoc "" 2 p in
+         let field, source = Lang.to_track track_val in
 
          let frame_t =
            Lang.frame_t Lang.unit_t
@@ -759,11 +744,11 @@ let _ =
                 ())
          in
          let name = uniq_name "buffer" in
-         let pos = source_val.Lang.pos in
+         let pos = track_val.Lang.pos in
          let s =
            try
              Ffmpeg_filter_io.(
-               new video_output ~pass_metadata ~name ~frame_t source_val)
+               new video_output ~pass_metadata ~name ~frame_t ~field source)
            with
              | Source.Clock_conflict (a, b) ->
                  raise (Error.Clock_conflict (pos, a, b))
@@ -793,14 +778,9 @@ let _ =
 
          Video.to_value (`Output video)));
 
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make
-         ~video:(Type.make (Format_type.descr raw_video_format))
-         ())
-  in
-  Lang.add_operator ~base:ffmpeg_filter_video "output" ~category:`Video
-    ~descr:"Return a video source from a filter's output" ~return_t
+  let return_t = Type.make (Format_type.descr raw_video_format) in
+  Lang.add_track_operator ~base:ffmpeg_filter_video "output" ~category:`Video
+    ~descr:"Return a video track from a filter's output" ~return_t
     [
       ( "pass_metadata",
         Lang.bool_t,
@@ -867,7 +847,7 @@ let _ =
            Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output)))
         graph.init;
 
-      (s :> Source.source))
+      (Frame.Fields.video, (s :> Source.source)))
 
 let unify_clocks ~clock sources =
   Queue.iter (fun s -> Clock.unify clock s#clock) sources

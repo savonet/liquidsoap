@@ -121,7 +121,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
 
 let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.source "dynamic"
+  Lang.add_operator ~base:Muxer.source "dynamic"
     [
       ( "init",
         Lang.nullable_t (Lang.source_t frame_t),

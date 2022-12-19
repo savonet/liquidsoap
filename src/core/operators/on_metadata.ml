@@ -44,7 +44,7 @@ class on_metadata f s =
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.source "on_metadata"
+  Lang.add_operator ~base:Muxer.source "on_metadata"
     [
       ("", Lang.source_t return_t, None, None);
       ( "",

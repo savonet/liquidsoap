@@ -22,7 +22,7 @@
 
 type Type.custom += Kind of (Content_base.kind * Type.t)
 type Type.custom += Format of Content_base.format
-type Type.constr_t += InternalMedia
+type Type.constr_t += InternalMedia | Media
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
 let get_format = function Format f -> f | _ -> assert false
@@ -144,6 +144,28 @@ let internal_media =
           | _ -> raise Type.Unsatisfied_constraint);
   }
 
+let media ~strict () =
+  {
+    Type.t = Media;
+    constr_descr = "any media type (pcm, etc...)";
+    satisfied =
+      (fun ~subtype:_ ~satisfies b ->
+        match (Type.deref b).Type.descr with
+          | Type.Tuple [] -> ()
+          | Type.Constr { params } when not strict ->
+              List.iter (fun (_, typ) -> satisfies typ) params
+          | Type.Meth _ when not strict ->
+              let meths, base_type = Type.split_meths b in
+              List.iter
+                (fun Type.{ scheme = _, field_type } -> satisfies field_type)
+                meths;
+              satisfies base_type
+          | Type.Custom { Type.typ = Kind _ }
+          | Type.Custom { Type.typ = Format _ } ->
+              ()
+          | _ -> raise Type.Unsatisfied_constraint);
+  }
+
 let content_type = content_type ~default:(fun _ -> assert false)
 let audio () = Type.make (descr (`Kind Content.Audio.kind))
 
@@ -173,3 +195,6 @@ let midi () = Type.make (descr (`Kind Content.Midi.kind))
 
 let midi_n n =
   Type.make (descr (`Format Content.(Midi.(lift_params { channels = n }))))
+
+let track_marks = Type.make (descr (`Format Content.Track_marks.format))
+let metadata = Type.make (descr (`Format Content.Metadata.format))

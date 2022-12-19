@@ -67,8 +67,8 @@ class map_metadata source rewrite_f insert_missing update strip =
   end
 
 let register =
-  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.metadata "map"
+  let return_t = Format_type.metadata in
+  Lang.add_track_operator ~base:Modules.track_metadata "map"
     [
       ( "",
         Lang.fun_t
@@ -97,14 +97,15 @@ let register =
           "Treat track beginnings without metadata as having empty ones. The \
            operational order is: create empty if needed, map and strip if \
            enabled." );
-      ("", Lang.source_t return_t, None, None);
+      ("", return_t, None, None);
     ]
     ~category:`Track ~descr:"Rewrite metadata on the fly using a function."
     ~return_t
     (fun p ->
-      let source = Lang.to_source (Lang.assoc "" 2 p) in
+      let field, source = Track.of_value (Lang.assoc "" 2 p) in
+      assert (field = Frame.Fields.metadata);
       let f = Lang.assoc "" 1 p in
       let update = Lang.to_bool (List.assoc "update" p) in
       let strip = Lang.to_bool (List.assoc "strip" p) in
       let missing = Lang.to_bool (List.assoc "insert_missing" p) in
-      new map_metadata source f missing update strip)
+      (field, new map_metadata source f missing update strip))

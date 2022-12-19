@@ -645,3 +645,71 @@ def add_oblivious_decoder(%argsof(decoder.oblivious.add),process) =
   deprecated("add_oblivious_decoder", "decoder.oblivious.add")
   decoder.oblivious.add(%argsof(decoder.oblivious.add),process)
 end
+
+# Deprecated: use `source`
+# @flag deprecated
+def mux_audio(~id=null(), ~(audio:source), (s:source)) =
+  deprecated("mux_audio", "source")
+  source(id=id, source.tracks(s).{audio=source.tracks(audio).audio})
+end
+
+# Deprecated: use `source`
+# @flag deprecated
+def mux_video(~id=null(), ~(video:source), (s:source)) =
+  deprecated("mux_video", "source")
+  source(id=id, source.tracks(s).{video=source.tracks(video).video})
+end
+
+# Deprecated: use `source`
+# @flag deprecated
+def mux_midi(~id=null(), ~(midi:source), (s:source)) =
+  deprecated("mux_midi", "source")
+  source(id=id, source.tracks(s).{midi=source.tracks(midi).midi})
+end
+
+# Deprecated: use `source.tracks` and `source`
+# @flag deprecated
+def drop_audio(~id=null(), (s:source)) =
+  deprecated("drop_audio", "source")
+  let tracks.{audio=_} = source.tracks(s)
+  source(id=id, tracks)
+end
+
+# Deprecated: use `source.tracks` and `source`
+# @flag deprecated
+def drop_video(~id=null(), (s:source)) =
+  deprecated("drop_video", "source")
+  let tracks.{video=_} = source.tracks(s)
+  source(id=id, tracks)
+end
+
+# Deprecated: use `source.tracks` and `source`
+# @flag deprecated
+def drop_midi(~id=null(), (s:source)) =
+  deprecated("drop_midi", "source")
+  let tracks.{midi=_} = source.tracks(s)
+  source(id=id, tracks)
+end
+
+# Deprecated: use `source.stereo`
+# @flag deprecated
+def audio_to_stereo(~id=null(), (s:source)) =
+  deprecated("audio_to_sterep", "stereo")
+  stereo(id=id, s)
+end
+
+# Deprecated: use `source.tracks` and `source`
+# @flag deprecated
+def drop_metadata(~id=null(), (s:source))
+  deprecated("drop_metadata", "source")
+  let {metadata=_, ...tracks} = source.tracks(s)
+  source(id=id, tracks)
+end
+
+# Deprecated: use `source.tracks` and `source`
+# @flag deprecated
+def merge_tracks(~id=null(), (s:source)) =
+  deprecated("merge_tracks", "source")
+  let {track_marks=_, ...tracks} = source.tracks(s)
+  source(id=id, tracks)
+end

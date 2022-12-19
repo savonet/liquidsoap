@@ -37,7 +37,7 @@ let empty = fail
 
 let fail =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.source "fail" ~category:`Input
+  Lang.add_operator ~base:Muxer.source "fail" ~category:`Input
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
     ~return_t [] (fun _ -> (new fail "source.fail" :> Source.source))

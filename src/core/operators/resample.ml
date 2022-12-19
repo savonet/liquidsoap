@@ -23,18 +23,15 @@
 open Mm
 open Source
 
-class resample ~ratio source_val =
-  let source = Lang.to_source source_val in
+class resample ~field ~ratio source =
+  let source_val = Lang.source source in
   let write_frame_ref = ref (fun _ -> ()) in
   let consumer =
     new Producer_consumer.consumer
       ~write_frame:(fun _ frame -> !write_frame_ref frame)
       ~name:"stretch.consumer" ~source:source_val ()
   in
-  let () =
-    Typing.(consumer#frame_type <: source#frame_type);
-    Typing.(source#frame_type <: consumer#frame_type)
-  in
+  let () = Typing.(consumer#frame_type <: source#frame_type) in
   object (self)
     inherit operator ~name:"stretch" [(consumer :> Source.source)] as super
 
@@ -76,7 +73,7 @@ class resample ~ratio source_val =
 
     method private process_frame frame =
       let ratio = ratio () in
-      let content = AFrame.pcm frame in
+      let content = Content.Audio.get_data (Frame.get frame field) in
       let converter = Option.get converter in
       let pcm, offset, length =
         Audio_converter.Samplerate.resample converter ratio content 0
@@ -84,7 +81,7 @@ class resample ~ratio source_val =
       in
       let offset = Frame_settings.main_of_audio offset in
       let length = Frame_settings.main_of_audio length in
-      Generator.put self#buffer Frame.Fields.audio
+      Generator.put self#buffer field
         (Content.Audio.lift_data ~offset ~length pcm);
       let convert x = int_of_float (float x *. ratio) in
       List.iter
@@ -105,17 +102,14 @@ class resample ~ratio source_val =
   end
 
 let _ =
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator "stretch" (* TODO better name *)
+  let return_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Modules.audio "stretch" (* TODO better name *)
     [
       ( "ratio",
         Lang.getter_t Lang.float_t,
         None,
         Some "A value higher than 1 means slowing down." );
-      ("", Lang.source_t return_t, None, None);
+      ("", return_t, None, None);
     ]
     ~return_t ~category:`Audio
     ~descr:
@@ -123,6 +117,6 @@ let _ =
        squeezing it (sounds higher)."
     (fun p ->
       let f v = List.assoc v p in
-      let src = f "" in
+      let field, src = Track.of_value (f "") in
       let ratio = Lang.to_float_getter (f "ratio") in
-      new resample ~ratio src)
+      (field, (new resample ~field ~ratio src :> Source.source)))

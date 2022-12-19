@@ -142,14 +142,14 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
-let rec prepare_fun fv p env =
+let rec prepare_fun fv ~eval_check p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
      values as defaults. *)
   let p =
     List.map
       (function
-        | lbl, var, _, Some v -> (lbl, var, Some (eval env v))
+        | lbl, var, _, Some v -> (lbl, var, Some (eval ~eval_check env v))
         | lbl, var, _, None -> (lbl, var, None))
       p
   in
@@ -157,7 +157,7 @@ let rec prepare_fun fv p env =
   let env = Env.restrict env fv in
   (p, env)
 
-and eval (env : Env.t) tm =
+and eval_term ~eval_check (env : Env.t) tm =
   let mk v = { Value.pos = tm.t.Type.pos; Value.value = v } in
   match tm.term with
     | Any -> mk Value.Null
@@ -169,38 +169,40 @@ and eval (env : Env.t) tm =
             (fun (l, t) ->
               ( l,
                 match t with
-                  | `Term t -> `Value (eval env t)
+                  | `Term t -> `Value (eval ~eval_check env t)
                   | `Encoder (l, p) -> `Encoder (l, eval_param p) ))
             p
         in
         let p = eval_param p in
         !Hooks.make_encoder ~pos tm (e, p)
-    | List l -> mk (Value.List (List.map (eval env) l))
-    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval env a) l))
+    | List l -> mk (Value.List (List.map (eval ~eval_check env) l))
+    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval env ~eval_check a) l))
     | Null -> mk Value.Null
     | Cast (e, _) ->
-        let e = eval env e in
+        let e = eval ~eval_check env e in
         mk e.Value.value
     | Meth ({ name = l; meth_value = u }, v) ->
-        mk (Value.Meth (l, eval env u, eval env v))
+        mk (Value.Meth (l, eval ~eval_check env u, eval ~eval_check env v))
     | Invoke { invoked = t; default; meth = l } ->
         let rec aux t =
           match (t.Value.value, default) with
             | Value.Meth (l', t, _), None when l = l' -> t
             (* A method returning `null` is overridden by the default value *)
             | Value.Meth (l', t, _), Some tm when l = l' -> (
-                match t.Value.value with Value.Null -> eval env tm | _ -> t)
+                match t.Value.value with
+                  | Value.Null -> eval ~eval_check env tm
+                  | _ -> t)
             | Value.Meth (_, _, t), _ -> aux t
-            | _, Some tm -> eval env tm
+            | _, Some tm -> eval ~eval_check env tm
             | _ ->
                 raise
                   (Internal_error
                      ( Option.to_list tm.t.Type.pos,
                        "invoked method `" ^ l ^ "` not found" ))
         in
-        aux (eval env t)
+        aux (eval ~eval_check env t)
     | Open (t, u) ->
-        let t = eval env t in
+        let t = eval ~eval_check env t in
         let rec aux env t =
           match t.Value.value with
             | Value.Meth (l, v, t) -> aux (Env.add env l v) t
@@ -208,9 +210,9 @@ and eval (env : Env.t) tm =
             | _ -> assert false
         in
         let env = aux env t in
-        eval env u
+        eval ~eval_check env u
     | Let { pat; replace; def = v; body = b; _ } ->
-        let v = eval env v in
+        let v = eval ~eval_check env v in
         let penv =
           List.map
             (fun (ll, v) ->
@@ -245,12 +247,12 @@ and eval (env : Env.t) tm =
             (eval_pat pat v)
         in
         let env = Env.adds_lazy env penv in
-        eval env b
+        eval ~eval_check env b
     | Fun (fv, p, body) ->
-        let p, env = prepare_fun fv p env in
+        let p, env = prepare_fun ~eval_check fv p env in
         mk (Value.Fun (p, env, body))
     | RFun (x, fv, p, body) ->
-        let p, env = prepare_fun fv p env in
+        let p, env = prepare_fun ~eval_check fv p env in
         let rec v () =
           let env = Env.add_lazy env x (Lazy.from_fun v) in
           { Value.pos = tm.t.Type.pos; value = Value.Fun (p, env, body) }
@@ -258,13 +260,13 @@ and eval (env : Env.t) tm =
         v ()
     | Var var -> Env.lookup env var
     | Seq (a, b) ->
-        ignore (eval env a);
-        eval env b
+        ignore (eval ~eval_check env a);
+        eval ~eval_check env b
     | App (f, l) ->
         let ans () =
-          let f = eval env f in
-          let l = List.map (fun (l, t) -> (l, eval env t)) l in
-          apply ?pos:tm.t.Type.pos f l
+          let f = eval ~eval_check env f in
+          let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
+          apply ?pos:tm.t.Type.pos ~eval_check f l
         in
         if !profile then (
           match f.term with
@@ -272,7 +274,12 @@ and eval (env : Env.t) tm =
             | _ -> ans ())
         else ans ()
 
-and apply ?pos f l =
+and eval ~eval_check env tm =
+  let v = eval_term ~eval_check env tm in
+  eval_check ~env ~tm v;
+  v
+
+and apply ?pos ~eval_check f l =
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
     match (Value.demeth f).Value.value with
@@ -280,7 +287,7 @@ and apply ?pos f l =
           ( p,
             fun pe ->
               let env = Env.adds e pe in
-              eval env body )
+              eval ~eval_check env body )
       | Value.FFI (p, f) -> (p, fun pe -> f (List.rev pe))
       | _ -> assert false
   in
@@ -338,6 +345,10 @@ and apply ?pos f l =
      FFI-made value and a position is needed. *)
   { v with Value.pos }
 
+let apply ?pos t p =
+  let eval_check = !Hooks.eval_check in
+  apply ?pos ~eval_check t p
+
 let eval ?env tm =
   let env =
     match env with
@@ -345,11 +356,8 @@ let eval ?env tm =
       | None -> Environment.default_environment ()
   in
   let env = List.map (fun (x, v) -> (x, Lazy.from_val v)) env in
-  let v = eval env tm in
-  (* This is used to unify runtime sources types with their inferred type. *)
-  let fn = !Hooks.eval_check in
-  fn ~env ~tm v;
-  v
+  let eval_check = !Hooks.eval_check in
+  eval ~eval_check env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
     evaluation of the next scripts. Also try to generate a structured

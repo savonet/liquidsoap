@@ -38,6 +38,10 @@ val set_field : Type.t -> Frame.field -> Type.t -> Type.t
    Raises [Not_found] if field does not exist. *)
 val get_field : Type.t -> Frame.field -> Type.t
 
+(* [get_fields frame_type] returns all the field currently
+   set for the given type. *)
+val get_fields : Type.t -> Frame.field list
+
 (* Resolve a frame type into a content type. If the frame has explicit fields,
    this seales the frame type and resolves kind formats with their default format.
    If the frame is a universal variable ['a], default audio/video fields are added

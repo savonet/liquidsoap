@@ -20,7 +20,9 @@ s = sequence([a,b])
 
 fb = crossfade(smart=true, deduplicate=false, conservative=false, s)
 
-s = sequence([merge_tracks(fa), fb])
+let {track_marks=_, ...tracks} = source.tracks(fa)
+
+s = sequence([source(tracks), fb])
 
 dedup_a = ref(0)
 dedup_b = ref(0)

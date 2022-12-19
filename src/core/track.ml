@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2022 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -16,25 +16,23 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
-type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
+include Liquidsoap_lang.Lang_core.MkAbstract (struct
+  type content = Frame.field * Source.source
 
-val descr : descr -> Type.descr
-val internal_media : Type.constr
-val media : strict:bool -> unit -> Type.constr
-val content_type : Type.t -> Content_base.format
+  let name = "track"
 
-(** Some common types *)
-val audio : unit -> Type.t
+  let descr (f, s) =
+    Printf.sprintf "track(source=%s,field=%s)" s#id
+      (Frame.Fields.string_of_field f)
 
-val audio_mono : unit -> Type.t
-val audio_stereo : unit -> Type.t
-val audio_n : int -> Type.t
-val video : unit -> Type.t
-val midi : unit -> Type.t
-val midi_n : int -> Type.t
-val track_marks : Type.t
-val metadata : Type.t
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos
+      ~message:(Printf.sprintf "Tracks cannot be represented as json")
+      "json"
+
+  let compare (f1, s1) (f2, s2) = Stdlib.compare (f1, s1#id) (f2, s2#id)
+end)

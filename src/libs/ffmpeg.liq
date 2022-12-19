@@ -176,7 +176,7 @@ def replaces video.add_text.ffmpeg.raw(
     fn()
   end)
 
-  s = ffmpeg.filter.video.input(graph, s)
+  s = ffmpeg.filter.video.input(graph, source.tracks(s).video)
   v = video.add_text.ffmpeg.raw.filter(color=color, cycle=cycle,font=font,
                                        metadata=metadata,size=size,speed=speed,
                                        x=x,y=y,graph=graph,d,s)
@@ -206,14 +206,15 @@ def video.add_text.ffmpeg.internal(~id=null(),~color=0xffffff,~cycle=true,~font=
                           d, s) =
   id = string.id.default(default="video.add_text.ffmpeg", id)
   s = ffmpeg.raw.encode.audio_video(%ffmpeg(%audio.raw, %video.raw), s)
-  v = drop_audio(s)
+  v = source({video=source.tracks(s).video})
   def mkfilter(graph)
     v = video.add_text.ffmpeg.raw(color=color,cycle=cycle,font=font,metadata=metadata,
                                   size=size,speed=speed,x=x,y=y,graph=graph,d,v)
     ffmpeg.filter.video.output(graph, v)
   end
-  v = ffmpeg.filter.create(mkfilter)
-  s = mux_audio(id=id,audio=drop_video(s),v)
+  video = ffmpeg.filter.create(mkfilter)
+  tracks = source.tracks(s)
+  s = source(id=id,tracks.{video=video})
   s = ffmpeg.raw.decode.audio_video(s)
   null.defined(duration) ? max_duration(null.get(duration), s) : s
 end
@@ -234,9 +235,9 @@ let ffmpeg.filter.audio_video = ()
 # @param id Force the value of the source ID.
 # @param fps Output frame per seconds. Defaults to global value.
 def ffmpeg.filter.audio_video.output(~id=null(), ~fps=null(), graph, audio, video)
-  a = ffmpeg.filter.audio.output(id=id, graph, audio)
-  v = ffmpeg.filter.video.output(id=id, fps=fps, graph, video)
-  mux_audio(audio=a, v)
+  audio = ffmpeg.filter.audio.output(graph, audio.tracks().audio)
+  video = ffmpeg.filter.video.output(fps=fps, graph, video.tracks().video)
+  source(id=id, {audio=audio, video=video})
 end
 %endif
 

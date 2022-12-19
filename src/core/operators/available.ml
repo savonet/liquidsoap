@@ -43,7 +43,7 @@ class available ~track_sensitive ~override p (source : source) =
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.source "available"
+  Lang.add_operator ~base:Muxer.source "available"
     [
       ( "track_sensitive",
         Lang.getter_t Lang.bool_t,
