@@ -383,14 +383,14 @@ end
 # Produce mono audio by taking the mean of all audio channels.
 # @category Source / Conversion
 # @argsof audio.mean
-def mean(~id=null(), %argsof(audio.mean), (s:source))
+def mean(%argsof(audio.mean), (s:source))
   tracks = source.tracks(s)
   source(id=id, tracks.{audio = audio.mean(%argsof(audio.mean), tracks.audio)})
 end
 
 # Convert any pcm audio source into a stereo source.
 # @category Source / Conversion
-def stereo(~id=null(), (s:source)) =
+def stereo(~id=null("stereo"), (s:source)) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo(tracks.audio)})
 end
@@ -398,14 +398,14 @@ end
 # Extract the left channel of a stereo track
 # @category Source / Conversion
 # @param t Track to extract from
-def audio.stereo.left(t)
-  audio.mean(audio.stereo.pan(pan=-1., t))
+def audio.stereo.left(~id=null("audio.stereo.left"), t)
+  audio.mean(id=id, audio.stereo.pan(pan=-1., t))
 end
 
 # Extract the left channel of a stereo source
 # @category Source / Conversion
 # @param s Source to extract from
-def stereo.left(~id=null(), (s:source))
+def stereo.left(~id=null("stereo.left"), (s:source))
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo.left(tracks.audio)})
 end
@@ -413,14 +413,14 @@ end
 # Extract the right channel of a stereo track
 # @category Source / Conversion
 # @param s Track to extract from
-def audio.stereo.right(t)
-  audio.mean(audio.stereo.pan(pan=1., t))
+def audio.stereo.right(~id=null("audio.stereo.right"), t)
+  audio.mean(id=id, audio.stereo.pan(pan=1., t))
 end
 
 # Extract the right channel of a stereo source
 # @category Source / Conversion
 # @param s Source to extract from
-def stereo.right(~id=null(), (s:source))
+def stereo.right(~id=null("stereo.right"), (s:source))
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo.right(tracks.audio)})
 end
@@ -428,7 +428,7 @@ end
 # Spacializer which allows controlling the width of the signal.
 # @category Source / Audio processing
 # @param w Width of the signal (-1: mono, 0.: original, 1.: wide stereo).
-def stereo.width(~id=null(), w=getter(0.), (s:source)) =
+def stereo.width(~id=null("stereo.width"), w=getter(0.), (s:source)) =
    tracks = source.tracks(s)
    source(id=id, tracks.{audio=audio.stereo.width(w, tracks.audio)})
 end
@@ -436,7 +436,7 @@ end
 # Pan a stereo sound.
 # @category Source / Audio processing
 # @argsof audio.stereo.pan
-def stereo.pan(~id=null(), %argsof(audio.stereo.pan), (s:source)) =
+def stereo.pan(%argsof(audio.stereo.pan), (s:source)) =
    tracks = source.tracks(s)
    source(id=id, tracks.{audio=audio.stereo.pan(%argsof(audio.stereo.pan), tracks.audio)})
 end
@@ -444,7 +444,7 @@ end
 # Slow down or accelerate an audio stream by stretching (sounds lower) or squeezing it (sounds higher).
 # @category Source / Audio processing
 # @argsof audio.stretch
-def stretch(~id=null(), %argsof(audio.stretch), (s:source)) =
+def stretch(%argsof(audio.stretch), (s:source)) =
   tracks = source.tracks(s)
   source.audio(id=id, audio.stretch(%argsof(audio.stretch), tracks.audio))
 end
@@ -454,7 +454,7 @@ let stereo.ms = ()
 # Decode mid+side stereo (M/S) to left+right stereo.
 # @category Source / Audio processing
 # @argsof audio.stereo.ms.decode
-def stereo.ms.decode(~id=null(), %argsof(audio.stereo.ms.decode), (s:source)) =
+def stereo.ms.decode(%argsof(audio.stereo.ms.decode), (s:source)) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo.ms.decode(%argsof(audio.stereo.ms.decode), tracks.audio)})
 end
@@ -462,7 +462,7 @@ end
 # Encode left+right stereo to mid+side stereo (M/S).
 # @category Source / Audio processing
 # @argsof audio.stereo.ms.encode
-def stereo.ms.encode(~id=null(), %argsof(audio.stereo.ms.encode), (s:source)) =
+def stereo.ms.encode(%argsof(audio.stereo.ms.encode), (s:source)) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo.ms.encode(%argsof(audio.stereo.ms.encode), tracks.audio)})
 end
