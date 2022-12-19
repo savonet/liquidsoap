@@ -44,17 +44,24 @@ class blank duration =
         if remaining < 0 then Lazy.force Frame.size - position
         else min remaining (Lazy.force Frame.size - position)
       in
+      let audio_pos = Frame.audio_of_main position in
+      let audio_len = Frame.audio_of_main length in
       let video_pos = Frame.video_of_main position in
-      (* Audio *)
-      if Frame.Fields.mem Frame.Fields.audio self#content_type then
-        Audio.clear (AFrame.pcm ab)
-          (Frame.audio_of_main position)
-          (Frame.audio_of_main length);
+      let video_len = Frame.video_of_main length in
 
-      (* Video *)
-      if Frame.Fields.mem Frame.Fields.video self#content_type then
-        Video.Canvas.blank (VFrame.data ab) video_pos
-          (Frame.video_of_main length);
+      Frame.Fields.iter
+        (fun field typ ->
+          match typ with
+            | _ when Content.Audio.is_format typ ->
+                Audio.clear
+                  (Content.Audio.get_data (Frame.get ab field))
+                  audio_pos audio_len
+            | _ when Content.Video.is_format typ ->
+                Video.Canvas.blank
+                  (Content.Video.get_data (Frame.get ab field))
+                  video_pos video_len
+            | _ -> failwith "Invalid content type!")
+        self#content_type;
 
       Frame.add_break ab (position + length);
       if Frame.is_partial ab then remaining <- ticks
