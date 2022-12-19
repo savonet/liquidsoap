@@ -29,20 +29,14 @@ class noise duration =
     inherit Synthesized.source ~seek:true ~name:"noise" duration
 
     method private synthesize frame off len =
-      Frame.Fields.iter
-        (fun _ content ->
-          try
-            let off = Frame.audio_of_main off in
-            let len = Frame.audio_of_main len in
-            let b = Content.Audio.get_data content in
-            Audio.Generator.white_noise b off len
-          with Content.Invalid -> ())
-        (Generator.peek frame)
+      let off = Frame.audio_of_main off in
+      let len = Frame.audio_of_main len in
+      let b = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
+      Audio.Generator.white_noise b off len
   end
 
 let _ =
-  let return_t = Lang.internal_t () in
-  Lang.add_operator "noise" ~category:`Input
+  Lang.add_track_operator ~base:Modules.audio "noise" ~category:`Input
     ~descr:"Generate audio white noise."
     [
       ( "duration",
@@ -50,6 +44,8 @@ let _ =
         Some Lang.null,
         Some "Duration in seconds (`null` means infinite)." );
     ]
-    ~return_t
+    ~return_t:(Format_type.audio ())
     (fun p ->
-      new noise (Lang.to_valued_option Lang.to_float (List.assoc "duration" p)))
+      ( Frame.Fields.audio,
+        new noise
+          (Lang.to_valued_option Lang.to_float (List.assoc "duration" p)) ))

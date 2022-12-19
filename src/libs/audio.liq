@@ -466,3 +466,10 @@ def stereo.ms.encode(%argsof(audio.stereo.ms.encode), (s:source)) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo.ms.encode(%argsof(audio.stereo.ms.encode), tracks.audio)})
 end
+
+# Generate audio white noise.
+# @category Source / Input
+# @argsof audio.noise
+def noise(%argsof(audio.noise)) =
+  source(id=id, {audio = audio.noise(%argsof(audio.noise))})
+end
