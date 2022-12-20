@@ -47,7 +47,7 @@ end
 # Rewrite metadata on the fly using a function.
 # @category Source / Track processing
 # @argsof track.metadata.map
-def metadata.map(%argsof(track.metadata.map), f, (s:source)) =
+def metadata.map(~id=null("metadata.map"), %argsof(track.metadata.map[!id]), f, (s:source)) =
   tracks = source.tracks(s)
   source(tracks.{metadata = track.metadata.map(%argsof(track.metadata.map), f, tracks.metadata)})
 end

@@ -14,7 +14,7 @@ end
 # @category Source / Audio processing
 # @param f Multiplicative factor.
 # @argsof audio.amplify
-def amplify(%argsof(audio.amplify), f, s) =
+def amplify(~id=null("amplify"), %argsof(audio.amplify[!id]), f, s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.amplify(%argsof(audio.amplify), f, tracks.audio)})
 end
@@ -24,7 +24,7 @@ end
 # values higher than `1` become `1`. `nan` values become `0`.
 # @category Source / Audio processing
 # @argsof audio.clip
-def clip(%argsof(audio.clip), s) =
+def clip(~id=null("clip"), %argsof(audio.clip[!id]), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.clip(%argsof(audio.clip), tracks.audio)})
 end
@@ -32,7 +32,7 @@ end
 # Compand the signal.
 # @category Source / Audio processing
 # @argsof audio.compand
-def compand(%argsof(audio.compand), s) =
+def compand(~id=null("compand"), %argsof(audio.compand[!id]), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.compand(%argsof(audio.compand), tracks.audio)})
 end
@@ -40,7 +40,7 @@ end
 # Comb filter
 # @category Source / Audio processing
 # @argsof audio.comb
-def comb(%argsof(audio.comb), s) =
+def comb(~id=null("comb"), %argsof(audio.comb[!id]), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.comb(%argsof(audio.comb), tracks.audio)})
 end
@@ -411,7 +411,7 @@ end
 
 # Swap two channels of a stereo source.
 # @category Source / Conversion
-def swap(id=null(), (s:source))
+def swap(id=null("swap"), s)
   tracks = source.tracks(s)
   source(id=id, tracks.{audio = audio.swap(tracks.audio)})
 end
@@ -419,14 +419,14 @@ end
 # Produce mono audio by taking the mean of all audio channels.
 # @category Source / Conversion
 # @argsof audio.mean
-def mean(%argsof(audio.mean), (s:source))
+def mean(~id=null("mean"), %argsof(audio.mean[!id]), s)
   tracks = source.tracks(s)
   source(id=id, tracks.{audio = audio.mean(%argsof(audio.mean), tracks.audio)})
 end
 
 # Convert any pcm audio source into a stereo source.
 # @category Source / Conversion
-def stereo(~id=null("stereo"), (s:source)) =
+def stereo(~id=null("stereo"), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo(tracks.audio)})
 end
@@ -441,7 +441,7 @@ end
 # Extract the left channel of a stereo source
 # @category Source / Conversion
 # @param s Source to extract from
-def stereo.left(~id=null("stereo.left"), (s:source))
+def stereo.left(~id=null("stereo.left"), s)
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo.left(tracks.audio)})
 end
@@ -456,7 +456,7 @@ end
 # Extract the right channel of a stereo source
 # @category Source / Conversion
 # @param s Source to extract from
-def stereo.right(~id=null("stereo.right"), (s:source))
+def stereo.right(~id=null("stereo.right"), s)
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo.right(tracks.audio)})
 end
@@ -472,7 +472,7 @@ end
 # Pan a stereo sound.
 # @category Source / Audio processing
 # @argsof audio.stereo.pan
-def stereo.pan(%argsof(audio.stereo.pan), (s:source)) =
+def stereo.pan(~id=null("stereo.pan"), %argsof(audio.stereo.pan[!id]), (s:source)) =
    tracks = source.tracks(s)
    source(id=id, tracks.{audio=audio.stereo.pan(%argsof(audio.stereo.pan), tracks.audio)})
 end
@@ -480,7 +480,7 @@ end
 # Slow down or accelerate an audio stream by stretching (sounds lower) or squeezing it (sounds higher).
 # @category Source / Audio processing
 # @argsof audio.stretch
-def stretch(%argsof(audio.stretch), (s:source)) =
+def stretch(~id=null("stretch"), %argsof(audio.stretch[!id]), (s:source)) =
   tracks = source.tracks(s)
   source.audio(id=id, audio.stretch(%argsof(audio.stretch), tracks.audio))
 end
@@ -490,7 +490,7 @@ let stereo.ms = ()
 # Decode mid+side stereo (M/S) to left+right stereo.
 # @category Source / Audio processing
 # @argsof audio.stereo.ms.decode
-def stereo.ms.decode(%argsof(audio.stereo.ms.decode), (s:source)) =
+def stereo.ms.decode(~id=null("stereo.ms.decode"), %argsof(audio.stereo.ms.decode[!id]), (s:source)) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo.ms.decode(%argsof(audio.stereo.ms.decode), tracks.audio)})
 end
@@ -498,7 +498,7 @@ end
 # Encode left+right stereo to mid+side stereo (M/S).
 # @category Source / Audio processing
 # @argsof audio.stereo.ms.encode
-def stereo.ms.encode(%argsof(audio.stereo.ms.encode), (s:source)) =
+def stereo.ms.encode(~id=null("stereo.ms.encode"), %argsof(audio.stereo.ms.encode[!id]), (s:source)) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=audio.stereo.ms.encode(%argsof(audio.stereo.ms.encode), tracks.audio)})
 end
