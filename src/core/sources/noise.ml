@@ -25,25 +25,34 @@ open Mm
 (** Generate a white noise *)
 
 class noise duration =
-  object
+  object (self)
     inherit Synthesized.source ~seek:true ~name:"noise" duration
 
-    method private synthesize frame off len =
+    method private synthesize frame position length =
+      let audio_pos = Frame.audio_of_main position in
+      let audio_len = Frame.audio_of_main length in
+      let video_pos = Frame.video_of_main position in
+      let video_len = Frame.video_of_main length in
+
       Frame.Fields.iter
-        (fun _ content ->
-          try
-            let off = Frame.audio_of_main off in
-            let len = Frame.audio_of_main len in
-            let b = Content.Audio.get_data content in
-            Audio.Generator.white_noise b off len
-          with Content.Invalid -> ())
-        (Generator.peek frame)
+        (fun field typ ->
+          match typ with
+            | _ when Content.Audio.is_format typ ->
+                Audio.Generator.white_noise
+                  (Content.Audio.get_data (Frame.get frame field))
+                  audio_pos audio_len
+            | _ when Content.Video.is_format typ ->
+                Video.Canvas.iter Image.YUV420.randomize
+                  (Content.Video.get_data (Frame.get frame field))
+                  video_pos video_len
+            | _ -> failwith "Invalid content type!")
+        self#content_type
   end
 
 let _ =
   let return_t = Lang.internal_t () in
   Lang.add_operator "noise" ~category:`Input
-    ~descr:"Generate audio white noise."
+    ~descr:"Generate audio/video noise source."
     [
       ( "duration",
         Lang.nullable_t Lang.float_t,
