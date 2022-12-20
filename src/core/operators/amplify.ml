@@ -23,7 +23,7 @@
 open Mm
 open Source
 
-class amplify (source : source) override_field coeff =
+class amplify ~field (source : source) override_field coeff =
   object (self)
     inherit operator ~name:"amplify" [source]
     val mutable override = None
@@ -56,19 +56,17 @@ class amplify (source : source) override_field coeff =
           | None -> ()
       end;
       let k = match override with Some o -> o | None -> coeff () in
-      if k <> 1. then
-        Audio.amplify k (AFrame.pcm buf) offset (AFrame.position buf - offset);
+      if k <> 1. then (
+        let data = Content.Audio.get_data (Frame.get buf field) in
+        Audio.amplify k data offset (AFrame.position buf - offset));
       if AFrame.is_partial buf && override <> None then (
         self#log#info "End of the current overriding.";
         override <- None)
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator "amplify"
+  let frame_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Modules.audio "amplify"
     [
       ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");
       ( "override",
@@ -81,13 +79,13 @@ let _ =
            `0.7`) which are taken as normal/linear multiplicative factors; \
            values can be passed in decibels with the suffix `dB` (e.g. `-8.2 \
            dB`, but the spaces do not matter)." );
-      ("", Lang.source_t frame_t, None, None);
+      ("", frame_t, None, None);
     ]
     ~return_t:frame_t ~category:`Audio
     ~descr:"Multiply the amplitude of the signal."
     (fun p ->
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
-      let s = Lang.to_source (Lang.assoc "" 2 p) in
+      let field, s = Track.of_value (Lang.assoc "" 2 p) in
       let o = Lang.to_option (Lang.assoc "override" 1 p) in
       let o = Option.map Lang.to_string o in
-      new amplify s o c)
+      (field, new amplify ~field s o c))

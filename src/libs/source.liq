@@ -292,22 +292,3 @@ def skipper(~every=getter(5.), s) =
 
   source.on_frame(s, f)
 end
-
-# Indicate beats.
-# @category Source / Sound synthesis
-# @param ~frequency Frequency of the sound.
-# @param bpm Number of beats per minute.
-def metronome(~frequency=440., bpm=60.)
-  volume_down = 0.
-  beat_duration = 0.1
-  s = sine(frequency)
-  def f() =
-    if s.time() mod (60. / bpm) <= beat_duration then
-      1.
-    else
-      volume_down
-    end
-  end
-
-  amplify(f,s)
-end
