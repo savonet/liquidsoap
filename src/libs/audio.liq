@@ -19,6 +19,16 @@ def amplify(%argsof(audio.amplify), f, s) =
   source(id=id, tracks.{audio=audio.amplify(%argsof(audio.amplify), f, tracks.audio)})
 end
 
+# Clip samples, i.e. ensure that all values are between
+# `-1` and `1`: values lower than `-1` become `-1` and
+# values higher than `1` become `1`. `nan` values become `0`.
+# @category Source / Audio processing
+# @argsof audio.clip
+def clip(%argsof(audio.clip), s) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{audio=audio.clip(%argsof(audio.clip), tracks.audio)})
+end
+
 lufs_builtin = lufs
 
 # Normalization the volume of a stream (this is also called _automatic gain

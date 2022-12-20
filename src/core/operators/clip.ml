@@ -23,7 +23,7 @@
 open Mm
 open Source
 
-class clip (source : source) =
+class clip ~field (source : source) =
   object
     inherit operator ~name:"clip" [source]
     method stype = source#stype
@@ -36,18 +36,15 @@ class clip (source : source) =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.pcm buf in
+      let b = Content.Audio.get_data (Frame.get buf field) in
       let position = AFrame.position buf in
       Audio.clip b offset (position - offset)
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator "clip"
-    [("", Lang.source_t frame_t, None, None)]
+  let frame_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Modules.audio "clip"
+    [("", frame_t, None, None)]
     ~return_t:frame_t ~category:`Audio
     ~descr:
       "Clip samples, i.e. ensure that all values are between -1 and 1: values \
@@ -55,5 +52,5 @@ let _ =
        become `0.`"
     (fun p ->
       let f v = List.assoc v p in
-      let src = Lang.to_source (f "") in
-      new clip src)
+      let field, src = Track.of_value (f "") in
+      (field, new clip ~field src))
