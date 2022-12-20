@@ -50,6 +50,10 @@ class delay ~kind ~initial (source : source) delay =
       if in_track && not is_ready then self#end_track;
       self#delay_ok && is_ready
 
+    method! abort_track =
+      source#abort_track;
+      self#end_track
+
     method private get_frame buf =
       source#get buf;
       in_track <- true;
