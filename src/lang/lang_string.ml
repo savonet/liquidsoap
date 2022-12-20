@@ -306,6 +306,7 @@ let print_string ?(pager = false) s =
     | true, Some pager -> (
         let fname, oc = Filename.open_temp_file "liquidsoap" ".txt" in
         try
+          ignore (Sys.command "clear");
           output_string oc s;
           flush oc;
           if Sys.command (Printf.sprintf "%s %s" pager fname) <> 0 then
