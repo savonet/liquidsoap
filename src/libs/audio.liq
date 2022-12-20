@@ -29,6 +29,14 @@ def clip(%argsof(audio.clip), s) =
   source(id=id, tracks.{audio=audio.clip(%argsof(audio.clip), tracks.audio)})
 end
 
+# Comb filter
+# @category Source / Audio processing
+# @argsof audio.comb
+def comb(%argsof(audio.comb), s) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{audio=audio.comb(%argsof(audio.comb), tracks.audio)})
+end
+
 lufs_builtin = lufs
 
 # Normalization the volume of a stream (this is also called _automatic gain

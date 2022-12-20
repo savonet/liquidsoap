@@ -25,7 +25,7 @@ open Source
 
 (* See http://en.wikipedia.org/wiki/Comb_filter *)
 
-class comb (source : source) delay feedback =
+class comb ~field (source : source) delay feedback =
   let past_len = Frame.audio_of_seconds delay in
   object (self)
     inherit operator ~name:"comb" [source] as super
@@ -46,7 +46,7 @@ class comb (source : source) delay feedback =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.pcm buf in
+      let b = Content.Audio.get_data (Frame.get buf field) in
       let position = AFrame.position buf in
       let feedback = feedback () in
       for i = offset to position - 1 do
@@ -60,25 +60,24 @@ class comb (source : source) delay feedback =
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator "comb"
+  let frame_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Modules.audio "comb"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
       ( "feedback",
         Lang.getter_t Lang.float_t,
         Some (Lang.float (-6.)),
         Some "Feedback coefficient in dB." );
-      ("", Lang.source_t frame_t, None, None);
+      ("", frame_t, None, None);
     ]
     ~return_t:frame_t ~category:`Audio ~descr:"Comb filter."
     (fun p ->
       let f v = List.assoc v p in
-      let duration, feedback, src =
+      let duration, feedback, (field, src) =
         ( Lang.to_float (f "delay"),
           Lang.to_float_getter (f "feedback"),
-          Lang.to_source (f "") )
+          Track.of_value (f "") )
       in
-      new comb src duration (fun () -> Audio.lin_of_dB (feedback ())))
+      ( field,
+        new comb ~field src duration (fun () -> Audio.lin_of_dB (feedback ()))
+      ))
