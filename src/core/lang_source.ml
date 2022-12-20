@@ -312,53 +312,51 @@ type 'a operator_method = string * scheme * string * ('a -> value)
   * and at this point the type might still not be known completely
   * so we have to force its value within the acceptable range. *)
 
-let add_operator =
-  let _meth = meth in
-  fun ~(category : Doc.Value.source) ~descr ?(flags = [])
-      ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f ->
-    let arguments =
-      ( "id",
-        nullable_t string_t,
-        Some null,
-        Some "Force the value of the source ID." )
-      :: arguments
-    in
-    let f env =
-      let pos =
-        match Liquidsoap_lang.Lang_core.pos env with
-          | [] -> None
-          | p :: _ -> Some p
-      in
-      try
-        let src : < Source.source ; .. > = f env in
-        ignore
-          (Option.map
-             (fun id -> src#set_id id)
-             (to_valued_option to_string (List.assoc "id" env)));
-        let v =
-          let src = (src :> Source.source) in
-          if category = `Output then source_methods ~base:unit src
-          else source src
-        in
-        _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
-      with
-        | Source.Clock_conflict (a, b) ->
-            raise (Error.Clock_conflict (pos, a, b))
-        | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
-    in
-    let base_t =
-      if category = `Output then unit_t else source_t ~methods:false return_t
-    in
-    let return_t = source_methods_t base_t in
-    let return_t =
-      method_t return_t
-        (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
-    in
-    let category = `Source category in
-    add_builtin ~category ~descr ~flags ?base name arguments return_t f
+let _meth = meth
 
-let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = []) ?base
-    name arguments ~return_t f =
+let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
+    ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f =
+  let arguments =
+    ( "id",
+      nullable_t string_t,
+      Some null,
+      Some "Force the value of the source ID." )
+    :: arguments
+  in
+  let f env =
+    let pos =
+      match Liquidsoap_lang.Lang_core.pos env with
+        | [] -> None
+        | p :: _ -> Some p
+    in
+    try
+      let src : < Source.source ; .. > = f env in
+      ignore
+        (Option.map
+           (fun id -> src#set_id id)
+           (to_valued_option to_string (List.assoc "id" env)));
+      let v =
+        let src = (src :> Source.source) in
+        if category = `Output then source_methods ~base:unit src else source src
+      in
+      _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
+    with
+      | Source.Clock_conflict (a, b) -> raise (Error.Clock_conflict (pos, a, b))
+      | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+  in
+  let base_t =
+    if category = `Output then unit_t else source_t ~methods:false return_t
+  in
+  let return_t = source_methods_t base_t in
+  let return_t =
+    method_t return_t
+      (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
+  in
+  let category = `Source category in
+  add_builtin ~category ~descr ~flags ?base name arguments return_t f
+
+let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
+    ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f =
   let arguments =
     ( "id",
       nullable_t string_t,
@@ -372,7 +370,12 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = []) ?base
       (Option.map
          (fun id -> src#set_id id)
          (to_valued_option to_string (List.assoc "id" env)));
-    Track.to_value (field, src)
+    let v = Track.to_value (field, (src :> Source.source)) in
+    _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
+  in
+  let return_t =
+    method_t return_t
+      (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
   in
   let category = `Source category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f

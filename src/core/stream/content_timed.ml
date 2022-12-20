@@ -94,7 +94,7 @@ module Metadata_specs = struct
 end
 
 module Metadata = struct
-  include Content_base.MkContent (Metadata_specs)
+  include Content_base.MkContentBase (Metadata_specs)
 
   let format = lift_params ()
 
@@ -129,7 +129,7 @@ module Track_marks_specs = struct
 end
 
 module Track_marks = struct
-  include Content_base.MkContent (Track_marks_specs)
+  include Content_base.MkContentBase (Track_marks_specs)
 
   let format = lift_params ()
 

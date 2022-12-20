@@ -21,6 +21,16 @@
  *****************************************************************************)
 
 include Content_base
+
+module MkContent (C : ContentSpecs) = struct
+  include MkContentBase (C)
+
+  let () =
+    Type.register_custom_type (C.string_of_kind C.kind) (fun () ->
+        Format_type.kind_handler
+          (lift_kind C.kind, Liquidsoap_lang.Lang.univ_t ()))
+end
+
 include Content_timed
 
 type audio_params = Content_audio.Specs.params = {

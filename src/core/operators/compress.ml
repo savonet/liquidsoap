@@ -29,7 +29,7 @@ open Mm
 open Source
 
 class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
-  ~pre_gain ~make_up_gain ~lookahead ~window ~wet (source : source) =
+  ~pre_gain ~make_up_gain ~lookahead ~window ~wet ~field (source : source) =
   let lookahead () = Frame.audio_of_seconds (lookahead ()) in
   object (self)
     inherit operator ~name:"compress" [source] as super
@@ -70,7 +70,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       source#get buf;
       let pos = AFrame.position buf in
       let partial = AFrame.is_partial buf in
-      let buf = AFrame.pcm buf in
+      let buf = Content.Audio.get_data (Frame.get buf field) in
       let chans = self#audio_channels in
       let samplerate = float (Lazy.force Frame.audio_rate) in
       let threshold = threshold () in
@@ -166,12 +166,9 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       if partial && track_sensitive then self#reset
   end
 
-let compress =
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator "compress"
+let audio_compress =
+  let return_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Modules.audio "compress"
     [
       ( "attack",
         Lang.getter_t Lang.float_t,
@@ -219,7 +216,7 @@ let compress =
         Some
           "How much of input sound to output (between 0 and 1, 0 means only \
            original sound, 1 means only compressed sound)." );
-      ("", Lang.source_t return_t, None, None);
+      ("", return_t, None, None);
     ]
     ~return_t ~category:`Audio ~descr:"Compress the signal."
     ~meth:
@@ -248,7 +245,8 @@ let compress =
       let make_up_gain = List.assoc "gain" p |> Lang.to_float_getter in
       let window = List.assoc "window" p |> Lang.to_float_getter in
       let wet = List.assoc "wet" p |> Lang.to_float_getter in
-      let s = List.assoc "" p |> Lang.to_source in
-      new compress
-        ~attack ~release ~lookahead ~ratio ~knee ~threshold ~track_sensitive
-        ~pre_gain ~make_up_gain ~window ~wet s)
+      let field, s = List.assoc "" p |> Track.of_value in
+      ( field,
+        new compress
+          ~attack ~release ~lookahead ~ratio ~knee ~threshold ~track_sensitive
+          ~pre_gain ~make_up_gain ~window ~wet ~field s ))

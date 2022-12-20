@@ -240,7 +240,7 @@ type internal_entries = {
 
 let internal_entries = { none = None; audio = None; video = None; midi = None }
 
-module MkContent (C : ContentSpecs) :
+module MkContentBase (C : ContentSpecs) :
   Content
     with type kind = C.kind
      and type params = C.params

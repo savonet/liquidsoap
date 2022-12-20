@@ -26,6 +26,7 @@ val descr : descr -> Type.descr
 val internal_media : Type.constr
 val media : strict:bool -> unit -> Type.constr
 val content_type : Type.t -> Content_base.format
+val kind_handler : Content_base.kind * Type.t -> Type.custom_handler
 
 (** Some common types *)
 val audio : unit -> Type.t
