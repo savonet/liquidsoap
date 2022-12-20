@@ -22,7 +22,7 @@
 
 open Source
 
-class compand (source : source) mu =
+class compand ~field (source : source) mu =
   object
     inherit operator ~name:"compand" [source]
     method stype = source#stype
@@ -35,7 +35,7 @@ class compand (source : source) mu =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.pcm buf in
+      let b = Content.Audio.get_data (Frame.get buf field) in
       for c = offset to Array.length b - 1 do
         let b_c = b.(c) in
         for i = offset to AFrame.position buf - 1 do
@@ -48,11 +48,8 @@ class compand (source : source) mu =
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator "compand"
+  let frame_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Modules.audio "compand"
     [
       ("mu", Lang.float_t, Some (Lang.float 1.), None);
       ("", Lang.source_t frame_t, None, None);
@@ -60,5 +57,5 @@ let _ =
     ~return_t:frame_t ~category:`Audio ~descr:"Compand the signal."
     (fun p ->
       let f v = List.assoc v p in
-      let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
-      new compand src mu)
+      let mu, (field, src) = (Lang.to_float (f "mu"), Track.of_value (f "")) in
+      (field, new compand ~field src mu))

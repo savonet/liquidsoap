@@ -29,6 +29,14 @@ def clip(%argsof(audio.clip), s) =
   source(id=id, tracks.{audio=audio.clip(%argsof(audio.clip), tracks.audio)})
 end
 
+# Compand the signal.
+# @category Source / Audio processing
+# @argsof audio.compand
+def compand(%argsof(audio.compand), s) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{audio=audio.compand(%argsof(audio.compand), tracks.audio)})
+end
+
 # Comb filter
 # @category Source / Audio processing
 # @argsof audio.comb
