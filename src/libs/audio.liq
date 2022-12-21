@@ -62,14 +62,6 @@ def compress.exponential(%argsof(audio.compress.exponential), s) =
   source(id=id, tracks.{audio=audio.compress.exponential(%argsof(audio.compress.exponential), tracks.audio)})
 end
 
-# Compress the signal.
-# @category Source / Audio processing
-# @argsof audio.compress.old
-def compress.old(%argsof(audio.compress.old), s) =
-  tracks = source.tracks(s)
-  source(id=id, tracks.{audio=audio.compress.old(%argsof(audio.compress.old), tracks.audio)})
-end
-
 lufs_builtin = lufs
 
 # Normalization the volume of a stream (this is also called _automatic gain
@@ -182,14 +174,18 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
     s = compress(attack=band.attack, release=band.release, threshold=band.threshold, ratio=band.ratio, gain=band.gain, s)
     if limit then limiter(s) else s end
   end
-  l = list.mapi(fun (i, b) -> band(if i == 0 then 0. else list.nth(l,i-1).frequency end, b), l)
-  c = add(normalize=false, l)
+  ls = list.mapi(fun (i, b) -> band(if i == 0 then 0. else list.nth(l,i-1).frequency end, b), l)
+  c = add(normalize=false, ls)
   s =
     if not getter.is_constant(wet) or getter.get(wet) != 1. then
       add(normalize=false, [amplify({1.-getter.get(wet)}, s), amplify(wet, c)])
     else
       c
     end
+
+  # Seal l element type
+  if false then () else list.hd(l) end
+
   # Limit to avoid bad surprises
   limiter(s)
 end

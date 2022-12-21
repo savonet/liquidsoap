@@ -103,7 +103,7 @@ let descr descr =
   Type.Custom (kind_handler k)
 
 let rec content_type ~default ty =
-  match (Type.deref ty).Type.descr with
+  match (Type.demeth ty).Type.descr with
     | Type.Custom { Type.typ = Kind (k, ty) } ->
         content_type ~default:(fun () -> Content_base.default_format k) ty
     | Type.Custom { Type.typ = Format f } -> f
