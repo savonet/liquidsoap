@@ -41,24 +41,19 @@ let to_metadata t =
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 
-module Source_val = struct
-  include Liquidsoap_lang.Lang_core.MkAbstract (struct
-    type content = Source.source
+module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
+  type content = Source.source
 
-    let name = "source"
-    let descr s = Printf.sprintf "<source#%s>" s#id
+  let name = "source"
+  let descr s = Printf.sprintf "<source#%s>" s#id
 
-    let to_json ~pos _ =
-      Runtime_error.raise ~pos
-        ~message:(Printf.sprintf "Sources cannot be represented as json")
-        "json"
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos
+      ~message:(Printf.sprintf "Sources cannot be represented as json")
+      "json"
 
-    let compare s1 s2 = Stdlib.compare s1#id s2#id
-  end)
-
-  let is_value v = is_value (demeth v)
-  let of_value v = of_value (demeth v)
-end
+  let compare s1 s2 = Stdlib.compare s1#id s2#id
+end)
 
 let source_methods =
   [
@@ -298,7 +293,7 @@ let source s = source_methods ~base:(Source_val.to_value s) s
 let track = Track.to_value
 let to_source = Source_val.of_value
 let to_source_list l = List.map to_source (to_list l)
-let to_track v = Track.of_value (demeth v)
+let to_track = Track.of_value
 
 (** A method: name, type scheme, documentation and implementation (which takes
     the currently defined source as argument). *)
