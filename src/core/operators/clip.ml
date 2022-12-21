@@ -52,5 +52,5 @@ let _ =
        become `0.`"
     (fun p ->
       let f v = List.assoc v p in
-      let field, src = Track.of_value (f "") in
+      let field, src = Lang.to_track (f "") in
       (field, new clip ~field src))

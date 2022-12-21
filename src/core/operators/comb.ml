@@ -76,7 +76,7 @@ let _ =
       let duration, feedback, (field, src) =
         ( Lang.to_float (f "delay"),
           Lang.to_float_getter (f "feedback"),
-          Track.of_value (f "") )
+          Lang.to_track (f "") )
       in
       ( field,
         new comb ~field src duration (fun () -> Audio.lin_of_dB (feedback ()))

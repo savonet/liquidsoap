@@ -85,7 +85,7 @@ let _ =
     ~descr:"Multiply the amplitude of the signal."
     (fun p ->
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
-      let field, s = Track.of_value (Lang.assoc "" 2 p) in
+      let field, s = Lang.to_track (Lang.assoc "" 2 p) in
       let o = Lang.to_option (Lang.assoc "override" 1 p) in
       let o = Option.map Lang.to_string o in
       (field, new amplify ~field s o c))

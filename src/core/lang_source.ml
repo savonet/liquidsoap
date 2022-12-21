@@ -298,7 +298,7 @@ let source s = source_methods ~base:(Source_val.to_value s) s
 let track = Track.to_value
 let to_source = Source_val.of_value
 let to_source_list l = List.map to_source (to_list l)
-let to_track = Track.of_value
+let to_track v = Track.of_value (demeth v)
 
 (** A method: name, type scheme, documentation and implementation (which takes
     the currently defined source as argument). *)

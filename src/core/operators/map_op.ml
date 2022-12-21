@@ -57,5 +57,5 @@ let _ =
     ~flags:[`Experimental] (* It works well but is probably useless. *)
     (fun p ->
       let f = to_fun_float (Lang.assoc "" 1 p) in
-      let field, src = Track.of_value (Lang.assoc "" 2 p) in
+      let field, src = Lang.to_track (Lang.assoc "" 2 p) in
       (field, new map ~field src f))

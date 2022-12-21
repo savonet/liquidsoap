@@ -157,7 +157,7 @@ let source =
       let tracks =
         List.fold_left
           (fun tracks (label, t) ->
-            let source_field, s = Track.of_value t in
+            let source_field, s = Lang.to_track t in
             let target_field = Frame.Fields.register label in
             let field = { source_field; target_field; processor } in
             match List.find_opt (fun { source } -> source == s) tracks with
@@ -205,7 +205,7 @@ let _ =
     ~descr:"Return the track marks associated with the given track" ~return_t
     [("", track_t, None, None)]
     (fun p ->
-      let _, s = Track.of_value (List.assoc "" p) in
+      let _, s = Lang.to_track (List.assoc "" p) in
       (Frame.Fields.track_marks, s))
 
 let _ =
@@ -215,7 +215,7 @@ let _ =
     ~descr:"Return the metadata associated with the given track" ~return_t
     [("", track_t, None, None)]
     (fun p ->
-      let _, s = Track.of_value (List.assoc "" p) in
+      let _, s = Lang.to_track (List.assoc "" p) in
       (Frame.Fields.metadata, s))
 
 let _ =

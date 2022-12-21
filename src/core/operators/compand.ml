@@ -57,5 +57,5 @@ let _ =
     ~return_t:frame_t ~category:`Audio ~descr:"Compand the signal."
     (fun p ->
       let f v = List.assoc v p in
-      let mu, (field, src) = (Lang.to_float (f "mu"), Track.of_value (f "")) in
+      let mu, (field, src) = (Lang.to_float (f "mu"), Lang.to_track (f "")) in
       (field, new compand ~field src mu))

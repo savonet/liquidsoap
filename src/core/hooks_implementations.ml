@@ -85,7 +85,7 @@ let eval_check ~env:_ ~tm v =
     Typing.(
       Lang.source_t ~methods:false s#frame_type <: demeth_source tm.Term.t))
   else if Track.is_value v then (
-    let field, source = Track.of_value v in
+    let field, source = Lang.to_track v in
     match field with
       | _ when field = Frame.Fields.metadata -> ()
       | _ when field = Frame.Fields.track_marks -> ()

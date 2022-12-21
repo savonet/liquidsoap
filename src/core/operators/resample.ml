@@ -117,6 +117,6 @@ let _ =
        squeezing it (sounds higher)."
     (fun p ->
       let f v = List.assoc v p in
-      let field, src = Track.of_value (f "") in
+      let field, src = Lang.to_track (f "") in
       let ratio = Lang.to_float_getter (f "ratio") in
       (field, (new resample ~field ~ratio src :> Source.source)))

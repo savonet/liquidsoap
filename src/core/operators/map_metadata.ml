@@ -102,7 +102,7 @@ let register =
     ~category:`Track ~descr:"Rewrite metadata on the fly using a function."
     ~return_t
     (fun p ->
-      let field, source = Track.of_value (Lang.assoc "" 2 p) in
+      let field, source = Lang.to_track (Lang.assoc "" 2 p) in
       assert (field = Frame.Fields.metadata);
       let f = Lang.assoc "" 1 p in
       let update = Lang.to_bool (List.assoc "update" p) in
