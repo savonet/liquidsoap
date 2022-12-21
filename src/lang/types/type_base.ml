@@ -306,7 +306,8 @@ let is_source t =
     | Constr { constructor = "source"; _ } -> true
     | _ -> false
 
-let custom_types : (string, custom_handler) Hashtbl.t = Hashtbl.create 10
+let custom_types : (string, unit -> custom_handler) Hashtbl.t =
+  Hashtbl.create 10
 
 let register_custom_type ?pos name custom =
   if Hashtbl.mem custom_types name then raise (Exists (pos, name));

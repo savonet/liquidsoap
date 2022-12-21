@@ -62,6 +62,6 @@ module Specs = struct
       | _ | (exception _) -> None
 end
 
-include MkContent (Specs)
+include MkContentBase (Specs)
 
 let kind = lift_kind `Midi

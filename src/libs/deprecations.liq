@@ -91,7 +91,7 @@ end
 
 # Deprecated: use metadata.map
 # @flag deprecated
-def map_metadata(%argsof(metadata.map), fn, (s:source))
+def map_metadata(%argsof(metadata.map), fn, s)
   deprecated("map_metadata", "metadata.map")
   metadata.map(%argsof(metadata.map), fn, s)
 end
@@ -648,28 +648,28 @@ end
 
 # Deprecated: use `source`
 # @flag deprecated
-def mux_audio(~id=null(), ~(audio:source), (s:source)) =
+def mux_audio(~id=null(), ~(audio:source), s) =
   deprecated("mux_audio", "source")
   source(id=id, source.tracks(s).{audio=source.tracks(audio).audio})
 end
 
 # Deprecated: use `source`
 # @flag deprecated
-def mux_video(~id=null(), ~(video:source), (s:source)) =
+def mux_video(~id=null(), ~(video:source), s) =
   deprecated("mux_video", "source")
   source(id=id, source.tracks(s).{video=source.tracks(video).video})
 end
 
 # Deprecated: use `source`
 # @flag deprecated
-def mux_midi(~id=null(), ~(midi:source), (s:source)) =
+def mux_midi(~id=null(), ~(midi:source), s) =
   deprecated("mux_midi", "source")
   source(id=id, source.tracks(s).{midi=source.tracks(midi).midi})
 end
 
 # Deprecated: use `source.tracks` and `source`
 # @flag deprecated
-def drop_audio(~id=null(), (s:source)) =
+def drop_audio(~id=null(), s) =
   deprecated("drop_audio", "source")
   let tracks.{audio=_} = source.tracks(s)
   source(id=id, tracks)
@@ -677,7 +677,7 @@ end
 
 # Deprecated: use `source.tracks` and `source`
 # @flag deprecated
-def drop_video(~id=null(), (s:source)) =
+def drop_video(~id=null(), s) =
   deprecated("drop_video", "source")
   let tracks.{video=_} = source.tracks(s)
   source(id=id, tracks)
@@ -685,7 +685,7 @@ end
 
 # Deprecated: use `source.tracks` and `source`
 # @flag deprecated
-def drop_midi(~id=null(), (s:source)) =
+def drop_midi(~id=null(), s) =
   deprecated("drop_midi", "source")
   let tracks.{midi=_} = source.tracks(s)
   source(id=id, tracks)
@@ -693,14 +693,14 @@ end
 
 # Deprecated: use `source.stereo`
 # @flag deprecated
-def audio_to_stereo(~id=null(), (s:source)) =
+def audio_to_stereo(~id=null(), s) =
   deprecated("audio_to_sterep", "stereo")
   stereo(id=id, s)
 end
 
 # Deprecated: use `source.tracks` and `source`
 # @flag deprecated
-def drop_metadata(~id=null(), (s:source))
+def drop_metadata(~id=null(), s)
   deprecated("drop_metadata", "source")
   let {metadata=_, ...tracks} = source.tracks(s)
   source(id=id, tracks)
@@ -708,8 +708,15 @@ end
 
 # Deprecated: use `source.tracks` and `source`
 # @flag deprecated
-def merge_tracks(~id=null(), (s:source)) =
+def merge_tracks(~id=null(), s) =
   deprecated("merge_tracks", "source")
   let {track_marks=_, ...tracks} = source.tracks(s)
   source(id=id, tracks)
+end
+
+# Deprecated: use `compress`
+# @flag deprecated
+def compress.old(~id=null(), s) =
+  deprecated("compress.old", "compress")
+  compress(id=id, s)
 end

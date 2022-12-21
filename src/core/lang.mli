@@ -152,11 +152,12 @@ val add_track_operator :
   category:Doc.Value.source ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
+  ?meth:(< Source.source ; .. > as 'a) operator_method list ->
   ?base:module_name ->
   string ->
   proto ->
   return_t:t ->
-  (env -> Frame.field * Source.source) ->
+  (env -> Frame.field * 'a) ->
   module_name
 
 (** {2 Manipulation of values} *)

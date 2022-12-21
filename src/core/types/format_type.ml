@@ -51,7 +51,7 @@ let format_descr f = Type.Custom (format_handler f)
 
 let string_of_kind (k, ty) =
   match (Type.deref ty).Type.descr with
-    | Type.(Custom { typ = Format f }) -> Content.string_of_format f
+    | Type.(Custom { typ = Format f }) -> Content_base.string_of_format f
     | _ ->
         Printf.sprintf "%s(%s)"
           (Content_base.string_of_kind k)
@@ -60,7 +60,7 @@ let string_of_kind (k, ty) =
 let repr_of_kind repr l (k, ty) =
   match (Type.deref ty).Type.descr with
     | Type.(Custom { typ = Format f }) ->
-        `Constr (Content.string_of_format f, [])
+        `Constr (Content_base.string_of_format f, [])
     | _ -> `Constr (Content_base.string_of_kind k, [(`Covariant, repr l ty)])
 
 let kind_handler k =
@@ -97,13 +97,13 @@ let kind_handler k =
 let descr descr =
   let k =
     match descr with
-      | `Format f -> (Content.kind f, Type.make (format_descr f))
-      | `Kind k -> (k, Liquidsoap_lang.Lang.univ_t ())
+      | `Format f -> (Content_base.kind f, Type.make (format_descr f))
+      | `Kind k -> (k, Type.var ())
   in
   Type.Custom (kind_handler k)
 
 let rec content_type ~default ty =
-  match (Type.deref ty).Type.descr with
+  match (Type.demeth ty).Type.descr with
     | Type.Custom { Type.typ = Kind (k, ty) } ->
         content_type ~default:(fun () -> Content_base.default_format k) ty
     | Type.Custom { Type.typ = Format f } -> f
@@ -167,34 +167,56 @@ let media ~strict () =
   }
 
 let content_type = content_type ~default:(fun _ -> assert false)
-let audio () = Type.make (descr (`Kind Content.Audio.kind))
+let audio () = Type.make (descr (`Kind Content_audio.kind))
+
+let () =
+  Type.register_custom_type (Content_base.string_of_kind Content_audio.kind)
+    (fun () -> kind_handler (Content_audio.kind, Type.var ()))
 
 let audio_mono () =
   Type.make
     (descr
-       (`Format Content.(Audio.lift_params { channel_layout = lazy `Mono })))
+       (`Format Content_audio.(lift_params { channel_layout = lazy `Mono })))
 
 let audio_stereo () =
   Type.make
     (descr
-       (`Format Content.(Audio.lift_params { channel_layout = lazy `Stereo })))
+       (`Format Content_audio.(lift_params { channel_layout = lazy `Stereo })))
 
 let audio_n n =
   Type.make
     (descr
        (`Format
-         Content.(
-           Audio.lift_params
+         Content_audio.(
+           lift_params
              {
                channel_layout =
                  lazy (Audio_converter.Channel_layout.layout_of_channels n);
              })))
 
-let video () = Type.make (descr (`Kind Content.Video.kind))
-let midi () = Type.make (descr (`Kind Content.Midi.kind))
+let video () = Type.make (descr (`Kind Content_video.kind))
+
+let () =
+  Type.register_custom_type (Content_base.string_of_kind Content_video.kind)
+    (fun () -> kind_handler (Content_video.kind, Type.var ()))
+
+let midi () = Type.make (descr (`Kind Content_midi.kind))
+
+let () =
+  Type.register_custom_type (Content_base.string_of_kind Content_midi.kind)
+    (fun () -> kind_handler (Content_midi.kind, Type.var ()))
 
 let midi_n n =
-  Type.make (descr (`Format Content.(Midi.(lift_params { channels = n }))))
+  Type.make (descr (`Format Content_midi.(lift_params { channels = n })))
 
-let track_marks = Type.make (descr (`Format Content.Track_marks.format))
-let metadata = Type.make (descr (`Format Content.Metadata.format))
+let track_marks = Type.make (descr (`Format Content_timed.Track_marks.format))
+
+let () =
+  Type.register_custom_type "track_marks" (fun () ->
+      format_handler Content_timed.Track_marks.format)
+
+let metadata = Type.make (descr (`Format Content_timed.Metadata.format))
+
+let () =
+  Type.register_custom_type "metadata" (fun () ->
+      format_handler Content_timed.Track_marks.format)

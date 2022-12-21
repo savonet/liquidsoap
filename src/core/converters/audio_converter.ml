@@ -45,7 +45,7 @@ module Samplerate = struct
   (** A converter takes a conversion ratio (output samplerate / input
       samplerate), an audio buffer, and returns a resampled buffer. *)
   type converter =
-    float -> Content.Audio.data -> int -> int -> Content.Audio.data * int * int
+    float -> Content_audio.data -> int -> int -> Content_audio.data * int * int
 
   type converter_plug = int -> converter
   type t = { channels : int; converter : converter }
@@ -107,11 +107,11 @@ module Channel_layout = struct
   exception Invalid_data
 
   type layout = [ `Mono | `Stereo | `Five_point_one ]
-  type converter = layout -> layout -> Content.Audio.data -> Content.Audio.data
+  type converter = layout -> layout -> Content_audio.data -> Content_audio.data
 
   type t = {
     src : layout;
-    converter : Content.Audio.data -> Content.Audio.data;
+    converter : Content_audio.data -> Content_audio.data;
   }
 
   let channel_layout_conf =

@@ -74,16 +74,15 @@ let () =
      source('a) <: (source('a).{ source methods })?
    b/c of source.dynamic so we want to dig deeper
    than the regular demeth. *)
-let rec demeth_source t =
+let rec deep_demeth t =
   match Type.demeth t with
-    | Type.{ descr = Nullable t } -> demeth_source t
+    | Type.{ descr = Nullable t } -> deep_demeth t
     | t -> t
 
 let eval_check ~env:_ ~tm v =
   if Lang_source.Source_val.is_value v then (
     let s = Lang_source.Source_val.of_value v in
-    Typing.(
-      Lang.source_t ~methods:false s#frame_type <: demeth_source tm.Term.t))
+    Typing.(Lang.source_t ~methods:false s#frame_type <: deep_demeth tm.Term.t))
   else if Track.is_value v then (
     let field, source = Lang.to_track v in
     match field with
@@ -94,7 +93,7 @@ let eval_check ~env:_ ~tm v =
             Lang.frame_t (Lang.univ_t ())
               (Frame.Fields.add field tm.Term.t Frame.Fields.empty)
           in
-          Typing.(source#frame_type <: frame_t))
+          Typing.(source#frame_type <: deep_demeth frame_t))
 
 let () = Hooks.eval_check := eval_check
 

@@ -22,7 +22,7 @@
 
 open Source
 
-class compress (source : source) mu =
+class compress ~field (source : source) mu =
   object
     inherit operator ~name:"compress" [source]
     method stype = source#stype
@@ -35,7 +35,7 @@ class compress (source : source) mu =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.pcm buf in
+      let b = Content.Audio.get_data (Frame.get buf field) in
       for c = 0 to Array.length b - 1 do
         let b_c = b.(c) in
         for i = offset to AFrame.position buf - 1 do
@@ -47,21 +47,18 @@ class compress (source : source) mu =
   end
 
 let _ =
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator ~base:Compress.compress "exponential" ~category:`Audio
-    ~descr:"Exponential compressor."
+  let return_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Compress.audio_compress "exponential"
+    ~category:`Audio ~descr:"Exponential compressor."
     [
       ( "mu",
         Lang.float_t,
         Some (Lang.float 2.),
         Some "Exponential compression factor, typically greater than 1." );
-      ("", Lang.source_t return_t, None, None);
+      ("", return_t, None, None);
     ]
     ~return_t
     (fun p ->
       let f v = List.assoc v p in
-      let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
-      new compress src mu)
+      let mu, (field, src) = (Lang.to_float (f "mu"), Track.of_value (f "")) in
+      (field, new compress ~field src mu))

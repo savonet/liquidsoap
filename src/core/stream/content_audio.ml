@@ -93,7 +93,7 @@ module Specs = struct
   let kind_of_string = function "audio" | "pcm" -> Some `Pcm | _ -> None
 end
 
-include MkContent (Specs)
+include MkContentBase (Specs)
 
 let kind = lift_kind `Pcm
 

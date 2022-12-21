@@ -45,6 +45,23 @@ def comb(~id=null("comb"), %argsof(audio.comb[!id]), s) =
   source(id=id, tracks.{audio=audio.comb(%argsof(audio.comb), tracks.audio)})
 end
 
+# Compress the signal.
+# @category Source / Audio processing
+# @argsof audio.compress
+def compress(%argsof(audio.compress), s) =
+  tracks = source.tracks(s)
+  let audio.{gain, rms} = audio.compress(%argsof(audio.compress), tracks.audio)
+  source(id=id, tracks.{audio=audio}).{gain=gain, rms=rms}
+end
+
+# Exponential compressor.
+# @category Source / Audio processing
+# @argsof audio.compress.exponential
+def compress.exponential(%argsof(audio.compress.exponential), s) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{audio=audio.compress.exponential(%argsof(audio.compress.exponential), tracks.audio)})
+end
+
 lufs_builtin = lufs
 
 # Normalization the volume of a stream (this is also called _automatic gain
@@ -114,6 +131,7 @@ end
 
 # A limiter. This is a `compress` with tweaked parameters.
 # @category Source / Audio processing
+# @flag extra
 def limit(~attack=getter(50.), ~release=getter(200.), ~ratio=getter(20.), ~threshold=getter(-2.), ~pre_gain=getter(0.), ~gain=getter(0.), s)
   compress(attack=attack, release=release, ratio=ratio, threshold=threshold, pre_gain=pre_gain, gain=gain, s)
 end
@@ -143,6 +161,7 @@ let limiter = limit
 # @param ~limit Also apply limiting to bands.
 # @param l Parameters for compression bands.
 # @param s Source on which multiband compression should be applied.
+# @flag extra
 def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
   # Check that the bands are with increasing frequencies.
   for i = 0 to list.length(l) - 2 do
@@ -155,14 +174,18 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
     s = compress(attack=band.attack, release=band.release, threshold=band.threshold, ratio=band.ratio, gain=band.gain, s)
     if limit then limiter(s) else s end
   end
-  l = list.mapi(fun (i, b) -> band(if i == 0 then 0. else list.nth(l,i-1).frequency end, b), l)
-  c = add(normalize=false, l)
+  ls = list.mapi(fun (i, b) -> band(if i == 0 then 0. else list.nth(l,i-1).frequency end, b), l)
+  c = add(normalize=false, ls)
   s =
     if not getter.is_constant(wet) or getter.get(wet) != 1. then
       add(normalize=false, [amplify({1.-getter.get(wet)}, s), amplify(wet, c)])
     else
       c
     end
+
+  # Seal l element type
+  if false then () else list.hd(l) end
+
   # Limit to avoid bad surprises
   limiter(s)
 end

@@ -68,7 +68,7 @@ module Make (S : Spec) = struct
     }
 
   let descr = Type_base.Custom handler
-  let () = Type_base.register_custom_type S.name handler
+  let () = Type_base.register_custom_type S.name (fun () -> handler)
 end
 
 module Int = Make (struct
