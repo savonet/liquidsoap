@@ -114,7 +114,11 @@ let free_all_metadata b = set_all_metadata b []
 
 let blit_content src src_pos dst dst_pos len =
   let blit src dst = blit src src_pos dst dst_pos len in
-  Fields.iter (fun field src -> blit src (Fields.find field dst)) src
+  Fields.iter
+    (fun field src ->
+      if field <> Fields.track_marks && field <> Fields.metadata then
+        blit src (Fields.find field dst))
+    src
 
 let blit src src_pos dst dst_pos len =
   blit_content (Generator.peek src) src_pos (Generator.peek dst) dst_pos len
