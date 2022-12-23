@@ -219,6 +219,16 @@ def f() =
   let {foo = _, ...y} = x
   test.equals(f(y), 3)
 
+  # Make sure that we infer optional methods correctly
+  def f(x) =
+    ignore(x?.foo)
+  end
+
+  def g(x) =
+    f(x.{gni=123})
+  end
+  g({blo="bla"})
+
   test.pass()
 end
 
