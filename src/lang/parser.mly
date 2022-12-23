@@ -196,6 +196,8 @@ exprss:
 (* General expressions. *)
 expr:
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (Cast ($2, $4)) }
+  | LPAR expr COLON VAR expr RPAR
+                                     { mk_typeof_cast ~pos:$loc $2 $5 $4 }
   | UMINUS FLOAT                     { mk ~pos:$loc (Ground (Float (-. $2))) }
   | UMINUS INT                       { mk ~pos:$loc (Ground (Int (- $2))) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "~-"), ["", $3])) }

@@ -539,3 +539,13 @@ let mk_invoke_ty ~pos ty name =
   with Not_found ->
     raise
       (Parse_error (pos, "Unknown type: " ^ Type.to_string ty ^ "." ^ name ^ "."))
+
+(* if true then x else typeof end *)
+let mk_typeof_cast ~pos x typeof = function
+  | "typeof" ->
+      let _if = mk ~pos (Var "if") in
+      let _true = mk ~pos (Ground (Ground.Bool true)) in
+      let _then = mk ~pos (Fun (Vars.empty, [], x)) in
+      let _else = mk ~pos (Fun (Vars.empty, [], typeof)) in
+      mk ~pos (App (_if, [("", _true); ("then", _then); ("else", _else)]))
+  | name -> raise (Parse_error (pos, name))

@@ -101,6 +101,16 @@ def f() =
   incorrect("let _.{foo=123} = {foo=123}")
   incorrect("let v.{foo=123} = {foo=123}")
 
+  section("TYPE CAST")
+  correct("(123:int)")
+  incorrect("((123.:float):int)")
+  incorrect("
+x = 123
+
+y = (123.:typeof x)
+")
+  correct("({foo = 456}:typeof {foo = 123})")
+
   section("ENCODERS")
   correct('%ffmpeg(%video(codec="h264_nvenc"))')
   correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel="none"))')
