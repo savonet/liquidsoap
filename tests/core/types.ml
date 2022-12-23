@@ -204,3 +204,18 @@ let () =
 
   (* This should work: {gni:int} <: {foo: float}.{foo?:int} *)
   Typing.(a_meth <: b_meth)
+
+let () =
+  (* 'a.{gni:int} *)
+  let a_meth = Type.meth "gni" ([], Lang.int_t) (Lang.univ_t ()) in
+
+  (* 'a.{foo?:int} *)
+  let b_meth =
+    Type.meth ~optional:true "foo" ([], Lang.int_t) (Lang.univ_t ())
+  in
+
+  Typing.(a_meth <: b_meth);
+
+  let meths, _ = Type.split_meths a_meth in
+  let foo = List.find (fun Type.{ meth; _ } -> meth = "foo") meths in
+  assert (foo.Type.optional = true)

@@ -579,7 +579,7 @@ and ( <: ) a b =
                 let optional, t2 =
                   match (deref t2).descr with
                     | Type.(Nullable t) -> (true, t)
-                    | _ -> (false, t2)
+                    | _ -> (optional, t2)
                 in
                 a'
                 <: make
