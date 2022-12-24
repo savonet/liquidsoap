@@ -30,12 +30,8 @@ let _ =
     [("type", Value.RuntimeType.t, None, None); ("", Lang.string_t, None, None)]
     (Lang.univ_t ())
     (fun p ->
-      try
-        let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
-        let s = Lang.to_string (List.assoc "" p) in
-        let v = Runtime.eval ~ignored:false ~ty s in
-        (match Type.((demeth (deref ty)).descr) with
-          | Type.Var _ -> Typing.(ty <: Lang.unit_t)
-          | _ -> ());
-        v
-      with exn -> raise exn)
+      let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
+      let scheme = Typing.generalize ~level:(-1) ty in
+      let ty = Typing.instantiate ~level:(-1) scheme in
+      let s = Lang.to_string (List.assoc "" p) in
+      try Runtime.eval ~ignored:false ~ty s with exn -> raise exn)

@@ -7,27 +7,19 @@ end
 def incorrect(expr)
   print("Incorrect expression #{expr}...\n")
 
-  # See: https://github.com/savonet/liquidsoap/issues/2707
-  def f() =
-    try
-      let eval _ = expr
-      test.fail()
-    catch _ do
-      ()
-    end
+  try
+    let eval _ = expr
+    test.fail()
+  catch err do
+    print("Got err: #{err}")
   end
 
-  f()
   print("\n")
 end
 
 def correct(expr) =
   print("Correct expression #{expr}...\n")
-
-  def f() =
-    let eval _ = expr
-  end
-
+  let eval _ = expr
   print("\n")
 end
 
@@ -60,7 +52,7 @@ def f() =
   section("SUBTYPING")
   incorrect('(1:unit)')
   # Next one requires the inference of a subtype (fixed vs. variable arity)
-  correct('ignore(audio_to_stereo(add([])))')
+  correct('ignore(stereo(add([])))')
   correct('ignore((blank():source(audio=pcm,video=canvas)))')
 
   section("CONSTRAINTS")
@@ -99,10 +91,10 @@ def f() =
   incorrect('add([mean(blank()),audio_to_stereo(add([]))])')
 
   section("TRACK TYPES")
-  correct('(s:pcm)')
-  correct('(s:canvas)')
-  correct('(s:midi)')
-  correct('(s:ffmpeg.copy)')
+  correct('(source.tracks(blank()).audio:pcm)')
+  correct('(source.tracks(blank()).audio:canvas)')
+  correct('(source.tracks(single("")).midi:midi)')
+  correct('(source.tracks(single("")).audio:ffmpeg.copy)')
 
   section("PATTERNS")
   incorrect("let [x = {foo}, y = (foo), z] = l")
@@ -228,6 +220,11 @@ def f() =
   correct("fun (x) -> x?.foo.gni.gna ?? 1")
   correct("fun (x) -> x.foo.gni?.bla(1,2,3).blo")
   correct("fun (x) -> x?.foo(123).gni ?? null()")
+
+  section("EVAL")
+  incorrect("let eval x = '123'
+ignore(x+1)
+ignore(x / 2.)")
 
   section("PATTERNS")
   incorrect("

@@ -88,6 +88,7 @@ open Parser_helper
 %left BIN3 TIMES
 %right COLONCOLON
 %nonassoc GET          (* (!x)+2 *)
+%nonassoc VAR
 %left DOT
 %nonassoc COLON
 
@@ -283,9 +284,13 @@ time_predicate:
   | INTERVAL { mk_time_pred ~pos:$loc (between ~pos:$loc (fst $1) (snd $1)) }
   | TIME     { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
+named_ty:
+  | VAR DOT named_ty { $1::$3 }
+  | VAR              { [$1] }
+
 ty:
   | UNDERSCORE                   { Type.var ~pos:$loc () }
-  | VAR                          { mk_ty ~pos:$loc $1 }
+  | named_ty                     { mk_ty ~pos:$loc $1 }
   | ty QUESTION                  { Type.make ~pos:$loc (Type.Nullable $1) }
   | LBRA ty RBRA                 { Type.make ~pos:$loc (Type.(List {t = $2; json_repr = `Tuple})) }
   | LBRA ty RBRA VAR VAR DOT VAR { mk_json_assoc_object_ty ~pos:$loc ($2,$4,$5,$7) }

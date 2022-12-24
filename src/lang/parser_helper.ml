@@ -518,6 +518,7 @@ let mk_json_assoc_object_ty ~pos = function
   | _ -> raise (Parse_error (pos, "Invalid type constructor"))
 
 let mk_ty ~pos name =
+  let name = String.concat "." name in
   match name with
     | "_" -> Type.var ()
     | "unit" -> Type.make Type.unit
