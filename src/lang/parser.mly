@@ -292,6 +292,7 @@ ty:
   | LPAR ty_tuple RPAR           { Type.make ~pos:$loc (Type.Tuple $2) }
   | LPAR argsty RPAR YIELDS ty   { Type.make ~pos:$loc (Type.Arrow ($2,$5)) }
   | LCUR record_ty RCUR          { $2 }
+  | ty DOT VAR                   { mk_invoke_ty ~pos:$loc $1 $3 }
   | ty DOT LCUR record_ty RCUR   { Type.remeth $4 $1 }
   | ty_source                    { $1 }
 

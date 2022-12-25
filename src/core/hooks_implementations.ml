@@ -82,18 +82,22 @@ let rec deep_demeth t =
 let eval_check ~env:_ ~tm v =
   if Lang_source.Source_val.is_value v then (
     let s = Lang_source.Source_val.of_value v in
-    Typing.(Lang.source_t ~methods:false s#frame_type <: deep_demeth tm.Term.t))
+    let scheme = Typing.generalize ~level:(-1) (deep_demeth tm.Term.t) in
+    let ty = Typing.instantiate ~level:(-1) scheme in
+    Typing.(Lang.source_t ~methods:false s#frame_type <: ty))
   else if Track.is_value v then (
     let field, source = Lang.to_track v in
     match field with
       | _ when field = Frame.Fields.metadata -> ()
       | _ when field = Frame.Fields.track_marks -> ()
       | _ ->
+          let scheme = Typing.generalize ~level:(-1) (deep_demeth tm.Term.t) in
+          let ty = Typing.instantiate ~level:(-1) scheme in
           let frame_t =
             Lang.frame_t (Lang.univ_t ())
-              (Frame.Fields.add field tm.Term.t Frame.Fields.empty)
+              (Frame.Fields.add field ty Frame.Fields.empty)
           in
-          Typing.(source#frame_type <: deep_demeth frame_t))
+          Typing.(source#frame_type <: frame_t))
 
 let () = Hooks.eval_check := eval_check
 

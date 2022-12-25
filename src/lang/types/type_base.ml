@@ -306,11 +306,35 @@ let is_source t =
     | Constr { constructor = "source"; _ } -> true
     | _ -> false
 
-let custom_types : (string, unit -> custom_handler) Hashtbl.t =
-  Hashtbl.create 10
+let custom_types : (string, unit -> t) Hashtbl.t = Hashtbl.create 10
 
-let register_custom_type ?pos name custom =
-  if Hashtbl.mem custom_types name then raise (Exists (pos, name));
-  Hashtbl.add custom_types name custom
+let register_type name custom =
+  let mk_typ =
+    match Hashtbl.find_opt custom_types name with
+      | Some mk_typ -> fun () -> remeth (mk_typ ()) (custom ())
+      | None -> custom
+  in
+  Hashtbl.replace custom_types name mk_typ
 
-let find_custom_type_opt = Hashtbl.find_opt custom_types
+let register_type name custom =
+  match String.split_on_char '.' name with
+    | [] -> assert false
+    | name :: [] -> register_type name custom
+    | root :: names ->
+        let default_mk_typ () = make unit in
+        let root_mk_typ =
+          Option.value ~default:default_mk_typ
+            (Hashtbl.find_opt custom_types root)
+        in
+        let rec f root_typ = function
+          | [] -> assert false
+          | name :: [] -> meth name ([], custom ()) root_typ
+          | name :: names ->
+              let typ =
+                try snd (invoke root_typ name) with _ -> default_mk_typ ()
+              in
+              meth name ([], f typ names) root_typ
+        in
+        Hashtbl.replace custom_types root (fun () -> f (root_mk_typ ()) names)
+
+let find_type_opt = Hashtbl.find_opt custom_types

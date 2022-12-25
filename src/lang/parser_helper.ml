@@ -528,8 +528,14 @@ let mk_ty ~pos name =
     | "source" -> mk_source_ty ~pos "source" []
     | "source_methods" -> !Hooks.source_methods_t ()
     | name -> (
-        match Type.find_custom_type_opt name with
-          | Some c -> Type.make (Type.Custom (c ()))
+        match Type.find_type_opt name with
+          | Some c -> c ()
           | None ->
               raise
                 (Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")))
+
+let mk_invoke_ty ~pos ty name =
+  try snd (Type.invoke ty name)
+  with Not_found ->
+    raise
+      (Parse_error (pos, "Unknown type: " ^ Type.to_string ty ^ "." ^ name ^ "."))
