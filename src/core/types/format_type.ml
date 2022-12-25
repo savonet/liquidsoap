@@ -170,8 +170,8 @@ let content_type = content_type ~default:(fun _ -> assert false)
 let audio () = Type.make (descr (`Kind Content_audio.kind))
 
 let () =
-  Type.register_custom_type (Content_base.string_of_kind Content_audio.kind)
-    (fun () -> kind_handler (Content_audio.kind, Type.var ()))
+  Type.register_type (Content_base.string_of_kind Content_audio.kind) (fun () ->
+      Type.make (Type.Custom (kind_handler (Content_audio.kind, Type.var ()))))
 
 let audio_mono () =
   Type.make
@@ -197,14 +197,14 @@ let audio_n n =
 let video () = Type.make (descr (`Kind Content_video.kind))
 
 let () =
-  Type.register_custom_type (Content_base.string_of_kind Content_video.kind)
-    (fun () -> kind_handler (Content_video.kind, Type.var ()))
+  Type.register_type (Content_base.string_of_kind Content_video.kind) (fun () ->
+      Type.make (Type.Custom (kind_handler (Content_video.kind, Type.var ()))))
 
 let midi () = Type.make (descr (`Kind Content_midi.kind))
 
 let () =
-  Type.register_custom_type (Content_base.string_of_kind Content_midi.kind)
-    (fun () -> kind_handler (Content_midi.kind, Type.var ()))
+  Type.register_type (Content_base.string_of_kind Content_midi.kind) (fun () ->
+      Type.make (Type.Custom (kind_handler (Content_midi.kind, Type.var ()))))
 
 let midi_n n =
   Type.make (descr (`Format Content_midi.(lift_params { channels = n })))
@@ -212,11 +212,11 @@ let midi_n n =
 let track_marks = Type.make (descr (`Format Content_timed.Track_marks.format))
 
 let () =
-  Type.register_custom_type "track_marks" (fun () ->
-      format_handler Content_timed.Track_marks.format)
+  Type.register_type "track_marks" (fun () ->
+      Type.make (Type.Custom (format_handler Content_timed.Track_marks.format)))
 
 let metadata = Type.make (descr (`Format Content_timed.Metadata.format))
 
 let () =
-  Type.register_custom_type "metadata" (fun () ->
-      format_handler Content_timed.Track_marks.format)
+  Type.register_type "metadata" (fun () ->
+      Type.make (Type.Custom (format_handler Content_timed.Track_marks.format)))

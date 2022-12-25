@@ -133,7 +133,5 @@ val is_source : t -> bool
 
 module Ground = Ground_type
 
-val register_custom_type :
-  ?pos:Pos.t -> string -> (unit -> custom_handler) -> unit
-
-val find_custom_type_opt : string -> (unit -> custom_handler) option
+val register_type : string -> (unit -> t) -> unit
+val find_type_opt : string -> (unit -> t) option
