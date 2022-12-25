@@ -88,7 +88,7 @@ open Parser_helper
 %left BIN3 TIMES
 %right COLONCOLON
 %nonassoc GET          (* (!x)+2 *)
-%nonassoc VAR
+%nonassoc named_ty_prec
 %left DOT
 %nonassoc COLON
 
@@ -285,12 +285,22 @@ time_predicate:
   | TIME     { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
 named_ty:
-  | VAR DOT named_ty { $1::$3 }
-  | VAR              { [$1] }
+  | named_ty DOT VAR                 {
+      let name, remeth = $1 in
+      name@[$3], remeth
+  }
+  | named_ty DOT LCUR record_ty RCUR {
+      let name, remeth = $1 in
+      name, fun t -> Type.remeth $4 (remeth t)
+  }
+  | VAR                              { [$1], fun t -> t }
 
 ty:
   | UNDERSCORE                   { Type.var ~pos:$loc () }
-  | named_ty                     { mk_ty ~pos:$loc $1 }
+  | named_ty %prec named_ty_prec {
+      let name, remeth = $1 in
+      remeth (mk_ty ~pos:$loc name)
+  }
   | ty QUESTION                  { Type.make ~pos:$loc (Type.Nullable $1) }
   | LBRA ty RBRA                 { Type.make ~pos:$loc (Type.(List {t = $2; json_repr = `Tuple})) }
   | LBRA ty RBRA VAR VAR DOT VAR { mk_json_assoc_object_ty ~pos:$loc ($2,$4,$5,$7) }
