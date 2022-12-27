@@ -253,3 +253,21 @@ let () =
   let meths, _ = Type.split_meths a_meth in
   let foo = List.find (fun Type.{ meth; _ } -> meth = "foo") meths in
   assert (foo.Type.optional = true)
+
+let () =
+  (* source(audio: pcm(stereo)) *)
+  let a =
+    Lang.source_t (Lang.record_t [("audio", Format_type.audio_stereo ())])
+  in
+
+  (* source() *)
+  let b = Lang.source_t Lang.unit_t in
+
+  (* source(audio?: pcm(stereo)) *)
+  let optional =
+    Lang.source_t
+      (Lang.optional_record_t [("audio", Format_type.audio_stereo ())])
+  in
+
+  Typing.(a <: optional);
+  Typing.(b <: optional)
