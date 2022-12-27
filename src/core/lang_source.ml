@@ -300,6 +300,60 @@ let to_track = Track.of_value
     the currently defined source as argument). *)
 type 'a operator_method = string * scheme * string * ('a -> value)
 
+(** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
+let check_content v t =
+  let checked_values = ref [] in
+  let check t t' =
+    Typing.(
+      t <: t';
+      t' <: t)
+  in
+  let rec check_value v t =
+    if not (List.memq v !checked_values) then (
+      (* We need to avoid checking the same value multiple times, otherwise we
+         get an exponential blowup, see #1247. *)
+      checked_values := v :: !checked_values;
+      match (v.Value.value, (Type.deref t).Type.descr) with
+        | _, Type.Var _ -> ()
+        | _ when Source_val.is_value v ->
+            let source_t = source_t (Source_val.of_value v)#frame_type in
+            check source_t t
+        | _ when Lang_encoder.V.is_value v ->
+            let content_t =
+              Encoder.type_of_format (Lang_encoder.V.of_value v)
+            in
+            let frame_t = Frame_type.make unit_t content_t in
+            let encoder_t = Lang_encoder.L.format_t frame_t in
+            check encoder_t t
+        | Value.Ground _, _ -> ()
+        | Value.List l, Type.List { Type.t } ->
+            List.iter (fun v -> check_value v t) l
+        | Value.Tuple l, Type.Tuple t -> List.iter2 check_value l t
+        | Value.Null, _ -> ()
+        (* Value can have more methods than the type requires so check from the type here. *)
+        | _, Type.Meth _ ->
+            let meths, v = Value.split_meths v in
+            let meths_t, t = Type.split_meths t in
+            List.iter
+              (fun { Type.meth; optional; scheme = s } ->
+                let t = Typing.instantiate ~level:(-1) s in
+                try check_value (List.assoc meth meths) t
+                with Not_found when optional -> ())
+              meths_t;
+            check_value v t
+        (* The type says that we should drop the method. *)
+        | Value.Meth (_, _, v), _ -> check_value v t
+        | Ref r, Type.Constr { Type.constructor = "ref"; params = [(_, t)] } ->
+            check_value (Atomic.get r) t
+        (* We don't check functions, assuming anything creating a source is a
+           FFI registered via add_operator so the check will happen there. *)
+        | Fun _, _ | FFI _, _ -> ()
+        | _ ->
+            failwith
+              ("Unhandled value in check_content: " ^ Value.to_string v ^ "."))
+  in
+  check_value v t
+
 (** An operator is a builtin function that builds a source.
   * It is registered using the wrapper [add_operator].
   * Creating the associated function type (and function) requires some work:
@@ -317,12 +371,19 @@ let _meth = meth
 
 let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f =
+  let compare (x, _, _, _) (y, _, _, _) =
+    match (x, y) with
+      | "", "" -> 0
+      | _, "" -> -1
+      | "", _ -> 1
+      | x, y -> Stdlib.compare x y
+  in
   let arguments =
     ( "id",
       nullable_t string_t,
       Some null,
       Some "Force the value of the source ID." )
-    :: arguments
+    :: List.stable_sort compare arguments
   in
   let f env =
     let pos =
@@ -330,8 +391,44 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
         | [] -> None
         | p :: _ -> Some p
     in
+    (* Create a fresh instantiation of the return type and the type of arguments. *)
+    let return_t, arguments =
+      let s =
+        (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
+        Typing.generalize ~level:(-1)
+          (Type.make
+             (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) arguments)))
+      in
+      let t = Typing.instantiate ~level:(-1) s in
+      match t.Type.descr with
+        | Type.Tuple (return_t :: arguments_t) ->
+            ( return_t,
+              List.map2
+                (fun (name, _, _, _) typ -> (name, typ))
+                arguments arguments_t )
+        | _ -> assert false
+    in
+    let arguments =
+      List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') arguments
+    in
+    (* Negotiate content for all sources and formats in the arguments. *)
+    let () =
+      let env =
+        List.stable_sort
+          (fun (l, _) (l', _) -> Stdlib.compare l l')
+          (List.filter
+             (fun (lbl, _) -> lbl <> Liquidsoap_lang.Lang_core.pos_var)
+             env)
+      in
+      List.iter2
+        (fun (name, typ) (name', v) ->
+          assert (name = name');
+          check_content v typ)
+        arguments env
+    in
     try
       let src : < Source.source ; .. > = f env in
+      Typing.(src#frame_type <: return_t);
       ignore
         (Option.map
            (fun id -> src#set_id id)

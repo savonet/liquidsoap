@@ -150,13 +150,19 @@ let register obj name descr =
            Array.init (Lazy.force Frame.midi_channels) (fun c ->
                ((fun () -> 1.), new synth (obj adsr) src c 1.))
          in
-         let synths = Array.to_list synths in
-         (new Add.add
+         let synths =
+           List.mapi
+             (fun position (weight, source) ->
+               {
+                 Add.source;
+                 fields = [{ position; weight; field = Frame.Fields.audio }];
+               })
+             (Array.to_list synths)
+         in
+         (new Add.audio_add
             ~renorm:(fun () -> false)
             ~power:(fun () -> false)
-            synths
-            (fun _ -> ())
-            (fun _ tmp buf -> Video.Canvas.Image.add tmp buf)
+            ~field:Frame.Fields.audio synths
            :> Source.source)))
 
 let () =

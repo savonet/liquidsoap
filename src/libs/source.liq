@@ -1,3 +1,66 @@
+# Mix sources, with optional normalization. Only relay metadata from the first available source. Track marks are dropped from all sources.
+# @category Source / Audio processing
+# @argsof track.audio.add
+# @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution. These are used as amplification coefficients if we are not normalizing.
+def add(~id=null("add"), %argsof(track.audio.add[!id]), ~weights=[], sources) =
+  # Save the last metadata, to be reinjected later.
+  last_metadata = ref((-1, []))
+
+  sources = list.mapi(fun (pos, s) ->
+    begin
+      def on_meta(m) =
+        let (latest_pos, _) = !last_metadata
+        if (latest_pos == -1 or pos <= latest_pos) and m != [] then
+          last_metadata := (pos, m)
+        end
+      end
+      source.on_metadata(s, on_meta)
+    end, sources)
+
+  if list.length(sources) == 0 then fallback(id=id, []) else
+    tracks = list.map(source.tracks, sources)
+
+    def mk_audio_track(pos, track) =
+      weight =
+        try
+          list.nth(weights, pos)
+        catch _ do
+          getter(1.)
+        end
+      track.audio.{weight=weight}
+    end
+
+    new_tracks = {
+      audio = track.audio.add(%argsof(track.audio.add), list.mapi(mk_audio_track, tracks))
+    }
+
+    new_tracks =
+      if null.defined(list.hd(tracks)?.video) then
+         def mk_video_track(track) =
+           null.get(track?.video)
+         end
+         new_tracks.{
+           video = track.video.add(list.map(mk_video_track, tracks))
+         }
+      else
+        new_tracks
+      end
+
+    s = insert_metadata(source(new_tracks))
+
+    # Inject metadata on new frame
+    def on_frame() =
+      let (pos, m) = !last_metadata
+      if pos != -1 then
+        last_metadata := (-1, [])
+        s.insert_metadata(m)
+      end
+    end
+
+    source.on_frame(id=id, s, on_frame)
+  end
+end
+
 # Create an audio source from the given track, with
 # metadata and track marks from that same track.
 # @category Source / Track processing

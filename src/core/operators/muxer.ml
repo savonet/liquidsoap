@@ -56,7 +56,8 @@ class muxer tracks =
         ( Generator.remaining self#buffer,
           List.fold_left
             (fun r s -> if r = -1 then s#remaining else min r s#remaining)
-            (-1) sources )
+            (-1)
+            (List.filter (fun s -> s#is_ready) sources) )
       with
         | -1, r -> r
         | r, _ -> r
