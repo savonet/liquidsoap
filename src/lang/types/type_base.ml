@@ -103,7 +103,8 @@ type repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 module DS = Set.Make (struct
   type t = string * Constraints.t
 
-  let compare = compare
+  let compare (s, v) (s', v') =
+    match Stdlib.compare s s' with 0 -> Constraints.compare v v' | x -> x
 end)
 
 let string_of_constr c = c.constr_descr
