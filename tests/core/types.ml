@@ -271,3 +271,39 @@ let () =
 
   Typing.(a <: optional);
   Typing.(b <: optional)
+
+let () =
+  (* fun (format('a), source('a)) -> unit *)
+  let a = Lang.univ_t () in
+  let fn_t =
+    Lang.fun_t
+      [(false, "", Lang.format_t a); (false, "", Lang.source_t a)]
+      Lang.unit_t
+  in
+  let fn = Term.make (Var "fn") in
+
+  (* format(pcm(stereo)) *)
+  let fmt_t =
+    Lang.format_t
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ()))
+  in
+  let fmt = Term.make (Var "fmt") in
+
+  (* source(pcm(mono)) *)
+  let src_t =
+    Lang.source_t
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~audio:(Format_type.audio_mono ()) ()))
+  in
+  let src = Term.make (Var "src") in
+
+  let app = Term.make (App (fn, [("", fmt); ("", src)])) in
+
+  let throw exn = raise exn in
+  let env = [("fn", ([], fn_t)); ("fmt", ([], fmt_t)); ("src", ([], src_t))] in
+  try
+    Liquidsoap_lang.Typechecking.check ~throw ~ignored:false ~env app;
+    Printf.eprintf "App typecheck error!\n%!";
+    exit 1
+  with _ -> ()

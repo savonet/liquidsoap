@@ -194,6 +194,8 @@ let update_level level a =
 
 exception Incompatible
 
+let is_open t = match (demeth t).descr with Var _ -> true | _ -> false
+
 (** Approximated supremum of two types. We grow the second argument so that it
     has a chance be be greater than the first. No binding is performed by this
     function so that it should always be followed by a subtyping. *)
@@ -226,7 +228,7 @@ let rec sup ~pos a b =
                      scheme = scheme_sup t' m.scheme;
                    },
                    sup a b ))
-          with Incompatible -> sup a b)
+          with Incompatible when is_open b -> sup a b)
       | None -> mk (Meth ({ m with optional = true }, sup a b))
   in
   if a == b then a
