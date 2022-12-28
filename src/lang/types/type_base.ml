@@ -46,7 +46,7 @@ let debug_variance = ref false
 
 (** {2 Types} *)
 
-type variance = [ `Covariant | `Contravariant | `Invariant ]
+type variance = [ `Covariant | `Invariant ]
 
 (** Type description *)
 type descr = ..

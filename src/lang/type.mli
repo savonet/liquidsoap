@@ -26,7 +26,7 @@ val debug_variance : bool ref
 
 (** {2 Types} *)
 
-type variance = [ `Covariant | `Contravariant | `Invariant ]
+type variance = [ `Covariant | `Invariant ]
 type descr = Type_base.descr = ..
 type t = Type_base.t = private { pos : Pos.Option.t; descr : descr }
 type constr_t = Type_base.constr_t = ..

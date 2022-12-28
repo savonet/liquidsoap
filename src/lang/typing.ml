@@ -440,7 +440,6 @@ and ( <: ) a b =
                       let v = if v1 = v2 then v1 else `Invariant in
                       match v with
                         | `Covariant -> h1 <: h2
-                        | `Contravariant -> h2 <: h1
                         | `Invariant ->
                             mk_invariant h2;
                             h1 <: h2;
