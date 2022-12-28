@@ -71,10 +71,11 @@ let get_field frame_type field =
     | None -> raise Not_found
 
 let content_type frame_type =
+  let meths, base_type = Type.split_meths frame_type in
   let frame_type =
-    match (Type.deref frame_type).Type.descr with
+    match (meths, base_type.Type.descr) with
       (* If type is empty we add default formats. *)
-      | Type.Var _ ->
+      | [], Type.Var _ ->
           let audio =
             if Frame_settings.conf_audio_channels#get > 0 then
               Some (Format_type.audio_n Frame_settings.conf_audio_channels#get)
@@ -93,6 +94,7 @@ let content_type frame_type =
       | _ -> frame_type
   in
   let meths, _ = Type.split_meths frame_type in
+  let meths = List.filter (fun { Type.optional } -> not optional) meths in
   let content_type, resolved_frame_type =
     List.fold_left
       (fun (content_type, resolved_frame_type)

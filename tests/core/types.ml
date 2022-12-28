@@ -1,5 +1,7 @@
 open Type
 
+let () = Frame_settings.lazy_config_eval := true
+
 let should_work t t' r =
   let t = make t in
   let t' = make t' in
@@ -212,6 +214,19 @@ let () =
       | [{ Type.meth = "gni"; optional = true; scheme = [], t; _ }] ->
           Typing.(t <: Lang.int_t)
       | _ -> assert false)
+
+let () =
+  (* { audio: pcm('a), video?: canvas } *)
+  let f =
+    Type.meth "audio"
+      ([], Format_type.audio ())
+      (Type.meth ~optional:true "video" ([], Format_type.video ()) Lang.unit_t)
+  in
+
+  let c = Frame_type.content_type f in
+
+  assert (Frame.Fields.cardinal c = 1);
+  assert (Content.Audio.is_format (Frame.Fields.find Frame.Fields.audio c))
 
 let () =
   (* {gni:int} *)
