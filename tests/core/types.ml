@@ -273,35 +273,27 @@ let () =
   Typing.(b <: optional)
 
 let () =
-  (* fun (format('a), source('a)) -> unit *)
+  (* fun (covariant 'a, covariant 'a) -> unit *)
   let a = Lang.univ_t () in
-  let fn_t =
-    Lang.fun_t
-      [(false, "", Lang.format_t a); (false, "", Lang.source_t a)]
-      Lang.unit_t
-  in
+  let x = Lang.univ_t () in
+  let y = Lang.univ_t () in
+  Typing.bind ~variance:`Covariant x a;
+  Typing.bind ~variance:`Covariant y a;
+  let fn_t = Lang.fun_t [(false, "", x); (false, "", y)] Lang.unit_t in
   let fn = Term.make (Var "fn") in
 
-  (* format(pcm(stereo)) *)
-  let fmt_t =
-    Lang.format_t
-      (Lang.frame_t Lang.unit_t
-         (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ()))
-  in
-  let fmt = Term.make (Var "fmt") in
+  (* { a: string } *)
+  let x_t = Lang.record_t [("a", Lang.string_t)] in
+  let x_var = Term.make (Var "x") in
 
-  (* source(pcm(mono)) *)
-  let src_t =
-    Lang.source_t
-      (Lang.frame_t Lang.unit_t
-         (Frame.Fields.make ~audio:(Format_type.audio_mono ()) ()))
-  in
-  let src = Term.make (Var "src") in
+  (* { a: int } *)
+  let y_t = Lang.record_t [("a", Lang.int_t)] in
+  let y_var = Term.make (Var "y") in
 
-  let app = Term.make (App (fn, [("", fmt); ("", src)])) in
+  let app = Term.make (App (fn, [("", x_var); ("", y_var)])) in
 
   let throw exn = raise exn in
-  let env = [("fn", ([], fn_t)); ("fmt", ([], fmt_t)); ("src", ([], src_t))] in
+  let env = [("fn", ([], fn_t)); ("x", ([], x_t)); ("y", ([], y_t))] in
   try
     Liquidsoap_lang.Typechecking.check ~throw ~ignored:false ~env app;
     Printf.eprintf "App typecheck error!\n%!";
