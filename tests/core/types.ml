@@ -195,6 +195,25 @@ let () =
   assert (gni.Type.optional = false)
 
 let () =
+  let open Liquidsoap_lang in
+  (* {gni?:int} *)
+  let a_meth = Type.meth ~optional:true "gni" ([], Lang.int_t) Lang.unit_t in
+
+  (* {gni:'a} *)
+  let b_meth = Type.meth "gni" ([], Lang.univ_t ()) Lang.unit_t in
+
+  (* {gni?:int} <: {gni:'a} *)
+  try
+    Typing.(a_meth <: b_meth);
+    assert false
+  with Repr.Type_error (_, a, _, _, _) -> (
+    let meths, _ = Type.split_meths a in
+    match meths with
+      | [{ Type.meth = "gni"; optional = true; scheme = [], t; _ }] ->
+          Typing.(t <: Lang.int_t)
+      | _ -> assert false)
+
+let () =
   (* {gni:int} *)
   let a_meth = Type.meth "gni" ([], Lang.int_t) Lang.unit_t in
 

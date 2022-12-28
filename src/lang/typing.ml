@@ -339,23 +339,22 @@ and unify_meth a b l =
   in
   assert (meth1 = l && meth2 = l);
   (* Handle explicitly this case in order to avoid #1842. *)
-  (try
-     (* We want to allow:
-        - {foo:int?} <: {foo?:int}
-        - {foo?:int?} <: {foo?:int}
-        - {foo?:never} <: {foo?:int}
-        and prohibit:
-         - {foo?:int} <: {foo:int?} *)
-     let s1 =
-       match (optional1, optional2, (deref (snd s1)).descr) with
-         | true, true, t when Ground_type.Never.is_descr t -> s2
-         | _, true, Nullable t -> (fst s1, t)
-         | true, false, _ -> raise (Error (Repr.make a, Repr.make b))
-         | _ -> s1
-     in
-     (* TODO: we should perform proper type scheme subtyping, but this
-           is a good approximation for now... *)
-     instantiate ~level:(-1) s1 <: instantiate ~level:(-1) s2
+  ((* We want to allow:
+      - {foo:int?} <: {foo?:int}
+      - {foo?:int?} <: {foo?:int}
+      - {foo?:never} <: {foo?:int}
+      and prohibit:
+       - {foo?:int} <: {foo:int?} *)
+   let s1 =
+     match (optional1, optional2, (deref (snd s1)).descr) with
+       | true, true, t when Ground_type.Never.is_descr t -> s2
+       | _, true, Nullable t -> (fst s1, t)
+       | true, false, _ -> raise (Error (Repr.make a, Repr.make b))
+       | _ -> s1
+   in
+   (* TODO: we should perform proper type scheme subtyping, but this
+         is a good approximation for now... *)
+   try instantiate ~level:(-1) s1 <: instantiate ~level:(-1) s2
    with Error (a, b) ->
      let bt = Printexc.get_raw_backtrace () in
      Printexc.raise_with_backtrace
