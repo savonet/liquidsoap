@@ -268,7 +268,7 @@ let () =
     Lang.optional_record_t [("audio", Format_type.audio_stereo ())]
   in
   let covariant_t = Lang.univ_t () in
-  Typing.(record_t <: covariant_t);
+  Typing.bind ~variance:`Covariant covariant_t record_t;
   (match covariant_t.Type.descr with
     | Type.Var { contents = Type.Link (`Covariant, _) } -> ()
     | _ -> assert false);
