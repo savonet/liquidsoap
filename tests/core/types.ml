@@ -255,7 +255,7 @@ let () =
   assert (foo.Type.optional = true)
 
 let () =
-  (* source(audio: pcm(stereo)) *)
+  (* source(audio=pcm(stereo)) *)
   let a =
     Lang.source_t (Lang.record_t [("audio", Format_type.audio_stereo ())])
   in
@@ -263,14 +263,31 @@ let () =
   (* source() *)
   let b = Lang.source_t Lang.unit_t in
 
-  (* source(audio?: pcm(stereo)) *)
-  let optional =
-    Lang.source_t
-      (Lang.optional_record_t [("audio", Format_type.audio_stereo ())])
+  (* { audio?: pcm(stereo)}, covariant *)
+  let record_t =
+    Lang.optional_record_t [("audio", Format_type.audio_stereo ())]
   in
+  let covariant_t = Lang.univ_t () in
+  Typing.(record_t <: covariant_t);
+  (match covariant_t.Type.descr with
+    | Type.Var { contents = Type.Link (`Covariant, _) } -> ()
+    | _ -> assert false);
+
+  (* source(?audio=pcm(stereo)) *)
+  let optional = Lang.source_t covariant_t in
 
   Typing.(a <: optional);
-  Typing.(b <: optional)
+  Typing.(b <: optional);
+
+  match optional.Type.descr with
+    | Type.Constr { constructor = "source"; params = [(`Invariant, t)] } -> (
+        let meths, t = Type.split_meths t in
+        Typing.(t <: Lang.unit_t);
+        match meths with
+          | [{ Type.meth = "audio"; optional = true; scheme = [], t; _ }] ->
+              Typing.(t <: Format_type.audio_stereo ())
+          | _ -> assert false)
+    | _ -> assert false
 
 exception Test_failed
 
