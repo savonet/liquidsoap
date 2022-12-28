@@ -292,9 +292,13 @@ let () =
 exception Test_failed
 
 let () =
-  (* fun ('a, 'a) -> unit *)
+  (* fun (format('a), source('a)) -> unit *)
   let a = Lang.univ_t () in
-  let fn_t = Lang.fun_t [(false, "", a); (false, "", a)] Lang.unit_t in
+  let fn_t =
+    Lang.fun_t
+      [(false, "", Lang.format_t a); (false, "", Lang.source_t a)]
+      Lang.unit_t
+  in
   let fn = Term.make (Var "fn") in
 
   (* format(audio: pcm(stereo)) *)
