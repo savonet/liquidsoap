@@ -272,30 +272,38 @@ let () =
   Typing.(a <: optional);
   Typing.(b <: optional)
 
+exception Test_failed
+
 let () =
-  (* fun (covariant 'a, covariant 'a) -> unit *)
+  (* fun ('a, 'a) -> unit *)
   let a = Lang.univ_t () in
-  let x = Lang.univ_t () in
-  let y = Lang.univ_t () in
-  Typing.bind ~variance:`Covariant x a;
-  Typing.bind ~variance:`Covariant y a;
-  let fn_t = Lang.fun_t [(false, "", x); (false, "", y)] Lang.unit_t in
+  let fn_t = Lang.fun_t [(false, "", a); (false, "", a)] Lang.unit_t in
   let fn = Term.make (Var "fn") in
 
-  (* { a: string } *)
-  let x_t = Lang.record_t [("a", Lang.string_t)] in
+  (* format(audio: pcm(stereo)) *)
+  let x_t =
+    Lang.format_t
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ()))
+  in
   let x_var = Term.make (Var "x") in
 
-  (* { a: int } *)
-  let y_t = Lang.record_t [("a", Lang.int_t)] in
+  (* source(audio: pcm(mono)) *)
+  let y_t =
+    Lang.source_t
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~audio:(Format_type.audio_mono ()) ()))
+  in
   let y_var = Term.make (Var "y") in
 
   let app = Term.make (App (fn, [("", x_var); ("", y_var)])) in
 
   let throw exn = raise exn in
   let env = [("fn", ([], fn_t)); ("x", ([], x_t)); ("y", ([], y_t))] in
+
   try
     Liquidsoap_lang.Typechecking.check ~throw ~ignored:false ~env app;
-    Printf.eprintf "App typecheck error!\n%!";
-    exit 1
-  with _ -> ()
+    raise Test_failed
+  with
+    | Test_failed -> raise Test_failed
+    | _ -> ()

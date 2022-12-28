@@ -194,8 +194,6 @@ let update_level level a =
 
 exception Incompatible
 
-let is_open t = match (demeth t).descr with Var _ -> true | _ -> false
-
 (** Approximated supremum of two types. We grow the second argument so that it
     has a chance be be greater than the first. No binding is performed by this
     function so that it should always be followed by a subtyping. *)
@@ -228,7 +226,7 @@ let rec sup ~pos a b =
                      scheme = scheme_sup t' m.scheme;
                    },
                    sup a b ))
-          with Incompatible when is_open b -> sup a b)
+          with Incompatible -> sup a b)
       | None -> mk (Meth ({ m with optional = true }, sup a b))
   in
   if a == b then a
@@ -444,8 +442,9 @@ and ( <: ) a b =
                         | `Covariant -> h1 <: h2
                         | `Contravariant -> h2 <: h1
                         | `Invariant ->
+                            mk_invariant h2;
                             h1 <: h2;
-                            h2 <: h1
+                            mk_invariant h2
                     with Error (a, b) ->
                       let bt = Printexc.get_raw_backtrace () in
                       let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
