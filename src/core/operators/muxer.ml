@@ -43,7 +43,8 @@ class muxer tracks =
       (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
-    method is_ready = List.for_all (fun s -> s#is_ready) sources
+    method private sources_ready = List.for_all (fun s -> s#is_ready) sources
+    method is_ready = Generator.length self#buffer > 0 || self#sources_ready
 
     method seek len =
       let len = min (Generator.length self#buffer) len in
@@ -77,10 +78,10 @@ class muxer tracks =
     method private feed ~force buf =
       let filled = Frame.position buf in
       if
-        force
-        || Generator.remaining self#buffer = -1
-           && filled + Generator.length self#buffer < Lazy.force Frame.size
-           && self#is_ready
+        self#sources_ready
+        && (force
+           || Generator.remaining self#buffer = -1
+              && filled + Generator.length self#buffer < Lazy.force Frame.size)
       then (
         List.iter
           (fun { fields; source } ->
