@@ -20,17 +20,6 @@
 
  *****************************************************************************)
 
-(** A frame kind type is a purely abstract type representing a
-    frame kind. *)
-let frame_t ?pos audio video midi =
-  Type.make ?pos
-    (Type.Constr
-       {
-         Type.constructor = "stream_kind";
-         Type.params =
-           [(`Covariant, audio); (`Covariant, video); (`Covariant, midi)];
-       })
-
 (** Type of audio formats that can encode frame of a given kind. *)
 let format_t ?pos k =
   Type.make ?pos
