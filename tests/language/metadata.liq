@@ -45,4 +45,46 @@ def f() =
   test.pass()
 end
 
+def test_metadata_json_stringify() =
+  file_metadata = [
+    ("filename", "test.mp3"),
+    ("temporary", "false"),
+    ("initial_uri", "test.mp3"),
+    ("encoder", "Lavf59.27.100"),
+    ("status", "ready"),
+    ("rid", "0"),
+    ("artist", "Artist")
+  ]
+  expected_json_string = '{ "artist": "Artist" }'
+
+  json_string = metadata.json.stringify(file_metadata)
+  t(json_string, expected_json_string)
+
+  empty_file_metadata = []
+  expected_json_string = '{}'
+
+  json_string = metadata.json.stringify(empty_file_metadata)
+  t(json_string, expected_json_string)
+
+  test.pass()
+end
+
+def test_metadata_json_parse() =
+  metadata_json_string = '{"artist": "Artist"}'
+  expected_parsed_metadata = [("artist", "Artist")]
+
+  parsed_metadata = metadata.json.parse(metadata_json_string)
+  t(parsed_metadata, expected_parsed_metadata)
+
+  empty_metadata_json_string = '{}'
+  expected_parsed_metadata = []
+
+  parsed_metadata = metadata.json.parse(empty_metadata_json_string)
+  t(parsed_metadata, expected_parsed_metadata)
+
+  test.pass()
+end
+
 test.check(f)
+test.check(test_metadata_json_stringify)
+test.check(test_metadata_json_parse)

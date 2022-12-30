@@ -8,6 +8,7 @@ Fixed:
 * Fixed internal streaming logic in `max_duration` and `crossfade`.
 * Make sure that there's at most one metadata at any given
   frame position (#2786)
+* Fixed `metadata.json.parse` always returns an empty list (#2816).
 
 ---
 2.1.3 (2022-11-04)
