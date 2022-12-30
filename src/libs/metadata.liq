@@ -172,7 +172,7 @@ end
 
 # Parse metadata from JSON object.
 # @category Metadata
-def metadata.json.parse(s) =
-  let json.parse ( m : [(string * string)]? ) = s
-  m ?? []
+def metadata.json.parse(json_string) =
+  let json.parse ( metadata_list : [(string * string)] as json.object ) = json_string
+  metadata_list
 end
