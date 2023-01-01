@@ -13,11 +13,11 @@ let add_protocol ~syntax ~doc ~static name resolver =
 let frame_t base_type fields = Frame_type.make base_type fields
 let internal_t () = Frame_type.internal ()
 
-(** Type of audio formats that can encode frame of a given kind. *)
-let format_t k =
+let format_t t =
   Type.make
     (Type.Constr
-       { Type.constructor = "format"; Type.params = [(`Covariant, k)] })
+       (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
+       { Type.constructor = "format"; Type.params = [(`Invariant, t)] })
 
 module HttpTransport = struct
   include Value.MkAbstract (struct

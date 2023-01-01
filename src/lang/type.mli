@@ -26,7 +26,7 @@ val debug_variance : bool ref
 
 (** {2 Types} *)
 
-type variance = [ `Covariant | `Contravariant | `Invariant ]
+type variance = [ `Covariant | `Invariant ]
 type descr = Type_base.descr = ..
 type t = Type_base.t = private { pos : Pos.Option.t; descr : descr }
 type constr_t = Type_base.constr_t = ..
@@ -125,6 +125,7 @@ val meth :
 val meths : ?pos:Pos.t -> string list -> scheme -> t -> t
 val split_meths : t -> meth list * t
 val var : ?constraints:constr list -> ?level:int -> ?pos:Pos.t -> unit -> t
+val mk_invariant : t -> unit
 val to_string_fun : (?generalized:var list -> t -> string) ref
 val to_string : ?generalized:var list -> t -> string
 val string_of_scheme : scheme -> string

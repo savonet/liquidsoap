@@ -46,7 +46,7 @@ let debug_variance = ref false
 
 (** {2 Types} *)
 
-type variance = [ `Covariant | `Contravariant | `Invariant ]
+type variance = [ `Covariant | `Invariant ]
 
 (** Type description *)
 type descr = ..
@@ -339,3 +339,10 @@ let register_type name custom =
         Hashtbl.replace custom_types root (fun () -> f (root_mk_typ ()) names)
 
 let find_type_opt = Hashtbl.find_opt custom_types
+
+let rec mk_invariant t =
+  match t with
+    | { descr = Var ({ contents = Link (_, t) } as c) } ->
+        c := Link (`Invariant, t);
+        mk_invariant t
+    | _ -> ()
