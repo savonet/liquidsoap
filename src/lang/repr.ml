@@ -197,9 +197,6 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | Var { contents = Link (`Covariant, t) } when !debug || !debug_variance
           ->
             `Debug ("[>", repr g t, "]")
-        | Var { contents = Link (`Contravariant, t) }
-          when !debug || !debug_variance ->
-            `Debug ("[<", repr g t, "]")
         | Var { contents = Link (_, t) } -> repr g t
         | _ -> raise NotImplemented)
   in

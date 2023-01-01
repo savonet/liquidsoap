@@ -261,6 +261,7 @@ let source_t ?(methods = false) frame_t =
   let t =
     Type.make
       (Type.Constr
+         (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
          { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
   in
   if methods then source_methods_t t else t

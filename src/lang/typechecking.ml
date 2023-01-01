@@ -382,10 +382,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
 let display_types = ref false
 
 (* The simple definition for external use. *)
-let check ?(ignored = false) ~throw e =
+let check ?env ?(ignored = false) ~throw e =
   let print_toplevel = !display_types in
   try
-    let env = Environment.default_typing_environment () in
+    let env =
+      match env with
+        | Some env -> env
+        | None -> Environment.default_typing_environment ()
+    in
     check ~print_toplevel ~throw ~level:0 ~env e;
     if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
       add_task (fun () ->

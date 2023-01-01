@@ -64,6 +64,7 @@ let profile = ref false
 
 let ref_t ?pos t =
   Type.make ?pos
+    (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
     (Type.Constr { Type.constructor = "ref"; params = [(`Invariant, t)] })
 
 (** {2 Terms} *)

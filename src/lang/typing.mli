@@ -50,3 +50,6 @@ val ( >: ) : t -> t -> unit
 
 (** Supremeum of two types. *)
 val sup : pos:Pos.Option.t -> t -> t -> t
+
+(** Bind a variable *)
+val bind : ?variance:Type.variance -> t -> t -> unit

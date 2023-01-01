@@ -440,10 +440,10 @@ and ( <: ) a b =
                       let v = if v1 = v2 then v1 else `Invariant in
                       match v with
                         | `Covariant -> h1 <: h2
-                        | `Contravariant -> h2 <: h1
                         | `Invariant ->
+                            mk_invariant h2;
                             h1 <: h2;
-                            h2 <: h1
+                            mk_invariant h2
                     with Error (a, b) ->
                       let bt = Printexc.get_raw_backtrace () in
                       let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in

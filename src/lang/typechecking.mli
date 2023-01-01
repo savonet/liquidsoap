@@ -10,4 +10,5 @@ val type_of_pat :
   Term.pattern ->
   (string list * Type.t) list * Type.t
 
-val check : ?ignored:bool -> throw:(exn -> unit) -> Term.t -> unit
+val check :
+  ?env:Typing.env -> ?ignored:bool -> throw:(exn -> unit) -> Term.t -> unit

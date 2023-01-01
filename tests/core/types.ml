@@ -253,3 +253,78 @@ let () =
   let meths, _ = Type.split_meths a_meth in
   let foo = List.find (fun Type.{ meth; _ } -> meth = "foo") meths in
   assert (foo.Type.optional = true)
+
+let () =
+  (* source(audio=pcm(stereo)) *)
+  let a =
+    Lang.source_t (Lang.record_t [("audio", Format_type.audio_stereo ())])
+  in
+
+  (* source() *)
+  let b = Lang.source_t Lang.unit_t in
+
+  (* { audio?: pcm(stereo)}, covariant *)
+  let record_t =
+    Lang.optional_record_t [("audio", Format_type.audio_stereo ())]
+  in
+  let covariant_t = Lang.univ_t () in
+  Typing.bind ~variance:`Covariant covariant_t record_t;
+  (match covariant_t.Type.descr with
+    | Type.Var { contents = Type.Link (`Covariant, _) } -> ()
+    | _ -> assert false);
+
+  (* source(?audio=pcm(stereo)) *)
+  let optional = Lang.source_t covariant_t in
+
+  Typing.(a <: optional);
+  Typing.(b <: optional);
+
+  match optional.Type.descr with
+    | Type.Constr { constructor = "source"; params = [(`Invariant, t)] } -> (
+        let meths, t = Type.split_meths t in
+        Typing.(t <: Lang.unit_t);
+        match meths with
+          | [{ Type.meth = "audio"; optional = true; scheme = [], t; _ }] ->
+              Typing.(t <: Format_type.audio_stereo ())
+          | _ -> assert false)
+    | _ -> assert false
+
+exception Test_failed
+
+let () =
+  (* fun (format('a), source('a)) -> unit *)
+  let a = Lang.univ_t () in
+  let fn_t =
+    Lang.fun_t
+      [(false, "", Lang.format_t a); (false, "", Lang.source_t a)]
+      Lang.unit_t
+  in
+  let fn = Term.make (Var "fn") in
+
+  (* format(audio: pcm(stereo)) *)
+  let x_t =
+    Lang.format_t
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ()))
+  in
+  let x_var = Term.make (Var "x") in
+
+  (* source(audio: pcm(mono)) *)
+  let y_t =
+    Lang.source_t
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~audio:(Format_type.audio_mono ()) ()))
+  in
+  let y_var = Term.make (Var "y") in
+
+  let app = Term.make (App (fn, [("", x_var); ("", y_var)])) in
+
+  let throw exn = raise exn in
+  let env = [("fn", ([], fn_t)); ("x", ([], x_t)); ("y", ([], y_t))] in
+
+  try
+    Liquidsoap_lang.Typechecking.check ~throw ~ignored:false ~env app;
+    raise Test_failed
+  with
+    | Test_failed -> raise Test_failed
+    | _ -> ()
