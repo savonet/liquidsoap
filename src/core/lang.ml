@@ -16,6 +16,7 @@ let internal_t () = Frame_type.internal ()
 let format_t t =
   Type.make
     (Type.Constr
+       (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
        { Type.constructor = "format"; Type.params = [(`Invariant, t)] })
 
 module HttpTransport = struct
