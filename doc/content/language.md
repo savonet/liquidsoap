@@ -280,8 +280,8 @@ will result in
 
 ```
 At line 1, char 19-21:
-Error 5: this value has type (...) -> string
-but it should be a subtype of (...) -> int
+Error 5: this value has type string
+but it should be a subtype of int
 ```
 
 meaning that `"A"` is a string but is expected to be an integer because the

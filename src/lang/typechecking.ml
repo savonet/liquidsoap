@@ -304,7 +304,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                           let first = not (List.mem lbl already) in
                           raise (No_label (a, lbl, first, v))
                       | Some (_, t, ap') ->
-                          v.t <: t;
+                          (match (a.term, lbl) with
+                            | Var "if", "then" | Var "if", "else" ->
+                                let a = Type.var ?pos:v.t.Type.pos () in
+                                let b = Type.var ?pos:t.Type.pos () in
+                                v.t <: Type.make (Type.Arrow ([], a));
+                                t <: Type.make (Type.Arrow ([], b));
+                                a <: b
+                            | _ -> v.t <: t);
                           (lbl :: already, ap'))
                   ([], ap) l
               in
