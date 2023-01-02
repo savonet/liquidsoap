@@ -305,12 +305,13 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                           raise (No_label (a, lbl, first, v))
                       | Some (_, t, ap') ->
                           (match (a.term, lbl) with
-                            | Var "if", "then" | Var "if", "else" ->
-                                let a = Type.var ?pos:v.t.Type.pos () in
-                                let b = Type.var ?pos:t.Type.pos () in
-                                v.t <: Type.make (Type.Arrow ([], a));
-                                t <: Type.make (Type.Arrow ([], b));
-                                a <: b
+                            | Var "if", "then" | Var "if", "else" -> (
+                                match
+                                  ((Type.deref v.t).descr, (Type.deref t).descr)
+                                with
+                                  | Type.Arrow ([], vt), Type.Arrow ([], t) ->
+                                      vt <: t
+                                  | _ -> assert false)
                             | _ -> v.t <: t);
                           (lbl :: already, ap'))
                   ([], ap) l

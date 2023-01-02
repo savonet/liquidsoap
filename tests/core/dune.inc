@@ -266,6 +266,20 @@
 
 
 (executable
+ (name more_types)
+ (modules more_types)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+
+  (:more_types more_types.exe))
+ (action (run %{more_types} )))
+
+
+(executable
  (name source_test)
  (modules source_test)
  (libraries liquidsoap_core liquidsoap_optionals))
