@@ -59,6 +59,7 @@
     magic
     memtrace
     mem_usage
+    ocaml-canvas
     ogg
     opus
     osc-unix

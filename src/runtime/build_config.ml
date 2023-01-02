@@ -86,6 +86,7 @@ let build_config =
    - DSSI              : %{Dssi_option.detected}
 
  * Visualization
+   - Canvas            : %{Canvas_option.detected}
    - GD                : %{Gd_option.detected}
    - Graphics          : %{Graphics_option.detected}
    - SDL               : %{Sdl_option.detected}
