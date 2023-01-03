@@ -426,7 +426,7 @@ exception Ignored of t
     helpful. *)
 exception No_label of t * string * bool * t
 
-(** A function defines multiple times a given label. *)
+(** A function defines multiple arguments with the same label. *)
 exception Duplicate_label of Pos.Option.t * string
 
 (** Some mandatory arguments with given label and typed were not passed to the
