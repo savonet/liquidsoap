@@ -2,6 +2,7 @@
 =====
 
 Fixed:
+* Fixed parameter type for `stats_interval` in SRT I/O.
 * Fixed type generalization on variable and pattern bindings
   (#2782)
 * Space trim in interactive variables set on telnet (#2785)

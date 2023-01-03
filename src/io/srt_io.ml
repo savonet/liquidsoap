@@ -84,10 +84,6 @@ let common_options ~mode =
          are aborted if no data was received, indefinite if `null`." );
     ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
     ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");
-    ( "stats_interval",
-      Lang.int_t,
-      Some (Lang.int 100),
-      Some "Interval used to collect statistics" );
     ( "on_connect",
       Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
@@ -423,7 +419,9 @@ let parse_common_options p =
   let on_connect = List.assoc "on_connect" p in
   let on_disconnect = List.assoc "on_disconnect" p in
   let stats_interval =
-    float (Lang.to_int (List.assoc "stats_interval" p)) /. 1000.
+    Option.map
+      (fun i -> float i /. 1000.)
+      (Lang.to_valued_option Lang.to_int (List.assoc "stats_interval" p))
   in
   let read_timeout =
     Lang.to_valued_option Lang.to_int (List.assoc "read_timeout" p)
@@ -605,6 +603,7 @@ class virtual base =
   end
 
 class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
+  let stats_interval = Option.value ~default:(-1.) stats_interval in
   object (self)
     method virtual private connect : unit
     method virtual private disconnect : unit
