@@ -11,19 +11,19 @@ fi
 echo "Detected branch: ${BRANCH}"
 
 if [[ "${BRANCH}" =~ "rolling-release-" ]] || [[ "${BRANCH}" =~ ^v[0-9] ]]; then
-  echo "Branch is release branch"
-  IS_RELEASE=true
+  #echo "Branch is release branch"
+  #IS_RELEASE=true
 
   echo "Building on all architectures"
-  BUILD_OS='["debian_bookworm", "debian_bullseye", "ubuntu_jammy", "ubuntu_focal", "alpine"]'
-  BUILD_PLATFORM='["amd64", "arm64", "armhf"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64"}, {"platform": "arm64", "runs-on": "self-hosted", "alpine-arch": "aarch64", "docker-platform": "linux/arm64"}, {"platform": "armhf", "runs-on": "self-hosted", "alpine-arch": "armv7", "docker-platform": "linux/arm/v7"}]'
+  BUILD_OS='["debian_bullseye"]'
+  BUILD_PLATFORM='["amd64"]'
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest"}'
 
-  echo "Enabling opam build"
-  echo "##[set-output name=build_opam;]true"
+  #echo "Enabling opam build"
+  #echo "##[set-output name=build_opam;]true"
 
-  echo "Branch has a docker release"
-  DOCKER_RELEASE=true
+  #echo "Branch has a docker release"
+  #DOCKER_RELEASE=true
 else
   echo "Branch is not release branch"
   IS_RELEASE=
