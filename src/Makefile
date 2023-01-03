@@ -259,7 +259,7 @@ liquidsoap_sources = \
 	$(if $(W_FFMPEG),tools/ffmpeg_avfilter_utils.ml) \
         converters/video_converter.ml \
 	decoder/decoder_utils.ml decoder/decoder.ml \
-        tools/liq_time.ml $(if $(W_POSIX_TIME2),tools/liq_posix_time.ml) \
+        tools/liq_time.ml \
         request.ml tools/server.ml \
         source.ml clock.ml playlist_parser.ml \
 	$(encoder_formats) encoder.ml \
