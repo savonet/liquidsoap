@@ -162,6 +162,15 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         ([], env) proto
     in
     let proto_t = List.rev proto_t in
+    (* Ensure that we don't have the same label twice. *)
+    List.fold_left
+      (fun labels (_, l, _) ->
+        if l = "" then labels
+        else (
+          if List.mem l labels then raise (Duplicate_label (e.t.Type.pos, l));
+          l :: labels))
+      [] proto_t
+    |> ignore;
     check ~level ~env body;
     e.t >: mk (Type.Arrow (proto_t, body.t))
   in
