@@ -1,6 +1,9 @@
 2.1.4 (unreleased)
 =====
 
+New:
+* Added `buffer_length` method to `buffer` operator.
+
 Fixed:
 * Fixed parameter type for `stats_interval` in SRT I/O.
 * Fixed type generalization on variable and pattern bindings

@@ -61,6 +61,8 @@ module Buffer = struct
         Generator.remove c.generator len;
         len
 
+      method buffer_length = Generator.length c.generator
+
       method private get_frame frame =
         proceed c (fun () ->
             assert (not c.buffering);
@@ -142,6 +144,13 @@ let () =
         ("", Lang.source_t k, None, None);
       ])
     ~return_t:k ~category:`Liquidsoap
+    ~meth:
+      [
+        ( "buffer_length",
+          ([], Lang.int_t),
+          "Buffer length, in main ticks",
+          fun s -> Lang.int s#buffer_length );
+      ]
     ~descr:"Create a buffer between two different clocks."
     (fun p ->
       let id =
