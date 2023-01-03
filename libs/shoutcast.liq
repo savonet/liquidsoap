@@ -11,7 +11,7 @@ def output.shoutcast(
   %argsof(
    output.icecast[!headers,!description,!protocol]
   ),
-  ~icy_reset=true,~icy_id=1,~dj={""},
+  ~icy_reset=true,~dj={""},
   ~aim="",~icq="",~irc="",
   e, s) =
   icy_reset = if icy_reset then "1" else "0" end
