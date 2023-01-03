@@ -215,9 +215,9 @@ let buffer =
     ~meth:
       [
         ( "buffer_length",
-          ([], Lang.int_t),
+          ([], Lang.fun_t [] Lang.int_t),
           "Buffer length, in main ticks",
-          fun s -> Lang.int s#buffer_length );
+          fun s -> Lang.val_fun [] (fun _ -> Lang.int s#buffer_length) );
       ]
     ~descr:"Create a buffer between two different clocks."
     (fun p ->
