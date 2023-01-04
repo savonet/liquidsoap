@@ -46,6 +46,11 @@ git clone https://github.com/whitequark/ocaml-inotify.git
 cd ocaml-inotify && opam pin -n .
 opam install -y uri inotify
 
+git clone https://github.com/savonet/ocaml-posix.git
+cd ocaml-posix
+git checkout clock_nanosleep
+opam install -y .
+
 cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES

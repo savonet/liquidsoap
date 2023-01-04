@@ -38,13 +38,6 @@ open Time
 let time_unit = Time.of_float 1.
 let time_zero = Time.of_float 0.
 
-let sleep d =
-  let cur = time () in
-  try sleep d
-  with Unix.Unix_error (Unix.EINTR, _, _) ->
-    let diff = d |-| time () |+| cur in
-    if time_zero |<| diff then sleep diff
-
 let () =
   Lifecycle.on_init (fun () ->
       log#important "Using %s implementation for latency control"
@@ -226,11 +219,10 @@ class clock ?(start = true) ?(sync = `Auto) id =
       t0 <- time ();
       ticks <- 0L;
       let frame_duration = Time.of_float (Lazy.force Frame.duration) in
-      let delay () =
+      let target_time () =
         t0
         |+| (frame_duration
             |*| Time.of_float (Int64.to_float (Int64.add ticks 1L)))
-        |-| time ()
       in
       log#important "Streaming loop starts in %s mode" (sync_descr sync);
       let rec loop () =
@@ -238,11 +230,12 @@ class clock ?(start = true) ?(sync = `Auto) id =
         if outputs = [] then ()
         else (
           let self_sync = self#self_sync in
-          let rem = if self_sync then time_zero else delay () in
+          let target_time = target_time () in
+          let rem = if self_sync then time_zero else target_time |-| time () in
           (* Sleep a while or worry about the latency *)
           if self_sync || time_zero |<| rem then (
             acc := 0;
-            if time_zero |<| rem then sleep rem)
+            if time_zero |<| rem then sleep_until target_time)
           else (
             incr acc;
             if rem |<| max_latency then (

@@ -3,7 +3,7 @@ module type T = sig
 
   val implementation : string
   val time : unit -> t
-  val sleep : t -> unit
+  val sleep_until : t -> unit
   val of_float : float -> t
   val to_float : t -> float
   val ( |+| ) : t -> t -> t
@@ -25,7 +25,12 @@ module Unix = struct
   let ( |*| ) x y = x *. y
   let ( |<| ) x y = x < y
   let ( |<=| ) x y = x <= y
-  let sleep = Thread.delay
+
+  let rec sleep_until t =
+    let delay = t -. time () in
+    if 0. < delay then (
+      try Thread.delay delay
+      with Unix.Unix_error (Unix.EINTR, _, _) -> sleep_until t)
 end
 
 let unix : (module T) = (module Unix)
