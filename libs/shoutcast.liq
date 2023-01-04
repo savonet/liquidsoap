@@ -3,7 +3,6 @@
 # @category Source / Output
 # @argsof output.icecast[!headers,!description,!protocol]
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
-# @param ~icy_id Shoutcast source ID. Only supported by Shoutcast v2.
 # @param ~dj Callback to set dj name.
 # @param e Encoding format. For shoutcast, should be mp3 or AAC(+).
 # @param s The source to output
