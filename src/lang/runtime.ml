@@ -125,6 +125,11 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
         (if lbl = "" then "unlabeled argument"
         else Format.sprintf "argument labeled %S" lbl);
       raise Error
+  | Term.Duplicate_label (pos, lbl) ->
+      error_header ~formatter 6 pos;
+      Format.fprintf formatter
+        "Function has multiple arguments with the same label: %s@]@." lbl;
+      raise Error
   | Error.Invalid_value (v, msg) ->
       error_header ~formatter 7 v.Value.pos;
       Format.fprintf formatter "Invalid value:@ %s@]@." msg;

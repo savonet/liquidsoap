@@ -413,25 +413,30 @@ let can_ignore t =
 
 (** {1 Basic checks and errors} *)
 
+(** Trying to use an unbound variable. *)
 exception Unbound of Pos.Option.t * string
+
+(** Silently discarding a meaningful value. *)
 exception Ignored of t
 
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
-  * passed to the function [f] because the latter has no label [lbl].
-  * The [first] information tells whether [lbl=x] is the first parameter with
-  * label [lbl] in the considered application, which makes the message a bit
-  * more helpful. *)
+    passed to the function [f] because the latter has no label [lbl].  The
+    [first] information tells whether [lbl=x] is the first parameter with label
+    [lbl] in the considered application, which makes the message a bit more
+    helpful. *)
 exception No_label of t * string * bool * t
+
+(** A function defines multiple arguments with the same label. *)
+exception Duplicate_label of Pos.Option.t * string
 
 (** Some mandatory arguments with given label and typed were not passed to the
     function during an application. *)
 exception Missing_arguments of Pos.Option.t * (string * Type.t) list
 
-(** Check that all let-bound variables are used.
-  * No check is performed for variable arguments.
-  * This cannot be done at parse-time (as for the computatin of the
-  * free variables of functions) because we need types, as well as
-  * the ability to distinguish toplevel and inner let-in terms. *)
+(** Check that all let-bound variables are used. No check is performed for
+    variable arguments. This cannot be done at parse-time (as for the
+    computation of the free variables of functions) because we need types, as
+    well as the ability to distinguish toplevel and inner let-in terms. *)
 exception Unused_variable of (string * Pos.t)
 
 let check_unused ~throw ~lib tm =

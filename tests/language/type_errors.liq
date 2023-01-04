@@ -82,6 +82,7 @@ def f() =
   correct('fallback(transitions=[fun(x,y,a=2)->x],[blank()])')
   incorrect('fallback(transitions=[fun(x,y)->y+1],[blank()])')
   correct('x=fun(f)->f(3) y=x(fun(f,u="1")->u) ignore(y)')
+  incorrect('f=fun(~l,~l) -> l')
 
   section("CONTENT KIND")
   incorrect('output.file(%vorbis(stereo),"foo",mean(blank()))')
