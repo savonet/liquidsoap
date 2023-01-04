@@ -64,7 +64,7 @@
     osc-unix
     osx-secure-transport
     portaudio
-    posix-time2
+    (posix-time2 (>= 2.1.0))
     pulseaudio
     prometheus-liquidsoap
     samplerate
