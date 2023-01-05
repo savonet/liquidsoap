@@ -861,7 +861,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
     method is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
 
-    method self_sync = (`Dynamic, self#is_connected)
+    method self_sync = (`Static, false)
 
     method private create_decoder socket =
       let create_decoder =
