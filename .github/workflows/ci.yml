@@ -289,7 +289,6 @@ jobs:
   fetch_s3_artifacts:
     runs-on: ubuntu-latest
     needs: [build_details, build_posix]
-    if: false
     steps:
       - name: Prepare directory
         run: |
@@ -481,7 +480,7 @@ jobs:
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
+    needs: [build_details, build_posix, fetch_s3_artifacts]
     strategy:
       fail-fast: false
       matrix:
