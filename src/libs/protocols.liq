@@ -209,11 +209,17 @@ let settings.protocol.youtube_dl.path = settings.make(
   "youtube-dl"
 )
 
+let settings.protocol.youtube_dl.timeout = settings.make(
+  description="Timeout (in seconds) for youtube-dl executions.",
+  300.
+)
+
 # Register the youtube-dl protocol, using youtube-dl.
 # Syntax: youtube-dl:<ID>
 # @flag hidden
 def youtube_dl_protocol(~rlog,~maxtime,arg)
   binary = settings.protocol.youtube_dl.path()
+  timeout = settings.protocol.youtube_dl.timeout()
 
   def log(~level,s) =
     rlog(s)
@@ -221,6 +227,8 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   end
 
   delay = maxtime - time()
+  # Overrinding default delay which is usually too short
+  delay = max(delay, timeout)
   cmd = "#{binary} --get-title --get-filename -- #{process.quote(arg)}"
   log(level=4,"Executing #{cmd}")
   x = process.read.lines(timeout=delay,cmd)
