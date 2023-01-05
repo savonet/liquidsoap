@@ -84,6 +84,8 @@ jobs:
           echo "::endgroup::"
           cd liquidsoap
           ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
+        env:
+          LIQ_BUILD_MIN: true
       - name: Build doc
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
