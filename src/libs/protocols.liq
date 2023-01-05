@@ -259,13 +259,20 @@ protocol.add("youtube-dl", youtube_dl_protocol,
 # Register the youtube-pl protocol.
 # Syntax: youtube-pl:<ID>
 # @flag hidden
-def youtube_pl_protocol(~rlog=_,~maxtime=_,arg)
+def youtube_pl_protocol(~rlog=_,~maxtime,arg)
+  binary = settings.protocol.youtube_dl.path()
+  delay = maxtime - time()
+  cmd = "#{binary} -i -s --get-id --flat-playlist -- #{process.quote(arg)}"
+  log(level=4,"Executing #{cmd}")
+  l = process.read.lines(timeout=delay,cmd)
+  l = list.map(fun(s) -> "youtube-dl:https://www.youtube.com/watch?v="^s, l)
+  l = string.concat(separator="\n", l) ^ "\n"
   tmp = file.temp("youtube-pl","")
-  file.write(data="youtube-pl:#{arg}",tmp)
+  file.write(data=l,tmp)
   [tmp]
 end
 protocol.add("youtube-pl", youtube_pl_protocol,
-              doc="Resolve a request as a youtube playlist using youtube-dl.",
+              doc="Resolve a request as a youtube playlist using youtube-dl. You typically want to use this as `playlist(\"youtube-pl:...\")`.",
               temporary=true,syntax="youtube-pl:uri")
 
 # Register tmp
