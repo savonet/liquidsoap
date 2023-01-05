@@ -21,6 +21,13 @@ def null.to_list(x)
   null.case(x, {[]}, fun (x) -> [x])
 end
 
+# Apply a function on a nullable value if it is not null, and return null
+# otherwise.
+# @category Programming
+def null.map(f,x)
+  null.case(x, {null()}, fun(x) -> f(x))
+end
+
 # Find the first element of a list for which the image of the function is not
 # `null`. Raises `error.not_found` if not element is found and no default value
 # was specified.

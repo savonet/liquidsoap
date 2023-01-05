@@ -55,8 +55,24 @@ def process_protocol(~rlog=_,~maxtime,arg)
   x = r/:/.split(arg)
   uri = string.concat(separator=":",list.tl(x))
   x = r/,/.split(list.hd(default="",x))
-  extname = list.hd(default="liq",x)
-  cmd = string.concat(separator=",",list.tl(x))
+  a = list.hd(default="liq",x)
+  x = list.tl(x)
+
+  let (timeout, extname, cmd) =
+    # Allow specifying the timeout before the extension
+    if string.contains(prefix="timeout=", a) then
+      timeout = string.residual(prefix="timeout=", a)
+      timeout = null.map(string.to_float, timeout)
+      timeout = timeout??(maxtime - time())
+      extname = list.hd(default="liq",x)
+      cmd = string.concat(separator=",", list.tl(x))
+      (timeout, extname, cmd)
+    else
+      timeout = maxtime - time()
+      extname = a
+      cmd = string.concat(separator=",", list.tl(x))
+      (timeout, extname, cmd)
+    end
 
   output = file.temp("liq-process", ".#{extname}")
 
@@ -73,8 +89,7 @@ def process_protocol(~rlog=_,~maxtime,arg)
     env = list.map(get_env,env_vars)
     inherit_env = settings.protocol.process.inherit_env()
 
-    delay = maxtime - time()
-    p = process.run(timeout=delay,env=env,inherit_env=inherit_env,cmd)
+    p = process.run(timeout=timeout, env=env, inherit_env=inherit_env, cmd)
 
     if p.status == "exit" and p.status.code == 0 then
       [output]
@@ -113,15 +128,16 @@ protocol.add(temporary=true, "process", process_protocol,
                   file name as returned while resolving `uri`.",
              syntax="process:<extname>,<cmd>[:uri]")
 
-# Create a process: uri, replacing `:` with `$(colon)`
+# Create a process: uri, replacing `:` with `$(colon)`.
 # @category Liquidsoap
 # @param cmd Command line to execute
 # @param ~extname Output file extension (with no leading '.')
 # @param ~uri Input uri
-def process_uri(~extname,~uri="",cmd) =
+def process_uri(~timeout=null(),~extname,~uri="",cmd) =
+  timeout = null.case(timeout, {""}, fun(t) -> "timeout=" ^ string(t) ^ ",")
   cmd = r/:/.replace(fun (_) -> "$(colon)",cmd)
   uri = if uri != "" then ":#{uri}" else "" end
-  "process:#{extname},#{cmd}#{uri}"
+  "process:#{timeout}#{extname},#{cmd}#{uri}"
 end
 
 %ifdef http.head
@@ -227,8 +243,6 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   end
 
   delay = maxtime - time()
-  # Overrinding default delay which is usually too short
-  delay = max(delay, timeout)
   cmd = "#{binary} --get-title --get-filename -- #{process.quote(arg)}"
   log(level=4,"Executing #{cmd}")
   x = process.read.lines(timeout=delay,cmd)
@@ -244,7 +258,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   ext   = file.extension(leading_dot=false,list.nth(default="",x,1))
 
   cmd = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{process.quote(arg)}"
-  cmd = process_uri(extname=ext,cmd)
+  cmd = process_uri(timeout=timeout, extname=ext, cmd)
 
   if title != "" then
     ["annotate:title=#{string.quote(title)}:#{cmd}"]
