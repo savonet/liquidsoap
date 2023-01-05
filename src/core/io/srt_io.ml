@@ -25,6 +25,9 @@
 exception Done
 exception Not_connected
 
+(** Dedicated clock. *)
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "SRT")
+
 let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
@@ -409,9 +412,10 @@ class virtual output_networking_agent =
         : Srt.socket -> exn -> Printexc.raw_backtrace -> unit
   end
 
-class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~payload_size ~messageapi ~hostname ~port ~connection_timeout
-  ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
+class virtual caller ?latency ~enforced_encryption ~pbkeylen ~passphrase
+  ~streamid ~polling_delay ~payload_size ~messageapi ~hostname ~port
+  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect ()
+  =
   object (self)
     method virtual should_stop : bool
     val mutable connect_task = None
@@ -465,6 +469,8 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
               (Option.map
                  (fun v -> Srt.(setsockflag s rcvtimeo v))
                  read_timeout);
+            ignore
+              (Option.map (fun v -> Srt.(setsockflag s rcvlatency v)) latency);
             Srt.connect s sockaddr;
             Srt.setsockflag s Srt.sndsyn true;
             Srt.setsockflag s Srt.rcvsyn true;
@@ -510,9 +516,10 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         ()
   end
 
-class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
-  ~listen_callback ~payload_size ~messageapi ~bind_address ~connection_timeout
-  ~read_timeout ~write_timeout ~on_connect ~on_disconnect () =
+class virtual listener ?latency ~enforced_encryption ~pbkeylen ~passphrase
+  ~max_clients ~listen_callback ~payload_size ~messageapi ~bind_address
+  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect ()
+  =
   object (self)
     val mutable client_sockets = []
     method virtual log : Log.t
@@ -532,6 +539,8 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
             (Option.map
                (fun v -> Srt.(setsockflag s conntimeo v))
                connection_timeout);
+          ignore
+            (Option.map (fun v -> Srt.(setsockflag s rcvlatency v)) latency);
           let client, origin = Srt.accept s in
           Poll.add_socket ~mode:`Read listener (accept_connection listener);
           (try self#log#info "New connection from %s" (string_of_address origin)
@@ -618,8 +627,8 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
         ()
   end
 
-class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
-  ~payload_size ~dump ~on_start ~on_stop ~autostart format =
+class virtual input_base ~max ~clock_safe ~min_packets ~on_connect
+  ~on_disconnect ~payload_size ~dump ~on_start ~on_stop ~autostart format =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit input_networking_agent
@@ -627,7 +636,7 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
 
     inherit
       Start_stop.active_source
-        ~name:"input.srt" ~clock_safe ~on_start ~on_stop ~autostart
+        ~name:"input.srt" ~clock_safe ~get_clock ~on_start ~on_stop ~autostart
           ~fallible:true () as super
 
     val mutable decoder_data = None
@@ -657,8 +666,12 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
 
+    method private is_data_ready =
+      Srt.getsockflag (snd self#get_socket) Srt.rcvdata >= min_packets
+
     method! is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
+      && self#is_data_ready
 
     method self_sync = (`Dynamic, self#is_connected)
 
@@ -725,18 +738,18 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
   end
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-  ~bind_address ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect
-  ~read_timeout ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start
-  ~on_stop ~autostart format =
+  ~bind_address ~max ~payload_size ~clock_safe ~min_packets ~latency ~on_connect
+  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
+  ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect ~dump
-          ~on_start ~on_stop ~autostart format
+        ~max ~payload_size ~clock_safe ~min_packets ~on_connect ~on_disconnect
+          ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       listener
-        ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
+        ?latency ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
           ~max_clients:(Some 1) ~bind_address ~payload_size ~read_timeout
           ~write_timeout ~connection_timeout ~messageapi ~on_connect
           ~on_disconnect ()
@@ -749,20 +762,21 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   end
 
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~hostname ~port ~max ~payload_size ~clock_safe ~on_connect
-  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
-  ~dump ~on_start ~on_stop ~autostart format =
+  ~polling_delay ~hostname ~port ~max ~payload_size ~clock_safe ~min_packets
+  ~latency ~on_connect ~on_disconnect ~read_timeout ~write_timeout
+  ~connection_timeout ~messageapi ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect ~dump
-          ~on_start ~on_stop ~autostart format
+        ~max ~payload_size ~clock_safe ~min_packets ~on_connect ~on_disconnect
+          ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       caller
-        ~enforced_encryption ~pbkeylen ~passphrase ~streamid ~polling_delay
-          ~hostname ~port ~payload_size ~read_timeout ~write_timeout
-          ~connection_timeout ~messageapi ~on_connect ~on_disconnect
+        ?latency ~enforced_encryption ~pbkeylen ~passphrase ~streamid
+          ~polling_delay ~hostname ~port ~payload_size ~read_timeout
+          ~write_timeout ~connection_timeout ~messageapi ~on_connect
+          ~on_disconnect ()
 
     method get_sockets =
       match self#get_socket with s -> [s] | exception Not_found -> []
@@ -780,6 +794,18 @@ let _ =
           Lang.float_t,
           Some (Lang.float 10.),
           Some "Maximum duration of the buffered data." );
+        ( "min_packets",
+          Lang.int_t,
+          Some (Lang.int 10),
+          Some
+            "Minimum number of received packets required to consider the input \
+             available." );
+        ( "latency",
+          Lang.nullable_t Lang.int_t,
+          Some Lang.null,
+          Some
+            "Minimum receiver buffering delay, in milliseconds, before \
+             delivering an SRT data packet." );
         ( "dump",
           Lang.string_t,
           Some (Lang.string ""),
@@ -821,6 +847,10 @@ let _ =
           | s -> Some s
       in
       let max = Lang.to_float (List.assoc "max" p) in
+      let min_packets = Lang.to_int (List.assoc "min_packets" p) in
+      let latency =
+        Lang.to_valued_option Lang.to_int (List.assoc "latency" p)
+      in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -837,17 +867,18 @@ let _ =
             (new input_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
                ~bind_address ~read_timeout ~write_timeout ~connection_timeout
-               ~payload_size ~clock_safe ~on_connect ~on_disconnect ~messageapi
-               ~max ~dump ~on_start ~on_stop ~autostart format
+               ~payload_size ~clock_safe ~min_packets ~latency ~on_connect
+               ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
+               ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Caller ->
             (new input_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~hostname ~port ~payload_size ~clock_safe
-               ~on_connect ~read_timeout ~write_timeout ~connection_timeout
-               ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
-               ~autostart format
+               ~min_packets ~latency ~on_connect ~read_timeout ~write_timeout
+               ~connection_timeout ~on_disconnect ~messageapi ~max ~dump
+               ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
@@ -955,7 +986,7 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
       caller
         ~enforced_encryption ~pbkeylen ~passphrase ~streamid ~polling_delay
           ~hostname ~port ~payload_size ~read_timeout ~write_timeout
-          ~connection_timeout ~messageapi ~on_connect ~on_disconnect
+          ~connection_timeout ~messageapi ~on_connect ~on_disconnect ()
 
     method private get_sockets =
       try [self#get_socket] with Not_connected -> []
