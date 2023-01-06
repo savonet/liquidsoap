@@ -407,6 +407,13 @@ let meth () =
                       stats_specs)) );
   ]
 
+let input_meth () =
+  ( "read_data",
+    ([], Lang.fun_t [] Lang.int_t),
+    "Number of packets pending for reading.",
+    fun s -> Lang.val_fun [] (fun _ -> Lang.int s#data_ready) )
+  :: meth ()
+
 let parse_common_options p =
   let bind_address = Lang.to_string (List.assoc "bind_address" p) in
   let bind_address =
@@ -866,9 +873,8 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~min_packets
     method seek _ = 0
     method remaining = -1
     method abort_track = Generator.add_break generator
-
-    method private is_data_ready =
-      Srt.getsockflag self#get_socket Srt.rcvdata >= min_packets
+    method data_ready = Srt.getsockflag self#get_socket Srt.rcvdata
+    method private is_data_ready = self#data_ready >= min_packets
 
     method is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
@@ -974,7 +980,7 @@ let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.srt" ~return_t ~category:`Input
-    ~meth:(meth () @ Start_stop.meth ())
+    ~meth:(input_meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
     (common_options ~mode:`Listener
     @ Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:`Nope
