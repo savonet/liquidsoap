@@ -289,6 +289,7 @@ jobs:
   fetch_s3_artifacts:
     runs-on: ubuntu-latest
     needs: [build_details, build_posix]
+    if: false
     steps:
       - name: Prepare directory
         run: |
