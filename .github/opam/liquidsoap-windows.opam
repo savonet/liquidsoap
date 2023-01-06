@@ -112,7 +112,7 @@ conflicts: [
   "shine-windows" {< "0.2.0"}
   "soundtouch-windows" {< "0.1.9"}
   "speex-windows" {< "0.4.0"}
-  "srt-windows" {< "0.2.1"}
+  "srt-windows" {< "0.3.0"}
   "ssl-windows" {< "0.5.2"}
   "taglib-windows" {< "0.3.7"}
   "sdl-liquidsoap-windows" {< "2"}
