@@ -428,11 +428,7 @@ let parse_common_options p =
   let bind_address = Unix.ADDR_INET (bind_address, port) in
   let on_connect = List.assoc "on_connect" p in
   let on_disconnect = List.assoc "on_disconnect" p in
-  let stats_interval =
-    Option.map
-      (fun i -> float i /. 1000.)
-      (Lang.to_valued_option Lang.to_int (List.assoc "stats_interval" p))
-  in
+  let stats_interval = None in
   let read_timeout =
     Lang.to_valued_option Lang.to_int (List.assoc "read_timeout" p)
   in
