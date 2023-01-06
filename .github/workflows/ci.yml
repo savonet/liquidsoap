@@ -496,11 +496,11 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
-      - name: Get debian bookworm package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)"
+      - name: Get debian bullseyes package
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bullseyes | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)"
         id: debian_package
-      - name: Get debian bookworm debug package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)"
+      - name: Get debian bullseyes debug package
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep debian-bullseyes | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)"
         id: debian_debug_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
