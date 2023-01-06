@@ -441,8 +441,6 @@ class virtual caller ?latency ~enforced_encryption ~pbkeylen ~passphrase
             self#log#important "Connecting to srt://%s:%d.." hostname port;
             ignore (Option.map (fun (_, s) -> close_socket s) socket);
             let s = mk_socket ~payload_size ~messageapi () in
-            Srt.setsockflag s Srt.sndsyn true;
-            Srt.setsockflag s Srt.rcvsyn true;
             ignore
               (Option.map (fun id -> Srt.(setsockflag s streamid id)) streamid);
             ignore
@@ -539,8 +537,6 @@ class virtual listener ?latency ~enforced_encryption ~pbkeylen ~passphrase
             (Option.map
                (fun v -> Srt.(setsockflag s conntimeo v))
                connection_timeout);
-          ignore
-            (Option.map (fun v -> Srt.(setsockflag s rcvlatency v)) latency);
           let client, origin = Srt.accept s in
           Poll.add_socket ~mode:`Read listener (accept_connection listener);
           (try self#log#info "New connection from %s" (string_of_address origin)
@@ -573,6 +569,8 @@ class virtual listener ?latency ~enforced_encryption ~pbkeylen ~passphrase
           (fun () ->
             assert (listening_socket = None);
             let s = mk_socket ~payload_size ~messageapi () in
+            ignore
+              (Option.map (fun v -> Srt.(setsockflag s rcvlatency v)) latency);
             Srt.bind s bind_address;
             let max_clients_callback =
               Option.map
@@ -627,9 +625,8 @@ class virtual listener ?latency ~enforced_encryption ~pbkeylen ~passphrase
         ()
   end
 
-class virtual input_base ~max ~clock_safe ~min_packets ~on_connect
+class virtual input_base ~clock_safe ~min_packets ~buffer_packets ~on_connect
   ~on_disconnect ~payload_size ~dump ~on_start ~on_stop ~autostart format =
-  let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit input_networking_agent
     inherit base
@@ -641,15 +638,16 @@ class virtual input_base ~max ~clock_safe ~min_packets ~on_connect
 
     val mutable decoder_data = None
     val mutable dump_chan = None
+    val mutable buffering = true
 
     initializer
-    Generator.set_max_length self#buffer max_length;
     let on_connect_cur = !on_connect in
     (on_connect :=
        fun () ->
          (match dump with
            | Some fname -> dump_chan <- Some (open_out_bin fname)
            | None -> ());
+         buffering <- true;
          on_connect_cur ());
     let on_disconnect_cur = !on_disconnect in
     on_disconnect :=
@@ -667,7 +665,12 @@ class virtual input_base ~max ~clock_safe ~min_packets ~on_connect
     method abort_track = Generator.add_track_mark self#buffer
 
     method private is_data_ready =
-      Srt.getsockflag (snd self#get_socket) Srt.rcvdata >= min_packets
+      match (buffering, Srt.getsockflag (snd self#get_socket) Srt.rcvdata) with
+        | true, n when n <= buffer_packets -> false
+        | true, _ ->
+            buffering <- false;
+            true
+        | false, n -> min_packets <= n
 
     method! is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
@@ -738,14 +741,14 @@ class virtual input_base ~max ~clock_safe ~min_packets ~on_connect
   end
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-  ~bind_address ~max ~payload_size ~clock_safe ~min_packets ~latency ~on_connect
-  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
-  ~dump ~on_start ~on_stop ~autostart format =
+  ~bind_address ~payload_size ~clock_safe ~min_packets ~buffer_packets ~latency
+  ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout
+  ~messageapi ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~clock_safe ~min_packets ~on_connect ~on_disconnect
-          ~dump ~on_start ~on_stop ~autostart format
+        ~payload_size ~clock_safe ~min_packets ~buffer_packets ~on_connect
+          ~on_disconnect ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       listener
@@ -762,14 +765,15 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   end
 
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~hostname ~port ~max ~payload_size ~clock_safe ~min_packets
-  ~latency ~on_connect ~on_disconnect ~read_timeout ~write_timeout
-  ~connection_timeout ~messageapi ~dump ~on_start ~on_stop ~autostart format =
+  ~polling_delay ~hostname ~port ~payload_size ~clock_safe ~min_packets
+  ~buffer_packets ~latency ~on_connect ~on_disconnect ~read_timeout
+  ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start ~on_stop
+  ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~clock_safe ~min_packets ~on_connect ~on_disconnect
-          ~dump ~on_start ~on_stop ~autostart format
+        ~payload_size ~clock_safe ~min_packets ~buffer_packets ~on_connect
+          ~on_disconnect ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       caller
@@ -790,13 +794,13 @@ let _ =
     (common_options ~mode:`Listener
     @ Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:`Nope
     @ [
-        ( "max",
-          Lang.float_t,
-          Some (Lang.float 10.),
-          Some "Maximum duration of the buffered data." );
+        ( "buffer_packets",
+          Lang.int_t,
+          Some (Lang.int 30),
+          Some "Packets to buffer before considering the input ready." );
         ( "min_packets",
           Lang.int_t,
-          Some (Lang.int 10),
+          Some (Lang.int 1),
           Some
             "Minimum number of received packets required to consider the input \
              available." );
@@ -846,7 +850,7 @@ let _ =
           | s when s = "" -> None
           | s -> Some s
       in
-      let max = Lang.to_float (List.assoc "max" p) in
+      let buffer_packets = Lang.to_int (List.assoc "buffer_packets" p) in
       let min_packets = Lang.to_int (List.assoc "min_packets" p) in
       let latency =
         Lang.to_valued_option Lang.to_int (List.assoc "latency" p)
@@ -867,8 +871,8 @@ let _ =
             (new input_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
                ~bind_address ~read_timeout ~write_timeout ~connection_timeout
-               ~payload_size ~clock_safe ~min_packets ~latency ~on_connect
-               ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
+               ~payload_size ~clock_safe ~buffer_packets ~min_packets ~latency
+               ~on_connect ~on_disconnect ~messageapi ~dump ~on_start ~on_stop
                ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
@@ -876,9 +880,9 @@ let _ =
             (new input_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~hostname ~port ~payload_size ~clock_safe
-               ~min_packets ~latency ~on_connect ~read_timeout ~write_timeout
-               ~connection_timeout ~on_disconnect ~messageapi ~max ~dump
-               ~on_start ~on_stop ~autostart format
+               ~buffer_packets ~min_packets ~latency ~on_connect ~read_timeout
+               ~write_timeout ~connection_timeout ~on_disconnect ~messageapi
+               ~dump ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
