@@ -880,7 +880,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~min_packets
       super#is_ready && (not self#should_stop) && self#is_connected
       && self#is_data_ready
 
-    method self_sync = (`Static, self#is_connected)
+    method self_sync = (`Dynamic, self#is_connected)
 
     method private create_decoder socket =
       let create_decoder =
@@ -1066,14 +1066,18 @@ let () =
                ~connection_timeout ~payload_size ~clock_safe ~min_packets
                ~latency ~on_connect ~stats_interval ~on_disconnect ~messageapi
                ~max ~log_overfull ~dump ~on_start ~on_stop ~autostart format
-              :> < Start_stop.active_source ; stats : Srt.Stats.t option >)
+              :> < Start_stop.active_source
+                 ; data_ready : int
+                 ; stats : Srt.Stats.t option >)
         | `Caller ->
             (new input_caller
                ~kind ~hostname ~port ~payload_size ~clock_safe ~min_packets
                ~latency ~on_connect ~read_timeout ~write_timeout
                ~connection_timeout ~stats_interval ~on_disconnect ~messageapi
                ~max ~log_overfull ~dump ~on_start ~on_stop ~autostart format
-              :> < Start_stop.active_source ; stats : Srt.Stats.t option >))
+              :> < Start_stop.active_source
+                 ; data_ready : int
+                 ; stats : Srt.Stats.t option >))
 
 class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect
