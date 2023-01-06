@@ -28,38 +28,42 @@ exception Done
 exception Not_connected
 
 module Socket_value = struct
-  let socket_options_specs =
+  let read_only_socket_options_specs = [("read_data", `Int Srt.rcvdata)]
+
+  let read_write_socket_options_specs =
     [
-      ("connection_timeout", `Int Srt.conntimeo);
       ("read_timeout", `Int Srt.rcvtimeo);
       ("write_timeout", `Int Srt.sndtimeo);
-      ("enforced_encryption", `Bool Srt.enforced_encryption);
       ("streamid", `String Srt.streamid);
-      ("passphrase", `String Srt.passphrase);
       ("pbkeylen", `Int Srt.pbkeylen);
+      ("read_latency", `Int Srt.rcvlatency);
     ]
+
+  let mk_socket_option name socket_opt =
+    let t =
+      match socket_opt with
+        | `Int _ -> Lang.int_t
+        | `Bool _ -> Lang.bool_t
+        | `String _ -> Lang.string_t
+    in
+    ( name,
+      ([], Lang.fun_t [] t),
+      "Get " ^ name ^ " option",
+      fun s ->
+        Lang.val_fun [] (fun _ ->
+            match socket_opt with
+              | `Int socket_opt -> Lang.int (Srt.getsockflag s socket_opt)
+              | `Bool socket_opt -> Lang.bool (Srt.getsockflag s socket_opt)
+              | `String socket_opt -> Lang.string (Srt.getsockflag s socket_opt))
+    )
 
   let socket_options_meths =
     List.fold_left
-      (fun cur (name, socket_opt) ->
-        let t =
-          match socket_opt with
-            | `Int _ -> Lang.int_t
-            | `Bool _ -> Lang.bool_t
-            | `String _ -> Lang.string_t
-        in
-        ( name,
-          ([], Lang.fun_t [] t),
-          "Get " ^ name ^ " option",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match socket_opt with
-                  | `Int socket_opt -> Lang.int (Srt.getsockflag s socket_opt)
-                  | `Bool socket_opt -> Lang.bool (Srt.getsockflag s socket_opt)
-                  | `String socket_opt ->
-                      Lang.string (Srt.getsockflag s socket_opt)) )
-        :: cur)
-      [] socket_options_specs
+      (fun cur (name, socket_opt) -> mk_socket_option name socket_opt :: cur)
+      (List.fold_left
+         (fun cur (name, socket_opt) -> mk_socket_option name socket_opt :: cur)
+         [] read_only_socket_options_specs)
+      read_write_socket_options_specs
 
   let stats_specs =
     [
