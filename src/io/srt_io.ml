@@ -769,8 +769,6 @@ class virtual listener ?latency ~payload_size ~messageapi ~bind_address
             (Option.map
                (fun v -> Srt.(setsockflag s conntimeo v))
                connection_timeout);
-          ignore
-            (Option.map (fun v -> Srt.(setsockflag s rcvlatency v)) latency);
           let client, origin = Srt.accept s in
           (try self#log#info "New connection from %s" (string_of_address origin)
            with exn ->
@@ -808,6 +806,8 @@ class virtual listener ?latency ~payload_size ~messageapi ~bind_address
           (fun () ->
             assert (listening_socket = None);
             let s = mk_socket ~payload_size ~messageapi () in
+            ignore
+              (Option.map (fun v -> Srt.(setsockflag s rcvlatency v)) latency);
             Srt.bind s bind_address;
             Srt.listen s 1;
             Srt.setsockflag s Srt.rcvsyn true;
@@ -829,8 +829,8 @@ class virtual listener ?latency ~payload_size ~messageapi ~bind_address
   end
 
 class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~min_packets
-  ~on_connect ~on_disconnect ~payload_size ~dump ~stats_interval ~on_start
-  ~on_stop ~autostart format =
+  ~buffer_packets ~on_connect ~on_disconnect ~payload_size ~dump ~stats_interval
+  ~on_start ~on_stop ~autostart format =
   let max_ticks = Frame.main_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -849,6 +849,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~min_packets
 
     val mutable decoder_data = None
     val mutable dump_chan = None
+    val mutable buffering = true
 
     initializer
     log_ref := self#log#info "%s";
@@ -863,6 +864,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~min_packets
     on_disconnect :=
       fun () ->
         decoder_data <- None;
+        buffering <- true;
         (match dump_chan with
           | Some chan ->
               close_out_noerr chan;
@@ -873,8 +875,18 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~min_packets
     method seek _ = 0
     method remaining = -1
     method abort_track = Generator.add_break generator
-    method data_ready = Srt.getsockflag self#get_socket Srt.rcvdata
-    method private is_data_ready = self#data_ready >= min_packets
+
+    method data_ready =
+      if self#is_connected then Srt.getsockflag self#get_socket Srt.rcvdata
+      else 0
+
+    method private is_data_ready =
+      match (buffering, self#data_ready) with
+        | true, n when n <= buffer_packets -> false
+        | true, _ ->
+            buffering <- false;
+            true
+        | false, n -> min_packets <= n
 
     method is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
@@ -943,15 +955,15 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~min_packets
   end
 
 class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
-  ~clock_safe ~min_packets ~latency ~stats_interval ~on_connect ~on_disconnect
-  ~read_timeout ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start
-  ~on_stop ~autostart format =
+  ~clock_safe ~min_packets ~buffer_packets ~latency ~stats_interval ~on_connect
+  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
+  ~dump ~on_start ~on_stop ~autostart format =
   object
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~min_packets
-          ~on_connect ~on_disconnect ~dump ~stats_interval ~on_start ~on_stop
-          ~autostart format
+          ~buffer_packets ~on_connect ~on_disconnect ~dump ~stats_interval
+          ~on_start ~on_stop ~autostart format
 
     inherit
       listener
@@ -960,15 +972,15 @@ class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
   end
 
 class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
-  ~clock_safe ~min_packets ~latency ~stats_interval ~on_connect ~on_disconnect
-  ~read_timeout ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start
-  ~on_stop ~autostart format =
+  ~clock_safe ~min_packets ~buffer_packets ~latency ~stats_interval ~on_connect
+  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
+  ~dump ~on_start ~on_stop ~autostart format =
   object
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~min_packets
-          ~on_connect ~on_disconnect ~dump ~stats_interval ~on_start ~on_stop
-          ~autostart format
+          ~buffer_packets ~on_connect ~on_disconnect ~dump ~stats_interval
+          ~on_start ~on_stop ~autostart format
 
     inherit
       caller
@@ -989,15 +1001,19 @@ let () =
           Lang.float_t,
           Some (Lang.float 10.),
           Some "Maximum duration of the buffered data." );
+        ( "buffer_packets",
+          Lang.int_t,
+          Some (Lang.int 30),
+          Some "Packets to buffer before considering the input ready." );
         ( "min_packets",
           Lang.int_t,
-          Some (Lang.int 10),
+          Some (Lang.int 1),
           Some
             "Minimum number of received packets required to consider the input \
              available." );
         ( "latency",
           Lang.nullable_t Lang.int_t,
-          Some Lang.null,
+          Some (Lang.int 1000),
           Some
             "Minimum receiver buffering delay, in milliseconds, before \
              delivering an SRT data packet." );
@@ -1044,6 +1060,7 @@ let () =
       in
       let max = Lang.to_float (List.assoc "max" p) in
       let min_packets = Lang.to_int (List.assoc "min_packets" p) in
+      let buffer_packets = Lang.to_int (List.assoc "buffer_packets" p) in
       let latency =
         Lang.to_valued_option Lang.to_int (List.assoc "latency" p)
       in
@@ -1064,15 +1081,16 @@ let () =
             (new input_listener
                ~kind ~bind_address ~read_timeout ~write_timeout
                ~connection_timeout ~payload_size ~clock_safe ~min_packets
-               ~latency ~on_connect ~stats_interval ~on_disconnect ~messageapi
-               ~max ~log_overfull ~dump ~on_start ~on_stop ~autostart format
+               ~buffer_packets ~latency ~on_connect ~stats_interval
+               ~on_disconnect ~messageapi ~max ~log_overfull ~dump ~on_start
+               ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; data_ready : int
                  ; stats : Srt.Stats.t option >)
         | `Caller ->
             (new input_caller
                ~kind ~hostname ~port ~payload_size ~clock_safe ~min_packets
-               ~latency ~on_connect ~read_timeout ~write_timeout
+               ~buffer_packets ~latency ~on_connect ~read_timeout ~write_timeout
                ~connection_timeout ~stats_interval ~on_disconnect ~messageapi
                ~max ~log_overfull ~dump ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source
