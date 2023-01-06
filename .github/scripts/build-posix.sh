@@ -31,9 +31,15 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
+if [ -z "${LIQ_BUILD_MIN}" ]; then
+  git clone https://github.com/savonet/ocaml-posix.git
+  cd ocaml-posix && opam install -y . && cd ..
+  # See: https://github.com/whitequark/ocaml-inotify/pull/20
+  opam install -y uri inotify.2.3
+fi
+
 # TODO: Add those to docker CI images.
-cd ocaml-metadata && opam install -y .
-opam install -y fileutils
+cd ocaml-metadata && opam install -y . fileutils
 
 cd /tmp/liquidsoap-full/liquidsoap
 
@@ -61,9 +67,6 @@ git reset --hard
 echo "::endgroup::"
 
 echo "::group::Compiling"
-
-# See: https://github.com/whitequark/ocaml-inotify/pull/20
-opam install -y uri inotify.2.3
 
 cd /tmp/liquidsoap-full
 

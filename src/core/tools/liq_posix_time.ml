@@ -44,7 +44,12 @@ module Sys_time = struct
     if Int64.equal x.tv_sec y.tv_sec then x.tv_nsec <= y.tv_nsec
     else x.tv_sec <= y.tv_sec
 
-  let sleep = nanosleep
+  let rec sleep_until t =
+    try
+      clock_nanosleep
+        ~clock:(if Sys.os_type = "Unix" then `Monotonic else `Realtime)
+        ~absolute:true t
+    with Unix.Unix_error (Unix.EINTR, _, _) -> sleep_until t
 end
 
 let posix_time : (module Liq_time.T) = (module Sys_time)
