@@ -451,9 +451,6 @@ let mk_kind ~pos (kind, params) =
       raise (Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")))
 
 let mk_source_ty ~pos name args =
-  if name <> "source" then
-    raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
-
   let audio = ref ("any", []) in
   let video = ref ("any", []) in
   let midi = ref ("any", []) in
@@ -471,7 +468,12 @@ let mk_source_ty ~pos name args =
   let video = mk_kind ~pos !video in
   let midi = mk_kind ~pos !midi in
 
-  Term.source_t (Term.frame_kind_t audio video midi)
+  let kind_t = Term.frame_kind_t audio video midi in
+
+  match name with
+    | "source" -> Term.source_t kind_t
+    | "format" -> Term.format_t kind_t
+    | _ -> raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."))
 
 let mk_json_assoc_object_ty ~pos = function
   | ( { Type.descr = Type.Tuple [{ Type.descr = Type.Ground Type.String }; ty] },
