@@ -51,11 +51,15 @@ module Socket_value = struct
       "Get " ^ name ^ " option",
       fun s ->
         Lang.val_fun [] (fun _ ->
-            match socket_opt with
-              | `Int socket_opt -> Lang.int (Srt.getsockflag s socket_opt)
-              | `Bool socket_opt -> Lang.bool (Srt.getsockflag s socket_opt)
-              | `String socket_opt -> Lang.string (Srt.getsockflag s socket_opt))
-    )
+            try
+              match socket_opt with
+                | `Int socket_opt -> Lang.int (Srt.getsockflag s socket_opt)
+                | `Bool socket_opt -> Lang.bool (Srt.getsockflag s socket_opt)
+                | `String socket_opt ->
+                    Lang.string (Srt.getsockflag s socket_opt)
+            with exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              Lang.raise_as_runtime ~bt ~kind:"srt" exn) )
 
   let socket_options_meths =
     List.fold_left
