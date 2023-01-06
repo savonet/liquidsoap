@@ -51,8 +51,12 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method! is_ready =
       super#is_ready && self#mutexify (fun () -> container <> None) ()
 
+    method private get_self_sync =
+      match self_sync () with Some v -> v | None -> false
+
     method self_sync =
-      (`Dynamic, self_sync && self#mutexify (fun () -> container <> None) ())
+      ( `Dynamic,
+        self#get_self_sync && self#mutexify (fun () -> container <> None) () )
 
     method private start = self#connect
     method private stop = self#disconnect
@@ -195,6 +199,7 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
     Hashtbl.replace opts "rw_timeout"
       (`Int64 (Int64.of_float (timeout *. 1000000.)))
   in
+  let is_icy = Atomic.make false in
   let on_connect input =
     let icy_headers =
       try
@@ -219,7 +224,13 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
              (Printexc.to_string exn));
         []
     in
+    Atomic.set is_icy (icy_headers <> []);
     on_connect icy_headers
+  in
+  let self_sync () =
+    match (self_sync (), Atomic.get is_icy) with
+      | Some v, _ -> Some v
+      | None, v -> Some v
   in
   object
     inherit
@@ -306,13 +317,24 @@ let register_input is_http =
              Lang.float_t,
              Some (Lang.float 5.),
              Some "Maximum uration of buffered data" );
-           ( "self_sync",
-             Lang.bool_t,
-             Some (Lang.bool false),
-             Some
-               "Should the source control its own timing? Set to `true` if you \
-                are having synchronization issues. Should be `false` for most \
-                typical cases." );
+           (if is_http then
+            ( "self_sync",
+              Lang.getter_t (Lang.nullable_t Lang.bool_t),
+              Some Lang.null,
+              Some
+                "Should the source control its own timing? If `null`, the \
+                 source will control its latency if it can be detected that it \
+                 is connecting to an `icecast` or `shoutcast` server. \
+                 Otherwise, see `input.ffmpeg` for more details about this \
+                 option." )
+           else
+             ( "self_sync",
+               Lang.getter_t Lang.bool_t,
+               Some (Lang.bool false),
+               Some
+                 "Should the source control its own timing? Set to `true` if \
+                  you are having synchronization issues. Should be `false` for \
+                  most typical cases." ));
            ( "debug",
              Lang.bool_t,
              Some (Lang.bool false),
@@ -389,7 +411,11 @@ let register_input is_http =
          parse_args ~t:`String "string" p opts;
          let max_buffer = Lang.to_float (List.assoc "max_buffer" p) in
          let debug = Lang.to_bool (List.assoc "debug" p) in
-         let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
+         let self_sync = Lang.to_getter (List.assoc "self_sync" p) in
+         let self_sync () =
+           if is_http then Lang.to_valued_option Lang.to_bool (self_sync ())
+           else Some (Lang.to_bool (self_sync ()))
+         in
          let autostart = Lang.to_bool (List.assoc "start" p) in
          let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
          let on_start =

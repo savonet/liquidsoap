@@ -44,6 +44,9 @@ Changed:
   new tracks. Use `persist_overrides` to revert to previous behavior
   (`persist_override` for `cross`/`crossfade`) (#2488).
 - Moved HLS outputs stream info as optional methods on their respective encoder.
+- Changed `self_sync` in `input.ffmpeg` to be a boolean getter, changed `self_sync`
+  in `input.http` to be a nullable boolean getter. Set `self_sync` to `true` in
+  `input.http` when an icecast or shoutcast server can be detected.
 - Add `sorted` option to `file.ls`.
 - Add `buffer_length` method to `input.external.rawaudio` and
   `input.external.wav` (#2612).
