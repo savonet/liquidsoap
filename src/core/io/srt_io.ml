@@ -796,7 +796,7 @@ let _ =
     @ [
         ( "buffer_packets",
           Lang.int_t,
-          Some (Lang.int 30),
+          Some (Lang.int 1),
           Some "Packets to buffer before considering the input ready." );
         ( "min_packets",
           Lang.int_t,
@@ -806,10 +806,16 @@ let _ =
              available." );
         ( "latency",
           Lang.nullable_t Lang.int_t,
-          Some Lang.null,
+          Some
+            (Lang.int
+               (int_of_float
+                  (1000. *. Option.get Frame_settings.conf_duration#get_d))),
           Some
             "Minimum receiver buffering delay, in milliseconds, before \
-             delivering an SRT data packet." );
+             delivering an SRT data packet. Default value is the target frame \
+             size. Set to `null` to use the library's default. The default \
+             value is pretty low so, when using it, you should also set \
+             `min_packets` to `0`." );
         ( "dump",
           Lang.string_t,
           Some (Lang.string ""),
