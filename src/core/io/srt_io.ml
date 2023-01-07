@@ -664,8 +664,11 @@ class virtual input_base ~clock_safe ~min_packets ~buffer_packets ~on_connect
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
 
+    method private get_read_data =
+      try Srt.getsockflag (snd self#get_socket) Srt.rcvdata with _ -> 0
+
     method private is_data_ready =
-      match (buffering, Srt.getsockflag (snd self#get_socket) Srt.rcvdata) with
+      match (buffering, self#get_read_data) with
         | true, n when n <= buffer_packets -> false
         | true, _ ->
             buffering <- false;
