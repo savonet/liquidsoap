@@ -112,7 +112,7 @@
   * which prevents inconsistent uses of the source. Clocks are assigned to
   * sources at the end of the typing phase. *)
 
-class clock : ?start:bool -> ?sync:Source.sync -> string -> Source.clock
+val clock : ?start:bool -> ?sync:Source.sync -> string -> Source.clock
 
 (** Indicates whether the application has started to run or not. *)
 val running : unit -> bool
@@ -163,7 +163,7 @@ val create_unknown :
   sub_clocks:clock_variable list ->
   clock_variable
 
-val create_known : clock -> clock_variable
+val create_known : Source.clock -> clock_variable
 val unify : clock_variable -> clock_variable -> unit
 val forget : clock_variable -> clock_variable -> unit
 val get : clock_variable -> Source.clock

@@ -55,7 +55,7 @@ class virtual base ~check_self_sync children_val =
       child_clock <-
         Some
           (Clock.create_known
-             (new Clock.clock ~start:false (Printf.sprintf "%s.child" self#id)));
+             (Clock.clock ~start:false (Printf.sprintf "%s.child" self#id)));
 
       Clock.unify self#clock
         (Clock.create_unknown ~sources:[] ~sub_clocks:[self#child_clock]);

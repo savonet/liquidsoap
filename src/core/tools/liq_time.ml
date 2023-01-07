@@ -33,5 +33,8 @@ module Unix = struct
       with Unix.Unix_error (Unix.EINTR, _, _) -> sleep_until t)
 end
 
-let unix : (module T) = (module Unix)
-let implementation = ref unix
+type implementation = (module T)
+
+let unix : implementation = (module Unix)
+let implementations : (string, implementation) Hashtbl.t = Hashtbl.create 2
+let () = Hashtbl.add implementations "ocaml" unix

@@ -24,7 +24,7 @@ open Mm
 open Pulseaudio
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "pulseaudio")
+let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "pulseaudio")
 
 (** Error translator *)
 let error_translator e =
@@ -65,7 +65,7 @@ class output ~infallible ~start ~on_start ~on_stop p =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Clock.clock))
+          (Clock.create_known (get_clock () :> Source.clock))
 
     val mutable stream = None
 

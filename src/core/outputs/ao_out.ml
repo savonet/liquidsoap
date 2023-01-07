@@ -28,7 +28,7 @@ open Ao
 
 (** As with ALSA (even more maybe) it would be better to have one clock
   * per driver... but it might also depend on driver options. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "ao")
+let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "ao")
 
 class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   ~options ?channels_matrix source start =
@@ -56,7 +56,7 @@ class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Clock.clock))
+          (Clock.create_known (get_clock () :> Source.clock))
 
     val mutable device = None
     method! self_sync = (`Dynamic, device <> None)

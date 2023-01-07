@@ -54,12 +54,12 @@ let _ =
               | s when s = "none" -> `None
               | _ -> raise (Error.Invalid_value (sync, "Invalid sync value"))
           in
-          let clock = new Clock.clock ~sync id in
+          let clock = Clock.clock ~sync id in
           List.iter
             (fun s ->
               try
                 let s = Lang.to_source s in
-                Clock.unify s#clock (Clock.create_known (clock :> Clock.clock))
+                Clock.unify s#clock (Clock.create_known (clock :> Source.clock))
               with
                 | Source.Clock_conflict (a, b) ->
                     raise (Error.Clock_conflict (s.Lang.pos, a, b))

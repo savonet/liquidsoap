@@ -51,7 +51,7 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~start dev source =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (Alsa_settings.get_clock () :> Clock.clock))
+          (Clock.create_known (Alsa_settings.get_clock () :> Source.clock))
 
     val mutable device = None
     method! self_sync = (`Dynamic, device <> None)

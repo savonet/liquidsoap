@@ -13,4 +13,7 @@ module type T = sig
   val ( |<=| ) : t -> t -> bool
 end
 
-val implementation : (module T) ref
+type implementation = (module T)
+
+val unix : implementation
+val implementations : (string, implementation) Hashtbl.t

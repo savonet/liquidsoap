@@ -882,7 +882,7 @@ let _ =
       in
       let ret = Lang.apply fn [("", Graph.to_value graph)] in
       let input_clock =
-        Clock.create_known (new Clock.clock ~start:false "ffmpeg.filter")
+        Clock.create_known (Clock.clock ~start:false "ffmpeg.filter")
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       let output_clock =

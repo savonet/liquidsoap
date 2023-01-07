@@ -70,7 +70,7 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
 class virtual active_source ?get_clock ~name ~clock_safe
   ~(on_start : unit -> unit) ~(on_stop : unit -> unit) ~fallible ~autostart () =
   let get_clock =
-    Option.value ~default:(fun () -> new Clock.clock name) get_clock
+    Option.value ~default:(fun () -> Clock.clock name) get_clock
   in
   object (self)
     inherit Source.active_source ~name () as super
@@ -93,7 +93,7 @@ class virtual active_source ?get_clock ~name ~clock_safe
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (self#get_clock :> Clock.clock))
+          (Clock.create_known (self#get_clock :> Source.clock))
 
     method virtual private get_frame : Frame.t -> unit
     method virtual private memo : Frame.t

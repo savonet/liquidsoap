@@ -34,7 +34,7 @@ let force f fd x =
   if x <> x' then failwith "cannot obtain desired OSS settings"
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "OSS")
+let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "OSS")
 
 class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -51,7 +51,7 @@ class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Clock.clock))
+          (Clock.create_known (get_clock () :> Source.clock))
 
     val mutable fd = None
     method! self_sync = (`Dynamic, fd <> None)

@@ -170,7 +170,7 @@ class output ~clock_safe ~start ~infallible ~on_stop ~on_start dev val_source =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (Alsa_settings.get_clock () :> Clock.clock))
+          (Clock.create_known (Alsa_settings.get_clock () :> Source.clock))
 
     val mutable samplerate_converter = None
 
