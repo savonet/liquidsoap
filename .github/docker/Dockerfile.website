@@ -33,6 +33,11 @@ RUN eval "$(opam config env)" && make clean
 
 RUN eval "$(opam config env)" && cd ocaml-metadata && opam install -y . fileutils
 
+RUN eval "$(opam config env)" && \
+    git clone https://github.com/savonet/ocaml-posix.git && \
+    cd ocaml-posix && \
+    opam install -y .
+
 RUN cd liquidsoap && \
     mv .git /tmp && \
     rm -rf * && \
