@@ -70,8 +70,10 @@ end
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
 def output.audio_video(~id=null(),~fallible=true,~on_start={()},~on_stop={()},~start=true,s)
-  output(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, source(s.tracks().audio))
-  output.video(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, source(s.tracks().video))
+  let {audio,video} = source.tracks(s)
+
+  output(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, source({audio=audio}))
+  output.video(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, source({video=video}))
 end
 
 def replaces input(~id=null(),~start=true,~on_start={()},~on_stop={()},~fallible=false)
