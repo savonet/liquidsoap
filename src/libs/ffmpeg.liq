@@ -1,3 +1,80 @@
+%ifdef track.ffmpeg.decode.audio
+let ffmpeg.decode = ()
+let ffmpeg.raw.decode = ()
+
+# Decode a source's audio content
+# @category Source / Conversion
+def ffmpeg.decode.audio(~id=null("ffmpeg.decode.audio"), s) =
+  audio = track.ffmpeg.decode.audio(source.tracks(s).audio)
+  source(id=id, {
+    track_marks = track.track_marks(audio),
+    metadata    = track.metadata(audio),
+    audio       = audio
+  })
+end
+
+# Decode a source's audio content
+# @category Source / Conversion
+def ffmpeg.raw.decode.audio(~id=null("ffmpeg.raw.decode.audio"), s) =
+  audio = track.ffmpeg.raw.decode.audio(source.tracks(s).audio)
+  source(id=id, {
+    track_marks = track.track_marks(audio),
+    metadata    = track.metadata(audio),
+    audio       = audio
+  })
+end
+
+# Decode a source's video content
+# @category Source / Conversion
+def ffmpeg.decode.video(~id=null("ffmpeg.decode.video"), s) =
+  video = track.ffmpeg.decode.video(source.tracks(s).video)
+  source(id=id, {
+    track_marks = track.track_marks(video),
+    metadata    = track.metadata(video),
+    video       = video
+  })
+end
+
+# Decode a source's video content
+# @category Source / Conversion
+def ffmpeg.raw.decode.video(~id=null("ffmpeg.raw.decode.video"), s) =
+  video = track.ffmpeg.raw.decode.video(source.tracks(s).video)
+  source(id=id, {
+    track_marks = track.track_marks(video),
+    metadata    = track.metadata(video),
+    video       = video
+  })
+end
+
+# Decode a source's audio and video content
+# @category Source / Conversion
+def ffmpeg.decode.audio_video(~id=null("ffmpeg.decode.audio_video"), s) =
+  let {audio, video} = source.tracks(s)
+  audio = track.ffmpeg.decode.audio(audio)
+  video = track.ffmpeg.decode.video(video)
+  source(id=id, {
+    track_marks = track.track_marks(audio),
+    metadata    = track.metadata(audio),
+    audio       = audio,
+    video       = video
+  })
+end
+
+# Decode a source's audio and video content
+# @category Source / Conversion
+def ffmpeg.raw.decode.audio_video(~id=null("ffmpeg.raw.decode.audio_video"), s) =
+  let {audio, video} = source.tracks(s)
+  audio = track.ffmpeg.raw.decode.audio(audio)
+  video = track.ffmpeg.raw.decode.video(video)
+  source(id=id, {
+    track_marks = track.track_marks(audio),
+    metadata    = track.metadata(audio),
+    audio       = audio,
+    video       = video
+  })
+end
+%endif
+
 %ifdef input.ffmpeg
 # Stream from a video4linux2 input device, such as a webcam.
 # @category Source / Input

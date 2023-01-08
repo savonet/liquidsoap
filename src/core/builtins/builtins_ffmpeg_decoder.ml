@@ -21,9 +21,10 @@
  *****************************************************************************)
 
 open Mm
-open Builtins_ffmpeg_base
 
+let ffmpeg = Lang.add_module ~base:Modules.track "ffmpeg"
 let ffmpeg_decode = Lang.add_module ~base:ffmpeg "decode"
+let ffmpeg_raw = Lang.add_module ~base:ffmpeg "raw"
 let ffmpeg_raw_decode = Lang.add_module ~base:ffmpeg_raw "decode"
 
 module InternalResampler =
@@ -33,7 +34,7 @@ module InternalScaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 
 let log = Log.make ["ffmpeg"; "internal"; "decoder"]
 
-let decode_audio_frame ~mode generator =
+let decode_audio_frame ~field ~mode generator =
   let internal_channel_layout =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
   in
@@ -52,7 +53,7 @@ let decode_audio_frame ~mode generator =
           | `Flush -> InternalResampler.flush converter
       in
       let data = Content.Audio.lift_data data in
-      Generator.put generator Frame.Fields.audio data
+      Generator.put generator field data
   in
 
   let mk_copy_decoder () =
@@ -185,7 +186,7 @@ let decode_audio_frame ~mode generator =
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
-        let frame = Frame.audio frame in
+        let frame = Frame.get frame field in
         let { Ffmpeg_content_base.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush
@@ -199,7 +200,7 @@ let decode_audio_frame ~mode generator =
         convert ~get_data:Ffmpeg_raw_content.Audio.get_data
           ~decoder:(mk_raw_decoder ())
 
-let decode_video_frame ~mode generator =
+let decode_video_frame ~field ~mode generator =
   let internal_width = Lazy.force Frame.video_width in
   let internal_height = Lazy.force Frame.video_height in
   let target_fps = Lazy.force Frame.video_rate in
@@ -263,7 +264,7 @@ let decode_video_frame ~mode generator =
           in
           let data = Video.Canvas.single_image img in
           let data = Content.Video.lift_data data in
-          Generator.put generator Frame.Fields.video data)
+          Generator.put generator field data)
   in
 
   let mk_copy_decoder () =
@@ -368,7 +369,7 @@ let decode_video_frame ~mode generator =
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
-        let frame = Frame.video frame in
+        let frame = Frame.get frame field in
         let { Ffmpeg_content_base.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush
@@ -382,84 +383,49 @@ let decode_video_frame ~mode generator =
         convert ~get_data:Ffmpeg_raw_content.Video.get_data
           ~decoder:(mk_raw_decoder ())
 
-let mk_encoder mode =
-  let has_audio =
-    List.mem mode [`Audio_encoded; `Audio_raw; `Both_encoded; `Both_raw]
-  in
-  let has_video =
-    List.mem mode [`Video_encoded; `Video_raw; `Both_encoded; `Both_raw]
-  in
-  let has_encoded_audio = List.mem mode [`Audio_encoded; `Both_encoded] in
-  let has_encoded_video = List.mem mode [`Video_encoded; `Both_encoded] in
-  let source_base_t = Lang.univ_t () in
+let mk_decoder mode =
   let input_frame_t =
-    Lang.frame_t source_base_t
-      (Frame.Fields.make
-         ?audio:
-           (match mode with
-             | `Audio_encoded | `Both_encoded ->
-                 Some
-                   (Type.make
-                      (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
-             | `Audio_raw | `Both_raw ->
-                 Some
-                   (Type.make
-                      (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind)))
-             | _ -> None)
-         ?video:
-           (match mode with
-             | `Video_encoded | `Both_encoded ->
-                 Some
-                   (Type.make
-                      (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
-             | `Video_raw | `Both_raw ->
-                 Some
-                   (Type.make
-                      (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
-             | _ -> None)
-         ())
+    match mode with
+      | `Audio_encoded ->
+          Type.make (Format_type.descr (`Kind Ffmpeg_copy_content.kind))
+      | `Audio_raw ->
+          Type.make (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind))
+      | `Video_encoded ->
+          Type.make (Format_type.descr (`Kind Ffmpeg_copy_content.kind))
+      | `Video_raw ->
+          Type.make (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind))
   in
   let output_frame_t =
-    Lang.frame_t source_base_t
-      (Frame.Fields.make
-         ?audio:(if has_audio then Some (Format_type.audio ()) else None)
-         ?video:(if has_video then Some (Format_type.video ()) else None)
-         ())
-  in
-  let base, name =
     match mode with
-      | `Audio_encoded -> (ffmpeg_decode, "audio")
-      | `Audio_raw -> (ffmpeg_raw_decode, "audio")
-      | `Video_encoded -> (ffmpeg_decode, "video")
-      | `Video_raw -> (ffmpeg_raw_decode, "video")
-      | `Both_encoded -> (ffmpeg_decode, "audio_video")
-      | `Both_raw -> (ffmpeg_raw_decode, "audio_video")
+      | `Audio_encoded | `Audio_raw -> Format_type.audio ()
+      | `Video_encoded | `Video_raw -> Format_type.video ()
   in
-  let proto = [("", Lang.source_t input_frame_t, None, None)] in
+  let base, name, decode_mode =
+    match mode with
+      | `Audio_encoded -> (ffmpeg_decode, "audio", `Decode)
+      | `Audio_raw -> (ffmpeg_raw_decode, "audio", `Raw)
+      | `Video_encoded -> (ffmpeg_decode, "video", `Decode)
+      | `Video_raw -> (ffmpeg_raw_decode, "video", `Raw)
+  in
+  let proto = [("", input_frame_t, None, None)] in
   ignore
-    (Lang.add_operator name proto ~base ~return_t:output_frame_t
-       ~category:`Conversion ~descr:"Convert a source's content" (fun p ->
+    (Lang.add_track_operator name proto ~base ~return_t:output_frame_t
+       ~category:`Conversion ~descr:"Decode a track content" (fun p ->
          let id =
            Lang.to_default_option ~default:name Lang.to_string
              (List.assoc "id" p)
          in
-         let source = List.assoc "" p in
+         let field, source = Lang.to_track (List.assoc "" p) in
 
          let mk_decode_frame generator =
-           let decode_audio_frame =
-             if has_audio then (
-               let mode = if has_encoded_audio then `Decode else `Raw in
-               Some (decode_audio_frame ~mode generator))
-             else None
-           in
-           let decode_video_frame =
-             if has_video then (
-               let mode = if has_encoded_video then `Decode else `Raw in
-               Some (decode_video_frame ~mode generator))
-             else None
+           let decode_frame =
+             match mode with
+               | `Audio_encoded | `Audio_raw ->
+                   decode_audio_frame ~field ~mode:decode_mode generator
+               | `Video_encoded | `Video_raw ->
+                   decode_video_frame ~field ~mode:decode_mode generator
            in
            let size = Lazy.force Frame.size in
-
            let decode_frame = function
              | `Frame frame ->
                  List.iter
@@ -468,13 +434,8 @@ let mk_encoder mode =
                  List.iter
                    (fun pos -> Generator.add_track_mark ~pos generator)
                    (List.filter (fun x -> x < size) (Frame.breaks frame));
-                 ignore
-                   (Option.map (fun fn -> fn (`Frame frame)) decode_video_frame);
-                 ignore
-                   (Option.map (fun fn -> fn (`Frame frame)) decode_audio_frame)
-             | `Flush ->
-                 ignore (Option.map (fun fn -> fn `Flush) decode_video_frame);
-                 ignore (Option.map (fun fn -> fn `Flush) decode_audio_frame)
+                 decode_frame (`Frame frame)
+             | `Flush -> decode_frame `Flush
            in
 
            decode_frame
@@ -502,25 +463,22 @@ let mk_encoder mode =
 
          let consumer =
            new Producer_consumer.consumer
-             ~write_frame:decode_frame ~name:(id ^ ".consumer") ~source ()
+             ~always_enabled:true ~write_frame:decode_frame
+             ~name:(id ^ ".consumer") ~source:(Lang.source source) ()
          in
 
          let input_frame_t = Typing.generalize ~level:(-1) input_frame_t in
          let input_frame_t = Typing.instantiate ~level:(-1) input_frame_t in
-         Typing.(consumer#frame_type <: input_frame_t);
+         Typing.(
+           consumer#frame_type
+           <: Lang.frame_t (Lang.univ_t ())
+                (Frame.Fields.add field input_frame_t Frame.Fields.empty));
 
-         new Producer_consumer.producer
-         (* We are expecting real-rate with a couple of hickups.. *)
-           ~create_known_clock:false ~check_self_sync:false
-           ~consumers:[consumer] ~name:(id ^ ".producer") ()))
+         ( field,
+           new Producer_consumer.producer
+           (* We are expecting real-rate with a couple of hickups.. *)
+             ~create_known_clock:false ~check_self_sync:false
+             ~consumers:[consumer] ~name:(id ^ ".producer") () )))
 
 let () =
-  List.iter mk_encoder
-    [
-      `Audio_encoded;
-      `Audio_raw;
-      `Video_encoded;
-      `Video_raw;
-      `Both_encoded;
-      `Both_raw;
-    ]
+  List.iter mk_decoder [`Audio_encoded; `Audio_raw; `Video_encoded; `Video_raw]
