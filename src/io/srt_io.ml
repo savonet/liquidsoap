@@ -873,8 +873,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~min_packets
     method abort_track = Generator.add_break generator
 
     method data_ready =
-      if self#is_connected then Srt.getsockflag self#get_socket Srt.rcvdata
-      else 0
+      try Srt.getsockflag self#get_socket Srt.rcvdata with _ -> 0
 
     method private is_data_ready =
       match (buffering, self#data_ready) with
