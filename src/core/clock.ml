@@ -145,11 +145,10 @@ module MkClock (Time : Liq_time.T) = struct
       method sync_mode : Source.sync = sync
       val log = Log.make ["clock"; id]
 
-      (** List of outputs, together with a flag indicating their status:
-    *   `New, `Starting, `Aborted, `Active, `Old
-    * The list needs to be accessed within critical section of [lock]. *)
+      (* List of outputs, together with a flag indicating their status:
+       *   `New, `Starting, `Aborted, `Active, `Old
+       * The list needs to be accessed within critical section of [lock]. *)
       val mutable outputs = []
-
       val lock = Mutex.create ()
 
       method attach s =
@@ -175,6 +174,7 @@ module MkClock (Time : Liq_time.T) = struct
                 [] outputs)
           ()
 
+      method is_attached o = List.exists (fun (_, o') -> o == o') outputs
       val mutable sub_clocks : Source.clock_variable list = []
       method sub_clocks = sub_clocks
 
