@@ -342,8 +342,12 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       in
       _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
     with
-      | Source.Clock_conflict (a, b) -> raise (Error.Clock_conflict (pos, a, b))
-      | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+      | Source.Clock_conflict (a, b) ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace (Error.Clock_conflict (pos, a, b)) bt
+      | Source.Clock_loop (a, b) ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace (Error.Clock_loop (pos, a, b)) bt
   in
   let base_t =
     if category = `Output then unit_t else source_t ~methods:false return_t

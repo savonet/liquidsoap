@@ -668,8 +668,8 @@ let mk_encoder mode =
 
          new Producer_consumer.producer
          (* We are expecting real-rate with a couple of hickups.. *)
-           ~check_self_sync:false ~consumers:[consumer] ~name:(id ^ ".producer")
-           ()))
+           ~create_known_clock:false ~check_self_sync:false
+           ~consumers:[consumer] ~name:(id ^ ".producer") ()))
 
 let () =
   List.iter mk_encoder

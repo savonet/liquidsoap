@@ -26,8 +26,14 @@
 let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
 
-class virtual base ~check_self_sync children_val =
+class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
   let children = List.map Lang.to_source children_val in
+  let create_child_clock id =
+    if create_known_clock then
+      Clock.create_known
+        (Clock.clock ~start:false (Printf.sprintf "%s.child" id))
+    else Clock.create_unknown ~start:false ~sources:[] ~sub_clocks:[] ()
+  in
   object (self)
     initializer
     if check_self_sync then
@@ -52,13 +58,10 @@ class virtual base ~check_self_sync children_val =
     method private child_clock = Option.get child_clock
 
     method private set_clock =
-      child_clock <-
-        Some
-          (Clock.create_known
-             (Clock.clock ~start:false (Printf.sprintf "%s.child" self#id)));
+      child_clock <- Some (create_child_clock self#id);
 
       Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[self#child_clock]);
+        (Clock.create_unknown ~sources:[] ~sub_clocks:[self#child_clock] ());
 
       List.iter (fun c -> Clock.unify self#child_clock c#clock) children;
 
