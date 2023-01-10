@@ -3,6 +3,8 @@
 
 New:
 * Added `buffer_length` method to `buffer` operator.
+* Always display error backtrace when a fatal exception
+  is raised in the streaming loop.
 
 Fixed:
 * Fixed parameter type for `stats_interval` in SRT I/O.

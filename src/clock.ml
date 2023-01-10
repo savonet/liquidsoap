@@ -300,9 +300,8 @@ class clock ?(start = true) ?(sync = `Auto) id =
               (e, s :: a)
             with exn ->
               let bt = Printexc.get_backtrace () in
-              Utils.log_exception ~log ~bt
-                (Printf.sprintf "Source %s failed while streaming: %s!" s#id
-                   (Printexc.to_string exn));
+              log#severe "Source %s failed while streaming: %s!\n%s" s#id
+                (Printexc.to_string exn) bt;
               leave ~failed_to_start:true s;
               (s :: e, a))
           ([], []) active
