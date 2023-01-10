@@ -53,10 +53,10 @@ let () =
   *  - for the initial conf, all errors are fatal
   *  - after that (dynamic code execution, interactive mode) some errors
   *    are not fatal anymore. *)
-let started : [ `Yes | `No | `Soon ] ref = ref `No
+let started : [ `Yes | `No | `Soon ] Atomic.t = Atomic.make `No
 
 (** Indicates whether the application has started to run or not. *)
-let running () = !started = `Yes
+let running () = Atomic.get started = `Yes
 
 (** We need to keep track of all used clocks, to have them (un)register
   * new sources. We use a weak table to avoid keeping track forever of
@@ -398,7 +398,7 @@ module MkClock (Time : Liq_time.T) = struct
                 (leaving, errors))
               ()
           in
-          if !started <> `Yes && errors <> [] then Tutils.shutdown 1;
+          if Atomic.get started <> `Yes && errors <> [] then Tutils.shutdown 1;
           if leaving <> [] then (
             log#info "Stopping %d sources..." (List.length leaving);
             List.iter (fun (s : active_source) -> leave s) leaving);
@@ -505,16 +505,16 @@ let collect ~must_lock =
       Clocks.fold (fun s l -> s#start_outputs filter :: l) clocks []
     in
     let start =
-      if !started <> `No then ignore
+      if Atomic.get started <> `No then ignore
       else (
         (* Avoid that some other collection takes up the task
          * to set started := true. Typically they would be
          * trivial (empty) collections terminating before us,
          * which defeats the purpose of the flag. *)
-        started := `Soon;
+        Atomic.set started `Soon;
         fun () ->
           log#info "Main phase starts.";
-          started := `Yes)
+          Atomic.set started `Yes)
     in
     Mutex.unlock lock;
     List.iter (fun f -> ignore (f ())) collects;
