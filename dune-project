@@ -30,7 +30,6 @@
     dune-build-info
     liquidsoap-lang
     liquidsoap-libs
-    liquidsoap-mode
     (ppx_string :build))
   (depopts
     alsa
