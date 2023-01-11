@@ -43,7 +43,7 @@ class consumer ~write_frame ~name ~kind ~source () =
   let s = Lang.to_source source in
   let infallible = s#stype = `Infallible in
   let noop () = () in
-  object
+  object (self)
     inherit
       Output.output
         ~content_kind:kind ~output_kind:name ~infallible ~on_start:noop
@@ -55,6 +55,11 @@ class consumer ~write_frame ~name ~kind ~source () =
     method start = ()
     method stop = write_frame `Flush
     method output = if output_enabled then super#output
+
+    method! is_ready =
+      super#is_ready
+      && (Clock.get self#clock)#is_attached (self :> Source.active_source)
+
     method private send_frame frame = write_frame (`Frame frame)
   end
 

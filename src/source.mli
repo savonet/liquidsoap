@@ -291,6 +291,9 @@ class type clock =
     (** Detach active sources that satisfy a given criterion. *)
     method detach : (active_source -> bool) -> unit
 
+    (** true if the source is currently attached to the clock. *)
+    method is_attached : active_source -> bool
+
     (** Manage subordinate clocks *)
 
     method attach_clock : clock_variable -> unit

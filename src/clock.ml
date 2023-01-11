@@ -172,6 +172,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
               [] outputs)
         ()
 
+    method is_attached o = List.exists (fun (_, o') -> o == o') outputs
     val mutable sub_clocks : Source.clock_variable list = []
     method sub_clocks = sub_clocks
 

@@ -16,6 +16,8 @@ Fixed:
   frame position (#2786)
 * Fixed `metadata.json.parse` always returns an empty list (#2816).
 * Fixed `icy_id` being ignored in `output.shoutcast` (#2819)
+* Fixed shutdown livelock with some ffmpeg inline encoder,
+  decoder and filter operators.
 
 ---
 2.1.3 (2022-11-04)
