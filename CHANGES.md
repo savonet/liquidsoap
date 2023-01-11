@@ -18,6 +18,7 @@ Fixed:
 * Fixed `icy_id` being ignored in `output.shoutcast` (#2819)
 * Fixed shutdown livelock with some ffmpeg inline encoder,
   decoder and filter operators.
+* Fixed input polling stop (#2769)
 
 ---
 2.1.3 (2022-11-04)
