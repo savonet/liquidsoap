@@ -89,6 +89,7 @@ class type ['a, 'b] proto_clock =
 
     method attach : 'a -> unit
     method detach : ('a -> bool) -> unit
+    method is_attached : 'a -> bool
 
     (** Attach a sub_clock, get all subclocks, see below. *)
 
@@ -755,6 +756,7 @@ class type clock =
     method sync_mode : sync
     method attach : active_source -> unit
     method detach : (active_source -> bool) -> unit
+    method is_attached : active_source -> bool
     method attach_clock : clock_variable -> unit
     method detach_clock : clock_variable -> unit
     method sub_clocks : clock_variable list
