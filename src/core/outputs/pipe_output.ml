@@ -410,7 +410,7 @@ let file_proto frame_t =
       Some
         "Permission of the file if it has to be created, up to umask. You can \
          and should write this number in octal notation: 0oXXX. The default \
-         value is however displayed in decimal (0o666 = 6*8^2 + 6*8 + 6 = \
+         value is however displayed in decimal (0o666 = 6×8^2 + 6×8 + 6 = \
          438)." );
     ( "dir_perm",
       Lang.int_t,
@@ -418,7 +418,7 @@ let file_proto frame_t =
       Some
         "Permission of the directories if some have to be created, up to \
          umask. Although you can enter values in octal notation (0oXXX) they \
-         will be displayed in decimal (for instance, 0o777 = 7*8^2 + 7*8 + 7 = \
+         will be displayed in decimal (for instance, 0o777 = 7×8^2 + 7×8 + 7 = \
          511)." );
     ( "on_close",
       Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t,
