@@ -163,7 +163,7 @@ The following sequences are recognized:
 | `\'`            | `\x27`             | Apostrophe or single quotation mark                                                   |
 | `\"`            | `\x22`             | Double quotation mark                                                                 |
 | `\?`            | `\x3F`             | Question mark (used to avoid Digraphs and trigraphs)                                  |
-| `\nnn`          | any                | The byte whose numerical value is given by _nnn_interpreted as an \_octal_ number     |
+| `\nnn`          | any                | The byte whose numerical value is given by _nnn_ interpreted as an _octal_ number     |
 | `\xhh`          | any                | The byte whose numerical value is given by _hh_ interpreted as a _hexadecimal_ number |
 | `\uhhhh`        | none               | UTF8-8 code point given by _hhhh_ interpreted as an _hexadecimal_ number              |
 

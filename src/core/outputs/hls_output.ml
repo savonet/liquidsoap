@@ -97,7 +97,7 @@ let hls_proto frame_t =
         Some
           "Permission of the created files, up to umask. You can and should \
            write this number in octal notation: 0oXXX. The default value is \
-           however displayed in decimal (0o666 = 6*8^2 + 4*8 + 4 = 412)." );
+           however displayed in decimal (0o666 = 6×8^2 + 4×8 + 4 = 412)." );
       ( "on_file_change",
         Lang.fun_t
           [(false, "state", Lang.string_t); (false, "", Lang.string_t)]
