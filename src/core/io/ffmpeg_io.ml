@@ -32,6 +32,8 @@ let normalize_metadata =
       in
       (lbl, v))
 
+exception Stopped
+
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   ~clock_safe ~max_buffer ~on_stop ~on_start ~on_connect ~on_disconnect
   ~new_track_on_metadata ?format ~opts url =
@@ -43,24 +45,20 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     inherit Source.no_seek
     initializer Generator.set_max_length self#buffer max_length
-    val mutable connect_task = None
-    val mutable container = None
+    val connect_task = Atomic.make None
+    val container = Atomic.make None
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
-
-    method! is_ready =
-      super#is_ready && self#mutexify (fun () -> container <> None) ()
+    method private is_connected = Atomic.get container <> None
+    method! is_ready = super#is_ready && self#is_connected
 
     method private get_self_sync =
       match self_sync () with Some v -> v | None -> false
 
-    method self_sync =
-      ( `Dynamic,
-        self#get_self_sync && self#mutexify (fun () -> container <> None) () )
-
+    method self_sync = (`Dynamic, self#get_self_sync && self#is_connected)
     method private start = self#connect
     method private stop = self#disconnect
-    val mutable interrupt = Atomic.make false
+    val interrupt = Atomic.make false
     method interrupt () = Atomic.get interrupt
     initializer Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true)
     val mutable url = url
@@ -68,14 +66,19 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method set_url u = url <- u
     method buffer_length = Frame.seconds_of_audio (Generator.length self#buffer)
 
-    val mutable source_status : [ `Stopped | `Polling | `Connected of string ] =
-      `Stopped
+    val source_status
+        : [ `Stopped | `Starting | `Polling | `Connected of string | `Stopping ]
+          Atomic.t =
+      Atomic.make `Stopped
 
-    method source_status = source_status
+    method source_status = Atomic.get source_status
 
     method private connect_task () =
       try
-        source_status <- `Polling;
+        if self#source_status = `Stopping then raise Stopped;
+        assert (Atomic.get container = None);
+        assert (self#source_status = `Starting);
+        Atomic.set source_status `Polling;
         let opts = Hashtbl.copy opts in
         let url = self#url in
         let input = Av.open_input ~interrupt:self#interrupt ?format ~opts url in
@@ -112,32 +115,36 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                streams
                (Av.get_input_metadata input))
         in
-        container <- Some (input, decoder, buffer, get_metadata);
-        source_status <- `Connected url;
+        Atomic.set container (Some (input, decoder, buffer, get_metadata));
+        Atomic.set source_status (`Connected url);
         on_connect input;
         -1.
-      with e ->
-        self#log#info "Connection failed: %s" (Printexc.to_string e);
-        self#disconnect_fn;
-        if debug then raise e;
-        poll_delay
+      with
+        | Stopped ->
+            Atomic.set source_status `Stopped;
+            -1.
+        | e ->
+            self#log#info "Connection failed: %s" (Printexc.to_string e);
+            if debug then raise e;
+            poll_delay
 
-    method private connect_fn =
-      if container = None then (
-        match connect_task with
+    method private connect =
+      if Atomic.get container = None then (
+        assert (
+          match self#source_status with `Connected _ -> false | _ -> true);
+        Atomic.set source_status `Starting;
+        match Atomic.get connect_task with
           | Some t -> Duppy.Async.wake_up t
           | None ->
               let t =
                 Duppy.Async.add ~priority:`Blocking Tutils.scheduler
                   self#connect_task
               in
-              connect_task <- Some t;
+              Atomic.set connect_task (Some t);
               Duppy.Async.wake_up t)
 
-    method private connect = self#mutexify (fun () -> self#connect_fn) ()
-
-    method private disconnect_fn =
-      match container with
+    method private disconnect =
+      (match Atomic.get container with
         | None -> ()
         | Some (input, _, _, _) ->
             Atomic.set interrupt true;
@@ -147,19 +154,20 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                Utils.log_exception ~log:self#log ~bt
                  (Printf.sprintf "Error while disconnecting: %s"
                     (Printexc.to_string exn)));
-            container <- None;
-            source_status <- `Stopped;
+            Atomic.set container None;
             Atomic.set interrupt false;
-            on_disconnect ()
-
-    method private disconnect = self#mutexify (fun () -> self#disconnect_fn) ()
+            on_disconnect ());
+      (* Make sure the polling task stops as well. *)
+      ignore
+        (Option.map
+           (fun t ->
+             Atomic.set source_status `Stopping;
+             Duppy.Async.wake_up t)
+           (Atomic.get connect_task))
 
     method private reconnect =
-      self#mutexify
-        (fun () ->
-          self#disconnect_fn;
-          self#connect_fn)
-        ()
+      self#disconnect;
+      self#connect
 
     val mutable last_metadata = []
 
@@ -167,7 +175,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       let pos = Frame.position frame in
       try
         let _, decoder, buffer, get_metadata =
-          self#mutexify (fun () -> Option.get container) ()
+          Option.get (Atomic.get container)
         in
         while Generator.length self#buffer < Lazy.force Frame.size do
           decoder buffer
@@ -373,14 +381,17 @@ let register_input is_http =
                  ([], fun_t [] string_t),
                  "Return the current status of the source, either \"stopped\" \
                   (the source isn't trying to relay the HTTP stream), \
-                  \"polling\" (attempting to connect to the HTTP stream) or \
-                  \"connected <url>\" (connected to <url>, buffering or \
-                  playing back the stream).",
+                  \"starting\" (polling task is about to begin) \"polling\" \
+                  (attempting to connect to the HTTP stream), \"connected \
+                  <url>\" (connected to <url>, buffering or playing back the \
+                  stream) or \"stopping\" (source is stopping).",
                  fun s ->
                    val_fun [] (fun _ ->
                        string
                          (match s#source_status with
                            | `Stopped -> "stopped"
+                           | `Starting -> "starting"
+                           | `Stopping -> "stopping"
                            | `Polling -> "polling"
                            | `Connected url -> Printf.sprintf "connected %s" url))
                );
