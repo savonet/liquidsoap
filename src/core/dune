@@ -681,6 +681,14 @@
  (modules liq_vorbis_decoder vorbis_encoder vorbisduration))
 
 (library
+ (name liquidsoap_yaml)
+ (libraries yaml liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_yaml))
+
+(library
  (name liquidsoap_xmlplaylist)
  (libraries xmlplaylist liquidsoap_core)
  (library_flags -linkall)
@@ -745,6 +753,7 @@
   theora_option
   vorbis_option
   winsvc_option
+  yaml_option
   xmlplaylist_option)
  (libraries
   liquidsoap_core
@@ -983,6 +992,11 @@
    from
    (winsvc -> winsvc_option.enabled.ml)
    (-> winsvc_option.disabled.ml))
+  (select
+   yaml_option.ml
+   from
+   (liquidsoap_yaml -> yaml_option.enabled.ml)
+   (-> yaml_option.disabled.ml))
   (select
    xmlplaylist_option.ml
    from

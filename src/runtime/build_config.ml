@@ -106,6 +106,7 @@ let build_config =
    - ssl               : %{Ssl_option.detected}
    - posix-time2       : %{Posix_time_option.detected}
    - windows service   : %{Winsvc_option.detected}
+   - YAML support      : %{Yaml_option.detected}
    - XML playlists     : %{Xmlplaylist_option.detected}
 
  * Monitoring
