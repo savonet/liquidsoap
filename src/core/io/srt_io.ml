@@ -690,6 +690,8 @@ class virtual input_base ~clock_safe ~buffer_packets ~on_connect ~on_disconnect
       let buf = Buffer.create payload_size in
       let tmp = Bytes.create payload_size in
       let eof_seen = ref false in
+      Srt.setsockflag socket Srt.sndsyn true;
+      Srt.setsockflag socket Srt.rcvsyn true;
       let read bytes ofs len =
         if self#should_stop then raise Done;
         if !eof_seen && Buffer.length buf = 0 then raise End_of_file;
