@@ -26,7 +26,7 @@ exception Done
 exception Not_connected
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "SRT")
+let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "SRT")
 
 let mode_of_value v =
   match Lang.to_string v with
@@ -625,8 +625,8 @@ class virtual listener ?latency ~enforced_encryption ~pbkeylen ~passphrase
         ()
   end
 
-class virtual input_base ~clock_safe ~min_packets ~buffer_packets ~on_connect
-  ~on_disconnect ~payload_size ~dump ~on_start ~on_stop ~autostart format =
+class virtual input_base ~clock_safe ~buffer_packets ~on_connect ~on_disconnect
+  ~payload_size ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit input_networking_agent
     inherit base
@@ -673,7 +673,7 @@ class virtual input_base ~clock_safe ~min_packets ~buffer_packets ~on_connect
         | true, _ ->
             buffering <- false;
             true
-        | false, n -> min_packets <= n
+        | false, _ -> true
 
     method! is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
@@ -722,7 +722,10 @@ class virtual input_base ~clock_safe ~min_packets ~buffer_packets ~on_connect
                 (decoder, buffer)
             | Some d -> d
         in
-        while Generator.length self#buffer < Lazy.force Frame.size do
+        while
+          self#get_read_data > 0
+          || Generator.length self#buffer < Lazy.force Frame.size
+        do
           decoder.Decoder.decode buffer
         done;
         Generator.fill self#buffer frame
@@ -744,14 +747,14 @@ class virtual input_base ~clock_safe ~min_packets ~buffer_packets ~on_connect
   end
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-  ~bind_address ~payload_size ~clock_safe ~min_packets ~buffer_packets ~latency
-  ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout
-  ~messageapi ~dump ~on_start ~on_stop ~autostart format =
+  ~bind_address ~payload_size ~clock_safe ~buffer_packets ~latency ~on_connect
+  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
+  ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~payload_size ~clock_safe ~min_packets ~buffer_packets ~on_connect
-          ~on_disconnect ~dump ~on_start ~on_stop ~autostart format
+        ~payload_size ~clock_safe ~buffer_packets ~on_connect ~on_disconnect
+          ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       listener
@@ -768,15 +771,14 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   end
 
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~hostname ~port ~payload_size ~clock_safe ~min_packets
-  ~buffer_packets ~latency ~on_connect ~on_disconnect ~read_timeout
-  ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start ~on_stop
-  ~autostart format =
+  ~polling_delay ~hostname ~port ~payload_size ~clock_safe ~buffer_packets
+  ~latency ~on_connect ~on_disconnect ~read_timeout ~write_timeout
+  ~connection_timeout ~messageapi ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~payload_size ~clock_safe ~min_packets ~buffer_packets ~on_connect
-          ~on_disconnect ~dump ~on_start ~on_stop ~autostart format
+        ~payload_size ~clock_safe ~buffer_packets ~on_connect ~on_disconnect
+          ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       caller
@@ -801,24 +803,13 @@ let _ =
           Lang.int_t,
           Some (Lang.int 1),
           Some "Packets to buffer before considering the input ready." );
-        ( "min_packets",
-          Lang.int_t,
-          Some (Lang.int 1),
-          Some
-            "Minimum number of received packets required to consider the input \
-             available." );
         ( "latency",
           Lang.nullable_t Lang.int_t,
-          Some
-            (Lang.int
-               (int_of_float
-                  (1000. *. Option.get Frame_settings.conf_duration#get_d))),
+          Some Lang.null,
           Some
             "Minimum receiver buffering delay, in milliseconds, before \
-             delivering an SRT data packet. Default value is the target frame \
-             size. Set to `null` to use the library's default. The default \
-             value is pretty low so, when using it, you should also set \
-             `min_packets` to `0`." );
+             delivering an SRT data packet. Set to `null` to use the library's \
+             default." );
         ( "dump",
           Lang.string_t,
           Some (Lang.string ""),
@@ -860,7 +851,6 @@ let _ =
           | s -> Some s
       in
       let buffer_packets = Lang.to_int (List.assoc "buffer_packets" p) in
-      let min_packets = Lang.to_int (List.assoc "min_packets" p) in
       let latency =
         Lang.to_valued_option Lang.to_int (List.assoc "latency" p)
       in
@@ -880,18 +870,18 @@ let _ =
             (new input_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
                ~bind_address ~read_timeout ~write_timeout ~connection_timeout
-               ~payload_size ~clock_safe ~buffer_packets ~min_packets ~latency
-               ~on_connect ~on_disconnect ~messageapi ~dump ~on_start ~on_stop
-               ~autostart format
+               ~payload_size ~clock_safe ~buffer_packets ~latency ~on_connect
+               ~on_disconnect ~messageapi ~dump ~on_start ~on_stop ~autostart
+               format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Caller ->
             (new input_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~hostname ~port ~payload_size ~clock_safe
-               ~buffer_packets ~min_packets ~latency ~on_connect ~read_timeout
-               ~write_timeout ~connection_timeout ~on_disconnect ~messageapi
-               ~dump ~on_start ~on_stop ~autostart format
+               ~buffer_packets ~latency ~on_connect ~read_timeout ~write_timeout
+               ~connection_timeout ~on_disconnect ~messageapi ~dump ~on_start
+               ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
