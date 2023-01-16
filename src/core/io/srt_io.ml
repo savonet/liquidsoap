@@ -288,20 +288,18 @@ module Poll = struct
 
   type t = {
     p : Srt.Poll.t;
-    max_fds : int Atomic.t;
     handlers : (Srt.socket, Srt.Poll.flag * (Srt.socket -> unit)) Hashtbl.t;
   }
 
   let t =
     let p = Srt.Poll.create () in
     let handlers = Hashtbl.create 0 in
-    { p; max_fds = Atomic.make 0; handlers }
+    { p; handlers }
 
   let process () =
     try
-      let max_fds = Atomic.get t.max_fds in
-      if max_fds = 0 then raise Empty;
-      let events = Srt.Poll.uwait t.p ~max_fds ~timeout:conf_timeout#get in
+      if Srt.Poll.sockets t.p = [] then raise Empty;
+      let read, write = Srt.Poll.wait t.p ~timeout:conf_timeout#get in
       let apply fn s =
         try fn s
         with exn ->
@@ -311,21 +309,18 @@ module Poll = struct
                (Printexc.to_string exn))
       in
       List.iter
-        (fun { Srt.Poll.fd; events } ->
-          Srt.Poll.remove_usock t.p fd;
-          Atomic.decr t.max_fds;
-          Srt.setsockflag fd Srt.sndsyn true;
-          Srt.setsockflag fd Srt.rcvsyn true;
-          let event, fn = Hashtbl.find t.handlers fd in
-          if List.mem event events then apply fn fd)
-        events;
+        (fun (event, sockets) ->
+          List.iter
+            (fun fd ->
+              Srt.Poll.remove_usock t.p fd;
+              Srt.setsockflag fd Srt.sndsyn true;
+              Srt.setsockflag fd Srt.rcvsyn true;
+              let event', fn = Hashtbl.find t.handlers fd in
+              if event = event' then apply fn fd)
+            sockets)
+        [(`Read, read); (`Write, write)];
       0.
     with
-      (* We are seeing this error while tracking [max_fds]. This could be due to the
-         fact that the poll could remove closed sockets without us seeing it. *)
-      | Srt.Error (`Epollempty, _) ->
-          Atomic.set t.max_fds 0;
-          -1.
       | Empty -> -1.
       | Srt.Error (`Etimeout, _) -> 0.
       | exn ->
@@ -342,7 +337,6 @@ module Poll = struct
     Srt.setsockflag socket Srt.rcvsyn false;
     Hashtbl.add t.handlers socket (mode, fn);
     Srt.Poll.add_usock t.p socket ~flags:[(mode :> Srt.Poll.flag)];
-    Atomic.incr t.max_fds;
     Duppy.Async.wake_up task
 end
 
