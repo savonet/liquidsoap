@@ -175,7 +175,9 @@ let _put gen field content =
         let drop = l - l' in
         gen.log
           (Printf.sprintf
-             "generator max length exeeded! Dropping %d ticks of data.." drop);
+             "Generator max length exeeded (%d < %d)! Dropping %d ticks of \
+              data.."
+             l' l drop);
         _truncate gen drop
     | _ -> ()
 
