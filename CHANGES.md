@@ -19,6 +19,7 @@ Fixed:
 * Fixed shutdown livelock with some ffmpeg inline encoder,
   decoder and filter operators.
 * Fixed input polling stop (#2769)
+* Cleaned up srt support.
 
 ---
 2.1.3 (2022-11-04)
