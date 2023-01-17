@@ -486,8 +486,6 @@ let log_handler { Srt.Log.message } =
   * and set back to blocking when exiting. They are also always
   * removed from the poll when done. *)
 module Poll = struct
-  exception Empty
-
   type t = {
     p : Srt.Poll.t;
     m : Mutex.t;
@@ -502,7 +500,6 @@ module Poll = struct
 
   let process () =
     try
-      if Srt.Poll.sockets t.p = [] then raise Empty;
       let read, write = Srt.Poll.wait t.p ~timeout:conf_timeout#get in
       Tutils.mutexify t.m
         (fun () ->
@@ -529,7 +526,7 @@ module Poll = struct
         ();
       0.
     with
-      | Empty -> -1.
+      | Srt.Error (`Epollempty, _) -> -1.
       | Srt.Error (`Etimeout, _) -> 0.
       | exn ->
           let bt = Printexc.get_backtrace () in
