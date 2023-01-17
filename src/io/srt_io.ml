@@ -69,6 +69,10 @@ let common_options ~mode =
       Some
         "Timeout, in milliseconds, after which read operations are aborted if \
          no data was received, indefinite if `null`." );
+    ( "stats_interval",
+      Lang.nullable_t Lang.int_t,
+      Some Lang.null,
+      Some "Interval used to collect internal stats in milliseconds" );
     ( "write_timeout",
       Lang.nullable_t Lang.int_t,
       Some (Lang.int 1_000),
@@ -966,10 +970,6 @@ let () =
           Some
             "Dump received data to the given file for debugging. Unused is \
              empty." );
-        ( "stats_interval",
-          Lang.nullable_t Lang.int_t,
-          Some Lang.null,
-          Some "Interval used to collect internal stats in milliseconds" );
         ( "content_type",
           Lang.string_t,
           Some (Lang.string "application/ffmpeg"),
