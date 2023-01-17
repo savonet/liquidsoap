@@ -517,8 +517,6 @@ module Poll = struct
               List.iter
                 (fun fd ->
                   Srt.Poll.remove_usock t.p fd;
-                  Srt.setsockflag fd Srt.sndsyn true;
-                  Srt.setsockflag fd Srt.rcvsyn true;
                   let event', fn = Hashtbl.find t.handlers fd in
                   if event = event' then apply fn fd)
                 sockets)
@@ -785,7 +783,6 @@ class virtual listener ~payload_size ~messageapi ~bind_address
             let s = mk_socket ~payload_size ~messageapi () in
             Srt.bind s bind_address;
             Srt.listen s 1;
-            Srt.setsockflag s Srt.rcvsyn true;
             self#log#info "Setting up socket to listen at %s"
               (string_of_address bind_address);
             listening_socket <- Some s;
