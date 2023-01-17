@@ -120,7 +120,7 @@ let common_options ~mode =
       Some
         "Timeout, in milliseconds, after which initial connection operations \
          are aborted if no data was received. Uses library's default if \
-         `nulll`." );
+         `nulll`. Used only in `client` mode." );
     ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
     ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");
     ( "on_connect",
@@ -310,8 +310,6 @@ module Poll = struct
           List.iter
             (fun fd ->
               Srt.Poll.remove_usock t.p fd;
-              Srt.setsockflag fd Srt.sndsyn true;
-              Srt.setsockflag fd Srt.rcvsyn true;
               let event', fn = Hashtbl.find t.handlers fd in
               if event = event' then apply fn fd)
             sockets)
@@ -463,8 +461,6 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                  (fun v -> Srt.(setsockflag s rcvtimeo v))
                  read_timeout);
             Srt.connect s sockaddr;
-            Srt.setsockflag s Srt.sndsyn true;
-            Srt.setsockflag s Srt.rcvsyn true;
             socket <- Some (sockaddr, s);
             self#log#important "Client connected!";
             !on_connect ();
@@ -508,8 +504,8 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   end
 
 class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
-  ~listen_callback ~payload_size ~messageapi ~bind_address ~connection_timeout
-  ~read_timeout ~write_timeout ~on_connect ~on_disconnect () =
+  ~listen_callback ~payload_size ~messageapi ~bind_address ~read_timeout
+  ~write_timeout ~on_connect ~on_disconnect () =
   object (self)
     val mutable client_sockets = []
     method virtual log : Log.t
@@ -523,14 +519,10 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
     method get_sockets = self#mutexify (fun () -> client_sockets) ()
 
     method private connect =
-      let rec accept_connection listener s =
+      let rec accept_connection s =
         try
-          ignore
-            (Option.map
-               (fun v -> Srt.(setsockflag s conntimeo v))
-               connection_timeout);
           let client, origin = Srt.accept s in
-          Poll.add_socket ~mode:`Read listener (accept_connection listener);
+          Poll.add_socket ~mode:`Read s accept_connection;
           (try self#log#info "New connection from %s" (string_of_address origin)
            with exn ->
              self#log#important "Error while fetching connection source: %s"
@@ -597,11 +589,10 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
                  (fun p -> Srt.(setsockflag s passphrase p))
                  passphrase);
             Srt.listen s (Option.value ~default:1 max_clients);
-            Srt.setsockflag s Srt.rcvsyn true;
             self#log#info "Setting up socket to listen at %s"
               (string_of_address bind_address);
             listening_socket <- Some s;
-            Poll.add_socket ~mode:`Read s (accept_connection s))
+            Poll.add_socket ~mode:`Read s accept_connection)
           ()
 
     method private disconnect =
@@ -725,8 +716,8 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   ~bind_address ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect
-  ~read_timeout ~write_timeout ~connection_timeout ~messageapi ~dump ~on_start
-  ~on_stop ~autostart format =
+  ~read_timeout ~write_timeout ~messageapi ~dump ~on_start ~on_stop ~autostart
+  format =
   object (self)
     inherit
       input_base
@@ -737,8 +728,7 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
       listener
         ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
           ~max_clients:(Some 1) ~bind_address ~payload_size ~read_timeout
-          ~write_timeout ~connection_timeout ~messageapi ~on_connect
-          ~on_disconnect ()
+          ~write_timeout ~messageapi ~on_connect ~on_disconnect ()
 
     method private get_socket =
       match self#get_sockets with
@@ -835,9 +825,9 @@ let _ =
         | `Listener ->
             (new input_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-               ~bind_address ~read_timeout ~write_timeout ~connection_timeout
-               ~payload_size ~clock_safe ~on_connect ~on_disconnect ~messageapi
-               ~max ~dump ~on_start ~on_stop ~autostart format
+               ~bind_address ~read_timeout ~write_timeout ~payload_size
+               ~clock_safe ~on_connect ~on_disconnect ~messageapi ~max ~dump
+               ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Caller ->
@@ -971,7 +961,7 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
 class output_listener ~enforced_encryption ~pbkeylen ~passphrase
   ~listen_callback ~max_clients ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~autostart ~on_connect ~on_disconnect ~bind_address ~read_timeout
-  ~write_timeout ~connection_timeout ~encoder_factory source =
+  ~write_timeout ~encoder_factory source =
   object (self)
     inherit
       output_base
@@ -980,10 +970,9 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
 
     inherit
       listener
-        ~bind_address ~payload_size ~read_timeout ~write_timeout
-          ~connection_timeout ~messageapi ~on_connect ~on_disconnect
-          ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-          ~max_clients ()
+        ~bind_address ~payload_size ~read_timeout ~write_timeout ~messageapi
+          ~on_connect ~on_disconnect ~enforced_encryption ~pbkeylen ~passphrase
+          ~listen_callback ~max_clients ()
 
     method private client_error socket exn bt =
       Utils.log_exception ~log:self#log
@@ -1076,9 +1065,8 @@ let _ =
         | `Listener ->
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~bind_address
-               ~read_timeout ~write_timeout ~connection_timeout ~payload_size
-               ~autostart ~on_start ~on_stop ~infallible ~messageapi
-               ~encoder_factory ~on_connect ~on_disconnect ~listen_callback
-               ~max_clients source
+               ~read_timeout ~write_timeout ~payload_size ~autostart ~on_start
+               ~on_stop ~infallible ~messageapi ~encoder_factory ~on_connect
+               ~on_disconnect ~listen_callback ~max_clients source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
