@@ -221,8 +221,8 @@ list.iter(add_http_protocol,["http","https"])
 let settings.protocol.youtube_dl = settings.make.protocol("youtube-dl")
 
 let settings.protocol.youtube_dl.path = settings.make(
-  description="Path of the youtube-dl binary",
-  "youtube-dl"
+  description="Path of the youtube-dl (or yt-dlp) binary.",
+  "yt-dlp"
 )
 
 let settings.protocol.youtube_dl.timeout = settings.make(

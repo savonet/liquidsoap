@@ -72,7 +72,8 @@ Changed:
 - Deprecated `string_of` in favor of `string` (#2700).
 - Deprecated `string_of_float` in favor of `string.float` (#2700).
 - Added `settings.protocol.youtube_dl.timeout` to specify timeout when using
-  `youtube-dl` protocol (#2827).
+  `youtube-dl` protocol (#2827). Use `yt-dlp` as default binary for the
+  protocol.
 
 Fixed:
 
