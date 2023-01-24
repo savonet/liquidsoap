@@ -16,6 +16,8 @@ docker login -u "$USER" -p "$PASSWORD"
 
 # Something is odd with the docker repo
 ## REMOVE WHEN FIXED ##
+docker login ghcr.io -u "$GHCR_USER" -p "$GHCR_PASSWORD"
+
 docker pull ghcr.io/savonet/liquidsoap-ci-build:${TAG}_amd64
 docker tag ghcr.io/savonet/liquidsoap-ci-build:${TAG}_amd64 savonet/liquidsoap-ci-build:${TAG}_amd64
 docker push savonet/liquidsoap-ci-build:${TAG}_amd64
