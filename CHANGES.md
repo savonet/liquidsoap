@@ -7,6 +7,7 @@ New:
   added native type for srt sockets with methods, moved stats
   to socket methods, added `socket()` method on srt input/outputs
   (#2556)
+- Added support for YAML parsing and rendering (#2855)
 - Added `video.align`.
 - Added `string.index`.
 - Added support for unit interactive variables: those call a handler when their
