@@ -3,7 +3,7 @@
 Support for YAML parsing and rendering was first added in liquidsoap `2.2.0`. This support follows the same pattern as [JSON parsing/rendering](json.html) but using
 yaml-based syntax, i.e.:
 
-```liauidsoap
+```liquidsoap
 let yaml.parse ({
   name,
   version,
