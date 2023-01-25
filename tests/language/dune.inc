@@ -185,6 +185,19 @@
  (alias runtest)
  (package liquidsoap)
  (deps
+  yaml.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} yaml.liq liquidsoap %{test_liq} yaml.liq)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
   argsof.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe

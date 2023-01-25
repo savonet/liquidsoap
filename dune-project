@@ -78,6 +78,7 @@
     tsdl-image
     tsdl-ttf
     vorbis
+    yaml
     xmlplaylist)
  (conflicts
     (alsa (< 0.3.0))

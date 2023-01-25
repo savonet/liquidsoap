@@ -93,6 +93,7 @@
   builtins_profiler
   builtins_regexp
   builtins_string
+  builtins_yaml
   builtins_ref
   console
   doc

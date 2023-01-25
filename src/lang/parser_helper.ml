@@ -28,13 +28,14 @@ open Ground
 type arglist = (string * string * Type.t * Term.t option) list
 
 type lexer_let_decoration =
-  [ `None | `Recursive | `Replaces | `Eval | `Json_parse ]
+  [ `None | `Recursive | `Replaces | `Eval | `Json_parse | `Yaml_parse ]
 
 type let_decoration =
   [ `None
   | `Recursive
   | `Replaces
   | `Eval
+  | `Yaml_parse
   | `Json_parse of (string * Term.t) list ]
 
 type app_list_elem = (string * Term.t) list
@@ -71,6 +72,7 @@ type meth_ty_opt = {
 
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
+  | `Yaml_parse -> `Yaml_parse
   | `Eval -> `Eval
   | `Recursive -> `Recursive
   | `None -> `None
@@ -81,6 +83,7 @@ let string_of_let_decoration = function
   | `Recursive -> "rec"
   | `Replaces -> "replaces"
   | `Eval -> "eval"
+  | `Yaml_parse -> "yaml.parse"
   | `Json_parse _ -> "json.parse"
 
 let args_of_json_parse ~pos = function
@@ -376,6 +379,14 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
   let def = mk ~pos (Cast (def, ty)) in
   mk ~pos (Let { doc = None; replace = false; pat; gen = []; def; body })
 
+let mk_let_yaml_parse ~pos (pat, def, cast) body =
+  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
+  let tty = Value.RuntimeType.to_term ty in
+  let parser = mk ~pos (Var "_internal_yaml_parser_") in
+  let def = mk ~pos (App (parser, [("type", tty); ("", def)])) in
+  let def = mk ~pos (Cast (def, ty)) in
+  mk ~pos (Let { doc = None; replace = false; pat; gen = []; def; body })
+
 let mk_rec_fun ~pos pat args body =
   let name =
     match pat with
@@ -419,6 +430,7 @@ let mk_let ~pos (doc, decoration, pat, arglist, def, cast) body =
     | None, `Eval -> mk_eval ~pos (doc, pat, def, body, cast)
     | None, `Json_parse args ->
         mk_let_json_parse ~pos (args, pat, def, cast) body
+    | None, `Yaml_parse -> mk_let_yaml_parse ~pos (pat, def, cast) body
     | Some _, v ->
         raise
           (Parse_error
