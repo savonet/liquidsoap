@@ -549,6 +549,8 @@ module Poll = struct
         Srt.Poll.add_usock t.p socket ~flags:[(mode :> Srt.Poll.flag)])
       ();
     Duppy.Async.wake_up task
+
+  let remove_socket = Tutils.mutexify t.m (Srt.Poll.remove_usock t.p)
 end
 
 let () =
@@ -725,20 +727,30 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port
 class virtual listener ~payload_size ~messageapi ~bind_address ~read_timeout
   ~write_timeout ~on_connect ~on_disconnect =
   object (self)
-    val mutable client_data = None
+    val client_data = Atomic.make None
     method virtual log : Log.t
     method virtual should_stop : bool
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
-    val mutable listening_socket = None
+    val listening_socket = Atomic.make None
 
-    method private is_connected =
-      self#mutexify (fun () -> client_data <> None) ()
+    method private listening_socket =
+      match Atomic.get listening_socket with
+        | Some s -> s
+        | None ->
+            let s = mk_socket ~payload_size ~messageapi () in
+            Srt.bind s bind_address;
+            Srt.listen s 1;
+            self#log#info "Setting up socket to listen at %s"
+              (string_of_address bind_address);
+            Atomic.set listening_socket (Some s);
+            s
+
+    method private is_connected = Atomic.get client_data <> None
 
     method private get_socket =
-      self#mutexify
-        (fun () ->
-          match client_data with Some s -> s | None -> raise Not_connected)
-        ()
+      match Atomic.get client_data with
+        | Some s -> s
+        | None -> raise Not_connected
 
     method private connect =
       let on_connect s =
@@ -761,40 +773,39 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~read_timeout
           if self#should_stop then (
             close_socket client;
             raise Done);
-          self#mutexify
-            (fun () ->
-              client_data <- Some client;
-              !on_connect ())
-            ()
+          Atomic.set client_data (Some client);
+          !on_connect ()
         with exn ->
           self#log#debug "Failed to connect: %s" (Printexc.to_string exn);
           self#mutexify
             (fun () ->
               ignore
-                (Option.map (fun socket -> close_socket socket) client_data);
-              client_data <- None)
+                (Option.map
+                   (fun socket -> close_socket socket)
+                   (Atomic.get client_data));
+              Atomic.set client_data None)
             ()
       in
       if not self#should_stop then
         self#mutexify
           (fun () ->
-            assert (listening_socket = None);
-            let s = mk_socket ~payload_size ~messageapi () in
-            Srt.bind s bind_address;
-            Srt.listen s 1;
-            self#log#info "Setting up socket to listen at %s"
-              (string_of_address bind_address);
-            listening_socket <- Some s;
-            Poll.add_socket ~mode:`Read s on_connect)
+            Poll.add_socket ~mode:`Read self#listening_socket on_connect)
           ()
 
     method private disconnect =
+      let should_stop = self#should_stop in
       self#mutexify
         (fun () ->
-          ignore (Option.map (fun socket -> close_socket socket) client_data);
-          client_data <- None;
-          ignore (Option.map close_socket listening_socket);
-          listening_socket <- None;
+          ignore (Option.map close_socket (Atomic.get client_data));
+          Atomic.set client_data None;
+          if should_stop then (
+            ignore
+              (Option.map
+                 (fun socket ->
+                   Poll.remove_socket socket;
+                   close_socket socket)
+                 (Atomic.get listening_socket));
+            Atomic.set listening_socket None);
           !on_disconnect ())
         ()
   end
