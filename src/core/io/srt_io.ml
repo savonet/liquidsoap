@@ -294,8 +294,11 @@ module Poll = struct
     let handlers = Hashtbl.create 0 in
     { p; handlers }
 
+  exception Empty
+
   let process () =
     try
+      if List.length (Srt.Poll.sockets t.p) = 0 then raise Empty;
       let read, write = Srt.Poll.wait t.p ~timeout:conf_timeout#get in
       let apply fn s =
         try fn s
@@ -316,7 +319,7 @@ module Poll = struct
         [(`Read, read); (`Write, write)];
       0.
     with
-      | Srt.Error (`Epollempty, _) -> -1.
+      | Empty | Srt.Error (`Epollempty, _) -> -1.
       | Srt.Error (`Etimeout, _) -> 0.
       | exn ->
           let bt = Printexc.get_backtrace () in
