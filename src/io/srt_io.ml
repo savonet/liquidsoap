@@ -65,7 +65,7 @@ let common_options ~mode =
       Some "Address to bind on the local machine. Used only in listener mode" );
     ( "read_timeout",
       Lang.nullable_t Lang.int_t,
-      Some (Lang.int 1_000),
+      Some (Lang.int 3_000),
       Some
         "Timeout, in milliseconds, after which read operations are aborted if \
          no data was received, indefinite if `null`." );
@@ -75,7 +75,7 @@ let common_options ~mode =
       Some "Interval used to collect internal stats in milliseconds" );
     ( "write_timeout",
       Lang.nullable_t Lang.int_t,
-      Some (Lang.int 1_000),
+      Some (Lang.int 3_000),
       Some
         "Timeout, in milliseconds, after which write operations are aborted if \
          no data was received, indefinite if `null`." );
@@ -667,8 +667,6 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port
             self#log#important "Connecting to srt://%s:%d.." hostname port;
             ignore (Option.map close_socket socket);
             let s = mk_socket ~payload_size ~messageapi () in
-            Srt.setsockflag s Srt.sndsyn true;
-            Srt.setsockflag s Srt.rcvsyn true;
             ignore
               (Option.map
                  (fun v -> Srt.(setsockflag s conntimeo v))
@@ -750,8 +748,6 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~read_timeout
            with exn ->
              self#log#important "Error while fetching connection source: %s"
                (Printexc.to_string exn));
-          Srt.(setsockflag client sndsyn true);
-          Srt.(setsockflag client rcvsyn true);
           ignore
             (Option.map
                (fun v -> Srt.(setsockflag client sndtimeo v))
@@ -760,6 +756,8 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~read_timeout
             (Option.map
                (fun v -> Srt.(setsockflag client rcvtimeo v))
                read_timeout);
+          Srt.(setsockflag client sndsyn true);
+          Srt.(setsockflag client rcvsyn true);
           if self#should_stop then (
             close_socket client;
             raise Done);
@@ -861,8 +859,6 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
       let buf = Buffer.create payload_size in
       let tmp = Bytes.create payload_size in
       let eof_seen = ref false in
-      Srt.setsockflag socket Srt.sndsyn true;
-      Srt.setsockflag socket Srt.rcvsyn true;
       let read bytes ofs len =
         if self#should_stop then raise Done;
         if !eof_seen && Buffer.length buf = 0 then raise End_of_file;
