@@ -553,7 +553,10 @@ module Poll = struct
       ();
     Duppy.Async.wake_up task
 
-  let remove_socket = Tutils.mutexify t.m (Srt.Poll.remove_usock t.p)
+  let remove_socket =
+    Tutils.mutexify t.m (fun socket ->
+        if List.mem socket (Srt.Poll.sockets t.p) then
+          Srt.Poll.remove_usock t.p socket)
 end
 
 let () =
