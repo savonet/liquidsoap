@@ -23,160 +23,200 @@ open Mm
 
 (** Play multiple sources at the same time, and perform weighted mix *)
 
-open Source
+let max_remaining a b = if b = -1 || a = -1 then -1 else max a b
 
-let max a b = if b = -1 || a = -1 then -1 else max a b
+type 'a field = { position : int; weight : 'a; field : Frame.field }
+type 'a track = { mutable fields : 'a field list; source : Source.source }
 
-(** Add/mix several sources together.
-  * If [renorm], renormalize the PCM channels.
-  * The [video_init] (resp. [video_loop]) parameter is used to pre-process
-  * the first layer (resp. next layers) in the sum; this generalization
-  * is used to add either as an overlay or as a tiling. *)
-class add ~renorm ~power (sources : ((unit -> float) * source) list) video_init
-  video_loop =
-  let self_sync_type = Utils.self_sync_type (List.map snd sources) in
+class virtual base ~name tracks =
+  let sources = List.map (fun { source } -> source) tracks in
+  let self_sync_type = Utils.self_sync_type sources in
   object (self)
-    inherit operator ~name:"add" (List.map snd sources) as super
-
-    (* We want the sources at the beginning of the list to
-     * have their metadatas copied to the output stream, so direction
-     * matters. The algo in get_frame reverses the list in the fold_left. *)
-    val sources = List.rev sources
+    inherit Source.operator ~name sources as super
 
     method stype =
-      if List.exists (fun (_, s) -> s#stype = `Infallible) sources then
-        `Infallible
+      if List.exists (fun s -> s#stype = `Infallible) sources then `Infallible
       else `Fallible
 
     method self_sync =
-      ( Lazy.force self_sync_type,
-        List.exists (fun (_, s) -> snd s#self_sync) sources )
+      (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
 
     method remaining =
       let f cur pos =
         match (cur, pos) with
           | -1, -1 -> -1
           | x, -1 | -1, x -> x
-          | x, y -> max x y
+          | x, y -> max_remaining x y
       in
       List.fold_left f (-1)
         (List.map
-           (fun (_, s) -> s#remaining)
-           (List.filter (fun (_, s) -> s#is_ready) sources))
+           (fun s -> s#remaining)
+           (List.filter (fun s -> s#is_ready) sources))
 
-    method abort_track = List.iter (fun (_, s) -> s#abort_track) sources
-    method is_ready = List.exists (fun (_, s) -> s#is_ready) sources
-    method seek n = match sources with [(_, s)] -> s#seek n | _ -> 0
+    method abort_track = List.iter (fun s -> s#abort_track) sources
+    method is_ready = List.exists (fun s -> s#is_ready) sources
+    method seek n = match sources with [s] -> s#seek n | _ -> 0
+    val mutable track_frames = Hashtbl.create (List.length tracks)
 
-    (* We fill the buffer as much as possible, removing internal breaks.
-     * Every ready source is asked for as much data as possible, by asking
-     * it to fill the intermediate [tmp] buffer. Then that data is added
-     * to the main buffer [buf], possibly with some amplitude change.
-     *
-     * The first source is asked to write directly on [buf], which avoids
-     * copies when only one source is available -- a frequent situation.
-     * Only the first available source's metadata is kept.
-     *
-     * Normally, all active sources are proposed to fill the buffer as much as
-     * wanted, even if they end a track -- this is quite needed. There is an
-     * exception when there is only one active source, then the end of tracks
-     * are not hidden anymore, which is useful for transitions, for example. *)
-    val mutable tmp = Frame.dummy ()
+    method private track_frame source =
+      try Hashtbl.find track_frames source
+      with Not_found ->
+        let f = Frame.create source#content_type in
+        Hashtbl.add track_frames source f;
+        f
 
-    method! wake_up a =
-      super#wake_up a;
-      tmp <- Frame.create self#content_type
+    method private feed ~offset tracks =
+      List.fold_left
+        (fun pos { source } ->
+          let tmp = self#track_frame source in
+          let start = Frame.position tmp in
+          let tmp_pos =
+            if start <= offset then (
+              source#get tmp;
+              Frame.position tmp)
+            else start
+          in
+          min pos tmp_pos)
+        max_int tracks
 
-    method private get_frame buf =
-      let tmp = tmp in
-      let renorm = renorm () in
-      let sources = List.map (fun (w, s) -> (w (), s)) sources in
-      let power = power () in
-      (* Compute the list of ready sources, and their total weight. *)
-      let weight, sources =
+    (* For backward compatibility: set metadata from the first
+       track effectively summed. This should be called after #feed *)
+    method private set_metadata buf offset position =
+      match
         List.fold_left
-          (fun (t, l) (w, s) ->
-            ( (w +. if power then t *. t else t),
-              if s#is_ready then (w, s) :: l else l ))
-          (0., []) sources
-      in
-      let weight = if power then sqrt weight else weight in
-      (* Sum contributions. *)
-      let breaks = AFrame.breaks buf in
-      let offset = AFrame.position buf in
-      let _, end_offset =
-        List.fold_left
-          (fun (rank, end_offset) (w, s) ->
-            let buffer =
-              (* The first source writes directly to [buf], the others write to
-                 [tmp] and we'll sum that. *)
-              if rank = 0 then buf
-              else (
-                Frame.clear tmp;
-                Frame.set_breaks tmp breaks;
-                tmp)
-            in
-            s#get buffer;
-            let already = AFrame.position buffer in
-            let c = if renorm then w /. weight else w in
-            if c <> 1. then (
-              try
-                Audio.amplify c (AFrame.pcm buffer)
-                  (Frame.audio_of_main offset)
-                  (Frame.audio_of_main (already - offset))
-              with Content.Invalid -> ());
-            if rank > 0 then (
-              (* The region grows, make sure it is clean before adding.
-               * TODO the same should be done for video. *)
-              (try
-                 if already > end_offset then
-                   Audio.clear (AFrame.pcm buf)
-                     (Frame.audio_of_main end_offset)
-                     (Frame.audio_of_main (already - end_offset));
+          (fun cur { fields; source } ->
+            if not source#is_ready then cur
+            else
+              List.fold_left
+                (fun cur { position; _ } ->
+                  match cur with
+                    | None -> Some (source, position)
+                    | Some (_, pos) when position < pos ->
+                        Some (source, position)
+                    | _ -> cur)
+                cur fields)
+          None tracks
+      with
+        | None -> ()
+        | Some (source, _) ->
+            let tmp = self#track_frame source in
+            List.iter
+              (fun (pos, m) ->
+                if offset <= pos && pos <= position then
+                  Frame.set_metadata buf pos m)
+              (Frame.get_all_metadata tmp)
 
-                 (* Add to the main buffer. *)
-                 Audio.add (AFrame.pcm buf) offset (AFrame.pcm tmp) offset
-                   (already - offset)
-               with Content.Invalid -> ());
-
-              try
-                let vbuf = VFrame.data buf in
-                let vtmp = VFrame.data tmp in
-                let ( ! ) = Frame.video_of_main in
-                for i = !offset to !already - 1 do
-                  let img =
-                    video_loop rank (Video.Canvas.get vtmp i)
-                      (Video.Canvas.get vbuf i)
-                  in
-                  Video.Canvas.set vbuf i img
-                done
-              with Content.Invalid -> ())
-            else (
-              try
-                let vbuf = VFrame.data buf in
-                let ( ! ) = Frame.video_of_main in
-                for i = !offset to !already - 1 do
-                  (* TODO @smimram *)
-                  ignore (video_init (Video.Canvas.get vbuf i))
-                done
-              with Content.Invalid -> ());
-            (rank + 1, max end_offset already))
-          (0, offset) sources
-      in
-      (* If the other sources have filled more than the first one, the end of
-         track in buf gets overridden. *)
-      match Frame.breaks buf with
-        | pos :: breaks when pos < end_offset ->
-            Frame.set_breaks buf (end_offset :: breaks)
-        | _ -> ()
+    method! advance =
+      super#advance;
+      Hashtbl.iter (fun _ frame -> Frame.clear frame) track_frames
   end
 
+(** Add/mix several sources together.
+  * If [renorm], renormalize the PCM channels. *)
+class audio_add ~renorm ~power ~field tracks =
+  object (self)
+    inherit base ~name:"audio.add" tracks
+
+    method private get_frame buf =
+      let renorm = renorm () in
+      let power = power () in
+      let total_weight, tracks =
+        List.fold_left
+          (fun (total_weight, tracks) { source; fields } ->
+            let source_weight, fields =
+              List.fold_left
+                (fun (source_weight, fields) field ->
+                  let weight = field.weight () in
+                  let weight = if power then weight *. weight else weight in
+                  (source_weight +. weight, { field with weight } :: fields))
+                (0., []) fields
+            in
+            ( total_weight +. source_weight,
+              if source#is_ready then { source; fields } :: tracks else tracks
+            ))
+          (0., []) tracks
+      in
+      let total_weight = if power then sqrt total_weight else total_weight in
+      let offset = Frame.position buf in
+      let pos = self#feed ~offset tracks in
+      assert (offset <= pos);
+      let audio_offset = Frame.audio_of_main offset in
+      let audio_len = Frame.audio_of_main (pos - offset) in
+      let pcm = Content.Audio.get_data (Frame.get buf field) in
+      Audio.clear pcm audio_offset audio_len;
+      List.iter
+        (fun { source; fields } ->
+          let tmp = self#track_frame source in
+          List.iter
+            (fun { field; weight } ->
+              let track_pcm = Content.Audio.get_data (Frame.get tmp field) in
+              let c = if renorm then weight /. total_weight else weight in
+              if c <> 1. then Audio.amplify c track_pcm audio_offset audio_len;
+              Audio.add pcm audio_offset track_pcm audio_offset audio_len)
+            fields)
+        tracks;
+      Frame.add_break buf pos;
+      self#set_metadata buf offset pos
+  end
+
+class video_add ~field ~add tracks =
+  object (self)
+    inherit base ~name:"video.add" tracks
+
+    method private get_frame buf =
+      let tracks =
+        List.fold_left
+          (fun tracks track ->
+            if track.source#is_ready then track :: tracks else tracks)
+          [] tracks
+      in
+      let offset = Frame.position buf in
+      let pos = self#feed ~offset tracks in
+      let vbuf = Content.Video.get_data (Frame.get buf field) in
+      let ( ! ) = Frame.video_of_main in
+      List.iter
+        (fun { source; fields } ->
+          let tmp = self#track_frame source in
+          List.iter
+            (fun { position; field; _ } ->
+              let vtmp = Content.Video.get_data (Frame.get tmp field) in
+              for i = !offset to !pos - 1 do
+                let img =
+                  add position (Video.Canvas.get vtmp i)
+                    (Video.Canvas.get vbuf i)
+                in
+                Video.Canvas.set vbuf i img
+              done)
+            fields)
+        tracks;
+      Frame.add_break buf pos;
+      self#set_metadata buf offset pos
+  end
+
+let get_tracks ~mk_weight p =
+  let track_values = Lang.to_list (List.assoc "" p) in
+  List.fold_left
+    (fun (tracks, position) v ->
+      let field, s = Lang.to_track v in
+      let weight = mk_weight v in
+      let field = { position; weight; field } in
+      let track =
+        match List.find_opt (fun { source } -> s == source) tracks with
+          | Some track ->
+              track.fields <- track.fields @ [field];
+              tracks
+          | None -> tracks @ [{ source = s; fields = [field] }]
+      in
+      (track, position + 1))
+    ([], 0) track_values
+
 let _ =
-  let frame_t = Lang.internal_t () in
-  Lang.add_operator "add" ~category:`Audio
-    ~descr:
-      "Mix sources, with optional normalization. Only relay metadata from the \
-       first source that is effectively summed."
+  let frame_t = Format_type.audio () in
+  let track_t =
+    Type.meth ~optional:true "weight" ([], Lang.getter_t Lang.float_t) frame_t
+  in
+  Lang.add_track_operator ~base:Modules.track_audio "add" ~category:`Audio
+    ~descr:"Mix audio tracks with optional normalization."
     [
       ( "normalize",
         Lang.getter_t Lang.bool_t,
@@ -188,38 +228,33 @@ let _ =
         Lang.getter_t Lang.bool_t,
         Some (Lang.bool false),
         Some "Perform constant-power normalization." );
-      ( "weights",
-        Lang.list_t (Lang.getter_t Lang.float_t),
-        Some (Lang.list []),
-        Some
-          "Relative weight of the sources in the sum. The empty list stands \
-           for the homogeneous distribution. These are used as amplification \
-           coefficients if we are not normalizing." );
-      ("", Lang.list_t (Lang.source_t frame_t), None, None);
+      ("", Lang.list_t track_t, None, None);
     ]
     ~return_t:frame_t
     (fun p ->
-      let sources = Lang.to_source_list (List.assoc "" p) in
-      let weights =
-        List.map Lang.to_float_getter (Lang.to_list (List.assoc "weights" p))
-      in
-      let weights =
-        if weights = [] then List.init (List.length sources) (fun _ () -> 1.)
-        else weights
+      let tracks, _ =
+        get_tracks
+          ~mk_weight:(fun v ->
+            try Lang.to_float_getter (Liquidsoap_lang.Value.invoke v "weight")
+            with _ -> fun () -> 1.)
+          p
       in
       let renorm = Lang.to_bool_getter (List.assoc "normalize" p) in
       let power = List.assoc "power" p |> Lang.to_bool_getter in
-      if List.length weights <> List.length sources then
-        raise
-          (Error.Invalid_value
-             ( List.assoc "weights" p,
-               "there should be as many weights as sources" ));
-      (new add
-         ~renorm ~power
-         (List.map2 (fun w s -> (w, s)) weights sources)
-         (fun _ -> ())
-         (fun _ tmp buf -> Video.Canvas.Image.add tmp buf)
-        :> Source.source))
+      let field = Frame.Fields.audio in
+      (field, new audio_add ~renorm ~power ~field tracks))
+
+let _ =
+  let frame_t = Format_type.video () in
+  Lang.add_track_operator ~base:Modules.track_video "add" ~category:`Video
+    ~descr:"Merge video tracks."
+    [("", Lang.list_t frame_t, None, None)]
+    ~return_t:frame_t
+    (fun p ->
+      let tracks, _ = get_tracks ~mk_weight:(fun _ -> ()) p in
+      let add _ = Video.Canvas.Image.add in
+      let field = Frame.Fields.video in
+      (field, new video_add ~add ~field tracks))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -239,46 +274,23 @@ let tile_pos n =
   horiz (n / 2) (n - (n / 2))
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~video:(Format_type.video ()) ())
-  in
-  Lang.add_operator ~base:Modules.video "tile" ~category:`Video
-    ~descr:"Tile sources (same as add but produces tiles of videos)."
+  let frame_t = Format_type.video () in
+  Lang.add_track_operator ~base:Modules.track_video "tile" ~category:`Video
+    ~descr:"Tile video tracks."
     [
-      ("normalize", Lang.getter_t Lang.bool_t, Some (Lang.bool true), None);
-      ( "power",
-        Lang.getter_t Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Perform constant-power normalization." );
-      ( "weights",
-        Lang.list_t (Lang.getter_t Lang.float_t),
-        Some (Lang.list []),
-        Some
-          "Relative weight of the sources in the sum. The empty list stands \
-           for the homogeneous distribution." );
       ( "proportional",
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Scale preserving the proportions." );
-      ("", Lang.list_t (Lang.source_t frame_t), None, None);
+      ("", Lang.list_t frame_t, None, None);
     ]
     ~return_t:frame_t
     (fun p ->
-      let sources = Lang.to_source_list (List.assoc "" p) in
-      let weights =
-        List.map Lang.to_float_getter (Lang.to_list (List.assoc "weights" p))
-      in
-      let weights =
-        if weights = [] then List.init (List.length sources) (fun _ () -> 1.)
-        else weights
-      in
-      let renorm = Lang.to_bool_getter (List.assoc "normalize" p) in
-      let power = List.assoc "power" p |> Lang.to_bool_getter in
+      let tracks, total_tracks = get_tracks ~mk_weight:(fun _ -> ()) p in
       let proportional = Lang.to_bool (List.assoc "proportional" p) in
-      let tp = tile_pos (List.length sources) in
+      let tp = tile_pos total_tracks in
       let scale = Video_converter.scaler () in
-      let video_loop n buf tmp =
+      let add n tmp buf =
         let x, y, w, h = tp.(n) in
         let x, y, w, h =
           if proportional then (
@@ -301,14 +313,5 @@ let _ =
         in
         Video.Canvas.Image.add tmp' buf
       in
-      let video_init buf = video_loop 0 buf buf in
-      if List.length weights <> List.length sources then
-        raise
-          (Error.Invalid_value
-             ( List.assoc "weights" p,
-               "there should be as many weights as sources" ));
-      (new add
-         ~renorm ~power
-         (List.map2 (fun w s -> (w, s)) weights sources)
-         video_init video_loop
-        :> Source.source))
+      let field = Frame.Fields.video in
+      (field, new video_add ~field ~add tracks))
