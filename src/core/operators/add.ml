@@ -79,6 +79,33 @@ class virtual base ~name tracks =
           min pos tmp_pos)
         max_int tracks
 
+    (* For backward compatibility: set metadata from the first
+       track effectively summed. This should be called after #feed *)
+    method private set_metadata buf offset position =
+      match
+        List.fold_left
+          (fun cur { fields; source } ->
+            if not source#is_ready then cur
+            else
+              List.fold_left
+                (fun cur { position; _ } ->
+                  match cur with
+                    | None -> Some (source, position)
+                    | Some (_, pos) when position < pos ->
+                        Some (source, position)
+                    | _ -> cur)
+                cur fields)
+          None tracks
+      with
+        | None -> ()
+        | Some (source, _) ->
+            let tmp = self#track_frame source in
+            List.iter
+              (fun (pos, m) ->
+                if offset <= pos && pos <= position then
+                  Frame.set_metadata buf pos m)
+              (Frame.get_all_metadata tmp)
+
     method! advance =
       super#advance;
       Hashtbl.iter (fun _ frame -> Frame.clear frame) track_frames
@@ -128,7 +155,8 @@ class audio_add ~renorm ~power ~field tracks =
               Audio.add pcm audio_offset track_pcm audio_offset audio_len)
             fields)
         tracks;
-      Frame.add_break buf pos
+      Frame.add_break buf pos;
+      self#set_metadata buf offset pos
   end
 
 class video_add ~field ~add tracks =
@@ -161,7 +189,8 @@ class video_add ~field ~add tracks =
               done)
             fields)
         tracks;
-      Frame.add_break buf pos
+      Frame.add_break buf pos;
+      self#set_metadata buf offset pos
   end
 
 let get_tracks ~mk_weight p =
