@@ -333,6 +333,8 @@ module Poll = struct
     Hashtbl.add t.handlers socket (mode, fn);
     Srt.Poll.add_usock t.p socket ~flags:[(mode :> Srt.Poll.flag)];
     Duppy.Async.wake_up task
+
+  let remove_socket = Srt.Poll.remove_usock t.p
 end
 
 let () =
@@ -511,47 +513,17 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
     method virtual log : Log.t
     method virtual should_stop : bool
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
-    val mutable listening_socket = None
+    val listening_socket = Atomic.make None
 
     method private is_connected =
       self#mutexify (fun () -> client_sockets <> []) ()
 
     method get_sockets = self#mutexify (fun () -> client_sockets) ()
 
-    method private connect =
-      let rec accept_connection s =
-        try
-          let client, origin = Srt.accept s in
-          Poll.add_socket ~mode:`Read s accept_connection;
-          (try self#log#info "New connection from %s" (string_of_address origin)
-           with exn ->
-             self#log#important "Error while fetching connection source: %s"
-               (Printexc.to_string exn));
-          Srt.(setsockflag client sndsyn true);
-          Srt.(setsockflag client rcvsyn true);
-          ignore
-            (Option.map
-               (fun v -> Srt.(setsockflag client sndtimeo v))
-               write_timeout);
-          ignore
-            (Option.map
-               (fun v -> Srt.(setsockflag client rcvtimeo v))
-               read_timeout);
-          if self#should_stop then (
-            close_socket client;
-            raise Done);
-          self#mutexify
-            (fun () ->
-              client_sockets <- (origin, client) :: client_sockets;
-              !on_connect ())
-            ()
-        with exn ->
-          self#log#debug "Failed to connect: %s" (Printexc.to_string exn)
-      in
-      if not self#should_stop then
-        self#mutexify
-          (fun () ->
-            assert (listening_socket = None);
+    method private listening_socket =
+      match Atomic.get listening_socket with
+        | Some s -> s
+        | None ->
             let s = mk_socket ~payload_size ~messageapi () in
             Srt.bind s bind_address;
             let max_clients_callback =
@@ -591,17 +563,59 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
             Srt.listen s (Option.value ~default:1 max_clients);
             self#log#info "Setting up socket to listen at %s"
               (string_of_address bind_address);
-            listening_socket <- Some s;
-            Poll.add_socket ~mode:`Read s accept_connection)
+            Atomic.set listening_socket (Some s);
+            s
+
+    method private connect =
+      let rec accept_connection s =
+        try
+          let client, origin = Srt.accept s in
+          Poll.add_socket ~mode:`Read s accept_connection;
+          (try self#log#info "New connection from %s" (string_of_address origin)
+           with exn ->
+             self#log#important "Error while fetching connection source: %s"
+               (Printexc.to_string exn));
+          Srt.(setsockflag client sndsyn true);
+          Srt.(setsockflag client rcvsyn true);
+          ignore
+            (Option.map
+               (fun v -> Srt.(setsockflag client sndtimeo v))
+               write_timeout);
+          ignore
+            (Option.map
+               (fun v -> Srt.(setsockflag client rcvtimeo v))
+               read_timeout);
+          if self#should_stop then (
+            close_socket client;
+            raise Done);
+          self#mutexify
+            (fun () ->
+              client_sockets <- (origin, client) :: client_sockets;
+              !on_connect ())
+            ()
+        with exn ->
+          self#log#debug "Failed to connect: %s" (Printexc.to_string exn)
+      in
+      if not self#should_stop then
+        self#mutexify
+          (fun () ->
+            Poll.add_socket ~mode:`Read self#listening_socket accept_connection)
           ()
 
     method private disconnect =
+      let should_stop = self#should_stop in
       self#mutexify
         (fun () ->
           List.iter (fun (_, s) -> close_socket s) client_sockets;
           client_sockets <- [];
-          ignore (Option.map close_socket listening_socket);
-          listening_socket <- None;
+          if should_stop then (
+            ignore
+              (Option.map
+                 (fun s ->
+                   Poll.remove_socket s;
+                   close_socket s)
+                 (Atomic.get listening_socket));
+            Atomic.set listening_socket None);
           !on_disconnect ())
         ()
   end
