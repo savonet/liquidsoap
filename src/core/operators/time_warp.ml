@@ -287,6 +287,8 @@ module AdaptativeBuffer = struct
       method self_sync = (`Static, false)
       method remaining = proceed c (fun () -> MG.remaining c.mg)
       method is_ready = proceed c (fun () -> not c.buffering)
+      method private _ratio = c.rb_length /. prebuf
+      method ratio = proceed c (fun () -> self#_ratio)
 
       method private get_frame frame =
         proceed c (fun () ->
@@ -457,6 +459,13 @@ let _ =
              again." );
         ("", Lang.source_t frame_t, None, None);
       ])
+    ~meth:
+      [
+        ( "ratio",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Get the current scaling ratio.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#ratio) );
+      ]
     ~return_t:frame_t ~category:`Liquidsoap
     ~descr:
       "Create a buffer between two different clocks. The speed of the output \
