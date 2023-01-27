@@ -337,7 +337,9 @@ module Poll = struct
     Srt.Poll.add_usock t.p socket ~flags:[(mode :> Srt.Poll.flag)];
     Duppy.Async.wake_up task
 
-  let remove_socket = Srt.Poll.remove_usock t.p
+  let remove_socket socket =
+    if List.mem socket (Srt.Poll.sockets t.p) then
+      Srt.Poll.remove_usock t.p socket
 end
 
 let () =
