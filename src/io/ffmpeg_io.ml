@@ -134,6 +134,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         | e ->
             self#log#info "Connection failed: %s" (Printexc.to_string e);
             if debug then raise e;
+             Atomic.set source_status `Starting;
             poll_delay
 
     method private connect =
