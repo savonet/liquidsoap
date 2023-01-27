@@ -108,8 +108,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       before_metadata <- after_metadata;
       after_metadata <- None
 
-    initializer self#reset_analysis
-
     (* The played source. We _need_ exclusive control on that source,
      * since we are going to pull data from it at a higher rate around
      * track limits. *)
@@ -133,6 +131,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             transition_source <- None
 
     method! private wake_up a =
+      self#reset_analysis;
       super#wake_up a;
       source#get_ready ~dynamic:true [(self :> source)];
       source#get_ready [(self :> source)];
