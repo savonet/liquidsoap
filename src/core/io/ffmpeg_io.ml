@@ -44,7 +44,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         ~name ~fallible:true ~clock_safe ~on_start ~on_stop ~autostart () as super
 
     inherit Source.no_seek
-    initializer Generator.set_max_length self#buffer max_length
     val connect_task = Atomic.make None
     val container = Atomic.make None
     method remaining = -1
@@ -74,6 +73,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method source_status = Atomic.get source_status
 
     method private connect_task () =
+      Generator.set_max_length self#buffer max_length;
       try
         if self#source_status = `Stopping then raise Stopped;
         assert (Atomic.get container = None);
