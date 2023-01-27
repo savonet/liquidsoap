@@ -886,7 +886,7 @@ let _ =
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       let output_clock =
-        Clock.create_unknown ~sources:[] ~sub_clocks:[input_clock]
+        Clock.create_unknown ~sources:[] ~sub_clocks:[input_clock] ()
       in
       unify_clocks ~clock:output_clock graph.graph_outputs;
       Queue.add

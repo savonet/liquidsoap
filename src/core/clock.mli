@@ -159,8 +159,10 @@ type clock_variable = Source.clock_variable
 val to_string : clock_variable -> string
 
 val create_unknown :
+  ?start:bool ->
   sources:Source.active_source list ->
   sub_clocks:clock_variable list ->
+  unit ->
   clock_variable
 
 val create_known : Source.clock -> clock_variable

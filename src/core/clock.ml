@@ -143,6 +143,7 @@ module MkClock (Time : Liq_time.T) = struct
       initializer Clocks.add clocks (self :> Source.clock)
       method id = id
       method sync_mode : Source.sync = sync
+      method start = start
       val log = Log.make ["clock"; id]
 
       (* List of outputs, together with a flag indicating their status:
@@ -403,7 +404,7 @@ module MkClock (Time : Liq_time.T) = struct
             log#info "Stopping %d sources..." (List.length leaving);
             List.iter (fun (s : active_source) -> leave s) leaving);
           if
-            start
+            self#start
             && List.exists (function `Active, _ -> true | _ -> false) outputs
           then
             do_running (fun () ->
@@ -472,6 +473,8 @@ let lock = Mutex.create ()
   * We don't use Lazy because we need a thread-safe mechanism. *)
 let get_default = Tutils.lazy_cell (fun () -> (clock "main" :> Source.clock))
 
+let create_follow_clock id = (clock ~start:false id :> Source.clock)
+
 (** A function displaying the varying number of allocated clocks. *)
 let gc_alarm =
   let last_displayed = ref (-1) in
@@ -497,8 +500,12 @@ let collect ~must_lock =
   if !after_collect_tasks > 0 then Mutex.unlock lock
   else (
     Source.iterate_new_outputs (fun o ->
-        if not (is_known o#clock) then
-          ignore (unify o#clock (create_known (get_default ()))));
+        if not (is_known o#clock) then (
+          let clock =
+            if should_start o#clock then get_default ()
+            else create_follow_clock o#id
+          in
+          ignore (unify o#clock (create_known clock))));
     gc_alarm ();
     let filter _ = true in
     let collects =
