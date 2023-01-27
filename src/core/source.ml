@@ -269,6 +269,12 @@ let add_new_output, iterate_new_outputs =
         List.iter f !l;
         l := []) )
 
+let allow_content_type_resolution = Atomic.make false
+
+let () =
+  Lifecycle.after_script_parse (fun () ->
+      Atomic.set allow_content_type_resolution true)
+
 class virtual operator ?(name = "src") sources =
   let frame_type = Type.var () in
   object (self)
@@ -343,18 +349,20 @@ class virtual operator ?(name = "src") sources =
        whose fields (audio, video, etc.) indicate the kind of contents we
        have (e.g. {audio : pcm}). *)
     method frame_type = frame_type
-    val mutable ctype = None
+    val ctype = Atomic.make None
 
     (* Content type. *)
     method content_type =
-      match ctype with
+      match Atomic.get ctype with
         | Some ctype -> ctype
         | None ->
+            if not (Atomic.get allow_content_type_resolution) then
+              failwith "early content type resolution!";
             self#log#debug "Assigning source content type for frame type: %s"
               (Type.to_string self#frame_type);
             let ct = Frame_type.content_type self#frame_type in
             self#log#debug "Content type: %s" (Frame.string_of_content_type ct);
-            ctype <- Some ct;
+            Atomic.set ctype (Some ct);
             ct
 
     method private audio_channels =
