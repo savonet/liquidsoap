@@ -115,9 +115,9 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                streams
                (Av.get_input_metadata input))
         in
+        on_connect input;
         Atomic.set container (Some (input, decoder, buffer, get_metadata));
         Atomic.set source_status (`Connected url);
-        on_connect input;
         -1.
       with
         | Stopped ->
@@ -126,6 +126,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         | e ->
             self#log#info "Connection failed: %s" (Printexc.to_string e);
             if debug then raise e;
+            Atomic.set source_status `Starting;
             poll_delay
 
     method private connect =
