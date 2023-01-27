@@ -37,7 +37,7 @@ let write_to_buffer ~fields g = function
  *   clock animation framework.
  * Thus, we manually mark this operator as ready only
  * before we're about to pull from it. *)
-class consumer ~write_frame ~name ~source () =
+class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
   let s = Lang.to_source source in
   let infallible = s#stype = `Infallible in
   let noop () = () in
@@ -58,7 +58,7 @@ class consumer ~write_frame ~name ~source () =
       super#is_ready
       && (Clock.get self#clock)#is_attached (self :> Source.active_source)
 
-    method! output = if output_enabled then super#output
+    method! output = if always_enabled || output_enabled then super#output
     method private send_frame frame = write_frame producer_buffer (`Frame frame)
   end
 
