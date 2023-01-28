@@ -252,6 +252,17 @@ ignore(x / 2.)")
     ignore(ffmpeg.decode.audio(s))
   end')
 
+  section("FORMATS")
+
+  audio_formats_with_stereo = ["external(process=\"gni\",", "flac(", "opus(", "shine(", "vorbis(", "mp3("]
+  def check_stereo_syntax(format) =
+    correct("%#{format}mono)")
+    correct("%#{format}stereo)")
+    correct("%#{format}mono=false)")
+    correct("%#{format}stereo=false)")
+  end
+  list.iter(check_stereo_syntax, audio_formats_with_stereo)
+
   test.pass()
 end
 

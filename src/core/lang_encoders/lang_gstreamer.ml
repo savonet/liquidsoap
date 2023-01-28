@@ -51,6 +51,16 @@ let make ?pos params =
     let perhaps = function "" -> None | s -> Some s in
     List.fold_left
       (fun f -> function
+        | "stereo", `Value { value = Ground (Bool b); _ } ->
+            { f with Gstreamer_format.channels = (if b then 2 else 1) }
+        | "mono", `Value { value = Ground (Bool b); _ } ->
+            { f with Gstreamer_format.channels = (if b then 1 else 2) }
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "mono" ->
+            { f with Gstreamer_format.channels = 1 }
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "stereo" ->
+            { f with Gstreamer_format.channels = 2 }
         | "channels", `Value { value = Ground (Int i); _ } ->
             { f with Gstreamer_format.channels = i }
         | "audio", `Value { value = Ground (String s); _ } ->
