@@ -93,6 +93,16 @@ let make params =
             { f with Opus_format.bitrate = `Auto }
         | "bitrate", `Value { value = Ground (String "max"); _ } ->
             { f with Opus_format.bitrate = `Bitrate_max }
+        | "stereo", `Value { value = Ground (Bool b); _ } ->
+            { f with Opus_format.channels = (if b then 2 else 1) }
+        | "mono", `Value { value = Ground (Bool b); _ } ->
+            { f with Opus_format.channels = (if b then 1 else 2) }
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "mono" ->
+            { f with Opus_format.channels = 1 }
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "stereo" ->
+            { f with Opus_format.channels = 2 }
         | "channels", `Value { value = Ground (Int i); pos } ->
             if i < 1 || i > 2 then
               Lang_encoder.raise_error ~pos

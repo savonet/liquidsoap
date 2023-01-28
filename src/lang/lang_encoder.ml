@@ -68,6 +68,10 @@ let channels_of_params ?(default = 2) p =
       (function
         | "", `Term { term = Ground (String "stereo") } -> Some 2
         | "", `Term { term = Ground (String "mono") } -> Some 1
+        | "stereo", `Term { term = Ground (Bool b); _ } ->
+            Some (if b then 2 else 1)
+        | "mono", `Term { term = Ground (Bool b); _ } ->
+            Some (if b then 1 else 2)
         | "channels", `Term { term = Ground (Int n) } -> Some n
         | _ -> None)
       p

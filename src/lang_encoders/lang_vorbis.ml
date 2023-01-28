@@ -43,16 +43,20 @@ let make_cbr params =
             { f with Vorbis_format.samplerate = Lazy.from_val i }
         | "bitrate", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.mode = Vorbis_format.CBR i }
-        | "channels", `Value { value = Ground (Int i); _ } ->
-            { f with Vorbis_format.channels = i }
-        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
-            { f with Vorbis_format.fill = Some i }
+        | "stereo", `Value { value = Ground (Bool b); _ } ->
+            { f with Vorbis_format.channels = (if b then 2 else 1) }
+        | "mono", `Value { value = Ground (Bool b); _ } ->
+            { f with Vorbis_format.channels = (if b then 1 else 2) }
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
+        | "channels", `Value { value = Ground (Int i); _ } ->
+            { f with Vorbis_format.channels = i }
+        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
+            { f with Vorbis_format.fill = Some i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
@@ -86,16 +90,20 @@ let make_abr params =
         | "min_bitrate", `Value { value = Ground (Int i); _ } ->
             let _, x, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (Some i, x, y) }
-        | "channels", `Value { value = Ground (Int i); _ } ->
-            { f with Vorbis_format.channels = i }
-        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
-            { f with Vorbis_format.fill = Some i }
+        | "stereo", `Value { value = Ground (Bool b); _ } ->
+            { f with Vorbis_format.channels = (if b then 2 else 1) }
+        | "mono", `Value { value = Ground (Bool b); _ } ->
+            { f with Vorbis_format.channels = (if b then 1 else 2) }
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
+        | "channels", `Value { value = Ground (Int i); _ } ->
+            { f with Vorbis_format.channels = i }
+        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
+            { f with Vorbis_format.fill = Some i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
@@ -124,16 +132,20 @@ let make params =
               Lang_encoder.raise_error ~pos "quality should be in [-(0.2)..1]";
             let q = float i in
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
-        | "channels", `Value { value = Ground (Int i); _ } ->
-            { f with Vorbis_format.channels = i }
-        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
-            { f with Vorbis_format.fill = Some i }
+        | "stereo", `Value { value = Ground (Bool b); _ } ->
+            { f with Vorbis_format.channels = (if b then 2 else 1) }
+        | "mono", `Value { value = Ground (Bool b); _ } ->
+            { f with Vorbis_format.channels = (if b then 1 else 2) }
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
         | "", `Value { value = Ground (String s); _ }
           when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
+        | "channels", `Value { value = Ground (Int i); _ } ->
+            { f with Vorbis_format.channels = i }
+        | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
+            { f with Vorbis_format.fill = Some i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in
