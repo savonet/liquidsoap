@@ -42,6 +42,16 @@ let make params =
   let ext =
     List.fold_left
       (fun f -> function
+        | "stereo", `Value { value = Ground (Bool b); _ } ->
+            { f with External_encoder_format.channels = (if b then 2 else 1) }
+        | "mono", `Value { value = Ground (Bool b); _ } ->
+            { f with External_encoder_format.channels = (if b then 1 else 2) }
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "mono" ->
+            { f with External_encoder_format.channels = 1 }
+        | "", `Value { value = Ground (String s); _ }
+          when String.lowercase_ascii s = "stereo" ->
+            { f with External_encoder_format.channels = 2 }
         | "channels", `Value { value = Ground (Int c); _ } ->
             { f with External_encoder_format.channels = c }
         | "samplerate", `Value { value = Ground (Int i); _ } ->
