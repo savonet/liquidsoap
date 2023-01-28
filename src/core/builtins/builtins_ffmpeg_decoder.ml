@@ -22,10 +22,11 @@
 
 open Mm
 
-let ffmpeg = Lang.add_module ~base:Modules.track "ffmpeg"
-let ffmpeg_decode = Lang.add_module ~base:ffmpeg "decode"
-let ffmpeg_raw = Lang.add_module ~base:ffmpeg "raw"
-let ffmpeg_raw_decode = Lang.add_module ~base:ffmpeg_raw "decode"
+let ffmpeg_decode =
+  Lang.add_module ~base:Builtins_ffmpeg_base.track_ffmpeg "decode"
+
+let ffmpeg_raw_decode =
+  Lang.add_module ~base:Builtins_ffmpeg_base.track_ffmpeg_raw "decode"
 
 module InternalResampler =
   Swresample.Make (Swresample.Frame) (Swresample.PlanarFloatArray)

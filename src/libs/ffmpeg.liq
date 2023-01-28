@@ -1,3 +1,80 @@
+%ifdef track.ffmpeg.raw.encode.audio
+let ffmpeg.encode = ()
+let ffmpeg.raw.encode = ()
+
+# Encode a source's audio content
+# @category Source / Conversion
+def ffmpeg.encode.audio(~id=null("ffmpeg.encode.audio"), f, s) =
+  audio = track.ffmpeg.encode.audio(f, source.tracks(s).audio)
+  source(id=id, {
+    track_marks = track.track_marks(audio),
+    metadata    = track.metadata(audio),
+    audio       = audio
+  })
+end
+
+# Encode a source's audio content
+# @category Source / Conversion
+def ffmpeg.raw.encode.audio(~id=null("ffmpeg.raw.encode.audio"), f, s) =
+  audio = track.ffmpeg.raw.encode.audio(f, source.tracks(s).audio)
+  source(id=id, {
+    track_marks = track.track_marks(audio),
+    metadata    = track.metadata(audio),
+    audio       = audio
+  })
+end
+
+# Encode a source's video content
+# @category Source / Conversion
+def ffmpeg.encode.video(~id=null("ffmpeg.encode.video"), f, s) =
+  video = track.ffmpeg.encode.video(f, source.tracks(s).video)
+  source(id=id, {
+    track_marks = track.track_marks(video),
+    metadata    = track.metadata(video),
+    video       = video
+  })
+end
+
+# Encode a source's video content
+# @category Source / Conversion
+def ffmpeg.raw.encode.video(~id=null("ffmpeg.raw.encode.video"), f, s) =
+  video = track.ffmpeg.raw.encode.video(f, source.tracks(s).video)
+  source(id=id, {
+    track_marks = track.track_marks(video),
+    metadata    = track.metadata(video),
+    video       = video
+  })
+end
+
+# Encode a source's audio and video content
+# @category Source / Conversion
+def ffmpeg.encode.audio_video(~id=null("ffmpeg.encode.audio_video"), f, s) =
+  let {audio, video} = source.tracks(s)
+  audio = track.ffmpeg.encode.audio(f, audio)
+  video = track.ffmpeg.encode.video(f, video)
+  source(id=id, {
+    track_marks = track.track_marks(audio),
+    metadata    = track.metadata(audio),
+    audio       = audio,
+    video       = video
+  })
+end
+
+# Encode a source's audio and video content
+# @category Source / Conversion
+def ffmpeg.raw.encode.audio_video(~id=null("ffmpeg.raw.encode.audio_video"), f, s) =
+  let {audio, video} = source.tracks(s)
+  audio = track.ffmpeg.raw.encode.audio(f, audio)
+  video = track.ffmpeg.raw.encode.video(f, video)
+  source(id=id, {
+    track_marks = track.track_marks(audio),
+    metadata    = track.metadata(audio),
+    audio       = audio,
+    video       = video
+  })
+end
+%endif
+
 %ifdef track.ffmpeg.decode.audio
 let ffmpeg.decode = ()
 let ffmpeg.raw.decode = ()
