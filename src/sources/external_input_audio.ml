@@ -61,7 +61,9 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
   object (self)
     inherit
       External_input.base
-        ~name ~kind ?read_header ~restart ~restart_on_error ~on_data command as base
+        ~name ~kind ?read_header
+        ~on_stop:(fun () -> Generator.add_break abg)
+        ~restart ~restart_on_error ~on_data command as base
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 

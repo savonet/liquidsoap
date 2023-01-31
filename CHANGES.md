@@ -6,6 +6,10 @@ New:
 * Always display error backtrace when a fatal exception
   is raised in the streaming loop.
 
+Changed:
+* Add break when restarting the external process in `input.external.{rawaudio,rawvideo}`
+  (#2860, #2872)
+
 Fixed:
 * Fixed parameter type for `stats_interval` in SRT I/O.
 * Fixed type generalization on variable and pattern bindings

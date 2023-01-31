@@ -24,8 +24,8 @@ open Extralib
 
 (* {1 External Input handling} *)
 
-class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
-  command =
+class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ~on_stop
+  ?read_header command =
   let no_header, read_header =
     match read_header with
       | None -> (true, fun _ -> assert false)
@@ -57,6 +57,7 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
           `Continue
       in
       let on_stop status =
+        on_stop ();
         header_read <- false;
         match status with
           | `Status (Unix.WEXITED 0) -> restart
