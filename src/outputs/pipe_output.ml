@@ -62,7 +62,15 @@ class virtual base ~kind ~source ~name p =
       in
       encoder <- Some (enc meta)
 
-    method stop = encoder <- None
+    (* Make sure to call stop on the encoder to close any open
+       connection. *)
+    method stop =
+      match encoder with
+        | None -> ()
+        | Some enc ->
+            (try ignore (enc.Encoder.stop ()) with _ -> ());
+            encoder <- None
+
     method reset = ()
 
     method encode frame ofs len =
@@ -118,6 +126,18 @@ class url_output p =
     let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
     ignore (Lang.apply on_error [("", Lang.error error)])
   in
+  let on_start =
+    let f = List.assoc "on_start" p in
+    fun () -> ignore (Lang.apply f [])
+  in
+  let p =
+    List.map
+      (fun ((lbl, _) as v) ->
+        match lbl with
+          | "on_start" -> ("on_start", Lang.val_fun [] (fun _ -> Lang.unit))
+          | _ -> v)
+      p
+  in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let name = "output.url" in
   object (self)
@@ -125,32 +145,51 @@ class url_output p =
     method private encoder_factory = encoder_factory ~format format_val
     val mutable restart_time = 0.
 
-    method private restartify : 'a. default:'a -> (unit -> 'a) -> 'a =
-      fun ~default fn ->
-        try
-          match encoder with
-            | None when restart_time <= Unix.gettimeofday () ->
-                super#start;
-                fn ()
-            | None -> default
-            | Some _ -> fn ()
-        with exn -> (
-          let bt = Printexc.get_raw_backtrace () in
-          Utils.log_exception ~log:self#log
-            ~bt:(Printexc.raw_backtrace_to_string bt)
-            (Printf.sprintf "Error while streaming: %s" (Printexc.to_string exn));
-          on_error ~bt exn;
-          match restart_delay with
-            | None -> Printexc.raise_with_backtrace exn bt
-            | Some delay ->
-                super#stop;
-                restart_time <- Unix.gettimeofday () +. delay;
-                self#log#important "Will try to reconnect in %.02f seconds."
-                  delay;
-                default)
+    method start =
+      match encoder with
+        | None when restart_time <= Unix.gettimeofday () -> (
+            try
+              super#start;
+              on_start ()
+            with exn -> (
+              let bt = Printexc.get_raw_backtrace () in
+              Utils.log_exception ~log:self#log
+                ~bt:(Printexc.raw_backtrace_to_string bt)
+                (Printf.sprintf "Error while connecting: %s"
+                   (Printexc.to_string exn));
+              on_error ~bt exn;
+              match restart_delay with
+                | None -> Printexc.raise_with_backtrace exn bt
+                | Some delay ->
+                    restart_time <- Unix.gettimeofday () +. delay;
+                    self#log#important "Will try again in %.02f seconds." delay)
+            )
+        | _ -> ()
 
-    method start = self#restartify ~default:() (fun () -> super#start)
-    method output = self#restartify ~default:() (fun () -> super#output)
+    method encode frame ofs len =
+      try
+        match encoder with
+          | None when restart_time <= Unix.gettimeofday () ->
+              super#start;
+              on_start ();
+              super#encode frame ofs len
+          | None -> Strings.empty
+          | Some _ -> super#encode frame ofs len
+      with exn -> (
+        let bt = Printexc.get_raw_backtrace () in
+        Utils.log_exception ~log:self#log
+          ~bt:(Printexc.raw_backtrace_to_string bt)
+          (Printf.sprintf "Error while encoding data: %s"
+             (Printexc.to_string exn));
+        on_error ~bt exn;
+        match restart_delay with
+          | None -> Printexc.raise_with_backtrace exn bt
+          | Some delay ->
+              self#stop;
+              restart_time <- Unix.gettimeofday () +. delay;
+              self#log#important "Will try again in %.02f seconds." delay;
+              Strings.empty)
+
     method write_pipe _ _ _ = ()
     method self_sync = (`Static, self_sync)
   end
