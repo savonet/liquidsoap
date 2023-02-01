@@ -258,6 +258,7 @@ let fill gen =
           in
           let len = min (_frame_remaining frame) available in
           let pos = _frame_position frame in
+          let new_pos = pos + len in
           gen.content <-
             Frame_base.Fields.mapi
               (fun field content ->
@@ -266,10 +267,13 @@ let fill gen =
                 in
                 (* TODO: make this append after after switch to immutable content. *)
                 (match field with
-                  (* Remove the first break in rem *)
+                  (* Remove the track mark if it is was used to compute remaining and it's not
+                     at frame boundaries. *)
                   | f when f = Frame_base.Fields.track_marks -> (
                       match Content.Track_marks.get_data rem with
-                        | _ :: d -> Content.Track_marks.set_data rem d
+                        | 0 :: d when new_pos <> Lazy.force Frame_settings.size
+                          ->
+                            Content.Track_marks.set_data rem d
                         | _ -> ())
                   | f when f = Frame_base.Fields.metadata ->
                       (* For metadata, it is expected that we only add new metadata and do not replace
@@ -291,5 +295,5 @@ let fill gen =
                         pos len);
                 rem)
               gen.content;
-          _add_track_mark ~pos:(pos + len) frame)
+          _add_track_mark ~pos:new_pos frame)
         ())

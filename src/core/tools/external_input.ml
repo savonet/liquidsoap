@@ -57,6 +57,7 @@ class virtual base ~name ~restart ~restart_on_error ~on_data ?read_header
           `Continue
       in
       let on_stop status =
+        Generator.add_track_mark self#buffer;
         header_read <- false;
         match status with
           | `Status (Unix.WEXITED 0) -> restart
