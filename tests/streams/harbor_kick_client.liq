@@ -22,7 +22,7 @@ def fn() =
 
  s = input.harbor(buffer=0.1, auth=auth, on_connect=on_connect, port=9878, "harbor_kick_client")
 
- kick_client := s.disconnect
+ kick_client := s.stop
 
  output.dummy(fallible=true,s)
 

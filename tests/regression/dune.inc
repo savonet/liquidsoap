@@ -68,6 +68,19 @@
  (alias runtest)
  (package liquidsoap)
  (deps
+  GH2872.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH2872.liq liquidsoap %{test_liq} GH2872.liq)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
   115-2.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
@@ -362,6 +375,19 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} LS268.liq liquidsoap %{test_liq} LS268.liq)))
+
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  GH2850.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH2850.liq liquidsoap %{test_liq} GH2850.liq)))
 
 (rule
  (alias runtest)
