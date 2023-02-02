@@ -9,6 +9,9 @@ New:
 Changed:
 * Add break when restarting the external process in `input.external.{rawaudio,rawvideo}`
   (#2860, #2872)
+* Removed `disconnect` method on `input.harbor`. This method was doing the same as
+  the `stop` method. Added `shutdown` method to properly shutdown the
+  source even when not connected to an output.
 
 Fixed:
 * Fixed parameter type for `stats_interval` in SRT I/O.

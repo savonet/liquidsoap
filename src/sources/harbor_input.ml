@@ -62,7 +62,6 @@ module Make (Harbor : T) = struct
       val mutable mime_type = None
       val mutable dump = None
       val mutable logf = None
-      method stop_cmd = self#disconnect ~lock:true
 
       method connected_client =
         Tutils.mutexify relay_m
@@ -271,12 +270,15 @@ module Make (Harbor : T) = struct
     Lang.add_operator Harbor.source_name ~return_t:(Lang.univ_t ())
       ~meth:
         [
-          ( "stop",
+          ( "shutdown",
             ([], Lang.fun_t [] Lang.unit_t),
-            "Stop the input.",
+            "Shutdown the source.",
             fun s ->
               Lang.val_fun [] (fun _ ->
-                  s#stop_cmd;
+                  if Source.Clock_variables.is_known s#clock then
+                    (Clock.get s#clock)#detach
+                      (fun (s' : Source.active_source) ->
+                        (s' :> Source.source) = (s :> Source.source));
                   Lang.unit) );
           ( "connected_client",
             ([], Lang.fun_t [] (Lang.nullable_t Lang.string_t)),
@@ -287,7 +289,7 @@ module Make (Harbor : T) = struct
                   match s#connected_client with
                     | Some c -> Lang.string c
                     | None -> Lang.null) );
-          ( "disconnect",
+          ( "stop",
             ([], Lang.fun_t [] Lang.unit_t),
             "Disconnect the client currently connected to the harbor. Does \
              nothing if no client is connected.",
