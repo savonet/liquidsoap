@@ -148,6 +148,10 @@ jobs:
           sudo -u opam opam install -y irc-client-unix osc-unix
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
           cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
+      - name: Compute stats
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/stats-posix.sh
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
