@@ -74,11 +74,11 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Restart process when exited with error." );
-      ("", Lang.string_t, None, Some "Command to execute.");
+      ("", Lang.getter_t Lang.string_t, None, Some "Command to execute.");
     ]
     ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let video_format = ref None in
       let width = ref None in
       let height = ref None in
@@ -215,11 +215,11 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Restart process when exited with error." );
-      ("", Lang.string_t, None, Some "Command to execute.");
+      ("", Lang.getter_t Lang.string_t, None, Some "Command to execute.");
     ]
     ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let width = Lazy.force Frame.video_width in
       let height = Lazy.force Frame.video_height in
       let buflen = width * height * 3 in

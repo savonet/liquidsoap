@@ -69,7 +69,7 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool false),
       Some "Restart process when exited with error." );
-    ("", Lang.string_t, None, Some "Command to execute.");
+    ("", Lang.getter_t Lang.string_t, None, Some "Command to execute.");
   ]
 
 let _ =
@@ -88,7 +88,7 @@ let _ =
       ])
     ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let channels_v = List.assoc "channels" p in
       let channels = Lang.to_int channels_v in
@@ -124,7 +124,7 @@ let _ =
   Lang.add_operator ~base:Modules.input_external "wav" ~category:`Input
     ~descr:"Stream WAV data from an external application." proto ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let converter_ref = ref (fun _ _ _ -> assert false) in
       let converter data ofs len = !converter_ref data ofs len in
