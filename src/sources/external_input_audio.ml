@@ -95,7 +95,7 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool false),
       Some "Restart process when exited with error." );
-    ("", Lang.string_t, None, Some "Command to execute.");
+    ("", Lang.getter_t Lang.string_t, None, Some "Command to execute.");
   ]
 
 let () =
@@ -112,7 +112,7 @@ let () =
       ])
     ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let channels_v = List.assoc "channels" p in
@@ -151,7 +151,7 @@ let () =
   Lang.add_operator "input.external.wav" ~category:`Input
     ~descr:"Stream WAV data from an external application." proto ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let converter_ref = ref (fun _ _ _ -> assert false) in

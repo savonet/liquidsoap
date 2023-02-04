@@ -67,7 +67,7 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ~on_stop
       process <-
         Some
           (Process_handler.run ~priority:`Blocking ~on_stop ~on_stdout
-             ~on_stderr ~log command)
+             ~on_stderr ~log (command ()))
 
     method sleep =
       match process with
