@@ -45,6 +45,7 @@ let format_handler f =
         Content_base.merge (get_format f) (get_format f');
         f);
     to_string = (fun f -> Content_base.string_of_format (get_format f));
+    to_json = (fun f -> Content_base.json_of_format (get_format f));
   }
 
 let format_descr f = Type.Custom (format_handler f)

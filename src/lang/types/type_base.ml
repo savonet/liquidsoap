@@ -170,6 +170,7 @@ type custom_handler = {
   subtype : (t -> t -> unit) -> custom -> custom -> unit;
   sup : (t -> t -> t) -> custom -> custom -> custom;
   to_string : custom -> string;
+  to_json : custom -> Json.t;
 }
 
 type descr +=

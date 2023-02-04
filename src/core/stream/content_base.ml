@@ -67,6 +67,7 @@ module type ContentSpecs = sig
   val merge : params -> params -> params
   val compatible : params -> params -> bool
   val string_of_params : params -> string
+  val json_of_params : params -> (string * Json.t) list
   val parse_param : string -> string -> params option
   val kind : kind
   val default_params : kind -> params
@@ -128,6 +129,7 @@ type format_handler = {
   kind : unit -> kind;
   make : int option -> data;
   string_of_format : unit -> string;
+  json_of_format : unit -> Json.t;
   merge : format -> unit;
   compatible : format -> bool;
   duplicate : unit -> format;
@@ -211,6 +213,7 @@ let clear c = (get_data_handler c).clear c
 let kind p = (get_params_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
 let string_of_format k = (get_params_handler k).string_of_format ()
+let json_of_format k = (get_params_handler k).json_of_format ()
 
 let () =
   Printexc.register_printer (function
@@ -413,6 +416,11 @@ module MkContentBase (C : ContentSpecs) :
                   match params with
                     | "" -> C.string_of_kind C.kind
                     | _ -> Printf.sprintf "%s(%s)" kind params);
+              json_of_format =
+                (fun () ->
+                  let kind = C.string_of_kind C.kind in
+                  let _params = C.json_of_params (Unifier.deref p) in
+                  `Assoc [("kind", `String "format"); ("name", `String kind)]);
             }
       | _ -> None);
     Queue.push kind_of_string kind_parsers;
