@@ -48,6 +48,13 @@ module Specs = struct
         ("height", Option.map (fun x -> string_of_int !!x) height);
       ]
 
+  let json_of_params { width; height } =
+    [
+      Option.map (fun x -> ("width", `Int !!x)) width;
+      Option.map (fun x -> ("height", `Int !!x)) height;
+    ]
+    |> List.filter_map Fun.id
+
   let parse_param label value =
     match label with
       | "width" ->

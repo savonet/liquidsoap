@@ -33,6 +33,7 @@ module Specs = struct
   let internal_content_type = Some `Midi
   let string_of_kind = function `Midi -> "midi"
   let string_of_params { channels } = Printf.sprintf "channels=%d" channels
+  let json_of_params { channels } = [("channels", `Int channels)]
 
   let merge p p' =
     assert (p.channels = p'.channels);
