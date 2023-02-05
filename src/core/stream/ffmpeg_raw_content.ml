@@ -49,7 +49,6 @@ module AudioSpecs = struct
 
   let string_of_kind = function `Raw -> "ffmpeg.audio.raw"
   let kind_of_string = function "ffmpeg.audio.raw" -> Some `Raw | _ -> None
-  let json_of_kind = function `Raw -> `String "ffmpeg.audio.raw"
 
   type params = {
     channel_layout : Channel_layout.t option;
@@ -91,7 +90,7 @@ module AudioSpecs = struct
         ("sample_rate", Option.map string_of_int sample_rate);
       ]
 
-  let json_of_params = failwith "TODO"
+  let json_of_params _ = failwith "TODO"
 
   let parse_param label value =
     match label with
@@ -148,7 +147,6 @@ module VideoSpecs = struct
 
   let string_of_kind = function `Raw -> "ffmpeg.video.raw"
   let kind_of_string = function "ffmpeg.video.raw" -> Some `Raw | _ -> None
-  let json_of_kind = function `Raw -> `String "ffmpeg.video.raw"
 
   type params = {
     width : int option;
@@ -196,7 +194,7 @@ module VideoSpecs = struct
             pixel_aspect );
       ]
 
-  let json_of_params = failwith "TODO"
+  let json_of_params _ = failwith "TODO"
 
   let parse_param label value =
     match label with

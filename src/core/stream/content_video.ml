@@ -32,7 +32,6 @@ module Specs = struct
 
   let internal_content_type = Some `Video
   let string_of_kind = function `Canvas -> "canvas"
-  let json_of_kind = failwith "TODO"
 
   let make ?(length = 0) (p : params) : data =
     let width = !!(Option.value ~default:video_width p.width) in

@@ -68,7 +68,7 @@ module Make (S : Spec) = struct
       to_json =
         (fun c ->
           ignore (get c);
-          `String S.name);
+          `Assoc [("kind", `String "custom"); ("name", `String S.name)]);
     }
 
   let descr = Type_base.Custom handler

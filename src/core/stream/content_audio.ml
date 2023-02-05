@@ -35,7 +35,6 @@ module Specs = struct
   type data = Audio.Mono.buffer array
 
   let string_of_kind = function `Pcm -> "pcm"
-  let json_of_kind = failwith "TODO"
 
   let string_of_params { channel_layout } =
     match !!channel_layout with

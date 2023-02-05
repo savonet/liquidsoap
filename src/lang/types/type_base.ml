@@ -184,6 +184,14 @@ type descr +=
   | Arrow of (bool * string * t) list * t  (** a function *)
   | Var of invar ref  (** a type variable *)
 
+let rec to_json (a : t) : Json.t =
+  match a.descr with
+    | Custom c -> c.to_json c.typ
+    | List a -> `Assoc [("kind", `String "list"); ("of", to_json a.t)]
+    | Tuple l ->
+        `Assoc [("kind", `String "tuple"); ("of", `Tuple (List.map to_json l))]
+    | _ -> failwith "TODO (to_json in type_base)"
+
 exception NotImplemented
 exception Exists of Pos.Option.t * string
 exception Unsatisfied_constraint

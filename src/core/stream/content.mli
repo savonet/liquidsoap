@@ -91,7 +91,6 @@ module type ContentSpecs = sig
   val default_params : kind -> params
   val string_of_kind : kind -> string
   val kind_of_string : string -> kind option
-  val json_of_kind : kind -> Json.t
 end
 
 module type Content = sig
