@@ -64,6 +64,11 @@ let repr_of_kind repr l (k, ty) =
         `Constr (Content_base.string_of_format f, [])
     | _ -> `Constr (Content_base.string_of_kind k, [(`Covariant, repr l ty)])
 
+let json_of_kind (_k, ty) =
+  match (Type.deref ty).Type.descr with
+    | Type.(Custom { typ = Format f }) -> Content_base.json_of_format f
+    | _ -> failwith "TODO"
+
 let kind_handler k =
   {
     Type.typ = Kind k;
@@ -93,6 +98,7 @@ let kind_handler k =
         assert (k = k');
         Kind (k, sup t t'));
     to_string = (fun k -> string_of_kind (get_kind k));
+    to_json = (fun k -> json_of_kind (get_kind k));
   }
 
 let descr descr =

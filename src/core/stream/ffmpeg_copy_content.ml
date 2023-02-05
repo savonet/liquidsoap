@@ -58,6 +58,7 @@ module Specs = struct
   let internal_content_type = None
   let string_of_kind = function `Copy -> "ffmpeg.copy"
   let kind_of_string = function "ffmpeg.copy" -> Some `Copy | _ -> None
+  let json_of_kind = function `Copy -> `String "ffmpeg.copy"
 
   let string_of_params params =
     String.concat ","
@@ -102,6 +103,8 @@ module Specs = struct
                          Option.value ~default:"none" (Pixel_format.to_string p)
                        );
                      ])))
+
+  let json_of_params = failwith "TODO"
 
   let compatible_aspect_radio p p' =
     match (p, p') with

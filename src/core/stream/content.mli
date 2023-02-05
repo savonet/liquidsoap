@@ -80,6 +80,7 @@ module type ContentSpecs = sig
   val merge : params -> params -> params
   val compatible : params -> params -> bool
   val string_of_params : params -> string
+  val json_of_params : params -> (string * Json.t) list
 
   (* [parse_param "label" "value"] *)
   val parse_param : string -> string -> params option
@@ -90,6 +91,7 @@ module type ContentSpecs = sig
   val default_params : kind -> params
   val string_of_kind : kind -> string
   val kind_of_string : string -> kind option
+  val json_of_kind : kind -> Json.t
 end
 
 module type Content = sig
