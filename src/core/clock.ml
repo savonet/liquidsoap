@@ -26,11 +26,14 @@ type active_source = Source.active_source
 
 include Source.Clock_variables
 
+let parallelism = ref true
+
 let pool =
   Domainslib.Task.setup_pool
     ~num_domains:(Domain.recommended_domain_count ())
     ()
 
+(*
 let iter fn l =
   let l = Array.of_list l in
   Domainslib.Task.run pool (fun _ ->
@@ -38,14 +41,17 @@ let iter fn l =
         ~finish:(Array.length l - 1)
         ~body:(fun pos -> fn l.(pos))
         pool)
+*)
 
 let fold ~reconcile fn v l =
-  let l = Array.of_list l in
-  Domainslib.Task.run pool (fun _ ->
-      Domainslib.Task.parallel_for_reduce ~start:0
-        ~finish:(Array.length l - 1)
-        ~body:(fun pos -> fn l.(pos))
-        pool reconcile v)
+  if !parallelism then (
+    let l = Array.of_list l in
+    Domainslib.Task.run pool (fun _ ->
+        Domainslib.Task.parallel_for_reduce ~start:0
+          ~finish:(Array.length l - 1)
+          ~body:(fun pos -> fn l.(pos))
+          pool reconcile v))
+  else List.fold_left (fun s x -> reconcile s (fn x)) v l
 
 let create_known s = create_known (s :> Source.clock)
 let log = Log.make ["clock"]
@@ -317,8 +323,9 @@ module MkClock (Time : Liq_time.T) = struct
               (leaving, active))
             ()
         in
-        iter (fun (s : active_source) -> leave s) leaving;
-        iter (fun s -> s#before_output) active;
+        (* TODO: could be parallelized *)
+        List.iter (fun (s : active_source) -> leave s) leaving;
+        List.iter (fun s -> s#before_output) active;
         let error, active =
           fold
             ~reconcile:(fun (e, a) (e', a') -> (e @ e', a @ a'))

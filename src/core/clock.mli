@@ -107,6 +107,10 @@
  *   during the call to [#get_frame] but, if the source is not ready, this call will
  *   not be executed, leading to [#end_tick] being called on each main clock tick *)
 
+(** Whether sources are allowed to compute their contents in parallel (using
+    concurrent threads). *)
+val parallelism : bool ref
+
 (** A clock represents the rate at which a source runs. In itself it does not
   * do much, except forcing that one source belongs to exactly one clock,
   * which prevents inconsistent uses of the source. Clocks are assigned to
