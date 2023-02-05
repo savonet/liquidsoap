@@ -63,7 +63,6 @@ and in_value = Liquidsoap_lang.Value.in_value =
   | Tuple of value list
   | Null
   | Meth of string * value * value
-  | Ref of value Atomic.t
   | Fun of
       (string * string * value option) list * lazy_env * Liquidsoap_lang.Term.t
   (* A function with given arguments (argument label, argument variable, default
@@ -75,10 +74,10 @@ val split_meths : value -> (string * value) list * value
 
 (** Iter a function over all sources contained in a value. This only applies to
     statically referenced objects, i.e. it does not explore inside reference
-    cells. [on_reference] is used when we encounter a reference cell that may
+    cells. [on_imprecise] is used when we encounter a value cell that may
     contain a source. If not passed, we display a warning log. *)
 val iter_sources :
-  ?on_reference:(unit -> unit) -> (Source.source -> unit) -> value -> unit
+  ?on_imprecise:(unit -> unit) -> (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)
 
@@ -183,7 +182,6 @@ val to_valued_option : (value -> 'a) -> value -> 'a option
 val to_default_option : default:'a -> (value -> 'a) -> value -> 'a
 val to_product : value -> value * value
 val to_tuple : value -> value list
-val to_ref : value -> value Atomic.t
 val to_metadata_list : value -> (string * string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
@@ -214,7 +212,6 @@ val optional_method_t : t -> (string * scheme * string) list -> t
 val list_t : t -> t
 val of_list_t : t -> t
 val nullable_t : t -> t
-val ref_t : t -> t
 val error_t : t
 val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
@@ -262,7 +259,6 @@ val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
-val reference : value Atomic.t -> value
 val http_transport : Http.transport -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate

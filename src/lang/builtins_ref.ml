@@ -20,34 +20,23 @@
 
  *****************************************************************************)
 
+let ref_t a =
+  Lang.record_t
+    [("get", Lang.fun_t [] a); ("set", Lang.fun_t [(false, "", a)] Lang.unit_t)]
+
 let ref =
   let a = Lang.univ_t () in
   Lang.add_builtin "ref" ~category:`Programming
     ~descr:"Create a reference, i.e. a value which can be modified."
     [("", a, None, None)]
-    (Lang.ref_t a)
+    (ref_t a)
     (fun p ->
-      let x = List.assoc "" p in
-      Lang.reference (Atomic.make x))
-
-let _ =
-  let a = Lang.univ_t () in
-  Lang.add_builtin ~base:ref "get" ~category:`Programming
-    ~descr:"Retrieve the contents of a reference."
-    [("", Lang.ref_t a, None, None)]
-    a
-    (fun p ->
-      let r = Lang.to_ref (List.assoc "" p) in
-      Atomic.get r)
-
-let _ =
-  let a = Lang.univ_t () in
-  Lang.add_builtin ~base:ref "set" ~category:`Programming
-    ~descr:"Set the value of a reference."
-    [("", Lang.ref_t a, None, None); ("", a, None, None)]
-    Lang.unit_t
-    (fun p ->
-      let r = Lang.to_ref (Lang.assoc "" 1 p) in
-      let v = Lang.assoc "" 2 p in
-      Atomic.set r v;
-      Lang.unit)
+      let x = List.assoc "" p |> Atomic.make in
+      Lang.record
+        [
+          ("get", Lang.val_fun [] (fun _ -> Atomic.get x));
+          ( "set",
+            Lang.val_fun [] (fun p ->
+                List.assoc "" p |> Atomic.set x;
+                Lang.unit) );
+        ])

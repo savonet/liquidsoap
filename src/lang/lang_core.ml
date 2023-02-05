@@ -71,7 +71,6 @@ let of_list_t t =
     | _ -> assert false
 
 let nullable_t t = Type.make (Type.Nullable t)
-let ref_t t = Term.ref_t t
 let univ_t ?(constraints = []) () = Type.var ~constraints ()
 let getter_t a = Type.make (Type.Getter a)
 
@@ -93,7 +92,6 @@ let rec meth v0 = function
   | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
 
 let record = meth unit
-let reference x = mk (Ref x)
 let val_fun p f = mk (FFI (p, f))
 
 let val_cst_fun p c =
@@ -324,7 +322,6 @@ let to_default_option ~default convert v =
 let to_product t =
   match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
 
-let to_ref t = match (demeth t).value with Ref r -> r | _ -> assert false
 let to_string_list l = List.map to_string (to_list l)
 let to_int_list l = List.map to_int (to_list l)
 
