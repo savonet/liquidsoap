@@ -190,6 +190,37 @@ let rec to_json (a : t) : Json.t =
     | List a -> `Assoc [("kind", `String "list"); ("of", to_json a.t)]
     | Tuple l ->
         `Assoc [("kind", `String "tuple"); ("of", `Tuple (List.map to_json l))]
+    | Getter a -> `Assoc [("kind", `String "getter"); ("of", to_json a)]
+    | Nullable a -> `Assoc [("kind", `String "nullable"); ("of", to_json a)]
+    | Meth (m, a) ->
+        `Assoc
+          [
+            ("kind", `String "method");
+            ("name", `String m.meth);
+            ("optional", `Bool m.optional);
+            (* "scheme", json_of_scheme m.scheme; *)
+            ("doc", `String m.doc);
+            ( "json_name",
+              Option.fold ~none:`Null ~some:(fun s -> `String s) m.json_name );
+            ("of", to_json a);
+          ]
+    | Var { contents = Free x } ->
+        `Assoc
+          [
+            ("kind", `String "var");
+            ("name", `Int x.name);
+            ("level", `Int x.level);
+            (* "constraints", json_of_constraints x.constraints; *)
+          ]
+    | Var { contents = Link (_, a) } -> to_json a
+    | Arrow (l, a) ->
+        let l =
+          List.map (fun (o, l, a) -> `Tuple [`Bool o; `String l; to_json a]) l
+        in
+        `Assoc
+          [
+            ("kind", `String "arrow"); ("arguments", `Tuple l); ("to", to_json a);
+          ]
     | _ -> failwith "TODO (to_json in type_base)"
 
 exception NotImplemented
