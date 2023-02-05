@@ -26,6 +26,31 @@ type active_source = Source.active_source
 
 include Source.Clock_variables
 
+let pool =
+  Domainslib.Task.setup_pool
+    ~num_domains:(Domain.recommended_domain_count ())
+    ()
+
+let iter fn l =
+  match l with
+    | [] -> ()
+    | _ ->
+        Domainslib.Task.run pool (fun _ ->
+            Domainslib.Task.parallel_for ~start:0
+              ~finish:(List.length l - 1)
+              ~body:(fun pos -> fn (List.nth l pos))
+              pool)
+
+let fold ~reconcile fn v l =
+  match l with
+    | [] -> v
+    | _ ->
+        Domainslib.Task.run pool (fun _ ->
+            Domainslib.Task.parallel_for_reduce ~start:0
+              ~finish:(List.length l - 1)
+              ~body:(fun pos -> fn (List.nth l pos))
+              pool reconcile v)
+
 let create_known s = create_known (s :> Source.clock)
 let log = Log.make ["clock"]
 
@@ -296,20 +321,21 @@ module MkClock (Time : Liq_time.T) = struct
               (leaving, active))
             ()
         in
-        List.iter (fun (s : active_source) -> leave s) leaving;
-        List.iter (fun s -> s#before_output) active;
+        iter (fun (s : active_source) -> leave s) leaving;
+        iter (fun s -> s#before_output) active;
         let error, active =
-          List.fold_left
-            (fun (e, a) s ->
+          fold
+            ~reconcile:(fun (e, a) (e', a') -> (e @ e', a @ a'))
+            (fun s ->
               try
                 s#output;
-                (e, s :: a)
+                ([], [s])
               with exn ->
                 let bt = Printexc.get_backtrace () in
                 log#severe "Source %s failed while streaming: %s!\n%s" s#id
                   (Printexc.to_string exn) bt;
                 leave ~failed_to_start:true s;
-                (s :: e, a))
+                ([s], []))
             ([], []) active
         in
         if error <> [] then (

@@ -19,6 +19,7 @@
   dtools
   dune-build-info
   duppy
+  domainslib
   fileutils
   liquidsoap_lang
   menhirLib
