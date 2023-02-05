@@ -90,6 +90,8 @@ module AudioSpecs = struct
         ("sample_rate", Option.map string_of_int sample_rate);
       ]
 
+  let json_of_params _ = failwith "TODO"
+
   let parse_param label value =
     match label with
       | "channel_layout" ->
@@ -191,6 +193,8 @@ module VideoSpecs = struct
             (fun { Avutil.num; den } -> Printf.sprintf "%d/%d" num den)
             pixel_aspect );
       ]
+
+  let json_of_params _ = failwith "TODO"
 
   let parse_param label value =
     match label with

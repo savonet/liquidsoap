@@ -42,6 +42,8 @@ module Specs = struct
       | `Stereo -> "stereo"
       | `Five_point_one -> "5.1"
 
+  let json_of_params p = [("layout", `String (string_of_params p))]
+
   let merge p p' =
     assert (!!(p.channel_layout) = !!(p'.channel_layout));
     p

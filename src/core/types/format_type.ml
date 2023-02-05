@@ -45,6 +45,7 @@ let format_handler f =
         Content_base.merge (get_format f) (get_format f');
         f);
     to_string = (fun f -> Content_base.string_of_format (get_format f));
+    to_json = (fun f -> Content_base.json_of_format (get_format f));
   }
 
 let format_descr f = Type.Custom (format_handler f)
@@ -62,6 +63,11 @@ let repr_of_kind repr l (k, ty) =
     | Type.(Custom { typ = Format f }) ->
         `Constr (Content_base.string_of_format f, [])
     | _ -> `Constr (Content_base.string_of_kind k, [(`Covariant, repr l ty)])
+
+let json_of_kind (_k, ty) =
+  match (Type.deref ty).Type.descr with
+    | Type.(Custom { typ = Format f }) -> Content_base.json_of_format f
+    | _ -> failwith "TODO"
 
 let kind_handler k =
   {
@@ -92,6 +98,7 @@ let kind_handler k =
         assert (k = k');
         Kind (k, sup t t'));
     to_string = (fun k -> string_of_kind (get_kind k));
+    to_json = (fun k -> json_of_kind (get_kind k));
   }
 
 let descr descr =

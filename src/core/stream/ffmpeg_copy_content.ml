@@ -103,6 +103,8 @@ module Specs = struct
                        );
                      ])))
 
+  let json_of_params _ = failwith "TODO"
+
   let compatible_aspect_radio p p' =
     match (p, p') with
       (* 0/1 aspect_ratio means undefined and is usually
