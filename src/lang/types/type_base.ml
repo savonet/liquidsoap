@@ -184,6 +184,12 @@ type descr +=
   | Arrow of (bool * string * t) list * t  (** a function *)
   | Var of invar ref  (** a type variable *)
 
+let json_of_variance (v : variance) =
+  let v =
+    match v with `Invariant -> "invariant" | `Covariant -> "covariant"
+  in
+  `String v
+
 let rec to_json (a : t) : Json.t =
   match a.descr with
     | Custom c -> c.to_json c.typ
@@ -220,6 +226,18 @@ let rec to_json (a : t) : Json.t =
         `Assoc
           [
             ("kind", `String "arrow"); ("arguments", `Tuple l); ("to", to_json a);
+          ]
+    | Constr c ->
+        let params =
+          List.map
+            (fun (v, a) -> `Tuple [json_of_variance v; to_json a])
+            c.params
+        in
+        `Assoc
+          [
+            ("kind", `String "constructed");
+            ("constructor", `String c.constructor);
+            ("params", `Tuple params);
           ]
     | _ -> assert false
 
