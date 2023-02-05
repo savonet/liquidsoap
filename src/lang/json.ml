@@ -107,3 +107,9 @@ let to_string_pp ~json5 v =
 
 let to_string ?(compact = true) ?(json5 = false) v =
   if compact then to_string_compact ~json5 v else to_string_pp ~json5 v
+
+let get_string = function `String s -> s | _ -> raise Not_found
+let get_int = function `Int n -> n | _ -> raise Not_found
+let get_bool = function `Bool b -> b | _ -> raise Not_found
+let get_tuple = function `Tuple l -> l | _ -> raise Not_found
+let get_null = function `Null -> None | j -> Some j
