@@ -16,6 +16,18 @@
 - Switch to immutable content
 - live switch with ffmpeg encoded content
 
+## FOSDEM 2023
+
+- use source getters for switch in order to be able to play two tracks ever day
+  (#2880)
+- use OCaml 5 threads (#2879)
+- add support for caching of types (#2878)
+- remove requests and use sources instead everywhere (a request is a source with
+  one track [or more])
+- use naive (as in native.liq) implementation of switch (based on
+  source.dynamic)
+- deprecate "!" and ":=" in favor of x.get / x.set
+
 ## Backlog
 
 - refine video support in order to have next liquidshop running on Liquidsoap
