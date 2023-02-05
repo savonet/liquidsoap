@@ -333,6 +333,11 @@ let to_getter t =
     | Fun ([], _, _) | FFI ([], _) -> fun () -> apply t []
     | _ -> fun () -> t
 
+let is_function t =
+  match (demeth t).value with
+    | Fun ([], _, _) | FFI ([], _) -> false
+    | _ -> true
+
 (** [assoc lbl n l] returns the [n]th element in [l]
   * of which the first component is [lbl]. *)
 let rec assoc label n = function

@@ -27,9 +27,12 @@
 
 open Source
 
-(* A transition is a value of type (source,source) -> source *)
-type transition = Lang.value
-type child = { source : source; transition : transition }
+type child = {
+  source_getter : Lang.value;
+  mutable current_source : source option;
+  (* A transition is a value of type (source,source) -> source *)
+  transition : Lang.value;
+}
 
 (** The switch can either happen at any time in the stream (insensitive)
   * or only at track limits (sensitive). *)
@@ -37,22 +40,42 @@ type track_mode = Sensitive | Insensitive
 
 type selection = { child : child; effective_source : source }
 
+exception Reference
+
 class virtual switch ~name ~override_meta ~transition_length
-  ?(mode = fun () -> true) ?(replay_meta = true) (cases : child list) =
-  let sources = ref (List.map (fun c -> c.source) cases) in
-  let failed = ref false in
-  let () =
-    List.iter
-      (Lang.iter_sources
-         ~on_reference:(fun () -> failed := true)
-         (fun s -> sources := s :: !sources))
-      (List.map (fun c -> c.transition) cases)
+  ?(mode = fun () -> true) ?(replay_meta = true) ~static_sources
+  (cases : child list) =
+  let used_sources =
+    List.fold_left
+      (function
+        | `Dynamic -> fun _ -> `Dynamic
+        | `Static l ->
+            fun { source_getter; current_source; transition } ->
+              List.fold_left
+                (function
+                  | `Dynamic -> fun _ -> `Dynamic
+                  | `Static l -> (
+                      fun v ->
+                        try
+                          let sources = ref l in
+                          Lang.iter_sources
+                            ~on_reference:(fun () -> raise Reference)
+                            (fun s -> sources := s :: !sources)
+                            v;
+                          `Static !sources
+                        with Reference -> `Dynamic))
+                (`Static
+                  (l @ match current_source with None -> [] | Some s -> [s]))
+                [source_getter; transition])
+      (`Static []) cases
   in
   let self_sync_type =
-    if !failed then lazy `Dynamic else Utils.self_sync_type !sources
+    match used_sources with
+      | `Dynamic -> lazy `Dynamic
+      | `Static l -> Utils.self_sync_type l
   in
   object (self)
-    inherit operator ~name (List.map (fun x -> x.source) cases)
+    inherit operator ~name static_sources
     val mutable transition_length = transition_length
     val mutable selected : selection option = None
 
@@ -91,7 +114,9 @@ class virtual switch ~name ~override_meta ~transition_length
        * wrapping them:
        *  - current transition is [selected],
        *  - old one in [to_finish]. *)
-      List.iter (fun s -> s.source#after_output) cases;
+      List.iter
+        (function { current_source = Some s } -> s#after_output | _ -> ())
+        cases;
       begin
         match selected with
           | None -> ()
@@ -109,21 +134,23 @@ class virtual switch ~name ~override_meta ~transition_length
 
     method! private wake_up activator =
       activation <- (self :> source) :: activator;
+      let wake_up =
+        Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation)
+      in
       List.iter
-        (fun { transition; source = s; _ } ->
-          s#get_ready ~dynamic:true activation;
-          Lang.iter_sources
-            (fun s -> s#get_ready ~dynamic:true activation)
-            transition)
+        (fun { transition; source_getter; _ } ->
+          wake_up transition;
+          wake_up source_getter)
         cases
 
     method! private sleep =
+      let sleep =
+        Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source))
+      in
       List.iter
-        (fun { transition; source = s; _ } ->
-          s#leave ~dynamic:true (self :> source);
-          Lang.iter_sources
-            (fun s -> s#leave ~dynamic:true (self :> source))
-            transition)
+        (fun { transition; source_getter; _ } ->
+          sleep transition;
+          sleep source_getter)
         cases;
       match selected with
         | None -> ()
@@ -142,7 +169,11 @@ class virtual switch ~name ~override_meta ~transition_length
       ( Lazy.force self_sync_type,
         match selected with
           | Some s -> snd s.effective_source#self_sync
-          | None -> List.exists (fun c -> snd c.source#self_sync) cases )
+          | None ->
+              List.exists
+                (function
+                  | { current_source = Some s } -> snd s#self_sync | _ -> false)
+                cases )
 
     method private get_frame ab =
       (* Choose the next child to be played.
@@ -156,10 +187,12 @@ class virtual switch ~name ~override_meta ~transition_length
           cached_selected <- None;
           c
         with
-          | Some c -> (
+          (* We assume that the source is always computed during the #select function call. *)
+          | Some { current_source = None } -> assert false
+          | Some ({ current_source = Some s } as c) -> (
               match selected with
                 | None ->
-                    self#log#important "Switch to %s." c.source#id;
+                    self#log#important "Switch to %s." s#id;
                     let new_source =
                       (* Force insertion of old metadata if relevant.
                        * It can't be done in a static way: we need to start
@@ -168,25 +201,27 @@ class virtual switch ~name ~override_meta ~transition_length
                        * else (this is thanks to Frame.get_chunk).
                        * A quicker hack might have been doable if there wasn't a
                        * transition in between. *)
-                      match c.source#last_metadata with
+                      match s#last_metadata with
                         | Some m when replay_meta ->
-                            new Insert_metadata.replay m c.source
-                        | _ -> c.source
+                            new Insert_metadata.replay m s
+                        | _ -> s
                     in
                     new_source#get_ready activation;
                     selected <-
                       Some { child = c; effective_source = new_source }
-                | Some old_selection when old_selection.child.source != c.source
-                  ->
-                    self#log#important "Switch to %s with%s transition."
-                      c.source#id
+                | Some { child = { current_source = None } } -> assert false
+                | Some
+                    ({ child = { current_source = Some old_source } } as
+                    old_selection)
+                  when old_source != s ->
+                    self#log#important "Switch to %s with%s transition." s#id
                       (if forget then " forgetful" else "");
                     old_selection.effective_source#leave (self :> source);
                     to_finish <- old_selection.effective_source :: to_finish;
                     Clock.collect_after (fun () ->
                         let old_source =
                           if forget then Debug_sources.empty ()
-                          else old_selection.child.source
+                          else Option.get old_selection.child.current_source
                         in
                         let new_source =
                           (* Force insertion of old metadata if relevant.
@@ -196,10 +231,10 @@ class virtual switch ~name ~override_meta ~transition_length
                            * else (this is thanks to Frame.get_chunk).
                            * A quicker hack might have been doable if there wasn't a
                            * transition in between. *)
-                          match c.source#last_metadata with
+                          match s#last_metadata with
                             | Some m when replay_meta ->
-                                new Insert_metadata.replay m c.source
-                            | _ -> c.source
+                                new Insert_metadata.replay m s
+                            | _ -> s
                         in
                         let s =
                           Lang.to_source
@@ -265,7 +300,8 @@ class virtual switch ~name ~override_meta ~transition_length
     method seek n =
       match selected with Some s -> s.effective_source#seek n | None -> 0
 
-    method selected = Option.map (fun { child } -> child.source) selected
+    method selected =
+      Option.map (fun { child } -> Option.get child.current_source) selected
   end
 
 (** Common tools for Lang bindings of switch operators *)
@@ -303,37 +339,77 @@ let find ?(strict = false) f l =
 
 class lang_switch ~override_meta ~all_predicates ~transition_length mode
   ?replay_meta (children : (Lang.value * bool * child) list) =
-  object
+  let static_sources =
+    List.fold_left
+      (fun static_sources -> function
+        | _, _, ({ source_getter } as child)
+          when not (Lang.is_function source_getter) ->
+            let s = Lang.to_source source_getter in
+            child.current_source <- Some (Lang.to_source source_getter);
+            s :: static_sources
+        | _ -> static_sources)
+      [] children
+  in
+  object (self)
     inherit
       switch
         ~name:"switch" ~mode ~override_meta ~transition_length ?replay_meta
-          (List.map third children)
+          ~static_sources (List.map third children) as super
 
     method private select =
-      let selected s =
+      let selected c =
         match selected with
-          | Some { child } when child.source == s.source -> true
+          | Some { child } when child == c -> true
           | _ -> false
+      in
+      (* Returns a source if predicate is true. *)
+      let prepare (d, child) =
+        let satisfied = satisfied d in
+        match (satisfied, child.current_source) with
+          | false, _ -> None
+          | true, None ->
+              let s =
+                Lang.to_source ((Lang.to_getter child.source_getter) ())
+              in
+              s#get_ready [(self :> Source.source)];
+              child.current_source <- Some s;
+              Some s
+          | true, Some s -> Some s
       in
       try
         Some
           (third
              (find ~strict:all_predicates
-                (fun (d, single, s) ->
-                  (* Check single constraints *)
-                  (if selected s then not single else true)
-                  && satisfied d && s.source#is_ready)
+                (fun (d, single, c) ->
+                  match prepare (d, c) with
+                    | Some s -> (not (single && selected c)) && s#is_ready
+                    | None -> false)
                 children))
       with Not_found -> None
 
     method stype =
       if
         List.exists
-          (fun (d, single, s) ->
-            s.source#stype = `Infallible && (not single) && trivially_true d)
+          (function
+            | d, single, { source_getter; current_source = Some s } ->
+                trivially_true d && (not single)
+                && (not (Lang.is_function source_getter))
+                && s#stype = `Infallible
+            | _ -> false)
           children
       then `Infallible
       else `Fallible
+
+    method! after_output =
+      List.iter
+        (function
+          | d, _, ({ source_getter; current_source = Some s } as child)
+            when Lang.is_function source_getter && not (satisfied d) ->
+              s#leave (self :> Source.source);
+              child.current_source <- None
+          | _ -> ())
+        children;
+      super#after_output
   end
 
 let _ =
@@ -398,7 +474,8 @@ let _ =
           "Forbid the selection of a branch for two tracks in a row. The empty \
            list stands for `[false,...,false]`." );
       ( "",
-        Lang.list_t (Lang.product_t pred_t (Lang.source_t return_t)),
+        Lang.list_t
+          (Lang.product_t pred_t (Lang.getter_t (Lang.source_t return_t))),
         None,
         Some "Sources with the predicate telling when they can be played." );
     ]
@@ -408,7 +485,7 @@ let _ =
         List.map
           (fun p ->
             let pred, s = Lang.to_product p in
-            (pred, Lang.to_source s))
+            (pred, s))
           (Lang.to_list (List.assoc "" p))
       in
       let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
@@ -438,7 +515,8 @@ let _ =
       in
       let children =
         List.map2
-          (fun t (f, s) -> (f, { source = s; transition = t }))
+          (fun transition (f, source_getter) ->
+            (f, { source_getter; current_source = None; transition }))
           tr children
       in
       let children =

@@ -193,6 +193,9 @@ val to_fun : value -> (string * value) list -> value
 val to_getter : value -> unit -> value
 val to_http_transport : value -> Http.transport
 
+(* [true] if value is a function *)
+val is_function : value -> bool
+
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
   * This is useful for retrieving arguments of a function. *)
 val assoc : 'a -> int -> ('a * 'b) list -> 'b
