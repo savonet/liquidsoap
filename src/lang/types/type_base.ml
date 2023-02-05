@@ -65,6 +65,9 @@ type constr = {
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
 }
 
+let string_of_constraint c =
+  match c.t with Num -> "num" | Ord -> "ord" | _ -> "?"
+
 module Constraints = Set.Make (struct
   type t = constr
 
@@ -193,6 +196,13 @@ let json_of_variance (v : variance) =
   in
   `String v
 
+let json_of_constraint c =
+  `Assoc
+    [
+      ("constraint", `String (string_of_constraint c));
+      ("description", `String c.constr_descr);
+    ]
+
 let rec to_json (a : t) : Json.t =
   match a.descr with
     | Custom c -> c.to_json c.typ
@@ -219,7 +229,10 @@ let rec to_json (a : t) : Json.t =
             ("kind", `String "var");
             ("name", `Int x.name);
             ("level", `Int x.level);
-            (* "constraints", json_of_constraints x.constraints; *)
+            ( "constraints",
+              x.constraints |> Constraints.to_seq |> Seq.map json_of_constraint
+              |> List.of_seq
+              |> fun l -> `Tuple l );
           ]
     | Var { contents = Link (_, a) } -> to_json a
     | Arrow (l, a) ->
