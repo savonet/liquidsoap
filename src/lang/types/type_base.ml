@@ -184,6 +184,9 @@ type descr +=
   | Arrow of (bool * string * t) list * t  (** a function *)
   | Var of invar ref  (** a type variable *)
 
+(** Create a type from its value. *)
+let make ?pos d = { pos; descr = d }
+
 let json_of_variance (v : variance) =
   let v =
     match v with `Invariant -> "invariant" | `Covariant -> "covariant"
@@ -204,7 +207,7 @@ let rec to_json (a : t) : Json.t =
             ("kind", `String "method");
             ("name", `String m.meth);
             ("optional", `Bool m.optional);
-            (* "scheme", json_of_scheme m.scheme; *)
+            ("scheme", json_of_scheme m.scheme);
             ("doc", `String m.doc);
             ( "json_name",
               Option.fold ~none:`Null ~some:(fun s -> `String s) m.json_name );
@@ -241,6 +244,12 @@ let rec to_json (a : t) : Json.t =
           ]
     | _ -> assert false
 
+and json_of_var x = to_json (make (Var (ref (Free x))))
+
+and json_of_scheme (g, a) =
+  let g = List.map json_of_var g in
+  `Tuple [`Tuple g; to_json a]
+
 exception NotImplemented
 exception Exists of Pos.Option.t * string
 exception Unsatisfied_constraint
@@ -264,9 +273,6 @@ module Vars = struct
 
   let add_list l v = add_seq (List.to_seq l) v
 end
-
-(** Create a type from its value. *)
-let make ?pos d = { pos; descr = d }
 
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced

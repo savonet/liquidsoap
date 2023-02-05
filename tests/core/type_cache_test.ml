@@ -1,6 +1,7 @@
 let types =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
+  let aa = Lang.fun_t [(false, "", a)] a in
   [
     Lang.int_t;
     a;
@@ -11,6 +12,8 @@ let types =
     Lang.ref_t Lang.float_t;
     Lang.getter_t Lang.bool_t;
     Lang.error_t;
+    Lang.method_t Lang.int_t
+      [("bla", Typing.generalize ~level:(-1) aa, "the method")];
   ]
 
 let () =
