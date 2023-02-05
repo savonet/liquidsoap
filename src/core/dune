@@ -19,10 +19,13 @@
   dtools
   dune-build-info
   duppy
-  domainslib
   fileutils
   liquidsoap_lang
   menhirLib
+  (select multicore.ml from
+   (domainslib -> multicore.domainslib.ml)
+   (-> multicore.naive.ml)
+  )
   (select
    charset.ml
    from
@@ -171,6 +174,7 @@
   midi_routing
   midimeter
   modules
+  multicore
   mp3_format
   mpd
   ms_stereo

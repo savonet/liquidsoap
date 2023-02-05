@@ -253,7 +253,7 @@ let options =
          "For advanced dynamic uses: force liquidsoap to start even when no \
           active source is initially defined." );
        ( ["--no-parallelism"],
-         Arg.Unit (fun () -> Clock.parallelism := false),
+         Arg.Unit (fun () -> Multicore.parallelism := false),
          "Disable thread parallelism when computing sources." );
        ( ["--debug"],
          Arg.Unit
