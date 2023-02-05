@@ -221,7 +221,7 @@ let rec to_json (a : t) : Json.t =
           [
             ("kind", `String "arrow"); ("arguments", `Tuple l); ("to", to_json a);
           ]
-    | _ -> failwith "TODO (to_json in type_base)"
+    | _ -> assert false
 
 exception NotImplemented
 exception Exists of Pos.Option.t * string
