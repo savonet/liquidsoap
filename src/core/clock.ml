@@ -296,9 +296,8 @@ module MkClock (Time : Liq_time.T) = struct
               (leaving, active))
             ()
         in
-        (* TODO: could be parallelized *)
-        List.iter (fun (s : active_source) -> leave s) leaving;
-        List.iter (fun s -> s#before_output) active;
+        Multicore.iter (fun (s : active_source) -> leave s) leaving;
+        Multicore.iter (fun s -> s#before_output) active;
         let error, active =
           Multicore.fold
             ~reconcile:(fun (e, a) (e', a') -> (e @ e', a @ a'))
