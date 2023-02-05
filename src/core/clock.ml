@@ -32,24 +32,20 @@ let pool =
     ()
 
 let iter fn l =
-  match l with
-    | [] -> ()
-    | _ ->
-        Domainslib.Task.run pool (fun _ ->
-            Domainslib.Task.parallel_for ~start:0
-              ~finish:(List.length l - 1)
-              ~body:(fun pos -> fn (List.nth l pos))
-              pool)
+  let l = Array.of_list l in
+  Domainslib.Task.run pool (fun _ ->
+      Domainslib.Task.parallel_for ~start:0
+        ~finish:(Array.length l - 1)
+        ~body:(fun pos -> fn l.(pos))
+        pool)
 
 let fold ~reconcile fn v l =
-  match l with
-    | [] -> v
-    | _ ->
-        Domainslib.Task.run pool (fun _ ->
-            Domainslib.Task.parallel_for_reduce ~start:0
-              ~finish:(List.length l - 1)
-              ~body:(fun pos -> fn (List.nth l pos))
-              pool reconcile v)
+  let l = Array.of_list l in
+  Domainslib.Task.run pool (fun _ ->
+      Domainslib.Task.parallel_for_reduce ~start:0
+        ~finish:(Array.length l - 1)
+        ~body:(fun pos -> fn l.(pos))
+        pool reconcile v)
 
 let create_known s = create_known (s :> Source.clock)
 let log = Log.make ["clock"]
