@@ -444,7 +444,19 @@ let rec of_json (j : Json.t) : t =
           | "var" ->
               let name = List.assoc "name" l |> Json.get_int in
               let level = List.assoc "level" l |> Json.get_int in
-              (* TODO *)
+              let constraint_of_json j =
+                match Json.get_string j with
+                  | "num" -> Num
+                  | "ord" -> Ord
+                  | _ -> assert false
+              in
+              let constraints =
+                List.assoc "constraints" l |> Json.get_list
+                |> List.map constraint_of_json
+              in
+              (* TODO: handle constraints. The difficulty is that they are
+                 declared after for now... *)
+              assert (constraints = []);
               let constraints = Constraints.empty in
               let var = { name; level; constraints } in
               if not (List.mem_assoc name !json_variables) then (
