@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let parallelism = ref true
+let parallelism = ref false
 
 let pool =
   Domainslib.Task.setup_pool
