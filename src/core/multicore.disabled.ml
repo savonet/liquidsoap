@@ -20,6 +20,6 @@
 
  *****************************************************************************)
 
-let parallelism = ref false
+let name = "disabled"
 let iter fn l = List.iter fn l
 let fold ~reconcile fn v l = List.fold_left (fun s x -> reconcile s (fn x)) v l

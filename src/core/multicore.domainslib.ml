@@ -20,15 +20,24 @@
 
  *****************************************************************************)
 
-let parallelism = ref false
+let name = "domainsLib"
+
+let conf_multicore =
+  Dtools.Conf.bool
+    ~p:(Configure.conf#plug "multicore")
+    ~d:true "Multicore configuration"
+
+let conf_multicore_domains_count =
+  Dtools.Conf.int
+    ~p:(conf_multicore#plug "domains")
+    ~d:(Domain.recommended_domain_count ())
+    "Multicore domains count"
 
 let pool =
-  Domainslib.Task.setup_pool
-    ~num_domains:(Domain.recommended_domain_count ())
-    ()
+  Domainslib.Task.setup_pool ~num_domains:conf_multicore_domains_count#get ()
 
 let iter fn l =
-  if !parallelism then (
+  if conf_multicore#get then (
     let l = Array.of_list l in
     Domainslib.Task.run pool (fun _ ->
         Domainslib.Task.parallel_for ~start:0
@@ -38,7 +47,7 @@ let iter fn l =
   else List.iter fn l
 
 let fold ~reconcile fn v l =
-  if !parallelism then (
+  if conf_multicore#get then (
     let l = Array.of_list l in
     Domainslib.Task.run pool (fun _ ->
         Domainslib.Task.parallel_for_reduce ~start:0

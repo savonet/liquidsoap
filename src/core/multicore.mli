@@ -22,8 +22,7 @@
 
 (** Support for multicore processors. *)
 
-(** Whether we actually try to run things in parallel. *)
-val parallelism : bool ref
+val name : string
 
 (** Iterate a function on a list in parallel. *)
 val iter : ('a -> unit) -> 'a list -> unit

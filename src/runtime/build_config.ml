@@ -15,6 +15,7 @@ let build_config =
    - Release build       : %{string_of_bool Build_config.is_release}
    - Git SHA             : %{Option.value ~default:"(none)" Build_config.git_sha}
    - OCaml version       : %{Sys.ocaml_version}
+   - Multicore setup     : %{Multicore.name}
    - OS type             : %{Sys.os_type}
    - Libs versions       : %{Configure.libs_versions ()}
    - architecture        : %{Build_config.architecture}

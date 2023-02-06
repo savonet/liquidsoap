@@ -24,7 +24,7 @@
   menhirLib
   (select multicore.ml from
    (domainslib -> multicore.domainslib.ml)
-   (-> multicore.naive.ml)
+   (-> multicore.disabled.ml)
   )
   (select
    charset.ml

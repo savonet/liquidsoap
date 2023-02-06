@@ -23,7 +23,6 @@
     (pcre (>= 7.5.0))
     (ocurl (>= 0.9.2))
     (cry (>= 0.6.5))
-    domainlib
     uri
     fileutils
     menhirLib
@@ -38,6 +37,7 @@
     bjack
     camlimages
     (camomile (>= 1.0.0))
+    domainlib
     dssi
     faad
     fdkaac
