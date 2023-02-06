@@ -110,11 +110,11 @@ def f() =
     ()
   end
 
-  if (!on_error).kind != e.kind then
+  if (on_error()).kind != e.kind then
     test.fail()
   end
 
-  if (!on_error).message != "On done callback" then
+  if (on_error()).message != "On done callback" then
     test.fail()
   end
 

@@ -69,8 +69,8 @@ def f() =
 
     data_count = ref(3)
     def data() =
-      if !data_count >= 0 then
-        data_count := !data_count - 1
+      if data_count() >= 0 then
+        data_count := data_count() - 1
         "gnigno"
       else
         ""
@@ -142,7 +142,7 @@ def f() =
   data = begin
     is_done = ref(false)
     fun () ->
-      if !is_done then "" else
+      if is_done() then "" else
         is_done := true
         "foobarlol"
       end
@@ -189,8 +189,8 @@ def f() =
     tmp = string.make(10_000)
     count = ref(10_000_000 / 10_000)
     fun () ->
-      if 0 < !count then
-        count := !count - 1
+      if 0 < count() then
+        count := count() - 1
         tmp
       else
         ""
@@ -251,7 +251,7 @@ def f() =
   test.equals(resp.status_code, 200)
 
   try
-    fn = !read
+    fn = read()
     fn(timeout=10.)
     test.fail()
   catch err: [error.http] do

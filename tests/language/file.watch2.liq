@@ -18,7 +18,7 @@ end
 thread.run(delay=1., write)
 
 def check() =
-  if !success then test.pass() else test.fail() end
+  if success() then test.pass() else test.fail() end
 end
 
 thread.run(delay=3., check)

@@ -33,7 +33,7 @@ def tests() =
   def gen =
     pos = ref(0)
     fun () -> begin
-      if !pos == 3 then "" else
+      if pos() == 3 then "" else
         ref.incr(pos)
         "foobar"
       end
@@ -46,7 +46,7 @@ def tests() =
   def gen =
     pos = ref(0)
     fun () -> begin
-      if !pos == 3 then "" else
+      if pos() == 3 then "" else
         ref.incr(pos)
         "foobar"
       end

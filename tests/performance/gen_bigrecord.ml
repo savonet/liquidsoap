@@ -6,7 +6,7 @@ let () =
   in
   let sums =
     String.concat "\n"
-      (List.map (fun idx -> [%string "n := !n + r.a%{idx}"]) indexes)
+      (List.map (fun idx -> [%string "n := n() + r.a%{idx}"]) indexes)
   in
   Printf.printf "%s"
     [%string
