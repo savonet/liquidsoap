@@ -22,10 +22,10 @@ seen_b = ref(false)
 
 def check_duplicate(m) =
   if m["title"] == "a" then
-    if !seen_a then test.fail() else seen_a := true end
+    if seen_a() then test.fail() else seen_a := true end
   end
   if m["title"] == "b" then
-    if !seen_b then test.fail() else seen_b := true end
+    if seen_b() then test.fail() else seen_b := true end
   end
 end
 
@@ -34,7 +34,7 @@ s.on_metadata(check_duplicate)
 clock.assign_new(sync="none",[s])
 
 def on_stop () =
-  if !seen_a and !seen_b then
+  if seen_a() and seen_b() then
     test.pass()
   else
     test.fail()

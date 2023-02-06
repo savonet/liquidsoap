@@ -15,7 +15,7 @@ s1 = metadata.map(m1,s1)
 
 s1_ready = ref(true)
 
-s1 = switch(id="s1",[({!s1_ready},s1)])
+s1 = switch(id="s1",[(s1_ready,s1)])
 
 s1_weight = ref(1)
 
@@ -29,17 +29,17 @@ s2 = metadata.map(id="s2",m2,s2)
 
 s2_ready = ref(false)
 
-s2 = switch(id="s2",[({!s2_ready},s2)])
+s2 = switch(id="s2",[(s2_ready,s2)])
 
 s2_weight = ref(1)
 
 round = ref(1)
 
 def f(m) =
-  if !round == 1 then
+  if round() == 1 then
     s1_ready := false
     s2_ready := true
-  elsif !round == 2 then
+  elsif round() == 2 then
     s1_ready := true
     s2_ready := true
     s2_weight := 0
@@ -49,18 +49,18 @@ def f(m) =
     s2_ready := true
     s2_weight := 1
   end
-  round := !round + 1
-  selected := list.cons(m["id"],!selected)
+  round := round() + 1
+  selected := list.cons(m["id"],selected())
 end
 
-s = random(weights=[{!s1_weight}, {!s2_weight}], [s1,s2])
+s = random(weights=[s1_weight, s2_weight], [s1,s2])
 
 s.on_track(f)
 
 output.dummy(fallible=true, s)
 
 def on_done () =
-  s = list.rev(!selected)
+  s = list.rev(selected())
   if list.nth(default="",s,0) == "s1" and
      list.nth(default="",s,1) == "s2" and
      list.nth(default="",s,2) == "s1" then

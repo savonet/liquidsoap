@@ -7,7 +7,7 @@ log.level.set(4)
 first = ref(true)
 
 def f()
-  if !first then
+  if first() then
     first := false
     sine(id="sineF",880.)
   else
