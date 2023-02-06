@@ -220,17 +220,17 @@ def video.add_text.ffmpeg.raw.filter(
       getter({
         begin
           cur_time = time()
-          traveled_to = int(float(speed) * (cur_time - !last_time))
+          traveled_to = int(float(speed) * (cur_time - last_time()))
           last_time := cur_time
           if changed() then
             effective_x := getter.get(x)
           else
-            effective_x := !effective_x - traveled_to
+            effective_x := effective_x() - traveled_to
           end
-          if !effective_x < 0 then
-            effective_x := settings.frame.video.width() - !effective_x
+          if effective_x() < 0 then
+            effective_x := settings.frame.video.width() - effective_x()
           end
-          !effective_x
+          effective_x()
         end})
     else
       x
@@ -322,11 +322,11 @@ def replaces video.add_text.ffmpeg.raw(
   on_frame = ref (fun () -> ())
   on_metadata = ref (fun (_) -> ())
   s = source.on_metadata(s, fun (m) -> begin
-    fn = !on_metadata
+    fn = on_metadata()
     fn(m)
   end)
   s = source.on_frame(s, fun () -> begin
-    fn = !on_frame
+    fn = on_frame()
     fn()
   end)
 
@@ -374,7 +374,7 @@ def video.add_text.ffmpeg.internal(~id=null(),~color=0xffffff,~cycle=true,~font=
 end
 
 let replaces video.add_text.ffmpeg = video.add_text.ffmpeg.internal
-# video.add_text.available := [("ffmpeg", video.add_text.ffmpeg.internal), ...!video.add_text.available]
+# video.add_text.available := [("ffmpeg", video.add_text.ffmpeg.internal), ...video.add_text.available()]
 
 # if settings.video.add_text() != "sdl" then
 #   settings.video.add_text.set("ffmpeg")

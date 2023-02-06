@@ -17,11 +17,11 @@ def vumeter(~rms_min=-25., ~rms_max=-5., ~window=0.5, ~scroll=false, s)
     n = int_of_float(x * float_of_int(bar_width))
     bar = ref("")
     if not scroll then bar := "\r" end
-    for _ = 0 to n-1 do bar := !bar ^ "=" end
-    for _ = 0 to bar_width-n-1 do bar := !bar ^ "." end
-    bar := !bar ^ " " ^ string(v)
-    if scroll then bar := !bar ^ "\n" end
-    print(newline=false, !bar)
+    for _ = 0 to n-1 do bar := bar() ^ "=" end
+    for _ = 0 to bar_width-n-1 do bar := bar() ^ "." end
+    bar := bar() ^ " " ^ string(v)
+    if scroll then bar := bar() ^ "\n" end
+    print(newline=false, bar())
   end
   thread.run(fast=true, every=window, display)
   s
@@ -48,6 +48,6 @@ def video.vumeter(~rms_min=-35., ~rms_max=0., ~window=0.1, ~color=0xff0000, ~per
     width := int_of_float(x * float_of_int(video.frame.width()))
   end
   thread.run(fast=true, every=window, update)
-  s = video.rectangle(width={!width}, height=height, color=color, s)
+  s = video.rectangle(width=width, height=height, color=color, s)
   video.persistence(duration=persistence, s)
 end
