@@ -520,7 +520,9 @@ let print_type_error ~formatter error_header
   match b with
     | `Meth (R.{ name = l; scheme = [], `Ellipsis }, `Ellipsis) when not flipped
       ->
-        Format.fprintf formatter "this value has no method `%s`@." l
+        Format.fprintf formatter
+          "this value has no method `%s`@.@[<2>  Its type is %s.@]@." l
+          (string_of_type ta)
     | _ ->
         let inferred_pos a =
           let dpos = (deref a).pos in

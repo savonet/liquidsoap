@@ -22,7 +22,7 @@ let interactive.error = error.register("interactive.error")
 
 # @flag hidden
 def interactive.list(_)
-  l = !variables
+  l = variables()
   l = list.map(fun(xv) -> begin
     let (x,v) = xv
     "#{x} : #{v.type}"
@@ -34,43 +34,43 @@ server.register(usage="list", description="List available interactive variables.
 # Description of an interactive variable.
 # @flag hidden
 def interactive.description(name)
-  list.assoc(name, !variables).description
+  list.assoc(name, variables()).description
 end
 
 # Type of an interactive variable.
 # @flag hidden
 def interactive.type(name)
-  list.assoc(name, !variables).type
+  list.assoc(name, variables()).type
 end
 
 # @flag hidden
 def interactive.float.ref(name)
-  list.assoc(name, !variables_float).ref
+  list.assoc(name, variables_float()).ref
 end
 
 # @flag hidden
 def interactive.int.ref(name)
-  list.assoc(name, !variables_int).ref
+  list.assoc(name, variables_int()).ref
 end
 
 # @flag hidden
 def interactive.bool.ref(name)
-  list.assoc(name, !variables_bool).ref
+  list.assoc(name, variables_bool()).ref
 end
 
 # @flag hidden
 def interactive.string.ref(name)
-  list.assoc(name, !variables_string).ref
+  list.assoc(name, variables_string()).ref
 end
 
 # @flag hidden
 def interactive.unit.handler(name)
-  list.assoc(name, !variables_unit).handler
+  list.assoc(name, variables_unit()).handler
 end
 
 # @flag hidden
 def interactive.remove(name)
-  variables := list.assoc.remove.all(name, !variables)
+  variables := list.assoc.remove.all(name, variables())
 end
 
 # Remove an interactive variable.
@@ -79,7 +79,7 @@ end
 # @flag hidden
 def interactive.float.remove(name)
   interactive.remove(name)
-  variables_float := list.assoc.remove.all(name, !variables_float)
+  variables_float := list.assoc.remove.all(name, variables_float())
 end
 
 # Remove an interactive variable.
@@ -88,7 +88,7 @@ end
 # @flag hidden
 def interactive.int.remove(name)
   interactive.remove(name)
-  variables_int := list.assoc.remove.all(name, !variables_int)
+  variables_int := list.assoc.remove.all(name, variables_int())
 end
 
 # Remove an interactive variable.
@@ -97,7 +97,7 @@ end
 # @flag hidden
 def interactive.bool.remove(name)
   interactive.remove(name)
-  variables_bool := list.assoc.remove.all(name, !variables_bool)
+  variables_bool := list.assoc.remove.all(name, variables_bool())
 end
 
 # Remove an interactive variable.
@@ -106,7 +106,7 @@ end
 # @flag hidden
 def interactive.string.remove(name)
   interactive.remove(name)
-  variables_string := list.assoc.remove.all(name, !variables_string)
+  variables_string := list.assoc.remove.all(name, variables_string())
 end
 
 # Remove an interactive variable.
@@ -115,7 +115,7 @@ end
 # @flag hidden
 def interactive.unit.remove(name)
   interactive.remove(name)
-  variables_unit := list.assoc.remove.all(name, !variables_unit)
+  variables_unit := list.assoc.remove.all(name, variables_unit())
 end
 
 # Function called to ensure persistency of data.
@@ -124,28 +124,28 @@ let interactive.persistency = ref(fun()->())
 # @flag hidden
 def interactive.float.set(name, v)
   interactive.float.ref(name) := v
-  p = !interactive.persistency
+  p = interactive.persistency()
   p()
 end
 
 # @flag hidden
 def interactive.int.set(name, v)
   interactive.int.ref(name) := v
-  p = !interactive.persistency
+  p = interactive.persistency()
   p()
 end
 
 # @flag hidden
 def interactive.bool.set(name, v)
   interactive.bool.ref(name) := v
-  p = !interactive.persistency
+  p = interactive.persistency()
   p()
 end
 
 # @flag hidden
 def interactive.string.set(name, v)
   interactive.string.ref(name) := v
-  p = !interactive.persistency
+  p = interactive.persistency()
   p()
 end
 
@@ -166,9 +166,9 @@ let stdlib_osc = osc
 # @param ~osc OSC address for the variable.
 # @param ~type Type of the variable.
 def interactive.create(~name, ~description="", ~osc="", ~type)
-  if list.assoc.mem(name, !variables) then error.raise(interactive.error, "variable already registered") end
-  variables := (name, { type=type, description=description }) :: !variables
-  variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
+  if list.assoc.mem(name, variables()) then error.raise(interactive.error, "variable already registered") end
+  variables := (name, { type=type, description=description }) :: variables()
+  variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, variables())
 %ifdef osc.on_float
   if osc != "" then
     if type == "float" then
@@ -196,16 +196,16 @@ try
     t = interactive.type(name)
     if t == "float" then
       r = interactive.float.ref(name)
-      string.float(decimal_places=3, !r)
+      string.float(decimal_places=3, r())
     elsif t == "int" then
       r = interactive.int.ref(name)
-      string(!r)
+      string(r())
     elsif t == "bool" then
       r = interactive.bool.ref(name)
-      string(!r)
+      string(r())
     elsif t == "string" then
       r = interactive.string.ref(name)
-      !r
+      r()
     elsif t == "unit" then
       "()"
     else
@@ -249,10 +249,10 @@ server.register(usage="set <name> = <value>", description="Set the value of a va
 # @param fname Name of the file.
 def interactive.save(fname)
   data = json.stringify({
-    float = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_float),
-    int = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_int),
-    bool = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_bool),
-    string = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_string)
+    float = list.map(fun (nv) -> begin let (name, v) = nv; (name, v.ref()) end, variables_float()),
+    int = list.map(fun (nv) -> begin let (name, v) = nv; (name, v.ref()) end, variables_int()),
+    bool = list.map(fun (nv) -> begin let (name, v) = nv; (name, v.ref()) end, variables_bool()),
+    string = list.map(fun (nv) -> begin let (name, v) = nv; (name, v.ref()) end, variables_string())
   })
 
   file.write(data=data, fname)
@@ -301,7 +301,7 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
     form_data = request.data
     data = ref("")
     def add(s) =
-      data := !data ^ s ^ "\n"
+      data := data() ^ s ^ "\n"
     end
     title = "Interactive values"
     add("<!DOCTYPE html><html><head>")
@@ -379,29 +379,29 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
       add("<label for=#{name}>#{description}</label>")
       common = "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
       if v.type == "float" then
-        v = list.assoc(name, !variables_float)
-        value = http.string_of_float(!v.ref)
+        v = list.assoc(name, variables_float())
+        value = http.string_of_float(v.ref())
         if v.min == 0.-infinity or v.max == infinity then
           add("<input type='number' #{common} step='#{v.step}' value='#{value}'>")
         else
           min = http.string_of_float(v.min)
           max = http.string_of_float(v.max)
           step = http.string_of_float(v.step)
-          value = http.string_of_float(!v.ref)
+          value = http.string_of_float(v.ref())
           unit = if v.unit == "" then "" else " "^v.unit end
           add("<div><input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value+\"#{unit}\"'><text id='#{name}-value' style='inline'>#{value}#{unit}</text></div>")
         end
       elsif v.type == "int" then
-        v = list.assoc(name, !variables_int)
-        value = string(!v.ref)
+        v = list.assoc(name, variables_int())
+        value = string(v.ref())
         add("<input type='number' #{common} step='1' value='#{value}'>")
       elsif v.type == "bool" then
-        v = list.assoc(name, !variables_bool)
-        c = (!v.ref) ? "checked" : ""
+        v = list.assoc(name, variables_bool())
+        c = (v.ref()) ? "checked" : ""
         add("<input type='checkbox' #{common} value='true' #{c}>")
       elsif v.type == "string" then
-        v = list.assoc(name, !variables_string)
-        add("<input type='text' #{common} value='#{!v.ref}'>")
+        v = list.assoc(name, variables_string())
+        add("<input type='text' #{common} value='#{v.ref()}'>")
       elsif v.type == "unit" then
         add("<button type='button' #{common} onclick=\"sendUnit('#{name}')\">#{name}</button>")
       else
@@ -409,10 +409,10 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
       end
     end
     add("<form>")
-    list.iter(add_var, !variables)
+    list.iter(add_var, variables())
     add("</form>")
     add("</body>")
-    response.html(!data)
+    response.html(data())
   end
 
   harbor.http.register(transport=transport, port=port, method="GET", uri, webpage)
@@ -458,7 +458,7 @@ end
 def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~description="", ~unit="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="float")
   r = ref(v)
-  variables_float := (name, {ref=r, unit=unit, min=min, max=max, step=step }) :: !variables_float
+  variables_float := (name, {ref=r, unit=unit, min=min, max=max, step=step }) :: variables_float()
   r.{set = fun(x) -> interactive.float.set(name, x), remove = {interactive.float.remove(name)}}
 end
 
@@ -471,7 +471,7 @@ end
 def replaces interactive.int(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="int")
   r = ref(v)
-  variables_int := (name, {ref=r }) :: !variables_int
+  variables_int := (name, {ref=r }) :: variables_int()
   r.{set = fun(x) -> interactive.int.set(name, x), remove = {interactive.int.remove(name)}}
 end
 
@@ -484,7 +484,7 @@ end
 def replaces interactive.bool(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="bool")
   r = ref(v)
-  variables_bool := (name, { ref=r }) :: !variables_bool
+  variables_bool := (name, { ref=r }) :: variables_bool()
   r.{set = fun(x) -> interactive.bool.set(name, x), remove = {interactive.bool.remove(name)}}
 end
 
@@ -497,7 +497,7 @@ end
 def replaces interactive.string(~description="", ~osc="", name, v)
   interactive.create(name=name, description=description, osc=osc, type="string")
   r = ref(v)
-  variables_string := (name, { ref=r }) :: !variables_string
+  variables_string := (name, { ref=r }) :: variables_string()
   r.{set = fun(x) -> interactive.string.set(name, x), remove = {interactive.string.remove(name)}}
 end
 
@@ -509,7 +509,7 @@ end
 # @param f Function triggered when the value is set.
 def replaces interactive.unit(~description="", ~osc="", name, f)
   interactive.create(name=name, description=description, osc=osc, type="unit")
-  variables_unit := (name, { handler=f }) :: !variables_unit
+  variables_unit := (name, { handler=f }) :: variables_unit()
   {set = f, remove = {interactive.float.remove(name)}}
 end
 

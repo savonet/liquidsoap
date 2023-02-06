@@ -93,17 +93,17 @@ def http.response(~http_version="1.1",
   def mk_status() =
     status_sent := true
 
-    http_version = !http_version
-    status_code = !status_code
+    http_version = http_version()
+    status_code = status_code()
 
     status_code =
-      if status_code == 100 and getter.get(!data) != "" then
+      if status_code == 100 and getter.get(data()) != "" then
         200
       else
         status_code
       end
 
-    status_message = !status_message ?? http.codes[status_code]
+    status_message = status_message() ?? http.codes[status_code]
 
     "HTTP/#{http_version} #{status_code} #{status_message}\r\n"
   end
@@ -111,9 +111,9 @@ def http.response(~http_version="1.1",
   def mk_headers() =
     headers_sent := true
 
-    headers = !headers
-    content_type = !content_type
-    data = !data
+    headers = headers()
+    content_type = content_type()
+    data = data()
 
     headers =
       if getter.is_constant(data) then
@@ -144,7 +144,7 @@ def http.response(~http_version="1.1",
   def mk_data() =
     data_sent := true
 
-    data = !data
+    data = data()
 
     if getter.is_constant(data) then
       response_ended := true
@@ -157,11 +157,11 @@ def http.response(~http_version="1.1",
   end
 
   def response() =
-    if !response_ended then
+    if response_ended() then
       ""
-    elsif not !status_sent then
+    elsif not status_sent() then
       mk_status()
-    elsif not !headers_sent then
+    elsif not headers_sent() then
       mk_headers()
     else
       mk_data()
@@ -170,24 +170,24 @@ def http.response(~http_version="1.1",
 
   def attr_method(sent, attr) =
     def set(v) =
-      if !sent then
+      if sent() then
         error.raise(error.invalid, "HTTP response has already been sent for this value!")
       end
       attr := v
     end
 
-    def get() = !attr end
+    def get() = attr() end
 
     set.{current=get}
   end
 
   def header(k, v) =
-    headers := (k, v)::!headers
+    headers := (k, v)::headers()
   end
 
   code = status_code
   def redirect(~status_code=301, location) =
-    if !status_sent then
+    if status_sent() then
       error.raise(error.invalid, "HTTP response has already been sent for this value!")
     end
     code := status_code
@@ -195,7 +195,7 @@ def http.response(~http_version="1.1",
   end
 
   def json(v) =
-    if !headers_sent then
+    if headers_sent() then
       error.raise(error.invalid, "HTTP response has already been sent for this value!")
     end
     content_type := "application/json; charset=utf-8"
@@ -203,7 +203,7 @@ def http.response(~http_version="1.1",
   end
 
   def html(d) =
-    if !headers_sent then
+    if headers_sent() then
       error.raise(error.invalid, "HTTP response has already been sent for this value!")
     end
     content_type := "text/html"
@@ -211,13 +211,13 @@ def http.response(~http_version="1.1",
   end
 
   def send_status(socket) =
-    if not !status_sent then
+    if not status_sent() then
       socket.write(mk_status())
     end
   end
 
   def multipart_form(~boundary=null(), contents) =
-    if !headers_sent then
+    if headers_sent() then
       error.raise(error.invalid, "HTTP response has already been sent for this value!")
     end
 
@@ -240,7 +240,7 @@ def http.response(~http_version="1.1",
     multipart_form = multipart_form,
     data = attr_method(data_sent, data),
     send_status = send_status,
-    status_sent = {!status_sent}
+    status_sent = {status_sent()}
   }
 end
 
@@ -278,7 +278,7 @@ let harbor.http.middleware = ref(fun (req, res, next) -> next(req, res))
 # Register a new harbor middleware
 # @category Internet
 def harbor.http.middleware.register(fn) =
-  middleware = !harbor.http.middleware
+  middleware = harbor.http.middleware()
   harbor.http.middleware := fun (req, res, next) -> begin
     middleware(req, res, fun (res, res) ->
       fn(req, res, next))
@@ -301,7 +301,7 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
     end
 
     def data(~timeout=10.) =
-      if !is_response_done then
+      if is_response_done() then
         error.raise(error.http, "Response ended!")
       end
 
@@ -321,7 +321,7 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
     }
 
     handler = fun (req, res) -> begin
-      middleware = !harbor.http.middleware
+      middleware = harbor.http.middleware()
       middleware(req, res, fun (req, res) -> handler(req, res))
     end
 
@@ -385,7 +385,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
         else
           page = ref("")
           def add(s)
-            page := !page ^ s ^ "\n"
+            page := page() ^ s ^ "\n"
           end
           def add_file(f)
             add("<li><a href=\"#{request.path}/#{url.encode(f)}\">#{f}</a></li>")
@@ -394,7 +394,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
           list.iter(add_file, file.ls(sorted=true, fname))
           add("</ul></body>")
           response.content_type("text/html; charset=UTF-8")
-          response.data({!page})
+          response.data(page)
         end
       else
         mime = content_type(fname)
@@ -546,8 +546,8 @@ def harbor.http.request.body(~timeout=10., req) =
     end
 
     r = req.data(timeout=timeout)
-    if r == "" then !data else
-      data := "#{!data}#{r}"
+    if r == "" then data() else
+      data := "#{data()}#{r}"
       read()
     end
   end

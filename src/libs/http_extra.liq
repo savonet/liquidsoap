@@ -30,13 +30,13 @@ def harbor.http.middleware.cors(
     vary = ref([])
 
     def add_vary() =
-      if !vary != [] then
-        res.header("Vary", string.concat(separator=",", !vary))
+      if vary() != [] then
+        res.header("Vary", string.concat(separator=",", vary()))
       end
     end
 
     def vary(v) =
-      vary := v::!vary
+      vary := v::vary()
     end
 
     def add_origin(origin) =

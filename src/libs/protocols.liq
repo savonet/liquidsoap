@@ -690,18 +690,18 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
     list.iter(set, args)
     def synth(s)
       file = file.temp("liq-synth",".wav")
-      log.info(label="synth", "Synthesizing #{!shape} in #{file}.")
+      log.info(label="synth", "Synthesizing #{shape()} in #{file}.")
       source.dump(%wav, file, once(s))
       [file]
     end
-    if !shape == "sine" then
-      synth(sine(duration=!duration, !frequency))
-    elsif !shape == "saw" then
-      synth(saw(duration=!duration, !frequency))
-    elsif !shape == "square" then
-      synth(square(duration=!duration, !frequency))
-    elsif !shape == "blank" then
-      synth(blank(duration=!duration))
+    if shape() == "sine" then
+      synth(sine(duration=duration(), frequency()))
+    elsif shape() == "saw" then
+      synth(saw(duration=duration(), frequency()))
+    elsif shape() == "square" then
+      synth(square(duration=duration(), frequency()))
+    elsif shape() == "blank" then
+      synth(blank(duration=duration()))
     else
       []
     end
