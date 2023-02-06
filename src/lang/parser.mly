@@ -207,8 +207,8 @@ expr:
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | varlist                          { mk_list ~pos:$loc $1 }
-  | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke ({invoked = mk ~pos:$loc($1) (Var "ref"); default = None; meth = "get"})), ["", $2])) }
-  | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke ({invoked = mk ~pos:$loc($1) (Var "ref"); default = None; meth =  "set"})), ["", $1; "", $3])) }
+  | GET expr                         { mk ~pos:$loc (App ($2, [])) }
+  | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke {invoked = $1; default = None; meth = "set"}), ["", $3])) }
   | ENCODER encoder_opt              { mk_encoder ~pos:$loc $1 $2 }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }

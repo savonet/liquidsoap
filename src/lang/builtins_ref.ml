@@ -21,8 +21,12 @@
  *****************************************************************************)
 
 let ref_t a =
-  Lang.record_t
-    [("get", Lang.fun_t [] a); ("set", Lang.fun_t [(false, "", a)] Lang.unit_t)]
+  Lang.method_t (Lang.fun_t [] a)
+    [
+      ( "set",
+        ([], Lang.fun_t [(false, "", a)] Lang.unit_t),
+        "Set the value of the reference." );
+    ]
 
 let ref =
   let a = Lang.univ_t () in
@@ -32,11 +36,12 @@ let ref =
     (ref_t a)
     (fun p ->
       let x = List.assoc "" p |> Atomic.make in
-      Lang.record
-        [
-          ("get", Lang.val_fun [] (fun _ -> Atomic.get x));
-          ( "set",
-            Lang.val_fun [] (fun p ->
-                List.assoc "" p |> Atomic.set x;
-                Lang.unit) );
-        ])
+      let get = Lang.val_fun [] (fun _ -> Atomic.get x) in
+      let set =
+        Lang.val_fun
+          [("", "", None)]
+          (fun p ->
+            List.assoc "" p |> Atomic.set x;
+            Lang.unit)
+      in
+      Lang.meth get [("set", set)])
