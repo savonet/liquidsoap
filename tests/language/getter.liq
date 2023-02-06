@@ -1,3 +1,5 @@
+#!../../liquidsoap ../test.liq
+
 # Test getters, see #1181
 
 def f(~x)
@@ -18,7 +20,6 @@ def tests() =
   g(x={4})
 
   r = ref(5)
-  r = ref.getter(r)
   f(x=r)
   g(x=r)
   r.set(r()+2)
