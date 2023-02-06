@@ -537,4 +537,4 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Push consolidated manifest
-        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }}
+        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}

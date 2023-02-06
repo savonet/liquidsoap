@@ -7,6 +7,7 @@ USER=$2
 PASSWORD=$3
 GHCR_USER=$4
 GHCR_PASSWORD=$5
+SHA=$6
 
 rm -rf ~/.docker/config.json
 mkdir -p ~/.docker
@@ -46,13 +47,25 @@ docker push savonet/liquidsoap-ci-build:${TAG}_alpine_armhf
 docker manifest create savonet/liquidsoap:$TAG --amend savonet/liquidsoap-ci-build:${TAG}_amd64 --amend savonet/liquidsoap-ci-build:${TAG}_arm64 savonet/liquidsoap-ci-build:${TAG}_armhf
 docker manifest push savonet/liquidsoap:$TAG
 
+docker tag savonet/liquidsoap:$TAG savonet/liquidsoap:$SHA
+docker push savonet/liquidsoap:$SHA
+
 docker manifest create savonet/liquidsoap-alpine:$TAG --amend savonet/liquidsoap-ci-build:${TAG}_alpine_amd64 --amend savonet/liquidsoap-ci-build:${TAG}_alpine_arm64 savonet/liquidsoap-ci-build:${TAG}_alpine_armhf
 docker manifest push savonet/liquidsoap-alpine:$TAG
+
+docker tag savonet/liquidsoap-alpine:$TAG savonet/liquidsoap-alpine:$SHA
+docker push savonet/liquidsoap-alpine:$SHA
 
 docker login ghcr.io -u "$GHCR_USER" -p "$GHCR_PASSWORD"
 
 docker manifest create ghcr.io/savonet/liquidsoap:$TAG --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_amd64 --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_arm64 ghcr.io/savonet/liquidsoap-ci-build:${TAG}_armhf
 docker manifest push ghcr.io/savonet/liquidsoap:$TAG
 
+docker tag ghcr.io/savonet/liquidsoap:$TAG ghcr.io/savonet/liquidsoap:$SHA
+docker push ghcr.io/savonet/liquidsoap:$SHA
+
 docker manifest create ghcr.io/savonet/liquidsoap-alpine:$TAG --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_alpine_amd64 --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_alpine_arm64 --amend ghcr.io/savonet/liquidsoap-ci-build:${TAG}_alpine_armhf
 docker manifest push ghcr.io/savonet/liquidsoap-alpine:$TAG
+
+docker tag ghcr.io/savonet/liquidsoap-alpine:$TAG ghcr.io/savonet/liquidsoap-alping:$SHA
+docker push ghcr.io/savonet/liquidsoap-alping:$SHA
