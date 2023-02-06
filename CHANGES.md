@@ -26,8 +26,7 @@ New:
 - Added `null.map`.
 - References of type `'a` are now objects of type `(()->'a).{set : ('a) -> unit}`. This means that you should use `x()` instead of `!x` in order to get
   the value of a reference. Setting a reference can be done both by `x.set(v)`
-  and `x := v` (which is still supported as a notation). `ref.getter` has no
-  more use and has been removed (#2881).
+  and `x := v`, which is still supported as a notation (#2881).
 
 Changed:
 

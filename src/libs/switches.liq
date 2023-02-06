@@ -30,9 +30,9 @@ def fallback.skip(s,~fallback=null())
   fallback = fallback ?? (blank():source)
   avail = ref(true)
   def check()
-    old = !avail
+    old = avail()
     avail := source.is_ready(s)
-    if not old and !avail then
+    if not old and avail() then
       source.skip(fallback)
     end
   end
@@ -81,7 +81,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
           f((index + 1) mod list.length(sources))
         end
       end
-      f((!picked_index+1) mod list.length(sources))
+      f((picked_index()+1) mod list.length(sources))
     else
       picked_index := -1
     end
@@ -90,17 +90,18 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
   # Add condition to i-th source.
   def add_condition(index, s) =
     def cond() =
-      if !picked_index == -1 then pick() end
+      if picked_index() == -1 then pick() end
 
-      if !picked_index != -1 then
-        picked_weight = list.nth(default=default_weight, weights, !picked_index)
-        picked_source = list.nth(sources, !picked_index)
-        if picked_weight () <= !list.assoc(source.id(picked_source), tracks_played()) then
+      if picked_index() != -1 then
+        picked_weight = list.nth(default=default_weight, weights, picked_index())
+        picked_source = list.nth(sources, picked_index())
+        fn = list.assoc(source.id(picked_source), tracks_played())
+        if picked_weight () <= fn() then
           pick()
         end
       end
 
-      !picked_index == index
+      picked_index() == index
     end
 
     (cond, s)
@@ -186,8 +187,8 @@ def replaces random(~id=null(), ~override="liq_transition_length", ~replay_metad
 
   def add_condition(index, s) =
     def cond() =
-      if !next_index == -1 then pick() end
-      !next_index == index
+      if next_index() == -1 then pick() end
+      next_index() == index
     end
 
     (cond, s)

@@ -3,10 +3,9 @@
 # @flag hidden
 def settings.make(~comments="", ~(description:string), v) =
   current_value = ref(v)
-  {!current_value}.{
+  current_value.{
     description = description,
-    comments    = comments,
-    set         = (fun (v) -> current_value := v)
+    comments    = comments
   }
 end
 

@@ -48,8 +48,8 @@ end
 def memoize(fn) =
   cached_result = ref([])
   fun () -> begin
-    if !cached_result != [] then
-      list.hd(!cached_result)
+    if cached_result() != [] then
+      list.hd(cached_result())
     else
       result = fn()
       cached_result := [result]

@@ -14,7 +14,7 @@ def metadata.getter.base(init, map, metadata, s)
     if v != "" then x := map(v) end
   end
   s.on_metadata(f)
-  {!x}
+  ref.getter(x)
 end
 
 # Create a getter from a metadata: this is a string, whose value can be changed

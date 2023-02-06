@@ -106,26 +106,26 @@ def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=
     threshold = lin_of_dB(getter.get(threshold))
     rms       = rms()
     if rms >= threshold then
-      if !v * rms <= target then
+      if v() * rms <= target then
         up = 1. - exp (0. - frame / getter.get(up))
-        v := !v + up * ((target / rms) - !v)
+        v := v() + up * ((target / rms) - v())
       else
         down = 1. - exp (0. - frame / getter.get(down))
-        v := !v + down * ((target / rms) - !v)
+        v := v() + down * ((target / rms) - v())
       end
-      v := max(gain_min, min(gain_max, !v))
+      v := max(gain_min, min(gain_max, v()))
     end
   end
   def target_gain () = lin_of_dB(getter.get(target)) / rms() end
   s =
     if null.defined(debug) then
-      source.run(s, every=null.get(debug), {log.debug("rms: #{rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{!v} / #{target_gain()}")})
+      source.run(s, every=null.get(debug), {log.debug("rms: #{rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{v()} / #{target_gain()}")})
     else
       s
     end
   s = source.on_frame(s, update)
   s = if track_sensitive then source.on_track(s, fun (_) -> v := 1.) else s end
-  amplify(id=id, {!v}, delay_line(lookahead, s)).{ rms = rms, gain = fun() -> !v, target_gain = target_gain }
+  amplify(id=id, {v()}, delay_line(lookahead, s)).{ rms = rms, gain = {v()}, target_gain = target_gain }
 end
 
 
@@ -314,10 +314,10 @@ def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf)
         (0., 0.)
       end
     s = add([sine(row, duration=duration), sine(col, duration=duration)])
-    l := blank(duration=delay) :: !l
-    l := s :: !l
+    l := blank(duration=delay) :: l()
+    l := s :: l()
   end
-  l = list.rev(!l)
+  l = list.rev(l())
   sequence(l)
 end
 
@@ -337,12 +337,12 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
       is_single   = ref(false)
 
       {
-        volume = fun () -> !volume,
-        set_volume = fun (v) -> volume := v,
-        selected = fun () -> !is_selected,
-        set_selected = fun (b) -> is_selected := b,
-        single = fun () -> !is_single,
-        set_single = fun (b) -> is_single := b,
+        volume = {volume()},
+        set_volume = volume.set,
+        selected = {is_selected()},
+        set_selected = is_selected.set,
+        single = {is_single()},
+        set_single = is_single.set,
         source = s
       }
     end, sources)
@@ -359,7 +359,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
       )
       s = source.on_metadata(s, fun (m) ->
         begin
-          fn = !insert_metadata_fn
+          fn = insert_metadata_fn()
           fn(m)
         end
       )
