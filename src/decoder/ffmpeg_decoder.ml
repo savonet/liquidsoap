@@ -692,7 +692,7 @@ let mk_decoder ?audio ?video ~decode_first_metadata ~target_position container =
               else f ()
           | _ -> ()
       with
-        | Avutil.Error `Invalid_data -> f ()
+        | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> f ()
         | Avutil.Error `Eof ->
             Generator.add_break ?sync:(Some true) buffer.Decoder.generator;
             raise End_of_file
