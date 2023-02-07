@@ -36,7 +36,7 @@ type child = {
 
 (** The switch can either happen at any time in the stream (insensitive)
   * or only at track limits (sensitive). *)
-type track_mode = Sensitive | Insensitive
+type track_mode = [ `Sensitive | `Insensitive ]
 
 type selection = {
   child : child;
@@ -369,12 +369,10 @@ class lang_switch ~override_meta ~all_predicates ~transition_length mode
         ~name:"switch" ~mode ~override_meta ~transition_length ?replay_meta
           ~static_sources (List.map third children) as super
 
+    method private is_selected c =
+      match selected with Some { child } when child == c -> true | _ -> false
+
     method private select =
-      let selected c =
-        match selected with
-          | Some { child } when child == c -> true
-          | _ -> false
-      in
       (* Returns a source if predicate is true. *)
       let prepare (d, child) =
         let satisfied = satisfied d in
@@ -395,7 +393,8 @@ class lang_switch ~override_meta ~all_predicates ~transition_length mode
              (find ~strict:all_predicates
                 (fun (d, single, c) ->
                   match prepare (d, c) with
-                    | Some s -> (not (single && selected c)) && s#is_ready
+                    | Some s ->
+                        (not (single && self#is_selected c)) && s#is_ready
                     | None -> false)
                 children))
       with Not_found -> None
@@ -417,7 +416,9 @@ class lang_switch ~override_meta ~all_predicates ~transition_length mode
       List.iter
         (function
           | d, _, ({ source_getter; current_source = Some s } as child)
-            when Lang.is_function source_getter && not (satisfied d) ->
+            when Lang.is_function source_getter
+                 && (not (self#is_selected child))
+                 && not (satisfied d) ->
               s#leave (self :> Source.source);
               child.current_source <- None
           | _ -> ())
