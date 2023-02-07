@@ -321,7 +321,7 @@ let rec to_string v =
 (** Create a new value. *)
 let make ?pos ?t e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
-  if Lazy.force debug then
+  if Multicore.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
       (Pos.Option.to_string t.Type.pos)
       (try to_string { t; term = e } with _ -> "<?>")

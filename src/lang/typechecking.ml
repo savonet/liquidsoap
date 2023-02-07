@@ -346,7 +346,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           try List.assoc var env with Not_found -> raise (Unbound (pos, var))
         in
         e.t >: Typing.instantiate ~level s;
-        if Lazy.force Term.debug then
+        if Multicore.force Term.debug then
           Printf.eprintf "Instantiate %s : %s becomes %s\n" var
             (Type.string_of_scheme s) (Type.to_string e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->

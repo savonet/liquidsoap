@@ -37,7 +37,6 @@
     bjack
     camlimages
     (camomile (>= 1.0.0))
-    domainslib
     dssi
     faad
     fdkaac
@@ -137,6 +136,8 @@
     (ppx_string :build)
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))
+  (depopts
+    domainslib)
   (conflicts
     (liquidsoap (<> :version)))
   (sites (share libs) (share bin) (lib_root lib_root))

@@ -61,7 +61,7 @@ let rec to_string v =
     | Ref a -> Printf.sprintf "ref(%s)" (to_string (Atomic.get a))
     | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
     | Null -> "null"
-    | Meth (l, v, e) when Lazy.force Term.debug ->
+    | Meth (l, v, e) when Multicore.force Term.debug ->
         to_string e ^ ".{" ^ l ^ "=" ^ to_string v ^ "}"
     | Meth _ ->
         let rec split e =

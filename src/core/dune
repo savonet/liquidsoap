@@ -22,10 +22,11 @@
   fileutils
   liquidsoap_lang
   menhirLib
-  (select multicore.ml from
+  (select
+   multicore.ml
+   from
    (domainslib -> multicore.domainslib.ml)
-   (-> multicore.disabled.ml)
-  )
+   (-> multicore.disabled.ml))
   (select
    charset.ml
    from

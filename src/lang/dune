@@ -79,7 +79,16 @@
  (public_name liquidsoap-lang)
  (preprocess
   (pps sedlex.ppx ppx_string))
- (libraries dune-site str unix menhirLib)
+ (libraries
+  (select
+   multicore.ml
+   from
+   (domainslib -> multicore.domainslib.ml)
+   (-> multicore.disabled.ml))
+  dune-site
+  str
+  unix
+  menhirLib)
  (modules
   build_config
   builtins_bool
@@ -113,6 +122,7 @@
   lang_regexp
   lang_string
   lexer
+  multicore
   modules
   parser
   parser_helper

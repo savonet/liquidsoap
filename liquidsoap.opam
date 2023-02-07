@@ -40,7 +40,6 @@ depopts: [
   "bjack"
   "camlimages"
   "camomile" {>= "1.0.0"}
-  "domainslib"
   "dssi"
   "faad"
   "fdkaac"

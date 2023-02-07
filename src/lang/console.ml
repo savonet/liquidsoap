@@ -32,14 +32,14 @@ let color_conf : color_conf ref = ref `Auto
 let color =
   let auto =
     lazy
-      (try Unix.isatty Unix.stdout && not (Lazy.force dumb_term)
+      (try Unix.isatty Unix.stdout && not (Multicore.force dumb_term)
        with _ -> false)
   in
   fun () ->
     match !color_conf with
       | `Always -> true
       | `Never -> false
-      | `Auto -> Lazy.force auto
+      | `Auto -> Multicore.force auto
 
 type text_style =
   [ `bold

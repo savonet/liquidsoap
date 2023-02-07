@@ -17,7 +17,7 @@ let audio_video_decoding_tests =
     ("FFmpeg copy decoder", "test_ffmpeg_copy_decoder.liq");
     ("FFmpeg copy+encode decode", "test_ffmpeg_copy_and_encode_decoder.liq");
     ("FFmpeg filter", "test_ffmpeg_filter.liq");
-    ("FFmpeg raw decoder test", "test_ffmpeg_raw_decoder.liq");
+    ("FFmpeg raw decoder", "test_ffmpeg_raw_decoder.liq");
     ("FFmpeg raw+encode decoder", "test_ffmpeg_raw_and_encode_decoder.liq");
     ("FFmpeg raw+copy decoder", "test_ffmpeg_raw_and_copy_decoder.liq");
   ]

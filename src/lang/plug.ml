@@ -35,7 +35,7 @@ class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
       in
       let doc () =
         match (doc, sdoc) with
-          | Some d, _ -> Lazy.force d
+          | Some d, _ -> Multicore.force d
           | None, None -> Doc.trivial "(no doc)"
           | None, Some s -> Doc.trivial s
       in

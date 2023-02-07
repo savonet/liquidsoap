@@ -28,15 +28,16 @@ let () = Lang_core.apply_fun := Evaluation.apply
 let type_and_run ~throw ~lib ast =
   ignore
     (!Hooks.collect_after (fun () ->
-         if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
+         if Multicore.force Term.debug then
+           Printf.eprintf "Type checking...\n%!";
          (* Type checking *)
          Typechecking.check ~throw ~ignored:true ast;
 
-         if Lazy.force Term.debug then
+         if Multicore.force Term.debug then
            Printf.eprintf "Checking for unused variables...\n%!";
          (* Check for unused variables, relies on types *)
          Term.check_unused ~throw ~lib ast;
-         if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
+         if Multicore.force Term.debug then Printf.eprintf "Evaluating...\n%!";
          Evaluation.eval_toplevel ast))
 
 (** {1 Error reporting} *)

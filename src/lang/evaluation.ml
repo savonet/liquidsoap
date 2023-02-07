@@ -109,7 +109,7 @@ module Env = struct
 
   (** Find the value of a variable in the environment. *)
   let lookup (env : t) var =
-    try Lazy.force (List.assoc var env)
+    try Multicore.force (List.assoc var env)
     with Not_found ->
       let bt = Printexc.get_raw_backtrace () in
       Printexc.raise_with_backtrace
@@ -494,7 +494,7 @@ let rec eval_toplevel ?(interactive = false) t =
                   failwith "TODO: cannot replace toplevel patterns for now")
         in
         toplevel_add ?doc pat ~t:(generalized, def_t) def;
-        if Lazy.force debug then
+        if Multicore.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (Type.to_string ~generalized def_t);
         let var = string_of_pat pat in
