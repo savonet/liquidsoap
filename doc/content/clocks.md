@@ -287,6 +287,8 @@ notice the lag at all.
 
 ## Internal clocks: exploiting multiple cores
 
+### Case 1: pre OCaml 5
+
 Clocks can also be useful even when external factors are not an issue.
 Indeed, several clocks run in several threads, which creates an opportunity
 to exploit multiple CPU cores.
@@ -310,3 +312,11 @@ end
 one()
 one()
 ```
+
+### Case 2: post OCaml 5
+
+If you compile `liquidsoap` with `domainslib`, concurrent encoding should be enabled by default!
+
+When compiled with `domainslib`, `settings.multicore.set(<boolean>)` can be used to enable or disable
+multicore computations while `settings.multicore.concurrency.set(<int>)` can be used to control the
+number of concurrent queues. It is recommended to leave this last setting to its default.
