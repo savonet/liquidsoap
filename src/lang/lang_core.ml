@@ -335,8 +335,8 @@ let to_getter t =
 
 let is_function t =
   match (demeth t).value with
-    | Fun ([], _, _) | FFI ([], _) -> false
-    | _ -> true
+    | Fun ([], _, _) | FFI ([], _) -> true
+    | _ -> false
 
 (** [assoc lbl n l] returns the [n]th element in [l]
   * of which the first component is [lbl]. *)
