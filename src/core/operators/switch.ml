@@ -38,7 +38,11 @@ type child = {
   * or only at track limits (sensitive). *)
 type track_mode = Sensitive | Insensitive
 
-type selection = { child : child; effective_source : source }
+type selection = {
+  child : child;
+  child_source : source;
+  effective_source : source;
+}
 
 exception Reference
 
@@ -120,7 +124,9 @@ class virtual switch ~name ~override_meta ~transition_length
       begin
         match selected with
           | None -> ()
-          | Some s -> s.effective_source#after_output
+          | Some s ->
+              s.child_source#after_output;
+              s.effective_source#after_output
       end;
       List.iter (fun s -> s#after_output) to_finish;
       to_finish <- [];
@@ -208,11 +214,13 @@ class virtual switch ~name ~override_meta ~transition_length
                     in
                     new_source#get_ready activation;
                     selected <-
-                      Some { child = c; effective_source = new_source }
-                | Some { child = { current_source = None } } -> assert false
-                | Some
-                    ({ child = { current_source = Some old_source } } as
-                    old_selection)
+                      Some
+                        {
+                          child = c;
+                          child_source = s;
+                          effective_source = new_source;
+                        }
+                | Some ({ child_source = old_source } as old_selection)
                   when old_source != s ->
                     self#log#important "Switch to %s with%s transition." s#id
                       (if forget then " forgetful" else "");
@@ -221,7 +229,7 @@ class virtual switch ~name ~override_meta ~transition_length
                     Clock.collect_after (fun () ->
                         let old_source =
                           if forget then Debug_sources.empty ()
-                          else Option.get old_selection.child.current_source
+                          else old_selection.child_source
                         in
                         let new_source =
                           (* Force insertion of old metadata if relevant.
@@ -257,7 +265,13 @@ class virtual switch ~name ~override_meta ~transition_length
                         in
                         Clock.unify s#clock self#clock;
                         s#get_ready activation;
-                        selected <- Some { child = c; effective_source = s })
+                        selected <-
+                          Some
+                            {
+                              child = c;
+                              child_source = s;
+                              effective_source = s;
+                            })
                 | _ ->
                     (* We are staying on the same child,
                      * don't start a new track. *)
@@ -300,8 +314,7 @@ class virtual switch ~name ~override_meta ~transition_length
     method seek n =
       match selected with Some s -> s.effective_source#seek n | None -> 0
 
-    method selected =
-      Option.map (fun { child } -> Option.get child.current_source) selected
+    method selected = Option.map (fun { child_source } -> child_source) selected
   end
 
 (** Common tools for Lang bindings of switch operators *)

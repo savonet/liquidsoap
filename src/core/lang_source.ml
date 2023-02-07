@@ -315,6 +315,11 @@ let check_content v t =
       checked_values := v :: !checked_values;
       match (v.Value.value, (Type.deref t).Type.descr) with
         | _, Type.Var _ -> ()
+        (* We don't check functions, assuming anything creating a source is a
+           FFI registered via add_operator so the check will happen there. *)
+        | Fun _, _ | FFI _, _ -> ()
+        (* Only possible case for a getter now is a static value. *)
+        | _, Type.Getter t -> check_value v t
         | _ when Source_val.is_value v ->
             let source_t = source_t (Source_val.of_value v)#frame_type in
             check source_t t
@@ -345,9 +350,6 @@ let check_content v t =
         | Value.Meth (_, _, v), _ -> check_value v t
         | Ref r, Type.Constr { Type.constructor = "ref"; params = [(_, t)] } ->
             check_value (Atomic.get r) t
-        (* We don't check functions, assuming anything creating a source is a
-           FFI registered via add_operator so the check will happen there. *)
-        | Fun _, _ | FFI _, _ -> ()
         | _ ->
             failwith
               ("Unhandled value in check_content: " ^ Value.to_string v ^ "."))
