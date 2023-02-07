@@ -35,7 +35,8 @@ if [ -z "${LIQ_BUILD_MIN}" ]; then
   git clone https://github.com/savonet/ocaml-posix.git
   cd ocaml-posix && opam install -y . && cd ..
   # See: https://github.com/whitequark/ocaml-inotify/pull/20
-  opam install -y uri yaml inotify.2.3
+  git clone https://github.com/whitequark/ocaml-inotify.git
+  cd ocaml-inotify  opam install -y . && cd ..
 fi
 
 # TODO: Add those to docker CI images.

@@ -37,7 +37,7 @@
     bjack
     camlimages
     (camomile (>= 1.0.0))
-    domainlib
+    domainslib
     dssi
     faad
     fdkaac
