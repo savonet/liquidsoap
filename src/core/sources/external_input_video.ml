@@ -102,13 +102,13 @@ let _ =
               video_format := Some fmt;
               width := Some w;
               height := Some h;
-              if fps <> float (Lazy.force Frame.video_rate) then
+              if fps <> float (Multicore.force Frame.video_rate) then
                 failwith
                   (Printf.sprintf
                      "Wrong video rate (%f instead of %d). Support for \
                       timestretching should be added some day in the future."
                      fps
-                     (Lazy.force Frame.video_rate));
+                     (Multicore.force Frame.video_rate));
               let converter data =
                 let video_format = Option.get !video_format in
                 let of_string s =
@@ -122,8 +122,8 @@ let _ =
                 let src = of_string data in
                 let in_width = Video.Image.width src in
                 let in_height = Video.Image.height src in
-                let out_width = Lazy.force Frame.video_width in
-                let out_height = Lazy.force Frame.video_height in
+                let out_width = Multicore.force Frame.video_width in
+                let out_height = Multicore.force Frame.video_height in
                 if
                   out_width = in_width && out_height = in_height
                   && video_format = `I420
@@ -220,8 +220,8 @@ let _ =
     ~return_t
     (fun p ->
       let command = Lang.to_string_getter (List.assoc "" p) in
-      let width = Lazy.force Frame.video_width in
-      let height = Lazy.force Frame.video_height in
+      let width = Multicore.force Frame.video_width in
+      let height = Multicore.force Frame.video_height in
       let buflen = width * height * 3 in
       let buf = Bytes.create buflen in
       let on_data ~buffer reader =

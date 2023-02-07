@@ -44,7 +44,7 @@ let make params =
   in
   let check_samplerate ~pos i =
     lazy
-      (let i = Lazy.force i in
+      (let i = Multicore.force i in
        if not (List.mem i valid_samplerates) then (
          let err =
            Printf.sprintf "invalid samplerate value. Possible values: %s"

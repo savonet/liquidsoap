@@ -91,10 +91,10 @@ let has_binary =
 
 let () =
   Lifecycle.before_start (fun () ->
-      if Lazy.force is_docker then (
+      if Multicore.force is_docker then (
         log#important "Running inside a docker container, disabling sandboxing.";
         conf_sandbox#set false)
-      else if not (Lazy.force has_binary) then (
+      else if not (Multicore.force has_binary) then (
         log#important "Could not find binary %s, disabling sandboxing."
           conf_binary#get;
         conf_sandbox#set false)

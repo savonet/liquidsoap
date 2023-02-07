@@ -37,7 +37,7 @@ let force f fd x =
 let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "OSS")
 
 class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Multicore.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
     inherit
@@ -85,7 +85,7 @@ class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
   end
 
 class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Multicore.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source

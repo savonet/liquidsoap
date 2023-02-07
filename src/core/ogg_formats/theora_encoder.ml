@@ -29,10 +29,10 @@ let create_encoder ~theora ~metadata () =
       | Theora_format.Bitrate x -> (0, x)
       | Theora_format.Quality x -> (x, 0)
   in
-  let width = Lazy.force theora.Theora_format.width in
-  let height = Lazy.force theora.Theora_format.height in
-  let picture_width = Lazy.force theora.Theora_format.picture_width in
-  let picture_height = Lazy.force theora.Theora_format.picture_height in
+  let width = Multicore.force theora.Theora_format.width in
+  let height = Multicore.force theora.Theora_format.height in
+  let picture_width = Multicore.force theora.Theora_format.picture_width in
+  let picture_height = Multicore.force theora.Theora_format.picture_height in
   let picture_x = theora.Theora_format.picture_x in
   let picture_y = theora.Theora_format.picture_y in
   let aspect_numerator = theora.Theora_format.aspect_numerator in

@@ -35,7 +35,7 @@ let mk_audio_decoder ~channels ~stream ~field codec =
   let in_sample_rate = ref (Avcodec.Audio.get_sample_rate codec) in
   let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
   let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
-  let target_sample_rate = Lazy.force Frame.audio_rate in
+  let target_sample_rate = Multicore.force Frame.audio_rate in
   let target_channel_layout = Avutil.Channel_layout.get_default channels in
   let mk_converter () =
     Converter.create !in_channel_layout ~in_sample_format:!in_sample_format
@@ -77,7 +77,7 @@ let mk_video_decoder ~width ~height ~stream ~field codec =
   let target_height = height in
   let width = Avcodec.Video.get_width codec in
   let height = Avcodec.Video.get_height codec in
-  let target_fps = Lazy.force Frame.video_rate in
+  let target_fps = Multicore.force Frame.video_rate in
   let scale =
     let scale_proportional (sw, sh) (tw, th) =
       if th * sw < tw * sh then (sw * th / sh, th) else (tw, sh * tw / sw)

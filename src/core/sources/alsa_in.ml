@@ -58,7 +58,7 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
     method remaining = -1
 
     (* val mutable alsa_fmt = *)
-    val mutable sample_freq = Lazy.force Frame.audio_rate
+    val mutable sample_freq = Multicore.force Frame.audio_rate
 
     val mutable read_fun =
       fun pcm (buf : Content.Audio.data) ofs len ->
@@ -101,12 +101,12 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
             sample_freq <- Pcm.set_rate_near dev params sample_freq Dir_eq;
 
             (* TODO: resample *)
-            if sample_freq <> Lazy.force Frame.audio_rate then
+            if sample_freq <> Multicore.force Frame.audio_rate then
               self#log#important
                 "Got a sampling frequency of %d instead of %d (TODO: should be \
                  resampled in the future)."
                 sample_freq
-                (Lazy.force Frame.audio_rate);
+                (Multicore.force Frame.audio_rate);
             Pcm.set_channels dev params self#audio_channels;
             Pcm.set_params dev params;
             Pcm.prepare dev;

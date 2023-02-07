@@ -32,7 +32,7 @@ let allowed_bitrates =
 
 let check_samplerate ~pos i =
   lazy
-    (let i = Lazy.force i in
+    (let i = Multicore.force i in
      let allowed =
        [8000; 11025; 12000; 16000; 22050; 24000; 32000; 44100; 48000]
      in

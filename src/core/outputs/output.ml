@@ -160,7 +160,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
         let get_count = ref 0 in
         while Frame.is_partial self#memo && self#is_ready do
           incr get_count;
-          if !get_count > Lazy.force Frame.size then
+          if !get_count > Multicore.force Frame.size then
             self#log#severe
               "Warning: there may be an infinite sequence of empty tracks!";
           source#get self#memo
@@ -240,7 +240,7 @@ class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
         in
         function
         | [] -> assert false
-        | [i] -> assert (i = Lazy.force Frame.size || not infallible)
+        | [i] -> assert (i = Multicore.force Frame.size || not infallible)
         | start :: stop :: l ->
             if start < stop then f start stop else assert (start = stop);
             output_chunks frame (stop :: l)

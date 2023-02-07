@@ -117,7 +117,7 @@ let _ =
       let l =
         Lang.product (Lang.string "uptime")
           (Lang.int
-             (int_of_float (Utils.uptime () /. Lazy.force Frame.duration)))
+             (int_of_float (Utils.uptime () /. Multicore.force Frame.duration)))
         :: l
       in
       Lang.list l)

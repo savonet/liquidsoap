@@ -715,7 +715,7 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
                 (decoder, buffer)
             | Some d -> d
         in
-        while Generator.length self#buffer < Lazy.force Frame.size do
+        while Generator.length self#buffer < Multicore.force Frame.size do
           decoder.Decoder.decode buffer
         done;
         Generator.fill self#buffer frame

@@ -178,7 +178,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let _, decoder, buffer, get_metadata =
           Option.get (Atomic.get container)
         in
-        while Generator.length self#buffer < Lazy.force Frame.size do
+        while Generator.length self#buffer < Multicore.force Frame.size do
           decoder buffer
         done;
         Generator.fill self#buffer frame;

@@ -120,7 +120,7 @@ class append ~insert_missing ~merge source f =
         | `Append s -> s#seek n
 
     method self_sync =
-      ( Lazy.force self_sync_type,
+      ( Multicore.force self_sync_type,
         match state with
           | `Append s -> snd s#self_sync
           | _ -> snd source#self_sync )

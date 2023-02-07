@@ -41,8 +41,8 @@ class blank duration =
     method get_frame ab =
       let position = Frame.position ab in
       let length =
-        if remaining < 0 then Lazy.force Frame.size - position
-        else min remaining (Lazy.force Frame.size - position)
+        if remaining < 0 then Multicore.force Frame.size - position
+        else min remaining (Multicore.force Frame.size - position)
       in
       let audio_pos = Frame.audio_of_main position in
       let audio_len = Frame.audio_of_main length in

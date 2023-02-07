@@ -27,7 +27,7 @@ module Resampler =
 
 let samplerate_converter channels =
   let chans = Avutil.Channel_layout.get_default channels in
-  let in_freq = Lazy.force Frame.audio_rate in
+  let in_freq = Multicore.force Frame.audio_rate in
   let rs = ref None in
   let rs_out_freq = ref 0 in
   fun x buf offset length ->

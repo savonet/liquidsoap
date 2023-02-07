@@ -45,7 +45,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
 
     (* Time remaining before closing. *)
     val mutable hold_delay =
-      int_of_float (hold () *. float (Lazy.force Frame.audio_rate))
+      int_of_float (hold () *. float (Multicore.force Frame.audio_rate))
 
     method private get_frame buf =
       let offset = AFrame.position buf in
@@ -53,7 +53,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
       let position = AFrame.position buf in
       let buf = AFrame.pcm buf in
       let chans = self#audio_channels in
-      let samplerate = float (Lazy.force Frame.audio_rate) in
+      let samplerate = float (Multicore.force Frame.audio_rate) in
       let attack = attack () in
       let attack_rate = 1. /. (attack *. samplerate) in
       let release = release () in

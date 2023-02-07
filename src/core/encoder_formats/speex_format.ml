@@ -55,6 +55,7 @@ let to_string m =
     "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s,dtx=%B,vad=%B)"
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_br_ctl m.bitrate_control)
-    (Lazy.force m.samplerate) (string_of_mode m.mode) m.frames_per_packet
+    (Multicore.force m.samplerate)
+    (string_of_mode m.mode) m.frames_per_packet
     (string_of_complexity m.complexity)
     m.dtx m.vad

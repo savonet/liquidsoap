@@ -229,7 +229,7 @@ module MkClock (Time : Liq_time.T) = struct
         let last_latency_log = ref (time ()) in
         t0 <- time ();
         ticks <- 0L;
-        let frame_duration = Time.of_float (Lazy.force Frame.duration) in
+        let frame_duration = Time.of_float (Multicore.force Frame.duration) in
         let target_time () =
           t0
           |+| (frame_duration

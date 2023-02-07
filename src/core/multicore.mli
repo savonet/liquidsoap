@@ -30,6 +30,9 @@ val iter : ('a -> unit) -> 'a list -> unit
 (** Fold a function on a list in parallel. *)
 val fold : reconcile:('b -> 'b -> 'b) -> ('a -> 'b) -> 'b -> 'a list -> 'b
 
+(** Force a value. *)
+val force : 'a Lazy.t -> 'a
+
 (** Stack or pending operations. *)
 module Stack : sig
   type t

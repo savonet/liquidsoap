@@ -41,7 +41,7 @@ class bpm (source : source) =
              (Content.Audio.channels_of_format
                 (Option.get
                    (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
-             (Lazy.force Frame.audio_rate))
+             (Multicore.force Frame.audio_rate))
 
     method private get_frame buf =
       let bpm = Option.get bpm in

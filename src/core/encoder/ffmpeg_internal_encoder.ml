@@ -103,7 +103,7 @@ let mk_audio ~mode ~codec ~params ~options ~field output =
       raise e
   in
 
-  let target_samplerate = Lazy.force params.Ffmpeg_format.samplerate in
+  let target_samplerate = Multicore.force params.Ffmpeg_format.samplerate in
   let target_liq_audio_sample_time_base =
     { Avutil.num = 1; den = target_samplerate }
   in
@@ -119,7 +119,7 @@ let mk_audio ~mode ~codec ~params ~options ~field output =
   in
 
   let internal_converter () =
-    let src_samplerate = Lazy.force Frame.audio_rate in
+    let src_samplerate = Multicore.force Frame.audio_rate in
     (* The typing system ensures that this is the number of channels in the frame. *)
     let src_channels = params.Ffmpeg_format.channels in
     let src_channel_layout = get_channel_layout src_channels in
@@ -266,10 +266,10 @@ let mk_video ~mode ~codec ~params ~options ~field output =
   in
   let pixel_aspect = { Avutil.num = 1; den = 1 } in
 
-  let target_fps = Lazy.force params.Ffmpeg_format.framerate in
+  let target_fps = Multicore.force params.Ffmpeg_format.framerate in
   let target_video_frame_time_base = { Avutil.num = 1; den = target_fps } in
-  let target_width = Lazy.force params.Ffmpeg_format.width in
-  let target_height = Lazy.force params.Ffmpeg_format.height in
+  let target_width = Multicore.force params.Ffmpeg_format.width in
+  let target_height = Multicore.force params.Ffmpeg_format.height in
   let target_pixel_format =
     Ffmpeg_utils.pixel_format codec params.Ffmpeg_format.pixel_format
   in
@@ -361,8 +361,8 @@ let mk_video ~mode ~codec ~params ~options ~field output =
   in
 
   let internal_converter cb =
-    let src_width = Lazy.force Frame.video_width in
-    let src_height = Lazy.force Frame.video_height in
+    let src_width = Multicore.force Frame.video_width in
+    let src_height = Multicore.force Frame.video_height in
     let scaler =
       InternalScaler.create [flag] src_width src_height
         (Ffmpeg_utils.liq_frame_pixel_format ())

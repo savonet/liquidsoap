@@ -129,7 +129,7 @@ let string_of_format = function
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
-      Some (Lazy.force width, Lazy.force height)
+      Some (Multicore.force width, Multicore.force height)
   | Ffmpeg m -> (
       match
         Frame.Fields.fold
@@ -140,7 +140,8 @@ let video_size = function
               | _ -> cur)
           m.Ffmpeg_format.streams []
       with
-        | (width, height) :: [] -> Some (Lazy.force width, Lazy.force height)
+        | (width, height) :: [] ->
+            Some (Multicore.force width, Multicore.force height)
         | _ -> None)
   | _ -> None
 

@@ -77,7 +77,7 @@ let () =
   let create_encoder mp3 =
     let enc = Lame.create_encoder () in
     (* Input settings *)
-    Lame.set_in_samplerate enc (Lazy.force Frame.audio_rate);
+    Lame.set_in_samplerate enc (Multicore.force Frame.audio_rate);
     Lame.set_num_channels enc (if mp3.Mp3_format.stereo then 2 else 1);
 
     (* Internal quality *)
@@ -118,7 +118,7 @@ let () =
             Lame.set_vbr_mode enc Lame.Vbr_abr;
             apply_constaints enc c
     end;
-    Lame.set_out_samplerate enc (Lazy.force mp3.Mp3_format.samplerate);
+    Lame.set_out_samplerate enc (Multicore.force mp3.Mp3_format.samplerate);
     Lame.init_params enc;
     enc
   in

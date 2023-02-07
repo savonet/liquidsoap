@@ -56,6 +56,12 @@ let fold ~reconcile fn v l =
           pool reconcile v))
   else List.fold_left (fun s x -> reconcile s (fn x)) v l
 
+let lazy_m = Mutex.create ()
+
+let force v =
+  if conf_multicore#get then Tutils.mutexify lazy_m Lazy.force v
+  else Lazy.force v
+
 module Stack = struct
   type t = Mutex.t
 

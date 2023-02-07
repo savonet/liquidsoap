@@ -43,7 +43,7 @@ let plugin_dirs =
   with Not_found -> Frei0r.default_paths
 
 class frei0r_filter ~name bgra instance params (source : source) =
-  let fps = Lazy.force Frame.video_rate in
+  let fps = Multicore.force Frame.video_rate in
   let dt = 1. /. float fps in
   object
     inherit operator ~name:("frei0r." ^ name) [source]
@@ -77,7 +77,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
   end
 
 class frei0r_mixer ~name bgra instance params (source : source) source2 =
-  let fps = Lazy.force Frame.video_rate in
+  let fps = Multicore.force Frame.video_rate in
   let dt = 1. /. float fps in
   object (self)
     inherit operator ~name:("frei0r." ^ name) [source; source2] as super
@@ -155,7 +155,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
   end
 
 class frei0r_source ~name bgra instance params =
-  let fps = Lazy.force Frame.video_rate in
+  let fps = Multicore.force Frame.video_rate in
   let dt = 1. /. float fps in
   object
     inherit source ~name:("frei0r." ^ name) ()
@@ -318,8 +318,8 @@ let register_plugin fname =
     (Lang.add_operator ~base:video_frei0r name liq_params ~return_t
        ~category:`Video ~flags:[`Extra] ~descr (fun p ->
          let instance =
-           let width = Lazy.force Frame.video_width in
-           let height = Lazy.force Frame.video_height in
+           let width = Multicore.force Frame.video_width in
+           let height = Multicore.force Frame.video_height in
            Frei0r.create plugin width height
          in
          let f v = List.assoc v p in

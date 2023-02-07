@@ -26,7 +26,7 @@ let ( -- ) = Int64.sub
 let ( ++ ) = Int64.add
 
 let ticks_of_offset offset =
-  Int64.of_float (offset *. float (Lazy.force Frame.main_rate))
+  Int64.of_float (offset *. float (Multicore.force Frame.main_rate))
 
 class on_offset ~force ~offset ~override f s =
   object (self)
@@ -44,7 +44,9 @@ class on_offset ~force ~offset ~override f s =
 
     method private execute =
       self#log#info "Executing on_offset callback.";
-      let pos = Int64.to_float elapsed /. float (Lazy.force Frame.main_rate) in
+      let pos =
+        Int64.to_float elapsed /. float (Multicore.force Frame.main_rate)
+      in
       ignore
         (Lang.apply f
            [("", Lang.float pos); ("", Lang.metadata latest_metadata)]);

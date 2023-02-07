@@ -51,12 +51,12 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
       (Content.Audio.channels_of_format
          (Frame.Fields.find field (content_type ())))
   in
-  let internal_samplerate = Lazy.force Frame.audio_rate in
+  let internal_samplerate = Multicore.force Frame.audio_rate in
   let target_channels = format.Ffmpeg_format.channels in
   let target_channel_layout =
     Avutil.Channel_layout.get_default target_channels
   in
-  let target_samplerate = Lazy.force format.Ffmpeg_format.samplerate in
+  let target_samplerate = Multicore.force format.Ffmpeg_format.samplerate in
   let target_time_base = { Avutil.num = 1; den = target_samplerate } in
 
   let target_sample_format =
@@ -189,15 +189,15 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
 
 let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
     generator =
-  let internal_fps = Lazy.force Frame.video_rate in
+  let internal_fps = Multicore.force Frame.video_rate in
   let internal_time_base = { Avutil.num = 1; den = internal_fps } in
-  let internal_width = Lazy.force Frame.video_width in
-  let internal_height = Lazy.force Frame.video_height in
+  let internal_width = Multicore.force Frame.video_width in
+  let internal_height = Multicore.force Frame.video_height in
 
-  let target_fps = Lazy.force format.Ffmpeg_format.framerate in
+  let target_fps = Multicore.force format.Ffmpeg_format.framerate in
   let target_frame_rate = { Avutil.num = target_fps; den = 1 } in
-  let target_width = Lazy.force format.Ffmpeg_format.width in
-  let target_height = Lazy.force format.Ffmpeg_format.height in
+  let target_width = Multicore.force format.Ffmpeg_format.width in
+  let target_height = Multicore.force format.Ffmpeg_format.height in
   let target_pixel_aspect = { Avutil.num = 1; den = 1 } in
 
   let flag =
@@ -494,7 +494,7 @@ let mk_encoder mode =
                      ~mode:`Encoded ~opts ~codec ~format ~field generator
                | _ -> assert false
            in
-           let size = Lazy.force Frame.size in
+           let size = Multicore.force Frame.size in
 
            let encode_frame = function
              | `Frame frame ->

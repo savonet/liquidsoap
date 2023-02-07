@@ -84,7 +84,8 @@ let to_string m =
   Printf.sprintf "%s(%s,%s,samplerate=%d,id3v2=%b)" name
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_bitrate_control m.bitrate_control)
-    (Lazy.force m.samplerate) (m.id3v2 <> None)
+    (Multicore.force m.samplerate)
+    (m.id3v2 <> None)
 
 let bitrate m =
   match m.bitrate_control with

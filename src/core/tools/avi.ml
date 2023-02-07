@@ -64,7 +64,7 @@ let header ~width ~height ~channels ~samplerate () =
   (* Writing in two steps because 0xffffffff cannot be represented on 32 bits
      architectures. *)
   let dword_max () = word 0xffff ^ word 0xffff in
-  let video_rate = Lazy.force Frame.video_rate in
+  let video_rate = Multicore.force Frame.video_rate in
   let avi_header =
     chunk "avih"
       (dword (1000000 / video_rate) (* microsec per frame *)

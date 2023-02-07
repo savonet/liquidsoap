@@ -35,4 +35,5 @@ let to_string w =
       | Some d -> Printf.sprintf ",duration=%f" d
   in
   Printf.sprintf "%%wav(samplerate=%d,channels=%d,samplesize=%d,header=%b%s)"
-    (Lazy.force w.samplerate) w.channels w.samplesize w.header duration
+    (Multicore.force w.samplerate)
+    w.channels w.samplesize w.header duration

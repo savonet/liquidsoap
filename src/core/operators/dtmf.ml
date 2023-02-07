@@ -150,7 +150,7 @@ let key =
 
 class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
   (source : source) =
-  let samplerate = float (Lazy.force Frame.audio_rate) in
+  let samplerate = float (Multicore.force Frame.audio_rate) in
   let nbands = bands in
   let size = float nbands in
   object (self)
@@ -287,7 +287,7 @@ let _ =
 
 class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
   (source : source) =
-  let samplerate = float (Lazy.force Frame.audio_rate) in
+  let samplerate = float (Multicore.force Frame.audio_rate) in
   let nbands = bands in
   let size = float nbands in
   object (self)

@@ -124,7 +124,7 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
       let len = String.length b / (2 * channels) in
       let buf = Audio.create channels len in
       Audio.S16LE.to_audio b 0 buf 0 len;
-      let samplerate = Lazy.force Frame.audio_rate in
+      let samplerate = Multicore.force Frame.audio_rate in
       buffer.Decoder.put_pcm ~samplerate buf);
     if decode_video then (
       let _, state, _ = Gstreamer.Element.get_state gst.bin in
@@ -139,7 +139,7 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
       let uv_stride = round4 (width / 2) in
       let img = Image.YUV420.make_data width height buf y_stride uv_stride in
       let stream = Video.Canvas.single_image img in
-      let fps = { Decoder.num = Lazy.force Frame.video_rate; den = 1 } in
+      let fps = { Decoder.num = Multicore.force Frame.video_rate; den = 1 } in
       buffer.Decoder.put_yuva420p ~fps stream);
     GU.flush ~log gst.bin
   in
@@ -306,7 +306,7 @@ let () =
       mime_types = (fun () -> Some mime_types#get);
       file_type =
         (fun ~ctype:_ filename ->
-          let channels = Lazy.force Frame.audio_channels in
+          let channels = Multicore.force Frame.audio_channels in
           Some (get_type ~channels filename));
       file_decoder = Some file_decoder;
       stream_decoder = None;

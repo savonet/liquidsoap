@@ -32,5 +32,5 @@ type t = {
 
 let to_string w =
   Printf.sprintf "%%avi(samplerate=%d,channels=%d,width=%d,height=%d)"
-    (Lazy.force w.samplerate) w.channels (Lazy.force w.width)
-    (Lazy.force w.height)
+    (Multicore.force w.samplerate)
+    w.channels (Multicore.force w.width) (Multicore.force w.height)

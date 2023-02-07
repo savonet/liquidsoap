@@ -306,7 +306,7 @@ let () =
                        List.iter
                          (fun pos -> Generator.add_track_mark ~pos generator)
                          (List.filter
-                            (fun x -> x < Lazy.force Frame.size)
+                            (fun x -> x < Multicore.force Frame.size)
                             (Frame.breaks frame));
                        process frame
                    | `Flush -> flush ()

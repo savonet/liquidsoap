@@ -54,8 +54,8 @@ let converter () =
 let video_convert scale =
   let converter = converter () in
   fun buf ->
-    let width = Lazy.force Frame.video_width in
-    let height = Lazy.force Frame.video_height in
+    let width = Multicore.force Frame.video_width in
+    let height = Multicore.force Frame.video_height in
     if buf.Ogg_decoder.format <> Ogg_decoder.Yuvj_420 then (
       let img =
         Image.YUV420.make buf.Ogg_decoder.frame_width

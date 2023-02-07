@@ -39,7 +39,8 @@ class virtual base ~name tracks =
       else `Fallible
 
     method self_sync =
-      (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
+      ( Multicore.force self_sync_type,
+        List.exists (fun s -> snd s#self_sync) sources )
 
     method remaining =
       let f cur pos =
@@ -266,8 +267,8 @@ let tile_pos n =
           x := !x + dx;
           (!x, y, dx, y' - y)))
   in
-  let x' = Lazy.force Frame.video_width in
-  let y' = Lazy.force Frame.video_height in
+  let x' = Multicore.force Frame.video_width in
+  let y' = Multicore.force Frame.video_height in
   let horiz m n =
     Array.append (vert m 0 0 x' (y' / 2)) (vert n 0 (y' / 2) x' y')
   in

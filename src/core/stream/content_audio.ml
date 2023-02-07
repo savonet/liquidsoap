@@ -76,7 +76,7 @@ module Specs = struct
   let kind = `Pcm
 
   let default_params _ =
-    param_of_channels (Lazy.force Frame_settings.audio_channels)
+    param_of_channels (Multicore.force Frame_settings.audio_channels)
 
   let clear _ = ()
 
@@ -104,4 +104,4 @@ let format_of_channels = function
   | _ -> raise Invalid
 
 let channels_of_format p =
-  Specs.(channels_of_param (Lazy.force (get_params p).channel_layout))
+  Specs.(channels_of_param (Multicore.force (get_params p).channel_layout))

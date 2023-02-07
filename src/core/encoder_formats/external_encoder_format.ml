@@ -45,11 +45,13 @@ let to_string e =
     match e.video with
       | None -> "video=false"
       | Some (w, h) ->
-          Printf.sprintf "video=true,width=%d,height=%d" (Lazy.force w)
-            (Lazy.force h)
+          Printf.sprintf "video=true,width=%d,height=%d" (Multicore.force w)
+            (Multicore.force h)
   in
   Printf.sprintf
     "%%external(channels=%i,samplerate=%i,%s,header=%b,restart_on_crash=%b,%s,process=%s)"
-    e.channels (Lazy.force e.samplerate) video e.header e.restart_on_crash
+    e.channels
+    (Multicore.force e.samplerate)
+    video e.header e.restart_on_crash
     (string_of_restart_condition e.restart)
     e.process

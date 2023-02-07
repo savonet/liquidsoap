@@ -25,7 +25,7 @@ open Source
 type mode = Low_pass | High_pass
 
 class filter (source : source) freq wet mode =
-  let rate = float (Lazy.force Frame.audio_rate) in
+  let rate = float (Multicore.force Frame.audio_rate) in
   let dt = 1. /. rate in
   object (self)
     inherit operator ~name:"filter.rc" [source] as super

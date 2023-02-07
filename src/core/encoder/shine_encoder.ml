@@ -29,7 +29,7 @@ let create_encoder ~samplerate ~bitrate ~channels =
 
 let encoder shine =
   let channels = shine.channels in
-  let samplerate = Lazy.force shine.samplerate in
+  let samplerate = Multicore.force shine.samplerate in
   let enc = create_encoder ~samplerate ~bitrate:shine.bitrate ~channels in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
   let src_freq = float (Frame.audio_of_seconds 1.) in

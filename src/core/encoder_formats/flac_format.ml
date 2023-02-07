@@ -31,4 +31,6 @@ type t = {
 let to_string m =
   Printf.sprintf
     "%%flac(channels=%i,bits_per_sample=%i,samplerate=%d,compression=%i)"
-    m.channels m.bits_per_sample (Lazy.force m.samplerate) m.compression
+    m.channels m.bits_per_sample
+    (Multicore.force m.samplerate)
+    m.compression

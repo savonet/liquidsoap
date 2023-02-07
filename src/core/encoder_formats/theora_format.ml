@@ -53,7 +53,7 @@ let print_some_int v x =
   match x with None -> "" | Some x -> Printf.sprintf "%s=%i" v x
 
 let to_string th =
-  let f = Lazy.force in
+  let f = Multicore.force in
   Printf.sprintf
     "%%theora(%s,width=%d,height=%d,picture_width=%d,picture_height=%d,picture_x=%d,picture_y=%d,aspect_numerator=%d,aspect_denominator=%d,keyframe_frequency=%d,%s,soft_target=%b,%s,%s)"
     (bit_ctl_to_string th.bitrate_control)

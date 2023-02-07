@@ -49,4 +49,5 @@ let string_of_mode = function
 
 let to_string v =
   Printf.sprintf "%%vorbis%s,channels=%d,samplerate=%d)" (string_of_mode v.mode)
-    v.channels (Lazy.force v.samplerate)
+    v.channels
+    (Multicore.force v.samplerate)

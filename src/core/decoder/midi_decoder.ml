@@ -51,7 +51,7 @@ let decoder file =
     let buflen = MFrame.size () in
     let r =
       close_on_err
-        (fun () -> fd#read (Lazy.force Frame.midi_rate) m 0 buflen)
+        (fun () -> fd#read (Multicore.force Frame.midi_rate) m 0 buflen)
         ()
     in
     MFrame.add_break buf r;

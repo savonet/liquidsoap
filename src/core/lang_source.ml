@@ -246,7 +246,7 @@ let source_methods =
               else 0
             in
             let frame_position =
-              Lazy.force Frame.duration *. float_of_int ticks
+              Multicore.force Frame.duration *. float_of_int ticks
             in
             let in_frame_position =
               Frame.seconds_of_main (Frame.position s#memo)
@@ -508,7 +508,7 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
              *   we are actually checking values that may be out of reach. *)
             let v = List.assoc v env in
             if Lazy.is_val v then (
-              let v = Lazy.force v in
+              let v = Multicore.force v in
               iter_value v)
             else ()
           with Not_found -> ())

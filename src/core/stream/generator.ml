@@ -205,7 +205,7 @@ let peek_media gen = Tutils.mutexify gen.lock (fun () -> _media_content gen) ()
 let _frame_position frame = match _remaining frame with -1 -> 0 | r -> r
 
 let _frame_remaining frame =
-  Lazy.force Frame_settings.size - _frame_position frame
+  Multicore.force Frame_settings.size - _frame_position frame
 
 let feed ?offset ?length ?fields gen =
   Tutils.mutexify gen.lock (fun frame ->
@@ -271,8 +271,8 @@ let fill gen =
                      at frame boundaries. *)
                   | f when f = Frame_base.Fields.track_marks -> (
                       match Content.Track_marks.get_data rem with
-                        | 0 :: d when new_pos <> Lazy.force Frame_settings.size
-                          ->
+                        | 0 :: d
+                          when new_pos <> Multicore.force Frame_settings.size ->
                             Content.Track_marks.set_data rem d
                         | _ -> ())
                   | f when f = Frame_base.Fields.metadata ->

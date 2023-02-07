@@ -139,7 +139,7 @@ class virtual switch ~name ~override_meta ~transition_length
        can return anything so we check if any source might be not
        self_sync in this case *)
     method self_sync =
-      ( Lazy.force self_sync_type,
+      ( Multicore.force self_sync_type,
         match selected with
           | Some s -> snd s.effective_source#self_sync
           | None -> List.exists (fun c -> snd c.source#self_sync) cases )

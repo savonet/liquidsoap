@@ -81,7 +81,7 @@ type graph = {
 
 let init_graph graph =
   if Queue.fold (fun b v -> b && v ()) true graph.input_inits then (
-    try Queue.iter Lazy.force graph.init
+    try Queue.iter Multicore.force graph.init
     with exn ->
       let bt = Printexc.get_raw_backtrace () in
       graph.failed <- true;
@@ -100,7 +100,7 @@ let pull graph =
 
 let self_sync_type graph =
   Lazy.from_fun (fun () ->
-      Lazy.force
+      Multicore.force
         (Utils.self_sync_type
            (Queue.fold (fun cur s -> s :: cur) [] graph.graph_inputs)))
 
@@ -421,7 +421,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                          match
                            Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx)
                          with
-                           | `Output output -> Lazy.force output
+                           | `Output output -> Multicore.force output
                            | _ -> assert false
                        in
                        link output input)
@@ -436,7 +436,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                            | `Output output -> output
                            | _ -> assert false
                        in
-                       link (Lazy.force output) input)
+                       link (Multicore.force output) input)
                      filter.io.inputs.video))
                 graph.init;
               input_set := true;
@@ -647,7 +647,7 @@ let _ =
          s#set_init (fun frame ->
              if !args = None then (
                args := Some (abuffer_args frame);
-               ignore (Lazy.force audio);
+               ignore (Multicore.force audio);
                init_graph graph));
 
          Audio.to_value (`Output audio)));
@@ -695,7 +695,7 @@ let _ =
            (lazy
              (let pad =
                 match pad with
-                  | `Output pad -> Lazy.force pad
+                  | `Output pad -> Multicore.force pad
                   | _ -> assert false
               in
               let name = uniq_name "abuffersink" in
@@ -773,7 +773,7 @@ let _ =
          s#set_init (fun frame ->
              if !args = None then (
                args := Some (buffer_args frame);
-               ignore (Lazy.force video);
+               ignore (Multicore.force video);
                init_graph graph));
 
          Video.to_value (`Output video)));
@@ -824,11 +824,11 @@ let _ =
         (lazy
           (let pad =
              match Video.of_value (Lang.assoc "" 2 p) with
-               | `Output p -> Lazy.force p
+               | `Output p -> Multicore.force p
                | _ -> assert false
            in
            let name = uniq_name "buffersink" in
-           let target_frame_rate = Lazy.force fps in
+           let target_frame_rate = Multicore.force fps in
            let fps =
              match Avfilter.find_opt "fps" with
                | Some f -> f

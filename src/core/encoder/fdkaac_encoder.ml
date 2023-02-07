@@ -33,7 +33,7 @@ let create_encoder params =
     [
       `Aot params.Fdkaac_format.aot;
       `Bandwidth bandwidth;
-      `Samplerate (Lazy.force params.Fdkaac_format.samplerate);
+      `Samplerate (Multicore.force params.Fdkaac_format.samplerate);
       `Transmux params.Fdkaac_format.transmux;
       `Afterburner params.Fdkaac_format.afterburner;
     ]
@@ -70,7 +70,7 @@ let create_encoder params =
 let encoder aac =
   let enc = create_encoder aac in
   let channels = aac.Fdkaac_format.channels in
-  let samplerate = Lazy.force aac.Fdkaac_format.samplerate in
+  let samplerate = Multicore.force aac.Fdkaac_format.samplerate in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in

@@ -61,11 +61,13 @@ module Specs = struct
       width =
         Option.map Lazy.from_val
           (merge_param ~name:"width"
-             (Option.map Lazy.force p.width, Option.map Lazy.force p'.width));
+             ( Option.map Multicore.force p.width,
+               Option.map Multicore.force p'.width ));
       height =
         Option.map Lazy.from_val
           (merge_param ~name:"height"
-             (Option.map Lazy.force p.height, Option.map Lazy.force p'.height));
+             ( Option.map Multicore.force p.height,
+               Option.map Multicore.force p'.height ));
     }
 
   let compatible p p' =
@@ -103,9 +105,9 @@ let kind = lift_kind `Canvas
 let dimensions_of_format p =
   let p = get_params p in
   let width =
-    Lazy.force (Option.value ~default:Frame_settings.video_width p.width)
+    Multicore.force (Option.value ~default:Frame_settings.video_width p.width)
   in
   let height =
-    Lazy.force (Option.value ~default:Frame_settings.video_height p.height)
+    Multicore.force (Option.value ~default:Frame_settings.video_height p.height)
   in
   (width, height)

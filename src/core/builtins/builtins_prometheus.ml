@@ -158,7 +158,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     in
     add_latency
   in
-  let frame_duration = Lazy.force Frame.duration in
+  let frame_duration = Multicore.force Frame.duration in
   let add_input_latency = track_latency "input" in
   let add_output_latency = track_latency "output" in
   let add_overall_latency = track_latency "overall" in

@@ -48,14 +48,14 @@ let encoder id ext =
   let header =
     if ext.video <> None then (
       let width, height = Option.get ext.video in
-      let width = Lazy.force width in
-      let height = Lazy.force height in
+      let width = Multicore.force width in
+      let height = Multicore.force height in
       Avi.header ~width ~height ~channels:ext.channels
-        ~samplerate:(Lazy.force ext.samplerate)
+        ~samplerate:(Multicore.force ext.samplerate)
         ())
     else if ext.header then
       Wav_aiff.wav_header ~channels:ext.channels
-        ~sample_rate:(Lazy.force ext.samplerate)
+        ~sample_rate:(Multicore.force ext.samplerate)
         ~sample_size:16 ()
     else ""
   in
@@ -107,14 +107,14 @@ let encoder id ext =
   in
   let converter = Audio_converter.Samplerate.create ext.channels in
   let ratio =
-    float (Lazy.force ext.samplerate) /. float (Frame.audio_of_seconds 1.)
+    float (Multicore.force ext.samplerate) /. float (Frame.audio_of_seconds 1.)
   in
   let encode frame start len =
     let channels = ext.channels in
-    let samplerate = Lazy.force ext.samplerate in
+    let samplerate = Multicore.force ext.samplerate in
     let width, height = Option.get ext.video in
-    let width = Lazy.force width in
-    let height = Lazy.force height in
+    let width = Multicore.force width in
+    let height = Multicore.force height in
     let sbuf =
       if ext.video <> None then
         Avi_encoder.encode_frame ~channels ~samplerate ~converter ~width ~height

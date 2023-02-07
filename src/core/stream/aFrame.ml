@@ -36,8 +36,8 @@ let to_s16le b =
   assert (Audio.channels fpcm = 2);
   Audio.S16LE.make fpcm 0 (Audio.length fpcm)
 
-let duration () = Lazy.force duration
-let size () = sot (Lazy.force size)
+let duration () = Multicore.force duration
+let size () = sot (Multicore.force size)
 let position t = sot (position t)
 let breaks t = List.map sot (breaks t)
 let add_break t i = add_break t (tos i)

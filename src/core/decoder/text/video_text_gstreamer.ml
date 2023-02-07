@@ -36,8 +36,8 @@ let render_text ~font ~size text =
       font text
   in
   let img = GU.render_image pipeline in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
+  let width = Multicore.force Frame.video_width in
+  let height = Multicore.force Frame.video_height in
   let get_pixel i j =
     let z, _, _, _ = Image.YUV420.get_pixel_rgba img i j in
     z

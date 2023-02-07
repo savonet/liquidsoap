@@ -263,7 +263,7 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       let el = self#get_element in
       try
         if not (Frame.is_partial frame) then (
-          let len = Lazy.force Frame.size in
+          let len = Multicore.force Frame.size in
           let duration = Gstreamer_utils.time_of_main len in
           if has_audio then (
             let pcm = AFrame.pcm frame in

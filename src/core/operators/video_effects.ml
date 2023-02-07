@@ -164,7 +164,7 @@ let _ =
     (fun p ->
       let duration = List.assoc "duration" p |> Lang.to_float_getter in
       let src = List.assoc "" p |> Lang.to_source in
-      let fps = Lazy.force Frame.video_rate |> float_of_int in
+      let fps = Multicore.force Frame.video_rate |> float_of_int in
       let prev = ref (Image.YUV420.create 0 0) in
       new effect ~name:"video.persistence" src (fun buf ->
           let duration = duration () in
@@ -532,12 +532,12 @@ let _ =
       let width =
         match width with
           | Some width -> width
-          | None -> Lazy.force Frame.video_width
+          | None -> Multicore.force Frame.video_width
       in
       let height =
         match height with
           | Some height -> height
-          | None -> Lazy.force Frame.video_height
+          | None -> Multicore.force Frame.video_height
       in
       new effect_map ~name:"video.viewport" s (fun buf ->
           Video.Canvas.Image.viewport ~x ~y width height buf))

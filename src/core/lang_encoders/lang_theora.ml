@@ -70,13 +70,13 @@ let make params =
           { f with Theora_format.height = lazy i; picture_height = lazy i }
       | "picture_width", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must not be larger than width. *)
-          if i > Lazy.force f.Theora_format.width then
+          if i > Multicore.force f.Theora_format.width then
             Lang_encoder.raise_error ~pos
               "picture width must not be larger than width";
           { f with Theora_format.picture_width = lazy i }
       | "picture_height", `Value { value = Ground (Int i); pos } ->
           (* According to the doc: must not be larger than height. *)
-          if i > Lazy.force f.Theora_format.height then
+          if i > Multicore.force f.Theora_format.height then
             Lang_encoder.raise_error ~pos
               "picture height must not be larger than height";
           { f with Theora_format.picture_height = lazy i }
@@ -86,8 +86,8 @@ let make params =
           if
             i
             > min
-                (Lazy.force f.Theora_format.width
-                - Lazy.force f.Theora_format.picture_width)
+                (Multicore.force f.Theora_format.width
+                - Multicore.force f.Theora_format.picture_width)
                 255
           then
             Lang_encoder.raise_error ~pos
@@ -99,12 +99,12 @@ let make params =
            * and frame_height-pic_height-pic_y must be no larger than 255. *)
           if
             i
-            > Lazy.force f.Theora_format.height
-              - Lazy.force f.Theora_format.picture_height
+            > Multicore.force f.Theora_format.height
+              - Multicore.force f.Theora_format.picture_height
           then
             Lang_encoder.raise_error ~pos
               "picture y must not be larger than height - picture height";
-          if Lazy.force f.Theora_format.picture_height - i > 255 then
+          if Multicore.force f.Theora_format.picture_height - i > 255 then
             Lang_encoder.raise_error ~pos
               "picture height - picture y must not be larger than 255";
           { f with Theora_format.picture_y = i }

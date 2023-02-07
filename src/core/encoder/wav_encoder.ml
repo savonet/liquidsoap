@@ -28,9 +28,9 @@ open Wav_format
 
 let encoder wav =
   let channels = wav.channels in
-  let sample_rate = Lazy.force wav.samplerate in
+  let sample_rate = Multicore.force wav.samplerate in
   let sample_size = wav.samplesize in
-  let ratio = float sample_rate /. float (Lazy.force Frame.audio_rate) in
+  let ratio = float sample_rate /. float (Multicore.force Frame.audio_rate) in
   let converter = Audio_converter.Samplerate.create channels in
   let len =
     match wav.duration with
