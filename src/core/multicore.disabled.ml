@@ -23,3 +23,10 @@
 let name = "disabled"
 let iter fn l = List.iter fn l
 let fold ~reconcile fn v l = List.fold_left (fun s x -> reconcile s (fn x)) v l
+
+module Stack = struct
+  type t = unit
+
+  let create () = ()
+  let queue () fn = fn ()
+end

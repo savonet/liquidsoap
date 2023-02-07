@@ -29,9 +29,9 @@ let conf_multicore =
 
 let conf_multicore_domains_count =
   Dtools.Conf.int
-    ~p:(conf_multicore#plug "domains")
-    ~d:(Domain.recommended_domain_count ())
-    "Multicore domains count"
+    ~p:(conf_multicore#plug "concurrency")
+    ~d:(Domain.recommended_domain_count () - 1)
+    "Multicore concurrency. It is recommended to leave the default here."
 
 let pool =
   Domainslib.Task.setup_pool ~num_domains:conf_multicore_domains_count#get ()
@@ -55,3 +55,10 @@ let fold ~reconcile fn v l =
           ~body:(fun pos -> fn l.(pos))
           pool reconcile v))
   else List.fold_left (fun s x -> reconcile s (fn x)) v l
+
+module Stack = struct
+  type t = Mutex.t
+
+  let create = Mutex.create
+  let queue m fn = Tutils.mutexify m fn ()
+end

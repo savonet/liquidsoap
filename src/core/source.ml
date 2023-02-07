@@ -660,65 +660,67 @@ class virtual operator ?(name = "src") sources =
           w.get_frame ~start_time ~start_position ~end_time ~end_position
             ~is_partial ~metadata)
 
-    (* [#get buf] completes the frame with the next data in the stream.
+    val stack = Multicore.Stack.create ()
+    method get buf = Multicore.Stack.queue stack (fun () -> self#_get buf)
+
+    (* [#_get buf] completes the frame with the next data in the stream.
        Depending on whether caching is enabled or not,
        it calls [#get_frame] directly or tries to get data from the cache frame,
        filling it if needed.
        Any source calling [other_source#get should] thus take care of clearing
        the cache of the other source ([#advance]) at the end of the output
        round ([#after_output]). *)
-    method get =
-      self#mutexify (fun buf ->
-          assert (Frame.is_partial buf);
+    method private _get buf =
+      assert (Frame.is_partial buf);
 
-          (* In some cases we can't avoid #get being called on a non-ready
-             source, for example:
-             - A starts pumping B, stops in the middle of the track
-             - B finishes its track, becomes unavailable
-             - A starts streaming again, needs to receive an EOT before
-               having to worry about availability.
+      (* In some cases we can't avoid #get being called on a non-ready
+         source, for example:
+         - A starts pumping B, stops in the middle of the track
+         - B finishes its track, becomes unavailable
+         - A starts streaming again, needs to receive an EOT before
+           having to worry about availability.
 
-               Another important example is crossfade, if e.g. a transition
-               returns a failling source.
+           Another important example is crossfade, if e.g. a transition
+           returns a failling source.
 
-             So we add special cases where, instead of calling #get_frame, we
-             call silent_end_track to properly end a track by inserting a break.
+         So we add special cases where, instead of calling #get_frame, we
+         call silent_end_track to properly end a track by inserting a break.
 
-             This makes the whole protocol a bit sloppy as it weakens constraints
-             tying #is_ready and #get, preventing the detection of "bad" calls
-             of #get without prior check of #is_ready.
+         This makes the whole protocol a bit sloppy as it weakens constraints
+         tying #is_ready and #get, preventing the detection of "bad" calls
+         of #get without prior check of #is_ready.
 
-             This fix makes it really important to keep #is_ready = true during a
-             track, otherwise the track will be ended without the source noticing! *)
-          let silent_end_track () = Frame.add_break buf (Frame.position buf) in
-          if not caching then
-            if not self#is_ready then silent_end_track ()
-            else (
-              let b = Frame.breaks buf in
-              self#instrumented_get_frame buf;
-              if List.length b + 1 > List.length (Frame.breaks buf) then (
-                self#log#severe "#get_frame added too many breaks!";
-                assert false);
-              if List.length b + 1 < List.length (Frame.breaks buf) then (
-                self#log#severe
-                  "#get_frame returned a buffer without enough breaks!";
-                assert false))
+         This fix makes it really important to keep #is_ready = true during a
+         track, otherwise the track will be ended without the source noticing! *)
+      let silent_end_track () = Frame.add_break buf (Frame.position buf) in
+      if not caching then
+        if not self#is_ready then silent_end_track ()
+        else (
+          let b = Frame.breaks buf in
+          self#instrumented_get_frame buf;
+          if List.length b + 1 > List.length (Frame.breaks buf) then (
+            self#log#severe "#get_frame added too many breaks!";
+            assert false);
+          if List.length b + 1 < List.length (Frame.breaks buf) then (
+            self#log#severe
+              "#get_frame returned a buffer without enough breaks!";
+            assert false))
+      else (
+        let memo = self#memo in
+        try Frame.get_chunk buf memo
+        with Frame.No_chunk ->
+          if not self#is_ready then silent_end_track ()
           else (
-            let memo = self#memo in
-            try Frame.get_chunk buf memo
-            with Frame.No_chunk ->
-              if not self#is_ready then silent_end_track ()
-              else (
-                (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
-                let b = Frame.breaks memo in
-                let p = Frame.position memo in
-                self#instrumented_get_frame memo;
-                if List.length b + 1 <> List.length (Frame.breaks memo) then (
-                  self#log#severe "#get_frame didn't add exactly one break!";
-                  assert false)
-                else if Frame.is_partial buf then
-                  if p < Frame.position memo then self#get buf
-                  else Frame.add_break buf (Frame.position buf))))
+            (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
+            let b = Frame.breaks memo in
+            let p = Frame.position memo in
+            self#instrumented_get_frame memo;
+            if List.length b + 1 <> List.length (Frame.breaks memo) then (
+              self#log#severe "#get_frame didn't add exactly one break!";
+              assert false)
+            else if Frame.is_partial buf then
+              if p < Frame.position memo then self#get buf
+              else Frame.add_break buf (Frame.position buf)))
 
     (* That's the way the source produces audio data.
        It cannot be called directly, but [#get] should be used instead, for

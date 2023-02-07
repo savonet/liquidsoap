@@ -29,3 +29,11 @@ val iter : ('a -> unit) -> 'a list -> unit
 
 (** Fold a function on a list in parallel. *)
 val fold : reconcile:('b -> 'b -> 'b) -> ('a -> 'b) -> 'b -> 'a list -> 'b
+
+(** Stack or pending operations. *)
+module Stack : sig
+  type t
+
+  val create : unit -> t
+  val queue : t -> (unit -> unit) -> unit
+end
