@@ -119,8 +119,14 @@ jobs:
   run_tests:
     runs-on: ubuntu-latest
     needs: build_details
+    strategy:
+      fail-fast: false
+      matrix:
+        docker_image:
+          - savonet/liquidsoap-ci:debian_bullseye_amd64
+          - savonet/liquidsoap-ci:debian_bullseye_amd64_ocaml-5
     container:
-      image: savonet/liquidsoap-ci:debian_bullseye_amd64
+      image: ${{ matrix.docker_image }}
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
