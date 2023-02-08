@@ -24,6 +24,7 @@ New:
 - Added `file.{copy, move}` (#2771)
 - Detect functions defining multiple arguments with the same label (#2823).
 - Added `null.map`.
+- Added `video.board` (#2886).
 
 Changed:
 
