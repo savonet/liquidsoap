@@ -371,7 +371,11 @@ module Value = struct
 
   let print_functions_md ?extra print =
     let categories =
-      categories |> List.map (fun (c, s) -> (s, c)) |> List.sort compare
+      categories
+      |> List.map (fun (c, s) -> (s, c))
+      |> List.filter (fun (_, category) ->
+             Map.exists (fun _ d -> (Lazy.force d).category = category) !db)
+      |> List.sort compare
     in
     List.iter
       (fun (category, _) ->
