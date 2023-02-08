@@ -29,7 +29,7 @@ def getter.on_change(f, x)
   old = ref(x())
   fun () -> begin
     new = x()
-    if !old != new then old := new; f(new) end
+    if old() != new then old := new; f(new) end
     new
   end
 end
@@ -40,7 +40,7 @@ def getter.changes(x)
   old = ref(getter.get(x))
   fun () -> begin
     new = getter.get(x)
-    if !old != new then old := new; true
+    if old() != new then old := new; true
     else false end
   end
 end
@@ -54,6 +54,6 @@ def getter.merge(x, y)
   fun () -> begin
     ignore(x())
     ignore(y())
-    !v
+    v()
   end
 end

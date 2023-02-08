@@ -16,7 +16,7 @@ def f() =
   t(liquidsoap.version.at_least("2.0.0"), true)
   t(liquidsoap.version.at_least("666.0.0"), false)
 
-  if !success then test.pass() else test.fail() end
+  if success() then test.pass() else test.fail() end
 end
 
 test.check(f)

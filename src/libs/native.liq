@@ -9,7 +9,7 @@ def native.once(s)
   # source.available(track_sensitive=true, s, predicate.first({true}))
   a = ref(true)
   s = source.on_track(s, fun(_) -> a := false)
-  source.available(s, {!a})
+  source.available(s, a)
 end
 
 # At the beginning of each track, select the first ready child.
@@ -40,8 +40,8 @@ def native.sequence(~id=null(), sources)
   fail = source.fail()
 
   def rec s()
-    sn = list.nth(default=list.last(default=fail, sources), sources, !n)
-    if source.is_ready(sn) or !n >= len - 1 then
+    sn = list.nth(default=list.last(default=fail, sources), sources, n())
+    if source.is_ready(sn) or n() >= len - 1 then
       sn
     else
       ref.incr(n)
@@ -54,7 +54,7 @@ def native.sequence(~id=null(), sources)
   first = ref(true)
   def ot(_)
     # Drop the first track
-    if !first then first := false else
+    if first() then first := false else
       ref.incr(n)
     end
   end
@@ -90,13 +90,13 @@ def native.request.dynamic(%argsof(request.dynamic), f)
     def get_request(s) =
       s.request
     end
-    list.map(get_request, !queue)
+    list.map(get_request, queue())
   end
 
   def add(r) =
     s = request.once(r)
     if s.resolve() then
-      queue := [...!queue, s]
+      queue := [...queue(), s]
       true
     else
       false
@@ -111,8 +111,8 @@ def native.request.dynamic(%argsof(request.dynamic), f)
   current = ref(null())
 
   def get_current() =
-    if null.defined(!current) then
-      s = null.get(!current)
+    if null.defined(current()) then
+      s = null.get(current())
       s.request
     else
       null()
@@ -127,7 +127,7 @@ def native.request.dynamic(%argsof(request.dynamic), f)
       s = request.once(r)
       if s.resolve() then
         log.info("Added request on queue: #{request.uri(r)}.")
-        queue := [...!queue, s]
+        queue := [...queue(), s]
         true
       else
         log.important("Failed to resolve request #{request.uri(r)}.")
@@ -139,7 +139,7 @@ def native.request.dynamic(%argsof(request.dynamic), f)
   end
 
   def fill() =
-    if list.length(!queue) < prefetch then
+    if list.length(queue()) < prefetch then
       ignore(fetch())
     end
   end
@@ -148,8 +148,8 @@ def native.request.dynamic(%argsof(request.dynamic), f)
 
   # Source
   def s()
-    if not list.is_empty(!queue) then
-      let [s, ...rest] = !queue
+    if not list.is_empty(queue()) then
+      let [s, ...rest] = queue()
       queue := rest
       current := s
       s

@@ -17,7 +17,7 @@ output.dummy(id="no_autostart", start=false, on_start=on_unwanted_autostart, s)
 output.dummy(id="autostart", start=true, on_start=on_wanted_autostart, s)
 
 def on_done() =
-  if !test_no_autostart and !test_autostart then
+  if test_no_autostart() and test_autostart() then
     test.pass()
   else
     test.fail()

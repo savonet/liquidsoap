@@ -1,11 +1,11 @@
 first = ref("")
 def filter(r)
   m = request.metadata(r)
-  if !first == "" then
+  if first() == "" then
     first := m["filename"]
     false
   else
-    m["filename"] != !first
+    m["filename"] != first()
   end
 end
 

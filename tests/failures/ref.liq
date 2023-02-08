@@ -1,3 +1,5 @@
+#!../../liquidsoap
+
 # Ensure that value restriction prevents the usual problems.
 
 def id(x) = x end

@@ -27,6 +27,9 @@
 - use naive (as in native.liq) implementation of switch (based on
   source.dynamic)
 - deprecate "!" and ":=" in favor of x.get / x.set
+- rework buffer.adaptative
+- allow showing graphs (of buffer.adaptative for instance)
+- reimplement video.tile in native liq
 
 ## Backlog
 

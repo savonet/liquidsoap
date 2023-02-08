@@ -71,9 +71,16 @@ let of_list_t t =
     | _ -> assert false
 
 let nullable_t t = Type.make (Type.Nullable t)
-let ref_t t = Term.ref_t t
 let univ_t ?(constraints = []) () = Type.var ~constraints ()
 let getter_t a = Type.make (Type.Getter a)
+
+let ref_t a =
+  method_t (fun_t [] a)
+    [
+      ( "set",
+        ([], fun_t [(false, "", a)] unit_t),
+        "Set the value of the reference." );
+    ]
 
 (** Value construction *)
 
@@ -93,7 +100,6 @@ let rec meth v0 = function
   | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
 
 let record = meth unit
-let reference x = mk (Ref x)
 let val_fun p f = mk (FFI (p, f))
 
 let val_cst_fun p c =
@@ -113,6 +119,17 @@ let val_cst_fun p c =
     | Ground (String i) ->
         f (mkg Type.Ground.string) (Term.Ground (Term.Ground.String i))
     | _ -> mk (FFI (p, fun _ -> c))
+
+let reference get set =
+  let get = val_fun [] (fun _ -> get ()) in
+  let set =
+    val_fun
+      [("", "", None)]
+      (fun p ->
+        List.assoc "" p |> set;
+        unit)
+  in
+  meth get [("set", set)]
 
 (** Helpers for defining builtin functions. *)
 
@@ -324,7 +341,6 @@ let to_default_option ~default convert v =
 let to_product t =
   match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
 
-let to_ref t = match (demeth t).value with Ref r -> r | _ -> assert false
 let to_string_list l = List.map to_string (to_list l)
 let to_int_list l = List.map to_int (to_list l)
 
@@ -332,6 +348,19 @@ let to_getter t =
   match (demeth t).value with
     | Fun ([], _, _) | FFI ([], _) -> fun () -> apply t []
     | _ -> fun () -> t
+
+let to_ref t =
+  let m, t = split_meths t in
+  let get = to_getter t in
+  let set =
+    let f = List.assoc "set" m in
+    fun x -> ignore (apply f [("", x)])
+  in
+  (get, set)
+
+let to_valued_ref getc setc t =
+  let get, set = to_ref t in
+  ((fun () -> getc (get ())), fun x -> set (setc x))
 
 (** [assoc lbl n l] returns the [n]th element in [l]
   * of which the first component is [lbl]. *)

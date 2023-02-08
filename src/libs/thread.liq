@@ -24,7 +24,7 @@ def thread.when(~fast=true, ~every=1., ~once=false, ~changed=true, p, f)
   last = ref(false)
   def check()
     b = p()
-    if b and not (changed and !last) then f() end
+    if b and not (changed and last()) then f() end
     last := b
     if b and once then (-1.) else every end
   end

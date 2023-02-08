@@ -18,12 +18,12 @@ track_count = ref(0)
 def on_metadata(m) =
   ref.incr(track_count)
 
-  if !track_count == 1 then
+  if track_count() == 1 then
     if m["source"] != "b" then test.fail() end
     if s.cross_duration() != 1.1 then test.fail() end
   end
 
-  if !track_count == 2 then
+  if track_count() == 2 then
     if m["source"] != "c" then test.fail() end
     if s.cross_duration() != 5. then test.fail() end
     success := true

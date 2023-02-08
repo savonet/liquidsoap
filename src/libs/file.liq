@@ -5,12 +5,12 @@ def file.read(fname) =
   fd = file.open(write=false, fname)
   is_done = ref(false)
   def read() =
-    if !is_done then
+    if is_done() then
       ""
     else
       s = fd.read()
       is_done := s == ""
-      if !is_done then
+      if is_done() then
         fd.close()
       end
       s
@@ -134,7 +134,7 @@ def file.getter(fname)
   end
   update()
   ignore(file.watch(fname, update))
-  {!contents}
+  ref.getter(contents)
 end
 
 # Float getter from a file.
@@ -160,14 +160,14 @@ def file.metadata.flac.cover.decode(s) =
   i = ref(0)
 
   def read_int() =
-    ret = string.binary.to_int(little_endian=false, string.sub(s, start=!i, length=4))
-    i := !i + 4
+    ret = string.binary.to_int(little_endian=false, string.sub(s, start=i(), length=4))
+    i := i() + 4
     ret
   end
 
   def read_string(len) =
-    ret = string.sub(s, start=!i, length=len)
-    i := !i + len
+    ret = string.sub(s, start=i(), length=len)
+    i := i() + len
     (ret:string)
   end
 
@@ -182,7 +182,7 @@ def file.metadata.flac.cover.decode(s) =
   number_of_colors = read_int()
   number_of_colors = number_of_colors > 0 ? null(number_of_colors) : null()
   data_len = read_int()
-  data = string.sub(s, start=!i, length=data_len)
+  data = string.sub(s, start=i(), length=data_len)
 
   if data == "" then
     log.info("Failed to read cover metadata")
@@ -267,7 +267,7 @@ def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"]
   # Save into persistency file
   def save()
     if null.defined(persistency) then
-      data = json.stringify(!l)
+      data = json.stringify(l())
       file.write(data=data, null.get(persistency))
     end
   end
@@ -275,20 +275,20 @@ def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"]
   def prune()
     if duration != infinity then
       t = time()
-      l := list.assoc.filter(fun(_, tf) -> t - tf <= duration, !l)
+      l := list.assoc.filter(fun(_, tf) -> t - tf <= duration, l())
     end
   end
   # Add a new entry
   def add(m)
     prune()
     f = hash(m)
-    l := (f, time()) :: !l
+    l := (f, time()) :: l()
     save()
   end
   # Last time this entry was played
   def last(m)
     f = hash(m)
-    time() - list.assoc(default = 0.-infinity, f, !l)
+    time() - list.assoc(default = 0.-infinity, f, l())
   end
   { add=add, last=last }
 end

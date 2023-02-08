@@ -28,8 +28,8 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
   queue = ref(queue)
   fetch = ref(fun () -> true)
   def next() =
-    if !queue != [] then
-      let [r, ...q] = !queue
+    if queue() != [] then
+      let [r, ...q] = queue()
       queue := q
       (r:request)
     else
@@ -38,8 +38,8 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
   end
   def push(r)
     log.info(label=id, "Pushing #{r} on the queue.")
-    queue := [...!queue, r]
-    fn = !fetch
+    queue := [...queue(), r]
+    fn = fetch()
     ignore(fn())
   end
   def push_uri(uri)
@@ -50,7 +50,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
     if native then
       stdlib_native.request.dynamic(id=id, timeout=timeout, next)
     else
-      request.dynamic(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(!queue)}, next)
+      request.dynamic(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(queue())}, next)
     end
   source.set_name(s, "request.queue")
   fetch := s.fetch
@@ -72,7 +72,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
                         end)
         server.register(namespace=source.id(s), description="Push a new request in the queue.", usage="push <uri>", "push", push)
         def show_queue(_) =
-          queue = [...s.queue(), ...(!queue)]
+          queue = [...s.queue(), ...(queue())]
           string.concat(separator=" ", list.map(fun (r) -> string(request.id(r)), queue))
         end
         server.register(namespace=source.id(s), description="Display current queue content.", usage="queue", "queue", show_queue)
@@ -95,7 +95,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
   s.{
     add=add,
     push=push.{uri=push_uri},
-    length={list.length(!queue)+list.length(s.queue())},
+    length={list.length(queue())+list.length(s.queue())},
     set_queue=set_queue
   }
 end
@@ -113,15 +113,15 @@ def request.player(~simultaneous=true)
     # Perform some garbage collection in order to avoid that the list grows too
     # much.
     def collect()
-      l := list.filter(source.is_ready, !l)
+      l := list.filter(source.is_ready, l())
     end
 
     def play(r)
       collect()
-      l := request.once(r)::!l
+      l := request.once(r)::l()
     end
 
-    source.dynamic({add(normalize=false, !l)}).{play=play, length={collect(); list.length(!l)}}
+    source.dynamic({add(normalize=false, l())}).{play=play, length={collect(); list.length(l())}}
   else
     s = source.dynamic()
     def play(r)

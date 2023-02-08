@@ -45,22 +45,22 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s)
   ans = ref(prefix == "" and substring == "" and suffix == "")
 
   if prefix != "" then
-    ans := !ans or string.sub(s, start=0, length=string.length(prefix)) == prefix
+    ans := ans() or string.sub(s, start=0, length=string.length(prefix)) == prefix
   end
 
   if suffix != "" then
     suflen = string.length(suffix)
-    ans := !ans or string.sub(s, start=string.length(s)-suflen, length=suflen) == suffix
+    ans := ans() or string.sub(s, start=string.length(s)-suflen, length=suflen) == suffix
   end
 
   if substring != "" then
     sublen = string.length(substring)
     for i = 0 to string.length(s)-sublen do
-      ans := !ans or (string.sub(s, start=i, length=sublen) == substring)
+      ans := ans() or (string.sub(s, start=i, length=sublen) == substring)
     end
   end
 
-  !ans
+  ans()
 end
 
 # What remains of a string after a given prefix.
@@ -108,9 +108,9 @@ def string.binary.to_int(~little_endian=true, s)
   ans = ref(0)
   n = string.length(s)
   for i = 0 to n-1 do
-    ans := lsl(!ans,8) + string.nth(s, if little_endian then n-1-i else i end)
+    ans := lsl(ans(),8) + string.nth(s, if little_endian then n-1-i else i end)
   end
-  !ans
+  ans()
 end
 
 # Encode a positive (unsigned) integer using native memory representation.
@@ -241,8 +241,8 @@ def string.getter.concat(l) =
   pos = ref(0)
 
   def rec f() =
-    if !pos == len then "" else
-      gen = list.nth(l, !pos)
+    if pos() == len then "" else
+      gen = list.nth(l, pos())
       ret = getter.get(gen)
 
       if ret == "" or getter.is_constant(gen) then

@@ -31,16 +31,16 @@ dup_b = ref(0)
 
 def check_duplicate(m) =
   if m["title"] == "a1" then
-    dedup_a := !dedup_a + 1
+    dedup_a := dedup_a() + 1
   end
   if m["title"] == "b1" then
-    dedup_b := !dedup_b + 1
+    dedup_b := dedup_b() + 1
   end
   if m["title"] == "a2" then
-    dup_a := !dup_a + 1
+    dup_a := dup_a() + 1
   end
   if m["title"] == "b2" then
-    dup_b := !dup_b + 1
+    dup_b := dup_b() + 1
   end
 end
 

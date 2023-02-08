@@ -123,6 +123,7 @@ module Value = struct
 
   type category =
     [ `Source of source
+    | `Track of source
     | `System
     | `File
     | `Math
@@ -154,6 +155,18 @@ module Value = struct
       (`Source `Visualization, "Source / Visualization");
       (`Source `Liquidsoap, "Source / Liquidsoap");
       (`Source `Fade, "Source / Fade");
+      (`Track `Input, "Track / Input");
+      (`Track `Output, "Track / Output");
+      (`Track `Conversion, "Track / Conversion");
+      (`Track `FFmpegFilter, "Track / FFmpeg filter");
+      (`Track `Track, "Track / Track processing");
+      (`Track `Audio, "Track / Audio processing");
+      (`Track `Video, "Track / Video processing");
+      (`Track `MIDI, "Track / MIDI processing");
+      (`Track `Synthesis, "Track / Sound synthesis");
+      (`Track `Visualization, "Track / Visualization");
+      (`Track `Liquidsoap, "Track / Liquidsoap");
+      (`Track `Fade, "Track / Fade");
       (`System, "System");
       (`Configuration, "Configuration");
       (`Settings, "Settings");
@@ -358,7 +371,11 @@ module Value = struct
 
   let print_functions_md ?extra print =
     let categories =
-      categories |> List.map (fun (c, s) -> (s, c)) |> List.sort compare
+      categories
+      |> List.map (fun (c, s) -> (s, c))
+      |> List.filter (fun (_, category) ->
+             Map.exists (fun _ d -> (Lazy.force d).category = category) !db)
+      |> List.sort compare
     in
     List.iter
       (fun (category, _) ->

@@ -44,7 +44,7 @@ class virtual switch ~name ~override_meta ~transition_length
   let () =
     List.iter
       (Lang.iter_sources
-         ~on_reference:(fun () -> failed := true)
+         ~on_imprecise:(fun () -> failed := true)
          (fun s -> sources := s :: !sources))
       (List.map (fun c -> c.transition) cases)
   in

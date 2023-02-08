@@ -7,7 +7,7 @@ def echo(s)
   if s != string(!count) then
     fail := true
   end
-  count := !count + 1
+  count := count() + 1
   ()
 end
 
@@ -67,7 +67,7 @@ def f() =
   let eval ([x, y]:[int]) = "[123,456]"
   t("25", { (x, y) == (123, 456) })
 
-  if !fail then test.fail() else test.pass() end
+  if fail() then test.fail() else test.pass() end
 end
 
 test.check(f)
