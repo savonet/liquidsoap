@@ -392,9 +392,10 @@ class lang_switch ~override_meta ~all_predicates ~transition_length mode
           (third
              (find ~strict:all_predicates
                 (fun (d, single, c) ->
+                  (if single then not self#is_selected c else true)
+                  &&
                   match prepare (d, c) with
-                    | Some s ->
-                        (not (single && self#is_selected c)) && s#is_ready
+                    | Some s -> s#is_ready
                     | None -> false)
                 children))
       with Not_found -> None
