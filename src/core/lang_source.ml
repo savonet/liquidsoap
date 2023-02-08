@@ -480,9 +480,7 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
   let category = `Track category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f
 
-let iter_sources ?on_imprecise f v =
-  (* TODO *)
-  ignore on_imprecise;
+let iter_sources ?(on_imprecise = fun () -> ()) f v =
   let itered_values = ref [] in
   let rec iter_term env v =
     match v.Term.term with
@@ -541,6 +539,7 @@ let iter_sources ?on_imprecise f v =
             iter_term env body;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
         | FFI (proto, _) ->
+            on_imprecise ();
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
       (*
         | Ref r ->
