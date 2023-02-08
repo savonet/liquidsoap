@@ -189,6 +189,11 @@ val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
 val to_fun : value -> (string * value) list -> value
 val to_getter : value -> unit -> value
+val to_ref : value -> (unit -> value) * (value -> unit)
+
+val to_valued_ref :
+  (value -> 'a) -> ('a -> value) -> value -> (unit -> 'a) * ('a -> unit)
+
 val to_http_transport : value -> Http.transport
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
@@ -212,6 +217,7 @@ val optional_method_t : t -> (string * scheme * string) list -> t
 val list_t : t -> t
 val of_list_t : t -> t
 val nullable_t : t -> t
+val ref_t : t -> t
 val error_t : t
 val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
@@ -259,6 +265,7 @@ val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
+val reference : (unit -> value) -> (value -> unit) -> value
 val http_transport : Http.transport -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
