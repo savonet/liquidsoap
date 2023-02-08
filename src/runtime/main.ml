@@ -104,59 +104,95 @@ let load_libs =
 
 let last_item_lib = ref false
 
-(** Evaluate a script or expression.
+let load src =
+  try
+    match src with
+      | `StdIn ->
+          Runtime.from_in_channel ~lib:false ~parse_only:!parse_only stdin
+      | `Expr_or_File expr when not (Sys.file_exists expr) ->
+          Runtime.from_string ~lib:false ~parse_only:!parse_only expr
+      | `Expr_or_File f ->
+          let basename = Filename.basename f in
+          let basename =
+            try Filename.chop_extension basename with _ -> basename
+          in
+          Utils.var_script := basename;
+          let t = Sys.time () in
+          Runtime.from_file ~lib:false ~parse_only:!parse_only f;
+          log#important "Loaded %s in %.02f seconds." f (Sys.time () -. t)
+  with Liquidsoap_lang.Runtime.Error ->
+    flush_all ();
+    exit 1
 
-    This used to be done immediately, which made it possible to write things
-    like "liquidsoap myscript.liq -h myop" and get some doc on an operator.
+(** Just like Arg.parse_argv but with Arg.parse's behavior on errors.. *)
+let parse argv l f msg =
+  try Arg.parse_argv argv l f msg with
+    | Arg.Bad msg ->
+        Printf.eprintf "%s" msg;
+        exit 2
+    | Arg.Help msg ->
+        Lang_string.print_string ~pager:true msg;
+        exit 0
 
-    Now, we delay each evaluation because the last item has to be treated as a
-    non-library, ie. all defined variables should be used. By default the last
-    item is (the only one) not treated as a library, for better diagnosis, but
-    this can be disabled (which is useful when --checking a lib).
-*)
-let do_eval, eval =
-  let delayed = ref None in
-  let eval src ~lib =
-    try
-      load_libs ();
-      match src with
-        | `StdIn -> Runtime.from_in_channel ~lib ~parse_only:!parse_only stdin
-        | `Expr_or_File expr when not (Sys.file_exists expr) ->
-            Runtime.from_string ~lib ~parse_only:!parse_only expr
-        | `Expr_or_File f ->
-            let basename = Filename.basename f in
-            let basename =
-              try Filename.chop_extension basename with _ -> basename
-            in
-            Utils.var_script := basename;
-            let t = Sys.time () in
-            Runtime.from_file ~lib ~parse_only:!parse_only f;
-            log#important "Loaded %s in %.02f seconds." f (Sys.time () -. t)
-    with Liquidsoap_lang.Runtime.Error ->
-      flush_all ();
-      exit 1
+let format_doc s =
+  let prefix = "\t  " in
+  let indent = 8 + 2 in
+  let max_width = 80 in
+  let s = Pcre.split ~pat:" " s in
+  let s =
+    let rec join line width = function
+      | [] -> [line]
+      | hd :: tl ->
+          let hdw = String.length hd in
+          let w = width + 1 + hdw in
+          if w < max_width then join (line ^ " " ^ hd) w tl
+          else line :: join (prefix ^ hd) hdw tl
+    in
+    match s with
+      | hd :: tl -> join (prefix ^ hd) (indent + String.length hd) tl
+      | [] -> []
   in
-  let force ~lib =
-    match !delayed with
-      | Some f ->
-          f ~lib;
-          delayed := None
-      | None -> ()
-  in
-  ( force,
-    fun src ->
-      force ~lib:true;
-      delayed := Some (eval src) )
+  String.concat "\n" s
 
-let load_libs () =
-  do_eval ~lib:true;
-  load_libs ()
+let expand_options options =
+  let options = List.sort (fun (x, _, _) (y, _, _) -> compare x y) options in
+  List.fold_left
+    (fun l (la, b, c) ->
+      let ta = List.hd (List.rev la) in
+      let expand =
+        List.map
+          (fun a -> (a, b, if a = ta then "\n" ^ format_doc c else " "))
+          la
+      in
+      l @ expand)
+    [] options
+
+let parse_argv = ref (fun () -> assert false)
+
+let pending_scripts : [ `Expr_or_File of string | `StdIn ] Queue.t =
+  Queue.create ()
+
+let rec load_pending_scripts () =
+  match Queue.take_opt pending_scripts with
+    | Some term ->
+        load term;
+        load_pending_scripts ()
+    | None -> ()
+
+let load_scripts () =
+  !parse_argv ();
+  load_libs ();
+  load_pending_scripts ()
 
 let lang_doc name =
   run_streams := false;
-  load_libs ();
+  load_scripts ();
+
+  Runtime.eval_pending_terms ();
   try Lang_string.kprint_string ~pager:true (Doc.Value.print name)
-  with Not_found -> Printf.printf "Plugin not found!\n%!"
+  with Not_found ->
+    Printf.printf "Plugin not found!\n%!";
+    exit 0
 
 let process_request s =
   load_libs ();
@@ -193,31 +229,11 @@ let process_request s =
         end;
         Request.destroy req
 
-let format_doc s =
-  let prefix = "\t  " in
-  let indent = 8 + 2 in
-  let max_width = 80 in
-  let s = Pcre.split ~pat:" " s in
-  let s =
-    let rec join line width = function
-      | [] -> [line]
-      | hd :: tl ->
-          let hdw = String.length hd in
-          let w = width + 1 + hdw in
-          if w < max_width then join (line ^ " " ^ hd) w tl
-          else line :: join (prefix ^ hd) hdw tl
-    in
-    match s with
-      | hd :: tl -> join (prefix ^ hd) (indent + String.length hd) tl
-      | [] -> []
-  in
-  String.concat "\n" s
-
 let options =
   ref
     ([
        ( ["-"],
-         Arg.Unit (fun () -> eval `StdIn),
+         Arg.Unit (fun () -> load `StdIn),
          "Read script from standard input." );
        ( ["-r"; "--request"],
          Arg.String process_request,
@@ -399,28 +415,14 @@ See <http://liquidsoap.info> for more information.
           "Display configuration keys in markdown format." );
       ])
 
-let expand_options options =
-  let options = List.sort (fun (x, _, _) (y, _, _) -> compare x y) options in
-  List.fold_left
-    (fun l (la, b, c) ->
-      let ta = List.hd (List.rev la) in
-      let expand =
-        List.map
-          (fun a -> (a, b, if a = ta then "\n" ^ format_doc c else " "))
-          la
-      in
-      l @ expand)
-    [] options
-
-(** Just like Arg.parse_argv but with Arg.parse's behavior on errors.. *)
-let parse argv l f msg =
-  try Arg.parse_argv argv l f msg with
-    | Arg.Bad msg ->
-        Printf.eprintf "%s" msg;
-        exit 2
-    | Arg.Help msg ->
-        Lang_string.print_string ~pager:true msg;
-        exit 0
+let parse_argv =
+  (parse_argv :=
+     fun () ->
+       (* Parse command-line, and notably load scripts. *)
+       parse Shebang.argv (expand_options !options)
+         (fun s -> Queue.push (`Expr_or_File s) pending_scripts)
+         usage);
+  !parse_argv
 
 let absolute s =
   if String.length s > 0 && s.[0] <> '/' then Sys.getcwd () ^ "/" ^ s else s
@@ -460,10 +462,7 @@ We hope you enjoy this snapshot build of Liquidsoap!
          |> String.split_on_char '\n'));
 
   Lifecycle.on_script_parse (fun () ->
-      (* Parse command-line, and notably load scripts. *)
-      parse Shebang.argv (expand_options !options)
-        (fun s -> eval (`Expr_or_File s))
-        usage;
+      load_scripts ();
 
       if !interactive then (
         let default_log =
@@ -479,7 +478,7 @@ We hope you enjoy this snapshot build of Liquidsoap!
       (* Allow frame settings to be evaluated here: *)
       Frame_settings.lazy_config_eval := true;
 
-      do_eval ~lib:!last_item_lib)
+      Runtime.eval_pending_terms ())
 
 let initial_cleanup () =
   if !Term.profile then

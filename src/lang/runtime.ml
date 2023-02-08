@@ -24,20 +24,28 @@
 
 let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
+let terms = Queue.create ()
 
-let type_and_run ~throw ~lib ast =
-  ignore
-    (!Hooks.collect_after (fun () ->
-         if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
-         (* Type checking *)
-         Typechecking.check ~throw ~ignored:true ast;
+let typecheck ~throw ~lib ast =
+  if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
+  (* Type checking *)
+  Typechecking.check ~throw ~ignored:true ast;
 
-         if Lazy.force Term.debug then
-           Printf.eprintf "Checking for unused variables...\n%!";
-         (* Check for unused variables, relies on types *)
-         Term.check_unused ~throw ~lib ast;
-         if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
-         Evaluation.eval_toplevel ast))
+  Queue.push (throw, lib, ast) terms
+
+let rec eval_pending_terms () =
+  match Queue.take_opt terms with
+    | Some (throw, lib, ast) ->
+        ignore
+          (!Hooks.collect_after (fun () ->
+               if Lazy.force Term.debug then
+                 Printf.eprintf "Checking for unused variables...\n%!";
+               (* Check for unused variables, relies on types *)
+               Term.check_unused ~throw ~lib ast;
+               if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
+               Evaluation.eval_toplevel ast));
+        eval_pending_terms ()
+    | None -> ()
 
 (** {1 Error reporting} *)
 
@@ -226,7 +234,7 @@ let from_lexbuf ?fname ?(dir = Sys.getcwd ()) ?(parse_only = false) ~ns ~lib
   end;
   report lexbuf (fun ~throw () ->
       let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
-      if not parse_only then type_and_run ~throw ~lib expr)
+      if not parse_only then typecheck ~throw ~lib expr)
 
 let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
@@ -253,9 +261,11 @@ let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true)
     if error_on_no_stdlib then
       failwith "Could not find default stdlib.liq library!")
   else from_file ?parse_only ~ns:(Some file) ~lib:true file;
+  eval_pending_terms ();
   let file = Filename.concat dir "deprecations.liq" in
-  if deprecated && Sys.file_exists file then
-    from_file ?parse_only ~ns:(Some file) ~lib:true file
+  if deprecated && Sys.file_exists file then (
+    from_file ?parse_only ~ns:(Some file) ~lib:true file;
+    eval_pending_terms ())
 
 let from_file = from_file ~ns:None
 

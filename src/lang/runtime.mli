@@ -40,6 +40,9 @@ val load_libs :
    after printing language errors. *)
 val throw : ?formatter:Format.formatter -> Sedlexing.lexbuf -> exn -> unit
 
+(* Evaluate all pending terms. *)
+val eval_pending_terms : unit -> unit
+
 val mk_expr :
   ?fname:string ->
   pwd:string ->
