@@ -337,12 +337,9 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
       is_single   = ref(false)
 
       {
-        volume = {volume()},
-        set_volume = volume.set,
-        selected = {is_selected()},
-        set_selected = is_selected.set,
-        single = {is_single()},
-        set_single = is_single.set,
+        volume = volume,
+        selected = is_selected,
+        single = is_single,
         source = s
       }
     end, sources)
@@ -354,7 +351,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
       s = amplify(input.volume, input.source)
       s = source.on_track(s, fun (_) ->
          if input.single() then
-           input.set_selected(false)
+           input.selected := false
          end
       )
       s = source.on_metadata(s, fun (m) ->
@@ -389,7 +386,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
                          try
                            let [i, v] = r/\s/.split(v)
                            input = list.nth(inputs, int_of_string(i))
-                           input.set_volume(float_of_string(v))
+                           input.volume := float_of_string(v)
                            status(input)
                          catch _ do
                            "Usage: volume <source nb> <vol%>"
@@ -400,7 +397,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
                          try
                            let [i, b] = r/\s/.split(arg)
                            input = list.nth(inputs, int_of_string(i))
-                           input.set_selected(b == "true")
+                           input.selected := (b == "true")
                            status(input)
                          catch _ do
                            "Usage: select <source nb> <true|false>"
@@ -411,7 +408,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
                          try
                            let [i, b] = r/\s/.split(arg)
                            input = list.nth(inputs, int_of_string(i))
-                           input.set_single(b == "true")
+                           input.single := (b == "true")
                            status(input)
                          catch _ do
                            "Usage: single <source nb> <true|false>"
