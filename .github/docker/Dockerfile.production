@@ -15,7 +15,7 @@ RUN addgroup --gid 10001 --system liquidsoap && \
     usermod --append --groups audio liquidsoap
 
 # For libfdk-aac-dev
-RUN sed -e 's#main#main contrib non-free#' -i /etc/apt/sources.list
+RUN echo "deb http://deb.debian.org/debian bookworm non-free" >> /etc/apt/sources.list
 
 COPY $DEB_FILE liquidsoap.deb
 COPY $DEB_DEBUG_FILE liquidsoap-debug.deb

@@ -243,7 +243,10 @@ module AdaptativeBuffer = struct
   module RB = struct
     module RB = Audio.Ringbuffer
 
-    type t = { size : int; mutable rb : RB.t option }
+    type t = {
+      size : int; (* size of the ringbuffer (in samples) *)
+      mutable rb : RB.t option (* the ringbuffer *);
+    }
 
     let create size = { size; rb = None }
     let read_space r = match r.rb with Some rb -> RB.read_space rb | None -> 0
@@ -265,9 +268,8 @@ module AdaptativeBuffer = struct
   (* TODO: also have breaks and metadata as in generators. *)
   type control = {
     lock : Mutex.t;
-    rb : RB.t;
-    mutable rb_length : float;
-    (* average length of the ringbuffer in samples *)
+    rb : RB.t; (* the ringbuffer *)
+    mutable rb_length : float; (* average length of the ringbuffer in samples *)
     mg : MG.t;
     mutable buffering : bool;
     mutable abort : bool;
@@ -455,7 +457,7 @@ let _ =
           Lang.bool_t,
           Some (Lang.bool false),
           Some
-            "Reset speed estimation to 1. when the source becomes available \
+            "Reset speed estimation to 1 when the source becomes available \
              again." );
         ("", Lang.source_t frame_t, None, None);
       ])

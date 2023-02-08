@@ -9,6 +9,8 @@ def socket.unix.client(~non_blocking=false,path) =
 end
 
 # Open a named socket and wait for a client to connect
+# @param ~non_blocking Open in non-blocking mode.
+# @category File
 def socket.unix.listen(~non_blocking=false,path) =
   s = socket.unix(domain=socket.domain.unix)
   s.non_blocking(non_blocking)
