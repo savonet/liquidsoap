@@ -479,7 +479,7 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     method_t return_t
       (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
   in
-  let category = `Source category in
+  let category = `Track category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f
 
 let iter_sources ?on_reference ~static_analysis_failed f v =
