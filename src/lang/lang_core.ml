@@ -74,6 +74,14 @@ let nullable_t t = Type.make (Type.Nullable t)
 let univ_t ?(constraints = []) () = Type.var ~constraints ()
 let getter_t a = Type.make (Type.Getter a)
 
+let ref_t a =
+  method_t (fun_t [] a)
+    [
+      ( "set",
+        ([], fun_t [(false, "", a)] unit_t),
+        "Set the value of the reference." );
+    ]
+
 (** Value construction *)
 
 let mk ?pos value = { pos; value }
@@ -111,6 +119,17 @@ let val_cst_fun p c =
     | Ground (String i) ->
         f (mkg Type.Ground.string) (Term.Ground (Term.Ground.String i))
     | _ -> mk (FFI (p, fun _ -> c))
+
+let reference get set =
+  let get = val_fun [] (fun _ -> get ()) in
+  let set =
+    val_fun
+      [("", "", None)]
+      (fun p ->
+        List.assoc "" p |> set;
+        unit)
+  in
+  meth get [("set", set)]
 
 (** Helpers for defining builtin functions. *)
 
@@ -329,6 +348,19 @@ let to_getter t =
   match (demeth t).value with
     | Fun ([], _, _) | FFI ([], _) -> fun () -> apply t []
     | _ -> fun () -> t
+
+let to_ref t =
+  let m, t = split_meths t in
+  let get = to_getter t in
+  let set =
+    let f = List.assoc "set" m in
+    fun x -> ignore (apply f [("", x)])
+  in
+  (get, set)
+
+let to_valued_ref getc setc t =
+  let get, set = to_ref t in
+  ((fun () -> getc (get ())), fun x -> set (setc x))
 
 (** [assoc lbl n l] returns the [n]th element in [l]
   * of which the first component is [lbl]. *)

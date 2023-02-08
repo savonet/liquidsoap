@@ -127,6 +127,11 @@ val to_valued_option : (value -> 'a) -> value -> 'a option
 val to_default_option : default:'a -> (value -> 'a) -> value -> 'a
 val to_product : value -> value * value
 val to_tuple : value -> value list
+val to_ref : value -> (unit -> value) * (value -> unit)
+
+val to_valued_ref :
+  (value -> 'a) -> ('a -> value) -> value -> (unit -> 'a) * ('a -> unit)
+
 val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_fun : value -> (string * value) list -> value
@@ -153,6 +158,7 @@ val optional_method_t : t -> (string * scheme * string) list -> t
 val list_t : t -> t
 val of_list_t : t -> t
 val nullable_t : t -> t
+val ref_t : t -> t
 val error_t : t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
@@ -180,6 +186,7 @@ val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
+val reference : (unit -> value) -> (value -> unit) -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
     the label and optional values. *)

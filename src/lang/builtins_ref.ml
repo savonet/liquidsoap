@@ -20,28 +20,14 @@
 
  *****************************************************************************)
 
-let ref_t a =
-  Lang.method_t (Lang.fun_t [] a)
-    [
-      ( "set",
-        ([], Lang.fun_t [(false, "", a)] Lang.unit_t),
-        "Set the value of the reference." );
-    ]
-
 let ref =
   let a = Lang.univ_t () in
   Lang.add_builtin "ref" ~category:`Programming
     ~descr:"Create a reference, i.e. a value which can be modified."
     [("", a, None, None)]
-    (ref_t a)
+    (Lang.ref_t a)
     (fun p ->
       let x = List.assoc "" p |> Atomic.make in
-      let get = Lang.val_fun [] (fun _ -> Atomic.get x) in
-      let set =
-        Lang.val_fun
-          [("", "", None)]
-          (fun p ->
-            List.assoc "" p |> Atomic.set x;
-            Lang.unit)
-      in
-      Lang.meth get [("set", set)])
+      let get () = Atomic.get x in
+      let set v = Atomic.set x v in
+      Lang.reference get set)
