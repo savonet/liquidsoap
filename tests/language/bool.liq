@@ -10,7 +10,7 @@ def f() =
   l = ref(false)
   r = ref(false)
   if begin l := true; true end or begin r := true; true end then () end
-  t(!l and (not !r), true)
+  t(l() and (not r()), true)
 
   ignore(true == false ? 5 : 6)
   test.pass()

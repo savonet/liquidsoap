@@ -48,11 +48,11 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
 
   start_time = ref(-1.)
   def fade() =
-    if !start_time < 0. then
+    if start_time() < 0. then
       start_time := source.time(s)
     end
 
-    t = source.time(s) - !start_time
+    t = source.time(s) - start_time()
     if t >= duration then
       on_done ()
       stop
@@ -100,20 +100,20 @@ def fade.out(~id="fade.out",~duration=3.,
   started = ref(false)
 
   def start_fade(d,_) =
-    log("Fading out with type #{!type}, duration: #{!duration} and #{d}s remaining.")
+    log("Fading out with type #{type()}, duration: #{duration()} and #{d}s remaining.")
     start_time := source.time(s)
-    d = if d < !duration then d else !duration end
-    fn := mkfade(start=1.,stop=0.,type=!type,duration=d,s)
+    d = if d < duration() then d else duration() end
+    fn := mkfade(start=1.,stop=0.,type=type(),duration=d,s)
     started := true
   end
 
   def apply() =
-    fn = !fn
+    fn = fn()
     fn()
   end
 
   def stop_fade(_) =
-    if !started then
+    if started() then
       fn := fun () -> 1.
       started := false
     end
@@ -121,13 +121,13 @@ def fade.out(~id="fade.out",~duration=3.,
 
   def update_fade(m) =
     if m[override_duration] != "" then
-      duration := float_of_string(default=!duration,m[override_duration])
-      log("New fade duration: #{!duration}s.")
+      duration := float_of_string(default=duration(),m[override_duration])
+      log("New fade duration: #{duration()}s.")
     end
 
     if m[override_type] != "" then
       type := m[override_type]
-      log("New fade type: #{!type}.")
+      log("New fade type: #{type()}.")
     end
   end
 
@@ -144,13 +144,13 @@ def fade.out(~id="fade.out",~duration=3.,
     if track_sensitive then
       source.on_track(s, stop_fade)
     else
-      start_fade(!duration, [])
+      start_fade(duration(), [])
       s
     end
 
-  delay = fun () -> !duration
+  delay = fun () -> duration()
   s = if track_sensitive then source.on_end(s, delay=delay, start_fade) else s end
-  fade.scale(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type}}
+  fade.scale(id=id, apply, s).{fade_duration = {duration()}, fade_type = {type()}}
 end
 
 # Fade when the metadata trigger is received and then skip.
@@ -176,7 +176,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
   duration = ref(duration)
 
   def apply() =
-    fn = !fn
+    fn = fn()
     fn()
   end
 
@@ -192,19 +192,19 @@ def fade.skip(~id="fade.skip",~duration=5.,
   def update_fade(m) =
     if m[override_skip] == "true" then
       remaining = source.remaining(s)
-      duration = if remaining < !duration then remaining else !duration end
+      duration = if remaining < duration() then remaining else duration() end
       log("Skip fade executed for: #{duration}s")
-      fn := mkfade(start=1.,stop=0.,type=!type,duration=duration, on_done=skip,s)
+      fn := mkfade(start=1.,stop=0.,type=type(),duration=duration, on_done=skip,s)
     end
 
     if m[override_duration] != "" then
-      duration := float_of_string(default=!duration,m[override_duration])
-      log("New fade duration: #{!duration}")
+      duration := float_of_string(default=duration(),m[override_duration])
+      log("New fade duration: #{duration()}")
     end
 
     if m[override_type] != "" then
       type := m[override_type]
-      log("New fade type: #{!type}")
+      log("New fade type: #{type()}")
     end
   end
 
@@ -218,7 +218,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
   s = source.on_track(s, reset_overrides)
   s = source.on_metadata(s, update_fade)
   s = source.on_track(s, stop_fade)
-  fade.scale(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type} }
+  fade.scale(id=id, apply, s).{fade_duration = {duration()}, fade_type = {type()} }
 end
 
 # Fade the beginning of tracks.
@@ -244,24 +244,24 @@ def fade.in(~id="fade.in",~duration=3.,
   type = ref(type)
 
   def apply() =
-    fn = !fn
+    fn = fn()
     fn()
   end
 
   def start_fade(_) =
-    log("Fading in with type: #{!type} and duration: #{!duration}s.")
-    fn := mkfade(start=0.,stop=1.,type=!type,duration=!duration,s)
+    log("Fading in with type: #{type()} and duration: #{duration()}s.")
+    fn := mkfade(start=0.,stop=1.,type=type(),duration=duration(),s)
   end
 
   def update_fade(m) =
     if m[override_duration] != "" then
-      duration := float_of_string(default=!duration,m[override_duration])
-      log("New fade duration: #{!duration}s.")
+      duration := float_of_string(default=duration(),m[override_duration])
+      log("New fade duration: #{duration()}s.")
     end
 
     if m[override_type] != "" then
       type := m[override_type]
-      log("New fade type: #{!type}.")
+      log("New fade type: #{type()}.")
     end
   end
 
@@ -276,7 +276,7 @@ def fade.in(~id="fade.in",~duration=3.,
   s = source.on_metadata(s, update_fade)
   s = if track_sensitive then source.on_track(s, start_fade) else start_fade([]); s end
 
-  fade.scale(id=id, apply, s).{fade_duration = {!duration}, fade_type = {!type} }
+  fade.scale(id=id, apply, s).{fade_duration = {duration()}, fade_type = {type()} }
 end
 
 # Simple transition for crossfade
@@ -458,7 +458,7 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special)
 
   def c(fn,s) =
     def v() =
-      fn = !fn
+      fn = fn()
       fn()
     end
     fade.scale(v,s)
@@ -472,15 +472,15 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special)
 
   def to_special(_,special) =
     last_p := p()
-    q = 1. - !last_p
-    normal_volume := mkfade(start=1.,stop=!last_p,duration=duration,normal)
+    q = 1. - last_p()
+    normal_volume := mkfade(start=1.,stop=last_p(),duration=duration,normal)
     special_volume := mkfade(stop=q,duration=duration,special)
     special
   end
 
   def to_blank(special,b)
-    normal_volume := mkfade(start=!last_p,duration=duration,normal)
-    special_volume := mkfade(start=1.-!last_p,duration=duration,special)
+    normal_volume := mkfade(start=last_p(),duration=duration,normal)
+    special_volume := mkfade(start=1.-last_p(),duration=duration,special)
     sequence([special,b])
   end
 

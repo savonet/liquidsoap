@@ -103,7 +103,7 @@ def f() =
   # Test huge lists, see #2162.
   # l = list.init(100000, fun(i) -> i)
 
-  if !success then test.pass() else test.fail() end
+  if success() then test.pass() else test.fail() end
 end
 
 test.check(f)

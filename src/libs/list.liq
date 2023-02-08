@@ -96,7 +96,7 @@ end
 def list.iteri(f, l)
   n = ref(0)
   def rec aux(l)
-    i = !n
+    i = n()
     n := i + 1
     list.case(l, (), fun (x, l) -> begin (f(i, x):unit); aux(l) end)
   end
@@ -124,7 +124,7 @@ end
 def list.mapi(f, l)
   n = ref(0)
   def f(x) =
-    i = !n
+    i = n()
     n := i + 1
     f(i, x)
   end
@@ -321,7 +321,7 @@ end
 def list.iterator(l)
   l = ref(l)
   def f()
-    list.case(!l, null(), fun (x,t) -> begin l := t; x end)
+    list.case(l(), null(), fun (x,t) -> begin l := t; x end)
   end
   f
 end

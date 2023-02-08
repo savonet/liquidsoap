@@ -8,7 +8,7 @@ def predicate.activates(~init=false, p)
   last = ref(not init)
   fun () -> begin
     cur = p()
-    ans = (not !last) and cur
+    ans = (not last()) and cur
     last := cur
     ans
   end
@@ -30,7 +30,7 @@ def predicate.at_most(n, p)
   fun () -> begin
     if p() then
       ref.incr(k)
-      !k <= n
+      k() <= n
     else
       k := 0
       false
@@ -45,7 +45,7 @@ def predicate.changes(p)
   last = ref(p())
   fun () -> begin
     cur = p()
-    ans = (cur != !last)
+    ans = (cur != last())
     last := cur
     ans
   end
@@ -57,7 +57,7 @@ end
 def predicate.first(p)
   done = ref(false)
   fun () -> begin
-    if !done then
+    if done() then
       false
     else
       if p() then
@@ -80,7 +80,7 @@ def predicate.signal()
     state := true
   end
   def p ()
-    if !state then
+    if state() then
       state := false
       true
     else

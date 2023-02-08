@@ -1,3 +1,5 @@
+#!../../liquidsoap ../test.liq
+
 # Test getters, see #1181
 
 def f(~x)
@@ -18,7 +20,6 @@ def tests() =
   g(x={4})
 
   r = ref(5)
-  r = ref.getter(r)
   f(x=r)
   g(x=r)
   r.set(r()+2)
@@ -33,7 +34,7 @@ def tests() =
   def gen =
     pos = ref(0)
     fun () -> begin
-      if !pos == 3 then "" else
+      if pos() == 3 then "" else
         ref.incr(pos)
         "foobar"
       end
@@ -46,7 +47,7 @@ def tests() =
   def gen =
     pos = ref(0)
     fun () -> begin
-      if !pos == 3 then "" else
+      if pos() == 3 then "" else
         ref.incr(pos)
         "foobar"
       end

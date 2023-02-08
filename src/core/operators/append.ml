@@ -27,7 +27,7 @@ class append ~insert_missing ~merge source f =
   let failed = ref false in
   let () =
     Lang.iter_sources
-      ~on_reference:(fun () -> failed := true)
+      ~on_imprecise:(fun () -> failed := true)
       (fun s -> sources := s :: !sources)
       f
   in

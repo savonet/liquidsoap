@@ -13,7 +13,7 @@ def f() =
   file.write(data="xxx", fname)
   sleep(1.)
 
-  if !success then test.pass() else test.fail() end
+  if success() then test.pass() else test.fail() end
 end
 
 test.check(f)

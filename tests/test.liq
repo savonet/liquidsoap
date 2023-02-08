@@ -30,23 +30,23 @@ def test.check_non_repeating(~nb_files,~nb_rounds,s)
   iterations = ref(0)
 
   def already(fname)
-    list.assoc(default=false, fname, !seen)
+    list.assoc(default=false, fname, seen())
   end
 
   def check(m)
     fname = m["filename"]
     print("I: Playing #{fname}")
-    if !iterations < nb_rounds and already(fname) then
+    if iterations() < nb_rounds and already(fname) then
       print("I: Already seen #{fname}")
       test.fail()
     else
-      if list.length(!seen) < nb_files-1 then
-        seen := list.add((fname,true),!seen)
+      if list.length(seen()) < nb_files-1 then
+        seen := list.add((fname,true),seen())
       else
         print("I: ===")
         seen := []
-        iterations := !iterations+1
-        if !iterations == nb_rounds then
+        iterations := iterations()+1
+        if iterations() == nb_rounds then
           print("I: Test passed")
           test.pass()
         end

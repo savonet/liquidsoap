@@ -281,7 +281,7 @@ def add_text_builder(f) =
 
     # Handle modifying the text with metadata.
     tref = ref(getter.get(text))
-    text = null.defined(metadata) ? {!tref} : text
+    text = null.defined(metadata) ? tref : text
     def on_metadata(m)
       if null.defined(metadata) then
         m = m[null.get(metadata)]
@@ -299,9 +299,9 @@ def add_text_builder(f) =
       fps = video.frame.rate()
       x = ref(getter.get(x))
       def x()
-        if cycle and !x < 0 - t.width() then on_cycle(); x := video.frame.width() end
-        x := !x - getter.get(speed) / fps
-        !x
+        if cycle and x() < 0 - t.width() then on_cycle(); x := video.frame.width() end
+        x := x() - getter.get(speed) / fps
+        x()
       end
       x
     end
@@ -334,10 +334,10 @@ let video.text.available = ref([])
 # @params d Text to display.
 def video.add_text.native = add_text_builder(video.text.native) end
 
-video.text.available := [("native", video.text.native), ...!video.text.available]
+video.text.available := [("native", video.text.native), ...video.text.available()]
 
 %ifdef video.text.gd
-video.text.available := [("gd", video.text.gd), ...!video.text.available]
+video.text.available := [("gd", video.text.gd), ...video.text.available()]
 
 # Add a text to a stream (GD implementation).
 # @category Source / Video processing
@@ -355,7 +355,7 @@ def video.text.gd = add_text_builder(video.text.gd) end
 %endif
 
 %ifdef video.text.gstreamer
-video.text.available := [("gstreamer", video.text.gstreamer), ...!video.text.available]
+video.text.available := [("gstreamer", video.text.gstreamer), ...video.text.available()]
 
 # Add a text to a stream (GStreamer implementation).
 # @category Source / Video processing
@@ -373,7 +373,7 @@ def video.add_text.gstreamer = add_text_builder(video.text.gstreamer) end
 %endif
 
 %ifdef video.text.sdl
-video.text.available := [("sdl", video.text.sdl), ...!video.text.available]
+video.text.available := [("sdl", video.text.sdl), ...video.text.available()]
 
 # Add a text to a stream (SDL implementation).
 # @category Source / Video processing
@@ -391,7 +391,7 @@ def video.add_text.sdl = add_text_builder(video.text.sdl) end
 %endif
 
 %ifdef video.text.camlimages
-video.text.available := [("camlimages", video.text.camlimages), ...!video.text.available]
+video.text.available := [("camlimages", video.text.camlimages), ...video.text.available()]
 
 # Add a text to a stream (camlimages implementation).
 # @category Source / Video processing
@@ -410,16 +410,16 @@ def video.add_text.camlimages = add_text_builder(video.text.camlimages) end
 
 let settings.video.text = settings.make(
   description="`video.text` implementation.",
-  fst(list.hd(!video.text.available))
+  fst(list.hd(video.text.available()))
 )
 
 thread.run.recurrent((fun () ->
   begin
     text = settings.video.text()
-    if list.assoc.mem(text, !video.text.available) then
+    if list.assoc.mem(text, video.text.available()) then
       log.important(label="video.text", "Using #{text} implementation")
     else
-      log.severe(label="video.text", "Cannot find #{text} implementation for `video.text`, using default #{fst(list.hd(!video.text.available))}")
+      log.severe(label="video.text", "Cannot find #{text} implementation for `video.text`, using default #{fst(list.hd(video.text.available()))}")
     end
     (-1.)
   end))
@@ -433,7 +433,7 @@ thread.run.recurrent((fun () ->
 # @param ~size Font size.
 # @param text Text to display.
 def replaces video.text(~id=null(), ~color=getter(0xffffff), ~duration=null(), ~font=null(), ~size=getter(18), text)
-  f = list.assoc(default=snd(list.hd(!video.text.available)), settings.video.text(), !video.text.available)
+  f = list.assoc(default=snd(list.hd(video.text.available())), settings.video.text(), video.text.available())
   f(id=id, color=color, duration=duration, font=font, size=size, text)
 end
 
@@ -464,7 +464,7 @@ end
 # @param s Source.
 def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, ~offset=20, s)
   subtitle = ref("")
-  t = video.text(size=size, color=color, {!subtitle})
+  t = video.text(size=size, color=color, subtitle)
   t = video.bounding_box(t)
   x = {(video.frame.width() - t.width())/2}
   y = {video.frame.height() - t.height() - offset}
@@ -494,25 +494,25 @@ def video.slideshow(~id=null(), ~cyclic=getter(true), ~advance=getter(-1.), l=[]
   n = ref(-1)
   s = source.dynamic()
   def current()
-    list.nth(!l, !n)
+    list.nth(l(), n())
   end
   # Set current file to the nth.
   def set(n')
-    if 0 <= n' and n' < list.length(!l) and n' != !n then
+    if 0 <= n' and n' < list.length(l()) and n' != n() then
       n := n'
       s.set(request.once(request.create(current())))
     end
   end
   def next()
     log.debug(label=id, "Going to next file")
-    n' = !n + 1
-    n' = if n' >= list.length(!l) then if getter.get(cyclic) then 0 else list.length(!l) - 1 end else n' end
+    n' = n() + 1
+    n' = if n' >= list.length(l()) then if getter.get(cyclic) then 0 else list.length(l()) - 1 end else n' end
     set(n')
   end
   def prev()
     log.debug(label=id, "Going to previous file")
-    n' = !n - 1
-    n' = if n' < 0 then if getter.get(cyclic) then list.length(!l) - 1 else 0 end else n' end
+    n' = n() - 1
+    n' = if n' < 0 then if getter.get(cyclic) then list.length(l()) - 1 else 0 end else n' end
     set(n')
   end
   def clear()
@@ -520,7 +520,7 @@ def video.slideshow(~id=null(), ~cyclic=getter(true), ~advance=getter(-1.), l=[]
     n := 0
   end
   def append(l')
-    l := list.append(!l, l')
+    l := list.append(l(), l')
   end
   set(0)
   if getter.get(advance) >= 0. then thread.run(delay=getter.get(advance), every=advance, next) end

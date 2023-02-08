@@ -66,7 +66,7 @@ end
 def track.metadata.deduplicate(t) =
   last_meta = ref([])
   def f(m) =
-    if m == !last_meta then
+    if m == last_meta() then
       []
     else
       last_meta := m
@@ -158,7 +158,7 @@ def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
   duration = frame.duration()
 
   def to_first(_,new) =
-    ready := (not !ready)
+    ready := (not ready())
     sequence(merge=true,[blank(duration=duration),(new:source)])
   end
 
@@ -176,7 +176,7 @@ def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
   let {track_marks=_, ...tracks} = source.tracks(s)
   s = source(tracks)
 
-  switch(id=id,replay_metadata=false,track_sensitive=false,[({!ready}, s), ({(not !ready)}, s)])
+  switch(id=id,replay_metadata=false,track_sensitive=false,[(ready, s), ({not ready()}, s)])
 end
 
 # Rotate between overlapping sources. Next track starts according
@@ -193,7 +193,7 @@ def overlap_sources(~id=null(),~normalize=false,
   length   = list.length(sources)
 
   def current_position() =
-    pos = !position
+    pos = position()
     position := (pos + 1) mod length
     pos
   end
@@ -227,7 +227,7 @@ def overlap_sources(~id=null(),~normalize=false,
   send_to_main_source = ref(fun (_) -> ())
 
   def relay_metadata(m) =
-    fn = !send_to_main_source
+    fn = send_to_main_source()
     fn(m)
   end
   list.iter(fun (s) -> s.on_metadata(relay_metadata),sources)
@@ -243,7 +243,7 @@ def overlap_sources(~id=null(),~normalize=false,
   # Wrap sources into switches.
   def make_switch(pos,source) =
     is_ready = grab_ready(pos)
-    switch(track_sensitive=true,[({!is_ready},source)])
+    switch(track_sensitive=true,[(is_ready,source)])
   end
   sources = list.mapi(make_switch,sources)
 
@@ -289,8 +289,8 @@ end
 def source.run(s, ~delay=0., ~every=null(), f)
   next = ref(delay)
   def check()
-    if source.time(s) >= !next then
-      null.case(every, {next := infinity}, fun (every) -> next := !next + every)
+    if source.time(s) >= next() then
+      null.case(every, {next := infinity}, fun (every) -> next := next() + every)
       f()
     end
   end
@@ -308,7 +308,7 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
   # Track time in the source's context:
   start_time = ref(0.)
   def f() =
-    if getter.get(every) <= s.time() - !start_time then
+    if getter.get(every) <= s.time() - start_time() then
       start_time := s.time()
       s.insert_metadata(new_track=true, getter.get(metadata))
     end
@@ -325,7 +325,7 @@ end
 def skipper(~every=getter(5.), s) =
   start_time = ref(0.)
   def f() =
-    if getter.get(every) <= s.time() - !start_time then
+    if getter.get(every) <= s.time() - start_time() then
       start_time := s.time()
       s.skip()
     end

@@ -44,7 +44,7 @@ s.on_track(fun (_) -> ref.incr(file_track_seen))
 
 should_stop = ref(false)
 
-s = switch(track_sensitive=false, [({not !should_stop}, s)])
+s = switch(track_sensitive=false, [({not should_stop()}, s)])
 
 enc = %ffmpeg(
   format="mp4",
@@ -54,10 +54,10 @@ enc = %ffmpeg(
 )
 
 def on_stop() =
-  test.equals(!meta_seen, true)
-  test.equals(!track_seen, true)
-  test.equals(!file_no_meta_seen, true)
-  test.equals(!file_track_seen, 1)
+  test.equals(meta_seen(), true)
+  test.equals(track_seen(), true)
+  test.equals(file_no_meta_seen(), true)
+  test.equals(file_track_seen(), 1)
 
   ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
@@ -90,7 +90,7 @@ output.file(fallible=true, on_stop=on_stop, enc, out, s)
 meta_count = ref(0)
 
 thread.run(every=2., fun () -> begin
-  if !meta_count < 2 then
+  if meta_count() < 2 then
     s4.insert_metadata([("foo", "bla")])
     ref.incr(meta_count)
   else

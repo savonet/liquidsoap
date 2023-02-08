@@ -40,7 +40,6 @@ and in_value =
      value than a constructor here. However, I am keeping as is for now because
      implementation is safer this way. *)
   | Meth of string * t * t
-  | Ref of t Atomic.t
   (* Function with given list of argument name, argument variable and default
      value, the (relevant part of the) closure, and the body. *)
   | Fun of (string * string * t option) list * lazy_env * Term.t
@@ -58,7 +57,6 @@ let rec to_string v =
   match v.value with
     | Ground g -> Ground.to_string g
     | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
-    | Ref a -> Printf.sprintf "ref(%s)" (to_string (Atomic.get a))
     | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
     | Null -> "null"
     | Meth (l, v, e) when Lazy.force Term.debug ->

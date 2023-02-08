@@ -8,7 +8,7 @@ def predicate.nth(n)
   i = ref(-1)
   fun () -> begin
     ref.incr(i)
-    !i == n
+    i() == n
   end
 end
 
@@ -16,7 +16,7 @@ def predicate.from(n)
   i = ref(-1)
   fun () -> begin
     ref.incr(i)
-    !i >= n
+    i() >= n
   end
 end
 
@@ -44,7 +44,7 @@ def f() =
   t(p(), true)
   t(p(), false)
 
-  if !success then test.pass() else test.fail() end
+  if success() then test.pass() else test.fail() end
 end
 
 test.check(f)

@@ -343,8 +343,6 @@ let check_content v t =
             check_value v t
         (* The type says that we should drop the method. *)
         | Value.Meth (_, _, v), _ -> check_value v t
-        | Ref r, Type.Constr { Type.constructor = "ref"; params = [(_, t)] } ->
-            check_value (Atomic.get r) t
         (* We don't check functions, assuming anything creating a source is a
            FFI registered via add_operator so the check will happen there. *)
         | Fun _, _ | FFI _, _ -> ()
@@ -482,7 +480,7 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
   let category = `Track category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f
 
-let iter_sources ?on_reference ~static_analysis_failed f v =
+let iter_sources ?(on_imprecise = fun () -> ()) f v =
   let itered_values = ref [] in
   let rec iter_term env v =
     match v.Term.term with
@@ -541,7 +539,9 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
             iter_term env body;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
         | FFI (proto, _) ->
+            on_imprecise ();
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
+      (*
         | Ref r ->
             if List.memq r !static_analysis_failed then ()
             else (
@@ -574,8 +574,9 @@ let iter_sources ?on_reference ~static_analysis_failed f v =
                         "WARNING! Found a reference, potentially containing \
                          sources, inside a dynamic source-producing function. \
                          Static analysis cannot be performed: make sure you \
-                         are not sharing sources contained in references!")))
+                         are not sharing sources contained in references!"))
+               *))
   in
   iter_value v
 
-let iter_sources = iter_sources ~static_analysis_failed:(ref [])
+let iter_sources = iter_sources

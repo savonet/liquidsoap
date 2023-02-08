@@ -13,7 +13,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
   id = string.id.default(default="input.hls.native", id)
 
   def load_playlist () =
-    pl = request.create(!playlist_uri)
+    pl = request.create(playlist_uri())
     if request.resolve(pl) then
       pl = request.filename(pl)
 
@@ -22,7 +22,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
       log.info(label=id,"Sequence: " ^ pl_sequence)
       pl_sequence = int_of_string(default=0,pl_sequence)
 
-      files = playlist.parse(path=path.dirname(!playlist_uri)^"/",pl)
+      files = playlist.parse(path=path.dirname(playlist_uri())^"/",pl)
 
       def file_request(idx,el) =
         let (meta,file) = el
@@ -33,7 +33,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
 
       files = list.mapi(file_request,files)
 
-      let (first_idx, _) = list.hd(default=(-1,""),!playlistr)
+      let (first_idx, _) = list.hd(default=(-1,""),playlistr())
 
       def add_file(playlist, file) =
         let (idx,_) = file
@@ -44,7 +44,7 @@ def input.hls.native(~id=null(),~reload=10.,uri)
         end
       end
 
-      playlistr := list.fold(add_file, !playlistr, files)
+      playlistr := list.fold(add_file, playlistr(), files)
     else
       log.severe(label=id,"Couldn't read playlist: request resolution failed.")
       playlistr := []
@@ -53,10 +53,10 @@ def input.hls.native(~id=null(),~reload=10.,uri)
   end
 
   def rec next () =
-    if list.length(!playlistr) > 0 then
-      let (_,ret) = list.hd(default=(1,""),!playlistr)
-      playlistr := list.tl(!playlistr)
-      sequence := !sequence + 1
+    if list.length(playlistr()) > 0 then
+      let (_,ret) = list.hd(default=(1,""),playlistr())
+      playlistr := list.tl(playlistr())
+      sequence := sequence() + 1
       request.create(ret)
     else
       null()
@@ -64,17 +64,17 @@ def input.hls.native(~id=null(),~reload=10.,uri)
   end
 
   def find_stream () =
-    pl = request.create(!playlist_uri)
+    pl = request.create(playlist_uri())
     if request.resolve(pl) then
       plfile = request.filename(pl)
 
       m = r/#EXT-X-STREAM-INF[^\n]*\n([^\r\n]*)\r?\n/.exec(file.contents(plfile))
-      playlist_uri := list.assoc(default=!playlist_uri,1,m)
+      playlist_uri := list.assoc(default=playlist_uri(),1,m)
 
-      if not (string.contains(substring="/", !playlist_uri)) then
-        playlist_uri := path.dirname(request.uri(pl)) ^ "/" ^ !playlist_uri
+      if not (string.contains(substring="/", playlist_uri())) then
+        playlist_uri := path.dirname(request.uri(pl)) ^ "/" ^ playlist_uri()
       end
-      log(label=id,"Playlist: " ^ !playlist_uri)
+      log(label=id,"Playlist: " ^ playlist_uri())
     end
   end
   find_stream ()

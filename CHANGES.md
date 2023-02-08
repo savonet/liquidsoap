@@ -24,6 +24,9 @@ New:
 - Added `file.{copy, move}` (#2771)
 - Detect functions defining multiple arguments with the same label (#2823).
 - Added `null.map`.
+- References of type `'a` are now objects of type `(()->'a).{set : ('a) -> unit}`. This means that you should use `x()` instead of `!x` in order to get
+  the value of a reference. Setting a reference can be done both by `x.set(v)`
+  and `x := v`, which is still supported as a notation (#2881).
 
 Changed:
 

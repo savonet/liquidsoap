@@ -9,30 +9,30 @@ end
 
 def f() =
   n = ref(1)
-  while !n < 10 do
-    n := !n * 2
+  while n() < 10 do
+    n := n() * 2
   end
-  t(!n, 16)
+  t(n(), 16)
 
   n = ref(0)
   for i = 0 to 10 do
-    n := !n + i
+    n := n() + i
   end
-  t(!n, 55)
+  t(n(), 55)
 
   n = ref(0)
   for i = list.iterator([0,1,2,3,4,5,6,7,8,9,10]) do
-    n := !n + i
+    n := n() + i
   end
-  t(!n, 55)
+  t(n(), 55)
 
   s = ref("")
   for i = list.iterator(["a","b","c"]) do
-    s := !s ^ i
+    s := s() ^ i
   end
-  t(!s, "abc")
+  t(s(), "abc")
 
-  if !success then test.pass() else test.fail() end
+  if success() then test.pass() else test.fail() end
 end
 
 test.check(f)
