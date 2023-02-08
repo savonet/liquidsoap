@@ -29,6 +29,10 @@ class board ?duration img0 () =
     val mutable x = 0
     val mutable y = 0
     method image = img
+    method get_x = x
+    method set_x x' = x <- x'
+    method get_y = y
+    method set_y y' = y <- y'
 
     method private synthesize frame off len =
       let frame_width, frame_height = self#video_dimensions in
@@ -97,6 +101,20 @@ let _ =
               Lang.unit_t ),
           "Set pixel to given color.",
           set_pixel );
+        ( "x",
+          ([], Lang.ref_t Lang.int_t),
+          "Horizontal translation.",
+          fun b ->
+            Lang.reference
+              (fun () -> Lang.int @@ b#get_x)
+              (fun x' -> b#set_x @@ Lang.to_int @@ x') );
+        ( "y",
+          ([], Lang.ref_t Lang.int_t),
+          "Vertical translation.",
+          fun b ->
+            Lang.reference
+              (fun () -> Lang.int @@ b#get_y)
+              (fun y' -> b#set_y @@ Lang.to_int @@ y') );
       ]
     (fun p ->
       let width =
