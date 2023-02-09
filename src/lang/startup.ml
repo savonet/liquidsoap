@@ -20,8 +20,9 @@
 
  *****************************************************************************)
 
-let messages = ref []
-let message fmt = Printf.ksprintf (fun s -> messages := s :: !messages) fmt
+let messages = Atomic.make []
+
+let message fmt = Printf.ksprintf (fun s -> Atomic.set messages (s :: Atomic.get messages)) fmt
 
 let time name f =
   let t = Sys.time () in
@@ -29,5 +30,4 @@ let time name f =
   message "%s: %.02fs" name (Sys.time () -. t);
   ans
 
-let iter f = List.iter f (List.rev !messages)
-let messages () = List.rev !messages
+let messages () = Atomic.get messages |> List.rev
