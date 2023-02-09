@@ -28,9 +28,23 @@ class board ?duration img0 () =
     val mutable img = img0
     val mutable x = 0
     val mutable y = 0
+    val mutable last_point = None
     method image = img
     method width = Image.YUV420.width img
     method height = Image.YUV420.height img
+
+    method set_pixel (x, y) c =
+      last_point <- Some (x, y);
+      Image.YUV420.set_pixel_rgba img x y c
+
+    method line_to (x, y) (r, g, b) =
+      match last_point with
+        | None -> self#set_pixel (x, y) (r, g, b, 0xff)
+        | Some (x', y') ->
+            last_point <- Some (x, y);
+            Image.Draw.line
+              (fun x y -> Image.YUV420.set_pixel_rgba img x y (r, g, b, 0xff))
+              (x', y') (x, y)
 
     method private synthesize frame off len =
       let frame_width, frame_height = self#video_dimensions in
@@ -60,7 +74,23 @@ let _ =
         Image.YUV420.fill b#image c;
         Lang.unit)
   in
-  let pixel b =
+  let line_to board =
+    Lang.val_fun
+      [
+        ("color", "c", Some (Lang.int 0xffffff));
+        ("", "x", None);
+        ("", "y", None);
+      ]
+      (fun p ->
+        let r, g, b =
+          List.assoc "c" p |> Lang.to_int |> Image.RGB8.Color.of_int
+        in
+        let x = List.assoc "x" p |> Lang.to_int in
+        let y = List.assoc "y" p |> Lang.to_int in
+        board#line_to (x, y) (r, g, b);
+        Lang.unit)
+  in
+  let pixel board =
     Lang.val_fun
       [("", "x", None); ("", "y", None)]
       (fun p ->
@@ -68,14 +98,13 @@ let _ =
         let y = List.assoc "y" p |> Lang.to_int in
         Lang.reference
           (fun () ->
-            let img = b#image in
+            let img = board#image in
             let r, g, b, _ = Image.YUV420.get_pixel_rgba img x y in
             let c = Image.RGB8.Color.to_int (r, g, b) in
             Lang.int c)
           (fun c ->
-            let img = b#image in
             let r, g, b = c |> Lang.to_int |> Image.RGB8.Color.of_int in
-            Image.YUV420.set_pixel_rgba img x y (r, g, b, 0xff)))
+            board#set_pixel (x, y) (r, g, b, 0xff)))
   in
   Lang.add_operator ~base:Modules.video "board"
     [
@@ -101,6 +130,17 @@ let _ =
           ([], Lang.fun_t [] Lang.int_t),
           "Current height of the board.",
           fun b -> Lang.val_fun [] (fun _ -> Lang.int b#height) );
+        ( "line_to",
+          ( [],
+            Lang.fun_t
+              [
+                (true, "color", Lang.int_t);
+                (false, "", Lang.int_t);
+                (false, "", Lang.int_t);
+              ]
+              Lang.unit_t ),
+          "Draw a line from the last point.",
+          line_to );
         ( "width",
           ([], Lang.fun_t [] Lang.int_t),
           "Current width of the board.",

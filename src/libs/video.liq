@@ -585,7 +585,7 @@ def video.plot(~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
     tx := tx() - dx
     print("y: #{y()}")
     y = int_of_float(((y() - min) / (max - min)) * height)
-    s.pixel(x(), y) := color
+    s.line_to(color=color, x(), y)
     print("plot #{x()} , #{y}")
     x := x() + dx
   end
