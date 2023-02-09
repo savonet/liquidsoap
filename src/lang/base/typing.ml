@@ -374,6 +374,9 @@ and ( <: ) a b =
   if a != b then (
     match (a.descr, b.descr) with
       | a, b when a == b -> ()
+      (* a <: b means that [a] can be used every time [b] type is expected.
+         We do implicity int to float conversions when needed so this is acceptable. *)
+      | Int, Float -> ()
       | Var { contents = Free v }, Var { contents = Free v' } when Var.eq v v'
         ->
           ()

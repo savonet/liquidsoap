@@ -315,14 +315,21 @@ let to_string_getter = function
   | _ -> assert false
 [@@inline always]
 
-let to_float = function Float { value = f } -> f | _ -> assert false
+let to_float = function
+  | Float { value = f } -> f
+  | Int { value = n } -> float_of_int n
+  | _ -> assert false
 [@@inline always]
 
 let to_float_getter = function
   | Float { value = f } -> fun () -> f
+  | Int { value = n } -> fun () -> float_of_int n
   | (Fun _ as v) | (FFI _ as v) -> (
       fun () ->
-        match apply v [] with Float { value = f } -> f | _ -> assert false)
+        match apply v [] with
+          | Float { value = f } -> f
+          | Int { value = n } -> float_of_int n
+          | _ -> assert false)
   | _ -> assert false
 [@@inline always]
 
