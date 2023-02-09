@@ -22,7 +22,8 @@
 
 let messages = Atomic.make []
 
-let message fmt = Printf.ksprintf (fun s -> Atomic.set messages (s :: Atomic.get messages)) fmt
+let message fmt =
+  Printf.ksprintf (fun s -> Atomic.set messages (s :: Atomic.get messages)) fmt
 
 let time name f =
   let t = Sys.time () in
