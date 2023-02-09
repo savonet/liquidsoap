@@ -122,6 +122,9 @@ val meth :
   t ->
   t
 
+(** Type of references on a given type. *)
+val reference : ?pos:Pos.t -> t -> t
+
 val meths : ?pos:Pos.t -> string list -> scheme -> t -> t
 val split_meths : t -> meth list * t
 val var : ?constraints:constr list -> ?level:int -> ?pos:Pos.t -> unit -> t

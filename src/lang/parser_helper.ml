@@ -537,6 +537,7 @@ let mk_ty ~pos name =
     | "int" -> Type.make Type.Ground.int
     | "float" -> Type.make Type.Ground.float
     | "string" -> Type.make Type.Ground.string
+    | "ref" -> Type.reference (Type.var ())
     | "source" -> mk_source_ty ~pos "source" []
     | "source_methods" -> !Hooks.source_methods_t ()
     | name -> (

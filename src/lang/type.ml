@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 include Type_base
+include Ref_type
 module Ground = Ground_type
 
 let num_constr =

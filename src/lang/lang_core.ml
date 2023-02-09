@@ -73,14 +73,7 @@ let of_list_t t =
 let nullable_t t = Type.make (Type.Nullable t)
 let univ_t ?(constraints = []) () = Type.var ~constraints ()
 let getter_t a = Type.make (Type.Getter a)
-
-let ref_t a =
-  method_t (fun_t [] a)
-    [
-      ( "set",
-        ([], fun_t [(false, "", a)] unit_t),
-        "Set the value of the reference." );
-    ]
+let ref_t a = Type.reference a
 
 (** Value construction *)
 
