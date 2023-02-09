@@ -504,12 +504,11 @@ ref(int)
 meaning that its a memory cell containing integers. On such a reference, two
 operations are available:
 
-- one can obtain the value of the reference by using the `!` keyword before the
-  reference, so that `!r` denotes the value contained in the reference `r`, for
-  instance
+- one can obtain the value of the reference by applying the reference to `()`,
+  so that `r()` denotes the value contained in the reference `r`, for instance
 
   ```liquidsoap
-  x = !r + 4
+  x = r() + 4
   ```
 
   declares the variable `x` as being 9 (which is 5+4),
@@ -546,14 +545,14 @@ reference `n` as long as its value is below `10`:
 
 ```liquidsoap
 n = ref(1)
-while !n < 10 do
-  n := !n * 2
+while n() < 10 do
+  n := n() * 2
 end
-print(!n)
+print(n())
 ```
 
 The variable `n` will thus successively take the values `1`, `2`, `4`, `8` and
-`16`, at which point the looping condition `!n < 10` is not satisfied anymore
+`16`, at which point the looping condition `n() < 10` is not satisfied anymore
 and the loop is exited. The printed value is thus `16`.
 
 ## Functions
@@ -764,8 +763,8 @@ the value. For instance, we can define a float getter by
 ```liquidsoap
 n = ref(0.)
 def f ()
-  n := !n + 1.
-  !n
+  n := n() + 1.
+  n()
 end
 ```
 
