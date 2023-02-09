@@ -18,10 +18,6 @@ git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
 git reset --hard
 git pull
 
-# Remove later
-git submodule init ocaml-metadata
-git submodule update ocaml-metadata
-
 git pull
 make clean
 make public
@@ -34,12 +30,7 @@ echo "::group::Setting up specific dependencies"
 if [ -z "${LIQ_BUILD_MIN}" ]; then
   git clone https://github.com/savonet/ocaml-posix.git
   cd ocaml-posix && opam install -y . && cd ..
-  # See: https://github.com/whitequark/ocaml-inotify/pull/20
-  opam install -y uri yaml inotify.2.3
 fi
-
-# TODO: Add those to docker CI images.
-cd ocaml-metadata && opam install -y . fileutils
 
 cd /tmp/liquidsoap-full/liquidsoap
 
