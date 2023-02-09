@@ -262,7 +262,7 @@ def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
   end
 
   s = fade.scale(id=id,fn,s)
-  switch(track_sensitive=false,[({!should_play},s)])
+  switch(track_sensitive=false,[(should_play,s)])
 end
 
 # Deprecated: was designed for transitions only and is not
@@ -517,7 +517,7 @@ def request.dynamic.list(%argsof(request.dynamic), f) =
     if l != [] then
       let [r, ...q] = list.rev(l)
       r = (r:request)
-      list.iter(!add, list.rev(q))
+      list.iter(add(), list.rev(q))
       r
     else
       null()
