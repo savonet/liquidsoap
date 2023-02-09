@@ -222,6 +222,7 @@
   srt_decoder
   srt_parser
   start_stop
+  startup
   stereo
   still_frame
   stringView
