@@ -47,17 +47,20 @@ class board ?duration img0 () =
   end
 
 let _ =
+  let clear b =
+    Lang.val_fun [] (fun _ ->
+        Image.YUV420.fill b#image (Image.Pixel.yuv_of_rgb (0, 0, 0));
+        Lang.unit)
+  in
   let fill b =
     Lang.val_fun
       [("", "", None)]
       (fun p ->
-        Printf.printf "\nfilling!\n\n%!";
         let c =
           List.assoc "" p |> Lang.to_int |> Image.RGB8.Color.of_int
           |> Image.Pixel.yuv_of_rgb
         in
         Image.YUV420.fill b#image c;
-        Printf.printf "filled\n%!";
         Lang.unit)
   in
   let set_pixel b =
@@ -88,6 +91,7 @@ let _ =
     ~descr:"A plane where one can draw."
     ~meth:
       [
+        ("clear", ([], Lang.fun_t [] Lang.unit_t), "Clear the board.", clear);
         ( "fill",
           ([], Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t),
           "Fill with given color (0xRRGGBB).",
