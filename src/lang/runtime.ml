@@ -36,8 +36,7 @@ let type_and_run ~throw ~lib ast =
          if Lazy.force Term.debug then
            Printf.eprintf "Checking for unused variables...\n%!";
          (* Check for unused variables, relies on types *)
-         Startup.time "Unused variables check" (fun () ->
-             Term.check_unused ~throw ~lib ast);
+         Term.check_unused ~throw ~lib ast;
          if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
          Startup.time "Evaluation" (fun () -> Evaluation.eval_toplevel ast)))
 
