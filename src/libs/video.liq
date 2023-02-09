@@ -564,3 +564,30 @@ def video.tile(~id=null("video.tile"), %argsof(track.audio.add[!id]), %argsof(tr
 
   source(id=id, new_tracks)
 end
+
+# Plot a floating point value.
+# @category Source / Video processing
+# @param ~color Color of the drawn point (in 0xRRGGBB format).
+# @param ~min Minimal value of the parameter.
+# @param ~max Maximal value of the parameter.
+# @param ~speed Speed in pixels per second.
+# @param y Value to plot.
+def video.plot(~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
+  s = video.board()
+  height = float(s.height())
+  tx = ref(s.width())
+  ty = ref(0)
+  s' = video.translate(x=tx, y=ty, s)
+  # offset of the currently drawn point.
+  x = ref(0)
+  dx = int_of_float(speed * frame.duration())
+  def update()
+    tx := tx() - dx
+    print("y: #{y()}")
+    y = int_of_float(((y() - min) / (max - min)) * height)
+    s.pixel(x(), y) := color
+    print("plot #{x()} , #{y}")
+    x := x() + dx
+  end
+  source.on_frame(s', update)
+end

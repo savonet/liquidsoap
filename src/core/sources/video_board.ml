@@ -29,10 +29,8 @@ class board ?duration img0 () =
     val mutable x = 0
     val mutable y = 0
     method image = img
-    method get_x = x
-    method set_x x' = x <- x'
-    method get_y = y
-    method set_y y' = y <- y'
+    method width = Image.YUV420.width img
+    method height = Image.YUV420.height img
 
     method private synthesize frame off len =
       let frame_width, frame_height = self#video_dimensions in
@@ -41,8 +39,7 @@ class board ?duration img0 () =
       let buf = VFrame.data frame in
       for i = off to off + len - 1 do
         buf.(i) <-
-          Video.Canvas.Image.make ~x ~y ~width:frame_width ~height:frame_height
-            img
+          Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
       done
   end
 
@@ -100,6 +97,14 @@ let _ =
           ([], Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t),
           "Fill with given color (0xRRGGBB).",
           fill );
+        ( "height",
+          ([], Lang.fun_t [] Lang.int_t),
+          "Current height of the board.",
+          fun b -> Lang.val_fun [] (fun _ -> Lang.int b#height) );
+        ( "width",
+          ([], Lang.fun_t [] Lang.int_t),
+          "Current width of the board.",
+          fun b -> Lang.val_fun [] (fun _ -> Lang.int b#width) );
         ( "pixel",
           ( [],
             Lang.fun_t
@@ -107,20 +112,6 @@ let _ =
               (Lang.ref_t Lang.int_t) ),
           "Retrieve a pixel whose contents is a color (in 0xRRGGBB format).",
           pixel );
-        ( "x",
-          ([], Lang.ref_t Lang.int_t),
-          "Horizontal translation.",
-          fun b ->
-            Lang.reference
-              (fun () -> b#get_x |> Lang.int)
-              (fun x' -> x' |> Lang.to_int |> b#set_x) );
-        ( "y",
-          ([], Lang.ref_t Lang.int_t),
-          "Vertical translation.",
-          fun b ->
-            Lang.reference
-              (fun () -> b#get_y |> Lang.int)
-              (fun y' -> y' |> Lang.to_int |> b#set_y) );
       ]
     (fun p ->
       let width =
