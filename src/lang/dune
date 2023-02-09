@@ -121,6 +121,7 @@
   preprocessor
   profiler
   repr
+  ref_type
   regexp
   runtime
   runtime_error
