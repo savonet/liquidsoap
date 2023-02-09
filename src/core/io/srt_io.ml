@@ -25,9 +25,6 @@
 exception Done
 exception Not_connected
 
-(** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "SRT")
-
 let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
@@ -637,7 +634,7 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
 
     inherit
       Start_stop.active_source
-        ~name:"input.srt" ~clock_safe ~get_clock ~on_start ~on_stop ~autostart
+        ~name:"input.srt" ~clock_safe ~on_start ~on_stop ~autostart
           ~fallible:true () as super
 
     val mutable decoder_data = None
