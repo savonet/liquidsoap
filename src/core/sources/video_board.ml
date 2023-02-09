@@ -49,7 +49,7 @@ class board ?duration img0 () =
 let _ =
   let clear b =
     Lang.val_fun [] (fun _ ->
-        Image.YUV420.fill b#image (Image.Pixel.yuv_of_rgb (0, 0, 0));
+        Image.YUV420.blank b#image;
         Lang.unit)
   in
   let fill b =
@@ -63,18 +63,22 @@ let _ =
         Image.YUV420.fill b#image c;
         Lang.unit)
   in
-  let set_pixel b =
+  let pixel b =
     Lang.val_fun
-      [("color", "color", None); ("", "x", None); ("", "y", None)]
+      [("", "x", None); ("", "y", None)]
       (fun p ->
-        let img = b#image in
-        let r, g, b =
-          List.assoc "color" p |> Lang.to_int |> Image.RGB8.Color.of_int
-        in
         let x = List.assoc "x" p |> Lang.to_int in
         let y = List.assoc "y" p |> Lang.to_int in
-        Image.YUV420.set_pixel_rgba img x y (r, g, b, 0xff);
-        Lang.unit)
+        Lang.reference
+          (fun () ->
+            let img = b#image in
+            let r, g, b, _ = Image.YUV420.get_pixel_rgba img x y in
+            let c = Image.RGB8.Color.to_int (r, g, b) in
+            Lang.int c)
+          (fun c ->
+            let img = b#image in
+            let r, g, b = c |> Lang.to_int |> Image.RGB8.Color.of_int in
+            Image.YUV420.set_pixel_rgba img x y (r, g, b, 0xff)))
   in
   Lang.add_operator ~base:Modules.video "board"
     [
@@ -96,17 +100,13 @@ let _ =
           ([], Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t),
           "Fill with given color (0xRRGGBB).",
           fill );
-        ( "set_pixel",
+        ( "pixel",
           ( [],
             Lang.fun_t
-              [
-                (false, "color", Lang.int_t);
-                (false, "", Lang.int_t);
-                (false, "", Lang.int_t);
-              ]
-              Lang.unit_t ),
-          "Set pixel to given color.",
-          set_pixel );
+              [(false, "", Lang.int_t); (false, "", Lang.int_t)]
+              (Lang.ref_t Lang.int_t) ),
+          "Retrieve a pixel whose contents is a color (in 0xRRGGBB format).",
+          pixel );
         ( "x",
           ([], Lang.ref_t Lang.int_t),
           "Horizontal translation.",
@@ -140,4 +140,5 @@ let _ =
           | None -> Lazy.force Frame.video_height
       in
       let img = Video.YUV420.create width height in
+      Image.YUV420.blank img;
       new board img ())
