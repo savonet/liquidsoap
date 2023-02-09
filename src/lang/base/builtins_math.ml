@@ -87,7 +87,8 @@ let () =
            match (a, b) with
              | `Int a, `Int b -> Lang.int (op_int a b)
              | `Float a, `Float b -> Lang.float (op_float a b)
-             | _ -> assert false))
+             | `Int a, `Float b -> Lang.float (op_float (float a) b)
+             | `Float a, `Int b -> Lang.float (op_float a (float b))))
   in
   register_op "Multiplication" "*" ( * ) ( *. );
   register_op "Division" "/" ( / ) ( /. );
