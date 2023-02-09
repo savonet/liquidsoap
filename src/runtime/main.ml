@@ -129,9 +129,8 @@ let do_eval, eval =
               try Filename.chop_extension basename with _ -> basename
             in
             Utils.var_script := basename;
-            let t = Sys.time () in
-            Runtime.from_file ~lib ~parse_only:!parse_only f;
-            log#important "Loaded %s in %.02f seconds." f (Sys.time () -. t)
+            Startup.time ("Loaded " ^ f) (fun () ->
+                Runtime.from_file ~lib ~parse_only:!parse_only f)
     with Liquidsoap_lang.Runtime.Error ->
       flush_all ();
       exit 1
