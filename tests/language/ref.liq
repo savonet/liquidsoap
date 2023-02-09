@@ -22,6 +22,9 @@ def f() =
   f = ref(id)
   f := incr
 
+  r = ref.make({0},fun(x)->ignore(x+1))
+  _ = ref.map(float_of_int, int_of_float, r)
+
   if success() then test.pass() else test.fail() end
 end
 
