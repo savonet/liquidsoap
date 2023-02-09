@@ -51,11 +51,13 @@ let _ =
     Lang.val_fun
       [("", "", None)]
       (fun p ->
+        Printf.printf "\nfilling!\n\n%!";
         let c =
           List.assoc "" p |> Lang.to_int |> Image.RGB8.Color.of_int
           |> Image.Pixel.yuv_of_rgb
         in
         Image.YUV420.fill b#image c;
+        Printf.printf "filled\n%!";
         Lang.unit)
   in
   let set_pixel b =
@@ -106,15 +108,15 @@ let _ =
           "Horizontal translation.",
           fun b ->
             Lang.reference
-              (fun () -> Lang.int @@ b#get_x)
-              (fun x' -> b#set_x @@ Lang.to_int @@ x') );
+              (fun () -> b#get_x |> Lang.int)
+              (fun x' -> x' |> Lang.to_int |> b#set_x) );
         ( "y",
           ([], Lang.ref_t Lang.int_t),
           "Vertical translation.",
           fun b ->
             Lang.reference
-              (fun () -> Lang.int @@ b#get_y)
-              (fun y' -> b#set_y @@ Lang.to_int @@ y') );
+              (fun () -> b#get_y |> Lang.int)
+              (fun y' -> y' |> Lang.to_int |> b#set_y) );
       ]
     (fun p ->
       let width =
