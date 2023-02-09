@@ -33,9 +33,13 @@ class board ?duration img0 () =
     method width = Image.YUV420.width img
     method height = Image.YUV420.height img
 
+    method set_pixel_safe (x, y) c =
+      if x >= 0 && y >= 0 && x < self#width && y < self#height then
+        Image.YUV420.set_pixel_rgba img x y c
+
     method set_pixel (x, y) c =
       last_point <- Some (x, y);
-      Image.YUV420.set_pixel_rgba img x y c
+      self#set_pixel_safe (x, y) c
 
     method line_to (x, y) (r, g, b) =
       match last_point with
@@ -43,7 +47,7 @@ class board ?duration img0 () =
         | Some (x', y') ->
             last_point <- Some (x, y);
             Image.Draw.line
-              (fun x y -> Image.YUV420.set_pixel_rgba img x y (r, g, b, 0xff))
+              (fun x y -> self#set_pixel_safe (x, y) (r, g, b, 0xff))
               (x', y') (x, y)
 
     method private synthesize frame off len =
@@ -171,5 +175,6 @@ let _ =
           | None -> Lazy.force Frame.video_height
       in
       let img = Video.YUV420.create width height in
+      Printf.printf "image: %dx%d\nx%!" width height;
       Image.YUV420.blank img;
       new board img ())

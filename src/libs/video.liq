@@ -573,7 +573,8 @@ end
 # @param ~speed Speed in pixels per second.
 # @param y Value to plot.
 def video.plot(~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
-  s = video.board()
+  w = video.frame.width()
+  s = video.board(width=w)
   height = float(s.height())
   tx = ref(s.width())
   ty = ref(0)
