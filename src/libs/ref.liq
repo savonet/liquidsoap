@@ -13,6 +13,15 @@ def ref.getter(r) =
   {r()}
 end
 
+# Map functions to a reference.
+# @category Programming
+# @param g Function to apply to the getter.
+# @param s Function to apply to the setter.
+def ref.map(g,s,r) =
+  set = r.set
+  ref.make({g(r())}, fun(x)->set(s(x)))
+end
+
 # Increment a reference to an integer.
 # @category Programming
 def ref.incr(r)
