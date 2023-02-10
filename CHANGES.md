@@ -28,7 +28,7 @@ New:
   the value of a reference. Setting a reference can be done both by `x.set(v)`
   and `x := v`, which is still supported as a notation (#2881).
 - Added `ref.make` and `ref.map`.
-- Added `video.board` (#2886).
+- Added `video.board`, `video.graph`, `video.info` (#2886).
 
 Changed:
 

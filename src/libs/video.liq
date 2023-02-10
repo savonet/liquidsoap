@@ -292,7 +292,7 @@ def add_text_builder(f) =
 
     # Our text source.
     t = f(id=id, duration=duration, color=color, font=font, size=size, text)
-    t = video.dimensions(video.crop(t))
+    t = video.info(video.crop(t))
 
     # Handle scrolling if necessary.
     x = if speed == 0 then x else
@@ -573,8 +573,12 @@ end
 # @param ~speed Speed in pixels per second.
 # @param y Value to plot.
 def video.plot(~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
-  w = video.frame.width()
-  s = video.board(width=w)
+  print("dims vp : #{video.frame.width()} x #{video.frame.height()}")
+  width = video.frame.width()
+  height = video.frame.height()
+  s = video.board(width=width*2, height=height)
+    print("dims vp2 : #{s.width()} x #{s.height()}")
+  print("\n\n******dimensions: #{width*2} x #{s.height()}*****************")
   height = float(s.height())
   tx = ref(s.width())
   ty = ref(0)

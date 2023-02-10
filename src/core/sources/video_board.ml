@@ -162,7 +162,7 @@ let _ =
         List.assoc "width" p |> Lang.to_option |> Option.map Lang.to_int
       in
       let height =
-        List.assoc "width" p |> Lang.to_option |> Option.map Lang.to_int
+        List.assoc "height" p |> Lang.to_option |> Option.map Lang.to_int
       in
       let width =
         match width with
