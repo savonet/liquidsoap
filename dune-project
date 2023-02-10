@@ -36,7 +36,7 @@
     ao
     bjack
     camlimages
-    (camomile (>= 1.0.0))
+    camomile
     dssi
     faad
     fdkaac
@@ -84,6 +84,7 @@
     (alsa (< 0.3.0))
     (ao (< 0.2.0))
     (bjack (< 0.1.3))
+    (camomile (< 1.0.0))
     (dssi (< 0.1.3))
     (faad (< 0.5.0))
     (fdkaac (< 0.3.1))
