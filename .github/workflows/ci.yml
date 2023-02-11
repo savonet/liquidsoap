@@ -94,7 +94,7 @@ jobs:
   build_js:
     runs-on: ubuntu-latest
     container:
-      image: savonet/liquidsoap-ci:debian_bullseye_amd64
+      image: savonet/liquidsoap-ci:debian_bookworm_amd64
       options: --user opam
     env:
       HOME: /home/opam
@@ -113,8 +113,55 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           eval "$(opam config env)"
-          opam install -y js_of_ocaml js_of_ocaml-ppx
           dune build --profile release ./src/js/interactive_js.bc.js
+
+  update_doc:
+    runs-on: ubuntu-latest
+    needs: build_details
+    if: github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
+    container:
+      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+    env:
+      HOME: /home/opam
+    steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@v1
+        id: cpu_cores
+      - name: Enable core dump
+        run: |
+          ulimit -c unlimited
+          mkdir -p /tmp/${{ github.run_number }}/core
+          chown -R opam /tmp/${{ github.run_number }}/core
+          echo /tmp/${{ github.run_number }}/core/core.%h.%e.%t > /proc/sys/kernel/core_pattern
+      - name: Checkout code
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          rm -rf doc/content/build.md doc/content/install.md
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
+          sudo -u opam -E git fetch origin ${{ github.sha }}
+          sudo -u opam -E git checkout ${{ github.sha }}
+      - name: Build doc
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
+          cd /tmp/liquidsoap-full/liquidsoap/
+          eval $(opam config env)
+          dune build --release src/js
+          cd /tmp/liquidsoap-full/website
+          make dist
+          cp -rf html /tmp/${{ github.run_number }}/
+      - name: Push content
+        if: success() && github.repository_owner == 'savonet'
+        uses: crazy-max/ghaction-github-pages@v2
+        with:
+          repo: savonet/savonet.github.io
+          target_branch: master
+          build_dir: ${{ github.workspace }}/${{ github.run_number }}/html
+          fqdn: www.liquidsoap.info
+        env:
+          GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
     runs-on: ubuntu-latest
@@ -145,7 +192,6 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
-          sudo -u opam opam install -y irc-client-unix osc-unix
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
           cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
       - name: Compute stats
@@ -240,7 +286,6 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
-          sudo -u opam opam install -y irc-client-unix osc-unix
           sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }} ${{ matrix.platform }}
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
