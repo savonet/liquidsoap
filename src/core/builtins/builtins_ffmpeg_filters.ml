@@ -445,7 +445,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
     in
     Lang.meth Lang.unit meths)
 
-let () =
+let register_filters () =
   Avfilter.(
     let mk_av_t ~flags ~mode { audio; video } =
       match mode with
@@ -552,6 +552,9 @@ let () =
              ~flags:[`Extra] args_t return_t
              (apply_filter ~args_parser ~filter ~sources_t)))
       filters)
+
+let () =
+  Startup.time "FFmpeg filters registration" register_filters
 
 let abuffer_args frame =
   let sample_rate = Avutil.Audio.frame_get_sample_rate frame in

@@ -167,7 +167,7 @@ let handler_getters (type a) ~put_data ~(mk_params : a mk_params)
   in
   (current_handler, get_handler, clear_handler)
 
-let () =
+let register_filters () =
   List.iter
     (fun ({ Avcodec.BitstreamFilter.name; codecs; options } as filter) ->
       let args, args_parser = Builtins_ffmpeg_filters.mk_options options in
@@ -331,3 +331,6 @@ let () =
                  producer)))
         modes)
     Avcodec.BitstreamFilter.filters
+
+let () =
+  Startup.time "FFmpeg bitstream filters registration" register_filters
