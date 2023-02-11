@@ -332,5 +332,4 @@ let register_filters () =
         modes)
     Avcodec.BitstreamFilter.filters
 
-let () =
-  Startup.time "FFmpeg bitstream filters registration" register_filters
+let () = Startup.time "FFmpeg bitstream filters registration" register_filters

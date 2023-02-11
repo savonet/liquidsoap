@@ -234,8 +234,7 @@ let () =
       if dssi_enable then (
         dssi_init ();
         register_plugins ());
-      List.iter (register_plugin ~log_errors:true) dssi_load
-    )
+      List.iter (register_plugin ~log_errors:true) dssi_load)
 
 let _ =
   Lang.add_builtin ~base:dssi "register" ~category:(`Source `Synthesis)
