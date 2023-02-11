@@ -271,7 +271,8 @@ class virtual switch ~name ~override_meta ~transition_length
 (** Common tools for Lang bindings of switch operators *)
 
 let default_transition =
-  Lang.val_fun [("", "x", None); ("", "y", None)] (fun e -> List.assoc "y" e)
+  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+    "fun (_, y) -> y"
 
 (** Switch: switch according to user-defined predicates. *)
 
