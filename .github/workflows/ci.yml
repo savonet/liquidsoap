@@ -128,12 +128,6 @@ jobs:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1
         id: cpu_cores
-      - name: Enable core dump
-        run: |
-          ulimit -c unlimited
-          mkdir -p /tmp/${{ github.run_number }}/core
-          chown -R opam /tmp/${{ github.run_number }}/core
-          echo /tmp/${{ github.run_number }}/core/core.%h.%e.%t > /proc/sys/kernel/core_pattern
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
