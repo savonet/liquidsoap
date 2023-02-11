@@ -27,11 +27,6 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
-if [ -z "${LIQ_BUILD_MIN}" ]; then
-  git clone https://github.com/savonet/ocaml-posix.git
-  cd ocaml-posix && opam install -y . && cd ..
-fi
-
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh

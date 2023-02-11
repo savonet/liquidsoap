@@ -235,8 +235,6 @@ jobs:
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
-          apk add opam=`apk version opam | grep opam | cut -d' ' -f 1 | sed 's#opam-##'g`
-          [ "${{ matrix.platform }}" = "armhf" ] && apk add ocaml=`apk version ocaml | grep ocaml | cut -d' ' -f 1 | sed 's#ocaml-##'g`
           apk -U --force-overwrite upgrade
       - name: Build
         run: |
