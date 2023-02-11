@@ -512,6 +512,7 @@ operations are available.
   ```
 
   declares the variable `x` as being 9 (which is 5+4).
+
 - One can change the value of the reference by using the `:=` keyword, e.g.
 
   ```liquidsoap
@@ -520,11 +521,11 @@ operations are available.
 
   will assign the value 2 to `r`. Internally, this is done by calling the `set`
   method of the reference, so that the above is equivalent to writing
-  
+
   ```liquidsoap
   r.set(2)
   ```
-  
+
   which used to be the syntax for some reference manipulations.
 
 ### Loops
