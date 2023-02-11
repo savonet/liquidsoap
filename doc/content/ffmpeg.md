@@ -40,13 +40,13 @@ The `settings.decoder.decoders` settings controls which decoders are to be used 
 You can use it to restrict which decoders are being used, for instance making sure only the ffmpeg decoder is used:
 
 ```liquidsoap
-settings.decoder.decoders.set(["FFMPEG"])
+settings.decoder.decoders := ["FFMPEG"]
 ```
 
 Priority for the decoder is set via:
 
 ```liquidsoap
-settings.decoder.priorities.ffmpeg.set(10)
+settings.decoder.priorities.ffmpeg := 10
 ```
 
 You can use this setting to adjust whether or not the ffmpeg decoder should be tried first when decoding media files, in particular in
@@ -58,12 +58,12 @@ decode this type of content (there could more than one decoder for a given codec
 For instance, for the `aac` codec:
 
 - `settings.decoder.ffmpeg.codecs.aac.available()` returns the list of available decoders, typically `["aac", "aac_fixed"]`.
-- `settings.decoder.ffmpeg.codecs.aac.set` can be used to choose which decoder should be used, typically: `settings.decoder.ffmpeg.codecs.aac.set("aac")`
+- `settings.decoder.ffmpeg.codecs.aac` can be used to choose which decoder should be used, typically: `settings.decoder.ffmpeg.codecs.aac := "aac"`
 
 When debugging issues with `ffmpeg`, it can be useful to increase the log verbosity.
 
 ```liquidsoap
-settings.ffmpeg.log.verbosity.set("warning")
+settings.ffmpeg.log.verbosity := "warning"
 ```
 
 This settings sets the verbosity of `ffmpeg` logs. Possible values, from less verbose to more verbose are:
@@ -128,7 +128,7 @@ Some containers such as `mp4`, however, do allow stream where video resolution o
 relax those compatibility checks using the following setting:
 
 ```liquidsoap
-settings.ffmpeg.content.copy.relaxed_compatibility_check.set(true)
+settings.ffmpeg.content.copy.relaxed_compatibility_check := true
 ```
 
 This is a global setting for now and could be refined per-stream in the future if the needs arises.

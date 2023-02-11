@@ -502,24 +502,30 @@ ref(int)
 ```
 
 meaning that its a memory cell containing integers. On such a reference, two
-operations are available:
+operations are available.
 
-- one can obtain the value of the reference by applying the reference to `()`,
+- One can obtain the value of the reference by applying the reference to `()`,
   so that `r()` denotes the value contained in the reference `r`, for instance
 
   ```liquidsoap
   x = r() + 4
   ```
 
-  declares the variable `x` as being 9 (which is 5+4),
-
-- one can change the value of the reference by using the `:=` keyword, e.g.
+  declares the variable `x` as being 9 (which is 5+4).
+- One can change the value of the reference by using the `:=` keyword, e.g.
 
   ```liquidsoap
   r := 2
   ```
 
-  will assign the value 2 to `r`.
+  will assign the value 2 to `r`. Internally, this is done by calling the `set`
+  method of the reference, so that the above is equivalent to writing
+  
+  ```liquidsoap
+  r.set(2)
+  ```
+  
+  which used to be the syntax for some reference manipulations.
 
 ### Loops
 

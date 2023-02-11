@@ -5,6 +5,12 @@ Liquidsoap.
 
 ## From 2.1.x to 2.2.x
 
+### References
+
+The `!x` notation for getting the value of a reference is now deprecated. You
+should write `x()` instead. And `x := v` is now an alias for `x.set(v)` (both
+can be used interchangeably).
+
 ### Harbor HTTP server
 
 The API for registering HTTP server endpoint was completely. It should be more flexible and

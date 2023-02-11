@@ -107,21 +107,21 @@ it this way or can in our [build page](build.html).
 
 ## Settings
 
-Liquidsoap scripts contain expression like `settings.log.stdout.set(true)`.
+Liquidsoap scripts contain expression like `settings.log.stdout := true`.
 These are _settings_, global variables affecting the behaviour of the
 application.
 
 Some common settings have shortcut for convenience. These are all shortcuts to their respective `settings` values:
 
 ```liquidsoap
-log.level.set(4)
-log.file.set(true)
-log.stdout.set(true)
-init.daemon.set(true)
-audio.samplerate.set(48000)
-audio.channels.set(2)
-video.frame.width.set(720)
-video.frame.height.set(1280)
+log.level :=4
+log.file := true
+log.stdout := true
+init.daemon := true
+audio.samplerate := 48000
+audio.channels := 2
+video.frame.width := 720
+video.frame.height := 1280
 ```
 
 You can have a list of available settings, with their documentation,

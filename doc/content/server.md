@@ -25,7 +25,7 @@ the available server commands.
 ### Using telnet
 
 Now, we shall simply enable the Telnet interface to the server, by setting
-`settings.server.telnet.set(true)` or simply passing the `-t` option on the
+`settings.server.telnet := true` or simply passing the `-t` option on the
 command-line. In a [complete case analysis](complete_case.html) we set up a
 `request.queue()` instance to play user requests. It had the identifier
 `"queue"`. We are now going to interact via the server to push requests into
@@ -101,7 +101,7 @@ Similarly, we can switch between two tracks using `interactive.bool` and
 
 ```liquidsoap
 # Activate the telnet server
-settings.server.telnet.set(true)
+settings.server.telnet := true
 
 # The two sources
 s1 = playlist("~/Music")
@@ -175,8 +175,8 @@ through SSH, has only access to the command server.
 First, we enable the unix socket for the command server in Liquidsoap:
 
 ```liquidsoap
-settings.server.socket.set(true)
-settings.server.socket.path.set("/path/to/socket")
+settings.server.socket := true
+settings.server.socket.path := "/path/to/socket"
 ```
 
 When started, liquidsoap will create a socket file `/path/to/socket`

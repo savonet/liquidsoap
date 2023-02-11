@@ -246,7 +246,7 @@ let print_settings () =
         [
           Printf.sprintf {|
 ```liquidsoap
-%s.set(%s)
+%s := %s
 ```
 |} path
             (if value.Value.value = Value.Null then "<value>"
@@ -256,7 +256,7 @@ let print_settings () =
         [
           Printf.sprintf {|
 ```liquidsoap
-%s.set(%s)
+%s := %s
 ```
 |} path
             (Value.to_string { Value.pos = None; value });
@@ -307,7 +307,7 @@ let _ =
        (fun p ->
          log#severe
            "WARNING: \"set\" is deprecated and will be removed in future \
-            version. Please use `settings.path.to.key.set(value)`";
+            version. Please use `settings.path.to.key := value`";
          let path = Lang.to_string (Lang.assoc "" 1 p) in
          let value = Lang.assoc "" 2 p in
          (try

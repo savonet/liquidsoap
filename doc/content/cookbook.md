@@ -11,8 +11,8 @@ For longer recipes, you might want to create a short script:
 ```liquidsoap
 #!/usr/bin/liquidsoap -v
 
-log.file.path.set("/tmp/<script>.log")
-log.stdout.set(true)
+log.file.path := "/tmp/<script>.log"
+log.stdout := true
 
 recipe = # <fill this>
 output(recipe)
@@ -207,7 +207,7 @@ An example can be:
 
 ```liquidsoap
 # Serveur settings
-settings.harbor.bind_addrs.set(["0.0.0.0"])
+settings.harbor.bind_addrs := ["0.0.0.0"]
 
 # An emergency file
 emergency = single("/path/to/emergency/single.ogg")
@@ -344,10 +344,10 @@ The solution is then to set liquidsoap's internal frame size to this value, whic
 # Set correct frame size:
 # This makes it possible to set any audio frame size.
 # Make sure that you do NOT use video in this case!
-video.frame.rate.set(0)
+video.frame.rate := 0
 
 # Now set the audio frame size exactly as required:
-settings.frame.audio.size.set(2048)
+settings.frame.audio.size := 2048
 
 input = input.alsa(bufferize=false)
 output.alsa(bufferize=false,input)

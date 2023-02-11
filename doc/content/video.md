@@ -217,7 +217,7 @@ parameters in realtime. There are many OSC clients around, for instance I used
 
 ```liquidsoap
 # Set the OSC port to match TouchOSC's default port
-settings.osc.port.set(8000)
+settings.osc.port := 8000
 
 # Input from the webcam
 s = input.v4l2_with_audio()

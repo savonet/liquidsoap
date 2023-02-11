@@ -25,7 +25,7 @@ The encoder's parameters are as follows:
 
 Without using the `pipeline` argument, the `audio` and `video` arguments are used to build the
 gstreamer pipeline used to encode. By setting the `log` parameter to a lower value or by using
-`log.level.set(...)`, you should be able to see some example.
+`log.level := ...`, you should be able to see some example.
 
 ## Basic examples
 

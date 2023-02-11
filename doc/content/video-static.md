@@ -12,7 +12,7 @@ Well, that is fairly easy!
 Here is the code:
 
 ```liquidsoap
-log.level.set(4)
+log.level := 4
 
 audio = once(single("/tmp/bla.mp3"))
 video = single("/tmp/bla.jpg")

@@ -53,6 +53,6 @@ The metadata added for cue-in and cue-out positions can be customized using the 
 configuration keys:
 
 ```liquidsoap
-settings.playlists.cue_in_metadata.set("liq_cue_in")
-settings.playlists.cue_out_metadata.set("liq_cue_out")
+settings.playlists.cue_in_metadata := "liq_cue_in"
+settings.playlists.cue_out_metadata := "liq_cue_out"
 ```

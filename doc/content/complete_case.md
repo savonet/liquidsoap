@@ -22,12 +22,12 @@ Now here is how to write that in [Liquidsoap](index.html).
 
 # Put the log file in some directory where
 # you have permission to write.
-log.file.path.set("/tmp/<script>.log")
+log.file.path := "/tmp/<script>.log"
 # Print log messages to the console,
 # can also be done by passing the -v option to liquidsoap.
-log.stdout.set(true)
+log.stdout := true
 # Use the telnet server for requests
-settings.server.telnet.set(true)
+settings.server.telnet := true
 
 # A bunch of files and playlists,
 # supposedly all located in the same base dir.

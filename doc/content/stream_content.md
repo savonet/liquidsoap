@@ -49,10 +49,10 @@ You can change it using the `frame.audio/video.*`
 settings, shown here with their default values:
 
 ```liquidsoap
-audio.samplerate.set(44100)
-video.frame.width.set(320)
-video.frame.height.set(240)
-video.frame.rate.set(25)
+audio.samplerate := 44100
+video.frame.width := 320
+video.frame.height := 240
+video.frame.rate := 25
 ```
 
 ## Checking stream contents
