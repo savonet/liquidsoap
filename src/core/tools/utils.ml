@@ -20,6 +20,14 @@
 
  *****************************************************************************)
 
+(* Util to log exception and backtrace together
+   when log level is set to info and just exception
+   as severe otherwise. Backtrace should be captured as early
+   as possible. *)
+let log_exception ~(log : Log.t) ~bt msg =
+  if log#active 4 (* info *) then log#info "%s\n%s" msg bt
+  else log#severe "%s" msg
+
 (* Force locale to C *)
 external force_locale : unit -> unit = "liquidsoap_set_locale" [@@noalloc]
 
@@ -111,6 +119,7 @@ let () = Printexc.register_printer unix_translator
  * and interpolates them just like make does, using the hash table for
  * variable definitions. *)
 let interpolate =
+  let log = Log.make ["string"; "interpolate"] in
   (* TODO Use PCRE *)
   let quoted = "\"\\(\\([^\"\\]\\|\\(\\\\\"\\)\\)*\\)\"" in
   (* 3 groups *)
@@ -149,7 +158,13 @@ let interpolate =
           if p = "\\" then Str.matched_group 2 s
           else p ^ find (Str.matched_group 3 s))
     in
-    interpolate (process_if s)
+    try interpolate (process_if s)
+    with exn ->
+      let bt = Printexc.get_backtrace () in
+      log_exception ~log ~bt
+        (Printf.sprintf "Error while interpolating string: %s"
+           (Printexc.to_string exn));
+      s
 
 (** [which s] is equivalent to /usr/bin/which s, raises Not_found on error *)
 let which ~path s =
@@ -400,14 +415,6 @@ let string_of_size n =
   else if n < 1 lsl 30 then
     Printf.sprintf "%.02f MiB" (float_of_int n /. float_of_int (1 lsl 20))
   else Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
-
-(* Util to log exception and backtrace together
-   when log level is set to info and just exception
-   as severe otherwise. Backtrace should be captured as early
-   as possible. *)
-let log_exception ~(log : Log.t) ~bt msg =
-  if log#active 4 (* info *) then log#info "%s\n%s" msg bt
-  else log#severe "%s" msg
 
 let self_sync_type sources =
   lazy
