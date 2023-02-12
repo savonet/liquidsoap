@@ -145,7 +145,7 @@ jobs:
           dune build --release src/js
           cd /tmp/liquidsoap-full/website
           make dist
-          cp -rf html /tmp/${{ github.run_number }}/
+          mv html /tmp/${{ github.run_number }}/
       - name: Push content
         if: success() && github.repository_owner == 'savonet'
         uses: crazy-max/ghaction-github-pages@v2
