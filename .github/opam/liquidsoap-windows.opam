@@ -60,7 +60,7 @@ depopts: [
   "magic-windows"
   "memtrace-windows"
   "mem_usage-windows"
-  "ocurl-windows"
+  "curl-windows"
   "ogg-windows"
   "opus-windows"
   "osx-secure-transport-windows"
