@@ -104,7 +104,7 @@ conflicts: [
   "mad-windows" {< "0.5.0"}
   "magic-windows" {< "0.6"}
   "mem_usage-windows" {< "0.0.3"}
-  "ocurl-windows" {< "0.9.2"}
+  "curl-windows" {< "0.9.2"}
   "ogg-windows" {< "0.7.0"}
   "opus-windows" {< "0.2.0"}
   "portaudio-windows" {< "0.2.0"}
