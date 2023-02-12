@@ -121,7 +121,7 @@ jobs:
     if: github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
     container:
       image: savonet/liquidsoap-ci:debian_bookworm_amd64
-      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
     steps:
