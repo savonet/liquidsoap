@@ -146,7 +146,9 @@ jobs:
           cd /tmp/liquidsoap-full/website
           make dist
           mkdir -p /tmp/${{ github.run_number }}
-          mv html /tmp/${{ github.run_number }}/
+          cp -rf html /tmp/${{ github.run_number }}
+      - name: Debug
+        run: ls -l {{ github.workspace }}/${{ github.run_number }}/html
       - name: Push content
         if: success() && github.repository_owner == 'savonet'
         uses: crazy-max/ghaction-github-pages@v2
