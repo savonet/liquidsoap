@@ -29,6 +29,7 @@ Fixed:
 * Fixed input polling stop (#2769)
 * Fixed crash in external processes when received a `Unix.EINTR`
   event (#2861)
+* Fixed crash in `string.interpolate` (#2883)
 * Cleaned up srt support.
 
 ---
