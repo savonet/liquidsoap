@@ -57,7 +57,7 @@ depopts: [
   "lo-windows"
   "mad-windows"
   "magic-windows"
-  "ocurl-windows"
+  "curl-windows"
   "ogg-windows"
   "opus-windows"
   "portaudio-windows"
