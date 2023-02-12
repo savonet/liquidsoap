@@ -147,8 +147,6 @@ jobs:
           make dist
           mkdir -p /tmp/${{ github.run_number }}/html
           cp -rf html/* /tmp/${{ github.run_number }}/html
-      - name: Debug
-        run: ls -l ${{ github.workspace }}/${{ github.run_number }}/html
       - name: Push content
         if: success() && github.repository_owner == 'savonet'
         uses: crazy-max/ghaction-github-pages@v2
