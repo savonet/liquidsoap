@@ -355,8 +355,11 @@ let wait_for ?(log = fun _ -> ()) event timeout =
       | `Both socket -> ([socket], [socket])
   in
   let rec wait t =
-    let l, l', _ = Unix.select r w [] t in
-    if l = [] && l' = [] then (
+    let r, w, _ =
+      try Unix.select r w [] t
+      with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [], [])
+    in
+    if r = [] && w = [] then (
       let current_time = Unix.gettimeofday () in
       if current_time >= max_time then (
         log "Timeout reached!";

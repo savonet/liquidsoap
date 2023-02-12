@@ -27,6 +27,8 @@ Fixed:
 * Fixed shutdown livelock with some ffmpeg inline encoder,
   decoder and filter operators.
 * Fixed input polling stop (#2769)
+* Fixed crash in external processes when received a `Unix.EINTR`
+  event (#2861)
 * Cleaned up srt support.
 
 ---
