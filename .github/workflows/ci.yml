@@ -104,7 +104,7 @@ jobs:
           git reset --hard
           git pull
           cp PACKAGES.minimal PACKAGES
-          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app
+          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | grep -v camomile | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app
           echo "::endgroup::"
           cd liquidsoap
           ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
@@ -226,7 +226,6 @@ jobs:
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
-          apk add opam=`apk version opam | grep opam | cut -d' ' -f 1 | sed 's#opam-##'g`
           [ "${{ matrix.platform }}" = "armhf" ] && apk add ocaml=`apk version ocaml | grep ocaml | cut -d' ' -f 1 | sed 's#ocaml-##'g`
           apk -U --force-overwrite upgrade
       - name: Build

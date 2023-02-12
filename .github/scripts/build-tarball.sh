@@ -12,7 +12,6 @@ make public
 git reset --hard
 
 git pull
-make clean
 make public
 make update
 
