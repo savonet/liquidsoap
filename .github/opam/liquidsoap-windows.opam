@@ -25,6 +25,7 @@ depends: [
   "pcre-windows" {>= "7.5.0"}
   "sedlex"
   "sedlex-windows"
+  "menhir"
   "menhir-windows"
   "menhirLib-windows"
   "metadata-windows"
