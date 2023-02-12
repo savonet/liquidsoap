@@ -145,7 +145,6 @@ jobs:
           dune build --release src/js
           cd /tmp/liquidsoap-full/website
           make dist
-          ls -l html
           mv html /tmp/${{ github.run_number }}/
       - name: Push content
         if: success() && github.repository_owner == 'savonet'
@@ -153,7 +152,7 @@ jobs:
         with:
           repo: savonet/savonet.github.io
           target_branch: master
-          build_dir: ${{ github.workspace }}/${{ github.run_number }}/html
+          build_dir: /tmp/${{ github.run_number }}/html
           fqdn: www.liquidsoap.info
         env:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
