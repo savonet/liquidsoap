@@ -1,7 +1,7 @@
 LIQ = $(sort $(wildcard *.liq))
 TESTS = $(filter-out test, $(basename $(LIQ)))
 
-test: $(TESTS)
+test: files $(TESTS)
 
 files:
 	mkdir -p files
@@ -20,7 +20,7 @@ files:
 clean:
 	rm -rf files
 
-%: %.liq files
+%: %.liq
 	@../run_test.sh "../../src/liquidsoap --no-stdlib ../../libs/stdlib.liq -" streams/$<
 
 .PHONY: test
