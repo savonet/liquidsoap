@@ -20,6 +20,7 @@ depends: [
   "camomile-windows" {>= "1.0.0"}
   "dtools-windows" {>= "0.4.4"}
   "duppy-windows" {>= "0.9.1"}
+  "menhir" {>= "20180703" & <= "20211128"}
   "menhir-windows" {>= "20180703" & <= "20211128"}
   "mm-windows" {>= "0.8.0"}
   "ocamlfind" {build}
