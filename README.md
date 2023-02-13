@@ -79,6 +79,34 @@ We also have written _the Liquidsoap book_ which is [available
 online](http://www.liquidsoap.info/book/book.pdf) and in [physical
 version](https://www.amazon.com/dp/B095PVTYR3).
 
+## Contributing
+
+Contributions are more than welcome: you can submit
+[issues](https://github.com/savonet/liquidsoap/issues) if you find some, or
+contribute to the code through [pull
+requests](https://github.com/savonet/liquidsoap/pulls). You can checkout the
+code with
+
+```
+git checkout git@github.com:savonet/liquidsoap.git
+```
+
+and build with
+
+```
+dune build
+```
+
+In order to ensure the quality of your commits, you are recommended to install
+the pre-commit hooks with
+
+```
+pre-commit install
+```
+
+Those will automatically check before each commit that those meet some of our
+quality requirements.
+
 ## License
 
 This program is free software; you can redistribute it and/or modify it under
