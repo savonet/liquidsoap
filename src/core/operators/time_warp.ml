@@ -337,7 +337,7 @@ module AdaptativeBuffer = struct
                           0 slen
                       in
                       assert (len = dlen);
-                      Audio.blit buf off dst off len
+                      Audio.blit buf off dst dofs len
                   | None ->
                       let src = Audio.create self#audio_channels slen in
                       RB.read c.rb src;
