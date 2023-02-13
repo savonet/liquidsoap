@@ -33,6 +33,10 @@ class board ?duration img0 () =
     method width = Image.YUV420.width img
     method height = Image.YUV420.height img
 
+    method clear =
+      Image.YUV420.blank img;
+      last_point <- None
+
     method set_pixel (x, y) c =
       last_point <- Some (x, y);
       try Image.YUV420.set_pixel_rgba img x y c
@@ -61,7 +65,18 @@ class board ?duration img0 () =
 let _ =
   let clear b =
     Lang.val_fun [] (fun _ ->
-        Image.YUV420.blank b#image;
+        b#clear;
+        Lang.unit)
+  in
+  let clear_and_copy b =
+    Lang.val_fun
+      [("x", "x", Some (Lang.int 0)); ("y", "y", Some (Lang.int 0))]
+      (fun p ->
+        let x = List.assoc "x" p |> Lang.to_int in
+        let y = List.assoc "y" p |> Lang.to_int in
+        let img = Image.YUV420.copy b#image in
+        b#clear;
+        Image.YUV420.add img ~x ~y b#image;
         Lang.unit)
   in
   let fill b =
@@ -123,6 +138,13 @@ let _ =
     ~meth:
       [
         ("clear", ([], Lang.fun_t [] Lang.unit_t), "Clear the board.", clear);
+        ( "clear_and_copy",
+          ( [],
+            Lang.fun_t
+              [(true, "x", Lang.int_t); (true, "y", Lang.int_t)]
+              Lang.unit_t ),
+          "Clear the board and copy the old board to the new one, translated.",
+          clear_and_copy );
         ( "fill",
           ([], Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t),
           "Fill with given color (0xRRGGBB).",

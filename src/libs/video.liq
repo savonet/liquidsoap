@@ -573,29 +573,29 @@ end
 # @param ~speed Speed in pixels per second.
 # @param y Value to plot.
 def video.plot(~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
-  print("dims vp : #{video.frame.width()} x #{video.frame.height()}")
   width = video.frame.width()
   height = video.frame.height()
-  s = video.board(width=width*2, height=height)
-  print("dims vp2 : #{s.width()} x #{s.height()}")
-  print("\n\n******dimensions: #{width*2} x #{s.height()}*****************")
+  s = video.board(width=width*3, height=height)
   height = float(s.height())
   tx = ref(width)
   ty = ref(0)
-  si = video.info(s)
-  s' = video.translate(x=tx, y=ty, si)
+  s' = video.translate(x=tx, y=ty, s)
   # offset of the currently drawn point.
   x = ref(0)
   dx = int_of_float(speed * frame.duration())
   def update()
-    print("planes: #{si.planes()} / size: #{si.size()}")
     tx := tx() - dx
-    print("y: #{y()}")
-    y = int_of_float(((y() - min) / (max - min)) * height)
+    # print("y: #{y()}")
+    y = int_of_float(((max - y()) / (max - min)) * height)
     s.line_to(color=color, x(), y)
     # s.pixel(x(), y) := 0xffffff
-    print("plot #{x()} , #{y}")
+    # print("plot #{x()} , #{y}")
     x := x() + dx
+    if x() > width*2 then
+      s.clear_and_copy(x=0-width)
+      tx := tx() + width
+      x := x() - width
+    end
   end
   source.on_frame(s', update)
 end
