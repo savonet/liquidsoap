@@ -264,15 +264,19 @@ module AdaptativeBuffer = struct
             write r buf
   end
 
-  (* The kind of value shared by a producer and a consumer. *)
   (* TODO: also have breaks and metadata as in generators. *)
+
+  (** The kind of value shared by a producer and a consumer. *)
   type control = {
     lock : Mutex.t;
-    rb : RB.t; (* the ringbuffer *)
-    mutable rb_length : float; (* average length of the ringbuffer in samples *)
-    mg : MG.t;
+        (** this mutex must be taken before accessing any other field *)
+    rb : RB.t;  (** the ringbuffer *)
+    mutable rb_length : float;
+        (** average length of the ringbuffer, in samples *)
+    mg : MG.t;  (** metadata generator *)
     mutable buffering : bool;
-    mutable abort : bool;
+        (** when true we are buffering: filling the buffer, but not reading from it *)
+    mutable abort : bool;  (** whether we asked to abort the current track *)
   }
 
   let proceed control f = Tutils.mutexify control.lock f ()
@@ -280,10 +284,12 @@ module AdaptativeBuffer = struct
   (** The source which produces data by reading the buffer. *)
   class producer ~pre_buffer ~averaging ~limit c =
     let prebuf = float (Frame.audio_of_seconds pre_buffer) in
-    (* see get_frame for an explanation *)
-    let alpha = log 2. *. AFrame.duration () /. averaging in
+    (* Nice enough approximation of the factor when the time constant is large
+       compared to the frame duration, see
+       https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant *)
+    let alpha = AFrame.duration () /. averaging in
     object (self)
-      inherit Source.source ~name:"buffer.adaptative_producer" ()
+      inherit Source.source ~name:"buffer.adaptative.producer" ()
       inherit Source.no_seek
       method stype = `Fallible
       method self_sync = (`Static, false)
@@ -298,19 +304,8 @@ module AdaptativeBuffer = struct
 
             (* Update the average length of the ringbuffer (with a damping
                coefficient in order not to be too sensitive to quick local
-               variations). *)
-            (* y: average length, dt: frame duration, x: read length, A=a/dt
-
-               y(t+dt)=(1-a)y(t)+ax(t)
-               y'(t)=(a/dt)(x(t)-y(t))
-               y'(t)+Ay(t)=Ax(t)
-
-               When x=x0 is constant and we start at y0, the solution is
-               y(t) = (y0-x0)exp(-At)+x0
-
-               half-life is at th = ln(2)/A
-               we should thus choose alpha = (dt * ln 2)/th
-            *)
+               variations). We use exponential smoothing here:
+               https://en.wikipedia.org/wiki/Exponential_smoothing *)
             c.rb_length <-
               ((1. -. alpha) *. c.rb_length)
               +. (alpha *. float (RB.read_space c.rb));
@@ -378,11 +373,11 @@ module AdaptativeBuffer = struct
   class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
     source_val c =
     let prebuf = Frame.audio_of_seconds pre_buffer in
-    object
+    object (self)
       inherit
         Output.output
-          ~output_kind:"buffer" ~infallible ~on_start ~on_stop source_val
-            autostart
+          ~output_kind:"buffer" ~name:"buffer.adaptative.consumer" ~infallible
+            ~on_start ~on_stop source_val autostart
 
       method! reset = ()
       method start = ()
@@ -397,16 +392,16 @@ module AdaptativeBuffer = struct
             let len = AFrame.position frame in
             let buf = AFrame.pcm frame in
             if RB.write_space c.rb < len then (
-              (* Not enough write space, let's drop some data. *)
-              let n = len - RB.write_space c.rb in
-              RB.read_advance c.rb n;
-              MG.advance c.mg (Frame.main_of_audio n));
+              (* Not enough write space, let's drop a frame. *)
+              self#log#important "Buffer full, dropping a frame.";
+              RB.read_advance c.rb len;
+              MG.advance c.mg (Frame.main_of_audio len));
             RB.write c.rb (Audio.sub buf 0 len);
             MG.feed_from_frame c.mg frame;
             if RB.read_space c.rb > prebuf then (
-              c.buffering <- false;
-              if reset then
-                c.rb_length <- float (Frame.audio_of_seconds pre_buffer)))
+              if c.buffering && reset then
+                c.rb_length <- float (Frame.audio_of_seconds pre_buffer);
+              c.buffering <- false))
     end
 
   let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
@@ -440,7 +435,7 @@ let _ =
         ( "buffer",
           Lang.float_t,
           Some (Lang.float 1.),
-          Some "Amount of data to pre-buffer, in seconds." );
+          Some "Amount of data to prebuffer, in seconds." );
         ( "max",
           Lang.float_t,
           Some (Lang.float 10.),
@@ -448,17 +443,22 @@ let _ =
         ( "averaging",
           Lang.float_t,
           Some (Lang.float 30.),
-          Some "Half-life for the averaging of the buffer size, in seconds." );
+          Some
+            "Length of the buffer averaging, in seconds (the time constant of \
+             the smoothing to be precise). The greater this is, the less \
+             reactive to local variations we are." );
         ( "limit",
           Lang.float_t,
           Some (Lang.float 1.25),
-          Some "Maximum acceleration or deceleration factor." );
+          Some
+            "Maximum acceleration or deceleration factor, ie how fast or slow \
+             we can be compared to realtime." );
         ( "reset",
           Lang.bool_t,
           Some (Lang.bool false),
           Some
             "Reset speed estimation to 1 when the source becomes available \
-             again." );
+             again (resuming from a buffer underflow)." );
         ("", Lang.source_t frame_t, None, None);
       ])
     ~meth:
