@@ -568,11 +568,12 @@ end
 # Plot a floating point value.
 # @category Source / Video processing
 # @param ~color Color of the drawn point (in 0xRRGGBB format).
+# @param ~lines Draw lines connecting plotted points.
 # @param ~min Minimal value of the parameter.
 # @param ~max Maximal value of the parameter.
 # @param ~speed Speed in pixels per second.
 # @param y Value to plot.
-def video.plot(~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
+def video.plot(~lines=true, ~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
   width = video.frame.width()
   height = video.frame.height()
   s = video.board(width=width*3, height=height)
@@ -585,11 +586,8 @@ def video.plot(~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
   dx = int_of_float(speed * frame.duration())
   def update()
     tx := tx() - dx
-    # print("y: #{y()}")
     y = int_of_float(((max - y()) / (max - min)) * height)
-    s.line_to(color=color, x(), y)
-    # s.pixel(x(), y) := 0xffffff
-    # print("plot #{x()} , #{y}")
+    if lines then s.line_to(color=color, x(), y) else s.pixel(x(), y) := color end
     x := x() + dx
     if x() > width*2 then
       s.clear_and_copy(x=0-width)
