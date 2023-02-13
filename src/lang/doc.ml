@@ -118,6 +118,7 @@ module Value = struct
     | `MIDI
     | `Visualization
     | `Synthesis
+    | `Testing
     | `Fade
     | `Liquidsoap ]
 
@@ -155,6 +156,7 @@ module Value = struct
       (`Source `Visualization, "Source / Visualization");
       (`Source `Liquidsoap, "Source / Liquidsoap");
       (`Source `Fade, "Source / Fade");
+      (`Source `Testing, "Source / Testing");
       (`Track `Input, "Track / Input");
       (`Track `Output, "Track / Output");
       (`Track `Conversion, "Track / Conversion");
