@@ -33,22 +33,19 @@ class board ?duration img0 () =
     method width = Image.YUV420.width img
     method height = Image.YUV420.height img
 
-    method set_pixel_safe (x, y) c =
-      if x >= 0 && y >= 0 && x < self#width && y < self#height then
-        Image.YUV420.set_pixel_rgba img x y c
-
     method set_pixel (x, y) c =
       last_point <- Some (x, y);
-      self#set_pixel_safe (x, y) c
+      try Image.YUV420.set_pixel_rgba img x y c
+      with Image.Invalid_position -> ()
 
     method line_to (x, y) (r, g, b) =
       match last_point with
         | None -> self#set_pixel (x, y) (r, g, b, 0xff)
         | Some (x', y') ->
-            last_point <- Some (x, y);
             Image.Draw.line
-              (fun x y -> self#set_pixel_safe (x, y) (r, g, b, 0xff))
-              (x', y') (x, y)
+              (fun x y -> self#set_pixel (x, y) (r, g, b, 0xff))
+              (x', y') (x, y);
+            last_point <- Some (x, y)
 
     method private synthesize frame off len =
       let frame_width, frame_height = self#video_dimensions in

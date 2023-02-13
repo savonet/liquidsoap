@@ -577,20 +577,23 @@ def video.plot(~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
   width = video.frame.width()
   height = video.frame.height()
   s = video.board(width=width*2, height=height)
-    print("dims vp2 : #{s.width()} x #{s.height()}")
+  print("dims vp2 : #{s.width()} x #{s.height()}")
   print("\n\n******dimensions: #{width*2} x #{s.height()}*****************")
   height = float(s.height())
-  tx = ref(s.width())
+  tx = ref(width)
   ty = ref(0)
-  s' = video.translate(x=tx, y=ty, s)
+  si = video.info(s)
+  s' = video.translate(x=tx, y=ty, si)
   # offset of the currently drawn point.
   x = ref(0)
   dx = int_of_float(speed * frame.duration())
   def update()
+    print("planes: #{si.planes()} / size: #{si.size()}")
     tx := tx() - dx
     print("y: #{y()}")
     y = int_of_float(((y() - min) / (max - min)) * height)
     s.line_to(color=color, x(), y)
+    # s.pixel(x(), y) := 0xffffff
     print("plot #{x()} , #{y}")
     x := x() + dx
   end
