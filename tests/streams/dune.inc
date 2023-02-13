@@ -1,6 +1,6 @@
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   197.liq
@@ -23,7 +23,7 @@
  (action (run %{run_test} 197.liq liquidsoap %{test_liq} 197.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   huge-playlist.liq
@@ -46,7 +46,7 @@
  (action (run %{run_test} huge-playlist.liq liquidsoap %{test_liq} huge-playlist.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   sharing.liq
@@ -69,7 +69,7 @@
  (action (run %{run_test} sharing.liq liquidsoap %{test_liq} sharing.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   playlist-watch.liq
@@ -92,7 +92,7 @@
  (action (run %{run_test} playlist-watch.liq liquidsoap %{test_liq} playlist-watch.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   on_frame.liq
@@ -115,7 +115,7 @@
  (action (run %{run_test} on_frame.liq liquidsoap %{test_liq} on_frame.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   195.liq
@@ -138,7 +138,7 @@
  (action (run %{run_test} 195.liq liquidsoap %{test_liq} 195.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   image.liq
@@ -161,7 +161,7 @@
  (action (run %{run_test} image.liq liquidsoap %{test_liq} image.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   fades-persistent-override.liq
@@ -184,7 +184,7 @@
  (action (run %{run_test} fades-persistent-override.liq liquidsoap %{test_liq} fades-persistent-override.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   srt_passphrase.liq
@@ -207,7 +207,7 @@
  (action (run %{run_test} srt_passphrase.liq liquidsoap %{test_liq} srt_passphrase.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   ctype2.liq
@@ -230,7 +230,7 @@
  (action (run %{run_test} ctype2.liq liquidsoap %{test_liq} ctype2.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   say.liq
@@ -253,7 +253,7 @@
  (action (run %{run_test} say.liq liquidsoap %{test_liq} say.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   ctype1.liq
@@ -276,7 +276,7 @@
  (action (run %{run_test} ctype1.liq liquidsoap %{test_liq} ctype1.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   random.liq
@@ -299,7 +299,7 @@
  (action (run %{run_test} random.liq liquidsoap %{test_liq} random.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   smart-crossfade.liq
@@ -322,7 +322,7 @@
  (action (run %{run_test} smart-crossfade.liq liquidsoap %{test_liq} smart-crossfade.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   request.liq
@@ -345,7 +345,7 @@
  (action (run %{run_test} request.liq liquidsoap %{test_liq} request.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   radio2.liq
@@ -368,7 +368,7 @@
  (action (run %{run_test} radio2.liq liquidsoap %{test_liq} radio2.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   cross.liq
@@ -391,7 +391,7 @@
  (action (run %{run_test} cross.liq liquidsoap %{test_liq} cross.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   stretch-clock-propagation.liq
@@ -414,7 +414,7 @@
  (action (run %{run_test} stretch-clock-propagation.liq liquidsoap %{test_liq} stretch-clock-propagation.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   fades-overrides.liq
@@ -437,7 +437,7 @@
  (action (run %{run_test} fades-overrides.liq liquidsoap %{test_liq} fades-overrides.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   harbor_kick_client.liq
@@ -460,7 +460,7 @@
  (action (run %{run_test} harbor_kick_client.liq liquidsoap %{test_liq} harbor_kick_client.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   rotate.liq
@@ -483,7 +483,7 @@
  (action (run %{run_test} rotate.liq liquidsoap %{test_liq} rotate.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   harbor_metadata.liq
@@ -506,7 +506,7 @@
  (action (run %{run_test} harbor_metadata.liq liquidsoap %{test_liq} harbor_metadata.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   cross-override.liq
@@ -529,7 +529,7 @@
  (action (run %{run_test} cross-override.liq liquidsoap %{test_liq} cross-override.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   cross-persist-override.liq
@@ -552,7 +552,7 @@
  (action (run %{run_test} cross-persist-override.liq liquidsoap %{test_liq} cross-persist-override.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   sine.detect.liq
@@ -575,7 +575,7 @@
  (action (run %{run_test} sine.detect.liq liquidsoap %{test_liq} sine.detect.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   on_metadata.liq
@@ -598,7 +598,7 @@
  (action (run %{run_test} on_metadata.liq liquidsoap %{test_liq} on_metadata.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   dtmf.liq
@@ -621,7 +621,7 @@
  (action (run %{run_test} dtmf.liq liquidsoap %{test_liq} dtmf.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   srt_multiple_outputs.liq
@@ -644,7 +644,7 @@
  (action (run %{run_test} srt_multiple_outputs.liq liquidsoap %{test_liq} srt_multiple_outputs.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   replaygain.liq
@@ -667,7 +667,7 @@
  (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   on_track.liq
@@ -690,7 +690,7 @@
  (action (run %{run_test} on_track.liq liquidsoap %{test_liq} on_track.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   crossfade.liq
@@ -713,7 +713,7 @@
  (action (run %{run_test} crossfade.liq liquidsoap %{test_liq} crossfade.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   radio.liq
@@ -736,7 +736,7 @@
  (action (run %{run_test} radio.liq liquidsoap %{test_liq} radio.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   many-playlists.liq
@@ -759,7 +759,7 @@
  (action (run %{run_test} many-playlists.liq liquidsoap %{test_liq} many-playlists.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   autostart.liq
@@ -782,7 +782,7 @@
  (action (run %{run_test} autostart.liq liquidsoap %{test_liq} autostart.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   srt_listen_callback.liq

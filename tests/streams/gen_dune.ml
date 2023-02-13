@@ -10,7 +10,7 @@ let () =
       Printf.printf
         {|
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   %s

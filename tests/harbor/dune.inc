@@ -1,6 +1,6 @@
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   http.liq
@@ -13,7 +13,7 @@
  (action (run %{run_test} http.liq liquidsoap %{test_liq} http.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   put.liq
@@ -26,7 +26,7 @@
  (action (run %{run_test} put.liq liquidsoap %{test_liq} put.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   post.liq
