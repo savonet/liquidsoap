@@ -233,25 +233,17 @@ let print f t =
             | `Tuple [], _ -> fields
             | v, _ -> fields @ [(None, (false, v))]
         in
-        let first, has_ellipsis, vars =
+        let _ =
           List.fold_left
-            (fun (first, has_ellipsis, vars) (lbl, (optional, t)) ->
-              if t = `Ellipsis then (first, true, vars)
-              else (
-                if not first then Format.fprintf f ",@ ";
-                ignore
-                  (Option.map
-                     (Format.fprintf f "%s%s=" (if optional then "?" else ""))
-                     lbl);
-                let vars = print ~par:false vars t in
-                (false, has_ellipsis, vars)))
-            (true, false, vars) fields
-        in
-        let vars =
-          if not has_ellipsis then vars
-          else (
-            if not first then Format.fprintf f ",@,";
-            print ~par:false vars `Range_Ellipsis)
+            (fun (first, vars) (lbl, (optional, t)) ->
+              if not first then Format.fprintf f ",@ ";
+              ignore
+                (Option.map
+                   (Format.fprintf f "%s%s=" (if optional then "?" else ""))
+                   lbl);
+              let vars = print ~par:false vars t in
+              (false, vars))
+            (true, vars) fields
         in
         Format.fprintf f ")";
         Format.close_box ();
