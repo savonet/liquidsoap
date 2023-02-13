@@ -5,6 +5,9 @@ let generated_md =
     ( "reference-extras.md",
       "--list-extra-functions-md",
       Some "content/reference-header.md" );
+    ( "reference-deprecated.md",
+      "--list-deprecated-functions-md",
+      Some "content/reference-header.md" );
     ("settings.md", "--list-settings", None);
   ]
 
