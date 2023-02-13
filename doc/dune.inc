@@ -1,4 +1,3 @@
-
 (rule
   (alias doc)
   (deps
@@ -36,6 +35,19 @@
       (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
         (run %{liquidsoap} --list-extra-functions-md)))))
+      )
+
+(rule
+  (alias doc)
+  (deps
+    (:header content/reference-header.md)
+    (:liquidsoap ../src/bin/liquidsoap.exe))
+  (target reference-deprecated.md)
+  (action
+    (with-stdout-to reference-deprecated.md
+      (progn (cat %{header}) (echo "\n")
+      (setenv PAGER none
+        (run %{liquidsoap} --list-deprecated-functions-md)))))
       )
 
 (rule
@@ -128,6 +140,26 @@
   (action
     (ignore-outputs
       (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference-extras --template=template.html -o %{target}))))
+
+(rule
+  (alias doc)
+  (enabled_if (not %{bin-available:pandoc}))
+  (deps (:no_pandoc no-pandoc))
+  (target reference-deprecated.html)
+  (action (run cp %{no_pandoc} %{target})))
+
+(rule
+  (alias doc)
+  (enabled_if %{bin-available:pandoc})
+  (deps
+    liquidsoap.xml
+    language.dtd
+    template.html
+    (:md reference-deprecated.md))
+  (target reference-deprecated.html)
+  (action
+    (ignore-outputs
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=reference-deprecated --template=template.html -o %{target}))))
 
 (rule
   (alias doc)
@@ -1517,6 +1549,7 @@
     (protocols.html as html/protocols.html)
 (reference.html as html/reference.html)
 (reference-extras.html as html/reference-extras.html)
+(reference-deprecated.html as html/reference-deprecated.html)
 (settings.html as html/settings.html)
     (beets.html as html/beets.html)
 (blank.html as html/blank.html)

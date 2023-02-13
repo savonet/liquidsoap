@@ -369,7 +369,7 @@ module Value = struct
     |> List.of_seq
     |> fun l -> `Assoc l
 
-  let print_functions_md ?extra print =
+  let print_functions_md ?extra ?deprecated print =
     let categories =
       categories
       |> List.map (fun (c, s) -> (s, c))
@@ -394,7 +394,9 @@ module Value = struct
           (fun f d ->
             let d = Lazy.force d in
             if
-              (not (List.mem `Hidden d.flags || List.mem `Deprecated d.flags))
+              (not (List.mem `Hidden d.flags))
+              && ((not (deprecated = Some true)) || List.mem `Deprecated d.flags)
+              && (deprecated = Some true || not (List.mem `Deprecated d.flags))
               && d.category = category
               && ((not (extra = Some true)) || List.mem `Extra d.flags)
               && ((not (extra = Some false)) || not (List.mem `Extra d.flags))

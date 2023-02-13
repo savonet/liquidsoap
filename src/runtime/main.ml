@@ -340,6 +340,16 @@ let options =
               Lang_string.kprint_string ~pager:true
                 (Doc.Value.print_functions_md ~extra:true)),
           Printf.sprintf "Documentation of all extra functions in markdown." );
+        ( ["--list-deprecated-functions-md"],
+          Arg.Unit
+            (fun () ->
+              run_streams := false;
+              deprecated := true;
+              load_libs ();
+              Lang_string.kprint_string ~pager:true
+                (Doc.Value.print_functions_md ~deprecated:true)),
+          Printf.sprintf
+            "Documentation of all deprecated functions in markdown." );
         ( ["--list-protocols-md"],
           Arg.Unit
             (fun () ->
