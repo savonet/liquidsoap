@@ -5,7 +5,7 @@
  (modules gen_bigrecord))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target big-record.liq)
  (deps
   (:gen_bigrecord ./gen_bigrecord.exe))
@@ -15,7 +15,7 @@
    (run %{gen_bigrecord}))))
 
 (rule
- (alias runtest)
+ (alias citest)
  (deps
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:small_record ./small-record.liq)

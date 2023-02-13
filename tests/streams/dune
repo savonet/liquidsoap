@@ -22,43 +22,43 @@
  (modules gen_dune))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file1.mp3)
  (action
   (run ffmpeg -f lavfi -i "sine=frequency=220:duration=5" -ac 2 %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file2.mp3)
  (action
   (run ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file3.mp3)
  (action
   (run ffmpeg -f lavfi -i "sine=frequency=880:duration=5" -ac 2 %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target jingle1.mp3)
  (action
   (run ffmpeg -f lavfi -i "sine=frequency=220:duration=2" -ac 2 %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target jingle2.mp3)
  (action
   (run ffmpeg -f lavfi -i "sine=frequency=440:duration=2" -ac 2 %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target jingle3.mp3)
  (action
   (run ffmpeg -f lavfi -i "sine=frequency=880:duration=2" -ac 2 %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file1.png)
  (action
   (run
@@ -74,7 +74,7 @@
    %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file2.png)
  (action
   (run
@@ -90,7 +90,7 @@
    %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target jingles)
  (action
   (with-stdout-to
@@ -98,7 +98,7 @@
    (run echo "jingle1.mp3\njingle2.mp3\njingle3.mp3"))))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target playlist)
  (action
   (with-stdout-to
@@ -106,7 +106,7 @@
    (run echo "file1.mp3\nfile2.mp3\nfile3.mp3"))))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target huge_playlist)
  (action
   (with-stdout-to

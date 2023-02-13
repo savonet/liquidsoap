@@ -7,4 +7,4 @@ eval "$(opam config env)"
 OCAMLPATH="$(cat ../.ocamlpath)"
 export OCAMLPATH
 
-dune test
+dune build @citest

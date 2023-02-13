@@ -26,3 +26,8 @@
  (name runtest)
  (deps
   (alias_rec install)))
+
+(alias
+ (name citest)
+ (deps
+  (alias_rec runtest)))

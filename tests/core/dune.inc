@@ -5,7 +5,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -19,7 +19,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -33,7 +33,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -47,7 +47,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -61,7 +61,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -75,7 +75,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   (:json ./json) (:json5 ./json5)
@@ -89,7 +89,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -103,7 +103,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -117,7 +117,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -131,7 +131,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -145,7 +145,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   (:test_srt ./test.srt)
@@ -159,7 +159,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -173,7 +173,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -187,7 +187,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -201,7 +201,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -215,7 +215,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -229,7 +229,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   (:test_wav ./test.wav) (:test_mp3 ./test.mp3)
@@ -243,7 +243,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -257,7 +257,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -271,7 +271,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -285,7 +285,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -299,7 +299,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -313,7 +313,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -327,7 +327,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
@@ -341,7 +341,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
 
