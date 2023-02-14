@@ -79,6 +79,7 @@ Changed:
 - Added `settings.protocol.youtube_dl.timeout` to specify timeout when using
   `youtube-dl` protocol (#2827). Use `yt-dlp` as default binary for the
   protocol.
+- The `sleeper` operator is now scripted (#2899).
 
 Fixed:
 
