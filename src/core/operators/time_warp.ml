@@ -382,8 +382,6 @@ module AdaptativeBuffer = struct
               self#log#important "Buffer emptied, start buffering...";
               self#log#debug "Current scaling factor is x%f." scaling;
               MG.advance c.mg (MG.length c.mg);
-
-              (* sync just in case *)
               c.buffering <- true))
 
       method abort_track = proceed c (fun () -> c.abort <- true)
