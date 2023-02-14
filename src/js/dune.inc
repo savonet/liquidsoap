@@ -48,12 +48,12 @@ io.liq
 switches.liq
 list.liq
 telnet.liq
-testing.liq
 replaygain.liq
 http.liq
 metadata.liq
 lastfm.liq
 playlist.liq
+testing.liq
 hls.liq
 runtime.liq
 http_extra.liq
