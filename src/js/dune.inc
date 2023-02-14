@@ -48,6 +48,7 @@ io.liq
 switches.liq
 list.liq
 telnet.liq
+testing.liq
 replaygain.liq
 http.liq
 metadata.liq

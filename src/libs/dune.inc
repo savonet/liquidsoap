@@ -50,5 +50,6 @@ playlist.liq
 hls.liq
 runtime.liq
 http_extra.liq
+testing.liq
 server.liq
 settings.liq))
