@@ -22,7 +22,7 @@
 
 open Source
 
-class map source delay random freeze =
+class sleeper source delay random =
   let dt = AFrame.duration () in
   object
     inherit operator [source]
@@ -33,19 +33,26 @@ class map source delay random freeze =
     method is_ready = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
+    val mutable freeze = false
+    method freeze = freeze <- true
 
     method private get_frame buf =
       source#get buf;
       let delay = delay +. Random.float random in
       Thread.delay delay;
       lived <- lived +. max dt delay;
-      if freeze >= 0. && lived >= freeze then
+      if freeze then
         while true do
           Thread.delay 60.
         done
   end
 
 let _ =
+  let freeze s =
+    Lang.val_fun [] (fun _ ->
+        s#freeze;
+        Lang.unit)
+  in
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator "sleeper"
     [
@@ -59,22 +66,22 @@ let _ =
         Lang.float_t,
         Some (Lang.float 0.),
         Some "Maximal amount of time randomly added to the delay parameter." );
-      ( "freeze",
-        Lang.float_t,
-        Some (Lang.float (-1.)),
-        Some
-          "Freeze after given amount of time in seconds (don't freeze if \
-           negative)." );
       ("", Lang.source_t frame_t, None, None);
     ]
     ~return_t:frame_t
     ~descr:"Sleep at each frame. Useful for emulating network delays, etc."
     ~category:`Testing ~flags:[`Experimental]
+    ~meth:
+      [
+        ( "freeze",
+          ([], Lang.fun_t [] Lang.unit_t),
+          "Freeze the main thread.",
+          freeze );
+      ]
     (fun p ->
       let delay = Lang.to_float (List.assoc "delay" p) in
       let delay = AFrame.duration () *. delay in
       let random = Lang.to_float (List.assoc "random" p) in
       let random = AFrame.duration () *. random in
-      let freeze = Lang.to_float (List.assoc "freeze" p) in
       let src = Lang.to_source (List.assoc "" p) in
-      new map src delay random freeze)
+      new sleeper src delay random)
