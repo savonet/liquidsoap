@@ -295,8 +295,14 @@ module AdaptativeBuffer = struct
       method self_sync = (`Static, false)
       method remaining = proceed c (fun () -> MG.remaining c.mg)
       method is_ready = proceed c (fun () -> not c.buffering)
-      method private _ratio = c.rb_length /. prebuf
-      method ratio = proceed c (fun () -> self#_ratio)
+      method ratio = proceed c (fun () -> c.rb_length /. prebuf)
+
+      method buffer_duration =
+        proceed c (fun () -> Frame.seconds_of_audio (RB.read_space c.rb))
+
+      method buffer_estimated_duration =
+        proceed c (fun () -> Frame.seconds_of_audio (int_of_float c.rb_length))
+
       val mutable converter = None
 
       method! wake_up a =
@@ -341,7 +347,14 @@ module AdaptativeBuffer = struct
                           "Unexpected length after resampling: %d instead of %d"
                           len dlen;
                       let len = min len dlen in
-                      Audio.blit buf off dst dofs len
+                      Audio.blit buf off dst dofs len;
+                      (* In case we are too short, duplicate samples. *)
+                      if len > 0 then
+                        for i = dofs + len to dofs + dlen - 1 do
+                          for c = 0 to Array.length dst - 1 do
+                            dst.(c).(i) <- dst.(c).(len - 1)
+                          done
+                        done
                   | None ->
                       let src = Audio.create self#audio_channels slen in
                       RB.read c.rb src;
@@ -488,6 +501,15 @@ let _ =
       ])
     ~meth:
       [
+        ( "duration",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Current buffer duration, in seconds.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_duration) );
+        ( "estimated",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Current smoothed buffer duration, in seconds.",
+          fun s ->
+            Lang.val_fun [] (fun _ -> Lang.float s#buffer_estimated_duration) );
         ( "ratio",
           ([], Lang.fun_t [] Lang.float_t),
           "Get the current scaling ratio.",
