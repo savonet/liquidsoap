@@ -22,7 +22,7 @@
   (diff dune.inc dune.inc.gen)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (target first-concat.mp4)
  (action
@@ -37,7 +37,7 @@
    %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (target second-concat.mp4)
  (action
@@ -52,7 +52,7 @@
    %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (target third-concat.mp4)
  (action
@@ -67,21 +67,21 @@
    %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (target background.jpg)
  (action
   (run ffmpeg -f lavfi -i testsrc=size=1280x720 -t 1 -f mjpeg %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (target logo.png)
  (action
   (run ffmpeg -f lavfi -i testsrc=size=50x50 -t 1 -f mjpeg %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   first-concat.mp4
@@ -104,7 +104,7 @@
    test_ffmpeg_copy_concat.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   all_media_files
@@ -125,7 +125,7 @@
    test_ffmpeg_complex_filter.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   all_media_files

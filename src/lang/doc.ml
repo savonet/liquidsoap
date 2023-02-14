@@ -118,6 +118,7 @@ module Value = struct
     | `MIDI
     | `Visualization
     | `Synthesis
+    | `Testing
     | `Fade
     | `Liquidsoap ]
 
@@ -155,6 +156,7 @@ module Value = struct
       (`Source `Visualization, "Source / Visualization");
       (`Source `Liquidsoap, "Source / Liquidsoap");
       (`Source `Fade, "Source / Fade");
+      (`Source `Testing, "Source / Testing");
       (`Track `Input, "Track / Input");
       (`Track `Output, "Track / Output");
       (`Track `Conversion, "Track / Conversion");
@@ -370,11 +372,20 @@ module Value = struct
     |> fun l -> `Assoc l
 
   let print_functions_md ?extra ?deprecated print =
+    let should_show ~category d =
+      let d = Lazy.force d in
+      (not (List.mem `Hidden d.flags))
+      && ((not (deprecated = Some true)) || List.mem `Deprecated d.flags)
+      && (deprecated = Some true || not (List.mem `Deprecated d.flags))
+      && d.category = category
+      && ((not (extra = Some true)) || List.mem `Extra d.flags)
+      && ((not (extra = Some false)) || not (List.mem `Extra d.flags))
+    in
     let categories =
       categories
       |> List.map (fun (c, s) -> (s, c))
       |> List.filter (fun (_, category) ->
-             Map.exists (fun _ d -> (Lazy.force d).category = category) !db)
+             Map.exists (fun _ d -> should_show ~category d) !db)
       |> List.sort compare
     in
     List.iter
@@ -392,15 +403,8 @@ module Value = struct
         print ("## " ^ category_name ^ "\n\n");
         Map.iter
           (fun f d ->
-            let d = Lazy.force d in
-            if
-              (not (List.mem `Hidden d.flags))
-              && ((not (deprecated = Some true)) || List.mem `Deprecated d.flags)
-              && (deprecated = Some true || not (List.mem `Deprecated d.flags))
-              && d.category = category
-              && ((not (extra = Some true)) || List.mem `Extra d.flags)
-              && ((not (extra = Some false)) || not (List.mem `Extra d.flags))
-            then (
+            if should_show ~category d then (
+              let d = Lazy.force d in
               print ("### `" ^ f ^ "`\n\n");
               print d.description;
               print "\n\n";

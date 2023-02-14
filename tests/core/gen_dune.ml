@@ -34,7 +34,7 @@ let () =
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   %s
