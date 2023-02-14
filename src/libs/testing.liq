@@ -12,9 +12,9 @@ def sleeper(~every=0.5, ~delay=0.1, ~delay_random=0., s)
   last = ref(0.)
   frozen = ref(false)
   def f()
-    now = source.time(s)
     while frozen() do sleep(0.1) end
-    if now + every >= last() then
+    now = source.time(s)
+    if now >= last() + every then
       last := now
       sleep(delay + random.float(max=delay_random))
     end
