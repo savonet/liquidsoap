@@ -1,6 +1,6 @@
 # Sleep regularly, thus inducing delays in the sound production. This is mainly
-# useful for emulating network delays and testing bufferization and robustness
-# of scripts.
+# useful for emulating network delays or sources which are slow to produce data,
+# and thus test bufferization and robustness of scripts.
 # @category Source / Testing
 # @flag experimental
 # @param ~every How often we should sleep (in seconds, 0 means every frame).
