@@ -270,13 +270,13 @@ module AdaptativeBuffer = struct
   type control = {
     lock : Mutex.t;
         (* this mutex must be taken before accessing any other field *)
-    rb : RB.t;  (** the ringbuffer *)
+    rb : RB.t; (* the ringbuffer *)
     mutable rb_length : float;
-        (** average length of the ringbuffer, in samples *)
-    mg : MG.t;  (** metadata generator *)
+        (* average length of the ringbuffer, in samples *)
+    mg : MG.t; (* metadata generator *)
     mutable buffering : bool;
-        (** when true we are buffering: filling the buffer, but not reading from it *)
-    mutable abort : bool;  (** whether we asked to abort the current track *)
+        (* when true we are buffering: filling the buffer, but not reading from it *)
+    mutable abort : bool; (* whether we asked to abort the current track *)
   }
 
   let proceed control f = Tutils.mutexify control.lock f ()
