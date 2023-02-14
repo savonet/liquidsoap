@@ -336,7 +336,11 @@ module AdaptativeBuffer = struct
                         Audio_converter.Samplerate.resample converter ratio src
                           0 slen
                       in
-                      assert (len = dlen);
+                      if len <> dlen then
+                        self#log#important
+                          "Unexpected length after resampling: %d instead of %d"
+                          len dlen;
+                      let len = min len dlen in
                       Audio.blit buf off dst dofs len
                   | None ->
                       let src = Audio.create self#audio_channels slen in
