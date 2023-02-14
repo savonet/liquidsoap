@@ -317,7 +317,7 @@ module Value = struct
           print (" * " ^ l ^ " : " ^ m.meth_type ^ "\n");
           Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
           print "\n\n")
-        f.methods)
+        (List.sort compare f.methods))
 
   let to_json () : Json.t =
     !db |> Map.to_seq
@@ -446,7 +446,7 @@ module Value = struct
                         | Some s -> ": " ^ s
                     in
                     Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
-                  d.methods;
+                  (List.sort compare d.methods);
                 print "\n");
               if List.mem `Experimental d.flags then
                 print "This function is experimental.\n\n"))
