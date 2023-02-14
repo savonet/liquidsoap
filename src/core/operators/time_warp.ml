@@ -269,7 +269,7 @@ module AdaptativeBuffer = struct
   (** The kind of value shared by a producer and a consumer. *)
   type control = {
     lock : Mutex.t;
-        (** this mutex must be taken before accessing any other field *)
+        (* this mutex must be taken before accessing any other field *)
     rb : RB.t;  (** the ringbuffer *)
     mutable rb_length : float;
         (** average length of the ringbuffer, in samples *)
