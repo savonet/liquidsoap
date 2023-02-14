@@ -42,6 +42,7 @@
 %include "profiler.liq"
 %include "io.liq"
 %include "runtime.liq"
+%include "testing.liq"
 %include "liquidsoap.liq"
 
 set_settings_ref(settings)
