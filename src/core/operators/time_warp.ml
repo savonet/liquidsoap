@@ -264,26 +264,32 @@ module AdaptativeBuffer = struct
             write r buf
   end
 
-  (* The kind of value shared by a producer and a consumer. *)
   (* TODO: also have breaks and metadata as in generators. *)
+
+  (** The kind of value shared by a producer and a consumer. *)
   type control = {
     lock : Mutex.t;
+        (* this mutex must be taken before accessing any other field *)
     rb : RB.t; (* the ringbuffer *)
-    mutable rb_length : float; (* average length of the ringbuffer in samples *)
-    mg : MG.t;
+    mutable rb_length : float;
+        (* average length of the ringbuffer, in samples *)
+    mg : MG.t; (* metadata generator *)
     mutable buffering : bool;
-    mutable abort : bool;
+        (* when true we are buffering: filling the buffer, but not reading from it *)
+    mutable abort : bool; (* whether we asked to abort the current track *)
   }
 
   let proceed control f = Tutils.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~pre_buffer ~averaging ~limit c =
+  class producer ~pre_buffer ~averaging ~limit ~resample c =
     let prebuf = float (Frame.audio_of_seconds pre_buffer) in
-    (* see get_frame for an explanation *)
-    let alpha = log 2. *. AFrame.duration () /. averaging in
+    (* Nice enough approximation of the factor when the time constant is large
+       compared to the frame duration, see
+       https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant *)
+    let alpha = AFrame.duration () /. averaging in
     object (self)
-      inherit Source.source ~name:"buffer.adaptative_producer" ()
+      inherit Source.source ~name:"buffer.adaptative.producer" () as super
       inherit Source.no_seek
       method stype = `Fallible
       method self_sync = (`Static, false)
@@ -291,6 +297,13 @@ module AdaptativeBuffer = struct
       method is_ready = proceed c (fun () -> not c.buffering)
       method private _ratio = c.rb_length /. prebuf
       method ratio = proceed c (fun () -> self#_ratio)
+      val mutable converter = None
+
+      method! wake_up a =
+        super#wake_up a;
+        if resample then
+          converter <-
+            Some (Audio_converter.Samplerate.create self#audio_channels)
 
       method private get_frame frame =
         proceed c (fun () ->
@@ -298,19 +311,8 @@ module AdaptativeBuffer = struct
 
             (* Update the average length of the ringbuffer (with a damping
                coefficient in order not to be too sensitive to quick local
-               variations). *)
-            (* y: average length, dt: frame duration, x: read length, A=a/dt
-
-               y(t+dt)=(1-a)y(t)+ax(t)
-               y'(t)=(a/dt)(x(t)-y(t))
-               y'(t)+Ay(t)=Ax(t)
-
-               When x=x0 is constant and we start at y0, the solution is
-               y(t) = (y0-x0)exp(-At)+x0
-
-               half-life is at th = ln(2)/A
-               we should thus choose alpha = (dt * ln 2)/th
-            *)
+               variations). We use exponential smoothing here:
+               https://en.wikipedia.org/wiki/Exponential_smoothing *)
             c.rb_length <-
               ((1. -. alpha) *. c.rb_length)
               +. (alpha *. float (RB.read_space c.rb));
@@ -325,21 +327,37 @@ module AdaptativeBuffer = struct
                  frame *)
               let slen = min slen (RB.read_space c.rb) in
               if slen > 0 then (
-                let src = Audio.create self#audio_channels slen in
-                RB.read c.rb src;
-                if slen = dlen then Audio.blit src 0 dst dofs slen
-                else
-                  (* TODO: we could do better than nearest interpolation. However,
-                     for slight adaptations the difference should not really be
-                     audible. *)
-                  for c = 0 to self#audio_channels - 1 do
-                    let srcc = src.(c) in
-                    let dstc = dst.(c) in
-                    for i = 0 to dlen - 1 do
-                      let x = srcc.(i * slen / dlen) in
-                      dstc.(i + dofs) <- x
-                    done
-                  done)
+                match converter with
+                  | Some converter ->
+                      let src = Audio.create self#audio_channels slen in
+                      RB.read c.rb src;
+                      let ratio = float dlen /. float slen in
+                      let buf, off, len =
+                        Audio_converter.Samplerate.resample converter ratio src
+                          0 slen
+                      in
+                      if len <> dlen then
+                        self#log#important
+                          "Unexpected length after resampling: %d instead of %d"
+                          len dlen;
+                      let len = min len dlen in
+                      Audio.blit buf off dst dofs len
+                  | None ->
+                      let src = Audio.create self#audio_channels slen in
+                      RB.read c.rb src;
+                      if slen = dlen then Audio.blit src 0 dst dofs slen
+                      else
+                        (* TODO: we could do better than nearest interpolation. However,
+                           for slight adaptations the difference should not really be
+                           audible. *)
+                        for c = 0 to self#audio_channels - 1 do
+                          let srcc = src.(c) in
+                          let dstc = dst.(c) in
+                          for i = 0 to dlen - 1 do
+                            let x = srcc.(i * slen / dlen) in
+                            dstc.(i + dofs) <- x
+                          done
+                        done)
             in
             (* We scale the reading so that the buffer always approximately
                contains prebuf data. *)
@@ -368,8 +386,6 @@ module AdaptativeBuffer = struct
               self#log#important "Buffer emptied, start buffering...";
               self#log#debug "Current scaling factor is x%f." scaling;
               MG.advance c.mg (MG.length c.mg);
-
-              (* sync just in case *)
               c.buffering <- true))
 
       method abort_track = proceed c (fun () -> c.abort <- true)
@@ -378,11 +394,11 @@ module AdaptativeBuffer = struct
   class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
     source_val c =
     let prebuf = Frame.audio_of_seconds pre_buffer in
-    object
+    object (self)
       inherit
         Output.output
-          ~output_kind:"buffer" ~infallible ~on_start ~on_stop source_val
-            autostart
+          ~output_kind:"buffer" ~name:"buffer.adaptative.consumer" ~infallible
+            ~on_start ~on_stop source_val autostart
 
       method! reset = ()
       method start = ()
@@ -397,20 +413,20 @@ module AdaptativeBuffer = struct
             let len = AFrame.position frame in
             let buf = AFrame.pcm frame in
             if RB.write_space c.rb < len then (
-              (* Not enough write space, let's drop some data. *)
-              let n = len - RB.write_space c.rb in
-              RB.read_advance c.rb n;
-              MG.advance c.mg (Frame.main_of_audio n));
+              (* Not enough write space, let's drop a frame. *)
+              self#log#important "Buffer full, dropping a frame.";
+              RB.read_advance c.rb len;
+              MG.advance c.mg (Frame.main_of_audio len));
             RB.write c.rb (Audio.sub buf 0 len);
             MG.feed_from_frame c.mg frame;
             if RB.read_space c.rb > prebuf then (
-              c.buffering <- false;
-              if reset then
-                c.rb_length <- float (Frame.audio_of_seconds pre_buffer)))
+              if c.buffering && reset then
+                c.rb_length <- float (Frame.audio_of_seconds pre_buffer);
+              c.buffering <- false))
     end
 
   let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
-      ~averaging ~limit ~reset source_val =
+      ~averaging ~limit ~reset ~resample source_val =
     let control =
       {
         lock = Mutex.create ();
@@ -426,7 +442,7 @@ module AdaptativeBuffer = struct
         ~autostart ~infallible ~on_start ~on_stop source_val ~pre_buffer ~reset
         control
     in
-    new producer ~pre_buffer ~averaging ~limit control
+    new producer ~pre_buffer ~averaging ~limit ~resample control
 end
 
 let _ =
@@ -440,7 +456,7 @@ let _ =
         ( "buffer",
           Lang.float_t,
           Some (Lang.float 1.),
-          Some "Amount of data to pre-buffer, in seconds." );
+          Some "Amount of data to prebuffer, in seconds." );
         ( "max",
           Lang.float_t,
           Some (Lang.float 10.),
@@ -448,17 +464,26 @@ let _ =
         ( "averaging",
           Lang.float_t,
           Some (Lang.float 30.),
-          Some "Half-life for the averaging of the buffer size, in seconds." );
+          Some
+            "Length of the buffer averaging, in seconds (the time constant of \
+             the smoothing to be precise). The greater this is, the less \
+             reactive to local variations we are." );
         ( "limit",
           Lang.float_t,
           Some (Lang.float 1.25),
-          Some "Maximum acceleration or deceleration factor." );
+          Some
+            "Maximum acceleration or deceleration factor, ie how fast or slow \
+             we can be compared to realtime." );
         ( "reset",
           Lang.bool_t,
           Some (Lang.bool false),
           Some
             "Reset speed estimation to 1 when the source becomes available \
-             again." );
+             again (resuming from a buffer underflow)." );
+        ( "resample",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Use proper resampling instead of simply duplicating samples." );
         ("", Lang.source_t frame_t, None, None);
       ])
     ~meth:
@@ -488,6 +513,7 @@ let _ =
       let limit = Lang.to_float (List.assoc "limit" p) in
       let limit = if limit < 1. then 1. /. limit else limit in
       let reset = Lang.to_bool (List.assoc "reset" p) in
+      let resample = List.assoc "resample" p |> Lang.to_bool in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       AdaptativeBuffer.create ~infallible ~autostart ~on_start ~on_stop
-        ~pre_buffer ~max_buffer ~averaging ~limit ~reset s)
+        ~pre_buffer ~max_buffer ~averaging ~limit ~reset ~resample s)
