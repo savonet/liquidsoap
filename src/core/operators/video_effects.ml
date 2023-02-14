@@ -589,31 +589,40 @@ let _ =
 
 let _ =
   let return_t = return_t () in
-  let width = ref 0 in
-  let height = ref 0 in
-  Lang.add_operator ~base:Modules.video "dimensions"
+  let buf = ref None in
+  let int ?(default = 0) f =
+    Option.map f !buf |> Option.value ~default |> Lang.int
+  in
+  Lang.add_operator ~base:Modules.video "info"
     [("", Lang.source_t return_t, None, None)]
     ~meth:
       [
         ( "width",
           ([], Lang.fun_t [] Lang.int_t),
           "Width of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !width) );
+          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.width) );
         ( "height",
           ([], Lang.fun_t [] Lang.int_t),
           "Height of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !height) );
+          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.width) );
+        ( "planes",
+          ([], Lang.fun_t [] Lang.int_t),
+          "Number of planes in a video frame.",
+          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.planes) );
+        ( "size",
+          ([], Lang.fun_t [] Lang.int_t),
+          "Size of a video frame (in bytes).",
+          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.size) );
       ]
     ~return_t ~category:`Video
     ~descr:
-      "Retrieve the dimensions of the video through the `width` and `height` \
-       methods."
+      "Compute various information about the video (dimension, size, etc.). \
+       Those are accessible through the methods attached to the source."
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
-      new effect_map ~name:"video.dimensions" s (fun buf ->
-          width := Video.Canvas.Image.width buf;
-          height := Video.Canvas.Image.height buf;
-          buf))
+      new effect_map ~name:"video.info" s (fun b ->
+          buf := Some b;
+          b))
 
 let _ =
   let return_t = return_t () in

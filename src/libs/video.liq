@@ -292,7 +292,7 @@ def add_text_builder(f) =
 
     # Our text source.
     t = f(id=id, duration=duration, color=color, font=font, size=size, text)
-    t = video.dimensions(video.crop(t))
+    t = video.info(video.crop(t))
 
     # Handle scrolling if necessary.
     x = if speed == 0 then x else
@@ -563,4 +563,37 @@ def video.tile(~id=null("video.tile"), %argsof(track.audio.add[!id]), %argsof(tr
     end
 
   source(id=id, new_tracks)
+end
+
+# Plot a floating point value.
+# @category Source / Video processing
+# @param ~color Color of the drawn point (in 0xRRGGBB format).
+# @param ~lines Draw lines connecting plotted points.
+# @param ~min Minimal value of the parameter.
+# @param ~max Maximal value of the parameter.
+# @param ~speed Speed in pixels per second.
+# @param y Value to plot.
+def video.plot(~lines=true, ~min=0., ~max=1., ~speed=100., ~color=0xffffff, y)
+  width = video.frame.width()
+  height = video.frame.height()
+  s = video.board(width=width*3, height=height)
+  height = float(s.height())
+  tx = ref(width)
+  ty = ref(0)
+  s' = video.translate(x=tx, y=ty, s)
+  # offset of the currently drawn point.
+  x = ref(0)
+  dx = int_of_float(speed * frame.duration())
+  def update()
+    tx := tx() - dx
+    y = int_of_float(((max - y()) / (max - min)) * height)
+    if lines then s.line_to(color=color, x(), y) else s.pixel(x(), y) := color end
+    x := x() + dx
+    if x() > width*2 then
+      s.clear_and_copy(x=0-width)
+      tx := tx() + width
+      x := x() - width
+    end
+  end
+  source.on_frame(s', update)
 end

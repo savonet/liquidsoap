@@ -242,6 +242,7 @@
   utils
   value
   vFrame
+  video_board
   video_converter
   video_effects
   video_fade
