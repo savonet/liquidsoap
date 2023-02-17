@@ -18,6 +18,8 @@ Fixed:
 * Fixed parameter type for `stats_interval` in SRT I/O.
 * Fixed type generalization on variable and pattern bindings
   (#2782)
+* Make sure that exception raised in `request.dynamic` never crash
+  the process (#2897)
 * Space trim in interactive variables set on telnet (#2785)
 * Fixed internal streaming logic in `max_duration` and `crossfade`.
 * Make sure that there's at most one metadata at any given

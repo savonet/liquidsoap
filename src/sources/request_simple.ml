@@ -153,23 +153,27 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) prefetch timeout =
             false
 
     method private get_next_request =
-      try
-        match
-          ( available (),
-            Lang.to_valued_option Builtins_request.Value.of_value
-              (Lang.apply f []) )
-        with
-          | false, _ -> `Empty
-          | true, Some r ->
-              Request.set_root_metadata r "source" self#id;
-              `Request r
-          | true, None ->
-              let delay = retry_delay () in
-              retry_status <- Some (Unix.gettimeofday () +. delay);
-              `Retry (fun () -> delay)
-      with e ->
-        log#severe "Failed to obtain a media request!";
-        raise e
+      let retry () =
+        let delay = retry_delay () in
+        retry_status <- Some (Unix.gettimeofday () +. delay);
+        `Retry (fun () -> delay)
+      in
+      match
+        ( available (),
+          Lang.to_valued_option Builtins_request.Value.of_value
+            (Lang.apply f []) )
+      with
+        | false, _ -> `Empty
+        | true, Some r ->
+            Request.set_root_metadata r "source" self#id;
+            `Request r
+        | true, None -> retry ()
+        | exception exn ->
+            let bt = Printexc.get_backtrace () in
+            Utils.log_exception ~log:self#log ~bt
+              (Printf.sprintf "Failed to obtain a media request: %s"
+                 (Printexc.to_string exn));
+            retry ()
   end
 
 let () =
