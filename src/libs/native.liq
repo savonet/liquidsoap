@@ -83,6 +83,14 @@ def native.request.dynamic(%argsof(request.dynamic), f)
   ignore(available)
   ignore(timeout)
 
+  def f() =
+    try
+      f()
+    catch _ do
+      null()
+    end
+  end
+
   # Prepared requests
   queue = ref([])
 
