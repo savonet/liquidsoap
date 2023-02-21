@@ -65,7 +65,7 @@ def process_protocol(~rlog=_,~maxtime,arg)
       timeout = null.map(string.to_float, timeout)
       timeout = timeout??(maxtime - time())
       extname = list.hd(default="liq",x)
-      cmd = string.concat(separator=",", x)
+      cmd = string.concat(separator=",", list.tl(x))
       (timeout, extname, cmd)
     else
       timeout = maxtime - time()
