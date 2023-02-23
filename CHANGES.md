@@ -5,6 +5,8 @@ New:
 * Added `buffer_length` method to `buffer` operator.
 * Always display error backtrace when a fatal exception
   is raised in the streaming loop.
+* Added `umask()` to get the current `umask` and `umask.set(...)`
+  to set the current `umask` (#2840)
 
 Changed:
 * Add break when restarting the external process in `input.external.{rawaudio,rawvideo}`

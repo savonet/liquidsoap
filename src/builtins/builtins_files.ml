@@ -431,3 +431,28 @@ let () =
       else (
         let message = Printf.sprintf "The file %s does not exist." file in
         Lang.raise_error ~pos:(Lang.pos p) ~message "file"))
+
+let () =
+  if not Sys.win32 then (
+    let umask_m = Mutex.create () in
+    let get_umask =
+      Tutils.mutexify umask_m (fun () ->
+          let umask = Unix.umask 0 in
+          ignore (Unix.umask umask);
+          umask)
+    in
+    let set_umask =
+      Tutils.mutexify umask_m (fun umask -> ignore (Unix.umask umask))
+    in
+    let () =
+      Lang.add_builtin "file.umask" ~category:`File
+        ~descr:"Get the process's file mode creation mask." [] Lang.int_t
+        (fun _ -> Lang.int (get_umask ()))
+    in
+    Lang.add_builtin "file.umask.set" ~category:`File
+      ~descr:"Set process's file mode creation mask."
+      [("", Lang.int_t, None, None)]
+      Lang.unit_t
+      (fun p ->
+        set_umask (Lang.to_int (List.assoc "" p));
+        Lang.unit))
