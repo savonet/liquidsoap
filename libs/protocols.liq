@@ -66,6 +66,17 @@ let settings.protocol.process.inherit_env = settings.make(
   true
 )
 
+# Parse process protocol arguments
+# @flag hidden
+def process_protocol_parse(arg) =
+  let [args, ...uri] = r/:/.split(arg)
+  uri = string.concat(separator=":", uri)
+  args = r/,/.split(args)
+
+  let [extname, ...cmd] = args
+  {uri=uri,extname=extname, cmd=string.concat(separator=",",cmd)}
+end
+
 # Register the process protocol. Syntax:
 # process:<output ext>,<cmd>:uri where <cmd> is interpolated with:
 # [("input",<input file>),("output",<output file>),("colon",":")]
@@ -74,11 +85,7 @@ let settings.protocol.process.inherit_env = settings.make(
 def process_protocol(~rlog=_,~maxtime,arg)
   log.info("Processing #{arg}")
 
-  x = r/:/.split(arg)
-  uri = string.concat(separator=":",list.tl(x))
-  x = r/,/.split(list.hd(default="",x))
-  extname = list.hd(default="liq",x)
-  cmd = string.concat(separator=",",list.tl(x))
+  let {uri, extname, cmd} = process_protocol_parse(arg)
 
   output = file.temp("liq-process", ".#{extname}")
 
