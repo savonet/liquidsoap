@@ -17,7 +17,7 @@ let settings.protocol.replaygain.tag = settings.make(
 
 # Register the replaygain protocol.
 # @flag hidden
-def replaygain_protocol(~rlog=_,~maxtime=_,arg)
+def protocol.replaygain(~rlog=_,~maxtime=_,arg)
   gain = file.replaygain(arg)
   tag = settings.protocol.replaygain.tag()
   if null.defined(gain) then
@@ -26,7 +26,7 @@ def replaygain_protocol(~rlog=_,~maxtime=_,arg)
     [arg]
   end
 end
-protocol.add("replaygain", replaygain_protocol,
+protocol.add("replaygain", protocol.replaygain,
              syntax="replaygain:uri",
              doc="Compute ReplayGain value. \
                   Adds returned value as `\"replaygain_track_gain\"` metadata")
@@ -44,35 +44,40 @@ let settings.protocol.process.inherit_env = settings.make(
   true
 )
 
+let protocol.process = ()
+
+# Parse process protocol arguments
+# @flag hidden
+def protocol.process.parse(~default_timeout,arg) =
+  let [args, ...uri] = r/:/.split(arg)
+  uri = string.concat(separator=":", uri)
+  args = r/,/.split(args)
+
+  let args =
+    if string.contains(prefix="timeout=", list.hd(args)) then
+      let [timeout, extname, ...cmd] = args
+      timeout = string.residual(prefix="timeout=", timeout)
+      timeout = null.map(string.to_float, timeout) ?? default_timeout
+      timeout = min(default_timeout, timeout)
+      {timeout=timeout, extname=extname, cmd=cmd}
+    else
+      let [extname, ...cmd] = args
+      {timeout=default_timeout,  extname=extname, cmd=cmd}
+    end
+
+  args.{uri=uri,cmd=string.concat(separator=",",args.cmd)}
+end
+
 # Register the process protocol. Syntax:
-# process:<output ext>,<cmd>:uri where <cmd> is interpolated with:
+# process:[timeout=<seconds>],<output ext>,<cmd>:uri where `timeout` argument is optional and
+# cannot exceed the underlying time and <cmd> is interpolated with:
 # [("input",<input file>),("output",<output file>),("colon",":")]
 # See say: protocol for an example.
 # @flag hidden
-def process_protocol(~rlog=_,~maxtime,arg)
+def replaces protocol.process(~rlog=_,~maxtime,arg)
   log.info("Processing #{arg}")
 
-  x = r/:/.split(arg)
-  uri = string.concat(separator=":",list.tl(x))
-  x = r/,/.split(list.hd(default="",x))
-  a = list.hd(default="liq",x)
-  x = list.tl(x)
-
-  let (timeout, extname, cmd) =
-    # Allow specifying the timeout before the extension
-    if string.contains(prefix="timeout=", a) then
-      timeout = string.residual(prefix="timeout=", a)
-      timeout = null.map(string.to_float, timeout)
-      timeout = timeout??(maxtime - time())
-      extname = list.hd(default="liq",x)
-      cmd = string.concat(separator=",", list.tl(x))
-      (timeout, extname, cmd)
-    else
-      timeout = maxtime - time()
-      extname = a
-      cmd = string.concat(separator=",", list.tl(x))
-      (timeout, extname, cmd)
-    end
+  let {uri, timeout, extname, cmd} = protocol.process.parse(default_timeout=maxtime-time(),arg)
 
   output = file.temp("liq-process", ".#{extname}")
 
@@ -118,7 +123,7 @@ def process_protocol(~rlog=_,~maxtime,arg)
     end
   end
 end
-protocol.add(temporary=true, "process", process_protocol,
+protocol.add(temporary=true, "process", protocol.process,
              doc="Resolve a request using an arbitrary process. \
                   `<cmd>` is interpolated with: \
                   `[(\"input\",<input>),(\"output\",<output>),\
@@ -133,7 +138,7 @@ protocol.add(temporary=true, "process", process_protocol,
 # @param cmd Command line to execute
 # @param ~extname Output file extension (with no leading '.')
 # @param ~uri Input uri
-def process_uri(~timeout=null(),~extname,~uri="",cmd) =
+def process.uri(~timeout=null(),~extname,~uri="",cmd) =
   timeout = null.case(timeout, {""}, fun(t) -> "timeout=" ^ string(t) ^ ",")
   cmd = r/:/.replace(fun (_) -> "$(colon)",cmd)
   uri = if uri != "" then ":#{uri}" else "" end
@@ -143,7 +148,7 @@ end
 %ifdef http.head
 # Resolve http(s) URLs using curl
 # @flag hidden
-def http_protocol(proto,~rlog,~maxtime,arg) =
+def protocol.http(proto,~rlog,~maxtime,arg) =
   uri = "#{proto}:#{arg}"
 
   def log(~level,s) =
@@ -211,11 +216,11 @@ end
 
 # Register download protocol.
 # @flag hidden
-def add_http_protocol(proto) =
-  def http_protocol(~rlog,~maxtime,arg) = http_protocol(proto,rlog=rlog,maxtime=maxtime,arg) end
-  protocol.add(temporary=true,syntax="#{proto}://...",doc="Download http URLs using curl",proto,http_protocol)
+def protocol.add.http(proto) =
+  def protocol.http(~rlog,~maxtime,arg) = protocol.http(proto,rlog=rlog,maxtime=maxtime,arg) end
+  protocol.add(temporary=true,syntax="#{proto}://...",doc="Download http URLs using curl",proto,protocol.http)
 end
-list.iter(add_http_protocol,["http","https"])
+list.iter(protocol.add.http,["http","https"])
 %endif
 
 let settings.protocol.youtube_dl = settings.make.protocol("youtube-dl")
@@ -233,7 +238,7 @@ let settings.protocol.youtube_dl.timeout = settings.make(
 # Register the youtube-dl protocol, using youtube-dl.
 # Syntax: youtube-dl:<ID>
 # @flag hidden
-def youtube_dl_protocol(~rlog,~maxtime,arg)
+def protocol.youtube_dl(~rlog,~maxtime,arg)
   binary = settings.protocol.youtube_dl.path()
   timeout = settings.protocol.youtube_dl.timeout()
 
@@ -258,7 +263,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   ext   = file.extension(leading_dot=false,list.nth(default="",x,1))
 
   cmd = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{process.quote(arg)}"
-  cmd = process_uri(timeout=timeout, extname=ext, cmd)
+  cmd = process.uri(timeout=timeout, extname=ext, cmd)
 
   if title != "" then
     ["annotate:title=#{string.quote(title)}:#{cmd}"]
@@ -266,14 +271,14 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
     [cmd]
   end
 end
-protocol.add("youtube-dl", youtube_dl_protocol,
+protocol.add("youtube-dl", protocol.youtube_dl,
               doc="Resolve a request using youtube-dl.",
               syntax="youtube-dl:uri")
 
 # Register the youtube-pl protocol.
 # Syntax: youtube-pl:<ID>
 # @flag hidden
-def youtube_pl_protocol(~rlog=_,~maxtime,arg)
+def protocol.youtube_pl(~rlog=_,~maxtime,arg)
   binary = settings.protocol.youtube_dl.path()
   delay = maxtime - time()
   cmd = "#{binary} -i -s --get-id --flat-playlist -- #{process.quote(arg)}"
@@ -285,16 +290,16 @@ def youtube_pl_protocol(~rlog=_,~maxtime,arg)
   file.write(data=l,tmp)
   [tmp]
 end
-protocol.add("youtube-pl", youtube_pl_protocol,
+protocol.add("youtube-pl", protocol.youtube_pl,
               doc="Resolve a request as a youtube playlist using youtube-dl. You typically want to use this as `playlist(\"youtube-pl:...\")`.",
               temporary=true,syntax="youtube-pl:uri")
 
 # Register tmp
 # @flag hidden
-def tmp_protocol(~rlog=_, ~maxtime=_, arg) =
+def protocol.tmp(~rlog=_, ~maxtime=_, arg) =
   [arg]
 end
-protocol.add("tmp",tmp_protocol,
+protocol.add("tmp",protocol.tmp,
              doc="Mark the given uri as temporary. Useful when chaining protocols",
              temporary=true,syntax="tmp:uri")
 
@@ -317,7 +322,7 @@ let settings.protocol.ffmpeg.replaygain = settings.make(
 
 # Register ffmpeg
 # @flag hidden
-def ffmpeg_protocol(~rlog,~maxtime,arg) =
+def protocol.ffmpeg(~rlog,~maxtime,arg) =
   ffmpeg   = settings.protocol.ffmpeg.path()
   metadata = settings.protocol.ffmpeg.metadata()
   replaygain = settings.protocol.ffmpeg.replaygain()
@@ -480,7 +485,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
 
     cmd = "#{ffmpeg} -y -i $(input) #{cue_points} #{fades} #{replaygain_filter} #{process.quote(wav)}"
 
-    uri = process_uri(extname="wav",uri=filename,cmd)
+    uri = process.uri(extname="wav",uri=filename,cmd)
 
     wav_r = request.create(uri)
     delay = maxtime - time()
@@ -496,14 +501,14 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     []
   end
 end
-protocol.add("ffmpeg",ffmpeg_protocol,
+protocol.add("ffmpeg",protocol.ffmpeg,
              doc="Decode any file to wave using ffmpeg",
              syntax="ffmpeg:uri")
 
 # Register stereo protocol which converts a file to stereo (currently decodes as
 # wav).
 # @flag hidden
-def stereo_protocol(~rlog=_, ~maxtime=_, arg)
+def protocol.stereo(~rlog=_, ~maxtime=_, arg)
   file = file.temp("liq-stereo", ".wav")
   r = request.create(arg)
   if not request.resolve(r) then
@@ -516,7 +521,7 @@ def stereo_protocol(~rlog=_, ~maxtime=_, arg)
     [file]
   end
 end
-protocol.add(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
+protocol.add(static=true, temporary=true, "stereo", protocol.stereo, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
 
 let settings.protocol.text2wave = settings.make.protocol("text2wave")
 
@@ -527,11 +532,11 @@ let settings.protocol.text2wave.path = settings.make(
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden
-def text2wave_protocol(~rlog=_, ~maxtime=_, arg) =
+def protocol.text2wave(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.text2wave.path()
-  [process_uri(extname="wav", "echo #{process.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
+  [process.uri(extname="wav", "echo #{process.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
-protocol.add(static=true,"text2wave",text2wave_protocol,
+protocol.add(static=true,"text2wave",protocol.text2wave,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
              syntax="text2wave:Text to read")
 
@@ -544,20 +549,20 @@ let settings.protocol.gtts.path = settings.make(
 
 # Register the gtts: protocol using gtts
 # @flag hidden
-def gtts_protocol(~rlog=_, ~maxtime=_, arg) =
+def protocol.gtts(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.gtts.path()
-  [process_uri(extname="mp3", "#{binary} -o $(output) #{process.quote(arg)}")]
+  [process.uri(extname="mp3", "#{binary} -o $(output) #{process.quote(arg)}")]
 end
-protocol.add(static=true,"gtts",gtts_protocol,
+protocol.add(static=true,"gtts",protocol.gtts,
              doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
              syntax="gtts:Text to read")
 
 # Register the legacy say: protocol
 # @flag hidden
-def say_protocol(~rlog=_, ~maxtime=_, arg) =
+def protocol.say(~rlog=_, ~maxtime=_, arg) =
   ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
 end
-protocol.add(static=true,"say",say_protocol,
+protocol.add(static=true,"say",protocol.say,
              doc="Generate speech synthesis using text2wave. Result is always stereo.",
              syntax="say:Text to read")
 
@@ -632,7 +637,7 @@ end
 def s3_protocol(~rlog=_, ~maxtime=_, arg) =
   extname = file.extension(leading_dot=false,dir_sep="/",arg)
   arg = process.quote("s3:#{arg}")
-  [process_uri(extname=extname,"#{aws_base()} s3 cp #{arg} $(output)")]
+  [process.uri(extname=extname,"#{aws_base()} s3 cp #{arg} $(output)")]
 end
 protocol.add("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
              syntax="s3://uri")
@@ -660,7 +665,7 @@ def polly_protocol(~rlog=_, ~maxtime=_, text) =
 
   cmd = "#{aws} --text #{process.quote(text)} --voice-id #{process.quote(voice_id)} $(output)"
 
-  [process_uri(extname=extname,cmd)]
+  [process.uri(extname=extname,cmd)]
 end
 protocol.add(static=true,"polly",polly_protocol,
              doc="Generate speech synthesis using AWS polly service. \
