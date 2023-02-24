@@ -238,20 +238,18 @@ let pipe_proto kind arg_doc =
       ("", Lang.source_t kind, None, None);
     ]
 
-class virtual piped_output ~kind p =
+class virtual piped_output ~name ~kind p =
   let reload_predicate = List.assoc "reopen_when" p in
   let reload_delay = Lang.to_float (List.assoc "reopen_delay" p) in
   let reload_on_error = Lang.to_bool (List.assoc "reopen_on_error" p) in
   let reload_on_metadata = Lang.to_bool (List.assoc "reopen_on_metadata" p) in
-  let name = Lang.to_string_getter (Lang.assoc "" 2 p) in
-  let name = name () in
   let source = Lang.assoc "" 3 p in
   object (self)
     inherit base ~kind ~source ~name p as super
     method reopen_cmd = self#reopen
     val mutable open_date = 0.
-    val mutable need_reset = false
-    val mutable reopening = false
+    val need_reset = Atomic.make false
+    val reopening = Atomic.make false
     method virtual open_pipe : unit
     method virtual close_pipe : unit
     method virtual is_open : bool
@@ -284,11 +282,11 @@ class virtual piped_output ~kind p =
           self#log#important "Re-opening output pipe.";
 
           (* #stop can trigger #send, the [reopening] flag avoids loops *)
-          reopening <- true;
+          Atomic.set reopening true;
           self#stop;
           self#start;
-          reopening <- false;
-          need_reset <- false)
+          Atomic.set reopening false;
+          Atomic.set need_reset false)
         ()
 
     method send b =
@@ -296,10 +294,10 @@ class virtual piped_output ~kind p =
       (try super#send b
        with e when reload_on_error ->
          self#log#important "Reopening on error: %s." (Printexc.to_string e);
-         need_reset <- true);
-      if not reopening then
+         Atomic.set need_reset true);
+      if not (Atomic.get reopening) then
         if
-          need_reset
+          Atomic.get need_reset
           || Unix.gettimeofday () > reload_delay +. open_date
              && Lang.to_bool (Lang.apply reload_predicate [])
         then self#reopen
@@ -307,7 +305,7 @@ class virtual piped_output ~kind p =
     method insert_metadata m =
       if reload_on_metadata then (
         current_metadata <- Some m;
-        need_reset <- true)
+        Atomic.set need_reset true)
       else super#insert_metadata m
   end
 
@@ -359,7 +357,7 @@ class virtual ['a] file_output_base p =
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
   let append = Lang.to_bool (List.assoc "append" p) in
   object (self)
-    val mutable current_filename = None
+    val current_filename = Atomic.make None
     method virtual interpolate : ?subst:(string -> string) -> string -> string
 
     method private filename =
@@ -372,38 +370,48 @@ class virtual ['a] file_output_base p =
 
     method virtual open_out_gen : open_flag list -> int -> string -> 'a
 
-    method open_chan =
+    method private prepare_filename =
       let mode =
         Open_wronly :: Open_creat
         :: (if append then [Open_append] else [Open_trunc])
       in
-      let filename = self#filename in
+      match Atomic.get current_filename with
+        | Some filename -> (filename, mode, perm)
+        | None -> (
+            let filename = self#filename in
+            try
+              Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
+              Atomic.set current_filename (Some filename);
+              (filename, mode, perm)
+            with Sys_error _ as exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              Lang.raise_as_runtime ~bt ~kind:"system" exn)
+
+    method open_chan =
       try
-        Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
-        let fd = self#open_out_gen mode perm filename in
-        current_filename <- Some filename;
-        fd
-      with Sys_error e ->
+        let filename, mode, perm = self#prepare_filename in
+        self#open_out_gen mode perm filename
+      with Sys_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
-        Runtime_error.raise ~pos:(Lang.pos p) ~bt ~message:e "system"
+        Lang.raise_as_runtime ~bt ~kind:"system" exn
 
     method virtual close_out : 'a -> unit
 
     method close_chan fd =
       try
         self#close_out fd;
-        self#on_close (Option.get current_filename);
-        current_filename <- None
-      with Sys_error e ->
+        self#on_close (Option.get (Atomic.get current_filename));
+        Atomic.set current_filename None
+      with Sys_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
-        Runtime_error.raise ~pos:(Lang.pos p) ~bt ~message:e "system"
+        Lang.raise_as_runtime ~bt ~kind:"system" exn
 
     method private on_close = on_close
   end
 
 class file_output ~format_val ~kind p =
   object
-    inherit piped_output ~kind p
+    inherit piped_output ~name:"output.file" ~kind p
     inherit [out_channel] chan_output p
     inherit [out_channel] file_output_base p
     method encoder_factory = encoder_factory format_val
@@ -423,20 +431,21 @@ class file_output_using_encoder ~format_val ~kind p =
   let append = Lang.to_bool (List.assoc "append" p) in
   let p = ("append", Lang.bool true) :: List.remove_assoc "append" p in
   object (self)
-    inherit piped_output ~kind p
+    inherit piped_output ~name:"output.file" ~kind p
     inherit [unit] chan_output p
     inherit [unit] file_output_base p
 
-    method encoder_factory name meta =
-      (* Make sure the file is created with the right perms. *)
-      ignore self#open_chan;
-      let format = Encoder.with_file_output ~append format self#filename in
-      encoder_factory ~format format_val name meta
-
-    method open_out_gen mode perms filename =
-      let fd = open_out_gen mode perms filename in
+    method open_out_gen mode perm filename =
+      let fd = open_out_gen mode perm filename in
       close_out fd;
       ()
+
+    method encoder_factory name meta =
+      (* Make sure the file is created with the right perms. *)
+      let filename, mode, perm = self#prepare_filename in
+      self#open_out_gen mode perm filename;
+      let format = Encoder.with_file_output ~append format filename in
+      encoder_factory ~format format_val name meta
 
     method output_substring () _ _ _ = ()
     method flush () = ()
@@ -498,7 +507,7 @@ class external_output p =
   let process = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
-    inherit piped_output ~kind p
+    inherit piped_output ~name:"output.external" ~kind p
     inherit [out_channel] chan_output p
     method encoder_factory = encoder_factory format_val
     method self_sync = (`Static, self_sync)
