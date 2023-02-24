@@ -69,10 +69,10 @@ let add_http_request ~base ~stream_body ~descr ~request name =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Perform redirections if needed." );
-        ( "timeout_ms",
-          Lang.nullable_t Lang.int_t,
-          Some (Lang.int 10000),
-          Some "Timeout for network operations in milliseconds." );
+        ( "timeout",
+          Lang.nullable_t Lang.float_t,
+          Some (Lang.float 10.),
+          Some "Timeout for network operations in seconds." );
         ( "",
           Lang.string_t,
           None,
@@ -99,7 +99,9 @@ let add_http_request ~base ~stream_body ~descr ~request name =
         List.map (fun (x, y) -> (Lang.to_string x, Lang.to_string y)) headers
       in
       let timeout =
-        Lang.to_valued_option Lang.to_int (List.assoc "timeout_ms" p)
+        Lang.to_valued_option
+          (fun v -> int_of_float (1000. *. Lang.to_float v))
+          (List.assoc "timeout" p)
       in
       let http_version =
         Option.map Lang.to_string (Lang.to_option (List.assoc "http_version" p))

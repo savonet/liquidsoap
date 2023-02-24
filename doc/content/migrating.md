@@ -11,6 +11,17 @@ The `!x` notation for getting the value of a reference is now deprecated. You
 should write `x()` instead. And `x := v` is now an alias for `x.set(v)` (both
 can be used interchangeably).
 
+### Timeout
+
+We used to have timeout values labelled `timeout` or `timeout_ms`, some of these would be integer and
+in milliseconds, other floating point and in seconds etc. This was pretty confusing so, now all `timeout`
+settings and arguments have been unified to be named `timeout` and hold a floating point value representing
+a number of seconds.
+
+In most cases, your script will not execute until you have updated your custom `timeout`
+values but you should also review all of them to make sure that they follow the new
+convention.
+
 ### Harbor HTTP server
 
 The API for registering HTTP server endpoint was completely. It should be more flexible and

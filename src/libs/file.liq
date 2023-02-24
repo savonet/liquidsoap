@@ -236,7 +236,7 @@ def file.download(~filename, ~timeout=5., url) =
 
   response = http.get.stream(
     on_body_data=file_writer,
-    timeout_ms=int_of_float(timeout * 1000.),
+    timeout=timeout,
     url
   )
 

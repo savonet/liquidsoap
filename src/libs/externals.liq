@@ -331,13 +331,14 @@ end
 # @flag extra
 # @param ~urgency Urgency (low|normal|critical).
 # @param ~icon    Icon filename or stock icon to display.
-# @param ~time    Timeout in milliseconds.
+# @param ~timeout Timeout in seconds.
 # @param ~display Function used to display a metadata packet.
 # @param ~title   Title of the notification message.
 # @category Source / Track processing
-def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
+def notify_metadata(~urgency="low",~icon="stock_smiley-22",~timeout=3.,
            ~display=string_of_metadata,
            ~title="Liquidsoap: new track",s)
+  time = int_of_float(timeout * 1000.)
   send = 'notify-send -i #{icon} -u #{urgency}'
        ^ ' -t #{time} #{process.quote(title)} '
   s.on_metadata(fun (m) -> ignore(process.run(send^process.quote(display(m)))))

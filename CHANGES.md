@@ -36,6 +36,8 @@ Changed:
 - Changed `cry` to be a required dependency.
 - Changed default character encoding in `output.harbor`, `output.icecast`
   `output.shoutcast` to `UTF-8` (#2704)
+- BREAKING: all `timeout` settings and parameters are now `float` values
+  and in seconds (#2809)
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.
