@@ -485,7 +485,7 @@ upload_file_fn = fun (~name, ~content_type, ~headers, ~boundary, ~filename, ~fil
   }])
   headers = ("Content-Type", "multipart/form-data; boundary=#{data.boundary}")::headers
 
-  fn(headers=headers, timeout_ms=timeout, redirect=redirect, data=data.contents, url)
+  fn(headers=headers, timeout=timeout, redirect=redirect, data=data.contents, url)
 end
 
 # Send a file via POST request encoded in multipart/form-data. The contents can
@@ -499,7 +499,7 @@ end
 # @param ~filename File name sent in the request.
 # @param ~file File whose contents is to be sent in the request.
 # @param ~contents Contents of the file sent in the request.
-# @param ~timeout Timeout in ms.
+# @param ~timeout Timeout in seconds.
 # @param ~redirect Follow reidrections.
 # @param url URL to post to.
 def http.post.file(~name="file", ~content_type=null(), ~headers=[], ~boundary=null(), ~filename=null(), ~file=null(), ~contents=null(), ~timeout=null(), ~redirect=true, url)
@@ -518,7 +518,7 @@ end
 # @param ~filename File name sent in the request.
 # @param ~file File whose contents is to be sent in the request.
 # @param ~contents Contents of the file sent in the request.
-# @param ~timeout Timeout in ms.
+# @param ~timeout Timeout in seconds.
 # @param ~redirect Follow reidrections.
 # @param url URL to put to.
 def http.put.file(~name="file", ~content_type=null(), ~headers=[], ~boundary=null(), ~filename=null(), ~file=null(), ~contents=null(), ~timeout=null(), ~redirect=true, url)

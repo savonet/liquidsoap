@@ -103,24 +103,24 @@ let common_options ~mode =
       Some (Lang.float 2.),
       Some "Delay between connection attempts. Used only in caller mode." );
     ( "read_timeout",
-      Lang.nullable_t Lang.int_t,
-      Some (Lang.int 1_000),
+      Lang.nullable_t Lang.float_t,
+      Some (Lang.float 1.),
       Some
-        "Timeout, in milliseconds, after which read operations are aborted if \
-         no data was received, indefinite if `null`." );
+        "Timeout, in seconds, after which read operations are aborted if no \
+         data was received, indefinite if `null`." );
     ( "write_timeout",
-      Lang.nullable_t Lang.int_t,
-      Some (Lang.int 1_000),
+      Lang.nullable_t Lang.float_t,
+      Some (Lang.float 1.),
       Some
-        "Timeout, in milliseconds, after which write operations are aborted if \
-         no data was received, indefinite if `null`." );
+        "Timeout, in seconds, after which write operations are aborted if no \
+         data was received, indefinite if `null`." );
     ( "connection_timeout",
-      Lang.nullable_t Lang.int_t,
+      Lang.nullable_t Lang.float_t,
       Some Lang.null,
       Some
-        "Timeout, in milliseconds, after which initial connection operations \
-         are aborted if no data was received. Uses library's default if \
-         `nulll`. Used only in `client` mode." );
+        "Timeout, in seconds, after which initial connection operations are \
+         aborted if no data was received. Uses library's default if `nulll`. \
+         Used only in `client` mode." );
     ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
     ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");
     ( "on_connect",
@@ -215,13 +215,19 @@ let parse_common_options p =
   let on_disconnect = List.assoc "on_disconnect" p in
   let polling_delay = Lang.to_float (List.assoc "polling_delay" p) in
   let read_timeout =
-    Lang.to_valued_option Lang.to_int (List.assoc "read_timeout" p)
+    Lang.to_valued_option
+      (fun v -> int_of_float (1000. *. Lang.to_float v))
+      (List.assoc "read_timeout" p)
   in
   let write_timeout =
-    Lang.to_valued_option Lang.to_int (List.assoc "write_timeout" p)
+    Lang.to_valued_option
+      (fun v -> int_of_float (1000. *. Lang.to_float v))
+      (List.assoc "write_timeout" p)
   in
   let connection_timeout =
-    Lang.to_valued_option Lang.to_int (List.assoc "connection_timeout" p)
+    Lang.to_valued_option
+      (fun v -> int_of_float (1000. *. Lang.to_float v))
+      (List.assoc "connection_timeout" p)
   in
   {
     mode = mode_of_value (List.assoc "mode" p);
@@ -264,8 +270,8 @@ let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") ~d:4 "Level"
 let conf_poll = Dtools.Conf.void ~p:(conf_srt#plug "poll") "Poll configuration"
 
 let conf_timeout =
-  Dtools.Conf.int ~p:(conf_poll#plug "timeout") ~d:100
-    "Timeout for polling loop, in ms"
+  Dtools.Conf.float ~p:(conf_poll#plug "timeout") ~d:0.1
+    "Timeout for polling loop, in seconda."
 
 let conf_enforced_encryption =
   Dtools.Conf.bool
@@ -299,7 +305,9 @@ module Poll = struct
   let process () =
     try
       if List.length (Srt.Poll.sockets t.p) = 0 then raise Empty;
-      let read, write = Srt.Poll.wait t.p ~timeout:conf_timeout#get in
+      let read, write =
+        Srt.Poll.wait t.p ~timeout:(int_of_float (1000. *. conf_timeout#get))
+      in
       let apply fn s =
         try fn s
         with exn ->
