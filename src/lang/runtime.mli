@@ -59,6 +59,9 @@ val from_string : ?parse_only:bool -> lib:bool -> string -> unit
 (** Interactive loop: read from command line, eval, print and loop. *)
 val interactive : unit -> unit
 
+(** Parse a string. *)
+val parse : string -> Term.t
+
 (** Evaluate a string. The result is checked to have the given type. *)
 val eval : ignored:bool -> ty:Type.t -> string -> Value.t
 

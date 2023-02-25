@@ -94,6 +94,7 @@ let rec meth v0 = function
 
 let record = meth unit
 let val_fun p f = mk (FFI (p, f))
+let term_fun p tm = mk (Fun (p, [], tm))
 
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in

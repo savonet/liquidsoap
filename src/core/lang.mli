@@ -269,8 +269,12 @@ val reference : (unit -> value) -> (value -> unit) -> value
 val http_transport : Http.transport -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
-    the label and optional values. *)
+    the label and optional values. Second string value is used when renaming
+    argument name, e.g. `fun (foo=_, ...) -> ` *)
 val val_fun : (string * string * value option) list -> (env -> value) -> value
+
+(** Build a function from a term. *)
+val term_fun : (string * string * value option) list -> Term.t -> value
 
 (** Build a constant function.
   * It is slightly less opaque and allows the printing of the closure

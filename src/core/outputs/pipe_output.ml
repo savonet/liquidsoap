@@ -211,41 +211,56 @@ let _ =
   * takes care of the various reload mechanisms. *)
 
 let pipe_proto frame_t arg_doc =
+  let reopen_t =
+    Lang.fun_t
+      [
+        (false, "error", Lang.nullable_t Lang.error_t);
+        (false, "metadata", Lang.nullable_t Lang.metadata_t);
+      ]
+      Lang.float_t
+  in
+  let default_reopen = "null.case(error, {-1.}, fun (_) -> 2.)" in
+  let should_reopen = Liquidsoap_lang.Runtime.parse default_reopen in
   Output.proto
   @ [
-      ( "reopen_delay",
-        Lang.float_t,
-        Some (Lang.float 120.),
-        Some "Prevent re-opening within that delay, in seconds." );
-      ( "reopen_on_error",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Re-open if some error occurs." );
-      ( "reopen_on_metadata",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Re-open on every new metadata information." );
-      ( "reopen_when",
-        Lang.fun_t [] Lang.bool_t,
-        Some (Lang.val_cst_fun [] (Lang.bool false)),
-        Some "When should the output be re-opened." );
+      ( "should_reopen",
+        reopen_t,
+        Some
+          (Lang.term_fun
+             [("error", "error", None); ("metadata", "_", None)]
+             should_reopen),
+        Some
+          "Callback called on error and metadata. If returned value is \
+           positive, the output is reopened after this delay has expired, if \
+           negative the output is not reopened and an error is raised if the \
+           `error` argument was present. Default value is to reload after 2 \
+           seconds on `error`." );
+      ( "on_reopen",
+        Lang.fun_t [] Lang.unit_t,
+        Some (Lang.val_cst_fun [] Lang.unit),
+        Some "Callback executed when the output is reopened." );
       ("", Lang.format_t frame_t, None, Some "Encoding format.");
       ("", Lang.getter_t Lang.string_t, None, Some arg_doc);
       ("", Lang.source_t frame_t, None, None);
     ]
 
 class virtual piped_output ~name p =
-  let reload_predicate = List.assoc "reopen_when" p in
-  let reload_delay = Lang.to_float (List.assoc "reopen_delay" p) in
-  let reload_on_error = Lang.to_bool (List.assoc "reopen_on_error" p) in
-  let reload_on_metadata = Lang.to_bool (List.assoc "reopen_on_metadata" p) in
   let source = Lang.assoc "" 3 p in
+  let should_reopen = List.assoc "should_reopen" p in
+  let should_reopen ?error ?metadata () =
+    let map fn = function None -> Lang.null | Some v -> fn v in
+    let error = map Lang.error error in
+    let metadata = map Lang.metadata metadata in
+    Lang.to_float
+      (Lang.apply should_reopen [("error", error); ("metadata", metadata)])
+  in
+  let on_reopen = List.assoc "on_reopen" p in
+  let on_reopen () = ignore (Lang.apply on_reopen []) in
   object (self)
     inherit base ~source ~name p as super
     method reopen_cmd = self#reopen
     val mutable open_date = 0.
-    val need_reset = Atomic.make false
-    val reopening = Atomic.make false
+    val mutable need_reopen = false
     method virtual open_pipe : unit
     method virtual close_pipe : unit
     method virtual is_open : bool
@@ -261,48 +276,63 @@ class virtual piped_output ~name p =
 
     method prepare_pipe =
       self#open_pipe;
-      open_date <- Unix.gettimeofday ()
+      open_date <- Unix.gettimeofday ();
+      need_reopen <- false
+
+    method private close_encoder =
+      let flush = (Option.get encoder).Encoder.stop () in
+      super#send flush
 
     method! stop =
       if self#is_open then (
-        let flush = (Option.get encoder).Encoder.stop () in
-        self#send flush;
+        self#close_encoder;
         self#close_pipe);
       super#stop
 
-    val m = Mutex.create ()
+    method reopen =
+      self#log#important "Re-opening output pipe.";
+      self#close_encoder;
+      self#close_pipe;
+      self#prepare_pipe;
+      on_reopen ()
 
-    method reopen : unit =
-      Tutils.mutexify m
-        (fun () ->
-          self#log#important "Re-opening output pipe.";
-
-          (* #stop can trigger #send, the [reopening] flag avoids loops *)
-          Atomic.set reopening true;
-          self#stop;
-          self#start;
-          Atomic.set reopening false;
-          Atomic.set need_reset false)
-        ()
+    method! output =
+      try super#output
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
+        let open_delay = should_reopen ~error () in
+        if open_delay < 0. then Printexc.raise_with_backtrace exn bt;
+        self#close_encoder;
+        self#close_pipe;
+        open_date <- Unix.gettimeofday () +. open_delay;
+        self#log#important "Error while streaming: %s, will re-open in %.02fs"
+          (Printexc.to_string exn) open_delay
 
     method! send b =
-      if not self#is_open then self#prepare_pipe;
-      (try super#send b
-       with e when reload_on_error ->
-         self#log#important "Reopening on error: %s." (Printexc.to_string e);
-         Atomic.set need_reset true);
-      if not (Atomic.get reopening) then
-        if
-          Atomic.get need_reset
-          || Unix.gettimeofday () > reload_delay +. open_date
-             && Lang.to_bool (Lang.apply reload_predicate [])
-        then self#reopen
+      (match self#is_open with
+        | false when open_date <= Unix.gettimeofday () -> self#prepare_pipe
+        | true when need_reopen ->
+            if open_date <= Unix.gettimeofday () then self#reopen
+        | true -> (
+            match should_reopen () with
+              | 0. -> self#reopen
+              | v when 0. < v ->
+                  need_reopen <- true;
+                  open_date <- Unix.gettimeofday () +. v
+              | _ -> ())
+        | _ -> ());
+      if self#is_open then super#send b
 
-    method! insert_metadata m =
-      if reload_on_metadata then (
-        current_metadata <- Some m;
-        Atomic.set need_reset true)
-      else super#insert_metadata m
+    method! insert_metadata metadata =
+      let open_delay =
+        should_reopen ~metadata:(Meta_format.to_metadata metadata) ()
+      in
+      if open_delay <= 0. then super#insert_metadata metadata
+      else (
+        self#log#info "New metadata received, will re-open in %.02fs" open_delay;
+        need_reopen <- true;
+        open_date <- Unix.gettimeofday () +. open_delay)
   end
 
 (** Out channel virtual class: takes care of current out channel and writing to
