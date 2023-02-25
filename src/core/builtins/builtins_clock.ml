@@ -31,6 +31,13 @@ let _ =
         Some
           "Identifier for the new clock. The default empty string means that \
            the identifier of the first source will be used." );
+      ( "on_error",
+        Lang.nullable_t (Lang.fun_t [(false, "", Lang.error_t)] Lang.unit_t),
+        Some Lang.null,
+        Some
+          "Error callback executed when a streaming error occurs. When passed, \
+           all streaming\n\
+           errors are silenced. Intended mostly for debugging purposes." );
       ( "sync",
         Lang.string_t,
         Some (Lang.string "auto"),
@@ -42,7 +49,7 @@ let _ =
            `\"none\"` removes all synchronization control." );
     ]
   in
-  let assign id sync l =
+  let assign ?on_error id sync l =
     match l with
       | [] -> Lang.unit
       | hd :: _ as sources ->
@@ -54,7 +61,7 @@ let _ =
               | s when s = "none" -> `None
               | _ -> raise (Error.Invalid_value (sync, "Invalid sync value"))
           in
-          let clock = Clock.clock ~sync id in
+          let clock = Clock.clock ?on_error ~sync id in
           List.iter
             (fun s ->
               try
@@ -80,9 +87,19 @@ let _ =
     Lang.unit_t
     (fun p ->
       let id = Lang.to_valued_option Lang.to_string (List.assoc "id" p) in
+      let on_error = Lang.to_option (List.assoc "on_error" p) in
+      let on_error =
+        Option.map
+          (fun on_error exn bt ->
+            let error =
+              Lang.runtime_error_of_exception ~bt ~kind:"output" exn
+            in
+            ignore (Lang.apply on_error [("", Lang.error error)]))
+          on_error
+      in
       let sync = List.assoc "sync" p in
       let l = Lang.to_list (List.assoc "" p) in
-      assign id sync l)
+      assign ?on_error id sync l)
 
 let _ =
   Lang.add_builtin ~base:clock "unify" ~category:`Liquidsoap

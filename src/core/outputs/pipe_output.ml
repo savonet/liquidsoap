@@ -217,24 +217,18 @@ let pipe_proto frame_t arg_doc =
         (false, "error", Lang.nullable_t Lang.error_t);
         (false, "metadata", Lang.nullable_t Lang.metadata_t);
       ]
-      Lang.float_t
+      (Lang.nullable_t Lang.float_t)
   in
-  let default_reopen = "null.case(error, {-1.}, fun (_) -> 2.)" in
-  let should_reopen = Liquidsoap_lang.Runtime.parse default_reopen in
   Output.proto
   @ [
       ( "should_reopen",
         reopen_t,
+        Some (Lang.val_cst_fun [("error", None); ("metadata", None)] Lang.null),
         Some
-          (Lang.term_fun
-             [("error", "error", None); ("metadata", "_", None)]
-             should_reopen),
-        Some
-          "Callback called on error and metadata. If returned value is \
-           positive, the output is reopened after this delay has expired, if \
-           negative the output is not reopened and an error is raised if the \
-           `error` argument was present. Default value is to reload after 2 \
-           seconds on `error`." );
+          "Callback called on error and metadata. If returned value is not \
+           `null` (and positive), the output is reopened after this delay has \
+           expired, if negative the output is not reopened and an error is \
+           raised if the `error` argument was present." );
       ( "on_reopen",
         Lang.fun_t [] Lang.unit_t,
         Some (Lang.val_cst_fun [] Lang.unit),
@@ -251,8 +245,12 @@ class virtual piped_output ~name p =
     let map fn = function None -> Lang.null | Some v -> fn v in
     let error = map Lang.error error in
     let metadata = map Lang.metadata metadata in
-    Lang.to_float
-      (Lang.apply should_reopen [("error", error); ("metadata", metadata)])
+    match
+      Lang.to_valued_option Lang.to_float
+        (Lang.apply should_reopen [("error", error); ("metadata", metadata)])
+    with
+      | Some v when 0. <= v -> v
+      | _ -> -1.
   in
   let on_reopen = List.assoc "on_reopen" p in
   let on_reopen () = ignore (Lang.apply on_reopen []) in

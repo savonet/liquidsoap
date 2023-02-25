@@ -103,6 +103,7 @@ let val_cst_fun p c =
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
   match c.value with
+    | Null -> f (Type.var ()) Term.Null
     | Tuple [] -> f (Type.make Type.unit) Term.unit
     | Ground (Int i) ->
         f (mkg Type.Ground.int) (Term.Ground (Term.Ground.Int i))

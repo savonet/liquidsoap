@@ -138,7 +138,7 @@ module MkClock (Time : Liq_time.T) = struct
   let time_unit = Time.of_float 1.
   let time_zero = Time.of_float 0.
 
-  class clock ?(start = true) ?(sync = `Auto) id =
+  class clock ?(start = true) ?on_error ?(sync = `Auto) id =
     object (self)
       initializer Clocks.add clocks (self :> Source.clock)
       method id = id
@@ -304,12 +304,18 @@ module MkClock (Time : Liq_time.T) = struct
               try
                 s#output;
                 (e, s :: a)
-              with exn ->
-                let bt = Printexc.get_backtrace () in
-                log#severe "Source %s failed while streaming: %s!\n%s" s#id
-                  (Printexc.to_string exn) bt;
-                leave ~failed_to_start:true s;
-                (s :: e, a))
+              with exn -> (
+                let bt = Printexc.get_raw_backtrace () in
+                match on_error with
+                  | None ->
+                      log#severe "Source %s failed while streaming: %s!\n%s"
+                        s#id (Printexc.to_string exn)
+                        (Printexc.raw_backtrace_to_string bt);
+                      leave ~failed_to_start:true s;
+                      (s :: e, a)
+                  | Some on_error ->
+                      on_error exn bt;
+                      (e, s :: a)))
             ([], []) active
         in
         if error <> [] then (
@@ -415,10 +421,10 @@ module MkClock (Time : Liq_time.T) = struct
     end
 end
 
-let clock ?start ?sync id =
+let clock ?start ?on_error ?sync id =
   let module Time = (val time_implementation () : Liq_time.T) in
   let module ClockImpl = MkClock (Time) in
-  new ClockImpl.clock ?start ?sync id
+  new ClockImpl.clock ?start ?on_error ?sync id
 
 (** {1 Global clock management} *)
 
