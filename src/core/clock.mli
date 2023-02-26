@@ -112,7 +112,12 @@
   * which prevents inconsistent uses of the source. Clocks are assigned to
   * sources at the end of the typing phase. *)
 
-val clock : ?start:bool -> ?sync:Source.sync -> string -> Source.clock
+val clock :
+  ?start:bool ->
+  ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
+  ?sync:Source.sync ->
+  string ->
+  Source.clock
 
 (** Indicates whether the application has started to run or not. *)
 val running : unit -> bool

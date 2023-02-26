@@ -94,6 +94,7 @@ let rec meth v0 = function
 
 let record = meth unit
 let val_fun p f = mk (FFI (p, f))
+let term_fun p tm = mk (Fun (p, [], tm))
 
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
@@ -102,6 +103,7 @@ let val_cst_fun p c =
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
   match c.value with
+    | Null -> f (Type.var ()) Term.Null
     | Tuple [] -> f (Type.make Type.unit) Term.unit
     | Ground (Int i) ->
         f (mkg Type.Ground.int) (Term.Ground (Term.Ground.Int i))

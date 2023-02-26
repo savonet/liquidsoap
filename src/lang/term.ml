@@ -249,7 +249,7 @@ let unit = Tuple []
 let rec is_ground x =
   match x.term with
     | List l | Tuple l -> List.for_all is_ground l
-    | Ground _ -> true
+    | Null | Ground _ -> true
     | _ -> false
 
 let rec string_of_pat = function
