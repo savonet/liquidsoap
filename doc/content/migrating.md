@@ -76,6 +76,12 @@ becomes:
 settings.decoder.decoders.set(["ffmpeg"])
 ```
 
+Actually, because of the above change in references, this even becomes:
+
+```
+settings.decoder.decoders := ["ffmpeg"]
+```
+
 ### `strftime`
 
 Add file-based operators do not support `strftime` type conversions out of the box anymore. Instead, you should use explicit conversions using `time.string`. This means that this script:
