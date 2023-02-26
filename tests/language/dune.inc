@@ -30,6 +30,19 @@
  (alias comments)
  (package liquidsoap)
  (deps
+  casting.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} casting.liq liquidsoap %{test_liq} casting.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   comments.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
