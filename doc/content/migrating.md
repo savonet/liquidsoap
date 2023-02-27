@@ -54,7 +54,7 @@ end
 ```
 
 Another use-case is to reload on top of each hour and do nothing on `metadata` or `error`. This can be a little more tricky because the callback
-is called on every audio frame so several time per seconds. To prevent multiple reloads in a row, we block
+is called on every audio frame so several times per seconds. To prevent multiple reloads in a row, we block
 all reloads after the first one until minute `00` has passed:
 
 ```liquidsoap
