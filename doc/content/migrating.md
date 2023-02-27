@@ -34,8 +34,8 @@ The callback receives two optional arguments, `metadata` and `error` and is call
 - When an error occurs, in which case the `error` argument is present
 - As the stream is playing unless a reopen is already scheduled, in which case both `metadata` and `error` arguments are `null`
 
-Each time that the callback is executed, if it returns a positive floating value, then a reload is scheduled
-after that value (in seconds) has elapsed.
+Each time that the callback is executed, if it returns a positive `float` number, then a reload is scheduled
+after that value (in seconds) has passed.
 
 For instance, to reload after `2.` seconds on errors and immediately on `metadata` but never otherwise, you can do:
 
@@ -45,7 +45,7 @@ def should_reload(~metadata, ~error) =
     print("Reloading on error: #{error}")
     2.
   elsif null.defined(metadata) then
-    print("Reoloading on metadata")
+    print("Reloading on metadata")
     0.
   else
     null()
