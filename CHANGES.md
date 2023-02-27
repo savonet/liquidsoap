@@ -93,6 +93,53 @@ Fixed:
 
 ---
 
+# 2.1.3 (2022-11-04)
+
+New:
+
+- Added `time.string`.
+- Added `error.on_error` to report any error raised during the
+  script's execution. Enhanced reported error positions (#2712)
+- Added `device_id` and `latency` options to `input.portaudio`
+  and `output.portaudio` to be able to choose the requested
+  device. Use `liquidsoap --list-portaudio-devices` to see the
+  list of devices (#2733)
+- Added `disconnect` method to `input.harbor`, making it possible
+  to disconnect a source client programmatically, including when
+  a new client is trying to connect.
+
+Changed:
+
+- Send data in-memory in `http.{post,put}.file` when input data
+  is already in memory. This allows to use plain `Content-Length`
+  instead of `chunked` transfer encoding in these case, though
+  `libcurl` seems to always prefer `chunked` encoding for `put`
+  requests.
+- Better error message when an encoder is not available on windows
+  (#2665)
+- Create output directory in HLS outputs when it does not exist
+  using newly introduced `perms` permission argument (#2725)
+- Removed `restart_on_error` argument on `output.url` and added
+  `restart_delay` which implements a delayed restart. Added
+  `on_error` argument to be notified of errors (#2731)
+- Changed default `encoding` parameter in `string.{quote, escape}`
+  to be `null`. Fallback to `"ascii"` encoding when no encoding is
+  specified and `"utf8"` fails. This prevents unexpected script
+  failures but might not be backward-compatible if you used a
+  custom `escape_char` or `special_char` function (#2738)
+
+Fixed:
+
+- Enhanced methods typing support (#2659)
+- Add support for `song` metadata (mapped to `title`) and `url` (mapped to
+  `metadata_url`) in `input.harbor` (#2676)
+- Fixed `blank.*` operator types.
+- Fixed request metadata escaping (#2732)
+- Fixed `input.external.rawadudio` mono input (#2742)
+- Fixed `http` response body on redirect (#2758)
+
+---
+
 # 2.1.2 (2022-09-26)
 
 New:
