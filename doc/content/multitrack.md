@@ -101,7 +101,9 @@ Internally, **a track is a source restricted to a single content-type**. This me
 - Tracks are subject to the same limitations w.r.t. clocks
 - Tracks, like sources, always have a `metadata` and `track_marks` tracks. The `track.metadata` and `track.track_marks` operators can be used to retrieve them.
 
-Tracks can be muxed using the `source` operator. For instance:
+Tracks can be muxed using the `source` operator. The operator takes a record of tracks and creates a source with them. Tracks can have any name except `metadata` and `track_marks` that are reserved for the corresponding track types.
+
+Here's an example:
 
 ```liquidsoap
 # A playlist of audio files
