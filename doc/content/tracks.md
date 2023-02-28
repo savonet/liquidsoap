@@ -84,14 +84,15 @@ Now, we are actually using both audio tracks from `movie.mkv` and one of them is
 
 In order to make things work, we need to assume a couple of conventions.
 
-First, **only the FFmpeg decoder and encoder supports track**. This means that you need to have `liquidsoap` compiled
+First, **only the FFmpeg decoder and encoder supports multitrack**. This means that you need to have `liquidsoap` compiled
 with the FFmpeg support to take advantage of it.
 
 Then, we need to a way to decide what type of content a track contains, being `audio`, `video` or, potentially `midi` and, planned for later, `subtitles`. This is achieved using the following convention:
 
-1. If a track has `audio_content` or `video_content` as parameter (for instance `%foo(audio_content, ...)`) then it is considered, resp., `audio` or `video`.
-2. If the track name has `audio` or `video` in it (for instance `%dolby_audio_fr`) then it is considered, resp., `audio` or `video`
-3. If the track codec is hardcoded (for instance (`%foo(codec="aac", ...)`) then the codec is used to detect the content.
+1. A `copy` track is any track named `%<track_name>.copy`. We do not need to know the track's content in this case.
+2. If a track has `audio_content` or `video_content` as parameter (for instance `%foo(audio_content, ...)`) then it is considered, resp., `audio` or `video`.
+3. If the track name has `audio` or `video` in it (for instance `%dolby_audio_fr`) then it is considered, resp., `audio` or `video`
+4. If the track codec is hardcoded (for instance (`%foo(codec="aac", ...)`) then the codec is used to detect the content.
 
 For instance, imagine that you want to encode a source with a `fr` and `en` audio track and a `director_cut` video track, you can do the following:
 
