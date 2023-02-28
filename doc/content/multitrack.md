@@ -1,4 +1,4 @@
-# Tracks
+# Multitrack support
 
 Starting with version `2.2.0`, liquidsoap now support track-level operations, making it possible to manipulate data at the
 track level, including demuxing, remuxing, encoding, decoding, applying filters and other operations and more!
@@ -90,17 +90,17 @@ s = playlist(...)
 let {audio, video, metadata, track_marks} = source.tracks(s)
 ```
 
-`metadata` and `track_mark` tracks are special track type that hold, as the name suggest, the source's metadata and track
+In the above, `audio` and `video` represent, resp., the `audio` and `video` track from the source `s`.
+
+The `metadata` and `track_marks` tracks are special track type that are available in any source and hold, as the name suggest, the source's metadata and track
 marks. We will see later how this can be used to e.g. drop all tracks from a source (something that used to be done with the
 `drop_tracks` operator), or select metadata only from a specific source or track.
-
-In the above, `audio` and `video` represent two tracks from the source `s`.
 
 Internally, **a track is a source restricted to a single content-type**. This means that:
 
 - When pulling data for a given track, the underlying source is used, potentially also pulling data for its other tracks
 - Tracks are subject to the same limitations w.r.t. clocks
-- Tracks, like sources, always have a `metadata` track and a `track_mark` track. `track.metadata` and `track.track_marks` can be used to retrieve them.
+- Tracks, like sources, always have a `metadata` track and a `track_marks` track. The `track.metadata` and `track.track_marks` operators can be used to retrieve them.
 
 Tracks can be muxed using the `source` operator. For instance:
 
@@ -138,6 +138,65 @@ image = single("/path/to/image.png")
 
 # Mux the audio tracks with the image
 s = source(source.tracks(s).{video=source.tracks(image).video})
+```
+
+As mentioned before, you can also remove the track marks from a source as follows:
+
+```liquidsoap
+s = playlist(...)
+
+# Extract all tracks except track_marks:
+let {track_marks=_, ...tracks} = source.tracks(s)
+
+s = source(tracks)
+```
+
+## Track-level operators
+
+Some, but not, operators have been updated to operator at the track level. They are documented under the `Track` section in [the API documentation](reference.html). More operators might be converted in the future (feel free to file a feature request for those!).
+
+For instance, to convert an audio track to mono PCM audio, one can do:
+
+```liquidsoap
+mono_track = track.audio.mean(audio_track)
+```
+
+Likewise, inline encoders are now available at the track level, for instance:
+
+```liquidsoap
+encoded_audio_track = track.ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), audio_track)
+```
+
+However, remember that tracks have the same limitations w.r.t. clocks that source have. Here, in particular, `encoded_audio_track` is in a new
+clock (due to the fact that ffmpeg inline encoding is not synchronous). Therefore, the following will fail:
+
+```liquidsoap
+s = playlist(...)
+
+let {audio, metadata, track_marks} = source.tracks(s)
+
+encoded = source({
+  audio       = track.ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), audio),
+  metadata    = metadata,
+  track_marks = track_marks
+})
+```
+
+This is because `metadata` and `track_marks` are tracks from the underlying `s` source, which belongs to a different clock. In this case, you should
+use the track marks and metadata from the encoded track:
+
+```liquidsoap
+s = playlist(...)
+
+let {audio, metadata, track_marks} = source.tracks(s)
+
+encoded_audio = track.ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), audio)
+
+encoded = source({
+  audio       = encoded_audio,
+  metadata    = track.metadata(encoded_audio),
+  track_marks = track_marks(encoded_audio)
+})
 ```
 
 ## Conventions
