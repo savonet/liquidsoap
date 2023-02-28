@@ -201,7 +201,7 @@ encoded = source({
 
 ## Conventions
 
-In order to make things work, we need to assume a couple of conventions.
+Now that we have seen how we can create any collection of tracks with any possible name, in order to make things work, we need to assume a couple of conventions.
 
 First, **only the FFmpeg decoder and encoder supports multitrack**. This means that you need to have `liquidsoap` compiled
 with the FFmpeg support to take advantage of it.
