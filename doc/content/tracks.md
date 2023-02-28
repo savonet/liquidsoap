@@ -80,6 +80,66 @@ And now we see the following logs:
 
 Now, we are actually using both audio tracks from `movie.mkv` and one of them is being converted to stereo audio!
 
+## Tracks demuxing and muxing
+
+For any given source, you can extract its tracks using the `source.tracks` operator:
+
+```liquidsoap
+s = playlist(...)
+
+let {audio, video, metadata, track_marks} = source.tracks(s)
+```
+
+`metadata` and `track_mark` tracks are special track type that hold, as the name suggest, the source's metadata and track
+marks. We will see later how this can be used to e.g. drop all tracks from a source (something that used to be done with the
+`drop_tracks` operator), or select metadata only from a specific source or track.
+
+In the above, `audio` and `video` represent two tracks from the source `s`.
+
+Internally, **a track is a source restricted to a single content-type**. This means that:
+
+- When pulling data for a given track, the underlying source is used, potentially also pulling data for its other tracks
+- Tracks are subject to the same limitations w.r.t. clocks
+- Tracks, like sources, always have a `metadata` track and a `track_mark` track. `track.metadata` and `track.track_marks` can be used to retrieve them.
+
+Tracks can be muxed using the `source` operator. For instance:
+
+```liquidsoap
+# A playlist of audio files
+s = playlist(...)
+
+# A static image
+image = single("/path/to/image.png")
+
+# Get the playlist's audio track, metadata and track marks
+let {audio, metadata, track_marks} = source.track(s)
+
+# Get the video track from our static image
+let {video} = source.tracks(s)
+
+# Mux the audio tracks with the image
+s = source({
+  audio=audio,
+  video=video,
+  metadata=metadata,
+  track_marks=track_marks
+})
+```
+
+The above example was purposely written in a longer form to make it more explicit. However, if you wish to just add/replace a track, you
+can also overload the existing tracks from the first source as follows:
+
+```liquidsoap
+# A playlist of audio files
+s = playlist(...)
+
+# A static image
+image = single("/path/to/image.png")
+
+# Mux the audio tracks with the image
+s = source(source.tracks(s).{video=source.tracks(image).video})
+```
+
 ## Conventions
 
 In order to make things work, we need to assume a couple of conventions.
