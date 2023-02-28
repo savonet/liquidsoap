@@ -3,6 +3,11 @@
 Starting with version `2.2.0`, liquidsoap now support track operations, making it possible to manipulate data at the
 track level, including demuxing, remuxing, encoding, decoding, applying filters and other operations and more!
 
+**Only the FFmpeg decoder and encoder supports multitrack**. This means that you need to have `liquidsoap` compiled
+with the FFmpeg support to be able to decode or encode sources with multiple audio/video tracks.
+
+Support for track muxing and demuxing and track-level operators, however, does not require the FFmpeg support but all inputs and outputs are limited to at most one audio and one video track.
+
 ## Multitrack sources
 
 Liquidsoap sources can have multiple tracks, for instance an english audio track and a french audio track.
@@ -204,10 +209,7 @@ encoded = source({
 
 Now that we have seen how we can create any collection of tracks with any possible name, in order to make things work, we need to assume a couple of conventions.
 
-First, **only the FFmpeg decoder and encoder supports multitrack**. This means that you need to have `liquidsoap` compiled
-with the FFmpeg support to take advantage of it.
-
-Then, we need to a way to decide what type of content a track contains, being `audio`, `video` or, potentially `midi` and, planned for later, `subtitles`. This is achieved using the following convention, by order of priority:
+To drive content-type at runtime, we need to a way to decide what type of content a track contains, being `audio`, `video` or, potentially `midi` and, planned for later, `subtitles`. This is achieved using the following convention, by order of priority:
 
 1. A `copy` track is any track named `%<track_name>.copy`. We do not need to know the track's content in this case.
 2. If a track has `audio_content` or `video_content` as parameter (for instance `%foo(audio_content, ...)`) then it is considered, resp., `audio` or `video`.
