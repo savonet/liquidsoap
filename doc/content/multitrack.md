@@ -206,7 +206,7 @@ Now that we have seen how we can create any collection of tracks with any possib
 First, **only the FFmpeg decoder and encoder supports multitrack**. This means that you need to have `liquidsoap` compiled
 with the FFmpeg support to take advantage of it.
 
-Then, we need to a way to decide what type of content a track contains, being `audio`, `video` or, potentially `midi` and, planned for later, `subtitles`. This is achieved using the following convention:
+Then, we need to a way to decide what type of content a track contains, being `audio`, `video` or, potentially `midi` and, planned for later, `subtitles`. This is achieved using the following convention, by order of priority:
 
 1. A `copy` track is any track named `%<track_name>.copy`. We do not need to know the track's content in this case.
 2. If a track has `audio_content` or `video_content` as parameter (for instance `%foo(audio_content, ...)`) then it is considered, resp., `audio` or `video`.
