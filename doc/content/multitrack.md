@@ -92,8 +92,7 @@ let {audio, video, metadata, track_marks} = source.tracks(s)
 
 In the above, `audio` and `video` represent, resp., the `audio` and `video` track from the source `s`.
 
-The `metadata` and `track_marks` tracks are special track type that are available in any source and hold, as the name suggest, the source's metadata and track
-marks. We will see later how this can be used to e.g. drop all tracks from a source (something that used to be done with the
+The `metadata` and `track_marks` tracks are special track type that are available in any source and hold, as the name suggests, the source's metadata and track marks. We will see later how this can be used to e.g. drop all tracks from a source (something that used to be done with the
 `drop_tracks` operator), or select metadata only from a specific source or track.
 
 Internally, **a track is a source restricted to a single content-type**. This means that:
