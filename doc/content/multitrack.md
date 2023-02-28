@@ -153,7 +153,7 @@ s = source(tracks)
 
 ## Track-level operators
 
-Some, but not, operators have been updated to operator at the track level. They are documented under the `Track` section in [the API documentation](reference.html). More operators might be converted in the future (feel free to file a feature request for those!).
+Some, but not all, operators have been updated to operator at the track level. They are documented under the `Track` section in [the API documentation](reference.html). More operators might be converted in the future (feel free to file a feature request for those!).
 
 For instance, to convert an audio track to mono PCM audio, one can do:
 
