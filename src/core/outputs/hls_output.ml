@@ -93,11 +93,19 @@ let hls_proto frame_t =
         Some "Number of segments per playlist." );
       ( "perm",
         Lang.int_t,
-        Some (Lang.int 0o644),
+        Some (Lang.int 0o666),
         Some
           "Permission of the created files, up to umask. You can and should \
            write this number in octal notation: 0oXXX. The default value is \
            however displayed in decimal (0o666 = 6×8^2 + 4×8 + 4 = 412)." );
+      ( "dir_perm",
+        Lang.int_t,
+        Some (Lang.int 0o777),
+        Some
+          "Permission of the directories if some have to be created, up to \
+           umask. Although you can enter values in octal notation (0oXXX) they \
+           will be displayed in decimal (for instance, 0o777 = 7×8^2 + 7×8 + 7 \
+           = 511)." );
       ( "on_file_change",
         Lang.fun_t
           [(false, "state", Lang.string_t); (false, "", Lang.string_t)]
@@ -115,10 +123,6 @@ let hls_proto frame_t =
           "Location of the configuration file used to restart the output. \
            Relative paths are assumed to be with regard to the directory for \
            generated file." );
-      ( "perms",
-        Lang.int_t,
-        Some (Lang.int 0o755),
-        Some "Default directory rights if created. Default: `0o755`" );
       ( "strict_persist",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -247,10 +251,11 @@ class hls_output p =
   let prefix = Lang.to_string (List.assoc "prefix" p) in
   let directory = Lang.to_string (Lang.assoc "" 1 p) in
   let perm = Lang.to_int (List.assoc "perm" p) in
+  let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
   let () =
     if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
     then (
-      try Utils.mkdir ~perm directory
+      try Utils.mkdir ~perm:dir_perm directory
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)
@@ -265,7 +270,7 @@ class hls_output p =
           else filename
         in
         let dir = Filename.dirname filename in
-        (try Utils.mkdir ~perm:0o777 dir
+        (try Utils.mkdir ~perm:dir_perm dir
          with exn ->
            raise
              (Error.Invalid_value
@@ -420,7 +425,6 @@ class hls_output p =
   let max_segments =
     segments_per_playlist + Lang.to_int (List.assoc "segments_overhead" p)
   in
-  let file_perm = Lang.to_int (List.assoc "perm" p) in
   object (self)
     inherit
       Output.encoded
@@ -443,7 +447,7 @@ class hls_output p =
 
     method private open_out filename =
       let mode = [Open_wronly; Open_creat; Open_trunc] in
-      let oc = open_out_gen mode file_perm filename in
+      let oc = open_out_gen mode perm filename in
       set_binary_mode_out oc true;
       on_file_change ~state:`Opened filename;
       oc
@@ -498,7 +502,7 @@ class hls_output p =
       let () =
         if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
         then (
-          try Utils.mkdir ~perm directory
+          try Utils.mkdir ~perm:dir_perm directory
           with exn ->
             let bt = Printexc.get_raw_backtrace () in
             Lang.raise_as_runtime ~bt ~kind:"file" exn)
