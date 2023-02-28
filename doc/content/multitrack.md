@@ -1,6 +1,6 @@
 # Multitrack support
 
-Starting with version `2.2.0`, liquidsoap now support track-level operations, making it possible to manipulate data at the
+Starting with version `2.2.0`, liquidsoap now support track operations, making it possible to manipulate data at the
 track level, including demuxing, remuxing, encoding, decoding, applying filters and other operations and more!
 
 ## Multitrack sources
