@@ -6,7 +6,7 @@ track level, including demuxing, remuxing, encoding, decoding, applying filters 
 **Only the FFmpeg decoder and encoder supports multitrack**. This means that you need to have `liquidsoap` compiled
 with the FFmpeg support to be able to decode or encode sources with multiple audio/video tracks.
 
-Support for track muxing and demuxing and track-level operators, however, does not require the FFmpeg support but, without it, all inputs and outputs are limited to at most one audio and one video track.
+Support for track muxing and demuxing and track-level operators, however, does not require the FFmpeg support but, without it, all inputs and outputs are limited to at most one `audio` and one `video` track.
 
 ## Multitrack sources
 
