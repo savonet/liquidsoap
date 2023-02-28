@@ -57,7 +57,8 @@ class basic ~field source =
 let stereo =
   let input_type = Format_type.audio () in
   let output_type = Format_type.audio_stereo () in
-  Lang.add_track_operator ~base:Modules.audio "stereo" ~category:`Conversion
+  Lang.add_track_operator ~base:Modules.track_audio "stereo"
+    ~category:`Conversion
     ~descr:"Convert any pcm audio track into a stereo track."
     ~return_t:output_type
     [("", input_type, None, None)]

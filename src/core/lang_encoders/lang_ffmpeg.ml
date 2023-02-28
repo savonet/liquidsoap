@@ -63,8 +63,8 @@ let to_copy_opt t =
         Lang_encoder.raise_error ~pos:t.pos
           ("Invalid value for copy encoder parameter: " ^ Value.to_string t)
 
-let has_content ~to_string name p =
-  List.exists (fun (lbl, v) -> lbl = "" && to_string v = name) p
+let has_content ~to_static_string name p =
+  List.exists (fun (lbl, v) -> lbl = "" && to_static_string v = Some name) p
 
 (* The following conventions are used to
    infer media type from an encoder:
@@ -74,7 +74,7 @@ let has_content ~to_string name p =
      %track(audio_content, ...) or %track(video_content, ...)
    - encoder has a static codec string, e.g.
      %track(codec="libmp3lame") *)
-let stream_media_type ~to_pos ~to_string name args =
+let stream_media_type ~to_pos ~to_static_string name args =
   let raise pos =
     Lang_encoder.raise_error ~pos
       {|Unable to find a track media content type. Please use one of the available convention:
@@ -83,20 +83,20 @@ let stream_media_type ~to_pos ~to_string name args =
 - Use a static codec string, e.g. `%track(codec="libmp3lame")`|}
   in
   match (name, args) with
-    | _ when has_content ~to_string "\"audio_content\"" args -> `Audio
-    | _ when has_content ~to_string "\"video_content\"" args -> `Video
+    | _ when has_content ~to_static_string "audio_content" args -> `Audio
+    | _ when has_content ~to_static_string "video_content" args -> `Video
     | _ when Pcre.pmatch ~pat:"audio" name -> `Audio
     | _ when Pcre.pmatch ~pat:"video" name -> `Video
     | _ -> (
         match List.assoc_opt "codec" args with
           | Some t -> (
-              let codec = to_string t in
+              let codec = to_static_string t in
               try
-                ignore (Avcodec.Audio.find_encoder_by_name codec);
+                ignore (Avcodec.Audio.find_encoder_by_name (Option.get codec));
                 `Audio
               with _ -> (
                 try
-                  ignore (Avcodec.Video.find_encoder_by_name codec);
+                  ignore (Avcodec.Video.find_encoder_by_name (Option.get codec));
                   `Video
                 with _ -> raise (to_pos t)))
           | None -> raise None)
@@ -122,6 +122,10 @@ let parse_encoder_name name =
   in
   (field, mode)
 
+let to_static_string_value = function
+  | Value.{ value = Ground (Ground.String s) } -> Some s
+  | _ -> None
+
 let parse_encoder_params ~to_pos (name, p) : parsed_encoder =
   let field, mode = parse_encoder_name name in
   let mode =
@@ -130,27 +134,22 @@ let parse_encoder_params ~to_pos (name, p) : parsed_encoder =
       | `Raw ->
           `Encode
             ( `Raw,
-              stream_media_type ~to_string:Value.to_string ~to_pos name p,
+              stream_media_type ~to_static_string:to_static_string_value ~to_pos
+                name p,
               p )
       | `Internal ->
           `Encode
             ( `Internal,
-              stream_media_type ~to_string:Value.to_string ~to_pos name p,
+              stream_media_type ~to_static_string:to_static_string_value ~to_pos
+                name p,
               p )
   in
   let field = Frame.Fields.register field in
   (field, mode)
 
-let rec term_to_string = function
-  | `Term term -> Term.to_string term
-  | `Encoder (name, []) -> "%" ^ name
-  | `Encoder (name, args) ->
-      "%" ^ name ^ "("
-      ^ String.concat ","
-          (List.map
-             (fun (lbl, arg) -> Printf.sprintf "%s=%s" lbl (term_to_string arg))
-             args)
-      ^ ")"
+let to_static_string_term = function
+  | `Term Term.{ term = Ground (Ground.String s) } -> Some s
+  | _ -> None
 
 let term_pos = function
   | `Term { Term.t = { Type.pos } } -> pos
@@ -169,7 +168,7 @@ let type_of_encoder =
                 | `Raw -> (
                     match
                       stream_media_type ~to_pos:term_pos
-                        ~to_string:term_to_string name args
+                        ~to_static_string:to_static_string_term name args
                     with
                       | `Audio ->
                           Content.(
@@ -180,7 +179,7 @@ let type_of_encoder =
                 | `Internal -> (
                     match
                       stream_media_type ~to_pos:term_pos
-                        ~to_string:term_to_string name args
+                        ~to_static_string:to_static_string_term name args
                     with
                       | `Audio ->
                           let channels =

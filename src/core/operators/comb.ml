@@ -61,7 +61,7 @@ class comb ~field (source : source) delay feedback =
 
 let _ =
   let frame_t = Format_type.audio () in
-  Lang.add_track_operator ~base:Modules.audio "comb"
+  Lang.add_track_operator ~base:Modules.track_audio "comb"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
       ( "feedback",

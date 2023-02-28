@@ -52,7 +52,7 @@ class swap ~field (source : source) =
 
 let _ =
   let track_t = Format_type.audio_stereo () in
-  Lang.add_track_operator ~base:Modules.audio "swap"
+  Lang.add_track_operator ~base:Modules.track_audio "swap"
     [("", track_t, None, None)]
     ~return_t:track_t ~category:`Conversion
     ~descr:"Swap two channels of a stereo track."

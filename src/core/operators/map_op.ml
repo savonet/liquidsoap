@@ -47,7 +47,7 @@ let to_fun_float f x = Lang.to_float (Lang.apply f [("", Lang.float x)])
 
 let _ =
   let frame_t = Format_type.audio () in
-  Lang.add_track_operator ~base:Modules.audio "map"
+  Lang.add_track_operator ~base:Modules.track_audio "map"
     [
       ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);
       ("", frame_t, None, None);

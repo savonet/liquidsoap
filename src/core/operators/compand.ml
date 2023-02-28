@@ -49,7 +49,7 @@ class compand ~field (source : source) mu =
 
 let _ =
   let frame_t = Format_type.audio () in
-  Lang.add_track_operator ~base:Modules.audio "compand"
+  Lang.add_track_operator ~base:Modules.track_audio "compand"
     [
       ("mu", Lang.float_t, Some (Lang.float 1.), None);
       ("", Lang.source_t frame_t, None, None);

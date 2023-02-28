@@ -101,9 +101,7 @@ let content_type frame_type =
            ({ Type.meth = field; scheme = _, ty } as meth) ->
         let format = Format_type.content_type ty in
         let format_type = Type.make (Format_type.descr (`Format format)) in
-        ( Frame.Fields.add
-            (Frame.Fields.field_of_string field)
-            format content_type,
+        ( Frame.Fields.add (Frame.Fields.register field) format content_type,
           Type.make
             (Type.Meth
                ( { meth with Type.scheme = ([], format_type) },

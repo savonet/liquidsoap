@@ -34,7 +34,9 @@ class mean ~field ~normalize source =
           let start = Frame.position frame in
           let len = Frame.position tmp_frame - start in
           let content = Content.Audio.get_data (Frame.get frame field) in
-          let tmp_content = AFrame.pcm tmp_frame in
+          let tmp_content =
+            Content.Audio.get_data (Frame.get tmp_frame field)
+          in
           let amp =
             if normalize then 1. /. float (Array.length tmp_content) else 1.
           in
@@ -49,7 +51,7 @@ class mean ~field ~normalize source =
 let _ =
   let in_t = Format_type.audio () in
   let out_t = Format_type.audio_mono () in
-  Lang.add_track_operator ~base:Modules.audio "mean"
+  Lang.add_track_operator ~base:Modules.track_audio "mean"
     [
       ( "normalize",
         Lang.bool_t,
