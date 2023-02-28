@@ -243,7 +243,7 @@ output.file(
 )
 ```
 
-This informs `liquidsoap` what type of content these track contain.
+This informs `liquidsoap` what type of content these tracks contain.
 
 Now, of course, you might also opt for a more explicit track naming scheme for instance:
 
