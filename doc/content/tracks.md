@@ -110,14 +110,14 @@ output.file(
 
 This works because each of the codec used in these tracks can be mapped to a specific content-type.
 
-Now, imagine that you actually want to copy the `en` and `director_cut` track. In this case, you can do:
+Now, imagine that you actually want to use a variable for the codec of the `en` and `director_cut` track. In this case, you can do:
 
 ```liquidsoap
 output.file(
   %ffmpeg(
-    %en.copy(audio_content)
+    %en(audio_content, codec=audio_codec)
     %fr(codec="aac"),
-    %director_cut.copy(video_content)
+    %director_cut(video_content, codec=video_codec)
   ),
   "/path/to/copy.mkv",
   s
@@ -131,9 +131,9 @@ Now, of course, you might also opt for a more explicit track naming scheme for i
 ```liquidsoap
 output.file(
   %ffmpeg(
-    %audio_en.copy,
+    %audio_en(codec=audio_codec),
     %audio_fr(codec="aac"),
-    %director_cut_video
+    %director_cut_video(codec=video_codec)
   ),
   "/path/to/copy.mkv",
   s
