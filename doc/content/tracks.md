@@ -44,7 +44,7 @@ Resulting in the following logs:
 This shows that the `output.file` source was initialized with expected content-type `{audio=ffmpeg.copy,video=ffmpeg.copy}`, i.e. one audio and one video
 track, both copied from the original file. This comes from the `%ffmpeg` encoder definition in our script.
 
-Then, the `single` file was decoded with the same requested content-type and FFmpeg reported all the details about the file's codec, including a second audio track named `audio_2`.
+Then, the `single` file was decoded with the same requested content-type and FFmpeg reported all the details about the file's content, including a second audio track named `audio_2`.
 
 Eventually, we picked up only first `audio` and first `video` track and reported a more detailed content-type now that we know the actual content of each track.
 
