@@ -24,6 +24,8 @@ Fixed:
   the process (#2897)
 * Fixed `filename` getter being called multiple time in
   `output.file` (#2842)
+* Fixed default directory permissions in `output.*.hls`
+  operators (#2930)
 * Space trim in interactive variables set on telnet (#2785)
 * Fixed internal streaming logic in `max_duration` and `crossfade`.
 * Make sure that there's at most one metadata at any given
