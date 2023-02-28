@@ -100,7 +100,7 @@ Internally, **a track is a source restricted to a single content-type**. This me
 
 - When pulling data for a given track, the underlying source is used, potentially also pulling data for its other tracks
 - Tracks are subject to the same limitations w.r.t. clocks
-- Tracks, like sources, always have a `metadata` track and a `track_marks` track. The `track.metadata` and `track.track_marks` operators can be used to retrieve them.
+- Tracks, like sources, always have a `metadata` and `track_marks` tracks. The `track.metadata` and `track.track_marks` operators can be used to retrieve them.
 
 Tracks can be muxed using the `source` operator. For instance:
 
