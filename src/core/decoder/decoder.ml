@@ -439,9 +439,7 @@ let mk_buffer ~ctype generator =
           in
 
           let get_channel_converter () =
-            let dst =
-              channel_layout (Frame.Fields.find Frame.Fields.audio ctype)
-            in
+            let dst = channel_layout (Frame.Fields.find field ctype) in
             match !current_channel_converter with
               | None -> mk_channel_converter dst
               | Some _ when !current_dst <> Some dst -> mk_channel_converter dst

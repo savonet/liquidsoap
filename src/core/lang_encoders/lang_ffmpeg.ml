@@ -234,7 +234,7 @@ let ffmpeg_gen params =
     {
       Ffmpeg_format.format = None;
       output = `Stream;
-      streams = Frame.Fields.empty;
+      streams = [];
       opts = Hashtbl.create 0;
     }
   in
@@ -362,25 +362,21 @@ let ffmpeg_gen params =
           {
             f with
             Ffmpeg_format.streams =
-              Frame.Fields.add field (`Copy `Wait_for_keyframe)
-                f.Ffmpeg_format.streams;
+              f.Ffmpeg_format.streams @ [(field, `Copy `Wait_for_keyframe)];
           }
       | `Encoder (field, `Copy (Some t)) ->
           {
             f with
             Ffmpeg_format.streams =
-              Frame.Fields.add field
-                (`Copy (to_copy_opt t))
-                f.Ffmpeg_format.streams;
+              f.Ffmpeg_format.streams @ [(field, `Copy (to_copy_opt t))];
           }
       | `Encoder (field, `Encode (mode, content_type, args)) ->
           let codec, options, opts = parse_stream ~content_type args in
           {
             f with
             Ffmpeg_format.streams =
-              Frame.Fields.add field
-                (`Encode { Ffmpeg_format.mode; options; codec; opts })
-                f.Ffmpeg_format.streams;
+              f.Ffmpeg_format.streams
+              @ [(field, `Encode { Ffmpeg_format.mode; options; codec; opts })];
           }
       | `Option ("format", { value = Ground (String "none"); _ }) ->
           { f with Ffmpeg_format.format = None }

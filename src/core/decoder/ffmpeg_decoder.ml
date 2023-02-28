@@ -530,6 +530,9 @@ let () = Plug.register Request.mresolvers "ffmpeg" ~doc:"" get_tags
 
 (* Get the type of an input container. *)
 let get_type ~ctype ~url container =
+  let uri = Lang_string.quote_string url in
+  log#important "Requested content-type for %s: %s" uri
+    (Frame.string_of_content_type ctype);
   let audio_streams, descriptions =
     List.fold_left
       (fun (audio_streams, descriptions) (_, _, params) ->
@@ -595,7 +598,7 @@ let get_type ~ctype ~url container =
                    Ffmpeg_raw_content.(
                      Audio.lift_params (AudioSpecs.mk_params p)));
               Frame.Fields.add field format content_type
-          | p, _ ->
+          | p, Some _ ->
               Frame.Fields.add field
                 Content.(
                   Audio.lift_params
@@ -605,7 +608,8 @@ let get_type ~ctype ~url container =
                           (Audio_converter.Channel_layout.layout_of_channels
                              (Avcodec.Audio.get_nb_channels p));
                     })
-                content_type)
+                content_type
+          | _ -> content_type)
       Frame.Fields.empty audio_streams
   in
   let content_type =
@@ -623,15 +627,16 @@ let get_type ~ctype ~url container =
                    Ffmpeg_raw_content.(
                      Video.lift_params (VideoSpecs.mk_params p)));
               Frame.Fields.add field format content_type
-          | _ ->
+          | _, Some _ ->
               Frame.Fields.add field
                 Content.(default_format Video.kind)
-                content_type)
+                content_type
+          | _ -> content_type)
       content_type video_streams
   in
-  log#info "ffmpeg recognizes %s as: %s and content-type: %s."
-    (Lang_string.quote_string url)
-    (String.concat ", " (List.rev descriptions))
+  log#important "FFmpeg recognizes %s as %s" uri
+    (String.concat ", " (List.rev descriptions));
+  log#important "Decoded content-type for %s: %s" uri
     (Frame.string_of_content_type content_type);
   content_type
 

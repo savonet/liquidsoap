@@ -61,39 +61,45 @@ let type_of_format = function
   | Shine m -> audio_type m.Shine_format.channels
   | Flac m -> audio_type m.Flac_format.channels
   | Ffmpeg m ->
-      Frame.Fields.map
-        (fun c ->
-          Type.make
-            (Format_type.descr
-               (match c with
-                 | `Copy _ ->
-                     `Format
-                       Content.(default_format (kind_of_string "ffmpeg.copy"))
-                 | `Encode { Ffmpeg_format.mode = `Raw; options = `Audio _ } ->
-                     `Format
-                       Content.(
-                         default_format (kind_of_string "ffmpeg.audio.raw"))
-                 | `Encode { Ffmpeg_format.mode = `Raw; options = `Video _ } ->
-                     `Format
-                       Content.(
-                         default_format (kind_of_string "ffmpeg.video.raw"))
-                 | `Encode
-                     Ffmpeg_format.
-                       { mode = `Internal; options = `Audio { channels } } ->
-                     assert (channels > 0);
-                     `Format
-                       Content.(
-                         Audio.lift_params
-                           {
-                             Content.channel_layout =
-                               lazy
-                                 (Audio_converter.Channel_layout
-                                  .layout_of_channels channels);
-                           })
-                 | `Encode
-                     { Ffmpeg_format.mode = `Internal; options = `Video _ } ->
-                     `Format Content.(default_format Video.kind))))
-        m.streams
+      List.fold_left
+        (fun ctype (field, c) ->
+          Frame.Fields.add field
+            (Type.make
+               (Format_type.descr
+                  (match c with
+                    | `Copy _ ->
+                        `Format
+                          Content.(
+                            default_format (kind_of_string "ffmpeg.copy"))
+                    | `Encode { Ffmpeg_format.mode = `Raw; options = `Audio _ }
+                      ->
+                        `Format
+                          Content.(
+                            default_format (kind_of_string "ffmpeg.audio.raw"))
+                    | `Encode { Ffmpeg_format.mode = `Raw; options = `Video _ }
+                      ->
+                        `Format
+                          Content.(
+                            default_format (kind_of_string "ffmpeg.video.raw"))
+                    | `Encode
+                        Ffmpeg_format.
+                          { mode = `Internal; options = `Audio { channels } } ->
+                        assert (channels > 0);
+                        `Format
+                          Content.(
+                            Audio.lift_params
+                              {
+                                Content.channel_layout =
+                                  lazy
+                                    (Audio_converter.Channel_layout
+                                     .layout_of_channels channels);
+                              })
+                    | `Encode
+                        { Ffmpeg_format.mode = `Internal; options = `Video _ }
+                      ->
+                        `Format Content.(default_format Video.kind))))
+            ctype)
+        Frame.Fields.empty m.streams
   | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
   | Ogg { Ogg_format.audio; video } ->
       let channels =
@@ -132,13 +138,13 @@ let video_size = function
       Some (Lazy.force width, Lazy.force height)
   | Ffmpeg m -> (
       match
-        Frame.Fields.fold
-          (fun _ stream cur ->
+        List.fold_left
+          (fun cur (_, stream) ->
             match stream with
               | `Encode Ffmpeg_format.{ options = `Video { width; height } } ->
                   (width, height) :: cur
               | _ -> cur)
-          m.Ffmpeg_format.streams []
+          [] m.Ffmpeg_format.streams
       with
         | (width, height) :: [] -> Some (Lazy.force width, Lazy.force height)
         | _ -> None)

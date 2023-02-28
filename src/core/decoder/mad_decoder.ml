@@ -153,7 +153,7 @@ let file_type filename =
           | Mad.Layer_II -> "II"
           | Mad.Layer_III -> "III"
       in
-      log#info
+      log#important
         "Libmad recognizes %S as mpeg audio (layer %s, %ikbps, %dHz, %d \
          channels)."
         filename layer (f.Mad.bitrate / 1000) f.Mad.samplerate f.Mad.channels;

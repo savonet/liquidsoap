@@ -542,7 +542,7 @@ class virtual operator ?(name = "src") sources =
     (** Two methods called for initialization and shutdown of the source *)
     method private wake_up activation =
       self#log#debug "Clock is %s." (variable_to_string self#clock);
-      self#log#info "Content type is %s."
+      self#log#important "Content type is %s."
         (Frame.string_of_content_type self#content_type);
       let activation = (self :> operator) :: activation in
       List.iter (fun s -> s#get_ready ?dynamic:None activation) sources

@@ -38,12 +38,14 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
      when the first stream is created. *)
   let intra_only = ref true in
 
+  let initialized_stream = Av.new_uninitialized_stream_copy output in
+
   let mk_stream frame =
     let { Ffmpeg_content_base.params } =
       Ffmpeg_copy_content.get_data (Generator.get_field frame field)
     in
     let mk_stream params =
-      let s = Av.new_stream_copy ~params output in
+      let s = Av.initialize_stream_copy ~params initialized_stream in
       codec_attr := Av.codec_attr s;
       bitrate := Av.bitrate s;
       (match Avcodec.descriptor params with

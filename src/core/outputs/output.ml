@@ -116,7 +116,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
 
       self#log#debug "Clock is %s."
         (Source.Clock_variables.to_string self#clock);
-      self#log#info "Content type is %s."
+      self#log#important "Content type is %s."
         (Frame.string_of_content_type self#content_type);
 
       (* Get our source ready. This can take a while (preparing playlists,
