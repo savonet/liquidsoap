@@ -167,7 +167,7 @@ Likewise, inline encoders are now available at the track level, for instance:
 encoded_audio_track = track.ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), audio_track)
 ```
 
-However, remember that tracks have the same limitations w.r.t. clocks that source have. Here, in particular, `encoded_audio_track` is in a new
+However, remember that tracks have the same limitations w.r.t. clocks that sources have. Here, in particular, `encoded_audio_track` is in a new
 clock (due to the fact that ffmpeg inline encoding is not synchronous). Therefore, the following will fail:
 
 ```liquidsoap
