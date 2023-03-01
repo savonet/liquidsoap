@@ -66,7 +66,7 @@ class amplify ~field (source : source) override_field coeff =
 
 let _ =
   let frame_t = Format_type.audio () in
-  Lang.add_track_operator ~base:Modules.audio "amplify"
+  Lang.add_track_operator ~base:Modules.track_audio "amplify"
     [
       ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");
       ( "override",

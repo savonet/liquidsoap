@@ -946,6 +946,26 @@
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
+  (target multitrack.html)
+  (action (run cp %{no_pandoc} %{target})))
+
+(rule
+  (alias doc)
+  (enabled_if %{bin-available:pandoc})
+  (deps
+    liquidsoap.xml
+    language.dtd
+    template.html
+    (:md content/multitrack.md))
+  (target multitrack.html)
+  (action
+    (ignore-outputs
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=multitrack --template=template.html -o %{target}))))
+
+(rule
+  (alias doc)
+  (enabled_if (not %{bin-available:pandoc}))
+  (deps (:no_pandoc no-pandoc))
   (target on2.html)
   (action (run cp %{no_pandoc} %{target})))
 
@@ -1590,6 +1610,7 @@
 (language.html as html/language.html)
 (metadata.html as html/metadata.html)
 (migrating.html as html/migrating.html)
+(multitrack.html as html/multitrack.html)
 (on2.html as html/on2.html)
 (on2_part1.html as html/on2_part1.html)
 (on2_part2.html as html/on2_part2.html)

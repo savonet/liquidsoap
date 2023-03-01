@@ -57,7 +57,7 @@ type stream = [ `Copy of copy_opt | `Encode of encoded_stream ]
 type t = {
   format : string option;
   output : output;
-  streams : stream Frame.Fields.t;
+  streams : (Frame.field * stream) list;
   opts : opts;
 }
 
@@ -87,8 +87,8 @@ let to_string m =
     if Hashtbl.length m.opts > 0 then string_of_options m.opts :: opts else opts
   in
   let opts =
-    Frame.Fields.fold
-      (fun field stream opts ->
+    List.fold_left
+      (fun opts (field, stream) ->
         let name = Frame.Fields.string_of_field field in
         let name =
           match stream with
@@ -144,7 +144,7 @@ let to_string m =
                 (if Pcre.pmatch ~pat:"audio" name then "" else "audio_content,")
                 (string_of_options stream_opts)
               :: opts)
-      m.streams opts
+      opts m.streams
   in
   let opts =
     match m.format with

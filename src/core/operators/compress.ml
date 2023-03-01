@@ -168,7 +168,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
 
 let audio_compress =
   let return_t = Format_type.audio () in
-  Lang.add_track_operator ~base:Modules.audio "compress"
+  Lang.add_track_operator ~base:Modules.track_audio "compress"
     [
       ( "attack",
         Lang.getter_t Lang.float_t,

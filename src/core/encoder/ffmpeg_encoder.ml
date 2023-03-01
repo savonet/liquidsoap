@@ -30,43 +30,46 @@ let () =
         Some
           (fun _ ->
             let copy_count =
-              Frame.Fields.fold
-                (fun _ c cur -> match c with `Copy _ -> cur + 1 | _ -> cur)
-                m.streams 0
+              List.fold_left
+                (fun cur (_, c) -> match c with `Copy _ -> cur + 1 | _ -> cur)
+                0 m.streams
             in
             let get_stream, remove_stream = mk_stream_store copy_count in
             let mk_streams output =
-              Frame.Fields.mapi
-                (fun field -> function
-                  | `Copy keyframe_opt ->
-                      Ffmpeg_copy_encoder.mk_stream_copy ~get_stream
-                        ~remove_stream ~keyframe_opt ~field output
-                  | `Encode Ffmpeg_format.{ codec = None } ->
-                      Lang_encoder.raise_error ~pos:None
-                        (Printf.sprintf
-                           "Codec unspecified for %%ffmpeg stream %%%s!"
-                           (Frame.Fields.string_of_field field))
-                  | `Encode
-                      Ffmpeg_format.
-                        {
-                          mode;
-                          codec = Some codec;
-                          options = `Audio params;
-                          opts = options;
-                        } ->
-                      Ffmpeg_internal_encoder.mk_audio ~mode ~params ~options
-                        ~codec ~field output
-                  | `Encode
-                      Ffmpeg_format.
-                        {
-                          mode;
-                          codec = Some codec;
-                          options = `Video params;
-                          opts = options;
-                        } ->
-                      Ffmpeg_internal_encoder.mk_video ~mode ~params ~options
-                        ~codec ~field output)
-                m.streams
+              List.fold_left
+                (fun streams (field, stream) ->
+                  Frame.Fields.add field
+                    (match stream with
+                      | `Copy keyframe_opt ->
+                          Ffmpeg_copy_encoder.mk_stream_copy ~get_stream
+                            ~remove_stream ~keyframe_opt ~field output
+                      | `Encode Ffmpeg_format.{ codec = None } ->
+                          Lang_encoder.raise_error ~pos:None
+                            (Printf.sprintf
+                               "Codec unspecified for %%ffmpeg stream %%%s!"
+                               (Frame.Fields.string_of_field field))
+                      | `Encode
+                          Ffmpeg_format.
+                            {
+                              mode;
+                              codec = Some codec;
+                              options = `Audio params;
+                              opts = options;
+                            } ->
+                          Ffmpeg_internal_encoder.mk_audio ~mode ~params
+                            ~options ~codec ~field output
+                      | `Encode
+                          Ffmpeg_format.
+                            {
+                              mode;
+                              codec = Some codec;
+                              options = `Video params;
+                              opts = options;
+                            } ->
+                          Ffmpeg_internal_encoder.mk_video ~mode ~params
+                            ~options ~codec ~field output)
+                    streams)
+                Frame.Fields.empty m.streams
             in
             encoder ~mk_streams m)
     | _ -> None)

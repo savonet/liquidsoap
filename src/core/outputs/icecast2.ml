@@ -100,9 +100,7 @@ module Icecast = struct
         }
     | Encoder.Ffmpeg m ->
         let audio_stream =
-          match
-            Frame.Fields.find_opt Frame.Fields.audio m.Ffmpeg_format.streams
-          with
+          match List.assoc_opt Frame.Fields.audio m.Ffmpeg_format.streams with
             | Some (`Encode { options = `Audio options }) -> Some options
             | _ -> None
         in

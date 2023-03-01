@@ -43,7 +43,7 @@ class clip ~field (source : source) =
 
 let _ =
   let frame_t = Format_type.audio () in
-  Lang.add_track_operator ~base:Modules.audio "clip"
+  Lang.add_track_operator ~base:Modules.track_audio "clip"
     [("", frame_t, None, None)]
     ~return_t:frame_t ~category:`Audio
     ~descr:

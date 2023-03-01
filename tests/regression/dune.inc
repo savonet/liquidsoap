@@ -224,6 +224,19 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  ffmpeg-copy-encode.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} ffmpeg-copy-encode.liq liquidsoap %{test_liq} ffmpeg-copy-encode.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   GH2758.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
@@ -388,6 +401,19 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} GH2842.liq liquidsoap %{test_liq} GH2842.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ffmpeg-naming-convention.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} ffmpeg-naming-convention.liq liquidsoap %{test_liq} ffmpeg-naming-convention.liq)))
 
 (rule
  (alias citest)

@@ -103,7 +103,8 @@ class resample ~field ~ratio source =
 
 let _ =
   let return_t = Format_type.audio () in
-  Lang.add_track_operator ~base:Modules.audio "stretch" (* TODO better name *)
+  Lang.add_track_operator ~base:Modules.track_audio
+    "stretch" (* TODO better name *)
     [
       ( "ratio",
         Lang.getter_t Lang.float_t,

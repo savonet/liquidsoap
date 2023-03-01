@@ -448,9 +448,7 @@ let mk_encoder mode =
              Typing.instantiate ~level:(-1) s
            in
 
-           let stream =
-             Frame.Fields.find format_field format.Ffmpeg_format.streams
-           in
+           let stream = List.assoc format_field format.Ffmpeg_format.streams in
 
            let opts =
              match stream with

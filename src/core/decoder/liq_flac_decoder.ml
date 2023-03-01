@@ -121,7 +121,7 @@ let file_type filename =
       let rate, channels =
         (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
       in
-      log#info "Libflac recognizes %s as FLAC (%dHz,%d channels)."
+      log#important "Libflac recognizes %s as FLAC (%dHz,%d channels)."
         (Lang_string.quote_string filename)
         rate channels;
       Some
