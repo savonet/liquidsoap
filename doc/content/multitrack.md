@@ -21,7 +21,7 @@ s = single("/path/to/movie.mkv")
 ```
 
 By default, `liquidsoap` decodes _only_ the track that you tell it to pick. So,
-if you output this source as an output with only one audio track, it will hapily do so:
+if you output this source as an output with only one audio track, it will happily do so:
 
 ```
 s = single("/path/to/movie.mkv")
@@ -85,6 +85,30 @@ And now we see the following logs:
 
 Now, we are actually using both audio tracks from `movie.mkv` and one of them is being converted to stereo audio!
 
+One thing to keep in mind, however, is that **expected content-type drives the input decoder**. Typically, if, instead of a `single`, you use a `playlist`:
+
+```liquidsoap
+s = playlist("/path/to/playlist")
+
+# Copy first audio track and video track
+# and re-encode second audio track:
+output.file(
+  fallible=true,
+  %ffmpeg(
+    %audio.copy,
+    %audio_2(
+      channels=2,
+      codec="aac"
+    ),
+    %video.copy
+  ),
+  "/path/to/copy.mkv",
+  s
+)
+```
+
+Then all the files in the playlist who do not have at least two `audio` tracks and one `video` track will be rejected by the decoder!
+
 ## Tracks demuxing and muxing
 
 For any given source, you can extract its tracks using the `source.tracks` operator:
@@ -103,10 +127,10 @@ The `metadata` and `track_marks` tracks are special track type that are availabl
 Internally, **a track is a source restricted to a single content-type**. This means that:
 
 - When pulling data for a given track, the underlying source is used, potentially also pulling data for its other tracks
-- Tracks are subject to the same limitations w.r.t. clocks
+- Tracks are subject to the same limitations as sources w.r.t. clocks
 - Tracks, like sources, always have a `metadata` and `track_marks` tracks. The `track.metadata` and `track.track_marks` operators can be used to retrieve them.
 
-Tracks can be muxed using the `source` operator. The operator takes a record of tracks and creates a source with them. Tracks can have any name except `metadata` and `track_marks` that are reserved for the corresponding track types.
+Tracks can be muxed using the `source` operator. The operator takes a record of tracks and creates a source with them. Tracks can have any name and type except `metadata` and `track_marks` that are reserved for their corresponding track types.
 
 Here's an example:
 
@@ -248,7 +272,7 @@ output.file(
 
 This informs `liquidsoap` what type of content these tracks contain.
 
-Now, of course, you might also opt for a more explicit track naming scheme for instance:
+However, you might also opt for a more explicit track naming scheme. Something like:
 
 ```liquidsoap
 output.file(
@@ -265,4 +289,4 @@ output.file(
 In this case, `liquidsoap` assumes that the track with `audio` in their name are indeed audio track and the same goes for video tracks.
 
 Lastly, these naming conventions have no bearing for the `FFmpeg` encoder. At the FFmpeg encoder level, tracks are identified by an integer and stored
-in the order they are declared in the `%ffmpeg` encoder.
+in the order they are declared in the `%ffmpeg` encoder. This means that, once encoded and saved to a file, track names internal to liquidsoap are not saved by the FFmpeg encoder and, instead, when decoding the file, you will get `audio`, `audio_2`, `video` and etc.
