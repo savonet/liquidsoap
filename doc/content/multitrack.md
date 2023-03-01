@@ -109,6 +109,36 @@ output.file(
 
 Then all the files in the playlist who do not have at least two `audio` tracks and one `video` track will be rejected by the decoder!
 
+Lastly, it is important to keep in mind that **decoders always assume a specific nomenclature for tracks**. The convention when decoding is to name the first audio track `audio`, then `audio_2`, `audio_3` and etc. Likewise for video: `video`, `video_2`, `video_3`. 
+
+Typically, the following will not work:
+
+```liquidsoap
+s = playlist("/path/to/playlist")
+
+# Copy first audio track and video track
+# and re-encode second audio track:
+output.file(
+  fallible=true,
+  %ffmpeg(
+    %audio_fr.copy,
+    %audio_en(
+      channels=2,
+      codec="aac"
+    ),
+    %video.copy
+  ),
+  "/path/to/copy.mkv",
+  s
+)
+```
+
+This is because the decoder has no way of knowing which of the audio track present in the files in `s` should be matched to `audio_en` and `audio_fr.copy`.
+
+One might think that the order in which they are declared in the encoder could be used but this would also be tricky as the decoder could report tracks in different order when decoding different files from the playlist.
+
+Also, and perhaps more importantly, tracks can be demuxed and remuxed at will, which also makes us loose the notion of track order. Actually, let's talk about demuxing and remuxing next!
+
 ## Tracks demuxing and muxing
 
 For any given source, you can extract its tracks using the `source.tracks` operator:
@@ -233,7 +263,17 @@ encoded = source({
 
 Now that we have seen how we can create any collection of tracks with any possible name, in order to make things work, we need to assume a couple of conventions.
 
-To drive content-type at runtime, we need to a way to decide what type of content a track contains, being `audio`, `video` or, potentially `midi` and, planned for later, `subtitles`. This is achieved using the following convention, by order of priority:
+**For decoders**, the convention, as explained above, is, when decoding files, to name the first audio track `audio`, then `audio_2`, `audio_3` and etc. Likewise for video: `video`, `video_2`, `video_3`. 
+
+This is the convention that you should use when demuxing tracks from request-based source:
+
+```liquidsoap
+s = playlist(...)
+
+let {audio, audio_2, video, video_2, video_3} = source.tracks(s)
+```
+
+**For encoders**, to drive content-type at runtime, since tracks can be remuxed with any arbitrary name, we need to a way to decide what type of content a track contains, being `audio`, `video` or, potentially `midi` and, planned for later, `subtitles`. This is achieved using the following convention, by order of priority:
 
 1. A `copy` track is any track named `%<track_name>.copy`. We do not need to know the track's content in this case.
 2. If a track has `audio_content` or `video_content` as parameter (for instance `%foo(audio_content, ...)`) then it is considered, resp., `audio` or `video`.
