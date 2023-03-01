@@ -23,7 +23,7 @@ s = single("/path/to/movie.mkv")
 By default, `liquidsoap` decodes _only_ the track that you tell it to pick. So,
 if you output this source as an output with only one audio track, it will happily do so:
 
-```
+```liquidsoap
 s = single("/path/to/movie.mkv")
 
 # Copy first audio track and video:
@@ -39,7 +39,7 @@ output.file(
 
 Resulting in the following logs:
 
-```sh
+```
 [output_file:3] Content type is {audio=ffmpeg.copy,video=ffmpeg.copy}.
 [decoder.ffmpeg:3] Requested content-type for "/path/to/movie.mkv": {audio=ffmpeg.copy,video=ffmpeg.copy}
 [decoder.ffmpeg:3] FFmpeg recognizes "/path/to/movie.mkv" as video: {codec: h264, 1920x1038, yuv420p}, audio: {codec: aac, 48000Hz, 6 channel(s)}, audio_2: {codec: aac, 48000Hz, 6 channel(s)}
@@ -76,7 +76,7 @@ output.file(
 
 And now we see the following logs:
 
-```sh
+```
 [output_file:3] Content type is {audio=ffmpeg.copy,audio_2=pcm(stereo),video=ffmpeg.copy}.
 [decoder.ffmpeg:3] Requested content-type for "/path/to/movie.mkv": {audio=ffmpeg.copy,audio_2=pcm(stereo),video=ffmpeg.copy}
 [decoder.ffmpeg:3] FFmpeg recognizes "/path/to/movie.mkv" as video: {codec: h264, 1920x1038, yuv420p}, audio: {codec: aac, 48000Hz, 6 channel(s)}, audio_2: {codec: aac, 48000Hz, 6 channel(s)}
