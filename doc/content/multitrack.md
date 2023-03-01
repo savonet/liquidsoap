@@ -1,7 +1,7 @@
 # Multitrack support
 
-Starting with version `2.2.0`, liquidsoap now support track operations, making it possible to manipulate data at the
-track level, including demuxing, remuxing, encoding, decoding, applying filters and other operations and more!
+Starting with version `2.2.0`, liquidsoap now supports track operations, making it possible to manipulate data at the
+track level, including demuxing, remuxing, encoding, decoding, applying filters and more!
 
 **Only the FFmpeg decoder and encoder supports multitrack**. This means that you need to have `liquidsoap` compiled
 with the FFmpeg support to be able to decode or encode sources with multiple audio/video tracks.
