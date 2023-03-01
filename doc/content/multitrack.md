@@ -10,7 +10,7 @@ Support for track muxing and demuxing and track-level operators, however, does n
 
 ## Multitrack sources
 
-Liquidsoap sources can have multiple tracks, for instance an english audio track and a french audio track.
+Liquidsoap sources can have multiple tracks, such as an english language audio track and a french language audio track.
 The number of tracks in a source is determined by how you use it.
 
 For instance, if you have a file `movie.mkv` with two audio tracks and one video track,
