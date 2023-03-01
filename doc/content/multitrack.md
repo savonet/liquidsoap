@@ -109,7 +109,7 @@ output.file(
 
 Then all the files in the playlist who do not have at least two `audio` tracks and one `video` track will be rejected by the decoder!
 
-Lastly, it is important to keep in mind that **decoders always assume a specific nomenclature for tracks**. The convention when decoding is to name the first audio track `audio`, then `audio_2`, `audio_3` and etc. Likewise for video: `video`, `video_2`, `video_3`. 
+Lastly, it is important to keep in mind that **decoders always assume a specific nomenclature for tracks**. The convention when decoding is to name the first audio track `audio`, then `audio_2`, `audio_3` and etc. Likewise for video: `video`, `video_2`, `video_3`.
 
 Typically, the following will not work:
 
@@ -263,7 +263,7 @@ encoded = source({
 
 Now that we have seen how we can create any collection of tracks with any possible name, in order to make things work, we need to assume a couple of conventions.
 
-**For decoders**, the convention, as explained above, is, when decoding files, to name the first audio track `audio`, then `audio_2`, `audio_3` and etc. Likewise for video: `video`, `video_2`, `video_3`. 
+**For decoders**, the convention, as explained above, is, when decoding files, to name the first audio track `audio`, then `audio_2`, `audio_3` and etc. Likewise for video: `video`, `video_2`, `video_3`.
 
 This is the convention that you should use when demuxing tracks from request-based source:
 
