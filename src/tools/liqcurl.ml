@@ -181,37 +181,25 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
            connection#set_httpheader
              (List.map (fun (k, v) -> Printf.sprintf "%s: %s" k v) headers))
          headers);
+    let accepted = Atomic.make false in
     let response_headers = Buffer.create 1024 in
     connection#set_headerfunction (fun s ->
+        if not (Atomic.get accepted) then (
+          let code = connection#get_httpcode in
+          Atomic.set accepted (code < 300 || 400 <= code));
         Buffer.add_string response_headers s;
         String.length s);
     connection#set_xferinfofunction should_stop;
-    let accepted = ref false in
-    let accepted_m = Mutex.create () in
-    let pending = Buffer.create 1024 in
     connection#set_writefunction (fun s ->
-        Tutils.mutexify accepted_m
-          (fun () ->
-            if !accepted then on_body_data s else Buffer.add_string pending s)
-          ();
+        if Atomic.get accepted then on_body_data s;
         String.length s);
     connection#set_noprogress false;
     connection#perform;
     match connection#get_redirecturl with
       | url when url <> "" && follow_redirect ->
-          connection#cleanup;
-          Tutils.mutexify accepted_m (fun () -> Buffer.clear pending) ();
           http_request ?headers ?http_version ~follow_redirect ~timeout ~url
             ~request ~on_body_data ~pos ()
       | _ ->
-          Tutils.mutexify accepted_m
-            (fun () ->
-              begin
-                on_body_data (Buffer.contents pending);
-                Buffer.clear pending;
-                accepted := true
-              end)
-            ();
           let response_headers =
             Pcre.split ~rex:(Pcre.regexp "[\r]?\n")
               (Buffer.contents response_headers)
