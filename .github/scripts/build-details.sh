@@ -10,12 +10,9 @@ fi
 
 echo "Detected branch: ${BRANCH}"
 
-if [ -n "${IS_FORK}" ]; then
+if [ "${IS_FORK}" == "true" ]; then
   echo "Branch is from a fork"
   IS_FORK=true
-else
-  echo "Branch is from the savonet organization"
-  IS_FORK=
 fi
 
 if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ "rolling-release-" || "${BRANCH}" =~ ^v[0-9]) ]]; then
