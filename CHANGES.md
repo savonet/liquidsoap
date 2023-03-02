@@ -30,7 +30,7 @@ New:
 - Added `ref.make` and `ref.map`.
 - Added `video.board`, `video.graph`, `video.info` (#2886).
 - Added the `pico2wave` protocol in order to perform speech synthesis using
-  [Pico TTS](https://github.com/naggety/picotts).
+  [Pico TTS](https://github.com/naggety/picotts) (#2934).
 
 Changed:
 
