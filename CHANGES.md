@@ -20,6 +20,7 @@ Fixed:
 * Fixed parameter type for `stats_interval` in SRT I/O.
 * Fixed type generalization on variable and pattern bindings
   (#2782)
+* Fixed memory leak in http requests (#2935)
 * Make sure that exception raised in `request.dynamic` never crash
   the process (#2897)
 * Fixed `filename` getter being called multiple time in
