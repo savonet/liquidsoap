@@ -88,8 +88,7 @@ let _ =
   let descr tz =
     Printf.sprintf
       "Convert a time in seconds into a date in the %s time zone (current time \
-       is used if no argument is provided). Fields meaning same as POSIX's `tm \
-       struct`. In particular, \"year\" is: year - 1900, i.e. 117 for 2017!"
+       is used if no argument is provided)."
       tz
   in
   ignore
