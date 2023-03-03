@@ -120,6 +120,19 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  initial_request_queue.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} initial_request_queue.liq liquidsoap %{test_liq} initial_request_queue.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   123.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
