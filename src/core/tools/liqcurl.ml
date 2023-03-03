@@ -186,7 +186,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     connection#set_headerfunction (fun s ->
         if not (Atomic.get accepted) then (
           let code = connection#get_httpcode in
-          Atomic.set accepted (200 <= code && code < 300));
+          Atomic.set accepted (code < 300 && 400 <= code));
         Buffer.add_string response_headers s;
         String.length s);
     connection#set_xferinfofunction should_stop;
