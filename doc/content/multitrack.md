@@ -162,7 +162,9 @@ Internally, **a track is a source restricted to a single content-type**. This me
 
 Tracks can be muxed using the `source` operator. The operator takes a record of tracks and creates a source with them. Tracks can have any name and type except `metadata` and `track_marks` that are reserved for their corresponding track types.
 
-Here's an example:
+### Add a video track
+
+Here's how to add a video track to a source
 
 ```liquidsoap
 # A playlist of audio files
@@ -199,6 +201,29 @@ image = single("/path/to/image.png")
 # Mux the audio tracks with the image
 s = source(source.tracks(s).{video=source.tracks(image).video})
 ```
+
+### Add a default video track
+
+You can also check if a source has a certain track and do something accordingly:
+
+```liquidsoap
+s = playlist(...)
+
+# A default video source:
+image = single("/path/to/image.png")
+
+# Pick `s` video track if it has one, otherwise use the default one:
+video = source.tracks(s).video ?? source.tracks(image).video
+
+# Return a source that always has video:
+s = source(source.tracks(s).{video=video})
+```
+
+Please not, however, that **tracks available in the playlist sources are determined based on the first decoded file**. If the first file in the playlist is audio-only then the playlist content-type is assumed to be audio-only for the whole playlist and the default video is added to _all decoded files_.
+
+To decide on a case-by-case basis, you might need some more advanced coding!
+
+### Merge all tracks
 
 As mentioned before, you can also remove the track marks from a source as follows:
 
