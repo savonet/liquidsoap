@@ -219,7 +219,7 @@ video = source.tracks(s).video ?? source.tracks(image).video
 s = source(source.tracks(s).{video=video})
 ```
 
-Please not, however, that **tracks available in the playlist sources are determined based on the first decoded file**. If the first file in the playlist is audio-only then the playlist content-type is assumed to be audio-only for the whole playlist and the default video is added to _all decoded files_.
+Please note, however, that **tracks available in the playlist sources are determined based on the first decoded file**. If the first file in the playlist is audio-only then the playlist content-type is assumed to be audio-only for the whole playlist and the default video is added to _all decoded files_.
 
 To decide on a case-by-case basis, you might need some more advanced coding!
 
