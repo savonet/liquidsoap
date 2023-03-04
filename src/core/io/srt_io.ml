@@ -649,7 +649,6 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
     val mutable dump_chan = None
 
     initializer
-    Generator.set_max_length self#buffer max_length;
     let on_connect_cur = !on_connect in
     (on_connect :=
        fun () ->
@@ -667,6 +666,10 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
               dump_chan <- None
           | None -> ());
         on_disconnect_cur ()
+
+    method! wake_up act =
+      super#wake_up act;
+      Generator.set_max_length self#buffer max_length
 
     method seek _ = 0
     method remaining = -1
