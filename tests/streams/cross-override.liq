@@ -35,7 +35,7 @@ s.on_metadata(on_metadata)
 clock.assign_new(sync="none",[s])
 
 def on_stop() =
-  if !success then
+  if success() then
     test.pass()
   else
     test.fail()
