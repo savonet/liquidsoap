@@ -62,7 +62,7 @@ let _ =
         ( "week_day",
           ([], Lang.int_t),
           "Day of week (Sunday is 0 or 7, Saturday is 6)." );
-        ("year_day", ([], Lang.int_t), "Day of year.");
+        ("year_day", ([], Lang.int_t), "Day of year, between `1` and `366`.");
         ("dst", ([], Lang.bool_t), "Daylight time savings in effect.");
       ]
   in
@@ -88,8 +88,7 @@ let _ =
   let descr tz =
     Printf.sprintf
       "Convert a time in seconds into a date in the %s time zone (current time \
-       is used if no argument is provided). Fields meaning same as POSIX's `tm \
-       struct`. In particular, \"year\" is: year - 1900, i.e. 117 for 2017!"
+       is used if no argument is provided)."
       tz
   in
   ignore

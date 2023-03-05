@@ -32,7 +32,6 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   object (self)
     inherit Source.active_source ~name:"input.harbor" () as super
     inherit Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
-    initializer Generator.set_max_length self#buffer max_length
     val mutable relay_socket = None
 
     (** Function to read on socket. *)
@@ -146,6 +145,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
     method! private wake_up act =
       super#wake_up act;
+      Generator.set_max_length self#buffer max_length;
       Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
         (self :> Harbor.source)
 

@@ -35,15 +35,15 @@ See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.ht
 Current release status by version:
 | Branch | Latest release | Supported | Rolling Release |
 | --------|----------------|-----------|-----------------|
-| `2.2.x` | In development | ⚠️ | ❌ |
-| `2.1.x` | [2.1.3](https://github.com/savonet/liquidsoap/releases/tag/v2.1.3) | ✅ | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x) |
-| `2.0.x` | [2.0.7](https://github.com/savonet/liquidsoap/releases/tag/v2.0.7) | ⚠️ | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
+| `2.2.x` | In development | ✅ | [2.2.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.2.x) |
+| `2.1.x` | [2.1.4](https://github.com/savonet/liquidsoap/releases/tag/v2.1.4) | 🌅 | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x) |
+| `2.0.x` | [2.0.7](https://github.com/savonet/liquidsoap/releases/tag/v2.0.7) | ❌ | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
 | `1.4.x` | [1.4.4](https://github.com/savonet/liquidsoap/releases/tag/v1.4.4) | ❌ | ❌ |
 
 ### Notes
 
-- Development branch `2.2.x` is currently under development and can break at any time. We do, however, encourage early testing and feedback!
-- Development branch `2.0.x` is at the end of its development cycle and will only be updated on a best effort basis or in case of a major issue.
+- Development branch `2.2.x` is being prepared for its first stable release. We do encourage new projects to start with it and users to report issues. We will prioritize these issues over other ones.
+- Development branch `2.1.x` is nearing the end of its development cycle and will only be updated on a best effort basis or in case of a major issue.
 
 ### Versions
 

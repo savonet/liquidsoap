@@ -112,9 +112,8 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
     inherit!
       Start_stop.active_source
         ~name:"input.udp" ~clock_safe:false ~fallible:true ~on_start:ignore
-          ~on_stop:ignore ~autostart:true ()
+          ~on_stop:ignore ~autostart:true () as super
 
-    initializer Generator.set_max_length self#buffer max_length
     val mutable kill_feeding = None
     val mutable wait_feeding = None
     val mutable decoder_factory = None
@@ -136,6 +135,10 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
       let kill, wait = Tutils.stoppable_thread self#feed "UDP input" in
       kill_feeding <- Some kill;
       wait_feeding <- Some wait
+
+    method! wake_up act =
+      super#wake_up act;
+      Generator.set_max_length self#buffer max_length
 
     method private stop =
       (Option.get kill_feeding) ();

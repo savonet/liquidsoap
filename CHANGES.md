@@ -95,6 +95,54 @@ Fixed:
 
 ---
 
+# 2.1.4 (2022-03-01)
+
+New:
+
+- Added `buffer_length` method to `buffer` operator.
+- Always display error backtrace when a fatal exception
+  is raised in the streaming loop.
+- Added `umask()` to get the current `umask` and `umask.set(...)`
+  to set the current `umask` (#2840)
+
+Changed:
+
+- Add break when restarting the external process in `input.external.{rawaudio,rawvideo}`
+  (#2860, #2872)
+- Removed `disconnect` method on `input.harbor`. This method was doing the same as
+  the `stop` method. Added `shutdown` method to properly shutdown the
+  source even when not connected to an output.
+- Made process a string getter in `input.external.{rawaudio,rawvideo}` (#2877)
+
+Fixed:
+
+- Fixed parameter type for `stats_interval` in SRT I/O.
+- Fixed type generalization on variable and pattern bindings
+  (#2782)
+- Fixed memory leak in http requests (#2935)
+- Make sure that exception raised in `request.dynamic` never crash
+  the process (#2897)
+- Fixed `filename` getter being called multiple time in
+  `output.file` (#2842)
+- Fixed default directory permissions in `output.*.hls`
+  operators (#2930)
+- Space trim in interactive variables set on telnet (#2785)
+- Fixed internal streaming logic in `max_duration` and `crossfade`.
+- Make sure that there's at most one metadata at any given
+  frame position (#2786)
+- Fixed `metadata.json.parse` always returns an empty list (#2816).
+- Fixed `icy_id` being ignored in `output.shoutcast` (#2819)
+- Fixed shutdown livelock with some ffmpeg inline encoder,
+  decoder and filter operators.
+- Fixed input polling stop (#2769)
+- Fixed parsed error report in `%include` directives (#2775)
+- Fixed crash in external processes when received a `Unix.EINTR`
+  event (#2861)
+- Fixed crash in `string.interpolate` (#2883)
+- Cleaned up srt support.
+
+---
+
 # 2.1.3 (2022-11-04)
 
 New:
