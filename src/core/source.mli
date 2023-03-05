@@ -144,6 +144,11 @@ class virtual source :
 
        method frame_type : Type.t
 
+       (** This is called when content-type can be computed,
+           i.e. either after frame type has been passed from
+           the typing system during `check_eval` or at `wake_up` *)
+       method content_type_computation_allowed : unit
+
        (** What type of content does this source produce. *)
        method content_type : Frame.content_type
 

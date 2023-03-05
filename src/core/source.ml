@@ -381,7 +381,11 @@ class virtual operator ?(name = "src") sources =
 
     (* Content type should not be computed before
        the source has been asked to wake up. *)
-    val mutable awake = false
+    val mutable content_type_computation_allowed = false
+
+    method content_type_computation_allowed =
+      content_type_computation_allowed <- true
+
     val mutable ctype = None
 
     (* Content type. *)
@@ -389,7 +393,7 @@ class virtual operator ?(name = "src") sources =
       match ctype with
         | Some ctype -> ctype
         | None ->
-            if not awake then
+            if not content_type_computation_allowed then
               failwith
                 (Printf.sprintf
                    "Early computation of source content-type detected for \
@@ -497,7 +501,7 @@ class virtual operator ?(name = "src") sources =
        another thread than the Root one, as interleaving with #get is
        forbidden. *)
     method get_ready ?(dynamic = false) (activation : operator list) =
-      awake <- true;
+      self#content_type_computation_allowed;
       if log == source_log then self#create_log;
       if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets up with content type: %s." id
