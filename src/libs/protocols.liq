@@ -523,6 +523,8 @@ def protocol.stereo(~rlog=_, ~maxtime=_, arg)
 end
 protocol.add(static=true, temporary=true, "stereo", protocol.stereo, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
 
+# Text2wave
+
 let settings.protocol.text2wave = settings.make.protocol("text2wave")
 
 let settings.protocol.text2wave.path = settings.make(
@@ -530,7 +532,7 @@ let settings.protocol.text2wave.path = settings.make(
   "text2wave"
 )
 
-# Register the text2wave: protocol using text2wav
+# Register the text2wave: protocol using text2wave
 # @flag hidden
 def protocol.text2wave(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.text2wave.path()
@@ -539,6 +541,26 @@ end
 protocol.add(static=true,"text2wave",protocol.text2wave,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
              syntax="text2wave:Text to read")
+
+# Pico2wave
+
+let settings.protocol.pico2wave = settings.make.protocol("pico2wave")
+
+let settings.protocol.pico2wave.path = settings.make(
+  description="Path to the pico2wave binary",
+  "pico2wave"
+)
+
+# @flag hidden
+def protocol.pico2wave(~rlog=_, ~maxtime=_, arg) =
+  binary = settings.protocol.pico2wave.path()
+  [process.uri(extname="wav", "#{binary} -w $(output) #{process.quote(arg)}")]
+end
+protocol.add(static=true,"pico2wave",protocol.pico2wave,
+             doc="Generate speech synthesis using pico2wave. Result may be mono.",
+             syntax="pico2wave:Text to read")
+
+# GTTS
 
 let settings.protocol.gtts = settings.make.protocol("gtts")
 
@@ -557,10 +579,12 @@ protocol.add(static=true,"gtts",protocol.gtts,
              doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
              syntax="gtts:Text to read")
 
+# Say
+
 # Register the legacy say: protocol
 # @flag hidden
 def protocol.say(~rlog=_, ~maxtime=_, arg) =
-  ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
+  ["stereo:pico2wave:#{arg}", "stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
 end
 protocol.add(static=true,"say",protocol.say,
              doc="Generate speech synthesis using text2wave. Result is always stereo.",
