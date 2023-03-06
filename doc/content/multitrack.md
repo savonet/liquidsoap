@@ -174,15 +174,15 @@ s = playlist(...)
 image = single("/path/to/image.png")
 
 # Get the playlist's audio track, metadata and track marks
-let {audio, metadata, track_marks} = source.track(s)
+let {audio = playlist_audio, metadata, track_marks} = source.track(s)
 
 # Get the video track from our static image
-let {video} = source.tracks(s)
+let {video = image_video} = source.tracks(s)
 
 # Mux the audio tracks with the image
 s = source({
-  audio=audio,
-  video=video,
+  audio=playlist_audio,
+  video=image_video,
   metadata=metadata,
   track_marks=track_marks
 })
