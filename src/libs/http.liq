@@ -369,6 +369,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
     else
       basepath
     end
+  basepath = "#{basepath}.*"
   directory = path.home.unrelate(directory)
 
   def handler(request, response)
