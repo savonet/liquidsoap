@@ -188,11 +188,11 @@ let conf_mime_types =
     "Mime-types used for choosing audio and video file decoders"
     ~comments:
       [
-        "When a mime-type is available (e.g. with input.http), it can be used";
+        "When a mime-type is available (e.g. with input.http), it can be used ";
         "to guess which audio stream format is used.";
-        "This section contains the listings used for that detection, which you";
+        "This section contains the listings used for that detection, which you ";
         "might want to tweak if you encounter a new mime-type.";
-        "If you feel that new mime-types should be permanently added, please";
+        "If you feel that new mime-types should be permanently added, please ";
         "contact the developers.";
       ]
 
