@@ -161,6 +161,7 @@ def protocol.http(proto,~rlog,~maxtime,arg) =
   ret = http.head(timeout=timeout, uri)
   code = ret.status_code ?? 999
   headers = ret.headers
+  content_disposition = http.headers.content_disposition(headers)
 
   mime =
     if 200 <= code and code < 300 then
@@ -171,25 +172,20 @@ def protocol.http(proto,~rlog,~maxtime,arg) =
       null()
     end
 
-  extname = null.case(mime, (fun () -> "osb"), (fun (mime) ->
-    if list.mem(mime, ["audio/mpeg", "audio/mp3"]) then
-      "mp3"
-    elsif list.mem(mime,["application/ogg", "application/x-ogg",
-                         "audio/x-ogg", "audio/ogg", "video/ogg"]) then
-      "ogg"
-    elsif list.mem(mime, ["audio/flac", "audio/x-flac"]) then
-      "flac"
-    elsif list.mem(mime,["audio/mp4", "application/mp4", "video/mp4"]) then
-      "mp4"
-    elsif list.mem(mime,["audio/vnd.wave", "audio/wav",
-                         "audio/wave", "audio/x-wav"]) then
-      "wav"
+  extname =
+    if null.defined(content_disposition?.filename) then
+      file.extension(null.get(content_disposition?.filename))
     else
-      log(level=3,"No known file extension for mime: #{mime}")
-      "osb"
-    end))
+      null.map(http.mime.extname, mime)
+    end
 
-  output = file.temp("liq-process", ".#{extname}")
+  extname =
+    if null.defined(extname) then null.get(extname) else
+      log(level=3, "Failed to find a file extension for #{uri}.")
+      ".osb"
+    end
+
+  output = file.temp("liq-process", extname)
 
   file_writer = file.write.stream(output)
 
