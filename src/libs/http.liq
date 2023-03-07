@@ -555,10 +555,15 @@ def harbor.http.request.body(~timeout=10., req) =
   read()
 end
 
-let settings.http = ()
-let settings.http.mime = ()
+let settings.http = settings.make.void(
+  "Settings for HTTP requests"
+)
+let settings.http.mime = settings.make.void(
+  "MIME-related settings for HTTP requests"
+)
 
-let settings.http.mime.extnames = ref([
+let settings.http.mime.extnames = settings.make(
+  description="MIME to file extension mappings", [
   ("audio/mp3", ".mp3"),
   ("audio/mpeg", ".mp3"),
   ("application/ogg", ".ogg"),
@@ -580,6 +585,7 @@ let settings.http.mime.extnames = ref([
 let http.headers = ()
 
 # Extract the content-disposition header
+# @category Internet
 def http.headers.content_disposition(headers) =
   content_disposition =
     try
