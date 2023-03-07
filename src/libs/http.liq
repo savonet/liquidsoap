@@ -577,16 +577,6 @@ let settings.http.mime.extnames = ref([
   ("audio/x-wav", ".wav")
 ])
 
-let http.mime = ()
-
-# Find a file extension based on the mime-type
-# @category Internet
-def http.mime.extname(mime)
-  extnames = settings.http.mime.extnames()
-  extname = extnames[mime]
-  extname == "" ? null() : extname
-end
-
 let http.headers = ()
 
 # Extract the content-disposition header
@@ -644,4 +634,39 @@ def http.headers.content_disposition(headers) =
     let (name, args) = parse_name(args)
     ({type = type, filename = filename, name = name, args = args}:{ type: string, filename?: string, name?: string, args: [(string*string?)]})
   end, content_disposition)
+end
+
+# Try to get a filename from a request's headers.
+# @category Internet
+def http.headers.extname(headers) =
+  content_disposition = http.headers.content_disposition(headers)
+
+  mime =
+    try
+      list.find(fun (v) -> begin
+        let (header_name, _) = v
+        string.case(lower=true, header_name) == "content-type"
+      end, headers)
+    catch _ : [error.not_found] do
+      null()
+    end
+  mime = null.map(snd, mime)
+
+  extname =
+    if null.defined(content_disposition?.filename) then
+      extname = file.extension(null.get(content_disposition?.filename))
+      extname == "" ? null() : extname
+    else
+      null()
+    end
+
+  if null.defined(extname) then
+    extname
+  elsif null.defined(mime) then
+    extnames = settings.http.mime.extnames()
+    extname = extnames[null.get(mime)]
+    extname == "" ? null() : extname
+  else
+    null()
+  end
 end

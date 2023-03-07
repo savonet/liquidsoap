@@ -160,30 +160,13 @@ def protocol.http(proto,~rlog,~maxtime,arg) =
 
   ret = http.head(timeout=timeout, uri)
   code = ret.status_code ?? 999
-  headers = ret.headers
-  content_disposition = http.headers.content_disposition(headers)
-
-  mime =
-    if 200 <= code and code < 300 then
-      headers["content-type"]
-    else
-      log(level=3,"Failed to fetch mime-type for #{uri}.")
-      log(level=4,"Request response: #{ret}")
-      null()
-    end
-
-  extname =
-    if null.defined(content_disposition?.filename) then
-      file.extension(null.get(content_disposition?.filename))
-    else
-      null.map(http.mime.extname, mime)
-    end
+  extname = 200 <= code and code < 300 ? http.headers.extname(ret.headers) : null()
 
   extname =
     if null.defined(extname) then null.get(extname) else
       log(level=3, "Failed to find a file extension for #{uri}.")
       ".osb"
-    end
+  end
 
   output = file.temp("liq-process", extname)
 

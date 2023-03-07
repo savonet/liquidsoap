@@ -35,7 +35,7 @@ def f()
   test.equals(content_disposition.args, [])
 
   content_disposition = null.get(http.headers.content_disposition([
-    ('Content-Disposition', "attachment; filename*=UTF-8''Na%C3%AFve%20file.txt; name=\"gni%20gno\"; foo=bla")
+    ('coNtent-dispOsition', "attachment; filename*=UTF-8''Na%C3%AFve%20file.txt; name=\"gni%20gno\"; foo=bla")
   ]))
   test.equals(content_disposition.type, "attachment")
   test.equals(content_disposition?.filename, "Naïve file.txt")
