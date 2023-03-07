@@ -378,6 +378,14 @@ class virtual operator ?(name = "src") sources =
        whose fields (audio, video, etc.) indicate the kind of contents we
        have (e.g. {audio : pcm}). *)
     method frame_type = frame_type
+
+    (* Content type should not be computed before
+       the source has been asked to wake up. *)
+    val mutable content_type_computation_allowed = false
+
+    method content_type_computation_allowed =
+      content_type_computation_allowed <- true
+
     val mutable ctype = None
 
     (* Content type. *)
@@ -385,6 +393,12 @@ class virtual operator ?(name = "src") sources =
       match ctype with
         | Some ctype -> ctype
         | None ->
+            if not content_type_computation_allowed then
+              failwith
+                (Printf.sprintf
+                   "Early computation of source content-type detected for \
+                    source %s!"
+                   self#id);
             self#log#debug "Assigning source content type for frame type: %s"
               (Type.to_string self#frame_type);
             let ct = Frame_type.content_type self#frame_type in
@@ -487,6 +501,7 @@ class virtual operator ?(name = "src") sources =
        another thread than the Root one, as interleaving with #get is
        forbidden. *)
     method get_ready ?(dynamic = false) (activation : operator list) =
+      self#content_type_computation_allowed;
       if log == source_log then self#create_log;
       if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets up with content type: %s." id

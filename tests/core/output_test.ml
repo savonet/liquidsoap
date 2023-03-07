@@ -30,6 +30,7 @@ let () =
   let failed = new failed in
   let o = new dummy ~on_start ~autostart:true failed in
   assert (not o#is_ready);
+  o#content_type_computation_allowed;
   o#test_wake_up;
   assert (not !started);
   o#test_set_is_ready;

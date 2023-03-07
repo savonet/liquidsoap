@@ -140,7 +140,8 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       Format.fprintf formatter "%s@]@." (String.capitalize_ascii s);
       raise Error
   | Failure s ->
-      print_error ~formatter 9 (Printf.sprintf "Failure: %s" s);
+      let bt = Printexc.get_backtrace () in
+      print_error ~formatter 9 (Printf.sprintf "Failure: %s\n%s" s bt);
       raise Error
   | Error.Clock_conflict (pos, a, b) ->
       (* TODO better printing of clock errors: we don't have position
