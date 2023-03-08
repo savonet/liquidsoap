@@ -584,6 +584,32 @@ let settings.http.mime.extnames = settings.make(
 
 let http.headers = ()
 
+# Extract the content-type header
+# @category Internet
+def http.headers.content_type(headers) =
+  mime =
+    try
+      list.find(fun (v) -> begin
+        let (header_name, _) = v
+        string.case(lower=true, header_name) == "content-type"
+      end, headers)
+    catch _ : [error.not_found] do
+      null()
+    end
+  mime = null.map(snd, mime)
+
+  null.map(fun (mime) -> begin
+    let [mime, ...args] = list.map(string.trim, string.split(separator=";", mime))
+
+    def parse_arg(arg) =
+      let [name, ...value] = string.split(separator="=", arg)
+      (name, string.unquote(string.concat(separator="=", value)))
+    end
+
+    {mime=mime, args=list.map(parse_arg, args)}
+  end, mime)
+end
+
 # Extract the content-disposition header
 # @category Internet
 def http.headers.content_disposition(headers) =
@@ -640,17 +666,7 @@ end
 # @category Internet
 def http.headers.extname(headers) =
   content_disposition = http.headers.content_disposition(headers)
-
-  mime =
-    try
-      list.find(fun (v) -> begin
-        let (header_name, _) = v
-        string.case(lower=true, header_name) == "content-type"
-      end, headers)
-    catch _ : [error.not_found] do
-      null()
-    end
-  mime = null.map(snd, mime)
+  content_type = http.headers.content_type(headers)
 
   extname =
     if null.defined(content_disposition?.filename) then
@@ -662,9 +678,9 @@ def http.headers.extname(headers) =
 
   if null.defined(extname) then
     extname
-  elsif null.defined(mime) then
+  elsif null.defined(content_type) then
     extnames = settings.http.mime.extnames()
-    extname = extnames[null.get(mime)]
+    extname = extnames[null.get(content_type).mime]
     extname == "" ? null() : extname
   else
     null()
