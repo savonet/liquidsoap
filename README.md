@@ -22,7 +22,7 @@ Copyright 2003-2023 Savonet team
 | Slack Chat     | http://slack.liquidsoap.info                                       |
 | IRC            | #savonet on [irc.libera.chat](https://libera.chat/) (slack bridge) |
 | Blog           | https://www.liquidsoap.info/blog/                                  |
-| Mailing list.  | savonet-users@lists.sourceforge.net                                |
+| Mailing list   | savonet-users@lists.sourceforge.net                                |
 | Homepage       | http://liquidsoap.info                                             |
 | Bug reports    | https://github.com/savonet/liquidsoap/issues                       |
 | User questions | https://github.com/savonet/liquidsoap/discussions                  |
