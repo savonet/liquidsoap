@@ -554,3 +554,135 @@ def harbor.http.request.body(~timeout=10., req) =
   end
   read()
 end
+
+let settings.http = settings.make.void(
+  "Settings for HTTP requests"
+)
+let settings.http.mime = settings.make.void(
+  "MIME-related settings for HTTP requests"
+)
+
+let settings.http.mime.extnames = settings.make(
+  description="MIME to file extension mappings", [
+  ("audio/mp3", ".mp3"),
+  ("audio/mpeg", ".mp3"),
+  ("application/ogg", ".ogg"),
+  ("application/x-ogg", ".ogg"),
+  ("audio/x-ogg", ".ogg"),
+  ("audio/ogg", ".ogg"),
+  ("video/ogg", ".ogg"),
+  ("audio/flac", ".flac"),
+  ("audio/x-flac", ".flac"),
+  ("audio/mp4", ".mp4"),
+  ("application/mp4", ".mp4"),
+  ("video/mp4", ".mp4"),
+  ("audio/vnd.wave", ".wav"),
+  ("audio/wav", ".wav"),
+  ("audio/wave", ".wav"),
+  ("audio/x-wav", ".wav")
+])
+
+let http.headers = ()
+
+# Extract the content-type header
+# @category Internet
+def http.headers.content_type(headers) =
+  mime =
+    try
+      list.find(fun (v) -> begin
+        let (header_name, _) = v
+        string.case(lower=true, header_name) == "content-type"
+      end, headers)
+    catch _ : [error.not_found] do
+      null()
+    end
+  mime = null.map(snd, mime)
+
+  null.map(fun (mime) -> begin
+    let [mime, ...args] = list.map(string.trim, string.split(separator=";", mime))
+
+    def parse_arg(arg) =
+      let [name, ...value] = string.split(separator="=", arg)
+      (name, string.unquote(string.concat(separator="=", value)))
+    end
+
+    {mime=mime, args=list.map(parse_arg, args)}
+  end, mime)
+end
+
+# Extract the content-disposition header
+# @category Internet
+def http.headers.content_disposition(headers) =
+  content_disposition =
+    try
+      list.find(fun (v) -> begin
+        let (header_name, _) = v
+        string.case(lower=true, header_name) == "content-disposition"
+      end, headers)
+    catch _ : [error.not_found] do
+      null()
+    end
+
+  def parse_arg(arg) =
+    let [name, ...value] = string.split(separator="=", arg)
+    (name, string.unquote(string.concat(separator="=", value)))
+  end
+
+  def parse_filename(args) =
+    plain_filename = args["filename"]
+    plain_filename = plain_filename == "" ? null() : plain_filename
+
+    encoded_filename = args["filename*"]
+    encoded_filename = encoded_filename == "" ? null() : encoded_filename
+    encoded_filename = null.map(fun (encoded_filename) -> begin
+      let [encoding, _, filename] = string.split(separator="'", encoded_filename)
+      string.recode(in_enc=encoding, filename)
+    end, encoded_filename)
+
+    filename = null.defined(encoded_filename) ? encoded_filename : plain_filename
+    filename = null.map(fun (filename) -> url.decode(string.unquote(filename)), filename)
+
+    (filename, list.filter(fun (v) -> fst(v) != "filename" and fst(v) != "filename*", args))
+  end
+
+  def parse_name(args) =
+    name = args["name"]
+    name = name == "" ? null() : name
+    name = null.map(fun (name) -> url.decode(string.unquote(name)), name)
+    (name, list.filter(fun (v) -> fst(v) != "name", args))
+  end
+
+  null.map(fun (v) -> begin
+    let (_, header_value) = v
+    let [type, ...args] = list.map(string.trim, string.split(separator=";", header_value))
+    args = list.map(parse_arg, args)
+    let (filename, args) = parse_filename(args)
+    let (name, args) = parse_name(args)
+    ({type = type, filename = filename, name = name, args = args}:{ type: string, filename?: string, name?: string, args: [(string*string?)]})
+  end, content_disposition)
+end
+
+# Try to get a filename from a request's headers.
+# @category Internet
+def http.headers.extname(headers) =
+  content_disposition = http.headers.content_disposition(headers)
+  content_type = http.headers.content_type(headers)
+
+  extname =
+    if null.defined(content_disposition?.filename) then
+      extname = file.extension(null.get(content_disposition?.filename))
+      extname == "" ? null() : extname
+    else
+      null()
+    end
+
+  if null.defined(extname) then
+    extname
+  elsif null.defined(content_type) then
+    extnames = settings.http.mime.extnames()
+    extname = extnames[null.get(content_type).mime]
+    extname == "" ? null() : extname
+  else
+    null()
+  end
+end

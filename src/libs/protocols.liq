@@ -160,36 +160,15 @@ def protocol.http(proto,~rlog,~maxtime,arg) =
 
   ret = http.head(timeout=timeout, uri)
   code = ret.status_code ?? 999
-  headers = ret.headers
+  extname = 200 <= code and code < 300 ? http.headers.extname(ret.headers) : null()
 
-  mime =
-    if 200 <= code and code < 300 then
-      headers["content-type"]
-    else
-      log(level=3,"Failed to fetch mime-type for #{uri}.")
-      log(level=4,"Request response: #{ret}")
-      null()
-    end
+  extname =
+    if null.defined(extname) then null.get(extname) else
+      log(level=3, "Failed to find a file extension for #{uri}.")
+      ".osb"
+  end
 
-  extname = null.case(mime, (fun () -> "osb"), (fun (mime) ->
-    if list.mem(mime, ["audio/mpeg", "audio/mp3"]) then
-      "mp3"
-    elsif list.mem(mime,["application/ogg", "application/x-ogg",
-                         "audio/x-ogg", "audio/ogg", "video/ogg"]) then
-      "ogg"
-    elsif list.mem(mime, ["audio/flac", "audio/x-flac"]) then
-      "flac"
-    elsif list.mem(mime,["audio/mp4", "application/mp4", "video/mp4"]) then
-      "mp4"
-    elsif list.mem(mime,["audio/vnd.wave", "audio/wav",
-                         "audio/wave", "audio/x-wav"]) then
-      "wav"
-    else
-      log(level=3,"No known file extension for mime: #{mime}")
-      "osb"
-    end))
-
-  output = file.temp("liq-process", ".#{extname}")
+  output = file.temp("liq-process", extname)
 
   file_writer = file.write.stream(output)
 

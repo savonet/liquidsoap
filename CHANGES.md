@@ -85,6 +85,7 @@ Changed:
   `youtube-dl` protocol (#2827). Use `yt-dlp` as default binary for the
   protocol.
 - The `sleeper` operator is now scripted (#2899).
+- Reworked remote request file extension resolution (#2947)
 
 Fixed:
 

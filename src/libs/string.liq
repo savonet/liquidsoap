@@ -178,6 +178,19 @@ def string.quote(~encoding=null(), s) =
   "\"#{s}\""
 end
 
+# Return an unquoted copy of the given string.
+# Quotes are removed by trying to parse the string
+# following the JSON string escaping convention.
+# @category String
+def string.unquote(s) =
+  try
+    let json.parse (s:string) = s
+    s
+  catch _ do
+    s
+  end
+end
+
 let string.data_uri = ()
 
 # Encode a string using the data uri format,

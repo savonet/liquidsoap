@@ -3,6 +3,32 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  http3.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} http3.liq liquidsoap %{test_liq} http3.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  http2.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} http2.liq liquidsoap %{test_liq} http2.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   http.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
