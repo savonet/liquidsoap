@@ -26,7 +26,7 @@ jobs:
           opam-depext: false
       - name: Install ocamlformat
         run: |
-          opam install -y ocamlformat=0.24.1
+          opam install -y ocamlformat=0.25.1
       - uses: pre-commit/action@v3.0.0
 
   build_details:
