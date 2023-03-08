@@ -496,12 +496,12 @@ let register_filters () =
         let explanation =
           String.concat " "
             ((if List.mem `Dynamic_inputs flags then
-              [
-                "This filter has dynamic inputs: last two arguments are lists \
-                 of audio and video inputs. Total number of inputs is \
-                 determined at runtime.";
-              ]
-             else [])
+                [
+                  "This filter has dynamic inputs: last two arguments are \
+                   lists of audio and video inputs. Total number of inputs is \
+                   determined at runtime.";
+                ]
+              else [])
             @
             if List.mem `Dynamic_outputs flags then
               [

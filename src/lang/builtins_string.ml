@@ -177,9 +177,9 @@ let string_escape =
               (Printf.sprintf "Error while escaping %s string.%s"
                  (match encoding with `Utf8 -> "utf8" | `Ascii -> "ascii")
                  (if encoding <> `Ascii then
-                  " If you are not sure about the string's encoding, you \
-                   should use `\"ascii\"` as this encoding never fails."
-                 else ""))
+                    " If you are not sure about the string's encoding, you \
+                     should use `\"ascii\"` as this encoding never fails."
+                  else ""))
             "string"
       in
       match encoding with
@@ -335,7 +335,7 @@ let _ =
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string
         (if lower then String.lowercase_ascii string
-        else String.uppercase_ascii string))
+         else String.uppercase_ascii string))
 
 let _ =
   Lang.add_builtin ~base:string "trim" ~category:`String
@@ -370,10 +370,10 @@ let _ =
       in
       Lang.string
         (if space_sensitive then (
-         let l = Regexp.split (Regexp.regexp " ") string in
-         let l = List.map f l in
-         String.concat " " l)
-        else f string))
+           let l = Regexp.split (Regexp.regexp " ") string in
+           let l = List.map f l in
+           String.concat " " l)
+         else f string))
 
 let _ =
   Lang.add_builtin ~base:string "hex_of_int" ~category:`String

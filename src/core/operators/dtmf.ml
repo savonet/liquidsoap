@@ -304,8 +304,8 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
     val mutable signaled = []
 
     initializer
-    self#log#info "Listening on the following bands: %s"
-      (Bands.to_string ~size:nbands ~samplerate bands)
+      self#log#info "Listening on the following bands: %s"
+        (Bands.to_string ~size:nbands ~samplerate bands)
 
     method private get_frame buf =
       let offset = AFrame.position buf in

@@ -117,8 +117,8 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
 
           ( target_sample_format,
             (if List.mem `Variable_frame_size (Avcodec.capabilities codec) then
-             None
-            else Some (Avcodec.Audio.frame_size encoder)),
+               None
+             else Some (Avcodec.Audio.frame_size encoder)),
             function
             | `Frame frame -> Avcodec.encode encoder write_packet frame
             | `Flush -> Avcodec.flush_encoder encoder write_packet ))

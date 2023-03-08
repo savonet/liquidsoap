@@ -265,7 +265,7 @@ module MkClock (Time : Liq_time.T) = struct
                 log#severe "We must catchup %.2f seconds%s!"
                   (Time.to_float (time_zero |-| rem))
                   (if !acc <= 100 then ""
-                  else " (we've been late for 100 rounds)");
+                   else " (we've been late for 100 rounds)");
                 acc := 0));
             ticks <- Int64.add ticks 1L;
             (* This is where the streaming actually happens: *)

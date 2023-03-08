@@ -73,7 +73,7 @@ class output ~infallible ~on_start ~on_stop ~autostart source =
                        (fun () ->
                          Sdl.set_window_fullscreen (Option.get window)
                            (if fullscreen then Sdl.Window.fullscreen
-                           else Sdl.Window.windowed))
+                            else Sdl.Window.windowed))
                        ()
                  | k when k = Sdl.K.q ->
                      let e = Sdl.Event.create () in

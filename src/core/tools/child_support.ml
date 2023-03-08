@@ -36,16 +36,16 @@ class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
   in
   object (self)
     initializer
-    if check_self_sync then
-      List.iter
-        (fun c ->
-          if (Lang.to_source c)#self_sync <> (`Static, false) then
-            raise
-              (Error.Invalid_value
-                 ( c,
-                   "This source may control its own latency and cannot be used \
-                    with this operator." )))
-        children_val
+      if check_self_sync then
+        List.iter
+          (fun c ->
+            if (Lang.to_source c)#self_sync <> (`Static, false) then
+              raise
+                (Error.Invalid_value
+                   ( c,
+                     "This source may control its own latency and cannot be \
+                      used with this operator." )))
+          children_val
 
     val mutable child_clock = None
 

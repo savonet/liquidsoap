@@ -512,14 +512,14 @@ class output p =
       let* () =
         Duppy.Monad.catch
           (if
-           (default_user <> None && default_password <> None)
-           || auth_function <> None
-          then (
-           let default_user = Option.value default_user ~default:"" in
-           Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-             (Harbor.http_auth_check ~query ~login:(default_user, login) s
-                headers))
-          else Duppy.Monad.return ())
+             (default_user <> None && default_password <> None)
+             || auth_function <> None
+           then (
+             let default_user = Option.value default_user ~default:"" in
+             Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
+               (Harbor.http_auth_check ~query ~login:(default_user, login) s
+                  headers))
+           else Duppy.Monad.return ())
           (function
             | Harbor.Close s ->
                 self#log#info "Client %s failed to authenticate!" ip;

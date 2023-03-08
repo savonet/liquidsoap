@@ -124,7 +124,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
         pos_f
         (if first then "no" else "no more")
         (if lbl = "" then "unlabeled argument"
-        else Format.sprintf "argument labeled %S" lbl);
+         else Format.sprintf "argument labeled %S" lbl);
       raise Error
   | Term.Duplicate_label (pos, lbl) ->
       error_header ~formatter 6 pos;
@@ -158,14 +158,14 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
   | Term.Unsupported_format (pos, fmt) ->
       error_header ~formatter 12 pos;
       (if Sys.unix then
-       Format.fprintf formatter
-         "Unsupported format: %s.@ You must be missing an optional \
-          dependency.@]@."
-      else
-        Format.fprintf formatter
-          "Unsupported format: %s.@ Please note that, on windows, %%mp3, \
-           %%vorbis and many other encoders are not available. Instead, you \
-           should use the %%ffmpeg encoder.@]@.")
+         Format.fprintf formatter
+           "Unsupported format: %s.@ You must be missing an optional \
+            dependency.@]@."
+       else
+         Format.fprintf formatter
+           "Unsupported format: %s.@ Please note that, on windows, %%mp3, \
+            %%vorbis and many other encoders are not available. Instead, you \
+            should use the %%ffmpeg encoder.@]@.")
         fmt;
       raise Error
   | Term.Internal_error (pos, e) ->

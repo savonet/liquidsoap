@@ -283,33 +283,33 @@ let register_input is_http =
     (Lang.add_operator ~base:Modules.input name ~descr ~category:`Input
        (Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
        @ (if is_http then
-          [
-            ( "user_agent",
-              Lang.string_t,
-              Some (Lang.string Http.user_agent),
-              Some "User agent." );
-            ( "timeout",
-              Lang.float_t,
-              Some (Lang.float 10.),
-              Some "Timeout for source connection." );
-          ]
-         else [])
+            [
+              ( "user_agent",
+                Lang.string_t,
+                Some (Lang.string Http.user_agent),
+                Some "User agent." );
+              ( "timeout",
+                Lang.float_t,
+                Some (Lang.float 10.),
+                Some "Timeout for source connection." );
+            ]
+          else [])
        @ (if is_http then
-          [
-            ( "on_connect",
-              Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
-              Some (Lang.val_cst_fun [("", None)] Lang.unit),
-              Some
-                "Function to execute when a source is connected. Its receives \
-                 the list of ICY-specific headers, if available." );
-          ]
-         else
-           [
-             ( "on_connect",
-               Lang.fun_t [] Lang.unit_t,
-               Some (Lang.val_cst_fun [] Lang.unit),
-               Some "Function to execute when a source is connected." );
-           ])
+            [
+              ( "on_connect",
+                Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
+                Some (Lang.val_cst_fun [("", None)] Lang.unit),
+                Some
+                  "Function to execute when a source is connected. Its \
+                   receives the list of ICY-specific headers, if available." );
+            ]
+          else
+            [
+              ( "on_connect",
+                Lang.fun_t [] Lang.unit_t,
+                Some (Lang.val_cst_fun [] Lang.unit),
+                Some "Function to execute when a source is connected." );
+            ])
        @ [
            args ~t:Lang.int_t "int";
            args ~t:Lang.float_t "float";
@@ -327,23 +327,23 @@ let register_input is_http =
              Some (Lang.float 5.),
              Some "Maximum uration of buffered data" );
            (if is_http then
-            ( "self_sync",
-              Lang.getter_t (Lang.nullable_t Lang.bool_t),
-              Some Lang.null,
-              Some
-                "Should the source control its own timing? If `null`, the \
-                 source will control its latency if it can be detected that it \
-                 is connecting to an `icecast` or `shoutcast` server. \
-                 Otherwise, see `input.ffmpeg` for more details about this \
-                 option." )
-           else
-             ( "self_sync",
-               Lang.getter_t Lang.bool_t,
-               Some (Lang.bool false),
-               Some
-                 "Should the source control its own timing? Set to `true` if \
-                  you are having synchronization issues. Should be `false` for \
-                  most typical cases." ));
+              ( "self_sync",
+                Lang.getter_t (Lang.nullable_t Lang.bool_t),
+                Some Lang.null,
+                Some
+                  "Should the source control its own timing? If `null`, the \
+                   source will control its latency if it can be detected that \
+                   it is connecting to an `icecast` or `shoutcast` server. \
+                   Otherwise, see `input.ffmpeg` for more details about this \
+                   option." )
+            else
+              ( "self_sync",
+                Lang.getter_t Lang.bool_t,
+                Some (Lang.bool false),
+                Some
+                  "Should the source control its own timing? Set to `true` if \
+                   you are having synchronization issues. Should be `false` \
+                   for most typical cases." ));
            ( "debug",
              Lang.bool_t,
              Some (Lang.bool false),

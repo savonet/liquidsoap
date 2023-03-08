@@ -38,8 +38,8 @@ let create_encoder params =
       `Afterburner params.Fdkaac_format.afterburner;
     ]
     @ (if params.Fdkaac_format.aot = `Mpeg_4 `AAC_ELD then
-       [`Sbr_mode params.Fdkaac_format.sbr_mode]
-      else [])
+         [`Sbr_mode params.Fdkaac_format.sbr_mode]
+       else [])
     @
     match params.Fdkaac_format.bitrate_mode with
       | `Variable vbr -> [`Bitrate_mode (`Variable vbr)]

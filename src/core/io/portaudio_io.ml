@@ -79,9 +79,9 @@ class virtual base =
     inherit Source.no_seek
 
     initializer
-    if not !initialized then (
-      Portaudio.init ();
-      initialized := true)
+      if not !initialized then (
+        Portaudio.init ();
+        initialized := true)
 
     method virtual log : Log.t
 

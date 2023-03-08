@@ -250,7 +250,7 @@ let print_settings () =
 ```
 |} path
             (if value.Value.value = Value.Null then "<value>"
-            else Value.to_string value);
+             else Value.to_string value);
         ]
     | value ->
         [

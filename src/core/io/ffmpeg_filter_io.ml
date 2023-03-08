@@ -42,9 +42,9 @@ class audio_output ~pass_metadata ~name ~frame_t ~field source =
     inherit! Source.no_seek
 
     initializer
-    Typing.(
-      self#frame_type <: frame_t;
-      source#frame_type <: self#frame_type)
+      Typing.(
+        self#frame_type <: frame_t;
+        source#frame_type <: self#frame_type)
 
     val mutable input = fun _ -> ()
     method set_input fn = input <- fn
@@ -93,9 +93,9 @@ class video_output ~pass_metadata ~name ~frame_t ~field source =
           ~output_kind:"ffmpeg.filter.input" (Lang.source source) true
 
     initializer
-    Typing.(
-      self#frame_type <: frame_t;
-      source#frame_type <: self#frame_type)
+      Typing.(
+        self#frame_type <: frame_t;
+        source#frame_type <: self#frame_type)
 
     val mutable input : Swscale.Frame.t -> unit = fun _ -> ()
     method set_input fn = input <- fn

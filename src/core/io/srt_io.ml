@@ -649,23 +649,23 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
     val mutable dump_chan = None
 
     initializer
-    let on_connect_cur = !on_connect in
-    (on_connect :=
-       fun () ->
-         (match dump with
-           | Some fname -> dump_chan <- Some (open_out_bin fname)
-           | None -> ());
-         on_connect_cur ());
-    let on_disconnect_cur = !on_disconnect in
-    on_disconnect :=
-      fun () ->
-        decoder_data <- None;
-        (match dump_chan with
-          | Some chan ->
-              close_out_noerr chan;
-              dump_chan <- None
-          | None -> ());
-        on_disconnect_cur ()
+      let on_connect_cur = !on_connect in
+      (on_connect :=
+         fun () ->
+           (match dump with
+             | Some fname -> dump_chan <- Some (open_out_bin fname)
+             | None -> ());
+           on_connect_cur ());
+      let on_disconnect_cur = !on_disconnect in
+      on_disconnect :=
+        fun () ->
+          decoder_data <- None;
+          (match dump_chan with
+            | Some chan ->
+                close_out_noerr chan;
+                dump_chan <- None
+            | None -> ());
+          on_disconnect_cur ()
 
     method! wake_up act =
       super#wake_up act;
@@ -886,12 +886,12 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
     val mutable encoder = None
 
     initializer
-    let on_disconnect_cur = !on_disconnect in
-    on_disconnect :=
-      fun () ->
-        ignore (Strings.Mutable.flush buffer);
-        encoder <- None;
-        on_disconnect_cur ()
+      let on_disconnect_cur = !on_disconnect in
+      on_disconnect :=
+        fun () ->
+          ignore (Strings.Mutable.flush buffer);
+          encoder <- None;
+          on_disconnect_cur ()
 
     method private send_chunk =
       self#mutexify

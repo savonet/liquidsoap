@@ -17,15 +17,15 @@ Copyright 2003-2023 Savonet team
 [![Install with Opam !](https://img.shields.io/badge/Install%20with-Opam-1abc9c.svg)](http://opam.ocaml.org/packages/liquidsoap/)
 [![Chat on slack !](https://img.shields.io/badge/Chat%20on-Slack-1a1f9c.svg)](http://slack.liquidsoap.info/)
 
-|                  |                                                                    |
-|------------------|--------------------------------------------------------------------|
-| Homepage         | http://liquidsoap.info                                             |
-| Slack Chat       | http://slack.liquidsoap.info                                       |
-| Blog             | https://www.liquidsoap.info/blog/                                  |
-| Bug reports      | https://github.com/savonet/liquidsoap/issues                       |
-| User questions   | https://github.com/savonet/liquidsoap/discussions                  |
-| IRC (deprecated) | #savonet on [irc.libera.chat](https://libera.chat/) (slack bridge) |
-| Mailing list (deprecated) | savonet-users@lists.sourceforge.net                       |
+|                           |                                                                    |
+| ------------------------- | ------------------------------------------------------------------ |
+| Homepage                  | http://liquidsoap.info                                             |
+| Slack Chat                | http://slack.liquidsoap.info                                       |
+| Blog                      | https://www.liquidsoap.info/blog/                                  |
+| Bug reports               | https://github.com/savonet/liquidsoap/issues                       |
+| User questions            | https://github.com/savonet/liquidsoap/discussions                  |
+| IRC (deprecated)          | #savonet on [irc.libera.chat](https://libera.chat/) (slack bridge) |
+| Mailing list (deprecated) | savonet-users@lists.sourceforge.net                                |
 
 ## Installation
 

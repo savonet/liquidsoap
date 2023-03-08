@@ -248,7 +248,7 @@ let _ =
           cmd_value timeout;
       on_done
         (if 0. <= timeout && tutils_started then asynchronous ()
-        else synchronous ()))
+         else synchronous ()))
 
 let process_quote =
   Lang.add_builtin ~base:process "quote" ~category:`System

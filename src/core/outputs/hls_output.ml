@@ -408,15 +408,15 @@ class hls_output p =
   let x_version =
     lazy
       (if
-       List.find_opt
-         (fun s ->
-           match s.current_segment with
-             | Some { init_filename = Some _ } -> true
-             | _ -> false)
-         streams
-       <> None
-      then 7
-      else 3)
+         List.find_opt
+           (fun s ->
+             match s.current_segment with
+               | Some { init_filename = Some _ } -> true
+               | _ -> false)
+           streams
+         <> None
+       then 7
+       else 3)
   in
   let source = Lang.assoc "" 3 p in
   let main_playlist_filename = Lang.to_string (List.assoc "playlist" p) in

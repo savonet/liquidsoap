@@ -69,7 +69,7 @@ class dssi ?chan plugin descr outputs params source =
               (Lazy.force Frame.audio_rate)) )
 
     initializer
-    Array.iter (fun inst -> Ladspa.Descriptor.activate inst) (snd di)
+      Array.iter (fun inst -> Ladspa.Descriptor.activate inst) (snd di)
 
     method private get_frame buf =
       let descr, inst = di in

@@ -110,7 +110,7 @@ let test_ctype f filename =
       (Frame.Fields.make
          ~audio:
            (if ret < 0 then audio_n (Lazy.force Frame.audio_channels)
-           else audio_n ret)
+            else audio_n ret)
          ())
 
 let register_stdin ~name ~doc ~priority ~mimes ~file_extensions ~test process =

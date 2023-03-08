@@ -336,8 +336,8 @@ class virtual operator ?(name = "src") sources =
       if log != source_log then self#create_log
 
     initializer
-    if debug then
-      Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
+      if debug then
+        Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
 
     val mutex = Mutex.create ()
 
@@ -760,11 +760,13 @@ and virtual active_operator ?name sources =
     inherit operator ?name sources
 
     initializer
-    has_outputs := true;
-    add_new_output (self :> active_operator);
-    ignore
-      (unify self#clock
-         (create_unknown ~sources:[(self :> active_operator)] ~sub_clocks:[] ()))
+      has_outputs := true;
+      add_new_output (self :> active_operator);
+      ignore
+        (unify self#clock
+           (create_unknown
+              ~sources:[(self :> active_operator)]
+              ~sub_clocks:[] ()))
 
     method! is_active = true
 

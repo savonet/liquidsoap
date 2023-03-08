@@ -124,9 +124,9 @@ let includer dir tokenizer =
               flush_all ();
               Printf.printf "%sine %d, char %d: cannot %%include, "
                 (if curp.Lexing.pos_fname = "" then "L"
-                else
-                  Printf.sprintf "File %s, l"
-                    (Lang_string.quote_string curp.Lexing.pos_fname))
+                 else
+                   Printf.sprintf "File %s, l"
+                     (Lang_string.quote_string curp.Lexing.pos_fname))
                 curp.Lexing.pos_lnum
                 (curp.Lexing.pos_cnum - curp.Lexing.pos_bol);
               Printf.printf "file %s doesn't exist.\n"
