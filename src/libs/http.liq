@@ -599,13 +599,7 @@ def http.headers.content_disposition(headers) =
 
   def parse_arg(arg) =
     let [name, ...value] = string.split(separator="=", arg)
-    if list.length(value) != 1 then
-      # We try to avoid raising errors on invalid values..
-      log.info(label="http.headers.content_disposition", "Invalid header directive: #{arg}")
-      (arg, "")
-    else
-      (name, string.unquote(list.hd(value)))
-    end
+    (name, string.unquote(string.concat(separator="=", value)))
   end
 
   def parse_filename(args) =
