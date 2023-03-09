@@ -384,42 +384,41 @@ let rec bound_vars_pat = function
                 @ cur)
               [] l))
 
-let free_vars tm =
-  let rec free_vars tm =
-    match tm.term with
-      | Ground _ -> Vars.empty
-      | Var x -> Vars.singleton x
-      | Tuple l ->
-          List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
-      | Any | Null -> Vars.empty
-      | Encoder e ->
-          let rec enc (_, p) =
-            List.fold_left
-              (fun v (_, t) ->
-                match t with
-                  | `Term t -> Vars.union v (free_vars t)
-                  | `Encoder e -> Vars.union v (enc e))
-              Vars.empty p
-          in
-          enc e
-      | Cast (e, _) -> free_vars e
-      | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
-      | Invoke { invoked = e } -> free_vars e
-      | Open (a, b) -> Vars.union (free_vars a) (free_vars b)
-      | List l ->
-          List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
-      | App (hd, l) ->
+let rec free_vars tm =
+  let root_free_vars = function
+    | Ground _ -> Vars.empty
+    | Var x -> Vars.singleton x
+    | Tuple l ->
+        List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
+    | Any | Null -> Vars.empty
+    | Encoder e ->
+        let rec enc (_, p) =
           List.fold_left
-            (fun v (_, t) -> Vars.union v (free_vars t))
-            (free_vars hd) l
-      | RFun (_, fv, _, _) | Fun (fv, _, _) -> fv
-      | Let l ->
-          Vars.union (free_vars l.def)
-            (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
+            (fun v (_, t) ->
+              match t with
+                | `Term t -> Vars.union v (free_vars t)
+                | `Encoder e -> Vars.union v (enc e))
+            Vars.empty p
+        in
+        enc e
+    | Cast (e, _) -> free_vars e
+    | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
+    | Invoke { invoked = e } -> free_vars e
+    | Open (a, b) -> Vars.union (free_vars a) (free_vars b)
+    | List l ->
+        List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
+    | App (hd, l) ->
+        List.fold_left
+          (fun v (_, t) -> Vars.union v (free_vars t))
+          (free_vars hd) l
+    | RFun (_, fv, _, _) | Fun (fv, _, _) -> fv
+    | Let l ->
+        Vars.union (free_vars l.def)
+          (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
   in
   Methods.fold
     (fun _ meth_term fv -> Vars.union fv (free_vars meth_term))
-    tm.methods (free_vars tm)
+    tm.methods (root_free_vars tm.term)
 
 let free_vars ?(bound = []) body =
   Vars.diff (free_vars body) (Vars.of_list bound)
