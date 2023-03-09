@@ -300,7 +300,7 @@ and eval ~eval_check env tm =
 and apply ?pos ~eval_check f l =
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
-    match (Value.demeth f).Value.value with
+    match f.Value.value with
       | Value.Fun (p, e, body) ->
           ( p,
             fun pe ->

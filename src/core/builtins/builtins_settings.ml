@@ -301,7 +301,7 @@ let _ =
          let value = Lang.assoc "" 2 p in
          (try
             let set = grab (path ^ ".set") !settings in
-            try ignore (Lang.apply (Lang.demeth set) [("", value)])
+            try ignore (Lang.apply set [("", value)])
             with _ ->
               log#severe
                 "WARNING: Error while setting value %s for setting %S. Is that \
@@ -324,7 +324,7 @@ let _ =
       let default = List.assoc "default" p in
       try
         let get = grab path !settings in
-        let v = Lang.apply (Lang.demeth get) [] in
+        let v = Lang.apply get [] in
         match (default.Lang.value, v.Lang.value) with
           | Lang.(Ground (Ground.Bool _)), Lang.(Ground (Ground.Bool _))
           | Lang.(Ground (Ground.Int _)), Lang.(Ground (Ground.Int _))

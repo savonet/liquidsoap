@@ -82,8 +82,6 @@ module Error = struct
   let to_value err =
     Lang_core.meth (to_value err)
       (List.map (fun (lbl, _, _, m) -> (lbl, m err)) meths)
-
-  let of_value err = of_value (Lang_core.demeth err)
 end
 
 let _ =

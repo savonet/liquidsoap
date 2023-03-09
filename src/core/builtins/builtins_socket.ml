@@ -108,7 +108,6 @@ module Inet_addr = struct
         ("is_ipv6", Lang.bool (Unix.is_inet6_addr v));
       ]
 
-  let of_value v = of_value (Lang.demeth v)
   let any = to_value Unix.inet_addr_any
   let loopback = to_value Unix.inet_addr_loopback
   let ipv6_any = to_value Unix.inet6_addr_any
@@ -167,8 +166,6 @@ module Socket_addr = struct
             ("port", Lang.int port);
           ]
     | _ -> assert false
-
-  let of_value v = of_value (Lang.demeth v)
 end
 
 module Socket_value = struct
@@ -184,8 +181,6 @@ module Socket_value = struct
     let descr s = Printf.sprintf "<%s socket>" s#typ
     let compare = Stdlib.compare
   end)
-
-  let of_value socket = of_value (Lang.demeth socket)
 
   let meths =
     let descr_of_mode = function `Read -> "read" | `Write -> "write" in

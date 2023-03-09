@@ -119,10 +119,8 @@ let compare a b =
     | _, Null -> 1
     | _ -> assert false
   and compare a b =
-    let a' = demeth a in
-    let b' = demeth b in
     (* For records, we compare the list ["label", field; ..] of common fields. *)
-    if a'.value = Tuple [] && b'.value = Tuple [] then (
+    if a.value = Tuple [] && b.value = Tuple [] then (
       let r a =
         let m, _ = split_meths a in
         m
@@ -179,7 +177,7 @@ let compare a b =
              b)
       in
       aux (a, b))
-    else aux (a'.value, b'.value)
+    else aux (a.value, b.value)
   in
   compare a b
 
@@ -202,12 +200,11 @@ module MkAbstractFromTerm (Term : Term.Abstract) = struct
     { pos = None; value = Ground (to_ground c); methods = Methods.empty }
 
   let of_value t =
-    match (demeth t).value with
+    match t.value with
       | Ground g when is_ground g -> of_ground g
       | _ -> assert false
 
-  let is_value t =
-    match (demeth t).value with Ground g -> is_ground g | _ -> false
+  let is_value t = match t.value with Ground g -> is_ground g | _ -> false
 end
 
 module MkAbstract (Def : AbstractDef) = struct
