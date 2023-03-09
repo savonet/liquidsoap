@@ -160,7 +160,11 @@ let args_of, app_of =
       args
   and get_app ~pos _ args =
     List.map
-      (fun (n, _, _) -> (n, Term.{ t = Type.var ~pos (); term = Var n }))
+      (fun (n, _, _) ->
+        ( n,
+          Term.
+            { t = Type.var ~pos (); term = Var n; methods = Term.Methods.empty }
+        ))
       args
   and term_of_value ~pos t ({ Value.value } as v) =
     let get_list_type () =
@@ -184,36 +188,40 @@ let args_of, app_of =
       in
       (meth_value, t)
     in
-    let term =
-      match value with
-        | Value.Ground g -> Term.Ground g
-        | Value.List l ->
-            Term.List (List.map (term_of_value ~pos (get_list_type ())) l)
-        | Value.Tuple l ->
-            Term.List
-              (List.mapi
-                 (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
-                 l)
-        | Value.Null -> Term.Null
-        | Value.Meth (name, v, v') ->
-            let meth_value, t = get_meth_type name t in
-            Term.Meth
-              ( { name; meth_value = term_of_value ~pos meth_value v },
-                term_of_value ~pos t v' )
-        | Value.Fun (args, [], body) ->
-            let body =
-              Term.{ body with t = Type.make ~pos body.t.Type.descr }
-            in
-            Term.Fun (Term.free_vars body, get_args ~pos t args, body)
-        | _ ->
-            raise
-              (Parse_error
-                 ( pos,
-                   Printf.sprintf "Term %s cannot be represented as a term"
-                     (Value.to_string v) ))
+    let mk_tm term =
+      Term.
+        { t = Type.make ~pos t.Type.descr; term; methods = Term.Methods.empty }
     in
-    let t = Type.make ~pos t.Type.descr in
-    Term.{ t; term }
+    match value with
+      | Value.Ground g -> mk_tm (Term.Ground g)
+      | Value.List l ->
+          mk_tm (Term.List (List.map (term_of_value ~pos (get_list_type ())) l))
+      | Value.Tuple l ->
+          mk_tm
+            (Term.List
+               (List.mapi
+                  (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
+                  l))
+      | Value.Null -> mk_tm Term.Null
+      | Value.Meth (name, v, v') ->
+          let meth_value, t = get_meth_type name t in
+          let term = term_of_value ~pos t v' in
+          {
+            term with
+            methods =
+              Term.Methods.add name
+                (term_of_value ~pos meth_value v)
+                term.Term.methods;
+          }
+      | Value.Fun (args, [], body) ->
+          let body = Term.{ body with t = Type.make ~pos body.t.Type.descr } in
+          mk_tm (Term.Fun (Term.free_vars body, get_args ~pos t args, body))
+      | _ ->
+          raise
+            (Parse_error
+               ( pos,
+                 Printf.sprintf "Term %s cannot be represented as a term"
+                   (Value.to_string v) ))
   in
   let args_of = gen_args_of get_args in
   let app_of = gen_args_of get_app in
@@ -280,7 +288,12 @@ let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
     Type.meth ~pos ~optional name ([], Type.var ~pos ()) (Type.var ~pos ())
   in
   let value =
-    mk ~pos ~t (Meth ({ name; meth_value = value }, mk_any ~pos ()))
+    Term.
+      {
+        (mk_any ~pos ()) with
+        t;
+        methods = Methods.add name value Term.Methods.empty;
+      }
   in
   ( value,
     update_invoke_default ~pos ~optional:(default <> None) invoked meth value )

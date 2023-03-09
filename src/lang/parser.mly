@@ -547,8 +547,14 @@ encoder_params:
   | encoder_param COMMA encoder_params { $1::$3 }
 
 record:
-  | VAR GETS expr { fun ~pos e -> mk ~pos (Meth ({name = $1; meth_value = $3}, e)) }
-  | record COMMA VAR GETS expr { fun ~pos e -> mk ~pos (Meth ({name = $3; meth_value =  $5}, $1 ~pos e)) }
+  | VAR GETS expr {
+      fun ~pos:_ e -> Term.{ e with methods = Methods.add $1 $3 e.methods }
+  }
+  | record COMMA VAR GETS expr {
+      fun ~pos e ->
+        let tm = $1 ~pos e in
+        Term.{ tm with methods = Methods.add $3 $5 tm.methods }
+  }
 
 annotate:
   | annotate_metadata COLON { $1 }

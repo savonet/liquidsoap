@@ -28,19 +28,22 @@ let debug = ref false
 (** {1 Type checking / inference} *)
 
 (** Terms for which generalization is safe. *)
-let rec value_restriction t =
-  match t.term with
-    | Var _ -> true
-    | Fun _ -> true
-    | RFun _ -> true
-    | Null -> true
-    | List l | Tuple l -> List.for_all value_restriction l
-    | Meth ({ meth_value = v }, u) -> value_restriction v && value_restriction u
-    | Ground _ -> true
-    | Let l -> value_restriction l.def && value_restriction l.body
-    | Cast (t, _) -> value_restriction t
-    (* | Invoke (t, _) -> value_restriction t *)
-    | _ -> false
+let value_restriction t =
+  let rec value_restriction t =
+    match t.term with
+      | Var _ -> true
+      | Fun _ -> true
+      | RFun _ -> true
+      | Null -> true
+      | List l | Tuple l -> List.for_all value_restriction l
+      | Ground _ -> true
+      | Let l -> value_restriction l.def && value_restriction l.body
+      | Cast (t, _) -> value_restriction t
+      (* | Invoke (t, _) -> value_restriction t *)
+      | _ -> false
+  in
+  value_restriction t
+  && Methods.for_all (fun _ meth_term -> value_restriction meth_term) t.methods
 
 (** A simple mechanism for delaying printing toplevel tasks as late as possible,
     to avoid seeing too many unknown variables. *)
@@ -144,8 +147,22 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
      the term is unified, we have to set the position information in order not
      to loose it. *)
   let pos = e.t.Type.pos in
-  let mk t = Type.make ?pos t in
-  let mkg t = mk t in
+  let mk t =
+    Methods.fold
+      (fun meth meth_term t ->
+        check ~level ~env meth_term;
+        Type.make ?pos
+          (Type.Meth
+             ( {
+                 Type.meth;
+                 optional = false;
+                 scheme = Typing.generalize ~level meth_term.t;
+                 doc = "";
+                 json_name = None;
+               },
+               t )))
+      e.methods (Type.make ?pos t)
+  in
   let check_fun ~proto ~env e body =
     let base_check = check ~level ~env in
     let proto_t, env =
@@ -176,7 +193,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   in
   match e.term with
     | Any -> ()
-    | Ground g -> e.t >: mkg (Ground.to_descr g)
+    | Ground g -> e.t >: mk (Ground.to_descr g)
     | Encoder f ->
         (* Ensure that we only use well-formed terms. *)
         let rec check_enc (_, p) =
@@ -208,20 +225,6 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
         check ~level ~env a;
         a.t <: t;
         e.t >: t
-    | Meth ({ name = l; meth_value = a }, b) ->
-        check ~level ~env a;
-        check ~level ~env b;
-        e.t
-        >: mk
-             (Type.Meth
-                ( {
-                    Type.meth = l;
-                    optional = false;
-                    scheme = Typing.generalize ~level a.t;
-                    doc = "";
-                    json_name = None;
-                  },
-                  b.t ))
     | Invoke { invoked = a; default; meth = l } ->
         check ~level ~env a;
         let rec aux t =
