@@ -65,7 +65,7 @@ end
 # for the following formats: coverart (ogg), apic (flac, mp3) and pic (mp3).
 # @category Metadata
 # @param m Metadata from which the cover should be extracted.
-# @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disasbled if `null`.
+# @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disabled if `null`.
 # @method mime MIME type for the cover.
 def metadata.cover(~coverart_mime=null(), m)
   fname = metadata.filename(m)
@@ -75,7 +75,7 @@ def metadata.cover(~coverart_mime=null(), m)
   elsif list.assoc.mem("metadata_block_picture", m) then
     # See https://xiph.org/flac/format.html#metadata_block_picture
     cover = list.assoc(default="", "metadata_block_picture", m)
-    cover = file.metadata.flac.cover.decode(string.base64.decode(cover))
+    cover = file.metadata.flac.cover.decode(cover)
     if not null.defined(cover) then
       log.info("Failed to read cover metadata for #{fname}.")
       null()
