@@ -341,8 +341,6 @@ let check_content v t =
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        (* The type says that we should drop the method. *)
-        | Value.Meth (_, _, v), _ -> check_value v t
         (* We don't check functions, assuming anything creating a source is a
            FFI registered via add_operator so the check will happen there. *)
         | Fun _, _ | FFI _, _ -> ()
@@ -527,15 +525,13 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
       (* We need to avoid checking the same value multiple times, otherwise we
          get an exponential blowup, see #1247. *)
       itered_values := v :: !itered_values;
+      Value.Methods.iter (fun _ v -> iter_value v) v.Value.methods;
       match v.value with
         | _ when Source_val.is_value v -> f (Source_val.of_value v)
         | Ground _ -> ()
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
         | Null -> ()
-        | Meth (_, a, b) ->
-            iter_value a;
-            iter_value b
         | Fun (proto, env, body) ->
             (* The following is necessarily imprecise: we might see sources that
                will be unused in the execution of the function. *)

@@ -23,11 +23,17 @@
 include Value
 module Ground = Term.Ground
 open Ground
+module Methods = Term.Methods
 
 type t = Type.t
 type module_name = string
 type scheme = Type.scheme
-type value = Value.t = { pos : Pos.Option.t; value : in_value }
+
+type value = Value.t = {
+  pos : Pos.Option.t;
+  value : in_value;
+  methods : value Methods.t;
+}
 
 (** Type construction *)
 
@@ -77,7 +83,7 @@ let ref_t a = Type.reference a
 
 (** Value construction *)
 
-let mk ?pos value = { pos; value }
+let mk ?pos value = { pos; value; methods = Methods.empty }
 let unit = mk unit
 let int i = mk (Ground (Int i))
 let bool i = mk (Ground (Bool i))
@@ -88,9 +94,11 @@ let product a b = tuple [a; b]
 let list l = mk (List l)
 let null = mk Null
 
-let rec meth v0 = function
-  | [] -> v0
-  | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
+let meth v l =
+  {
+    v with
+    methods = List.fold_left (fun v (k, m) -> Methods.add k m v) v.methods l;
+  }
 
 let record = meth unit
 let val_fun p f = mk (FFI (p, f))
@@ -161,6 +169,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     {
       pos = None;
       value = FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, f);
+      methods = Methods.empty;
     }
   in
   let doc () =
@@ -226,9 +235,8 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     ((generalized, t), value);
   name
 
-let add_builtin_base ~category ~descr ?(flags = []) ?base name value t =
+let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
   let name = mk_module_name ?base name in
-  let value = { pos = t.Type.pos; value } in
   let generalized = Typing.filter_vars (fun _ -> true) t in
   let doc () =
     Doc.Value.
@@ -246,6 +254,11 @@ let add_builtin_base ~category ~descr ?(flags = []) ?base name value t =
     (String.split_on_char '.' name)
     ((generalized, t), value);
   name
+
+let add_builtin_base ~category ~descr ?flags ?base name value t =
+  add_builtin_value ~category ~descr ?flags ?base name
+    { pos = t.Type.pos; value; methods = Methods.empty }
+    t
 
 let add_module ?base name =
   let name = mk_module_name ?base name in

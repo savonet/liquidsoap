@@ -182,9 +182,8 @@ let settings_module =
      let log = get_value Dtools.Log.conf in
      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
      ignore
-       (Lang.add_builtin_base ~category:`Settings "settings"
-          ~descr:"All settings." ~flags:[`Hidden] !settings.Lang.value
-          settings_t))
+       (Lang.add_builtin_value ~category:`Settings "settings"
+          ~descr:"All settings." ~flags:[`Hidden] !settings settings_t))
 
 (** Hack to keep track of latest settings at runtime. *)
 let _ =
@@ -206,35 +205,25 @@ type descr = {
 let filtered_settings = ["subordinate log level"]
 
 let print_settings () =
-  let rec grab_descr cur = function
-    | Value.Meth ("description", d, v) ->
-        grab_descr { cur with description = Lang.to_string d } v.Lang.value
-    | Value.Meth ("comments", c, v) ->
-        grab_descr { cur with comments = Lang.to_string c } v.Lang.value
-    | Value.Meth ("set", _, v) -> grab_descr cur v.Lang.value
-    | Value.Meth (key, _, v) when List.mem_assoc key cur.children ->
-        grab_descr cur v.Lang.value
-    | Value.Meth (key, c, v) ->
-        let descr =
-          {
-            description = "";
-            comments = "";
-            children = [];
-            value = Value.Tuple [];
-          }
-        in
-        grab_descr
-          {
-            cur with
-            children = (key, grab_descr descr c.Lang.value) :: cur.children;
-          }
-          v.Lang.value
-    | value -> { cur with value }
+  let rec grab_descr v =
+    {
+      description =
+        (try Lang.to_string (Value.Methods.find "description" v.Value.methods)
+         with _ -> "");
+      comments =
+        (try Lang.to_string (Value.Methods.find "comments" v.Value.methods)
+         with _ -> "");
+      children =
+        Value.Methods.fold
+          (fun key meth children ->
+            if key <> "comments" && key <> "description" && key <> "set" then
+              (key, grab_descr meth) :: children
+            else children)
+          v.Value.methods [];
+      value = v.Value.value;
+    }
   in
-  let descr =
-    { description = ""; comments = ""; children = []; value = Value.Tuple [] }
-  in
-  let descr = grab_descr descr !settings.Lang.value in
+  let descr = grab_descr !settings in
   let filter_children =
     List.filter (fun (_, { description }) ->
         not (List.mem description filtered_settings))
@@ -242,7 +231,11 @@ let print_settings () =
   let print_set ~path = function
     | Value.Tuple [] -> []
     | (Value.Fun ([], _, _) | Value.FFI ([], _)) as value ->
-        let value = Lang.apply { Value.pos = None; value } [] in
+        let value =
+          Lang.apply
+            { Value.pos = None; value; methods = Value.Methods.empty }
+            []
+        in
         [
           Printf.sprintf {|
 ```liquidsoap
@@ -259,7 +252,8 @@ let print_settings () =
 %s := %s
 ```
 |} path
-            (Value.to_string { Value.pos = None; value });
+            (Value.to_string
+               { Value.pos = None; value; methods = Value.Methods.empty });
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -284,14 +278,9 @@ let log = Lang.log
 let _ =
   let grab path value =
     let path = String.split_on_char '.' path in
-    let rec grab links v =
-      match (links, v.Value.value) with
-        | [], _ -> v
-        | link :: links, Value.Meth (key, v, _) when key = link -> grab links v
-        | _, Value.Meth (_, _, v) -> grab links v
-        | _ -> raise Not_found
-    in
-    grab path value
+    List.fold_left
+      (fun cur link -> Value.Methods.find link cur.Value.methods)
+      value path
   in
   ignore
     (Lang.add_builtin ~category:`Settings "set"

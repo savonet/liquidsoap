@@ -89,7 +89,7 @@ let rec eval_pat pat v =
             List.fold_left
               (fun v (l, m) ->
                 if List.mem l fields then v
-                else { v with Value.value = Meth (l, m, v) })
+                else Value.{ v with methods = Methods.add l m v.methods })
               v m
           in
           let env = match pat with None -> env | Some pat -> aux env pat v in
@@ -158,7 +158,9 @@ let rec prepare_fun fv ~eval_check p env =
   (p, env)
 
 and eval_term ~eval_check (env : Env.t) tm =
-  let mk v = { Value.pos = tm.t.Type.pos; Value.value = v } in
+  let mk v =
+    Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
+  in
   let v =
     match tm.term with
       | Any -> mk Value.Null
@@ -183,33 +185,27 @@ and eval_term ~eval_check (env : Env.t) tm =
       | Cast (e, _) ->
           let e = eval ~eval_check env e in
           mk e.Value.value
-      | Invoke { invoked = t; default; meth = l } ->
-          let rec aux t =
-            match (t.Value.value, default) with
-              | Value.Meth (l', t, _), None when l = l' -> t
-              (* A method returning `null` is overridden by the default value *)
-              | Value.Meth (l', t, _), Some tm when l = l' -> (
-                  match t.Value.value with
-                    | Value.Null -> eval ~eval_check env tm
-                    | _ -> t)
-              | Value.Meth (_, _, t), _ -> aux t
-              | _, Some tm -> eval ~eval_check env tm
-              | _ ->
-                  raise
-                    (Internal_error
-                       ( Option.to_list tm.t.Type.pos,
-                         "invoked method `" ^ l ^ "` not found" ))
-          in
-          aux (eval ~eval_check env t)
+      | Invoke { invoked = t; default; meth } -> (
+          let v = eval ~eval_check env t in
+          match (Value.Methods.find_opt meth v.Value.methods, default) with
+            (* If method returns `null` and a default is provided, pick default. *)
+            | Some Value.{ value = Null; methods }, Some default
+              when Methods.is_empty methods ->
+                eval ~eval_check env default
+            | Some v, _ -> v
+            | None, Some default -> eval ~eval_check env default
+            | _ ->
+                raise
+                  (Internal_error
+                     ( Option.to_list tm.t.Type.pos,
+                       "invoked method `" ^ meth ^ "` not found" )))
       | Open (t, u) ->
           let t = eval ~eval_check env t in
-          let rec aux env t =
-            match t.Value.value with
-              | Value.Meth (l, v, t) -> aux (Env.add env l v) t
-              | Value.Tuple [] -> env
-              | _ -> assert false
+          let env =
+            Methods.fold
+              (fun key meth env -> Env.add env key meth)
+              t.Value.methods env
           in
-          let env = aux env t in
           eval ~eval_check env u
       | Let { pat; replace; def = v; body = b; _ } ->
           let v = eval ~eval_check env v in
@@ -226,13 +222,20 @@ and eval_term ~eval_check (env : Env.t) tm =
                   | l :: ll ->
                       (* Add method ll with value v to t *)
                       let rec meths ll v t =
-                        let mk ~pos value = { Value.pos; value } in
                         match ll with
                           | [] -> assert false
-                          | [l] -> mk ~pos:tm.t.Type.pos (Value.Meth (l, v, t))
+                          | [l] ->
+                              Value.
+                                { t with methods = Methods.add l v t.methods }
                           | l :: ll ->
-                              mk ~pos:t.Value.pos
-                                (Value.Meth (l, meths ll v (Value.invoke t l), t))
+                              Value.
+                                {
+                                  t with
+                                  methods =
+                                    Methods.add l
+                                      (meths ll v (Value.invoke t l))
+                                      t.methods;
+                                }
                       in
                       let v () =
                         let t = Env.lookup env l in
@@ -255,7 +258,12 @@ and eval_term ~eval_check (env : Env.t) tm =
           let p, env = prepare_fun ~eval_check fv p env in
           let rec v () =
             let env = Env.add_lazy env x (Lazy.from_fun v) in
-            { Value.pos = tm.t.Type.pos; value = Value.Fun (p, env, body) }
+            Value.
+              {
+                pos = tm.t.Type.pos;
+                value = Fun (p, env, body);
+                methods = Methods.empty;
+              }
           in
           v ()
       | Var var -> Env.lookup env var
@@ -274,10 +282,15 @@ and eval_term ~eval_check (env : Env.t) tm =
               | _ -> ans ())
           else ans ()
   in
-  Methods.fold
-    (fun meth meth_term v ->
-      mk (Value.Meth (meth, eval ~eval_check env meth_term, v)))
-    tm.methods v
+  Value.
+    {
+      v with
+      methods =
+        Methods.fold
+          (fun key meth meths ->
+            Methods.add key (eval_term ~eval_check env meth) meths)
+          tm.Term.methods v.Value.methods;
+    }
 
 and eval ~eval_check env tm =
   let v = eval_term ~eval_check env tm in
@@ -385,10 +398,9 @@ let toplevel_add ?doc pat ~t v =
               in
               let ptypes = ref (ptypes t) in
               (* Default values for parameters. *)
-              let rec pvalues v =
+              let pvalues v =
                 match v.Value.value with
                   | Value.Fun (p, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
-                  | Value.Meth (_, _, v) -> pvalues v
                   | _ -> []
               in
               let pvalues = ref (pvalues v) in
