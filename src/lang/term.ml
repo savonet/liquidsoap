@@ -461,6 +461,9 @@ exception Unused_variable of (string * Pos.t)
 
 let check_unused ~throw ~lib tm =
   let rec check ?(toplevel = false) v tm =
+    let v =
+      Methods.fold (fun _ meth_term e -> check e meth_term) tm.methods v
+    in
     match tm.term with
       | Var s -> Vars.remove s v
       | Ground _ -> v
@@ -530,11 +533,7 @@ let check_unused ~throw ~lib tm =
           Vars.union v mask
   in
   (* Unused free variables may remain *)
-  ignore
-    (Methods.fold
-       (fun _ meth_term e -> check e meth_term)
-       tm.methods
-       (check ~toplevel:true Vars.empty tm))
+  ignore (check ~toplevel:true Vars.empty tm)
 
 (* Abstract types. *)
 
