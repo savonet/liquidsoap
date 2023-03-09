@@ -30,4 +30,5 @@
 (alias
  (name citest)
  (deps
+  (alias_rec perftest)
   (alias_rec runtest)))
