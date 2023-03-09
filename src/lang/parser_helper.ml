@@ -205,13 +205,23 @@ let args_of, app_of =
       | Value.Null -> mk_tm Term.Null
       | Value.Meth (name, v, v') ->
           let meth_value, t = get_meth_type name t in
+          let meth_term = term_of_value ~pos meth_value v in
           let term = term_of_value ~pos t v' in
           {
             term with
-            methods =
-              Term.Methods.add name
-                (term_of_value ~pos meth_value v)
-                term.Term.methods;
+            t =
+              Type.make ~pos
+                Type.(
+                  Meth
+                    ( {
+                        meth = name;
+                        optional = false;
+                        scheme = ([], meth_term.Term.t);
+                        doc = "";
+                        json_name = None;
+                      },
+                      term.t ));
+            methods = Term.Methods.add name meth_term term.Term.methods;
           }
       | Value.Fun (args, [], body) ->
           let body = Term.{ body with t = Type.make ~pos body.t.Type.descr } in
