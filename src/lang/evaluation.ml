@@ -157,17 +157,13 @@ let rec prepare_fun fv ~eval_check p env =
   let env = Env.restrict env fv in
   (p, env)
 
-and mk ~methods ~tm v = Value.{ pos = tm.t.Type.pos; value = v; methods }
-
-and add_methods ~methods v =
-  Value.
-    { v with methods = Methods.union (fun _ _ m -> Some m) v.methods methods }
-
-and eval_term ~eval_check (env : Env.t) tm =
-  let methods = Methods.map (eval_term ~eval_check env) tm.methods in
+and eval_base_term ~eval_check (env : Env.t) tm =
+  let mk v =
+    Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
+  in
   match tm.term with
-    | Any -> mk ~methods ~tm Value.Null
-    | Ground g -> mk ~methods ~tm (Value.Ground g)
+    | Any -> mk Value.Null
+    | Ground g -> mk (Value.Ground g)
     | Encoder (e, p) ->
         let pos = tm.t.Type.pos in
         let rec eval_param p =
@@ -180,25 +176,22 @@ and eval_term ~eval_check (env : Env.t) tm =
             p
         in
         let p = eval_param p in
-        add_methods ~methods (!Hooks.make_encoder ~pos tm (e, p))
-    | List l -> mk ~methods ~tm (Value.List (List.map (eval ~eval_check env) l))
-    | Tuple l ->
-        mk ~methods ~tm
-          (Value.Tuple (List.map (fun a -> eval env ~eval_check a) l))
-    | Null -> mk ~methods ~tm Value.Null
+        !Hooks.make_encoder ~pos tm (e, p)
+    | List l -> mk (Value.List (List.map (eval ~eval_check env) l))
+    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval env ~eval_check a) l))
+    | Null -> mk Value.Null
     | Cast (e, _) ->
         let e = eval ~eval_check env e in
-        mk ~methods ~tm e.Value.value
+        mk e.Value.value
     | Invoke { invoked = t; default; meth } -> (
         let v = eval ~eval_check env t in
         match (Value.Methods.find_opt meth v.Value.methods, default) with
           (* If method returns `null` and a default is provided, pick default. *)
           | Some Value.{ value = Null; methods }, Some default
             when Methods.is_empty methods ->
-              add_methods ~methods (eval ~eval_check env default)
+              eval ~eval_check env default
           | Some v, _ -> v
-          | None, Some default ->
-              add_methods ~methods (eval ~eval_check env default)
+          | None, Some default -> eval ~eval_check env default
           | _ ->
               raise
                 (Internal_error
@@ -211,7 +204,7 @@ and eval_term ~eval_check (env : Env.t) tm =
             (fun key meth env -> Env.add env key meth)
             t.Value.methods env
         in
-        add_methods ~methods (eval ~eval_check env u)
+        eval ~eval_check env u
     | Let { pat; replace; def = v; body = b; _ } ->
         let v = eval ~eval_check env v in
         let penv =
@@ -254,33 +247,42 @@ and eval_term ~eval_check (env : Env.t) tm =
             (eval_pat pat v)
         in
         let env = Env.adds_lazy env penv in
-        add_methods ~methods (eval ~eval_check env b)
+        eval ~eval_check env b
     | Fun (fv, p, body) ->
         let p, env = prepare_fun ~eval_check fv p env in
-        mk ~methods ~tm (Value.Fun (p, env, body))
+        mk (Value.Fun (p, env, body))
     | RFun (x, fv, p, body) ->
         let p, env = prepare_fun ~eval_check fv p env in
         let rec v () =
           let env = Env.add_lazy env x (Lazy.from_fun v) in
-          mk ~methods ~tm (Value.Fun (p, env, body))
+          mk (Value.Fun (p, env, body))
         in
         v ()
-    | Var var -> add_methods ~methods (Env.lookup env var)
+    | Var var -> Env.lookup env var
     | Seq (a, b) ->
         ignore (eval ~eval_check env a);
-        add_methods ~methods (eval ~eval_check env b)
+        eval ~eval_check env b
     | App (f, l) ->
         let ans () =
           let f = eval ~eval_check env f in
           let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
           apply ?pos:tm.t.Type.pos ~eval_check f l
         in
-        add_methods ~methods
-          (if !profile then (
-             match f.term with
-               | Var fname -> Profiler.time fname ans ()
-               | _ -> ans ())
-           else ans ())
+        if !profile then (
+          match f.term with
+            | Var fname -> Profiler.time fname ans ()
+            | _ -> ans ())
+        else ans ()
+
+and eval_term ~eval_check env tm =
+  let v = eval_base_term ~eval_check env tm in
+  {
+    v with
+    methods =
+      Methods.fold
+        (fun k tm m -> Methods.add k (eval_term ~eval_check env tm) m)
+        tm.methods v.Value.methods;
+  }
 
 and eval ~eval_check env tm =
   let v = eval_term ~eval_check env tm in

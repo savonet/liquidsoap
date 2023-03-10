@@ -93,7 +93,7 @@ let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 let demeth e = { e with methods = Methods.empty }
 
 let remeth t u =
-  { u with methods = Methods.union (fun _ t _ -> Some t) t.methods u.methods }
+  { u with methods = Methods.fold Methods.add t.methods u.methods }
 
 let split_meths e = (Methods.bindings e.methods, demeth e)
 
