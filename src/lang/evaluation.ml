@@ -142,7 +142,7 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
-let rec prepare_fun fv ~eval_check p env =
+let prepare_fun fv ~eval_check ~eval p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
      values as defaults. *)
@@ -157,7 +157,73 @@ let rec prepare_fun fv ~eval_check p env =
   let env = Env.restrict env fv in
   (p, env)
 
-and eval_base_term ~eval_check (env : Env.t) tm =
+let apply ?pos ~eval_check ~eval f l =
+  (* Extract the components of the function, whether it's explicit or foreign. *)
+  let p, f =
+    match f.Value.value with
+      | Value.Fun (p, e, body) ->
+          ( p,
+            fun pe ->
+              let env = Env.adds e pe in
+              eval ~eval_check env body )
+      | Value.FFI (p, f) -> (p, fun pe -> f (List.rev pe))
+      | _ -> assert false
+  in
+  (* Record error positions. *)
+  let f pe =
+    try f pe with
+      | Runtime_error.Runtime_error err ->
+          let bt = Printexc.get_raw_backtrace () in
+          Runtime_error.raise ~bt
+            ~pos:(Option.to_list pos @ err.pos)
+            ~message:err.Runtime_error.msg err.Runtime_error.kind
+      | Internal_error (poss, e) ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace
+            (Internal_error (Option.to_list pos @ poss, e))
+            bt
+  in
+  (* Provide given arguments. *)
+  let pe, p =
+    List.fold_left
+      (fun (pe, p) (lbl, v) ->
+        let (_, var, _), p = remove_first (fun (l, _, _) -> l = lbl) p in
+        ((var, v) :: pe, p))
+      ([], p) l
+  in
+  (* Add default values for remaining arguments. *)
+  let pe =
+    List.fold_left
+      (fun pe (_, var, v) ->
+        (* Typing should ensure that there are no mandatory arguments remaining. *)
+        assert (v <> None);
+        ( var,
+          (* Set the position information on FFI's default values. Cf. r5008:
+             if an Invalid_value is raised on a default value, which happens
+             with the mount/name params of output.icecast.*, the printing of
+             the error should succeed at getting a position information. *)
+          let v = Option.get v in
+          { v with Value.pos } )
+        :: pe)
+      pe p
+  in
+  (* Add position *)
+  let pe =
+    pe
+    @ [
+        ( Lang_core.pos_var,
+          Lang_core.Stacktrace.to_value
+            (match pos with None -> [] | Some p -> [p]) );
+      ]
+  in
+  let v = f pe in
+  (* Similarly here, the result of an FFI call should have some position
+     information. For example, if we build a fallible source and pass it to an
+     operator that expects an infallible one, an error is issued about that
+     FFI-made value and a position is needed. *)
+  { v with Value.pos }
+
+let eval_base_term ~eval_check ~eval (env : Env.t) tm =
   let mk v =
     Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
   in
@@ -178,7 +244,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let p = eval_param p in
         !Hooks.make_encoder ~pos tm (e, p)
     | List l -> mk (Value.List (List.map (eval ~eval_check env) l))
-    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval env ~eval_check a) l))
+    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
     | Null -> mk Value.Null
     | Cast (e, _) ->
         let e = eval ~eval_check env e in
@@ -249,10 +315,10 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let env = Env.adds_lazy env penv in
         eval ~eval_check env b
     | Fun (fv, p, body) ->
-        let p, env = prepare_fun ~eval_check fv p env in
+        let p, env = prepare_fun ~eval_check ~eval fv p env in
         mk (Value.Fun (p, env, body))
     | RFun (x, fv, p, body) ->
-        let p, env = prepare_fun ~eval_check fv p env in
+        let p, env = prepare_fun ~eval_check ~eval fv p env in
         let rec v () =
           let env = Env.add_lazy env x (Lazy.from_fun v) in
           mk (Value.Fun (p, env, body))
@@ -266,7 +332,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let ans () =
           let f = eval ~eval_check env f in
           let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
-          apply ?pos:tm.t.Type.pos ~eval_check f l
+          apply ?pos:tm.t.Type.pos ~eval_check ~eval f l
         in
         if !profile then (
           match f.term with
@@ -274,92 +340,26 @@ and eval_base_term ~eval_check (env : Env.t) tm =
             | _ -> ans ())
         else ans ()
 
-and eval_term ~eval_check env tm =
-  let v = eval_base_term ~eval_check env tm in
+let eval_term ~eval_check ~eval env tm =
+  let v = eval_base_term ~eval_check ~eval env tm in
   if Methods.is_empty tm.methods then v
   else
     {
       v with
       methods =
         Methods.fold
-          (fun k tm m -> Methods.add k (eval_term ~eval_check env tm) m)
+          (fun k tm m -> Methods.add k (eval ~eval_check env tm) m)
           tm.methods v.Value.methods;
     }
 
-and eval ~eval_check env tm =
-  let v = eval_term ~eval_check env tm in
+let rec eval ~eval_check env tm =
+  let v = eval_term ~eval_check ~eval env tm in
   eval_check ~env ~tm v;
   v
 
-and apply ?pos ~eval_check f l =
-  (* Extract the components of the function, whether it's explicit or foreign. *)
-  let p, f =
-    match f.Value.value with
-      | Value.Fun (p, e, body) ->
-          ( p,
-            fun pe ->
-              let env = Env.adds e pe in
-              eval ~eval_check env body )
-      | Value.FFI (p, f) -> (p, fun pe -> f (List.rev pe))
-      | _ -> assert false
-  in
-  (* Record error positions. *)
-  let f pe =
-    try f pe with
-      | Runtime_error.Runtime_error err ->
-          let bt = Printexc.get_raw_backtrace () in
-          Runtime_error.raise ~bt
-            ~pos:(Option.to_list pos @ err.pos)
-            ~message:err.Runtime_error.msg err.Runtime_error.kind
-      | Internal_error (poss, e) ->
-          let bt = Printexc.get_raw_backtrace () in
-          Printexc.raise_with_backtrace
-            (Internal_error (Option.to_list pos @ poss, e))
-            bt
-  in
-  (* Provide given arguments. *)
-  let pe, p =
-    List.fold_left
-      (fun (pe, p) (lbl, v) ->
-        let (_, var, _), p = remove_first (fun (l, _, _) -> l = lbl) p in
-        ((var, v) :: pe, p))
-      ([], p) l
-  in
-  (* Add default values for remaining arguments. *)
-  let pe =
-    List.fold_left
-      (fun pe (_, var, v) ->
-        (* Typing should ensure that there are no mandatory arguments remaining. *)
-        assert (v <> None);
-        ( var,
-          (* Set the position information on FFI's default values. Cf. r5008:
-             if an Invalid_value is raised on a default value, which happens
-             with the mount/name params of output.icecast.*, the printing of
-             the error should succeed at getting a position information. *)
-          let v = Option.get v in
-          { v with Value.pos } )
-        :: pe)
-      pe p
-  in
-  (* Add position *)
-  let pe =
-    pe
-    @ [
-        ( Lang_core.pos_var,
-          Lang_core.Stacktrace.to_value
-            (match pos with None -> [] | Some p -> [p]) );
-      ]
-  in
-  let v = f pe in
-  (* Similarly here, the result of an FFI call should have some position
-     information. For example, if we build a fallible source and pass it to an
-     operator that expects an infallible one, an error is issued about that
-     FFI-made value and a position is needed. *)
-  { v with Value.pos }
-
 let apply ?pos t p =
   let eval_check = !Hooks.eval_check in
-  apply ?pos ~eval_check t p
+  apply ?pos ~eval_check ~eval t p
 
 let eval ?env tm =
   let env =
