@@ -276,13 +276,15 @@ and eval_base_term ~eval_check (env : Env.t) tm =
 
 and eval_term ~eval_check env tm =
   let v = eval_base_term ~eval_check env tm in
-  {
-    v with
-    methods =
-      Methods.fold
-        (fun k tm m -> Methods.add k (eval_term ~eval_check env tm) m)
-        tm.methods v.Value.methods;
-  }
+  if Methods.is_empty tm.methods then v
+  else
+    {
+      v with
+      methods =
+        Methods.fold
+          (fun k tm m -> Methods.add k (eval_term ~eval_check env tm) m)
+          tm.methods v.Value.methods;
+    }
 
 and eval ~eval_check env tm =
   let v = eval_term ~eval_check env tm in
