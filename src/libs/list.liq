@@ -28,14 +28,15 @@ end
 # Initialize a list.
 # @category List
 # @param n Number of elements in the list.
-# @param f Function such that `f i` is the `i`th element.
+# @param f Function such that `f(i)` is the `i`th element.
 def list.init(n, f)
-  def rec aux(i)
-    if i == n then [] else
-      f(i)::aux(i+1)
+  def rec aux(cur, i)
+    cur = list.add(f(i), cur)
+    if i == 0 then cur else
+      aux(cur, i-1)
     end
   end
-  if n < 0 then [] else aux(0) end
+  if n < 0 then [] else aux([], n-1) end
 end
 
 # Create a list with given length, filled with given element.

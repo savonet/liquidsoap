@@ -157,140 +157,130 @@ let rec prepare_fun fv ~eval_check p env =
   let env = Env.restrict env fv in
   (p, env)
 
-and eval_term ~eval_check (env : Env.t) tm =
-  let mk v =
-    Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
-  in
-  let v =
-    match tm.term with
-      | Any -> mk Value.Null
-      | Ground g -> mk (Value.Ground g)
-      | Encoder (e, p) ->
-          let pos = tm.t.Type.pos in
-          let rec eval_param p =
-            List.map
-              (fun (l, t) ->
-                ( l,
-                  match t with
-                    | `Term t -> `Value (eval ~eval_check env t)
-                    | `Encoder (l, p) -> `Encoder (l, eval_param p) ))
-              p
-          in
-          let p = eval_param p in
-          !Hooks.make_encoder ~pos tm (e, p)
-      | List l -> mk (Value.List (List.map (eval ~eval_check env) l))
-      | Tuple l ->
-          mk (Value.Tuple (List.map (fun a -> eval env ~eval_check a) l))
-      | Null -> mk Value.Null
-      | Cast (e, _) ->
-          let e = eval ~eval_check env e in
-          mk e.Value.value
-      | Invoke { invoked = t; default; meth } -> (
-          let v = eval ~eval_check env t in
-          match (Value.Methods.find_opt meth v.Value.methods, default) with
-            (* If method returns `null` and a default is provided, pick default. *)
-            | Some Value.{ value = Null; methods }, Some default
-              when Methods.is_empty methods ->
-                eval ~eval_check env default
-            | Some v, _ -> v
-            | None, Some default -> eval ~eval_check env default
-            | _ ->
-                raise
-                  (Internal_error
-                     ( Option.to_list tm.t.Type.pos,
-                       "invoked method `" ^ meth ^ "` not found" )))
-      | Open (t, u) ->
-          let t = eval ~eval_check env t in
-          let env =
-            Methods.fold
-              (fun key meth env -> Env.add env key meth)
-              t.Value.methods env
-          in
-          eval ~eval_check env u
-      | Let { pat; replace; def = v; body = b; _ } ->
-          let v = eval ~eval_check env v in
-          let penv =
-            List.map
-              (fun (ll, v) ->
-                match ll with
-                  | [] -> assert false
-                  | [x] ->
-                      let v () =
-                        if replace then Value.remeth (Env.lookup env x) v else v
-                      in
-                      (x, Lazy.from_fun v)
-                  | l :: ll ->
-                      (* Add method ll with value v to t *)
-                      let rec meths ll v t =
-                        match ll with
-                          | [] -> assert false
-                          | [l] ->
-                              Value.
-                                { t with methods = Methods.add l v t.methods }
-                          | l :: ll ->
-                              Value.
-                                {
-                                  t with
-                                  methods =
-                                    Methods.add l
-                                      (meths ll v (Value.invoke t l))
-                                      t.methods;
-                                }
-                      in
-                      let v () =
-                        let t = Env.lookup env l in
-                        let v =
-                          (* When replacing, keep previous methods. *)
-                          if replace then Value.remeth (Value.invokes t ll) v
-                          else v
-                        in
-                        meths ll v t
-                      in
-                      (l, Lazy.from_fun v))
-              (eval_pat pat v)
-          in
-          let env = Env.adds_lazy env penv in
-          eval ~eval_check env b
-      | Fun (fv, p, body) ->
-          let p, env = prepare_fun ~eval_check fv p env in
-          mk (Value.Fun (p, env, body))
-      | RFun (x, fv, p, body) ->
-          let p, env = prepare_fun ~eval_check fv p env in
-          let rec v () =
-            let env = Env.add_lazy env x (Lazy.from_fun v) in
-            Value.
-              {
-                pos = tm.t.Type.pos;
-                value = Fun (p, env, body);
-                methods = Methods.empty;
-              }
-          in
-          v ()
-      | Var var -> Env.lookup env var
-      | Seq (a, b) ->
-          ignore (eval ~eval_check env a);
-          eval ~eval_check env b
-      | App (f, l) ->
-          let ans () =
-            let f = eval ~eval_check env f in
-            let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
-            apply ?pos:tm.t.Type.pos ~eval_check f l
-          in
-          if !profile then (
-            match f.term with
-              | Var fname -> Profiler.time fname ans ()
-              | _ -> ans ())
-          else ans ()
-  in
+and mk ~methods ~tm v = Value.{ pos = tm.t.Type.pos; value = v; methods }
+
+and add_methods ~methods v =
   Value.
-    {
-      v with
-      methods =
-        Methods.fold
-          (fun key meth meths ->
-            Methods.add key (eval_term ~eval_check env meth) meths)
-          tm.Term.methods v.Value.methods;
-    }
+    { v with methods = Methods.union (fun _ _ m -> Some m) v.methods methods }
+
+and eval_term ~eval_check (env : Env.t) tm =
+  let methods = Methods.map (eval_term ~eval_check env) tm.methods in
+  match tm.term with
+    | Any -> mk ~methods ~tm Value.Null
+    | Ground g -> mk ~methods ~tm (Value.Ground g)
+    | Encoder (e, p) ->
+        let pos = tm.t.Type.pos in
+        let rec eval_param p =
+          List.map
+            (fun (l, t) ->
+              ( l,
+                match t with
+                  | `Term t -> `Value (eval ~eval_check env t)
+                  | `Encoder (l, p) -> `Encoder (l, eval_param p) ))
+            p
+        in
+        let p = eval_param p in
+        add_methods ~methods (!Hooks.make_encoder ~pos tm (e, p))
+    | List l -> mk ~methods ~tm (Value.List (List.map (eval ~eval_check env) l))
+    | Tuple l ->
+        mk ~methods ~tm
+          (Value.Tuple (List.map (fun a -> eval env ~eval_check a) l))
+    | Null -> mk ~methods ~tm Value.Null
+    | Cast (e, _) ->
+        let e = eval ~eval_check env e in
+        mk ~methods ~tm e.Value.value
+    | Invoke { invoked = t; default; meth } -> (
+        let v = eval ~eval_check env t in
+        match (Value.Methods.find_opt meth v.Value.methods, default) with
+          (* If method returns `null` and a default is provided, pick default. *)
+          | Some Value.{ value = Null; methods }, Some default
+            when Methods.is_empty methods ->
+              add_methods ~methods (eval ~eval_check env default)
+          | Some v, _ -> v
+          | None, Some default ->
+              add_methods ~methods (eval ~eval_check env default)
+          | _ ->
+              raise
+                (Internal_error
+                   ( Option.to_list tm.t.Type.pos,
+                     "invoked method `" ^ meth ^ "` not found" )))
+    | Open (t, u) ->
+        let t = eval ~eval_check env t in
+        let env =
+          Methods.fold
+            (fun key meth env -> Env.add env key meth)
+            t.Value.methods env
+        in
+        add_methods ~methods (eval ~eval_check env u)
+    | Let { pat; replace; def = v; body = b; _ } ->
+        let v = eval ~eval_check env v in
+        let penv =
+          List.map
+            (fun (ll, v) ->
+              match ll with
+                | [] -> assert false
+                | [x] ->
+                    let v () =
+                      if replace then Value.remeth (Env.lookup env x) v else v
+                    in
+                    (x, Lazy.from_fun v)
+                | l :: ll ->
+                    (* Add method ll with value v to t *)
+                    let rec meths ll v t =
+                      match ll with
+                        | [] -> assert false
+                        | [l] ->
+                            Value.{ t with methods = Methods.add l v t.methods }
+                        | l :: ll ->
+                            Value.
+                              {
+                                t with
+                                methods =
+                                  Methods.add l
+                                    (meths ll v (Value.invoke t l))
+                                    t.methods;
+                              }
+                    in
+                    let v () =
+                      let t = Env.lookup env l in
+                      let v =
+                        (* When replacing, keep previous methods. *)
+                        if replace then Value.remeth (Value.invokes t ll) v
+                        else v
+                      in
+                      meths ll v t
+                    in
+                    (l, Lazy.from_fun v))
+            (eval_pat pat v)
+        in
+        let env = Env.adds_lazy env penv in
+        add_methods ~methods (eval ~eval_check env b)
+    | Fun (fv, p, body) ->
+        let p, env = prepare_fun ~eval_check fv p env in
+        mk ~methods ~tm (Value.Fun (p, env, body))
+    | RFun (x, fv, p, body) ->
+        let p, env = prepare_fun ~eval_check fv p env in
+        let rec v () =
+          let env = Env.add_lazy env x (Lazy.from_fun v) in
+          mk ~methods ~tm (Value.Fun (p, env, body))
+        in
+        v ()
+    | Var var -> add_methods ~methods (Env.lookup env var)
+    | Seq (a, b) ->
+        ignore (eval ~eval_check env a);
+        add_methods ~methods (eval ~eval_check env b)
+    | App (f, l) ->
+        let ans () =
+          let f = eval ~eval_check env f in
+          let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
+          apply ?pos:tm.t.Type.pos ~eval_check f l
+        in
+        add_methods ~methods
+          (if !profile then (
+             match f.term with
+               | Var fname -> Profiler.time fname ans ()
+               | _ -> ans ())
+           else ans ())
 
 and eval ~eval_check env tm =
   let v = eval_term ~eval_check env tm in
