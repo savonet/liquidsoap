@@ -21,7 +21,7 @@ let () =
       (Term.Fun
          ( Term.Vars.empty,
            [],
-           Term.make (Meth ({ Term.name = "foo"; meth_value = _false () }, x))
+           Term.{ x with methods = Methods.add "foo" (_false ()) Methods.empty }
          ))
   in
   let _else = Term.make (Term.Fun (Term.Vars.empty, [], x)) in
