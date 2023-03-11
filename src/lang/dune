@@ -1,10 +1,7 @@
 (env
  (dev
   (flags
-   (:standard
-    -w
-    -9
-    (:include flags.sexp)))))
+   (:standard -w -9))))
 
 (rule
  (target flags.sexp)

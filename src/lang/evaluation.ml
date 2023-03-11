@@ -142,7 +142,7 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
-let prepare_fun fv ~eval_check ~eval p env =
+let rec prepare_fun fv ~eval_check p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
      values as defaults. *)
@@ -156,9 +156,8 @@ let prepare_fun fv ~eval_check ~eval p env =
   (* Keep only once the variables we might use in the environment. *)
   let env = Env.restrict env fv in
   (p, env)
-  [@@inline always]
 
-let apply ?pos ~eval_check ~eval f l =
+and apply ?pos ~eval_check f l =
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
     match f.Value.value with
@@ -223,9 +222,8 @@ let apply ?pos ~eval_check ~eval f l =
      operator that expects an infallible one, an error is issued about that
      FFI-made value and a position is needed. *)
   { v with Value.pos }
-  [@@inline always]
 
-let eval_base_term ~eval_check ~eval (env : Env.t) tm =
+and eval_base_term ~eval_check (env : Env.t) tm =
   let mk v =
     Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
   in
@@ -315,10 +313,10 @@ let eval_base_term ~eval_check ~eval (env : Env.t) tm =
         let env = Env.adds_lazy env penv in
         eval ~eval_check env b
     | Fun (fv, p, body) ->
-        let p, env = (prepare_fun [@inlined]) ~eval_check ~eval fv p env in
+        let p, env = prepare_fun ~eval_check fv p env in
         mk (Value.Fun (p, env, body))
     | RFun (x, fv, p, body) ->
-        let p, env = (prepare_fun [@inlined]) ~eval_check ~eval fv p env in
+        let p, env = prepare_fun ~eval_check fv p env in
         let rec v () =
           let env = Env.add_lazy env x (Lazy.from_fun v) in
           mk (Value.Fun (p, env, body))
@@ -332,17 +330,16 @@ let eval_base_term ~eval_check ~eval (env : Env.t) tm =
         let ans () =
           let f = eval ~eval_check env f in
           let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
-          (apply [@inlined]) ?pos:tm.t.Type.pos ~eval_check ~eval f l
+          apply ?pos:tm.t.Type.pos ~eval_check f l
         in
         if !profile then (
           match f.term with
             | Var fname -> Profiler.time fname ans ()
             | _ -> ans ())
         else ans ()
-  [@@inline always]
 
-let eval_term ~eval_check ~eval env tm =
-  let v = (eval_base_term [@inlined always]) ~eval_check ~eval env tm in
+and eval_term ~eval_check env tm =
+  let v = eval_base_term ~eval_check env tm in
   if Methods.is_empty tm.methods then v
   else
     {
@@ -353,14 +350,14 @@ let eval_term ~eval_check ~eval env tm =
           tm.methods v.Value.methods;
     }
 
-let rec eval ~eval_check env tm =
-  let v = eval_term ~eval_check ~eval env tm in
+and eval ~eval_check env tm =
+  let v = eval_term ~eval_check env tm in
   eval_check ~env ~tm v;
   v
 
 let apply ?pos t p =
   let eval_check = !Hooks.eval_check in
-  apply ?pos ~eval_check ~eval t p
+  apply ?pos ~eval_check t p
 
 let eval ?env tm =
   let env =
