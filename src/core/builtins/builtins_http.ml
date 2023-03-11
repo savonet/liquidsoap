@@ -27,9 +27,10 @@ let http = Modules.http
 let http_transport = Modules.http_transport
 
 let _ =
-  Lang.add_builtin_base ~category:`Internet ~descr:"Http unencrypted transport"
+  Lang.add_builtin_value ~category:`Internet ~descr:"Http unencrypted transport"
     ~base:http_transport "unix"
-    (Lang.http_transport Http.unix_transport).Lang.value Lang.http_transport_t
+    (Lang.http_transport Http.unix_transport)
+    Lang.http_transport_t
 
 let add_http_request ~base ~stream_body ~descr ~request name =
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
