@@ -156,6 +156,7 @@ let prepare_fun fv ~eval_check ~eval p env =
   (* Keep only once the variables we might use in the environment. *)
   let env = Env.restrict env fv in
   (p, env)
+  [@@inline always]
 
 let apply ?pos ~eval_check ~eval f l =
   (* Extract the components of the function, whether it's explicit or foreign. *)
@@ -222,6 +223,7 @@ let apply ?pos ~eval_check ~eval f l =
      operator that expects an infallible one, an error is issued about that
      FFI-made value and a position is needed. *)
   { v with Value.pos }
+  [@@inline always]
 
 let eval_base_term ~eval_check ~eval (env : Env.t) tm =
   let mk v =
@@ -337,6 +339,7 @@ let eval_base_term ~eval_check ~eval (env : Env.t) tm =
             | Var fname -> Profiler.time fname ans ()
             | _ -> ans ())
         else ans ()
+  [@@inline always]
 
 let eval_term ~eval_check ~eval env tm =
   let v = eval_base_term ~eval_check ~eval env tm in
@@ -349,6 +352,7 @@ let eval_term ~eval_check ~eval env tm =
           (fun k tm m -> Methods.add k (eval ~eval_check env tm) m)
           tm.methods v.Value.methods;
     }
+  [@@inline always]
 
 let rec eval ~eval_check env tm =
   let v = eval_term ~eval_check ~eval env tm in
