@@ -315,10 +315,10 @@ let eval_base_term ~eval_check ~eval (env : Env.t) tm =
         let env = Env.adds_lazy env penv in
         eval ~eval_check env b
     | Fun (fv, p, body) ->
-        let p, env = prepare_fun ~eval_check ~eval fv p env in
+        let p, env = (prepare_fun [@inlined]) ~eval_check ~eval fv p env in
         mk (Value.Fun (p, env, body))
     | RFun (x, fv, p, body) ->
-        let p, env = prepare_fun ~eval_check ~eval fv p env in
+        let p, env = (prepare_fun [@inlined]) ~eval_check ~eval fv p env in
         let rec v () =
           let env = Env.add_lazy env x (Lazy.from_fun v) in
           mk (Value.Fun (p, env, body))
@@ -332,7 +332,7 @@ let eval_base_term ~eval_check ~eval (env : Env.t) tm =
         let ans () =
           let f = eval ~eval_check env f in
           let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
-          apply ?pos:tm.t.Type.pos ~eval_check ~eval f l
+          (apply [@inlined]) ?pos:tm.t.Type.pos ~eval_check ~eval f l
         in
         if !profile then (
           match f.term with
@@ -342,7 +342,7 @@ let eval_base_term ~eval_check ~eval (env : Env.t) tm =
   [@@inline always]
 
 let eval_term ~eval_check ~eval env tm =
-  let v = eval_base_term ~eval_check ~eval env tm in
+  let v = (eval_base_term [@inlined always]) ~eval_check ~eval env tm in
   if Methods.is_empty tm.methods then v
   else
     {
@@ -352,7 +352,6 @@ let eval_term ~eval_check ~eval env tm =
           (fun k tm m -> Methods.add k (eval ~eval_check env tm) m)
           tm.methods v.Value.methods;
     }
-  [@@inline always]
 
 let rec eval ~eval_check env tm =
   let v = eval_term ~eval_check ~eval env tm in

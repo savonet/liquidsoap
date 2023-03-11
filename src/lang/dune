@@ -1,7 +1,15 @@
 (env
  (dev
   (flags
-   (:standard -w -9))))
+   (:standard
+    -w
+    -9
+    (:include flags.sexp)))))
+
+(rule
+ (target flags.sexp)
+ (action
+  (copy ../config/flambda.%{ocaml-config:flambda}.flags.sexp flags.sexp)))
 
 (include_subdirs unqualified)
 
