@@ -30,12 +30,14 @@ end
 # @param n Number of elements in the list.
 # @param f Function such that `f i` is the `i`th element.
 def list.init(n, f)
-  def rec aux(i)
-    if i == n then [] else
-      f(i)::aux(i+1)
-    end
+  ret = ref([])
+  pos = ref(n-1)
+  while 0 <= pos() do
+    i = pos()
+    ret := list.add(f(i), ret())
+    pos := i - 1
   end
-  if n < 0 then [] else aux(0) end
+  ret()
 end
 
 # Create a list with given length, filled with given element.
