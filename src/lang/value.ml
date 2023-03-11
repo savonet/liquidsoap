@@ -51,8 +51,8 @@ let string_of_float f =
   let s = string_of_float f in
   if s.[String.length s - 1] = '.' then s ^ "0" else s
 
-let to_string v =
-  let rec to_string v =
+let rec to_string v =
+  let base_string v =
     match v.value with
       | Ground g -> Ground.to_string g
       | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
@@ -72,11 +72,12 @@ let to_string v =
             (Term.to_string x)
       | Fun _ | FFI _ -> "<fun>"
   in
-  let s = to_string v in
+  let s = base_string v in
   if Methods.is_empty v.methods then s
   else (
     let methods = Methods.bindings v.methods in
-    s ^ ".{"
+    (if v.value = Tuple [] then "" else s ^ ".")
+    ^ "{"
     ^ String.concat ", "
         (List.map (fun (l, meth_term) -> l ^ "=" ^ to_string meth_term) methods)
     ^ "}")

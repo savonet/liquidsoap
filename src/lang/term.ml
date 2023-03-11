@@ -329,7 +329,8 @@ let to_string v =
   if Methods.is_empty v.methods then term
   else (
     let methods = Methods.bindings v.methods in
-    term ^ ".{"
+    (if v.term = Tuple [] then "" else term ^ ".")
+    ^ "{"
     ^ String.concat ", "
         (List.map (fun (l, meth_term) -> l ^ "=" ^ to_string meth_term) methods)
     ^ "}")

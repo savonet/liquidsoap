@@ -143,7 +143,7 @@ let rec value_of_typed_json ~ty json =
                 (meth, v))
               tm
           in
-          Lang.meth Lang.unit meth
+          Lang.record meth
       | ( `Assoc l,
           Type.(
             List
