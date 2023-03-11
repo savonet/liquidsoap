@@ -25,21 +25,6 @@ def list.tl(l)
   list.case(l, [], fun (_, l) -> l)
 end
 
-# Initialize a list.
-# @category List
-# @param n Number of elements in the list.
-# @param f Function such that `f i` is the `i`th element.
-def list.init(n, f)
-  ret = ref([])
-  pos = ref(n-1)
-  while 0 <= pos() do
-    i = pos()
-    ret := list.add(f(i), ret())
-    pos := i - 1
-  end
-  ret()
-end
-
 # Create a list with given length, filled with given element.
 # @category List
 # @param n Number of elements in the list.
@@ -51,10 +36,18 @@ end
 # Get the n-th element of a list (the first element is at position 0), or `default` if element does not exist.
 # @category List
 def list.nth(~default=null(), l, n) =
-  def rec aux(l, n)
-    list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.nth")}, fun (x, l) -> if n == 0 then x else aux(l, n-1) end)
+  ret = ref(💣())
+  err = error.register("nth")
+  try
+    list.iteri(fun (pos, v) ->
+      if pos == n then
+        ret := v
+        error.raise(err, "found")
+      end, l)
+    null.case(default, fun () ->  error.raise(error.not_found, "no default value for list.nth"), fun (v) -> v)
+  catch _ : [err] do
+    ret()
   end
-  aux(l, n)
 end
 
 # Determining whether a list is empty or not.
@@ -75,43 +68,22 @@ def list.last(~default=null(), l)
   list.nth(default=default, l, list.length(l)-1)
 end
 
-# Check whether an element belongs to a list.
-# @category List
-def list.mem(x, l)
-  def rec aux(l)
-    list.case(l, false, fun (y, l) -> x == y or aux(l))
-  end
-  aux(l)
-end
-
 # Call a function on every element of a list.
 # @category List
 def list.iter(f, l)
-  def rec aux(l)
-    list.case(l, (), fun (x, l) -> begin (f(x):unit); aux(l) end)
-  end
-  aux(l)
+  list.iteri(fun (_, v) -> f(v), l)
 end
 
-# Call a function on every element of a list, along with its index
+# Check whether an element belongs to a list.
 # @category List
-def list.iteri(f, l)
-  n = ref(0)
-  def rec aux(l)
-    i = n()
-    n := i + 1
-    list.case(l, (), fun (x, l) -> begin (f(i, x):unit); aux(l) end)
+def list.mem(x, l)
+  err = error.register("mem")
+  try
+    list.iter(fun (v) -> if v == x then error.raise(err, "found") end, l)
+    false
+  catch _ : [err] do
+    true
   end
-  aux(l)
-end
-
-# Map a function on every element of a list.
-# @category List
-def list.map(f, l)
-  def rec aux(l)
-    list.case(l, [], fun (x, l) -> list.cons(f(x), aux(l)))
-  end
-  aux(l)
 end
 
 # Map a function on every element of a list, starting from the right. This
@@ -145,10 +117,10 @@ end
 # @param f Function `f` for which `f(x,e)` which will be called on every element `e` with the current value of `x`, returning the new value of `x`.
 # @param x Initial value x1, to be updated by successive calls of `f(x,e)`.
 def list.fold(f, x, l)
-  def rec aux(x, l)
-    list.case(l, x, fun (e, l) -> aux(f(x, e), l))
-  end
-  aux(x, l)
+  ret = ref(x)
+  list.iter(fun (v) ->
+    ret := f(ret(), v), l)
+  ret()
 end
 
 # Fold a function on every element of a list. Similar to `list.fold` but
@@ -170,16 +142,6 @@ end
 def list.filter(~remove=fun(_)->(), p, l)
   # list.case(l, [], fun (x, l) -> if p(x) then list.cons(x, list.filter(p, l)) else list.filter(p, l) end)
   list.ind(l, [], fun(x, _, l) -> if p(x) then list.cons(x, l) else (remove(x):unit); l end)
-end
-
-# Remove the first occurrence of a value from a list.
-# @category List
-def list.remove(x, l)
-  def rec aux(k, l)
-    list.case(l, k([]),
-    fun (y, l) -> if x == y then k(l) else aux(fun (l) -> k(list.cons(y, l)), l) end)
-  end
-  aux(fun (l) -> l, l)
 end
 
 # Concatenate two lists.
@@ -206,14 +168,18 @@ end
 # @category List
 # @param ~default Value returned if the key is not found.
 def list.assoc(~default=null(), key, l)
-  def rec aux(l)
-    def f(x, l)
-      let (k, v) = x
-      if k == key then v else aux(l) end
-    end
-    list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.assoc")}, f)
+  ret = ref(💣())
+  err = error.register("assoc")
+  try
+    list.iter(fun (v) ->
+      if fst(v) == key then
+        ret := snd(v)
+        error.raise(err, "found")
+      end, l)
+    null.case(default, fun () -> error.raise(error.not_found, "no default value for list.assoc"), fun (v) -> v)
+  catch _ : [err] do
+    ret()
   end
-  aux(l)
 end
 
 # Keep only the elements of an association list satisfying a given predicate.
@@ -228,14 +194,18 @@ end
 # @param key Key of pair to be removed.
 # @param l List of pairs (key,value).
 def list.assoc.remove(key, l)
-  def rec aux(l)
-    def f(x, l)
-      let (k, v) = x
-      if k == key then l else list.cons((k,v), aux(l)) end
-    end
-    list.dcase(l, {error.raise(error.not_found, "inexistent key in list.assoc.remove")}, f)
+  ret = ref(💣())
+  err = error.register("assoc.remove")
+  try
+    list.iter(fun (v) ->
+      if fst(v) == key then
+        ret := snd(v)
+        error.raise(err, "found")
+      end, l)
+    l
+  catch _ : [err] do
+    list.remove((key, ret()), l)
   end
-  aux(l)
 end
 
 # Remove all pairs with given key from an associative list.
@@ -251,17 +221,16 @@ end
 # @param p Predicate.
 # @param l List
 def list.for_all(p, l)
-  def rec aux(l)
-    def f(x, l)
-      if not p(x) then
-        false
-      else
-        aux(l)
-      end
-    end
-    list.case(l, true, f)
+  err = error.register("for_all")
+  try
+    list.iter(fun (v) ->
+      if not p(v) then
+        error.raise(err, "found")
+      end, l)
+    true
+  catch _ : [err] do
+    false
   end
-  aux(l)
 end
 
 # Check that a predicate is satisfied for some element in a list.
@@ -269,17 +238,16 @@ end
 # @param p Predicate.
 # @param l List
 def list.exists(p, l)
-  def rec aux(l)
-    def f(x, l)
-      if p(x) then
-        true
-      else
-        aux(l)
-      end
-    end
-    list.case(l, false, f)
+  err = error.register("exists")
+  try
+    list.iter(fun (v) ->
+     if p(v) then
+       error.raise(err, "found")
+     end, l)
+    false
+  catch _ : [err] do
+    true
   end
-  aux(l)
 end
 
 # First element satisfying a predicate. Raises `error.not_found` if not element
@@ -289,10 +257,18 @@ end
 # @param p Predicate.
 # @param l List
 def list.find(~default=null(), p, l)
-  def rec aux(l)
-    list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.find")}, fun(x, l) -> if p(x) then x else aux(l) end)
+  ret = ref(💣())
+  err = error.register("find")
+  try
+    list.iter(fun (v) ->
+      if p(v) then
+        ret := v
+        error.raise(err, "found")
+      end, l)
+    null.case(default, fun () -> error.raise(error.not_found, "no default value for list.find"), fun (v) -> v)
+  catch _ : [err] do
+    ret()
   end
-  aux(l)
 end
 
 # First index where a predicate is satisfied.
@@ -362,12 +338,9 @@ end
 # @param n Number of elements in the returned list.
 # @param l List whose prefix should be taken.
 def list.prefix(n, l)
-  def rec aux(n, l)
-    if n <= 0 or list.is_empty(l) then [] else
-      list.hd(l)::aux(n-1, list.tl(l))
-    end
-  end
-  aux(n, l)
+  len = list.length(l)
+  n = n < len ? n : len
+  list.init(n, fun (n) -> list.nth(l, n))
 end
 
 # Pick a random element in a list.

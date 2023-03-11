@@ -134,6 +134,73 @@ let _ =
       Lang.list (List.sort sort (Lang.to_list l)))
 
 let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "init" ~category:`List ~descr:"Initialize a list."
+    [
+      ("", Lang.int_t, None, Some "Number of elements in the list.");
+      ( "",
+        Lang.fun_t [(false, "", Lang.int_t)] a,
+        None,
+        Some "Function such that `f i` is the `i`th element." );
+    ]
+    (Lang.list_t a)
+    (fun p ->
+      let n = Lang.to_int (Lang.assoc "" 1 p) in
+      let fn = Lang.assoc "" 2 p in
+      let apply n = Lang.apply fn [("", Lang.int n)] in
+      Lang.list (List.init n apply))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "iteri" ~category:`List
+    ~descr:"Call a function on every element of a list, along with its index."
+    [
+      ( "",
+        Lang.fun_t [(false, "", Lang.int_t); (false, "", a)] Lang.unit_t,
+        None,
+        None );
+      ("", Lang.list_t a, None, None);
+    ]
+    Lang.unit_t
+    (fun p ->
+      let fn = Lang.assoc "" 1 p in
+      let l = Lang.to_list (Lang.assoc "" 2 p) in
+      List.iteri
+        (fun pos v -> ignore (Lang.apply fn [("", Lang.int pos); ("", v)]))
+        l;
+      Lang.unit)
+
+let _ =
+  let a = Lang.univ_t () in
+  let b = Lang.univ_t () in
+  Lang.add_builtin ~base:list "map" ~category:`List
+    ~descr:"Map a function on every element of a list."
+    [
+      ("", Lang.fun_t [(false, "", a)] b, None, None);
+      ("", Lang.list_t a, None, None);
+    ]
+    (Lang.list_t b)
+    (fun p ->
+      let fn = Lang.assoc "" 1 p in
+      let l = Lang.to_list (Lang.assoc "" 2 p) in
+      Lang.list (List.map (fun v -> Lang.apply fn [("", v)]) l))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "remove" ~category:`List
+    ~descr:"Remove the first occurrence of a value from a list."
+    [("", a, None, None); ("", Lang.list_t a, None, None)]
+    (Lang.list_t a)
+    (fun p ->
+      let v = Lang.assoc "" 1 p in
+      let lv = Lang.assoc "" 2 p in
+      let l = Lang.to_list lv in
+      try
+        let v = List.find (fun v' -> Value.compare v v' == 0) l in
+        Lang.list (List.filter (fun v' -> v' != v) l)
+      with Not_found -> lv)
+
+let _ =
   let t = Lang.list_t (Lang.univ_t ()) in
   Lang.add_builtin ~base:list "shuffle" ~category:`List
     ~descr:
