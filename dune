@@ -25,8 +25,7 @@
 (alias
  (name runtest)
  (deps
-  (alias_rec install)
-  (alias_rec perftest)))
+  (alias_rec install)))
 
 (alias
  (name citest)

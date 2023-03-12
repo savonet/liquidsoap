@@ -15,10 +15,11 @@ let parse_memory_consumption script =
 
 (* Remove type information. *)
 let rec strip tm =
-  match tm.Liquidsoap_lang.Term.term with
-    | Meth ({ Liquidsoap_lang.Term.meth_value; _ }, tm) ->
-        `Meth (strip meth_value, strip tm)
-    | term -> `Term term
+  let { Liquidsoap_lang.Term.term; methods; _ } = tm in
+  let methods =
+    Liquidsoap_lang.Term.Methods.fold (fun _ v ret -> strip v @ ret) methods []
+  in
+  term :: methods
 
 let term_memory_consumption script =
   Gc.full_major ();
