@@ -2,20 +2,19 @@
  (name gen_bigrecord)
  (preprocess
   (pps ppx_string))
+ (libraries mem_usage liquidsoap_core liquidsoap_lang)
  (modules gen_bigrecord))
 
 (rule
- (alias citest)
+ (alias perftest)
  (target big-record.liq)
  (deps
   (:gen_bigrecord ./gen_bigrecord.exe))
  (action
-  (with-stdout-to
-   %{target}
-   (run %{gen_bigrecord}))))
+   (run %{gen_bigrecord} %{target})))
 
 (rule
- (alias citest)
+ (alias perftest)
  (deps
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (:small_record ./small-record.liq)
