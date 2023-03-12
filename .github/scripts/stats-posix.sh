@@ -7,6 +7,9 @@ eval "$(opam config env)"
 OCAMLPATH="$(cat ../.ocamlpath)"
 export OCAMLPATH
 
+printf "Memory usage before loading all libraries: "
+dune exec --display=quiet -- src/bin/liquidsoap.exe --no-stdlib 'print(runtime.mem_usage.prettify_bytes(runtime.mem_usage().process_physical_memory))'
+
 printf "Memory usage after loading all libraries: "
 dune exec --display=quiet -- src/bin/liquidsoap.exe 'print(runtime.memory().pretty.process_physical_memory)'
 
