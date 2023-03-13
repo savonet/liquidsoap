@@ -108,6 +108,7 @@
   filter_rc
   fir_filter
   flac_format
+  flac_metadata_plug
   flanger
   frame
   frame_base
