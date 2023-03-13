@@ -429,7 +429,8 @@ record_pattern:
   | LCUR meth_pattern_list RCUR { $2 }
 
 meth_spread_list:
-  | DOTDOTDOT VAR                          { Some (PVar [$2]), [] }
+  | DOTDOTDOT                              { Some (PVar ["_"]), [] }
+  | DOTDOTDOT optvar                       { Some (PVar [$2]), [] }
   | meth_pattern_el COMMA meth_spread_list { fst $3, $1::(snd $3) }
 
 record_spread_pattern:
