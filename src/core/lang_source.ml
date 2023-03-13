@@ -481,7 +481,7 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
 let iter_sources ?(on_imprecise = fun () -> ()) f v =
   let itered_values = ref [] in
   let rec iter_term env v =
-    let rec iter_term env v =
+    let iter_base_term env v =
       match v.Term.term with
         | Term.Ground _ | Term.Encoder _ -> ()
         | Term.List l -> List.iter (iter_term env) l
@@ -519,7 +519,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
     Term.Methods.iter
       (fun _ meth_term -> iter_term env meth_term)
       v.Term.methods;
-    iter_term env v
+    iter_base_term env v
   and iter_value v =
     if not (List.memq v !itered_values) then (
       (* We need to avoid checking the same value multiple times, otherwise we
