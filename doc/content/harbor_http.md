@@ -98,6 +98,9 @@ Named fragments from the request path are passed to the response `query` list.
 
 Middleware _a la_ node/express are also supported and registered via `http.harbor.middleware.register`. See `http.harbor.middleware.cors` for an example.
 
+```harbor.http.middleware.register(harbor.http.middleware.cors(origin="example.com"))```
+
+
 ## Https support
 
 `https` is supported using either `libssl` or macos' `SecureTransport`. When compiled with either of them, a `http.transport.ssl` or `http.transport.secure_transport`
