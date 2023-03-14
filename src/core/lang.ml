@@ -55,8 +55,6 @@ module HttpTransport = struct
   let to_value transport =
     meth (to_value transport)
       (List.map (fun (lbl, _, _, m) -> (lbl, m transport)) meths)
-
-  let of_value transport = of_value (demeth transport)
 end
 
 let http_transport_t = HttpTransport.t

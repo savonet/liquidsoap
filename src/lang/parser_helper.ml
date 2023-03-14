@@ -160,9 +160,13 @@ let args_of, app_of =
       args
   and get_app ~pos _ args =
     List.map
-      (fun (n, _, _) -> (n, Term.{ t = Type.var ~pos (); term = Var n }))
+      (fun (n, _, _) ->
+        ( n,
+          Term.
+            { t = Type.var ~pos (); term = Var n; methods = Term.Methods.empty }
+        ))
       args
-  and term_of_value ~pos t ({ Value.value } as v) =
+  and term_of_value ~pos t v =
     let get_list_type () =
       match (Type.deref t).Type.descr with
         | Type.(List { t }) -> t
@@ -173,38 +177,32 @@ let args_of, app_of =
         | Type.Tuple t -> List.nth t pos
         | _ -> assert false
     in
-    let get_meth_type name t =
-      let meths, t = Type.split_meths t in
-      let { Type.scheme = _, meth_value } =
-        List.find (fun { Type.meth } -> meth = name) meths
+    let process_value ~t v =
+      let mk_tm term =
+        Term.
+          {
+            t = Type.make ~pos t.Type.descr;
+            term;
+            methods = Term.Methods.empty;
+          }
       in
-      let meths = List.filter (fun { Type.meth } -> meth <> name) meths in
-      let t =
-        List.fold_left (fun t m -> Type.make (Type.Meth (m, t))) t meths
-      in
-      (meth_value, t)
-    in
-    let term =
-      match value with
-        | Value.Ground g -> Term.Ground g
+      match v.Value.value with
+        | Value.Ground g -> mk_tm (Term.Ground g)
         | Value.List l ->
-            Term.List (List.map (term_of_value ~pos (get_list_type ())) l)
+            mk_tm
+              (Term.List (List.map (term_of_value ~pos (get_list_type ())) l))
         | Value.Tuple l ->
-            Term.List
-              (List.mapi
-                 (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
-                 l)
-        | Value.Null -> Term.Null
-        | Value.Meth (name, v, v') ->
-            let meth_value, t = get_meth_type name t in
-            Term.Meth
-              ( { name; meth_value = term_of_value ~pos meth_value v },
-                term_of_value ~pos t v' )
+            mk_tm
+              (Term.List
+                 (List.mapi
+                    (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
+                    l))
+        | Value.Null -> mk_tm Term.Null
         | Value.Fun (args, [], body) ->
             let body =
               Term.{ body with t = Type.make ~pos body.t.Type.descr }
             in
-            Term.Fun (Term.free_vars body, get_args ~pos t args, body)
+            mk_tm (Term.Fun (Term.free_vars body, get_args ~pos t args, body))
         | _ ->
             raise
               (Parse_error
@@ -212,8 +210,18 @@ let args_of, app_of =
                    Printf.sprintf "Term %s cannot be represented as a term"
                      (Value.to_string v) ))
     in
-    let t = Type.make ~pos t.Type.descr in
-    Term.{ t; term }
+    let meths, _ = Type.split_meths t in
+    {
+      (process_value ~t v) with
+      methods =
+        Methods.mapi
+          (fun key meth ->
+            let { Type.scheme = _, t } =
+              List.find (fun { Type.meth } -> meth = key) meths
+            in
+            process_value ~t meth)
+          v.Value.methods;
+    }
   in
   let args_of = gen_args_of get_args in
   let app_of = gen_args_of get_app in
@@ -280,7 +288,12 @@ let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
     Type.meth ~pos ~optional name ([], Type.var ~pos ()) (Type.var ~pos ())
   in
   let value =
-    mk ~pos ~t (Meth ({ name; meth_value = value }, mk_any ~pos ()))
+    Term.
+      {
+        (mk_any ~pos ()) with
+        t;
+        methods = Methods.add name value Term.Methods.empty;
+      }
   in
   ( value,
     update_invoke_default ~pos ~optional:(default <> None) invoked meth value )

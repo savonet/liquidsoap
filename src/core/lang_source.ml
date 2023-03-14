@@ -341,8 +341,6 @@ let check_content v t =
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        (* The type says that we should drop the method. *)
-        | Value.Meth (_, _, v), _ -> check_value v t
         (* We don't check functions, assuming anything creating a source is a
            FFI registered via add_operator so the check will happen there. *)
         | Fun _, _ | FFI _, _ -> ()
@@ -483,56 +481,57 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
 let iter_sources ?(on_imprecise = fun () -> ()) f v =
   let itered_values = ref [] in
   let rec iter_term env v =
-    match v.Term.term with
-      | Term.Ground _ | Term.Encoder _ -> ()
-      | Term.List l -> List.iter (iter_term env) l
-      | Term.Tuple l -> List.iter (iter_term env) l
-      | Term.Any | Term.Null -> ()
-      | Term.Cast (a, _) -> iter_term env a
-      | Term.Meth ({ Term.meth_value = a }, b) ->
-          iter_term env a;
-          iter_term env b
-      | Term.Invoke { Term.invoked = a } -> iter_term env a
-      | Term.Open (a, b) ->
-          iter_term env a;
-          iter_term env b
-      | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
-          iter_term env a;
-          iter_term env b
-      | Term.Var v -> (
-          try
-            (* If it's locally bound it won't be in [env]. *)
-            (* TODO since inner-bound variables don't mask outer ones in [env],
-             *   we are actually checking values that may be out of reach. *)
-            let v = List.assoc v env in
-            if Lazy.is_val v then (
-              let v = Lazy.force v in
-              iter_value v)
-            else ()
-          with Not_found -> ())
-      | Term.App (a, l) ->
-          iter_term env a;
-          List.iter (fun (_, v) -> iter_term env v) l
-      | Term.Fun (_, proto, body) | Term.RFun (_, _, proto, body) ->
-          iter_term env body;
-          List.iter
-            (fun (_, _, _, v) ->
-              match v with Some v -> iter_term env v | None -> ())
-            proto
+    let iter_base_term env v =
+      match v.Term.term with
+        | Term.Ground _ | Term.Encoder _ -> ()
+        | Term.List l -> List.iter (iter_term env) l
+        | Term.Tuple l -> List.iter (iter_term env) l
+        | Term.Any | Term.Null -> ()
+        | Term.Cast (a, _) -> iter_term env a
+        | Term.Invoke { Term.invoked = a } -> iter_term env a
+        | Term.Open (a, b) ->
+            iter_term env a;
+            iter_term env b
+        | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
+            iter_term env a;
+            iter_term env b
+        | Term.Var v -> (
+            try
+              (* If it's locally bound it won't be in [env]. *)
+              (* TODO since inner-bound variables don't mask outer ones in [env],
+               *   we are actually checking values that may be out of reach. *)
+              let v = List.assoc v env in
+              if Lazy.is_val v then (
+                let v = Lazy.force v in
+                iter_value v)
+              else ()
+            with Not_found -> ())
+        | Term.App (a, l) ->
+            iter_term env a;
+            List.iter (fun (_, v) -> iter_term env v) l
+        | Term.Fun (_, proto, body) | Term.RFun (_, _, proto, body) ->
+            iter_term env body;
+            List.iter
+              (fun (_, _, _, v) ->
+                match v with Some v -> iter_term env v | None -> ())
+              proto
+    in
+    Term.Methods.iter
+      (fun _ meth_term -> iter_term env meth_term)
+      v.Term.methods;
+    iter_base_term env v
   and iter_value v =
     if not (List.memq v !itered_values) then (
       (* We need to avoid checking the same value multiple times, otherwise we
          get an exponential blowup, see #1247. *)
       itered_values := v :: !itered_values;
+      Value.Methods.iter (fun _ v -> iter_value v) v.Value.methods;
       match v.value with
         | _ when Source_val.is_value v -> f (Source_val.of_value v)
         | Ground _ -> ()
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
         | Null -> ()
-        | Meth (_, a, b) ->
-            iter_value a;
-            iter_value b
         | Fun (proto, env, body) ->
             (* The following is necessarily imprecise: we might see sources that
                will be unused in the execution of the function. *)

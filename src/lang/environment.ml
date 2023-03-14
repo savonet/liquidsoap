@@ -22,10 +22,12 @@
 
 (** {1 Evaluation environment} *)
 
-let type_environment : (string * Type.scheme) list ref = ref []
-let value_environment : (string * Value.t) list ref = ref []
-let default_environment () = !value_environment
-let default_typing_environment () = !type_environment
+module Env = Value.Methods
+
+let type_environment : Type.scheme Env.t ref = ref Env.empty
+let value_environment : Value.t Env.t ref = ref Env.empty
+let default_environment () = Env.bindings !value_environment
+let default_typing_environment () = Env.bindings !type_environment
 
 (* Just like builtins but we register a.b under the name "a.b" (instead of
    adding a field b to a). It is used only for [has_builtins] and
@@ -41,13 +43,13 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
   match name with
     | [name] ->
         (* Don't allow overriding builtins. *)
-        if (not override) && List.mem_assoc name !type_environment then
+        if (not override) && Env.mem name !type_environment then
           failwith ("Trying to override builtin " ^ name);
-        type_environment := (name, (g, t)) :: !type_environment;
-        value_environment := (name, v) :: !value_environment
+        type_environment := Env.add name (g, t) !type_environment;
+        value_environment := Env.add name v !value_environment
     | x :: ll ->
-        let (g0, t0), xv =
-          try (List.assoc x !type_environment, List.assoc x !value_environment)
+        let (g0, t0), v0 =
+          try (Env.find x !type_environment, Env.find x !value_environment)
           with Not_found -> failwith ("Could not find builtin variable " ^ x)
         in
         (* x.l1.l2.l3 = v means
@@ -56,16 +58,8 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
         (* Inductive step: we compute the new type scheme and value of
            x.l1...li. The variable prefix contains [li; ...; l1] and the second
            argument is [li+1; ...; ln]. *)
-        let rec aux prefix = function
-          | l :: ll ->
-              (* Previous type scheme for x.l1...li. *)
-              let vg, vt = Type.invokes t0 (List.rev prefix) in
-              (* Previous value of x.l1...li.  *)
-              let v = Value.invokes xv (List.rev prefix) in
-              (* Updated value of x.l1...li+1. *)
-              let (lvg, lvt), lv = aux (l :: prefix) ll in
-              (* Updated type for x.l1...li, obtained by changing the type of
-                 the field li+1. *)
+        let rec aux (g0, t0) v0 = function
+          | l :: [] ->
               let t =
                 Type.make ?pos:t.Type.pos
                   Type.(
@@ -73,21 +67,35 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                       ( {
                           meth = l;
                           optional = false;
-                          scheme = (lvg, lvt);
+                          scheme = (g, t);
                           doc = "";
                           json_name = None;
                         },
-                        vt ))
+                        t0 ))
               in
-              (* Update value for x.l1...li. *)
-              let value = Value.Meth (l, lv, v) in
-              ((vg, t), { Value.pos = v.Value.pos; value })
+              ((g0, t), Value.{ v0 with methods = Methods.add l v v0.methods })
+          | l :: ll ->
+              let (vg, vt), v = aux (Type.invoke t0 l) (Value.invoke v0 l) ll in
+              let t =
+                Type.make ?pos:t.Type.pos
+                  Type.(
+                    Meth
+                      ( {
+                          meth = l;
+                          optional = false;
+                          scheme = (vg, vt);
+                          doc = "";
+                          json_name = None;
+                        },
+                        t0 ))
+              in
+              ((g0, t), Value.{ v0 with methods = Methods.add l v v0.methods })
           | [] -> ((g, t), v)
         in
-        let (g, t), v = aux [] ll in
-        assert (g = []);
-        type_environment := (x, (g0, t)) :: !type_environment;
-        value_environment := (x, v) :: !value_environment
+        let (g, t), v = aux (g0, t0) v0 ll in
+        assert (g == g0);
+        type_environment := Env.add x (g0, t) !type_environment;
+        value_environment := Env.add x v !value_environment
     | [] -> assert false
 
 (** Declare a module. *)
@@ -96,14 +104,14 @@ let add_module name =
   (match name with
     | [] -> assert false
     | [x] ->
-        if List.mem_assoc x !type_environment then
+        if Env.mem x !type_environment then
           failwith ("Module " ^ String.concat "." name ^ " already declared")
     | x :: mm -> (
         let mm = List.rev mm in
         let l = List.hd mm in
         let mm = List.rev (List.tl mm) in
         let e =
-          try Value.invokes (List.assoc x !value_environment) mm
+          try Value.invokes (Env.find x !value_environment) mm
           with _ ->
             failwith
               ("Could not find the parent module of " ^ String.concat "." name)
@@ -113,4 +121,5 @@ let add_module name =
           failwith ("Module " ^ String.concat "." name ^ " already exists")
         with _ -> ()));
   add_builtin ~register:false name
-    (([], Type.make Type.unit), { Value.pos = None; value = Value.unit })
+    ( ([], Type.make Type.unit),
+      Value.{ pos = None; value = unit; methods = Methods.empty } )

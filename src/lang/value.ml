@@ -25,7 +25,9 @@
 (** Ground values. *)
 module Ground = Term.Ground
 
-type t = { pos : Pos.Option.t; value : in_value }
+module Methods = Term.Methods
+
+type t = { pos : Pos.Option.t; value : in_value; methods : t Methods.t }
 and env = (string * t) list
 
 (* Some values have to be lazy in the environment because of recursive functions. *)
@@ -36,10 +38,6 @@ and in_value =
   | List of t list
   | Tuple of t list
   | Null
-  (* TODO: It would be better to have a list of methods associated to each
-     value than a constructor here. However, I am keeping as is for now because
-     implementation is safer this way. *)
-  | Meth of string * t * t
   (* Function with given list of argument name, argument variable and default
      value, the (relevant part of the) closure, and the body. *)
   | Fun of (string * string * t option) list * lazy_env * Term.t
@@ -54,71 +52,51 @@ let string_of_float f =
   if s.[String.length s - 1] = '.' then s ^ "0" else s
 
 let rec to_string v =
-  match v.value with
-    | Ground g -> Ground.to_string g
-    | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
-    | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
-    | Null -> "null"
-    | Meth (l, v, e) when Lazy.force Term.debug ->
-        to_string e ^ ".{" ^ l ^ "=" ^ to_string v ^ "}"
-    | Meth _ ->
-        let rec split e =
-          match e.value with
-            | Meth (l, v, e) ->
-                let m, e = split e in
-                ((l, v) :: m, e)
-            | _ -> ([], e)
-        in
-        let m, e = split v in
-        let m =
-          List.rev m
-          |> List.map (fun (l, v) -> l ^ " = " ^ to_string v)
-          |> String.concat ", "
-        in
-        let e = match e.value with Tuple [] -> "" | _ -> to_string e ^ "." in
-        e ^ "{" ^ m ^ "}"
-    | Fun ([], _, x) when Term.is_ground x -> "{" ^ Term.to_string x ^ "}"
-    | Fun (l, _, x) when Term.is_ground x ->
-        let f (label, _, value) =
-          match (label, value) with
-            | "", None -> "_"
-            | "", Some v -> Printf.sprintf "_=%s" (to_string v)
-            | label, Some v -> Printf.sprintf "~%s=%s" label (to_string v)
-            | label, None -> Printf.sprintf "~%s=_" label
-        in
-        let args = List.map f l in
-        Printf.sprintf "fun (%s) -> %s" (String.concat "," args)
-          (Term.to_string x)
-    | Fun _ | FFI _ -> "<fun>"
+  let base_string v =
+    match v.value with
+      | Ground g -> Ground.to_string g
+      | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
+      | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
+      | Null -> "null"
+      | Fun ([], _, x) when Term.is_ground x -> "{" ^ Term.to_string x ^ "}"
+      | Fun (l, _, x) when Term.is_ground x ->
+          let f (label, _, value) =
+            match (label, value) with
+              | "", None -> "_"
+              | "", Some v -> Printf.sprintf "_=%s" (to_string v)
+              | label, Some v -> Printf.sprintf "~%s=%s" label (to_string v)
+              | label, None -> Printf.sprintf "~%s=_" label
+          in
+          let args = List.map f l in
+          Printf.sprintf "fun (%s) -> %s" (String.concat "," args)
+            (Term.to_string x)
+      | Fun _ | FFI _ -> "<fun>"
+  in
+  let s = base_string v in
+  if Methods.is_empty v.methods then s
+  else (
+    let methods = Methods.bindings v.methods in
+    (if v.value = Tuple [] then "" else s ^ ".")
+    ^ "{"
+    ^ String.concat ", "
+        (List.map (fun (l, meth_term) -> l ^ "=" ^ to_string meth_term) methods)
+    ^ "}")
 
 (** Find a method in a value. *)
-let rec invoke x l =
-  match x.value with
-    | Meth (l', y, _) when l' = l -> y
-    | Meth (_, _, x) -> invoke x l
-    | _ -> failwith ("Could not find method " ^ l ^ " of " ^ to_string x)
+let invoke x l =
+  try Methods.find l x.methods
+  with Not_found ->
+    failwith ("Could not find method " ^ l ^ " of " ^ to_string x)
 
 (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
 let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 
-let split_meths e =
-  let rec aux hide e =
-    match e.value with
-      | Meth (l, v, e) ->
-          if List.mem l hide then aux hide e
-          else (
-            let m, e = aux (l :: hide) e in
-            ((l, v) :: m, e))
-      | _ -> ([], e)
-  in
-  aux [] e
+let demeth e = { e with methods = Methods.empty }
 
-let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
+let remeth t u =
+  { u with methods = Methods.fold Methods.add t.methods u.methods }
 
-let rec remeth t u =
-  match t.value with
-    | Meth (l, v, t) -> { t with value = Meth (l, v, remeth t u) }
-    | _ -> u
+let split_meths e = (Methods.bindings e.methods, demeth e)
 
 let compare a b =
   let rec aux = function
@@ -142,10 +120,8 @@ let compare a b =
     | _, Null -> 1
     | _ -> assert false
   and compare a b =
-    let a' = demeth a in
-    let b' = demeth b in
     (* For records, we compare the list ["label", field; ..] of common fields. *)
-    if a'.value = Tuple [] && b'.value = Tuple [] then (
+    if a.value = Tuple [] && b.value = Tuple [] then (
       let r a =
         let m, _ = split_meths a in
         m
@@ -168,7 +144,16 @@ let compare a b =
                {
                  pos = None;
                  value =
-                   Tuple [{ pos = None; value = Ground (Ground.String lbl) }; v];
+                   Tuple
+                     [
+                       {
+                         pos = None;
+                         value = Ground (Ground.String lbl);
+                         methods = Methods.empty;
+                       };
+                       v;
+                     ];
+                 methods = Methods.empty;
                })
              a)
       in
@@ -179,12 +164,21 @@ let compare a b =
                {
                  pos = None;
                  value =
-                   Tuple [{ pos = None; value = Ground (Ground.String lbl) }; v];
+                   Tuple
+                     [
+                       {
+                         pos = None;
+                         value = Ground (Ground.String lbl);
+                         methods = Methods.empty;
+                       };
+                       v;
+                     ];
+                 methods = Methods.empty;
                })
              b)
       in
       aux (a, b))
-    else aux (a'.value, b'.value)
+    else aux (a.value, b.value)
   in
   compare a b
 
@@ -203,15 +197,15 @@ module type AbstractDef = Term.AbstractDef
 module MkAbstractFromTerm (Term : Term.Abstract) = struct
   include Term
 
-  let to_value c = { pos = None; value = Ground (to_ground c) }
+  let to_value c =
+    { pos = None; value = Ground (to_ground c); methods = Methods.empty }
 
   let of_value t =
-    match (demeth t).value with
+    match t.value with
       | Ground g when is_ground g -> of_ground g
       | _ -> assert false
 
-  let is_value t =
-    match (demeth t).value with Ground g -> is_ground g | _ -> false
+  let is_value t = match t.value with Ground g -> is_ground g | _ -> false
 end
 
 module MkAbstract (Def : AbstractDef) = struct

@@ -29,17 +29,14 @@ let rec json_of_value ?pos v : Json.t =
       | None, Some p -> [p]
       | None, None -> []
   in
+  let m, v = Value.split_meths v in
   match v.Value.value with
     | Value.Null -> `Null
     | Value.Ground g -> Term.Ground.to_json ~pos g
     | Value.List l -> `Tuple (List.map (json_of_value ~pos) l)
+    | Value.Tuple [] when m <> [] ->
+        `Assoc (List.map (fun (l, v) -> (l, json_of_value ~pos v)) m)
     | Value.Tuple l -> `Tuple (List.map (json_of_value ~pos) l)
-    | Value.Meth _ -> (
-        let m, v = Value.split_meths v in
-        match v.Value.value with
-          | Value.Tuple [] ->
-              `Assoc (List.map (fun (l, v) -> (l, json_of_value ~pos v)) m)
-          | _ -> json_of_value ~pos v)
     | _ ->
         Runtime_error.raise
           ~message:
@@ -146,7 +143,7 @@ let rec value_of_typed_json ~ty json =
                 (meth, v))
               tm
           in
-          Lang.meth Lang.unit meth
+          Lang.record meth
       | ( `Assoc l,
           Type.(
             List
@@ -370,6 +367,7 @@ let () =
 (* We compare the default's type with the parsed json value and return if they
    match. This comes with json.stringify in Builtin. *)
 let rec deprecated_of_json d j =
+  let m, d = Value.split_meths d in
   Lang.(
     match (d.value, j) with
       | Tuple [], `Null -> unit
@@ -406,12 +404,17 @@ let rec deprecated_of_json d j =
           in
           list l
       (* Parse records. *)
-      | Meth (l, x, d), `Assoc a -> (
+      | Tuple [], `Assoc a when m <> [] -> (
           try
-            let y = List.assoc l a in
-            let v = deprecated_of_json x y in
-            let a' = List.remove_assoc l a in
-            meth (deprecated_of_json d (`Assoc a')) [(l, v)]
+            List.fold_left
+              (fun parsed (key, meth) ->
+                let json_meth = List.assoc key a in
+                let parsed_meth = deprecated_of_json meth json_meth in
+                {
+                  parsed with
+                  methods = Methods.add key parsed_meth parsed.methods;
+                })
+              unit m
           with Not_found -> raise DeprecatedFailed)
       | Tuple [], `Assoc _ -> unit
       | _ -> raise DeprecatedFailed)

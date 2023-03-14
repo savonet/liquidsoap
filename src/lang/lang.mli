@@ -47,7 +47,14 @@ module Ground : sig
   val to_string : t -> string
 end
 
-type value = Value.t = { pos : Pos.Option.t; value : in_value }
+module Methods = Term.Methods
+
+type value = Value.t = {
+  pos : Pos.Option.t;
+  value : in_value;
+  methods : value Methods.t;
+}
+
 and env = (string * value) list
 and lazy_env = (string * value Lazy.t) list
 
@@ -56,7 +63,6 @@ and in_value = Value.in_value =
   | List of value list
   | Tuple of value list
   | Null
-  | Meth of string * value * value
   | Fun of (string * string * value option) list * lazy_env * Term.t
   (* A function with given arguments (argument label, argument variable, default
      value), closure and value. *)
@@ -77,7 +83,7 @@ val apply : value -> env -> value
 
 type proto = (string * t * value option * string option) list
 
-(** Add an builtin to the language, high-level version for functions. *)
+(** Add a builtin to the language, high-level version for functions. *)
 val add_builtin :
   category:Doc.Value.category ->
   descr:string ->
@@ -91,7 +97,18 @@ val add_builtin :
   (env -> value) ->
   module_name
 
-(** Add an builtin to the language, more rudimentary version. *)
+(** Add a builtin value to the language *)
+val add_builtin_value :
+  category:Doc.Value.category ->
+  descr:string ->
+  ?flags:Doc.Value.flag list ->
+  ?base:module_name ->
+  string ->
+  value ->
+  t ->
+  module_name
+
+(** Add a builtin to the language, more rudimentary version. *)
 val add_builtin_base :
   category:Doc.Value.category ->
   descr:string ->

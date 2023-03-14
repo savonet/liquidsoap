@@ -108,7 +108,6 @@ module Inet_addr = struct
         ("is_ipv6", Lang.bool (Unix.is_inet6_addr v));
       ]
 
-  let of_value v = of_value (Lang.demeth v)
   let any = to_value Unix.inet_addr_any
   let loopback = to_value Unix.inet_addr_loopback
   let ipv6_any = to_value Unix.inet6_addr_any
@@ -167,8 +166,6 @@ module Socket_addr = struct
             ("port", Lang.int port);
           ]
     | _ -> assert false
-
-  let of_value v = of_value (Lang.demeth v)
 end
 
 module Socket_value = struct
@@ -184,8 +181,6 @@ module Socket_value = struct
     let descr s = Printf.sprintf "<%s socket>" s#typ
     let compare = Stdlib.compare
   end)
-
-  let of_value socket = of_value (Lang.demeth socket)
 
   let meths =
     let descr_of_mode = function `Read -> "read" | `Write -> "write" in
@@ -469,21 +464,21 @@ let socket_domain = Lang.add_module ~base:socket "domain"
 let socket_type = Lang.add_module ~base:socket "type"
 
 let add ~t ~name ~descr ~base value =
-  ignore (Lang.add_builtin_base ~category:`Internet ~descr ~base name value t)
+  ignore (Lang.add_builtin_value ~category:`Internet ~descr ~base name value t)
 
 let () =
   add ~t:Socket_domain.t ~base:socket_domain ~name:"unix"
-    ~descr:"Unix socket domain" Socket_domain.unix.Value.value;
+    ~descr:"Unix socket domain" Socket_domain.unix;
   add ~t:Socket_domain.t ~base:socket_domain ~name:"inet"
-    ~descr:"Inet socket domain" Socket_domain.inet.Value.value;
+    ~descr:"Inet socket domain" Socket_domain.inet;
   add ~t:Socket_domain.t ~base:socket_domain ~name:"inet6"
-    ~descr:"Inet6 socket domain" Socket_domain.inet6.Value.value;
+    ~descr:"Inet6 socket domain" Socket_domain.inet6;
   add ~t:Socket_type.t ~base:socket_type ~name:"stream"
-    ~descr:"Stream socket type" Socket_type.stream.Value.value;
+    ~descr:"Stream socket type" Socket_type.stream;
   add ~t:Socket_type.t ~base:socket_type ~name:"dgram"
-    ~descr:"Dgram socket type" Socket_type.dgram.Value.value;
+    ~descr:"Dgram socket type" Socket_type.dgram;
   add ~t:Socket_type.t ~base:socket_type ~name:"raw" ~descr:"Raw socket type"
-    Socket_type.raw.Value.value
+    Socket_type.raw
 
 let socket_internet_address =
   Lang.add_builtin ~base:socket "internet_address" ~category:`Internet
@@ -499,10 +494,10 @@ let () =
     ~descr:
       "A special IPv4 address, for use only with `socket.bind`, representing \
        all the Internet addresses that the host machine possesses."
-    Inet_addr.any.Value.value;
+    Inet_addr.any;
   add ~t:Inet_addr.t ~base:socket_internet_address ~name:"loopback"
     ~descr:"A special IPv4 address representing the host machine (`127.0.0.1`)."
-    Inet_addr.loopback.Value.value
+    Inet_addr.loopback
 
 let socket_internet_address_ipv6 =
   Lang.add_module ~base:socket_internet_address "ipv6"
@@ -512,10 +507,10 @@ let () =
     ~descr:
       "A special IPv6 address, for use only with `socket.bind`, representing \
        all the Internet addresses that the host machine possesses."
-    Inet_addr.ipv6_any.Value.value;
+    Inet_addr.ipv6_any;
   add ~t:Inet_addr.t ~base:socket_internet_address_ipv6 ~name:"loopback"
     ~descr:"A special IPv6 address representing the host machine (`::1`)."
-    Inet_addr.ipv6_loopback.Value.value
+    Inet_addr.ipv6_loopback
 
 let socket_address = Lang.add_module ~base:socket "address"
 

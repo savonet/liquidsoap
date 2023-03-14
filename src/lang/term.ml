@@ -184,7 +184,13 @@ module MkGround (D : GroundDef) = struct
       { Ground.typ = D.typ; to_json; compare; descr }
 end
 
-type t = { mutable t : Type.t; term : in_term }
+module Methods = Map.Make (struct
+  type t = string
+
+  let compare (x : string) (y : string) = Stdlib.compare x y [@@inline always]
+end)
+
+type t = { mutable t : Type.t; term : in_term; methods : t Methods.t }
 
 (** Documentation for declarations: general documentation, parameters, methods. *)
 and doc = Doc.Value.t
@@ -206,7 +212,6 @@ and encoder_params = (string * [ `Term of t | `Encoder of encoder ]) list
 and encoder = string * encoder_params
 
 and invoke = { invoked : t; default : t option; meth : string }
-and meth = { name : string; meth_value : t }
 
 and in_term =
   | Ground of Ground.t
@@ -216,7 +221,6 @@ and in_term =
   | Any
   | Null
   | Cast of t * Type.t
-  | Meth of meth * t
   | Invoke of invoke
   | Open of t * t
   | Let of let_t
@@ -276,50 +280,60 @@ let rec string_of_pat = function
 
 (** String representation of terms, (almost) assuming they are in normal
     form. *)
-let rec to_string v =
-  match v.term with
-    | Ground g -> Ground.to_string g
-    | Encoder e ->
-        let rec aux (e, p) =
-          let p =
-            p
-            |> List.map (function
-                 | "", `Term v -> to_string v
-                 | l, `Term v -> l ^ "=" ^ to_string v
-                 | _, `Encoder e -> aux e)
-            |> String.concat ", "
+let to_string v =
+  let rec to_string v =
+    match v.term with
+      | Ground g -> Ground.to_string g
+      | Encoder e ->
+          let rec aux (e, p) =
+            let p =
+              p
+              |> List.map (function
+                   | "", `Term v -> to_string v
+                   | l, `Term v -> l ^ "=" ^ to_string v
+                   | _, `Encoder e -> aux e)
+              |> String.concat ", "
+            in
+            "%" ^ e ^ "(" ^ p ^ ")"
           in
-          "%" ^ e ^ "(" ^ p ^ ")"
-        in
-        aux e
-    | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
-    | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
-    | Any -> "any"
-    | Null -> "null"
-    | Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Repr.string_of_type t ^ ")"
-    | Meth ({ name = l; meth_value = v }, e) ->
-        to_string e ^ ".{" ^ l ^ " = " ^ to_string v ^ "}"
-    | Invoke { invoked = e; meth = l; default } -> (
-        match default with
-          | None -> to_string e ^ "." ^ l
-          | Some v -> "(" ^ to_string e ^ "." ^ l ^ " ?? " ^ to_string v ^ ")")
-    | Open (m, e) -> "open " ^ to_string m ^ " " ^ to_string e
-    | Fun (_, [], v) when is_ground v -> "{" ^ to_string v ^ "}"
-    | Fun _ | RFun _ -> "<fun>"
-    | Var s -> s
-    | App (hd, tl) ->
-        let tl =
-          List.map
-            (fun (lbl, v) ->
-              (if lbl = "" then "" else lbl ^ " = ") ^ to_string v)
-            tl
-        in
-        to_string hd ^ "(" ^ String.concat "," tl ^ ")"
-    (* | Let _ | Seq _ -> assert false *)
-    | Let l ->
-        Printf.sprintf "let %s = %s in %s" (string_of_pat l.pat)
-          (to_string l.def) (to_string l.body)
-    | Seq (e, e') -> to_string e ^ "; " ^ to_string e'
+          aux e
+      | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
+      | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
+      | Any -> "any"
+      | Null -> "null"
+      | Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Repr.string_of_type t ^ ")"
+      | Invoke { invoked = e; meth = l; default } -> (
+          match default with
+            | None -> to_string e ^ "." ^ l
+            | Some v -> "(" ^ to_string e ^ "." ^ l ^ " ?? " ^ to_string v ^ ")"
+          )
+      | Open (m, e) -> "open " ^ to_string m ^ " " ^ to_string e
+      | Fun (_, [], v) when is_ground v -> "{" ^ to_string v ^ "}"
+      | Fun _ | RFun _ -> "<fun>"
+      | Var s -> s
+      | App (hd, tl) ->
+          let tl =
+            List.map
+              (fun (lbl, v) ->
+                (if lbl = "" then "" else lbl ^ " = ") ^ to_string v)
+              tl
+          in
+          to_string hd ^ "(" ^ String.concat "," tl ^ ")"
+      (* | Let _ | Seq _ -> assert false *)
+      | Let l ->
+          Printf.sprintf "let %s = %s in %s" (string_of_pat l.pat)
+            (to_string l.def) (to_string l.body)
+      | Seq (e, e') -> to_string e ^ "; " ^ to_string e'
+  in
+  let term = to_string v in
+  if Methods.is_empty v.methods then term
+  else (
+    let methods = Methods.bindings v.methods in
+    (if v.term = Tuple [] then "" else term ^ ".")
+    ^ "{"
+    ^ String.concat ", "
+        (List.map (fun (l, meth_term) -> l ^ "=" ^ to_string meth_term) methods)
+    ^ "}")
 
 (** Create a new value. *)
 let make ?pos ?t e =
@@ -327,9 +341,9 @@ let make ?pos ?t e =
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
       (Pos.Option.to_string t.Type.pos)
-      (try to_string { t; term = e } with _ -> "<?>")
+      (try to_string { t; term = e; methods = Methods.empty } with _ -> "<?>")
       (Repr.string_of_type t);
-  { t; term = e }
+  { t; term = e; methods = Methods.empty }
 
 let rec free_vars_pat = function
   | PVar [] -> assert false
@@ -372,7 +386,7 @@ let rec bound_vars_pat = function
               [] l))
 
 let rec free_vars tm =
-  match tm.term with
+  let root_free_vars = function
     | Ground _ -> Vars.empty
     | Var x -> Vars.singleton x
     | Tuple l ->
@@ -390,7 +404,6 @@ let rec free_vars tm =
         enc e
     | Cast (e, _) -> free_vars e
     | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
-    | Meth ({ meth_value = v }, e) -> Vars.union (free_vars v) (free_vars e)
     | Invoke { invoked = e } -> free_vars e
     | Open (a, b) -> Vars.union (free_vars a) (free_vars b)
     | List l ->
@@ -403,6 +416,10 @@ let rec free_vars tm =
     | Let l ->
         Vars.union (free_vars l.def)
           (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
+  in
+  Methods.fold
+    (fun _ meth_term fv -> Vars.union fv (free_vars meth_term))
+    tm.methods (root_free_vars tm.term)
 
 let free_vars ?(bound = []) body =
   Vars.diff (free_vars body) (Vars.of_list bound)
@@ -444,13 +461,15 @@ exception Unused_variable of (string * Pos.t)
 
 let check_unused ~throw ~lib tm =
   let rec check ?(toplevel = false) v tm =
+    let v =
+      Methods.fold (fun _ meth_term e -> check e meth_term) tm.methods v
+    in
     match tm.term with
       | Var s -> Vars.remove s v
       | Ground _ -> v
       | Tuple l -> List.fold_left (fun a -> check a) v l
       | Any | Null -> v
       | Cast (e, _) -> check v e
-      | Meth ({ meth_value = f }, e) -> check (check v e) f
       | Invoke { invoked = e } -> check v e
       | Open (a, b) -> check (check v a) b
       | Seq (a, b) -> check ~toplevel (check v a) b
@@ -562,6 +581,9 @@ module MkAbstract (Def : AbstractDef) = struct
   let to_ground c = Value c
   let is_ground = function Value _ -> true | _ -> false
   let of_term t = match t.term with Ground (Value c) -> c | _ -> assert false
-  let to_term c = { t = Type.make T.descr; term = Ground (Value c) }
+
+  let to_term c =
+    { t = Type.make T.descr; term = Ground (Value c); methods = Methods.empty }
+
   let is_term t = match t.term with Ground (Value _) -> true | _ -> false
 end

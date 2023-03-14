@@ -28,19 +28,22 @@ let debug = ref false
 (** {1 Type checking / inference} *)
 
 (** Terms for which generalization is safe. *)
-let rec value_restriction t =
-  match t.term with
-    | Var _ -> true
-    | Fun _ -> true
-    | RFun _ -> true
-    | Null -> true
-    | List l | Tuple l -> List.for_all value_restriction l
-    | Meth ({ meth_value = v }, u) -> value_restriction v && value_restriction u
-    | Ground _ -> true
-    | Let l -> value_restriction l.def && value_restriction l.body
-    | Cast (t, _) -> value_restriction t
-    (* | Invoke (t, _) -> value_restriction t *)
-    | _ -> false
+let value_restriction t =
+  let rec value_restriction t =
+    match t.term with
+      | Var _ -> true
+      | Fun _ -> true
+      | RFun _ -> true
+      | Null -> true
+      | List l | Tuple l -> List.for_all value_restriction l
+      | Ground _ -> true
+      | Let l -> value_restriction l.def && value_restriction l.body
+      | Cast (t, _) -> value_restriction t
+      (* | Invoke (t, _) -> value_restriction t *)
+      | _ -> false
+  in
+  value_restriction t
+  && Methods.for_all (fun _ meth_term -> value_restriction meth_term) t.methods
 
 (** A simple mechanism for delaying printing toplevel tasks as late as possible,
     to avoid seeing too many unknown variables. *)
@@ -145,7 +148,6 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
      to loose it. *)
   let pos = e.t.Type.pos in
   let mk t = Type.make ?pos t in
-  let mkg t = mk t in
   let check_fun ~proto ~env e body =
     let base_check = check ~level ~env in
     let proto_t, env =
@@ -174,227 +176,235 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     check ~level ~env body;
     e.t >: mk (Type.Arrow (proto_t, body.t))
   in
-  match e.term with
-    | Any -> ()
-    | Ground g -> e.t >: mkg (Ground.to_descr g)
-    | Encoder f ->
-        (* Ensure that we only use well-formed terms. *)
-        let rec check_enc (_, p) =
-          List.iter
-            (function
-              | _, `Term t -> check ~level ~env t | _, `Encoder e -> check_enc e)
-            p
-        in
-        check_enc f;
-        let t =
-          try !Hooks.type_of_encoder ~pos f
-          with Not_found ->
-            let bt = Printexc.get_raw_backtrace () in
-            Printexc.raise_with_backtrace
-              (Unsupported_format (pos, Term.to_string e))
-              bt
-        in
-        e.t >: t
-    | List l ->
-        List.iter (fun x -> check ~level ~env x) l;
-        let t = Type.var ~level ?pos () in
-        List.iter (fun e -> e.t <: t) l;
-        e.t >: mk Type.(List { t; json_repr = `Tuple })
-    | Tuple l ->
-        List.iter (fun a -> check ~level ~env a) l;
-        e.t >: mk (Type.Tuple (List.map (fun a -> a.t) l))
-    | Null -> e.t >: mk (Type.Nullable (Type.var ~level ?pos ()))
-    | Cast (a, t) ->
-        check ~level ~env a;
-        a.t <: t;
-        e.t >: t
-    | Meth ({ name = l; meth_value = a }, b) ->
-        check ~level ~env a;
-        check ~level ~env b;
-        e.t
-        >: mk
-             (Type.Meth
-                ( {
-                    Type.meth = l;
-                    optional = false;
-                    scheme = Typing.generalize ~level a.t;
-                    doc = "";
-                    json_name = None;
-                  },
-                  b.t ))
-    | Invoke { invoked = a; default; meth = l } ->
-        check ~level ~env a;
-        let rec aux t =
-          match (Type.deref t).Type.descr with
-            | Type.(Meth ({ meth = l'; scheme = s }, _)) when l = l' ->
-                (fst s, Typing.instantiate ~level s)
-            | Type.(Meth (_, c)) -> aux c
-            | _ ->
-                (* We did not find the method, the type we will infer is not the
-                   most general one (no generalization), but this is safe and
-                   enough for records. *)
-                let x = Type.var ~level ?pos () in
-                let y = Type.var ~level ?pos () in
-                a.t
-                <: mk
-                     Type.(
-                       Meth
-                         ( {
-                             meth = l;
-                             optional = default <> None;
-                             scheme = ([], x);
-                             doc = "";
-                             json_name = None;
-                           },
-                           y ));
-                ([], x)
-        in
-        let vars, typ = aux a.t in
-        let typ =
-          match default with
-            | None -> typ
-            | Some v ->
-                check ~level ~env v;
-                (* We want to make sure that: x?.foo types as: { foo?: 'a } *)
-                let typ =
-                  match (Type.deref v.t).descr with
-                    | Type.Nullable _ -> mk Type.(Nullable typ)
-                    | _ -> typ
-                in
-                Typing.instantiate ~level (vars, v.t) <: typ;
-                typ
-        in
-        e.t >: typ
-    | Open (a, b) ->
-        check ~level ~env a;
-        a.t <: mk Type.unit;
-        let rec aux env t =
-          match (Type.deref t).Type.descr with
-            | Type.(Meth ({ meth = l; scheme = g, u }, t)) ->
-                aux ((l, (g, u)) :: env) t
-            | _ -> env
-        in
-        let env = aux env a.t in
-        check ~level ~env b;
-        e.t >: b.t
-    | Seq (a, b) ->
-        check ~env ~level a;
-        if not (can_ignore a.t) then throw (Ignored a);
-        check ~print_toplevel ~level ~env b;
-        e.t >: b.t
-    | App (a, l) -> (
-        check ~level ~env a;
-        List.iter (fun (_, b) -> check ~env ~level b) l;
+  let base_type = Type.var () in
+  let () =
+    match e.term with
+      | Any -> ()
+      | Ground g -> base_type >: mk (Ground.to_descr g)
+      | Encoder f ->
+          (* Ensure that we only use well-formed terms. *)
+          let rec check_enc (_, p) =
+            List.iter
+              (function
+                | _, `Term t -> check ~level ~env t
+                | _, `Encoder e -> check_enc e)
+              p
+          in
+          check_enc f;
+          let t =
+            try !Hooks.type_of_encoder ~pos f
+            with Not_found ->
+              let bt = Printexc.get_raw_backtrace () in
+              Printexc.raise_with_backtrace
+                (Unsupported_format (pos, Term.to_string e))
+                bt
+          in
+          base_type >: t
+      | List l ->
+          List.iter (fun x -> check ~level ~env x) l;
+          let t = Type.var ~level ?pos () in
+          List.iter (fun e -> e.t <: t) l;
+          base_type >: mk Type.(List { t; json_repr = `Tuple })
+      | Tuple l ->
+          List.iter (fun a -> check ~level ~env a) l;
+          base_type >: mk (Type.Tuple (List.map (fun a -> a.t) l))
+      | Null -> base_type >: mk (Type.Nullable (Type.var ~level ?pos ()))
+      | Cast (a, t) ->
+          check ~level ~env a;
+          a.t <: t;
+          base_type >: t
+      | Invoke { invoked = a; default; meth = l } ->
+          check ~level ~env a;
+          let rec aux t =
+            match (Type.deref t).Type.descr with
+              | Type.(Meth ({ meth = l'; scheme = s }, _)) when l = l' ->
+                  (fst s, Typing.instantiate ~level s)
+              | Type.(Meth (_, c)) -> aux c
+              | _ ->
+                  (* We did not find the method, the type we will infer is not the
+                     most general one (no generalization), but this is safe and
+                     enough for records. *)
+                  let x = Type.var ~level ?pos () in
+                  let y = Type.var ~level ?pos () in
+                  a.t
+                  <: mk
+                       Type.(
+                         Meth
+                           ( {
+                               meth = l;
+                               optional = default <> None;
+                               scheme = ([], x);
+                               doc = "";
+                               json_name = None;
+                             },
+                             y ));
+                  ([], x)
+          in
+          let vars, typ = aux a.t in
+          let typ =
+            match default with
+              | None -> typ
+              | Some v ->
+                  check ~level ~env v;
+                  (* We want to make sure that: x?.foo types as: { foo?: 'a } *)
+                  let typ =
+                    match (Type.deref v.t).descr with
+                      | Type.Nullable _ -> mk Type.(Nullable typ)
+                      | _ -> typ
+                  in
+                  Typing.instantiate ~level (vars, v.t) <: typ;
+                  typ
+          in
+          base_type >: typ
+      | Open (a, b) ->
+          check ~level ~env a;
+          a.t <: mk Type.unit;
+          let rec aux env t =
+            match (Type.deref t).Type.descr with
+              | Type.(Meth ({ meth = l; scheme = g, u }, t)) ->
+                  aux ((l, (g, u)) :: env) t
+              | _ -> env
+          in
+          let env = aux env a.t in
+          check ~level ~env b;
+          base_type >: b.t
+      | Seq (a, b) ->
+          check ~env ~level a;
+          if not (can_ignore a.t) then throw (Ignored a);
+          check ~print_toplevel ~level ~env b;
+          base_type >: b.t
+      | App (a, l) -> (
+          check ~level ~env a;
+          List.iter (fun (_, b) -> check ~env ~level b) l;
 
-        (* If [a] is known to have a function type, manually dig through it for
-           better error messages. Otherwise generate its type and unify -- in
-           that case the optionality can't be guessed and mandatory is the
-           default. *)
-        match (Type.demeth a.t).Type.descr with
-          | Type.Arrow (ap, t) ->
-              (* Find in l the first arg labeled lbl, return it together with the
-                 remaining of the list. *)
-              let get_arg lbl l =
-                let rec aux acc = function
-                  | [] -> None
-                  | (o, lbl', t) :: l ->
-                      if lbl = lbl' then Some (o, t, List.rev_append acc l)
-                      else aux ((o, lbl', t) :: acc) l
+          (* If [a] is known to have a function type, manually dig through it for
+             better error messages. Otherwise generate its type and unify -- in
+             that case the optionality can't be guessed and mandatory is the
+             default. *)
+          match (Type.demeth a.t).Type.descr with
+            | Type.Arrow (ap, t) ->
+                (* Find in l the first arg labeled lbl, return it together with the
+                   remaining of the list. *)
+                let get_arg lbl l =
+                  let rec aux acc = function
+                    | [] -> None
+                    | (o, lbl', t) :: l ->
+                        if lbl = lbl' then Some (o, t, List.rev_append acc l)
+                        else aux ((o, lbl', t) :: acc) l
+                  in
+                  aux [] l
                 in
-                aux [] l
-              in
-              let _, ap =
-                (* Remove the applied parameters, check their types on the
-                   fly. *)
-                List.fold_left
-                  (fun (already, ap) (lbl, v) ->
-                    match get_arg lbl ap with
-                      | None ->
-                          let first = not (List.mem lbl already) in
-                          raise (No_label (a, lbl, first, v))
-                      | Some (_, t, ap') ->
-                          (match (a.term, lbl) with
-                            | Var "if", "then" | Var "if", "else" -> (
-                                match
-                                  ((Type.deref v.t).descr, (Type.deref t).descr)
-                                with
-                                  | Type.Arrow ([], vt), Type.Arrow ([], t) ->
-                                      vt <: t
-                                  | _ -> assert false)
-                            | _ -> v.t <: t);
-                          (lbl :: already, ap'))
-                  ([], ap) l
-              in
-              (* See if any mandatory argument is missing. *)
-              let mandatory =
-                List.filter_map
-                  (fun (o, l, t) -> if o then None else Some (l, t))
-                  ap
-              in
-              if mandatory <> [] then
-                raise (Term.Missing_arguments (pos, mandatory));
-              e.t >: t
-          | _ ->
-              let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
-              a.t <: Type.make (Type.Arrow (p, e.t)))
-    | Fun (_, proto, body) -> check_fun ~proto ~env e body
-    | RFun (x, _, proto, body) ->
-        let env = (x, ([], e.t)) :: env in
-        check_fun ~proto ~env e body
-    | Var var ->
-        let s =
-          try List.assoc var env with Not_found -> raise (Unbound (pos, var))
-        in
-        e.t >: Typing.instantiate ~level s;
-        if Lazy.force Term.debug then
-          Printf.eprintf "Instantiate %s : %s becomes %s\n" var
-            (Type.string_of_scheme s) (Type.to_string e.t)
-    | Let ({ pat; replace; def; body; _ } as l) ->
-        check ~level:(level + 1) ~env def;
-        let generalized =
-          (* Printf.printf "generalize at %d: %B\n\n!" level (value_restriction def); *)
-          if value_restriction def then fst (generalize ~level def.t) else []
-        in
-        let penv, pa = type_of_pat ~level ~pos pat in
-        def.t <: pa;
-        let penv =
-          List.map
-            (fun (ll, a) ->
-              match ll with
-                | [] -> assert false
-                | [x] ->
-                    let a =
-                      if replace then Type.remeth (snd (List.assoc x env)) a
-                      else a
-                    in
-                    if !debug then
-                      Printf.printf "\nLET %s : %s\n%!" x
-                        (Repr.string_of_scheme (generalized, a));
-                    (x, (generalized, a))
-                | l :: ll -> (
-                    try
-                      let g, t = List.assoc l env in
+                let _, ap =
+                  (* Remove the applied parameters, check their types on the
+                     fly. *)
+                  List.fold_left
+                    (fun (already, ap) (lbl, v) ->
+                      match get_arg lbl ap with
+                        | None ->
+                            let first = not (List.mem lbl already) in
+                            raise (No_label (a, lbl, first, v))
+                        | Some (_, t, ap') ->
+                            (match (a.term, lbl) with
+                              | Var "if", "then" | Var "if", "else" -> (
+                                  match
+                                    ( (Type.deref v.t).descr,
+                                      (Type.deref t).descr )
+                                  with
+                                    | Type.Arrow ([], vt), Type.Arrow ([], t) ->
+                                        vt <: t
+                                    | _ -> assert false)
+                              | _ -> v.t <: t);
+                            (lbl :: already, ap'))
+                    ([], ap) l
+                in
+                (* See if any mandatory argument is missing. *)
+                let mandatory =
+                  List.filter_map
+                    (fun (o, l, t) -> if o then None else Some (l, t))
+                    ap
+                in
+                if mandatory <> [] then
+                  raise (Term.Missing_arguments (pos, mandatory));
+                base_type >: t
+            | _ ->
+                let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
+                a.t <: Type.make (Type.Arrow (p, base_type)))
+      | Fun (_, proto, body) -> check_fun ~proto ~env e body
+      | RFun (x, _, proto, body) ->
+          let env = (x, ([], base_type)) :: env in
+          check_fun ~proto ~env e body
+      | Var var ->
+          let s =
+            try List.assoc var env
+            with Not_found -> raise (Unbound (pos, var))
+          in
+          base_type >: Typing.instantiate ~level s;
+          if Lazy.force Term.debug then
+            Printf.eprintf "Instantiate %s : %s becomes %s\n" var
+              (Type.string_of_scheme s) (Type.to_string base_type)
+      | Let ({ pat; replace; def; body; _ } as l) ->
+          check ~level:(level + 1) ~env def;
+          let generalized =
+            (* Printf.printf "generalize at %d: %B\n\n!" level (value_restriction def); *)
+            if value_restriction def then fst (generalize ~level def.t) else []
+          in
+          let penv, pa = type_of_pat ~level ~pos pat in
+          def.t <: pa;
+          let penv =
+            List.map
+              (fun (ll, a) ->
+                match ll with
+                  | [] -> assert false
+                  | [x] ->
                       let a =
-                        (* If we are replacing the value, we keep the previous methods. *)
-                        if replace then Type.remeth (snd (Type.invokes t ll)) a
+                        if replace then Type.remeth (snd (List.assoc x env)) a
                         else a
                       in
-                      (l, (g, Type.meths ?pos ll (generalized, a) t))
-                    with Not_found -> raise (Unbound (pos, l))))
-            penv
-        in
-        let env = penv @ env in
-        l.gen <- generalized;
-        if print_toplevel then
-          add_task (fun () ->
-              Format.printf "@[<2>%s :@ %a@]@."
-                (let name = string_of_pat pat in
-                 let l = String.length name and max = 5 in
-                 if l >= max then name else name ^ String.make (max - l) ' ')
-                (fun f t -> Repr.print_scheme f (generalized, t))
-                def.t);
-        check ~print_toplevel ~level ~env body;
-        e.t >: body.t
+                      if !debug then
+                        Printf.printf "\nLET %s : %s\n%!" x
+                          (Repr.string_of_scheme (generalized, a));
+                      (x, (generalized, a))
+                  | l :: ll -> (
+                      try
+                        let g, t = List.assoc l env in
+                        let a =
+                          (* If we are replacing the value, we keep the previous methods. *)
+                          if replace then
+                            Type.remeth (snd (Type.invokes t ll)) a
+                          else a
+                        in
+                        (l, (g, Type.meths ?pos ll (generalized, a) t))
+                      with Not_found -> raise (Unbound (pos, l))))
+              penv
+          in
+          let env = penv @ env in
+          l.gen <- generalized;
+          if print_toplevel then
+            add_task (fun () ->
+                Format.printf "@[<2>%s :@ %a@]@."
+                  (let name = string_of_pat pat in
+                   let l = String.length name and max = 5 in
+                   if l >= max then name else name ^ String.make (max - l) ' ')
+                  (fun f t -> Repr.print_scheme f (generalized, t))
+                  def.t);
+          check ~print_toplevel ~level ~env body;
+          base_type >: body.t
+  in
+  e.t
+  >: Methods.fold
+       (fun meth meth_term t ->
+         check ~level ~env meth_term;
+         Type.make ?pos
+           (Type.Meth
+              ( {
+                  Type.meth;
+                  optional = false;
+                  scheme = Typing.generalize ~level meth_term.t;
+                  doc = "";
+                  json_name = None;
+                },
+                t )))
+       e.methods base_type
 
 let display_types = ref false
 

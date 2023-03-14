@@ -332,6 +332,4 @@ module Socket_value = struct
 
   let to_value s =
     Lang.meth (to_value s) (List.map (fun (lbl, _, _, m) -> (lbl, m s)) meths)
-
-  let of_value s = of_value (Lang.demeth s)
 end

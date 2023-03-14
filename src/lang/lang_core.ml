@@ -23,11 +23,17 @@
 include Value
 module Ground = Term.Ground
 open Ground
+module Methods = Term.Methods
 
 type t = Type.t
 type module_name = string
 type scheme = Type.scheme
-type value = Value.t = { pos : Pos.Option.t; value : in_value }
+
+type value = Value.t = {
+  pos : Pos.Option.t;
+  value : in_value;
+  methods : value Methods.t;
+}
 
 (** Type construction *)
 
@@ -77,7 +83,7 @@ let ref_t a = Type.reference a
 
 (** Value construction *)
 
-let mk ?pos value = { pos; value }
+let mk ?pos value = { pos; value; methods = Methods.empty }
 let unit = mk unit
 let int i = mk (Ground (Int i))
 let bool i = mk (Ground (Bool i))
@@ -88,9 +94,11 @@ let product a b = tuple [a; b]
 let list l = mk (List l)
 let null = mk Null
 
-let rec meth v0 = function
-  | [] -> v0
-  | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
+let meth v l =
+  {
+    v with
+    methods = List.fold_left (fun v (k, m) -> Methods.add k m v) v.methods l;
+  }
 
 let record = meth unit
 let val_fun p f = mk (FFI (p, f))
@@ -98,7 +106,9 @@ let term_fun p tm = mk (Fun (p, [], tm))
 
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
-  let f t tm = mk (Fun (p, [], { Term.t; Term.term = tm })) in
+  let f t tm =
+    mk (Fun (p, [], { Term.t; term = tm; methods = Term.Methods.empty }))
+  in
   let mkg g = Type.make g in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
@@ -159,6 +169,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     {
       pos = None;
       value = FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, f);
+      methods = Methods.empty;
     }
   in
   let doc () =
@@ -224,9 +235,8 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     ((generalized, t), value);
   name
 
-let add_builtin_base ~category ~descr ?(flags = []) ?base name value t =
+let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
   let name = mk_module_name ?base name in
-  let value = { pos = t.Type.pos; value } in
   let generalized = Typing.filter_vars (fun _ -> true) t in
   let doc () =
     Doc.Value.
@@ -245,6 +255,11 @@ let add_builtin_base ~category ~descr ?(flags = []) ?base name value t =
     ((generalized, t), value);
   name
 
+let add_builtin_base ~category ~descr ?flags ?base name value t =
+  add_builtin_value ~category ~descr ?flags ?base name
+    { pos = t.Type.pos; value; methods = Methods.empty }
+    t
+
 let add_module ?base name =
   let name = mk_module_name ?base name in
   Environment.add_module (String.split_on_char '.' name);
@@ -260,13 +275,11 @@ let apply f p = !Hooks.collect_after (fun () -> !apply_fun f p)
 
 (** {1 High-level manipulation of values} *)
 
-let to_unit t = match (demeth t).value with Tuple [] -> () | _ -> assert false
-
-let to_bool t =
-  match (demeth t).value with Ground (Bool b) -> b | _ -> assert false
+let to_unit t = match t.value with Tuple [] -> () | _ -> assert false
+let to_bool t = match t.value with Ground (Bool b) -> b | _ -> assert false
 
 let to_bool_getter t =
-  match (demeth t).value with
+  match t.value with
     | Ground (Bool b) -> fun () -> b
     | Fun _ | FFI _ -> (
         fun () ->
@@ -276,15 +289,15 @@ let to_bool_getter t =
     | _ -> assert false
 
 let to_fun f =
-  match (demeth f).value with
+  match f.value with
     | Fun _ | FFI _ -> fun args -> apply f args
     | _ -> assert false
 
 let to_string t =
-  match (demeth t).value with Ground (String s) -> s | _ -> assert false
+  match t.value with Ground (String s) -> s | _ -> assert false
 
 let to_string_getter t =
-  match (demeth t).value with
+  match t.value with
     | Ground (String s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
@@ -293,11 +306,10 @@ let to_string_getter t =
             | _ -> assert false)
     | _ -> assert false
 
-let to_float t =
-  match (demeth t).value with Ground (Float s) -> s | _ -> assert false
+let to_float t = match t.value with Ground (Float s) -> s | _ -> assert false
 
 let to_float_getter t =
-  match (demeth t).value with
+  match t.value with
     | Ground (Float s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
@@ -306,11 +318,10 @@ let to_float_getter t =
             | _ -> assert false)
     | _ -> assert false
 
-let to_int t =
-  match (demeth t).value with Ground (Int s) -> s | _ -> assert false
+let to_int t = match t.value with Ground (Int s) -> s | _ -> assert false
 
 let to_int_getter t =
-  match (demeth t).value with
+  match t.value with
     | Ground (Int n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
@@ -320,27 +331,27 @@ let to_int_getter t =
     | _ -> assert false
 
 let to_num t =
-  match (demeth t).value with
+  match t.value with
     | Ground (Int n) -> `Int n
     | Ground (Float x) -> `Float x
     | _ -> assert false
 
-let to_list t = match (demeth t).value with List l -> l | _ -> assert false
-let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
-let to_option t = match (demeth t).value with Null -> None | _ -> Some t
+let to_list t = match t.value with List l -> l | _ -> assert false
+let to_tuple t = match t.value with Tuple l -> l | _ -> assert false
+let to_option t = match t.value with Null -> None | _ -> Some t
 let to_valued_option convert v = Option.map convert (to_option v)
 
 let to_default_option ~default convert v =
   Option.value ~default (to_valued_option convert v)
 
 let to_product t =
-  match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
+  match t.value with Tuple [a; b] -> (a, b) | _ -> assert false
 
 let to_string_list l = List.map to_string (to_list l)
 let to_int_list l = List.map to_int (to_list l)
 
 let to_getter t =
-  match (demeth t).value with
+  match t.value with
     | Fun ([], _, _) | FFI ([], _) -> fun () -> apply t []
     | _ -> fun () -> t
 

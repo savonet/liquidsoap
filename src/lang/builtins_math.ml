@@ -80,7 +80,6 @@ let () =
          [("", t, None, None); ("", t, None, None)]
          t
          (fun p ->
-           let p = List.map (fun (l, v) -> (l, Lang.demeth v)) p in
            let a = Lang.to_num (Lang.assoc "" 1 p) in
            let b = Lang.to_num (Lang.assoc "" 2 p) in
            match (a, b) with
