@@ -155,10 +155,7 @@ let media ~strict () =
           | Type.Constr { params } when not strict ->
               List.iter (fun (_, typ) -> satisfies typ) params
           | Type.Meth _ when not strict ->
-              let meths, base_type = Type.split_meths b in
-              List.iter
-                (fun Type.{ scheme = _, field_type } -> satisfies field_type)
-                meths;
+              let _, base_type = Type.split_meths b in
               satisfies base_type
           | Type.Custom { Type.typ = Kind _ }
           | Type.Custom { Type.typ = Format _ } ->

@@ -659,6 +659,14 @@
  (modules ssl_base builtins_http_ssl))
 
 (library
+ (name liquidsoap_stereotool)
+ (libraries stereotool liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules stereotool_op))
+
+(library
  (name liquidsoap_taglib)
  (libraries taglib liquidsoap_core)
  (library_flags -linkall)
@@ -751,6 +759,7 @@
   speex_option
   srt_option
   ssl_option
+  stereotool_option
   taglib_option
   theora_option
   vorbis_option
@@ -974,6 +983,11 @@
    from
    (liquidsoap_ssl -> ssl_option.enabled.ml)
    (-> ssl_option.disabled.ml))
+  (select
+   stereotool_option.ml
+   from
+   (liquidsoap_stereotool -> stereotool_option.enabled.ml)
+   (-> stereotool_option.disabled.ml))
   (select
    taglib_option.ml
    from

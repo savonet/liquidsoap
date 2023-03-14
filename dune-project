@@ -37,6 +37,7 @@
     bjack
     camlimages
     camomile
+    ctypes-foreign
     dssi
     faad
     fdkaac

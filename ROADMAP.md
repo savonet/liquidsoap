@@ -8,13 +8,9 @@
   - Needs some cleanup, definition of a minimal JS library.
 - Switch to `dune`
 - Separate standard library (in pure liq)
-
-### Ongoing
-
 - support for multi-track audio
-- support for subtitles
-- Switch to immutable content
 - live switch with ffmpeg encoded content
+- deprecate "!" and ":=" in favor of x.get / x.set
 
 ## FOSDEM 2023
 
@@ -26,13 +22,14 @@
   one track [or more])
 - use naive (as in native.liq) implementation of switch (based on
   source.dynamic)
-- deprecate "!" and ":=" in favor of x.get / x.set
 - rework buffer.adaptative
 - allow showing graphs (of buffer.adaptative for instance)
 - reimplement video.tile in native liq
 
 ## Backlog
 
+- support for subtitles
+- Switch to immutable content
 - refine video support in order to have next liquidshop running on Liquidsoap
   (dogfooding)
 - native RTMP support (and ensure that HLS output is easy to use)
@@ -56,6 +53,4 @@
   records
   - import
   - support for hiding fields
-- ocaml5 support
-  - we don't seem to have bigarrays anymore?
 - can we reimplement something like [melt](https://www.mltframework.org/)?
