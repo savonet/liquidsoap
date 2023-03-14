@@ -9,23 +9,22 @@ HTTP response implementation. This function receives a record describing the req
 the HTTP response.
 
 The request passed to the function contains all expected information from the underlying HTTP
-query. Its `data` method is a _string getter_, that is a function of type: `() -> string`
-which returns the empty string `""` when all data has been consumed. The convenience function
-`harbor.http.request.body` can be used to read all the data from the request and return it at
-once.
+query.
+
+The `data` method on a request is a _string getter_, that is a function of type: `() -> string`
+which returns the empty string `""` when all data has been consumed. You can use this function
+to e.g. write the request data to a file using `file.write.stream`.
+
+The `body` method can be used to read all of the request's data and store it in
+memory. Make sure to only use it if you know that the response should be small enough!
 
 For convenience, a HTTP response builder is provided via `harbor.http.response`. Here's an example:
 
 ```liquidsoap
 def handler(request) =
-  # Read the whole response data. This should be done only once. It can also be a very
-  # large string, in which case you might want to save it in a file instead of
-  # holding it in memory like this:
-  data = harbor.http.request.body(request.data)
-
   log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
        method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       data: #{data}")
+       body: #{request.body()}")
 
   harbor.http.response(
     content_type="text/html",
@@ -49,14 +48,9 @@ Its API is very similar to the node/express API. Here's an example:
 
 ```liquidsoap
 def handler(request, response) =
-  # Read the whole response data. This should be done only once. It can also be a very
-  # large string, in which case you might want to save it in a file instead of
-  # holding it in memory like this:
-  data = harbor.http.request.body(request.data)
-
   log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
        method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       data: #{data}")
+       body: #{request.body()}")
 
   # Set response code. Defaults to 200
   response.status_code(201)

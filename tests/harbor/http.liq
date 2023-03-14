@@ -3,7 +3,7 @@ def f() =
   def handler(req, _) =
    test.equals(req.http_version, "1.1")
    test.equals(req.method, "GET")
-   test.equals(harbor.http.request.body(timeout=5.0, req), "")
+   test.equals(req.body(timeout=5.0), "")
    test.equals(req.query, [])
    test.equals(req.path, "/default")
   end
@@ -34,7 +34,7 @@ def f() =
   def handler(req, _) =
    test.equals(req.http_version, "1.1")
    test.equals(req.method, "GET")
-   test.equals(harbor.http.request.body(timeout=5.0, req), "")
+   test.equals(req.body(timeout=5.0), "")
    test.equals(req.query, [("gni", "gno"), ("bla", "blo")])
    test.equals(req.path, "/path/gno/blo")
   end
@@ -61,7 +61,7 @@ def f() =
       ("content-type", "application/x-www-form-urlencoded")
     ])
    test.equals(req.path, "/some/path/with/full/in/it")
-   test.equals(harbor.http.request.body(timeout=5.0, req), "foobarlol")
+   test.equals(req.body(timeout=5.0), "foobarlol")
 
     res.status_code(201)
     res.status_message("YYR")
@@ -108,7 +108,7 @@ def f() =
       ("content-type", "application/x-www-form-urlencoded"),
     ])
    test.equals(req.path, "/large_non_chunked")
-   test.equals(string.length(harbor.http.request.body(timeout=5.0, req)), 10_000)
+   test.equals(string.length(req.body(timeout=5.0)), 10_000)
   end
 
   harbor.http.register("/large_non_chunked", method="POST", port=3456, handler)
@@ -134,7 +134,7 @@ def f() =
       ("expect", "100-continue")
     ])
    test.equals(req.path, "/chunked")
-   test.equals(harbor.http.request.body(timeout=5.0, req), "foobarlol")
+   test.equals(req.body(timeout=5.0), "foobarlol")
   end
 
   harbor.http.register("/chunked", method="POST", port=3456, handler)
@@ -157,10 +157,10 @@ def f() =
 
   # Large chunked query
   def handler(req, res) =
-   test.equals(req.http_version, "1.1")
-   test.equals(req.method, "POST")
-   test.equals(req.query, [])
-   test.equals(req.headers, [
+    test.equals(req.http_version, "1.1")
+    test.equals(req.method, "POST")
+    test.equals(req.query, [])
+    test.equals(req.headers, [
       ("host", "localhost:3456"),
       ("user-agent", http.user_agent),
       ("accept", "*/*"),
@@ -168,7 +168,7 @@ def f() =
       ("content-type", "application/x-www-form-urlencoded"),
       ("expect", "100-continue")
     ])
-   test.equals(req.path, "/large_chunked")
+    test.equals(req.path, "/large_chunked")
 
     def rec f(count) =
       ret = req.data()

@@ -74,7 +74,7 @@ def f() =
     ])
    test.equals(req.path, "/large_non_chunked")
    test.equals(
-      harbor.http.request.body(timeout=5.0, req),
+      req.body(timeout=5.0),
       "--#{boundary}\r\n\
        Content-Disposition: form-data; name=\"file\"; filename=\"#{fname}\"\r\n\
        Content-Type: text/plain\r\n\
@@ -112,7 +112,7 @@ def f() =
     ])
    test.equals(req.path, "/in_memory_file_upload")
    test.equals(
-      harbor.http.request.body(timeout=5.0, req),
+      req.body(timeout=5.0),
       "--#{boundary}\r\n\
        Content-Disposition: form-data; name=\"file\"; filename=\"foo.txt\"\r\n\
        Content-Type: text/plain\r\n\
@@ -150,7 +150,7 @@ def f() =
     ])
    test.equals(req.path, "/json_put")
    test.equals(
-      harbor.http.request.body(timeout=5.0, req),
+      req.body(timeout=5.0),
       data)
   end
 
