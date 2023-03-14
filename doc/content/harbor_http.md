@@ -18,7 +18,7 @@ For convenience, a HTTP response builder is provided via `harbor.http.response`.
 
 ```liquidsoap
 def handler(request) =
-  # Read the whole response data. This should be done only once. It cal also be a very
+  # Read the whole response data. This should be done only once. It can also be a very
   # large string, in which case you might want to save it in a file instead of
   # holding it in memory like this:
   data = harbor.http.request.body(request.data)
@@ -49,7 +49,7 @@ Its API is very similar to the node/express API. Here's an example:
 
 ```liquidsoap
 def handler(request, response) =
-  # Read the whole response data. This should be done only once. It cal also be a very
+  # Read the whole response data. This should be done only once. It can also be a very
   # large string, in which case you might want to save it in a file instead of
   # holding it in memory like this:
   data = harbor.http.request.body(request.data)
