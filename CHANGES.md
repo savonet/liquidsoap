@@ -7,7 +7,9 @@ New:
   added native type for srt sockets with methods, moved stats
   to socket methods, added `socket()` method on srt input/outputs
   (#2556)
+- Added support for FLAC metadata (#2952)
 - Added support for YAML parsing and rendering (#2855)
+- Added support for the proprietary shared stereotool library (#2953)
 - Added `video.align`.
 - Added `string.index`.
 - Added support for unit interactive variables: those call a handler when their
