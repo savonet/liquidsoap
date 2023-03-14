@@ -544,3 +544,19 @@ def metronome(~frequency=440., bpm=60.)
 
   amplify(f,s)
 end
+
+%ifdef track.audio.stereotool
+# Process an audio source using stereotool
+# @argsof track.audio.stereotool
+# @category Source / Audio processing
+def stereotool(~id=null("stereotool"), %argsof(track.audio.stereotool[!id]), s) =
+  let {audio, metadata, track_marks, ...} = source.tracks(s)
+  s = track.audio.stereotool(%argsof(track.audio.stereotool[!id]), audio)
+  let replaces s = source(id=id, {
+    audio       = (s:pcm),
+    metadata    = metadata,
+    track_marks = track_marks
+  })
+  s
+end
+%endif

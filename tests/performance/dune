@@ -11,7 +11,7 @@
  (deps
   (:gen_bigrecord ./gen_bigrecord.exe))
  (action
-   (run %{gen_bigrecord} %{target})))
+  (run %{gen_bigrecord} %{target})))
 
 (rule
  (alias perftest)

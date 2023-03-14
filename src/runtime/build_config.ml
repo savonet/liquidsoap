@@ -74,6 +74,7 @@ let build_config =
    - Lilv              : %{Lilv_option.detected}
    - Samplerate        : %{Samplerate_option.detected}
    - SoundTouch        : %{Soundtouch_option.detected}
+   - StereoTool        : %{Stereotool_option.detected}
 
  * Video manipulation
    - camlimages        : %{Camlimages_option.detected}
