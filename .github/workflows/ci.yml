@@ -232,7 +232,9 @@ jobs:
           opam-depext: false
       - name: Install liquidsoap
         run: |
-          opam install --cli=2.1 --confirm-level=unsafe-yes . .github/opam/metadata.opam
+          git clone https://github.com/savonet/ocaml-metadata
+          cd ocaml-metadata && opam pin -n .
+          opam install --cli=2.1 --confirm-level=unsafe-yes .
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
