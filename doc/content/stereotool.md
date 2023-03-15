@@ -27,7 +27,7 @@ That's it! You can apply as many `stereotool` operators as you wish and at any s
 to its synchronous nature. However, a current limitation is that **the processed audio signal is slightly delayed**.
 
 This is because the operator has an internal processing buffer. We do plan on delaying metadata and track marks
-to match this delay but this is not yet been implemented and will probably have to wait for the `2.3.x` release cycle.
+to match this latency but this is not yet been implemented and will probably have to wait for the `2.3.x` release cycle.
 
 This means that, until then, track switches and metadata updates might happen slightly earlier than the corresponding
 signal. We're talking about `50ms` to `100ms` earlier, though, so that might not be a super big deal.
