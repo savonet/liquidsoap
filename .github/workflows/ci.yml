@@ -233,7 +233,7 @@ jobs:
       - name: Install liquidsoap
         run: |
           git clone https://github.com/savonet/ocaml-metadata
-          cd ocaml-metadata && opam pin -n .
+          cd ocaml-metadata && opam pin -n . && cd ..
           opam install --cli=2.1 --confirm-level=unsafe-yes .
 
   build_posix:
