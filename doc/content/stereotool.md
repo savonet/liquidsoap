@@ -24,8 +24,7 @@ s = stereotool(
 ```
 
 That's it! You can apply as many `stereotool` operators as you wish and at any stage in the script, thanks
-to its synchronous nature. However, a current limitation is that **track marks and metadata are slightly
-delayed**.
+to its synchronous nature. However, a current limitation is that **the processed audio signal is slightly delayed**.
 
 This is because the operator has an internal processing buffer. We do plan on delaying metadata and track marks
 to match this delay but this is not yet been implemented and will probably have to wait for the `2.3.x` release cycle.
