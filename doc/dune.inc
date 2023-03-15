@@ -1466,6 +1466,26 @@
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
+  (target stereotool.html)
+  (action (run cp %{no_pandoc} %{target})))
+
+(rule
+  (alias doc)
+  (enabled_if %{bin-available:pandoc})
+  (deps
+    liquidsoap.xml
+    language.dtd
+    template.html
+    (:md content/stereotool.md))
+  (target stereotool.html)
+  (action
+    (ignore-outputs
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=stereotool --template=template.html -o %{target}))))
+
+(rule
+  (alias doc)
+  (enabled_if (not %{bin-available:pandoc}))
+  (deps (:no_pandoc no-pandoc))
   (target stream_content.html)
   (action (run cp %{no_pandoc} %{target})))
 
@@ -1636,6 +1656,7 @@
 (shoutcast.html as html/shoutcast.html)
 (sources.html as html/sources.html)
 (split-cue.html as html/split-cue.html)
+(stereotool.html as html/stereotool.html)
 (stream_content.html as html/stream_content.html)
 (video-static.html as html/video-static.html)
 (video.html as html/video.html)
