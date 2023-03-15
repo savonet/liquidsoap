@@ -280,8 +280,8 @@ let rec string_of_pat = function
 
 (** String representation of terms, (almost) assuming they are in normal
     form. *)
-let to_string v =
-  let rec to_string v =
+let rec to_string v =
+  let to_base_string v =
     match v.term with
       | Ground g -> Ground.to_string g
       | Encoder e ->
@@ -325,7 +325,7 @@ let to_string v =
             (to_string l.def) (to_string l.body)
       | Seq (e, e') -> to_string e ^ "; " ^ to_string e'
   in
-  let term = to_string v in
+  let term = to_base_string v in
   if Methods.is_empty v.methods then term
   else (
     let methods = Methods.bindings v.methods in
