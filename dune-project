@@ -26,7 +26,7 @@
     uri
     fileutils
     menhirLib
-    metadata
+    (metadata (>= 0.2.0))
     dune-build-info
     liquidsoap-lang
     liquidsoap-libs
