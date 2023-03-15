@@ -254,12 +254,50 @@ def harbor.http.regexp_of_path(path) =
   regexp("^#{rex}$")
 end
 
+# @flag hidden
+def harbor.http.mk_body(get_data) =
+  done = ref(false)
+  data = ref("")
+  def body(~timeout=10.) =
+    if done() then data() else
+      start_time = time()
+      def rec read() =
+        if done() then data() else
+          if start_time+timeout < time() then
+            error.raise(error.http, "Timeout!")
+          end
+
+          r = get_data(timeout=timeout)
+          if r == "" then data() else
+            data := "#{data()}#{r}"
+            read()
+          end
+        end
+      end
+      read()
+    end
+  end
+
+  body
+end
+
 # Register a HTTP handler on the harbor. This function offers a simple API,
 # suitable for quick implementation of HTTP handlers. See `harbor.http.register`
 # for a node/express like alternative API.
 # @category Internet
 # @argsof harbor.http.register
 def harbor.http.register.simple(%argsof(harbor.http.register), path, handler) =
+  def handler(request) =
+    def data(~timeout=10.) =
+      request.data(timeout=timeout)
+    end
+
+    handler(request.{
+      data = data,
+      body = harbor.http.mk_body(data)
+    })
+  end
+
   harbor.http.register(%argsof(harbor.http.register), harbor.http.regexp_of_path(path), handler)
 end
 
@@ -312,6 +350,7 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
     end
 
     request = {
+      body = harbor.http.mk_body(data),
       data = data,
       headers = request.headers,
       http_version = request.http_version,
@@ -528,32 +567,6 @@ def http.put.file(~name="file", ~content_type=null(), ~headers=[], ~boundary=nul
 end
 
 let harbor.http.request = ()
-
-# Read all data from a HTTP request
-# @category Internet
-# @param ~timeout Read timeout
-# @param req HTTP request
-def harbor.http.request.body(~timeout=10., req) =
-  # This is for typing purposes
-  if false then
-    harbor.http.register("/foo", fun (r, _) -> ignore(if false then r else req end))
-  end
-
-  data = ref("")
-  start_time = time()
-  def rec read() =
-    if start_time+timeout < time() then
-      error.raise(error.http, "Timeout!")
-    end
-
-    r = req.data(timeout=timeout)
-    if r == "" then data() else
-      data := "#{data()}#{r}"
-      read()
-    end
-  end
-  read()
-end
 
 let settings.http = settings.make.void(
   "Settings for HTTP requests"

@@ -134,7 +134,7 @@ def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet")
 
   def setter(request, response)
     log.info("Executing command: #{request.data}")
-    answer = server.execute(harbor.http.request.body(request))
+    answer = server.execute(request.body())
     answer = string.concat(separator="\n", answer) ^ "\n"
     response.data(answer)
   end
