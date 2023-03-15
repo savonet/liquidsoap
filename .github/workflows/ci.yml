@@ -228,6 +228,9 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
+      - name: Add local packages
+        run: |
+          ./.github/scripts/add-local-opam-packages.sh
       - name: Install liquidsoap
         run: |
           opam install --cli=2.1 --confirm-level=unsafe-yes .
