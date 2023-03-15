@@ -228,12 +228,11 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-      - name: Add local packages
-        run: |
-          ./.github/scripts/add-local-opam-packages.sh
+          opam-pin: false
+          opam-depext: false
       - name: Install liquidsoap
         run: |
-          opam install --cli=2.1 --confirm-level=unsafe-yes .
+          opam install --cli=2.1 --confirm-level=unsafe-yes . .github/opam/metadata.opam
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}

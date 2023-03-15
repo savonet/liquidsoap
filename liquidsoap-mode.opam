@@ -9,8 +9,7 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.2"}
-  "liquidsoap-lang" {build}
-  "liquidsoap-libs" {build}
+  "liquidsoap" {build}
   "odoc" {with-doc}
 ]
 conflicts: [
