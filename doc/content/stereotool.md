@@ -3,7 +3,10 @@
 Starting with version `2.2.0`, liquidsoap supports the shared library distributed by [Thimeo Audio Technology](https://www.thimeo.com/stereo-tool/)
 using the `stereotool` operator (and `track.audio.stereotool` for the low-level, track-specific equivalent).
 
-This operator can replace the use of the `stereotool` binary in your script and offers multiple benefits. In particular, it has a **very low latency**
+This feature is enabled in all release builds of liquidsoap starting with `rolling-release-v2.2.x` and should enable if you compile liquidsoap
+with the optional `ctypes-foreign` opam module installed.
+
+This operator can replace the use of the stereotool binary in your script and offers multiple benefits. In particular, it has a **very low latency**
 compared to using the binary and also operates synchronously.
 
 The operator should be quits easy to use. Here's an example:
