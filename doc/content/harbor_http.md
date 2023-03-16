@@ -184,8 +184,7 @@ harbor.http.register.regexp(
 ## Get metadata
 
 You can use harbor to register HTTP services to
-fecth/set the metadata of a source. For instance,
-using the [JSON export function](json.html) `json.stringify`:
+fecth/set the metadata of a source.
 
 ```liquidsoap
 meta = ref([])
