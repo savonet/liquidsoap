@@ -48,6 +48,6 @@ our users where they are and, for a lot of them, this means supporting the sound
 However, to use it, you will need a license. Using the operator without the proper license will _not_ result in an
 error in your script but the audio signal might have spoken text and/or beeps added to it.
 
-Using the operator with an invalid license will be reported in the log. You might also use the `valid_license`
+Using the operator with an invalid license will be reported in the logs. You might also use the `valid_license`
 method available on the source returned by the operator, which returns `false` if the license is invalid. In this case, the `unlincensed_used_features`
 method returns a string indicating which unlicensed features are being used.
