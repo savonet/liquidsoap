@@ -33,33 +33,10 @@ def list.make(n, x)
   list.init(n, fun(_)->x)
 end
 
-# Get the n-th element of a list (the first element is at position 0), or `default` if element does not exist.
-# @category List
-def list.nth(~default=null(), l, n) =
-  ret = ref(💣())
-  err = error.register("nth")
-  try
-    list.iteri(fun (pos, v) ->
-      if pos == n then
-        ret := v
-        error.raise(err, "found")
-      end, l)
-    null.case(default, fun () ->  error.raise(error.not_found, "no default value for list.nth"), fun (v) -> v)
-  catch _ : [err] do
-    ret()
-  end
-end
-
 # Determining whether a list is empty or not.
 # @category List
 def list.is_empty(l)
   list.case(l, true, fun (_, _) -> false)
-end
-
-# Compute the length of a list, i.e., the number of its elements.
-# @category List
-def list.length(l)
-  list.ind(l, 0, fun (_, _, r) -> r+1)
 end
 
 # Return the last element of a list.
@@ -142,25 +119,6 @@ end
 def list.filter(~remove=fun(_)->(), p, l)
   # list.case(l, [], fun (x, l) -> if p(x) then list.cons(x, list.filter(p, l)) else list.filter(p, l) end)
   list.ind(l, [], fun(x, _, l) -> if p(x) then list.cons(x, l) else (remove(x):unit); l end)
-end
-
-# Concatenate two lists.
-# @category List
-def list.append(l, m)
-  list.ind(l, m, fun (x, _, r) -> list.cons(x, r))
-end
-
-# Add a new last element to the list.
-# @category List
-# @flag hidden
-def list.snoc(y, l)
-  list.ind(l, list.cons(y, []), fun (x, _, r) -> list.cons(x, r))
-end
-
-# Revert list order.
-# @category List
-def list.rev(l)
-  list.ind(l, [], fun (x, _, r) -> list.snoc(x, r))
 end
 
 # Associate a value to a key in an association list. This functions raises
@@ -284,14 +242,16 @@ end
 # @param a Key to look for
 # @param l List of pairs (key,value)
 def list.assoc.mem(a,l)
-  def f(cur, el) =
-    if not cur then
-      fst(el) == a
-    else
-      cur
-    end
+  err = error.register("find")
+  try
+    list.iter(fun (el) ->
+      if fst(el) == a then
+        error.raise(err, "found")
+      end, l)
+    false
+  catch _ : [err] do
+    true
   end
-  list.fold(f, false, l)
 end
 
 # Create an iterator over the elements of a list.

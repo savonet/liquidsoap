@@ -68,6 +68,43 @@ let _ =
 
 let _ =
   let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "length" ~category:`List
+    ~descr:"Compute the length of a list, i.e., the number of its elements."
+    [("", Lang.list_t a, None, None)]
+    Lang.int_t
+    (fun p -> Lang.int (List.length (Lang.to_list (List.assoc "" p))))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "nth" ~category:`List
+    ~descr:
+      "Get the n-th element of a list (the first element is at position 0), or \
+       `default` if element does not exist."
+    [
+      ( "default",
+        Lang.nullable_t a,
+        Some Lang.null,
+        Some
+          "Default element. Raises `error.not_found` if `null` and no element \
+           can be found in the list." );
+      ("", Lang.list_t a, None, None);
+      ("", Lang.int_t, None, None);
+    ]
+    a
+    (fun p ->
+      let default = Lang.to_option (List.assoc "default" p) in
+      let l = Lang.to_list (Lang.assoc "" 1 p) in
+      let n = Lang.to_int (Lang.assoc "" 2 p) in
+      try List.nth l n
+      with _ -> (
+        match default with
+          | Some v -> v
+          | None ->
+              Runtime_error.raise ~pos:(Lang.pos p)
+                ~message:"no default value for list.nth" "not_found"))
+
+let _ =
+  let a = Lang.univ_t () in
   let b = Lang.univ_t () in
   Lang.add_builtin ~base:list "ind" ~category:`List
     ~descr:
@@ -169,6 +206,25 @@ let _ =
         (fun pos v -> ignore (Lang.apply fn [("", Lang.int pos); ("", v)]))
         l;
       Lang.unit)
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "append" ~category:`List
+    ~descr:"Concatenate two lists."
+    [("", Lang.list_t a, None, None); ("", Lang.list_t a, None, None)]
+    (Lang.list_t a)
+    (fun p ->
+      Lang.list
+        (List.append
+           (Lang.to_list (Lang.assoc "" 1 p))
+           (Lang.to_list (Lang.assoc "" 2 p))))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "rev" ~category:`List ~descr:"Revert list order."
+    [("", Lang.list_t a, None, None)]
+    (Lang.list_t a)
+    (fun p -> Lang.list (List.rev (Lang.to_list (List.assoc "" p))))
 
 let _ =
   let a = Lang.univ_t () in
