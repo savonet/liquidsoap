@@ -96,7 +96,7 @@ let _ =
       let l = Lang.to_list (Lang.assoc "" 1 p) in
       let n = Lang.to_int (Lang.assoc "" 2 p) in
       try List.nth l n
-      with Not_found -> (
+      with _ -> (
         match default with
           | Some v -> v
           | None ->
