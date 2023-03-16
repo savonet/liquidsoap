@@ -6,7 +6,7 @@ using the `stereotool` operator (and `track.audio.stereotool` for the low-level,
 This feature is enabled in all release builds of liquidsoap starting with `rolling-release-v2.2.x` and should be enabled if you compile liquidsoap
 with the optional `ctypes-foreign` opam module installed.
 
-This operator can replace the use of the stereotool binary in your script and offers multiple benefits. In particular, it has a **very low latency**
+The operator can replace the use of the stereotool binary in your script and offers multiple benefits. In particular, it has a **very low latency**
 compared to using the binary and also operates synchronously.
 
 The operator should be quite easy to use. Here's an example:
