@@ -243,11 +243,6 @@ end
 # @param l List of pairs (key,value)
 def list.assoc.mem(a,l)
   err = error.register("find")
-  def f(el) =
-    if fst(el) == a then
-      error.raise(err, "found")
-    end
-  end
   try
     list.iter(fun (el) ->
       if fst(el) == a then
