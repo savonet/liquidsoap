@@ -47,6 +47,7 @@ let conf_export_metadata =
         "dj";
         "next";
         "apic";
+        "metadata_url";
         "metadata_block_picture";
         "coverart";
       ]

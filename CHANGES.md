@@ -33,6 +33,7 @@ New:
 - Added `video.board`, `video.graph`, `video.info` (#2886).
 - Added the `pico2wave` protocol in order to perform speech synthesis using
   [Pico TTS](https://github.com/naggety/picotts) (#2934).
+- Added `"metadata_url"` to the default list of exported metadata (#2946)
 
 Changed:
 
