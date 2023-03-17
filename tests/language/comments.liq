@@ -1,33 +1,44 @@
-#------#
+#<------#
 This is
 a multiline comment
-#------#
+with > some # of
+these characters in it.
+#------>#
 
-#---------------#
+#<---------------
 # Yet another
 # form of multiline comment
-#----------------#
+ ---------------->#
 
-   #-----#
+   #<
 multiline comment can start and end
 in the middle of a line
-   #----#
+      >#
 
-#-----#
+#<-----#
 Anything following them
 is executed
-#----#x = 1
+#---->#x = 1
 
-#-----#y = x + 2.
+#<-----#y = x + 2.
 Anything after the mark
 is comment
-#----#
+#---->#
+
+#<---------------
+# Nested comments
+
+   #<
+     Are accepted
+   >#
+
+#---------------->#
 
 def f() =
   test.equals(x, 1)
 
   try
-    let eval _ = "#----#
+    let eval _ = "#<----#
 This comment is not terminated"
     test.fail()
   catch _ do

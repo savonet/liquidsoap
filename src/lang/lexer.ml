@@ -131,26 +131,19 @@ let time =
         Plus decimal_digit,
         's' ) )]
 
-let trim_multiline_comment content =
-  List.map
-    (fun line ->
-      let line = String.trim line in
-      if line <> "" && line.[0] = '#' then
-        String.trim (String.sub line 1 (String.length line - 1))
-      else line)
-    (Regexp.split (Regexp.regexp "\n") content)
-
 let rec token lexbuf =
   match%sedlex lexbuf with
     | skipped -> token lexbuf
-    | Star white_space, '#', Plus '-', '#', Star white_space, Opt '\n' ->
+    | Star white_space, '#', '<' ->
         let buf = Buffer.create 1024 in
         let pos = Sedlexing.lexing_positions lexbuf in
+        Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_multiline_comment pos buf lexbuf;
-        PP_COMMENT (trim_multiline_comment (Buffer.contents buf))
+        PP_COMMENT (Regexp.split (Regexp.regexp "\n") (Buffer.contents buf))
     | "#", Star white_space ->
         let buf = Buffer.create 1024 in
         let pos = Sedlexing.lexing_positions lexbuf in
+        Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_comment pos buf lexbuf;
         PP_COMMENT (Regexp.split (Regexp.regexp "\n") (Buffer.contents buf))
     | '\n' -> PP_ENDL
@@ -354,15 +347,22 @@ and read_comment pos buf lexbuf =
           (Term.Parse_error
              (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
 
-and read_multiline_comment pos buf lexbuf =
+and read_multiline_comment ?(level = 0) pos buf lexbuf =
   match%sedlex lexbuf with
-    | '#', Plus '-', '#' -> ()
-    | '#' ->
-        Buffer.add_char buf '#';
-        read_multiline_comment pos buf lexbuf
-    | Plus (Compl '#') ->
+    | '>', '#' ->
+        if level = 0 then ()
+        else (
+          Buffer.add_string buf ">#";
+          read_multiline_comment ~level:(level - 1) pos buf lexbuf)
+    | '#', '<' ->
+        Buffer.add_string buf "#<";
+        read_multiline_comment ~level:(level + 1) pos buf lexbuf
+    | '#' | '>' ->
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
-        read_multiline_comment pos buf lexbuf
+        read_multiline_comment ~level pos buf lexbuf
+    | Plus (Intersect (Compl '>', Compl '#')) ->
+        Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
+        read_multiline_comment ~level pos buf lexbuf
     | eof -> raise (Term.Parse_error (pos, "Multiline comment not terminated!"))
     | _ ->
         raise
