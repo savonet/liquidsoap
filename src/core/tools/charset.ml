@@ -20,24 +20,16 @@
 
   *****************************************************************************)
 
-include Charset_base
-
 let conf_camomile =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "camomile")
     "Settings related to camomile library (for charset conversion)."
 
 let conf_path =
-  let d =
-    match Liquidsoap_paths.mode with
-      | `Default -> CamomileDefaultConfig__.InstallConfig.share_dir
-      | `Posix -> "/usr/share/liquidsoap/camomile"
-      | `Standalone ->
-          Filename.concat (Liquidsoap_paths.rundir ()) "../camomile"
-  in
   Dtools.Conf.string
     ~p:(conf_camomile#plug "path")
-    ~d "Directory where camomile files are to be found."
+    ~d:(Liquidsoap_paths.camomile_dir ())
+    "Directory where camomile files are to be found."
 
 let conf_encoding =
   Dtools.Conf.list
@@ -45,7 +37,7 @@ let conf_encoding =
     ~d:["UTF-8"; "ISO-8859-1"; "UTF-16"]
     "List of encodings to try for automatic encoding detection."
 
-module C = CamomileLibrary.CharEncoding.Configure (struct
+module C = CamomileLib.CharEncoding.Configure (struct
   let basedir = conf_path#get
   let datadir = Filename.concat basedir "database"
   let localedir = Filename.concat basedir "locales"
@@ -53,7 +45,13 @@ module C = CamomileLibrary.CharEncoding.Configure (struct
   let unimapdir = Filename.concat basedir "mappings"
 end)
 
-let of_name s = try C.of_name s with Not_found -> raise (Unknown_encoding s)
+include C
+
+exception Unknown_encoding of string
+exception Unsupported_encoding of t
+
+let of_string s = try C.of_name s with Not_found -> raise (Unknown_encoding s)
+let to_string = C.name_of
 let custom_encoding = ref None
 
 let automatic_encoding () =
@@ -61,7 +59,7 @@ let automatic_encoding () =
     | Some e -> e
     | None ->
         let encs = conf_encoding#get in
-        let e = C.automatic "auto" (List.map of_name encs) C.utf8 in
+        let e = C.automatic "auto" (List.map of_string encs) C.utf8 in
         custom_encoding := Some e;
         e
 
@@ -88,17 +86,8 @@ let recode_string ~fail ~in_enc ~out_enc s =
           (Printexc.to_string e);
         s
 
-let enc (e : t) =
-  match e with
-    | `ISO_8859_1 -> C.of_name "ISO-8859-1"
-    | `UTF_8 -> C.utf8
-    | `UTF_16 -> C.utf16
-    | `UTF_16LE -> C.utf16le
-    | `UTF_16BE -> C.utf16be
-
-let convert ?(fail = false) ?source ?(target = `UTF_8) =
+let convert ?(fail = false) ?source ?(target = C.utf8) =
   let in_enc =
-    match source with Some e -> enc e | None -> automatic_encoding ()
+    match source with Some e -> e | None -> automatic_encoding ()
   in
-  let out_enc = enc target in
-  recode_string ~fail ~in_enc ~out_enc
+  recode_string ~fail ~in_enc ~out_enc:target

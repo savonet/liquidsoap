@@ -739,11 +739,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Hashtbl.remove args "mode";
           let in_enc =
             try
-              let enc =
-                match String.uppercase_ascii (Hashtbl.find args "charset") with
-                  | "LATIN1" -> `ISO_8859_1
-                  | s -> Charset.of_string s
-              in
+              let enc = Charset.of_string (Hashtbl.find args "charset") in
               Hashtbl.remove args "charset";
               Some enc
             with Not_found ->

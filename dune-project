@@ -23,6 +23,7 @@
     (pcre (>= 7.5.0))
     (ocurl (>= 0.9.2))
     (cry (>= 0.6.5))
+    (camomile (>= 2.0.0))
     uri
     fileutils
     menhirLib
@@ -36,7 +37,6 @@
     ao
     bjack
     camlimages
-    camomile
     ctypes-foreign
     dssi
     faad

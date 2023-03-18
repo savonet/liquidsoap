@@ -350,8 +350,8 @@ class output p =
   in
   let out_enc =
     match s_opt "encoding" with
-      | None | Some "" -> `UTF_8
-      | Some s -> Charset.of_string (String.uppercase_ascii s)
+      | None | Some "" -> Charset.utf8
+      | Some s -> Charset.of_string s
   in
   let source = Lang.assoc "" 2 p in
   let icy_id = Lang.to_int (List.assoc "icy_id" p) in

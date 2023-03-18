@@ -18,7 +18,8 @@ bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.2"}
   "ocaml-windows" {>= "4.12.0"}
-  "camomile-windows" {>= "1.0.0"}
+  "camomile-windows" {>= "2.0.0"}
+  "camomile" {>= "2.0.0"}
   "dtools-windows" {>= "0.4.4"}
   "duppy-windows" {>= "0.9.1"}
   "mm-windows" {>= "0.8.1"}
