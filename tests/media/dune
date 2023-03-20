@@ -89,7 +89,7 @@
   third-concat.mp4
   test_ffmpeg_copy_concat.liq
   ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
@@ -110,7 +110,7 @@
   all_media_files
   test_ffmpeg_complex_filter.liq
   ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
@@ -133,7 +133,7 @@
   logo.png
   test_ffmpeg_transparency_filter.liq
   ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))

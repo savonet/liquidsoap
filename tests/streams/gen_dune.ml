@@ -27,7 +27,7 @@ let () =
   ./huge_playlist
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))

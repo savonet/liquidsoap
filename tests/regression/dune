@@ -22,7 +22,7 @@
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:run_test ../run_test.exe))
  (action
