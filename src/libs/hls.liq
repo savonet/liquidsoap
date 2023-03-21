@@ -140,6 +140,7 @@ end
 # @param ~headers Default response headers.
 # @param ~port Port for incoming harbor (http) connections.
 # @param ~path Base path for hls URIs.
+# @param ~transport Http transport. Use `http.transport.ssl` or `http.transport.secure_transport`, when available, to enable HTTPS output
 # @param ~tmpdir Directory for generated files.
 # @param formats List of specifications for each stream: (name, format).
 def replaces output.harbor.hls(
@@ -147,9 +148,10 @@ def replaces output.harbor.hls(
   ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
   ~headers=[("Access-Control-Allow-Origin","*")],
   ~port=8000,~path="/",~tmpdir=null(),
+  ~transport=http.transport.unix,
   formats,s) =
   def serve(~port,~path,~content_type,dir) =
-    harbor.http.static(port=port,path=path,content_type=content_type,headers=headers,dir)
+    harbor.http.static(port=port,path=path,content_type=content_type,headers=headers,transport=transport,dir)
   end
   output.harbor.hls.base(%argsof(output.file.hls),path=path,port=port,tmpdir=tmpdir,serve,formats,s)
 end

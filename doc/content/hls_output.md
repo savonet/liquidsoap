@@ -65,7 +65,7 @@ Let's see what's important here:
 There are more useful options, in particular `on_file_change`, which can be used for instance to sync up your segments and playlists
 to a distant storage and hosting service such as S3.
 
-Liquidsoap also provides a `output.harbor.hls` and `output.harbor.hls.ssl` which allow to serve HLS streams directly from
+Liquidsoap also provides `output.harbor.hls` which allows to serve HLS streams directly from
 liquidsoap. Their options should be the same as `output.file.hls`, except for harbor-specifc options `port` and `path`. It is
 not recommended for listener-facing setup but can be useful to sync up with a caching system such as cloudfront.
 
