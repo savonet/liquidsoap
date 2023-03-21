@@ -107,7 +107,7 @@ let mk_encoded_file format =
  (target %s)
  (deps
   (:encoder %s)
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -141,7 +141,7 @@ let file_test ~label ~test fname =
   all_media_files
   %s
   ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
