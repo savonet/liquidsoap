@@ -1,8 +1,8 @@
 %ifdef environment
-# Get the value associated to a variable in the process environment.
+# Get the value of an environment variable.
 # Returns `default` if the variable is not set.
 # @category System
-def environment.get(~default=null(), s) =
+def environment.get(~default="", s) =
   env = environment()
   if not list.assoc.mem(s, env) then
     default
