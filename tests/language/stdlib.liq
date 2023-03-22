@@ -8,7 +8,7 @@ def t(x, y)
 end
 
 def f() =
-  t(environment.get("BLAXXX"),null())
+  t(environment.get("BLAXXX"),"")
   t(file.is_directory("/"), true)
   t(file.is_directory("~"), true)
   t(file.is_directory("XXX"), false)
