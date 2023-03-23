@@ -382,11 +382,29 @@ let runtime_error_of_exception ~bt ~kind exn =
   match exn with
     | Runtime_error.Runtime_error error -> error
     | _ ->
-        Runtime_error.make ~pos:[]
-          ~message:
-            (Printf.sprintf "%s\nBacktrace:\n%s" (Printexc.to_string exn)
-               (Printexc.raw_backtrace_to_string bt))
-          kind
+        let pos =
+          match Printexc.backtrace_slots bt with
+            | None -> []
+            | Some entries ->
+                List.fold_left
+                  (fun pos slot ->
+                    match Printexc.Slot.location slot with
+                      | None -> pos
+                      | Some
+                          {
+                            Printexc.filename = pos_fname;
+                            line_number = pos_lnum;
+                            start_char = pos_bol;
+                            end_char = pos_cnum;
+                          } ->
+                          let p =
+                            { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum }
+                          in
+                          (p, p) :: pos)
+                  []
+                  (List.rev (Array.to_list entries))
+        in
+        Runtime_error.make ~pos ~message:(Printexc.to_string exn) kind
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with

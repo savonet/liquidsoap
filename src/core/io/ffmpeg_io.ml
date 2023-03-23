@@ -35,8 +35,8 @@ let normalize_metadata =
 exception Stopped
 
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
-  ~clock_safe ~max_buffer ~on_stop ~on_start ~on_connect ~on_disconnect
-  ~new_track_on_metadata ?format ~opts url =
+  ~clock_safe ~max_buffer ~on_error ~on_stop ~on_start ~on_connect
+  ~on_disconnect ~new_track_on_metadata ?format ~opts url =
   let max_length = Some (Frame.main_of_seconds max_buffer) in
   object (self)
     inherit
@@ -124,8 +124,10 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             Atomic.set source_status `Stopped;
             -1.
         | e ->
+            let bt = Printexc.get_raw_backtrace () in
             self#log#info "Connection failed: %s" (Printexc.to_string e);
-            if debug then raise e;
+            on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" e);
+            if debug then Printexc.raise_with_backtrace e bt;
             Atomic.set source_status `Starting;
             poll_delay
 
@@ -190,16 +192,18 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           if new_track_on_metadata then Generator.add_track_mark self#buffer;
           last_metadata <- m)
       with exn ->
-        let bt = Printexc.get_backtrace () in
-        Utils.log_exception ~log:self#log ~bt
+        let bt = Printexc.get_raw_backtrace () in
+        Utils.log_exception ~log:self#log
+          ~bt:(Printexc.raw_backtrace_to_string bt)
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
+        on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" exn);
         Frame.add_break frame pos;
         self#reconnect
   end
 
 let http_log = Log.make ["input"; "http"]
 
-class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
+class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
   ~max_buffer ~on_connect ~on_disconnect ?format ~opts ~user_agent ~timeout
   ~on_start ~on_stop ~new_track_on_metadata url =
   let () =
@@ -227,10 +231,12 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
             else ret)
           [] icy_headers
       with exn ->
-        let bt = Printexc.get_backtrace () in
-        Utils.log_exception ~log:http_log ~bt
+        let bt = Printexc.get_raw_backtrace () in
+        Utils.log_exception ~log:http_log
+          ~bt:(Printexc.raw_backtrace_to_string bt)
           (Printf.sprintf "Error while fetching icy headers: %s"
              (Printexc.to_string exn));
+        on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" exn);
         []
     in
     Atomic.set is_icy (icy_headers <> []);
@@ -245,8 +251,8 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
     inherit
       input
         ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
-          ~max_buffer ~on_stop ~on_start ~on_disconnect ~on_connect ?format
-          ~opts ~new_track_on_metadata url
+          ~max_buffer ~on_stop ~on_start ~on_disconnect ~on_connect ~on_error
+          ?format ~opts ~new_track_on_metadata url
   end
 
 let parse_args ~t name p opts =
@@ -278,6 +284,10 @@ let register_input is_http =
   let name, descr =
     if is_http then ("http", "Create a http stream using ffmpeg")
     else ("ffmpeg", "Create a stream using ffmpeg")
+  in
+  let on_error =
+    Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+      "fun (_) -> ()"
   in
   ignore
     (Lang.add_operator ~base:Modules.input name ~descr ~category:`Input
@@ -318,6 +328,10 @@ let register_input is_http =
              Lang.bool_t,
              Some (Lang.bool true),
              Some "Treat new metadata as new track." );
+           ( "on_error",
+             Lang.fun_t [(false, "", Lang.error_t)] Lang.unit_t,
+             Some on_error,
+             Some "Callback executed when an error occurs." );
            ( "on_disconnect",
              Lang.fun_t [] Lang.unit_t,
              Some (Lang.val_cst_fun [] Lang.unit),
@@ -430,6 +444,10 @@ let register_input is_http =
          in
          let autostart = Lang.to_bool (List.assoc "start" p) in
          let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+         let on_error =
+           let f = List.assoc "on_error" p in
+           fun err -> ignore (Lang.apply f [("", Lang.error err)])
+         in
          let on_start =
            let f = List.assoc "on_start" p in
            fun _ -> ignore (Lang.apply f [])
@@ -461,16 +479,16 @@ let register_input is_http =
            (new http_input
               ~debug ~autostart ~self_sync ~clock_safe ~poll_delay ~on_connect
               ~on_disconnect ~user_agent ~new_track_on_metadata ~max_buffer
-              ?format ~opts ~timeout ~on_start ~on_stop url
+              ?format ~opts ~timeout ~on_error ~on_start ~on_stop url
              :> input))
          else (
            let on_connect _ =
              ignore (Lang.apply (List.assoc "on_connect" p) [])
            in
            new input
-             ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_start
-             ~on_stop ~on_connect ~on_disconnect ~max_buffer ?format ~opts
-             ~new_track_on_metadata url)))
+             ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_error
+             ~on_start ~on_stop ~on_connect ~on_disconnect ~max_buffer ?format
+             ~opts ~new_track_on_metadata url)))
 
 let () =
   register_input true;

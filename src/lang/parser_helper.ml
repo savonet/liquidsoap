@@ -207,7 +207,7 @@ let args_of, app_of =
             raise
               (Parse_error
                  ( pos,
-                   Printf.sprintf "Term %s cannot be represented as a term"
+                   Printf.sprintf "Value %s cannot be represented as a term"
                      (Value.to_string v) ))
     in
     let meths, _ = Type.split_meths t in

@@ -63,6 +63,7 @@ Changed:
 - Add `sorted` option to `file.ls`.
 - Add `buffer_length` method to `input.external.rawaudio` and
   `input.external.wav` (#2612).
+- Added full `OCaml` backtrace as `trace` to runtime errors returned from OCaml code.
 - Removed confusing `let json.stringify` in favor of `json.stringify()`.
 - Font, font size and colors are now getters for text operators (`video.text`,
   `video.add_text`, etc.) (#2623).
