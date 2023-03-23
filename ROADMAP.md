@@ -26,19 +26,29 @@
 - allow showing graphs (of buffer.adaptative for instance)
 - reimplement video.tile in native liq
 
-## Backlog
+## After 2.3
 
-- support for subtitles
-- Switch to immutable content
-- refine video support in order to have next liquidshop running on Liquidsoap
-  (dogfooding)
-- native RTMP support (and ensure that HLS output is easy to use)
 - update the Liquidsoap book
+
+## For 2.3
+
 - switch to immutable content for frames (#2364)
   - frame should be changed to extensible arrays (a bit like `Strings`) instead
     of filling a buffer
   - take the opportunity to change the handling of track boundaries (currently
     boundary = we have a partial fill, which has quite messy corner cases)
+- Rewrite streaming loop
+- Take advantage of multicore
+- Support for proper modules
+- Optimize runtime: start time, typing and memory usage
+- Add script tooling, prettier etc.
+
+## Backlog
+
+- support for subtitles
+- refine video support in order to have next liquidshop running on Liquidsoap
+  (dogfooding)
+- native RTMP support (and ensure that HLS output is easy to use)
 - rewrite the clock system
   - the code is unreadable and overengineered ⇒ simplify it
   - we want to get rid of the assumption clock = thread
@@ -49,8 +59,4 @@
     using cross and a tag system to know from which source we come
 - use row variables for methods, using Garrigue's _Simple Type Inference for
   Structural Polymorphism_
-- modules (#1934 based on runtime types, not ideal): we can implement them as
-  records
-  - import
-  - support for hiding fields
 - can we reimplement something like [melt](https://www.mltframework.org/)?
