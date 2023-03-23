@@ -38,3 +38,21 @@ end
 def time.zone.set(tz) =
   environment.set("TZ", tz)
 end
+
+# Execute a callback when a predicate is `true`. The predicate
+# is checked every `resolution` seconds and the callback is
+# called when the predicate returns `true` after having been
+# `false`, following the same semantics as `predicate.activates`.
+# @param ~fast Whether the callback is supposed to return quickly or not.
+# @param ~resolution How often, in seconds, should the predicate be checked
+# @param p Predicate to check
+# @param fn Callback
+# @category Time
+def time.at(~fast=false, ~resolution=getter(0.5), p, fn) =
+  p = predicate.activates(init=true, p)
+  thread.run(fast=fast, every=resolution, fun () -> begin
+    if p() then
+      fn()
+    end
+  end)
+end
