@@ -13,7 +13,10 @@ def f() =
   time.zone.set("Europe/Paris")
   check_value(time.string(time=1662367396.), "Monday, 05 September 2022 10:43:16")
 
-  time.at({00s-59s}, test.pass)
+  def p() =
+    not (10s-15s or 20s-25s or 30s-35s or 40s-45s or 50s-55s)
+  end
+  time.at(init=false, p, test.pass)
 end
 
 test.check(f)

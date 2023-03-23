@@ -44,11 +44,12 @@ end
 # called when the predicate returns `true` after having been
 # `false`, following the same semantics as `predicate.activates`.
 # @param ~fast Whether the callback is supposed to return quickly or not.
+# @param ~init Detect at beginning.
 # @param ~resolution How often, in seconds, should the predicate be checked
 # @param p Predicate to check
 # @param fn Callback
 # @category Time
-def time.at(~fast=false, ~resolution=getter(0.5), p, fn) =
+def time.at(~init=true, ~fast=false, ~resolution=getter(0.5), p, fn) =
   p = predicate.activates(init=true, p)
   thread.run(fast=fast, every=resolution, fun () -> begin
     if p() then
