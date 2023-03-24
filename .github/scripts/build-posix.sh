@@ -37,8 +37,8 @@ sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
-opam update
-opam install -y camomile.2.0.0
+git clone https://github.com/savonet/Camomile.git
+cd Camomile && opam install -y .
 
 echo "::endgroup::"
 
