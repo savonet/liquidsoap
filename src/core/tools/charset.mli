@@ -20,15 +20,30 @@
 
   *****************************************************************************)
 
-include Charset_base
+(** A character set. *)
+type t
 
-let log = Log.make ["charset"]
+exception Unknown_encoding of string
+exception Unsupported_encoding of t
 
-let convert ?(fail = false) ?(source = `UTF_8) ?(target = `UTF_8) s =
-  if source <> `UTF_8 then
-    if fail then raise (Unsupported_encoding source)
-    else log#important "Conversion from %s is not supported." (to_string source);
-  if target <> `UTF_8 then
-    if fail then raise (Unsupported_encoding target)
-    else log#important "Conversion to %s is not supported." (to_string target);
-  s
+val ascii : t
+val latin1 : t
+val utf8 : t
+val utf16 : t
+val utf16be : t
+val utf16le : t
+val utf32 : t
+val utf32be : t
+val utf32le : t
+val ucs4 : t
+
+(** Charset from string. *)
+val of_string : string -> t
+
+(** String name of charset. *)
+val to_string : t -> string
+
+(** Convert between charsets. By default, source charset is automatically
+    detected and target charset is UTF8. The function will silently fail unless
+    [fail] is set to [true]. *)
+val convert : ?fail:bool -> ?source:t -> ?target:t -> string -> string

@@ -22,11 +22,7 @@
   fileutils
   liquidsoap_lang
   menhirLib
-  (select
-   charset.ml
-   from
-   (camomile -> charset.camomile.ml)
-   (-> charset.native.ml))
+  camomile.lib
   curl
   cry
   uri
@@ -61,7 +57,6 @@
   avi_format
   biquad_filter
   blank
-  charset_base
   charset
   child_support
   chord

@@ -3,11 +3,6 @@
   (flags
    (:standard -w -9))))
 
-(rule
- (target flags.sexp)
- (action
-  (copy ../config/flambda.%{ocaml-config:flambda}.flags.sexp flags.sexp)))
-
 (include_subdirs unqualified)
 
 (generate_sites_module

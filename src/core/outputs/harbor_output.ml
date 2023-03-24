@@ -319,9 +319,7 @@ class output p =
   let encoding = Lang.to_string (List.assoc "encoding" p) in
   let recode m =
     let out_enc =
-      match encoding with
-        | "" -> `UTF_8
-        | s -> Charset.of_string (String.uppercase_ascii s)
+      match encoding with "" -> Charset.utf8 | s -> Charset.of_string s
     in
     let f = Charset.convert ~target:out_enc in
     let meta = Hashtbl.create (Hashtbl.length m) in
