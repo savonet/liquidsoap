@@ -69,8 +69,8 @@ let _ =
           | Lang.(Ground (Ground.String s)) -> s
           | _ -> Value.to_string v
       in
-      let v = if nl then v ^ "\n" else v in
       print_string v;
+      if nl then print_string "\n";
       flush stdout;
       Lang.unit)
 

@@ -26,7 +26,7 @@ end
 # @param p Predicate indicating when to execute the function, typically a time interval such as `{10h-10h30}`.
 # @param f Function to execute when the predicate is true.
 def thread.when(~fast=true, ~init=true, ~every=getter(0.5), ~once=false, ~changed=true, p, f)
-  p = once ? p : (predicate.activates(init=init, p))
+  p = once or not changed ? p : (predicate.activates(init=init, p))
   def check()
     if p() then
       f()

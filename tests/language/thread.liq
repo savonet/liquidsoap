@@ -4,7 +4,7 @@ def f() =
     count := count() + 1
   end
   thread.when({true}, cb)
-  sleep(1.)
+  thread.pause(1.)
   test.equals(count(), 1)
 
   # Testing a step with initial true:
@@ -19,7 +19,7 @@ def f() =
     count := count() + 1
   end
   thread.when(init=false, p, cb)
-  sleep(5.)
+  thread.pause(5.)
   test.equals(count(), 1)
 
   # Testing a step with initial false:
@@ -33,8 +33,23 @@ def f() =
     count := count() + 1
   end
   thread.when(p, cb)
-  sleep(3.)
+  thread.pause(3.)
   test.equals(count(), 1)
+
+  # Testing when triggering on each change
+  # True for the first 2s then false
+  t = time()
+  def p() =
+    cur_t = time()
+    t <= cur_t and cur_t < t + 2.
+  end
+  count = ref(0)
+  def cb() =
+    count := count() + 1
+  end
+  thread.when(changed=false, every=0.5, p, cb)
+  thread.pause(5.)
+  test.equals(count(), 4)
 
   test.pass()
 end
