@@ -13,20 +13,27 @@ def replaces thread.run(~fast=true, ~delay=0., ~every=null(), f)
   thread.run.recurrent(fast=fast, delay=delay, f)
 end
 
-# Execute a given action when a predicate is true.
+# Execute a callback when a predicate is `true`. The predicate
+# is checked `every` seconds and the callback is
+# called when the predicate returns `true` after having been
+# `false`, following the same semantics as `predicate.activates`.
 # @category Programming
+# @param ~fast Whether the callback is supposed to return quickly or not.
+# @param ~init Detect at beginning.
 # @param ~every How often (in sec.) to check for the predicate.
 # @param ~once Execute the function only once.
 # @param ~changed Execute the function only if the predicate was false when last checked.
 # @param p Predicate indicating when to execute the function, typically a time interval such as `{10h-10h30}`.
 # @param f Function to execute when the predicate is true.
-def thread.when(~fast=true, ~every=1., ~once=false, ~changed=true, p, f)
-  last = ref(false)
+def thread.when(~fast=true, ~init=true, ~every=getter(0.5), ~once=false, ~changed=true, p, f)
+  p = once ? p : (predicate.activates(init=init, p))
   def check()
-    b = p()
-    if b and not (changed and last()) then f() end
-    last := b
-    if b and once then (-1.) else every end
+    if p() then
+      f()
+      once ? (-1.) : (getter.get(every))
+    else
+      getter.get(every)
+    end
   end
   thread.run.recurrent(fast=fast, delay=0., check)
 end
