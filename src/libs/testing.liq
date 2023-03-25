@@ -13,13 +13,13 @@ def sleeper(~every=1., ~delay=1.1, ~delay_random=0., ~on_delay=fun (_) -> (), s)
   last = ref(0.)
   frozen = ref(false)
   def f()
-    while frozen() do sleep(0.1) end
+    while frozen() do thread.pause(0.1) end
     now = source.time(s)
     if now >= last() + every then
       last := now
       delay = delay + random.float(max=delay_random)
       on_delay(delay)
-      sleep(delay)
+      thread.pause(delay)
     end
   end
   s = source.on_frame(s,f)
